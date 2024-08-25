@@ -13,8 +13,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-
-package net.internetisalie.lunar.lang.lexer;
+package net.internetisalie.lunar.lang.lexer
 
 /**
  * Created by IntelliJ IDEA.
@@ -22,7 +21,7 @@ package net.internetisalie.lunar.lang.lexer;
  * Date: Apr 3, 2010
  * Time: 2:15:34 AM
  */
-public class ExtendedSyntaxStrCommentHandler {
+class ExtendedSyntaxStrCommentHandler {
     /* Code to handle extended quote/comment syntax
     *
     * There is a basic assumption that inside a longstring or longcomment
@@ -30,29 +29,30 @@ public class ExtendedSyntaxStrCommentHandler {
     * ever 1 closing bracket to track, and once found no more closing brackets are valid
     * until another opening bracket.
     * */
-    int longQLevel = 0;
+    var longQLevel: Int = 0
 
-    boolean isCurrentExtQuoteStart(CharSequence endQuote) {
-        int level = getLevel(endQuote);
-        return longQLevel == level;
+    fun isCurrentExtQuoteStart(endQuote: CharSequence): Boolean {
+        val level = getLevel(endQuote)
+        return longQLevel == level
     }
 
-    void resetCurrentExtQuoteStart() {
-        longQLevel=0;
+    fun resetCurrentExtQuoteStart() {
+        longQLevel = 0
     }
 
-    void setCurrentExtQuoteStart(CharSequence cs) {
-        int level = getLevel(cs);
+    fun setCurrentExtQuoteStart(cs: CharSequence) {
+        val level = getLevel(cs)
 
-        longQLevel = level;
+        longQLevel = level
     }
 
-    private static int getLevel(CharSequence cs) {
-        int level = 0;
-        int comment = 0;
-        while (cs.charAt(comment) == '-') comment++;
-        while (cs.length() > comment+level && cs.charAt(comment+1+level) == '=') level++;
-        return level;
+    companion object {
+        private fun getLevel(cs: CharSequence): Int {
+            var level = 0
+            var comment = 0
+            while (cs[comment] == '-') comment++
+            while (cs.length > comment + level && cs[comment + 1 + level] == '=') level++
+            return level
+        }
     }
-
 }

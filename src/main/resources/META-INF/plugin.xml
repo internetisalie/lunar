@@ -26,7 +26,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <fileType
             name="Lua File"
-            implementationClass="net.internetisalie.lunar.LuaFileType"
+            implementationClass="net.internetisalie.lunar.lang.LuaFileType"
             fieldName="INSTANCE"
             language="Lua"
             extensions="lua"/>

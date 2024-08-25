@@ -1,7 +1,7 @@
 package net.internetisalie.lunar.lang.psi;
 
 import com.intellij.psi.tree.IElementType;
-import net.internetisalie.lunar.LuaLanguage;
+import net.internetisalie.lunar.lang.LuaLanguage;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
