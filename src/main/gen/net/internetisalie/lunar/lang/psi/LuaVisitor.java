@@ -1,0 +1,114 @@
+// This is a generated file. Not intended for manual editing.
+package net.internetisalie.lunar.lang.psi;
+
+import org.jetbrains.annotations.*;
+import com.intellij.psi.PsiElementVisitor;
+import com.intellij.psi.PsiElement;
+
+public class LuaVisitor extends PsiElementVisitor {
+
+  public void visitArgs(@NotNull LuaArgs o) {
+    visitPsiElement(o);
+  }
+
+  public void visitBinOp(@NotNull LuaBinOp o) {
+    visitPsiElement(o);
+  }
+
+  public void visitBlock(@NotNull LuaBlock o) {
+    visitPsiElement(o);
+  }
+
+  public void visitExpr(@NotNull LuaExpr o) {
+    visitPsiElement(o);
+  }
+
+  public void visitExprList(@NotNull LuaExprList o) {
+    visitPsiElement(o);
+  }
+
+  public void visitField(@NotNull LuaField o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFieldList(@NotNull LuaFieldList o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFieldSep(@NotNull LuaFieldSep o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFinalStatement(@NotNull LuaFinalStatement o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFuncBody(@NotNull LuaFuncBody o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFuncCall(@NotNull LuaFuncCall o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFuncDef(@NotNull LuaFuncDef o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFuncName(@NotNull LuaFuncName o) {
+    visitPsiElement(o);
+  }
+
+  public void visitLabel(@NotNull LuaLabel o) {
+    visitPsiElement(o);
+  }
+
+  public void visitNameAndArgs(@NotNull LuaNameAndArgs o) {
+    visitPsiElement(o);
+  }
+
+  public void visitNameList(@NotNull LuaNameList o) {
+    visitPsiElement(o);
+  }
+
+  public void visitParList(@NotNull LuaParList o) {
+    visitPsiElement(o);
+  }
+
+  public void visitPrefixExpr(@NotNull LuaPrefixExpr o) {
+    visitPsiElement(o);
+  }
+
+  public void visitStatement(@NotNull LuaStatement o) {
+    visitPsiElement(o);
+  }
+
+  public void visitTableConstructor(@NotNull LuaTableConstructor o) {
+    visitPsiElement(o);
+  }
+
+  public void visitUnOp(@NotNull LuaUnOp o) {
+    visitPsiElement(o);
+  }
+
+  public void visitVar(@NotNull LuaVar o) {
+    visitPsiElement(o);
+  }
+
+  public void visitVarList(@NotNull LuaVarList o) {
+    visitPsiElement(o);
+  }
+
+  public void visitVarOrExp(@NotNull LuaVarOrExp o) {
+    visitPsiElement(o);
+  }
+
+  public void visitVarSuffix(@NotNull LuaVarSuffix o) {
+    visitPsiElement(o);
+  }
+
+  public void visitPsiElement(@NotNull PsiElement o) {
+    visitElement(o);
+  }
+
+}

@@ -1,63 +1,160 @@
-chunk ::= block
+{
+    // not used except for preview
+    tokens = [
+        WS     =   'regexp:[ \t\v\a]+'
+        NUMBER =   'regexp:[0-9]+([.][0-9]+)?([Ee][+-]?[0-9]+)?'
+        STRING =   'regexp:"[^"]*"'
 
-block ::= {statement} [return_statement]
+        AND    = 'and'
+        BREAK  = 'break'
+        DO     = 'do'
+        ELSE   = 'else'
+        ELSEIF = 'elseif'
+        END    = 'end'
+        FALSE  = 'false'
+        FOR    = 'for'
+        FUNCTION = 'function'
+        IF     = 'if'
+        IN     = 'in'
+        GOTO   = 'goto'
+        LOCAL  = 'local'
+        NIL    = 'nil'
+        NOT    = 'not'
+        OR     = 'or'
+        REPEAT = 'repeat'
+        RETURN = 'return'
+        THEN   = 'then'
+        TRUE   = 'true'
+        UNTIL  = 'until'
+        WHILE  = 'while'
 
-statement ::=  ';' |
-varlist '=' explist |
-functioncall |
-label |
-break |
-goto Name |
-do block end |
-while exp do block end |
-repeat block until exp |
-if exp then block {elseif exp then block} [else block] end |
-for Name '=' exp ',' exp [',' exp] do block end |
-for namelist in explist do block end |
-function funcname funcbody |
-local function Name funcbody |
-local namelist ['=' explist]
+        SHEBANG = '#!'
+        CONCAT = '..'
+        ELLIPSIS = '...'
+        EQ     = '=='
+        GE     = '>='
+        LE     = '<='
+        NE     = '~='
+        PLUS   = '+'
+        MINUS  = '-'
+        MULT   = '*'
+        DIV    = '/'
+        INTDIV = '//'
+        EXP    = '^'
+        MOD    = '%'
+        ASSIGN = '='
+        GT     = '>'
+        LT     = '<'
+        LPAREN = '('
+        RPAREN = ')'
+        LBRACK = '['
+        RBRACK = ']'
+        LCURLY = '{'
+        RCURLY = '}'
+        GETN   = '#'
+        COMMA  = ','
+        SEMI   = ';'
+        COLON  = ':'
+        DOT    = '.'
+        AMP    = '&'
+        NEG    = '~'
+        PIPE   = '|'
+        BSR    = '>>'
+        BSL    = '<<'
+        LONGCOMMENT_BEGIN  = '--[['
+        LONGCOMMENT_END  = ']]--'
+        SHORTCOMMENT  = '--'
 
-return_statement ::= return [explist] [';']
+        IDENTIFIER   =   'regexp:[_a-zA-Z][_a-zA-Z0-9]*'
+    ]
+//    generate=[tokenAccessors="no"]
 
-label ::= '::' Name '::'
+    parserClass="net.internetisalie.lunar.lang.parser.LuaParser"
+    parserImports=[]
 
-funcname ::= Name {'.' Name} [':' Name]
+    extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
 
-varlist ::= var {',' var}
+    tokenTypeClass="net.internetisalie.lunar.lang.psi.LuaTokenType"
 
-var ::=  Name | prefixexp '[' exp ']' | prefixexp '.' Name
+    elementTypeHolderClass="net.internetisalie.lunar.lang.psi.LuaElementTypes"
+    elementTypeClass="net.internetisalie.lunar.lang.psi.LuaElementType"
 
-namelist ::= Name {',' Name}
+    psiClassPrefix='Lua'
+    psiPackage='net.internetisalie.lunar.lang.psi'
+    psiImplPackage='net.internetisalie.lunar.lang.psi.impl'
+}
 
-explist ::= exp {',' exp}
+// https://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
 
-exp ::=  nil | false | true | Numeral | LiteralString | '...' | functiondef |
-prefixexp | tableconstructor | exp binop exp | unop exp
+root ::= block*
+block ::= not_eof {statement SEMI?}* [finalStatement SEMI?]
+private not_eof ::= !<<eof>>
 
-prefixexp ::= var | functioncall | '(' exp ')'
+statement ::= varList '=' exprList
+    | funcCall
+    | label
+    | BREAK
+    | GOTO IDENTIFIER
+    | DO block END
+    | WHILE expr DO block END
+    | REPEAT block UNTIL expr
+    | IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
+    | FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
+    | FOR nameList IN exprList DO block END
+    | FUNCTION funcName funcBody
+    | LOCAL FUNCTION IDENTIFIER funcBody
+    | LOCAL nameList ['=' exprList]
+finalStatement ::= RETURN [exprList] [';']
+label ::= '::' IDENTIFIER '::'
+funcName ::= IDENTIFIER {'.' IDENTIFIER}* [':' IDENTIFIER]
+varList ::= var {',' var}*
+nameList ::= IDENTIFIER {',' IDENTIFIER}*
+exprList ::= expr {',' expr}*
 
-functioncall ::=  prefixexp args | prefixexp ':' Name args
 
-args ::=  '(' [explist] ')' | tableconstructor | LiteralString
+// TODO
+// http://lua-users.org/wiki/LpegRecipes - Lua Parser (batrick)
+//  -- Let's come up with a syntax that does not use left recursion
+//  -- (only listing changes to Lua 5.1 extended BNF syntax)
+//  -- value ::= nil | false | true | Number | String | '...' | function |
+//  --           tableconstructor | functioncall | var | '(' exp ')'
+//  -- exp ::= unop exp | value [binop exp]
+//  -- prefix ::= '(' exp ')' | Name
+//  -- index ::= '[' exp ']' | '.' Name
+//  -- call ::= args | ':' Name args
+//  -- suffix ::= call | index
+//  -- var ::= prefix {suffix} index | Name
+//  -- functioncall ::= prefix {suffix} call
 
-functiondef ::= function funcbody
+// use right-recursion for expressions
+expr ::= (NIL | FALSE | TRUE | NUMBER | STRING | ELLIPSIS | funcDef | prefixExpr | tableConstructor | unOp expr) {binOp expr}*
 
-funcbody ::= '(' [parlist] ')' block end
+var ::= (IDENTIFIER | '(' expr ')' varSuffix) {varSuffix}*
+prefixExpr ::= varOrExp nameAndArgs*
+funcCall ::= varOrExp nameAndArgs+
+varOrExp ::= var | '(' expr ')'
+nameAndArgs ::= (':' IDENTIFIER)? args
+varSuffix ::= nameAndArgs* ('[' expr ']' | '.' IDENTIFIER)
 
-parlist ::= namelist [',' '...'] | '...'
+args ::=  '(' [exprList] ')' | tableConstructor | STRING
 
-tableconstructor ::= '{' [fieldlist] '}'
+funcDef ::= FUNCTION funcBody
 
-fieldlist ::= field {fieldsep field} [fieldsep]
+funcBody ::= '(' [parList] ')' block END
 
-field ::= '[' exp ']' '=' exp | Name '=' exp | exp
+parList ::= nameList [',' '...'] | '...'
 
-fieldsep ::= ',' | ';'
+tableConstructor ::= '{' [fieldList] '}'
 
-binop ::=  '+' | '-' | '*' | '/' | '//' | '^' | '%' |
-'&' | '~' | '|' | '>>' | '<<' | '..' |
-'<' | '<=' | '>' | '>=' | '==' | '~=' |
-and | or
+fieldList ::= field {fieldSep field}* [fieldSep]
 
-unop ::= '-' | not | '#' | '~'
+field ::= '[' expr ']' '=' expr | IDENTIFIER '=' expr | expr
+
+fieldSep ::= ',' | ';'
+
+binOp ::=  '+' | '-' | '*' | '/' | '//' | '^' | '%' |
+    '&' | '~' | '|' | '>>' | '<<' | '..' |
+    '<' | '<=' | '>' | '>=' | '==' | '~=' |
+    AND | OR
+
+unOp ::= '-' | NOT | '#' | '~'

@@ -8,14 +8,13 @@
   <name>Lunar</name>
 
   <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-  <vendor email="support@yourcompany.com" url="https://www.yourcompany.com">YourCompany</vendor>
+  <vendor email="internetisalie@gmail.com" url="https://internetisalie.github.io">internetisalie</vendor>
 
   <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
        Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
        Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
   <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
+    Enhanced Lua support for JetBrains IDEs.
   ]]></description>
 
   <!-- Product and plugin compatibility requirements.
@@ -25,6 +24,20 @@
   <!-- Extension points defined by the plugin.
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
+    <fileType
+            name="Lua File"
+            implementationClass="net.internetisalie.lunar.LuaFileType"
+            fieldName="INSTANCE"
+            language="Lua"
+            extensions="lua"/>
+
+    <lang.syntaxHighlighterFactory
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.LuaSyntaxHighlighterFactory"/>
+
+    <lang.parserDefinition
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.LuaParserDefinition"/>
 
   </extensions>
 </idea-plugin>

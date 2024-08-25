@@ -30,6 +30,12 @@ tasks {
     kotlinOptions.jvmTarget = "17"
   }
 
+  sourceSets {
+    main {
+      java.srcDir("src/main/gen")
+    }
+  }
+
   patchPluginXml {
     sinceBuild.set("232")
     untilBuild.set("242.*")
