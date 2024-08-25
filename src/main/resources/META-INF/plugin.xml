@@ -39,5 +39,8 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaParserDefinition"/>
 
+    <colorSettingsPage
+            implementation="net.internetisalie.lunar.lang.syntax.LuaColorSettingsPage"/>
+
   </extensions>
 </idea-plugin>

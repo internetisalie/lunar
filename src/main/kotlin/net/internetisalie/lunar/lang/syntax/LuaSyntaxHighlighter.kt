@@ -34,32 +34,33 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
  */
 class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
     private val colors: MutableMap<IElementType, TextAttributesKey> = HashMap()
+    private val highlight = LuaHighlight
 
     init {
-        colors[LuaTokenTypes.LONGCOMMENT] = LONGCOMMENT
-        colors[LuaElementTypes.LONGCOMMENT_BEGIN] = LONGCOMMENT_BRACES
-        colors[LuaElementTypes.LONGCOMMENT_END] = LONGCOMMENT_BRACES
-        colors[LuaElementTypes.SHORTCOMMENT] = COMMENT
-        colors[LuaElementTypes.SHEBANG] = COMMENT
-        colors[LuaTokenTypes.LUADOC_COMMENT] = COMMENT
+        colors[LuaTokenTypes.LONGCOMMENT] = highlight.LONGCOMMENT
+        colors[LuaElementTypes.LONGCOMMENT_BEGIN] = highlight.LONGCOMMENT_BRACES
+        colors[LuaElementTypes.LONGCOMMENT_END] = highlight.LONGCOMMENT_BRACES
+        colors[LuaElementTypes.SHORTCOMMENT] = highlight.COMMENT
+        colors[LuaElementTypes.SHEBANG] = highlight.COMMENT
+        colors[LuaTokenTypes.LUADOC_COMMENT] = highlight.COMMENT
 
-        colors[LuaElementTypes.STRING] = STRING
-        colors[LuaTokenTypes.LONGSTRING] = LONGSTRING
-        colors[LuaTokenTypes.LONGSTRING_BEGIN] = LONGSTRING_BRACES
-        colors[LuaTokenTypes.LONGSTRING_END] = LONGSTRING_BRACES
+        colors[LuaElementTypes.STRING] = highlight.STRING
+        colors[LuaTokenTypes.LONGSTRING] = highlight.LONGSTRING
+        colors[LuaTokenTypes.LONGSTRING_BEGIN] = highlight.LONGSTRING_BRACES
+        colors[LuaTokenTypes.LONGSTRING_END] = highlight.LONGSTRING_BRACES
 
-        fillMap(colors, LuaSyntax.OPERATORS_SET, OPERATORS)
-        fillMap(colors, LuaSyntax.KEYWORDS, KEYWORD)
-        fillMap(colors, LuaSyntax.PARENS, PARENTHESES)
-        fillMap(colors, LuaSyntax.BRACES, BRACES)
-        fillMap(colors, LuaSyntax.BRACKS, BRACKETS)
+        fillMap(colors, LuaSyntax.OPERATORS_SET, highlight.OPERATORS)
+        fillMap(colors, LuaSyntax.KEYWORDS, highlight.KEYWORD)
+        fillMap(colors, LuaSyntax.PARENS, highlight.PARENTHESES)
+        fillMap(colors, LuaSyntax.BRACES, highlight.BRACES)
+        fillMap(colors, LuaSyntax.BRACKS, highlight.BRACKETS)
 
-        colors[LuaElementTypes.SEMI] = SEMI
+        colors[LuaElementTypes.SEMI] = highlight.SEMI
 
-        fillMap(colors, LuaSyntax.BAD_INPUT, BAD_CHARACTER)
-        fillMap(colors, LuaSyntax.DEFINED_CONSTANTS, DEFINED_CONSTANTS)
-        colors[LuaElementTypes.COMMA] = COMMA
-        colors[LuaElementTypes.NUMBER] = NUMBER
+        fillMap(colors, LuaSyntax.BAD_INPUT, highlight.BAD_CHARACTER)
+        fillMap(colors, LuaSyntax.DEFINED_CONSTANTS, highlight.DEFINED_CONSTANTS)
+        colors[LuaElementTypes.COMMA] = highlight.COMMA
+        colors[LuaElementTypes.NUMBER] = highlight.NUMBER
     }
 
     override fun getHighlightingLexer(): Lexer {
@@ -71,60 +72,6 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
     }
 
     companion object {
-        val LOCAL_VAR: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_LOCAL_VAR", DefaultLanguageHighlighterColors.LOCAL_VARIABLE)
-        val UPVAL: TextAttributesKey = TextAttributesKey.createTextAttributesKey("UPVAL", LOCAL_VAR)
-        val PARAMETER: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_PARAMETER", DefaultLanguageHighlighterColors.PARAMETER)
-        val GLOBAL_VAR: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
-            "LUA_GLOBAL_VAR",
-            DefaultLanguageHighlighterColors.GLOBAL_VARIABLE
-        )
-        val FIELD: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_FIELD", DefaultLanguageHighlighterColors.STATIC_FIELD)
 
-        val TAIL_CALL: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_TAIL_CALL", HighlighterColors.TEXT)
-
-        val KEYWORD: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_KEYWORD", DefaultLanguageHighlighterColors.KEYWORD)
-
-        val COMMENT: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_COMMENT", DefaultLanguageHighlighterColors.LINE_COMMENT)
-        val LONGCOMMENT: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_LONGCOMMENT", DefaultLanguageHighlighterColors.BLOCK_COMMENT)
-        val LONGCOMMENT_BRACES: TextAttributesKey = TextAttributesKey
-            .createTextAttributesKey("LUA_LONGCOMMENT_BRACES", DefaultLanguageHighlighterColors.BLOCK_COMMENT)
-
-        val NUMBER: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_NUMBER", DefaultLanguageHighlighterColors.NUMBER)
-
-        val STRING: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_STRING", DefaultLanguageHighlighterColors.STRING)
-        val LONGSTRING: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_LONGSTRING", DefaultLanguageHighlighterColors.STRING)
-        val LONGSTRING_BRACES: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_LONGSTRING_BRACES", DefaultLanguageHighlighterColors.STRING)
-
-        val BRACKETS: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_BRACKETS", DefaultLanguageHighlighterColors.BRACKETS)
-        val BRACES: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_BRACES", DefaultLanguageHighlighterColors.BRACES)
-        val PARENTHESES: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_PARENTHS", DefaultLanguageHighlighterColors.PARENTHESES)
-        val BAD_CHARACTER: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_BAD_CHARACTER", HighlighterColors.BAD_CHARACTER)
-        val OPERATORS: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_OPERATORS", DefaultLanguageHighlighterColors.OPERATION_SIGN)
-        val COMMA: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_COMMA", DefaultLanguageHighlighterColors.COMMA)
-
-        val SEMI: TextAttributesKey =
-            TextAttributesKey.createTextAttributesKey("LUA_SEMICOLON", DefaultLanguageHighlighterColors.SEMICOLON)
-
-        val DEFINED_CONSTANTS: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
-            "LUA_DEFINED_CONSTANTS",
-            DefaultLanguageHighlighterColors.CONSTANT
-        )
     }
 }
