@@ -42,5 +42,8 @@
     <colorSettingsPage
             implementation="net.internetisalie.lunar.lang.syntax.LuaColorSettingsPage"/>
 
+    <annotator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaRuntimeIdentifierAnnotator"/>
   </extensions>
 </idea-plugin>
