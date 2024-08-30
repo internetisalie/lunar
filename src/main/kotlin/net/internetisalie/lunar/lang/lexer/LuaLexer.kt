@@ -5,6 +5,7 @@ import com.intellij.lexer.MergingLexerAdapter
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
 
 class LuaLexer : MergingLexerAdapter(
     FlexAdapter(_LuaLexer(null)),
@@ -54,6 +55,7 @@ class LuaLexer : MergingLexerAdapter(
         LuaTokenTypes.MOD to LuaElementTypes.MOD,
         LuaTokenTypes.MULT to LuaElementTypes.MULT,
         LuaTokenTypes.IDENTIFIER to LuaElementTypes.IDENTIFIER,
+        LuaTokenTypes.LUADOC_COMMENT to LuaDocElementTypes.LUADOC_COMMENT,
         LuaTokenTypes.NE to LuaElementTypes.NE,
         LuaTokenTypes.NEG to LuaElementTypes.NEG,
         LuaTokenTypes.NIL to LuaElementTypes.NIL,

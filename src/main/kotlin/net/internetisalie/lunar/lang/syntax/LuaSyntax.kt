@@ -22,6 +22,8 @@ import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.LuaElementType
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocTokenTypes
+import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
 
 /**
  * High-level syntactic and semantic elements of Lua.
@@ -124,7 +126,7 @@ object LuaSyntax {
         LuaElementTypes.SHEBANG,
         LuaElementTypes.LONGCOMMENT_BEGIN,
         LuaElementTypes.LONGCOMMENT_END,
-        LuaTokenTypes.LUADOC_COMMENT
+        LuaDocElementTypes.LUADOC_COMMENT,
     )
 
     val STRING_LITERAL_SET: TokenSet = TokenSet.create(
@@ -227,7 +229,8 @@ object LuaSyntax {
         LuaTokenTypes.WS,
         LuaTokenTypes.NEWLINE,
         TokenType.WHITE_SPACE,
-        LuaTokenTypes.NL_BEFORE_LONGSTRING
+        LuaTokenTypes.NL_BEFORE_LONGSTRING,
+        LuaDocTokenTypes.LDOC_WHITESPACE
     )
 
     val WHITE_SPACES_OR_COMMENTS: TokenSet = TokenSet.orSet(WHITE_SPACES_SET, COMMENT_SET)

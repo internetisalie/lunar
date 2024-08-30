@@ -23,6 +23,7 @@ intellij {
 //    type.set("IC")
 
     plugins.set(listOf(/* Plugin Dependencies */))
+
 }
 
 sourceSets {

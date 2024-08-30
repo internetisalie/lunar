@@ -34,33 +34,32 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
  */
 class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
     private val colors: MutableMap<IElementType, TextAttributesKey> = HashMap()
-    private val highlight = LuaHighlight
 
     init {
-        colors[LuaTokenTypes.LONGCOMMENT] = highlight.LONGCOMMENT
-        colors[LuaElementTypes.LONGCOMMENT_BEGIN] = highlight.LONGCOMMENT_BRACES
-        colors[LuaElementTypes.LONGCOMMENT_END] = highlight.LONGCOMMENT_BRACES
-        colors[LuaElementTypes.SHORTCOMMENT] = highlight.COMMENT
-        colors[LuaElementTypes.SHEBANG] = highlight.COMMENT
-        colors[LuaTokenTypes.LUADOC_COMMENT] = highlight.COMMENT
+        colors[LuaTokenTypes.LONGCOMMENT] = LuaHighlight.LONGCOMMENT
+        colors[LuaElementTypes.LONGCOMMENT_BEGIN] = LuaHighlight.LONGCOMMENT_BRACES
+        colors[LuaElementTypes.LONGCOMMENT_END] = LuaHighlight.LONGCOMMENT_BRACES
+        colors[LuaElementTypes.SHORTCOMMENT] = LuaHighlight.COMMENT
+        colors[LuaElementTypes.SHEBANG] = LuaHighlight.COMMENT
+        colors[LuaTokenTypes.LUADOC_COMMENT] = LuaHighlight.COMMENT
 
-        colors[LuaElementTypes.STRING] = highlight.STRING
-        colors[LuaTokenTypes.LONGSTRING] = highlight.LONGSTRING
-        colors[LuaTokenTypes.LONGSTRING_BEGIN] = highlight.LONGSTRING_BRACES
-        colors[LuaTokenTypes.LONGSTRING_END] = highlight.LONGSTRING_BRACES
+        colors[LuaElementTypes.STRING] = LuaHighlight.STRING
+        colors[LuaTokenTypes.LONGSTRING] = LuaHighlight.LONGSTRING
+        colors[LuaTokenTypes.LONGSTRING_BEGIN] = LuaHighlight.LONGSTRING_BRACES
+        colors[LuaTokenTypes.LONGSTRING_END] = LuaHighlight.LONGSTRING_BRACES
 
-        fillMap(colors, LuaSyntax.OPERATORS_SET, highlight.OPERATORS)
-        fillMap(colors, LuaSyntax.KEYWORDS, highlight.KEYWORD)
-        fillMap(colors, LuaSyntax.PARENS, highlight.PARENTHESES)
-        fillMap(colors, LuaSyntax.BRACES, highlight.BRACES)
-        fillMap(colors, LuaSyntax.BRACKS, highlight.BRACKETS)
+        fillMap(colors, LuaSyntax.OPERATORS_SET, LuaHighlight.OPERATORS)
+        fillMap(colors, LuaSyntax.KEYWORDS, LuaHighlight.KEYWORD)
+        fillMap(colors, LuaSyntax.PARENS, LuaHighlight.PARENTHESES)
+        fillMap(colors, LuaSyntax.BRACES, LuaHighlight.BRACES)
+        fillMap(colors, LuaSyntax.BRACKS, LuaHighlight.BRACKETS)
 
-        colors[LuaElementTypes.SEMI] = highlight.SEMI
+        colors[LuaElementTypes.SEMI] = LuaHighlight.SEMI
 
-        fillMap(colors, LuaSyntax.BAD_INPUT, highlight.BAD_CHARACTER)
-        fillMap(colors, LuaSyntax.DEFINED_CONSTANTS, highlight.DEFINED_CONSTANTS)
-        colors[LuaElementTypes.COMMA] = highlight.COMMA
-        colors[LuaElementTypes.NUMBER] = highlight.NUMBER
+        fillMap(colors, LuaSyntax.BAD_INPUT, LuaHighlight.BAD_CHARACTER)
+        fillMap(colors, LuaSyntax.DEFINED_CONSTANTS, LuaHighlight.DEFINED_CONSTANTS)
+        colors[LuaElementTypes.COMMA] = LuaHighlight.COMMA
+        colors[LuaElementTypes.NUMBER] = LuaHighlight.NUMBER
     }
 
     override fun getHighlightingLexer(): Lexer {
@@ -69,9 +68,5 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
 
     override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> {
         return pack(colors[tokenType])
-    }
-
-    companion object {
-
     }
 }

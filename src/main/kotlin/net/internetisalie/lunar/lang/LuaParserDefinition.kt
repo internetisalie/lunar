@@ -11,10 +11,12 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.lexer.LuaLexer
-import net.internetisalie.lunar.lang.syntax.LuaSyntax
 import net.internetisalie.lunar.lang.parser.LuaParser
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.syntax.LuaSyntax
+import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocElementType
+import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
 
 class LuaParserDefinition : ParserDefinition {
     override fun createLexer(project: Project): Lexer {
@@ -38,7 +40,7 @@ class LuaParserDefinition : ParserDefinition {
     }
 
     override fun getFileNodeType(): IFileElementType {
-        return FILE
+        return IFileElementType(LuaLanguage)
     }
 
     override fun createFile(viewProvider: FileViewProvider): PsiFile {
@@ -46,10 +48,7 @@ class LuaParserDefinition : ParserDefinition {
     }
 
     override fun createElement(node: ASTNode): PsiElement {
-        return LuaElementTypes.Factory.createElement(node)
-    }
-
-    companion object {
-        val FILE: IFileElementType = IFileElementType(LuaLanguage)
+        return if (node.elementType is LuaDocElementType) LuaDocElementTypes.Factory.createElement(node)
+        else LuaElementTypes.Factory.createElement(node)
     }
 }

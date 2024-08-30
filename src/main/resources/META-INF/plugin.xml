@@ -25,7 +25,7 @@
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
     <fileType
-            name="Lua File"
+            name="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaFileType"
             fieldName="INSTANCE"
             language="Lua"
@@ -45,5 +45,10 @@
     <annotator
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaRuntimeIdentifierAnnotator"/>
+
+    <editorHighlighterProvider
+            filetype="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaEditorHighlighterProvider"/>
+
   </extensions>
 </idea-plugin>

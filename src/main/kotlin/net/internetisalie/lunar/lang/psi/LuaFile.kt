@@ -13,6 +13,6 @@ class LuaFile(viewProvider: FileViewProvider) :
     }
 
     override fun toString(): String {
-        return "Lua File"
+        return "Lua"
     }
 }

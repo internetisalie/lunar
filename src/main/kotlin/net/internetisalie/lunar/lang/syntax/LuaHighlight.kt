@@ -60,4 +60,9 @@ object LuaHighlight {
         "LUA_DEFINED_CONSTANTS",
         DefaultLanguageHighlighterColors.CONSTANT
     )
+
+    val DOC_COMMENT: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
+        "LUA_DOC_COMMENT",
+        DefaultLanguageHighlighterColors.DOC_COMMENT
+    )
 }

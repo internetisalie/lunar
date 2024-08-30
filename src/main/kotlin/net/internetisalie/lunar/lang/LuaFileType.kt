@@ -5,7 +5,7 @@ import javax.swing.Icon
 
 object LuaFileType : LanguageFileType(LuaLanguage) {
     override fun getName(): String {
-        return "Lua File"
+        return "Lua"
     }
 
     override fun getDescription(): String {
