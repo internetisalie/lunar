@@ -59,8 +59,20 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitGotoStatement(@NotNull LuaGotoStatement o) {
+    visitPsiElement(o);
+  }
+
   public void visitLabel(@NotNull LuaLabel o) {
     visitPsiElement(o);
+  }
+
+  public void visitLabelName(@NotNull LuaLabelName o) {
+    visitNameDeclElement(o);
+  }
+
+  public void visitLabelRef(@NotNull LuaLabelRef o) {
+    visitNameRefElement(o);
   }
 
   public void visitNameAndArgs(@NotNull LuaNameAndArgs o) {
@@ -104,6 +116,14 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitVarSuffix(@NotNull LuaVarSuffix o) {
+    visitPsiElement(o);
+  }
+
+  public void visitNameDeclElement(@NotNull LuaNameDeclElement o) {
+    visitPsiElement(o);
+  }
+
+  public void visitNameRefElement(@NotNull LuaNameRefElement o) {
     visitPsiElement(o);
   }
 

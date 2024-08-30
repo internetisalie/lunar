@@ -46,9 +46,23 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaRuntimeIdentifierAnnotator"/>
 
+    <annotator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaLabelAnnotator"/>
+
     <editorHighlighterProvider
             filetype="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaEditorHighlighterProvider"/>
+
+    <psi.referenceContributor
+            language="Lua"
+            implementation="net.internetisalie.lunar.lang.LuaLabelReferenceContributor"/>
+    <lang.findUsagesProvider
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.LuaLabelFindUsagesProvider"/>
+    <lang.refactoringSupport
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.LuaLabelRefactoringSupportProvider"/>
 
   </extensions>
 </idea-plugin>

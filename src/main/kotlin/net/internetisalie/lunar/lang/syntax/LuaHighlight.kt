@@ -16,6 +16,8 @@ object LuaHighlight {
     )
     val FIELD: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_FIELD", DefaultLanguageHighlighterColors.STATIC_FIELD)
+    val LABEL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_LABEL", DefaultLanguageHighlighterColors.LABEL)
 
     val TAIL_CALL: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_TAIL_CALL", HighlighterColors.TEXT)
@@ -56,13 +58,13 @@ object LuaHighlight {
     val SEMI: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_SEMICOLON", DefaultLanguageHighlighterColors.SEMICOLON)
 
-    val DEFINED_CONSTANTS: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
-        "LUA_DEFINED_CONSTANTS",
-        DefaultLanguageHighlighterColors.CONSTANT
-    )
+    val DEFINED_CONSTANTS: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_DEFINED_CONSTANTS", DefaultLanguageHighlighterColors.CONSTANT)
 
-    val DOC_COMMENT: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
-        "LUA_DOC_COMMENT",
-        DefaultLanguageHighlighterColors.DOC_COMMENT
-    )
+    val DOC_COMMENT: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_DOC_COMMENT", DefaultLanguageHighlighterColors.DOC_COMMENT)
+    val DOC_TAG: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_DOC_TAG", DefaultLanguageHighlighterColors.DOC_COMMENT_TAG)
+    val DOC_VALUE: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_DOC_VALUE", DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
 }

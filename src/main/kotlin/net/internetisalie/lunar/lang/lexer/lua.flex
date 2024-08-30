@@ -91,6 +91,7 @@ luadoc      =   ---[^\r\n]*{nl}([ \t]*--({nobrknl}{nonl}*{nl}|{nonl}{nl}|{nl}))*
 '            { yybegin(XSTRINGA); return STRING; }
 
 
+"::"         { return MARKER; }
 "#!"         { yybegin( XSHORTCOMMENT ); return SHEBANG; }
 {wnl}        { return WS; }
 "..."        { return ELLIPSIS; }

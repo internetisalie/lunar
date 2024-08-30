@@ -5,9 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaLabel extends PsiElement {
+public interface LuaLabelRef extends LuaNameRefElement {
 
   @NotNull
-  LuaLabelName getLabelName();
+  PsiElement getIdentifier();
 
 }

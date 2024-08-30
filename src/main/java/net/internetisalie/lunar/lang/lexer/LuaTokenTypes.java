@@ -45,6 +45,8 @@ public interface LuaTokenTypes {
      *  Comments
      * ****************************************************************************************************/
 
+    IElementType MARKER = new LuaElementType("line label marker");
+
     IElementType SHEBANG = new LuaElementType("shebang - should ignore");
 
     IElementType LONGCOMMENT = new LuaElementType("long comment");

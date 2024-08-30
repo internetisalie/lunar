@@ -28,6 +28,7 @@
         UNTIL  = 'until'
         WHILE  = 'while'
 
+        MARKER = '::'
         SHEBANG = '#!'
         CONCAT = '..'
         ELLIPSIS = '...'
@@ -94,7 +95,7 @@ statement ::= varList '=' exprList
     | funcCall
     | label
     | BREAK
-    | GOTO IDENTIFIER
+    | gotoStatement
     | DO block END
     | WHILE expr DO block END
     | REPEAT block UNTIL expr
@@ -104,13 +105,22 @@ statement ::= varList '=' exprList
     | FUNCTION funcName funcBody
     | LOCAL FUNCTION IDENTIFIER funcBody
     | LOCAL nameList ['=' exprList]
+gotoStatement ::= GOTO labelRef
 finalStatement ::= RETURN [exprList] [';']
-label ::= '::' IDENTIFIER '::'
+label ::= '::' labelName '::'
 funcName ::= IDENTIFIER {'.' IDENTIFIER}* [':' IDENTIFIER]
 varList ::= var {',' var}*
 nameList ::= IDENTIFIER {',' IDENTIFIER}*
 exprList ::= expr {',' expr}*
 
+labelRef ::= IDENTIFIER {
+    mixin="net.internetisalie.lunar.lang.psi.LuaNameRefElementImpl"
+    implements="net.internetisalie.lunar.lang.psi.LuaNameRefElement"
+}
+labelName ::= IDENTIFIER {
+    mixin="net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl"
+    implements="net.internetisalie.lunar.lang.psi.LuaNameDeclElement"
+}
 
 // TODO
 // http://lua-users.org/wiki/LpegRecipes - Lua Parser (batrick)

@@ -65,6 +65,12 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
 
   @Override
   @Nullable
+  public LuaGotoStatement getGotoStatement() {
+    return findChildByClass(LuaGotoStatement.class);
+  }
+
+  @Override
+  @Nullable
   public LuaLabel getLabel() {
     return findChildByClass(LuaLabel.class);
   }

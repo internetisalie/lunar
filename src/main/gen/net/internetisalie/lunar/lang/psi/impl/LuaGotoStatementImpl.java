@@ -11,14 +11,14 @@ import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaLabelImpl extends ASTWrapperPsiElement implements LuaLabel {
+public class LuaGotoStatementImpl extends ASTWrapperPsiElement implements LuaGotoStatement {
 
-  public LuaLabelImpl(@NotNull ASTNode node) {
+  public LuaGotoStatementImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitLabel(this);
+    visitor.visitGotoStatement(this);
   }
 
   @Override
@@ -29,8 +29,8 @@ public class LuaLabelImpl extends ASTWrapperPsiElement implements LuaLabel {
 
   @Override
   @NotNull
-  public LuaLabelName getLabelName() {
-    return findNotNullChildByClass(LuaLabelName.class);
+  public LuaLabelRef getLabelRef() {
+    return findNotNullChildByClass(LuaLabelRef.class);
   }
 
 }

@@ -60,6 +60,9 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
         fillMap(colors, LuaSyntax.DEFINED_CONSTANTS, LuaHighlight.DEFINED_CONSTANTS)
         colors[LuaElementTypes.COMMA] = LuaHighlight.COMMA
         colors[LuaElementTypes.NUMBER] = LuaHighlight.NUMBER
+
+        // Identifiers
+        fillMap(colors, LuaSyntax.LABELS, LuaHighlight.LABEL)
     }
 
     override fun getHighlightingLexer(): Lexer {

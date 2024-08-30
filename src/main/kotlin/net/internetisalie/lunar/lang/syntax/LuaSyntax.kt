@@ -120,6 +120,17 @@ object LuaSyntax {
     val UPVAL_NAME: IElementType = LuaElementType("upvalue name")
     val MAIN_CHUNK_VARARGS: IElementType = LuaElementType("main chunk args")
 
+    val IDENTIFIER_TOKEN_SET: TokenSet = TokenSet.create(
+        LuaTokenTypes.IDENTIFIER,
+        LuaElementTypes.IDENTIFIER
+    )
+
+    val IDENTIFIER_SET: TokenSet = TokenSet.create(
+        LuaElementTypes.LABEL_NAME,
+        LuaElementTypes.LABEL_REF,
+        LuaElementTypes.IDENTIFIER,
+    )
+
     val COMMENT_SET: TokenSet = TokenSet.create(
         LuaElementTypes.SHORTCOMMENT,
         LuaTokenTypes.LONGCOMMENT,
@@ -142,6 +153,7 @@ object LuaSyntax {
         LuaElementTypes.NOT,
         LuaElementTypes.AND,
         LuaElementTypes.OR,
+        LuaElementTypes.GOTO,
         LuaTokenTypes.WITH,
         LuaElementTypes.IF,
         LuaElementTypes.THEN,
@@ -165,6 +177,8 @@ object LuaSyntax {
     val BRACKS: TokenSet = TokenSet.create(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK)
 
     val BAD_INPUT: TokenSet = TokenSet.create(TokenType.BAD_CHARACTER /*LuaElementTypes.UNTERMINATED_STRING*/)
+
+    val LABELS: TokenSet = TokenSet.create(LuaElementTypes.LABEL_REF, LuaElementTypes.LABEL_NAME)
 
     val DEFINED_CONSTANTS: TokenSet = TokenSet.create(LuaElementTypes.NIL, LuaElementTypes.TRUE, LuaElementTypes.FALSE)
 
@@ -222,8 +236,6 @@ object LuaSyntax {
         LuaTokenTypes.LONGSTRING_BEGIN,
         LuaTokenTypes.LONGSTRING_END
     )
-
-    val IDENTIFIERS_SET: TokenSet = TokenSet.create(LuaElementTypes.IDENTIFIER)
 
     val WHITE_SPACES_SET: TokenSet = TokenSet.create(
         LuaTokenTypes.WS,

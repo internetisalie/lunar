@@ -68,6 +68,11 @@ function <global>localFunction</global>(<parameter>name</parameter>
   return "value"
 end
 
+<label>::here::</label>
+if false then 
+    goto <label>here</label>
+end
+
 <global>a</global> = "BAD
 """
 
@@ -109,10 +114,12 @@ end
             Pair("color.settings.keyword", highlight.KEYWORD),
             Pair("color.settings.constant.keywords", highlight.DEFINED_CONSTANTS),
             Pair("color.settings.globals", highlight.GLOBAL_VAR),
+//            Pair("color.settings.identifier", highlight.IDENTIFIER),
             Pair("color.settings.locals", highlight.LOCAL_VAR),
             Pair("color.settings.field", highlight.FIELD),
             Pair("color.settings.parameter", highlight.PARAMETER),
             Pair("color.settings.upvalue", highlight.UPVAL),
+            Pair("color.settings.label", highlight.LABEL),
             Pair("color.settings.comment", highlight.COMMENT),
             Pair("color.settings.longcomment", highlight.LONGCOMMENT),
             Pair("color.settings.longstring.braces", highlight.LONGSTRING_BRACES),
@@ -124,6 +131,9 @@ end
             Pair("color.settings.comma", highlight.COMMA),
             Pair("color.settings.semi", highlight.SEMI),
             Pair("color.settings.bad_character", highlight.BAD_CHARACTER),
+            Pair("color.settings.luadoc", highlight.DOC_COMMENT),
+            Pair("color.settings.luadoc.tag", highlight.DOC_TAG),
+            Pair("color.settings.luadoc.value", highlight.DOC_VALUE),
         )
             .map { pair: Pair<String, TextAttributesKey> ->
                 AttributesDescriptor(
@@ -139,9 +149,10 @@ end
             Pair("field", highlight.FIELD),
             Pair("upval", highlight.UPVAL),
             Pair("parameter", highlight.PARAMETER),
-            //ATTR_MAP.put("luadoc", highlight.getLUADOC());
-            //ATTR_MAP.put("luadoc-tag", highlight.getLUADOC_TAG());
-            //ATTR_MAP.put("luadoc-value", highlight.getLUADOC_VALUE);
+            Pair("label", highlight.LABEL),
+            Pair("luadoc", highlight.DOC_COMMENT),
+            Pair("luadoc-tag", highlight.DOC_TAG),
+            Pair("luadoc-value", highlight.DOC_VALUE),
         )
     }
 }

@@ -493,15 +493,53 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '::' IDENTIFIER '::'
+  // GOTO labelRef
+  public static boolean gotoStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "gotoStatement")) return false;
+    if (!nextTokenIs(b, GOTO)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, GOTO);
+    r = r && labelRef(b, l + 1);
+    exit_section_(b, m, GOTO_STATEMENT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '::' labelName '::'
   public static boolean label(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "label")) return false;
+    if (!nextTokenIs(b, MARKER)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, LABEL, "<label>");
-    r = consumeToken(b, "::");
-    r = r && consumeToken(b, IDENTIFIER);
-    r = r && consumeToken(b, "::");
-    exit_section_(b, l, m, r, false, null);
+    Marker m = enter_section_(b);
+    r = consumeToken(b, MARKER);
+    r = r && labelName(b, l + 1);
+    r = r && consumeToken(b, MARKER);
+    exit_section_(b, m, LABEL, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // IDENTIFIER
+  public static boolean labelName(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "labelName")) return false;
+    if (!nextTokenIs(b, IDENTIFIER)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, IDENTIFIER);
+    exit_section_(b, m, LABEL_NAME, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // IDENTIFIER
+  public static boolean labelRef(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "labelRef")) return false;
+    if (!nextTokenIs(b, IDENTIFIER)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, IDENTIFIER);
+    exit_section_(b, m, LABEL_REF, r);
     return r;
   }
 
@@ -651,7 +689,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
   //     | funcCall
   //     | label
   //     | BREAK
-  //     | GOTO IDENTIFIER
+  //     | gotoStatement
   //     | DO block END
   //     | WHILE expr DO block END
   //     | REPEAT block UNTIL expr
@@ -669,7 +707,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!r) r = funcCall(b, l + 1);
     if (!r) r = label(b, l + 1);
     if (!r) r = consumeToken(b, BREAK);
-    if (!r) r = parseTokens(b, 0, GOTO, IDENTIFIER);
+    if (!r) r = gotoStatement(b, l + 1);
     if (!r) r = statement_5(b, l + 1);
     if (!r) r = statement_6(b, l + 1);
     if (!r) r = statement_7(b, l + 1);

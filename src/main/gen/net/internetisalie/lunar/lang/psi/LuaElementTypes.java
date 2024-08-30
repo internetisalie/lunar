@@ -21,7 +21,10 @@ public interface LuaElementTypes {
   IElementType FUNC_CALL = new LuaElementType("FUNC_CALL");
   IElementType FUNC_DEF = new LuaElementType("FUNC_DEF");
   IElementType FUNC_NAME = new LuaElementType("FUNC_NAME");
+  IElementType GOTO_STATEMENT = new LuaElementType("GOTO_STATEMENT");
   IElementType LABEL = new LuaElementType("LABEL");
+  IElementType LABEL_NAME = new LuaElementType("LABEL_NAME");
+  IElementType LABEL_REF = new LuaElementType("LABEL_REF");
   IElementType NAME_AND_ARGS = new LuaElementType("NAME_AND_ARGS");
   IElementType NAME_LIST = new LuaElementType("NAME_LIST");
   IElementType PAR_LIST = new LuaElementType("PAR_LIST");
@@ -71,6 +74,7 @@ public interface LuaElementTypes {
   IElementType LONGCOMMENT_END = new LuaTokenType("]]--");
   IElementType LPAREN = new LuaTokenType("(");
   IElementType LT = new LuaTokenType("<");
+  IElementType MARKER = new LuaTokenType("::");
   IElementType MINUS = new LuaTokenType("-");
   IElementType MOD = new LuaTokenType("%");
   IElementType MULT = new LuaTokenType("*");
@@ -138,8 +142,17 @@ public interface LuaElementTypes {
       else if (type == FUNC_NAME) {
         return new LuaFuncNameImpl(node);
       }
+      else if (type == GOTO_STATEMENT) {
+        return new LuaGotoStatementImpl(node);
+      }
       else if (type == LABEL) {
         return new LuaLabelImpl(node);
+      }
+      else if (type == LABEL_NAME) {
+        return new LuaLabelNameImpl(node);
+      }
+      else if (type == LABEL_REF) {
+        return new LuaLabelRefImpl(node);
       }
       else if (type == NAME_AND_ARGS) {
         return new LuaNameAndArgsImpl(node);
