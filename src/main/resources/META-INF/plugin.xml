@@ -24,6 +24,9 @@
   <!-- Extension points defined by the plugin.
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
+
+    <!-- Language -->
+
     <fileType
             name="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaFileType"
@@ -67,5 +70,14 @@
     <lang.psiStructureViewFactory language="Lua"
                                   implementationClass="net.internetisalie.lunar.lang.structure.LuaStructureViewFactory"/>
 
+    <!-- Options -->
+    <applicationService
+            serviceImplementation="net.internetisalie.lunar.settings.LuaApplicationSettings" />
+
+    <applicationConfigurable
+            parentId="language"
+            instance="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
+            id="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
+            displayName="Lua"/>
   </extensions>
 </idea-plugin>

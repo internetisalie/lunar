@@ -77,7 +77,7 @@ end
 """
 
     override fun getDisplayName(): String {
-        return LuaBundle.message("color.settings.name")
+        return LuaBundle.message("color.name")
     }
 
     override fun getIcon(): Icon? {
@@ -108,32 +108,32 @@ end
         private val highlight = LuaHighlight
 
         private val DESCRIPTORS: Array<AttributesDescriptor> = setOf(
-            Pair("color.settings.number", highlight.NUMBER),
-            Pair("color.settings.string", highlight.STRING),
-            Pair("color.settings.longstring", highlight.LONGSTRING),
-            Pair("color.settings.keyword", highlight.KEYWORD),
-            Pair("color.settings.constant.keywords", highlight.DEFINED_CONSTANTS),
-            Pair("color.settings.globals", highlight.GLOBAL_VAR),
-//            Pair("color.settings.identifier", highlight.IDENTIFIER),
-            Pair("color.settings.locals", highlight.LOCAL_VAR),
-            Pair("color.settings.field", highlight.FIELD),
-            Pair("color.settings.parameter", highlight.PARAMETER),
-            Pair("color.settings.upvalue", highlight.UPVAL),
-            Pair("color.settings.label", highlight.LABEL),
-            Pair("color.settings.comment", highlight.COMMENT),
-            Pair("color.settings.longcomment", highlight.LONGCOMMENT),
-            Pair("color.settings.longstring.braces", highlight.LONGSTRING_BRACES),
-            Pair("color.settings.longcomment.braces", highlight.LONGCOMMENT_BRACES),
-            Pair("color.settings.operation", highlight.OPERATORS),
-            Pair("color.settings.brackets", highlight.BRACKETS),
-            Pair("color.settings.parenths", highlight.PARENTHESES),
-            Pair("color.settings.braces", highlight.BRACES),
-            Pair("color.settings.comma", highlight.COMMA),
-            Pair("color.settings.semi", highlight.SEMI),
-            Pair("color.settings.bad_character", highlight.BAD_CHARACTER),
-            Pair("color.settings.luadoc", highlight.DOC_COMMENT),
-            Pair("color.settings.luadoc.tag", highlight.DOC_TAG),
-            Pair("color.settings.luadoc.value", highlight.DOC_VALUE),
+            Pair("color.number", highlight.NUMBER),
+            Pair("color.string", highlight.STRING),
+            Pair("color.longstring", highlight.LONGSTRING),
+            Pair("color.keyword", highlight.KEYWORD),
+            Pair("color.constant.keywords", highlight.DEFINED_CONSTANTS),
+            Pair("color.globals", highlight.GLOBAL_VAR),
+//            Pair("color.identifier", highlight.IDENTIFIER),
+            Pair("color.locals", highlight.LOCAL_VAR),
+            Pair("color.field", highlight.FIELD),
+            Pair("color.parameter", highlight.PARAMETER),
+            Pair("color.upvalue", highlight.UPVAL),
+            Pair("color.label", highlight.LABEL),
+            Pair("color.comment", highlight.COMMENT),
+            Pair("color.longcomment", highlight.LONGCOMMENT),
+            Pair("color.longstring.braces", highlight.LONGSTRING_BRACES),
+            Pair("color.longcomment.braces", highlight.LONGCOMMENT_BRACES),
+            Pair("color.operation", highlight.OPERATORS),
+            Pair("color.brackets", highlight.BRACKETS),
+            Pair("color.parenths", highlight.PARENTHESES),
+            Pair("color.braces", highlight.BRACES),
+            Pair("color.comma", highlight.COMMA),
+            Pair("color.semi", highlight.SEMI),
+            Pair("color.bad_character", highlight.BAD_CHARACTER),
+            Pair("color.luadoc", highlight.DOC_COMMENT),
+            Pair("color.luadoc.tag", highlight.DOC_TAG),
+            Pair("color.luadoc.value", highlight.DOC_VALUE),
         )
             .map { pair: Pair<String, TextAttributesKey> ->
                 AttributesDescriptor(
