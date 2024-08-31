@@ -102,9 +102,9 @@ statement ::= varList '=' exprList
     | IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
     | FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
     | FOR nameList IN exprList DO block END
-    | FUNCTION funcName funcBody
-    | LOCAL FUNCTION IDENTIFIER funcBody
-    | LOCAL nameList ['=' exprList]
+    | funcDecl
+    | localFuncDecl
+    | localVarDecl
 gotoStatement ::= GOTO labelRef
 finalStatement ::= RETURN [exprList] [';']
 label ::= '::' labelName '::'
@@ -112,6 +112,11 @@ funcName ::= IDENTIFIER {'.' IDENTIFIER}* [':' IDENTIFIER]
 varList ::= var {',' var}*
 nameList ::= IDENTIFIER {',' IDENTIFIER}*
 exprList ::= expr {',' expr}*
+
+localFuncDecl ::= LOCAL FUNCTION IDENTIFIER funcBody
+funcDecl ::= FUNCTION funcName funcBody
+
+localVarDecl ::= LOCAL nameList ['=' exprList]
 
 labelRef ::= IDENTIFIER {
     mixin="net.internetisalie.lunar.lang.psi.LuaNameRefElementImpl"

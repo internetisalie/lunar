@@ -17,19 +17,22 @@ public interface LuaStatement extends PsiElement {
   LuaExprList getExprList();
 
   @Nullable
-  LuaFuncBody getFuncBody();
-
-  @Nullable
   LuaFuncCall getFuncCall();
 
   @Nullable
-  LuaFuncName getFuncName();
+  LuaFuncDecl getFuncDecl();
 
   @Nullable
   LuaGotoStatement getGotoStatement();
 
   @Nullable
   LuaLabel getLabel();
+
+  @Nullable
+  LuaLocalFuncDecl getLocalFuncDecl();
+
+  @Nullable
+  LuaLocalVarDecl getLocalVarDecl();
 
   @Nullable
   LuaNameList getNameList();

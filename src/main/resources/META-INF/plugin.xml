@@ -64,5 +64,8 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaLabelRefactoringSupportProvider"/>
 
+    <lang.psiStructureViewFactory language="Lua"
+                                  implementationClass="net.internetisalie.lunar.lang.structure.LuaStructureViewFactory"/>
+
   </extensions>
 </idea-plugin>

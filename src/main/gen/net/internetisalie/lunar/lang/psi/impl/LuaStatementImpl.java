@@ -47,20 +47,14 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
 
   @Override
   @Nullable
-  public LuaFuncBody getFuncBody() {
-    return findChildByClass(LuaFuncBody.class);
-  }
-
-  @Override
-  @Nullable
   public LuaFuncCall getFuncCall() {
     return findChildByClass(LuaFuncCall.class);
   }
 
   @Override
   @Nullable
-  public LuaFuncName getFuncName() {
-    return findChildByClass(LuaFuncName.class);
+  public LuaFuncDecl getFuncDecl() {
+    return findChildByClass(LuaFuncDecl.class);
   }
 
   @Override
@@ -73,6 +67,18 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
   @Nullable
   public LuaLabel getLabel() {
     return findChildByClass(LuaLabel.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaLocalFuncDecl getLocalFuncDecl() {
+    return findChildByClass(LuaLocalFuncDecl.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaLocalVarDecl getLocalVarDecl() {
+    return findChildByClass(LuaLocalVarDecl.class);
   }
 
   @Override
