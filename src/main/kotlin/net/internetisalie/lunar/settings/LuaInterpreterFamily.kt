@@ -16,7 +16,7 @@
 package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.util.SystemInfo
-import net.internetisalie.lunar.util.LuaFileUtil
+import net.internetisalie.lunar.util.LuaGlobUtil
 
 class LuaInterpreterFamily {
     enum class BinaryType {
@@ -110,8 +110,12 @@ class LuaInterpreterFamily {
         fun findByMatch(s: String, e: String): LuaInterpreterFamily? {
             return FAMILIES.firstNotNullOfOrNull {
                 if (it.value.familyNameMatch != s) return null
-                if (LuaFileUtil.isGlob(it.value.executableName)) {
-                    if (!LuaFileUtil.matchesGlob(it.value.executableName, e)) return null
+                if (LuaGlobUtil.isGlob(it.value.executableName)) {
+                    if (!LuaGlobUtil.matchesGlob(
+                            it.value.executableName,
+                            e
+                        )
+                    ) return null
                 } else if (e != it.value.platformExecutableName) return null
                 it.value
             }

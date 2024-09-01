@@ -30,7 +30,7 @@ import javax.swing.JPanel
  * Date: Apr 20, 2010
  * Time: 7:08:52 PM
  */
-class LuaOptionsPanel {
+class LuaApplicationSettingsPanel {
     val mainPanel: JPanel
     private val addAdditionalCompletionsCheckBox: JCheckBox
     private val enableTypeInference: JCheckBox

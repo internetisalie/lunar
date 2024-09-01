@@ -46,6 +46,15 @@ tasks {
         kotlinOptions.jvmTarget = "17"
     }
 
+    withType<org.jetbrains.intellij.tasks.PrepareSandboxTask> {
+        doLast {
+            copy {
+                from("src/main/resources/platform")
+                into("$destinationDir/${pluginName.get()}/platform")
+            }
+        }
+    }
+
     test {
         useJUnitPlatform()
     }

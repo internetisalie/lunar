@@ -70,6 +70,8 @@
     <lang.psiStructureViewFactory language="Lua"
                                   implementationClass="net.internetisalie.lunar.lang.structure.LuaStructureViewFactory"/>
 
+    <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
+
     <!-- Options -->
     <applicationService
             serviceImplementation="net.internetisalie.lunar.settings.LuaApplicationSettings" />
@@ -79,5 +81,12 @@
             instance="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
             id="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
             displayName="Lua"/>
+
+    <projectConfigurable
+            parentId="language"
+            instance="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
+            id="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
+            displayName="Lua Project"
+            nonDefaultProject="true"/>
   </extensions>
 </idea-plugin>

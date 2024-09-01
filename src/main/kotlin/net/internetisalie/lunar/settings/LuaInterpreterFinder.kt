@@ -26,6 +26,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import net.internetisalie.lunar.settings.LuaInterpreterFamily.Companion.findByMatch
 import net.internetisalie.lunar.util.LuaFileUtil
+import net.internetisalie.lunar.util.LuaGlobUtil
 import net.internetisalie.lunar.util.LuaSystemUtil
 import java.util.regex.Pattern
 
@@ -212,9 +213,9 @@ class LuaInterpreterFinder {
         for (family in LuaInterpreterFamily.FAMILIES.values) {
             val exeName = family.platformExecutableName
 
-            if (LuaFileUtil.isGlob(exeName)) {
+            if (LuaGlobUtil.isGlob(exeName)) {
                 // Match the glob
-                val globPattern = LuaFileUtil.patternFromGlob(exeName)
+                val globPattern = LuaGlobUtil.patternFromGlob(exeName)
                 for (executable in directory.children) {
                     if (!globPattern.matcher(executable.name).matches()) continue
 

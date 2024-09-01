@@ -9,6 +9,15 @@
   - `<const>`, `<close>` local variable attributes
 - [ ] Luau syntax?
 
+#### Project Tree
+
+- [ ] External Libraries
+  - Lua Runtime SDK
+
+#### Application Settings
+
+- [x] Interpreter detection
+
 #### Project Settings
 
 - [ ] Language
@@ -21,6 +30,15 @@
   - Redis
   - LOVE
   - Tarantool
+
+```xml
+<projectConfigurable
+      parentId="tools"
+      instance="com.example.ProjectSettingsConfigurable"
+      id="com.example.ProjectSettingsConfigurable"
+      displayName="My Project Settings"
+      nonDefaultProject="true"/>
+```
 
 #### Static Analysis
 
