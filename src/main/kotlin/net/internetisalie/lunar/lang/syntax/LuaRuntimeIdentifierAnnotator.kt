@@ -11,6 +11,8 @@ class LuaRuntimeIdentifierAnnotator : Annotator {
     // TODO: Add project runtime setting
     val RUNTIME_IDENTIFIERS = listOf(
         "require",
+        "setmetatable",
+        "getmetatable"
     )
 
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -23,6 +25,6 @@ class LuaRuntimeIdentifierAnnotator : Annotator {
         holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
             .range(range)
             .textAttributes(DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
-            .create();
+            .create()
     }
 }

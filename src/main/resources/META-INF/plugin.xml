@@ -88,5 +88,26 @@
             id="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
             displayName="Lua Project"
             nonDefaultProject="true"/>
+
+    <!-- Luacheck -->
+    <toolWindow id="LuaCheck"
+                anchor="bottom"
+                icon="/icons/rocket_16.png"
+                factoryClass="net.internetisalie.lunar.analysis.luacheck.LuaCheckComponents"
+                canCloseContents="true"/>
+    <applicationService serviceImplementation="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings"/>
+
   </extensions>
+
+  <!-- Luacheck -->
+  <actions>
+    <action id="lua.LuaCheck"
+            text="Run LuaCheck"
+            popup="true"
+            icon="/icons/rocket_16.png"
+            class="net.internetisalie.lunar.analysis.luacheck.LuaCheckRun">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+  </actions>
 </idea-plugin>
