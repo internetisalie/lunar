@@ -24,5 +24,5 @@ public interface LuaDocCommentOwner extends PsiElement/*, PsiDocCommentOwner*/ {
   @Nullable
   LuaDocComment getDocComment();
   
-  boolean isDeprecated();  
+//  boolean isDeprecated();
 }

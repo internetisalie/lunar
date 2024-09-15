@@ -56,7 +56,7 @@ class LuaDocParser : PsiParser {
         } else if (NAME_TAG == tagName) {
             parseNameReference(builder)
         } else if (builder.tokenType is LuaDocTagValueTokenType) {
-            builder.advanceLexer()
+            parseTagValue(builder)
         }
 
         var lastdata = builder.mark()
@@ -80,10 +80,17 @@ class LuaDocParser : PsiParser {
         return true
     }
 
+    private fun parseTagValue(builder: PsiBuilder) : Boolean {
+        val marker = builder.mark()
+        builder.advanceLexer()
+        marker.done(LuaDocElementTypes.LDOC_TAG_VALUE)
+        return true
+    }
+
     private fun parseNameReference(builder: PsiBuilder): Boolean {
         val marker = builder.mark()
         if (LuaDocElementTypes.LDOC_TAG_VALUE === builder.tokenType) {
-            builder.advanceLexer()
+            parseTagValue(builder)
             marker.done(LuaDocElementTypes.LDOC_REFERENCE_ELEMENT)
             return true
         }
@@ -94,7 +101,7 @@ class LuaDocParser : PsiParser {
     private fun parseParamTagReference(builder: PsiBuilder): Boolean {
         val marker = builder.mark()
         if (LuaDocElementTypes.LDOC_TAG_VALUE === builder.tokenType) {
-            builder.advanceLexer()
+            parseTagValue(builder)
             marker.done(LuaDocElementTypes.LDOC_PARAM_REF)
             return true
         }
@@ -111,7 +118,7 @@ class LuaDocParser : PsiParser {
 //        }
         val marker = builder.mark()
         if (LuaDocElementTypes.LDOC_TAG_VALUE === builder.tokenType) {
-            builder.advanceLexer()
+            parseTagValue(builder)
             marker.done(LuaDocElementTypes.LDOC_REFERENCE_ELEMENT)
             return true
         }
@@ -124,7 +131,7 @@ class LuaDocParser : PsiParser {
     private fun parseFieldReference(builder: PsiBuilder): Boolean {
         val marker = builder.mark()
         if (LuaDocElementTypes.LDOC_TAG_VALUE === builder.tokenType) {
-            builder.advanceLexer()
+            parseTagValue(builder)
             marker.done(LuaDocElementTypes.LDOC_FIELD_REF)
             return true
         }

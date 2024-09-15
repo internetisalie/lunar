@@ -42,6 +42,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaParserDefinition"/>
 
+    <platform.backend.documentation.targetProvider
+            order="first"
+            implementation="net.internetisalie.lunar.lang.LuaDocumentationTargetProvider" />
+
     <colorSettingsPage
             implementation="net.internetisalie.lunar.lang.syntax.LuaColorSettingsPage"/>
 

@@ -83,6 +83,7 @@
     psiClassPrefix='Lua'
     psiPackage='net.internetisalie.lunar.lang.psi'
     psiImplPackage='net.internetisalie.lunar.lang.psi.impl'
+    psiImplUtilClass='net.internetisalie.lunar.lang.psi.LuaPsiImplUtil'
 }
 
 // https://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
@@ -114,7 +115,13 @@ nameList ::= IDENTIFIER {',' IDENTIFIER}*
 exprList ::= expr {',' expr}*
 
 localFuncDecl ::= LOCAL FUNCTION IDENTIFIER funcBody
-funcDecl ::= FUNCTION funcName funcBody
+funcDecl ::= FUNCTION funcName funcBody {
+    implements = [
+        "net.internetisalie.lunar.luadoc.lang.psi.LuaDocCommentOwner"
+        "net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner"
+    ]
+    methods=[getDocComment getCatsComment]
+}
 
 localVarDecl ::= LOCAL nameList ['=' exprList]
 

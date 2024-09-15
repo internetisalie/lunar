@@ -10,6 +10,8 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import net.internetisalie.lunar.lang.psi.*;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
+import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
 public class LuaFuncDeclImpl extends ASTWrapperPsiElement implements LuaFuncDecl {
 
@@ -37,6 +39,16 @@ public class LuaFuncDeclImpl extends ASTWrapperPsiElement implements LuaFuncDecl
   @NotNull
   public LuaFuncName getFuncName() {
     return findNotNullChildByClass(LuaFuncName.class);
+  }
+
+  @Override
+  public @Nullable LuaDocComment getDocComment() {
+    return LuaPsiImplUtil.getDocComment(this);
+  }
+
+  @Override
+  public @Nullable LuaCatsComment getCatsComment() {
+    return LuaPsiImplUtil.getCatsComment(this);
   }
 
 }

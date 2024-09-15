@@ -4,6 +4,8 @@ package net.internetisalie.lunar.lang.psi;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.PsiElement;
+import net.internetisalie.lunar.luadoc.lang.psi.LuaDocCommentOwner;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner;
 
 public class LuaVisitor extends PsiElementVisitor {
 
@@ -52,7 +54,8 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitFuncDecl(@NotNull LuaFuncDecl o) {
-    visitPsiElement(o);
+    visitDocCommentOwner(o);
+    // visitCatsCommentOwner(o);
   }
 
   public void visitFuncDef(@NotNull LuaFuncDef o) {
@@ -136,6 +139,10 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitNameRefElement(@NotNull LuaNameRefElement o) {
+    visitPsiElement(o);
+  }
+
+  public void visitDocCommentOwner(@NotNull LuaDocCommentOwner o) {
     visitPsiElement(o);
   }
 
