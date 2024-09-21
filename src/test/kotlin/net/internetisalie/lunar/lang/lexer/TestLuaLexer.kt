@@ -4,7 +4,7 @@ import com.intellij.psi.tree.IElementType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class Test_LuaLexer {
+class TestLuaLexer {
 
     data class Token(val offset: Int, val contents:String?, val element:IElementType?)
 
