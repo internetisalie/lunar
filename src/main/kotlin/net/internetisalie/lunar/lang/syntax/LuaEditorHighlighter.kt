@@ -7,8 +7,8 @@ import com.intellij.openapi.editor.ex.util.LayerDescriptor
 import com.intellij.openapi.editor.ex.util.LayeredLexerEditorHighlighter
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import net.internetisalie.lunar.lang.syntax.LuaHighlight.DOC_COMMENT
-import net.internetisalie.lunar.luadoc.lang.syntax.LuaDocSyntaxHighlighter
-import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
+import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
+import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsSyntaxHighlighter
 
 class LuaEditorHighlighter(scheme: EditorColorsScheme) : LayeredLexerEditorHighlighter(LuaSyntaxHighlighter(), scheme) {
     init {
@@ -19,8 +19,8 @@ class LuaEditorHighlighter(scheme: EditorColorsScheme) : LayeredLexerEditorHighl
 
     private fun registerLuaDocHighlighter() {
         // Register LuaDoc Highlighter
-        val luaDocHighlighter: SyntaxHighlighter = LuaDocSyntaxHighlighter()
-        val groovyDocLayer = LayerDescriptor(luaDocHighlighter, "\n", DOC_COMMENT)
-        registerLayer(LuaDocElementTypes.LUADOC_COMMENT, groovyDocLayer)
+        val luaCatsHighlighter: SyntaxHighlighter = LuaCatsSyntaxHighlighter()
+        val luaCatsLayer = LayerDescriptor(luaCatsHighlighter, "\n", DOC_COMMENT)
+        registerLayer(LuaLazyElementTypes.LUACATS_COMMENT, luaCatsLayer)
     }
 }

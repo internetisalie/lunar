@@ -22,6 +22,9 @@ import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.LuaElementType
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes
+import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocTokenTypes
 import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
 
@@ -138,6 +141,7 @@ object LuaSyntax {
         LuaElementTypes.LONGCOMMENT_BEGIN,
         LuaElementTypes.LONGCOMMENT_END,
         LuaDocElementTypes.LUADOC_COMMENT,
+        LuaLazyElementTypes.LUACATS_COMMENT,
     )
 
     val STRING_LITERAL_SET: TokenSet = TokenSet.create(
@@ -242,7 +246,8 @@ object LuaSyntax {
         LuaTokenTypes.NEWLINE,
         TokenType.WHITE_SPACE,
         LuaTokenTypes.NL_BEFORE_LONGSTRING,
-        LuaDocTokenTypes.LDOC_WHITESPACE
+        LuaDocTokenTypes.LDOC_WHITESPACE,
+        LuaCatsTokenTypes.LCATS_WHITESPACE,
     )
 
     val WHITE_SPACES_OR_COMMENTS: TokenSet = TokenSet.orSet(WHITE_SPACES_SET, COMMENT_SET)

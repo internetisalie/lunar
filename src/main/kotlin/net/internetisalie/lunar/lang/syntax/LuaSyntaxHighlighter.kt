@@ -25,6 +25,7 @@ import com.intellij.psi.tree.IElementType
 import net.internetisalie.lunar.lang.lexer.LuaLexer
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
 
 /**
  * Created by IntelliJ IDEA.
@@ -41,7 +42,8 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
         colors[LuaElementTypes.LONGCOMMENT_END] = LuaHighlight.LONGCOMMENT_BRACES
         colors[LuaElementTypes.SHORTCOMMENT] = LuaHighlight.COMMENT
         colors[LuaElementTypes.SHEBANG] = LuaHighlight.COMMENT
-        colors[LuaTokenTypes.LUADOC_COMMENT] = LuaHighlight.COMMENT
+        colors[LuaTokenTypes.LUADOC_COMMENT] = LuaHighlight.DOC_COMMENT
+        colors[LuaLazyElementTypes.LUACATS_COMMENT] = LuaHighlight.DOC_COMMENT
 
         colors[LuaElementTypes.STRING] = LuaHighlight.STRING
         colors[LuaTokenTypes.LONGSTRING] = LuaHighlight.LONGSTRING

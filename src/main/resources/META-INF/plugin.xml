@@ -53,6 +53,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaLabelAnnotator"/>
 
+    <annotator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.luacats.lang.syntax.LuaCatsAnnotator"/>
+
     <editorHighlighterProvider
             filetype="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaEditorHighlighterProvider"/>

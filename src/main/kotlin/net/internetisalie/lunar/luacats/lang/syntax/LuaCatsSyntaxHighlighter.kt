@@ -19,7 +19,7 @@ import com.intellij.lexer.Lexer
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
 import com.intellij.psi.tree.IElementType
-import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocLexer
+import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsLexer
 
 /**
  * @author ilyas
@@ -28,13 +28,13 @@ class LuaCatsSyntaxHighlighter : SyntaxHighlighterBase() {
     private val colors: MutableMap<IElementType, TextAttributesKey> = HashMap()
 
     init {
-        fillMap(colors, LuaDocSyntax.COMMENT_CONTENT, LuaDocHighlight.LUADOC)
-        fillMap(colors, LuaDocSyntax.COMMENT_TAGS, LuaDocHighlight.LUADOC_TAG)
-        fillMap(colors, LuaDocSyntax.COMMENT_VALUES, LuaDocHighlight.LUADOC_VALUE)
+        fillMap(colors, LuaCatsSyntax.CONTENT, LuaCatsHighlight.CONTENT)
+        fillMap(colors, LuaCatsSyntax.NAMES, LuaCatsHighlight.NAME)
+        fillMap(colors, LuaCatsSyntax.TAGS, LuaCatsHighlight.TAG)
     }
 
     override fun getHighlightingLexer(): Lexer {
-        return LuaDocLexer()
+        return LuaCatsLexer()
     }
 
     override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> {

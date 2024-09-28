@@ -1,18 +1,33 @@
 package net.internetisalie.lunar.luacats.lang.syntax
 
 import com.intellij.psi.tree.TokenSet
-import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocTokenTypes
+import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
-object LuaDocSyntax {
-    val COMMENT_TAGS: TokenSet = TokenSet.create(
-        LuaDocTokenTypes.LDOC_TAG_NAME
+object LuaCatsSyntax {
+    val CONTENT: TokenSet = TokenSet.create(
+        LuaCatsElementTypes.DASHES,
+        LuaCatsElementTypes.TEXT,
     )
 
-    val COMMENT_CONTENT: TokenSet = TokenSet.create(
-        LuaDocTokenTypes.LDOC_COMMENT_DATA, LuaDocTokenTypes.LDOC_DASHES, LuaDocTokenTypes.LDOC_COMMENT_START
+    val NAMES: TokenSet = TokenSet.create(
+        LuaCatsElementTypes.NAME,
+    )
+    
+    val STRINGS: TokenSet = TokenSet.create(
+        LuaCatsElementTypes.STRING,
+        LuaCatsElementTypes.CODE,
+    )
+    
+    val SYMBOLS: TokenSet = TokenSet.create(
+        LuaCatsElementTypes.SYMBOL,
     )
 
-    val COMMENT_VALUES: TokenSet = TokenSet.create(
-        LuaDocTokenTypes.LDOC_TAG_VALUE
+    val TAGS: TokenSet = TokenSet.create(
+        LuaCatsElementTypes.TAG
+    )
+
+    val KEYWORDS: TokenSet = TokenSet.create(
+        LuaCatsElementTypes.KEYWORD
     )
 }
