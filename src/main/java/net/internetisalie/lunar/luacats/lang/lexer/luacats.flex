@@ -38,7 +38,6 @@ PERIOD="."
 COLON=":"
 PIPE="|"
 COMMA=","
-SEMI=";"
 ELLIPSIS="..."
 MINUS="-"
 ASTERISK="*"
@@ -66,16 +65,18 @@ HIGH_ASCII=[\x80-\xff]
 
 NAME_LEADING={ALPHA_LOWER}|{ALPHA_UPPER}|{DIGIT}|{UNDERSCORE}|{HIGH_ASCII}
 NAME_TRAILING={ALPHA_LOWER}|{ALPHA_UPPER}|{DIGIT}|{UNDERSCORE}|{HIGH_ASCII}|{PERIOD}|{MINUS}|{ASTERISK}
-INTEGER={MINUS}?{DIGIT}+
 CODE={BACKTICK}[^`]+{BACKTICK}
 NAME={NAME_LEADING}{NAME_TRAILING}*
 TYPES={LT}|{GT}|{ARRAY}|{QUESTION}|{PIPE}|{LBRACE}|{RBRACE}|{LBRACKET}|{RBRACKET}|{LPAREN}|{RPAREN}|{COLON}|{COMMA}
 DIAGNOSTIC={ALPHA_LOWER}+(-({ALPHA_LOWER}|{DIGIT})+)*
-STRING={APOS}{NAME}{APOS}|{QUOTE}[^\"]*{QUOTE}
+STRINGS={APOS}{NAME}{APOS}
+STRINGD={QUOTE}[^\"]*{QUOTE}
+STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
 
 %state COMMENT_START, COMMENT_DATA, COMMENT_END
 %state TAG_CAST, TAG_CLASS, TAG_DIAGNOSTIC, TAG_ENUM, TAG_FIELD, TAG_META, TAG_MODULE, TAG_OPERATOR
 %state TAG_OVERLOAD, TAG_PARAM, TAG_RETURN, TAG_SEE, TAG_SOURCE, TAG_TYPE, TAG_VERSION
+%state OPTION
 
 %%
 
@@ -88,6 +89,7 @@ STRING={APOS}{NAME}{APOS}|{QUOTE}[^\"]*{QUOTE}
 }
 
 <COMMENT_START> {
+    "@alias"                { yybegin(TAG_TYPE); return LCATS_TAG; }
     "@async"                { yybegin(COMMENT_DATA); return LCATS_TAG; }
     "@cast"                 { yybegin(TAG_CAST); return LCATS_TAG; }
     "@class"                { yybegin(TAG_CLASS); return LCATS_TAG; }
@@ -95,17 +97,22 @@ STRING={APOS}{NAME}{APOS}|{QUOTE}[^\"]*{QUOTE}
     "@diagnostic"           { yybegin(TAG_DIAGNOSTIC); return LCATS_TAG; }
     "@enum"                 { yybegin(TAG_ENUM); return LCATS_TAG; }
     "@field"                { yybegin(TAG_FIELD); return LCATS_TAG; }
+    "@generic"              { yybegin(TAG_TYPE); return LCATS_TAG; }
     "@meta"                 { yybegin(TAG_META); return LCATS_TAG; }
     "@nodiscard"            { yybegin(COMMENT_END); return LCATS_TAG; }
     "@operator"             { yybegin(TAG_OPERATOR); return LCATS_TAG; }
+    "@overload"             { yybegin(TAG_TYPE); return LCATS_TAG; }
     "@package"              { yybegin(COMMENT_END); return LCATS_TAG; }
     "@param"                { yybegin(TAG_PARAM); return LCATS_TAG; }
     "@private"              { yybegin(COMMENT_END); return LCATS_TAG; }
     "@protected"            { yybegin(COMMENT_END); return LCATS_TAG; }
     "@return"               { yybegin(TAG_RETURN); return LCATS_TAG; }
     "@see"                  { yybegin(TAG_SEE); return LCATS_TAG; }
+    "@source"               { yybegin(TAG_SOURCE); return LCATS_TAG; }
     "@type"                 { yybegin(TAG_TYPE); return LCATS_TAG; }
     "@vararg"               { yybegin(TAG_TYPE); return LCATS_TAG; }
+    "@version"              { yybegin(TAG_VERSION); return LCATS_TAG; }
+    "|"                     { yybegin(OPTION); return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
@@ -157,7 +164,8 @@ STRING={APOS}{NAME}{APOS}|{QUOTE}[^\"]*{QUOTE}
 }
 
 <TAG_MODULE> {
-    {STRING}                { return LCATS_STRING; }
+    {STRINGS}               { return LCATS_STRING; }
+    {STRINGD}               { return LCATS_STRING; }
 }
 
 <TAG_OPERATOR> {
@@ -175,14 +183,16 @@ STRING={APOS}{NAME}{APOS}|{QUOTE}[^\"]*{QUOTE}
 
 <TAG_PARAM> {
     {NAME}                  { return LCATS_NAME; }
+    {ELLIPSIS}              { return LCATS_SYMBOL; }
+    {CODE}                  { return LCATS_CODE; }
     {TYPES}                 { return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_RETURN> {
     {NAME}                  { return LCATS_NAME; }
-    {TYPES}                 { return LCATS_SYMBOL; }
     {ELLIPSIS}              { return LCATS_SYMBOL; }
+    {TYPES}                 { return LCATS_SYMBOL; }
     {POUND}                 { yybegin(COMMENT_DATA); return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
@@ -201,8 +211,8 @@ STRING={APOS}{NAME}{APOS}|{QUOTE}[^\"]*{QUOTE}
     // Needs support for other lua language literals
     "fun"                   { return LCATS_KEYWORD; }
     {NAME}                  { return LCATS_NAME; }
-    {STRING}                { return LCATS_STRING; }
-    {INTEGER}               { return LCATS_INTEGER; }
+    {STRINGD}               { return LCATS_STRING; }
+    {STRINGS}               { return LCATS_STRING; }
     {TYPES}                 { return LCATS_SYMBOL; }
 }
 
@@ -211,9 +221,14 @@ STRING={APOS}{NAME}{APOS}|{QUOTE}[^\"]*{QUOTE}
     {LT}                    { return LCATS_SYMBOL; }
     {COMMA}                 { return LCATS_SYMBOL; }
     {PIPE}                  { return LCATS_SYMBOL; }
-    "5.1"                   { return LCATS_STRING; }
-    "5.2"                   { return LCATS_STRING; }
-    "5.3"                   { return LCATS_STRING; }
-    "5.4"                   { return LCATS_STRING; }
-    "JIT"                   { return LCATS_STRING; }
+    {STRINGV}               { return LCATS_STRING; }
+}
+
+<OPTION> {
+    {STRINGD}               { return LCATS_STRING; }
+    {STRINGS}               { return LCATS_STRING; }
+    {CODE}                  { return LCATS_CODE; }
+    {POUND}                 { yybegin(COMMENT_DATA); return LCATS_SYMBOL; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
+
 }

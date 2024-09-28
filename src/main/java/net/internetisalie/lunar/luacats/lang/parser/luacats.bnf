@@ -1,0 +1,197 @@
+{
+    // not used except for preview
+    tokens = [
+        WHITESPACE     =   'regexp:[ \t\v\a]+'
+        NL             =   'regexp:\r?\n'
+        STRING         =   'regexp:xxx|5\.1|5\.2|5\.3|5\.4|JIT'
+        KEYWORD        =   "regexp:\(exact\)|fun|disable-next-line|disable-line|disable|enable|\(key\)|private|protected|public"
+        TEXT           =   'zzz'
+        NAME           =   'regexp:[A-Za-z0-9_][A-Za-z0-9_.*\-]*'
+        CODE           =   'regexp:`[A-Za-z0-9_][A-Za-z0-9_.*\-]*`'
+        STRING         =   'regexp:("[^"]+")'
+        DASHES         =   'regexp:---+'
+        TAG            =   'regexp:@alias|@async|@cast|@class|@deprecated|@diagnostic|@enum|@field|@generic|@meta|@module|@nodiscard|@overload|@operator|@package|@param|@private|@protected|@return|@see|@source|@type|@vararg|@version'
+        SYMBOL         =   "regexp:[<>|,:.\[\]()*?]|\.\.\."
+    ]
+
+    generate=[tokenAccessors="no"]
+
+    parserClass="net.internetisalie.lunar.luacats.lang.parser.LuaCatsParser"
+    parserImports=[]
+
+    extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+    tokenTypeClass="net.internetisalie.lunar.luacats.lang.lexer.LuaCatsElementType"
+
+    elementTypeHolderClass="net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes"
+    elementTypeClass="net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementType"
+
+    psiClassPrefix='LuaCats'
+    psiPackage='net.internetisalie.lunar.luacats.lang.psi'
+    psiImplPackage='net.internetisalie.lunar.luacats.lang.psi.impl'
+    psiImplUtilClass='net.internetisalie.lunar.luacats.lang.psi.LuaPsiImplUtil'
+}
+
+// Root
+
+root ::= comment
+comment ::= commentLine*
+private commentLine ::= DASHES (anyTag | typeOption | description)? { pin=1 }
+
+// Meta
+
+meta ArgName ::= <<child>>
+meta ArgType ::= <<child>>
+meta ArgValue ::= <<child>>
+meta ArgKeyword ::= <<child>>
+meta ArgSymbol ::= <<child>>
+
+// Type Options
+
+typeOption ::= '|' <<ArgValue (STRING | CODE)>> [ '#' description ]
+
+/// Tags
+
+private anyTag ::=
+    aliasTag
+    | asyncTag
+    | castTag
+    | classTag
+    | deprecatedTag
+    | diagnosticTag
+    | enumTag
+    | fieldTag
+    | genericTag
+    | metaTag
+    | moduleTag
+    | nodiscardTag
+    | operatorTag
+    | overloadTag
+    | packageTag
+    | paramTag
+    | privateTag
+    | protectedTag
+    | returnTag
+    | seeTag
+    | sourceTag
+    | typeTag
+    | varargTag
+    | versionTag
+
+aliasTag ::= '@alias' <<ArgName NAME>> <<ArgType type>>?
+
+asyncTag ::= '@async'
+
+castTag ::= '@cast' <<ArgName castName>> <<ArgType castModifier>> { ',' <<ArgType castModifier>> }*
+private castName ::= NAME
+castModifier ::= addOrSubtract? type
+addOrSubtract ::= '+' | '-'
+
+classTag ::= '@class' <<ArgKeyword exactKeyword>>? <<ArgType typeName>> [':' parentTypes]
+private exactKeyword ::= '(exact)'
+parentTypes ::= <<ArgType parentType>> { ',' <<ArgType parentType>> }*
+private typeName ::= parameterizedName | NAME
+private parentType ::= type
+
+deprecatedTag ::= '@deprecated'
+
+diagnosticTag ::= '@diagnostic' <<ArgKeyword diagnosticState>> ':' diagnostics
+diagnosticState ::= 'disable-next-line' | 'disable-line' | 'disable' | 'enable'
+diagnostics ::= <<ArgName diagnosticName>> {',' <<ArgName diagnosticName>>}*
+private diagnosticName ::= NAME
+
+enumTag ::= '@enum' <<ArgKeyword enumKey>>? <<ArgName enumName>>
+private enumKey ::= '(key)'
+private enumName ::= NAME
+
+fieldTag ::= '@field' fieldDescriptor <<ArgType type>> description?
+fieldDescriptor ::= (<<ArgKeyword fieldScope>>? <<ArgName fieldNameDescriptor>>)
+    | (<<ArgKeyword fieldScope>>? <<ArgType fieldKeyDescriptor>>)
+fieldScope ::= 'private' | 'protected' | 'public'
+fieldNameDescriptor ::= NAME '?'?
+fieldKeyDescriptor ::= '[' type ']'
+
+genericTag ::= '@generic' genericTypeParams?
+genericTypeParams ::= genericTypeParam { ',' genericTypeParam }*
+genericTypeParam ::= <<ArgName typeParam>> ( <<ArgSymbol (':')>> <<ArgType parentType>> )?
+
+metaTag ::= '@meta' <<ArgName metaName>>?
+private metaName ::= NAME
+
+moduleTag ::= '@module' <<ArgValue moduleName>>
+private moduleName ::= STRING
+
+nodiscardTag ::= '@nodiscard'
+
+operatorTag ::= '@operator' operatorSignature
+operatorSignature ::= <<ArgName operatorName>> [<<ArgSymbol ('(')>> <<ArgType operatorArgumentType>> <<ArgSymbol (')')>>] <<ArgSymbol (':')>> <<ArgType operatorReturnType>>
+private operatorName ::= 'unm' | 'add' | 'sub' | 'mul' | 'div' | 'idiv' | 'mod' | 'pow' | 'concat'
+private operatorArgumentType ::= type
+private operatorReturnType ::= type
+
+overloadTag ::= '@overload' overloadFunctionSignature
+overloadFunctionSignature ::=
+    <<ArgKeyword ('fun')>>
+    <<ArgSymbol ('(')>>
+    functionSignatureArguments?
+    <<ArgSymbol (')')>>
+    functionSignatureReturnType?
+
+packageTag ::= '@package'
+
+paramTag ::= '@param' ((<<ArgName NAME>> <<ArgSymbol ('?')>>?) | <<ArgSymbol ('...')>>) <<ArgType type>> description?
+
+privateTag ::= '@private'
+protectedTag ::= '@protected'
+
+returnTag ::= '@return' <<ArgType type>> [(<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? )]
+
+seeTag ::= '@see' <<ArgName NAME>>
+
+sourceTag ::= '@source' <<ArgValue STRING>>
+
+typeTag ::= '@type' <<ArgType type>>
+
+varargTag ::= '@vararg' <<ArgType type>>
+
+versionTag ::= '@version' versionSpecs
+versionSpecs ::= versionSpec { <<ArgSymbol (',')>> versionSpec }*
+versionSpec ::= <<ArgSymbol versionComparison>>? <<ArgValue versionNumber>>
+versionNumber ::= '5.1' | '5.2' | '5.3' | '5.4' | 'JIT'
+versionComparison ::= '<' | '>'
+
+/// Types
+
+type ::= '(' unionType ')' | unionType
+unionType ::= arrayType { '|' arrayType }*
+arrayType ::= distinctType '[]'?
+distinctType ::=
+    tupleType
+    | dictionaryType
+    | literalTableType
+    | functionSignatureType
+    | parameterizedName
+    | parameterName
+    | simpleType
+
+tupleType ::= '[' type { ',' type }* ']'
+dictionaryType ::= '{' '[' type ']' ':' type '}'
+literalTableType ::= '{' tableLiteralEntries? '}'
+private tableLiteralEntries ::= tableLiteralEntry { ',' tableLiteralEntry }*
+tableLiteralEntry ::= simpleType ':' type
+functionSignatureType ::= 'fun' NAME '(' functionSignatureArguments? ')' functionSignatureReturnType?
+private functionSignatureArguments ::= functionSignatureArgument { ',' functionSignatureArgument }*
+functionSignatureArgument ::= <<ArgName argumentName>> <<ArgSymbol (':')>> <<ArgType type>>
+private argumentName ::= NAME
+functionSignatureReturnType ::= <<ArgSymbol (':')>> <<ArgType type>>
+parameterizedName ::= genericName '<' typeParam {',' typeParam }* '>'
+private genericName ::= NAME
+typeParam ::= NAME
+parameterName ::= CODE
+private simpleType ::= builtinType | namedType
+builtinType ::= 'nil' | 'any' | 'boolean' | 'string' | 'number' | 'integer' | 'function' | 'table' | 'thread' | 'userdata' | 'lightuserdata'
+namedType ::= NAME
+
+/// Explanatory Text
+
+description ::= (NAME | INTEGER | STRING | SYMBOL | TEXT)+

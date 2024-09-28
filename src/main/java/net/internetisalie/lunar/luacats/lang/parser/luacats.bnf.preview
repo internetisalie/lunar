@@ -1,0 +1,36 @@
+--- @alias DeviceSide
+--- | "'left'"  # The left side of the device
+--- | "'right'" # The right side of the device
+--- @async
+--- @cast x string[]
+--- @class (exact) Point
+--- @class table<K,V,L,M>: { [K]: V }
+--- @deprecated
+--- @diagnostic disable-next-line: unused-local
+--- @enum (key) colors
+--- @field height number The height of this person
+--- @field height integer
+--- @generic T : integer, P : number
+--- @meta example
+--- @module "sdfsd"
+--- @nodiscard
+--- @operator add(Vector): Vector
+--- @overload fun(v : Vector)
+--- @param x? integer
+--- @param y table<string,integer>
+--- @param value string|number|boolean The value of the setting
+--- @param ... string Tags to add to this entry
+--- | "'immediate'" # comment 1
+--- | "'async'" # comment 2
+--- @param active integer
+--- | `A` # Has a value of 0
+--- @private
+--- @protected
+--- @return boolean enabled a comment
+--- @return boolean # a comment
+--- @see http.get
+--- @source "xxx"
+--- @type table<string,integer>
+--- @vararg string
+--- @version >5.2, JIT
+--- some text
