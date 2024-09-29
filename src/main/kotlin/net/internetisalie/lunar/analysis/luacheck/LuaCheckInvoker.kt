@@ -135,7 +135,6 @@ private fun runLuaCheckInner(
 
     val handler = OSProcessHandler(cmd)
 
-    @Language("RegExp")
     val reg = "(.+?):(\\d+):(\\d+)-(\\d+):(.+)\\n".toRegex()
     handler.addProcessListener(object : ProcessListener {
         override fun onTextAvailable(event: ProcessEvent, key: Key<*>) {

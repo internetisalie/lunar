@@ -117,5 +117,12 @@
       <add-to-group group-id="ToolsMenu" anchor="last"/>
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
+    <action id="lua.ViewManifest"
+            text="View Manifest"
+            popup="true"
+            icon="/icons/rocket_16.png"
+            class="net.internetisalie.lunar.luacats.lang.process.LuaWorkAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
   </actions>
 </idea-plugin>

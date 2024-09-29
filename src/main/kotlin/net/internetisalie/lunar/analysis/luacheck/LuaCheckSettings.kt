@@ -23,7 +23,7 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.xmlb.XmlSerializerUtil
 
-@State(name = "LuaCheckSettings", storages = [Storage("luacheck.settings.xml")])
+@State(name = "LuaCheckSettings")
 class LuaCheckSettings : PersistentStateComponent<LuaCheckSettings> {
     var luaCheck:String? = "/usr/local/bin/luacheck"
     var luaCheckArgs:String? = null
@@ -35,10 +35,7 @@ class LuaCheckSettings : PersistentStateComponent<LuaCheckSettings> {
     }
 
     val valid: Boolean get() {
-        if (StringUtil.isEmpty(luaCheck))
-            return false
-
-        return true
+        return !StringUtil.isEmpty(luaCheck)
     }
 
     companion object {

@@ -1,6 +1,6 @@
---- Export a rockspec manifest to JSON.
+--- Export a luawork manifest to JSON.
 -- ```sh
--- lua rockspec.lua luacheck-dev-1.rockspec
+-- lua luawork.lua .luawork
 -- ```
 local luna = require "lunajson"
 
@@ -9,18 +9,7 @@ dofile(arg[1])
 
 -- Set the required exports
 local exports ={
-    "rockspec_format",
-    "package",
-    "version",
-    "description",
-    "supported_platforms",
-    "dependencies",
-    "build_dependencies",
-    "external_dependencies",
-    "test_dependencies",
-    "source",
-    "build",
-    "test",
+    "trees",
 }
 
 -- Collect the specified names from the _G table into the data table
