@@ -52,6 +52,11 @@ tasks {
                 from("src/main/resources/platform")
                 into("$destinationDir/${pluginName.get()}/platform")
             }
+
+            copy {
+                from ("src/main/lua")
+                into("$destinationDir/${pluginName.get()}/lua")
+            }
         }
     }
 

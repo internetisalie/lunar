@@ -34,6 +34,13 @@
             language="Lua"
             extensions="lua"/>
 
+    <fileType
+            name="Lua Workspace"
+            implementationClass="net.internetisalie.lunar.lang.LuaWorkFileType"
+            fieldName="INSTANCE"
+            language="Lua"
+            extensions="luawork"/>
+
     <lang.syntaxHighlighterFactory
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaSyntaxHighlighterFactory"/>
@@ -121,7 +128,7 @@
             text="View Manifest"
             popup="true"
             icon="/icons/rocket_16.png"
-            class="net.internetisalie.lunar.luacats.lang.process.LuaWorkAction">
+            class="net.internetisalie.lunar.luacats.lang.process.LuaWorkspaceAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
   </actions>

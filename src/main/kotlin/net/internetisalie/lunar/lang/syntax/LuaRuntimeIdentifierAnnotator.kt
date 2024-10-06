@@ -12,7 +12,7 @@ class LuaRuntimeIdentifierAnnotator : Annotator {
     val RUNTIME_IDENTIFIERS = listOf(
         "require",
         "setmetatable",
-        "getmetatable"
+        "getmetatable",
     )
 
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
