@@ -15,11 +15,11 @@ repositories {
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
     // Goland
-    version.set("2023.3.7")
+    version.set("2024.3.4")
     type.set("GO")
 
     // IntelliJ Community
-//    version.set("2023.2.6")
+//    version.set("2024.3.4")
 //    type.set("IC")
 
     plugins.set(listOf(/* Plugin Dependencies */))
@@ -66,7 +66,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("232")
-        untilBuild.set("242.*")
+        untilBuild.set("243.*")
     }
 
     signPlugin {
