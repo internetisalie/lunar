@@ -5,6 +5,11 @@ import net.internetisalie.lunar.settings.LuaApplicationSettings
 import net.internetisalie.lunar.settings.LuaInterpreter
 import java.io.File
 
+fun findLuaInterpreter(interpreterPath : String) :  LuaInterpreter? {
+    val settings = LuaApplicationSettings.instance.state
+    val interpreters = settings.interpreters
+    return interpreters.firstOrNull { interpreterPath == it.path }
+}
 
 fun newLuaDefaultInterpreterCommandLine(): GeneralCommandLine {
     val settings = LuaApplicationSettings.instance.state

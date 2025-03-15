@@ -19,7 +19,7 @@ import net.internetisalie.lunar.settings.LuaInterpreterFamily.Companion.FAMILIES
 import net.internetisalie.lunar.settings.LuaInterpreterFamily.Companion.UNKNOWN_INTERPRETER
 
 class LuaInterpreter(
-    var name:String? = null,
+    var name: String? = null,
     var path: String? = null,
     var familyKey: String? = null,
     var version: String? = null,

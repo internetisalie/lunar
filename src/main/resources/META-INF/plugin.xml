@@ -104,6 +104,9 @@
             displayName="Lua Project"
             nonDefaultProject="true"/>
 
+    <configurationType
+            implementation="net.internetisalie.lunar.run.LuaRunConfigurationType"/>
+
     <!-- Luacheck -->
     <toolWindow id="LuaCheck"
                 anchor="bottom"

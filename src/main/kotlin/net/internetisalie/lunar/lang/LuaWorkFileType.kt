@@ -16,6 +16,10 @@ object LuaWorkFileType : LanguageFileType(LuaLanguage) {
         return "luawork"
     }
 
+    override fun getDisplayName(): String {
+        return "Lua Workspace file"
+    }
+
     override fun getIcon(): Icon {
         return LuaIcons.FILE
     }

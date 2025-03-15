@@ -58,6 +58,9 @@
 
 #### Execution
 
-- [ ] Run target
+- [x] Run target
 - [ ] Debug target
-
+- [ ] Run Configuration validation
+  - Script name
+  - Interpreter
+  - 
