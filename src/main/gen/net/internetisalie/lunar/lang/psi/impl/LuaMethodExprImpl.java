@@ -11,14 +11,14 @@ import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaNameAndArgsImpl extends ASTWrapperPsiElement implements LuaNameAndArgs {
+public class LuaMethodExprImpl extends ASTWrapperPsiElement implements LuaMethodExpr {
 
-  public LuaNameAndArgsImpl(@NotNull ASTNode node) {
+  public LuaMethodExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitNameAndArgs(this);
+    visitor.visitMethodExpr(this);
   }
 
   @Override
@@ -29,14 +29,8 @@ public class LuaNameAndArgsImpl extends ASTWrapperPsiElement implements LuaNameA
 
   @Override
   @NotNull
-  public LuaArgs getArgs() {
-    return findNotNullChildByClass(LuaArgs.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaMethodExpr getMethodExpr() {
-    return findChildByClass(LuaMethodExpr.class);
+  public PsiElement getIdentifier() {
+    return findNotNullChildByType(IDENTIFIER);
   }
 
 }

@@ -34,15 +34,15 @@ public class LuaVarImpl extends ASTWrapperPsiElement implements LuaVar {
   }
 
   @Override
-  @NotNull
-  public List<LuaVarSuffix> getVarSuffixList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaVarSuffix.class);
+  @Nullable
+  public LuaVarName getVarName() {
+    return findChildByClass(LuaVarName.class);
   }
 
   @Override
-  @Nullable
-  public PsiElement getIdentifier() {
-    return findChildByType(IDENTIFIER);
+  @NotNull
+  public List<LuaVarSuffix> getVarSuffixList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaVarSuffix.class);
   }
 
 }

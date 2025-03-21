@@ -7,13 +7,10 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaVarSuffix extends PsiElement {
 
-  @Nullable
-  LuaExpr getExpr();
+  @NotNull
+  LuaIndexExpr getIndexExpr();
 
   @NotNull
   List<LuaNameAndArgs> getNameAndArgsList();
-
-  @Nullable
-  PsiElement getIdentifier();
 
 }

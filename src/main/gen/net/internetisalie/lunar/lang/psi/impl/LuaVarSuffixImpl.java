@@ -28,21 +28,15 @@ public class LuaVarSuffixImpl extends ASTWrapperPsiElement implements LuaVarSuff
   }
 
   @Override
-  @Nullable
-  public LuaExpr getExpr() {
-    return findChildByClass(LuaExpr.class);
+  @NotNull
+  public LuaIndexExpr getIndexExpr() {
+    return findNotNullChildByClass(LuaIndexExpr.class);
   }
 
   @Override
   @NotNull
   public List<LuaNameAndArgs> getNameAndArgsList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaNameAndArgs.class);
-  }
-
-  @Override
-  @Nullable
-  public PsiElement getIdentifier() {
-    return findChildByType(IDENTIFIER);
   }
 
 }

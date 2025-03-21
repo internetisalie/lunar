@@ -10,10 +10,10 @@ public interface LuaVar extends PsiElement {
   @Nullable
   LuaExpr getExpr();
 
+  @Nullable
+  LuaVarName getVarName();
+
   @NotNull
   List<LuaVarSuffix> getVarSuffixList();
-
-  @Nullable
-  PsiElement getIdentifier();
 
 }

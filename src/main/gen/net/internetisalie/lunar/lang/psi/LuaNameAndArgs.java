@@ -11,6 +11,6 @@ public interface LuaNameAndArgs extends PsiElement {
   LuaArgs getArgs();
 
   @Nullable
-  PsiElement getIdentifier();
+  LuaMethodExpr getMethodExpr();
 
 }

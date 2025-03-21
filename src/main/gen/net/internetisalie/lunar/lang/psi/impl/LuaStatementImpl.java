@@ -29,6 +29,12 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
 
   @Override
   @Nullable
+  public LuaAssignmentStatement getAssignmentStatement() {
+    return findChildByClass(LuaAssignmentStatement.class);
+  }
+
+  @Override
+  @Nullable
   public LuaBlock getBlock() {
     return findChildByClass(LuaBlock.class);
   }
@@ -85,12 +91,6 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
   @Nullable
   public LuaNameList getNameList() {
     return findChildByClass(LuaNameList.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaVarList getVarList() {
-    return findChildByClass(LuaVarList.class);
   }
 
   @Override

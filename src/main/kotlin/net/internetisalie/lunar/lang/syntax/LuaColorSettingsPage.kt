@@ -33,7 +33,11 @@ import javax.swing.Icon
  */
 class LuaColorSettingsPage : ColorSettingsPage {
     val DEMO_TEXT: String =
-        """<global>a</global> = { <global>foo</global>.<field>bar</field>,  <global>foo</global>.<field>bar</field>(), <global>fx</global>(), <field>f</field> = <global>a</global>, 1,  <global>FOO</global> } -- url http://www.url.com 
+        """
+<builtin>require</builtin> "os"
+<package>os</package>.getenv("VARNAME")
+                     
+<global>a</global> = { <global>foo</global>.<field>bar</field>,  <global>foo</global>.<field>bar</field>(), <global>fx</global>(), <field>f</field> = <global>a</global>, 1,  <global>FOO</global> } -- url http://www.url.com 
 local <local>x</local>,<local>y</local> = 20,nil
 for <local>i</local>=1,10 do
   local <local>y</local> = 0
@@ -134,6 +138,8 @@ end
             Pair("color.luadoc", highlight.DOC_COMMENT),
             Pair("color.luadoc.tag", highlight.DOC_TAG),
             Pair("color.luadoc.value", highlight.DOC_VALUE),
+            Pair("color.package", highlight.PACKAGE),
+            Pair("color.builtin", highlight.BUILTIN),
         )
             .map { pair: Pair<String, TextAttributesKey> ->
                 AttributesDescriptor(
@@ -153,6 +159,8 @@ end
             Pair("luadoc", highlight.DOC_COMMENT),
             Pair("luadoc-tag", highlight.DOC_TAG),
             Pair("luadoc-value", highlight.DOC_VALUE),
+            Pair("package", highlight.PACKAGE),
+            Pair("builtin", highlight.BUILTIN),
         )
     }
 }

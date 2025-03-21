@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import net.internetisalie.lunar.lang.psi.LuaNameRefElementImpl;
+import net.internetisalie.lunar.lang.psi.LuaLabelRefBaseImpl;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaLabelRefImpl extends LuaNameRefElementImpl implements LuaLabelRef {
+public class LuaLabelRefImpl extends LuaLabelRefBaseImpl implements LuaLabelRef {
 
   public LuaLabelRefImpl(@NotNull ASTNode node) {
     super(node);

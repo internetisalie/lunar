@@ -99,6 +99,7 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     "@field"                { yybegin(TAG_FIELD); return LCATS_TAG; }
     "@generic"              { yybegin(TAG_TYPE); return LCATS_TAG; }
     "@meta"                 { yybegin(TAG_META); return LCATS_TAG; }
+    "@module"               { yybegin(TAG_MODULE); return LCATS_TAG; }
     "@nodiscard"            { yybegin(COMMENT_END); return LCATS_TAG; }
     "@operator"             { yybegin(TAG_OPERATOR); return LCATS_TAG; }
     "@overload"             { yybegin(TAG_TYPE); return LCATS_TAG; }

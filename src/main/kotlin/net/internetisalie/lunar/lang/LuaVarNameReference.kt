@@ -5,18 +5,18 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import net.internetisalie.lunar.lang.LuaIcons.FILE
-import net.internetisalie.lunar.lang.psi.LuaLabelRef
+import net.internetisalie.lunar.lang.psi.LuaNameDecl
+import net.internetisalie.lunar.lang.psi.LuaVarName
 
-class LuaLabelReference(element: PsiElement, textRange: TextRange) :
+class LuaVarNameReference(element: PsiElement, textRange: TextRange) :
     PsiReferenceBase<PsiElement?>(element, textRange), PsiPolyVariantReference {
     private val name = element.text.substring(textRange.startOffset, textRange.endOffset)
 
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
-        val containingFile = myElement!!.containingFile
-        val labels = LuaNameUtil.findLabels(containingFile, name)
+        val vars = LuaNameUtil.findVars(element, name)
         val results: MutableList<ResolveResult> = ArrayList()
-        for (label in labels) {
-            results.add(PsiElementResolveResult(label))
+        for (var_ in vars) {
+            results.add(PsiElementResolveResult(var_))
         }
         return results.toTypedArray<ResolveResult>()
     }
@@ -27,22 +27,29 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
     }
 
     override fun isReferenceTo(element: PsiElement): Boolean {
-        return (element is LuaLabelRef) &&
+        return (element is LuaVarName) &&
                 element.identifier.text == name &&
                 resolve() === element
     }
 
     override fun getVariants(): Array<Any> {
         val containingFile = myElement!!.containingFile
-        val labels = LuaNameUtil.findLabels(containingFile, name)
+        val foundVars = LuaNameUtil.findVars(element, name)
         val variants: MutableList<LookupElement> = ArrayList()
-        for (label in labels) {
-            if (!label.labelName.identifier.text.isEmpty()) {
+        for (foundVar in foundVars) {
+            if (foundVar is LuaNameDecl && foundVar.identifier.text.isNotEmpty()) {
                 variants.add(
                     LookupElementBuilder
-                        .create(label)
+                        .create(foundVar)
                         .withIcon(FILE)
-                        .withTypeText(label.containingFile.name)
+                        .withTypeText(containingFile.name)
+                )
+            } else if (foundVar is LuaVarName &&  foundVar.identifier.text.isNotEmpty()) {
+                variants.add(
+                    LookupElementBuilder
+                    .create(foundVar)
+                    .withIcon(FILE)
+                    .withTypeText(containingFile.name)
                 )
             }
         }

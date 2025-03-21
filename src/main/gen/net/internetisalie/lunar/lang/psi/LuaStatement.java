@@ -8,6 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface LuaStatement extends PsiElement {
 
   @Nullable
+  LuaAssignmentStatement getAssignmentStatement();
+
+  @Nullable
   LuaBlock getBlock();
 
   @Nullable
@@ -36,9 +39,6 @@ public interface LuaStatement extends PsiElement {
 
   @Nullable
   LuaNameList getNameList();
-
-  @Nullable
-  LuaVarList getVarList();
 
   @Nullable
   PsiElement getIdentifier();

@@ -6,25 +6,30 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaRuntimeIdentifierAnnotator : Annotator {
-    // TODO: Add project runtime setting
-    val RUNTIME_IDENTIFIERS = listOf(
-        "require",
-        "setmetatable",
-        "getmetatable",
-    )
-
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         if (element !is LuaVar) return
-        val identifier = element.identifier ?: return
+        val identifier = element.varName?.identifier ?: return
         val name = identifier.text ?: return
-        if (!RUNTIME_IDENTIFIERS.contains(name)) return
         val range = identifier.textRange
 
-        holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-            .range(range)
-            .textAttributes(DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
-            .create()
+        val platformPackages = PlatformLibraryIndex.instance.getPackageNames()
+        if (platformPackages.contains(name)) {
+            holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+                .range(range)
+                .textAttributes(LuaHighlight.PACKAGE)
+                .create()
+        }
+
+        val platformGlobals = PlatformLibraryIndex.instance.getGlobalNames()
+        if (platformGlobals.contains(name)) {
+            holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+                .range(range)
+                .textAttributes(LuaHighlight.BUILTIN)
+                .create()
+
+        }
     }
 }

@@ -32,15 +32,4 @@ public class LuaNameRefElementImpl extends ASTWrapperPsiElement implements LuaNa
         }
         return this;
     }
-
-    @Override
-    @Nullable
-    public PsiReference getReference() {
-        String value = getName();
-        if (value != null) {
-            TextRange range = new TextRange(0, value.length());
-            return new LuaLabelReference(this, range);
-        }
-        return null;
-    }
 }

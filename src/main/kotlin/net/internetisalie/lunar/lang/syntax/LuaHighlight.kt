@@ -67,4 +67,9 @@ object LuaHighlight {
         TextAttributesKey.createTextAttributesKey("LUA_DOC_TAG", DefaultLanguageHighlighterColors.DOC_COMMENT_TAG)
     val DOC_VALUE: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_DOC_VALUE", DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
+
+    val BUILTIN: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_BUILTIN", DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
+    val PACKAGE: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_PACKAGE", DefaultLanguageHighlighterColors.IDENTIFIER)
 }

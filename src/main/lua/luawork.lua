@@ -9,13 +9,22 @@ dofile(arg[1])
 
 -- Set the required exports
 local exports ={
-    "trees",
+    "package.path",
+    "package.cpath",
 }
+
+local function getField (f)
+    local v = _G    -- start with the table of globals
+    for w in string.gmatch(f, "[%w_]+") do
+        v = v[w]
+    end
+    return v
+end
 
 -- Collect the specified names from the _G table into the data table
 local data = {}
 for _, key in ipairs(exports) do
-    local value = _G[key]
+    local value = getField(key)
     if value ~= nil then
         data[key] = value
     end

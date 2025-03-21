@@ -9,6 +9,7 @@ import net.internetisalie.lunar.lang.psi.impl.*;
 public interface LuaElementTypes {
 
   IElementType ARGS = new LuaElementType("ARGS");
+  IElementType ASSIGNMENT_STATEMENT = new LuaElementType("ASSIGNMENT_STATEMENT");
   IElementType BIN_OP = new LuaElementType("BIN_OP");
   IElementType BLOCK = new LuaElementType("BLOCK");
   IElementType EXPR = new LuaElementType("EXPR");
@@ -23,12 +24,16 @@ public interface LuaElementTypes {
   IElementType FUNC_DEF = new LuaElementType("FUNC_DEF");
   IElementType FUNC_NAME = new LuaElementType("FUNC_NAME");
   IElementType GOTO_STATEMENT = new LuaElementType("GOTO_STATEMENT");
+  IElementType INDEX_EXPR = new LuaElementType("INDEX_EXPR");
   IElementType LABEL = new LuaElementType("LABEL");
   IElementType LABEL_NAME = new LuaElementType("LABEL_NAME");
   IElementType LABEL_REF = new LuaElementType("LABEL_REF");
   IElementType LOCAL_FUNC_DECL = new LuaElementType("LOCAL_FUNC_DECL");
+  IElementType LOCAL_FUNC_NAME = new LuaElementType("LOCAL_FUNC_NAME");
   IElementType LOCAL_VAR_DECL = new LuaElementType("LOCAL_VAR_DECL");
+  IElementType METHOD_EXPR = new LuaElementType("METHOD_EXPR");
   IElementType NAME_AND_ARGS = new LuaElementType("NAME_AND_ARGS");
+  IElementType NAME_DECL = new LuaElementType("NAME_DECL");
   IElementType NAME_LIST = new LuaElementType("NAME_LIST");
   IElementType PAR_LIST = new LuaElementType("PAR_LIST");
   IElementType PREFIX_EXPR = new LuaElementType("PREFIX_EXPR");
@@ -37,6 +42,7 @@ public interface LuaElementTypes {
   IElementType UN_OP = new LuaElementType("UN_OP");
   IElementType VAR = new LuaElementType("VAR");
   IElementType VAR_LIST = new LuaElementType("VAR_LIST");
+  IElementType VAR_NAME = new LuaElementType("VAR_NAME");
   IElementType VAR_OR_EXP = new LuaElementType("VAR_OR_EXP");
   IElementType VAR_SUFFIX = new LuaElementType("VAR_SUFFIX");
 
@@ -109,6 +115,9 @@ public interface LuaElementTypes {
       if (type == ARGS) {
         return new LuaArgsImpl(node);
       }
+      else if (type == ASSIGNMENT_STATEMENT) {
+        return new LuaAssignmentStatementImpl(node);
+      }
       else if (type == BIN_OP) {
         return new LuaBinOpImpl(node);
       }
@@ -151,6 +160,9 @@ public interface LuaElementTypes {
       else if (type == GOTO_STATEMENT) {
         return new LuaGotoStatementImpl(node);
       }
+      else if (type == INDEX_EXPR) {
+        return new LuaIndexExprImpl(node);
+      }
       else if (type == LABEL) {
         return new LuaLabelImpl(node);
       }
@@ -163,11 +175,20 @@ public interface LuaElementTypes {
       else if (type == LOCAL_FUNC_DECL) {
         return new LuaLocalFuncDeclImpl(node);
       }
+      else if (type == LOCAL_FUNC_NAME) {
+        return new LuaLocalFuncNameImpl(node);
+      }
       else if (type == LOCAL_VAR_DECL) {
         return new LuaLocalVarDeclImpl(node);
       }
+      else if (type == METHOD_EXPR) {
+        return new LuaMethodExprImpl(node);
+      }
       else if (type == NAME_AND_ARGS) {
         return new LuaNameAndArgsImpl(node);
+      }
+      else if (type == NAME_DECL) {
+        return new LuaNameDeclImpl(node);
       }
       else if (type == NAME_LIST) {
         return new LuaNameListImpl(node);
@@ -192,6 +213,9 @@ public interface LuaElementTypes {
       }
       else if (type == VAR_LIST) {
         return new LuaVarListImpl(node);
+      }
+      else if (type == VAR_NAME) {
+        return new LuaVarNameImpl(node);
       }
       else if (type == VAR_OR_EXP) {
         return new LuaVarOrExpImpl(node);

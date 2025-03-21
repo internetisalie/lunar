@@ -92,7 +92,7 @@ root ::= block*
 block ::= not_eof {statement SEMI?}* [finalStatement SEMI?]
 private not_eof ::= !<<eof>>
 
-statement ::= varList '=' exprList
+statement ::= assignmentStatement
     | funcCall
     | label
     | BREAK
@@ -106,15 +106,26 @@ statement ::= varList '=' exprList
     | funcDecl
     | localFuncDecl
     | localVarDecl
+assignmentStatement ::= varList '=' exprList
 gotoStatement ::= GOTO labelRef
 finalStatement ::= RETURN [exprList] [';']
 label ::= '::' labelName '::'
 funcName ::= IDENTIFIER {'.' IDENTIFIER}* [':' IDENTIFIER]
 varList ::= var {',' var}*
-nameList ::= IDENTIFIER {',' IDENTIFIER}*
+nameList ::= nameDecl {',' nameDecl}*
+nameDecl ::= IDENTIFIER {
+    mixin="net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl"
+    implements="net.internetisalie.lunar.lang.psi.LuaNameDeclElement"
+}
+
 exprList ::= expr {',' expr}*
 
-localFuncDecl ::= LOCAL FUNCTION IDENTIFIER funcBody
+localFuncDecl ::= LOCAL FUNCTION localFuncName funcBody
+localFuncName ::= IDENTIFIER {
+    mixin="net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl"
+    implements="net.internetisalie.lunar.lang.psi.LuaNameDeclElement"
+}
+
 funcDecl ::= FUNCTION funcName funcBody {
     implements = [
         "net.internetisalie.lunar.luadoc.lang.psi.LuaDocCommentOwner"
@@ -126,7 +137,7 @@ funcDecl ::= FUNCTION funcName funcBody {
 localVarDecl ::= LOCAL nameList ['=' exprList]
 
 labelRef ::= IDENTIFIER {
-    mixin="net.internetisalie.lunar.lang.psi.LuaNameRefElementImpl"
+    mixin="net.internetisalie.lunar.lang.psi.LuaLabelRefBaseImpl"
     implements="net.internetisalie.lunar.lang.psi.LuaNameRefElement"
 }
 labelName ::= IDENTIFIER {
@@ -151,12 +162,19 @@ labelName ::= IDENTIFIER {
 // use right-recursion for expressions
 expr ::= (NIL | FALSE | TRUE | NUMBER | STRING | ELLIPSIS | funcDef | prefixExpr | tableConstructor | unOp expr) {binOp expr}*
 
-var ::= (IDENTIFIER | '(' expr ')' varSuffix) {varSuffix}*
+var ::= (varName | '(' expr ')' varSuffix) {varSuffix}*
+varName ::= IDENTIFIER {
+   mixin="net.internetisalie.lunar.lang.psi.LuaVarNameRefBaseImpl"
+   implements="net.internetisalie.lunar.lang.psi.LuaNameRefElement"
+}
+
 prefixExpr ::= varOrExp nameAndArgs*
 funcCall ::= varOrExp nameAndArgs+
 varOrExp ::= var | '(' expr ')'
-nameAndArgs ::= (':' IDENTIFIER)? args
-varSuffix ::= nameAndArgs* ('[' expr ']' | '.' IDENTIFIER)
+nameAndArgs ::= methodExpr? args
+varSuffix ::= nameAndArgs* indexExpr
+methodExpr ::= ':' IDENTIFIER
+indexExpr ::= '[' expr ']' | '.' IDENTIFIER
 
 args ::=  '(' [exprList] ')' | tableConstructor | STRING
 

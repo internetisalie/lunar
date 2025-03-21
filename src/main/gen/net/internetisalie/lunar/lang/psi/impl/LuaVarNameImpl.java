@@ -1,24 +1,22 @@
 // This is a generated file. Not intended for manual editing.
 package net.internetisalie.lunar.lang.psi.impl;
 
-import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
-import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.lang.psi.LuaVarNameRefBaseImpl;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaNameAndArgsImpl extends ASTWrapperPsiElement implements LuaNameAndArgs {
+public class LuaVarNameImpl extends LuaVarNameRefBaseImpl implements LuaVarName {
 
-  public LuaNameAndArgsImpl(@NotNull ASTNode node) {
+  public LuaVarNameImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitNameAndArgs(this);
+    visitor.visitVarName(this);
   }
 
   @Override
@@ -29,14 +27,8 @@ public class LuaNameAndArgsImpl extends ASTWrapperPsiElement implements LuaNameA
 
   @Override
   @NotNull
-  public LuaArgs getArgs() {
-    return findNotNullChildByClass(LuaArgs.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaMethodExpr getMethodExpr() {
-    return findChildByClass(LuaMethodExpr.class);
+  public PsiElement getIdentifier() {
+    return findNotNullChildByType(IDENTIFIER);
   }
 
 }
