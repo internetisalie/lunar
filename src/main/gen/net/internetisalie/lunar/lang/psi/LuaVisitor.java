@@ -25,6 +25,10 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitDoStatement(@NotNull LuaDoStatement o) {
+    visitPsiElement(o);
+  }
+
   public void visitExpr(@NotNull LuaExpr o) {
     visitPsiElement(o);
   }
@@ -70,7 +74,23 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitFuncNameMethod(@NotNull LuaFuncNameMethod o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFuncNameProperty(@NotNull LuaFuncNameProperty o) {
+    visitPsiElement(o);
+  }
+
+  public void visitGenericForStatement(@NotNull LuaGenericForStatement o) {
+    visitPsiElement(o);
+  }
+
   public void visitGotoStatement(@NotNull LuaGotoStatement o) {
+    visitPsiElement(o);
+  }
+
+  public void visitIfStatement(@NotNull LuaIfStatement o) {
     visitPsiElement(o);
   }
 
@@ -118,11 +138,19 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitNumericForStatement(@NotNull LuaNumericForStatement o) {
+    visitPsiElement(o);
+  }
+
   public void visitParList(@NotNull LuaParList o) {
     visitPsiElement(o);
   }
 
   public void visitPrefixExpr(@NotNull LuaPrefixExpr o) {
+    visitPsiElement(o);
+  }
+
+  public void visitRepeatStatement(@NotNull LuaRepeatStatement o) {
     visitPsiElement(o);
   }
 
@@ -155,6 +183,10 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitVarSuffix(@NotNull LuaVarSuffix o) {
+    visitPsiElement(o);
+  }
+
+  public void visitWhileStatement(@NotNull LuaWhileStatement o) {
     visitPsiElement(o);
   }
 

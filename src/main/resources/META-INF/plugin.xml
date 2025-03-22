@@ -58,11 +58,7 @@
 
     <annotator
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaRuntimeIdentifierAnnotator"/>
-
-    <annotator
-            language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaLabelAnnotator"/>
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaBindingsAnnotator"/>
 
     <annotator
             language="Lua"

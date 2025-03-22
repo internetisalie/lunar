@@ -5,15 +5,12 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaFuncName extends PsiElement {
-
-  @Nullable
-  LuaFuncNameMethod getFuncNameMethod();
+public interface LuaWhileStatement extends PsiElement {
 
   @NotNull
-  List<LuaFuncNameProperty> getFuncNamePropertyList();
+  LuaBlock getBlock();
 
   @NotNull
-  PsiElement getIdentifier();
+  LuaExpr getExpr();
 
 }

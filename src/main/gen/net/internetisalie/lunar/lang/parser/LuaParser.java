@@ -183,6 +183,20 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // DO block END
+  public static boolean doStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "doStatement")) return false;
+    if (!nextTokenIs(b, DO)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, DO);
+    r = r && block(b, l + 1);
+    r = r && consumeToken(b, END);
+    exit_section_(b, m, DO_STATEMENT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
   // (NIL | FALSE | TRUE | NUMBER | STRING | ELLIPSIS | funcDef | prefixExpr | tableConstructor | unOp expr) {binOp expr}*
   public static boolean expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "expr")) return false;
@@ -479,7 +493,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // IDENTIFIER {'.' IDENTIFIER}* [':' IDENTIFIER]
+  // IDENTIFIER funcNameProperty* funcNameMethod?
   public static boolean funcName(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "funcName")) return false;
     if (!nextTokenIs(b, IDENTIFIER)) return false;
@@ -492,32 +506,64 @@ public class LuaParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // {'.' IDENTIFIER}*
+  // funcNameProperty*
   private static boolean funcName_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "funcName_1")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!funcName_1_0(b, l + 1)) break;
+      if (!funcNameProperty(b, l + 1)) break;
       if (!empty_element_parsed_guard_(b, "funcName_1", c)) break;
     }
     return true;
   }
 
-  // '.' IDENTIFIER
-  private static boolean funcName_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "funcName_1_0")) return false;
+  // funcNameMethod?
+  private static boolean funcName_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "funcName_2")) return false;
+    funcNameMethod(b, l + 1);
+    return true;
+  }
+
+  /* ********************************************************** */
+  // ':' IDENTIFIER
+  public static boolean funcNameMethod(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "funcNameMethod")) return false;
+    if (!nextTokenIs(b, COLON)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, DOT, IDENTIFIER);
-    exit_section_(b, m, null, r);
+    r = consumeTokens(b, 0, COLON, IDENTIFIER);
+    exit_section_(b, m, FUNC_NAME_METHOD, r);
     return r;
   }
 
-  // [':' IDENTIFIER]
-  private static boolean funcName_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "funcName_2")) return false;
-    parseTokens(b, 0, COLON, IDENTIFIER);
-    return true;
+  /* ********************************************************** */
+  // '.' IDENTIFIER
+  public static boolean funcNameProperty(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "funcNameProperty")) return false;
+    if (!nextTokenIs(b, DOT)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeTokens(b, 0, DOT, IDENTIFIER);
+    exit_section_(b, m, FUNC_NAME_PROPERTY, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // FOR nameList IN exprList DO block END
+  public static boolean genericForStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "genericForStatement")) return false;
+    if (!nextTokenIs(b, FOR)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, FOR);
+    r = r && nameList(b, l + 1);
+    r = r && consumeToken(b, IN);
+    r = r && exprList(b, l + 1);
+    r = r && consumeToken(b, DO);
+    r = r && block(b, l + 1);
+    r = r && consumeToken(b, END);
+    exit_section_(b, m, GENERIC_FOR_STATEMENT, r);
+    return r;
   }
 
   /* ********************************************************** */
@@ -530,6 +576,66 @@ public class LuaParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, GOTO);
     r = r && labelRef(b, l + 1);
     exit_section_(b, m, GOTO_STATEMENT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
+  public static boolean ifStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ifStatement")) return false;
+    if (!nextTokenIs(b, IF)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, IF);
+    r = r && expr(b, l + 1);
+    r = r && consumeToken(b, THEN);
+    r = r && block(b, l + 1);
+    r = r && ifStatement_4(b, l + 1);
+    r = r && ifStatement_5(b, l + 1);
+    r = r && consumeToken(b, END);
+    exit_section_(b, m, IF_STATEMENT, r);
+    return r;
+  }
+
+  // {ELSEIF expr THEN block}*
+  private static boolean ifStatement_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ifStatement_4")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!ifStatement_4_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "ifStatement_4", c)) break;
+    }
+    return true;
+  }
+
+  // ELSEIF expr THEN block
+  private static boolean ifStatement_4_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ifStatement_4_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ELSEIF);
+    r = r && expr(b, l + 1);
+    r = r && consumeToken(b, THEN);
+    r = r && block(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // [ELSE block]
+  private static boolean ifStatement_5(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ifStatement_5")) return false;
+    ifStatement_5_0(b, l + 1);
+    return true;
+  }
+
+  // ELSE block
+  private static boolean ifStatement_5_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ifStatement_5_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ELSE);
+    r = r && block(b, l + 1);
+    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -744,6 +850,43 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
+  public static boolean numericForStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "numericForStatement")) return false;
+    if (!nextTokenIs(b, FOR)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeTokens(b, 0, FOR, IDENTIFIER, ASSIGN);
+    r = r && expr(b, l + 1);
+    r = r && consumeToken(b, COMMA);
+    r = r && expr(b, l + 1);
+    r = r && numericForStatement_6(b, l + 1);
+    r = r && consumeToken(b, DO);
+    r = r && block(b, l + 1);
+    r = r && consumeToken(b, END);
+    exit_section_(b, m, NUMERIC_FOR_STATEMENT, r);
+    return r;
+  }
+
+  // [',' expr]
+  private static boolean numericForStatement_6(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "numericForStatement_6")) return false;
+    numericForStatement_6_0(b, l + 1);
+    return true;
+  }
+
+  // ',' expr
+  private static boolean numericForStatement_6_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "numericForStatement_6_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, COMMA);
+    r = r && expr(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
   // nameList [',' '...'] | '...'
   public static boolean parList(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "parList")) return false;
@@ -799,6 +942,21 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // REPEAT block UNTIL expr
+  public static boolean repeatStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "repeatStatement")) return false;
+    if (!nextTokenIs(b, REPEAT)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, REPEAT);
+    r = r && block(b, l + 1);
+    r = r && consumeToken(b, UNTIL);
+    r = r && expr(b, l + 1);
+    exit_section_(b, m, REPEAT_STATEMENT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
   // block*
   static boolean root(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "root")) return false;
@@ -816,12 +974,12 @@ public class LuaParser implements PsiParser, LightPsiParser {
   //     | label
   //     | BREAK
   //     | gotoStatement
-  //     | DO block END
-  //     | WHILE expr DO block END
-  //     | REPEAT block UNTIL expr
-  //     | IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
-  //     | FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
-  //     | FOR nameList IN exprList DO block END
+  //     | doStatement
+  //     | whileStatement
+  //     | repeatStatement
+  //     | ifStatement
+  //     | numericForStatement
+  //     | genericForStatement
   //     | funcDecl
   //     | localFuncDecl
   //     | localVarDecl
@@ -834,164 +992,16 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!r) r = label(b, l + 1);
     if (!r) r = consumeToken(b, BREAK);
     if (!r) r = gotoStatement(b, l + 1);
-    if (!r) r = statement_5(b, l + 1);
-    if (!r) r = statement_6(b, l + 1);
-    if (!r) r = statement_7(b, l + 1);
-    if (!r) r = statement_8(b, l + 1);
-    if (!r) r = statement_9(b, l + 1);
-    if (!r) r = statement_10(b, l + 1);
+    if (!r) r = doStatement(b, l + 1);
+    if (!r) r = whileStatement(b, l + 1);
+    if (!r) r = repeatStatement(b, l + 1);
+    if (!r) r = ifStatement(b, l + 1);
+    if (!r) r = numericForStatement(b, l + 1);
+    if (!r) r = genericForStatement(b, l + 1);
     if (!r) r = funcDecl(b, l + 1);
     if (!r) r = localFuncDecl(b, l + 1);
     if (!r) r = localVarDecl(b, l + 1);
     exit_section_(b, l, m, r, false, null);
-    return r;
-  }
-
-  // DO block END
-  private static boolean statement_5(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_5")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, DO);
-    r = r && block(b, l + 1);
-    r = r && consumeToken(b, END);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // WHILE expr DO block END
-  private static boolean statement_6(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_6")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, WHILE);
-    r = r && expr(b, l + 1);
-    r = r && consumeToken(b, DO);
-    r = r && block(b, l + 1);
-    r = r && consumeToken(b, END);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // REPEAT block UNTIL expr
-  private static boolean statement_7(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_7")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, REPEAT);
-    r = r && block(b, l + 1);
-    r = r && consumeToken(b, UNTIL);
-    r = r && expr(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
-  private static boolean statement_8(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_8")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, IF);
-    r = r && expr(b, l + 1);
-    r = r && consumeToken(b, THEN);
-    r = r && block(b, l + 1);
-    r = r && statement_8_4(b, l + 1);
-    r = r && statement_8_5(b, l + 1);
-    r = r && consumeToken(b, END);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // {ELSEIF expr THEN block}*
-  private static boolean statement_8_4(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_8_4")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!statement_8_4_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "statement_8_4", c)) break;
-    }
-    return true;
-  }
-
-  // ELSEIF expr THEN block
-  private static boolean statement_8_4_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_8_4_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ELSEIF);
-    r = r && expr(b, l + 1);
-    r = r && consumeToken(b, THEN);
-    r = r && block(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // [ELSE block]
-  private static boolean statement_8_5(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_8_5")) return false;
-    statement_8_5_0(b, l + 1);
-    return true;
-  }
-
-  // ELSE block
-  private static boolean statement_8_5_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_8_5_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ELSE);
-    r = r && block(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
-  private static boolean statement_9(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_9")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, FOR, IDENTIFIER, ASSIGN);
-    r = r && expr(b, l + 1);
-    r = r && consumeToken(b, COMMA);
-    r = r && expr(b, l + 1);
-    r = r && statement_9_6(b, l + 1);
-    r = r && consumeToken(b, DO);
-    r = r && block(b, l + 1);
-    r = r && consumeToken(b, END);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // [',' expr]
-  private static boolean statement_9_6(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_9_6")) return false;
-    statement_9_6_0(b, l + 1);
-    return true;
-  }
-
-  // ',' expr
-  private static boolean statement_9_6_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_9_6_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, COMMA);
-    r = r && expr(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // FOR nameList IN exprList DO block END
-  private static boolean statement_10(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "statement_10")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, FOR);
-    r = r && nameList(b, l + 1);
-    r = r && consumeToken(b, IN);
-    r = r && exprList(b, l + 1);
-    r = r && consumeToken(b, DO);
-    r = r && block(b, l + 1);
-    r = r && consumeToken(b, END);
-    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -1181,6 +1191,22 @@ public class LuaParser implements PsiParser, LightPsiParser {
       if (!empty_element_parsed_guard_(b, "varSuffix_0", c)) break;
     }
     return true;
+  }
+
+  /* ********************************************************** */
+  // WHILE expr DO block END
+  public static boolean whileStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "whileStatement")) return false;
+    if (!nextTokenIs(b, WHILE)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, WHILE);
+    r = r && expr(b, l + 1);
+    r = r && consumeToken(b, DO);
+    r = r && block(b, l + 1);
+    r = r && consumeToken(b, END);
+    exit_section_(b, m, WHILE_STATEMENT, r);
+    return r;
   }
 
 }

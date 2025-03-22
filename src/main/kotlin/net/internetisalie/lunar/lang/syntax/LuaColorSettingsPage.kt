@@ -34,8 +34,7 @@ import javax.swing.Icon
 class LuaColorSettingsPage : ColorSettingsPage {
     val DEMO_TEXT: String =
         """
-<builtin>require</builtin> "os"
-<package>os</package>.getenv("VARNAME")
+<platform>require</platform> "os"
                      
 <global>a</global> = { <global>foo</global>.<field>bar</field>,  <global>foo</global>.<field>bar</field>(), <global>fx</global>(), <field>f</field> = <global>a</global>, 1,  <global>FOO</global> } -- url http://www.url.com 
 local <local>x</local>,<local>y</local> = 20,nil
@@ -43,6 +42,8 @@ for <local>i</local>=1,10 do
   local <local>y</local> = 0
   <global>a</global>[<local>i</local>] = function() <local><upval>y</upval></local>=<local><upval>y</upval></local>+1; return <local><upval>x</upval></local>+<local>y</local>; end
 end
+
+<package>os</package>.<call-platform>getenv</call-platform>("VARNAME")
 
 --[[   Multiline
   Comment
@@ -68,8 +69,19 @@ function <global>getDocumentationUrl</global>(<parameter>name</parameter>)
 end
 
 -- Some comment
-function <global>localFunction</global>(<parameter>name</parameter>
-  return "value"
+function <global>globalFunction</global>(<parameter>name</parameter>)
+  return "two"
+end
+
+<call-global>globalFunction</call-global>("one")
+
+if true then
+    local function <local>localFunction</local>(<parameter>name</parameter>)
+        return "four"
+    end
+    <call-local>localFunction</call-local>("three")
+    
+    local globalFunction
 end
 
 <label>::here::</label>
@@ -104,42 +116,43 @@ end
         return DEMO_TEXT
     }
 
-    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey>? {
+    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey> {
         return ATTR_MAP
     }
 
     companion object {
-        private val highlight = LuaHighlight
-
         private val DESCRIPTORS: Array<AttributesDescriptor> = setOf(
-            Pair("color.number", highlight.NUMBER),
-            Pair("color.string", highlight.STRING),
-            Pair("color.longstring", highlight.LONGSTRING),
-            Pair("color.keyword", highlight.KEYWORD),
-            Pair("color.constant.keywords", highlight.DEFINED_CONSTANTS),
-            Pair("color.globals", highlight.GLOBAL_VAR),
-//            Pair("color.identifier", highlight.IDENTIFIER),
-            Pair("color.locals", highlight.LOCAL_VAR),
-            Pair("color.field", highlight.FIELD),
-            Pair("color.parameter", highlight.PARAMETER),
-            Pair("color.upvalue", highlight.UPVAL),
-            Pair("color.label", highlight.LABEL),
-            Pair("color.comment", highlight.COMMENT),
-            Pair("color.longcomment", highlight.LONGCOMMENT),
-            Pair("color.longstring.braces", highlight.LONGSTRING_BRACES),
-            Pair("color.longcomment.braces", highlight.LONGCOMMENT_BRACES),
-            Pair("color.operation", highlight.OPERATORS),
-            Pair("color.brackets", highlight.BRACKETS),
-            Pair("color.parenths", highlight.PARENTHESES),
-            Pair("color.braces", highlight.BRACES),
-            Pair("color.comma", highlight.COMMA),
-            Pair("color.semi", highlight.SEMI),
-            Pair("color.bad_character", highlight.BAD_CHARACTER),
-            Pair("color.luadoc", highlight.DOC_COMMENT),
-            Pair("color.luadoc.tag", highlight.DOC_TAG),
-            Pair("color.luadoc.value", highlight.DOC_VALUE),
-            Pair("color.package", highlight.PACKAGE),
-            Pair("color.builtin", highlight.BUILTIN),
+            Pair("color.number", LuaHighlight.NUMBER),
+            Pair("color.string", LuaHighlight.STRING),
+            Pair("color.longstring", LuaHighlight.LONGSTRING),
+            Pair("color.keyword", LuaHighlight.KEYWORD),
+            Pair("color.constant.keywords", LuaHighlight.DEFINED_CONSTANTS),
+            Pair("color.comment", LuaHighlight.COMMENT),
+            Pair("color.longcomment", LuaHighlight.LONGCOMMENT),
+            Pair("color.longstring.braces", LuaHighlight.LONGSTRING_BRACES),
+            Pair("color.longcomment.braces", LuaHighlight.LONGCOMMENT_BRACES),
+            Pair("color.operation", LuaHighlight.OPERATORS),
+            Pair("color.brackets", LuaHighlight.BRACKETS),
+            Pair("color.parenths", LuaHighlight.PARENTHESES),
+            Pair("color.braces", LuaHighlight.BRACES),
+            Pair("color.comma", LuaHighlight.COMMA),
+            Pair("color.semi", LuaHighlight.SEMI),
+            Pair("color.bad_character", LuaHighlight.BAD_CHARACTER),
+            Pair("color.luadoc", LuaHighlight.DOC_COMMENT),
+            Pair("color.luadoc.tag", LuaHighlight.DOC_TAG),
+            Pair("color.luadoc.value", LuaHighlight.DOC_VALUE),
+            // Identifiers
+            Pair("color.platform", LuaHighlight.REF_PLATFORM),
+            Pair("color.globals", LuaHighlight.GLOBAL_VAR),
+            Pair("color.locals", LuaHighlight.LOCAL_VAR),
+            Pair("color.field", LuaHighlight.FIELD),
+            Pair("color.parameter", LuaHighlight.PARAMETER),
+            Pair("color.upvalue", LuaHighlight.UPVAL),
+            Pair("color.label", LuaHighlight.LABEL),
+            Pair("color.package", LuaHighlight.PACKAGE),
+            Pair("color.call.platform", LuaHighlight.CALL_PLATFORM),
+            Pair("color.call.global", LuaHighlight.CALL_GLOBAL),
+            Pair("color.call.local", LuaHighlight.CALL_LOCAL),
         )
             .map { pair: Pair<String, TextAttributesKey> ->
                 AttributesDescriptor(
@@ -150,17 +163,24 @@ end
             .toTypedArray()
 
         private val ATTR_MAP: Map<String, TextAttributesKey> = mapOf(
-            Pair("local", highlight.LOCAL_VAR),
-            Pair("global", highlight.GLOBAL_VAR),
-            Pair("field", highlight.FIELD),
-            Pair("upval", highlight.UPVAL),
-            Pair("parameter", highlight.PARAMETER),
-            Pair("label", highlight.LABEL),
-            Pair("luadoc", highlight.DOC_COMMENT),
-            Pair("luadoc-tag", highlight.DOC_TAG),
-            Pair("luadoc-value", highlight.DOC_VALUE),
-            Pair("package", highlight.PACKAGE),
-            Pair("builtin", highlight.BUILTIN),
+            // Annotated Identifiers
+            Pair("platform", LuaHighlight.REF_PLATFORM),
+            Pair("global", LuaHighlight.GLOBAL_VAR),
+            Pair("local", LuaHighlight.LOCAL_VAR),
+            Pair("undefined", LuaHighlight.REF_UNDEFINED),
+            Pair("field", LuaHighlight.FIELD),
+            Pair("parameter", LuaHighlight.PARAMETER),
+            Pair("upval", LuaHighlight.UPVAL),
+            Pair("label", LuaHighlight.LABEL),
+            Pair("package", LuaHighlight.PACKAGE),
+            Pair("shadowed", LuaHighlight.REF_SHADOWED),
+            Pair("call-platform", LuaHighlight.CALL_PLATFORM),
+            Pair("call-global", LuaHighlight.CALL_GLOBAL),
+            Pair("call-local", LuaHighlight.CALL_LOCAL),
+            // Docs
+            Pair("luadoc", LuaHighlight.DOC_COMMENT),
+            Pair("luadoc-tag", LuaHighlight.DOC_TAG),
+            Pair("luadoc-value", LuaHighlight.DOC_VALUE),
         )
     }
 }

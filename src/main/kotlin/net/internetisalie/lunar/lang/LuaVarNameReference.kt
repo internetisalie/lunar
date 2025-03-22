@@ -1,24 +1,23 @@
 package net.internetisalie.lunar.lang
 
-import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.LuaIcons.FILE
-import net.internetisalie.lunar.lang.psi.LuaNameDecl
-import net.internetisalie.lunar.lang.psi.LuaVarName
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.syntax.LuaBindingsVisitor
 
 class LuaVarNameReference(element: PsiElement, textRange: TextRange) :
     PsiReferenceBase<PsiElement?>(element, textRange), PsiPolyVariantReference {
     private val name = element.text.substring(textRange.startOffset, textRange.endOffset)
 
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
-        val vars = LuaNameUtil.findVars(element, name)
-        val results: MutableList<ResolveResult> = ArrayList()
-        for (var_ in vars) {
-            results.add(PsiElementResolveResult(var_))
-        }
-        return results.toTypedArray<ResolveResult>()
+        val element = myElement ?: return emptyArray()
+        val references = LuaBindingsVisitor.getReferences(element)
+        val reference = references[element.textOffset] ?: return emptyArray()
+        if (!reference.defined()) return emptyArray()
+        return arrayOf(PsiElementResolveResult(reference.binding!!.element))
     }
 
     override fun resolve(): PsiElement? {
@@ -27,32 +26,21 @@ class LuaVarNameReference(element: PsiElement, textRange: TextRange) :
     }
 
     override fun isReferenceTo(element: PsiElement): Boolean {
-        return (element is LuaVarName) &&
-                element.identifier.text == name &&
+        return element.elementType == LuaElementTypes.IDENTIFIER &&
+                element.text == name &&
                 resolve() === element
     }
 
     override fun getVariants(): Array<Any> {
-        val containingFile = myElement!!.containingFile
-        val foundVars = LuaNameUtil.findVars(element, name)
-        val variants: MutableList<LookupElement> = ArrayList()
-        for (foundVar in foundVars) {
-            if (foundVar is LuaNameDecl && foundVar.identifier.text.isNotEmpty()) {
-                variants.add(
-                    LookupElementBuilder
-                        .create(foundVar)
-                        .withIcon(FILE)
-                        .withTypeText(containingFile.name)
-                )
-            } else if (foundVar is LuaVarName &&  foundVar.identifier.text.isNotEmpty()) {
-                variants.add(
-                    LookupElementBuilder
-                    .create(foundVar)
-                    .withIcon(FILE)
-                    .withTypeText(containingFile.name)
-                )
-            }
-        }
-        return variants.toTypedArray()
+        val element = myElement ?: return emptyArray()
+        val references = LuaBindingsVisitor.getReferences(element)
+        val reference = references[element.textOffset] ?: return emptyArray()
+        if (!reference.defined()) return emptyArray()
+        return arrayOf(
+            LookupElementBuilder
+                .create(reference.binding!!.element)
+                .withIcon(FILE)
+                .withTypeText(element.containingFile.name)
+        )
     }
 }

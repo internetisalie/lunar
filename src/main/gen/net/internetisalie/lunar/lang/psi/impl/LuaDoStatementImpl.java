@@ -8,17 +8,17 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import net.internetisalie.lunar.lang.psi.LuaVarNameRefBaseImpl;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaVarNameImpl extends LuaVarNameRefBaseImpl implements LuaVarName {
+public class LuaDoStatementImpl extends ASTWrapperPsiElement implements LuaDoStatement {
 
-  public LuaVarNameImpl(@NotNull ASTNode node) {
+  public LuaDoStatementImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitVarName(this);
+    visitor.visitDoStatement(this);
   }
 
   @Override
@@ -29,8 +29,8 @@ public class LuaVarNameImpl extends LuaVarNameRefBaseImpl implements LuaVarName 
 
   @Override
   @NotNull
-  public PsiElement getIdentifier() {
-    return findNotNullChildByType(IDENTIFIER);
+  public LuaBlock getBlock() {
+    return findNotNullChildByClass(LuaBlock.class);
   }
 
 }

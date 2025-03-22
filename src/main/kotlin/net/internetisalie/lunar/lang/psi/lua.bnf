@@ -97,20 +97,28 @@ statement ::= assignmentStatement
     | label
     | BREAK
     | gotoStatement
-    | DO block END
-    | WHILE expr DO block END
-    | REPEAT block UNTIL expr
-    | IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
-    | FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
-    | FOR nameList IN exprList DO block END
+    | doStatement
+    | whileStatement
+    | repeatStatement
+    | ifStatement
+    | numericForStatement
+    | genericForStatement
     | funcDecl
     | localFuncDecl
     | localVarDecl
 assignmentStatement ::= varList '=' exprList
 gotoStatement ::= GOTO labelRef
+doStatement ::= DO block END
+whileStatement ::= WHILE expr DO block END
+repeatStatement ::= REPEAT block UNTIL expr
+ifStatement ::= IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
+numericForStatement ::= FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
+genericForStatement ::= FOR nameList IN exprList DO block END
 finalStatement ::= RETURN [exprList] [';']
 label ::= '::' labelName '::'
-funcName ::= IDENTIFIER {'.' IDENTIFIER}* [':' IDENTIFIER]
+funcName ::= IDENTIFIER funcNameProperty* funcNameMethod?
+funcNameProperty ::= '.' IDENTIFIER
+funcNameMethod ::= ':' IDENTIFIER
 varList ::= var {',' var}*
 nameList ::= nameDecl {',' nameDecl}*
 nameDecl ::= IDENTIFIER {

@@ -35,20 +35,8 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
 
   @Override
   @Nullable
-  public LuaBlock getBlock() {
-    return findChildByClass(LuaBlock.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaExpr getExpr() {
-    return findChildByClass(LuaExpr.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaExprList getExprList() {
-    return findChildByClass(LuaExprList.class);
+  public LuaDoStatement getDoStatement() {
+    return findChildByClass(LuaDoStatement.class);
   }
 
   @Override
@@ -65,8 +53,20 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
 
   @Override
   @Nullable
+  public LuaGenericForStatement getGenericForStatement() {
+    return findChildByClass(LuaGenericForStatement.class);
+  }
+
+  @Override
+  @Nullable
   public LuaGotoStatement getGotoStatement() {
     return findChildByClass(LuaGotoStatement.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaIfStatement getIfStatement() {
+    return findChildByClass(LuaIfStatement.class);
   }
 
   @Override
@@ -89,14 +89,20 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
 
   @Override
   @Nullable
-  public LuaNameList getNameList() {
-    return findChildByClass(LuaNameList.class);
+  public LuaNumericForStatement getNumericForStatement() {
+    return findChildByClass(LuaNumericForStatement.class);
   }
 
   @Override
   @Nullable
-  public PsiElement getIdentifier() {
-    return findChildByType(IDENTIFIER);
+  public LuaRepeatStatement getRepeatStatement() {
+    return findChildByClass(LuaRepeatStatement.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaWhileStatement getWhileStatement() {
+    return findChildByClass(LuaWhileStatement.class);
   }
 
 }

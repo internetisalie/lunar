@@ -68,8 +68,24 @@ object LuaHighlight {
     val DOC_VALUE: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_DOC_VALUE", DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
 
-    val BUILTIN: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_BUILTIN", DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
     val PACKAGE: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_PACKAGE", DefaultLanguageHighlighterColors.IDENTIFIER)
+
+    val CALL_PLATFORM: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_CALL_PLATFORM", DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
+    val CALL_GLOBAL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_CALL_GLOBAL", DefaultLanguageHighlighterColors.IDENTIFIER)
+    val CALL_LOCAL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_CALL_LOCAL", DefaultLanguageHighlighterColors.IDENTIFIER)
+
+    val REF_PLATFORM: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_REF_PLATFORM", DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
+    val REF_GLOBAL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_REF_GLOBAL", DefaultLanguageHighlighterColors.IDENTIFIER)
+    val REF_LOCAL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_REF_LOCAL", DefaultLanguageHighlighterColors.IDENTIFIER)
+    val REF_SHADOWED: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_REF_SHADOWED", DefaultLanguageHighlighterColors.IDENTIFIER)
+    val REF_UNDEFINED: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_REF_UNDEFINED", HighlighterColors.BAD_CHARACTER)
 }

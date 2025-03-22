@@ -11,13 +11,7 @@ public interface LuaStatement extends PsiElement {
   LuaAssignmentStatement getAssignmentStatement();
 
   @Nullable
-  LuaBlock getBlock();
-
-  @Nullable
-  LuaExpr getExpr();
-
-  @Nullable
-  LuaExprList getExprList();
+  LuaDoStatement getDoStatement();
 
   @Nullable
   LuaFuncCall getFuncCall();
@@ -26,7 +20,13 @@ public interface LuaStatement extends PsiElement {
   LuaFuncDecl getFuncDecl();
 
   @Nullable
+  LuaGenericForStatement getGenericForStatement();
+
+  @Nullable
   LuaGotoStatement getGotoStatement();
+
+  @Nullable
+  LuaIfStatement getIfStatement();
 
   @Nullable
   LuaLabel getLabel();
@@ -38,9 +38,12 @@ public interface LuaStatement extends PsiElement {
   LuaLocalVarDecl getLocalVarDecl();
 
   @Nullable
-  LuaNameList getNameList();
+  LuaNumericForStatement getNumericForStatement();
 
   @Nullable
-  PsiElement getIdentifier();
+  LuaRepeatStatement getRepeatStatement();
+
+  @Nullable
+  LuaWhileStatement getWhileStatement();
 
 }
