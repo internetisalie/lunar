@@ -114,10 +114,6 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitLocalFuncName(@NotNull LuaLocalFuncName o) {
-    visitNameDeclElement(o);
-  }
-
   public void visitLocalVarDecl(@NotNull LuaLocalVarDecl o) {
     visitPsiElement(o);
   }
@@ -130,12 +126,12 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitNameDecl(@NotNull LuaNameDecl o) {
-    visitNameDeclElement(o);
-  }
-
   public void visitNameList(@NotNull LuaNameList o) {
     visitPsiElement(o);
+  }
+
+  public void visitNameRef(@NotNull LuaNameRef o) {
+    visitNameRefElement(o);
   }
 
   public void visitNumericForStatement(@NotNull LuaNumericForStatement o) {
@@ -172,10 +168,6 @@ public class LuaVisitor extends PsiElementVisitor {
 
   public void visitVarList(@NotNull LuaVarList o) {
     visitPsiElement(o);
-  }
-
-  public void visitVarName(@NotNull LuaVarName o) {
-    visitNameRefElement(o);
   }
 
   public void visitVarOrExp(@NotNull LuaVarOrExp o) {

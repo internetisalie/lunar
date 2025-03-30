@@ -35,8 +35,8 @@ public class LuaIndexExprImpl extends ASTWrapperPsiElement implements LuaIndexEx
 
   @Override
   @Nullable
-  public PsiElement getIdentifier() {
-    return findChildByType(IDENTIFIER);
+  public LuaNameRef getNameRef() {
+    return findChildByClass(LuaNameRef.class);
   }
 
 }

@@ -5,7 +5,9 @@
 local luna = require "lunajson"
 
 -- Execute the requested manifest
-dofile(arg[1])
+if (1 == #arg) then
+    dofile(arg[1])
+end
 
 -- Set the required exports
 local exports ={

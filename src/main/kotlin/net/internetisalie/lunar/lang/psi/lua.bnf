@@ -116,23 +116,19 @@ numericForStatement ::= FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
 genericForStatement ::= FOR nameList IN exprList DO block END
 finalStatement ::= RETURN [exprList] [';']
 label ::= '::' labelName '::'
-funcName ::= IDENTIFIER funcNameProperty* funcNameMethod?
-funcNameProperty ::= '.' IDENTIFIER
-funcNameMethod ::= ':' IDENTIFIER
+funcName ::= nameRef funcNameProperty* funcNameMethod?
+funcNameProperty ::= '.' nameRef
+funcNameMethod ::= ':' nameRef
 varList ::= var {',' var}*
-nameList ::= nameDecl {',' nameDecl}*
-nameDecl ::= IDENTIFIER {
-    mixin="net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl"
-    implements="net.internetisalie.lunar.lang.psi.LuaNameDeclElement"
+nameList ::= nameRef {',' nameRef}*
+nameRef ::= IDENTIFIER {
+    mixin="net.internetisalie.lunar.lang.psi.LuaNameRefBaseImpl"
+    implements="net.internetisalie.lunar.lang.psi.LuaNameRefElement"
 }
 
 exprList ::= expr {',' expr}*
 
-localFuncDecl ::= LOCAL FUNCTION localFuncName funcBody
-localFuncName ::= IDENTIFIER {
-    mixin="net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl"
-    implements="net.internetisalie.lunar.lang.psi.LuaNameDeclElement"
-}
+localFuncDecl ::= LOCAL FUNCTION nameRef funcBody
 
 funcDecl ::= FUNCTION funcName funcBody {
     implements = [
@@ -170,19 +166,16 @@ labelName ::= IDENTIFIER {
 // use right-recursion for expressions
 expr ::= (NIL | FALSE | TRUE | NUMBER | STRING | ELLIPSIS | funcDef | prefixExpr | tableConstructor | unOp expr) {binOp expr}*
 
-var ::= (varName | '(' expr ')' varSuffix) {varSuffix}*
-varName ::= IDENTIFIER {
-   mixin="net.internetisalie.lunar.lang.psi.LuaVarNameRefBaseImpl"
-   implements="net.internetisalie.lunar.lang.psi.LuaNameRefElement"
-}
+var ::= nameRef varSuffix*
+    | '(' expr ')' varSuffix+
+varSuffix ::= nameAndArgs* indexExpr
 
 prefixExpr ::= varOrExp nameAndArgs*
 funcCall ::= varOrExp nameAndArgs+
 varOrExp ::= var | '(' expr ')'
 nameAndArgs ::= methodExpr? args
-varSuffix ::= nameAndArgs* indexExpr
-methodExpr ::= ':' IDENTIFIER
-indexExpr ::= '[' expr ']' | '.' IDENTIFIER
+methodExpr ::= ':' nameRef
+indexExpr ::= ('[' expr ']') | ('.' nameRef)
 
 args ::=  '(' [exprList] ')' | tableConstructor | STRING
 

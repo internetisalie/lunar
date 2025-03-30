@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface LuaFuncNameProperty extends PsiElement {
 
   @NotNull
-  PsiElement getIdentifier();
+  LuaNameRef getNameRef();
 
 }

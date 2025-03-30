@@ -33,7 +33,7 @@ import javax.swing.Icon
  */
 class LuaColorSettingsPage : ColorSettingsPage {
     private val demoText: String = """
-        <platform>require</platform> "os"
+        <call-platform>require</call-platform> "os"
                              
         <global>a</global> = { 
             <global>foo</global>.<field>bar</field>,  
@@ -78,19 +78,19 @@ class LuaColorSettingsPage : ColorSettingsPage {
         end
         
         -- Some comment
-        function <global>globalFunction</global>(<parameter>name</parameter>)
+        function <func-global>globalFunction</func-global>(<parameter>name</parameter>)
           return "two"
         end
         
         <call-global>globalFunction</call-global>("one")
         
         if true then
-            local function <local>localFunction</local>(<parameter>name</parameter>)
+            local function <func-local>localFunction</func-local>(<parameter>name</parameter>)
                 return "four"
             end
             <call-local>localFunction</call-local>("three")
             
-            local globalFunction
+            local <local>globalFunction</local>
         end
         
         <label>::here::</label>
@@ -122,7 +122,7 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.luadoc.tag", LuaHighlight.DOC_TAG),
         Pair("color.luadoc.value", LuaHighlight.DOC_VALUE),
         // Identifiers
-        Pair("color.platform", LuaHighlight.REF_PLATFORM),
+        Pair("color.platform", LuaHighlight.VAR_PLATFORM),
         Pair("color.globals", LuaHighlight.GLOBAL_VAR),
         Pair("color.locals", LuaHighlight.LOCAL_VAR),
         Pair("color.field", LuaHighlight.FIELD),
@@ -130,6 +130,9 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.upvalue", LuaHighlight.UPVAL),
         Pair("color.label", LuaHighlight.LABEL),
         Pair("color.package", LuaHighlight.PACKAGE),
+        Pair("color.func.platform", LuaHighlight.FUNC_PLATFORM),
+        Pair("color.func.global", LuaHighlight.FUNC_GLOBAL),
+        Pair("color.func.local", LuaHighlight.FUNC_LOCAL),
         Pair("color.call.platform", LuaHighlight.CALL_PLATFORM),
         Pair("color.call.global", LuaHighlight.CALL_GLOBAL),
         Pair("color.call.local", LuaHighlight.CALL_LOCAL),
@@ -144,7 +147,7 @@ class LuaColorSettingsPage : ColorSettingsPage {
 
     private val highlightingTagToDescriptorMap: Map<String, TextAttributesKey> = mapOf(
         // Annotated Identifiers
-        Pair("platform", LuaHighlight.REF_PLATFORM),
+        Pair("platform", LuaHighlight.VAR_PLATFORM),
         Pair("global", LuaHighlight.GLOBAL_VAR),
         Pair("local", LuaHighlight.LOCAL_VAR),
         Pair("undefined", LuaHighlight.REF_UNDEFINED),
@@ -153,7 +156,10 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("upval", LuaHighlight.UPVAL),
         Pair("label", LuaHighlight.LABEL),
         Pair("package", LuaHighlight.PACKAGE),
-        Pair("shadowed", LuaHighlight.REF_SHADOWED),
+        Pair("shadowed", LuaHighlight.VAR_SHADOWED),
+        Pair("func-platform", LuaHighlight.FUNC_PLATFORM),
+        Pair("func-global", LuaHighlight.FUNC_GLOBAL),
+        Pair("func-local", LuaHighlight.FUNC_LOCAL),
         Pair("call-platform", LuaHighlight.CALL_PLATFORM),
         Pair("call-global", LuaHighlight.CALL_GLOBAL),
         Pair("call-local", LuaHighlight.CALL_LOCAL),

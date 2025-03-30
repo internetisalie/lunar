@@ -11,6 +11,6 @@ public interface LuaIndexExpr extends PsiElement {
   LuaExpr getExpr();
 
   @Nullable
-  PsiElement getIdentifier();
+  LuaNameRef getNameRef();
 
 }

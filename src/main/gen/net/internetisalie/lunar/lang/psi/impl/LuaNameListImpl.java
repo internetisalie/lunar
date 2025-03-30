@@ -29,8 +29,8 @@ public class LuaNameListImpl extends ASTWrapperPsiElement implements LuaNameList
 
   @Override
   @NotNull
-  public List<LuaNameDecl> getNameDeclList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaNameDecl.class);
+  public List<LuaNameRef> getNameRefList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaNameRef.class);
   }
 
 }

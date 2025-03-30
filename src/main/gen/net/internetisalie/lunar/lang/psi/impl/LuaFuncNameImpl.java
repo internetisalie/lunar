@@ -41,8 +41,8 @@ public class LuaFuncNameImpl extends ASTWrapperPsiElement implements LuaFuncName
 
   @Override
   @NotNull
-  public PsiElement getIdentifier() {
-    return findNotNullChildByType(IDENTIFIER);
+  public LuaNameRef getNameRef() {
+    return findNotNullChildByClass(LuaNameRef.class);
   }
 
 }

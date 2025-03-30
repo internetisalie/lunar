@@ -2,16 +2,8 @@ package net.internetisalie.lunar.lang.psi;
 
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.intellij.lang.ASTNode;
-import com.intellij.model.psi.PsiSymbolReference;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiReference;
-import net.internetisalie.lunar.lang.LuaLabelReference;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Collection;
-import java.util.Collections;
 
 public class LuaNameRefElementImpl extends ASTWrapperPsiElement implements LuaNameRefElement {
     public LuaNameRefElementImpl(@NotNull ASTNode node) {

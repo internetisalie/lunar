@@ -11,7 +11,7 @@ public interface LuaVar extends PsiElement {
   LuaExpr getExpr();
 
   @Nullable
-  LuaVarName getVarName();
+  LuaNameRef getNameRef();
 
   @NotNull
   List<LuaVarSuffix> getVarSuffixList();

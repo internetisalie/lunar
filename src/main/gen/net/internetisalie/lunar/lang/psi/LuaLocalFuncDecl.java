@@ -11,6 +11,6 @@ public interface LuaLocalFuncDecl extends PsiElement {
   LuaFuncBody getFuncBody();
 
   @NotNull
-  LuaLocalFuncName getLocalFuncName();
+  LuaNameRef getNameRef();
 
 }

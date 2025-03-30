@@ -48,6 +48,26 @@
 
 - [ ] Stubs for declaring identifiers
 
+#### Navigation
+- [ ] Reference Contributors
+  - From `com.intellij.psi.PsiReferenceContributor`: 
+  - The contributed references may then be obtained via 
+    `PsiReferenceService.getReferences(PsiElement, PsiReferenceService.Hints)`, 
+    which is the preferred way. Some elements return them from `PsiElement.getReferences()`
+    directly, though, but one should not rely on that behavior since it may be 
+    changed in the future. 
+  - Note that, if you're implementing a custom language, it won't by default 
+    support references registered through PsiReferenceContributor. If you want
+    to support that, you need to call 
+    `com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry.getReferencesFromProviders(PsiElement)`
+    from your implementation of PsiElement.getReferences(). 
+- [ ] Bindings
+  - Use CachedValuesManager for:
+    - `getReferences`
+    - `getFileGlobals`
+    
+    Can automatically invalidate cache on PsiElement change in project.
+
 #### Structure View
 
 - [ ] Anonymous functions

@@ -34,12 +34,11 @@ public interface LuaElementTypes {
   IElementType LABEL_NAME = new LuaElementType("LABEL_NAME");
   IElementType LABEL_REF = new LuaElementType("LABEL_REF");
   IElementType LOCAL_FUNC_DECL = new LuaElementType("LOCAL_FUNC_DECL");
-  IElementType LOCAL_FUNC_NAME = new LuaElementType("LOCAL_FUNC_NAME");
   IElementType LOCAL_VAR_DECL = new LuaElementType("LOCAL_VAR_DECL");
   IElementType METHOD_EXPR = new LuaElementType("METHOD_EXPR");
   IElementType NAME_AND_ARGS = new LuaElementType("NAME_AND_ARGS");
-  IElementType NAME_DECL = new LuaElementType("NAME_DECL");
   IElementType NAME_LIST = new LuaElementType("NAME_LIST");
+  IElementType NAME_REF = new LuaElementType("NAME_REF");
   IElementType NUMERIC_FOR_STATEMENT = new LuaElementType("NUMERIC_FOR_STATEMENT");
   IElementType PAR_LIST = new LuaElementType("PAR_LIST");
   IElementType PREFIX_EXPR = new LuaElementType("PREFIX_EXPR");
@@ -49,7 +48,6 @@ public interface LuaElementTypes {
   IElementType UN_OP = new LuaElementType("UN_OP");
   IElementType VAR = new LuaElementType("VAR");
   IElementType VAR_LIST = new LuaElementType("VAR_LIST");
-  IElementType VAR_NAME = new LuaElementType("VAR_NAME");
   IElementType VAR_OR_EXP = new LuaElementType("VAR_OR_EXP");
   IElementType VAR_SUFFIX = new LuaElementType("VAR_SUFFIX");
   IElementType WHILE_STATEMENT = new LuaElementType("WHILE_STATEMENT");
@@ -198,9 +196,6 @@ public interface LuaElementTypes {
       else if (type == LOCAL_FUNC_DECL) {
         return new LuaLocalFuncDeclImpl(node);
       }
-      else if (type == LOCAL_FUNC_NAME) {
-        return new LuaLocalFuncNameImpl(node);
-      }
       else if (type == LOCAL_VAR_DECL) {
         return new LuaLocalVarDeclImpl(node);
       }
@@ -210,11 +205,11 @@ public interface LuaElementTypes {
       else if (type == NAME_AND_ARGS) {
         return new LuaNameAndArgsImpl(node);
       }
-      else if (type == NAME_DECL) {
-        return new LuaNameDeclImpl(node);
-      }
       else if (type == NAME_LIST) {
         return new LuaNameListImpl(node);
+      }
+      else if (type == NAME_REF) {
+        return new LuaNameRefImpl(node);
       }
       else if (type == NUMERIC_FOR_STATEMENT) {
         return new LuaNumericForStatementImpl(node);
@@ -242,9 +237,6 @@ public interface LuaElementTypes {
       }
       else if (type == VAR_LIST) {
         return new LuaVarListImpl(node);
-      }
-      else if (type == VAR_NAME) {
-        return new LuaVarNameImpl(node);
       }
       else if (type == VAR_OR_EXP) {
         return new LuaVarOrExpImpl(node);

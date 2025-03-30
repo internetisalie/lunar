@@ -58,7 +58,10 @@
 
     <annotator
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaBindingsAnnotator"/>
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaLocalBindingsAnnotator"/>
+    <annotator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaGlobalBindingsAnnotator"/>
 
     <annotator
             language="Lua"
@@ -110,6 +113,9 @@
                 factoryClass="net.internetisalie.lunar.analysis.luacheck.LuaCheckComponents"
                 canCloseContents="true"/>
     <applicationService serviceImplementation="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings"/>
+
+    <!-- Indexes -->
+    <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaFileBindingsIndex"/>
 
   </extensions>
 

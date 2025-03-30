@@ -35,8 +35,8 @@ public class LuaVarImpl extends ASTWrapperPsiElement implements LuaVar {
 
   @Override
   @Nullable
-  public LuaVarName getVarName() {
-    return findChildByClass(LuaVarName.class);
+  public LuaNameRef getNameRef() {
+    return findChildByClass(LuaNameRef.class);
   }
 
   @Override

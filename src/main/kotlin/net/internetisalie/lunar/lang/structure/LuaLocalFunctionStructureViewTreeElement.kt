@@ -11,7 +11,7 @@ class LuaLocalFunctionStructureViewTreeElement(private var myLocalFuncDecl : Lua
     override fun getPresentation(): ItemPresentation {
         return object : ItemPresentation {
             override fun getPresentableText(): String {
-                return myLocalFuncDecl.localFuncName.identifier.text
+                return myLocalFuncDecl.nameRef.identifier.text
             }
 
             override fun getIcon(open: Boolean): Icon {

@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface LuaNameList extends PsiElement {
 
   @NotNull
-  List<LuaNameDecl> getNameDeclList();
+  List<LuaNameRef> getNameRefList();
 
 }

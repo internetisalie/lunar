@@ -12,7 +12,7 @@ import net.internetisalie.lunar.platform.LuaPlatform
 @State(name = "LuaProjectSettings", storages = [Storage("LuaProjectSettings.xml")])
 class LuaProjectSettings: PersistentStateComponent<LuaProjectSettings.State> {
     class State {
-        var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA51
+        var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA54
         var platform : LuaPlatform = LuaPlatform.PUC;
     }
 
