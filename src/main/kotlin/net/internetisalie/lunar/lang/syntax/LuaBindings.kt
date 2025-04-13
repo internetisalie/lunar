@@ -78,14 +78,19 @@ private fun getFuncNameElements(funcName: LuaFuncName): DottedElements {
     return DottedElements(result)
 }
 
+// Return the leading identifiers
 private fun getVarElements(v: LuaVar): DottedElements? {
     if (v.expr != null) return null
     val varName = v.nameRef ?: return null
     val result = mutableListOf(varName.identifier)
-    v.varSuffixList.forEach {
-        if (it.nameAndArgsList.size > 0) return@getVarElements null
-        val identifier = it.indexExpr.nameRef?.identifier ?: return@getVarElements null
+    for (it in v.varSuffixList) {
+        if (it.nameAndArgsList.size > 0) break
+        val identifier = it.indexExpr.nameRef?.identifier ?: break
         result.add(identifier)
+    }
+
+    if (result.size == 0) {
+        return null
     }
 
     return DottedElements(result)
@@ -552,6 +557,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
             val labelReference = labels.lookupReference(delayedReference.name)
             if (!labelReference.defined) {
                 labelReference.kind = Kind.Label
+                labelReference.name = listOf(delayedReference.name)
             }
             references[delayedReference.offset] = labelReference
         }

@@ -46,17 +46,12 @@ tasks {
         kotlinOptions.jvmTarget = "17"
     }
 
-    withType<org.jetbrains.intellij.tasks.PrepareSandboxTask> {
-        doLast {
-            copy {
-                from("src/main/resources/platform")
-                into("$destinationDir/${pluginName.get()}/platform")
-            }
-
-            copy {
-                from ("src/main/lua")
-                into("$destinationDir/${pluginName.get()}/lua")
-            }
+    prepareSandbox {
+        from(layout.projectDirectory.dir("src/main/resources/platform")) {
+            into(pluginName.map { "$it/platform" })
+        }
+        from(layout.projectDirectory.dir("src/main/lua")) {
+            into(pluginName.map { "$it/lua"})
         }
     }
 

@@ -26,15 +26,15 @@ class LuaParserDefinition : ParserDefinition {
     }
 
     override fun getCommentTokens(): TokenSet {
-        return LuaSyntax.COMMENT_SET
+        return LuaSyntax.CommentTokens
     }
 
     override fun getStringLiteralElements(): TokenSet {
-        return LuaSyntax.STRING_LITERAL_SET
+        return LuaSyntax.StringLiteralTokens
     }
 
     override fun getWhitespaceTokens(): TokenSet {
-        return LuaSyntax.WHITE_SPACES_SET
+        return LuaSyntax.WhiteSpaceTokens
     }
 
     override fun createParser(project: Project): PsiParser {

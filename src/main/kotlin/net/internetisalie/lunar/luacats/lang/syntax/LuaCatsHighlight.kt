@@ -15,7 +15,7 @@ object LuaCatsHighlight {
     var TYPE: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUACATS_TYPE", LuaHighlight.PARAMETER)
     var NAME: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUACATS_NAME", LuaHighlight.GLOBAL_VAR)
+        TextAttributesKey.createTextAttributesKey("LUACATS_NAME", LuaHighlight.VAR_GLOBAL)
     var VALUE: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUACATS_VALUE", LuaHighlight.STRING)
     var OPERATOR: TextAttributesKey =

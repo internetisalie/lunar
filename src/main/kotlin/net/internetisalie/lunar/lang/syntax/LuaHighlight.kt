@@ -5,20 +5,6 @@ import com.intellij.openapi.editor.HighlighterColors
 import com.intellij.openapi.editor.colors.TextAttributesKey
 
 object LuaHighlight {
-    var LOCAL_VAR: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_LOCAL_VAR", DefaultLanguageHighlighterColors.LOCAL_VARIABLE)
-    val UPVAL: TextAttributesKey = TextAttributesKey.createTextAttributesKey("UPVAL", LOCAL_VAR)
-    val PARAMETER: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_PARAMETER", DefaultLanguageHighlighterColors.PARAMETER)
-    val GLOBAL_VAR: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
-        "LUA_GLOBAL_VAR",
-        DefaultLanguageHighlighterColors.GLOBAL_VARIABLE
-    )
-    val FIELD: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_FIELD", DefaultLanguageHighlighterColors.STATIC_FIELD)
-    val LABEL: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_LABEL", DefaultLanguageHighlighterColors.LABEL)
-
     val TAIL_CALL: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_TAIL_CALL", HighlighterColors.TEXT)
 
@@ -85,14 +71,26 @@ object LuaHighlight {
     val CALL_LOCAL: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_CALL_LOCAL", FUNC_LOCAL)
 
+    val PARAMETER: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_PARAMETER", DefaultLanguageHighlighterColors.PARAMETER)
+    val FIELD: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_FIELD", DefaultLanguageHighlighterColors.STATIC_FIELD)
+    val LABEL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_LABEL", DefaultLanguageHighlighterColors.LABEL)
+
     val VAR_PLATFORM: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_REF_PLATFORM", DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
     val VAR_GLOBAL: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_REF_GLOBAL", DefaultLanguageHighlighterColors.IDENTIFIER)
+        TextAttributesKey.createTextAttributesKey("LUA_REF_GLOBAL", DefaultLanguageHighlighterColors.GLOBAL_VARIABLE)
     val VAR_LOCAL: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_REF_LOCAL", DefaultLanguageHighlighterColors.IDENTIFIER)
     val VAR_SHADOWED: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_REF_SHADOWED", DefaultLanguageHighlighterColors.IDENTIFIER)
+        TextAttributesKey.createTextAttributesKey("LUA_REF_SHADOWED", VAR_LOCAL)
+    val VAR_UP_VALUE: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_REF_UP_VALUE", VAR_LOCAL)
+    val VAR_PARAMETER: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_REF_PARAMETER", PARAMETER)
+
 
     val REF_UNDEFINED: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_REF_UNDEFINED", HighlighterColors.BAD_CHARACTER)

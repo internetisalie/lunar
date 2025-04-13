@@ -41,7 +41,7 @@ class LuaCatsDocumentationBuilder {
             sb.append("<pre>\n")
                 .append(codeFragment(LuaHighlight.KEYWORD, "function"))
                 .append(" ")
-                .append(codeFragment(LuaHighlight.LOCAL_VAR, element.funcName.text))
+                .append(codeFragment(LuaHighlight.VAR_LOCAL, element.funcName.text))
                 .append(codeFragment(LuaHighlight.OPERATORS, "("))
                 .append("\n")
 
@@ -55,7 +55,7 @@ class LuaCatsDocumentationBuilder {
                 sb.append("    ")
 
                 if (it.argName != null) {
-                    sb.append(codeFragment(LuaHighlight.LOCAL_VAR, it.argName!!.text))
+                    sb.append(codeFragment(LuaHighlight.VAR_LOCAL, it.argName!!.text))
                 } else {
                     sb.append(codeFragment(LuaHighlight.OPERATORS, "..."))
                 }
@@ -89,7 +89,7 @@ class LuaCatsDocumentationBuilder {
         private fun buildParamTag(it: LuaCatsParamTag, sb: StringBuilder) {
             if (it.argName != null) {
                 sb.append("<pre>")
-                    .append(codeFragment(LuaHighlight.LOCAL_VAR, it.argName!!.text))
+                    .append(codeFragment(LuaHighlight.VAR_LOCAL, it.argName!!.text))
                     .append(codeFragment(LuaHighlight.OPERATORS, " : "))
                     .append(codeFragment(LuaCatsHighlight.TYPE, it.argType.text))
                     .append("</pre>")
@@ -116,7 +116,7 @@ class LuaCatsDocumentationBuilder {
         private fun buildReturnTag(it: LuaCatsReturnTag, sb: StringBuilder) {
             if (it.argName != null) {
                 sb.append("<pre>")
-                    .append(codeFragment(LuaHighlight.LOCAL_VAR, it.argName!!.text))
+                    .append(codeFragment(LuaHighlight.VAR_LOCAL, it.argName!!.text))
                     .append(codeFragment(LuaHighlight.OPERATORS, " : "))
                     .append(codeFragment(LuaCatsHighlight.TYPE, it.argType.text))
                     .append("</pre>")

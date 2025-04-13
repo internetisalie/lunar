@@ -25,9 +25,9 @@ class ExtendedSyntaxStrCommentHandler {
     /* Code to handle extended quote/comment syntax
     *
     * There is a basic assumption that inside a longstring or longcomment
-    * you cannot begin another longstring or comment, thus there is only
-    * ever 1 closing bracket to track, and once found no more closing brackets are valid
-    * until another opening bracket.
+    * you cannot begin another longstring or comment of the same level,
+    * thus there is only ever 1 closing bracket to track, and once found
+    * no more closing brackets are valid until another opening bracket.
     * */
     var longQLevel: Int = 0
 

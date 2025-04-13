@@ -1,15 +1,19 @@
 package net.internetisalie.lunar.lang.lexer
 
-import com.intellij.lexer.FlexAdapter
-import com.intellij.lexer.MergingLexerAdapter
+import com.intellij.lexer.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
 class LuaLexer : MergingLexerAdapter(
-    FlexAdapter(_LuaLexer(null)),
+    LongStringMergingLexerAdapter(
+        LongCommentMergingLexerAdapter(
+            FlexAdapter(
+                _LuaLexer(null),
+            ),
+        )
+    ),
     TokenSet.create(
         LuaTokenTypes.LONGCOMMENT,
         LuaTokenTypes.LONGSTRING,
@@ -17,7 +21,7 @@ class LuaLexer : MergingLexerAdapter(
         LuaTokenTypes.SHORTCOMMENT
     )
 ) {
-    val tokenTypes: Map<IElementType, IElementType> = mapOf(
+    private val tokenTypes: Map<IElementType, IElementType> = mapOf(
         LuaTokenTypes.AMP to LuaElementTypes.AMP,
         LuaTokenTypes.AND to LuaElementTypes.AND,
         LuaTokenTypes.ASSIGN to LuaElementTypes.ASSIGN,
@@ -91,5 +95,58 @@ class LuaLexer : MergingLexerAdapter(
             }
         }
         return super.getTokenType()
+    }
+}
+
+class LongStringMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(original) {
+    override fun getMergeFunction(): MergeFunction {
+        return MergeFunction { type, delegate ->
+            if (type != LuaTokenTypes.LONGSTRING_BEGIN) {
+                return@MergeFunction type
+            }
+
+            delegate.advance()
+
+            // Consume the leading newline
+            if (delegate.tokenType == LuaTokenTypes.NL_BEFORE_LONGSTRING) {
+                delegate.advance()
+            }
+
+            // Consume any string content
+            while (delegate.tokenType == LuaTokenTypes.LONGSTRING) {
+                delegate.advance()
+            }
+
+            // Consume the trailing bracket
+            if (delegate.tokenType == LuaTokenTypes.LONGSTRING_END) {
+                delegate.advance()
+            }
+
+            return@MergeFunction LuaElementTypes.STRING
+        }
+    }
+}
+
+class LongCommentMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(original) {
+    override fun getMergeFunction(): MergeFunction {
+        return MergeFunction { type, delegate ->
+            if (type != LuaTokenTypes.LONGCOMMENT_BEGIN) {
+                return@MergeFunction type
+            }
+
+            delegate.advance()
+
+            // Consume any comment content
+            while (delegate.tokenType == LuaTokenTypes.LONGCOMMENT) {
+                delegate.advance()
+            }
+
+            // Consume the trailing bracket
+            if (delegate.tokenType == LuaTokenTypes.LONGCOMMENT_END) {
+                delegate.advance()
+            }
+
+            return@MergeFunction LuaElementTypes.LONGCOMMENT
+        }
     }
 }

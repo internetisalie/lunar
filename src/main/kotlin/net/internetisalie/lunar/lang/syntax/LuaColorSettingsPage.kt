@@ -54,9 +54,9 @@ class LuaColorSettingsPage : ColorSettingsPage {
         
         <package>os</package>.<call-platform>getenv</call-platform>("VARNAME")
         
-        --[[   Multiline
+        <comment-brackets>--[[</comment-brackets>   Multiline
           Comment
-        ]]
+        <comment-brackets>]]</comment-brackets>
         
         <luadoc>--- External Documentation URL (shift-F1)</luadoc>
         <luadoc>-- This is called by shift-F1 on the symbol, or by the</luadoc>
@@ -66,7 +66,7 @@ class LuaColorSettingsPage : ColorSettingsPage {
         <luadoc>-- <luadoc-tag>@return</luadoc-tag> the URL of the external documentation</luadoc>
         function <global>getDocumentationUrl</global>(<parameter>name</parameter>) 
           local <local>p1</local>, <local>p2</local> = <global>string</global>.<field>match</field>(<parameter>name</parameter>, "(%a+)\.?(%a*)")
-          local <local>url</local> = <global>BASE_URL</global> .. "/docs/api/" .. <local>p1</local> .. [[long string]]
+          local <local>url</local> = <global>BASE_URL</global> .. "/docs/api/" .. <local>p1</local> .. <string-brackets>[[</string-brackets>long string<string-brackets>]]</string-brackets>
         
           if <local>p2</local> and true then <local>url</local> = <local>url</local> .. <local>p2</local>; end
         
@@ -123,11 +123,11 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.luadoc.value", LuaHighlight.DOC_VALUE),
         // Identifiers
         Pair("color.platform", LuaHighlight.VAR_PLATFORM),
-        Pair("color.globals", LuaHighlight.GLOBAL_VAR),
-        Pair("color.locals", LuaHighlight.LOCAL_VAR),
+        Pair("color.globals", LuaHighlight.VAR_GLOBAL),
+        Pair("color.locals", LuaHighlight.VAR_LOCAL),
         Pair("color.field", LuaHighlight.FIELD),
         Pair("color.parameter", LuaHighlight.PARAMETER),
-        Pair("color.upvalue", LuaHighlight.UPVAL),
+        Pair("color.upvalue", LuaHighlight.VAR_UP_VALUE),
         Pair("color.label", LuaHighlight.LABEL),
         Pair("color.package", LuaHighlight.PACKAGE),
         Pair("color.func.platform", LuaHighlight.FUNC_PLATFORM),
@@ -147,13 +147,13 @@ class LuaColorSettingsPage : ColorSettingsPage {
 
     private val highlightingTagToDescriptorMap: Map<String, TextAttributesKey> = mapOf(
         // Annotated Identifiers
-        Pair("platform", LuaHighlight.VAR_PLATFORM),
-        Pair("global", LuaHighlight.GLOBAL_VAR),
-        Pair("local", LuaHighlight.LOCAL_VAR),
         Pair("undefined", LuaHighlight.REF_UNDEFINED),
+        Pair("platform", LuaHighlight.VAR_PLATFORM),
+        Pair("global", LuaHighlight.VAR_GLOBAL),
+        Pair("local", LuaHighlight.VAR_LOCAL),
         Pair("field", LuaHighlight.FIELD),
         Pair("parameter", LuaHighlight.PARAMETER),
-        Pair("upval", LuaHighlight.UPVAL),
+        Pair("upval", LuaHighlight.VAR_UP_VALUE),
         Pair("label", LuaHighlight.LABEL),
         Pair("package", LuaHighlight.PACKAGE),
         Pair("shadowed", LuaHighlight.VAR_SHADOWED),
@@ -167,6 +167,8 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("luadoc", LuaHighlight.DOC_COMMENT),
         Pair("luadoc-tag", LuaHighlight.DOC_TAG),
         Pair("luadoc-value", LuaHighlight.DOC_VALUE),
+        Pair("string-brackets", LuaHighlight.LONGSTRING_BRACES),
+        Pair("comment-brackets", LuaHighlight.LONGCOMMENT_BRACES),
     )
 
     override fun getDisplayName(): String {

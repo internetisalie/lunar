@@ -85,8 +85,7 @@ public interface LuaElementTypes {
   IElementType LCURLY = new LuaTokenType("{");
   IElementType LE = new LuaTokenType("<=");
   IElementType LOCAL = new LuaTokenType("local");
-  IElementType LONGCOMMENT_BEGIN = new LuaTokenType("--[[");
-  IElementType LONGCOMMENT_END = new LuaTokenType("]]--");
+  IElementType LONGCOMMENT = new LuaTokenType("--[[]]");
   IElementType LPAREN = new LuaTokenType("(");
   IElementType LT = new LuaTokenType("<");
   IElementType MARKER = new LuaTokenType("::");

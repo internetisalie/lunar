@@ -12,9 +12,9 @@ class LuaLabelFindUsagesProvider : FindUsagesProvider {
     override fun getWordsScanner(): WordsScanner {
         return DefaultWordsScanner(
             LuaLexer(),
-            LuaSyntax.IDENTIFIER_TOKEN_SET,
-            LuaSyntax.COMMENT_SET,
-            LuaSyntax.STRING_LITERAL_SET,
+            LuaSyntax.IdentifierTokens,
+            LuaSyntax.CommentTokens,
+            LuaSyntax.StringLiteralTokens,
         )
     }
 
