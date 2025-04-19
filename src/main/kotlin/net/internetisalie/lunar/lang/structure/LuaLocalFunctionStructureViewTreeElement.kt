@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.lang.structure
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.ide.util.treeView.smartTree.TreeElement
 import com.intellij.navigation.ItemPresentation
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
@@ -21,7 +20,7 @@ class LuaLocalFunctionStructureViewTreeElement(private var myLocalFuncDecl : Lua
     }
 
     override fun getChildren(): Array<TreeElement> {
-        return TreeElementUtils.getFuncBodyChildren(myLocalFuncDecl.funcBody)
+        return TreeElementUtils.getFuncBodyChildren(myLocalFuncDecl.parList, myLocalFuncDecl.block)
     }
 
     override fun getValue(): Any {

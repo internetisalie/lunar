@@ -8,10 +8,12 @@ Lua support for IntelliJ Platform.
 
 #### Language
 
-- [ ] Statement structure from IDLua
+- [x] Statement structure from IDLua
 - [ ] Lua 5.4 syntax
   - `<const>`, `<close>` local variable attributes
 - [ ] Luau syntax?
+- Formatter
+  - [Expressions](https://github.com/JetBrains/intellij-community/blob/6319a70ded4aa13b0f3544aa762392afe28461ae/plugins/groovy/src/org/jetbrains/plugins/groovy/formatter/blocks/GroovyBlock.java) 
 
 #### Project Tree
 

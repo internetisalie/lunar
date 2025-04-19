@@ -29,8 +29,14 @@ public class LuaFuncDefImpl extends ASTWrapperPsiElement implements LuaFuncDef {
 
   @Override
   @NotNull
-  public LuaFuncBody getFuncBody() {
-    return findNotNullChildByClass(LuaFuncBody.class);
+  public LuaBlock getBlock() {
+    return findNotNullChildByClass(LuaBlock.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaParList getParList() {
+    return findChildByClass(LuaParList.class);
   }
 
 }

@@ -388,9 +388,10 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
         }
     }
 
-    override fun visitFuncBody(o: LuaFuncBody) {
-        if (o.parList?.nameList != null) {
-            val nameList = o.parList!!.nameList!!
+    override fun visitParList(o: LuaParList) {
+        val nameList = o.nameList
+        if (nameList != null) {
+            val nameList = nameList
             nameList.nameRefList.forEach {
                 val identifier = it.identifier
                 val binding = Binding(identifier, Kind.Variable) // not shadowing
@@ -399,7 +400,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
                 references[identifier.textOffset] = Reference(binding)
             }
         }
-        super.visitFuncBody(o)
+        super.visitParList(o)
     }
 
     private fun visitVarElements(varElements: DottedElements, assignment: Boolean) {

@@ -62,8 +62,7 @@
         PIPE   = '|'
         BSR    = '>>'
         BSL    = '<<'
-        LONGCOMMENT_BEGIN  = '--[['
-        LONGCOMMENT_END  = ']]--'
+        LONGCOMMENT  = '--[[]]'
         SHORTCOMMENT  = '--'
 
         IDENTIFIER   =   'regexp:[_a-zA-Z][_a-zA-Z0-9]*'
@@ -181,7 +180,7 @@ args ::=  '(' [exprList] ')' | tableConstructor | STRING
 
 funcDef ::= FUNCTION funcBody
 
-funcBody ::= '(' [parList] ')' block END
+private funcBody ::= '(' [parList] ')' block END
 
 parList ::= nameList [',' '...'] | '...'
 

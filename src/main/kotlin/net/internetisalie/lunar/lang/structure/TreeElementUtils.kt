@@ -18,10 +18,10 @@ class TreeElementUtils {
             return result.toTypedArray()
         }
 
-        fun getFuncBodyChildren(funcBody : LuaFuncBody) : Array<TreeElement> {
+        fun getFuncBodyChildren(parList: LuaParList?, block: LuaBlock) : Array<TreeElement> {
             val result = ArrayList<TreeElement>()
-            result.addAll(getParListChildren(funcBody.parList))
-            result.addAll(getBlockChildren(funcBody.block))
+            result.addAll(getParListChildren(parList))
+            result.addAll(getBlockChildren(block))
             return result.toTypedArray()
         }
 

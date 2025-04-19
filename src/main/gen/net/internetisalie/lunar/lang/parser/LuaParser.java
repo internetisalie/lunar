@@ -416,7 +416,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // '(' [parList] ')' block END
-  public static boolean funcBody(PsiBuilder b, int l) {
+  static boolean funcBody(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "funcBody")) return false;
     if (!nextTokenIs(b, LPAREN)) return false;
     boolean r;
@@ -426,7 +426,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     r = r && consumeToken(b, RPAREN);
     r = r && block(b, l + 1);
     r = r && consumeToken(b, END);
-    exit_section_(b, m, FUNC_BODY, r);
+    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -762,13 +762,14 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // ':' IDENTIFIER
+  // ':' nameRef
   public static boolean methodExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "methodExpr")) return false;
     if (!nextTokenIs(b, COLON)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, COLON, IDENTIFIER);
+    r = consumeToken(b, COLON);
+    r = r && nameRef(b, l + 1);
     exit_section_(b, m, METHOD_EXPR, r);
     return r;
   }

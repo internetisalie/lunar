@@ -29,8 +29,8 @@ public class LuaMethodExprImpl extends ASTWrapperPsiElement implements LuaMethod
 
   @Override
   @NotNull
-  public PsiElement getIdentifier() {
-    return findNotNullChildByType(IDENTIFIER);
+  public LuaNameRef getNameRef() {
+    return findNotNullChildByClass(LuaNameRef.class);
   }
 
 }

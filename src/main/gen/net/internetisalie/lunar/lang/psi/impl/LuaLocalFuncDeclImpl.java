@@ -29,14 +29,20 @@ public class LuaLocalFuncDeclImpl extends ASTWrapperPsiElement implements LuaLoc
 
   @Override
   @NotNull
-  public LuaFuncBody getFuncBody() {
-    return findNotNullChildByClass(LuaFuncBody.class);
+  public LuaBlock getBlock() {
+    return findNotNullChildByClass(LuaBlock.class);
   }
 
   @Override
   @NotNull
   public LuaNameRef getNameRef() {
     return findNotNullChildByClass(LuaNameRef.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaParList getParList() {
+    return findChildByClass(LuaParList.class);
   }
 
 }

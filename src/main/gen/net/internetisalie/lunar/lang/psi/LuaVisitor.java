@@ -53,10 +53,6 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitFuncBody(@NotNull LuaFuncBody o) {
-    visitPsiElement(o);
-  }
-
   public void visitFuncCall(@NotNull LuaFuncCall o) {
     visitPsiElement(o);
   }

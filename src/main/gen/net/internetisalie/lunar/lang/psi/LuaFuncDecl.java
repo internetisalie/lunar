@@ -12,10 +12,13 @@ import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 public interface LuaFuncDecl extends LuaDocCommentOwner, LuaCatsCommentOwner {
 
   @NotNull
-  LuaFuncBody getFuncBody();
+  LuaBlock getBlock();
 
   @NotNull
   LuaFuncName getFuncName();
+
+  @Nullable
+  LuaParList getParList();
 
   @Nullable LuaDocComment getDocComment();
 

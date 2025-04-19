@@ -19,7 +19,6 @@ public interface LuaElementTypes {
   IElementType FIELD_LIST = new LuaElementType("FIELD_LIST");
   IElementType FIELD_SEP = new LuaElementType("FIELD_SEP");
   IElementType FINAL_STATEMENT = new LuaElementType("FINAL_STATEMENT");
-  IElementType FUNC_BODY = new LuaElementType("FUNC_BODY");
   IElementType FUNC_CALL = new LuaElementType("FUNC_CALL");
   IElementType FUNC_DECL = new LuaElementType("FUNC_DECL");
   IElementType FUNC_DEF = new LuaElementType("FUNC_DEF");
@@ -149,9 +148,6 @@ public interface LuaElementTypes {
       }
       else if (type == FINAL_STATEMENT) {
         return new LuaFinalStatementImpl(node);
-      }
-      else if (type == FUNC_BODY) {
-        return new LuaFuncBodyImpl(node);
       }
       else if (type == FUNC_CALL) {
         return new LuaFuncCallImpl(node);

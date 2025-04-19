@@ -8,6 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface LuaFuncDef extends PsiElement {
 
   @NotNull
-  LuaFuncBody getFuncBody();
+  LuaBlock getBlock();
+
+  @Nullable
+  LuaParList getParList();
 
 }

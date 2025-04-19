@@ -94,6 +94,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaCommenter"/>
 
+    <lang.formatter
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.format.LuaFormattingModelBuilder" />
+
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 
     <!-- Options -->
