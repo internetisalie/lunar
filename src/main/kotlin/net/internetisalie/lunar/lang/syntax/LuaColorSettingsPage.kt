@@ -128,6 +128,7 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.field", LuaHighlight.FIELD),
         Pair("color.parameter", LuaHighlight.PARAMETER),
         Pair("color.upvalue", LuaHighlight.VAR_UP_VALUE),
+        Pair("color.shadowed", LuaHighlight.VAR_SHADOWED),
         Pair("color.label", LuaHighlight.LABEL),
         Pair("color.package", LuaHighlight.PACKAGE),
         Pair("color.func.platform", LuaHighlight.FUNC_PLATFORM),
