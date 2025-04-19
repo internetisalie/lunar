@@ -90,6 +90,10 @@
     <lang.psiStructureViewFactory language="Lua"
                                   implementationClass="net.internetisalie.lunar.lang.structure.LuaStructureViewFactory"/>
 
+    <lang.commenter
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.LuaCommenter"/>
+
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 
     <!-- Options -->
