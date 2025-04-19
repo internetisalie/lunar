@@ -20,6 +20,9 @@ import com.intellij.psi.PsiManager
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.LuaBundle
+import net.internetisalie.lunar.platform.LuaInterpreterFamily
+import net.internetisalie.lunar.platform.LuaInterpreterService
+import net.internetisalie.lunar.util.newAppBackgroundTask
 import java.awt.BorderLayout
 import javax.swing.JCheckBox
 import javax.swing.JPanel
@@ -71,11 +74,11 @@ class LuaApplicationSettingsPanel {
         interpretersTable.setValues(data.interpreters)
 
         for (interpreter in data.interpreters) {
-            if (LuaInterpreterFamily.UNKNOWN_KEY == interpreter.familyKey)
-                LuaInterpreterFinder.INSTANCE.describeInBackground(interpreter, {
-                    // interpretersTable.refresh()
+            if (LuaInterpreterFamily.UNKNOWN_PRODUCT == interpreter.product)
+                newAppBackgroundTask(LuaBundle.message("action.inspect.interpreter")) {
+                    LuaInterpreterService.getInstance().identify(interpreter)
                     interpretersTable.refreshValues()
-                })
+                }.queue()
         }
     }
 
@@ -94,7 +97,7 @@ class LuaApplicationSettingsPanel {
     fun isModified(data: LuaApplicationSettings.State): Boolean {
         if (addAdditionalCompletionsCheckBox.isSelected != data.includeAllFieldsInCompletions) return true
         if (enableTypeInference.isSelected != data.enableTypeInference) return true
-        if (interpretersTable.isModified(data.interpreters)) return true
+        if (interpretersTable.tableView.items != data.interpreters) return true
 
         return false
     }

@@ -1,59 +1,61 @@
-/*
- * Copyright 2010 Jon S Akhtar (Sylvanaar)
- * Copyright (c) 2017. tangzx(love.tangzx@qq.com)
- *
- *   Licensed under the Apache License, Version 2.0 (the "License");
- *   you may not use this file except in compliance with the License.
- *   You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License.
- */
 package net.internetisalie.lunar.settings
 
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.LuaLanguageLevel
+import net.internetisalie.lunar.lang.path.PathConfiguration
+import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaPlatform
-import net.internetisalie.lunar.project.PlatformLibraryProvider
+import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 import javax.swing.JComboBox
 import javax.swing.JPanel
 
-/**
- * Created by IntelliJ IDEA.
- * User: Jon S Akhtar
- * Date: Apr 20, 2010
- * Time: 7:08:52 PM
- */
-class LuaProjectSettingsPanel {
+class LuaProjectSettingsPanel(val project: Project) {
     val mainPanel: JPanel
-    private val platform : JComboBox<LuaPlatform>
-    private val languageLevel : JComboBox<LuaLanguageLevel>
+    private val platform: JComboBox<LuaPlatform>
+    private val languageLevel: JComboBox<LuaLanguageLevel>
+    private val interpreter: JComboBox<LuaInterpreter>
+    private val sourcePath: ExpandableTextField
 
     init {
-        platform = JComboBox<LuaPlatform>(arrayOf(
-            LuaPlatform.PUC,
-            LuaPlatform.LUAU,
-            LuaPlatform.LOVE,
-            LuaPlatform.PANDOC,
-            LuaPlatform.REDIS,
-        ))
+        platform = ComboBox<LuaPlatform>(
+            arrayOf(
+                LuaPlatform.PUC,
+                LuaPlatform.LUAU,
+                LuaPlatform.LOVE,
+                LuaPlatform.PANDOC,
+                LuaPlatform.REDIS,
+            )
+        )
 
-        languageLevel = JComboBox<LuaLanguageLevel>(arrayOf(
-            LuaLanguageLevel.LUA50,
-            LuaLanguageLevel.LUA51,
-            LuaLanguageLevel.LUA52,
-            LuaLanguageLevel.LUA53,
-            LuaLanguageLevel.LUA54,
-        ))
+        languageLevel = ComboBox<LuaLanguageLevel>(
+            arrayOf(
+                LuaLanguageLevel.LUA50,
+                LuaLanguageLevel.LUA51,
+                LuaLanguageLevel.LUA52,
+                LuaLanguageLevel.LUA53,
+                LuaLanguageLevel.LUA54,
+            )
+        )
+
+        interpreter = ComboBox<LuaInterpreter>()
+        customizeLuaInterpreterComboBox(project, interpreter)
+
+        sourcePath = ExpandableTextField(
+            { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
+            { entries -> entries.joinToString(PathConfiguration.TEMPLATE_SEPARATOR) },
+        )
+        sourcePath.columns = 60
+        sourcePath.text = PathConfiguration.DEFAULT_SOURCE_PATH
 
         mainPanel = FormBuilder.createFormBuilder()
             .addLabeledComponent("Platform", platform, 0)
             .addLabeledComponent("Language level", languageLevel, 2)
+            .addLabeledComponent("Interpreter", interpreter, 2)
+            .addLabeledComponent("Source path patterns", sourcePath, 2)
             .addComponentFillVertically(JPanel(), 2)
             .panel
     }
@@ -62,27 +64,33 @@ class LuaProjectSettingsPanel {
         val originalLanguageLevel = state.languageLevel
         getData(state)
         if (state.languageLevel !== originalLanguageLevel) {
-            PlatformLibraryProvider.reload()
+            PlatformLibraryIndex.reload()
         }
     }
 
     fun reset() {
-        setData(LuaProjectSettings.instance.state)
+        setData(LuaProjectSettings.getInstance(project).state)
     }
 
     fun setData(data: LuaProjectSettings.State) {
         languageLevel.selectedItem = data.languageLevel
         platform.selectedItem = data.platform
+        interpreter.selectedItem = data.interpreter
+        sourcePath.text = data.sourcePath
     }
 
     fun getData(data: LuaProjectSettings.State) {
         data.platform = platform.selectedItem as LuaPlatform
         data.languageLevel = languageLevel.selectedItem as LuaLanguageLevel
+        data.interpreter = interpreter.selectedItem as LuaInterpreter
+        data.sourcePath = sourcePath.text
     }
 
     fun isModified(data: LuaProjectSettings.State): Boolean {
         if (platform.selectedItem != data.platform) return true
         if (languageLevel.selectedItem != data.languageLevel) return true
+        if (interpreter.selectedItem != data.interpreter) return true
+        if (sourcePath.text != data.sourcePath) return true
         return false
     }
 }

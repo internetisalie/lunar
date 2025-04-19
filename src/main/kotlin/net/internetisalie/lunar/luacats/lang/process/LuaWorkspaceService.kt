@@ -21,6 +21,7 @@ import kotlinx.coroutines.*
 import net.internetisalie.lunar.command.LuaRunProfile
 import net.internetisalie.lunar.command.newLuaDefaultInterpreterCommandLine
 import net.internetisalie.lunar.util.LuaFileUtil
+import net.internetisalie.lunar.util.LuaProcessUtil
 import java.io.PipedReader
 import java.io.PipedWriter
 
@@ -86,21 +87,16 @@ class LuaWorkspaceService(
      * Execute the workspace manifest executor and write its output to the supplied writer
      */
     fun process(file: VirtualFile, writer: PipedWriter) {
-        val commandLine = newCommandLine(file)
-        val handler = OSProcessHandler(commandLine)
-
         var line = 0
-
-        handler.addProcessListener(object : ProcessListener {
-            override fun onTextAvailable(event: ProcessEvent, key: Key<*>) {
-                if (line == 1) {
-                    writer.write(event.text)
+        LuaProcessUtil.listen(newCommandLine(file),
+            object : ProcessListener {
+                override fun onTextAvailable(event: ProcessEvent, key: Key<*>) {
+                    if (line == 1) {
+                        writer.write(event.text)
+                    }
+                    line++
                 }
-                line++
-            }
-        })
-        handler.startNotify()
-        handler.waitFor()
+            })
     }
 
     /**
@@ -118,10 +114,8 @@ class LuaWorkspaceService(
 
     private fun newCommandLine(file: VirtualFile): GeneralCommandLine {
         val luaWorkFile = LuaFileUtil.getPluginVirtualDirectoryChild(*LUAWORK_FILE) ?: error { "Could not locate luawork manifest loader" }
-        val commandLine = newLuaDefaultInterpreterCommandLine()
-        commandLine.addParameter(luaWorkFile.path)
-        commandLine.addParameter(file.path)
-        return commandLine
+        val cmd = newLuaDefaultInterpreterCommandLine() ?: error("Could not create lua interpreter commandline")
+        return cmd.withParameters(luaWorkFile.path, file.path)
     }
 
 }

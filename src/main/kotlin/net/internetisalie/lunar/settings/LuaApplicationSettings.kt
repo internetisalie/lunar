@@ -17,8 +17,11 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SettingsCategory
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import net.internetisalie.lunar.platform.LuaInterpreter
 
 /**
  * Created by IntelliJ IDEA.
@@ -26,7 +29,12 @@ import com.intellij.openapi.components.Storage
  * Date: Sep 19, 2010
  * Time: 5:33:53 PM
  */
-@State(name = "LuaApplicationSettings", storages = [Storage("LuaApplicationSettings.xml")])
+@Service(Service.Level.APP)
+@State(
+    name = "LuaApplicationSettings",
+    storages = [Storage("lunar.xml")],
+    category = SettingsCategory.PLUGINS,
+)
 class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.State> {
     class State {
         var includeAllFieldsInCompletions: Boolean = false
@@ -48,5 +56,13 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
         val instance: LuaApplicationSettings
             get() = ApplicationManager.getApplication()
                 .getService(LuaApplicationSettings::class.java)
+
+        fun findInterpreter(interpreterPath : String) : LuaInterpreter? {
+            return instance.state.interpreters.firstOrNull { interpreterPath == it.path }
+        }
+
+        fun validInterpreters() : List<LuaInterpreter> {
+            return instance.state.interpreters.filter { it.valid }
+        }
     }
 }

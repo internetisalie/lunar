@@ -1,28 +1,41 @@
 package net.internetisalie.lunar.command
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.settings.LuaApplicationSettings
-import net.internetisalie.lunar.settings.LuaInterpreter
-import java.io.File
+import net.internetisalie.lunar.platform.LuaInterpreter
+import net.internetisalie.lunar.settings.LuaProjectSettings
+import java.nio.file.Path
 
-fun findLuaInterpreter(interpreterPath : String) :  LuaInterpreter? {
+fun newLuaDefaultInterpreterCommandLine(): GeneralCommandLine? {
     val settings = LuaApplicationSettings.instance.state
     val interpreters = settings.interpreters
-    return interpreters.firstOrNull { interpreterPath == it.path }
-}
-
-fun newLuaDefaultInterpreterCommandLine(): GeneralCommandLine {
-    val settings = LuaApplicationSettings.instance.state
-    val interpreters = settings.interpreters
-    val defaultInterpreter = interpreters.find { _ -> true } ?: error { "No lua interpreter found"}
+    val defaultInterpreter = interpreters.find { _ -> true } ?: return null
     return newLuaInterpreterCommandLine(defaultInterpreter)
 }
 
-fun newLuaInterpreterCommandLine(interpreter : LuaInterpreter) : GeneralCommandLine {
-    val defaultInterpreterPath = interpreter.path ?: error { "No path defined for lua interpreter" }
-    val workDirectory = File(defaultInterpreterPath).parentFile
+fun newProjectLuaInterpreterCommandLine(project: Project): GeneralCommandLine? {
+    val settingsState = LuaProjectSettings.getInstance(project).state
+    val interpreter = settingsState.interpreter ?: return null
+    val cmd = newLuaInterpreterCommandLine(interpreter) ?: return null
+    val luaPath = settingsState.expandSourcePath(project)
+    if (luaPath.isNotEmpty()) {
+        cmd.withEnvironment("LUA_PATH", luaPath)
+    }
+    return cmd
+}
 
-    return GeneralCommandLine(defaultInterpreterPath)
+fun newLuaInterpreterCommandLine(interpreter : LuaInterpreter) : GeneralCommandLine? {
+    val interpreterFile = interpreter.executable ?: return null
+
+    val cmd = GeneralCommandLine(interpreterFile.path)
         .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-        .withWorkDirectory(workDirectory)
+        .withWorkingDirectory(Path.of(interpreterFile.parent.path))
+
+    if ("jar" == interpreterFile.extension) {
+        cmd.exePath = "java"
+        cmd.addParameters("-cp", interpreterFile.path, "lua")
+    }
+
+    return cmd
 }

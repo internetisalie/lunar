@@ -1,26 +1,34 @@
 package net.internetisalie.lunar.lang.path
 
+import com.intellij.openapi.project.Project
+import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.settings.expandMacros
+
 data object PathConfiguration {
     const val DEFAULT_SOURCE_PATH = "/usr/local/share/lua/5.4/?.lua;" +
             "/usr/local/share/lua/5.4/?/init.lua;" +
             "/usr/local/lib/lua/5.4/?.lua;" +
             "/usr/local/lib/lua/5.4/?/init.lua;" +
-            "/usr/share/lua/5.4/?.lua;" +
-            "/usr/share/lua/5.4/?/init.lua;" +
-            "./?.lua;" +
-            "./?/init.lua"
+            "\$PROJECT_DIR$/?.lua;" +
+            "\$PROJECT_DIR$/?/init.lua"
 
     const val DIRECTORY_SEPARATOR = '/'
     const val TEMPLATE_SEPARATOR = ";"
     const val SUBSTITUTION_MARK = "?"
 
-    fun getDefaultSourcePathPatterns(): List<SourcePathPattern> {
-        return SourcePathPattern.patternsFromLuaPath(DEFAULT_SOURCE_PATH)
+    fun getProjectSourcePathPatterns(project: Project): List<SourcePathPattern> {
+        val state = LuaProjectSettings.getInstance(project).state
+        val luaPath = state.expandSourcePath(project)
+            .ifEmpty { DEFAULT_SOURCE_PATH.expandMacros(project) }
+        return SourcePathPattern.patternsFromLuaPath(luaPath)
     }
 }
 
 // A single entry in package.path template
 data class SourcePathPattern(val spec: String) {
+    val leadingPath : String
+        get() = spec.substringBefore(PathConfiguration.SUBSTITUTION_MARK)
+
     fun interpolate(packageName: String): String {
         return spec.replace(
             PathConfiguration.SUBSTITUTION_MARK,

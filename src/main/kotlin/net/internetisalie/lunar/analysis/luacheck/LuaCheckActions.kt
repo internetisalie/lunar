@@ -16,24 +16,26 @@
 
 package net.internetisalie.lunar.analysis.luacheck
 
-import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.wm.ToolWindowManager
 import net.internetisalie.lunar.lang.LuaFileType
-
 
 class LuaCheckRun : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.getData(CommonDataKeys.PROJECT)!!
-        val file = event.getData(CommonDataKeys.VIRTUAL_FILE)
-        if (file != null) {
-            val settings = LuaCheckSettings.getInstance()
-            if (settings.valid) {
-                runLuaCheck(project, file)
-            } else {
-//                ShowSettingsUtil.getInstance().showSettingsDialog(project, LuaCheckSettingsPanel::class.java)
+        val file = event.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
+
+        val settingsState = LuaCheckSettings.getInstance().state
+        if (settingsState.valid) {
+            val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("LuaCheck")
+            toolWindow?.show {
+                LuaCheckInvoker.invoke(project, file)
             }
+        } else {
+            ShowSettingsUtil.getInstance().showSettingsDialog(project, LuaCheckSettingsPanel::class.java)
         }
     }
 

@@ -242,12 +242,12 @@ data class LuaImports(
         fun create(project : Project, bindings : LuaBindings) : LuaImports {
             val platformQuery = VirtualFilesQuery(
                 ProjectScope.getLibrariesScope(project),
-                PlatformLibraryIndex.getPackageFiles(),
+                PlatformLibraryIndex.getPackageFiles(project),
             )
 
             val requiresQuery = RequiredFilesQuery(
                 ProjectScope.getProjectScope(project),
-                PathConfiguration.getDefaultSourcePathPatterns(),
+                PathConfiguration.getProjectSourcePathPatterns(project),
                 bindings.requires,
             )
 

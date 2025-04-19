@@ -12,18 +12,26 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.StoredProperty
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.graph.util.CommandLineArguments
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.NotNullLazyValue
+import com.intellij.ui.RawCommandLineEditor
+import com.intellij.ui.components.fields.ExpandableTextField
+import com.intellij.util.execution.ParametersListUtil
 import com.intellij.util.ui.FormBuilder
-import net.internetisalie.lunar.command.findLuaInterpreter
 import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
 import net.internetisalie.lunar.lang.LuaIcons
+import net.internetisalie.lunar.lang.path.PathConfiguration
+import net.internetisalie.lunar.settings.LuaApplicationSettings
+import net.internetisalie.lunar.platform.LuaInterpreter
+import net.internetisalie.lunar.platform.LuaInterpreterFamily
+import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import javax.swing.JComponent
 import javax.swing.JPanel
-import javax.swing.JTextField
-import javax.swing.event.ChangeEvent
 
 
 class LuaRunConfigurationType : ConfigurationTypeBase(
@@ -65,14 +73,27 @@ class LuaRunConfigurationOptions : RunConfigurationOptions() {
         this, "workingDirectory"
     )
 
-    private val myEnvironmentVariables: StoredProperty<MutableMap<String, String>> = map<String, String>().provideDelegate(
-        this, "environmentVariables"
+    private val mySourcePath: StoredProperty<String?> = string("").provideDelegate(
+        this, "sourcePath"
     )
+
+    private val myEnvironmentVariables: StoredProperty<MutableMap<String, String>> =
+        map<String, String>().provideDelegate(
+            this, "environmentVariables"
+        )
     private val myEnvironmentFile: StoredProperty<String?> = string("").provideDelegate(
         this, "environmentFile"
     )
     private val myEnvironmentProcess: StoredProperty<String?> = string("").provideDelegate(
         this, "environmentProcess"
+    )
+
+    private val myProgramArguments: StoredProperty<String?> = string("").provideDelegate(
+        this, "programArguments"
+    )
+
+    private val myInterpreterArguments: StoredProperty<String?> = string("").provideDelegate(
+        this, "interpreterArguments"
     )
 
     var interpreter: String?
@@ -93,23 +114,42 @@ class LuaRunConfigurationOptions : RunConfigurationOptions() {
             myWorkingDirectory.setValue(this, workingDirectory)
         }
 
+    var sourcePath: String?
+        get() = mySourcePath.getValue(this)
+        set(sourcePath) {
+            mySourcePath.setValue(this, sourcePath)
+        }
+
     var environmentVariables: MutableMap<String, String>
         get() = myEnvironmentVariables.getValue(this)
-    set(environmentVariables) {
-        myEnvironmentVariables.setValue(this, environmentVariables)
-    }
+        set(environmentVariables) {
+            myEnvironmentVariables.setValue(this, environmentVariables)
+        }
 
     var environmentFile: String?
-    get() = myEnvironmentFile.getValue(this)
-    set(environmentFile) {
-        myEnvironmentFile.setValue(this, environmentFile)
-    }
+        get() = myEnvironmentFile.getValue(this)
+        set(environmentFile) {
+            myEnvironmentFile.setValue(this, environmentFile)
+        }
 
     var environmentProcess: String?
         get() = myEnvironmentProcess.getValue(this)
         set(environmentProcess) {
             myEnvironmentProcess.setValue(this, environmentProcess)
         }
+
+    var programArguments: String?
+        get() = myProgramArguments.getValue(this)
+        set(programArguments) {
+            myProgramArguments.setValue(this, programArguments)
+        }
+
+    var interpreterArguments: String?
+        get() = myInterpreterArguments.getValue(this)
+        set(interpreterArguments) {
+            myInterpreterArguments.setValue(this, interpreterArguments)
+        }
+
 }
 
 class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name: String?) :
@@ -125,10 +165,15 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
             options.scriptName = scriptName
         }
 
-    var interpreter: String?
-        get() = options.interpreter
+    var interpreter: LuaInterpreter?
+        get() {
+            val interpreterPath = options.interpreter ?: return null
+            if (interpreterPath.isEmpty()) return null
+            return LuaApplicationSettings.findInterpreter(interpreterPath)
+                ?: LuaInterpreter(path = interpreterPath, product = LuaInterpreterFamily.UNKNOWN_PRODUCT)
+        }
         set(interpreter) {
-            options.interpreter = interpreter
+            options.interpreter = interpreter?.path
         }
 
     var workingDirectory: String?
@@ -136,6 +181,10 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         set(workingDirectory) {
             options.workingDirectory = workingDirectory
         }
+
+    var sourcePath : String?
+        get() = options.sourcePath
+        set(sourcePath) { options.sourcePath = sourcePath }
 
     var environmentVariables: EnvironmentVariablesData?
         get() = EnvironmentVariablesData.create(
@@ -155,6 +204,14 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
             }
         }
 
+    var programArguments: String?
+        get() = options.programArguments
+        set(programArguments) { options.programArguments = programArguments}
+
+    var interpreterArguments: String?
+        get() = options.interpreterArguments
+        set(interpreterArguments) { options.interpreterArguments = interpreterArguments}
+
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> {
         return LuaRunSettingsEditor(project)
     }
@@ -162,14 +219,39 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
         return object : CommandLineState(environment) {
             override fun startProcess(): ProcessHandler {
-                val interpreter =
-                    findLuaInterpreter(options.interpreter!!) ?: throw ExecutionException("Interpreter not found")
-
+                val interpreter = interpreter
+                    ?: throw ExecutionException("Interpreter is not defined")
                 val commandLine = newLuaInterpreterCommandLine(interpreter)
+                    ?: throw ExecutionException("Interpreter is not found")
+
+                val interpreterArguments = ParametersListUtil.parse(interpreterArguments.orEmpty())
+                commandLine.withParameters(interpreterArguments)
+
+                val scriptName = options.scriptName.orEmpty()
+                if (!scriptName.isEmpty()) commandLine.withParameters(scriptName)
+                else commandLine.withParameters("-v", "-i")
+
+                val programArguments = ParametersListUtil.parse(programArguments.orEmpty())
+                commandLine.withParameters(programArguments)
+
+                commandLine
                     .withWorkDirectory(workingDirectory)
-                    .withParameters(options.scriptName!!)
 
                 environmentVariables?.configureCommandLine(commandLine, true)
+
+                val sourcePath = sourcePath ?: ""
+                if (sourcePath.isNotEmpty()) {
+                    commandLine.withEnvironment("LUA_PATH", sourcePath)
+                } else {
+                    // Fallback to project source path
+                    val settingsState = LuaProjectSettings.getInstance(project).state
+                    val luaPath = settingsState.expandSourcePath(project)
+                    if (luaPath.isNotEmpty()) {
+                        commandLine.withEnvironment("LUA_PATH", luaPath)
+                    }
+                }
+
+                // TODO: program arguments
 
                 val processHandler = ProcessHandlerFactory.getInstance()
                     .createColoredProcessHandler(commandLine)
@@ -183,14 +265,20 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
 
 class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguration>() {
     private val myPanel: JPanel
-    private val interpreterField = JTextField()
+    private val interpreterField = ComboBox<LuaInterpreter>()
     private val scriptPathField = TextFieldWithBrowseButton()
     private val workingDirectoryField = TextFieldWithBrowseButton()
+    private val sourcePathField = ExpandableTextField(
+        { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
+        { entries -> entries.joinToString(PathConfiguration.TEMPLATE_SEPARATOR) },
+    )
     private val environmentVariablesField = EnvironmentVariablesTextFieldWithBrowseButton()
-    // TODO: Source Paths
+    private val interpreterArgumentsField = RawCommandLineEditor()
+    private val programArgumentsField = RawCommandLineEditor()
+
 
     init {
-        // TODO: interpreters dropdown
+        customizeLuaInterpreterComboBox(project, interpreterField)
 
         scriptPathField.addBrowseFolderListener(
             project,
@@ -206,22 +294,30 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
             .addLabeledComponent("Interpreter", interpreterField)
             .addLabeledComponent("Script file", scriptPathField)
             .addLabeledComponent("Working directory", workingDirectoryField)
+            .addLabeledComponent("Source path templates", sourcePathField)
             .addLabeledComponent("Environment", environmentVariablesField)
+            .addLabeledComponent("Interpreter arguments", interpreterArgumentsField)
+            .addLabeledComponent("Program arguments", programArgumentsField)
             .panel
     }
 
     override fun resetEditorFrom(runConfiguration: LuaRunConfiguration) {
         scriptPathField.text = runConfiguration.scriptName ?: ""
-        interpreterField.text = runConfiguration.interpreter ?: ""
+        interpreterField.item = runConfiguration.interpreter
         workingDirectoryField.text = runConfiguration.workingDirectory ?: ""
+        sourcePathField.text = runConfiguration.sourcePath ?: ""
         environmentVariablesField.data = runConfiguration.environmentVariables ?: EnvironmentVariablesData.DEFAULT
+        interpreterArgumentsField.text = runConfiguration.interpreterArguments ?: ""
+        programArgumentsField.text = runConfiguration.programArguments ?: ""
     }
 
     override fun applyEditorTo(runConfiguration: LuaRunConfiguration) {
         runConfiguration.scriptName = scriptPathField.text
-        runConfiguration.interpreter = interpreterField.text
+        runConfiguration.interpreter = interpreterField.item
         runConfiguration.workingDirectory = workingDirectoryField.text
         runConfiguration.environmentVariables = environmentVariablesField.data
+        runConfiguration.interpreterArguments = interpreterArgumentsField.text
+        runConfiguration.programArguments = programArgumentsField.text
     }
 
     override fun createEditor(): JComponent {

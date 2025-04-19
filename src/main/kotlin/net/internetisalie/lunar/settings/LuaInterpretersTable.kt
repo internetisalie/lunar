@@ -17,15 +17,20 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.execution.util.ListTableWithButtons
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.Task
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.ui.AnActionButton
 import com.intellij.util.ui.ListTableModel
 import com.intellij.util.ui.LocalPathCellEditor
+import net.internetisalie.lunar.LuaBundle
+import net.internetisalie.lunar.platform.LuaInterpreter
+import net.internetisalie.lunar.platform.LuaInterpreterService
+import net.internetisalie.lunar.util.newAppBackgroundTask
+import net.internetisalie.lunar.util.newProjectBackgroundTask
+import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.TableCellEditor
+import javax.swing.table.TableCellRenderer
 
 class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
     private class CellModelBase(
@@ -34,6 +39,7 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
         val getter: (i: LuaInterpreter) -> String?,
         val setter: ((i: LuaInterpreter, value: String) -> Unit)? = null,
         val editor: ((i: LuaInterpreter) -> TableCellEditor?)? = null,
+        val tooltip: ((i : LuaInterpreter) -> String?)? = null,
     ) : ElementsColumnInfoBase<LuaInterpreter>(title) {
 
         override fun valueOf(interpreter: LuaInterpreter): String {
@@ -55,24 +61,32 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
         override fun getEditor(luaInterpreter: LuaInterpreter): TableCellEditor? {
             return editor?.invoke(luaInterpreter)
         }
+
+        override fun getRenderer(element: LuaInterpreter?): TableCellRenderer? {
+            val renderer = super.getRenderer(element) as DefaultTableCellRenderer
+            val tooltipGenerator = tooltip
+            if (tooltipGenerator != null && element != null) {
+                renderer.toolTipText = tooltipGenerator(element)
+            }
+            return renderer
+        }
     }
 
-    private var myListModel : ListTableModel<LuaInterpreter>? = null
+    private var myListModel: ListTableModel<LuaInterpreter>? = null
 
     override fun createListModel(): ListTableModel<LuaInterpreter> {
-        val name = CellModelBase(
-            "Name", true,
-            { luaInterpreter: LuaInterpreter -> luaInterpreter.name },
-            { luaInterpreter: LuaInterpreter, name: String -> luaInterpreter.name = name },
-        )
-
-        val path = CellModelBase("Executable", true,
-            { luaInterpreter: LuaInterpreter -> luaInterpreter.path },
-            { luaInterpreter: LuaInterpreter, path: String ->
+        val path = CellModelBase(
+            "Executable", true,
+            { luaInterpreter -> luaInterpreter.path },
+            { luaInterpreter, path ->
                 luaInterpreter.path = path
-                LuaInterpreterFinder.INSTANCE.describeInBackground(luaInterpreter, { setModified() })
+                newAppBackgroundTask(LuaBundle.message("action.inspect.interpreter")) {
+                    LuaInterpreterService.getInstance().identify(luaInterpreter)
+                    tableView.tableViewModel.items = elements
+                    refresh()
+                }.queue()
             },
-            { luaInterpeter: LuaInterpreter ->
+            { luaInterpreter ->
                 val chooserDescriptor = FileChooserDescriptor(
                     true, false, false, false, false, false
                 )
@@ -81,23 +95,27 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
                 cellEditor
             })
 
-        val family = CellModelBase("Family", false,
-            { luaInterpreter -> luaInterpreter.familyOrUnknown.interpreterName })
+        val product = CellModelBase(
+            "Product", false,
+            { luaInterpreter ->
+                if (!luaInterpreter.valid) "Invalid"
+                else luaInterpreter.familyOrUnknown.interpreterName
+            },
+            null,
+            null,
+            { luaInterpreter ->
+                if (!luaInterpreter.valid) luaInterpreter.banner
+                else luaInterpreter.familyOrUnknown.interpreterName
+            })
 
-        val version = CellModelBase("Version", false,
+        val version = CellModelBase(
+            "Version", false,
             { luaInterpreter -> luaInterpreter.version })
 
-        val listModel = object : ListTableModel<LuaInterpreter>(name, path, family, version) {
-            override fun setValueAt(aValue: Any?, rowIndex: Int, columnIndex: Int) {
-                super.setValueAt(aValue, rowIndex, columnIndex)
+        // TODO: Language Level
+        // TODO: Platform
 
-                if (columnIndex == 2) {
-                    // Manually redraw the derived values
-                    this.fireTableCellUpdated(rowIndex, 3)
-                    this.fireTableCellUpdated(rowIndex, 4)
-                }
-            }
-        }
+        val listModel = ListTableModel<LuaInterpreter>(path, product, version)
 
         myListModel = listModel
         return listModel
@@ -108,8 +126,7 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
     }
 
     override fun isEmpty(element: LuaInterpreter?): Boolean {
-        return element?.name == null || element.name!!.isEmpty()
-                || element.path == null || element.path!!.isEmpty()
+        return element?.path?.isEmpty() ?: true
     }
 
     override fun cloneElement(interpreter: LuaInterpreter): LuaInterpreter {
@@ -120,51 +137,32 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
         return true
     }
 
-    override fun createExtraActions(): Array<AnActionButton> {
-        return arrayOf(object : AnActionButton("Re-scan", AllIcons.Actions.ForceRefresh) {
-            protected fun findByPath(path: String?): LuaInterpreter? {
-                for (element in elements) if (element!!.path == path) return element
-                return null
-            }
-
-            protected fun update(target: LuaInterpreter, source: LuaInterpreter) {
-                target.familyKey = source.familyKey
-                target.path = source.path
-                target.version = source.version
-            }
-
-            override fun actionPerformed(e: AnActionEvent) {
-                object : Task.Backgroundable(
-                    ProjectManager.getInstance().defaultProject,
-                    "Locating lua interpreters",
-                    false) {
-                    override fun run(indicator: ProgressIndicator) {
-                        val finder = LuaInterpreterFinder()
+    override fun createExtraToolbarActions(): Array<AnAction> {
+        return arrayOf(
+            object : AnActionButton("Re-scan", AllIcons.Actions.ForceRefresh) {
+                override fun actionPerformed(e: AnActionEvent) {
+                    newProjectBackgroundTask(
+                        LuaBundle.message("action.locate.interpreter"),
+                        e.project!!,
+                    ) {
+                        val finder = LuaInterpreterService.getInstance()
                         val interpreters = finder.findInterpreters()
+                        if (elements != interpreters) {
+                            for (interpreter in interpreters) {
+                                val original = elements.indexOfFirst { it.path == interpreter.path }
+                                when (original) {
+                                    -1 -> elements.add(interpreter)
+                                    else -> elements[original] = interpreter
+                                }
+                            }
 
-                        for (interpreter in interpreters) {
-                            val original = findByPath(interpreter.path)
-                            if (original == null) elements.add(interpreter)
-                            else update(original, interpreter)
-                        }
-
-                        if (interpreters.size != 0) {
                             tableView.tableViewModel.items = elements
-                            setModified()
+                            refresh()
                         }
-                    }
-                }.queue()
-
-            }
-        })
-    }
-
-    fun isModified(from: List<LuaInterpreter>): Boolean {
-        // compare from to current state
-        if (myListModel == null) return true;
-        val current = myListModel?.items ?: emptyList();
-        if (from.size != current.size) return false
-        return current.zip(from).all { (a, b) -> a.name.equals(b.name) && a.path.equals(b.path) }
+                    }.queue()
+                }
+            },
+        )
     }
 
     fun refresh() {

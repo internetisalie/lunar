@@ -42,11 +42,11 @@ public class LuaCheckSettingsPanel implements SearchableConfigurable, Configurab
     private TextFieldWithBrowseButton myLuaCheck;
     private HoverHyperlinkLabel luaCheckReleasePageLink;
     private HoverHyperlinkLabel commandLineOptionsLink;
-    private LuaCheckSettings settings = LuaCheckSettings.getInstance();
+    private LuaCheckSettings settings = LuaCheckSettings.Companion.getInstance();
 
     public LuaCheckSettingsPanel() {
-        myLuaCheck.setText(settings.getLuaCheck());
-        myCmdLine.setText(settings.getLuaCheckArgs());
+        myLuaCheck.setText(settings.getState().getExecutablePath());
+        myCmdLine.setText(settings.getState().getArguments());
     }
 
     @NotNull
@@ -69,14 +69,14 @@ public class LuaCheckSettingsPanel implements SearchableConfigurable, Configurab
 
     @Override
     public boolean isModified() {
-        return !StringUtil.equals(settings.getLuaCheck(), myLuaCheck.getText()) ||
-                !StringUtil.equals(settings.getLuaCheckArgs(), myCmdLine.getText());
+        return !StringUtil.equals(settings.getState().getExecutablePath(), myLuaCheck.getText()) ||
+                !StringUtil.equals(settings.getState().getArguments(), myCmdLine.getText());
     }
 
     @Override
     public void apply() {
-        settings.setLuaCheck(myLuaCheck.getText());
-        settings.setLuaCheckArgs(myCmdLine.getText());
+        settings.getState().setExecutablePath(myLuaCheck.getText());
+        settings.getState().setArguments(myCmdLine.getText());
     }
 
     private void createUIComponents() {

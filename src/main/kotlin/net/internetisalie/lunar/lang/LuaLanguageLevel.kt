@@ -16,14 +16,17 @@
 
 package net.internetisalie.lunar.lang
 
-enum class LuaLanguageLevel(val version: Int) {
-    LUA50(50),
-    LUA51(51),
-    LUA52(52),
-    LUA53(53),
-    LUA54(54);
+enum class LuaLanguageLevel(val major: Int, val minor: Int) {
+    LUA50(5, 0),
+    LUA51(5, 1),
+    LUA52(5, 2),
+    LUA53(5, 3),
+    LUA54(5, 4);
 
     override fun toString(): String {
-        return "Lua ${version / 10}.${version % 10}"
+        return "Lua ${major}.${minor}"
     }
+
+    val version : String
+        get() = "${major}.${minor}"
 }

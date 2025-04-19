@@ -82,6 +82,12 @@ class LuaCheckView(val project: Project) {
         val content = contentFactory.createContent(panel, "", false)
         toolWindow.contentManager.addContent(content)
     }
+
+    companion object {
+        fun getInstance(project:Project) : LuaCheckView {
+            return project.getService(LuaCheckView::class.java)
+        }
+    }
 }
 
 /**

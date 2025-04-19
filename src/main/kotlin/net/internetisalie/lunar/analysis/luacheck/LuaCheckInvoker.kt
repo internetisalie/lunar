@@ -16,153 +16,139 @@
 
 package net.internetisalie.lunar.analysis.luacheck
 
-import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessNotCreatedException
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileVisitor
-import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.PsiManagerEx
-import com.intellij.util.execution.ParametersListUtil
-import net.internetisalie.lunar.lang.LuaFileType
-import org.intellij.lang.annotations.Language
-import java.io.File
+import net.internetisalie.lunar.LuaBundle
+import net.internetisalie.lunar.util.LuaFileUtil
+import net.internetisalie.lunar.util.LuaProcessUtil
+import net.internetisalie.lunar.util.newProjectBackgroundTask
 
-private val DEFAULT_ARGS = arrayOf("--codes", "--ranges")
+object LuaCheckInvoker {
+    private val LOG = logger<LuaCheckInvoker>()
 
-private fun applyDefaultArgs(strArgs: String?): List<String> {
-    val list: MutableList<String> = mutableListOf()
-    if (strArgs != null) {
-        val array = ParametersListUtil.parseToArray(strArgs)
-        list.addAll(array)
-    }
-    list.addAll(DEFAULT_ARGS)
-    return list.distinct()
-}
+    fun invoke(project: Project, file: VirtualFile) {
+        val settingsState = LuaCheckSettings.getInstance().state
+        if (!settingsState.valid) {
+            ShowSettingsUtil.getInstance().showSettingsDialog(project, LuaCheckSettingsPanel::class.java)
+            return
+        }
 
-fun runLuaCheck(project: Project, file: VirtualFile) {
-    val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("LuaCheck")
-    toolWindow?.show {
-        var dir: VirtualFile = file.parent
         val list: MutableList<Pair<String, PsiFile>> = mutableListOf()
+
+        val dir: VirtualFile = if (file.isDirectory) file else file.parent
         if (file.isDirectory) {
-            val dirPath = file.canonicalPath!!
-            dir = file
-            VfsUtil.visitChildrenRecursively(dir, object : VirtualFileVisitor<VirtualFile>() {
-                override fun visitFile(vf: VirtualFile): Boolean {
-                    if (vf.fileType == LuaFileType) {
-                        val psiFile = PsiManagerEx.getInstance(project).findFile(vf)
-                        if (psiFile != null) {
-                            val path = vf.canonicalPath!!
-                            list.add(Pair(path.substring(dirPath.length + 1), psiFile))
-                        }
-                    }
-                    return true
+            val leadingPathLength = file.canonicalPath!!.length + 1
+            list.addAll(
+                LuaFileUtil.findPsiFiles(
+                    project,
+                    LuaFileUtil.findLuaFilesInDir(dir)
+                ).map {
+                    Pair(
+                        it.virtualFile.canonicalPath!!.substring(leadingPathLength),
+                        it
+                    )
                 }
-            })
+            )
         } else {
             val psiFile = PsiManagerEx.getInstance(project).findFile(file)
             if (psiFile != null)
                 list.add(Pair(psiFile.name, psiFile))
         }
 
-        ProgressManager.getInstance().runProcessWithProgressSynchronously({
-            val indicator = ProgressManager.getInstance().progressIndicator
-            runLuaCheck(project, list.toTypedArray(), dir, indicator)
-        }, "LuaCheck", true, project)
-    }
-}
-
-//private fun showSettingsPanel(project: Project) {
-//    ApplicationManager.getApplication().invokeLater {
-//        ShowSettingsUtil.getInstance().showSettingsDialog(project, LuaCheckSettingsPanel::class.java)
-//    }
-//}
-
-private fun runLuaCheck(
-    project: Project,
-    fileList: Array<Pair<String, PsiFile>>,
-    dir: VirtualFile,
-    indicator: ProgressIndicator
-) {
-    val checkView = project.getService(LuaCheckView::class.java)
-    val panel = checkView.panel
-    val builder = panel.builder
-    val problems = mutableListOf<Problem>()
-
-    var idx = 0
-    for ((first, second) in fileList) {
-        if (indicator.isCanceled) {
-            break
-        }
-        indicator.text = second.name
-        indicator.fraction = idx.toDouble() / fileList.size
-        idx++
-        try {
-            runLuaCheckInner(first, second, dir, problems)
-        } catch (e: ProcessNotCreatedException) {
-//            showSettingsPanel(project)
-            break
-        }
+        newProjectBackgroundTask(
+            LuaBundle.message("luacheck.name"),
+            project,
+        ) { indicator ->
+            invokeMany(project, list.toTypedArray(), dir, indicator)
+        }.queue()
     }
 
-    builder.problems.clear()
-    builder.problems.addAll(problems)
-    builder.updateAsync()
-}
+    private fun invokeMany(
+        project: Project,
+        fileList: Array<Pair<String, PsiFile>>,
+        dir: VirtualFile,
+        indicator: ProgressIndicator
+    ) {
+        val panel = LuaCheckView.getInstance(project).panel
+        val builder = panel.builder
+        val problems = mutableListOf<Problem>()
 
-private fun runLuaCheckInner(
-    relativeFilePath: String,
-    psiFile: PsiFile,
-    dir: VirtualFile,
-    problems: MutableList<Problem>
-) {
-    val settings = LuaCheckSettings.getInstance()
-    val cmd = GeneralCommandLine(settings.luaCheck)
-    val args = settings.luaCheckArgs
-    cmd.addParameters(applyDefaultArgs(args))
-    cmd.addParameter(relativeFilePath)
-    cmd.workDirectory = File(dir.path)
+        var processFailure = false
+        var idx = 0
+        for ((relativeFilePath, psiFile) in fileList) {
+            if (indicator.isCanceled) {
+                break
+            }
+            indicator.text = psiFile.name
+            indicator.fraction = idx.toDouble() / fileList.size
+            idx++
 
-    val handler = OSProcessHandler(cmd)
+            val cmd = newLuaCheckCommandLine(relativeFilePath, dir)
+            if (cmd == null) {
+                processFailure = true
+                break
+            }
 
-    val reg = "(.+?):(\\d+):(\\d+)-(\\d+):(.+)\\n".toRegex()
-    handler.addProcessListener(object : ProcessListener {
-        override fun onTextAvailable(event: ProcessEvent, key: Key<*>) {
-            val matchResult = reg.find(event.text)
-            if (matchResult != null) {
-                //val matchGroup = matchResult.groups[1]!!
-                val lineGroup = matchResult.groups[2]!!
-                val colSGroup = matchResult.groups[3]!!
-                val colEGroup = matchResult.groups[4]!!
-                val descGroup = matchResult.groups[5]!!
-                val desc = descGroup.value.replace(Regex("\u001B\\[[;\\d]*m"), "");
+            val listener = newLuaCheckCommandListener(psiFile, problems)
 
-                logger<LuaCheckPanel>().debug("line=${lineGroup.value} col=${colSGroup.value}:${colEGroup.value} msg=${desc}")
-                problems.add(
-                    Problem(
-                        lineStart = lineGroup.value.toInt() - 1,
-                        lineEnd = lineGroup.value.toInt() - 1,
-                        columnStart = colSGroup.value.toInt() - 1,
-                        columnEnd = colEGroup.value.toInt() - 1,
-                        message = desc,
-                        file = psiFile.name,
-                        absFile = psiFile.virtualFile.canonicalPath,
-                        psiFile = psiFile,
-                    )
-                )
+            try {
+                LuaProcessUtil.listen(cmd, listener)
+            } catch (_: ProcessNotCreatedException) {
+                processFailure = true
+                break
             }
         }
-    })
-    handler.startNotify()
-    handler.waitFor()
+
+        if (processFailure) {
+            ShowSettingsUtil.getInstance().showSettingsDialog(project, LuaCheckSettingsPanel::class.java)
+        }
+
+        builder.problems.clear()
+        builder.problems.addAll(problems)
+        builder.updateAsync()
+    }
+
+    private fun newLuaCheckCommandListener(
+        psiFile: PsiFile,
+        problems: MutableList<Problem>
+    ): ProcessListener {
+        return object : ProcessListener {
+            val reg = "(.+?):(\\d+):(\\d+)-(\\d+):(.+)\\n".toRegex()
+
+            override fun onTextAvailable(event: ProcessEvent, key: Key<*>) {
+                val matchResult = reg.find(event.text)
+                if (matchResult != null) {
+                    //val matchGroup = matchResult.groups[1]!!
+                    val lineGroup = matchResult.groups[2]!!
+                    val colSGroup = matchResult.groups[3]!!
+                    val colEGroup = matchResult.groups[4]!!
+                    val descGroup = matchResult.groups[5]!!
+                    val desc = descGroup.value.replace(Regex("\u001B\\[[;\\d]*m"), "");
+
+                    LOG.debug("line=${lineGroup.value} col=${colSGroup.value}:${colEGroup.value} msg=${desc}")
+                    problems.add(
+                        Problem(
+                            lineStart = lineGroup.value.toInt() - 1,
+                            lineEnd = lineGroup.value.toInt() - 1,
+                            columnStart = colSGroup.value.toInt() - 1,
+                            columnEnd = colEGroup.value.toInt() - 1,
+                            message = desc,
+                            file = psiFile.name,
+                            absFile = psiFile.virtualFile.canonicalPath,
+                            psiFile = psiFile,
+                        )
+                    )
+                }
+            }
+        }
+    }
 }

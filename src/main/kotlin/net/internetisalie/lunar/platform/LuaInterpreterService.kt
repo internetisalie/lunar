@@ -1,0 +1,206 @@
+package net.internetisalie.lunar.platform
+
+import com.intellij.execution.process.ProcessOutput
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
+import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
+import net.internetisalie.lunar.util.LuaGlobUtil
+import net.internetisalie.lunar.util.LuaProcessUtil
+import java.nio.file.Path
+import java.util.regex.Pattern
+
+@Service(Service.Level.APP)
+class LuaInterpreterService() {
+
+    fun findInterpreters(): List<LuaInterpreter> {
+        val interpreters =
+            (if (SystemInfo.isWindows) PATHS_WINDOWS else PATHS_UNIX)
+                // Inject environment variables
+                .map { it -> pathFromEnvVarString(it) }
+                // Search each search path after env var substitution
+                .flatMap { searchPath -> find(searchPath) }
+
+        interpreters.forEach { identify(it) }
+        return interpreters
+    }
+
+    private fun find(directoryName: Path): List<LuaInterpreter> {
+        val directory = directoryName.directoryAsVirtualFile() ?: return emptyList()
+        val results = ArrayList<LuaInterpreter>()
+
+        for (family in LuaInterpreterFamily.FAMILIES.values) {
+            val exeName = family.platformExecutableName
+
+            if (LuaGlobUtil.isGlob(exeName)) {
+                // Match the glob
+                val globPattern = LuaGlobUtil.patternFromGlob(exeName)
+                for (executable in directory.children) {
+                    if (!globPattern.matcher(executable.name).matches()) continue
+
+                    val result = validate(executable, family)
+                    if (result != null) results.add(result)
+                }
+            } else {
+                LOG.warn("Checking lua binary ${directoryName}/${exeName}")
+                val executable = directory.findChild(exeName)
+                val result = validate(executable, family)
+                if (result != null) {
+                    results.add(result)
+                    LOG.warn("Found interpreter: ${result.path} ${result.product} ${result.version}")
+                }
+            }
+        }
+
+        return results
+    }
+
+    private fun validate(executable: VirtualFile?, family: LuaInterpreterFamily): LuaInterpreter? {
+        if (executable == null) return null
+
+        val possibleResult = LuaInterpreter()
+        possibleResult.path = executable.path
+        identify(possibleResult)
+        if (family.productName == possibleResult.family!!.productName) {
+            possibleResult.product = family.productName
+            return possibleResult
+        }
+
+        return null
+    }
+
+    fun identify(interpreter: LuaInterpreter) {
+        // Reset the interpreter to invalid
+        interpreter.product = LuaInterpreterFamily.INVALID_PRODUCT
+        interpreter.version = null
+        interpreter.banner = null
+
+        // Request its version string
+        val cmd = newLuaInterpreterCommandLine(interpreter) ?: error("Could not create a command line")
+        cmd.addParameters("-v")
+
+        val processOutput = LuaProcessUtil.capture(cmd)
+        if (processOutput.exitCode != 0) {
+            interpreter.banner = processOutput.stderr
+            LOG.warn("Error inspecting ${interpreter.path}: ${interpreter.banner}")
+            return
+        }
+
+        // Locate the binary as a VirtualFile
+        val executable = interpreter.executable ?: return
+
+        // Parse the version banner
+        val banner = Banner.create(processOutput) ?: return
+        interpreter.banner = banner.full
+        LOG.warn("Received banner from ${interpreter.path}: ${interpreter.banner}")
+
+        // Find a matching family
+        val interpreterFamily = LuaInterpreterFamily.find(banner.product, executable.name) ?: return
+
+        // Mark the interpreter as valid
+        interpreter.product = interpreterFamily.productName
+        interpreter.version = banner.version
+        interpreter.path = executable.path
+
+        LOG.warn("Identified ${interpreter.path}: product=${interpreter.product} version=${interpreter.version}")
+    }
+
+    private fun pathFromEnvVarString(from: String): Path {
+        return Path.of(substituteEnvVars(from))
+    }
+
+    private fun substituteEnvVars(from: String): String {
+        var into = from
+        var m = envVarPattern.matcher(into)
+        while (m.matches()) {
+            val varName = m.group(1)
+            var varValue = System.getenv(varName)
+            if (varValue == null) varValue = ""
+            into = into.replace("\${$varName}", varValue)
+            m = envVarPattern.matcher(into)
+        }
+        return into
+    }
+
+    companion object {
+        private val LOG = logger<LuaInterpreterService>()
+
+        val PATHS_UNIX: Array<String> = arrayOf(
+            "/bin",
+            "/sbin",
+            "/usr/bin",
+            "/usr/sbin",
+            "/usr/local/bin",
+            "/usr/local/sbin",
+            "/opt/bin",
+            "/opt/sbin",
+            "/opt/local/bin",
+            "/opt/local/sbin",
+            "\${HOME}/bin",
+            "\${HOME}/sbin",
+//            "\${HOME}/torch/install/bin",
+        )
+
+        // TODO: Search Path Globs
+        val PATHS_WINDOWS: Array<String> = arrayOf(
+            "C:\\Program Files\\Lua 5.1",
+            "C:\\Program Files\\Lua 5.2",
+            "C:\\Program Files\\Lua 5.3",
+            "C:\\Program Files\\Lua 5.4",
+            "C:\\Program Files (x86)\\Lua 5.1",
+            "C:\\Program Files (x86)\\Lua 5.2",
+            "C:\\Program Files (x86)\\Lua 5.3",
+            "C:\\Program Files (x86)\\Lua 5.4",
+        )
+
+        val envVarPattern: Pattern = Pattern.compile(".*\\$\\{([^\\}]+)\\}.*")
+
+        fun getInstance(): LuaInterpreterService {
+            return ApplicationManager.getApplication().getService(LuaInterpreterService::class.java)
+        }
+    }
+}
+
+fun Path.directoryAsVirtualFile(): VirtualFile? {
+    val virtualFile = VfsUtil.findFile(this, true)
+    return if ((virtualFile != null && virtualFile.exists()
+                && virtualFile.isDirectory)
+    )
+        virtualFile
+    else
+        null
+}
+
+data class Banner(
+    val product: String,
+    val version: String,
+    val full: String,
+) {
+    companion object {
+        val VERSION_PATTERN = Pattern.compile("^(\\S+)\\s+(\\S+).*$")
+
+        fun create(banner : String) : Banner? {
+            val matcher = VERSION_PATTERN.matcher(banner)
+            if (!matcher.matches()) return null
+            return Banner(
+                matcher.group(1),
+                matcher.group(2),
+                banner,
+            )
+        }
+
+        fun create(processOutput: ProcessOutput) : Banner? {
+            // Find the process output from STDOUT or STDERR
+            var outputText = processOutput.stderr.ifEmpty { processOutput.stdout }
+            outputText = outputText.trim(' ', '\n', '\t')
+            if (outputText.contains('\n')) {
+                outputText = outputText.substringBefore('\n')
+            }
+
+            return create(outputText)
+        }
+    }
+}

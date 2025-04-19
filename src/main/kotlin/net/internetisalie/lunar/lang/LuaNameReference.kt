@@ -31,11 +31,11 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         if (reference.global) {
             val platformQuery = VirtualFilesQuery(
                 ProjectScope.getLibrariesScope(element.project),
-                PlatformLibraryIndex.getPackageFiles(),
+                PlatformLibraryIndex.getPackageFiles(element.project),
             )
             val requiresQuery = RequiredFilesQuery(
                 ProjectScope.getProjectScope(element.project),
-                PathConfiguration.getDefaultSourcePathPatterns(),
+                PathConfiguration.getProjectSourcePathPatterns(element.project),
                 bindings.requires,
             )
 

@@ -11,7 +11,7 @@
 
 #### Project Tree
 
-- [ ] External Libraries
+- [x] External Libraries
   - Lua Runtime SDK
 
 #### Application Settings
@@ -28,8 +28,8 @@
   - Luau
 - [ ] Runtime
   - Redis
-  - LOVE
   - Tarantool
+  - LuaJIT
 
 ```xml
 <projectConfigurable
@@ -43,6 +43,7 @@
 #### Static Analysis
 
 - Luacheck
+  - Settings panel integration
 
 #### Refactoring
 
@@ -83,4 +84,5 @@
 - [ ] Run Configuration validation
   - Script name
   - Interpreter
-  - 
+- [ ] Interpreter arguments
+- [ ] Script arguments
