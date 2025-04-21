@@ -284,7 +284,6 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
         val bindings = LuaBindingsVisitor.getBindings(inputData.psiFile)
         walk(fileBindings, bindings.global, null)
         val result = LuaFileBindingsRecord(fileBindings.sortedBy { it.name }, bindings.requires)
-        logger.warn("found globals in ${inputData.fileName}: ${result.bindings.size}")
         return result
     }
 

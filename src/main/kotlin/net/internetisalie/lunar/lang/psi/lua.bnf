@@ -127,14 +127,18 @@ nameRef ::= IDENTIFIER {
 
 exprList ::= expr {',' expr}*
 
-localFuncDecl ::= LOCAL FUNCTION nameRef funcBody
+localFuncDecl ::= LOCAL FUNCTION nameRef funcBody {
+    implements = [
+        "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
+    ]
+    methods=[getComment getDocComment getCatsComment]
+}
 
 funcDecl ::= FUNCTION funcName funcBody {
     implements = [
-        "net.internetisalie.lunar.luadoc.lang.psi.LuaDocCommentOwner"
-        "net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner"
+        "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
     ]
-    methods=[getDocComment getCatsComment]
+    methods=[getComment getDocComment getCatsComment]
 }
 
 localVarDecl ::= LOCAL nameList ['=' exprList]

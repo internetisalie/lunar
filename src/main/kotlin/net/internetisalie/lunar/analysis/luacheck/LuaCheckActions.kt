@@ -16,6 +16,7 @@
 
 package net.internetisalie.lunar.analysis.luacheck
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -50,5 +51,9 @@ class LuaCheckRun : AnAction() {
             presentation.isVisible = file != null && (file.isDirectory || file.fileType == LuaFileType)
             presentation.isEnabled = true
         }
+    }
+
+    override fun getActionUpdateThread(): ActionUpdateThread {
+        return ActionUpdateThread.BGT
     }
 }

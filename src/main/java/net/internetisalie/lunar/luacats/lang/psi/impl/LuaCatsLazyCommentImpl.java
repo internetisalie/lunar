@@ -19,7 +19,6 @@ public class LuaCatsLazyCommentImpl extends LazyParseablePsiElement implements L
     }
 
     public String toString() {
-//        LuaDocCommentOwner owner = getOwner();
         return "LuaCatsLazyCommentImpl(" + getNode().getElementType()  + ")"; // + StringUtil.notNullize(owner != null ? owner.toString() : null, "no owner");
     }
 

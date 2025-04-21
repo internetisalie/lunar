@@ -51,7 +51,7 @@
 
     <platform.backend.documentation.targetProvider
             order="first"
-            implementation="net.internetisalie.lunar.lang.LuaDocumentationTargetProvider" />
+            implementation="net.internetisalie.lunar.lang.doc.LuaDocumentationTargetProvider" />
 
     <colorSettingsPage
             implementation="net.internetisalie.lunar.lang.syntax.LuaColorSettingsPage"/>

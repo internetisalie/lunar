@@ -581,8 +581,6 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
                 return existing.bindings
             }
 
-            logger.warn("indexing bindings in ${psiFile.name}")
-
             val visitor = LuaBindingsVisitor(null)
             psiFile.accept(visitor)
             visitor.resolveDelayedReferences()
@@ -600,8 +598,6 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
             if (existing != null && documentHash == existing.hash) {
                 return existing.bindings
             }
-
-            logger.warn("indexing full bindings in ${psiFile.name}")
 
             val visitor = LuaBindingsVisitor(imports)
             psiFile.accept(visitor)

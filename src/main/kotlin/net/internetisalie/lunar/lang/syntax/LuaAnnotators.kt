@@ -37,9 +37,13 @@ object LuaBindingsAnnotator {
         message: String,
         highlight: TextAttributesKey
     ) {
-        holder.newAnnotation(severity, message)
+//        holder.newAnnotation(severity, message)
+//            .range(target)
+//            .tooltip(message)
+//            .textAttributes(highlight)
+//            .create()
+        holder.newSilentAnnotation(severity)
             .range(target)
-            .tooltip(message)
             .textAttributes(highlight)
             .create()
 
