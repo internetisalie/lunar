@@ -40,6 +40,7 @@ public interface LuaCatsElementTypes {
   IElementType FUNCTION_SIGNATURE_RETURN_TYPE = new LuaCatsElementType("FUNCTION_SIGNATURE_RETURN_TYPE");
   IElementType FUNCTION_SIGNATURE_TYPE = new LuaCatsElementType("FUNCTION_SIGNATURE_TYPE");
   IElementType GENERIC_TAG = new LuaCatsElementType("GENERIC_TAG");
+  IElementType GENERIC_TYPE = new LuaCatsElementType("GENERIC_TYPE");
   IElementType GENERIC_TYPE_PARAM = new LuaCatsElementType("GENERIC_TYPE_PARAM");
   IElementType GENERIC_TYPE_PARAMS = new LuaCatsElementType("GENERIC_TYPE_PARAMS");
   IElementType LITERAL_TABLE_TYPE = new LuaCatsElementType("LITERAL_TABLE_TYPE");
@@ -180,6 +181,9 @@ public interface LuaCatsElementTypes {
       }
       else if (type == GENERIC_TAG) {
         return new LuaCatsGenericTagImpl(node);
+      }
+      else if (type == GENERIC_TYPE) {
+        return new LuaCatsGenericTypeImpl(node);
       }
       else if (type == GENERIC_TYPE_PARAM) {
         return new LuaCatsGenericTypeParamImpl(node);

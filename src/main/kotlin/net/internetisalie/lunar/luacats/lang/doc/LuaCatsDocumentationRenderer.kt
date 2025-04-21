@@ -59,7 +59,10 @@ object LuaCatsDocumentationRenderer {
             .append(codeFragment(LuaHighlight.KEYWORD, "function"))
             .append(" ")
             .append(codeFragment(LuaHighlight.VAR_LOCAL, element.funcName.text))
-            .append(codeFragment(LuaHighlight.OPERATORS, "("))
+
+        buildFunctionSignatureTypeParams(comment, sb)
+
+        sb.append(codeFragment(LuaHighlight.OPERATORS, "("))
             .append("\n")
 
         buildFunctionSignatureParams(comment, sb)
@@ -69,6 +72,32 @@ object LuaCatsDocumentationRenderer {
         buildFunctionSignatureReturns(comment, sb)
 
         sb.append("\n</pre>").append("<hr size=1>")
+    }
+
+    private fun buildFunctionSignatureTypeParams(comment: LuaCatsComment, sb: StringBuilder) {
+        if (comment.genericTagList.isEmpty()) return
+        sb.append(codeFragment(LuaHighlight.OPERATORS, "<"))
+        var first = true
+        comment.genericTagList.forEach { tag ->
+            val typeParamList = tag.genericTypeParams?.genericTypeParamList ?: return@forEach
+            typeParamList.forEach { param ->
+                if (!first) {
+                    sb.append(codeFragment(LuaHighlight.OPERATORS, ","))
+                        .append(" ")
+                } else {
+                    first = false
+                }
+                sb.append(codeFragment(LuaCatsHighlight.TYPE, param.argName.text))
+
+                val argType = param.argType ?: return@forEach
+                sb
+                    .append(" ")
+                    .append(codeFragment(LuaHighlight.OPERATORS, ":"))
+                    .append(" ")
+                    .append(codeFragment(LuaCatsHighlight.TYPE, argType.text))
+            }
+        }
+        sb.append(codeFragment(LuaHighlight.OPERATORS, ">"))
     }
 
     private fun buildLocalFunctionSignature(comment: LuaCatsComment, element: LuaLocalFuncDecl, sb: StringBuilder) {
@@ -163,6 +192,8 @@ object LuaCatsDocumentationRenderer {
                 .append("</pre>")
         } else {
             sb.append("<pre>")
+                .append(codeFragment(LuaHighlight.VAR_LOCAL, "_"))
+                .append(codeFragment(LuaHighlight.OPERATORS, " : "))
                 .append(codeFragment(LuaCatsHighlight.TYPE, it.argType.text))
                 .append("</pre>")
         }

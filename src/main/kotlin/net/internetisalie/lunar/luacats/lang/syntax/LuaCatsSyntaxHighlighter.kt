@@ -31,6 +31,8 @@ class LuaCatsSyntaxHighlighter : SyntaxHighlighterBase() {
         fillMap(colors, LuaCatsSyntax.CONTENT, LuaCatsHighlight.CONTENT)
         fillMap(colors, LuaCatsSyntax.NAMES, LuaCatsHighlight.NAME)
         fillMap(colors, LuaCatsSyntax.TAGS, LuaCatsHighlight.TAG)
+        fillMap(colors, LuaCatsSyntax.SYMBOLS, LuaCatsHighlight.SYMBOL)
+        // TODO: literals
     }
 
     override fun getHighlightingLexer(): Lexer {

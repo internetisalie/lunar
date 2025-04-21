@@ -11,32 +11,20 @@ import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsParameterizedNameImpl extends ASTWrapperPsiElement implements LuaCatsParameterizedName {
+public class LuaCatsGenericTypeImpl extends ASTWrapperPsiElement implements LuaCatsGenericType {
 
-  public LuaCatsParameterizedNameImpl(@NotNull ASTNode node) {
+  public LuaCatsGenericTypeImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaCatsVisitor visitor) {
-    visitor.visitParameterizedName(this);
+    visitor.visitGenericType(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof LuaCatsVisitor) accept((LuaCatsVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @NotNull
-  public LuaCatsGenericType getGenericType() {
-    return findNotNullChildByClass(LuaCatsGenericType.class);
-  }
-
-  @Override
-  @NotNull
-  public List<LuaCatsTypeParam> getTypeParamList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsTypeParam.class);
   }
 
 }

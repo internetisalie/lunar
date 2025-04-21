@@ -22,6 +22,7 @@ import com.intellij.openapi.options.colors.ColorDescriptor
 import com.intellij.openapi.options.colors.ColorSettingsPage
 import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.LuaIcons
+import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsHighlight
 import org.jetbrains.annotations.NonNls
 import javax.swing.Icon
 
@@ -118,9 +119,17 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.comma", LuaHighlight.COMMA),
         Pair("color.semi", LuaHighlight.SEMI),
         Pair("color.bad_character", LuaHighlight.BAD_CHARACTER),
+        // Docs
         Pair("color.luadoc", LuaHighlight.DOC_COMMENT),
         Pair("color.luadoc.tag", LuaHighlight.DOC_TAG),
         Pair("color.luadoc.value", LuaHighlight.DOC_VALUE),
+        Pair("color.luacats", LuaCatsHighlight.CONTENT),
+        Pair("color.luacats.tag", LuaCatsHighlight.TAG),
+        Pair("color.luacats.keyword", LuaCatsHighlight.KEYWORD),
+        Pair("color.luacats.value", LuaCatsHighlight.VALUE),
+        Pair("color.luacats.type", LuaCatsHighlight.TYPE),
+        Pair("color.luacats.name", LuaCatsHighlight.NAME),
+        Pair("color.luacats.symbol", LuaCatsHighlight.SYMBOL),
         // Identifiers
         Pair("color.platform", LuaHighlight.VAR_PLATFORM),
         Pair("color.globals", LuaHighlight.VAR_GLOBAL),

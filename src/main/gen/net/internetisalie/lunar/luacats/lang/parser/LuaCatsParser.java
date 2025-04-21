@@ -793,12 +793,6 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // NAME
-  static boolean genericName(PsiBuilder b, int l) {
-    return consumeToken(b, NAME);
-  }
-
-  /* ********************************************************** */
   // '@generic' genericTypeParams?
   public static boolean genericTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "genericTag")) return false;
@@ -815,6 +809,18 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "genericTag_1")) return false;
     genericTypeParams(b, l + 1);
     return true;
+  }
+
+  /* ********************************************************** */
+  // NAME
+  public static boolean genericType(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "genericType")) return false;
+    if (!nextTokenIs(b, NAME)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, NAME);
+    exit_section_(b, m, GENERIC_TYPE, r);
+    return r;
   }
 
   /* ********************************************************** */
@@ -1252,13 +1258,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // genericName '<' typeParam {',' typeParam }* '>'
+  // genericType '<' typeParam {',' typeParam }* '>'
   public static boolean parameterizedName(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "parameterizedName")) return false;
     if (!nextTokenIs(b, NAME)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = genericName(b, l + 1);
+    r = genericType(b, l + 1);
     r = r && consumeToken(b, "<");
     r = r && typeParam(b, l + 1);
     r = r && parameterizedName_3(b, l + 1);

@@ -131,6 +131,10 @@ public class LuaCatsVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitGenericType(@NotNull LuaCatsGenericType o) {
+    visitPsiElement(o);
+  }
+
   public void visitGenericTypeParam(@NotNull LuaCatsGenericTypeParam o) {
     visitPsiElement(o);
   }
