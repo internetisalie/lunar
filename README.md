@@ -6,6 +6,14 @@ Lua support for IntelliJ Platform.
 
 ### TODO
 
+#### General
+
+- Finish conversion to Kotlin
+
+#### Files
+
+- [x] Template file
+
 #### Language
 
 - [x] Statement structure from IDLua
@@ -13,7 +21,37 @@ Lua support for IntelliJ Platform.
   - `<const>`, `<close>` local variable attributes
 - [ ] Luau syntax?
 - Formatter
-  - [Expressions](https://github.com/JetBrains/intellij-community/blob/6319a70ded4aa13b0f3544aa762392afe28461ae/plugins/groovy/src/org/jetbrains/plugins/groovy/formatter/blocks/GroovyBlock.java) 
+  - [Expressions](https://github.com/JetBrains/intellij-community/blob/6319a70ded4aa13b0f3544aa762392afe28461ae/plugins/groovy/src/org/jetbrains/plugins/groovy/formatter/blocks/GroovyBlock.java)
+  - ? Port BlockFormatter
+- Folding Builder
+- Name Validator
+- Bindings
+  - Locals are early-bound
+  - Globals are late-bound
+  ```lua
+  > function hello() callit() end
+  > hello()
+  stdin:1: attempt to call a nil value (global 'callit')
+  stack traceback:
+  stdin:1: in function 'hello'
+  (...tail calls...)
+  [C]: in ?
+  > local function callit () end
+  > hello()
+  stdin:1: attempt to call a nil value (global 'callit')
+  stack traceback:
+  stdin:1: in function 'hello'
+  (...tail calls...)
+  [C]: in ?
+  > function callit() end
+  > hello()
+  >
+  ```
+- [ ] Auto-complete
+- [ ] Enter Handler
+  - Lua
+  - LuaDOC
+  - LuaCATS
 
 #### Project Tree
 
@@ -50,6 +88,7 @@ Lua support for IntelliJ Platform.
 
 - Luacheck
   - Settings panel integration
+  - External Annotator
 
 #### Refactoring
 
@@ -74,14 +113,27 @@ Lua support for IntelliJ Platform.
     - `getFileGlobals`
     
     Can automatically invalidate cache on PsiElement change in project.
+- [ ] Line markers
+  - Recursive call
+  - Tail call
+- [ ] Return highlighter
+- [ ] Access detector
+- [ ] Go to symbol
 
 #### Structure View
 
 - [ ] Anonymous functions
 
-#### LuaDoc
+#### Inline Documentation
 
 - [ ] Documentation provider
+  - [x] Plain 
+  - [x] LuaDoc
+  - [x] LuaCATS
+- [ ] Documentation indexing
+  - [ ] LuaDoc
+  - [ ] LuaCATS
+- [ ] Parameter Info
 
 #### Execution
 
