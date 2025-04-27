@@ -5,7 +5,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.Path
 import com.intellij.openapi.util.SystemInfo
 import net.internetisalie.lunar.lang.LuaIcons
-import net.internetisalie.lunar.util.LuaGlobUtil
 import javax.swing.Icon
 import kotlin.collections.get
 
@@ -135,8 +134,8 @@ class LuaInterpreterFamily {
         fun find(productName: String, executableName: String): LuaInterpreterFamily? {
             return FAMILIES.firstNotNullOfOrNull {
                 if (it.value.productName != productName) return null
-                if (LuaGlobUtil.isGlob(it.value.executableName)) {
-                    if (!LuaGlobUtil.matchesGlob(
+                if (isGlob(it.value.executableName)) {
+                    if (!matchesGlob(
                             it.value.executableName,
                             executableName
                         )

@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsCastTagImpl extends ASTWrapperPsiElement implements LuaCatsCastTag {
+public class LuaCatsCastTagImpl extends LuaCatsBaseElement implements LuaCatsCastTag {
 
   public LuaCatsCastTagImpl(@NotNull ASTNode node) {
     super(node);

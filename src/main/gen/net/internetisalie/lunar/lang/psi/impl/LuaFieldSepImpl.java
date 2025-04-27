@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaFieldSepImpl extends ASTWrapperPsiElement implements LuaFieldSep {
+public class LuaFieldSepImpl extends LuaBaseElement implements LuaFieldSep {
 
   public LuaFieldSepImpl(@NotNull ASTNode node) {
     super(node);

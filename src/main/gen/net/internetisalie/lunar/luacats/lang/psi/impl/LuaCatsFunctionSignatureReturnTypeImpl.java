@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsFunctionSignatureReturnTypeImpl extends ASTWrapperPsiElement implements LuaCatsFunctionSignatureReturnType {
+public class LuaCatsFunctionSignatureReturnTypeImpl extends LuaCatsBaseElement implements LuaCatsFunctionSignatureReturnType {
 
   public LuaCatsFunctionSignatureReturnTypeImpl(@NotNull ASTNode node) {
     super(node);

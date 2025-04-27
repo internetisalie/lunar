@@ -20,8 +20,8 @@ import com.intellij.psi.TokenType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes
-import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
 import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocTokenTypes
 import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
 

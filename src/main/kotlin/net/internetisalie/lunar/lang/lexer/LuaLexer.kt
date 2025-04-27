@@ -4,7 +4,7 @@ import com.intellij.lexer.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
+import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 
 class LuaLexer : MergingLexerAdapter(
     LongStringMergingLexerAdapter(

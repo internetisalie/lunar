@@ -23,7 +23,7 @@ import com.intellij.psi.tree.IElementType
 import net.internetisalie.lunar.lang.lexer.LuaLexer
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
+import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 
 /**
  * Created by IntelliJ IDEA.

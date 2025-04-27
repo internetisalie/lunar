@@ -6,8 +6,8 @@ import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.ex.util.LayerDescriptor
 import com.intellij.openapi.editor.ex.util.LayeredLexerEditorHighlighter
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
+import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 import net.internetisalie.lunar.lang.syntax.LuaHighlight.DOC_COMMENT
-import net.internetisalie.lunar.luacats.lang.lexer.LuaLazyElementTypes
 import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsSyntaxHighlighter
 
 class LuaEditorHighlighter(scheme: EditorColorsScheme) : LayeredLexerEditorHighlighter(LuaSyntaxHighlighter(), scheme) {

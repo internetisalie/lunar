@@ -8,7 +8,6 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
-import net.internetisalie.lunar.util.LuaGlobUtil
 import net.internetisalie.lunar.util.LuaProcessUtil
 import java.nio.file.Path
 import java.util.regex.Pattern
@@ -35,9 +34,9 @@ class LuaInterpreterService() {
         for (family in LuaInterpreterFamily.FAMILIES.values) {
             val exeName = family.platformExecutableName
 
-            if (LuaGlobUtil.isGlob(exeName)) {
+            if (isGlob(exeName)) {
                 // Match the glob
-                val globPattern = LuaGlobUtil.patternFromGlob(exeName)
+                val globPattern = patternFromGlob(exeName)
                 for (executable in directory.children) {
                     if (!globPattern.matcher(executable.name).matches()) continue
 
@@ -203,4 +202,30 @@ data class Banner(
             return create(outputText)
         }
     }
+}
+
+fun isGlob(filename: String): Boolean {
+    return filename.contains("*") || filename.contains("?")
+}
+
+fun matchesGlob(glob: String, filename: String): Boolean {
+    val p = patternFromGlob(glob)
+    return p.matcher(filename).matches()
+}
+
+// http://stackoverflow.com/questions/1247772
+fun patternFromGlob(glob: String): Pattern {
+    var out = "^"
+    for (i in 0..<glob.length) {
+        val c = glob.get(i)
+        when (c) {
+            '*' -> out += ".*"
+            '?' -> out += '.'
+            '.' -> out += "\\."
+            '\\' -> out += "\\\\"
+            else -> out += c
+        }
+    }
+    out += '$'
+    return Pattern.compile(out)
 }

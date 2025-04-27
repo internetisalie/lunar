@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaVarOrExpImpl extends ASTWrapperPsiElement implements LuaVarOrExp {
+public class LuaVarOrExpImpl extends LuaBaseElement implements LuaVarOrExp {
 
   public LuaVarOrExpImpl(@NotNull ASTNode node) {
     super(node);

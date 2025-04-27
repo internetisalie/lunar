@@ -10,6 +10,7 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDescription
 
 class LuaEnterHandlerDelegate : EnterHandlerDelegate {
@@ -34,6 +35,7 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
         val currentElement = file.findElementAt(editor.caretModel.offset) ?: return EnterHandlerDelegate.Result.Continue
         when {
             currentElement.parent is LuaCatsDescription -> isLuaDoc = true
+            currentElement.parent is LuaCatsComment -> isLuaDoc = true
             currentElement is PsiComment -> isComment = true
         }
 

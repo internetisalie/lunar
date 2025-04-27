@@ -1,0 +1,34 @@
+package net.internetisalie.lunar.lang.psi
+
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.util.PsiTreeUtil
+import net.internetisalie.lunar.lang.LuaFileType
+
+object LuaElementFactory {
+    fun createIdentifier(project: Project, name: String?): PsiElement {
+        val luaLabelRef = createLabelRef(project, name)
+        return luaLabelRef.getIdentifier()
+    }
+
+    fun createLabelRef(project: Project, name: String?): LuaLabelRef {
+        val luaGotoStatement = createGotoStatement(project, name)
+        return luaGotoStatement.getLabelRef()
+    }
+
+    fun createGotoStatement(project: Project, name: String?): LuaGotoStatement {
+        val luaFile = createFile(project, "goto " + name)
+        return PsiTreeUtil.findChildOfType(luaFile, LuaGotoStatement::class.java)!!
+    }
+
+    fun createLabel(project: Project, name: String?): LuaLabel? {
+        val luaFile = createFile(project, "%%" + name + "%%")
+        return PsiTreeUtil.findChildOfType(luaFile, LuaLabel::class.java)
+    }
+
+    fun createFile(project: Project, text: String): LuaFile {
+        val name = "dummy.lua"
+        return PsiFileFactory.getInstance(project).createFileFromText(name, LuaFileType, text) as LuaFile
+    }
+}

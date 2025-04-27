@@ -72,7 +72,7 @@
     parserClass="net.internetisalie.lunar.lang.parser.LuaParser"
     parserImports=[]
 
-    extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+    extends="net.internetisalie.lunar.lang.psi.LuaBaseElement"
 
     tokenTypeClass="net.internetisalie.lunar.lang.psi.LuaTokenType"
 

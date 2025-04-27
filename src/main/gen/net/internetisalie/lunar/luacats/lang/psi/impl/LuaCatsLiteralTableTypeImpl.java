@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsLiteralTableTypeImpl extends ASTWrapperPsiElement implements LuaCatsLiteralTableType {
+public class LuaCatsLiteralTableTypeImpl extends LuaCatsBaseElement implements LuaCatsLiteralTableType {
 
   public LuaCatsLiteralTableTypeImpl(@NotNull ASTNode node) {
     super(node);

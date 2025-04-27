@@ -15,6 +15,14 @@ class LuaComment(val lines : List<PsiComment>) {
     }
 }
 
+object LuaDocDescription {
+    // TODO: Move out of LuaDocCommentImpl.getDescriptionElements
+}
+
+object LuaDocSummary {
+    // TODO: Move out of LuaDocCommentImpl.getSummaryDescription
+}
+
 object LuaCatsSummary {
     fun getText(comment : LuaCatsComment) : String? {
         var next : PsiElement = comment.firstChild ?: return null

@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsOperatorSignatureImpl extends ASTWrapperPsiElement implements LuaCatsOperatorSignature {
+public class LuaCatsOperatorSignatureImpl extends LuaCatsBaseElement implements LuaCatsOperatorSignature {
 
   public LuaCatsOperatorSignatureImpl(@NotNull ASTNode node) {
     super(node);

@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsFieldDescriptorImpl extends ASTWrapperPsiElement implements LuaCatsFieldDescriptor {
+public class LuaCatsFieldDescriptorImpl extends LuaCatsBaseElement implements LuaCatsFieldDescriptor {
 
   public LuaCatsFieldDescriptorImpl(@NotNull ASTNode node) {
     super(node);

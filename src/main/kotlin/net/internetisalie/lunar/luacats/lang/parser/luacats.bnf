@@ -19,7 +19,7 @@
     parserClass="net.internetisalie.lunar.luacats.lang.parser.LuaCatsParser"
     parserImports=[]
 
-    extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+    extends="net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement"
 
     tokenTypeClass="net.internetisalie.lunar.luacats.lang.lexer.LuaCatsElementType"
 
