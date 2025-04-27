@@ -82,6 +82,8 @@
             filetype="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaEditorHighlighterProvider"/>
 
+    <enterHandlerDelegate implementation="net.internetisalie.lunar.lang.format.LuaEnterHandlerDelegate" />
+
     <psi.referenceContributor
             language="Lua"
             implementation="net.internetisalie.lunar.lang.LuaLabelReferenceContributor"/>
