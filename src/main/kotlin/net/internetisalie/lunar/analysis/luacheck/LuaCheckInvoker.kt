@@ -1,120 +1,30 @@
-/*
- * Copyright (c) 2017. tangzx(love.tangzx@qq.com)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package net.internetisalie.lunar.analysis.luacheck
 
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessNotCreatedException
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.options.ShowSettingsUtil
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
-import com.intellij.psi.impl.PsiManagerEx
-import net.internetisalie.lunar.LuaBundle
-import net.internetisalie.lunar.util.LuaFileUtil
 import net.internetisalie.lunar.util.LuaProcessUtil
-import net.internetisalie.lunar.util.newProjectBackgroundTask
 
 object LuaCheckInvoker {
     private val LOG = logger<LuaCheckInvoker>()
 
-    fun invoke(project: Project, file: VirtualFile) {
-        val settingsState = LuaCheckSettings.getInstance().state
-        if (!settingsState.valid) {
-            ShowSettingsUtil.getInstance().showSettingsDialog(project, LuaCheckSettingsPanel::class.java)
-            return
-        }
+    fun invoke(virtualFile : VirtualFile, psiFile : PsiFile) : List<Problem> {
+        val dir = virtualFile.parent
+        val relativeFilePath = virtualFile.name
 
-        val list: MutableList<Pair<String, PsiFile>> = mutableListOf()
-
-        val dir: VirtualFile = if (file.isDirectory) file else file.parent
-        if (file.isDirectory) {
-            val leadingPathLength = file.canonicalPath!!.length + 1
-            list.addAll(
-                LuaFileUtil.findPsiFiles(
-                    project,
-                    LuaFileUtil.findLuaFilesInDir(dir)
-                ).map {
-                    Pair(
-                        it.virtualFile.canonicalPath!!.substring(leadingPathLength),
-                        it
-                    )
-                }
-            )
-        } else {
-            val psiFile = PsiManagerEx.getInstance(project).findFile(file)
-            if (psiFile != null)
-                list.add(Pair(psiFile.name, psiFile))
-        }
-
-        newProjectBackgroundTask(
-            LuaBundle.message("luacheck.name"),
-            project,
-        ) { indicator ->
-            invokeMany(project, list.toTypedArray(), dir, indicator)
-        }.queue()
-    }
-
-    private fun invokeMany(
-        project: Project,
-        fileList: Array<Pair<String, PsiFile>>,
-        dir: VirtualFile,
-        indicator: ProgressIndicator
-    ) {
-        val panel = LuaCheckView.getInstance(project).panel
-        val builder = panel.builder
+        val cmd = newLuaCheckCommandLine(relativeFilePath, dir) ?: return emptyList()
         val problems = mutableListOf<Problem>()
+        val listener = newLuaCheckCommandListener(psiFile, problems)
 
-        var processFailure = false
-        var idx = 0
-        for ((relativeFilePath, psiFile) in fileList) {
-            if (indicator.isCanceled) {
-                break
-            }
-            indicator.text = psiFile.name
-            indicator.fraction = idx.toDouble() / fileList.size
-            idx++
+        try {
+            LuaProcessUtil.listen(cmd, listener)
+        } catch (_: ProcessNotCreatedException) { }
 
-            val cmd = newLuaCheckCommandLine(relativeFilePath, dir)
-            if (cmd == null) {
-                processFailure = true
-                break
-            }
-
-            val listener = newLuaCheckCommandListener(psiFile, problems)
-
-            try {
-                LuaProcessUtil.listen(cmd, listener)
-            } catch (_: ProcessNotCreatedException) {
-                processFailure = true
-                break
-            }
-        }
-
-        if (processFailure) {
-            ShowSettingsUtil.getInstance().showSettingsDialog(project, LuaCheckSettingsPanel::class.java)
-        }
-
-        builder.problems.clear()
-        builder.problems.addAll(problems)
-        builder.updateAsync()
+        return problems.toList()
     }
 
     private fun newLuaCheckCommandListener(
