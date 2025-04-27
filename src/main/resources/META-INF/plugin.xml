@@ -43,7 +43,7 @@
 
     <lang.syntaxHighlighterFactory
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.LuaSyntaxHighlighterFactory"/>
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaSyntaxHighlighterFactory"/>
 
     <lang.parserDefinition
             language="Lua"
@@ -55,6 +55,11 @@
 
     <colorSettingsPage
             implementation="net.internetisalie.lunar.lang.syntax.LuaColorSettingsPage"/>
+
+    <codeStyleSettingsProvider
+            implementation="net.internetisalie.lunar.lang.format.LuaCodeStyleSettingsProvider"/>
+    <langCodeStyleSettingsProvider
+            implementation="net.internetisalie.lunar.lang.format.LuaLanguageCodeStyleSettingsProvider"/>
 
     <annotator
             language="Lua"
@@ -92,7 +97,7 @@
 
     <lang.commenter
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.LuaCommenter"/>
+            implementationClass="net.internetisalie.lunar.lang.format.LuaCommenter"/>
 
     <lang.formatter
             language="Lua"

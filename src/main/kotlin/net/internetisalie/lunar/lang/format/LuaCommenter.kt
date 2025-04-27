@@ -1,4 +1,4 @@
-package net.internetisalie.lunar.lang
+package net.internetisalie.lunar.lang.format
 
 import com.intellij.lang.Commenter
 

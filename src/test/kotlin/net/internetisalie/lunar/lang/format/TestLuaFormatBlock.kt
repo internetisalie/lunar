@@ -3,7 +3,7 @@ package net.internetisalie.lunar.lang.format
 import com.intellij.application.options.CodeStyle
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.codeStyle.CodeStyleManager
-import com.intellij.psi.codeStyle.CommonCodeStyleSettings
+import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
@@ -40,9 +40,11 @@ class TestLuaFormatBlock {
         myFixture.tearDown()
     }
 
-    fun reformatText(fn : (settings: CommonCodeStyleSettings) -> Unit) {
-        fn(CodeStyle.getLanguageSettings(myFixture.file))
+    fun reformatText(fn: (CodeStyleSettings) -> Unit) {
         WriteCommandAction.writeCommandAction(myFixture.project).run<RuntimeException?> {
+            val settings = CodeStyle.getSettings(myFixture.project)
+            fn(settings)
+
             CodeStyleManager.getInstance(myFixture.project).reformatText(
                 myFixture.file, listOf(myFixture.file.textRange)
             )
@@ -51,160 +53,259 @@ class TestLuaFormatBlock {
 
     @Test
     fun testDoBlock() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
              do
             print ""
              end
-        """.trimIndent())
+        """.trimIndent()
+        )
 
-        reformatText { settings ->
-            settings.SPACE_AROUND_ASSIGNMENT_OPERATORS = true
-            settings.KEEP_BLANK_LINES_IN_CODE = 1
-        }
+        reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             do
                 print ""
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     @Test
     fun testWhileBlock() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
              while true do
             print ""
              end
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             while true do
                 print ""
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     @Test
     fun testRepeatBlock() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
              repeat
             print ""
              until false
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             repeat
                 print ""
             until false
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     @Test
     fun testIfBlock() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
              if false then
             print "1"
              elseif true then
             print "2"
+             elseif false then
              else
             print "3"
              end
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             if false then
                 print "1"
             elseif true then
                 print "2"
+            elseif false then
             else
                 print "3"
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     @Test
     fun testNumericForBlock() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
              for a = 1, 2, 3 do
             print ""
              end
-        """.trimIndent())
+        """.trimIndent()
+        )
 
-        reformatText { settings ->
-            settings.SPACE_AROUND_ASSIGNMENT_OPERATORS = true
-            settings.KEEP_BLANK_LINES_IN_CODE = 1
-        }
+        reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             for a = 1, 2, 3 do
                 print ""
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     @Test
     fun testGenericForBlock() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
              for a in 1, 2, 3 do
             print ""
              end
-        """.trimIndent())
+        """.trimIndent()
+        )
 
-        reformatText { settings ->
-            settings.SPACE_AROUND_ASSIGNMENT_OPERATORS = true
-            settings.KEEP_BLANK_LINES_IN_CODE = 1
-        }
+        reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             for a in 1, 2, 3 do
                 print ""
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     @Test
     fun testFunctionBlock() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
             function test(a, 
             b, 
             c)
             print ""
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             function test(a,
                           b,
                           c)
                 print ""
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testArgs() {
+        myFixture.configureByText(
+            LuaFileType, """
+            print(
+            a,
+            b,
+            c
+            )
+        """.trimIndent()
+        )
+
+        reformatText { codeStyleSettings ->
+            val indentOptions = codeStyleSettings.getIndentOptions(LuaFileType)
+            indentOptions.CONTINUATION_INDENT_SIZE = 4
+        }
+
+        myFixture.checkResult(
+            """
+            print(
+                a,
+                b,
+                c
+            )
+        """.trimIndent()
+        )
     }
 
     @Test
     fun testLabel() {
-        myFixture.configureByText(LuaFileType, """
+        myFixture.configureByText(
+            LuaFileType, """
             if restart then 
               ::start::
               goto start   
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         reformatText {}
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             if restart then
             ::start::
                 goto start
             end
-        """.trimIndent())
+        """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testVarList() {
+        myFixture.configureByText(
+            LuaFileType, """
+            a,
+            b,
+            c = 1
+        """.trimIndent()
+        )
+
+        reformatText {}
+
+        myFixture.checkResult(
+            """
+            a,
+                    b,
+                    c = 1
+        """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testLocalVarDecl() {
+        myFixture.configureByText(
+            LuaFileType, """
+            local a,
+            b,
+            c = 1,
+            2,
+            3
+        """.trimIndent()
+        )
+
+        reformatText {}
+
+        myFixture.checkResult(
+            """
+            local a,
+                  b,
+                  c = 1,
+                      2,
+                      3
+        """.trimIndent()
+        )
     }
 }
