@@ -1,6 +1,6 @@
 package net.internetisalie.lunar
 
-import com.intellij.CommonBundle
+import com.intellij.BundleBase
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
 import java.lang.ref.Reference
@@ -14,22 +14,22 @@ import java.util.ResourceBundle
  * Time: 14:30:36
  */
 object LuaBundle {
-    private var ourBundle: Reference<ResourceBundle?>? = null
+    private var myBundle: Reference<ResourceBundle?>? = null
 
-    private const val BUNDLE: @NonNls String = "net.internetisalie.lunar.LuaBundle"
+    private const val BUNDLE: String = "net.internetisalie.lunar.LuaBundle"
 
     @JvmStatic
-    fun message(key: @PropertyKey(resourceBundle = BUNDLE) String, vararg params: Any?): String {
-        return CommonBundle.message(bundle, key, *params)
+    fun message(key: @PropertyKey(resourceBundle = BUNDLE) String, vararg params: Any): String {
+        return BundleBase.message(bundle, key, *params)
     }
 
     private val bundle: ResourceBundle
         get() {
             var bundle: ResourceBundle? = null
-            if (ourBundle != null) bundle = ourBundle!!.get()
+            if (myBundle != null) bundle = myBundle!!.get()
             if (bundle == null) {
                 bundle = ResourceBundle.getBundle(BUNDLE)
-                ourBundle = SoftReference<ResourceBundle?>(bundle)
+                myBundle = SoftReference<ResourceBundle?>(bundle)
             }
             return bundle
         }

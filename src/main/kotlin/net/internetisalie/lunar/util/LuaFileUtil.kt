@@ -18,8 +18,7 @@ object LuaFileUtil {
             val descriptor =
                 getPlugin(PluginId.getId(LuaPlugin.ID))
             if (descriptor != null) {
-                return VirtualFileManager.getInstance()
-                    .findFileByNioPath(descriptor.getPluginPath())
+                return VirtualFileManager.getInstance().findFileByNioPath(descriptor.pluginPath)
             }
 
             return null
