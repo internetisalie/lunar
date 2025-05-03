@@ -1,11 +1,11 @@
 package net.internetisalie.lunar.platform
 
 enum class LuaPlatform(val label: String) {
-    PUC("Lua PUC-Rio"),
+    STANDARD("Standard"),
     LUAU("Luau"),
-    LOVE("Love"),
     PANDOC("Pandoc"),
-    REDIS("Redis");
+    REDIS("Redis"),
+    TARANTOOL("Tarantool");
 
     override fun toString(): String {
         return label

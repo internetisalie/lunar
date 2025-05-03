@@ -103,6 +103,8 @@ class LuaInterpreterService() {
         interpreter.product = interpreterFamily.productName
         interpreter.version = banner.version
         interpreter.path = executable.path
+        interpreter.languageLevel = interpreterFamily.languageLevel(banner.version)?.version
+        interpreter.platform = interpreterFamily.platform.label
 
         LOG.warn("Identified ${interpreter.path}: product=${interpreter.product} version=${interpreter.version}")
     }

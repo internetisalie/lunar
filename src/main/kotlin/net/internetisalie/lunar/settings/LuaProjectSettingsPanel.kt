@@ -23,11 +23,11 @@ class LuaProjectSettingsPanel(val project: Project) {
     init {
         platform = ComboBox<LuaPlatform>(
             arrayOf(
-                LuaPlatform.PUC,
+                LuaPlatform.STANDARD,
                 LuaPlatform.LUAU,
-                LuaPlatform.LOVE,
                 LuaPlatform.PANDOC,
                 LuaPlatform.REDIS,
+                LuaPlatform.TARANTOOL,
             )
         )
 

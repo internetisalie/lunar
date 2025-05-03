@@ -131,6 +131,11 @@
     <configurationType
             implementation="net.internetisalie.lunar.run.LuaRunConfigurationType"/>
 
+    <applicationConfigurable groupId="tools"
+            instance="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel"
+            id="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel"
+            displayName="LuaCheck"/>
+
     <!-- Luacheck -->
     <applicationService serviceImplementation="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings"/>
 

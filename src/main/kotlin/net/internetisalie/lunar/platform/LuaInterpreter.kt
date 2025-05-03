@@ -5,6 +5,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.Path
 import com.intellij.openapi.util.SystemInfo
 import net.internetisalie.lunar.lang.LuaIcons
+import net.internetisalie.lunar.lang.LuaLanguageLevel
 import javax.swing.Icon
 import kotlin.collections.get
 
@@ -62,49 +63,23 @@ data class LuaInterpreter(
     }
 }
 
-class LuaInterpreterFamily {
+class LuaInterpreterFamily(
+    val interpreterName: String,
+    val executableName: String,
+    val productName: String,
+    val binaryType: BinaryType,
+    val platform: LuaPlatform,
+    val leveler: ((String) -> LuaLanguageLevel?),
+    val argExecCode: String?,
+    val argLoadLib: String?
+) {
     enum class BinaryType {
         SystemBinary,
         JavaJar,
     }
 
-    var interpreterName: String
-    var executableName: String
-    var productName: String
-    var binaryType: BinaryType
-    var argExecCode: String? = null
-    var argLoadLib: String? = null
-
     val icon: Icon
         get() = LuaIcons.FILE
-
-    constructor(
-        interpreterName: String,
-        executableName: String,
-        productName: String,
-        binaryType: BinaryType,
-        argExecCode: String?,
-        argLoadLib: String?
-    ) {
-        this.interpreterName = interpreterName
-        this.executableName = executableName
-        this.productName = productName
-        this.binaryType = binaryType
-        this.argExecCode = argExecCode
-        this.argLoadLib = argLoadLib
-    }
-
-    constructor(
-        interpreterName: String,
-        executableName: String,
-        productName: String,
-        binaryType: BinaryType
-    ) {
-        this.interpreterName = interpreterName
-        this.executableName = executableName
-        this.productName = productName
-        this.binaryType = binaryType
-    }
 
     val platformExecutableName: String
         get() {
@@ -115,17 +90,65 @@ class LuaInterpreterFamily {
             return "$executableName.exe"
         }
 
+    fun languageLevel(productVersion : String) : LuaLanguageLevel? {
+        return leveler.invoke(productVersion)
+    }
+
     companion object {
         const val UNKNOWN_PRODUCT = "unknown"
         const val INVALID_PRODUCT = "invalid"
 
         val FAMILIES: Map<String, LuaInterpreterFamily> = listOf(
-            LuaInterpreterFamily("Lua", "lua", "Lua", BinaryType.SystemBinary, "-e", "-l"),
-            LuaInterpreterFamily("LuaJIT", "luajit", "LuaJIT", BinaryType.SystemBinary, "-e", "-l"),
-            LuaInterpreterFamily("Tarantool", "tarantool", "Tarantool", BinaryType.SystemBinary),
+            LuaInterpreterFamily(
+                interpreterName = "Lua",
+                executableName = "lua",
+                productName = "Lua",
+                binaryType = BinaryType.SystemBinary,
+                argExecCode = "-e",
+                argLoadLib = "-l",
+                platform = LuaPlatform.STANDARD,
+                leveler = { version ->
+                    when {
+                        version.startsWith("5.1") -> LuaLanguageLevel.LUA51
+                        version.startsWith("5.2") -> LuaLanguageLevel.LUA52
+                        version.startsWith("5.3") -> LuaLanguageLevel.LUA53
+                        version.startsWith("5.4") -> LuaLanguageLevel.LUA54
+                        else -> LuaLanguageLevel.LUA50
+                    }
+                }
+            ),
+            LuaInterpreterFamily(
+                interpreterName = "LuaJIT",
+                executableName = "luajit",
+                productName = "LuaJIT",
+                binaryType = BinaryType.SystemBinary,
+                argExecCode = "-e",
+                argLoadLib = "-l",
+                platform = LuaPlatform.STANDARD,
+                leveler = { LuaLanguageLevel.LUA51 },
+            ),
+            LuaInterpreterFamily(
+                interpreterName = "Tarantool",
+                executableName = "tarantool",
+                productName = "Tarantool",
+                binaryType = BinaryType.SystemBinary,
+                argExecCode = null,
+                argLoadLib = null,
+                platform = LuaPlatform.TARANTOOL,
+                leveler = { LuaLanguageLevel.LUA51 }
+            ),
         ).associateBy { it.productName }
 
-        val UNKNOWN_INTERPRETER: LuaInterpreterFamily = LuaInterpreterFamily("Unknown", "", UNKNOWN_PRODUCT, BinaryType.SystemBinary)
+        val UNKNOWN_INTERPRETER: LuaInterpreterFamily = LuaInterpreterFamily(
+            interpreterName = "Unknown",
+            executableName = "",
+            productName = UNKNOWN_PRODUCT,
+            binaryType = BinaryType.SystemBinary,
+            platform = LuaPlatform.STANDARD,
+            argExecCode = null,
+            argLoadLib = null,
+            leveler = { null },
+        )
 
         fun findByInterpreterName(interpreterName: String): LuaInterpreterFamily? {
             return FAMILIES.firstNotNullOfOrNull { if (it.value.interpreterName == interpreterName) it.value else null }

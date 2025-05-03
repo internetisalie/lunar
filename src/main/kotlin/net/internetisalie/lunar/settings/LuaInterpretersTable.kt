@@ -76,7 +76,7 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
 
     override fun createListModel(): ListTableModel<LuaInterpreter> {
         val path = CellModelBase(
-            "Executable", true,
+            LuaBundle.message("application.interpreters.executable"), true,
             { luaInterpreter -> luaInterpreter.path },
             { luaInterpreter, path ->
                 luaInterpreter.path = path
@@ -96,7 +96,7 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
             })
 
         val product = CellModelBase(
-            "Product", false,
+            LuaBundle.message("application.interpreters.product"), false,
             { luaInterpreter ->
                 if (!luaInterpreter.valid) "Invalid"
                 else luaInterpreter.familyOrUnknown.interpreterName
@@ -109,13 +109,20 @@ class LuaInterpretersTable : ListTableWithButtons<LuaInterpreter>() {
             })
 
         val version = CellModelBase(
-            "Version", false,
+            LuaBundle.message("application.interpreters.version"), false,
             { luaInterpreter -> luaInterpreter.version })
 
-        // TODO: Language Level
-        // TODO: Platform
+        val platform = CellModelBase(
+            LuaBundle.message("application.interpreters.platform"), false,
+            { luaInterpreter -> luaInterpreter.platform }
+        )
 
-        val listModel = ListTableModel<LuaInterpreter>(path, product, version)
+        val languageLevel = CellModelBase(
+            LuaBundle.message("application.interpreters.languageLevel"), false,
+            { luaInterpreter -> luaInterpreter.languageLevel }
+        )
+
+        val listModel = ListTableModel<LuaInterpreter>(path, product, version, platform, languageLevel)
 
         myListModel = listModel
         return listModel

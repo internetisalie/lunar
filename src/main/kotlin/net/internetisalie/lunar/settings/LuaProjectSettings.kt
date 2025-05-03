@@ -21,7 +21,7 @@ import net.internetisalie.lunar.platform.LuaPlatform
 class LuaProjectSettings: PersistentStateComponent<LuaProjectSettings.State> {
     class State {
         var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA54
-        var platform : LuaPlatform = LuaPlatform.PUC;
+        var platform : LuaPlatform = LuaPlatform.STANDARD;
         var interpreter: LuaInterpreter? = null
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
 
