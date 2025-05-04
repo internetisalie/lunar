@@ -5,9 +5,15 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaLocalFuncName extends LuaNameDeclElement {
+public interface LuaUnOpExpr extends LuaExpr {
+
+  @Nullable
+  LuaExpr getExpr();
 
   @NotNull
-  PsiElement getIdentifier();
+  LuaUnOp getUnOp();
+
+  @Nullable
+  LuaExpr getRight();
 
 }

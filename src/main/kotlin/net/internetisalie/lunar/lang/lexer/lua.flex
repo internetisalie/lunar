@@ -105,6 +105,8 @@ luadoc      =   ---[^\r\n]*{nl}([ \t]*--({nobrknl}{nonl}*{nl}|{nonl}{nl}|{nl}))*
 "*"          { return MULT;}
 "%"          { return MOD;}
 "/"          { return DIV; }
+"<<"         { return BSL; }
+">>"         { return BSR; }
 "="          { return ASSIGN;}
 ">"          { return GT;}
 "<"          { return LT;}

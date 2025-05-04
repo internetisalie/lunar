@@ -10,15 +10,15 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaFuncDefImpl extends LuaExprImpl implements LuaFuncDef {
+public class LuaBinOpExprImpl extends LuaExprImpl implements LuaBinOpExpr {
 
-  public LuaFuncDefImpl(@NotNull ASTNode node) {
+  public LuaBinOpExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   @Override
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitFuncDef(this);
+    visitor.visitBinOpExpr(this);
   }
 
   @Override
@@ -29,14 +29,28 @@ public class LuaFuncDefImpl extends LuaExprImpl implements LuaFuncDef {
 
   @Override
   @NotNull
-  public LuaBlock getBlock() {
-    return findNotNullChildByClass(LuaBlock.class);
+  public LuaBinOp getBinOp() {
+    return findNotNullChildByClass(LuaBinOp.class);
+  }
+
+  @Override
+  @NotNull
+  public List<LuaExpr> getExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaExpr.class);
+  }
+
+  @Override
+  @NotNull
+  public LuaExpr getLeft() {
+    List<LuaExpr> p1 = getExprList();
+    return p1.get(0);
   }
 
   @Override
   @Nullable
-  public LuaParList getParList() {
-    return findChildByClass(LuaParList.class);
+  public LuaExpr getRight() {
+    List<LuaExpr> p1 = getExprList();
+    return p1.size() < 2 ? null : p1.get(1);
   }
 
 }

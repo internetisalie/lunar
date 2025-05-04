@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaPrefixExpr extends PsiElement {
+public interface LuaPrefixExpr extends LuaExpr {
 
   @NotNull
   List<LuaNameAndArgs> getNameAndArgsList();

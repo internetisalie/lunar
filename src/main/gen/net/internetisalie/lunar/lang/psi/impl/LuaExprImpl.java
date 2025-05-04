@@ -11,7 +11,7 @@ import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaExprImpl extends LuaBaseElement implements LuaExpr {
+public abstract class LuaExprImpl extends LuaBaseElement implements LuaExpr {
 
   public LuaExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -25,54 +25,6 @@ public class LuaExprImpl extends LuaBaseElement implements LuaExpr {
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof LuaVisitor) accept((LuaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @NotNull
-  public List<LuaBinOp> getBinOpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaBinOp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<LuaExpr> getExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaExpr.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaFuncDef getFuncDef() {
-    return findChildByClass(LuaFuncDef.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaPrefixExpr getPrefixExpr() {
-    return findChildByClass(LuaPrefixExpr.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaTableConstructor getTableConstructor() {
-    return findChildByClass(LuaTableConstructor.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaUnOp getUnOp() {
-    return findChildByClass(LuaUnOp.class);
-  }
-
-  @Override
-  @Nullable
-  public PsiElement getNumber() {
-    return findChildByType(NUMBER);
-  }
-
-  @Override
-  @Nullable
-  public PsiElement getString() {
-    return findChildByType(STRING);
   }
 
 }

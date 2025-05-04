@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaTableConstructor extends PsiElement {
+public interface LuaTableConstructor extends LuaExpr {
 
   @Nullable
   LuaFieldList getFieldList();

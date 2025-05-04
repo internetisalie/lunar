@@ -539,7 +539,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
         if (exprString == null) {
             val exprList = nameAndArgs.args.exprList?.exprList ?: return
             if (exprList.size != 1) return
-            exprString = exprList.first().string ?: return
+            exprString = (exprList.first() as? LuaTerminalExpr ?: return).string ?: return
         }
         val packageName = convertLuaString(exprString.text)
         if (imports != null) {

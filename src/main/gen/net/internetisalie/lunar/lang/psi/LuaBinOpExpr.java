@@ -5,9 +5,18 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaNameDecl extends LuaNameDeclElement {
+public interface LuaBinOpExpr extends LuaExpr {
 
   @NotNull
-  PsiElement getIdentifier();
+  LuaBinOp getBinOp();
+
+  @NotNull
+  List<LuaExpr> getExprList();
+
+  @NotNull
+  LuaExpr getLeft();
+
+  @Nullable
+  LuaExpr getRight();
 
 }

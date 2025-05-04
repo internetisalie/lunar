@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaTableConstructorImpl extends LuaBaseElement implements LuaTableConstructor {
+public class LuaTableConstructorImpl extends LuaExprImpl implements LuaTableConstructor {
 
   public LuaTableConstructorImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull LuaVisitor visitor) {
     visitor.visitTableConstructor(this);
   }

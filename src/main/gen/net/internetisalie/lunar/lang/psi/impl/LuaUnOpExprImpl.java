@@ -10,15 +10,15 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaFuncDefImpl extends LuaExprImpl implements LuaFuncDef {
+public class LuaUnOpExprImpl extends LuaExprImpl implements LuaUnOpExpr {
 
-  public LuaFuncDefImpl(@NotNull ASTNode node) {
+  public LuaUnOpExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   @Override
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitFuncDef(this);
+    visitor.visitUnOpExpr(this);
   }
 
   @Override
@@ -28,15 +28,21 @@ public class LuaFuncDefImpl extends LuaExprImpl implements LuaFuncDef {
   }
 
   @Override
+  @Nullable
+  public LuaExpr getExpr() {
+    return findChildByClass(LuaExpr.class);
+  }
+
+  @Override
   @NotNull
-  public LuaBlock getBlock() {
-    return findNotNullChildByClass(LuaBlock.class);
+  public LuaUnOp getUnOp() {
+    return findNotNullChildByClass(LuaUnOp.class);
   }
 
   @Override
   @Nullable
-  public LuaParList getParList() {
-    return findChildByClass(LuaParList.class);
+  public LuaExpr getRight() {
+    return getExpr();
   }
 
 }

@@ -83,6 +83,8 @@
     psiPackage='net.internetisalie.lunar.lang.psi'
     psiImplPackage='net.internetisalie.lunar.lang.psi.impl'
     psiImplUtilClass='net.internetisalie.lunar.lang.psi.LuaPsiImplUtil'
+
+//    consumeTokenMethod(".*_expr|expr")="consumeTokenFast"
 }
 
 // https://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
@@ -152,28 +154,46 @@ labelName ::= IDENTIFIER {
     implements="net.internetisalie.lunar.lang.psi.LuaNameDeclElement"
 }
 
-// TODO
-// http://lua-users.org/wiki/LpegRecipes - Lua Parser (batrick)
-//  -- Let's come up with a syntax that does not use left recursion
-//  -- (only listing changes to Lua 5.1 extended BNF syntax)
-//  -- value ::= nil | false | true | Number | String | '...' | function |
-//  --           tableconstructor | functioncall | var | '(' exp ')'
-//  -- exp ::= unop exp | value [binop exp]
-//  -- prefix ::= '(' exp ')' | Name
-//  -- index ::= '[' exp ']' | '.' Name
-//  -- call ::= args | ':' Name args
-//  -- suffix ::= call | index
-//  -- var ::= prefix {suffix} index | Name
-//  -- functioncall ::= prefix {suffix} call
+expr ::= terminalExpr
+    | funcDef
+    | prefixExpr
+    | tableConstructor
+    | orBinOpExpr
+    | andBinOpExpr
+    | relBinOpExpr
+    | borBinOpExpr
+    | bnotBinOpExpr
+    | bandBinOpExpr
+    | bshiftBinOpExpr
+    | concatBinOpExpr
+    | addBinOpExpr
+    | mulBinOpExpr
+    | unOpExpr
+    | expBinOpExpr
+    {extends=expr}
 
-// use right-recursion for expressions
-expr ::= (NIL | FALSE | TRUE | NUMBER | STRING | ELLIPSIS | funcDef | prefixExpr | tableConstructor | unOp expr) {binOp expr}*
+terminalExpr ::= NIL | FALSE | TRUE | NUMBER | STRING | ELLIPSIS { extends=expr }
+orBinOpExpr ::= expr <<binOps 'or'>> expr { extends=binOpExpr elementType=binOpExpr }
+andBinOpExpr ::= expr <<binOps 'and'>> expr { extends=binOpExpr elementType=binOpExpr }
+relBinOpExpr ::= expr <<binOps ('=='|'~='|'<'|'<='|'>='|'>')>> expr { extends=binOpExpr elementType=binOpExpr }
+borBinOpExpr ::= expr <<binOps '|'>> expr { extends=binOpExpr elementType=binOpExpr }
+bnotBinOpExpr ::= expr <<binOps '~'>> expr { extends=binOpExpr elementType=binOpExpr }
+bandBinOpExpr ::= expr <<binOps '&'>> expr { extends=binOpExpr elementType=binOpExpr }
+bshiftBinOpExpr ::= expr <<binOps ('<<'|'>>')>> expr { extends=binOpExpr elementType=binOpExpr }
+addBinOpExpr ::= expr <<binOps ('+'|'-')>> expr { extends=binOpExpr elementType=binOpExpr }
+mulBinOpExpr ::= expr <<binOps ('*'|'/'|'//'|'%')>> expr { extends=binOpExpr elementType=binOpExpr }
+concatBinOpExpr ::= expr <<binOps '..'>> expr { rightAssociative=true extends=binOpExpr elementType=binOpExpr }
+unOpExpr ::= unOp expr { methods=[right="/expr"] extends=expr }
+expBinOpExpr ::= expr <<binOps '^'>> expr { rightAssociative=true extends=binOpExpr elementType=binOpExpr }
+
+meta binOps ::= <<choices>> {elementType=binOp}
+fake binOpExpr ::= expr binOp expr { methods=[ left="/expr[0]" right="/expr[1]" ] extends=expr }
 
 var ::= nameRef varSuffix*
     | '(' expr ')' varSuffix+
 varSuffix ::= nameAndArgs* indexExpr
 
-prefixExpr ::= varOrExp nameAndArgs*
+prefixExpr ::= varOrExp nameAndArgs* {extends=expr}
 funcCall ::= varOrExp nameAndArgs+
 varOrExp ::= var | '(' expr ')'
 nameAndArgs ::= methodExpr? args
@@ -182,13 +202,13 @@ indexExpr ::= ('[' expr ']') | ('.' nameRef)
 
 args ::=  '(' [exprList] ')' | tableConstructor | STRING
 
-funcDef ::= FUNCTION funcBody
+funcDef ::= FUNCTION funcBody { extends="expr" }
 
 private funcBody ::= '(' [parList] ')' block END
 
 parList ::= nameList [',' '...'] | '...'
 
-tableConstructor ::= '{' [fieldList] '}'
+tableConstructor ::= '{' [fieldList] '}' {extends=expr}
 
 fieldList ::= field {fieldSep field}* [fieldSep]
 

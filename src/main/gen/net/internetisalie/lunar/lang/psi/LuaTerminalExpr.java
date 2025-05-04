@@ -1,12 +1,16 @@
 // This is a generated file. Not intended for manual editing.
 package net.internetisalie.lunar.lang.psi;
 
+import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaVarName extends LuaNameRefElement {
+public interface LuaTerminalExpr extends LuaExpr {
 
-  @NotNull
-  PsiElement getIdentifier();
+  @Nullable
+  PsiElement getNumber();
+
+  @Nullable
+  PsiElement getString();
 
 }

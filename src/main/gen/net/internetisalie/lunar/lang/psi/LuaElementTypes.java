@@ -11,6 +11,7 @@ public interface LuaElementTypes {
   IElementType ARGS = new LuaElementType("ARGS");
   IElementType ASSIGNMENT_STATEMENT = new LuaElementType("ASSIGNMENT_STATEMENT");
   IElementType BIN_OP = new LuaElementType("BIN_OP");
+  IElementType BIN_OP_EXPR = new LuaElementType("BIN_OP_EXPR");
   IElementType BLOCK = new LuaElementType("BLOCK");
   IElementType DO_STATEMENT = new LuaElementType("DO_STATEMENT");
   IElementType EXPR = new LuaElementType("EXPR");
@@ -44,7 +45,9 @@ public interface LuaElementTypes {
   IElementType REPEAT_STATEMENT = new LuaElementType("REPEAT_STATEMENT");
   IElementType STATEMENT = new LuaElementType("STATEMENT");
   IElementType TABLE_CONSTRUCTOR = new LuaElementType("TABLE_CONSTRUCTOR");
+  IElementType TERMINAL_EXPR = new LuaElementType("TERMINAL_EXPR");
   IElementType UN_OP = new LuaElementType("UN_OP");
+  IElementType UN_OP_EXPR = new LuaElementType("UN_OP_EXPR");
   IElementType VAR = new LuaElementType("VAR");
   IElementType VAR_LIST = new LuaElementType("VAR_LIST");
   IElementType VAR_OR_EXP = new LuaElementType("VAR_OR_EXP");
@@ -125,14 +128,14 @@ public interface LuaElementTypes {
       else if (type == BIN_OP) {
         return new LuaBinOpImpl(node);
       }
+      else if (type == BIN_OP_EXPR) {
+        return new LuaBinOpExprImpl(node);
+      }
       else if (type == BLOCK) {
         return new LuaBlockImpl(node);
       }
       else if (type == DO_STATEMENT) {
         return new LuaDoStatementImpl(node);
-      }
-      else if (type == EXPR) {
-        return new LuaExprImpl(node);
       }
       else if (type == EXPR_LIST) {
         return new LuaExprListImpl(node);
@@ -224,8 +227,14 @@ public interface LuaElementTypes {
       else if (type == TABLE_CONSTRUCTOR) {
         return new LuaTableConstructorImpl(node);
       }
+      else if (type == TERMINAL_EXPR) {
+        return new LuaTerminalExprImpl(node);
+      }
       else if (type == UN_OP) {
         return new LuaUnOpImpl(node);
+      }
+      else if (type == UN_OP_EXPR) {
+        return new LuaUnOpExprImpl(node);
       }
       else if (type == VAR) {
         return new LuaVarImpl(node);
