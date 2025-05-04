@@ -4,41 +4,11 @@ import com.intellij.application.options.CodeStyle
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.CodeStyleSettings
-import com.intellij.testFramework.LightProjectDescriptor
-import com.intellij.testFramework.fixtures.CodeInsightTestFixture
-import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
+import net.internetisalie.lunar.lang.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
-import org.junit.jupiter.api.TestInfo
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 
-class TestLuaFormatBlock {
-    lateinit var myFixture: CodeInsightTestFixture
-    lateinit var myProjectDescriptor: LightProjectDescriptor
-
-    @BeforeTest
-    fun before(testInfo: TestInfo) {
-        myProjectDescriptor = LightProjectDescriptor()
-
-        val factory = IdeaTestFixtureFactory.getFixtureFactory()
-
-        val lightFixtureBuilder = factory.createLightFixtureBuilder(
-            myProjectDescriptor, testInfo.displayName
-        )
-
-        myFixture = factory.createCodeInsightFixture(
-            lightFixtureBuilder.getFixture(),
-            LightTempDirTestFixtureImpl(true),
-        )
-        myFixture.setUp()
-    }
-
-    @AfterTest
-    fun after() {
-        myFixture.tearDown()
-    }
+class TestLuaFormatBlock : BaseDocumentTest() {
 
     fun reformatText(fn: (CodeStyleSettings) -> Unit) {
         WriteCommandAction.writeCommandAction(myFixture.project).run<RuntimeException?> {
