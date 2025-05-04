@@ -137,9 +137,9 @@ class LuaLocalBindingsAnnotator : Annotator {
 
 class LuaGlobalBindingsAnnotator: Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        when {
-            element.elementType == LuaElementTypes.IDENTIFIER -> annotateElement(element, element, holder)
-            element.elementType == LuaElementTypes.STRING -> annotateString(element, holder)
+        when (element.elementType) {
+            LuaElementTypes.IDENTIFIER -> annotateElement(element, element, holder)
+            LuaElementTypes.STRING -> annotateString(element, holder)
         }
     }
 
@@ -184,9 +184,7 @@ class LuaGlobalBindingsAnnotator: Annotator {
     }
 
     private fun findReference(referenceSource : PsiElement) : Reference? {
-        var bindings = LuaBindingsVisitor.getBindings(referenceSource)
-        val imports = LuaImports.create(referenceSource.project, bindings)
-        bindings = LuaBindingsVisitor.getBindingsWithImports(referenceSource, imports)
+        val bindings = LuaBindingsVisitor.getBindingsWithImports(referenceSource)
         return bindings.lookup(referenceSource)
     }
 }

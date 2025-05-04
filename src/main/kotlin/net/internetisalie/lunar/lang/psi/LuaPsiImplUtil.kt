@@ -113,3 +113,11 @@ inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipNewline(): T? {
     }
     return prev as? T
 }
+
+fun PsiElement.firstChildSkipWhitespace(): PsiElement? {
+    var child = firstChild
+    while (child != null) {
+        if (child !is PsiWhiteSpace) { return child }
+    }
+    return null
+}

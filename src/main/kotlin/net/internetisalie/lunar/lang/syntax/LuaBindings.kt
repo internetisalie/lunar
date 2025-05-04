@@ -1,10 +1,10 @@
 package net.internetisalie.lunar.lang.syntax
 
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.psi.PsiElement
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.ProjectScope
 import net.internetisalie.lunar.lang.indexing.*
@@ -176,7 +176,7 @@ class Scope(private val enclosure: Scope?) {
     }
 }
 
-data class LuaBindings(
+class LuaBindings(
     val references: Map<Int, Reference>,
     val global : Scope,
     val requires: List<String>,
@@ -565,47 +565,26 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
     }
 
     companion object {
-        data class DocumentBindings(val hash: Int, val bindings: LuaBindings)
-
-        private val bindingsKey = Key<DocumentBindings>("LuaBindingsAnnotator.KEY_BINDINGS")
-        private val bindingsFullKey = Key<DocumentBindings>("LuaBindingsAnnotator.KEY_BINDINGS_FULL")
-
-        private val logger = Logger.getInstance(LuaBindingsVisitor::class.java)
+        private val bindingsKey = Key<FileUserData<LuaBindings>>("LuaBindingsAnnotator.KEY_BINDINGS")
+        private val bindingsFullKey = Key<FileUserData<LuaBindings>>("LuaBindingsAnnotator.KEY_BINDINGS_FULL")
 
         fun getBindings(element: PsiElement): LuaBindings {
-            val psiFile = element.containingFile
-            val documentHash = psiFile.fileDocument.text.hashCode()
-
-            val existing = psiFile.getUserData(bindingsKey)
-            if (existing != null && documentHash == existing.hash) {
-                return existing.bindings
-            }
-
-            val visitor = LuaBindingsVisitor(null)
-            psiFile.accept(visitor)
-            visitor.resolveDelayedReferences()
-
-            val fresh = LuaBindings(visitor.references, visitor.global, visitor.requires.toList())
-            psiFile.putUserData(bindingsKey, DocumentBindings(documentHash, fresh))
-            return fresh
+            return bindingsKey.cacheFileUserData(element) { psiFile -> visit(psiFile, null) }
         }
 
-        fun getBindingsWithImports(element : PsiElement, imports : LuaImports) : LuaBindings {
-            val psiFile = element.containingFile
-            val documentHash = psiFile.fileDocument.text.hashCode()
-
-            val existing = psiFile.getUserData(bindingsFullKey)
-            if (existing != null && documentHash == existing.hash) {
-                return existing.bindings
+        fun getBindingsWithImports(element : PsiElement) : LuaBindings {
+            return bindingsFullKey.cacheFileUserData(element) { psiFile ->
+                val bindings = getBindings(element)
+                val imports = LuaImports.create(element.project, bindings)
+                visit(psiFile, imports)
             }
+        }
 
+        private fun visit(psiFile : PsiFile, imports : LuaImports?) : LuaBindings {
             val visitor = LuaBindingsVisitor(imports)
             psiFile.accept(visitor)
             visitor.resolveDelayedReferences()
-
-            val fresh = LuaBindings(visitor.references, visitor.global, visitor.requires.toList())
-            psiFile.putUserData(bindingsFullKey, DocumentBindings(documentHash, fresh))
-            return fresh
+            return LuaBindings(visitor.references, visitor.global, visitor.requires.toList())
         }
     }
 }

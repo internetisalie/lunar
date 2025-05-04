@@ -48,8 +48,7 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
 
         // Resolve globally
         if (reference.global) {
-            val imports = LuaImports.create(element.project, bindings)
-            val bindingsWithImports = LuaBindingsVisitor.getBindingsWithImports(element, imports)
+            val bindingsWithImports = LuaBindingsVisitor.getBindingsWithImports(element)
             reference = bindingsWithImports.lookup(element) ?: return null
         }
 
