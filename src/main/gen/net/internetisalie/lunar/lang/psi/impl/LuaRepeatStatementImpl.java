@@ -39,4 +39,9 @@ public class LuaRepeatStatementImpl extends LuaBaseElement implements LuaRepeatS
     return findNotNullChildByClass(LuaExpr.class);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

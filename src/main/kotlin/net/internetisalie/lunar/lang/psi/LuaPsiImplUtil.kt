@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.psi
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment
@@ -84,6 +85,11 @@ object LuaPsiImplUtil {
     //
     //        return null;
     //    }
+
+    @JvmStatic
+    fun getBlockList(element : PsiElement) : List<LuaBlock> {
+        return PsiTreeUtil.getChildrenOfType(element, LuaBlock::class.java)?.toList() ?: emptyList()
+    }
 }
 
 inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipWhitespace(): T? {

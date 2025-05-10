@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaNumericForStatement extends PsiElement {
+public interface LuaNumericForStatement extends LuaBlockParent {
 
   @NotNull
   LuaBlock getBlock();
@@ -15,5 +15,7 @@ public interface LuaNumericForStatement extends PsiElement {
 
   @NotNull
   PsiElement getIdentifier();
+
+  @NotNull List<@NotNull LuaBlock> getBlockList();
 
 }

@@ -119,3 +119,9 @@ object LuaLazyElementTypes {
     }
 }
 
+
+// Block Owner
+
+interface LuaBlockParent : PsiElement {
+    fun getBlockList() : List<LuaBlock>
+}

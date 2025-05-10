@@ -62,4 +62,9 @@ public class LuaFuncDeclImpl extends LuaBaseElement implements LuaFuncDecl {
     return LuaPsiImplUtil.getCatsComment(this);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

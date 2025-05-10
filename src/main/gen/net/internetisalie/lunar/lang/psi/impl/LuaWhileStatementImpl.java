@@ -39,4 +39,9 @@ public class LuaWhileStatementImpl extends LuaBaseElement implements LuaWhileSta
     return findNotNullChildByClass(LuaExpr.class);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

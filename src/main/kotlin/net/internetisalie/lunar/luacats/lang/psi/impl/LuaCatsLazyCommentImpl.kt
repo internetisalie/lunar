@@ -39,7 +39,7 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVisitor
 class LuaCatsLazyCommentImpl(text: CharSequence?) : LazyParseablePsiElement(LuaLazyElementTypes.LUACATS_COMMENT, text),
     LuaCatsComment {
     override fun toString(): String {
-        return "LuaCatsLazyCommentImpl(" + getNode().getElementType() + ")" // + StringUtil.notNullize(owner != null ? owner.toString() : null, "no owner");
+        return "LuaCatsLazyCommentImpl(" + node.elementType + ")"
     }
 
     fun accept(visitor: LuaCatsVisitor) {

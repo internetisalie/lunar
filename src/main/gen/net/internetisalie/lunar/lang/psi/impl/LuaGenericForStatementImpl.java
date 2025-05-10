@@ -45,4 +45,9 @@ public class LuaGenericForStatementImpl extends LuaBaseElement implements LuaGen
     return findNotNullChildByClass(LuaNameList.class);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

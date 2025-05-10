@@ -5,9 +5,11 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaDoStatement extends PsiElement {
+public interface LuaDoStatement extends LuaBlockParent {
 
   @NotNull
   LuaBlock getBlock();
+
+  @NotNull List<@NotNull LuaBlock> getBlockList();
 
 }

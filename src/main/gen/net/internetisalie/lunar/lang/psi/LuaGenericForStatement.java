@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaGenericForStatement extends PsiElement {
+public interface LuaGenericForStatement extends LuaBlockParent {
 
   @NotNull
   LuaBlock getBlock();
@@ -15,5 +15,7 @@ public interface LuaGenericForStatement extends PsiElement {
 
   @NotNull
   LuaNameList getNameList();
+
+  @NotNull List<@NotNull LuaBlock> getBlockList();
 
 }

@@ -62,4 +62,9 @@ public class LuaLocalFuncDeclImpl extends LuaBaseElement implements LuaLocalFunc
     return LuaPsiImplUtil.getCatsComment(this);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

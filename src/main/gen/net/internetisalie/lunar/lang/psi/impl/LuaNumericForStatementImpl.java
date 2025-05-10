@@ -45,4 +45,9 @@ public class LuaNumericForStatementImpl extends LuaBaseElement implements LuaNum
     return findNotNullChildByType(IDENTIFIER);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaIfStatement extends PsiElement {
+public interface LuaIfStatement extends LuaBlockParent {
 
   @NotNull
   List<LuaBlock> getBlockList();

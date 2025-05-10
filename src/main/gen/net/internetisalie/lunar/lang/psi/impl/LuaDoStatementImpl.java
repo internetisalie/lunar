@@ -33,4 +33,9 @@ public class LuaDoStatementImpl extends LuaBaseElement implements LuaDoStatement
     return findNotNullChildByClass(LuaBlock.class);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

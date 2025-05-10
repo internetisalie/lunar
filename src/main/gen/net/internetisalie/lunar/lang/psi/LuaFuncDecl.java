@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
-public interface LuaFuncDecl extends LuaCommentOwner {
+public interface LuaFuncDecl extends LuaCommentOwner, LuaBlockParent {
 
   @NotNull
   LuaBlock getBlock();
@@ -23,5 +23,7 @@ public interface LuaFuncDecl extends LuaCommentOwner {
   @Nullable LuaDocComment getDocComment();
 
   @Nullable LuaCatsComment getCatsComment();
+
+  @NotNull List<@NotNull LuaBlock> getBlockList();
 
 }

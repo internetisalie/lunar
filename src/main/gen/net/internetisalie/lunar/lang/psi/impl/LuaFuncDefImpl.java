@@ -39,4 +39,9 @@ public class LuaFuncDefImpl extends LuaExprImpl implements LuaFuncDef {
     return findChildByClass(LuaParList.class);
   }
 
+  @Override
+  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+    return LuaPsiImplUtil.getBlockList(this);
+  }
+
 }

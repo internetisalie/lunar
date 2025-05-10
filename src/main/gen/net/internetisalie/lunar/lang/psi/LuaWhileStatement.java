@@ -5,12 +5,14 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaWhileStatement extends PsiElement {
+public interface LuaWhileStatement extends LuaBlockParent {
 
   @NotNull
   LuaBlock getBlock();
 
   @NotNull
   LuaExpr getExpr();
+
+  @NotNull List<@NotNull LuaBlock> getBlockList();
 
 }

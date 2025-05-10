@@ -28,7 +28,7 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitDoStatement(@NotNull LuaDoStatement o) {
-    visitPsiElement(o);
+    visitBlockParent(o);
   }
 
   public void visitExpr(@NotNull LuaExpr o) {
@@ -61,10 +61,12 @@ public class LuaVisitor extends PsiElementVisitor {
 
   public void visitFuncDecl(@NotNull LuaFuncDecl o) {
     visitCommentOwner(o);
+    // visitBlockParent(o);
   }
 
   public void visitFuncDef(@NotNull LuaFuncDef o) {
     visitExpr(o);
+    // visitBlockParent(o);
   }
 
   public void visitFuncName(@NotNull LuaFuncName o) {
@@ -80,7 +82,7 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitGenericForStatement(@NotNull LuaGenericForStatement o) {
-    visitPsiElement(o);
+    visitBlockParent(o);
   }
 
   public void visitGotoStatement(@NotNull LuaGotoStatement o) {
@@ -88,7 +90,7 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitIfStatement(@NotNull LuaIfStatement o) {
-    visitPsiElement(o);
+    visitBlockParent(o);
   }
 
   public void visitIndexExpr(@NotNull LuaIndexExpr o) {
@@ -109,6 +111,7 @@ public class LuaVisitor extends PsiElementVisitor {
 
   public void visitLocalFuncDecl(@NotNull LuaLocalFuncDecl o) {
     visitCommentOwner(o);
+    // visitBlockParent(o);
   }
 
   public void visitLocalVarDecl(@NotNull LuaLocalVarDecl o) {
@@ -132,7 +135,7 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitNumericForStatement(@NotNull LuaNumericForStatement o) {
-    visitPsiElement(o);
+    visitBlockParent(o);
   }
 
   public void visitParList(@NotNull LuaParList o) {
@@ -144,7 +147,7 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitRepeatStatement(@NotNull LuaRepeatStatement o) {
-    visitPsiElement(o);
+    visitBlockParent(o);
   }
 
   public void visitStatement(@NotNull LuaStatement o) {
@@ -184,6 +187,10 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitWhileStatement(@NotNull LuaWhileStatement o) {
+    visitBlockParent(o);
+  }
+
+  public void visitBlockParent(@NotNull LuaBlockParent o) {
     visitPsiElement(o);
   }
 

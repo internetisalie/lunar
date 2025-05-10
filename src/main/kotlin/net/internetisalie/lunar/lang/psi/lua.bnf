@@ -109,12 +109,29 @@ statement ::= assignmentStatement
     | localVarDecl
 assignmentStatement ::= varList '=' exprList
 gotoStatement ::= GOTO labelRef
-doStatement ::= DO block END
-whileStatement ::= WHILE expr DO block END
-repeatStatement ::= REPEAT block UNTIL expr
-ifStatement ::= IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END
-numericForStatement ::= FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END
-genericForStatement ::= FOR nameList IN exprList DO block END
+doStatement ::= DO block END {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
+    methods=[getBlockList]
+}
+whileStatement ::= WHILE expr DO block END {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
+    methods=[getBlockList]
+}
+repeatStatement ::= REPEAT block UNTIL expr {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
+    methods=[getBlockList]
+}
+ifStatement ::= IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
+}
+numericForStatement ::= FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
+    methods=[getBlockList]
+}
+genericForStatement ::= FOR nameList IN exprList DO block END {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
+    methods=[getBlockList]
+}
 finalStatement ::= RETURN [exprList] [';']
 label ::= '::' labelName '::'
 funcName ::= nameRef funcNameProperty* funcNameMethod?
@@ -132,15 +149,23 @@ exprList ::= expr {',' expr}*
 localFuncDecl ::= LOCAL FUNCTION nameRef funcBody {
     implements = [
         "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
+        "net.internetisalie.lunar.lang.psi.LuaBlockParent"
     ]
-    methods=[getComment getDocComment getCatsComment]
+    methods=[
+        getComment getDocComment getCatsComment
+        getBlockList
+    ]
 }
 
 funcDecl ::= FUNCTION funcName funcBody {
     implements = [
         "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
+        "net.internetisalie.lunar.lang.psi.LuaBlockParent"
     ]
-    methods=[getComment getDocComment getCatsComment]
+    methods=[
+        getComment getDocComment getCatsComment
+        getBlockList
+    ]
 }
 
 localVarDecl ::= LOCAL nameList ['=' exprList]
@@ -202,7 +227,11 @@ indexExpr ::= ('[' expr ']') | ('.' nameRef)
 
 args ::=  '(' [exprList] ')' | tableConstructor | STRING
 
-funcDef ::= FUNCTION funcBody { extends="expr" }
+funcDef ::= FUNCTION funcBody {
+    extends="expr"
+    implements="net.internetisalie.lunar.lang.psi.LuaBlockParent"
+    methods=[getBlockList]
+}
 
 private funcBody ::= '(' [parList] ')' block END
 

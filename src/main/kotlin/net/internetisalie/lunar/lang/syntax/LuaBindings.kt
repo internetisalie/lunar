@@ -519,7 +519,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
         o.exprList.forEach {
             super.visitExpr(it)
         }
-        o.blockList.forEach {
+        o.getBlockList().forEach {
             inEnclosedScope {
                 super.visitBlock(it)
             }
@@ -541,7 +541,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
             if (exprList.size != 1) return
             exprString = (exprList.first() as? LuaTerminalExpr ?: return).string ?: return
         }
-        val packageName = convertLuaString(exprString.text)
+        val packageName = extractLuaString(exprString.text)
         if (imports != null) {
             references[exprString.textOffset] = imports.lookupPackage(packageName)
         }

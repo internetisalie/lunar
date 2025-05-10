@@ -109,6 +109,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.format.LuaFormattingModelBuilder" />
 
+    <lang.foldingBuilder
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.LuaFoldingBuilder" />
+
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 
     <!-- Options -->
