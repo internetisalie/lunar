@@ -1,17 +1,17 @@
 package net.internetisalie.lunar.lang.doc
 
-import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.util.text.HtmlChunk
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.ui.GuiUtils
-import net.internetisalie.lunar.lang.psi.LuaComment
 import net.internetisalie.lunar.lang.psi.LuaCommentOwner
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaParList
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
+import net.internetisalie.lunar.lang.syntax.extractLuaComment
 import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDocumentationRenderer
 import net.internetisalie.lunar.luadoc.lang.doc.LuaDocDocumentationRenderer
 
@@ -66,22 +66,25 @@ object LuaDocumentationRenderer {
             return
         }
 
-        val luaComment = element.getComment()
-        LuaPlainDocumentationRenderer.render(sb, element, luaComment)
+        val comment = element.getComment()
+        if (comment != null) {
+            LuaPlainDocumentationRenderer.render(sb, element, comment)
+            return
+        }
     }
 
 
 }
 
 object LuaPlainDocumentationRenderer {
-    fun render(sb: StringBuilder, element: LuaCommentOwner, comment: LuaComment) {
+    fun render(sb: StringBuilder, element: LuaCommentOwner, comment: PsiComment) {
         when (element) {
             is LuaFuncDecl -> renderLuaFuncDecl(sb, element, comment)
             is LuaLocalFuncDecl -> renderLuaLocalFuncDecl(sb, element, comment)
         }
     }
 
-    private fun renderLuaFuncDecl(sb: StringBuilder, element: LuaFuncDecl, comment: LuaComment) {
+    private fun renderLuaFuncDecl(sb: StringBuilder, element: LuaFuncDecl, comment: PsiComment) {
         sb.append("<pre>")
             .append("function ")
             .append(element.funcName.text)
@@ -90,7 +93,7 @@ object LuaPlainDocumentationRenderer {
         renderComment(sb, comment)
     }
 
-    private fun renderLuaLocalFuncDecl(sb: StringBuilder, element: LuaLocalFuncDecl, comment: LuaComment) {
+    private fun renderLuaLocalFuncDecl(sb: StringBuilder, element: LuaLocalFuncDecl, comment: PsiComment) {
         sb.append("<pre>")
             .append(codeFragment(LuaHighlight.KEYWORD, "local function"))
             .append(" ")
@@ -100,8 +103,8 @@ object LuaPlainDocumentationRenderer {
         renderComment(sb, comment)
     }
 
-    private fun renderComment(sb: StringBuilder, comment: LuaComment) {
-        val text = comment.getText() ?: return
+    private fun renderComment(sb: StringBuilder, comment: PsiComment) {
+        val text = extractLuaComment(comment.text ?: return)
         sb.append("<hr size=1>\n")
         sb.append(text)
     }

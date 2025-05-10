@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.lexer
 
 import com.intellij.lexer.*
+import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
@@ -9,8 +10,11 @@ import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 class LuaLexer : MergingLexerAdapter(
     LongStringMergingLexerAdapter(
         LongCommentMergingLexerAdapter(
+            MultiLineMergingLexerAdapter(
             FlexAdapter(
                 _LuaLexer(null),
+            ),
+                LuaTokenTypes.SHORTCOMMENT,
             ),
         )
     ),
@@ -147,6 +151,34 @@ class LongCommentMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(
             }
 
             return@MergeFunction LuaElementTypes.LONGCOMMENT
+        }
+    }
+}
+
+class MultiLineMergingLexerAdapter(
+    original : Lexer,
+    private val elementType : IElementType
+) : MergingLexerAdapterBase(original) {
+    override fun getMergeFunction(): MergeFunction {
+        return MergeFunction { type, delegate ->
+            if (type != elementType) {
+                return@MergeFunction type
+            }
+
+            // Consume any comment content and trailing newlines (except for the last one)
+            while (delegate.tokenType == elementType) {
+                delegate.advance()
+                if (delegate.tokenType == TokenType.WHITE_SPACE && delegate.tokenText == "\n") {
+                    val lexerPosition = delegate.currentPosition
+                    delegate.advance()
+                    if (delegate.tokenType != elementType) {
+                        delegate.restore(lexerPosition)
+                        break
+                    }
+                }
+            }
+
+            return@MergeFunction elementType
         }
     }
 }

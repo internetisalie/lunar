@@ -17,19 +17,3 @@ fun extractLuaString(str: String): String {
         }
     }
 }
-
-fun extractLuaComment(str: String): String {
-    return when {
-        str.startsWith("--[[") -> str.substring(4, str.length - 4)
-        else -> str
-    }
-}
-
-fun summary(str : String) : String{
-    val firstLine = str.trim().substringBefore('\n')
-    return if (firstLine.length < str.length) {
-        "$firstLine..."
-    } else {
-        firstLine
-    }
-}

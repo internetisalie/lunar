@@ -10,6 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
+import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
@@ -48,7 +49,7 @@ public class LuaFuncDeclImpl extends LuaBaseElement implements LuaFuncDecl {
   }
 
   @Override
-  public @NotNull LuaComment getComment() {
+  public @Nullable PsiComment getComment() {
     return LuaPsiImplUtil.getComment(this);
   }
 

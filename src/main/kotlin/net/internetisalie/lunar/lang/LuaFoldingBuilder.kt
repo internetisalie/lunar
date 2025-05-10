@@ -13,9 +13,10 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
+import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
 import net.internetisalie.lunar.lang.syntax.extractLuaComment
 import net.internetisalie.lunar.lang.syntax.extractLuaString
-import net.internetisalie.lunar.lang.syntax.summary
+import net.internetisalie.lunar.lang.syntax.summarize
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 import net.internetisalie.lunar.luacats.lang.psi.impl.LuaCatsCommentImpl
@@ -45,9 +46,10 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
     override fun getPlaceholderText(node: ASTNode): String? {
         return when (node.elementType) {
-            LuaElementTypes.STRING -> "[[" + summary(extractLuaString(node.text)) + "]]"
-            LuaElementTypes.LONGCOMMENT -> "--[[" + summary(extractLuaComment(node.text)) + "]]"
-            LuaCatsElementTypes.COMMENT -> "--- " + summary(LuaCatsSummary.getText(node.psi as LuaCatsComment) ?: "")
+            LuaElementTypes.STRING -> "[[" + summarize(extractLuaString(node.text)) + "]]"
+            LuaElementTypes.LONGCOMMENT -> "--[[" + summarize(extractLuaComment(node.text)) + "]]"
+            LuaElementTypes.SHORTCOMMENT -> "-- " + summarize(extractLuaComment(node.text))
+            LuaCatsElementTypes.COMMENT -> "--- " + summarize(LuaCatsSummary.getText(node.psi as LuaCatsComment) ?: "")
             else -> PLACEHOLDER_TEXT
         }
     }

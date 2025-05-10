@@ -7,6 +7,7 @@ import com.intellij.lang.PsiBuilderFactory
 import com.intellij.lang.PsiParser
 import com.intellij.lexer.Lexer
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
@@ -88,7 +89,7 @@ open class LuaLabelRefBaseImpl(node: ASTNode) : LuaNameRefElementImpl(node) {
 // Comment Owner
 
 interface LuaCommentOwner : LuaCatsCommentOwner, LuaDocCommentOwner {
-    fun getComment() : LuaComment
+    fun getComment() : PsiComment?
 }
 
 // Lazy Elements

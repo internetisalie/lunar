@@ -37,21 +37,14 @@ object LuaPsiImplUtil {
     }
 
     @JvmStatic
-    fun getComment(owner: LuaCommentOwner?): LuaComment {
+    fun getComment(owner: LuaCommentOwner?): PsiComment? {
         when (owner) {
             is LuaLocalFuncDecl, is LuaFuncDecl -> {
-                val statementElement = owner.parent ?: return LuaComment(emptyList())
-                var commentElement : PsiComment? = statementElement.prevSiblingSkipWhitespace()
-                val comments = mutableListOf<PsiComment>()
-                while (commentElement != null) {
-                    comments.addFirst(commentElement)
-                    commentElement = commentElement.prevSiblingSkipNewline()
-                }
-                return LuaComment(comments)
+                return owner.parent?.prevSiblingSkipWhitespace()
             }
         }
 
-        return LuaComment(emptyList())
+        return null
     }
 
     //    @Nullable
