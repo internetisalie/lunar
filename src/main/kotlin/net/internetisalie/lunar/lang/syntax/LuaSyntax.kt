@@ -81,25 +81,53 @@ object LuaSyntax {
 
     val PredefinedConstantTokens: TokenSet = TokenSet.create(LuaElementTypes.NIL, LuaElementTypes.TRUE, LuaElementTypes.FALSE)
 
-    private val UnaryOperatorTokens: TokenSet = TokenSet.create(LuaElementTypes.MINUS, LuaElementTypes.GETN)
+    val UnaryOperatorTokens: TokenSet = TokenSet.create(
+        LuaElementTypes.MINUS,
+        LuaElementTypes.GETN,
+        LuaElementTypes.NOT,
+        LuaElementTypes.NEG,
+    )
 
-    private val BinaryOperatorTokens: TokenSet = TokenSet.create(
+    val AdditiveBinaryOperatorTokens: TokenSet = TokenSet.create(
         LuaElementTypes.MINUS,
         LuaElementTypes.PLUS,
+    )
+
+    val MultiplicativeBinaryOperatorTokens: TokenSet = TokenSet.create(
         LuaElementTypes.DIV,
         LuaElementTypes.MULT,
+        LuaElementTypes.INTDIV,
         LuaElementTypes.EXP,
         LuaElementTypes.MOD,
+    )
+
+    val StringBinaryOperatorTokens: TokenSet = TokenSet.create(
         LuaElementTypes.CONCAT
     )
 
-    private val ComparisonOperatorTokens: TokenSet = TokenSet.create(
+    val RelationalBinaryOperatorTokens: TokenSet = TokenSet.create(
         LuaElementTypes.EQ,
         LuaElementTypes.GE,
         LuaElementTypes.GT,
         LuaElementTypes.LT,
         LuaElementTypes.LE,
         LuaElementTypes.NE
+    )
+
+    val BitwiseBinaryOperatorTokens: TokenSet = TokenSet.create(
+        LuaElementTypes.AMP,
+        LuaElementTypes.PIPE,
+        LuaElementTypes.NEG,
+    )
+
+    val ShiftBinaryOperatorTokens: TokenSet = TokenSet.create(
+        LuaElementTypes.BSL,
+        LuaElementTypes.BSR,
+    )
+
+    val LogicalBinaryOperatorTokens: TokenSet = TokenSet.create(
+        LuaElementTypes.AND,
+        LuaElementTypes.OR,
     )
 
     val WhiteSpaceTokens: TokenSet = TokenSet.create(
@@ -113,9 +141,14 @@ object LuaSyntax {
 
     val OperatorTokens: TokenSet =
         TokenSet.orSet(
-            BinaryOperatorTokens,
+            AdditiveBinaryOperatorTokens,
+            MultiplicativeBinaryOperatorTokens,
             UnaryOperatorTokens,
-            ComparisonOperatorTokens,
+            RelationalBinaryOperatorTokens,
+            StringBinaryOperatorTokens,
+            BitwiseBinaryOperatorTokens,
+            ShiftBinaryOperatorTokens,
+            LogicalBinaryOperatorTokens,
             TokenSet.create(LuaElementTypes.ASSIGN)
         )
 }

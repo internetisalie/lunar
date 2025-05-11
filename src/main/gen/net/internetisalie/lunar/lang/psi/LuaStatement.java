@@ -14,6 +14,9 @@ public interface LuaStatement extends PsiElement {
   LuaDoStatement getDoStatement();
 
   @Nullable
+  LuaEmptyStatement getEmptyStatement();
+
+  @Nullable
   LuaFuncCall getFuncCall();
 
   @Nullable

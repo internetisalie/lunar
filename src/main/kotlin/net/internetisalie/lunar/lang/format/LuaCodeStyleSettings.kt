@@ -1,12 +1,9 @@
 package net.internetisalie.lunar.lang.format
 
-import com.intellij.application.options.CodeStyleAbstractConfigurable
-import com.intellij.application.options.CodeStyleAbstractPanel
-import com.intellij.application.options.IndentOptionsEditor
-import com.intellij.application.options.SmartIndentOptionsEditor
-import com.intellij.application.options.TabbedLanguageCodeStylePanel
+import com.intellij.application.options.*
 import com.intellij.lang.Language
 import com.intellij.psi.codeStyle.*
+import com.intellij.psi.codeStyle.CodeStyleSettingsCustomizable.SpacingOption
 import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.LuaLanguage
 
@@ -15,7 +12,13 @@ class LuaCodeStyleSettings(
 ) : CustomCodeStyleSettings(
     LuaLanguage.id,
     codeStyleSettings,
-)
+) {
+    companion object {
+        fun getInstance(settings : CodeStyleSettings) : LuaCodeStyleSettings? {
+            return settings.getCustomSettings(LuaCodeStyleSettings::class.java)
+        }
+    }
+}
 
 class LuaCodeStyleSettingsProvider : CodeStyleSettingsProvider() {
     override fun createCustomSettings(settings: CodeStyleSettings): CustomCodeStyleSettings {
@@ -52,10 +55,37 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
                 CodeStyleSettingsCustomizable.IndentOption.CONTINUATION_INDENT_SIZE.name,
             )
             SettingsType.BLANK_LINES_SETTINGS -> consumer.showStandardOptions()
-            SettingsType.SPACING_SETTINGS -> consumer.showStandardOptions(
-                CodeStyleSettingsCustomizable.SpacingOption.SPACE_WITHIN_BRACES.name,
-                CodeStyleSettingsCustomizable.SpacingOption.SPACE_WITHIN_BRACKETS.name,
-            );
+            SettingsType.SPACING_SETTINGS -> {
+                val customizableOptions = CodeStyleSettingsCustomizableOptions.getInstance()
+                consumer.showStandardOptions(
+                    SpacingOption.SPACE_AFTER_COMMA.name,
+                    SpacingOption.SPACE_WITHIN_PARENTHESES.name,
+                    SpacingOption.SPACE_WITHIN_BRACKETS.name,
+                    SpacingOption.SPACE_WITHIN_BRACES.name,
+
+                    SpacingOption.SPACE_AROUND_ASSIGNMENT_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_LOGICAL_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_EQUALITY_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_RELATIONAL_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_BITWISE_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_ADDITIVE_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_MULTIPLICATIVE_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_SHIFT_OPERATORS.name,
+                    SpacingOption.SPACE_AROUND_UNARY_OPERATOR.name
+                )
+//                consumer.showCustomOption(
+//                    LuaCodeStyleSettings::class.java,
+//                    SpacingOption.SPACE_BEFORE_SEMICOLON.name,
+//                    LuaBundle.message("codeStyle.spacing.beforeSemicolon"),
+//                    customizableOptions.SPACES_OTHER,
+//                )
+//                consumer.showCustomOption(
+//                    LuaCodeStyleSettings::class.java,
+//                    SpacingOption.SPACE_AFTER_SEMICOLON.name,
+//                    LuaBundle.message("codeStyle.spacing.afterSemicolon"),
+//                    customizableOptions.SPACES_OTHER,
+//                )
+            }
             SettingsType.WRAPPING_AND_BRACES_SETTINGS -> consumer.showStandardOptions(
                 CodeStyleSettingsCustomizable.WrappingOrBraceOption.KEEP_LINE_BREAKS.name,
             )

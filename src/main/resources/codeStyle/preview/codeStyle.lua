@@ -57,21 +57,21 @@ bsdfasdssdfs = {
 
 
 myfas = {
-    a = 1,
-    a = 2,
-    a = function() end,
+    a = 1;
+    a = 2;
+    a = function() end;
     aasda = function()
                 fsdf = 1
                 s = 3
-            end,
+            end;
     a = function()
             a = 1
-        end,
+        end;
     b = function()
             a = 1
 
-        end,
-    a = 2,
+        end;
+    a = 2;
 }
 
 local function a(b, c, d) return b end
@@ -142,3 +142,5 @@ end
 
 for k, v in v do
 end
+
+do; end

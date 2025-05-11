@@ -90,10 +90,11 @@
 // https://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
 
 root ::= block*
-block ::= not_eof {statement SEMI?}* [finalStatement SEMI?]
+block ::= not_eof {statement}* [finalStatement SEMI?]
 private not_eof ::= !<<eof>>
 
-statement ::= assignmentStatement
+statement ::= emptyStatement
+    | assignmentStatement
     | funcCall
     | label
     | BREAK
@@ -107,6 +108,7 @@ statement ::= assignmentStatement
     | funcDecl
     | localFuncDecl
     | localVarDecl
+emptyStatement ::= ';'
 assignmentStatement ::= varList '=' exprList
 gotoStatement ::= GOTO labelRef
 doStatement ::= DO block END {

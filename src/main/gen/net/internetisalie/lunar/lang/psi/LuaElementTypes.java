@@ -14,6 +14,7 @@ public interface LuaElementTypes {
   IElementType BIN_OP_EXPR = new LuaElementType("BIN_OP_EXPR");
   IElementType BLOCK = new LuaElementType("BLOCK");
   IElementType DO_STATEMENT = new LuaElementType("DO_STATEMENT");
+  IElementType EMPTY_STATEMENT = new LuaElementType("EMPTY_STATEMENT");
   IElementType EXPR = new LuaElementType("EXPR");
   IElementType EXPR_LIST = new LuaElementType("EXPR_LIST");
   IElementType FIELD = new LuaElementType("FIELD");
@@ -136,6 +137,9 @@ public interface LuaElementTypes {
       }
       else if (type == DO_STATEMENT) {
         return new LuaDoStatementImpl(node);
+      }
+      else if (type == EMPTY_STATEMENT) {
+        return new LuaEmptyStatementImpl(node);
       }
       else if (type == EXPR_LIST) {
         return new LuaExprListImpl(node);

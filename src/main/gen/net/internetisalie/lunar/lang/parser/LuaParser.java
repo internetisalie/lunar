@@ -132,7 +132,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // not_eof {statement SEMI?}* [finalStatement SEMI?]
+  // not_eof {statement}* [finalStatement SEMI?]
   public static boolean block(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "block")) return false;
     boolean r;
@@ -144,7 +144,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // {statement SEMI?}*
+  // {statement}*
   private static boolean block_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "block_1")) return false;
     while (true) {
@@ -155,22 +155,14 @@ public class LuaParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // statement SEMI?
+  // {statement}
   private static boolean block_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "block_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = statement(b, l + 1);
-    r = r && block_1_0_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
-  }
-
-  // SEMI?
-  private static boolean block_1_0_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "block_1_0_1")) return false;
-    consumeToken(b, SEMI);
-    return true;
   }
 
   // [finalStatement SEMI?]
@@ -209,6 +201,18 @@ public class LuaParser implements PsiParser, LightPsiParser {
     r = r && block(b, l + 1);
     r = r && consumeToken(b, END);
     exit_section_(b, m, DO_STATEMENT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // ';'
+  public static boolean emptyStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "emptyStatement")) return false;
+    if (!nextTokenIs(b, SEMI)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, SEMI);
+    exit_section_(b, m, EMPTY_STATEMENT, r);
     return r;
   }
 
@@ -886,7 +890,8 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // assignmentStatement
+  // emptyStatement
+  //     | assignmentStatement
   //     | funcCall
   //     | label
   //     | BREAK
@@ -904,7 +909,8 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "statement")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, STATEMENT, "<statement>");
-    r = assignmentStatement(b, l + 1);
+    r = emptyStatement(b, l + 1);
+    if (!r) r = assignmentStatement(b, l + 1);
     if (!r) r = funcCall(b, l + 1);
     if (!r) r = label(b, l + 1);
     if (!r) r = consumeToken(b, BREAK);

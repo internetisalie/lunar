@@ -9,6 +9,7 @@ import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.tree.IFileElementType
 import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.syntax.LuaSyntax
 
 class LuaFormatBlock(
     node: ASTNode,
@@ -108,6 +109,25 @@ class LuaFormattingModelBuilder : FormattingModelBuilder {
     }
 
     private fun createSpacingBuilder(settings: CodeStyleSettings): SpacingBuilder {
-        return SpacingBuilder(settings, LuaLanguage)
+        val builder = SpacingBuilder(settings, LuaLanguage)
+        val luaSettings = LuaCodeStyleSettings.getInstance(settings) as LuaCodeStyleSettings
+        val commonSettings = settings.getCommonSettings(LuaLanguage)
+
+        // Build rules
+        builder.around(LuaElementTypes.ASSIGN).spaceIf(commonSettings.SPACE_AROUND_ASSIGNMENT_OPERATORS)
+        builder.around(LuaSyntax.LogicalBinaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_LOGICAL_OPERATORS)
+        builder.around(LuaElementTypes.EQ).spaceIf(commonSettings.SPACE_AROUND_EQUALITY_OPERATORS)
+        builder.around(LuaSyntax.RelationalBinaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_RELATIONAL_OPERATORS)
+        builder.around(LuaSyntax.BitwiseBinaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_BITWISE_OPERATORS)
+        builder.around(LuaSyntax.AdditiveBinaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_ADDITIVE_OPERATORS)
+        builder.around(LuaSyntax.MultiplicativeBinaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_MULTIPLICATIVE_OPERATORS)
+        builder.around(LuaSyntax.ShiftBinaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_SHIFT_OPERATORS)
+        builder.around(LuaSyntax.UnaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_UNARY_OPERATOR)
+        builder.after(LuaElementTypes.COMMA).spaceIf(commonSettings.SPACE_AFTER_COMMA)
+        builder.withinPair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN).spaceIf(commonSettings.SPACE_WITHIN_PARENTHESES)
+        builder.withinPair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK).spaceIf(commonSettings.SPACE_WITHIN_BRACKETS)
+        builder.withinPair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY).spaceIf(commonSettings.SPACE_WITHIN_BRACES)
+
+        return builder
     }
 }

@@ -41,6 +41,12 @@ public class LuaStatementImpl extends LuaBaseElement implements LuaStatement {
 
   @Override
   @Nullable
+  public LuaEmptyStatement getEmptyStatement() {
+    return findChildByClass(LuaEmptyStatement.class);
+  }
+
+  @Override
+  @Nullable
   public LuaFuncCall getFuncCall() {
     return findChildByClass(LuaFuncCall.class);
   }

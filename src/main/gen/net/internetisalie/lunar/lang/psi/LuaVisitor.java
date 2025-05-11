@@ -31,6 +31,10 @@ public class LuaVisitor extends PsiElementVisitor {
     visitBlockParent(o);
   }
 
+  public void visitEmptyStatement(@NotNull LuaEmptyStatement o) {
+    visitPsiElement(o);
+  }
+
   public void visitExpr(@NotNull LuaExpr o) {
     visitPsiElement(o);
   }
