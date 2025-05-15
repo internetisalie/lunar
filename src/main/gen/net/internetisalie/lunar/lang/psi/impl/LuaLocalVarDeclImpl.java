@@ -8,15 +8,18 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
+import com.intellij.psi.PsiComment;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
+import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
-public class LuaLocalVarDeclImpl extends LuaBaseElement implements LuaLocalVarDecl {
+public class LuaLocalVarDeclImpl extends LuaStatementImpl implements LuaLocalVarDecl {
 
   public LuaLocalVarDeclImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull LuaVisitor visitor) {
     visitor.visitLocalVarDecl(this);
   }
@@ -37,6 +40,21 @@ public class LuaLocalVarDeclImpl extends LuaBaseElement implements LuaLocalVarDe
   @NotNull
   public LuaNameList getNameList() {
     return findNotNullChildByClass(LuaNameList.class);
+  }
+
+  @Override
+  public @Nullable PsiComment getComment() {
+    return LuaPsiImplUtil.getComment(this);
+  }
+
+  @Override
+  public @Nullable LuaDocComment getDocComment() {
+    return LuaPsiImplUtil.getDocComment(this);
+  }
+
+  @Override
+  public @Nullable LuaCatsComment getCatsComment() {
+    return LuaPsiImplUtil.getCatsComment(this);
   }
 
 }

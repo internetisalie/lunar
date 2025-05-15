@@ -7,9 +7,6 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaBlock extends PsiElement {
 
-  @Nullable
-  LuaFinalStatement getFinalStatement();
-
   @NotNull
   List<LuaStatement> getStatementList();
 

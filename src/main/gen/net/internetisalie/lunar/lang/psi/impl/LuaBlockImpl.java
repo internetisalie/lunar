@@ -28,12 +28,6 @@ public class LuaBlockImpl extends LuaBaseElement implements LuaBlock {
   }
 
   @Override
-  @Nullable
-  public LuaFinalStatement getFinalStatement() {
-    return findChildByClass(LuaFinalStatement.class);
-  }
-
-  @Override
   @NotNull
   public List<LuaStatement> getStatementList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaStatement.class);

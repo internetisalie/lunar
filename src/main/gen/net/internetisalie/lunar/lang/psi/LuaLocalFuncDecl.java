@@ -8,7 +8,7 @@ import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
-public interface LuaLocalFuncDecl extends LuaCommentOwner, LuaBlockParent {
+public interface LuaLocalFuncDecl extends LuaStatement, LuaCommentOwner, LuaBlockParent {
 
   @NotNull
   LuaBlock getBlock();

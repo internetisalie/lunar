@@ -11,7 +11,7 @@ import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaStatementImpl extends LuaBaseElement implements LuaStatement {
+public abstract class LuaStatementImpl extends LuaBaseElement implements LuaStatement {
 
   public LuaStatementImpl(@NotNull ASTNode node) {
     super(node);
@@ -25,90 +25,6 @@ public class LuaStatementImpl extends LuaBaseElement implements LuaStatement {
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof LuaVisitor) accept((LuaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @Nullable
-  public LuaAssignmentStatement getAssignmentStatement() {
-    return findChildByClass(LuaAssignmentStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaDoStatement getDoStatement() {
-    return findChildByClass(LuaDoStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaEmptyStatement getEmptyStatement() {
-    return findChildByClass(LuaEmptyStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaFuncCall getFuncCall() {
-    return findChildByClass(LuaFuncCall.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaFuncDecl getFuncDecl() {
-    return findChildByClass(LuaFuncDecl.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaGenericForStatement getGenericForStatement() {
-    return findChildByClass(LuaGenericForStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaGotoStatement getGotoStatement() {
-    return findChildByClass(LuaGotoStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaIfStatement getIfStatement() {
-    return findChildByClass(LuaIfStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaLabel getLabel() {
-    return findChildByClass(LuaLabel.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaLocalFuncDecl getLocalFuncDecl() {
-    return findChildByClass(LuaLocalFuncDecl.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaLocalVarDecl getLocalVarDecl() {
-    return findChildByClass(LuaLocalVarDecl.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaNumericForStatement getNumericForStatement() {
-    return findChildByClass(LuaNumericForStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaRepeatStatement getRepeatStatement() {
-    return findChildByClass(LuaRepeatStatement.class);
-  }
-
-  @Override
-  @Nullable
-  public LuaWhileStatement getWhileStatement() {
-    return findChildByClass(LuaWhileStatement.class);
   }
 
 }

@@ -38,6 +38,11 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static final TokenSet[] EXTENDS_SETS_ = new TokenSet[] {
     create_token_set_(BIN_OP_EXPR, EXPR, FUNC_DEF, PREFIX_EXPR,
       TABLE_CONSTRUCTOR, TERMINAL_EXPR, UN_OP_EXPR),
+    create_token_set_(ASSIGNMENT_STATEMENT, BREAK_STATEMENT, DO_STATEMENT, EMPTY_STATEMENT,
+      FINAL_STATEMENT, FUNC_CALL_STATEMENT, FUNC_DECL, GENERIC_FOR_STATEMENT,
+      GOTO_STATEMENT, IF_STATEMENT, LABEL, LOCAL_FUNC_DECL,
+      LOCAL_VAR_DECL, NUMERIC_FOR_STATEMENT, REPEAT_STATEMENT, STATEMENT,
+      WHILE_STATEMENT),
   };
 
   /* ********************************************************** */
@@ -188,6 +193,18 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "block_2_0_1")) return false;
     consumeToken(b, SEMI);
     return true;
+  }
+
+  /* ********************************************************** */
+  // BREAK
+  public static boolean breakStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "breakStatement")) return false;
+    if (!nextTokenIs(b, BREAK)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, BREAK);
+    exit_section_(b, m, BREAK_STATEMENT, r);
+    return r;
   }
 
   /* ********************************************************** */
@@ -418,6 +435,18 @@ public class LuaParser implements PsiParser, LightPsiParser {
       if (!empty_element_parsed_guard_(b, "funcCall_1", c)) break;
     }
     exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // funcCall
+  public static boolean funcCallStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "funcCallStatement")) return false;
+    if (!nextTokenIs(b, "<func call statement>", IDENTIFIER, LPAREN)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, FUNC_CALL_STATEMENT, "<func call statement>");
+    r = funcCall(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -892,9 +921,9 @@ public class LuaParser implements PsiParser, LightPsiParser {
   /* ********************************************************** */
   // emptyStatement
   //     | assignmentStatement
-  //     | funcCall
+  //     | funcCallStatement
   //     | label
-  //     | BREAK
+  //     | breakStatement
   //     | gotoStatement
   //     | doStatement
   //     | whileStatement
@@ -908,12 +937,12 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean statement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "statement")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, STATEMENT, "<statement>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, STATEMENT, "<statement>");
     r = emptyStatement(b, l + 1);
     if (!r) r = assignmentStatement(b, l + 1);
-    if (!r) r = funcCall(b, l + 1);
+    if (!r) r = funcCallStatement(b, l + 1);
     if (!r) r = label(b, l + 1);
-    if (!r) r = consumeToken(b, BREAK);
+    if (!r) r = breakStatement(b, l + 1);
     if (!r) r = gotoStatement(b, l + 1);
     if (!r) r = doStatement(b, l + 1);
     if (!r) r = whileStatement(b, l + 1);

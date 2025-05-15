@@ -8,18 +8,18 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import net.internetisalie.lunar.lang.psi.LuaBaseElement;
 import net.internetisalie.lunar.lang.psi.*;
 import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
-public class LuaLocalFuncDeclImpl extends LuaBaseElement implements LuaLocalFuncDecl {
+public class LuaLocalFuncDeclImpl extends LuaStatementImpl implements LuaLocalFuncDecl {
 
   public LuaLocalFuncDeclImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull LuaVisitor visitor) {
     visitor.visitLocalFuncDecl(this);
   }

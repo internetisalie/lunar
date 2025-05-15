@@ -84,20 +84,22 @@
     psiImplPackage='net.internetisalie.lunar.lang.psi.impl'
     psiImplUtilClass='net.internetisalie.lunar.lang.psi.LuaPsiImplUtil'
 
+    extends(".*Statement")=statement
+    extends(".*Decl")=statement
+
 //    consumeTokenMethod(".*_expr|expr")="consumeTokenFast"
 }
 
-// https://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
-
 root ::= block*
+
 block ::= not_eof {statement}* [finalStatement SEMI?]
 private not_eof ::= !<<eof>>
 
 statement ::= emptyStatement
     | assignmentStatement
-    | funcCall
+    | funcCallStatement
     | label
-    | BREAK
+    | breakStatement
     | gotoStatement
     | doStatement
     | whileStatement
@@ -108,8 +110,12 @@ statement ::= emptyStatement
     | funcDecl
     | localFuncDecl
     | localVarDecl
+    { extends=statement }
+
 emptyStatement ::= ';'
 assignmentStatement ::= varList '=' exprList
+funcCallStatement ::= funcCall
+breakStatement ::= BREAK
 gotoStatement ::= GOTO labelRef
 doStatement ::= DO block END {
     implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
@@ -135,7 +141,7 @@ genericForStatement ::= FOR nameList IN exprList DO block END {
     methods=[getBlockList]
 }
 finalStatement ::= RETURN [exprList] [';']
-label ::= '::' labelName '::'
+label ::= '::' labelName '::' { extends=statement }
 funcName ::= nameRef funcNameProperty* funcNameMethod?
 funcNameProperty ::= '.' nameRef
 funcNameMethod ::= ':' nameRef
@@ -157,6 +163,7 @@ localFuncDecl ::= LOCAL FUNCTION nameRef funcBody {
         getComment getDocComment getCatsComment
         getBlockList
     ]
+    extends=statement
 }
 
 funcDecl ::= FUNCTION funcName funcBody {
@@ -168,9 +175,18 @@ funcDecl ::= FUNCTION funcName funcBody {
         getComment getDocComment getCatsComment
         getBlockList
     ]
+    extends=statement
 }
 
-localVarDecl ::= LOCAL nameList ['=' exprList]
+localVarDecl ::= LOCAL nameList ['=' exprList] {
+    implements = [
+        "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
+    ]
+    methods=[
+        getComment getDocComment getCatsComment
+    ]
+    extends=statement
+}
 
 labelRef ::= IDENTIFIER {
     mixin="net.internetisalie.lunar.lang.psi.LuaLabelRefBaseImpl"

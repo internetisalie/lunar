@@ -24,7 +24,9 @@ class LuaFileStructureViewTreeElement(private var myFile: LuaFile) : LuaStructur
     }
 
     override fun getChildren(): Array<TreeElement> {
-        return TreeElementUtils.getRootChildren(myFile)
+        return TreeElementUtils
+            .getRootChildren(myFile)
+            .toTypedArray()
     }
 
     override fun getValue(): Any {

@@ -21,7 +21,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiElement;
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes;
 import net.internetisalie.lunar.lang.psi.LuaBlock;
-import net.internetisalie.lunar.lang.psi.LuaStatement;
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocCommentOwner;
 import net.internetisalie.lunar.luadoc.lang.psi.LuaDocPsiElement;

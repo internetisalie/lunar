@@ -15,4 +15,8 @@ class LuaFile(viewProvider: FileViewProvider) :
     override fun toString(): String {
         return "Lua"
     }
+
+    fun getBlockList() : List<LuaBlock> {
+        return LuaPsiImplUtil.getBlockList(this)
+    }
 }

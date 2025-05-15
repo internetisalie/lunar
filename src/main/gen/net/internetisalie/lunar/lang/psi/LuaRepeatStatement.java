@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaRepeatStatement extends LuaBlockParent {
+public interface LuaRepeatStatement extends LuaStatement, LuaBlockParent {
 
   @NotNull
   LuaBlock getBlock();

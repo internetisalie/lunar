@@ -13,6 +13,7 @@ public interface LuaElementTypes {
   IElementType BIN_OP = new LuaElementType("BIN_OP");
   IElementType BIN_OP_EXPR = new LuaElementType("BIN_OP_EXPR");
   IElementType BLOCK = new LuaElementType("BLOCK");
+  IElementType BREAK_STATEMENT = new LuaElementType("BREAK_STATEMENT");
   IElementType DO_STATEMENT = new LuaElementType("DO_STATEMENT");
   IElementType EMPTY_STATEMENT = new LuaElementType("EMPTY_STATEMENT");
   IElementType EXPR = new LuaElementType("EXPR");
@@ -22,6 +23,7 @@ public interface LuaElementTypes {
   IElementType FIELD_SEP = new LuaElementType("FIELD_SEP");
   IElementType FINAL_STATEMENT = new LuaElementType("FINAL_STATEMENT");
   IElementType FUNC_CALL = new LuaElementType("FUNC_CALL");
+  IElementType FUNC_CALL_STATEMENT = new LuaElementType("FUNC_CALL_STATEMENT");
   IElementType FUNC_DECL = new LuaElementType("FUNC_DECL");
   IElementType FUNC_DEF = new LuaElementType("FUNC_DEF");
   IElementType FUNC_NAME = new LuaElementType("FUNC_NAME");
@@ -135,6 +137,9 @@ public interface LuaElementTypes {
       else if (type == BLOCK) {
         return new LuaBlockImpl(node);
       }
+      else if (type == BREAK_STATEMENT) {
+        return new LuaBreakStatementImpl(node);
+      }
       else if (type == DO_STATEMENT) {
         return new LuaDoStatementImpl(node);
       }
@@ -158,6 +163,9 @@ public interface LuaElementTypes {
       }
       else if (type == FUNC_CALL) {
         return new LuaFuncCallImpl(node);
+      }
+      else if (type == FUNC_CALL_STATEMENT) {
+        return new LuaFuncCallStatementImpl(node);
       }
       else if (type == FUNC_DECL) {
         return new LuaFuncDeclImpl(node);
@@ -224,9 +232,6 @@ public interface LuaElementTypes {
       }
       else if (type == REPEAT_STATEMENT) {
         return new LuaRepeatStatementImpl(node);
-      }
-      else if (type == STATEMENT) {
-        return new LuaStatementImpl(node);
       }
       else if (type == TABLE_CONSTRUCTOR) {
         return new LuaTableConstructorImpl(node);

@@ -12,7 +12,7 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitAssignmentStatement(@NotNull LuaAssignmentStatement o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitBinOp(@NotNull LuaBinOp o) {
@@ -27,12 +27,17 @@ public class LuaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitBreakStatement(@NotNull LuaBreakStatement o) {
+    visitStatement(o);
+  }
+
   public void visitDoStatement(@NotNull LuaDoStatement o) {
-    visitBlockParent(o);
+    visitStatement(o);
+    // visitBlockParent(o);
   }
 
   public void visitEmptyStatement(@NotNull LuaEmptyStatement o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitExpr(@NotNull LuaExpr o) {
@@ -56,15 +61,20 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitFinalStatement(@NotNull LuaFinalStatement o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitFuncCall(@NotNull LuaFuncCall o) {
     visitPsiElement(o);
   }
 
+  public void visitFuncCallStatement(@NotNull LuaFuncCallStatement o) {
+    visitStatement(o);
+  }
+
   public void visitFuncDecl(@NotNull LuaFuncDecl o) {
-    visitCommentOwner(o);
+    visitStatement(o);
+    // visitCommentOwner(o);
     // visitBlockParent(o);
   }
 
@@ -86,15 +96,17 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitGenericForStatement(@NotNull LuaGenericForStatement o) {
-    visitBlockParent(o);
+    visitStatement(o);
+    // visitBlockParent(o);
   }
 
   public void visitGotoStatement(@NotNull LuaGotoStatement o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitIfStatement(@NotNull LuaIfStatement o) {
-    visitBlockParent(o);
+    visitStatement(o);
+    // visitBlockParent(o);
   }
 
   public void visitIndexExpr(@NotNull LuaIndexExpr o) {
@@ -102,7 +114,7 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitLabel(@NotNull LuaLabel o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitLabelName(@NotNull LuaLabelName o) {
@@ -114,12 +126,14 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitLocalFuncDecl(@NotNull LuaLocalFuncDecl o) {
-    visitCommentOwner(o);
+    visitStatement(o);
+    // visitCommentOwner(o);
     // visitBlockParent(o);
   }
 
   public void visitLocalVarDecl(@NotNull LuaLocalVarDecl o) {
-    visitPsiElement(o);
+    visitStatement(o);
+    // visitCommentOwner(o);
   }
 
   public void visitMethodExpr(@NotNull LuaMethodExpr o) {
@@ -139,7 +153,8 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitNumericForStatement(@NotNull LuaNumericForStatement o) {
-    visitBlockParent(o);
+    visitStatement(o);
+    // visitBlockParent(o);
   }
 
   public void visitParList(@NotNull LuaParList o) {
@@ -151,7 +166,8 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitRepeatStatement(@NotNull LuaRepeatStatement o) {
-    visitBlockParent(o);
+    visitStatement(o);
+    // visitBlockParent(o);
   }
 
   public void visitStatement(@NotNull LuaStatement o) {
@@ -191,15 +207,8 @@ public class LuaVisitor extends PsiElementVisitor {
   }
 
   public void visitWhileStatement(@NotNull LuaWhileStatement o) {
-    visitBlockParent(o);
-  }
-
-  public void visitBlockParent(@NotNull LuaBlockParent o) {
-    visitPsiElement(o);
-  }
-
-  public void visitCommentOwner(@NotNull LuaCommentOwner o) {
-    visitPsiElement(o);
+    visitStatement(o);
+    // visitBlockParent(o);
   }
 
   public void visitNameDeclElement(@NotNull LuaNameDeclElement o) {

@@ -10,38 +10,21 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
 
-public class LuaRepeatStatementImpl extends LuaStatementImpl implements LuaRepeatStatement {
+public class LuaBreakStatementImpl extends LuaStatementImpl implements LuaBreakStatement {
 
-  public LuaRepeatStatementImpl(@NotNull ASTNode node) {
+  public LuaBreakStatementImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   @Override
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitRepeatStatement(this);
+    visitor.visitBreakStatement(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof LuaVisitor) accept((LuaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @NotNull
-  public LuaBlock getBlock() {
-    return findNotNullChildByClass(LuaBlock.class);
-  }
-
-  @Override
-  @NotNull
-  public LuaExpr getExpr() {
-    return findNotNullChildByClass(LuaExpr.class);
-  }
-
-  @Override
-  public @NotNull List<@NotNull LuaBlock> getBlockList() {
-    return LuaPsiImplUtil.getBlockList(this);
   }
 
 }

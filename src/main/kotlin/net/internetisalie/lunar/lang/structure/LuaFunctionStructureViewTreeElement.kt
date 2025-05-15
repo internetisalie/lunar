@@ -20,7 +20,9 @@ class LuaFunctionStructureViewTreeElement(private var myFuncDecl : LuaFuncDecl) 
     }
 
     override fun getChildren(): Array<TreeElement> {
-        return TreeElementUtils.getFuncBodyChildren(myFuncDecl.parList, myFuncDecl.block)
+        return TreeElementUtils
+            .getFuncBodyChildren(myFuncDecl.parList, myFuncDecl.block)
+            .toTypedArray()
     }
 
     override fun getValue(): Any {

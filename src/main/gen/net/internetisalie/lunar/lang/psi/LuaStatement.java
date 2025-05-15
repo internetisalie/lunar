@@ -7,46 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaStatement extends PsiElement {
 
-  @Nullable
-  LuaAssignmentStatement getAssignmentStatement();
-
-  @Nullable
-  LuaDoStatement getDoStatement();
-
-  @Nullable
-  LuaEmptyStatement getEmptyStatement();
-
-  @Nullable
-  LuaFuncCall getFuncCall();
-
-  @Nullable
-  LuaFuncDecl getFuncDecl();
-
-  @Nullable
-  LuaGenericForStatement getGenericForStatement();
-
-  @Nullable
-  LuaGotoStatement getGotoStatement();
-
-  @Nullable
-  LuaIfStatement getIfStatement();
-
-  @Nullable
-  LuaLabel getLabel();
-
-  @Nullable
-  LuaLocalFuncDecl getLocalFuncDecl();
-
-  @Nullable
-  LuaLocalVarDecl getLocalVarDecl();
-
-  @Nullable
-  LuaNumericForStatement getNumericForStatement();
-
-  @Nullable
-  LuaRepeatStatement getRepeatStatement();
-
-  @Nullable
-  LuaWhileStatement getWhileStatement();
-
 }
