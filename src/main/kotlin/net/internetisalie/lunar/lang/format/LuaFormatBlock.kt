@@ -29,8 +29,9 @@ class LuaFormatBlock(
     fun addChildBlocks(collected: MutableList<Block>, node : ASTNode) {
         // Blocks that return the same Alignment object will be aligned together.
         val alignment = when (node.elementType) {
-            LuaElementTypes.NAME_LIST -> Alignment.createAlignment()
-            LuaElementTypes.EXPR_LIST -> Alignment.createAlignment()
+            LuaElementTypes.NAME_LIST,
+            LuaElementTypes.EXPR_LIST ->
+                if (listHasMultipleItems(node)) Alignment.createAlignment() else null
             else -> null
         }
 
@@ -47,6 +48,12 @@ class LuaFormatBlock(
         }
     }
 
+    private fun listHasMultipleItems(node : ASTNode) : Boolean {
+        return node.children().filter {
+            it.elementType != LuaElementTypes.COMMA && it.elementType != TokenType.WHITE_SPACE
+        }.count() > 1
+    }
+
     // Calculate the indent relative to this block's parent
     override fun getIndent(): Indent? {
         when {
@@ -57,7 +64,10 @@ class LuaFormatBlock(
         return when (node.elementType) {
             LuaElementTypes.BLOCK -> Indent.getNormalIndent()
             LuaElementTypes.LABEL -> Indent.getAbsoluteLabelIndent()
-            LuaElementTypes.NAME_LIST -> Indent.getNormalIndent()
+            LuaElementTypes.NAME_LIST -> {
+                if (listHasMultipleItems(node)) Indent.getContinuationIndent()
+                else Indent.getNoneIndent()
+            }
             LuaElementTypes.NAME_REF -> Indent.getNoneIndent()
             LuaElementTypes.VAR_LIST -> Indent.getContinuationWithoutFirstIndent()
             LuaElementTypes.VAR ->
@@ -65,7 +75,7 @@ class LuaFormatBlock(
                 else Indent.getNoneIndent()
             LuaElementTypes.EXPR_LIST -> Indent.getContinuationIndent()
             LuaElementTypes.FIELD -> Indent.getNormalIndent()
-            else -> return Indent.getNoneIndent()
+            else -> Indent.getNoneIndent()
         }
     }
 
