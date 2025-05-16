@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
+import net.internetisalie.lunar.lang.psi.LuaAttribName
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaLabel
 
@@ -37,16 +38,15 @@ object LuaBindingsAnnotator {
         message: String,
         highlight: TextAttributesKey
     ) {
-//        holder.newAnnotation(severity, message)
-//            .range(target)
-//            .tooltip(message)
-//            .textAttributes(highlight)
-//            .create()
-        holder.newSilentAnnotation(severity)
+        holder.newAnnotation(severity, message)
             .range(target)
+            .tooltip(message)
             .textAttributes(highlight)
             .create()
-
+//        holder.newSilentAnnotation(severity)
+//            .range(target)
+//            .textAttributes(highlight)
+//            .create()
     }
 }
 
@@ -94,6 +94,24 @@ class LuaLongCommentAnnotator : Annotator {
         holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
             .range(endRange)
             .textAttributes(LuaHighlight.LONGCOMMENT_BRACES)
+            .create()
+    }
+}
+
+class LuaAttribNameAnnotator : Annotator {
+    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
+        when {
+            element is LuaAttribName -> annotateElement(element, holder)
+        }
+    }
+
+    private fun annotateElement(
+        target: LuaAttribName,
+        holder: AnnotationHolder
+    ) {
+        holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
+            .range(target)
+            .textAttributes(LuaHighlight.ATTRIB_NAME)
             .create()
     }
 }

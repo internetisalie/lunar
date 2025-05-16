@@ -1,0 +1,66 @@
+<call-platform>require</call-platform> "os"
+
+<global>a</global> = {
+<global>foo</global>.<field>bar</field>,
+<global>foo</global>.<field>bar</field>(),
+<global>fx</global>(),
+<field>f</field> = <global>a</global>,
+        1,
+<global>FOO</global>
+        } -- url http://www.url.com
+
+        local <local>x</local>,<local>y<<attrib-name>const</attrib-name>></local> = 20,nil
+        for <local>i</local>=1,10 do
+        local <local>y</local> = 0
+<global>a</global>[<local>i</local>] = function()
+<local><upval>y</upval></local>=<local><upval>y</upval></local>+1; return <local><upval>x</upval></local>+<local>y</local>
+        end
+        end
+
+<package>os</package>.<call-platform>getenv</call-platform>("VARNAME")
+
+<comment-brackets>--[[</comment-brackets>   Multiline
+        Comment
+<comment-brackets>]]</comment-brackets>
+
+<luadoc>--- External Documentation URL (shift-F1)</luadoc>
+<luadoc>-- This is called by shift-F1 on the symbol, or by the</luadoc>
+<luadoc>-- external documentation button on the quick help panel</luadoc>
+<luadoc>-- <luadoc-tag>@class</luadoc-tag> <luadoc-value>tag-name</luadoc-value> The name to get documentation for.</luadoc>
+<luadoc>-- <luadoc-tag>@param</luadoc-tag> <parameter>name</parameter> The name to get documentation for.</luadoc>
+<luadoc>-- <luadoc-tag>@return</luadoc-tag> the URL of the external documentation</luadoc>
+        function <global>getDocumentationUrl</global>(<parameter>name</parameter>)
+        local <local>p1</local>, <local>p2</local> = <global>string</global>.<field>match</field>(<parameter>name</parameter>, "(%a+)\.?(%a*)")
+        local <local>url</local> = <global>BASE_URL</global> .. "/docs/api/" .. <local>p1</local> .. <string-brackets>[[</string-brackets>long string<string-brackets>]]</string-brackets>
+
+        if <local>p2</local> and true then <local>url</local> = <local>url</local> .. <local>p2</local>; end
+
+        function() local <local>upval_parameter</local> = <parameter><upval>name</upval></parameter> end
+
+<local><upval>x</upval></local>, <local><upval>y</upval></local> = <local>p1</local>, <local>p2</local>
+
+        return <local>url</local>
+        end
+
+        -- Some comment
+        function <func-global>globalFunction</func-global>(<parameter>name</parameter>)
+        return "two"
+        end
+
+<call-global>globalFunction</call-global>("one")
+
+        if true then
+        local function <func-local>localFunction</func-local>(<parameter>name</parameter>)
+        return "four"
+        end
+<call-local>localFunction</call-local>("three")
+
+        local <local>globalFunction</local>
+        end
+
+<label>::here::</label>
+        if false then
+        goto <label>here</label>
+        end
+
+<global>a</global> = "BAD

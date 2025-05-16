@@ -24,6 +24,10 @@ import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsHighlight
 import org.jetbrains.annotations.NonNls
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.nio.charset.StandardCharsets
 import javax.swing.Icon
 
 /**
@@ -45,7 +49,7 @@ class LuaColorSettingsPage : ColorSettingsPage {
             <global>FOO</global> 
         } -- url http://www.url.com 
         
-        local <local>x</local>,<local>y</local> = 20,nil
+        local <local>x</local>,<local>y&lt;<attrib-name>const</attrib-name>&gt;</local> = 20,nil
         for <local>i</local>=1,10 do
           local <local>y</local> = 0
           <global>a</global>[<local>i</local>] = function() 
@@ -146,6 +150,7 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.call.platform", LuaHighlight.CALL_PLATFORM),
         Pair("color.call.global", LuaHighlight.CALL_GLOBAL),
         Pair("color.call.local", LuaHighlight.CALL_LOCAL),
+        Pair("color.attrib", LuaHighlight.ATTRIB_NAME),
     )
         .map { pair: Pair<String, TextAttributesKey> ->
             AttributesDescriptor(
@@ -173,6 +178,7 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("call-platform", LuaHighlight.CALL_PLATFORM),
         Pair("call-global", LuaHighlight.CALL_GLOBAL),
         Pair("call-local", LuaHighlight.CALL_LOCAL),
+        Pair("attrib-name", LuaHighlight.ATTRIB_NAME),
         // Docs
         Pair("luadoc", LuaHighlight.DOC_COMMENT),
         Pair("luadoc-tag", LuaHighlight.DOC_TAG),
@@ -202,7 +208,15 @@ class LuaColorSettingsPage : ColorSettingsPage {
     }
 
     override fun getDemoText(): @NonNls String {
-        return demoText
+        try {
+                val classLoader = LuaColorSettingsPage::class.java.getClassLoader()
+                classLoader.getResourceAsStream("colorSettings/preview/colorSettings.html")?.use { it ->
+                    InputStreamReader(it).use { reader ->
+                        return reader.readText()
+                    }
+                }
+        } catch (_ : IOException) { }
+        return ""
     }
 
     override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey> {

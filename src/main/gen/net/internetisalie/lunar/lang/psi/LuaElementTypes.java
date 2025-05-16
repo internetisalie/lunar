@@ -10,6 +10,9 @@ public interface LuaElementTypes {
 
   IElementType ARGS = new LuaElementType("ARGS");
   IElementType ASSIGNMENT_STATEMENT = new LuaElementType("ASSIGNMENT_STATEMENT");
+  IElementType ATTRIB = new LuaElementType("ATTRIB");
+  IElementType ATTRIB_NAME = new LuaElementType("ATTRIB_NAME");
+  IElementType ATT_NAME = new LuaElementType("ATT_NAME");
   IElementType BIN_OP = new LuaElementType("BIN_OP");
   IElementType BIN_OP_EXPR = new LuaElementType("BIN_OP_EXPR");
   IElementType BLOCK = new LuaElementType("BLOCK");
@@ -127,6 +130,15 @@ public interface LuaElementTypes {
       }
       else if (type == ASSIGNMENT_STATEMENT) {
         return new LuaAssignmentStatementImpl(node);
+      }
+      else if (type == ATTRIB) {
+        return new LuaAttribImpl(node);
+      }
+      else if (type == ATTRIB_NAME) {
+        return new LuaAttribNameImpl(node);
+      }
+      else if (type == ATT_NAME) {
+        return new LuaAttNameImpl(node);
       }
       else if (type == BIN_OP) {
         return new LuaBinOpImpl(node);

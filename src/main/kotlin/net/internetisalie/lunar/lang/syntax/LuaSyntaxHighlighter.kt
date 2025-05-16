@@ -40,8 +40,8 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
         colors[LuaElementTypes.SHEBANG] = LuaHighlight.COMMENT
         colors[LuaTokenTypes.LUADOC_COMMENT] = LuaHighlight.DOC_COMMENT
         colors[LuaLazyElementTypes.LUACATS_COMMENT] = LuaHighlight.DOC_COMMENT
-
         colors[LuaElementTypes.STRING] = LuaHighlight.STRING
+        colors[LuaElementTypes.ATTRIB_NAME] = LuaHighlight.ATTRIB_NAME
 
         fillMap(colors, LuaSyntax.OperatorTokens, LuaHighlight.OPERATORS)
         fillMap(colors, LuaSyntax.KeywordTokens, LuaHighlight.KEYWORD)
@@ -50,10 +50,12 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
         fillMap(colors, LuaSyntax.BracketTokens, LuaHighlight.BRACKETS)
 
         colors[LuaElementTypes.SEMI] = LuaHighlight.SEMI
+        colors[LuaElementTypes.COMMA] = LuaHighlight.COMMA
+        colors[LuaElementTypes.ELLIPSIS] = LuaHighlight.ELLIPSIS
+        colors[LuaElementTypes.CONCAT] = LuaHighlight.CONCAT
 
         fillMap(colors, LuaSyntax.BadInputTokens, LuaHighlight.BAD_CHARACTER)
         fillMap(colors, LuaSyntax.PredefinedConstantTokens, LuaHighlight.DEFINED_CONSTANTS)
-        colors[LuaElementTypes.COMMA] = LuaHighlight.COMMA
         colors[LuaElementTypes.NUMBER] = LuaHighlight.NUMBER
 
         // Identifiers

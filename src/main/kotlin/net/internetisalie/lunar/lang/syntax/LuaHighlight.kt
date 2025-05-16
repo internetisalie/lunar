@@ -40,7 +40,10 @@ object LuaHighlight {
         TextAttributesKey.createTextAttributesKey("LUA_OPERATORS", DefaultLanguageHighlighterColors.OPERATION_SIGN)
     val COMMA: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_COMMA", DefaultLanguageHighlighterColors.COMMA)
-
+    val ELLIPSIS: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_ELLIPSIS", DefaultLanguageHighlighterColors.COMMA)
+    val CONCAT: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_CONCAT", DefaultLanguageHighlighterColors.COMMA)
     val SEMI: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_SEMICOLON", DefaultLanguageHighlighterColors.SEMICOLON)
 
@@ -91,7 +94,9 @@ object LuaHighlight {
     val VAR_PARAMETER: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_REF_PARAMETER", PARAMETER)
 
-
     val REF_UNDEFINED: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_REF_UNDEFINED", HighlighterColors.BAD_CHARACTER)
+
+    val ATTRIB_NAME: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_ATTR_NAME", DefaultLanguageHighlighterColors.IDENTIFIER)
 }

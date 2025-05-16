@@ -22,8 +22,9 @@ Lua support for IntelliJ Platform.
 - [ ] Luau syntax?
 - Formatter
   - [Expressions](https://github.com/JetBrains/intellij-community/blob/6319a70ded4aa13b0f3544aa762392afe28461ae/plugins/groovy/src/org/jetbrains/plugins/groovy/formatter/blocks/GroovyBlock.java)
-  - ? Port BlockFormatter
-- Folding Builder
+  - [x] Port Basic Spacing
+  - [ ] Review `stylua` formatter
+- [x] Folding Builder
 - Name Validator
 - Bindings
   - Locals are early-bound
@@ -49,9 +50,9 @@ Lua support for IntelliJ Platform.
   ```
 - [ ] Auto-complete
 - [ ] Enter Handler
-  - Lua
-  - LuaDOC
-  - LuaCATS
+  - [x] Lua
+  - [ ] LuaDOC
+  - [x] LuaCATS
 
 #### Project Tree
 
@@ -86,9 +87,9 @@ Lua support for IntelliJ Platform.
 
 #### Static Analysis
 
-- Luacheck
-  - Settings panel integration
-  - External Annotator
+- [x] Luacheck
+  - [x] Settings panel integration
+  - [x] External Annotator
 
 #### Refactoring
 
@@ -142,5 +143,5 @@ Lua support for IntelliJ Platform.
 - [ ] Run Configuration validation
   - Script name
   - Interpreter
-- [ ] Interpreter arguments
-- [ ] Script arguments
+- [x] Interpreter arguments
+- [x] Script arguments

@@ -178,7 +178,7 @@ funcDecl ::= FUNCTION funcName funcBody {
     extends=statement
 }
 
-localVarDecl ::= LOCAL nameList ['=' exprList] {
+localVarDecl ::= LOCAL attNameList ['=' exprList] {
     implements = [
         "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
     ]
@@ -187,6 +187,11 @@ localVarDecl ::= LOCAL nameList ['=' exprList] {
     ]
     extends=statement
 }
+
+private attNameList ::= attName {',' attName}*
+attName ::= nameRef attrib?
+attrib ::= '<' attribName '>'
+attribName ::= 'const' | 'close'
 
 labelRef ::= IDENTIFIER {
     mixin="net.internetisalie.lunar.lang.psi.LuaLabelRefBaseImpl"

@@ -31,15 +31,15 @@ public class LuaLocalVarDeclImpl extends LuaStatementImpl implements LuaLocalVar
   }
 
   @Override
-  @Nullable
-  public LuaExprList getExprList() {
-    return findChildByClass(LuaExprList.class);
+  @NotNull
+  public List<LuaAttName> getAttNameList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaAttName.class);
   }
 
   @Override
-  @NotNull
-  public LuaNameList getNameList() {
-    return findNotNullChildByClass(LuaNameList.class);
+  @Nullable
+  public LuaExprList getExprList() {
+    return findChildByClass(LuaExprList.class);
   }
 
   @Override

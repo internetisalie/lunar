@@ -15,6 +15,18 @@ public class LuaVisitor extends PsiElementVisitor {
     visitStatement(o);
   }
 
+  public void visitAttName(@NotNull LuaAttName o) {
+    visitPsiElement(o);
+  }
+
+  public void visitAttrib(@NotNull LuaAttrib o) {
+    visitPsiElement(o);
+  }
+
+  public void visitAttribName(@NotNull LuaAttribName o) {
+    visitPsiElement(o);
+  }
+
   public void visitBinOp(@NotNull LuaBinOp o) {
     visitPsiElement(o);
   }

@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.lang.structure
 
 import com.intellij.ide.util.treeView.smartTree.TreeElement
-import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
 import kotlin.collections.flatten
 
@@ -26,7 +25,7 @@ object TreeElementUtils {
                 is LuaLabel -> listOf<TreeElement>(LuaLabelStructureViewTreeElement(childElement))
                 is LuaFuncDecl -> listOf<TreeElement>(LuaFunctionStructureViewTreeElement(childElement))
                 is LuaLocalFuncDecl -> listOf<TreeElement>(LuaLocalFunctionStructureViewTreeElement(childElement))
-                is LuaLocalVarDecl -> getLocalVariableNameListChildren(childElement.nameList)
+                is LuaLocalVarDecl -> getLocalVariableNameListChildren(childElement.attNameList)
                 else -> emptyList()
             }
         }.flatten()
@@ -39,9 +38,9 @@ object TreeElementUtils {
         }
     }
 
-    private fun getLocalVariableNameListChildren(nameList: LuaNameList): List<TreeElement> {
-        return nameList.nameRefList.map {
-            LuaLocalVariableStructureViewTreeElement(it.identifier)
+    private fun getLocalVariableNameListChildren(attNameList: List<LuaAttName>): List<TreeElement> {
+        return attNameList.map {
+            LuaLocalVariableStructureViewTreeElement(it.nameRef.identifier)
         }
     }
 }

@@ -10,11 +10,11 @@ import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
 public interface LuaLocalVarDecl extends LuaStatement, LuaCommentOwner {
 
+  @NotNull
+  List<LuaAttName> getAttNameList();
+
   @Nullable
   LuaExprList getExprList();
-
-  @NotNull
-  LuaNameList getNameList();
 
   @Nullable PsiComment getComment();
 

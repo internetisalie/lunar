@@ -300,8 +300,8 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
 
     override fun visitLocalVarDecl(o: LuaLocalVarDecl) {
         super.visitLocalVarDecl(o)
-        o.nameList.nameRefList.forEach {
-            val identifier = it.identifier
+        o.attNameList.forEach {
+            val identifier = it.nameRef.identifier
             scope.declarations[identifier.text] = scope.createBinding(identifier, Kind.Variable)
         }
     }
