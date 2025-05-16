@@ -151,4 +151,11 @@ object LuaSyntax {
             LogicalBinaryOperatorTokens,
             TokenSet.create(LuaElementTypes.ASSIGN)
         )
+
+    val PunctuationTokens: TokenSet = TokenSet.create(
+        LuaElementTypes.COMMA,
+        LuaElementTypes.SEMI,
+        LuaElementTypes.ELLIPSIS,
+        LuaElementTypes.CONCAT,
+    )
 }
