@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.LuaFileType
+import net.internetisalie.lunar.run.LuaCodeFragment
 
 object LuaElementFactory {
     fun createIdentifier(project: Project, name: String?): PsiElement {
@@ -27,8 +28,24 @@ object LuaElementFactory {
         return PsiTreeUtil.findChildOfType(luaFile, LuaLabel::class.java)
     }
 
+    fun createExpression(project: Project, value : String) : LuaExpr? {
+        val luaFile = createFile(project, "local _ = $value")
+        return PsiTreeUtil.findChildOfType(luaFile, LuaExpr::class.java)
+    }
+
     fun createFile(project: Project, text: String): LuaFile {
         val name = "dummy.lua"
         return PsiFileFactory.getInstance(project).createFileFromText(name, LuaFileType, text) as LuaFile
+    }
+
+    fun createExpressionCodeFragment(project : Project, text: String, context : PsiElement?, isPhysical : Boolean) : LuaCodeFragment {
+        return LuaCodeFragment(
+            project,
+            LuaExpressionFragmentElementType(),
+            isPhysical,
+            "fragment.lua",
+            text,
+            context,
+        )
     }
 }

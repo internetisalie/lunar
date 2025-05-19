@@ -1,0 +1,334 @@
+/*
+ * Copyright 2011 Jon S Akhtar (Sylvanaar)
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+
+package net.internetisalie.lunar.run
+
+import com.intellij.execution.ui.ConsoleView
+import com.intellij.execution.ui.ConsoleViewContentType
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.xdebugger.XDebugSession
+import com.intellij.xdebugger.XSourcePosition
+import com.intellij.xdebugger.breakpoints.XBreakpoint
+import org.jetbrains.concurrency.AsyncPromise
+import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.rejectedPromise
+import java.io.File
+import java.io.IOException
+import java.net.InetAddress
+import java.net.ServerSocket
+
+/**
+ * Responsible for interacting with the remote debugger client.
+ *
+ * Listens for and accepts connections on the standard Lua
+ * debug port (8172).  After accepting a connection, sends a
+ * list of breakpoints and begins execution.
+ *
+ * Remote client is responsible for stopping at any set breakpoints,
+ * and returning a call stack upon doing so.
+ */
+class LuaDebuggerController(
+    private val session: XDebugSession
+) {
+    private var serverSocket: ServerSocket? = null
+    private var clientAddress: InetAddress? = null
+    private var connection: LuaDebugConnection? = null
+    private var serverPort: Int = 8172
+    private var requests: MutableMap<DebugCommand, AsyncPromise<String>> = mutableMapOf()
+    private var console: ConsoleView? = null
+    var isReady: Boolean = false
+        private set
+
+    var myBreakpoints2Pos: MutableMap<XBreakpoint<*>?, LuaPosition?> = HashMap<XBreakpoint<*>?, LuaPosition?>()
+    var myPos2Breakpoints: MutableMap<LuaPosition?, XBreakpoint<*>?> = HashMap<LuaPosition?, XBreakpoint<*>?>()
+
+    private var baseDir: String
+    private var workingDir: File
+
+    init {
+        session.setPauseActionSupported(false)
+
+        val workingDirectory: String = listOfNotNull(
+            (this.session.runProfile as? LuaRunConfiguration)?.workingDirectory,
+            session.project.basePath,
+            ""
+        ).first()
+
+        val baseDir = if (!workingDirectory.endsWith("/")) "$workingDirectory/" else workingDirectory
+        this.baseDir = baseDir
+
+        workingDir = File(baseDir)
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                log.info("Starting Debug Controller")
+                val serverSocket = ServerSocket(serverPort)
+                this.serverSocket = serverSocket
+
+                log.info("Accepting Connections")
+                val clientSocket = serverSocket.accept()
+                clientAddress = clientSocket!!.getInetAddress()
+                log.info("Client Connected $clientAddress")
+
+                connection = LuaDebugConnection(clientSocket, DebugObserver())
+            } catch (_: IOException) {
+                log.info("Failed to accept client connection.")
+            }
+
+            connection?.run()
+        }
+    }
+
+    fun printToConsole(text: String?, contentType: ConsoleViewContentType) {
+        val console = this.console
+        if (console == null) {
+            log.error("Console not set")
+            return
+        }
+
+        console.print(text + '\n', contentType)
+    }
+
+    @Throws(IOException::class)
+    fun waitForConnect() {
+        var count = 0
+        while (connection == null) {
+            try {
+                Thread.sleep(100)
+                if (++count > 50) throw RuntimeException("timeout")
+            } catch (e: InterruptedException) {
+                e.printStackTrace() //To change body of catch statement use File | Settings | File Templates.
+            }
+        }
+
+        printToConsole("Debugger connected at $clientAddress", ConsoleViewContentType.SYSTEM_OUTPUT)
+
+        try {
+            Thread.sleep(1000)
+        } catch (e: InterruptedException) {
+            e.printStackTrace() //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        this.isReady = true
+
+        setBaseDir()
+    }
+
+    fun terminate() {
+        log.info("terminate")
+        queueRequest(DebugCommand(DebugCommandKind.EXIT)).then { close() }.onError { close() }
+    }
+
+    fun terminated() {
+        log.info("destroyed")
+        close()
+    }
+
+    @Synchronized
+    fun close() {
+        isReady = false
+        if (serverSocket != null) {
+            try {
+                serverSocket!!.close()
+            } catch (_: IOException) {
+            }
+
+            serverSocket = null
+        }
+        if (connection != null) {
+            try {
+                connection!!.close()
+            } catch (_: IOException) {
+            }
+
+            connection = null
+        }
+    }
+
+    fun setConsole(console: ConsoleView) {
+        this.console = console
+    }
+
+    private fun queueRequest(command: DebugCommand): Promise<String> {
+        log.info("Queuing command ${command.kind.name}")
+        val connection = this.connection ?: return rejectedPromise("debugger connection closed")
+
+        val promise = AsyncPromise<String>()
+        synchronized(requests) {
+            requests.put(command, promise)
+        }
+
+        connection.queue(command)
+
+        return promise
+    }
+
+    private fun queueCommand(command: DebugCommand): Promise<Unit> {
+        return queueRequest(command).then {}
+    }
+
+    /**/////////////////////////// */ // Remote Requests
+    fun stepInto(): Promise<String> {
+        return queueRequest(DebugCommand(DebugCommandKind.STEP))
+    }
+
+    fun stepOver(): Promise<String> {
+        return queueRequest(DebugCommand(DebugCommandKind.OVER))
+    }
+
+    fun stepOut(): Promise<String> {
+        return queueRequest(DebugCommand(DebugCommandKind.OUT))
+    }
+
+    fun resume(): Promise<String> {
+        return queueRequest(DebugCommand(DebugCommandKind.RUN))
+    }
+
+    fun setBaseDir(): Promise<Unit> {
+        return queueCommand(
+            DebugCommand(
+                DebugCommandKind.BASEDIR,
+                listOf(baseDir)
+            )
+        )
+    }
+
+    fun addBreakPoint(breakpoint: XBreakpoint<*>): Promise<Unit> {
+        val sourcePosition = breakpoint.sourcePosition ?: return rejectedPromise("debugger connection closed")
+        val pos = LuaPosition.createRemotePosition(sourcePosition, workingDir)
+
+        myBreakpoints2Pos.put(breakpoint, pos)
+        myPos2Breakpoints.put(pos, breakpoint)
+
+        return queueCommand(DebugCommand(DebugCommandKind.SETB, pos.args()))
+    }
+
+    fun removeBreakPoint(breakpoint: XBreakpoint<*>): Promise<Unit> {
+        val sourcePosition = breakpoint.sourcePosition ?: return rejectedPromise("debugger connection closed")
+        val pos = LuaPosition.createRemotePosition(sourcePosition, workingDir)
+
+        myBreakpoints2Pos.remove(breakpoint)
+        myPos2Breakpoints.remove(pos)
+
+        return queueCommand(DebugCommand(DebugCommandKind.DELB, pos.args()))
+    }
+
+    fun execute(statement: String): Promise<LuaDebugValue?> {
+        val command = DebugCommand(DebugCommandKind.EXEC, listOf(statement))
+        return queueRequest(command).then { text ->
+            // TODO: Parse the value from `it`
+            LuaDebugValue("TODO")
+//            try {
+//                val globals: Globals = JsePlatform.debugGlobals()
+//                val chunk: LuaValue = globals.load(valueString)
+//                val stackDump: LuaTable = chunk.call().checktable() // Executes the chunk and returns it
+//                LuaRemoteStack.clearIdKey(stackDump)
+//                var rawValue: LuaValue = stackDump
+//                if (stackDump.keyCount() === 1) rawValue = stackDump.get(1)
+//                else if (stackDump.keyCount() === 0) rawValue = LuaValue.NIL
+//                val value = LuaDebugValue(rawValue, AllIcons.Debugger.Watch)
+//            } catch (e: LuaError) {
+//                promise.setResult(LuaDebugValue(e.message))
+//            }
+        }.onError { e ->
+            LuaDebugValue(e.message)
+        }
+    }
+
+    fun variables(): Promise<LuaRemoteStack> {
+        val command = DebugCommand(DebugCommandKind.STACK)
+        return queueRequest(command)
+            .then {
+                var luaRemoteStack : LuaRemoteStack? = null
+                ApplicationManager.getApplication().runReadAction {
+                    luaRemoteStack = LuaRemoteStack.create(session.project, it)
+                }
+                luaRemoteStack!!
+            }
+            .onError { e -> log.error(e) }
+    }
+
+
+    inner class DebugObserver : LuaDebugObserver {
+        override fun onCommandComplete(
+            command: DebugCommand,
+            status: DebuggerStatus,
+            data: String
+        ) {
+            log.info("Received response to $command: $data")
+
+            var promise: AsyncPromise<String>
+            synchronized(requests) {
+                promise = requests.getOrDefault(command, null) ?: return
+            }
+
+            if (status.isError) {
+                promise.setError(data)
+            } else {
+                promise.setResult(data)
+            }
+        }
+
+        override fun onCommandCancelled(command: DebugCommand) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onPauseWatchpoint(
+            pos: LuaPosition,
+            watchIndex: Int
+        ) {
+            log.info("watch $watchIndex at ${pos.path} line ${pos.line}")
+            onPause(pos)
+        }
+
+        override fun onPauseBreakpoint(pos: LuaPosition) {
+            log.info("break at ${pos.path} line ${pos.line}")
+            onPause(pos)
+        }
+
+        fun onPause(pos: LuaPosition) {
+            val bp: XBreakpoint<*>? = myPos2Breakpoints.get(pos)
+
+            variables().then { stack ->
+                if (bp != null) {
+                    // Breakpoint fired
+                    val ctx = LuaSuspendContext(session.project, this@LuaDebuggerController, bp, stack)
+                    session.breakpointReached(bp, null, ctx)
+                } else {
+                    // Watchpoint fired / Step completed
+                    val sp: XSourcePosition? = pos.localPosition()
+                    val ctx = LuaSuspendContext(session.project, this@LuaDebuggerController, sp, stack)
+                    session.positionReached(ctx)
+                }
+            }
+        }
+
+        override fun onRunExecutionError(file: String) {
+            log.info("Received execution error in $file")
+
+            TODO("Not yet implemented")
+        }
+
+        override fun onDisconnected() {
+            close()
+        }
+    }
+
+    companion object {
+        val log = logger<LuaDebuggerController>()
+    }
+}

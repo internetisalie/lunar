@@ -1,4 +1,4 @@
-package net.internetisalie.lunar.lang
+package net.internetisalie.lunar
 
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture

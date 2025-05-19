@@ -15,13 +15,8 @@ import net.internetisalie.lunar.lang.LuaFileType
 object LuaFileUtil {
     val pluginVirtualDirectory: VirtualFile?
         get() {
-            val descriptor =
-                getPlugin(PluginId.getId(LuaPlugin.ID))
-            if (descriptor != null) {
-                return VirtualFileManager.getInstance().findFileByNioPath(descriptor.pluginPath)
-            }
-
-            return null
+            val descriptor = getPlugin(PluginId.getId(LuaPlugin.ID)) ?: return null
+            return VirtualFileManager.getInstance().findFileByNioPath(descriptor.pluginPath)
         }
 
     fun getPluginVirtualDirectoryChild(vararg args: String): VirtualFile? {

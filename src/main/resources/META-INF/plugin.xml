@@ -142,6 +142,9 @@
     <configurationType
             implementation="net.internetisalie.lunar.run.LuaRunConfigurationType"/>
 
+    <programRunner implementation="net.internetisalie.lunar.run.LuaDebugRunner"/>
+    <xdebugger.breakpointType implementation="net.internetisalie.lunar.run.LuaLineBreakpointType"/>
+
     <applicationConfigurable groupId="tools"
             instance="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel"
             id="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel"

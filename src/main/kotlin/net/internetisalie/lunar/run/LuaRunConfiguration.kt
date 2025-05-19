@@ -5,14 +5,17 @@ import com.intellij.execution.Executor
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
 import com.intellij.execution.configurations.*
+import com.intellij.execution.executors.DefaultDebugExecutor
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessHandlerFactory
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.execution.runners.GenericProgramRunner
+import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.StoredProperty
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
-import com.intellij.openapi.graph.util.CommandLineArguments
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -22,14 +25,21 @@ import com.intellij.ui.RawCommandLineEditor
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.execution.ParametersListUtil
 import com.intellij.util.ui.FormBuilder
+import com.intellij.xdebugger.XDebugProcess
+import com.intellij.xdebugger.XDebugProcessStarter
+import com.intellij.xdebugger.XDebugSession
+import com.intellij.xdebugger.XDebuggerManager
+import com.intellij.xdebugger.evaluation.XDebuggerEditorsProvider
 import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.lang.path.PathConfiguration
-import net.internetisalie.lunar.settings.LuaApplicationSettings
 import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaInterpreterFamily
 import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
+import net.internetisalie.lunar.settings.LuaApplicationSettings
 import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.util.LuaFileUtil
+import org.jetbrains.annotations.NonNls
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -182,9 +192,11 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
             options.workingDirectory = workingDirectory
         }
 
-    var sourcePath : String?
+    var sourcePath: String?
         get() = options.sourcePath
-        set(sourcePath) { options.sourcePath = sourcePath }
+        set(sourcePath) {
+            options.sourcePath = sourcePath
+        }
 
     var environmentVariables: EnvironmentVariablesData?
         get() = EnvironmentVariablesData.create(
@@ -206,11 +218,15 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
 
     var programArguments: String?
         get() = options.programArguments
-        set(programArguments) { options.programArguments = programArguments}
+        set(programArguments) {
+            options.programArguments = programArguments
+        }
 
     var interpreterArguments: String?
         get() = options.interpreterArguments
-        set(interpreterArguments) { options.interpreterArguments = interpreterArguments}
+        set(interpreterArguments) {
+            options.interpreterArguments = interpreterArguments
+        }
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> {
         return LuaRunSettingsEditor(project)
@@ -239,6 +255,18 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
 
                 environmentVariables?.configureCommandLine(commandLine, true)
 
+                // Debugging support
+                if (executor.getId() == DefaultDebugExecutor.EXECUTOR_ID) {
+                    val pluginLuaPath = LuaFileUtil.getPluginVirtualDirectoryChild("lua")
+                        ?: throw ExecutionException("Failed to locate plugin directory")
+                    val debuggerPreloaderFile = pluginLuaPath.findChild(DEBUGGER_PRELOADER_FILE)
+                        ?: throw ExecutionException("Failed to locate debugger preloader")
+
+                    commandLine.withEnvironment(ENV_LUNAR_LUA_PATH_TEMPLATE, pluginLuaPath.path + "/?/init.lua")
+                    commandLine.withEnvironment(ENV_LUNAR_DEBUGGER_PACKAGE, DEBUGGER_PACKAGE)
+                    commandLine.withEnvironment(ENV_LUA_INIT, "@${debuggerPreloaderFile.path}")
+                }
+
                 val sourcePath = sourcePath ?: ""
                 if (sourcePath.isNotEmpty()) {
                     commandLine.withEnvironment("LUA_PATH", sourcePath)
@@ -251,8 +279,6 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
                     }
                 }
 
-                // TODO: program arguments
-
                 val processHandler = ProcessHandlerFactory.getInstance()
                     .createColoredProcessHandler(commandLine)
 
@@ -260,6 +286,14 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
                 return processHandler
             }
         }
+    }
+
+    companion object {
+        const val DEBUGGER_PRELOADER_FILE = "debug.lua"
+        const val DEBUGGER_PACKAGE = "mobdebug"
+        const val ENV_LUA_INIT = "LUA_INIT"
+        const val ENV_LUNAR_LUA_PATH_TEMPLATE = "LUNAR_LUA_PATH_TEMPLATE"
+        const val ENV_LUNAR_DEBUGGER_PACKAGE = "LUNAR_DEBUGGER_PACKAGE"
     }
 }
 
@@ -322,5 +356,32 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
 
     override fun createEditor(): JComponent {
         return myPanel
+    }
+}
+
+class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
+    override fun getRunnerId(): @NonNls String {
+        return LuaDebugRunner::class.qualifiedName!!
+    }
+
+    override fun canRun(executorId: String, runProfile: RunProfile): Boolean {
+        return executorId == DefaultDebugExecutor.EXECUTOR_ID &&
+                runProfile is LuaRunConfiguration
+    }
+
+    override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
+        val executionResult = state.execute(environment.executor, this) ?: return null
+
+        val session = XDebuggerManager.getInstance(environment.project).startSession(environment, object : XDebugProcessStarter() {
+            override fun start(session: XDebugSession): XDebugProcess {
+                return LuaDebugProcess(session, executionResult)
+            }
+        })
+
+        return session.runContentDescriptor
+    }
+
+    companion object {
+        private val log = Logger.getInstance(LuaDebugRunner::class.java)
     }
 }

@@ -13,7 +13,7 @@ object LuaCheckInvoker {
     private val LOG = logger<LuaCheckInvoker>()
 
     fun invoke(virtualFile : VirtualFile, psiFile : PsiFile) : List<Problem> {
-        val dir = virtualFile.parent
+        val dir = virtualFile.parent ?:  return emptyList()
         val relativeFilePath = virtualFile.name
 
         val cmd = newLuaCheckCommandLine(relativeFilePath, dir) ?: return emptyList()
