@@ -1,9 +1,10 @@
 package net.internetisalie.lunar.lang.syntax
 
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.rml.dfa.analyzes.Assigned
 import net.internetisalie.lunar.lang.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
+import net.internetisalie.lunar.lang.insight.LuaBindings
+import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 

@@ -1,10 +1,9 @@
-package net.internetisalie.lunar.lang.syntax
+package net.internetisalie.lunar.lang.insight
 
 import com.intellij.codeInsight.highlighting.AbstractCodeBlockSupportHandler
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import kotlin.collections.flatten
 
 class LuaCodeBlockSupportHandler : AbstractCodeBlockSupportHandler() {
     private val keywordTokens = mapOf(

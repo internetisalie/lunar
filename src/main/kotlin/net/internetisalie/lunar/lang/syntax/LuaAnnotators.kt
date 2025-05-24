@@ -7,6 +7,9 @@ import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
+import net.internetisalie.lunar.lang.insight.Kind
+import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
+import net.internetisalie.lunar.lang.insight.Reference
 import net.internetisalie.lunar.lang.psi.LuaAttribName
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaLabel

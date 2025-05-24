@@ -1,4 +1,4 @@
-package net.internetisalie.lunar.lang.syntax
+package net.internetisalie.lunar.lang.insight
 
 import com.intellij.psi.PsiElement
 import com.intellij.openapi.project.Project
@@ -10,6 +10,7 @@ import com.intellij.psi.search.ProjectScope
 import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.*
+import net.internetisalie.lunar.lang.syntax.extractLuaString
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 enum class Kind(val index: Int) {

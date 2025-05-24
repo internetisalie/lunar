@@ -2,7 +2,6 @@ package net.internetisalie.lunar.lang.doc
 
 import com.intellij.codeInsight.navigation.targetPresentation
 import com.intellij.model.Pointer
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.platform.backend.documentation.DocumentationResult
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
@@ -17,10 +16,7 @@ import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
-import net.internetisalie.lunar.lang.syntax.LuaBindingsVisitor
-import net.internetisalie.lunar.lang.syntax.LuaImports
-import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDocumentationRenderer
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
+import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 
 class LuaDocumentationTargetProvider : DocumentationTargetProvider {

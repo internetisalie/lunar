@@ -96,10 +96,10 @@
             implementation="net.internetisalie.lunar.lang.LuaLabelReferenceContributor"/>
     <lang.findUsagesProvider
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.LuaLabelFindUsagesProvider"/>
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaLabelFindUsagesProvider"/>
     <lang.refactoringSupport
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.LuaLabelRefactoringSupportProvider"/>
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaLabelRefactoringSupportProvider"/>
 
     <lang.psiStructureViewFactory language="Lua"
                                   implementationClass="net.internetisalie.lunar.lang.structure.LuaStructureViewFactory"/>
@@ -114,11 +114,11 @@
 
     <lang.foldingBuilder
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.LuaFoldingBuilder" />
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaFoldingBuilder" />
 
     <codeBlockSupportHandler
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaCodeBlockSupportHandler" />
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaCodeBlockSupportHandler" />
 
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 

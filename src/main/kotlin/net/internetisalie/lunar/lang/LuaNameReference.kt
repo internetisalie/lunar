@@ -9,7 +9,7 @@ import net.internetisalie.lunar.lang.LuaIcons.FILE
 import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import net.internetisalie.lunar.lang.syntax.LuaBindingsVisitor
+import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaNameReference(element: PsiElement, textRange: TextRange) :

@@ -12,8 +12,8 @@ import com.intellij.util.indexing.ID
 import com.intellij.util.io.EnumeratorIntegerDescriptor
 import com.intellij.util.io.KeyDescriptor
 import net.internetisalie.lunar.lang.path.SourcePathPattern
-import net.internetisalie.lunar.lang.syntax.LuaBindingsVisitor
-import net.internetisalie.lunar.lang.syntax.Scope
+import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
+import net.internetisalie.lunar.lang.insight.Scope
 import org.jetbrains.annotations.NonNls
 import java.beans.PropertyChangeListener
 import java.io.DataInput

@@ -1,4 +1,4 @@
-package net.internetisalie.lunar.lang
+package net.internetisalie.lunar.lang.insight
 
 import com.intellij.lang.cacheBuilder.DefaultWordsScanner
 import com.intellij.lang.cacheBuilder.WordsScanner
