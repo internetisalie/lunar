@@ -116,6 +116,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaFoldingBuilder" />
 
+    <codeBlockSupportHandler
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaCodeBlockSupportHandler" />
+
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 
     <!-- Options -->

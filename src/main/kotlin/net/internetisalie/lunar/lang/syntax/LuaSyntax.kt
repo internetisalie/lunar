@@ -158,4 +158,24 @@ object LuaSyntax {
         LuaElementTypes.ELLIPSIS,
         LuaElementTypes.CONCAT,
     )
+
+    val StatementTokens : TokenSet = TokenSet.create(
+        LuaElementTypes.ASSIGNMENT_STATEMENT,
+        LuaElementTypes.BREAK_STATEMENT,
+        LuaElementTypes.DO_STATEMENT,
+        LuaElementTypes.EMPTY_STATEMENT,
+        LuaElementTypes.FINAL_STATEMENT,
+        LuaElementTypes.FUNC_CALL_STATEMENT,
+        LuaElementTypes.FUNC_DECL,
+        LuaElementTypes.GENERIC_FOR_STATEMENT,
+        LuaElementTypes.GOTO_STATEMENT,
+        LuaElementTypes.IF_STATEMENT,
+        LuaElementTypes.LABEL,
+        LuaElementTypes.LOCAL_FUNC_DECL,
+        LuaElementTypes.LOCAL_VAR_DECL,
+        LuaElementTypes.NUMERIC_FOR_STATEMENT,
+        LuaElementTypes.REPEAT_STATEMENT,
+        LuaElementTypes.STATEMENT,
+        LuaElementTypes.WHILE_STATEMENT
+    )
 }

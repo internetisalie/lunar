@@ -55,6 +55,8 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
     }
 }
 
+const val NEWLINE = '\n'
+
 class LuaFoldingVisitor(
     private val descriptors: MutableList<FoldingDescriptor>
 ) : LuaRecursiveVisitor() {
@@ -75,13 +77,18 @@ class LuaFoldingVisitor(
                 nextNext = next.nextSibling
             }
 
+            val prevStart = prev.textRange.startOffset
+            var nextEnd = next.textRange.endOffset
+            if (blocks.size > 2 &&
+                next is PsiWhiteSpace &&
+                next.text.lastIndexOf(NEWLINE) == next.textLength - 1) {
+                nextEnd--
+            }
+
             descriptors.add(
                 FoldingDescriptor(
                     block.node,
-                    TextRange(
-                        prev.textRange.startOffset,
-                        next.textRange.endOffset
-                    )
+                    TextRange(prevStart, nextEnd)
                 )
             )
         }
