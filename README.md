@@ -17,37 +17,42 @@ Lua support for IntelliJ Platform.
 #### Language
 
 - [x] Statement structure from IDLua
-- [ ] Lua 5.4 syntax
+- [x] Lua 5.4 syntax
   - `<const>`, `<close>` local variable attributes
 - [ ] Luau syntax?
 - Formatter
   - [Expressions](https://github.com/JetBrains/intellij-community/blob/6319a70ded4aa13b0f3544aa762392afe28461ae/plugins/groovy/src/org/jetbrains/plugins/groovy/formatter/blocks/GroovyBlock.java)
   - [x] Port Basic Spacing
   - [ ] Review `stylua` formatter
-- [x] Folding Builder
-- Name Validator
-- Bindings
-  - Locals are early-bound
-  - Globals are late-bound
-  ```lua
-  > function hello() callit() end
-  > hello()
-  stdin:1: attempt to call a nil value (global 'callit')
-  stack traceback:
-  stdin:1: in function 'hello'
-  (...tail calls...)
-  [C]: in ?
-  > local function callit () end
-  > hello()
-  stdin:1: attempt to call a nil value (global 'callit')
-  stack traceback:
-  stdin:1: in function 'hello'
-  (...tail calls...)
-  [C]: in ?
-  > function callit() end
-  > hello()
-  >
-  ```
+- Refactoring
+  - [ ] Labels
+  - Name Validator
+- Insight
+  - [x] Folding Builder
+  - [x] Code Block Support
+  - [x] Find Usages (Labels)
+  - Bindings
+    - Locals are early-bound
+    - Globals are late-bound
+    ```lua
+      >   function hello() callit() end
+      >   hello()
+      stdin:1: attempt to call a nil value (global 'callit')
+      stack traceback:
+      stdin:1: in function 'hello'
+      (...tail calls...)
+      [C]: in ?
+      >   local function callit () end
+      >   hello()
+      stdin:1: attempt to call a nil value (global 'callit')
+      stack traceback:
+      stdin:1: in function 'hello'
+      (...tail calls...)
+      [C]: in ?
+      >   function callit() end
+      >   hello()
+      >
+    ```
 - [ ] Auto-complete
 - [ ] Enter Handler
   - [x] Lua
@@ -65,25 +70,16 @@ Lua support for IntelliJ Platform.
 
 #### Project Settings
 
-- [ ] Language
-  - Lua 5.1
-  - Lua 5.2
-  - Lua 5.3
-  - Lua 5.4
-  - Luau
+- [ ] Language Level
+  - [x] Lua 5.1
+  - [x] Lua 5.2
+  - [x] Lua 5.3
+  - [x] Lua 5.4
+  - [ ] Luau
 - [ ] Runtime
-  - Redis
-  - Tarantool
-  - LuaJIT
-
-```xml
-<projectConfigurable
-      parentId="tools"
-      instance="com.example.ProjectSettingsConfigurable"
-      id="com.example.ProjectSettingsConfigurable"
-      displayName="My Project Settings"
-      nonDefaultProject="true"/>
-```
+  - [x] Lua PUC-RIO
+  - [ ] LuaJIT
+  - [ ] Luau?
 
 #### Static Analysis
 

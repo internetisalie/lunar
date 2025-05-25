@@ -37,9 +37,10 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
     override fun isCollapsedByDefault(node: ASTNode): Boolean {
         return when (node.elementType) {
-            LuaElementTypes.LONGCOMMENT -> true
-            LuaElementTypes.STRING -> true
-            LuaCatsElementTypes.COMMENT -> true
+            LuaElementTypes.LONGCOMMENT,
+            LuaElementTypes.STRING,
+            LuaCatsElementTypes.COMMENT,
+                -> true
             else -> false
         }
     }
@@ -50,6 +51,7 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
             LuaElementTypes.LONGCOMMENT -> "--[[" + summarize(extractLuaComment(node.text)) + "]]"
             LuaElementTypes.SHORTCOMMENT -> "-- " + summarize(extractLuaComment(node.text))
             LuaCatsElementTypes.COMMENT -> "--- " + summarize(LuaCatsSummary.getText(node.psi as LuaCatsComment) ?: "")
+            LuaElementTypes.TABLE_CONSTRUCTOR -> "{...}"
             else -> PLACEHOLDER_TEXT
         }
     }
@@ -94,6 +96,19 @@ class LuaFoldingVisitor(
         }
     }
 
+    private fun foldTable(table : LuaTableConstructor) {
+        if (table.textLength<3) return
+        descriptors.add(
+            FoldingDescriptor(
+                table.node,
+                TextRange(
+                    table.textRange.startOffset,
+                    table.textRange.endOffset
+                )
+            )
+        )
+    }
+
     private fun foldString(node: ASTNode) {
         descriptors.add(
             FoldingDescriptor(
@@ -120,6 +135,7 @@ class LuaFoldingVisitor(
         when {
             element is LuaBlockParent -> foldBlocks(element.getBlockList())
             element is PsiComment -> foldComment(element.node)
+            element is LuaTableConstructor -> foldTable(element)
             element.elementType == LuaElementTypes.STRING -> {
                 if (element.textContains('\n')) foldString(element.node)
             }
