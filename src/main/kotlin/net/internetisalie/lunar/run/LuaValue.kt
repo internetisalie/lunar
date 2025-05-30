@@ -47,6 +47,10 @@ open class LuaValue(
         return if (kind == LuaValueKind.Table && element is LuaTableConstructor) LuaTable(element)
         else null
     }
+
+    companion object {
+        val NONE = LuaValue(null)
+    }
 }
 
 open class LuaTable(

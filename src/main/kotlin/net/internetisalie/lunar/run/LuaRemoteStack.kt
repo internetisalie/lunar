@@ -1,20 +1,28 @@
 package net.internetisalie.lunar.run
 
+import ai.grazie.utils.text
+import com.intellij.openapi.diagnostic.LogLevel
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
+import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
+import net.internetisalie.lunar.lang.psi.LuaDoStatement
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaField
+import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFinalStatement
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
+import java.util.logging.LogManager
 
 class LuaRemoteStack(
     table: LuaTableConstructor?,
 ) {
     private val virtualFiles : MutableMap<String, VirtualFile?> = mutableMapOf()
-
     val entries: List<LuaRemoteStackEntry> = LuaTable(table).getFieldValues()
             .map { it -> LuaRemoteStackEntry(it as LuaTableConstructor, virtualFiles) }
 
@@ -23,13 +31,14 @@ class LuaRemoteStack(
             val codeFragment = LuaElementFactory.createExpressionCodeFragment(project, text, null, true)
             return create(codeFragment)
         }
-
         fun create(file: PsiFile): LuaRemoteStack {
             val table = PsiTreeUtil.findChildOfType(file, LuaTableConstructor::class.java)
                 ?: return LuaRemoteStack(null)
             return LuaRemoteStack(table)
         }
+
     }
+
 }
 
 // { {frame}, {locals}, {upvalues} }
@@ -37,7 +46,6 @@ class LuaRemoteStackEntry(
     stackEntryTable: LuaTableConstructor,
     private val virtualFiles: MutableMap<String, VirtualFile?>,
 ) : LuaTable(stackEntryTable) {
-
     init {
         val path = frame.path
         if (!virtualFiles.contains(path)) {
@@ -57,6 +65,7 @@ class LuaRemoteStackEntry(
     // { d = { 1, "1" }, e = { 2, "2" }, _ENV = { {...}, "table: 0x5e930bee3c50" } }
     val upvalues: LuaRemoteScope
         get() = LuaRemoteScope(getTableField(2))
+
 }
 
 // { "c", "stack.lua", 3, 5, "Lua", "local", "/home/mini/Documents/src/lua/test/stack.lua" }
@@ -70,7 +79,6 @@ class LuaRemoteStackFrame(
 ) : LuaTable(stackFrameTable) {
     val name: String
         get() = getStringField(0) ?: ""
-
     val file: String
         get() = getStringField(1) ?: "unknown"
 
@@ -84,6 +92,7 @@ class LuaRemoteStackFrame(
         get() = getStringField(6) ?: ""
 
     val virtualFile : VirtualFile? = virtualFiles.getOrDefault(path, null)
+
 }
 
 class LuaRemoteScope(
@@ -91,11 +100,11 @@ class LuaRemoteScope(
 ) : LuaTable(scopeTable) {
     val variables : List<LuaRemoteVariable>
         get() = getFields().map { field -> LuaRemoteVariable(field) }
-
     fun getVariable(name: String): LuaRemoteVariable? {
         val field = getField(name) ?: return null
         return LuaRemoteVariable(field)
     }
+
 }
 
 class LuaRemoteVariable(
@@ -103,11 +112,59 @@ class LuaRemoteVariable(
 ) {
     val name : String
         get() = variableField.name ?: "anonymous"
-
     val value : LuaExpr?
         get() = LuaTable(variableField.value as? LuaTableConstructor).getFieldValue(0)
 
     val displayValue : String?
         get() = LuaTable(variableField.value as? LuaTableConstructor).getStringField(1)
+
+}
+
+object LuaRemoteResultFactory {
+    var log = logger<LuaRemoteResultFactory>()
+
+    init {
+        log.setLevel(LogLevel.ALL)
+    }
+
+    fun create(file: PsiFile) : LuaValue {
+        if (file !is LuaFile) return LuaValue.NONE
+
+        val variables = mutableMapOf<String, LuaValue>()
+        val wrapper = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
+            ?: return LuaValue.NONE
+
+        for (statement in wrapper.block.statementList) {
+            when (statement) {
+                is LuaLocalVarDecl -> {
+                    log.warn("local var declaration: ${statement.attNameList.joinToString(", "){ it.nameRef.text } }")
+                    for ((index, attName) in statement.attNameList.withIndex()) {
+                        val name = attName.nameRef.text
+                        val psiValue = statement.exprList?.exprList[index] ?: continue
+                        variables[name] = LuaValue(psiValue)
+                    }
+                }
+                is LuaAssignmentStatement -> {
+                    log.warn("assignment statement: ${statement.varList.text}")
+
+                }
+                is LuaFinalStatement -> {
+                    log.warn("return statement: ${statement.exprList?.text}")
+                    val varName = statement.exprList?.exprList[0]?.text ?: continue
+
+                    return if (!variables.containsKey(varName)) {
+                        // missing variable
+                        LuaValue.NONE
+                    } else {
+                        // return the value
+                        variables[varName]!!
+                    }
+                }
+            }
+        }
+
+        // missing return statement
+        return LuaValue.NONE
+    }
 }
 
