@@ -23,7 +23,7 @@ kotlin {
 repositories {
     mavenCentral()
 
-    // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
+    // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin-repositories-extension.html
     intellijPlatform {
         defaultRepositories()
     }
@@ -41,29 +41,28 @@ dependencies {
     testImplementation(kotlin("test"))
     intellijPlatform {
         create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
-        bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
+        bundledPlugins(
+            providers.gradleProperty("platformBundledPlugins")
+                .orNull
+                .orEmpty()
+                .split(',')
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+        )
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Plugin.Go)
     }
 }
 
-// Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
+// Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-gradle-plugin-extension.html
 intellijPlatform {
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
 
-        // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
-        description = providers.fileContents(layout.projectDirectory.file("README.md")).asText.map {
-            val start = "<!-- Plugin description -->"
-            val end = "<!-- Plugin description end -->"
-
-            with(it.lines()) {
-                if (!containsAll(listOf(start, end))) {
-                    throw GradleException("Plugin description section not found in README.md:\n$start ... $end")
-                }
-                subList(indexOf(start) + 1, indexOf(end)).joinToString("\n").let(::markdownToHTML)
-            }
+        // Extract the plugin description from plugin-description.md and provide it for the plugin manifest
+        description = providers.fileContents(layout.projectDirectory.file("plugin-description.md")).asText.map {
+            markdownToHTML(it)
         }
 
         val changelog = project.changelog // local variable for configuration cache compatibility
@@ -127,5 +126,8 @@ tasks {
 
     test {
         useJUnitPlatform()
+        dependsOn(prepareSandbox)
+        systemProperty("sandbox.home", layout.buildDirectory.dir("idea-sandbox").get().asFile.absolutePath)
+        systemProperty("plugin.name", providers.gradleProperty("pluginName").get())
     }
 }

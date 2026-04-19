@@ -1,8 +1,6 @@
 # lunar
 
-<!-- Plugin description -->
 Lua support for IntelliJ Platform.
-<!-- Plugin description end -->
 
 ### TODO
 
