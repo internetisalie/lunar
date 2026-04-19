@@ -2,7 +2,6 @@ package net.internetisalie.lunar.lang.lexer
 
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
-import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import kotlin.test.Test
 import kotlin.test.assertEquals

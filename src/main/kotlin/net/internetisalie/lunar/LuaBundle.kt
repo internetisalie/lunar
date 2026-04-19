@@ -1,7 +1,6 @@
 package net.internetisalie.lunar
 
 import com.intellij.BundleBase
-import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
 import java.lang.ref.Reference
 import java.lang.ref.SoftReference

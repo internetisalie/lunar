@@ -1,11 +1,9 @@
 package net.internetisalie.lunar.analysis.luacheck
 
-import com.intellij.codeInsight.navigation.fileLocation
 import com.intellij.icons.AllIcons
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.ide.util.treeView.NodeDescriptor
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem

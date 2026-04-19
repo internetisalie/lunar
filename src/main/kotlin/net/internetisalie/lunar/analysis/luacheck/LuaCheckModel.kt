@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.analysis.luacheck
 
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 
 class ProblemSummary

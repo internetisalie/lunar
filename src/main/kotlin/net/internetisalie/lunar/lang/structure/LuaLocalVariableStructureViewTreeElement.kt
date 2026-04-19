@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.lang.structure
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.ide.util.treeView.smartTree.TreeElement
 import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.PsiElement

@@ -34,7 +34,6 @@ import net.internetisalie.lunar.lang.indexing.PackageFile
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.util.LuaFileUtil
-import java.nio.file.Path
 import java.nio.file.Paths
 import javax.swing.Icon
 

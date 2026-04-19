@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.luacats.lang.syntax
 
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 

@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.luacats.lang.syntax
 
 import com.intellij.psi.tree.TokenSet
-import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
 object LuaCatsSyntax {

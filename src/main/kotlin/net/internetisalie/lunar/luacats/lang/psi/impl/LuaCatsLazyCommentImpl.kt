@@ -51,107 +51,107 @@ class LuaCatsLazyCommentImpl(text: CharSequence?) : LazyParseablePsiElement(LuaL
         else super.accept(visitor)
     }
 
-    override fun getAliasTagList(): MutableList<LuaCatsAliasTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsAliasTag?>(this, LuaCatsAliasTag::class.java)
+    override fun getAliasTagList(): List<LuaCatsAliasTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsAliasTag::class.java)
     }
 
-    override fun getAsyncTagList(): MutableList<LuaCatsAsyncTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsAsyncTag?>(this, LuaCatsAsyncTag::class.java)
+    override fun getAsyncTagList(): List<LuaCatsAsyncTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsAsyncTag::class.java)
     }
 
-    override fun getCastTagList(): MutableList<LuaCatsCastTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsCastTag?>(this, LuaCatsCastTag::class.java)
+    override fun getCastTagList(): List<LuaCatsCastTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsCastTag::class.java)
     }
 
-    override fun getClassTagList(): MutableList<LuaCatsClassTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsClassTag?>(this, LuaCatsClassTag::class.java)
+    override fun getClassTagList(): List<LuaCatsClassTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsClassTag::class.java)
     }
 
-    override fun getDeprecatedTagList(): MutableList<LuaCatsDeprecatedTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsDeprecatedTag?>(this, LuaCatsDeprecatedTag::class.java)
+    override fun getDeprecatedTagList(): List<LuaCatsDeprecatedTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsDeprecatedTag::class.java)
     }
 
-    override fun getDescriptionList(): MutableList<LuaCatsDescription?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsDescription?>(this, LuaCatsDescription::class.java)
+    override fun getDescriptionList(): List<LuaCatsDescription?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsDescription::class.java)
     }
 
-    override fun getDiagnosticTagList(): MutableList<LuaCatsDiagnosticTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsDiagnosticTag?>(this, LuaCatsDiagnosticTag::class.java)
+    override fun getDiagnosticTagList(): List<LuaCatsDiagnosticTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsDiagnosticTag::class.java)
     }
 
-    override fun getEnumTagList(): MutableList<LuaCatsEnumTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsEnumTag?>(this, LuaCatsEnumTag::class.java)
+    override fun getEnumTagList(): List<LuaCatsEnumTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsEnumTag::class.java)
     }
 
-    override fun getFieldTagList(): MutableList<LuaCatsFieldTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsFieldTag?>(this, LuaCatsFieldTag::class.java)
+    override fun getFieldTagList(): List<LuaCatsFieldTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsFieldTag::class.java)
     }
 
-    override fun getGenericTagList(): MutableList<LuaCatsGenericTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsGenericTag?>(this, LuaCatsGenericTag::class.java)
+    override fun getGenericTagList(): List<LuaCatsGenericTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsGenericTag::class.java)
     }
 
-    override fun getMetaTagList(): MutableList<LuaCatsMetaTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsMetaTag?>(this, LuaCatsMetaTag::class.java)
+    override fun getMetaTagList(): List<LuaCatsMetaTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsMetaTag::class.java)
     }
 
-    override fun getModuleTagList(): MutableList<LuaCatsModuleTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsModuleTag?>(this, LuaCatsModuleTag::class.java)
+    override fun getModuleTagList(): List<LuaCatsModuleTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsModuleTag::class.java)
     }
 
-    override fun getNodiscardTagList(): MutableList<LuaCatsNodiscardTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsNodiscardTag?>(this, LuaCatsNodiscardTag::class.java)
+    override fun getNodiscardTagList(): List<LuaCatsNodiscardTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsNodiscardTag::class.java)
     }
 
-    override fun getOperatorTagList(): MutableList<LuaCatsOperatorTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsOperatorTag?>(this, LuaCatsOperatorTag::class.java)
+    override fun getOperatorTagList(): List<LuaCatsOperatorTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsOperatorTag::class.java)
     }
 
-    override fun getOverloadTagList(): MutableList<LuaCatsOverloadTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsOverloadTag?>(this, LuaCatsOverloadTag::class.java)
+    override fun getOverloadTagList(): List<LuaCatsOverloadTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsOverloadTag::class.java)
     }
 
-    override fun getPackageTagList(): MutableList<LuaCatsPackageTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsPackageTag?>(this, LuaCatsPackageTag::class.java)
+    override fun getPackageTagList(): List<LuaCatsPackageTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsPackageTag::class.java)
     }
 
-    override fun getParamTagList(): MutableList<LuaCatsParamTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsParamTag?>(this, LuaCatsParamTag::class.java)
+    override fun getParamTagList(): List<LuaCatsParamTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsParamTag::class.java)
     }
 
-    override fun getPrivateTagList(): MutableList<LuaCatsPrivateTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsPrivateTag?>(this, LuaCatsPrivateTag::class.java)
+    override fun getPrivateTagList(): List<LuaCatsPrivateTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsPrivateTag::class.java)
     }
 
-    override fun getProtectedTagList(): MutableList<LuaCatsProtectedTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsProtectedTag?>(this, LuaCatsProtectedTag::class.java)
+    override fun getProtectedTagList(): List<LuaCatsProtectedTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsProtectedTag::class.java)
     }
 
-    override fun getReturnTagList(): MutableList<LuaCatsReturnTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsReturnTag?>(this, LuaCatsReturnTag::class.java)
+    override fun getReturnTagList(): List<LuaCatsReturnTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsReturnTag::class.java)
     }
 
-    override fun getSeeTagList(): MutableList<LuaCatsSeeTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsSeeTag?>(this, LuaCatsSeeTag::class.java)
+    override fun getSeeTagList(): List<LuaCatsSeeTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsSeeTag::class.java)
     }
 
-    override fun getSourceTagList(): MutableList<LuaCatsSourceTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsSourceTag?>(this, LuaCatsSourceTag::class.java)
+    override fun getSourceTagList(): List<LuaCatsSourceTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsSourceTag::class.java)
     }
 
-    override fun getTypeOptionList(): MutableList<LuaCatsTypeOption?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsTypeOption?>(this, LuaCatsTypeOption::class.java)
+    override fun getTypeOptionList(): List<LuaCatsTypeOption?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsTypeOption::class.java)
     }
 
-    override fun getTypeTagList(): MutableList<LuaCatsTypeTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsTypeTag?>(this, LuaCatsTypeTag::class.java)
+    override fun getTypeTagList(): List<LuaCatsTypeTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsTypeTag::class.java)
     }
 
-    override fun getVarargTagList(): MutableList<LuaCatsVarargTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsVarargTag?>(this, LuaCatsVarargTag::class.java)
+    override fun getVarargTagList(): List<LuaCatsVarargTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsVarargTag::class.java)
     }
 
-    override fun getVersionTagList(): MutableList<LuaCatsVersionTag?> {
-        return PsiTreeUtil.getChildrenOfTypeAsList<LuaCatsVersionTag?>(this, LuaCatsVersionTag::class.java)
+    override fun getVersionTagList(): List<LuaCatsVersionTag?> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsVersionTag::class.java)
     }
 }
