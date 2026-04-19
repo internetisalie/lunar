@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.LogLevel
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import kotlin.test.Test

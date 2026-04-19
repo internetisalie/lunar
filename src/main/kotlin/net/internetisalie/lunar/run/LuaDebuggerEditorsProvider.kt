@@ -16,7 +16,6 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.lang.Language
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement

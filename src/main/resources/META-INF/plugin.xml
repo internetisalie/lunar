@@ -156,6 +156,12 @@
     <!-- Indexes -->
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaFileBindingsIndex"/>
 
+    <!-- Notifications -->
+    <notificationGroup id="notification.group.lunar.debugger"
+                       displayType="BALLOON"
+                       isLogByDefault="true" bundle="net.internetisalie.lunar.LuaBundle"
+                       key="notification.group.lua.debugger"/>
+
   </extensions>
 
   <actions>

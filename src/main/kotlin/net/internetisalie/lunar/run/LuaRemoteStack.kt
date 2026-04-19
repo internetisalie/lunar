@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.run
 
-import ai.grazie.utils.text
 import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -17,7 +16,6 @@ import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFinalStatement
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
-import java.util.logging.LogManager
 
 class LuaRemoteStack(
     table: LuaTableConstructor?,

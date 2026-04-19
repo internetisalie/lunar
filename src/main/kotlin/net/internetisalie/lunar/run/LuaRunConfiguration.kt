@@ -10,11 +10,9 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessHandlerFactory
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.execution.runners.GenericProgramRunner
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.StoredProperty
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
@@ -25,11 +23,6 @@ import com.intellij.ui.RawCommandLineEditor
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.execution.ParametersListUtil
 import com.intellij.util.ui.FormBuilder
-import com.intellij.xdebugger.XDebugProcess
-import com.intellij.xdebugger.XDebugProcessStarter
-import com.intellij.xdebugger.XDebugSession
-import com.intellij.xdebugger.XDebuggerManager
-import com.intellij.xdebugger.evaluation.XDebuggerEditorsProvider
 import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.lang.path.PathConfiguration
@@ -39,7 +32,6 @@ import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
 import net.internetisalie.lunar.settings.LuaApplicationSettings
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.util.LuaFileUtil
-import org.jetbrains.annotations.NonNls
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -356,32 +348,5 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
 
     override fun createEditor(): JComponent {
         return myPanel
-    }
-}
-
-class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
-    override fun getRunnerId(): @NonNls String {
-        return LuaDebugRunner::class.qualifiedName!!
-    }
-
-    override fun canRun(executorId: String, runProfile: RunProfile): Boolean {
-        return executorId == DefaultDebugExecutor.EXECUTOR_ID &&
-                runProfile is LuaRunConfiguration
-    }
-
-    override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
-        val executionResult = state.execute(environment.executor, this) ?: return null
-
-        val session = XDebuggerManager.getInstance(environment.project).startSession(environment, object : XDebugProcessStarter() {
-            override fun start(session: XDebugSession): XDebugProcess {
-                return LuaDebugProcess(session, executionResult)
-            }
-        })
-
-        return session.runContentDescriptor
-    }
-
-    companion object {
-        private val log = Logger.getInstance(LuaDebugRunner::class.java)
     }
 }
