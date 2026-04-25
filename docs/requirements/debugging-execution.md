@@ -12,6 +12,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-04` | **Expression Evaluation** | **S** | Allow users to evaluate arbitrary Lua expressions in the current context via a "Watch" or "Evaluate" window. |
 | `DEBUG-05` | **Remote Debugging** | **S** | Support connecting to external Lua processes (e.g., via Mobdebug or a custom DAP bridge). |
 | `DEBUG-06` | **Debug Target Configuration** | **S** | Validate debug configurations (script path, working directory, interpreter) before launching. |
+| `DEBUG-07` | **Lazy Remote Stack Evaluation** | **S** | Defer parsing of frame details, locals, and upvalues until explicitly accessed to reduce overhead for large stacks. |
 | `RUN-01` | **Lua Interpreter SDK** | **M** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
 | `RUN-02` | **Run Configurations** | **M** | Create and save configurations for script execution, including arguments and environment variables. |
 | `RUN-03` | **Interactive Console (REPL)** | **S** | Provide a Lua REPL console within the IDE using the selected project SDK. |
@@ -28,6 +29,8 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-03` | ✅ Implemented | `LuaDebuggerController` | Step Over/Into/Out commands fully supported |
 | `DEBUG-04` | 🟡 Partial | `LuaDebuggerEvaluator`, `LuaDebuggerController.execute` | Evaluator wired; result parsing incomplete (returns `TODO`) |
 | `DEBUG-05` | ✅ Implemented | `LuaDebugConnection`, `LuaDebugProcess` | Mobdebug connection listener on port 8172 |
+| `DEBUG-06` | ✅ Implemented | `LuaSuspendContext` | Validates debug configurations before launching |
+| `DEBUG-07` | ✅ Implemented | `LuaRemoteStackEntry` (lazy properties) | Frame, locals, upvalues accessed via property getters on demand |
 
 ### RUN Module
 
