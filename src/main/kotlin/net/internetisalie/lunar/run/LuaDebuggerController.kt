@@ -231,8 +231,8 @@ class LuaDebuggerController(
     fun execute(statement: String): Promise<LuaDebugValue?> {
         val command = DebugCommand(DebugCommandKind.EXEC, listOf(statement))
         return queueRequest(command).then { text ->
-            log.info("Expression evaluation response: $text")
             // TODO: Parse the value from `it`
+            // do local _={"1","3"};return _;end
             LuaDebugValue("TODO")
 //            try {
 //                val globals: Globals = JsePlatform.debugGlobals()

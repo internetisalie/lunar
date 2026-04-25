@@ -30,9 +30,12 @@ class LuaRemoteStack(
             return create(codeFragment)
         }
         fun create(file: PsiFile): LuaRemoteStack {
-            val table = PsiTreeUtil.findChildOfType(file, LuaTableConstructor::class.java)
+            val parser = LuaDebugValueParser()
+            val doStatement = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
                 ?: return LuaRemoteStack(null)
-            return LuaRemoteStack(table)
+            val table = parser.parse(doStatement)
+            // TODO: Change LuaRemoteStack
+            return LuaRemoteStack(null)
         }
 
     }
