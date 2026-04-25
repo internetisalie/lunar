@@ -1,6 +1,7 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.gradle.api.tasks.Exec
 
 plugins {
     id("java") // Java support
@@ -35,7 +36,10 @@ sourceSets {
     }
 }
 
+val ktlintConfig = configurations.create("ktlint")
+
 dependencies {
+    ktlintConfig(libs.ktlint)
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
     testImplementation(kotlin("test"))
@@ -109,6 +113,26 @@ tasks {
 
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
+    }
+
+    register("ktlintCheck") {
+        group = "verification"
+        description = "Check Kotlin code style with ktlint"
+        doFirst {
+            val ktlintJar = ktlintConfig.files.first { it.name.contains("ktlint-cli") }
+            println("ktlint check with: ${ktlintJar.absolutePath}")
+            println("Run: java -jar ${ktlintJar.absolutePath} --reporter=plain src/**/*.kt")
+        }
+    }
+
+    register("ktlintFormat") {
+        group = "formatting"
+        description = "Format Kotlin code with ktlint"
+        doFirst {
+            val ktlintJar = ktlintConfig.files.first { it.name.contains("ktlint-cli") }
+            println("ktlint format with: ${ktlintJar.absolutePath}")
+            println("Run: java -jar ${ktlintJar.absolutePath} -F src/**/*.kt")
+        }
     }
 
     publishPlugin {

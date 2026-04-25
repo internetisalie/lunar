@@ -11,7 +11,7 @@ class TestLuaLexer {
     data class TestCase(
         val name: String,
         val input: String,
-        val expected: List<Token>
+        val expected: List<Token>,
     ) {
         fun execute() {
             val lexer = LuaLexer()
@@ -42,7 +42,7 @@ class TestLuaLexer {
                 "'apos'",
                 listOf(
                     Token(0, "'apos'", LuaElementTypes.STRING),
-                )
+                ),
             ),
             TestCase(
                 "double-quoted",
@@ -62,7 +62,7 @@ class TestLuaLexer {
                 "[[Links]]",
                 listOf(
                     Token(0, "[[Links]]", LuaElementTypes.STRING),
-                )
+                ),
             ),
             TestCase(
                 "statement",
@@ -71,28 +71,28 @@ class TestLuaLexer {
                     Token(0, "require", LuaElementTypes.IDENTIFIER),
                     Token(7, " ", TokenType.WHITE_SPACE),
                     Token(8, "[[package.path]]", LuaElementTypes.STRING),
-                )
+                ),
             ),
             TestCase(
                 "opening-newline",
                 "[[\nLinks]]",
                 listOf(
                     Token(0, "[[\nLinks]]", LuaElementTypes.STRING),
-                )
+                ),
             ),
             TestCase(
                 "one-sep",
                 "[=[Links]=]",
                 listOf(
                     Token(0, "[=[Links]=]", LuaElementTypes.STRING),
-                )
+                ),
             ),
             TestCase(
                 "four-sep",
                 "[====[Links]====]",
                 listOf(
                     Token(0, "[====[Links]====]", LuaElementTypes.STRING),
-                )
+                ),
             ),
             TestCase(
                 "nested",
@@ -100,7 +100,7 @@ class TestLuaLexer {
                 listOf(
                     Token(0, "[[Lin[=[inside]=]ks]]", LuaElementTypes.STRING),
                 ),
-            )
+            ),
         )
     }
 
@@ -111,22 +111,23 @@ class TestLuaLexer {
                 "simple",
                 "--",
                 listOf(
-                    Token(0, "--", LuaElementTypes.SHORTCOMMENT)
-                )
+                    Token(0, "--", LuaElementTypes.SHORTCOMMENT),
+                ),
             ),
             TestCase(
                 "simple",
                 "-- hello",
                 listOf(
-                    Token(0, "-- hello", LuaElementTypes.SHORTCOMMENT)
-                )
+                    Token(0, "-- hello", LuaElementTypes.SHORTCOMMENT),
+                ),
             ),
             TestCase(
                 "simple",
                 "-- hello\n",
                 listOf(
-                    Token(0, "-- hello", LuaElementTypes.SHORTCOMMENT)
-                )
+                    Token(0, "-- hello", LuaElementTypes.SHORTCOMMENT),
+                    Token(8, "\n", TokenType.WHITE_SPACE),
+                ),
             ),
         )
     }
@@ -139,15 +140,15 @@ class TestLuaLexer {
                 "--[[ comment ]]",
                 listOf(
                     Token(0, "--[[ comment ]]", LuaElementTypes.LONGCOMMENT),
-                )
+                ),
             ),
             TestCase(
                 "multi-line",
                 "--[[\ncomment\ncomment\n--]]",
                 listOf(
                     Token(0, "--[[\ncomment\ncomment\n--]]", LuaElementTypes.LONGCOMMENT),
-                )
-            )
+                ),
+            ),
         )
     }
 
