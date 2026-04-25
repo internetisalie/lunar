@@ -19,6 +19,7 @@ package net.internetisalie.lunar.run
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XSourcePosition
@@ -230,6 +231,7 @@ class LuaDebuggerController(
     fun execute(statement: String): Promise<LuaDebugValue?> {
         val command = DebugCommand(DebugCommandKind.EXEC, listOf(statement))
         return queueRequest(command).then { text ->
+            log.info("Expression evaluation response: $text")
             // TODO: Parse the value from `it`
             LuaDebugValue("TODO")
 //            try {
