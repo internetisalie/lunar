@@ -17,12 +17,12 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         ApplicationManager.getApplication().runReadAction {
             // This is a basic test - in practice you'd parse the PSI tree
             // and extract expressions to evaluate
-            val value = LuaEvaluatedValue(
-                kind = LuaEvaluatedValueKind.Number,
+            val value = LuaValue(
+                kind = LuaValueKind.Number,
                 numberValue = 42.0
             )
 
-            assertEquals(LuaEvaluatedValueKind.Number, value.kind)
+            assertEquals(LuaValueKind.Number, value.kind)
             assertEquals(42.0, value.numberValue)
         }
     }
@@ -33,12 +33,12 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = \"hello\"")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaEvaluatedValue(
-                kind = LuaEvaluatedValueKind.String,
+            val value = LuaValue(
+                kind = LuaValueKind.String,
                 stringValue = "hello"
             )
 
-            assertEquals(LuaEvaluatedValueKind.String, value.kind)
+            assertEquals(LuaValueKind.String, value.kind)
             assertEquals("hello", value.stringValue)
         }
     }
@@ -49,9 +49,9 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = nil")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+            val value = LuaValue(kind = LuaValueKind.Nil)
 
-            assertEquals(LuaEvaluatedValueKind.Nil, value.kind)
+            assertEquals(LuaValueKind.Nil, value.kind)
         }
     }
 
@@ -61,12 +61,12 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = true")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaEvaluatedValue(
-                kind = LuaEvaluatedValueKind.Boolean,
+            val value = LuaValue(
+                kind = LuaValueKind.Boolean,
                 boolValue = true
             )
 
-            assertEquals(LuaEvaluatedValueKind.Boolean, value.kind)
+            assertEquals(LuaValueKind.Boolean, value.kind)
             assertEquals(true, value.boolValue)
         }
     }
@@ -77,12 +77,12 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = false")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaEvaluatedValue(
-                kind = LuaEvaluatedValueKind.Boolean,
+            val value = LuaValue(
+                kind = LuaValueKind.Boolean,
                 boolValue = false
             )
 
-            assertEquals(LuaEvaluatedValueKind.Boolean, value.kind)
+            assertEquals(LuaValueKind.Boolean, value.kind)
             assertEquals(false, value.boolValue)
         }
     }
@@ -93,14 +93,14 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local t = {1, 2, 3}")
 
         ApplicationManager.getApplication().runReadAction {
-            val table = LuaEvaluatedTable()
-            table.indexed.add(LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Number, numberValue = 1.0))
-            table.indexed.add(LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Number, numberValue = 2.0))
-            table.indexed.add(LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Number, numberValue = 3.0))
+            val table = LuaTable()
+            table.indexed.add(LuaValue(kind = LuaValueKind.Number, numberValue = 1.0))
+            table.indexed.add(LuaValue(kind = LuaValueKind.Number, numberValue = 2.0))
+            table.indexed.add(LuaValue(kind = LuaValueKind.Number, numberValue = 3.0))
 
-            val value = LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Table, tableValue = table)
+            val value = LuaValue(kind = LuaValueKind.Table, tableValue = table)
 
-            assertEquals(LuaEvaluatedValueKind.Table, value.kind)
+            assertEquals(LuaValueKind.Table, value.kind)
             assertNotNull(value.tableValue)
             assertEquals(3, value.tableValue.indexed.size)
         }
@@ -112,13 +112,13 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local t = {x = 42, y = \"hello\"}")
 
         ApplicationManager.getApplication().runReadAction {
-            val table = LuaEvaluatedTable()
-            table.named["x"] = LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Number, numberValue = 42.0)
-            table.named["y"] = LuaEvaluatedValue(kind = LuaEvaluatedValueKind.String, stringValue = "hello")
+            val table = LuaTable()
+            table.named["x"] = LuaValue(kind = LuaValueKind.Number, numberValue = 42.0)
+            table.named["y"] = LuaValue(kind = LuaValueKind.String, stringValue = "hello")
 
-            val value = LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Table, tableValue = table)
+            val value = LuaValue(kind = LuaValueKind.Table, tableValue = table)
 
-            assertEquals(LuaEvaluatedValueKind.Table, value.kind)
+            assertEquals(LuaValueKind.Table, value.kind)
             assertNotNull(value.tableValue)
             assertEquals(2, value.tableValue.named.size)
         }
@@ -130,12 +130,12 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Number, numberValue = 42.0)
+            val value = LuaValue(kind = LuaValueKind.Number, numberValue = 42.0)
             evaluator.setLocalVariable("x", value)
 
             val retrieved = evaluator.getLocalVariable("x")
             assertNotNull(retrieved)
-            assertEquals(LuaEvaluatedValueKind.Number, retrieved.kind)
+            assertEquals(LuaValueKind.Number, retrieved.kind)
             assertEquals(42.0, retrieved.numberValue)
         }
     }

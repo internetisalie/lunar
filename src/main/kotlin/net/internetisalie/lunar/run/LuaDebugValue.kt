@@ -44,7 +44,7 @@ class LuaDebugValue : XValue {
     constructor(luaValue: LuaValue, identityValue : String?, icon: Icon?) {
         this.typeName = luaValue.typeName
         this.rawValue = luaValue
-        this.displayValue = luaValue.element?.text
+        this.displayValue = luaValue.psiElement?.text
         this.icon = icon
         this.identityValue = identityValue
     }

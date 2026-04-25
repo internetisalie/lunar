@@ -30,11 +30,43 @@ class LuaRemoteStack(
             return create(codeFragment)
         }
         fun create(file: PsiFile): LuaRemoteStack {
-            val parser = LuaDebugValueParser()
             val doStatement = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
                 ?: return LuaRemoteStack(null)
-            val table = parser.parse(doStatement)
-            // TODO: Change LuaRemoteStack
+            
+            val block = doStatement.block ?: return LuaRemoteStack(null)
+            val statements = block.statementList
+            
+            // Look for the return statement (LuaFinalStatement) that returns the table
+            for (i in statements.indices.reversed()) {
+                val stmt = statements[i]
+                if (stmt is LuaFinalStatement) {
+                    // Get the first expression from the return statement
+                    val expr = stmt.exprList?.exprList?.firstOrNull()
+                    if (expr is LuaTableConstructor) {
+                        return LuaRemoteStack(expr)
+                    }
+                    // If it's a var/name reference, try to find its value
+                    // by looking for local declarations earlier in the block
+                    if (expr != null) {
+                        val varName = expr.text
+                        for (j in i - 1 downTo 0) {
+                            val prevStmt = statements[j]
+                            if (prevStmt is LuaLocalVarDecl) {
+                                val names = prevStmt.attNameList.map { it.nameRef.text }
+                                val idx = names.indexOf(varName)
+                                if (idx >= 0) {
+                                    val initExpr = prevStmt.exprList?.exprList?.getOrNull(idx)
+                                    if (initExpr is LuaTableConstructor) {
+                                        return LuaRemoteStack(initExpr)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break
+                }
+            }
+            
             return LuaRemoteStack(null)
         }
 

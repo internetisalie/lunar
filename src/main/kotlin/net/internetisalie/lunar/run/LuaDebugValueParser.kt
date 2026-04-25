@@ -20,10 +20,10 @@ import net.internetisalie.lunar.lang.psi.LuaVarOrExp
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 
 class LuaDebugValueParser {
-    private val localScope: MutableMap<String, LuaEvaluatedValue> = mutableMapOf()
+    private val localScope: MutableMap<String, LuaValue> = mutableMapOf()
     private val log = logger<LuaDebugValueParser>()
 
-    fun evaluateExpression(expr: LuaExpr?): LuaEvaluatedValue? {
+    fun evaluateExpression(expr: LuaExpr?): LuaValue? {
         if (expr == null) {
             return null
         }
@@ -40,37 +40,37 @@ class LuaDebugValueParser {
         }
     }
 
-    private fun evaluateTerminalExpr(expr: LuaTerminalExpr): LuaEvaluatedValue? {
+    private fun evaluateTerminalExpr(expr: LuaTerminalExpr): LuaValue? {
         return when {
             expr.number != null -> {
                 val numberValue = expr.number!!.text.toDoubleOrNull() ?: return null
-                LuaEvaluatedValue(
-                    kind = LuaEvaluatedValueKind.Number,
+                LuaValue(
+                    kind = LuaValueKind.Number,
                     numberValue = numberValue,
                     psiElement = expr.number
                 )
             }
             expr.string != null -> {
                 val stringValue = extractLuaString(expr.string!!.text)
-                LuaEvaluatedValue(
-                    kind = LuaEvaluatedValueKind.String,
+                LuaValue(
+                    kind = LuaValueKind.String,
                     stringValue = stringValue,
                     psiElement = expr.string
                 )
             }
             expr.firstChild?.elementType == LuaElementTypes.NIL -> {
-                LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+                LuaValue(kind = LuaValueKind.Nil)
             }
             expr.text == "true" -> {
-                LuaEvaluatedValue(
-                    kind = LuaEvaluatedValueKind.Boolean,
+                LuaValue(
+                    kind = LuaValueKind.Boolean,
                     boolValue = true,
                     psiElement = expr
                 )
             }
             expr.text == "false" -> {
-                LuaEvaluatedValue(
-                    kind = LuaEvaluatedValueKind.Boolean,
+                LuaValue(
+                    kind = LuaValueKind.Boolean,
                     boolValue = false,
                     psiElement = expr
                 )
@@ -79,8 +79,8 @@ class LuaDebugValueParser {
         }
     }
 
-    private fun evaluateTableConstructor(expr: LuaTableConstructor): LuaEvaluatedValue {
-        val table = LuaEvaluatedTable()
+    private fun evaluateTableConstructor(expr: LuaTableConstructor): LuaValue {
+        val table = LuaTable()
 
         expr.fieldList?.fieldList?.forEach { field ->
             val fieldValue = evaluateExpression(field.value)
@@ -95,21 +95,21 @@ class LuaDebugValueParser {
             }
         }
 
-        return LuaEvaluatedValue(
-            kind = LuaEvaluatedValueKind.Table,
+        return LuaValue(
+            kind = LuaValueKind.Table,
             tableValue = table,
             psiElement = expr
         )
     }
 
-    private fun evaluateFuncDef(expr: LuaFuncDef): LuaEvaluatedValue {
-        return LuaEvaluatedValue(
-            kind = LuaEvaluatedValueKind.Function,
+    private fun evaluateFuncDef(expr: LuaFuncDef): LuaValue {
+        return LuaValue(
+            kind = LuaValueKind.Function,
             psiElement = expr
         )
     }
 
-    private fun evaluatePrefixExpr(expr: LuaPrefixExpr): LuaEvaluatedValue? {
+    private fun evaluatePrefixExpr(expr: LuaPrefixExpr): LuaValue? {
         // prefixExpr ::= varOrExp nameAndArgs*
         // For now we only handle varOrExp with no function calls (nameAndArgs)
         val varOrExp = expr.varOrExp
@@ -131,7 +131,7 @@ class LuaDebugValueParser {
         return null
     }
 
-    private fun evaluateVar(`var`: LuaVar): LuaEvaluatedValue? {
+    private fun evaluateVar(`var`: LuaVar): LuaValue? {
         // var ::= (nameRef | '(' expr ')') varSuffix*
         // varSuffix ::= nameAndArgs* indexExpr
         val nameRef = `var`.nameRef
@@ -139,14 +139,14 @@ class LuaDebugValueParser {
         val varSuffixList = `var`.varSuffixList
 
         // Get base value
-        var currentValue: LuaEvaluatedValue = if (nameRef != null) {
+        var currentValue: LuaValue = if (nameRef != null) {
             // Simple name reference
-            localScope[nameRef.text] ?: LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+            localScope[nameRef.text] ?: LuaValue(kind = LuaValueKind.Nil)
         } else if (exprVal != null) {
             // Parenthesized expression
-            evaluateExpression(exprVal) ?: LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+            evaluateExpression(exprVal) ?: LuaValue(kind = LuaValueKind.Nil)
         } else {
-            LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+            LuaValue(kind = LuaValueKind.Nil)
         }
 
         // Handle var suffixes (index operations like [key] or .field)
@@ -159,18 +159,18 @@ class LuaDebugValueParser {
 
             val indexExpr = suffix.indexExpr
             currentValue = evaluateVarSuffixIndex(currentValue, indexExpr)
-                ?: LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+                ?: LuaValue(kind = LuaValueKind.Nil)
         }
 
         return currentValue
     }
 
     private fun evaluateVarSuffixIndex(
-        baseValue: LuaEvaluatedValue,
+        baseValue: LuaValue,
         indexExpr: LuaIndexExpr,
-    ): LuaEvaluatedValue? {
-        if (baseValue.kind != LuaEvaluatedValueKind.Table || baseValue.tableValue == null) {
-            return LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+    ): LuaValue? {
+        if (baseValue.kind != LuaValueKind.Table || baseValue.tableValue == null) {
+            return LuaValue(kind = LuaValueKind.Nil)
         }
 
         val table = baseValue.tableValue
@@ -181,13 +181,13 @@ class LuaDebugValueParser {
             val keyValue = evaluateExpression(expr)
             if (keyValue != null) {
                 val key = when (keyValue.kind) {
-                    LuaEvaluatedValueKind.String -> keyValue.stringValue
-                    LuaEvaluatedValueKind.Number -> keyValue.numberValue.toInt().toString()
+                    LuaValueKind.String -> keyValue.stringValue
+                    LuaValueKind.Number -> keyValue.numberValue?.toInt()?.toString()
                     else -> null
                 }
 
                 if (key != null) {
-                    return table.named[key] ?: LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+                    return table.named[key] ?: LuaValue(kind = LuaValueKind.Nil)
                 }
             }
         }
@@ -196,15 +196,15 @@ class LuaDebugValueParser {
         val nameRef = indexExpr.nameRef
         if (nameRef != null) {
             val fieldName = nameRef.text
-            return table.named[fieldName] ?: LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+            return table.named[fieldName] ?: LuaValue(kind = LuaValueKind.Nil)
         }
 
-        return LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+        return LuaValue(kind = LuaValueKind.Nil)
     }
 
-    fun parse(doStatement: LuaDoStatement): LuaEvaluatedTable {
+    fun parse(doStatement: LuaDoStatement): LuaTable {
         // Execute each statement in the block
-        val block = doStatement.block ?: return LuaEvaluatedTable()
+        val block = doStatement.block ?: return LuaTable()
         val statements = block.statementList
 
         for (i in statements.indices) {
@@ -214,7 +214,7 @@ class LuaDebugValueParser {
             when {
                 isLastStatement && stmt is LuaFinalStatement -> {
                     // Process return statement and wrap results in table
-                    val table = LuaEvaluatedTable()
+                    val table = LuaTable()
                     val exprList = stmt.exprList?.exprList ?: emptyList()
                     for (expr in exprList) {
                         val value = evaluateExpression(expr)
@@ -240,7 +240,7 @@ class LuaDebugValueParser {
         }
 
         // If no return statement, return empty table
-        return LuaEvaluatedTable()
+        return LuaTable()
     }
 
     fun executeLocalVariable(
@@ -253,7 +253,7 @@ class LuaDebugValueParser {
             } else {
                 null
             }
-            localScope[name] = value ?: LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+            localScope[name] = value ?: LuaValue(kind = LuaValueKind.Nil)
         }
     }
 
@@ -267,15 +267,15 @@ class LuaDebugValueParser {
             } else {
                 null
             }
-            localScope[varName] = value ?: LuaEvaluatedValue(kind = LuaEvaluatedValueKind.Nil)
+            localScope[varName] = value ?: LuaValue(kind = LuaValueKind.Nil)
         }
     }
 
-    fun getLocalVariable(name: String): LuaEvaluatedValue? {
+    fun getLocalVariable(name: String): LuaValue? {
         return localScope[name]
     }
 
-    fun setLocalVariable(name: String, value: LuaEvaluatedValue) {
+    fun setLocalVariable(name: String, value: LuaValue) {
         localScope[name] = value
     }
 }

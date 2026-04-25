@@ -24,40 +24,67 @@ enum class LuaValueKind(
     Table("table"),
 }
 
-// LuaValue wraps a literal PsiElement parsed from a debugger response
-open class LuaValue(
-    val element: PsiElement?,
+// LuaValue now supports both:
+// 1. PSI-based creation (for remote debugging): LuaValue(psiElement)
+// 2. Evaluated value creation (from evaluator): LuaValue(kind=NUMBER, numberValue=123.0, psiElement=null)
+data class LuaValue(
+    val kind: LuaValueKind = LuaValueKind.None,
+    val numberValue: Double? = null,
+    val stringValue: String? = null,
+    val boolValue: Boolean? = null,
+    val tableValue: LuaTable? = null,
+    val psiElement: PsiElement? = null,
 ) {
-    val kind: LuaValueKind
-        get() = when (element?.firstChild.elementType) {
-            LuaElementTypes.NUMBER -> LuaValueKind.Number
-            LuaElementTypes.STRING -> LuaValueKind.String
-            LuaElementTypes.NIL -> LuaValueKind.Nil
-            LuaElementTypes.FUNCTION -> LuaValueKind.Function
-            LuaElementTypes.LCURLY -> LuaValueKind.Table
-            else -> LuaValueKind.None
-        }
+    // When created with just a PsiElement for PSI-based values, compute kind from PSI
+    constructor(element: PsiElement?) : this(
+        kind = element?.let { computeKindFromPsi(it) } ?: LuaValueKind.None,
+        psiElement = element
+    )
 
     val typeName: String = kind.typeName
 
     val text: String?
-        get() = element?.text
+        get() = psiElement?.text
 
     fun checkTable(): LuaTable? {
-        return if (kind == LuaValueKind.Table && element is LuaTableConstructor) LuaTable(element)
-        else null
+        return if (kind == LuaValueKind.Table) {
+            tableValue ?: (psiElement as? LuaTableConstructor)?.let { LuaTable(it) }
+        } else null
     }
 
     companion object {
-        val NONE = LuaValue(null)
+        val NONE = LuaValue()
+
+        private fun computeKindFromPsi(element: PsiElement): LuaValueKind {
+            return when (element.firstChild?.elementType) {
+                LuaElementTypes.NUMBER -> LuaValueKind.Number
+                LuaElementTypes.STRING -> LuaValueKind.String
+                LuaElementTypes.NIL -> LuaValueKind.Nil
+                LuaElementTypes.FUNCTION -> LuaValueKind.Function
+                LuaElementTypes.LCURLY -> LuaValueKind.Table
+                else -> LuaValueKind.None
+            }
+        }
     }
 }
 
+// LuaTable now supports both:
+// 1. PSI-based creation (for remote debugging): LuaTable(luaTableConstructor)
+// 2. Independent storage (from evaluator): LuaTable(indexed=listOf(...), named=mapOf(...))
 open class LuaTable(
-    protected val table: LuaTableConstructor?
-) : LuaValue(table) {
+    val indexed: MutableList<LuaValue> = mutableListOf(),
+    val named: MutableMap<String, LuaValue> = mutableMapOf(),
+    val psiTable: LuaTableConstructor? = null,
+) {
+    // Legacy PSI-based constructor for backward compatibility
+    constructor(table: LuaTableConstructor?) : this(
+        indexed = mutableListOf(),
+        named = mutableMapOf(),
+        psiTable = table
+    )
+
     fun getFields(): List<LuaField> {
-        return table?.fieldList?.fieldList.orEmpty()
+        return psiTable?.fieldList?.fieldList.orEmpty()
     }
 
     fun getField(index: Int): LuaField? {
