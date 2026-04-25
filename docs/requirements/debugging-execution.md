@@ -9,7 +9,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-01` | **Line Breakpoints** | **M** | Allow users to toggle breakpoints in the gutter and stop execution at specific lines. |
 | `DEBUG-02` | **Stack Frames & Variables** | **M** | Display the call stack and local/upvalue variables when paused at a breakpoint. |
 | `DEBUG-03` | **Step Over/Into/Out** | **M** | Standard execution flow control during a debug session. |
-| `DEBUG-04` | **Expression Evaluation** | **S** | Allow users to evaluate arbitrary Lua expressions in the current context via a "Watch" or "Evaluate" window. |
+| [`DEBUG-04`](spec/debug-04-expression-evaluation.md) | **Expression Evaluation** | **S** | Allow users to evaluate arbitrary Lua expressions in the current context via a "Watch" or "Evaluate" window. |
 | `DEBUG-05` | **Remote Debugging** | **S** | Support connecting to external Lua processes (e.g., via Mobdebug or a custom DAP bridge). |
 | `DEBUG-06` | **Debug Target Configuration** | **S** | Validate debug configurations (script path, working directory, interpreter) before launching. |
 | `DEBUG-07` | **Lazy Remote Stack Evaluation** | **S** | Defer parsing of frame details, locals, and upvalues until explicitly accessed to reduce overhead for large stacks. |
