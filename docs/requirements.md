@@ -19,6 +19,3 @@ This document serves as the index for the functional and technical requirements 
 ## Implementation Progress
 
 For current implementation status and test coverage, see [Implementation Status](implementation-status.md).
-
-## Derived From
-These requirements are derived from the [Feature Comparison Matrix](comparison.md), focusing on closing the gap between Lunar and established Lua plugins while maintaining a modern, Kotlin-native architecture.
