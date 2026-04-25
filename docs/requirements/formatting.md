@@ -10,3 +10,4 @@ Lunar provides a highly configurable code formatter to ensure consistency across
 | `FORMAT-04` | **Expression Wrapping** | **S** | Wrap long expressions, function arguments, and table constructors based on a configurable right margin. |
 | `FORMAT-05` | **Alignment Logic** | **S** | Align consecutive assignments and table field keys for better readability. |
 | `FORMAT-06` | **Comment Formatting** | **C** | Wrap and align long comments based on code style settings. |
+| `FORMAT-07` | **Stylua Compatibility** | **S** | Review and optionally align formatting rules with `stylua` for consistency with other Lua projects. |

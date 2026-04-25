@@ -12,3 +12,5 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 | `SYNTAX-06` | **Breadcrumbs** | **S** | Show the current scope path (e.g., `module > class > function`) at the bottom of the editor. |
 | `SYNTAX-07` | **Inlay Hints** | **S** | Show implicit information, such as inferred types for `local` variables without annotations. |
 | [`SYNTAX-08`](spec/syntax-08-string-escapes.md) | **String Escape Processing** | **M** | Process Lua escape sequences in quoted strings. |
+| `SYNTAX-09` | **Luau Syntax Support** | **S** | Parse and highlight Luau-specific syntax (optional; Lua 5.4 prioritized). |
+| `SYNTAX-10` | **Enter Handler for LuaDOC** | **S** | Auto-continue LuaDOC comments (e.g., `---`) when pressing Enter, similar to block comments. |

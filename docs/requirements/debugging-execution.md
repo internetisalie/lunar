@@ -11,9 +11,11 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-03` | **Step Over/Into/Out** | **M** | Standard execution flow control during a debug session. |
 | `DEBUG-04` | **Expression Evaluation** | **S** | Allow users to evaluate arbitrary Lua expressions in the current context via a "Watch" or "Evaluate" window. |
 | `DEBUG-05` | **Remote Debugging** | **S** | Support connecting to external Lua processes (e.g., via Mobdebug or a custom DAP bridge). |
+| `DEBUG-06` | **Debug Target Configuration** | **S** | Validate debug configurations (script path, working directory, interpreter) before launching. |
 | `RUN-01` | **Lua Interpreter SDK** | **M** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
 | `RUN-02` | **Run Configurations** | **M** | Create and save configurations for script execution, including arguments and environment variables. |
 | `RUN-03` | **Interactive Console (REPL)** | **S** | Provide a Lua REPL console within the IDE using the selected project SDK. |
+| `RUN-04` | **Run Configuration Validation** | **M** | Validate run configurations before execution (script name, interpreter path, working directory). |
 
 ## Implementation Status
 

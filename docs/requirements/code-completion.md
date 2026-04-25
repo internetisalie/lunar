@@ -11,3 +11,4 @@ Intelligent completion is the primary driver of productivity in the IDE.
 | `COMP-05` | **Parameter Name Hints** | **S** | Show inlay hints for parameter names when calling a function (e.g., `func(name: "val")`). |
 | `COMP-06` | **Postfix Templates** | **C** | Trigger code transformations after a dot (e.g., `myVar.if` -> `if myVar then ... end`). |
 | `COMP-07` | **Live Templates** | **C** | Standard IntelliJ snippets for common Lua patterns (loops, function headers). |
+| `COMP-08` | **Auto-complete Enhancement** | **S** | Intelligent auto-completion for common patterns (e.g., table methods, function calls). |
