@@ -6,10 +6,13 @@ import com.intellij.psi.*
 import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.LuaIcons.FILE
-import net.internetisalie.lunar.lang.indexing.*
+import net.internetisalie.lunar.lang.indexing.FilesQueryResult
+import net.internetisalie.lunar.lang.indexing.RequiredFilesQuery
+import net.internetisalie.lunar.lang.indexing.VirtualFilesQuery
+import net.internetisalie.lunar.lang.indexing.queryFiles
+import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaNameReference(element: PsiElement, textRange: TextRange) :

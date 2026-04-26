@@ -5,11 +5,7 @@ import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.ide.structureView.TextEditorBasedStructureViewModel
 import com.intellij.ide.util.treeView.smartTree.Sorter
 import com.intellij.psi.PsiFile
-import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.lang.psi.LuaFinalStatement
-import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaLabel
-import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.*
 
 class LuaStructureViewModel(private var file: LuaFile) : TextEditorBasedStructureViewModel(file), StructureViewModel.ElementInfoProvider {
     val SUITABLE_CLASSES = arrayOf<Class<*>>(

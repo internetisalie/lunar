@@ -11,12 +11,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.createSmartPointer
 import com.intellij.psi.util.elementType
-import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaFuncName
-import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
+import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 
 class LuaDocumentationTargetProvider : DocumentationTargetProvider {

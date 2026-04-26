@@ -17,7 +17,6 @@ package net.internetisalie.lunar.run
 
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.ExecutionResult
-import com.intellij.execution.Executor
 import com.intellij.execution.configurations.RunProfile
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RunnerSettings
@@ -29,9 +28,10 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
-import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebugSession
+import com.intellij.xdebugger.XDebuggerManager
+
 /**
  * Debug runner for Lua run configurations.
  *
@@ -47,7 +47,7 @@ import com.intellij.xdebugger.XDebugSession
  * @since Lunar 2.0.0
  */
 class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
-    
+
     override fun getRunnerId(): String = RUNNER_ID
 
     override fun canRun(executorId: String, runProfile: RunProfile): Boolean {
@@ -114,9 +114,9 @@ class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
      * @param exception The exception that occurred
      */
     private fun notifyExecutionError(project: Project, exception: ExecutionException) {
-        val message = exception.message 
+        val message = exception.message
             ?: "Failed to start Lua debugger. Verify debugger configuration in project settings."
-        
+
         NotificationGroupManager.getInstance()
             .getNotificationGroup("notification.group.lunar.debugger")
             .createNotification(
@@ -133,7 +133,7 @@ class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
          * Used by IntelliJ Platform to identify this runner instance.
          */
         const val RUNNER_ID = "lua.debugrunner"
-        
+
         private val log = logger<LuaDebugRunner>()
     }
 }

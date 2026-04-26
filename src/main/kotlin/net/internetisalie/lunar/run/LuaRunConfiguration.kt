@@ -10,7 +10,6 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessHandlerFactory
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.StoredProperty
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory

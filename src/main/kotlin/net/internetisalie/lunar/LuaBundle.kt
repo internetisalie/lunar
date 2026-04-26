@@ -4,7 +4,7 @@ import com.intellij.BundleBase
 import org.jetbrains.annotations.PropertyKey
 import java.lang.ref.Reference
 import java.lang.ref.SoftReference
-import java.util.ResourceBundle
+import java.util.*
 
 /**
  * Created by IntelliJ IDEA.

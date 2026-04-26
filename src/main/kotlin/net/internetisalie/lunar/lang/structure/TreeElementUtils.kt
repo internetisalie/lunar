@@ -2,7 +2,6 @@ package net.internetisalie.lunar.lang.structure
 
 import com.intellij.ide.util.treeView.smartTree.TreeElement
 import net.internetisalie.lunar.lang.psi.*
-import kotlin.collections.flatten
 
 object TreeElementUtils {
     fun getRootChildren(root: LuaFile): List<TreeElement> {

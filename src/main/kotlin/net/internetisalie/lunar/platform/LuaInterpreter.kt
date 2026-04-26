@@ -1,13 +1,12 @@
 package net.internetisalie.lunar.platform
 
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import java.nio.file.Path
-import com.intellij.openapi.util.SystemInfo
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.lang.LuaLanguageLevel
+import java.nio.file.Path
 import javax.swing.Icon
-import kotlin.collections.get
 
 data class LuaInterpreter(
     var path: String? = null,

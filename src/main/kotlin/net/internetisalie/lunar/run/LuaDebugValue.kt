@@ -16,11 +16,7 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.icons.AllIcons
-import com.intellij.xdebugger.frame.XCompositeNode
-import com.intellij.xdebugger.frame.XValue
-import com.intellij.xdebugger.frame.XValueChildrenList
-import com.intellij.xdebugger.frame.XValueNode
-import com.intellij.xdebugger.frame.XValuePlace
+import com.intellij.xdebugger.frame.*
 import com.intellij.xdebugger.frame.presentation.XNumericValuePresentation
 import com.intellij.xdebugger.frame.presentation.XRegularValuePresentation
 import com.intellij.xdebugger.frame.presentation.XStringValuePresentation

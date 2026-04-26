@@ -5,24 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
-import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
-import net.internetisalie.lunar.lang.psi.LuaDoStatement
-import net.internetisalie.lunar.lang.psi.LuaElementFactory
-import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import net.internetisalie.lunar.lang.psi.LuaEmptyStatement
-import net.internetisalie.lunar.lang.psi.LuaExpr
-import net.internetisalie.lunar.lang.psi.LuaFinalStatement
-import net.internetisalie.lunar.lang.psi.LuaFuncDef
-import net.internetisalie.lunar.lang.psi.LuaIndexExpr
-import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.LuaNameRef
-import net.internetisalie.lunar.lang.psi.LuaPrefixExpr
-import net.internetisalie.lunar.lang.psi.LuaStatement
-import net.internetisalie.lunar.lang.psi.LuaTableConstructor
-import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
-import net.internetisalie.lunar.lang.psi.LuaUnOpExpr
-import net.internetisalie.lunar.lang.psi.LuaVar
-import net.internetisalie.lunar.lang.psi.LuaVarOrExp
+import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 
 class LuaDebugValueParser(private val project: Project? = null) {
@@ -144,9 +127,7 @@ class LuaDebugValueParser(private val project: Project? = null) {
     private fun evaluateUnOpExpr(expr: LuaUnOpExpr): LuaValue? {
         val rightExpr = expr.expr ?: return null
         val rightValue = evaluateExpression(rightExpr) ?: return null
-        val op = expr.unOp.text
-
-        return when (op) {
+        return when (val op = expr.unOp.text) {
             "-" -> {
                 // Negate a number
                 if (rightValue.kind == LuaValueKind.Number && rightValue.numberValue != null) {

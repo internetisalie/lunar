@@ -31,7 +31,7 @@ import java.io.File
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
-import java.util.IdentityHashMap
+import java.util.*
 
 /**
  * Responsible for interacting with the remote debugger client.
@@ -251,7 +251,7 @@ class LuaDebuggerController(
                 var luaDebugValue: LuaDebugValue? = null
                 ApplicationManager.getApplication().runReadAction {
                     val table = LuaDebugValueParser.parseChunk(session.project, text)
-                    
+
                     // Re-parse each string value in the result to recover types from stringification
                     val reparsedTable = LuaTable()
                     for ((idx, value) in table.indexed.withIndex()) {
@@ -270,7 +270,7 @@ class LuaDebuggerController(
                         }
                         reparsedTable.named[key] = reparsed
                     }
-                    
+
                     // If the result is a single scalar value, return it directly instead of wrapping in table
                     val value = if (reparsedTable.indexed.size == 1 && reparsedTable.named.isEmpty()) {
                         reparsedTable.indexed[0]

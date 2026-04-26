@@ -1,9 +1,9 @@
 package net.internetisalie.lunar.lang.insight
 
-import com.intellij.psi.PsiElement
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.ProjectScope
@@ -122,7 +122,7 @@ data class Reference(val binding: Binding?) {
                 file: ${binding?.element?.containingFile?.name}
             external:
                 global: $global
-                name: ${name.joinToString(".")} 
+                name: ${name.joinToString(".")}
             upValue: $upValue
             tailCall: $tailCall
             self: $self
@@ -345,7 +345,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
                 isGlobal = containingScope.global
                 funcScope = containingScope.table(firstName)
             }
-            
+
             while (iter.hasNext()) {
                 val element = iter.next()
                 val name =  element.text
@@ -355,7 +355,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
                 if (!reference.defined && isGlobal && imports != null) {
                     reference = imports.lookupReference(names)
                 }
-                
+
                 reference.global = isGlobal
                 reference.name = names.subList(0, names.size).toList()
                 references[element.textOffset] = reference

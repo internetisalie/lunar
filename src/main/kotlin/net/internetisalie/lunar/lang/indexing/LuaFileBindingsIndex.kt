@@ -11,15 +11,14 @@ import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
 import com.intellij.util.io.EnumeratorIntegerDescriptor
 import com.intellij.util.io.KeyDescriptor
-import net.internetisalie.lunar.lang.path.SourcePathPattern
 import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.insight.Scope
+import net.internetisalie.lunar.lang.path.SourcePathPattern
 import org.jetbrains.annotations.NonNls
 import java.beans.PropertyChangeListener
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
-import java.util.*
 
 private val LuaFileBindingsIndexName: @NonNls ID<Int, LuaFileBindingsRecord> =
     ID.create("$ExternalIdPrefix.FileBindings")

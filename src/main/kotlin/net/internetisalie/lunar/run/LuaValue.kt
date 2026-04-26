@@ -5,10 +5,7 @@ import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaField
-import net.internetisalie.lunar.lang.psi.LuaTableConstructor
-import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import net.internetisalie.lunar.lang.syntax.extractLuaString
-import kotlin.collections.orEmpty
 
 enum class LuaValueKind(
     val typeName: String,

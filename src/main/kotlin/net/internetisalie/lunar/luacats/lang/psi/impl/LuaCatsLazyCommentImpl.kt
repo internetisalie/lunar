@@ -4,34 +4,7 @@ import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.impl.source.tree.LazyParseablePsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAsyncTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCastTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeprecatedTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDescription
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDiagnosticTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsEnumTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsGenericTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsMetaTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsModuleTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsNodiscardTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOperatorTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOverloadTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsPackageTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsPrivateTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsProtectedTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsReturnTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSeeTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSourceTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeOption
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVarargTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVersionTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVisitor
+import net.internetisalie.lunar.luacats.lang.psi.*
 
 /**
  * @author ilyas

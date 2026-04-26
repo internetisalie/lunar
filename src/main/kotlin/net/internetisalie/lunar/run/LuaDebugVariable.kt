@@ -26,12 +26,7 @@ import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.XDebuggerUtil
 import com.intellij.xdebugger.XSourcePosition
-import com.intellij.xdebugger.frame.XCompositeNode
-import com.intellij.xdebugger.frame.XNamedValue
-import com.intellij.xdebugger.frame.XNavigatable
-import com.intellij.xdebugger.frame.XValueChildrenList
-import com.intellij.xdebugger.frame.XValueNode
-import com.intellij.xdebugger.frame.XValuePlace
+import com.intellij.xdebugger.frame.*
 import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 

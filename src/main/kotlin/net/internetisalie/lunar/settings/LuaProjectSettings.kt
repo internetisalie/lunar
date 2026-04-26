@@ -1,11 +1,6 @@
 package net.internetisalie.lunar.settings
 
-import com.intellij.openapi.components.PathMacroManager
-import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.SettingsCategory
-import com.intellij.openapi.components.State
-import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.path.PathConfiguration

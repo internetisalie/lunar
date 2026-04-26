@@ -3,9 +3,9 @@ package net.internetisalie.lunar.luacats.lang.doc
 import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.doc.codeFragment
-import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag

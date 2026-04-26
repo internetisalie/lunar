@@ -2,8 +2,8 @@ package net.internetisalie.lunar.command
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.project.Project
-import net.internetisalie.lunar.settings.LuaApplicationSettings
 import net.internetisalie.lunar.platform.LuaInterpreter
+import net.internetisalie.lunar.settings.LuaApplicationSettings
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.nio.file.Path
 

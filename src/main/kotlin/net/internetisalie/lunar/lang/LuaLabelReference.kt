@@ -6,9 +6,9 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.LuaIcons.FILE
+import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.psi.LuaLabel
 import net.internetisalie.lunar.lang.psi.LuaLabelRef
-import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 
 class LuaLabelReference(element: PsiElement, textRange: TextRange) :
     PsiReferenceBase<PsiElement?>(element, textRange), PsiPolyVariantReference {

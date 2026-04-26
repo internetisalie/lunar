@@ -3,7 +3,6 @@ package net.internetisalie.lunar.analysis.luacheck
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.execution.ParametersListUtil
-import kotlin.collections.addAll
 
 private val DEFAULT_ARGS = arrayOf("--codes", "--ranges")
 

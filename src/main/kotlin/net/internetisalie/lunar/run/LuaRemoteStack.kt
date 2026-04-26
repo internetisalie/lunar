@@ -7,15 +7,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
-import net.internetisalie.lunar.lang.psi.LuaDoStatement
-import net.internetisalie.lunar.lang.psi.LuaElementFactory
-import net.internetisalie.lunar.lang.psi.LuaExpr
-import net.internetisalie.lunar.lang.psi.LuaField
-import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.lang.psi.LuaFinalStatement
-import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.LuaTableConstructor
+import net.internetisalie.lunar.lang.psi.*
 
 class LuaRemoteStack(
     stack: LuaTable?,
