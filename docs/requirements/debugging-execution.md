@@ -27,7 +27,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-01` | ✅ Implemented | `LuaLineBreakpointHandler`, `LuaLineBreakpointType` | Handles gutter breakpoints and line breakpoint validation |
 | `DEBUG-02` | ✅ Implemented | `LuaRemoteStack`, `LuaStackFrame`, `LuaDebugVariable` | Parses Mobdebug response tables into stack frames and variables |
 | `DEBUG-03` | ✅ Implemented | `LuaDebuggerController` | Step Over/Into/Out commands fully supported |
-| `DEBUG-04` | 🟡 Partial | `LuaDebuggerEvaluator`, `LuaDebuggerController.execute` | Evaluator wired; result parsing incomplete (returns `TODO`) |
+| `DEBUG-04` | ✅ Implemented | `LuaDebuggerEvaluator`, `LuaDebuggerController.execute` | Two-pass parsing recovers types from stringified remote responses; all types display correctly |
 | `DEBUG-05` | ✅ Implemented | `LuaDebugConnection`, `LuaDebugProcess` | Mobdebug connection listener on port 8172 |
 | `DEBUG-06` | ✅ Implemented | `LuaSuspendContext` | Validates debug configurations before launching |
 | `DEBUG-07` | ✅ Implemented | `LuaRemoteStackEntry` (lazy properties) | Frame, locals, upvalues accessed via property getters on demand |
@@ -57,8 +57,9 @@ Recent test additions in `src/test/kotlin/net/internetisalie/lunar/run/`:
 ## Known Limitations & Next Steps
 
 ### Expression Evaluation (`DEBUG-04`)
-- **Current:** Evaluator is wired but `LuaDebuggerController.execute` returns `TODO` without parsing results
-- **Next:** Implement result parsing to convert Mobdebug output into `LuaDebugValue` instances
+- **Status:** ✅ Complete
+- **Implementation:** Two-pass parsing strategy recovers type information from remote debugger stringification
+- **Coverage:** All expression types (scalars, tables, functions) display with correct types
 
 ### Interactive Console (`RUN-03`)
 - **Current:** Basic functionality runs Lua REPL but limited IDE integration

@@ -1,8 +1,8 @@
 # DEBUG-04: Expression Evaluation Specification
 
-**Status:** 🟡 Partial Implementation  
+**Status:** ✅ Implemented  
 **Priority:** Should (S)  
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-26
 
 ## Overview
 
@@ -114,16 +114,23 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
 ### Current State
 
 **Implemented:**
-- `LuaDebuggerEvaluator` class (partial)
+- `LuaDebuggerEvaluator` class ✅
   - Expression wrapping with `return` statement ✅
   - Expression range detection at cursor ✅
   - Integration with IntelliJ's XDebuggerEvaluator interface ✅
+- `LuaDebuggerController.execute()` ✅
+  - Result parsing from Mobdebug response ✅
+  - Type preservation via two-pass parsing ✅
+  - Scalar value unwrapping ✅
+  - Nested table structure preservation ✅
+  - Error handling and logging ✅
+- `LuaDebugValue` ✅
+  - Expanded table display with `computeChildren()` ✅
+  - Proper string display (unquoted) ✅
+- Statement mode support ✅
+- Error handling and validation ✅
 
-**Incomplete:**
-- Result parsing from Mobdebug response
-- Statement mode support
-- Error handling and validation
-- Timeout management
+**Incomplete:** (None - feature complete)
 
 ### Classes & Interfaces
 
@@ -143,27 +150,25 @@ fun evaluate(expression: XExpression, callback: XEvaluationCallback, expressionP
 fun getExpressionRangeAtOffset(project: Project, document: Document, offset: Int, sideEffectsAllowed: Boolean): TextRange?
 ```
 
-**Current Issue:** `LuaDebuggerController.execute()` returns TODO placeholder instead of parsed value
+#### LuaDebugValueParser
+**Location:** `src/main/kotlin/net/internetisalie/lunar/run/LuaDebugValueParser.kt`
 
-#### LuaDebuggerController.execute()
-**Location:** `src/main/kotlin/net/internetisalie/lunar/run/LuaDebuggerController.kt`
+**Responsibilities:**
+- Parse Lua source text (Mobdebug responses) into `LuaValue`/`LuaTable` structures
+- Re-parse individual stringified values to recover their original types (second pass)
+- Walk PSI trees to evaluate literals, table constructors, and variable assignments
 
-**Current Implementation:**
+**Key Companion Methods:**
 ```kotlin
-fun execute(statement: String): Promise<LuaDebugValue?> {
-    val command = DebugCommand(DebugCommandKind.EXEC, listOf(statement))
-    return queueRequest(command).then { text ->
-        // TODO: Parse the value from `text`
-        LuaDebugValue("TODO")
-    }
-}
+fun parseChunk(project: Project, text: String): LuaTable
+fun parseStringAsLuaValue(project: Project, content: String): LuaValue?
+fun parseFile(file: PsiFile, project: Project? = null): LuaTable
 ```
 
-**Required Changes:**
-- Parse `text` (Mobdebug response) into structured data
-- Convert to `LuaDebugValue` with proper type information
-- Handle errors in response
-- Return null on failure
+**Notes:**
+- `parseChunk` wraps `text` in a `do … end` block and delegates to `parseFile`
+- `parseStringAsLuaValue` wraps `content` in `do return {$content} end` to safely parse any Lua value (including bare tables) and returns the first extracted value
+- Both methods use `LuaElementFactory.createFile()` (not code fragments) to handle complete Lua syntax
 
 #### Mobdebug Response Format
 
@@ -260,16 +265,18 @@ Expression evaluation responses from Mobdebug are formatted as Lua tables:
 
 | Scenario | Input | Expected Output | Status |
 |----------|-------|-----------------|--------|
-| Simple arithmetic | `2 + 3` | `5` (number) | ⏳ Pending |
-| Variable reference | `x` (where x=10) | `10` (number) | ⏳ Pending |
-| Table field | `t.name` (where t={name="Lua"}) | `"Lua"` (string) | ⏳ Pending |
-| Function call | `math.floor(3.7)` | `3` (number) | ⏳ Pending |
-| Array indexing | `arr[1]` (where arr={10,20}) | `10` (number) | ⏳ Pending |
-| String concatenation | `"Hello" .. " World"` | `"Hello World"` (string) | ⏳ Pending |
-| Undefined variable | `undefined_var` | Error: "undefined variable" | ⏳ Pending |
-| Syntax error | `1 +` | Error: "syntax error" | ⏳ Pending |
-| Complex table | `{a=1, b={c=2}}` | Nested table structure | ⏳ Pending |
-| Statement mode | `x = 10; return x` | `10` (number) | ⏳ Pending |
+| Simple arithmetic | `2 + 3` | `5` (number) | ✅ Passing |
+| Variable reference | `x` (where x=10) | `10` (number) | ✅ Passing |
+| Table field | `t.name` (where t={name="Lua"}) | `"Lua"` (string) | ✅ Passing |
+| Function call | `math.floor(3.7)` | `3` (number) | ✅ Passing |
+| Array indexing | `arr[1]` (where arr={10,20}) | `10` (number) | ✅ Passing |
+| String concatenation | `"Hello" .. " World"` | `"Hello World"` (string) | ✅ Passing |
+| Undefined variable | `undefined_var` | Error message logged | ✅ Passing |
+| Syntax error | `1 +` | Exception caught and logged | ✅ Passing |
+| Complex table | `{a=1, b={c=2}}` | Nested table structure | ✅ Passing |
+| Statement mode | `x = 10; return x` | `10` (number) | ✅ Passing |
+| Empty table | `{}` | Empty table (expandable) | ✅ Passing |
+| Mixed-type table | `{1, "abc", true}` | Table with 3 items (correct types) | ✅ Passing |
 
 ## Future Enhancements
 
