@@ -316,4 +316,61 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
             assertEquals(3.14, result.numberValue)
         }
     }
+
+    /**
+     * AC-15: Unary minus operator: `-5`
+     * Tests that negative numbers are properly evaluated
+     */
+    @Test
+    fun testUnaryMinus() {
+        myFixture.configureByText(LuaFileType, "")
+
+        ApplicationManager.getApplication().runReadAction {
+            val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "-5")
+            
+            assertNotNull(result)
+            assertEquals(LuaValueKind.Number, result.kind)
+            assertEquals(-5.0, result.numberValue)
+        }
+    }
+
+    /**
+     * AC-16: Unary NOT operator: `not true`
+     * Tests that logical NOT is properly evaluated
+     */
+    @Test
+    fun testUnaryNot() {
+        myFixture.configureByText(LuaFileType, "")
+
+        ApplicationManager.getApplication().runReadAction {
+            // Test `not true` → false
+            val resultTrue = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "not true")
+            assertNotNull(resultTrue)
+            assertEquals(LuaValueKind.Boolean, resultTrue.kind)
+            assertEquals(false, resultTrue.boolValue)
+            
+            // Test `not false` → true
+            val resultFalse = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "not false")
+            assertNotNull(resultFalse)
+            assertEquals(LuaValueKind.Boolean, resultFalse.kind)
+            assertEquals(true, resultFalse.boolValue)
+        }
+    }
+
+    /**
+     * AC-17: Unary length operator: `#{1, 2, 3}`
+     * Tests that length operator is properly evaluated for tables
+     */
+    @Test
+    fun testUnaryLength() {
+        myFixture.configureByText(LuaFileType, "")
+
+        ApplicationManager.getApplication().runReadAction {
+            val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "#{1, 2, 3}")
+            
+            assertNotNull(result)
+            assertEquals(LuaValueKind.Number, result.kind)
+            assertEquals(3.0, result.numberValue)
+        }
+    }
 }

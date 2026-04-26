@@ -20,6 +20,7 @@ import net.internetisalie.lunar.lang.psi.LuaPrefixExpr
 import net.internetisalie.lunar.lang.psi.LuaStatement
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
+import net.internetisalie.lunar.lang.psi.LuaUnOpExpr
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVarOrExp
 import net.internetisalie.lunar.lang.syntax.extractLuaString
@@ -37,19 +38,8 @@ class LuaDebugValueParser(private val project: Project? = null) {
             is LuaTableConstructor -> evaluateTableConstructor(expr)
             is LuaFuncDef -> evaluateFuncDef(expr)
             is LuaPrefixExpr -> evaluatePrefixExpr(expr)
+            is LuaUnOpExpr -> evaluateUnOpExpr(expr)
             else -> {
-                // Try to parse as a negative number (UnaryOp with minus)
-                val exprText = expr.text.trim()
-                if (exprText.startsWith("-")) {
-                    val numValue = exprText.substring(1).toDoubleOrNull()
-                    if (numValue != null) {
-                        return LuaValue(
-                            kind = LuaValueKind.Number,
-                            numberValue = -numValue,
-                            psiElement = expr,
-                        )
-                    }
-                }
                 log.warn("Unsupported expression type: ${expr::class.simpleName}")
                 null
             }
@@ -149,6 +139,75 @@ class LuaDebugValueParser(private val project: Project? = null) {
 
         // Function calls and other prefix expressions not supported
         return null
+    }
+
+    private fun evaluateUnOpExpr(expr: LuaUnOpExpr): LuaValue? {
+        val rightExpr = expr.expr ?: return null
+        val rightValue = evaluateExpression(rightExpr) ?: return null
+        val op = expr.unOp.text
+
+        return when (op) {
+            "-" -> {
+                // Negate a number
+                if (rightValue.kind == LuaValueKind.Number && rightValue.numberValue != null) {
+                    LuaValue(
+                        kind = LuaValueKind.Number,
+                        numberValue = -rightValue.numberValue,
+                        psiElement = expr,
+                    )
+                } else {
+                    null
+                }
+            }
+
+            "not" -> {
+                // Logical NOT - negate a boolean
+                val boolVal = when (rightValue.kind) {
+                    LuaValueKind.Nil -> false
+                    LuaValueKind.Boolean -> rightValue.boolValue ?: false
+                    else -> true
+                }
+                LuaValue(
+                    kind = LuaValueKind.Boolean,
+                    boolValue = !boolVal,
+                    psiElement = expr,
+                )
+            }
+
+            "#" -> {
+                // Length operator - only meaningful for tables and strings
+                val length = when (rightValue.kind) {
+                    LuaValueKind.Table -> (rightValue.tableValue?.indexed?.size ?: 0).toDouble()
+                    LuaValueKind.String -> (rightValue.stringValue?.length ?: 0).toDouble()
+                    else -> 0.0
+                }
+                LuaValue(
+                    kind = LuaValueKind.Number,
+                    numberValue = length,
+                    psiElement = expr,
+                )
+            }
+
+            "~" -> {
+                // Bitwise NOT - for numbers, negate all bits
+                if (rightValue.kind == LuaValueKind.Number && rightValue.numberValue != null) {
+                    val intValue = rightValue.numberValue.toLong()
+                    val result = intValue.inv().toDouble()
+                    LuaValue(
+                        kind = LuaValueKind.Number,
+                        numberValue = result,
+                        psiElement = expr,
+                    )
+                } else {
+                    null
+                }
+            }
+
+            else -> {
+                log.warn("Unknown unary operator: $op")
+                null
+            }
+        }
     }
 
     private fun evaluateVar(`var`: LuaVar): LuaValue? {
