@@ -256,11 +256,11 @@ class LuaDebugConnection(
 
     private fun receive() {
         // Parse the base response
-        val result = reader.readLine()
+        val result = reader.readLine() ?: throw IOException("connection closed")
         log.warn("Received line: $result")
         val status = DebuggerStatus.entries.firstOrNull { result.startsWith(it.message) }
             ?: throw IOException("unknown response: $result")
-        val data: String = result.removePrefix(status.message).removePrefix(" ")
+        val data: String = result.removePrefix(status.message).removePrefix(" ").trimEnd('\n')
 
         // Parse the extended response if required
         val currentResponses = current?.kind?.responses ?: emptyMap()
