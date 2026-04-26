@@ -198,7 +198,10 @@ class LuaDebugConnection(
         try {
             while (true) {
                 // Quit if we are done
-                if (socket.isClosed) break
+                if (socket.isClosed) {
+                    log.warn("Socket closed")
+                    break
+                }
 
                 // Send a queued command if we are open
                 if (current == null && !running) send()
@@ -217,7 +220,11 @@ class LuaDebugConnection(
             }
         } catch (e: IOException) {
             // Nothing for now
+            log.warn("IO exception")
+        } catch (e: Exception) {
+            log.warn(e)
         } finally {
+            log.warn("Connection closed")
             synchronized(this) {
                 started = false
             }
@@ -242,7 +249,7 @@ class LuaDebugConnection(
             if (current != null || running) return
             val command = commands.removeFirstOrNull() ?: return
             current = command
-            log.info("sending command ${command}")
+            log.warn("sending command ${command}")
             writer.write("$command\n".toByteArray(charset))
         }
     }
@@ -250,7 +257,7 @@ class LuaDebugConnection(
     private fun receive() {
         // Parse the base response
         val result = reader.readLine()
-        log.info("Received line $result")
+        log.warn("Received line: $result")
         val status = DebuggerStatus.entries.firstOrNull { result.startsWith(it.message) }
             ?: throw IOException("unknown response: $result")
         val data: String = result.removePrefix(status.message).removePrefix(" ")
@@ -261,7 +268,7 @@ class LuaDebugConnection(
             if (currentResponses[status] == DebuggerResponseDataKind.Extended) {
                 val length = data.toInt()
                 val data = reader.readCharSequence(length).toString()
-                // TODO: invoke in some other thread?
+                log.warn("Received extended data: $data")
                 observer.onCommandComplete(current!!, status, data)
             } else {
                 observer.onCommandComplete(current!!, status, data)

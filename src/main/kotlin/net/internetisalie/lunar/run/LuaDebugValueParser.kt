@@ -9,6 +9,7 @@ import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaDoStatement
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaEmptyStatement
 import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaFinalStatement
 import net.internetisalie.lunar.lang.psi.LuaFuncDef
@@ -253,6 +254,8 @@ class LuaDebugValueParser {
                     val exprs = stmt.exprList.exprList
                     executeAssignment(vars, exprs)
                 }
+
+                stmt is LuaEmptyStatement -> {}
 
                 else -> {
                     log.warn("Unsupported statement type: ${stmt::class.simpleName} - skipping")

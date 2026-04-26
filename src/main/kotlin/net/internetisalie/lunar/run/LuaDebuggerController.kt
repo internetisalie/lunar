@@ -74,25 +74,6 @@ class LuaDebuggerController(
         this.baseDir = baseDir
 
         workingDir = File(baseDir)
-
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                log.info("Starting Debug Controller")
-                val serverSocket = ServerSocket(serverPort)
-                this.serverSocket = serverSocket
-
-                log.info("Accepting Connections")
-                val clientSocket = serverSocket.accept()
-                clientAddress = clientSocket!!.getInetAddress()
-                log.info("Client Connected $clientAddress")
-
-                connection = LuaDebugConnection(clientSocket, DebugObserver())
-            } catch (_: IOException) {
-                log.info("Failed to accept client connection.")
-            }
-
-            connection?.run()
-        }
     }
 
     fun printToConsole(text: String?, contentType: ConsoleViewContentType) {
@@ -107,17 +88,43 @@ class LuaDebuggerController(
 
     @Throws(IOException::class)
     fun waitForConnect() {
+        try {
+            log.info("Starting Debug Controller")
+            this.serverSocket = ServerSocket(serverPort)
+        } catch (_: IOException) {
+            log.info("Failed to listen on server socket.")
+        }
+
         var count = 0
+
+        // Accept a connection
         while (connection == null) {
             try {
-                Thread.sleep(100)
-                if (++count > 50) throw RuntimeException("timeout")
+                log.info("Accepting Connection")
+                val clientSocket = serverSocket!!.accept()
+                clientAddress = clientSocket!!.getInetAddress()
+
+                log.info("Client Connected $clientAddress")
+                connection = LuaDebugConnection(clientSocket, DebugObserver())
+                break
             } catch (e: InterruptedException) {
                 e.printStackTrace() //To change body of catch statement use File | Settings | File Templates.
+            } catch (e: IOException) {
+                log.error("Failed to accept client connection.", e)
+                return
             }
+
+            Thread.sleep(100)
+            if (++count > 50) throw RuntimeException("timeout")
         }
 
         printToConsole("Debugger connected at $clientAddress", ConsoleViewContentType.SYSTEM_OUTPUT)
+
+        // Run the connection in the background
+        ApplicationManager.getApplication().executeOnPooledThread {
+            connection?.run()
+            log.warn("Debug Controller terminated")
+        }
 
         try {
             Thread.sleep(1000)
@@ -131,12 +138,12 @@ class LuaDebuggerController(
     }
 
     fun terminate() {
-        log.info("terminate")
+        log.warn("terminate")
         queueRequest(DebugCommand(DebugCommandKind.EXIT)).then { close() }.onError { close() }
     }
 
     fun terminated() {
-        log.info("destroyed")
+        log.warn("terminated")
         close()
     }
 
@@ -233,7 +240,7 @@ class LuaDebuggerController(
         val command = DebugCommand(DebugCommandKind.EXEC, listOf(statement))
         return queueRequest(command)
             .then { text ->
-                var luaDebugValue : LuaDebugValue? = null
+                var luaDebugValue: LuaDebugValue? = null
                 ApplicationManager.getApplication().runReadAction {
                     val table = LuaDebugValueParser.parseChunk(session.project, text)
                     val value = LuaValue.newTable(table)
@@ -318,6 +325,7 @@ class LuaDebuggerController(
         }
 
         override fun onDisconnected() {
+            log.warn("Disconnected")
             close()
         }
     }

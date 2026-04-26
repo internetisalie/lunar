@@ -62,6 +62,7 @@ class LuaDebugProcess(
     }
 
     override fun stop() {
+        log.warn("stopping")
         myClosing = true
         executionResult.processHandler?.destroyProcess()
     }
