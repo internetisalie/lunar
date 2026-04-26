@@ -48,7 +48,7 @@ class TestLuaRemoteStackFrames : BaseDocumentTest() {
 
             val variableE = localsScopeB.getVariable("e")
             assertNotNull(variableE)
-            assertEquals("2", (variableE.value as LuaTerminalExpr).number?.text)
+            assertEquals("2", variableE.value.numberValue?.toInt().toString())
             assertEquals("2", variableE.displayValue)
         }
     }

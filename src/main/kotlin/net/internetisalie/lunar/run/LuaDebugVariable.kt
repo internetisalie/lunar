@@ -40,26 +40,30 @@ class LuaDebugVariable private constructor(
     private val parent: LuaDebugVariable?,
     private val value: LuaDebugValue,
     private val isIndex: Boolean,
-    private val isLocal: Boolean
+    private val isLocal: Boolean,
 ) : XNamedValue(name) {
     internal constructor(name: String, value: LuaDebugValue, isLocal: Boolean) : this(name, null, value, false, isLocal)
 
     override fun computeChildren(node: XCompositeNode) {
         if (value.isTable) {
-            val fields = value.raw.checkTable()?.getFields() ?: return
-            val  xValues = XValueChildrenList(fields.size);
-            var nextIndex = 1
-            fields.forEach{ field ->
-                val key = field.name ?: ("[" + (nextIndex++).toString() + "]")
-                val rawValue = LuaValue(field.value)
-                val debugValue = LuaDebugValue(rawValue, null, AllIcons.Nodes.Field)
-                xValues.add(LuaDebugVariable(
-                    name = key,
-                    parent = this,
-                    value = debugValue,
-                    isIndex = false,
-                    isLocal = true
-                ))
+            val fields = value.raw.checkTable()?.pairs() ?: return
+            val xValues = XValueChildrenList(fields.size);
+            fields.forEach { field ->
+                val key = if (field.first.kind == LuaValueKind.String) {
+                    field.first.stringValue!!
+                } else {
+                    "[" + field.first.numberValue!!.toInt() + "]"
+                }
+                val debugValue = LuaDebugValue(field.second, null, AllIcons.Nodes.Field)
+                xValues.add(
+                    LuaDebugVariable(
+                        name = key,
+                        parent = this,
+                        value = debugValue,
+                        isIndex = false,
+                        isLocal = true,
+                    ),
+                )
             }
             node.addChildren(xValues, true);
         } else {
@@ -86,7 +90,7 @@ class LuaDebugVariable private constructor(
 
         val contextElement: PsiElement? = XDebuggerUtil.getInstance().findContextElement(
             currentPosition.getFile(),
-            currentPosition.getOffset(), project, false
+            currentPosition.getOffset(), project, false,
         )
 
         if (contextElement == null) return

@@ -113,8 +113,8 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val table = LuaTable()
-            table.named["x"] = LuaValue(kind = LuaValueKind.Number, numberValue = 42.0)
-            table.named["y"] = LuaValue(kind = LuaValueKind.String, stringValue = "hello")
+            table.addByName("x", LuaValue(kind = LuaValueKind.Number, numberValue = 42.0))
+            table.addByName("y", LuaValue(kind = LuaValueKind.String, stringValue = "hello"))
 
             val value = LuaValue(kind = LuaValueKind.Table, tableValue = table)
 
@@ -125,18 +125,26 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
     }
 
     @Test
-    fun testLocalVariableBinding() {
-        val evaluator = LuaDebugValueParser()
-        myFixture.configureByText(LuaFileType, "")
+    fun testParseTable() {
+        myFixture.configureByText(LuaFileType, "do local _={1, \"A\"};return _;end")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaValue(kind = LuaValueKind.Number, numberValue = 42.0)
-            evaluator.setLocalVariable("x", value)
+            val table = LuaDebugValueParser.parseFile(myFixture.file)
 
-            val retrieved = evaluator.getLocalVariable("x")
-            assertNotNull(retrieved)
-            assertEquals(LuaValueKind.Number, retrieved.kind)
-            assertEquals(42.0, retrieved.numberValue)
+            // Should have 1 indexed entry (the string "1")
+            assertEquals(2, table.indexed.size)
+
+            // First entry should be a number value 1
+            val firstEntry = table.indexed[0]
+            assertNotNull(firstEntry)
+            assertEquals(LuaValueKind.Number, firstEntry.kind)
+            assertEquals(1, firstEntry.numberValue?.toInt())
+
+            // Second entry should be a string value "A"
+            val secondEntry = table.indexed[1]
+            assertNotNull(secondEntry)
+            assertEquals(LuaValueKind.String, secondEntry.kind)
+            assertEquals("A", secondEntry.stringValue)
         }
     }
 }

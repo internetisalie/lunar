@@ -18,6 +18,7 @@ package net.internetisalie.lunar.run
 
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
@@ -43,7 +44,7 @@ import java.net.ServerSocket
  * and returning a call stack upon doing so.
  */
 class LuaDebuggerController(
-    private val session: XDebugSession
+    private val session: XDebugSession,
 ) {
     private var serverSocket: ServerSocket? = null
     private var clientAddress: InetAddress? = null
@@ -66,7 +67,7 @@ class LuaDebuggerController(
         val workingDirectory: String = listOfNotNull(
             (this.session.runProfile as? LuaRunConfiguration)?.workingDirectory,
             session.project.basePath,
-            ""
+            "",
         ).first()
 
         val baseDir = if (!workingDirectory.endsWith("/")) "$workingDirectory/" else workingDirectory
@@ -203,8 +204,8 @@ class LuaDebuggerController(
         return queueCommand(
             DebugCommand(
                 DebugCommandKind.BASEDIR,
-                listOf(baseDir)
-            )
+                listOf(baseDir),
+            ),
         )
     }
 
@@ -228,34 +229,25 @@ class LuaDebuggerController(
         return queueCommand(DebugCommand(DebugCommandKind.DELB, pos.args()))
     }
 
-    fun execute(statement: String): Promise<LuaDebugValue?> {
+    fun execute(statement: String): Promise<LuaDebugValue> {
         val command = DebugCommand(DebugCommandKind.EXEC, listOf(statement))
-        return queueRequest(command).then { text ->
-            // TODO: Parse the value from `it`
-            // do local _={"1","3"};return _;end
-            LuaDebugValue("TODO")
-//            try {
-//                val globals: Globals = JsePlatform.debugGlobals()
-//                val chunk: LuaValue = globals.load(valueString)
-//                val stackDump: LuaTable = chunk.call().checktable() // Executes the chunk and returns it
-//                LuaRemoteStack.clearIdKey(stackDump)
-//                var rawValue: LuaValue = stackDump
-//                if (stackDump.keyCount() === 1) rawValue = stackDump.get(1)
-//                else if (stackDump.keyCount() === 0) rawValue = LuaValue.NIL
-//                val value = LuaDebugValue(rawValue, AllIcons.Debugger.Watch)
-//            } catch (e: LuaError) {
-//                promise.setResult(LuaDebugValue(e.message))
-//            }
-        }.onError { e ->
-            LuaDebugValue(e.message)
-        }
+        return queueRequest(command)
+            .then { text ->
+                var luaDebugValue : LuaDebugValue? = null
+                ApplicationManager.getApplication().runReadAction {
+                    val table = LuaDebugValueParser.parseChunk(session.project, text)
+                    val value = LuaValue.newTable(table)
+                    luaDebugValue = LuaDebugValue(value, null, AllIcons.Nodes.Lambda)
+                }
+                luaDebugValue!!
+            }.onError { e -> log.error(e) }
     }
 
     fun variables(): Promise<LuaRemoteStack> {
         val command = DebugCommand(DebugCommandKind.STACK)
         return queueRequest(command)
             .then {
-                var luaRemoteStack : LuaRemoteStack? = null
+                var luaRemoteStack: LuaRemoteStack? = null
                 ApplicationManager.getApplication().runReadAction {
                     luaRemoteStack = LuaRemoteStack.create(session.project, it)
                 }
@@ -269,7 +261,7 @@ class LuaDebuggerController(
         override fun onCommandComplete(
             command: DebugCommand,
             status: DebuggerStatus,
-            data: String
+            data: String,
         ) {
             log.info("Received response to $command: $data")
 
@@ -291,7 +283,7 @@ class LuaDebuggerController(
 
         override fun onPauseWatchpoint(
             pos: LuaPosition,
-            watchIndex: Int
+            watchIndex: Int,
         ) {
             log.info("watch $watchIndex at ${pos.path} line ${pos.line}")
             onPause(pos)

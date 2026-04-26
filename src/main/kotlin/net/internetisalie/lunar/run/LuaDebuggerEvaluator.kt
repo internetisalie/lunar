@@ -40,7 +40,6 @@ class LuaDebuggerEvaluator(private val myController: LuaDebuggerController) : XD
         callback: XEvaluationCallback,
         expressionPosition: XSourcePosition?
     ) {
-        log.info("evaluating: '$expression'")
         myController.execute("return $expression")
             .then { xValue: XValue? ->
                 if (xValue != null) callback.evaluated(xValue)
@@ -98,8 +97,6 @@ class LuaDebuggerEvaluator(private val myController: LuaDebuggerController) : XD
     }
 
     companion object {
-        private val log = Logger.getInstance(LuaDebuggerEvaluator::class.java)
-
         private fun findExpression(element: PsiElement?, allowMethodCalls: Boolean): Pair<PsiElement?, TextRange?>? {
             var expression: LuaExpr? = PsiTreeUtil.getParentOfType(element, LuaExpr::class.java)
 

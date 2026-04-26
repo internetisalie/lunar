@@ -46,7 +46,7 @@ class LuaStackFrame(
         return position
     }
 
-    override fun getEvaluator(): XDebuggerEvaluator? {
+    override fun getEvaluator(): XDebuggerEvaluator {
         return LuaDebuggerEvaluator(controller)
     }
 
@@ -61,7 +61,7 @@ class LuaStackFrame(
                 LuaDebugVariable(
                     it.name,
                     LuaDebugValue(
-                        LuaValue(it.value),
+                        it.value,
                         it.displayValue ?: "",
                         AllIcons.Nodes.Variable,
                     ),
@@ -73,7 +73,7 @@ class LuaStackFrame(
                 LuaDebugVariable(
                     it.name,
                     LuaDebugValue(
-                        LuaValue(it.value),
+                        it.value,
                         it.displayValue ?: "",
                         AllIcons.Nodes.Variable,
                     ),

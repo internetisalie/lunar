@@ -1,9 +1,13 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaDoStatement
+import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaFinalStatement
@@ -47,34 +51,39 @@ class LuaDebugValueParser {
                 LuaValue(
                     kind = LuaValueKind.Number,
                     numberValue = numberValue,
-                    psiElement = expr.number
+                    psiElement = expr.number,
                 )
             }
+
             expr.string != null -> {
                 val stringValue = extractLuaString(expr.string!!.text)
                 LuaValue(
                     kind = LuaValueKind.String,
                     stringValue = stringValue,
-                    psiElement = expr.string
+                    psiElement = expr.string,
                 )
             }
+
             expr.firstChild?.elementType == LuaElementTypes.NIL -> {
                 LuaValue(kind = LuaValueKind.Nil)
             }
+
             expr.text == "true" -> {
                 LuaValue(
                     kind = LuaValueKind.Boolean,
                     boolValue = true,
-                    psiElement = expr
+                    psiElement = expr,
                 )
             }
+
             expr.text == "false" -> {
                 LuaValue(
                     kind = LuaValueKind.Boolean,
                     boolValue = false,
-                    psiElement = expr
+                    psiElement = expr,
                 )
             }
+
             else -> null
         }
     }
@@ -87,10 +96,10 @@ class LuaDebugValueParser {
             if (fieldValue != null) {
                 if (field.name != null) {
                     // Named field
-                    table.named[field.name!!] = fieldValue
+                    table.addByName(field.name!!, fieldValue)
                 } else {
                     // Positional field
-                    table.indexed.add(fieldValue)
+                    table.push(fieldValue)
                 }
             }
         }
@@ -98,14 +107,14 @@ class LuaDebugValueParser {
         return LuaValue(
             kind = LuaValueKind.Table,
             tableValue = table,
-            psiElement = expr
+            psiElement = expr,
         )
     }
 
     private fun evaluateFuncDef(expr: LuaFuncDef): LuaValue {
         return LuaValue(
             kind = LuaValueKind.Function,
-            psiElement = expr
+            psiElement = expr,
         )
     }
 
@@ -159,7 +168,6 @@ class LuaDebugValueParser {
 
             val indexExpr = suffix.indexExpr
             currentValue = evaluateVarSuffixIndex(currentValue, indexExpr)
-                ?: LuaValue(kind = LuaValueKind.Nil)
         }
 
         return currentValue
@@ -168,7 +176,7 @@ class LuaDebugValueParser {
     private fun evaluateVarSuffixIndex(
         baseValue: LuaValue,
         indexExpr: LuaIndexExpr,
-    ): LuaValue? {
+    ): LuaValue {
         if (baseValue.kind != LuaValueKind.Table || baseValue.tableValue == null) {
             return LuaValue(kind = LuaValueKind.Nil)
         }
@@ -187,7 +195,7 @@ class LuaDebugValueParser {
                 }
 
                 if (key != null) {
-                    return table.named[key] ?: LuaValue(kind = LuaValueKind.Nil)
+                    return table.getByName(key)?.second ?: LuaValue.NIL
                 }
             }
         }
@@ -196,10 +204,10 @@ class LuaDebugValueParser {
         val nameRef = indexExpr.nameRef
         if (nameRef != null) {
             val fieldName = nameRef.text
-            return table.named[fieldName] ?: LuaValue(kind = LuaValueKind.Nil)
+            return table.getByName(fieldName)?.second ?: LuaValue.NIL
         }
 
-        return LuaValue(kind = LuaValueKind.Nil)
+        return LuaValue.NIL
     }
 
     fun parse(doStatement: LuaDoStatement): LuaTable {
@@ -213,28 +221,42 @@ class LuaDebugValueParser {
 
             when {
                 isLastStatement && stmt is LuaFinalStatement -> {
-                    // Process return statement and wrap results in table
-                    val table = LuaTable()
+                    // Process return statement - if it's a single table, return it directly
                     val exprList = stmt.exprList?.exprList ?: emptyList()
+                    if (exprList.size == 1) {
+                        val value = evaluateExpression(exprList[0])
+                        if (value != null && value.kind == LuaValueKind.Table && value.tableValue != null) {
+                            return value.tableValue
+                        }
+                    }
+                    // Otherwise wrap multiple return values in a table
+                    val table = LuaTable()
                     for (expr in exprList) {
                         val value = evaluateExpression(expr)
                         if (value != null) {
-                            table.indexed.add(value)
+                            table.push(value)
                         }
                     }
                     return table
                 }
+
                 stmt is LuaLocalVarDecl -> {
                     // Execute local variable declaration
                     val names = stmt.attNameList.map { it.nameRef.text }
                     val exprs = stmt.exprList?.exprList ?: emptyList()
                     executeLocalVariable(names, exprs)
                 }
+
                 stmt is LuaAssignmentStatement -> {
                     // Execute assignment
                     val vars = stmt.varList.varList.map { it.text }
                     val exprs = stmt.exprList.exprList
                     executeAssignment(vars, exprs)
+                }
+
+                else -> {
+                    log.warn("Unsupported statement type: ${stmt::class.simpleName} - skipping")
+                    // Don't return, just continue to next statement
                 }
             }
         }
@@ -277,5 +299,19 @@ class LuaDebugValueParser {
 
     fun setLocalVariable(name: String, value: LuaValue) {
         localScope[name] = value
+    }
+
+    companion object {
+        fun parseChunk(project: Project, text: String): LuaTable {
+            val codeFragment = LuaElementFactory.createExpressionCodeFragment(project, text, null, true)
+            return parseFile(codeFragment)
+        }
+
+        fun parseFile(file: PsiFile): LuaTable {
+            val doStatement = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
+                ?: return LuaTable()
+            val parser = LuaDebugValueParser()
+            return parser.parse(doStatement)
+        }
     }
 }
