@@ -20,7 +20,6 @@ import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XSourcePosition
@@ -32,6 +31,7 @@ import java.io.File
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
+import java.util.IdentityHashMap
 
 /**
  * Responsible for interacting with the remote debugger client.
@@ -50,7 +50,7 @@ class LuaDebuggerController(
     private var clientAddress: InetAddress? = null
     private var connection: LuaDebugConnection? = null
     private var serverPort: Int = 8172
-    private var requests: MutableMap<DebugCommand, AsyncPromise<String>> = mutableMapOf()
+    private var requests: MutableMap<DebugCommand, AsyncPromise<String>> = IdentityHashMap()
     private var console: ConsoleView? = null
     var isReady: Boolean = false
         private set
@@ -91,8 +91,9 @@ class LuaDebuggerController(
         try {
             log.info("Starting Debug Controller")
             this.serverSocket = ServerSocket(serverPort)
-        } catch (_: IOException) {
-            log.info("Failed to listen on server socket.")
+        } catch (e: IOException) {
+            log.error("Failed to bind server socket on port $serverPort", e)
+            throw e
         }
 
         var count = 0
@@ -102,13 +103,13 @@ class LuaDebuggerController(
             try {
                 log.info("Accepting Connection")
                 val clientSocket = serverSocket!!.accept()
-                clientAddress = clientSocket!!.getInetAddress()
+                clientAddress = clientSocket.inetAddress
 
                 log.info("Client Connected $clientAddress")
                 connection = LuaDebugConnection(clientSocket, DebugObserver())
                 break
             } catch (e: InterruptedException) {
-                e.printStackTrace() //To change body of catch statement use File | Settings | File Templates.
+                log.warn("Interrupted while waiting for client connection", e)
             } catch (e: IOException) {
                 log.error("Failed to accept client connection.", e)
                 return
@@ -123,13 +124,13 @@ class LuaDebuggerController(
         // Run the connection in the background
         ApplicationManager.getApplication().executeOnPooledThread {
             connection?.run()
-            log.warn("Debug Controller terminated")
+            log.info("Debug Controller terminated")
         }
 
         try {
             Thread.sleep(1000)
         } catch (e: InterruptedException) {
-            e.printStackTrace() //To change body of catch statement use File | Settings | File Templates.
+            log.warn("Interrupted during post-connect wait", e)
         }
 
         this.isReady = true
@@ -138,17 +139,18 @@ class LuaDebuggerController(
     }
 
     fun terminate() {
-        log.warn("terminate")
+        log.info("terminate")
         queueRequest(DebugCommand(DebugCommandKind.EXIT)).then { close() }.onError { close() }
     }
 
     fun terminated() {
-        log.warn("terminated")
+        log.info("terminated")
         close()
     }
 
     @Synchronized
     fun close() {
+        log.info("close()")
         isReady = false
         if (serverSocket != null) {
             try {
@@ -166,6 +168,12 @@ class LuaDebuggerController(
 
             connection = null
         }
+        val remaining: List<AsyncPromise<String>>
+        synchronized(requests) {
+            remaining = requests.values.toList()
+            requests.clear()
+        }
+        remaining.forEach { it.setError("debugger connection closed") }
     }
 
     fun setConsole(console: ConsoleView) {
@@ -272,9 +280,9 @@ class LuaDebuggerController(
         ) {
             log.info("Received response to $command: $data")
 
-            var promise: AsyncPromise<String>
+            val promise: AsyncPromise<String>
             synchronized(requests) {
-                promise = requests.getOrDefault(command, null) ?: return
+                promise = requests.remove(command) ?: return
             }
 
             if (status.isError) {
@@ -285,7 +293,11 @@ class LuaDebuggerController(
         }
 
         override fun onCommandCancelled(command: DebugCommand) {
-            TODO("Not yet implemented")
+            val promise: AsyncPromise<String>
+            synchronized(requests) {
+                promise = requests.remove(command) ?: return
+            }
+            promise.setError("command cancelled: ${command.kind.name}")
         }
 
         override fun onPauseWatchpoint(
@@ -319,13 +331,13 @@ class LuaDebuggerController(
         }
 
         override fun onRunExecutionError(file: String) {
-            log.info("Received execution error in $file")
+            log.error("Received execution error in $file")
 
             TODO("Not yet implemented")
         }
 
         override fun onDisconnected() {
-            log.warn("Disconnected")
+            log.info("Disconnected")
             close()
         }
     }

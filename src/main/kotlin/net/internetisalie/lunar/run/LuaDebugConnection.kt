@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.util.io.readCharSequence
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -199,16 +198,28 @@ class LuaDebugConnection(
             while (true) {
                 // Quit if we are done
                 if (socket.isClosed) {
-                    log.warn("Socket closed")
+                    log.info("run() loop exit: socket closed")
                     break
                 }
 
+                val hasCurrent = current != null
+                val isRunning = running
+                val readerReady = reader.ready()
+
                 // Send a queued command if we are open
-                if (current == null && !running) send()
+                if (!hasCurrent && !isRunning) {
+                    send()
+                }
 
                 // Receive a response if we are expecting one and it is available
-                if ((current != null || running) && reader.ready()) {
+                if ((current != null || running) && readerReady) {
                     receive()
+                } else if (!readerReady && (current != null || running)) {
+                    try {
+                        Thread.sleep(50)
+                    } catch (_: InterruptedException) {
+                        // ignore
+                    }
                 } else {
                     // snooze
                     try {
@@ -219,12 +230,11 @@ class LuaDebugConnection(
                 }
             }
         } catch (e: IOException) {
-            // Nothing for now
-            log.warn("IO exception")
+            log.warn("run() IO exception: ${e.message}", e)
         } catch (e: Exception) {
-            log.warn(e)
+            log.warn("run() unexpected exception: ${e.message}", e)
         } finally {
-            log.warn("Connection closed")
+            log.info("run() exiting, connection closed")
             synchronized(this) {
                 started = false
             }
@@ -249,17 +259,15 @@ class LuaDebugConnection(
             if (current != null || running) return
             val command = commands.removeFirstOrNull() ?: return
             current = command
-            log.warn("sending command ${command}")
             writer.write("$command\n".toByteArray(charset))
         }
     }
 
     private fun receive() {
         // Parse the base response
-        val result = reader.readLine() ?: throw IOException("connection closed")
-        log.warn("Received line: $result")
+        val result = reader.readLine() ?: throw IOException("connection closed — readLine() returned null")
         val status = DebuggerStatus.entries.firstOrNull { result.startsWith(it.message) }
-            ?: throw IOException("unknown response: $result")
+            ?: throw IOException("receive() unknown status in response: ${result.take(80)}")
         val data: String = result.removePrefix(status.message).removePrefix(" ").trimEnd('\n')
 
         // Parse the extended response if required
@@ -267,9 +275,8 @@ class LuaDebugConnection(
         if (currentResponses.containsKey(status)) {
             if (currentResponses[status] == DebuggerResponseDataKind.Extended) {
                 val length = data.toInt()
-                val data = reader.readCharSequence(length).toString()
-                log.warn("Received extended data: $data")
-                observer.onCommandComplete(current!!, status, data)
+                val extData = reader.readExactly(length)
+                observer.onCommandComplete(current!!, status, extData)
             } else {
                 observer.onCommandComplete(current!!, status, data)
             }
@@ -290,8 +297,10 @@ class LuaDebugConnection(
                         val file = m.group(1)
                         val line = m.group(2).toInt()
                         val pos = LuaPosition(file, line)
-
+                        log.info("breakpoint pause at $file:$line")
                         observer.onPauseBreakpoint(pos)
+                    } else {
+                        log.warn("PausedBreakpoint data did not match pattern: '$data'")
                     }
                 }
 
@@ -304,24 +313,27 @@ class LuaDebugConnection(
                         val line = m.group(2).toInt()
                         val pos = LuaPosition(file, line)
                         val index = m.group(3).toInt()
-
+                        log.info("watchpoint pause at $file:$line index=$index")
                         observer.onPauseWatchpoint(pos, index)
+                    } else {
+                        log.warn("PausedWatchpoint data did not match pattern: '$data'")
                     }
                 }
 
                 DebuggerStatus.ErrorInExecution -> {
                     running = false
 
-                    // extended data
-                    val length = data.toInt()
-                    val data = reader.readCharSequence(length).toString()
-                    observer.onRunExecutionError(data)
+                    val extData = reader.readExactly(data.toInt())
+                    log.info("execution error: $extData")
+                    observer.onRunExecutionError(extData)
                 }
 
                 else -> {
-                    log.error("received unknown response: $status.message")
+                    log.error("receive() unexpected status while running: ${status.message}")
                 }
             }
+        } else {
+            log.error("receive() unhandled response: status=$status data='${data.take(80)}' (current=${current?.kind}, running=$running)")
         }
     }
 
@@ -340,6 +352,18 @@ class LuaDebugConnection(
             socket.close()
         } catch (_: IOException) {
         }
+    }
+
+    /** Reads exactly [length] characters from this reader without closing it. */
+    private fun BufferedReader.readExactly(length: Int): String {
+        val buf = CharArray(length)
+        var offset = 0
+        while (offset < length) {
+            val n = read(buf, offset, length - offset)
+            if (n == -1) throw IOException("connection closed after $offset of $length chars")
+            offset += n
+        }
+        return String(buf)
     }
 
     companion object {

@@ -95,6 +95,7 @@ class LuaDebugProcess(
         val processHandler = executionResult.processHandler
         processHandler?.addProcessListener(object : ProcessListener {
             override fun processTerminated(event: ProcessEvent) {
+                log.info("processTerminated event received (exitCode=${event.exitCode})")
                 myClosing = true
                 controller.terminated()
             }
@@ -116,7 +117,10 @@ class LuaDebugProcess(
 
                     controller.resume()
 
+                    log.info("connection running")
                 } catch (e: Exception) {
+                    log.error("Failed to connect to debugger", e)
+
                     if (executionResult.processHandler != null)
                         executionResult.processHandler.destroyProcess()
 
