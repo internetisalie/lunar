@@ -251,7 +251,32 @@ class LuaDebuggerController(
                 var luaDebugValue: LuaDebugValue? = null
                 ApplicationManager.getApplication().runReadAction {
                     val table = LuaDebugValueParser.parseChunk(session.project, text)
-                    val value = LuaValue.newTable(table)
+                    
+                    // Re-parse each string value in the result to recover types from stringification
+                    val reparsedTable = LuaTable()
+                    for ((idx, value) in table.indexed.withIndex()) {
+                        val reparsed = if (value.kind == LuaValueKind.String) {
+                            LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
+                        } else {
+                            value
+                        }
+                        reparsedTable.indexed.add(reparsed)
+                    }
+                    for ((key, value) in table.named) {
+                        val reparsed = if (value.kind == LuaValueKind.String) {
+                            LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
+                        } else {
+                            value
+                        }
+                        reparsedTable.named[key] = reparsed
+                    }
+                    
+                    // If the result is a single scalar value, return it directly instead of wrapping in table
+                    val value = if (reparsedTable.indexed.size == 1 && reparsedTable.named.isEmpty()) {
+                        reparsedTable.indexed[0]
+                    } else {
+                        LuaValue.newTable(reparsedTable)
+                    }
                     luaDebugValue = LuaDebugValue(value, null, AllIcons.Nodes.Lambda)
                 }
                 luaDebugValue!!

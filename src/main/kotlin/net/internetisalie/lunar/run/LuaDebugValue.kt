@@ -16,7 +16,9 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.icons.AllIcons
+import com.intellij.xdebugger.frame.XCompositeNode
 import com.intellij.xdebugger.frame.XValue
+import com.intellij.xdebugger.frame.XValueChildrenList
 import com.intellij.xdebugger.frame.XValueNode
 import com.intellij.xdebugger.frame.XValuePlace
 import com.intellij.xdebugger.frame.presentation.XNumericValuePresentation
@@ -73,6 +75,31 @@ class LuaDebugValue : XValue {
     override fun computePresentation(node: XValueNode, place: XValuePlace) {
         val presentation: XValuePresentation = this.presentation
         node.setPresentation(icon, presentation, this.isTable)
+    }
+
+    override fun computeChildren(node: XCompositeNode) {
+        if (!isTable) {
+            node.addChildren(XValueChildrenList.EMPTY, true)
+            return
+        }
+
+        val fields = rawValue.checkTable()?.pairs() ?: run {
+            node.addChildren(XValueChildrenList.EMPTY, true)
+            return
+        }
+
+        val xValues = XValueChildrenList(fields.size)
+        fields.forEach { field ->
+            val key = if (field.first.kind == LuaValueKind.String) {
+                field.first.stringValue!!
+            } else {
+                "[" + field.first.numberValue!!.toInt() + "]"
+            }
+            val debugValue = LuaDebugValue(field.second, null, AllIcons.Nodes.Field)
+            xValues.add(key, debugValue)
+        }
+
+        node.addChildren(xValues, true)
     }
 
     private val presentation: XValuePresentation

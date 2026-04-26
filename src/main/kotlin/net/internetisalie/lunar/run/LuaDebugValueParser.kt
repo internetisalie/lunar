@@ -24,9 +24,8 @@ import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVarOrExp
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 
-class LuaDebugValueParser {
+class LuaDebugValueParser(private val project: Project? = null) {
     private val localScope: MutableMap<String, LuaValue> = mutableMapOf()
-    private val log = logger<LuaDebugValueParser>()
 
     fun evaluateExpression(expr: LuaExpr?): LuaValue? {
         if (expr == null) {
@@ -61,7 +60,7 @@ class LuaDebugValueParser {
                 LuaValue(
                     kind = LuaValueKind.String,
                     stringValue = stringValue,
-                    psiElement = expr.string,
+                    psiElement = null,
                 )
             }
 
@@ -137,7 +136,6 @@ class LuaDebugValueParser {
         }
 
         // Function calls and other prefix expressions not supported
-        log.warn("Unsupported prefix expression")
         return null
     }
 
@@ -163,7 +161,6 @@ class LuaDebugValueParser {
         for (suffix in varSuffixList) {
             // Check for unsupported function calls
             if (suffix.nameAndArgsList.isNotEmpty()) {
-                log.warn("Function calls are not supported in expression evaluation")
                 return null
             }
 
@@ -258,7 +255,6 @@ class LuaDebugValueParser {
                 stmt is LuaEmptyStatement -> {}
 
                 else -> {
-                    log.warn("Unsupported statement type: ${stmt::class.simpleName} - skipping")
                     // Don't return, just continue to next statement
                 }
             }
@@ -296,24 +292,38 @@ class LuaDebugValueParser {
         }
     }
 
-    fun getLocalVariable(name: String): LuaValue? {
-        return localScope[name]
-    }
-
-    fun setLocalVariable(name: String, value: LuaValue) {
-        localScope[name] = value
-    }
-
     companion object {
-        fun parseChunk(project: Project, text: String): LuaTable {
-            val codeFragment = LuaElementFactory.createExpressionCodeFragment(project, text, null, true)
-            return parseFile(codeFragment)
+        private val log = logger<LuaDebugValueParser>()
+
+        fun parseStringAsLuaValue(project: Project, content: String): LuaValue? {
+            return try {
+                // Wrap in a table to preserve structure (e.g., {$value} ensures tables stay intact)
+                val wrappedCode = "do return {$content} end"
+                val file = LuaElementFactory.createFile(project, wrappedCode)
+                val doStatement = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
+                    ?: return null
+
+                val table = LuaDebugValueParser(project).parse(doStatement)
+
+                // Extract the single parsed value from the result table
+                table.indexed.firstOrNull()
+                    ?: table.named.values.firstOrNull()
+                    ?: LuaValue.newTable(table)
+            } catch (e: Exception) {
+                log.warn("Failed to parse stringified value: $content", e)
+                null
+            }
         }
 
-        fun parseFile(file: PsiFile): LuaTable {
+        fun parseChunk(project: Project, text: String): LuaTable {
+            val file = LuaElementFactory.createFile(project, text)
+            return parseFile(file, project)
+        }
+
+        fun parseFile(file: PsiFile, project: Project? = null): LuaTable {
             val doStatement = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
                 ?: return LuaTable()
-            val parser = LuaDebugValueParser()
+            val parser = LuaDebugValueParser(project)
             return parser.parse(doStatement)
         }
     }

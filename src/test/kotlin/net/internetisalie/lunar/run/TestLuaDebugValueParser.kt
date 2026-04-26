@@ -147,4 +147,29 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
             assertEquals("A", secondEntry.stringValue)
         }
     }
-}
+
+    @Test
+    fun testParseChunk() {
+        myFixture.configureByText(LuaFileType, "")
+
+        ApplicationManager.getApplication().runReadAction {
+            // This simulates what the debugger returns: a script with do...return
+            val chunk = "do local _={1, \"B\"};return _;end"
+            val table = LuaDebugValueParser.parseChunk(project, chunk)
+
+            // Should have 2 indexed entries
+            assertEquals(2, table.indexed.size)
+
+            // First entry should be number 1
+            val firstEntry = table.indexed[0]
+            assertNotNull(firstEntry)
+            assertEquals(LuaValueKind.Number, firstEntry.kind)
+            assertEquals(1, firstEntry.numberValue?.toInt())
+
+            // Second entry should be string "B"
+            val secondEntry = table.indexed[1]
+            assertNotNull(secondEntry)
+            assertEquals(LuaValueKind.String, secondEntry.kind)
+            assertEquals("B", secondEntry.stringValue)
+        }
+    }
