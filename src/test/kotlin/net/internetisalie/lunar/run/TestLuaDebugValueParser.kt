@@ -155,7 +155,7 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         ApplicationManager.getApplication().runReadAction {
             // This simulates what the debugger returns: a script with do...return
             val chunk = "do local _={1, \"B\"};return _;end"
-            val table = LuaDebugValueParser.parseChunk(project, chunk)
+            val table = LuaDebugValueParser.parseChunk(myFixture.project, chunk)
 
             // Should have 2 indexed entries
             assertEquals(2, table.indexed.size)
@@ -173,3 +173,4 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
             assertEquals("B", secondEntry.stringValue)
         }
     }
+}

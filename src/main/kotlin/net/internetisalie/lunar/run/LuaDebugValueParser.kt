@@ -38,6 +38,18 @@ class LuaDebugValueParser(private val project: Project? = null) {
             is LuaFuncDef -> evaluateFuncDef(expr)
             is LuaPrefixExpr -> evaluatePrefixExpr(expr)
             else -> {
+                // Try to parse as a negative number (UnaryOp with minus)
+                val exprText = expr.text.trim()
+                if (exprText.startsWith("-")) {
+                    val numValue = exprText.substring(1).toDoubleOrNull()
+                    if (numValue != null) {
+                        return LuaValue(
+                            kind = LuaValueKind.Number,
+                            numberValue = -numValue,
+                            psiElement = expr,
+                        )
+                    }
+                }
                 log.warn("Unsupported expression type: ${expr::class.simpleName}")
                 null
             }
