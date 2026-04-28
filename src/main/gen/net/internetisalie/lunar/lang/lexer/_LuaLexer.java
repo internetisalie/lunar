@@ -117,13 +117,13 @@ class _LuaLexer implements FlexLexer, LuaTokenTypes {
     "\1\57\6\25\1\60\1\61\3\25\1\62\5\25\1\63"+
     "\1\0\1\64\1\0\1\65\1\46\1\0\1\66\1\17"+
     "\1\0\1\17\1\67\2\25\1\70\1\25\1\71\3\25"+
-    "\1\72\1\73\6\25\1\74\1\25\1\75\2\25\1\76"+
-    "\3\25\1\77\1\100\2\25\1\101\1\25\1\102\1\25"+
-    "\1\103\2\25\1\104\1\105\1\106\1\25\1\107\1\110"+
-    "\1\25\1\111";
+    "\1\72\1\73\6\25\1\0\2\74\1\75\1\25\1\76"+
+    "\2\25\1\77\3\25\1\100\1\101\2\25\2\0\1\102"+
+    "\1\25\1\103\1\25\1\104\2\25\1\105\1\106\1\0"+
+    "\1\107\1\25\1\110\1\111\1\0\1\25\1\112";
 
   private static int [] zzUnpackAction() {
-    int [] result = new int[161];
+    int [] result = new int[168];
     int offset = 0;
     offset = zzUnpackAction(ZZ_ACTION_PACKED_0, offset, result);
     return result;
@@ -164,14 +164,14 @@ class _LuaLexer implements FlexLexer, LuaTokenTypes {
     "\0\u0ee0\0\u0188\0\u07e0\0\u0188\0\u08c0\0\u0188\0\u0f18\0\u0f50"+
     "\0\u0188\0\u0f88\0\u0ab8\0\u0b60\0\u03f0\0\u0fc0\0\u0ff8\0\u03f0"+
     "\0\u1030\0\u03f0\0\u1068\0\u10a0\0\u10d8\0\u03f0\0\u03f0\0\u1110"+
-    "\0\u1148\0\u1180\0\u11b8\0\u11f0\0\u1228\0\u0188\0\u1260\0\u1298"+
-    "\0\u12d0\0\u1308\0\u03f0\0\u1340\0\u1378\0\u13b0\0\u03f0\0\u03f0"+
-    "\0\u13e8\0\u1420\0\u03f0\0\u1458\0\u03f0\0\u1490\0\u03f0\0\u14c8"+
-    "\0\u1500\0\u03f0\0\u03f0\0\u03f0\0\u1538\0\u03f0\0\u03f0\0\u1570"+
-    "\0\u03f0";
+    "\0\u1148\0\u1180\0\u11b8\0\u11f0\0\u1228\0\u1260\0\u1298\0\u12d0"+
+    "\0\u0188\0\u1308\0\u1340\0\u1378\0\u13b0\0\u03f0\0\u13e8\0\u1420"+
+    "\0\u1458\0\u03f0\0\u03f0\0\u1490\0\u14c8\0\u1298\0\u1500\0\u03f0"+
+    "\0\u1538\0\u03f0\0\u1570\0\u03f0\0\u15a8\0\u15e0\0\u03f0\0\u03f0"+
+    "\0\u1618\0\u03f0\0\u1650\0\u03f0\0\u03f0\0\u1688\0\u16c0\0\u03f0";
 
   private static int [] zzUnpackRowMap() {
-    int [] result = new int[161];
+    int [] result = new int[168];
     int offset = 0;
     offset = zzUnpackRowMap(ZZ_ROWMAP_PACKED_0, offset, result);
     return result;
@@ -253,39 +253,43 @@ class _LuaLexer implements FlexLexer, LuaTokenTypes {
     "\2\35\5\0\4\35\4\0\4\35\1\202\17\35\25\0"+
     "\2\35\5\0\4\35\4\0\21\35\1\203\2\35\25\0"+
     "\2\35\5\0\4\35\4\0\20\35\1\204\3\35\25\0"+
-    "\2\35\5\0\4\35\4\0\10\35\1\205\13\35\22\0"+
-    "\1\157\77\0\1\160\5\0\1\206\54\0\2\162\6\0"+
-    "\1\114\12\0\1\114\44\0\2\35\5\0\4\35\4\0"+
-    "\1\207\23\35\25\0\2\35\5\0\4\35\4\0\4\35"+
-    "\1\210\17\35\25\0\2\35\5\0\4\35\4\0\17\35"+
-    "\1\211\4\35\25\0\2\35\5\0\4\35\4\0\2\35"+
-    "\1\212\21\35\25\0\2\35\5\0\4\35\4\0\14\35"+
-    "\1\213\7\35\25\0\2\35\5\0\4\35\4\0\1\214"+
-    "\23\35\25\0\2\35\5\0\4\35\4\0\4\35\1\215"+
-    "\17\35\25\0\2\35\5\0\4\35\4\0\21\35\1\216"+
-    "\2\35\25\0\2\35\5\0\4\35\4\0\13\35\1\217"+
-    "\10\35\25\0\2\35\5\0\4\35\4\0\4\35\1\220"+
-    "\17\35\25\0\2\35\5\0\4\35\4\0\10\35\1\221"+
-    "\13\35\25\0\2\35\5\0\4\35\4\0\12\35\1\222"+
-    "\11\35\25\0\2\35\5\0\4\35\4\0\11\35\1\223"+
-    "\12\35\25\0\2\35\5\0\4\35\4\0\10\35\1\224"+
-    "\13\35\25\0\2\35\5\0\4\35\4\0\4\35\1\225"+
-    "\17\35\25\0\2\35\5\0\4\35\4\0\20\35\1\226"+
-    "\3\35\25\0\2\35\5\0\4\35\4\0\12\35\1\227"+
-    "\11\35\25\0\2\35\5\0\4\35\4\0\1\230\23\35"+
-    "\25\0\2\35\5\0\4\35\4\0\16\35\1\231\5\35"+
-    "\25\0\2\35\5\0\4\35\4\0\12\35\1\232\11\35"+
-    "\25\0\2\35\5\0\4\35\4\0\4\35\1\233\17\35"+
-    "\25\0\2\35\5\0\4\35\4\0\5\35\1\234\16\35"+
-    "\25\0\2\35\5\0\4\35\4\0\10\35\1\235\13\35"+
-    "\25\0\2\35\5\0\4\35\4\0\20\35\1\236\3\35"+
-    "\25\0\2\35\5\0\4\35\4\0\13\35\1\237\10\35"+
-    "\25\0\2\35\5\0\4\35\4\0\14\35\1\240\7\35"+
-    "\25\0\2\35\5\0\4\35\4\0\13\35\1\241\10\35"+
-    "\3\0";
+    "\2\35\5\0\4\35\4\0\10\35\1\205\13\35\3\0"+
+    "\2\206\1\207\1\206\1\210\12\206\1\157\50\206\27\0"+
+    "\1\160\5\0\1\211\54\0\2\162\6\0\1\114\12\0"+
+    "\1\114\44\0\2\35\5\0\4\35\4\0\1\212\23\35"+
+    "\25\0\2\35\5\0\4\35\4\0\4\35\1\213\17\35"+
+    "\25\0\2\35\5\0\4\35\4\0\17\35\1\214\4\35"+
+    "\25\0\2\35\5\0\4\35\4\0\2\35\1\215\21\35"+
+    "\25\0\2\35\5\0\4\35\4\0\14\35\1\216\7\35"+
+    "\25\0\2\35\5\0\4\35\4\0\1\217\23\35\25\0"+
+    "\2\35\5\0\4\35\4\0\4\35\1\220\17\35\25\0"+
+    "\2\35\5\0\4\35\4\0\21\35\1\221\2\35\25\0"+
+    "\2\35\5\0\4\35\4\0\13\35\1\222\10\35\25\0"+
+    "\2\35\5\0\4\35\4\0\4\35\1\223\17\35\25\0"+
+    "\2\35\5\0\4\35\4\0\10\35\1\224\13\35\25\0"+
+    "\2\35\5\0\4\35\4\0\12\35\1\225\11\35\3\0"+
+    "\2\206\1\207\1\206\1\210\63\206\1\0\1\226\15\0"+
+    "\1\227\51\0\1\226\1\207\14\0\1\227\72\0\2\35"+
+    "\5\0\4\35\4\0\11\35\1\230\12\35\25\0\2\35"+
+    "\5\0\4\35\4\0\10\35\1\231\13\35\25\0\2\35"+
+    "\5\0\4\35\4\0\4\35\1\232\17\35\25\0\2\35"+
+    "\5\0\4\35\4\0\20\35\1\233\3\35\25\0\2\35"+
+    "\5\0\4\35\4\0\12\35\1\234\11\35\25\0\2\35"+
+    "\5\0\4\35\4\0\1\235\23\35\25\0\2\35\5\0"+
+    "\4\35\4\0\16\35\1\236\5\35\25\0\2\35\5\0"+
+    "\4\35\4\0\12\35\1\237\11\35\25\0\2\35\5\0"+
+    "\4\35\4\0\4\35\1\240\17\35\22\0\1\241\72\0"+
+    "\2\35\5\0\4\35\4\0\5\35\1\242\16\35\25\0"+
+    "\2\35\5\0\4\35\4\0\10\35\1\243\13\35\25\0"+
+    "\2\35\5\0\4\35\4\0\20\35\1\244\3\35\25\0"+
+    "\2\35\5\0\4\35\4\0\13\35\1\245\10\35\3\0"+
+    "\2\206\1\207\1\206\1\210\30\206\1\246\32\206\22\0"+
+    "\2\35\5\0\4\35\4\0\14\35\1\247\7\35\5\0"+
+    "\1\207\1\0\1\210\105\0\2\35\5\0\4\35\4\0"+
+    "\13\35\1\250\10\35\3\0";
 
   private static int [] zzUnpacktrans() {
-    int [] result = new int[5544];
+    int [] result = new int[5880];
     int offset = 0;
     offset = zzUnpacktrans(ZZ_TRANS_PACKED_0, offset, result);
     return result;
@@ -328,10 +332,11 @@ class _LuaLexer implements FlexLexer, LuaTokenTypes {
     "\2\1\2\11\1\1\2\11\1\1\1\11\2\1\2\11"+
     "\3\1\1\11\3\1\1\11\4\1\2\0\6\11\1\0"+
     "\1\11\24\1\1\11\1\0\1\11\1\0\1\11\1\1"+
-    "\1\0\1\11\1\1\1\0\22\1\1\11\33\1";
+    "\1\0\1\11\1\1\1\0\22\1\1\0\2\1\1\11"+
+    "\14\1\2\0\11\1\1\0\4\1\1\0\2\1";
 
   private static int [] zzUnpackAttribute() {
-    int [] result = new int[161];
+    int [] result = new int[168];
     int offset = 0;
     offset = zzUnpackAttribute(ZZ_ATTRIBUTE_PACKED_0, offset, result);
     return result;
@@ -659,257 +664,257 @@ class _LuaLexer implements FlexLexer, LuaTokenTypes {
             { return WRONG;
             }
           // fall through
-          case 74: break;
+          case 75: break;
           case 2:
             { return WS;
             }
           // fall through
-          case 75: break;
+          case 76: break;
           case 3:
             { yybegin(XSTRINGQ);  return STRING;
             }
           // fall through
-          case 76: break;
+          case 77: break;
           case 4:
             { return GETN;
             }
           // fall through
-          case 77: break;
+          case 78: break;
           case 5:
             { return MOD;
             }
           // fall through
-          case 78: break;
+          case 79: break;
           case 6:
             { yybegin(XSTRINGA); return STRING;
             }
           // fall through
-          case 79: break;
+          case 80: break;
           case 7:
             { return LPAREN;
             }
           // fall through
-          case 80: break;
+          case 81: break;
           case 8:
             { return RPAREN;
             }
           // fall through
-          case 81: break;
+          case 82: break;
           case 9:
             { return MULT;
             }
           // fall through
-          case 82: break;
+          case 83: break;
           case 10:
             { return PLUS;
             }
           // fall through
-          case 83: break;
+          case 84: break;
           case 11:
             { return COMMA;
             }
           // fall through
-          case 84: break;
+          case 85: break;
           case 12:
             { return MINUS;
             }
           // fall through
-          case 85: break;
+          case 86: break;
           case 13:
             { return DOT;
             }
           // fall through
-          case 86: break;
+          case 87: break;
           case 14:
             { return DIV;
             }
           // fall through
-          case 87: break;
+          case 88: break;
           case 15:
             { return NUMBER;
             }
           // fall through
-          case 88: break;
+          case 89: break;
           case 16:
             { return COLON;
             }
           // fall through
-          case 89: break;
+          case 90: break;
           case 17:
             { return SEMI;
             }
           // fall through
-          case 90: break;
+          case 91: break;
           case 18:
             { return LT;
             }
           // fall through
-          case 91: break;
+          case 92: break;
           case 19:
             { return ASSIGN;
             }
           // fall through
-          case 92: break;
+          case 93: break;
           case 20:
             { return GT;
             }
           // fall through
-          case 93: break;
+          case 94: break;
           case 21:
             { return IDENTIFIER;
             }
           // fall through
-          case 94: break;
+          case 95: break;
           case 22:
             { return LBRACK;
             }
           // fall through
-          case 95: break;
+          case 96: break;
           case 23:
             { return RBRACK;
             }
           // fall through
-          case 96: break;
+          case 97: break;
           case 24:
             { return EXP;
             }
           // fall through
-          case 97: break;
+          case 98: break;
           case 25:
             { return LCURLY;
             }
           // fall through
-          case 98: break;
+          case 99: break;
           case 26:
             { return RCURLY;
             }
           // fall through
-          case 99: break;
+          case 100: break;
           case 27:
             { return LONGSTRING;
             }
           // fall through
-          case 100: break;
+          case 101: break;
           case 28:
             { yypushback(yytext().length()); yybegin(XLONGSTRING); return advance();
             }
           // fall through
-          case 101: break;
+          case 102: break;
           case 29:
             { return NL_BEFORE_LONGSTRING;
             }
           // fall through
-          case 102: break;
+          case 103: break;
           case 30:
             { return SHORTCOMMENT;
             }
           // fall through
-          case 103: break;
+          case 104: break;
           case 31:
             { yybegin(YYINITIAL);  yypushback(yytext().length()); return advance();
             }
           // fall through
-          case 104: break;
+          case 105: break;
           case 32:
             { return LONGCOMMENT;
             }
           // fall through
-          case 105: break;
+          case 106: break;
           case 33:
             { return STRING;
             }
           // fall through
-          case 106: break;
+          case 107: break;
           case 34:
             { yybegin(YYINITIAL); return WRONG;
             }
           // fall through
-          case 107: break;
+          case 108: break;
           case 35:
             { yybegin(YYINITIAL); return STRING;
             }
           // fall through
-          case 108: break;
+          case 109: break;
           case 36:
             { yybegin(YYINITIAL);return WRONG;
             }
           // fall through
-          case 109: break;
+          case 110: break;
           case 37:
             { yybegin( XSHORTCOMMENT ); return SHEBANG;
             }
           // fall through
-          case 110: break;
+          case 111: break;
           case 38:
             { yypushback(yytext().length()); yybegin( XSHORTCOMMENT ); return advance();
             }
           // fall through
-          case 111: break;
+          case 112: break;
           case 39:
             { return CONCAT;
             }
           // fall through
-          case 112: break;
+          case 113: break;
           case 40:
             { return MARKER;
             }
           // fall through
-          case 113: break;
+          case 114: break;
           case 41:
             { return BSL;
             }
           // fall through
-          case 114: break;
+          case 115: break;
           case 42:
             { return LE;
             }
           // fall through
-          case 115: break;
+          case 116: break;
           case 43:
             { return EQ;
             }
           // fall through
-          case 116: break;
+          case 117: break;
           case 44:
             { return GE;
             }
           // fall through
-          case 117: break;
+          case 118: break;
           case 45:
             { return BSR;
             }
           // fall through
-          case 118: break;
+          case 119: break;
           case 46:
             { longCommentOrStringHandler.setCurrentExtQuoteStart(yytext().toString()); yybegin( XLONGSTRING_BEGIN ); return LONGSTRING_BEGIN;
             }
           // fall through
-          case 119: break;
+          case 120: break;
           case 47:
             { return DO;
             }
           // fall through
-          case 120: break;
+          case 121: break;
           case 48:
             { return IF;
             }
           // fall through
-          case 121: break;
+          case 122: break;
           case 49:
             { return IN;
             }
           // fall through
-          case 122: break;
+          case 123: break;
           case 50:
             { return OR;
             }
           // fall through
-          case 123: break;
+          case 124: break;
           case 51:
             { return NE;
             }
           // fall through
-          case 124: break;
+          case 125: break;
           case 52:
             { if (longCommentOrStringHandler.isCurrentExtQuoteStart(yytext())) {
                        yybegin(YYINITIAL); longCommentOrStringHandler.resetCurrentExtQuoteStart(); return LONGSTRING_END;
@@ -917,7 +922,7 @@ class _LuaLexer implements FlexLexer, LuaTokenTypes {
                         return LONGSTRING;
             }
           // fall through
-          case 125: break;
+          case 126: break;
           case 53:
             { if (longCommentOrStringHandler.isCurrentExtQuoteStart(yytext())) {
                        yybegin(YYINITIAL); longCommentOrStringHandler.resetCurrentExtQuoteStart(); return LONGCOMMENT_END;
@@ -925,107 +930,112 @@ class _LuaLexer implements FlexLexer, LuaTokenTypes {
                         return LONGCOMMENT;
             }
           // fall through
-          case 126: break;
+          case 127: break;
           case 54:
             { return ELLIPSIS;
             }
           // fall through
-          case 127: break;
+          case 128: break;
           case 55:
             { return AND;
             }
           // fall through
-          case 128: break;
+          case 129: break;
           case 56:
             { return END;
             }
           // fall through
-          case 129: break;
+          case 130: break;
           case 57:
             { return FOR;
             }
           // fall through
-          case 130: break;
+          case 131: break;
           case 58:
             { return NIL;
             }
           // fall through
-          case 131: break;
+          case 132: break;
           case 59:
             { return NOT;
             }
           // fall through
-          case 132: break;
-          case 60:
-            { longCommentOrStringHandler.setCurrentExtQuoteStart(yytext().toString()); yybegin( XLONGCOMMENT ); return LONGCOMMENT_BEGIN;
-            }
-          // fall through
           case 133: break;
-          case 61:
-            { return ELSE;
+          case 60:
+            { yypushback(1); /* TODO: Only pushback a newline */  return SHORTCOMMENT;
             }
           // fall through
           case 134: break;
-          case 62:
-            { return GOTO;
+          case 61:
+            { longCommentOrStringHandler.setCurrentExtQuoteStart(yytext().toString()); yybegin( XLONGCOMMENT ); return LONGCOMMENT_BEGIN;
             }
           // fall through
           case 135: break;
-          case 63:
-            { return THEN;
+          case 62:
+            { return ELSE;
             }
           // fall through
           case 136: break;
-          case 64:
-            { return TRUE;
+          case 63:
+            { return GOTO;
             }
           // fall through
           case 137: break;
-          case 65:
-            { return BREAK;
+          case 64:
+            { return THEN;
             }
           // fall through
           case 138: break;
-          case 66:
-            { return FALSE;
+          case 65:
+            { return TRUE;
             }
           // fall through
           case 139: break;
-          case 67:
-            { return LOCAL;
+          case 66:
+            { return BREAK;
             }
           // fall through
           case 140: break;
-          case 68:
-            { return UNTIL;
+          case 67:
+            { return FALSE;
             }
           // fall through
           case 141: break;
-          case 69:
-            { return WHILE;
+          case 68:
+            { return LOCAL;
             }
           // fall through
           case 142: break;
-          case 70:
-            { return ELSEIF;
+          case 69:
+            { return UNTIL;
             }
           // fall through
           case 143: break;
-          case 71:
-            { return REPEAT;
+          case 70:
+            { return WHILE;
             }
           // fall through
           case 144: break;
-          case 72:
-            { return RETURN;
+          case 71:
+            { return ELSEIF;
             }
           // fall through
           case 145: break;
-          case 73:
-            { return FUNCTION;
+          case 72:
+            { return REPEAT;
             }
           // fall through
           case 146: break;
+          case 73:
+            { return RETURN;
+            }
+          // fall through
+          case 147: break;
+          case 74:
+            { return FUNCTION;
+            }
+          // fall through
+          case 148: break;
           default:
             zzScanError(ZZ_NO_MATCH);
           }

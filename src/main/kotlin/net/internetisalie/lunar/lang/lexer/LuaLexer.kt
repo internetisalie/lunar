@@ -92,6 +92,14 @@ class LuaLexer : MergingLexerAdapter(
     override fun getTokenType(): IElementType? {
         val sourceType = super.getTokenType()
         if (sourceType != null) {
+            // Convert --- comments to lazy-parsed LuaCats comments
+            if (sourceType == LuaTokenTypes.SHORTCOMMENT) {
+                val text = super.tokenText
+                if (text.startsWith("---")) {
+                    return LuaLazyElementTypes.LUACATS_COMMENT
+                }
+            }
+            
             val targetType = tokenTypes[sourceType]
             if (targetType != null) {
                 return targetType
