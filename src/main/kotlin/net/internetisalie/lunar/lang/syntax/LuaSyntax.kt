@@ -22,8 +22,6 @@ import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes
-import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocTokenTypes
-import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
 
 /**
  * High-level syntactic and semantic elements of Lua.
@@ -38,7 +36,6 @@ object LuaSyntax {
         LuaElementTypes.SHORTCOMMENT,
         LuaElementTypes.LONGCOMMENT,
         LuaElementTypes.SHEBANG,
-        LuaDocElementTypes.LUADOC_COMMENT,
         LuaLazyElementTypes.LUACATS_COMMENT,
     )
 
@@ -135,7 +132,6 @@ object LuaSyntax {
         LuaTokenTypes.NEWLINE,
         TokenType.WHITE_SPACE,
         LuaTokenTypes.NL_BEFORE_LONGSTRING,
-        LuaDocTokenTypes.LDOC_WHITESPACE,
         LuaCatsTokenTypes.LCATS_WHITESPACE,
     )
 

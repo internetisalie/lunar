@@ -13,12 +13,12 @@ import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsSyntaxHighlighter
 class LuaEditorHighlighter(scheme: EditorColorsScheme) : LayeredLexerEditorHighlighter(LuaSyntaxHighlighter(), scheme) {
     init {
         if (java.lang.Boolean.TRUE != LayeredLexer.ourDisableLayersFlag.get()) {
-            registerLuaDocHighlighter()
+            registerDocumentationHighlighter()
         }
     }
 
-    private fun registerLuaDocHighlighter() {
-        // Register LuaDoc Highlighter
+    private fun registerDocumentationHighlighter() {
+        // Register LuaCats Highlighter
         val luaCatsHighlighter: SyntaxHighlighter = LuaCatsSyntaxHighlighter()
         val luaCatsLayer = LayerDescriptor(luaCatsHighlighter, "\n", DOC_COMMENT)
         registerLayer(LuaLazyElementTypes.LUACATS_COMMENT, luaCatsLayer)

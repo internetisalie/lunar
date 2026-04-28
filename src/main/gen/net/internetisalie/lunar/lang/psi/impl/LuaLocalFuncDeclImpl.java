@@ -11,7 +11,6 @@ import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
 import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
-import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
 public class LuaLocalFuncDeclImpl extends LuaStatementImpl implements LuaLocalFuncDecl {
 
@@ -51,11 +50,6 @@ public class LuaLocalFuncDeclImpl extends LuaStatementImpl implements LuaLocalFu
   @Override
   public @Nullable PsiComment getComment() {
     return LuaPsiImplUtil.getComment(this);
-  }
-
-  @Override
-  public @Nullable LuaDocComment getDocComment() {
-    return LuaPsiImplUtil.getDocComment(this);
   }
 
   @Override

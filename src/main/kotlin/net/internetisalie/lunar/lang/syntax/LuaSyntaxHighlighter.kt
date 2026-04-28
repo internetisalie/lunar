@@ -38,7 +38,6 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
         colors[LuaElementTypes.LONGCOMMENT] = LuaHighlight.LONGCOMMENT
         colors[LuaElementTypes.SHORTCOMMENT] = LuaHighlight.COMMENT
         colors[LuaElementTypes.SHEBANG] = LuaHighlight.COMMENT
-        colors[LuaTokenTypes.LUADOC_COMMENT] = LuaHighlight.DOC_COMMENT
         colors[LuaLazyElementTypes.LUACATS_COMMENT] = LuaHighlight.DOC_COMMENT
         colors[LuaElementTypes.STRING] = LuaHighlight.STRING
         colors[LuaElementTypes.ATTRIB_NAME] = LuaHighlight.ATTRIB_NAME

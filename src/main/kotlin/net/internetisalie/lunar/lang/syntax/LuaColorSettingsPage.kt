@@ -56,17 +56,17 @@ class LuaColorSettingsPage : ColorSettingsPage {
         end
         
         <package>os</package>.<call-platform>getenv</call-platform>("VARNAME")
-        
+         
         <comment-brackets>--[[</comment-brackets>   Multiline
           Comment
         <comment-brackets>]]</comment-brackets>
-        
-        <luadoc>--- External Documentation URL (shift-F1)</luadoc>
-        <luadoc>-- This is called by shift-F1 on the symbol, or by the</luadoc>
-        <luadoc>-- external documentation button on the quick help panel</luadoc>
-        <luadoc>-- <luadoc-tag>@class</luadoc-tag> <luadoc-value>tag-name</luadoc-value> The name to get documentation for.</luadoc>
-        <luadoc>-- <luadoc-tag>@param</luadoc-tag> <parameter>name</parameter> The name to get documentation for.</luadoc>
-        <luadoc>-- <luadoc-tag>@return</luadoc-tag> the URL of the external documentation</luadoc>
+         
+        <documentation>--- Documentation using LuaCats format (shift-F1)</documentation>
+        <documentation>-- This is called by shift-F1 on the symbol, or by the</documentation>
+        <documentation>-- external documentation button on the quick help panel</documentation>
+        <documentation>-- <documentation-tag>@class</documentation-tag> <documentation-value>tag-name</documentation-value> The name to get documentation for.</documentation>
+        <documentation>-- <documentation-tag>@param</documentation-tag> <parameter>name</parameter> The name to get documentation for.</documentation>
+        <documentation>-- <documentation-tag>@return</documentation-tag> the URL of the external documentation</documentation>
         function <global>getDocumentationUrl</global>(<parameter>name</parameter>) 
           local <local>p1</local>, <local>p2</local> = <global>string</global>.<field>match</field>(<parameter>name</parameter>, "(%a+)\.?(%a*)")
           local <local>url</local> = <global>BASE_URL</global> .. "/docs/api/" .. <local>p1</local> .. <string-brackets>[[</string-brackets>long string<string-brackets>]]</string-brackets>
@@ -122,9 +122,6 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.semi", LuaHighlight.SEMI),
         Pair("color.bad_character", LuaHighlight.BAD_CHARACTER),
         // Docs
-        Pair("color.luadoc", LuaHighlight.DOC_COMMENT),
-        Pair("color.luadoc.tag", LuaHighlight.DOC_TAG),
-        Pair("color.luadoc.value", LuaHighlight.DOC_VALUE),
         Pair("color.luacats", LuaCatsHighlight.CONTENT),
         Pair("color.luacats.tag", LuaCatsHighlight.TAG),
         Pair("color.luacats.keyword", LuaCatsHighlight.KEYWORD),
@@ -178,9 +175,9 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("call-local", LuaHighlight.CALL_LOCAL),
         Pair("attrib-name", LuaHighlight.ATTRIB_NAME),
         // Docs
-        Pair("luadoc", LuaHighlight.DOC_COMMENT),
-        Pair("luadoc-tag", LuaHighlight.DOC_TAG),
-        Pair("luadoc-value", LuaHighlight.DOC_VALUE),
+        Pair("documentation", LuaHighlight.DOC_COMMENT),
+        Pair("documentation-tag", LuaHighlight.DOC_TAG),
+        Pair("documentation-value", LuaHighlight.DOC_VALUE),
         Pair("string-brackets", LuaHighlight.LONGSTRING_BRACES),
         Pair("comment-brackets", LuaHighlight.LONGCOMMENT_BRACES),
     )

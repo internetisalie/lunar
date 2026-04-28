@@ -6,8 +6,6 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
-import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment
-import net.internetisalie.lunar.luadoc.lang.psi.LuaDocCommentOwner
 
 object LuaPsiImplUtil {
     @JvmStatic
@@ -23,18 +21,6 @@ object LuaPsiImplUtil {
         return null
     }
 
-
-    @JvmStatic
-    fun getDocComment(owner: LuaDocCommentOwner?): LuaDocComment? {
-        when (owner) {
-            is LuaLocalFuncDecl, is LuaFuncDecl -> {
-                val statementElement = owner.parent ?: return null
-                return statementElement.prevSiblingSkipWhitespace()
-            }
-        }
-
-        return null
-    }
 
     @JvmStatic
     fun getComment(owner: LuaCommentOwner?): PsiComment? {

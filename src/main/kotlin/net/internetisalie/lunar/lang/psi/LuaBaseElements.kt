@@ -19,7 +19,6 @@ import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsLexer
 import net.internetisalie.lunar.luacats.lang.parser.LuaCatsParser
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 import net.internetisalie.lunar.luacats.lang.psi.impl.LuaCatsLazyCommentImpl
-import net.internetisalie.lunar.luadoc.lang.psi.LuaDocCommentOwner
 
 open class LuaBaseElement(node: ASTNode) : ASTWrapperPsiElement(node) {
     override fun toString(): String {
@@ -88,7 +87,7 @@ open class LuaLabelRefBaseImpl(node: ASTNode) : LuaNameRefElementImpl(node) {
 
 // Comment Owner
 
-interface LuaCommentOwner : LuaCatsCommentOwner, LuaDocCommentOwner {
+interface LuaCommentOwner : LuaCatsCommentOwner {
     fun getComment() : PsiComment?
 }
 

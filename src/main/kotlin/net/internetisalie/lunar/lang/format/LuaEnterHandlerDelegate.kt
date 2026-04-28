@@ -14,7 +14,7 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDescription
 
 class LuaEnterHandlerDelegate : EnterHandlerDelegate {
-    var isLuaDoc : Boolean = false
+    var isDocumentation : Boolean = false
     var isComment : Boolean = false
 
     override fun preprocessEnter(
@@ -29,13 +29,13 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
             return EnterHandlerDelegate.Result.Continue
         }
 
-        isLuaDoc = false
+        isDocumentation = false
         isComment = false
 
         val currentElement = file.findElementAt(editor.caretModel.offset) ?: return EnterHandlerDelegate.Result.Continue
         when {
-            currentElement.parent is LuaCatsDescription -> isLuaDoc = true
-            currentElement.parent is LuaCatsComment -> isLuaDoc = true
+            currentElement.parent is LuaCatsDescription -> isDocumentation = true
+            currentElement.parent is LuaCatsComment -> isDocumentation = true
             currentElement is PsiComment -> isComment = true
         }
 
@@ -52,7 +52,7 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
         }
 
         when {
-            isLuaDoc -> {
+            isDocumentation -> {
                 EditorModificationUtil.insertStringAtCaret(editor, "--- ")
                 PsiDocumentManager.getInstance(file.project).commitDocument(editor.document)
             }

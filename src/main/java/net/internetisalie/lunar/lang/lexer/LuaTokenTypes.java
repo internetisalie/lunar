@@ -55,8 +55,6 @@ public interface LuaTokenTypes {
     IElementType LONGCOMMENT_BEGIN = new LuaElementType("long comment start bracket");
     IElementType LONGCOMMENT_END = new LuaElementType("long comment end bracket");
 
-    IElementType LUADOC_COMMENT = new LuaElementType("luadoc comment");
-
     /* **************************************************************************************************
      *  Identifiers
      * ****************************************************************************************************/

@@ -13,7 +13,6 @@ import net.internetisalie.lunar.lang.psi.LuaParList
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 import net.internetisalie.lunar.lang.syntax.extractLuaComment
 import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDocumentationRenderer
-import net.internetisalie.lunar.luadoc.lang.doc.LuaDocDocumentationRenderer
 
 object LuaDocumentationRenderer {
     val DOC_COMMENT_HEADER = """
@@ -57,12 +56,6 @@ object LuaDocumentationRenderer {
         val catsComment = element.catsComment
         if (catsComment != null) {
             LuaCatsDocumentationRenderer.render(sb, element, catsComment)
-            return
-        }
-
-        val docComment = element.docComment
-        if (docComment != null) {
-            LuaDocDocumentationRenderer.render(sb, element, docComment)
             return
         }
 

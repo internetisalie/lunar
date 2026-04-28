@@ -17,8 +17,6 @@ import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.syntax.LuaSyntax
 import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsElementType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
-import net.internetisalie.lunar.luadoc.lang.lexer.LuaDocElementType
-import net.internetisalie.lunar.luadoc.lang.parser.LuaDocElementTypes
 
 class LuaParserDefinition : ParserDefinition {
     override fun createLexer(project: Project): Lexer {
@@ -52,7 +50,6 @@ class LuaParserDefinition : ParserDefinition {
     override fun createElement(node: ASTNode): PsiElement {
         return when (node.elementType) {
             is LuaCatsElementType -> LuaCatsElementTypes.Factory.createElement(node)
-            is LuaDocElementType -> LuaDocElementTypes.Factory.createElement(node)
             else -> LuaElementTypes.Factory.createElement(node)
         }
     }

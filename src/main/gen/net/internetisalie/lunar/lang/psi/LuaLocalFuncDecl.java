@@ -6,7 +6,6 @@ import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
-import net.internetisalie.lunar.luadoc.lang.psi.LuaDocComment;
 
 public interface LuaLocalFuncDecl extends LuaStatement, LuaCommentOwner, LuaBlockParent {
 
@@ -21,7 +20,9 @@ public interface LuaLocalFuncDecl extends LuaStatement, LuaCommentOwner, LuaBloc
 
   @Nullable PsiComment getComment();
 
-  @Nullable LuaDocComment getDocComment();
+  //WARNING: getDocComment(...) is skipped
+  //matching getDocComment(LuaLocalFuncDecl, ...)
+  //methods are not found in LuaPsiImplUtil
 
   @Nullable LuaCatsComment getCatsComment();
 
