@@ -28,21 +28,36 @@ repositories {
     intellijPlatform {
         defaultRepositories()
     }
+
+    maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
+    maven { url = uri("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies") }
 }
 
 sourceSets {
     main {
         java.srcDir("src/main/gen")
     }
+    create("integrationTest") {
+        compileClasspath += sourceSets.main.get().output
+        runtimeClasspath += sourceSets.main.get().output
+    }
 }
 
 val ktlintConfig = configurations.create("ktlint")
+val integrationTestImplementation by configurations.getting {
+    extendsFrom(configurations.testImplementation.get())
+}
 
 dependencies {
     ktlintConfig(libs.ktlint)
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
+    testImplementation(libs.ide.starter)
+    testImplementation("com.jetbrains.intellij.tools:ide-starter:253.29346.240")
     testImplementation(kotlin("test"))
+    integrationTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    integrationTestImplementation("org.kodein.di:kodein-di-jvm:7.20.2")
+    integrationTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1")
     intellijPlatform {
         create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
         bundledPlugins(
@@ -55,6 +70,7 @@ dependencies {
         )
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Plugin.Go)
+        testFramework(TestFrameworkType.Starter, configurationName = "integrationTestImplementation")
     }
 }
 
@@ -153,5 +169,16 @@ tasks {
         dependsOn(prepareSandbox)
         systemProperty("sandbox.home", layout.buildDirectory.dir("idea-sandbox").get().asFile.absolutePath)
         systemProperty("plugin.name", providers.gradleProperty("pluginName").get())
+    }
+
+    val integrationTest by intellijPlatformTesting.testIdeUi.registering {
+        task {
+            val integrationTestSourceSet = sourceSets.getByName("integrationTest")
+            testClassesDirs = integrationTestSourceSet.output.classesDirs
+            classpath = integrationTestSourceSet.runtimeClasspath
+            useJUnitPlatform()
+            dependsOn(prepareSandbox)
+            systemProperty("path.to.build.plugin", layout.buildDirectory.dir("distributions").map { it.asFile.resolve("lunar-${providers.gradleProperty("pluginVersion").get()}.zip").absolutePath }.get())
+        }
     }
 }
