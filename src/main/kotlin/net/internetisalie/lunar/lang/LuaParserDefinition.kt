@@ -40,7 +40,7 @@ class LuaParserDefinition : ParserDefinition {
     }
 
     override fun getFileNodeType(): IFileElementType {
-        return IFileElementType(LuaLanguage)
+        return FILE
     }
 
     override fun createFile(viewProvider: FileViewProvider): PsiFile {
@@ -52,5 +52,9 @@ class LuaParserDefinition : ParserDefinition {
             is LuaCatsElementType -> LuaCatsElementTypes.Factory.createElement(node)
             else -> LuaElementTypes.Factory.createElement(node)
         }
+    }
+
+    companion object {
+        val FILE = IFileElementType(LuaLanguage)
     }
 }
