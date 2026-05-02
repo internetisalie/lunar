@@ -8,7 +8,6 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
@@ -16,7 +15,6 @@ import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.syntax.*
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
-import net.internetisalie.lunar.luacats.lang.psi.impl.LuaCatsCommentImpl
 
 const val PLACEHOLDER_TEXT: String = "..."
 
@@ -28,56 +26,10 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
     ): Array<FoldingDescriptor> {
         val descriptors = ArrayList<FoldingDescriptor>()
         root.accept(LuaFoldingVisitor(descriptors))
-        // Explicitly fold LuaCats doc comments that might not be visited by LuaFoldingVisitor
-        foldLuaCatsComments(root, descriptors)
         foldCustomRegions(root, descriptors)
         return descriptors.toTypedArray()
     }
 
-    private fun foldLuaCatsComments(root: PsiElement, descriptors: MutableList<FoldingDescriptor>) {
-        val comments = PsiTreeUtil.findChildrenOfType(root, LuaCatsComment::class.java)
-        val processedComments = mutableSetOf<LuaCatsComment>()
-        
-        for (comment in comments) {
-            if (processedComments.contains(comment)) continue
-            
-            // Check if there's a doc comment before this one
-            var prev = comment.prevSibling
-            while (prev is PsiWhiteSpace) {
-                prev = prev.prevSibling
-            }
-            if (prev is LuaCatsComment && !processedComments.contains(prev)) {
-                // There's an unprocessed doc comment before this one, skip
-                continue
-            }
-            
-            // Find the range of consecutive --- comments
-            var last: LuaCatsComment = comment
-            var next = comment.nextSibling
-            while (next != null) {
-                if (next is PsiWhiteSpace) {
-                    next = next.nextSibling
-                    continue
-                }
-                if (next is LuaCatsComment && !processedComments.contains(next)) {
-                    last = next
-                    processedComments.add(next)
-                    next = next.nextSibling
-                } else {
-                    break
-                }
-            }
-            
-            // Add fold for this comment and any consecutive ones
-            descriptors.add(
-                FoldingDescriptor(
-                    comment.node,
-                    TextRange(comment.textRange.startOffset, last.textRange.endOffset)
-                )
-            )
-            processedComments.add(comment)
-        }
-    }
 
     private fun foldCustomRegions(root: PsiElement, descriptors: MutableList<FoldingDescriptor>) {
         val comments = PsiTreeUtil.findChildrenOfType(root, PsiComment::class.java)
@@ -157,6 +109,9 @@ const val NEWLINE = '\n'
 class LuaFoldingVisitor(
     private val descriptors: MutableList<FoldingDescriptor>
 ) : LuaRecursiveVisitor() {
+    // Track processed fold ranges (offset pairs) instead of objects to avoid duplicate folds
+    // for the same text range (which may have multiple PSI representations)
+    private val processedFoldRanges = mutableSetOf<Pair<Int, Int>>()
 
     private fun foldBlocks(blocks: List<LuaBlock>) {
         if (blocks.isEmpty()) return
@@ -246,6 +201,9 @@ class LuaFoldingVisitor(
                     else -> foldBlocks(element.getBlockList())
                 }
             }
+            element is LuaCatsComment -> {
+                foldConsecutiveLuaCatsComments(element)
+            }
             element is PsiComment -> {
                 val text = element.text
                 if (!text.startsWith("--#region") && !text.startsWith("-- #region") && 
@@ -310,54 +268,61 @@ class LuaFoldingVisitor(
             )
         }
     }
-
-}
-
-class LuaLazyFoldingVisitor(
-    val descriptors: ArrayList<FoldingDescriptor>
-) : PsiElementVisitor() {
-    override fun visitElement(element: PsiElement) {
-        val allComments = PsiTreeUtil.findChildrenOfType(element, LuaCatsCommentImpl::class.java)
-        val processedComments = mutableSetOf<LuaCatsCommentImpl>()
+    
+    private fun foldConsecutiveLuaCatsComments(comment: LuaCatsComment) {
+        // Check if we've already created a fold for this range
+        val startOffset = comment.textRange.startOffset
+        val endOffset = comment.textRange.endOffset
+        val rangeKey = Pair(startOffset, endOffset)
+        if (processedFoldRanges.contains(rangeKey)) {
+            return
+        }
         
-        for (comment in allComments) {
-            if (processedComments.contains(comment)) continue
-            
-            // Check if there's a doc comment before this one
-            var prev = comment.prevSibling
-            while (prev is PsiWhiteSpace) {
-                prev = prev.prevSibling
-            }
-            if (prev is LuaCatsCommentImpl && !processedComments.contains(prev)) {
+        // Check if there's a doc comment before this one
+        var prev = comment.prevSibling
+        while (prev is PsiWhiteSpace) {
+            prev = prev.prevSibling
+        }
+        if (prev is LuaCatsComment) {
+            val prevRange = Pair(prev.textRange.startOffset, prev.textRange.endOffset)
+            if (!processedFoldRanges.contains(prevRange)) {
                 // There's an unprocessed doc comment before this one, skip
+                // (will be handled by the first comment)
+                return
+            }
+        }
+        
+        // Find the last consecutive doc comment
+        var last: PsiElement = comment
+        var next = comment.nextSibling
+        while (next != null) {
+            if (next is PsiWhiteSpace) {
+                next = next.nextSibling
                 continue
             }
-            
-            // Find the range of consecutive --- comments
-            var last: LuaCatsCommentImpl = comment
-            var next = comment.nextSibling
-            while (next != null) {
-                if (next is PsiWhiteSpace) {
-                    next = next.nextSibling
-                    continue
-                }
-                if (next is LuaCatsCommentImpl && !processedComments.contains(next)) {
+            if (next is LuaCatsComment) {
+                val nextRange = Pair(next.textRange.startOffset, next.textRange.endOffset)
+                if (!processedFoldRanges.contains(nextRange)) {
                     last = next
-                    processedComments.add(next)
                     next = next.nextSibling
                 } else {
                     break
                 }
+            } else {
+                break
             }
-            
-            // Always fold doc comments, even if there's only one
-            descriptors.add(
-                FoldingDescriptor(
-                    comment.node,
-                    TextRange(comment.textRange.startOffset, last.textRange.endOffset)
-                )
-            )
-            processedComments.add(comment)
         }
+        
+        // Add fold from this comment to the last consecutive one
+        val lastEndOffset = last.textRange.endOffset
+        descriptors.add(
+            FoldingDescriptor(
+                comment.node,
+                TextRange(startOffset, lastEndOffset)
+            )
+        )
+        processedFoldRanges.add(Pair(startOffset, lastEndOffset))
     }
+
 }
+

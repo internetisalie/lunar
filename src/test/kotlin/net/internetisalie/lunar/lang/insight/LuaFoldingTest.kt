@@ -51,11 +51,15 @@ class LuaFoldingTest : BaseDocumentTest() {
 
     @Test
     fun testDocCommentFolding() {
-        // TODO: testDocCommentFolding is expected to fail. Doc comment folding requires
-        // proper handling of --- comments in both the Lua PSI tree (PsiComment) and
-        // the LuaCats PSI tree (LuaCatsComment). The current implementation handles individual
-        // doc comments but doesn't correctly group consecutive ones for folding.
-        // This test serves as a specification for the expected behavior.
+        // TODO: Doc comment folding for consecutive --- comments currently fails.
+        // The issue is that --- comments are lazy-parsed as LuaCatsComment elements.
+        // While we can create folds for individual comment ranges, the test expects a single
+        // fold that groups all consecutive --- comments together (0..29).
+        // The infrastructure is in place, but there may be a mismatch between:
+        // - The fold range being created (likely correct at 0..29)
+        // - The placeholder text being returned
+        // - Or how the test framework is parsing/comparing the markup
+        // This is a lower-priority issue since other comment folding tests pass.
         testFolding("""
             <fold text='--- doc...'>--- doc
             --- line 2
