@@ -6,7 +6,7 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 | :--- | :--- | :---: | :--- |
 | [`SYNTAX-01`](spec/syntax-01-lua-54-attributes.md) | **Lua 5.4 Support** | **M** | Full support for `<const>` and `<close>` variable attributes. |
 | `SYNTAX-02` | **Semantic Highlighting** | **S** | Differentiate between locals, globals, parameters, and upvalues using distinct colors. |
-| [`SYNTAX-03`](spec/syntax-03-code-folding.md) | **Code Folding** | **M** | Fold blocks (`function`, `do`, `if`, `while`, `repeat`) and multi-line comments/tables. |
+| [`SYNTAX-03`](spec/syntax-03-code-folding.md) | Implemented | All foldable regions and custom regions supported. |
 | `SYNTAX-04` | **Brace Matching** | **M** | Highlight matching `(` `)`, `[` `]`, `{` `}`, and keywords (`if`...`end`). |
 | `SYNTAX-05` | **Method Separators** | **C** | Draw lines between top-level function definitions for better visual structure. |
 | `SYNTAX-06` | **Breadcrumbs** | **S** | Show the current scope path (e.g., `module > class > function`) at the bottom of the editor. |
@@ -20,7 +20,7 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 | :--- | :--- | :--- |
 | [`SYNTAX-01`](spec/syntax-01-lua-54-attributes.md) | Implemented | All non-future work verified. |
 | `SYNTAX-02` | Pending | |
-| `SYNTAX-03` | Pending | |
+| [`SYNTAX-03`](spec/syntax-03-code-folding.md) | Implemented | Blocks, tables, strings, long comments, doc comments, and regions. |
 | `SYNTAX-04` | Pending | |
 | `SYNTAX-05` | Pending | |
 | `SYNTAX-06` | Pending | |
