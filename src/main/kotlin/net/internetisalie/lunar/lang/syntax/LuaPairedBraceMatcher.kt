@@ -11,7 +11,11 @@ class LuaPairedBraceMatcher : PairedBraceMatcher {
         return arrayOf(
             BracePair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN, false),
             BracePair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK, false),
-            BracePair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY, false)
+            BracePair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY, false),
+            BracePair(LuaElementTypes.REPEAT, LuaElementTypes.UNTIL, true),
+            BracePair(LuaElementTypes.DO, LuaElementTypes.END, true),
+            BracePair(LuaElementTypes.FUNCTION, LuaElementTypes.END, true),
+            BracePair(LuaElementTypes.IF, LuaElementTypes.END, true)
         )
     }
 

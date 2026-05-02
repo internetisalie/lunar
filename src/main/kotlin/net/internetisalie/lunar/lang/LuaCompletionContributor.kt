@@ -4,11 +4,7 @@ import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.util.ProcessingContext
-import net.internetisalie.lunar.lang.psi.LuaAttrib
-import net.internetisalie.lunar.lang.psi.LuaAttribName
-
 import net.internetisalie.lunar.lang.psi.*
-
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 class LuaCompletionContributor : CompletionContributor() {
@@ -48,8 +44,12 @@ class LuaCompletionContributor : CompletionContributor() {
                     if (level < LuaLanguageLevel.LUA54) return
 
                     val position = parameters.position
-                    if (psiElement().inside(LuaLocalVarDecl::class.java).accepts(position)) {
-                        result.addElement(LookupElementBuilder.create("<"))
+                    val prevLeaf = com.intellij.psi.util.PsiTreeUtil.prevVisibleLeaf(position)
+
+                    if (prevLeaf != null && prevLeaf.node.elementType == LuaElementTypes.IDENTIFIER) {
+                        if (com.intellij.psi.util.PsiTreeUtil.getParentOfType(prevLeaf, LuaLocalVarDecl::class.java) != null) {
+                            result.addElement(LookupElementBuilder.create("<"))
+                        }
                     }
                 }
             }
