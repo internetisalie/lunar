@@ -44,11 +44,27 @@ object LuaCatsSummary {
 }
 
 
+fun getLuaCommentDelimiterLength(str: String): Int {
+    if (!str.startsWith("--")) return 0
+    if (str.startsWith("--[")) {
+        var level = 0
+        while (level + 3 < str.length && str[level + 3] == '=') level++
+        if (level + 3 < str.length && str[level + 3] == '[') return level + 4
+    }
+    return 2
+}
+
 fun extractLuaComment(str: String): String {
+    if (!str.startsWith("--")) return str
+    val delimiterLength = getLuaCommentDelimiterLength(str)
     return when {
-        str.startsWith("--[[") -> str.substring(4, str.length - 4)
-        str.startsWith("--") -> str.lines().joinToString("\n") { it.substring(2) }.trimIndent()
-        else -> str
+        delimiterLength > 2 -> {
+            if (str.length < delimiterLength * 2 - 2) return ""
+            str.substring(delimiterLength, str.length - delimiterLength + 2)
+        }
+        else -> str.lines().joinToString("\n") {
+            if (it.startsWith("--")) it.substring(2) else it
+        }.trimIndent()
     }
 }
 

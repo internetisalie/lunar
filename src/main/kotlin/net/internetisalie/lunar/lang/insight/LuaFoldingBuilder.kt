@@ -13,10 +13,7 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
-import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
-import net.internetisalie.lunar.lang.syntax.extractLuaComment
-import net.internetisalie.lunar.lang.syntax.extractLuaString
-import net.internetisalie.lunar.lang.syntax.summarize
+import net.internetisalie.lunar.lang.syntax.*
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 import net.internetisalie.lunar.luacats.lang.psi.impl.LuaCatsCommentImpl
@@ -46,10 +43,32 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
     }
 
     override fun getPlaceholderText(node: ASTNode): String? {
+        val text = node.text
         return when (node.elementType) {
-            LuaElementTypes.STRING -> "[[" + summarize(extractLuaString(node.text)) + "]]"
-            LuaElementTypes.LONGCOMMENT -> "--[[" + summarize(extractLuaComment(node.text)) + "]]"
-            LuaElementTypes.SHORTCOMMENT -> "-- " + summarize(extractLuaComment(node.text))
+            LuaElementTypes.STRING -> {
+                val delimiterLength = getLuaStringDelimiterLength(text)
+                if (delimiterLength > 1) {
+                    val opening = text.substring(0, delimiterLength)
+                    val closing = text.substring(text.length - delimiterLength)
+                    opening + summarize(extractLuaString(text)) + closing
+                } else if (delimiterLength == 1) {
+                    val quote = text.substring(0, 1)
+                    quote + summarize(extractLuaString(text)) + quote
+                } else {
+                    "[[" + summarize(extractLuaString(text)) + "]]"
+                }
+            }
+            LuaElementTypes.LONGCOMMENT -> {
+                val delimiterLength = getLuaCommentDelimiterLength(text)
+                if (delimiterLength > 2) {
+                    val opening = text.substring(0, delimiterLength)
+                    val closing = text.substring(text.length - delimiterLength + 2)
+                    opening + summarize(extractLuaComment(text)) + closing
+                } else {
+                    "--[[" + summarize(extractLuaComment(text)) + "]]"
+                }
+            }
+            LuaElementTypes.SHORTCOMMENT -> "-- " + summarize(extractLuaComment(text))
             LuaCatsElementTypes.COMMENT -> "--- " + summarize(LuaCatsSummary.getText(node.psi as LuaCatsComment) ?: "")
             LuaElementTypes.TABLE_CONSTRUCTOR -> "{...}"
             else -> PLACEHOLDER_TEXT
@@ -113,10 +132,7 @@ class LuaFoldingVisitor(
         descriptors.add(
             FoldingDescriptor(
                 node,
-                TextRange(
-                    node.textRange.startOffset + 1,
-                    node.textRange.endOffset - 1
-                )
+                node.textRange
             )
         )
     }
