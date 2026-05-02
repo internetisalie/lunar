@@ -152,4 +152,27 @@ class TestLuaLexer {
         )
     }
 
+    @Test
+    fun `lua 5 4 attributes`() {
+        execute(
+            TestCase(
+                "delimiters",
+                "<>",
+                listOf(
+                    Token(0, "<", LuaElementTypes.LT),
+                    Token(1, ">", LuaElementTypes.GT),
+                ),
+            ),
+            TestCase(
+                "keywords",
+                "const close",
+                listOf(
+                    Token(0, "const", LuaElementTypes.IDENTIFIER),
+                    Token(5, " ", TokenType.WHITE_SPACE),
+                    Token(6, "close", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
+        )
+    }
+
 }

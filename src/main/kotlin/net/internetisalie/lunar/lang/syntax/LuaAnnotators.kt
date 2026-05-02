@@ -6,10 +6,12 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.insight.Kind
 import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.insight.Reference
+import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.LuaAttribName
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaLabel
@@ -103,12 +105,13 @@ class LuaLongCommentAnnotator : Annotator {
 
 class LuaAttribNameAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        when {
-            element is LuaAttribName -> annotateElement(element, holder)
+        when (element) {
+            is LuaAttribName -> annotateAttribName(element, holder)
+            is LuaLocalVarDecl -> annotateLocalVarDecl(element, holder)
         }
     }
 
-    private fun annotateElement(
+    private fun annotateAttribName(
         target: LuaAttribName,
         holder: AnnotationHolder
     ) {
@@ -116,6 +119,18 @@ class LuaAttribNameAnnotator : Annotator {
             .range(target)
             .textAttributes(LuaHighlight.ATTRIB_NAME)
             .create()
+    }
+
+    private fun annotateLocalVarDecl(
+        target: LuaLocalVarDecl,
+        holder: AnnotationHolder
+    ) {
+        val hasAttribute = target.attNameList.any { it.attrib != null }
+        if (hasAttribute && target.exprList == null) {
+            holder.newAnnotation(HighlightSeverity.ERROR, "Local variables with attributes must be initialized")
+                .range(target)
+                .create()
+        }
     }
 }
 
@@ -152,8 +167,18 @@ class LuaLocalBindingsAnnotator : Annotator {
         }
 
         LuaBindingsAnnotator.identifier(holder, HighlightSeverity.INFORMATION, target, reference.toString(), highlight)
-    }
 
+        // Check for constant assignment
+        if (target.parent is LuaNameRef && target.parent.parent is LuaVar && target.parent.parent.parent is LuaVarList) {
+            val bindingElement = binding.element
+            val attName = PsiTreeUtil.getParentOfType(bindingElement, LuaAttName::class.java)
+            if (attName?.attrib?.attribName?.text == "const") {
+                holder.newAnnotation(HighlightSeverity.ERROR, "Cannot assign to a constant variable: ${target.text}")
+                    .range(target)
+                    .create()
+            }
+        }
+    }
 }
 
 class LuaGlobalBindingsAnnotator: Annotator {
