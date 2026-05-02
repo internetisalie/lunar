@@ -28,9 +28,55 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
     ): Array<FoldingDescriptor> {
         val descriptors = ArrayList<FoldingDescriptor>()
         root.accept(LuaFoldingVisitor(descriptors))
-        root.accept(LuaLazyFoldingVisitor(descriptors))
+        // Explicitly fold LuaCats doc comments that might not be visited by LuaFoldingVisitor
+        foldLuaCatsComments(root, descriptors)
         foldCustomRegions(root, descriptors)
         return descriptors.toTypedArray()
+    }
+
+    private fun foldLuaCatsComments(root: PsiElement, descriptors: MutableList<FoldingDescriptor>) {
+        val comments = PsiTreeUtil.findChildrenOfType(root, LuaCatsComment::class.java)
+        val processedComments = mutableSetOf<LuaCatsComment>()
+        
+        for (comment in comments) {
+            if (processedComments.contains(comment)) continue
+            
+            // Check if there's a doc comment before this one
+            var prev = comment.prevSibling
+            while (prev is PsiWhiteSpace) {
+                prev = prev.prevSibling
+            }
+            if (prev is LuaCatsComment && !processedComments.contains(prev)) {
+                // There's an unprocessed doc comment before this one, skip
+                continue
+            }
+            
+            // Find the range of consecutive --- comments
+            var last: LuaCatsComment = comment
+            var next = comment.nextSibling
+            while (next != null) {
+                if (next is PsiWhiteSpace) {
+                    next = next.nextSibling
+                    continue
+                }
+                if (next is LuaCatsComment && !processedComments.contains(next)) {
+                    last = next
+                    processedComments.add(next)
+                    next = next.nextSibling
+                } else {
+                    break
+                }
+            }
+            
+            // Add fold for this comment and any consecutive ones
+            descriptors.add(
+                FoldingDescriptor(
+                    comment.node,
+                    TextRange(comment.textRange.startOffset, last.textRange.endOffset)
+                )
+            )
+            processedComments.add(comment)
+        }
     }
 
     private fun foldCustomRegions(root: PsiElement, descriptors: MutableList<FoldingDescriptor>) {
@@ -150,45 +196,6 @@ class LuaFoldingVisitor(
         )
     }
     
-    private fun foldConsecutiveDocComments(comment: PsiComment) {
-        // Fold consecutive --- doc comments together
-        val text = comment.text
-        if (!text.startsWith("---")) return
-        
-        // Check if there's a doc comment before this one
-        var prev = comment.prevSibling
-        while (prev is PsiWhiteSpace) {
-            prev = prev.prevSibling
-        }
-        if (prev is PsiComment && prev.text.startsWith("---")) {
-            // There's a doc comment before this one, skip (will be handled by the first comment)
-            return
-        }
-        
-        // Find the last consecutive --- comment
-        var last: PsiElement = comment
-        var next = comment.nextSibling
-        while (next != null) {
-            if (next is PsiWhiteSpace) {
-                next = next.nextSibling
-                continue
-            }
-            if (next is PsiComment && next.text.startsWith("---")) {
-                last = next
-                next = next.nextSibling
-            } else {
-                break
-            }
-        }
-        
-        // Fold from this comment to the last consecutive one
-        descriptors.add(
-            FoldingDescriptor(
-                comment.node,
-                TextRange(comment.textRange.startOffset, last.textRange.endOffset)
-            )
-        )
-    }
 
     private fun foldTable(table : LuaTableConstructor) {
         if (table.textLength<3) return
@@ -241,10 +248,8 @@ class LuaFoldingVisitor(
             }
             element is PsiComment -> {
                 val text = element.text
-                if (text.startsWith("---")) {
-                    foldConsecutiveDocComments(element)
-                } else if (!text.startsWith("--#region") && !text.startsWith("-- #region") && 
-                           !text.startsWith("--#endregion") && !text.startsWith("-- #endregion")) {
+                if (!text.startsWith("--#region") && !text.startsWith("-- #region") && 
+                    !text.startsWith("--#endregion") && !text.startsWith("-- #endregion")) {
                     // Don't fold region markers here - they're handled by foldCustomRegions
                     foldComment(element.node)
                 }
