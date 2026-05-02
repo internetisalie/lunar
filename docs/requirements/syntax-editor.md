@@ -18,7 +18,7 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 
 | ID | Status | Notes |
 | :--- | :--- | :--- |
-| [`SYNTAX-01`](spec/syntax-01-lua-54-attributes.md) | Implemented | Lexer, Parser, Highlighting, Validation, and Completion verified. |
+| [`SYNTAX-01`](spec/syntax-01-lua-54-attributes.md) | Implemented | All non-future work verified. |
 | `SYNTAX-02` | Pending | |
 | `SYNTAX-03` | Pending | |
 | `SYNTAX-04` | Pending | |
