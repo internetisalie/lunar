@@ -25,14 +25,6 @@ class LuaBreadcrumbsProvider : BreadcrumbsProvider {
         }
     }
 
-    override fun getIcon(element: PsiElement): Icon? {
-        return when (element) {
-            is LuaFile -> LuaIcons.FILE
-            is LuaFuncDecl, is LuaLocalFuncDecl, is LuaFuncDef -> AllIcons.Nodes.Function
-            else -> null
-        }
-    }
-
     private fun getAssignedName(funcDef: LuaFuncDef): String? {
         val parent = funcDef.parent
         if (parent is LuaField) {

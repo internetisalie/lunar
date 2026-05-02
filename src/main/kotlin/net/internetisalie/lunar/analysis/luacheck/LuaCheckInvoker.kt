@@ -22,7 +22,7 @@ object LuaCheckInvoker {
 
         try {
             LuaProcessUtil.listen(cmd, listener)
-        } catch (_: ProcessNotCreatedException) { }
+        } catch (_: com.intellij.execution.ExecutionException) { }
 
         return problems.toList()
     }

@@ -414,13 +414,15 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
             val name = identifier.text
             names.add(name)
 
+            var reference: Reference
             if (varScope == null) {
+                reference = scope.lookupReference(name)
                 varScope = scope.lookupContainingScope(name) ?: global
+            } else {
+                reference = varScope.lookupReference(name)
             }
 
             isGlobal = isGlobal ?: varScope.global
-
-            var reference = varScope.lookupReference(name)
 
             if (isGlobal && !reference.defined && imports != null) {
                 reference = imports.lookupReference(names)
@@ -436,13 +438,11 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
         val name = tail.text
         names.add(name)
 
-        if (varScope == null) {
-            varScope = scope.lookupContainingScope(name) ?: global
-        }
-        isGlobal = isGlobal ?: varScope.global
-
         var reference : Reference?
         if (assignment) {
+            if (varScope == null) {
+                varScope = scope.lookupContainingScope(name) ?: global
+            }
             val binding = newOrExistingName(
                 varScope,
                 name,
@@ -450,13 +450,24 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
             )
             varScope.declarations[tail.text] = binding
             reference = Reference(binding)
+            // If the variable was defined in an outer scope, it's an upvalue even during assignment
+            if (varScope != scope && varScope != global) {
+                reference.upValue = true
+            }
         } else {
-            reference = varScope.lookupReference(name)
+            if (varScope == null) {
+                reference = scope.lookupReference(name)
+                varScope = scope.lookupContainingScope(name) ?: global
+            } else {
+                reference = varScope.lookupReference(name)
+            }
 
-            if (isGlobal && !reference.defined && imports != null) {
+            if ((isGlobal ?: varScope.global) && !reference.defined && imports != null) {
                 reference = imports.lookupReference(names)
             }
         }
+
+        isGlobal = isGlobal ?: varScope.global
 
 
         reference.global = isGlobal
