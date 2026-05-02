@@ -72,6 +72,7 @@ class LuaDebugVariable private constructor(
 
     override fun computeSourcePosition(navigatable: XNavigatable) {
         val dataManager: DataManager? = DataManager.getInstance()
+        // TODO: Clean up deprecation: 'val dataContext: DataContext' is deprecated.
         val dataContext: DataContext? = dataManager?.dataContext
 
         if (dataContext == null) {
