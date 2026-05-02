@@ -58,4 +58,47 @@ class LuaFoldingTest : BaseDocumentTest() {
         """.trimIndent())
         myFixture.testFolding("test.lua")
     }
+
+    @Test
+    fun testFunctionFolding() {
+        myFixture.configureByText("test.lua", """
+            <fold text='...'>function f()
+                print(1)
+            end</fold>
+        """.trimIndent())
+        myFixture.testFolding("test.lua")
+    }
+
+    @Test
+    fun testTableFolding() {
+        myFixture.configureByText("test.lua", """
+            local t = <fold text='{...}'>{
+                a = 1,
+                b = 2
+            }</fold>
+        """.trimIndent())
+        myFixture.testFolding("test.lua")
+    }
+
+    @Test
+    fun testIfFolding() {
+        myFixture.configureByText("test.lua", """
+            <fold text='...'>if true then
+                print(1)
+            else
+                print(2)
+            end</fold>
+        """.trimIndent())
+        myFixture.testFolding("test.lua")
+    }
+
+    @Test
+    fun testWhileFolding() {
+        myFixture.configureByText("test.lua", """
+            <fold text='...'>while true do
+                print(1)
+            end</fold>
+        """.trimIndent())
+        myFixture.testFolding("test.lua")
+    }
 }

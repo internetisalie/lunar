@@ -105,26 +105,37 @@ private fun unescapeLuaString(str: String): String {
     return result.toString()
 }
 
-fun extractLuaString(str: String): String {
-    when {
-        str[0] == '"' -> {
-            val content = str.substring(1, str.length - 1)
-            return unescapeLuaString(content)
-        }
-        str[0] == '\'' -> {
-            val content = str.substring(1, str.length - 1)
-            return unescapeLuaString(content)
-        }
-        str[0] != '[' -> return str // should log a warning perhaps
-        else -> { // extended strings (block strings - no escape processing)
+fun getLuaStringDelimiterLength(str: String): Int {
+    if (str.isEmpty()) return 0
+    return when (str[0]) {
+        '"', '\'' -> 1
+        '[' -> {
             var level = 0
-            while (str[level + 1] == '=') level++
-
-            val trimmed = str.substring(
-                level + 2,
-                str.length - level - 2
-            )
-            return if (trimmed.startsWith("\n")) trimmed.substring(1) else trimmed
+            while (level + 1 < str.length && str[level + 1] == '=') level++
+            if (level + 1 < str.length && str[level + 1] == '[') level + 2 else 0
         }
+        else -> 0
+    }
+}
+
+fun extractLuaString(str: String): String {
+    if (str.isEmpty()) return str
+    val delimiterLength = getLuaStringDelimiterLength(str)
+    return when {
+        str[0] == '"' || str[0] == '\'' -> {
+            if (str.length < 2) return ""
+            val content = str.substring(1, str.length - 1)
+            unescapeLuaString(content)
+        }
+        delimiterLength > 0 -> {
+            // extended strings (block strings - no escape processing)
+            if (str.length < delimiterLength * 2) return ""
+            val trimmed = str.substring(
+                delimiterLength,
+                str.length - delimiterLength
+            )
+            if (trimmed.startsWith("\n")) trimmed.substring(1) else trimmed
+        }
+        else -> str
     }
 }
