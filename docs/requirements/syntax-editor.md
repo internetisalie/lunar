@@ -15,7 +15,7 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 | `SYNTAX-07` | **Inlay Hints** | **S** | Pending | Show implicit information, such as inferred types for `local` variables. |
 | [`SYNTAX-08`](spec/syntax-08-string-escapes.md) | **String Escape Processing** | **M** | Implemented | Process Lua escape sequences in quoted strings. |
 | `SYNTAX-09` | **Luau Syntax Support** | **S** | Pending | Parse and highlight Luau-specific syntax (optional). |
-| `SYNTAX-10` | **Enter Handler for LuaDOC** | **S** | Pending | Auto-continue LuaDOC comments (e.g., `---`) when pressing Enter. |
+| [`SYNTAX-10`](spec/syntax-10-luadoc-enter-handler.md) | **Enter Handler for Comments** | **S** | Implemented | Auto-continue LuaDOC comments (e.g., `---`) and manage generic comment blocks (e.g., `--`) when pressing Enter. |
 | [`SYNTAX-11`](spec/syntax-11-numeric-literals.md) | **Numeric Literal Validation** | **M** | Implemented | Verify and highlight hexadecimal, float, and integer literals according to 5.4 specs. |
 | [`SYNTAX-12`](spec/syntax-12-goto-scope.md) | **Label & Goto Scope Resolution** | **S** | Pending | Flag unresolved `goto` statements and invalid scope jumps. |
 | [`SYNTAX-13`](spec/syntax-13-standalone-expression.md) | **Standalone Expression Annotator** | **M** | Pending | Flag expressions incorrectly used as statements. |
