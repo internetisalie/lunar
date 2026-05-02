@@ -43,12 +43,11 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
             } else if (text.startsWith("--#endregion") || text.startsWith("-- #endregion")) {
                 if (stack.isNotEmpty()) {
                     val start = stack.removeAt(stack.size - 1)
-                    descriptors.add(
-                        FoldingDescriptor(
-                            start.node,
-                            TextRange(start.textRange.startOffset, comment.textRange.endOffset)
-                        )
+                    val descriptor = FoldingDescriptor(
+                        start.node,
+                        TextRange(start.textRange.startOffset, comment.textRange.endOffset)
                     )
+                    descriptors.add(descriptor)
                 }
             }
         }
@@ -93,7 +92,13 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
                     "--[[" + summarize(extractLuaComment(text)) + "]]"
                 }
             }
-            LuaElementTypes.SHORTCOMMENT -> "-- " + summarize(extractLuaComment(text))
+            LuaElementTypes.SHORTCOMMENT -> {
+                if (text.startsWith("---")) {
+                    "--- " + summarize(extractLuaComment(text))
+                } else {
+                    "-- " + summarize(extractLuaComment(text))
+                }
+            }
             LuaCatsElementTypes.COMMENT -> "--- " + summarize(LuaCatsSummary.getText(node.psi as LuaCatsComment) ?: "")
             LuaElementTypes.TABLE_CONSTRUCTOR -> "{...}"
             else -> PLACEHOLDER_TEXT
@@ -238,7 +243,9 @@ class LuaFoldingVisitor(
                 val text = element.text
                 if (text.startsWith("---")) {
                     foldConsecutiveDocComments(element)
-                } else {
+                } else if (!text.startsWith("--#region") && !text.startsWith("-- #region") && 
+                           !text.startsWith("--#endregion") && !text.startsWith("-- #endregion")) {
+                    // Don't fold region markers here - they're handled by foldCustomRegions
                     foldComment(element.node)
                 }
             }
@@ -305,17 +312,47 @@ class LuaLazyFoldingVisitor(
     val descriptors: ArrayList<FoldingDescriptor>
 ) : PsiElementVisitor() {
     override fun visitElement(element: PsiElement) {
-        PsiTreeUtil.findChildrenOfType(element, LuaCatsCommentImpl::class.java).forEach {
-            if (it.textContains('\n')) foldComment(it.node)
-        }
-    }
-
-    private fun foldComment(node: ASTNode) {
-        descriptors.add(
-            FoldingDescriptor(
-                node,
-                node.textRange,
+        val allComments = PsiTreeUtil.findChildrenOfType(element, LuaCatsCommentImpl::class.java)
+        val processedComments = mutableSetOf<LuaCatsCommentImpl>()
+        
+        for (comment in allComments) {
+            if (processedComments.contains(comment)) continue
+            
+            // Check if there's a doc comment before this one
+            var prev = comment.prevSibling
+            while (prev is PsiWhiteSpace) {
+                prev = prev.prevSibling
+            }
+            if (prev is LuaCatsCommentImpl && !processedComments.contains(prev)) {
+                // There's an unprocessed doc comment before this one, skip
+                continue
+            }
+            
+            // Find the range of consecutive --- comments
+            var last: LuaCatsCommentImpl = comment
+            var next = comment.nextSibling
+            while (next != null) {
+                if (next is PsiWhiteSpace) {
+                    next = next.nextSibling
+                    continue
+                }
+                if (next is LuaCatsCommentImpl && !processedComments.contains(next)) {
+                    last = next
+                    processedComments.add(next)
+                    next = next.nextSibling
+                } else {
+                    break
+                }
+            }
+            
+            // Always fold doc comments, even if there's only one
+            descriptors.add(
+                FoldingDescriptor(
+                    comment.node,
+                    TextRange(comment.textRange.startOffset, last.textRange.endOffset)
+                )
             )
-        )
+            processedComments.add(comment)
+        }
     }
 }
