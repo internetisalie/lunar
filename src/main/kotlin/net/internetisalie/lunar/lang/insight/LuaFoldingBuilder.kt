@@ -193,7 +193,7 @@ class LuaFoldingVisitor(
                     is LuaWhileStatement -> foldStatementWithEnd(element, element.node)
                     is LuaNumericForStatement -> foldStatementWithEnd(element, element.node)
                     is LuaGenericForStatement -> foldStatementWithEnd(element, element.node)
-                    is LuaRepeatStatement -> foldStatementWithEnd(element, element.node)
+                    is LuaRepeatStatement -> foldBlocks(element.getBlockList())
                     is LuaDoStatement -> foldStatementWithEnd(element, element.node)
                     is LuaFuncDecl -> foldFunctionDecl(element, element.node)
                     is LuaLocalFuncDecl -> foldFunctionDecl(element, element.node)
@@ -235,7 +235,7 @@ class LuaFoldingVisitor(
     private fun foldStatementWithEnd(element: LuaBlockParent, node: ASTNode) {
         val children = node.getChildren(null)
         val startNode = children.find { 
-            it.elementType in setOf(LuaElementTypes.WHILE, LuaElementTypes.FOR, LuaElementTypes.REPEAT, LuaElementTypes.DO)
+            it.elementType in setOf(LuaElementTypes.WHILE, LuaElementTypes.FOR, LuaElementTypes.DO)
         }
         val endNode = children.findLast { it.elementType == LuaElementTypes.END }
         
