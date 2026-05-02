@@ -20,6 +20,12 @@ object LuaHighlight {
 
     val NUMBER: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_NUMBER", DefaultLanguageHighlighterColors.NUMBER)
+    val NUMBER_INT: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_NUMBER_INT", NUMBER)
+    val NUMBER_FLOAT: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_NUMBER_FLOAT", NUMBER)
+    val NUMBER_EXPONENT: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_NUMBER_EXPONENT", NUMBER)
 
     val STRING: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_STRING", DefaultLanguageHighlighterColors.STRING)

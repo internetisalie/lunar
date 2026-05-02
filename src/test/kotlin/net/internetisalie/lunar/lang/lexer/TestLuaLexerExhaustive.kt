@@ -157,6 +157,27 @@ class TestLuaLexerExhaustive {
         )
     }
 
+    @Test
+    fun `numbers - hex floats`() {
+        execute(
+            TestCase("hex float with exponent", "0x1p+1", listOf(Token(0, "0x1p+1", LuaElementTypes.NUMBER))),
+            TestCase("hex float with frac and exp", "0x1.8p+1", listOf(Token(0, "0x1.8p+1", LuaElementTypes.NUMBER))),
+            TestCase("hex float leading dot", "0X.5p-3", listOf(Token(0, "0X.5p-3", LuaElementTypes.NUMBER))),
+            TestCase("hex float without exp", "0x0.1E", listOf(Token(0, "0x0.1E", LuaElementTypes.NUMBER))),
+            TestCase("hex float large", "0X1.921FB54442D18P+1", listOf(Token(0, "0X1.921FB54442D18P+1", LuaElementTypes.NUMBER))),
+        )
+    }
+
+    @Test
+    fun `numbers - malformed captured as single token`() {
+        execute(
+            TestCase("decimal exp no digits", "12e", listOf(Token(0, "12e", LuaElementTypes.NUMBER))),
+            TestCase("decimal exp with sign no digits", "12e+", listOf(Token(0, "12e+", LuaElementTypes.NUMBER))),
+            TestCase("hex exp no digits", "0x1p", listOf(Token(0, "0x1p", LuaElementTypes.NUMBER))),
+            TestCase("hex no digits before exp", "0xp", listOf(Token(0, "0xp", LuaElementTypes.NUMBER))),
+        )
+    }
+
     // ==================== Strings ====================
 
     @Test

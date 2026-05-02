@@ -39,8 +39,13 @@ nonl        =   [^\r\n]
 nobrknl     =   [^\[\r\n]
 name        =   [_a-zA-Z][_a-zA-Z0-9]*
 n           =   [0-9]+
-exp         =   [Ee][+-]?{n}
-number      =   (0[xX][0-9a-fA-F]+|({n}|{n}[.]{n}){exp}?|[.]{n}|{n}[.])
+hexdigit    =   [0-9a-fA-F]
+hexn        =   {hexdigit}+
+decexp      =   [Ee][+-]?[0-9]*
+hexexp      =   [pP][+-]?[0-9]*
+hexnum      =   0[xX]({hexn}([.]{hexdigit}*)?{hexexp}?|[.]{hexn}{hexexp}?|{hexexp})
+decnum      =   ({n}([.][0-9]*)?|[.]{n}){decexp}?
+number      =   {hexnum}|{decnum}
 sep         =   =*
 luacats     =   ---[^\r\n]*{nl}([ \t]*--({nobrknl}{nonl}*{nl}|{nonl}{nl}|{nl}))*
 

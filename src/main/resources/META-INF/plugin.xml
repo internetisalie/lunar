@@ -63,6 +63,9 @@
 
     <annotator
             language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaNumeralAnnotator"/>
+    <annotator
+            language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaLongStringAnnotator"/>
     <annotator
             language="Lua"
