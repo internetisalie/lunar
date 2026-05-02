@@ -108,36 +108,81 @@ class LuaFoldingVisitor(
 ) : LuaRecursiveVisitor() {
 
     private fun foldBlocks(blocks: List<LuaBlock>) {
-        for (block in blocks) {
-            var prev: PsiElement = block
-            var prevPrev = prev.prevSibling
-            while (prevPrev is PsiWhiteSpace) {
-                prev = prevPrev
-                prevPrev = prev.prevSibling
-            }
-
-            var next: PsiElement = block
-            var nextNext = next.nextSibling
-            while (nextNext is PsiWhiteSpace) {
-                next = nextNext
-                nextNext = next.nextSibling
-            }
-
-            val prevStart = prev.textRange.startOffset
-            var nextEnd = next.textRange.endOffset
-            if (blocks.size > 2 &&
-                next is PsiWhiteSpace &&
-                next.text.lastIndexOf(NEWLINE) == next.textLength - 1) {
-                nextEnd--
-            }
-
-            descriptors.add(
-                FoldingDescriptor(
-                    block.node,
-                    TextRange(prevStart, nextEnd)
-                )
-            )
+        if (blocks.isEmpty()) return
+        
+        // For statements with multiple blocks (if/elseif/else), we only want ONE fold
+        // spanning from the first keyword to END, not one fold per block
+        val firstBlock = blocks.first()
+        val lastBlock = blocks.last()
+        
+        // Find the start: walk backwards from first block to find first keyword
+        var start: PsiElement? = firstBlock.prevSibling
+        while (start is PsiWhiteSpace) {
+            start = start.prevSibling
         }
+        if (start == null) start = firstBlock
+        
+        // Find the end: walk forwards from last block to find END keyword  
+        var end: PsiElement? = lastBlock.nextSibling
+        while (end is PsiWhiteSpace) {
+            end = end.nextSibling
+        }
+        if (end == null) end = lastBlock
+        
+        val startOffset = start.textRange.startOffset
+        var endOffset = end.textRange.endOffset
+        
+        // Handle trailing newline
+        if (end is PsiWhiteSpace && end.text.lastIndexOf(NEWLINE) == end.textLength - 1) {
+            endOffset--
+        }
+        
+        descriptors.add(
+            FoldingDescriptor(
+                firstBlock.node,
+                TextRange(startOffset, endOffset)
+            )
+        )
+    }
+    
+    private fun foldConsecutiveDocComments(comment: PsiComment) {
+        // Fold consecutive --- doc comments together
+        val text = comment.text
+        if (!text.startsWith("---")) return
+        
+        // Check if there's a doc comment before this one
+        var prev = comment.prevSibling
+        while (prev is PsiWhiteSpace) {
+            prev = prev.prevSibling
+        }
+        if (prev is PsiComment && prev.text.startsWith("---")) {
+            // There's a doc comment before this one, skip (will be handled by the first comment)
+            return
+        }
+        
+        // Find the last consecutive --- comment
+        var last: PsiElement = comment
+        var next = comment.nextSibling
+        while (next != null) {
+            if (next is PsiWhiteSpace) {
+                next = next.nextSibling
+                continue
+            }
+            if (next is PsiComment && next.text.startsWith("---")) {
+                last = next
+                next = next.nextSibling
+            } else {
+                break
+            }
+        }
+        
+        // Fold from this comment to the last consecutive one
+        descriptors.add(
+            FoldingDescriptor(
+                comment.node,
+                TextRange(comment.textRange.startOffset, last.textRange.endOffset)
+            )
+        )
     }
 
     private fun foldTable(table : LuaTableConstructor) {
@@ -174,12 +219,83 @@ class LuaFoldingVisitor(
     override fun visitElement(element: PsiElement) {
         super.visitElement(element)
         when {
-            element is LuaBlockParent -> foldBlocks(element.getBlockList())
-            element is PsiComment -> foldComment(element.node)
+            element is LuaBlockParent -> {
+                // Handle specific statement types
+                when (element) {
+                    is LuaIfStatement -> foldIfStatement(element)
+                    is LuaWhileStatement -> foldStatementWithEnd(element, element.node)
+                    is LuaNumericForStatement -> foldStatementWithEnd(element, element.node)
+                    is LuaGenericForStatement -> foldStatementWithEnd(element, element.node)
+                    is LuaRepeatStatement -> foldStatementWithEnd(element, element.node)
+                    is LuaDoStatement -> foldStatementWithEnd(element, element.node)
+                    is LuaFuncDecl -> foldFunctionDecl(element, element.node)
+                    is LuaLocalFuncDecl -> foldFunctionDecl(element, element.node)
+                    is LuaFuncDef -> foldFunctionDecl(element, element.node)
+                    else -> foldBlocks(element.getBlockList())
+                }
+            }
+            element is PsiComment -> {
+                val text = element.text
+                if (text.startsWith("---")) {
+                    foldConsecutiveDocComments(element)
+                } else {
+                    foldComment(element.node)
+                }
+            }
             element is LuaTableConstructor -> foldTable(element)
             element.elementType == LuaElementTypes.STRING -> {
                 if (element.textContains('\n')) foldString(element.node)
             }
+        }
+    }
+    
+    private fun foldIfStatement(ifStmt: LuaIfStatement) {
+        // Fold from IF keyword to END keyword
+        val children = ifStmt.node.getChildren(null)
+        val ifKeyword = children.find { it.elementType == LuaElementTypes.IF }
+        val endKeyword = children.findLast { it.elementType == LuaElementTypes.END }
+        
+        if (ifKeyword != null && endKeyword != null) {
+            descriptors.add(
+                FoldingDescriptor(
+                    ifStmt.node,
+                    TextRange(ifKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
+                )
+            )
+        }
+    }
+    
+    private fun foldStatementWithEnd(element: LuaBlockParent, node: ASTNode) {
+        // Generic handler for statements that have END keyword (while, for, repeat, do)
+        val children = node.getChildren(null)
+        val startNode = children.find { 
+            it.elementType in setOf(LuaElementTypes.WHILE, LuaElementTypes.FOR, LuaElementTypes.REPEAT, LuaElementTypes.DO)
+        }
+        val endNode = children.findLast { it.elementType == LuaElementTypes.END }
+        
+        if (startNode != null && endNode != null) {
+            descriptors.add(
+                FoldingDescriptor(
+                    node,
+                    TextRange(startNode.textRange.startOffset, endNode.textRange.endOffset)
+                )
+            )
+        }
+    }
+    
+    private fun foldFunctionDecl(element: LuaBlockParent, node: ASTNode) {
+        // Fold from FUNCTION keyword to END keyword
+        val children = node.getChildren(null)
+        val funcKeyword = children.find { it.elementType == LuaElementTypes.FUNCTION }
+        val endKeyword = children.findLast { it.elementType == LuaElementTypes.END }
+        
+        if (funcKeyword != null && endKeyword != null) {
+            descriptors.add(
+                FoldingDescriptor(
+                    node,
+                    TextRange(funcKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
+                )
+            )
         }
     }
 
