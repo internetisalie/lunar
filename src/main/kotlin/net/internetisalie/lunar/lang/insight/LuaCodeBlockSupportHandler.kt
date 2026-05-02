@@ -41,7 +41,6 @@ class LuaCodeBlockSupportHandler : AbstractCodeBlockSupportHandler() {
         LuaElementTypes.REPEAT_STATEMENT to TokenSet.create(
             LuaElementTypes.REPEAT,
             LuaElementTypes.UNTIL,
-            LuaElementTypes.END,
         ),
         LuaElementTypes.WHILE_STATEMENT to TokenSet.create(
             LuaElementTypes.WHILE,
