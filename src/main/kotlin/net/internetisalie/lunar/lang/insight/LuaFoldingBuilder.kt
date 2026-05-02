@@ -220,23 +220,19 @@ class LuaFoldingVisitor(
     }
     
     private fun foldIfStatement(ifStmt: LuaIfStatement) {
-        // Fold from IF keyword to END keyword
         val children = ifStmt.node.getChildren(null)
         val ifKeyword = children.find { it.elementType == LuaElementTypes.IF }
         val endKeyword = children.findLast { it.elementType == LuaElementTypes.END }
         
         if (ifKeyword != null && endKeyword != null) {
-            descriptors.add(
-                FoldingDescriptor(
-                    ifStmt.node,
-                    TextRange(ifKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
-                )
-            )
+            val range = TextRange(ifKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
+            if (ifStmt.node.text.substring(0, endKeyword.startOffset - ifStmt.textRange.startOffset).contains('\n')) {
+                descriptors.add(FoldingDescriptor(ifStmt.node, range))
+            }
         }
     }
     
     private fun foldStatementWithEnd(element: LuaBlockParent, node: ASTNode) {
-        // Generic handler for statements that have END keyword (while, for, repeat, do)
         val children = node.getChildren(null)
         val startNode = children.find { 
             it.elementType in setOf(LuaElementTypes.WHILE, LuaElementTypes.FOR, LuaElementTypes.REPEAT, LuaElementTypes.DO)
@@ -244,28 +240,23 @@ class LuaFoldingVisitor(
         val endNode = children.findLast { it.elementType == LuaElementTypes.END }
         
         if (startNode != null && endNode != null) {
-            descriptors.add(
-                FoldingDescriptor(
-                    node,
-                    TextRange(startNode.textRange.startOffset, endNode.textRange.endOffset)
-                )
-            )
+            val range = TextRange(startNode.textRange.startOffset, endNode.textRange.endOffset)
+            if (node.text.substring(0, endNode.startOffset - node.startOffset).contains('\n')) {
+                descriptors.add(FoldingDescriptor(node, range))
+            }
         }
     }
     
     private fun foldFunctionDecl(element: LuaBlockParent, node: ASTNode) {
-        // Fold from FUNCTION keyword to END keyword
         val children = node.getChildren(null)
         val funcKeyword = children.find { it.elementType == LuaElementTypes.FUNCTION }
         val endKeyword = children.findLast { it.elementType == LuaElementTypes.END }
         
         if (funcKeyword != null && endKeyword != null) {
-            descriptors.add(
-                FoldingDescriptor(
-                    node,
-                    TextRange(funcKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
-                )
-            )
+            val range = TextRange(funcKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
+            if (node.text.substring(0, endKeyword.startOffset - node.startOffset).contains('\n')) {
+                descriptors.add(FoldingDescriptor(node, range))
+            }
         }
     }
     
