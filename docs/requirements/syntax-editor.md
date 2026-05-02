@@ -2,30 +2,17 @@
 
 Lunar ensures high-fidelity representation of Lua code with support for modern language features.
 
-| ID | Requirement | Priority | Description |
-| :--- | :--- | :---: | :--- |
-| [`SYNTAX-01`](spec/syntax-01-lua-54-attributes.md) | **Lua 5.4 Support** | **M** | Full support for `<const>` and `<close>` variable attributes. |
-| `SYNTAX-02` | **Semantic Highlighting** | **S** | Differentiate between locals, globals, parameters, and upvalues using distinct colors. |
-| [`SYNTAX-03`](spec/syntax-03-code-folding.md) | Implemented | All foldable regions and custom regions supported. |
-| `SYNTAX-04` | **Brace Matching** | **M** | Highlight matching `(` `)`, `[` `]`, `{` `}`, and keywords (`if`...`end`). |
-| `SYNTAX-05` | **Method Separators** | **C** | Draw lines between top-level function definitions for better visual structure. |
-| `SYNTAX-06` | **Breadcrumbs** | **S** | Show the current scope path (e.g., `module > class > function`) at the bottom of the editor. |
-| `SYNTAX-07` | **Inlay Hints** | **S** | Show implicit information, such as inferred types for `local` variables without annotations. |
-| [`SYNTAX-08`](spec/syntax-08-string-escapes.md) | **String Escape Processing** | **M** | Process Lua escape sequences in quoted strings. |
-| `SYNTAX-09` | **Luau Syntax Support** | **S** | Parse and highlight Luau-specific syntax (optional; Lua 5.4 prioritized). |
+## Requirements & Implementation Status
 
-## Implementation Status
-
-| ID | Status | Notes |
-| :--- | :--- | :--- |
-| [`SYNTAX-01`](spec/syntax-01-lua-54-attributes.md) | Implemented | All non-future work verified. |
-| `SYNTAX-02` | Pending | |
-| [`SYNTAX-03`](spec/syntax-03-code-folding.md) | Implemented | Blocks, tables, strings, long comments, doc comments, and regions. |
-| `SYNTAX-04` | Pending | |
-| `SYNTAX-05` | Pending | |
-| `SYNTAX-06` | Pending | |
-| `SYNTAX-07` | Pending | |
-| `SYNTAX-08` | Implemented | Verified by `TestLuaLiterals.kt` |
-| `SYNTAX-09` | Pending | |
-| `SYNTAX-10` | Pending | |
-
+| ID | Requirement | Priority | Status | Description / Notes |
+| :--- | :--- | :---: | :---: | :--- |
+| [`SYNTAX-01`](spec/syntax-01-lua-54-attributes.md) | **Lua 5.4 Support** | **M** | Implemented | Full support for `<const>` and `<close>` variable attributes. |
+| `SYNTAX-02` | **Semantic Highlighting** | **S** | Pending | Differentiate between locals, globals, parameters, and upvalues. |
+| [`SYNTAX-03`](spec/syntax-03-code-folding.md) | **Code Folding** | **M** | Implemented | Fold blocks, tables, strings, long comments, doc comments, and regions. |
+| `SYNTAX-04` | **Brace Matching** | **M** | Pending | Highlight matching `( )`, `[ ]`, `{ }`, and keywords (`if`...`end`). |
+| `SYNTAX-05` | **Method Separators** | **C** | Pending | Draw lines between top-level function definitions. |
+| `SYNTAX-06` | **Breadcrumbs** | **S** | Pending | Show current scope path (e.g., `module > class > function`). |
+| `SYNTAX-07` | **Inlay Hints** | **S** | Pending | Show implicit information, such as inferred types for `local` variables. |
+| [`SYNTAX-08`](spec/syntax-08-string-escapes.md) | **String Escape Processing** | **M** | Implemented | Process Lua escape sequences in quoted strings. |
+| `SYNTAX-09` | **Luau Syntax Support** | **S** | Pending | Parse and highlight Luau-specific syntax (optional). |
+| `SYNTAX-10` | **Enter Handler for LuaDOC** | **S** | Pending | Auto-continue LuaDOC comments (e.g., `---`) when pressing Enter. |
