@@ -37,4 +37,25 @@ class LuaFoldingTest : BaseDocumentTest() {
         """.trimIndent())
         myFixture.testFolding("test.lua")
     }
+
+    @Test
+    fun testDocCommentFolding() {
+        myFixture.configureByText("test.lua", """
+            <fold text='--- doc...'>--- doc
+            --- line 2
+            --- line 3</fold>
+            function f() end
+        """.trimIndent())
+        myFixture.testFolding("test.lua")
+    }
+
+    @Test
+    fun testRegionFolding() {
+        myFixture.configureByText("test.lua", """
+            <fold text='My Region'>--#region My Region
+            local x = 1
+            --#endregion</fold>
+        """.trimIndent())
+        myFixture.testFolding("test.lua")
+    }
 }

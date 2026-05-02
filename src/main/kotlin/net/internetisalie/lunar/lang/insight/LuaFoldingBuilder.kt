@@ -29,7 +29,29 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
         val descriptors = ArrayList<FoldingDescriptor>()
         root.accept(LuaFoldingVisitor(descriptors))
         root.accept(LuaLazyFoldingVisitor(descriptors))
+        foldCustomRegions(root, descriptors)
         return descriptors.toTypedArray()
+    }
+
+    private fun foldCustomRegions(root: PsiElement, descriptors: MutableList<FoldingDescriptor>) {
+        val comments = PsiTreeUtil.findChildrenOfType(root, PsiComment::class.java)
+        val stack = mutableListOf<PsiComment>()
+        for (comment in comments) {
+            val text = comment.text.trim()
+            if (text.startsWith("--#region") || text.startsWith("-- #region")) {
+                stack.add(comment)
+            } else if (text.startsWith("--#endregion") || text.startsWith("-- #endregion")) {
+                if (stack.isNotEmpty()) {
+                    val start = stack.removeAt(stack.size - 1)
+                    descriptors.add(
+                        FoldingDescriptor(
+                            start.node,
+                            TextRange(start.textRange.startOffset, comment.textRange.endOffset)
+                        )
+                    )
+                }
+            }
+        }
     }
 
     override fun isCollapsedByDefault(node: ASTNode): Boolean {
@@ -44,6 +66,9 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
     override fun getPlaceholderText(node: ASTNode): String? {
         val text = node.text
+        if (text.startsWith("--#region") || text.startsWith("-- #region")) {
+            return text.substringAfter("region").trim().ifEmpty { PLACEHOLDER_TEXT }
+        }
         return when (node.elementType) {
             LuaElementTypes.STRING -> {
                 val delimiterLength = getLuaStringDelimiterLength(text)
