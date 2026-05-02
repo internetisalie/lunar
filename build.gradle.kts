@@ -1,7 +1,7 @@
+
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
-import org.gradle.api.tasks.Exec
 
 plugins {
     id("java") // Java support

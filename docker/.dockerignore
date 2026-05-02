@@ -1,0 +1,10 @@
+.git
+.gradle
+build
+out
+*.iml
+*.iws
+*.ipr
+.idea
+node_modules
+.ide-cache

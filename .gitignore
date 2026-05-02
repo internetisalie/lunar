@@ -48,3 +48,7 @@ src/main/gen/net/internetisalie/lunar/lang/lexer/_LuaLexer.java~
 
 .kotlin/
 /docker/.ide-cache/
+
+### Docker ###
+docker/.ide-cache/
+docker/ide-staging/

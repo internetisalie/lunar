@@ -30,6 +30,11 @@ import kotlin.time.Duration.Companion.minutes
  * - useDriverAndCloseIde {} - execute test code with Driver API access
  * - Driver.project - access to IntelliJ Platform project APIs
  *
+ * IDE Selection:
+ * The IDE to test with is automatically determined from gradle.properties:platformType
+ * This allows testing with different IDEs (GoLand, IntelliJ IDEA, PyCharm, etc.)
+ * See IdeProductResolver for available IDE types and custom configuration
+ *
  * Documentation:
  * - https://plugins.jetbrains.com/docs/intellij/integration-tests-intro.html
  * - https://plugins.jetbrains.com/docs/intellij/integration-tests-ui.html
@@ -64,12 +69,16 @@ class LuaProgramExecutionWithIDEIntegrationTest {
         projectDir.resolve("main.lua").writeText(luaCode)
 
         // Create IDE test context with project
+        // IDE type is automatically determined from gradle.properties:platformType
+        val ideProduct = IdeProductResolver.getConfiguredIdeProduct()
+        println("✓ Using IDE: ${IdeProductResolver.getProductName(ideProduct)}")
+        
         val context = Starter.newContext(
             testName = "SimplePrintTest",
             testCase = TestCase(
-                ideInfo = IdeProductProvider.IC,
+                ideInfo = ideProduct,
                 projectInfo = LocalProjectInfo(projectDir)
-            ).withVersion("2024.3.1")
+            ).withVersion(IdeProductResolver.getTestVersion())
         )
         
         // Install the Lunar plugin
@@ -117,12 +126,16 @@ class LuaProgramExecutionWithIDEIntegrationTest {
             return M
         """.trimIndent())
 
+        // Create IDE test context with project
+        // IDE type is automatically determined from gradle.properties:platformType
+        val ideProduct = IdeProductResolver.getConfiguredIdeProduct()
+        
         val context = Starter.newContext(
             testName = "MultiFileTest",
             testCase = TestCase(
-                ideInfo = IdeProductProvider.IC,
+                ideInfo = ideProduct,
                 projectInfo = LocalProjectInfo(projectDir)
-            ).withVersion("2024.3.1")
+            ).withVersion(IdeProductResolver.getTestVersion())
         )
         
         val pathToPlugin = System.getProperty("path.to.build.plugin")
