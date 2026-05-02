@@ -66,7 +66,7 @@ Whitespace is allowed between the name and the attribute, and within the attribu
 | `SYNTAX-01-02` | **Parser Support** | **M** | Parse `local` declarations with optional attributes for each name. |
 | `SYNTAX-01-03` | **Syntax Highlighting** | **M** | Highlight `<` and `>` as punctuation and the attribute name (`const`, `close`) as a keyword or modifier. |
 | `SYNTAX-01-04` | **Validation: Const Assignment** | **S** | Provide a "Cannot assign to a constant variable" inspection/error. |
-| `SYNTAX-01-05` | **Validation: To-be-closed Type** | **C** | (Optional) Warn if the assigned value is known to lack a `__close` metamethod. |
+| `SYNTAX-01-05` | **Validation: To-be-closed Type** | **Future** | (Future Work) Warn if the assigned value is known to lack a `__close` metamethod. |
 | `SYNTAX-01-06` | **Code Completion** | **S** | Suggest `const` and `close` when the cursor is inside `< >` after a local name. |
 
 ## 5. Test Cases
