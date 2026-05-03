@@ -110,6 +110,30 @@ class TestLuaParsingExhaustive : BaseDocumentTest() {
     }
 
     @Test
+    fun testValidMethodCalls() {
+        val cases = listOf(
+            "obj:method()",                 // method call without arguments
+            "obj:method(1, 2, 3)",          // method call with arguments
+            "obj:method(arg1, {a=1}, ...)", // method call with table and varargs
+            "t:foo():bar():baz()",          // chained method calls
+            "obj:method{a = 1}",            // method call with table constructor as argument
+            "obj:method'string'",           // method call with string literal as argument
+            "x = obj:method()",             // assignment from method call
+            "local a = obj:method(1)",      // local variable from method call
+            "if obj:test() then end",       // method call in condition
+            "return obj:get()",             // method call in return statement
+            "f(obj:method())",              // method call as function argument
+            "t[obj:key()] = 1",             // method call in table index
+            "a, b, c = obj:multi()",        // multi-value return from method call
+            "for i in obj:iter() do end",   // method call in for-in loop
+            "obj.sub:method()",             // method on sub-table (dot then colon)
+            "obj['sub']:method()",          // method on indexed sub-table (bracket then colon)
+            "obj:a():b():c()"               // triple-nested method calls
+        )
+        cases.forEach { doTest(it) }
+    }
+
+    @Test
     fun testInvalidSyntax() {
         val cases = listOf(
             "local a = {4",
@@ -130,6 +154,75 @@ class TestLuaParsingExhaustive : BaseDocumentTest() {
             "local x <const> = 10",
             "local f <close> = io.open('t')",
             "local a <const>, b <close> = 1, 2"
+        )
+        cases.forEach { doTest(it) }
+    }
+
+    @Test
+    fun testOperatorPrecedence() {
+        val cases = listOf(
+            // Arithmetic precedence: *, /, % before +, -
+            "return 1 + 2 * 3",
+            "return 1 * 2 + 3 * 4",
+            "return 10 - 5 - 2",  // left-associative
+            "return 2 ^ 3 ^ 2",   // right-associative
+            // Unary operators
+            "return -1 + 2",
+            "return not a and b",
+            "return #t + 1",
+            "return ~(a | b)",
+            // Relational and logical operators
+            "return a < b and c > d",
+            "return a or b and c or d",
+            // Concatenation
+            "return a .. b .. c",
+            // Bitwise operators with arithmetic
+            "return (a & b) + (c | d)",
+            "return a << 1 + 2",  // should parse as a << (1 + 2)
+            "return 1 + 2 << 3",  // should parse as (1 + 2) << 3
+            // Complex nested expressions
+            "return (a + b) * (c - d) ^ 2",
+            "return a and b or c and d",
+            "return a < b or c > d and e == f",
+            // String concatenation with other operators
+            "return a .. b + c",
+            "return (a + b) .. (c + d)",
+            // Method calls in expressions with operators
+            "return obj:get() + 1",
+            "return a + obj:get() * 2"
+        )
+        cases.forEach { doTest(it) }
+    }
+
+    @Test
+    fun testVarargsCoverage() {
+        val cases = listOf(
+            // Varargs in function definition
+            "function f(...) end",
+            "function f(a, b, ...) end",
+            "function f(a, ...) local x, y, z = ... end",
+            // Varargs usage
+            "return ...",
+            "return ..., 1, 2",
+            "print(...)",
+            "f(...)",
+            "table.insert(t, ...)",
+            // Varargs in table constructors
+            "return {...}",
+            "return {1, 2, ...}",
+            "return {a = 1, ...}",  // Should this be valid? Lua 5.2+ allows it
+            // Varargs in assignments
+            "local a, b, c = ...",
+            "a, b = ...",
+            "x, y, z = ..., 1",
+            // Multiple function calls returning varargs
+            "return f(), g(), ...",
+            "local a, b = f(), ...",
+            // Varargs in expressions (select)
+            "return select('#', ...)",
+            "return select(1, ...)",
+            // Method calls with varargs
+            "obj:method(...)"
         )
         cases.forEach { doTest(it) }
     }

@@ -104,6 +104,18 @@ class TestLuaLexerExhaustive {
     }
 
     @Test
+    fun `operators - bitwise`() {
+        execute(
+            TestCase("&", "&", listOf(Token(0, "&", LuaElementTypes.AMP))),
+            TestCase("|", "|", listOf(Token(0, "|", LuaElementTypes.PIPE))),
+            TestCase("~", "~", listOf(Token(0, "~", LuaElementTypes.NEG))),
+            TestCase("//", "//", listOf(Token(0, "//", LuaElementTypes.INTDIV))),
+            TestCase("<<", "<<", listOf(Token(0, "<<", LuaElementTypes.BSL))),
+            TestCase(">>", ">>", listOf(Token(0, ">>", LuaElementTypes.BSR))),
+        )
+    }
+
+    @Test
     fun `punctuation`() {
         execute(
             TestCase("(", "(", listOf(Token(0, "(", LuaElementTypes.LPAREN))),
@@ -319,6 +331,51 @@ class TestLuaLexerExhaustive {
                 Token(6, "*", LuaElementTypes.MULT),
                 Token(7, " ", TokenType.WHITE_SPACE),
                 Token(8, "3", LuaElementTypes.NUMBER),
+            )),
+        )
+    }
+
+    @Test
+    fun `complex - bitwise operators`() {
+        execute(
+            TestCase("bitwise and", "a & b", listOf(
+                Token(0, "a", LuaElementTypes.IDENTIFIER),
+                Token(1, " ", TokenType.WHITE_SPACE),
+                Token(2, "&", LuaElementTypes.AMP),
+                Token(3, " ", TokenType.WHITE_SPACE),
+                Token(4, "b", LuaElementTypes.IDENTIFIER),
+            )),
+            TestCase("bitwise or", "a | b", listOf(
+                Token(0, "a", LuaElementTypes.IDENTIFIER),
+                Token(1, " ", TokenType.WHITE_SPACE),
+                Token(2, "|", LuaElementTypes.PIPE),
+                Token(3, " ", TokenType.WHITE_SPACE),
+                Token(4, "b", LuaElementTypes.IDENTIFIER),
+            )),
+            TestCase("bitwise not", "~a", listOf(
+                Token(0, "~", LuaElementTypes.NEG),
+                Token(1, "a", LuaElementTypes.IDENTIFIER),
+            )),
+            TestCase("left shift", "a << 2", listOf(
+                Token(0, "a", LuaElementTypes.IDENTIFIER),
+                Token(1, " ", TokenType.WHITE_SPACE),
+                Token(2, "<<", LuaElementTypes.BSL),
+                Token(4, " ", TokenType.WHITE_SPACE),
+                Token(5, "2", LuaElementTypes.NUMBER),
+            )),
+            TestCase("right shift", "a >> 1", listOf(
+                Token(0, "a", LuaElementTypes.IDENTIFIER),
+                Token(1, " ", TokenType.WHITE_SPACE),
+                Token(2, ">>", LuaElementTypes.BSR),
+                Token(4, " ", TokenType.WHITE_SPACE),
+                Token(5, "1", LuaElementTypes.NUMBER),
+            )),
+            TestCase("integer division", "a // b", listOf(
+                Token(0, "a", LuaElementTypes.IDENTIFIER),
+                Token(1, " ", TokenType.WHITE_SPACE),
+                Token(2, "//", LuaElementTypes.INTDIV),
+                Token(4, " ", TokenType.WHITE_SPACE),
+                Token(5, "b", LuaElementTypes.IDENTIFIER),
             )),
         )
     }
