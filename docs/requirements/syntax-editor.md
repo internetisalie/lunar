@@ -19,4 +19,4 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 | [`SYNTAX-11`](spec/syntax-11-numeric-literals.md) | **Numeric Literal Validation** | **M** | Implemented | Verify and highlight hexadecimal, float, and integer literals according to 5.4 specs. |
 | [`SYNTAX-12`](spec/syntax-12-goto-scope.md) | **Label & Goto Scope Resolution** | **S** | Implemented | Flag unresolved `goto` statements and invalid scope jumps. |
 | [`SYNTAX-13`](spec/syntax-13-standalone-expression.md) | **Standalone Expression Annotator** | **M** | Implemented | Flag expressions incorrectly used as statements. |
-| [`SYNTAX-14`](spec/syntax-14-vararg-context.md) | **Vararg Context Annotator** | **M** | Pending | Flag `...` used outside of vararg functions. |
+| [`SYNTAX-14`](spec/syntax-14-vararg-context.md) | **Vararg Context Annotator** | **M** | Implemented | Flag `...` used outside of vararg functions. |
