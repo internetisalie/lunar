@@ -9,3 +9,17 @@ Lunar integrates with external static analysis tools to catch errors and provide
 | `ANALYSIS-03` | **External Annotator** | **M** | **Full** | Display Luacheck warnings as inline annotations in real time. |
 | `ANALYSIS-04` | **Luacheck Output Parsing** | **M** | **Full** | Parse Luacheck output and convert it into IDE diagnostics. |
 | `ANALYSIS-05` | **Custom Rules Support** | **S** | **Full** | Support project-specific Luacheck configuration files (`.luacheckrc`). |
+
+---
+
+## Detailed Implementation Status
+
+### ANALYSIS-01: Luacheck Integration
+- **Status**: **Implemented** (`LuaCheckAnnotator`)
+
+### ANALYSIS-02: Settings Panel Integration
+- **Status**: **Implemented** (`LuaCheckSettingsPanel`)
+
+### ANALYSIS-03: External Annotator
+- **Status**: **Implemented** (`LuaCheckAnnotator` extends `ExternalAnnotator`)
+

@@ -15,3 +15,23 @@ Lunar provides powerful tools to explore and navigate the Lua codebase.
 | `NAV-09` | **Return Highlighter** | **C** | **Future Work** | Highlight `return` statements and their corresponding function definitions for visual clarity. |
 | `NAV-10` | **Access Detector** | **S** | **Not Implemented** | Detect and highlight variable access patterns (read vs. write) for semantic analysis. |
 | `NAV-11` | **Bindings Caching** | **M** | **Full** | Use `CachedValuesManager` to cache `getReferences` and `getFileGlobals` results, invalidating on PSI changes. |
+
+---
+
+## Detailed Implementation Status
+
+### NAV-01: Go to Definition (Symbols)
+- **Status**: **Implemented** (`LuaNameReference.resolve`)
+
+### NAV-02: Find Usages (Symbols)
+- **Status**: **Partial** (Implemented for labels and local symbols; global symbol usages rely on standard indexing)
+
+### NAV-04: Structure View
+- **Status**: **Implemented** (`LuaStructureViewFactory`)
+
+### NAV-07: Reference Contributors
+- **Status**: **Implemented** (`LuaLabelReferenceContributor`)
+
+### NAV-11: Bindings Caching
+- **Status**: **Implemented** (`LuaBindingsVisitor.getBindings`)
+

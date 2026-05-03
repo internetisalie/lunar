@@ -13,3 +13,14 @@ Lunar provides tools to safely restructure code and perform automated transforma
 | `INTENT-01` | **String Style Conversion** | **C** | **Future Work** | Switch between different string quote styles. |
 | `INTENT-02` | **Invert If Statement** | **C** | **Future Work** | Automatically flip an `if-else` block and its condition. |
 | `INTENT-03` | **Name Suggestion** | **S** | **Not Implemented** | Suggest idiomatic names when creating new variables or functions. |
+
+---
+
+## Detailed Implementation Status
+
+### REFACT-01: Rename Refactoring
+- **Status**: **Implemented** (`LuaNameReference.handleElementRename`)
+
+### REFACT-04: Label Refactoring
+- **Status**: **Implemented** (`LuaLabelFindUsagesProvider`, `LuaLabelRefactoringSupportProvider`)
+

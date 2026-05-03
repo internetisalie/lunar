@@ -13,3 +13,17 @@ Lunar leverages its type engine and PSI tree to provide real-time feedback and c
 | `INSP-07` | **Suspicious Concatenation** | **C** | **Future Work** | Warn about string concatenation inside loops. |
 | `INSP-08` | **Deprecated API Usage** | **C** | **Future Work** | Highlight usage of functions marked with `@deprecated`. |
 | `INSP-09` | **Language Level Compliance** | **M** | **Full** | Warn if using features not supported by the selected Lua version. |
+
+---
+
+## Detailed Implementation Status
+
+### INSP-01: Undeclared Variable
+- **Status**: **Partial** (Implemented for local scopes in `LuaLocalBindingsAnnotator`)
+
+### INSP-05: Global Creation Warning
+- **Status**: **Partial** (Implemented in `LuaGlobalBindingsAnnotator`)
+
+### INSP-09: Language Level Compliance
+- **Status**: **Implemented** (`LuaAttribNameAnnotator` checks for 5.4 attributes)
+

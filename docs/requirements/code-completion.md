@@ -12,3 +12,17 @@ Intelligent completion is the primary driver of productivity in the IDE.
 | `COMP-06` | **Postfix Templates** | **C** | **Future Work** | Trigger code transformations after a dot (e.g., `myVar.if` -> `if myVar then ... end`). |
 | `COMP-07` | **Live Templates** | **C** | **Future Work** | Standard IntelliJ snippets for common Lua patterns (loops, function headers). |
 | `COMP-08` | **Auto-complete Enhancement** | **S** | **Not Implemented** | Intelligent auto-completion for common patterns (e.g., table methods, function calls). |
+
+---
+
+## Detailed Implementation Status
+
+### COMP-01: Keyword Completion
+- **Status**: **Implemented** (`LuaCompletionContributor`)
+
+### COMP-02: Basic Symbol Completion
+- **Status**: **Implemented** (`LuaCompletionContributor` via `LuaBindingsVisitor`)
+
+### COMP-03: Cross-file Completion
+- **Status**: **Implemented** (`LuaCompletionContributor` via `LuaFileBindingsIndex`)
+

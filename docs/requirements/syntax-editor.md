@@ -20,3 +20,29 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 | [`SYNTAX-12`](spec/syntax/12-goto-scope.md) | **Label & Goto Scope Resolution** | **S** | **Full** | Flag unresolved `goto` statements and invalid scope jumps. |
 | [`SYNTAX-13`](spec/syntax/13-standalone-expression.md) | **Standalone Expression Annotator** | **M** | **Full** | Flag expressions incorrectly used as statements. |
 | [`SYNTAX-14`](spec/syntax/14-vararg-context.md) | **Vararg Context Annotator** | **M** | **Full** | Flag `...` used outside of vararg functions. |
+
+---
+
+## Detailed Implementation Status
+
+### SYNTAX-01: Lua 5.4 Support
+- **Status**: **Implemented** (`LuaAttribNameAnnotator`)
+
+### SYNTAX-02: Semantic Highlighting
+- **Status**: **Implemented** (`LuaLocalBindingsAnnotator`, `LuaGlobalBindingsAnnotator`)
+
+### SYNTAX-03: Code Folding
+- **Status**: **Implemented** (`LuaFoldingBuilder`)
+
+### SYNTAX-04: Brace Matching
+- **Status**: **Implemented** (`LuaPairedBraceMatcher`)
+
+### SYNTAX-06: Breadcrumbs
+- **Status**: **Implemented** (`LuaBreadcrumbsProvider`)
+
+### SYNTAX-10: Enter Handler for Comments
+- **Status**: **Implemented** (`LuaEnterHandlerDelegate`)
+
+### SYNTAX-12: Label & Goto Scope Resolution
+- **Status**: **Implemented** (`LuaGotoAnnotator`)
+

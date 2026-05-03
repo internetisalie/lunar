@@ -16,18 +16,35 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `RUN-03` | **Interactive Console (REPL)** | **S** | **Partial** | Provide a Lua REPL console within the IDE. |
 | `RUN-04` | **Run Configuration Validation** | **M** | **Full** | Validate run configurations before execution. |
 
-## Implementation Details
+---
 
-### DEBUG Module
-- **Line Breakpoints**: `LuaLineBreakpointHandler`, `LuaLineBreakpointType`.
-- **Stack & Variables**: `LuaRemoteStack`, `LuaStackFrame`, `LuaDebugVariable`.
-- **Flow Control**: `LuaDebuggerController`.
-- **Expression Evaluation**: `LuaDebuggerEvaluator` (two-pass parsing strategy).
-- **Remote Debugging**: `LuaDebugConnection` on port 8172.
+## Detailed Implementation Status
 
-### RUN Module
-- **Interpreter SDK**: `LuaInterpreter`, `LuaInterpreterFamily`.
-- **Run Configurations**: `LuaRunConfiguration`.
+### DEBUG-01: Line Breakpoints
+- **Status**: **Implemented** (`LuaLineBreakpointHandler`, `LuaLineBreakpointType`)
+
+### DEBUG-02: Stack Frames & Variables
+- **Status**: **Implemented** (`LuaRemoteStack`, `LuaStackFrame`, `LuaDebugVariable`)
+
+### DEBUG-03: Step Over/Into/Out
+- **Status**: **Implemented** (`LuaDebuggerController`)
+
+### DEBUG-04: Expression Evaluation
+- **Status**: **Implemented** (`LuaDebuggerEvaluator`)
+
+### DEBUG-05: Remote Debugging
+- **Status**: **Implemented** (`LuaDebugConnection` on port 8172)
+
+### RUN-01: Lua Interpreter SDK
+- **Status**: **Implemented** (`LuaInterpreter`, `LuaInterpreterFamily`)
+
+### RUN-02: Run Configurations
+- **Status**: **Implemented** (`LuaRunConfiguration`)
+
+### RUN-03: Interactive Console (REPL)
+- **Status**: **Partial** (Runs `lua -i` but lacks full IDE console integration)
+
+---
 
 ## Test Coverage
 - **`TestLuaDebugValue`**: Type checking (string, number, bool, table, error).
