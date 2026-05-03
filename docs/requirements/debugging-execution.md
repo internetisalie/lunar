@@ -2,69 +2,34 @@
 
 Lunar provides a seamless experience for running and debugging Lua applications directly from the IDE.
 
-## Requirements Summary
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `DEBUG-01` | **Line Breakpoints** | **M** | **Full** | Allow users to toggle breakpoints in the gutter and stop execution at specific lines. |
+| `DEBUG-02` | **Stack Frames & Variables** | **M** | **Full** | Display the call stack and local/upvalue variables when paused at a breakpoint. |
+| `DEBUG-03` | **Step Over/Into/Out** | **M** | **Full** | Standard execution flow control during a debug session. |
+| [`DEBUG-04`](spec/debug/04-expression-evaluation.md) | **Expression Evaluation** | **S** | **Full** | Allow users to evaluate arbitrary Lua expressions in the current context. |
+| `DEBUG-05` | **Remote Debugging** | **S** | **Full** | Support connecting to external Lua processes (e.g., via Mobdebug). |
+| `DEBUG-06` | **Debug Target Configuration** | **S** | **Full** | Validate debug configurations before launching. |
+| `DEBUG-07` | **Lazy Remote Stack Evaluation** | **S** | **Full** | Defer parsing of frame details until explicitly accessed. |
+| `RUN-01` | **Lua Interpreter SDK** | **M** | **Full** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
+| `RUN-02` | **Run Configurations** | **M** | **Full** | Create and save configurations for script execution. |
+| `RUN-03` | **Interactive Console (REPL)** | **S** | **Partial** | Provide a Lua REPL console within the IDE. |
+| `RUN-04` | **Run Configuration Validation** | **M** | **Full** | Validate run configurations before execution. |
 
-| ID | Requirement | Priority | Description |
-| :--- | :--- | :---: | :--- |
-| `DEBUG-01` | **Line Breakpoints** | **M** | Allow users to toggle breakpoints in the gutter and stop execution at specific lines. |
-| `DEBUG-02` | **Stack Frames & Variables** | **M** | Display the call stack and local/upvalue variables when paused at a breakpoint. |
-| `DEBUG-03` | **Step Over/Into/Out** | **M** | Standard execution flow control during a debug session. |
-| [`DEBUG-04`](spec/debug/04-expression-evaluation.md) | **Expression Evaluation** | **S** | Allow users to evaluate arbitrary Lua expressions in the current context via a "Watch" or "Evaluate" window. |
-| `DEBUG-05` | **Remote Debugging** | **S** | Support connecting to external Lua processes (e.g., via Mobdebug or a custom DAP bridge). |
-| `DEBUG-06` | **Debug Target Configuration** | **S** | Validate debug configurations (script path, working directory, interpreter) before launching. |
-| `DEBUG-07` | **Lazy Remote Stack Evaluation** | **S** | Defer parsing of frame details, locals, and upvalues until explicitly accessed to reduce overhead for large stacks. |
-| `RUN-01` | **Lua Interpreter SDK** | **M** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
-| `RUN-02` | **Run Configurations** | **M** | Create and save configurations for script execution, including arguments and environment variables. |
-| `RUN-03` | **Interactive Console (REPL)** | **S** | Provide a Lua REPL console within the IDE using the selected project SDK. |
-| `RUN-04` | **Run Configuration Validation** | **M** | Validate run configurations before execution (script name, interpreter path, working directory). |
-
-## Implementation Status
+## Implementation Details
 
 ### DEBUG Module
-
-| ID | Status | Implementation Details | Notes |
-| :--- | :--- | :--- | :--- |
-| `DEBUG-01` | ✅ Implemented | `LuaLineBreakpointHandler`, `LuaLineBreakpointType` | Handles gutter breakpoints and line breakpoint validation |
-| `DEBUG-02` | ✅ Implemented | `LuaRemoteStack`, `LuaStackFrame`, `LuaDebugVariable` | Parses Mobdebug response tables into stack frames and variables |
-| `DEBUG-03` | ✅ Implemented | `LuaDebuggerController` | Step Over/Into/Out commands fully supported |
-| `DEBUG-04` | ✅ Implemented | `LuaDebuggerEvaluator`, `LuaDebuggerController.execute` | Two-pass parsing recovers types from stringified remote responses; all types display correctly |
-| `DEBUG-05` | ✅ Implemented | `LuaDebugConnection`, `LuaDebugProcess` | Mobdebug connection listener on port 8172 |
-| `DEBUG-06` | ✅ Implemented | `LuaSuspendContext` | Validates debug configurations before launching |
-| `DEBUG-07` | ✅ Implemented | `LuaRemoteStackEntry` (lazy properties) | Frame, locals, upvalues accessed via property getters on demand |
+- **Line Breakpoints**: `LuaLineBreakpointHandler`, `LuaLineBreakpointType`.
+- **Stack & Variables**: `LuaRemoteStack`, `LuaStackFrame`, `LuaDebugVariable`.
+- **Flow Control**: `LuaDebuggerController`.
+- **Expression Evaluation**: `LuaDebuggerEvaluator` (two-pass parsing strategy).
+- **Remote Debugging**: `LuaDebugConnection` on port 8172.
 
 ### RUN Module
-
-| ID | Status | Implementation Details | Notes |
-| :--- | :--- | :--- | :--- |
-| `RUN-01` | ✅ Implemented | `LuaInterpreter`, `LuaInterpreterFamily`, `LuaApplicationSettings` | Full SDK configuration UI and management |
-| `RUN-02` | ✅ Implemented | `LuaRunConfiguration` | Script path, working dir, env vars, interpreter args supported |
-| `RUN-03` | 🟡 Partial | `LuaRunConfiguration` (interactive mode) | Runs `lua -v -i` but lacks deeper IDE console integration |
+- **Interpreter SDK**: `LuaInterpreter`, `LuaInterpreterFamily`.
+- **Run Configurations**: `LuaRunConfiguration`.
 
 ## Test Coverage
-
-Recent test additions in `src/test/kotlin/net/internetisalie/lunar/run/`:
-
-| Test Class | Coverage | Status |
-| :--- | :--- | :--- |
-| `TestLuaDebugValue` | Type checking (string, number, bool, table, error) | ✓ Passing |
-| `TestLuaDebugVariable` | Variable creation and operations | ✓ Passing |
-| `TestLuaValue` | Lua value parsing and table handling | ✓ Passing |
-| `TestLuaExecutionStack` | Remote stack management | ✓ Passing |
-| `TestLuaLineBreakpointType` | Breakpoint type validation | ✓ Passing |
-| `TestLuaLineBreakpointHandler` | Breakpoint handler creation | ✓ Passing |
-| `TestLuaStackFrame` | Stack frame structure | ✓ Passing |
-
-## Known Limitations & Next Steps
-
-### Expression Evaluation (`DEBUG-04`)
-- **Status:** ✅ Complete
-- **Implementation:** Two-pass parsing strategy recovers type information from remote debugger stringification
-- **Coverage:** All expression types (scalars, tables, functions) display with correct types
-
-### Interactive Console (`RUN-03`)
-- **Current:** Basic functionality runs Lua REPL but limited IDE integration
-- **Next:** Enhance with command history, code completion, and better formatting
-
-### Source Mapping
-- **Current:** `LuaPosition` maps debugger paths to local files
-- **Next:** Verify cross-platform path mapping in various environments
+- **`TestLuaDebugValue`**: Type checking (string, number, bool, table, error).
+- **`TestLuaExecutionStack`**: Remote stack management.
+- **`TestLuaStackFrame`**: Stack frame structure.

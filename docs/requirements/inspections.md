@@ -2,14 +2,14 @@
 
 Lunar leverages its type engine and PSI tree to provide real-time feedback and catch errors before execution.
 
-| ID | Requirement | Priority | Description |
-| :--- | :--- | :---: | :--- |
-| `INSP-01` | **Undeclared Variable** | **M** | Highlight variables that are used but never defined in the current or global scope. |
-| `INSP-02` | **Unused Local/Parameter** | **M** | Warn when a local variable or function parameter is defined but never read. |
-| `INSP-03` | **Type Mismatch** | **S** | (Requires `TYPE`) Warn when assigning a value to a variable with a conflicting LuaCATS `@type`. |
-| `INSP-04` | **Unreachable Code** | **S** | Detect code following a `return`, `break`, or infinite loop that can never be executed. |
-| `INSP-05` | **Global Creation Warning** | **S** | Warn when a variable is assigned without `local`, potentially polluting the global namespace. |
-| `INSP-06` | **Shadowing Check** | **S** | Warn when a local variable shadows another local in a parent scope. |
-| `INSP-07` | **Suspicious Concatenation** | **C** | Warn about string concatenation inside loops (performance diagnostic). |
-| `INSP-08` | **Deprecated API Usage** | **C** | Highlight usage of functions marked with the `@deprecated` LuaCATS tag. |
-| `INSP-09` | **Language Level Compliance** | **M** | Warn if using Lua 5.4 features (e.g., `<const>`) when the project is set to Lua 5.1. |
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `INSP-01` | **Undeclared Variable** | **M** | **Partial** | Highlight variables that are used but never defined. |
+| `INSP-02` | **Unused Local/Parameter** | **M** | **Partial** | Warn when a local variable or function parameter is defined but never read. |
+| `INSP-03` | **Type Mismatch** | **S** | **None** | Warn when assigning a value with a conflicting LuaCATS `@type`. |
+| `INSP-04` | **Unreachable Code** | **S** | **None** | Detect code following a `return` or `break` that can never be executed. |
+| `INSP-05` | **Global Creation Warning** | **S** | **Partial** | Warn when a variable is assigned without `local`. |
+| `INSP-06` | **Shadowing Check** | **S** | **None** | Warn when a local variable shadows another local in a parent scope. |
+| `INSP-07` | **Suspicious Concatenation** | **C** | **None** | Warn about string concatenation inside loops. |
+| `INSP-08` | **Deprecated API Usage** | **C** | **None** | Highlight usage of functions marked with `@deprecated`. |
+| `INSP-09` | **Language Level Compliance** | **M** | **Full** | Warn if using features not supported by the selected Lua version. |
