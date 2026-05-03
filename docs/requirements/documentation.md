@@ -10,4 +10,4 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 | [`DOC-04`](spec/documentation/04-documentation-generation.md) | **Documentation Generation** | **C** | **Partial** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
 | [`DOC-05`](spec/documentation/05-markdown-support.md) | **Markdown Support** | **S** | **Partial** | Support Markdown formatting within Lua comments for rich documentation rendering. |
 | [`DOC-06`](spec/documentation/06-documentation-indexing.md) | **Documentation Indexing** | **S** | **Partial** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. |
-| [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | **None** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+Shift+Space`). |
+| [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | **Future Work** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+Shift+Space`). |
