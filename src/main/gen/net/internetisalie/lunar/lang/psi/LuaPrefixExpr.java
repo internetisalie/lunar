@@ -8,9 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface LuaPrefixExpr extends LuaExpr {
 
   @NotNull
-  List<LuaNameAndArgs> getNameAndArgsList();
-
-  @NotNull
   LuaVarOrExp getVarOrExp();
 
 }

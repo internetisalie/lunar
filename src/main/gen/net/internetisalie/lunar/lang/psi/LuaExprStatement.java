@@ -5,9 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaFuncCallStatement extends LuaStatement {
+public interface LuaExprStatement extends LuaStatement {
 
   @NotNull
-  LuaFuncCall getFuncCall();
+  LuaExpr getExpr();
 
 }

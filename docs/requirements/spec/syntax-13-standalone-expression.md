@@ -27,8 +27,19 @@ x = x + 1 -- Assignment
 math.random() -- Function call
 ```
 
-## 3. Annotator Behavior
+## 3. Implementation Details
 
-1. **Flagging**: The parser or annotator must identify when an expression that is not a function call or an assignment appears at the statement level.
-2. **Error Message**: The element should be highlighted with a syntax error, such as: `Expression cannot be used as a statement`.
-3. **Context**: This must gracefully handle the ambiguity around function calls, particularly ensuring that valid calls enclosed in parentheses (if supported syntactically in the context) or chained calls are recognized as statements.
+The requirement is implemented via `LuaStandaloneExpressionAnnotator`.
+
+### 3.1. Annotator Logic
+1. The annotator targets `LuaExprStatement` PSI elements.
+2. If the expression within the statement is not a `LuaFuncCall`, it is flagged with an error.
+3. `LuaAssignmentStatement` is handled separately by the parser and is not considered a `LuaExprStatement`.
+
+### 3.2. Verification
+Verified via `TestStandaloneExpression`, which covers:
+- Valid assignments (no error)
+- Valid function calls (no error)
+- Invalid arithmetic expressions (error)
+- Invalid variable references (error)
+- Invalid parenthesized expressions (error)

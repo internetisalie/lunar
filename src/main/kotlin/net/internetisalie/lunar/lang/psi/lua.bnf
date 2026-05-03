@@ -97,7 +97,7 @@ private not_eof ::= !<<eof>>
 
 statement ::= emptyStatement
     | assignmentStatement
-    | funcCallStatement
+    | exprStatement
     | label
     | breakStatement
     | gotoStatement
@@ -114,7 +114,7 @@ statement ::= emptyStatement
 
 emptyStatement ::= ';'
 assignmentStatement ::= varList '=' exprList
-funcCallStatement ::= funcCall
+exprStatement ::= expr
 breakStatement ::= BREAK
 gotoStatement ::= GOTO labelRef
 doStatement ::= DO block END {
@@ -204,6 +204,7 @@ labelName ::= IDENTIFIER {
 
 expr ::= terminalExpr
     | funcDef
+    | funcCall
     | prefixExpr
     | tableConstructor
     | orBinOpExpr
@@ -241,8 +242,8 @@ var ::= nameRef varSuffix*
     | '(' expr ')' varSuffix+
 varSuffix ::= nameAndArgs* indexExpr
 
-prefixExpr ::= varOrExp nameAndArgs* {extends=expr}
-funcCall ::= varOrExp nameAndArgs+
+prefixExpr ::= varOrExp {extends=expr}
+funcCall ::= varOrExp nameAndArgs+ {extends=expr}
 varOrExp ::= var | '(' expr ')'
 nameAndArgs ::= methodExpr? args
 methodExpr ::= ':' nameRef

@@ -21,12 +21,12 @@ public interface LuaElementTypes {
   IElementType EMPTY_STATEMENT = new LuaElementType("EMPTY_STATEMENT");
   IElementType EXPR = new LuaElementType("EXPR");
   IElementType EXPR_LIST = new LuaElementType("EXPR_LIST");
+  IElementType EXPR_STATEMENT = new LuaElementType("EXPR_STATEMENT");
   IElementType FIELD = new LuaElementType("FIELD");
   IElementType FIELD_LIST = new LuaElementType("FIELD_LIST");
   IElementType FIELD_SEP = new LuaElementType("FIELD_SEP");
   IElementType FINAL_STATEMENT = new LuaElementType("FINAL_STATEMENT");
   IElementType FUNC_CALL = new LuaElementType("FUNC_CALL");
-  IElementType FUNC_CALL_STATEMENT = new LuaElementType("FUNC_CALL_STATEMENT");
   IElementType FUNC_DECL = new LuaElementType("FUNC_DECL");
   IElementType FUNC_DEF = new LuaElementType("FUNC_DEF");
   IElementType FUNC_NAME = new LuaElementType("FUNC_NAME");
@@ -161,6 +161,9 @@ public interface LuaElementTypes {
       else if (type == EXPR_LIST) {
         return new LuaExprListImpl(node);
       }
+      else if (type == EXPR_STATEMENT) {
+        return new LuaExprStatementImpl(node);
+      }
       else if (type == FIELD) {
         return new LuaFieldImpl(node);
       }
@@ -175,9 +178,6 @@ public interface LuaElementTypes {
       }
       else if (type == FUNC_CALL) {
         return new LuaFuncCallImpl(node);
-      }
-      else if (type == FUNC_CALL_STATEMENT) {
-        return new LuaFuncCallStatementImpl(node);
       }
       else if (type == FUNC_DECL) {
         return new LuaFuncDeclImpl(node);

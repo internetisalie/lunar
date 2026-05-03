@@ -29,12 +29,6 @@ public class LuaPrefixExprImpl extends LuaExprImpl implements LuaPrefixExpr {
 
   @Override
   @NotNull
-  public List<LuaNameAndArgs> getNameAndArgsList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaNameAndArgs.class);
-  }
-
-  @Override
-  @NotNull
   public LuaVarOrExp getVarOrExp() {
     return findNotNullChildByClass(LuaVarOrExp.class);
   }

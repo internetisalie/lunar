@@ -161,7 +161,7 @@ object LuaSyntax {
         LuaElementTypes.DO_STATEMENT,
         LuaElementTypes.EMPTY_STATEMENT,
         LuaElementTypes.FINAL_STATEMENT,
-        LuaElementTypes.FUNC_CALL_STATEMENT,
+        LuaElementTypes.EXPR_STATEMENT,
         LuaElementTypes.FUNC_DECL,
         LuaElementTypes.GENERIC_FOR_STATEMENT,
         LuaElementTypes.GOTO_STATEMENT,

@@ -36,10 +36,10 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   public static final TokenSet[] EXTENDS_SETS_ = new TokenSet[] {
-    create_token_set_(BIN_OP_EXPR, EXPR, FUNC_DEF, PREFIX_EXPR,
-      TABLE_CONSTRUCTOR, TERMINAL_EXPR, UN_OP_EXPR),
+    create_token_set_(BIN_OP_EXPR, EXPR, FUNC_CALL, FUNC_DEF,
+      PREFIX_EXPR, TABLE_CONSTRUCTOR, TERMINAL_EXPR, UN_OP_EXPR),
     create_token_set_(ASSIGNMENT_STATEMENT, BREAK_STATEMENT, DO_STATEMENT, EMPTY_STATEMENT,
-      FINAL_STATEMENT, FUNC_CALL_STATEMENT, FUNC_DECL, GENERIC_FOR_STATEMENT,
+      EXPR_STATEMENT, FINAL_STATEMENT, FUNC_DECL, GENERIC_FOR_STATEMENT,
       GOTO_STATEMENT, IF_STATEMENT, LABEL, LOCAL_FUNC_DECL,
       LOCAL_VAR_DECL, NUMERIC_FOR_STATEMENT, REPEAT_STATEMENT, STATEMENT,
       WHILE_STATEMENT),
@@ -349,6 +349,17 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // expr
+  public static boolean exprStatement(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "exprStatement")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, EXPR_STATEMENT, "<expr statement>");
+    r = expr(b, l + 1, -1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
   // '[' expr ']' '=' expr | IDENTIFIER '=' expr | expr
   public static boolean field(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "field")) return false;
@@ -489,46 +500,6 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "funcBody_1")) return false;
     parList(b, l + 1);
     return true;
-  }
-
-  /* ********************************************************** */
-  // varOrExp nameAndArgs+
-  public static boolean funcCall(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "funcCall")) return false;
-    if (!nextTokenIs(b, "<func call>", IDENTIFIER, LPAREN)) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, FUNC_CALL, "<func call>");
-    r = varOrExp(b, l + 1);
-    r = r && funcCall_1(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
-    return r;
-  }
-
-  // nameAndArgs+
-  private static boolean funcCall_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "funcCall_1")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = nameAndArgs(b, l + 1);
-    while (r) {
-      int c = current_position_(b);
-      if (!nameAndArgs(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "funcCall_1", c)) break;
-    }
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  /* ********************************************************** */
-  // funcCall
-  public static boolean funcCallStatement(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "funcCallStatement")) return false;
-    if (!nextTokenIs(b, "<func call statement>", IDENTIFIER, LPAREN)) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, FUNC_CALL_STATEMENT, "<func call statement>");
-    r = funcCall(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
-    return r;
   }
 
   /* ********************************************************** */
@@ -1002,7 +973,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
   /* ********************************************************** */
   // emptyStatement
   //     | assignmentStatement
-  //     | funcCallStatement
+  //     | exprStatement
   //     | label
   //     | breakStatement
   //     | gotoStatement
@@ -1021,7 +992,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _COLLAPSE_, STATEMENT, "<statement>");
     r = emptyStatement(b, l + 1);
     if (!r) r = assignmentStatement(b, l + 1);
-    if (!r) r = funcCallStatement(b, l + 1);
+    if (!r) r = exprStatement(b, l + 1);
     if (!r) r = label(b, l + 1);
     if (!r) r = breakStatement(b, l + 1);
     if (!r) r = gotoStatement(b, l + 1);
@@ -1220,20 +1191,21 @@ public class LuaParser implements PsiParser, LightPsiParser {
   // Operator priority table:
   // 0: ATOM(terminalExpr)
   // 1: ATOM(funcDef)
-  // 2: ATOM(prefixExpr)
-  // 3: ATOM(tableConstructor)
-  // 4: BINARY(orBinOpExpr)
-  // 5: BINARY(andBinOpExpr)
-  // 6: BINARY(relBinOpExpr)
-  // 7: BINARY(borBinOpExpr)
-  // 8: BINARY(bnotBinOpExpr)
-  // 9: BINARY(bandBinOpExpr)
-  // 10: BINARY(bshiftBinOpExpr)
-  // 11: BINARY(concatBinOpExpr)
-  // 12: BINARY(addBinOpExpr)
-  // 13: BINARY(mulBinOpExpr)
-  // 14: PREFIX(unOpExpr)
-  // 15: BINARY(expBinOpExpr)
+  // 2: ATOM(funcCall)
+  // 3: ATOM(prefixExpr)
+  // 4: ATOM(tableConstructor)
+  // 5: BINARY(orBinOpExpr)
+  // 6: BINARY(andBinOpExpr)
+  // 7: BINARY(relBinOpExpr)
+  // 8: BINARY(borBinOpExpr)
+  // 9: BINARY(bnotBinOpExpr)
+  // 10: BINARY(bandBinOpExpr)
+  // 11: BINARY(bshiftBinOpExpr)
+  // 12: BINARY(concatBinOpExpr)
+  // 13: BINARY(addBinOpExpr)
+  // 14: BINARY(mulBinOpExpr)
+  // 15: PREFIX(unOpExpr)
+  // 16: BINARY(expBinOpExpr)
   public static boolean expr(PsiBuilder b, int l, int g) {
     if (!recursion_guard_(b, l, "expr")) return false;
     addVariant(b, "<expr>");
@@ -1241,6 +1213,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, "<expr>");
     r = terminalExpr(b, l + 1);
     if (!r) r = funcDef(b, l + 1);
+    if (!r) r = funcCall(b, l + 1);
     if (!r) r = prefixExpr(b, l + 1);
     if (!r) r = tableConstructor(b, l + 1);
     if (!r) r = unOpExpr(b, l + 1);
@@ -1255,48 +1228,48 @@ public class LuaParser implements PsiParser, LightPsiParser {
     boolean r = true;
     while (true) {
       Marker m = enter_section_(b, l, _LEFT_, null);
-      if (g < 4 && binOps(b, l + 1, OR_parser_)) {
-        r = expr(b, l, 4);
-        exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
-      }
-      else if (g < 5 && binOps(b, l + 1, AND_parser_)) {
+      if (g < 5 && binOps(b, l + 1, OR_parser_)) {
         r = expr(b, l, 5);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 6 && binOps(b, l + 1, LuaParser::relBinOpExpr_0_0)) {
+      else if (g < 6 && binOps(b, l + 1, AND_parser_)) {
         r = expr(b, l, 6);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 7 && binOps(b, l + 1, PIPE_parser_)) {
+      else if (g < 7 && binOps(b, l + 1, LuaParser::relBinOpExpr_0_0)) {
         r = expr(b, l, 7);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 8 && binOps(b, l + 1, NEG_parser_)) {
+      else if (g < 8 && binOps(b, l + 1, PIPE_parser_)) {
         r = expr(b, l, 8);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 9 && binOps(b, l + 1, AMP_parser_)) {
+      else if (g < 9 && binOps(b, l + 1, NEG_parser_)) {
         r = expr(b, l, 9);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 10 && binOps(b, l + 1, LuaParser::bshiftBinOpExpr_0_0)) {
+      else if (g < 10 && binOps(b, l + 1, AMP_parser_)) {
         r = expr(b, l, 10);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 11 && binOps(b, l + 1, CONCAT_parser_)) {
-        r = expr(b, l, 10);
+      else if (g < 11 && binOps(b, l + 1, LuaParser::bshiftBinOpExpr_0_0)) {
+        r = expr(b, l, 11);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 12 && binOps(b, l + 1, LuaParser::addBinOpExpr_0_0)) {
-        r = expr(b, l, 12);
+      else if (g < 12 && binOps(b, l + 1, CONCAT_parser_)) {
+        r = expr(b, l, 11);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 13 && binOps(b, l + 1, LuaParser::mulBinOpExpr_0_0)) {
+      else if (g < 13 && binOps(b, l + 1, LuaParser::addBinOpExpr_0_0)) {
         r = expr(b, l, 13);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
-      else if (g < 15 && binOps(b, l + 1, EXP_parser_)) {
+      else if (g < 14 && binOps(b, l + 1, LuaParser::mulBinOpExpr_0_0)) {
         r = expr(b, l, 14);
+        exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
+      }
+      else if (g < 16 && binOps(b, l + 1, EXP_parser_)) {
+        r = expr(b, l, 15);
         exit_section_(b, l, m, BIN_OP_EXPR, r, true, null);
       }
       else {
@@ -1334,27 +1307,42 @@ public class LuaParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // varOrExp nameAndArgs*
+  // varOrExp nameAndArgs+
+  public static boolean funcCall(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "funcCall")) return false;
+    if (!nextTokenIsSmart(b, IDENTIFIER, LPAREN)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, FUNC_CALL, "<func call>");
+    r = varOrExp(b, l + 1);
+    r = r && funcCall_1(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // nameAndArgs+
+  private static boolean funcCall_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "funcCall_1")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = nameAndArgs(b, l + 1);
+    while (r) {
+      int c = current_position_(b);
+      if (!nameAndArgs(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "funcCall_1", c)) break;
+    }
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // varOrExp
   public static boolean prefixExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "prefixExpr")) return false;
     if (!nextTokenIsSmart(b, IDENTIFIER, LPAREN)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, PREFIX_EXPR, "<prefix expr>");
     r = varOrExp(b, l + 1);
-    r = r && prefixExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
-  }
-
-  // nameAndArgs*
-  private static boolean prefixExpr_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "prefixExpr_1")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!nameAndArgs(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "prefixExpr_1", c)) break;
-    }
-    return true;
   }
 
   // '{' [fieldList] '}'
@@ -1425,7 +1413,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, null);
     r = unOp(b, l + 1);
     p = r;
-    r = p && expr(b, l, 14);
+    r = p && expr(b, l, 15);
     exit_section_(b, l, m, UN_OP_EXPR, r, p, null);
     return r || p;
   }
