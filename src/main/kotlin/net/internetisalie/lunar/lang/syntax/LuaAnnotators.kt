@@ -207,7 +207,7 @@ class LuaLocalBindingsAnnotator : Annotator {
         if (reference.global) return // Only annotate local references
 
         if (!reference.defined) {
-            if (reference.name.size == 1) {
+            if (reference.name.size == 1 && reference.kind != Kind.Label) {
                 LuaBindingsAnnotator.undefinedReference(holder, target, reference, referenceSource)
             }
             return
@@ -215,10 +215,16 @@ class LuaLocalBindingsAnnotator : Annotator {
 
         val binding = reference.binding!!
 
+        if (binding.kind == Kind.Label && binding.shadowed) {
+            holder.newAnnotation(HighlightSeverity.ERROR, "Duplicate label '${referenceSource.text}'")
+                .range(target)
+                .create()
+        }
+
         val highlight = when {
             binding.global && binding.kind == Kind.Function -> LuaHighlight.CALL_GLOBAL
             binding.global -> LuaHighlight.VAR_GLOBAL
-            binding.shadowed -> LuaHighlight.VAR_SHADOWED
+            binding.shadowed && binding.kind != Kind.Label -> LuaHighlight.VAR_SHADOWED
             binding.kind == Kind.Label -> LuaHighlight.LABEL
             binding.kind == Kind.Function -> LuaHighlight.CALL_LOCAL
             binding.param -> LuaHighlight.PARAMETER
@@ -236,6 +242,56 @@ class LuaLocalBindingsAnnotator : Annotator {
                 holder.newAnnotation(HighlightSeverity.ERROR, "Cannot assign to a constant variable: ${target.text}")
                     .range(target)
                     .create()
+            }
+        }
+    }
+}
+
+class LuaGotoAnnotator : Annotator {
+    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
+        if (element !is LuaGotoStatement) return
+        val labelRef = element.labelRef
+        val identifier = labelRef.identifier
+        val reference = LuaBindingsVisitor.getBindings(identifier).lookup(identifier) ?: return
+
+        if (!reference.defined) {
+            holder.newAnnotation(HighlightSeverity.ERROR, "Unresolved label '${identifier.text}'")
+                .range(identifier)
+                .create()
+            return
+        }
+
+        val binding = reference.binding!!
+        val labelElement = binding.element.parent.parent // LuaLabelName -> LuaLabel
+        if (labelElement !is LuaLabel) return
+
+        // Check for jumping into scope of local variables
+        // A jump forward in the same block is not allowed if it jumps over a declaration of a local variable.
+        if (labelElement.textOffset > element.textOffset) {
+            // Forward jump
+            val commonBlock = PsiTreeUtil.findCommonParent(element, labelElement)
+            if (commonBlock is LuaBlock) {
+                var current = element.nextSibling
+                while (current != null && current != labelElement) {
+                    if (current is LuaLocalVarDecl || current is LuaLocalFuncDecl) {
+                        holder.newAnnotation(HighlightSeverity.ERROR, "Cannot jump into the scope of local variable")
+                            .range(identifier)
+                            .create()
+                        break
+                    }
+                    current = current.nextSibling
+                }
+            } else {
+                // Label is in a nested block? (should have been unresolved if scoping is correct)
+                // Actually, if resolution succeeded, it means the label IS visible.
+                // If it's visible but in a nested block, it MUST be a jump into scope.
+                val labelBlock = PsiTreeUtil.getParentOfType(labelElement, LuaBlock::class.java)
+                val gotoBlock = PsiTreeUtil.getParentOfType(element, LuaBlock::class.java)
+                if (labelBlock != null && gotoBlock != null && labelBlock != gotoBlock && PsiTreeUtil.isAncestor(gotoBlock, labelBlock, true)) {
+                    holder.newAnnotation(HighlightSeverity.ERROR, "Cannot jump into the scope of local variable")
+                        .range(identifier)
+                        .create()
+                }
             }
         }
     }

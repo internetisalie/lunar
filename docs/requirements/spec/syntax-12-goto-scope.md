@@ -46,3 +46,13 @@ end
 1. **Unresolved Label**: If a `goto name` has no corresponding `::name::` in a visible scope, flag it as an error: `Unresolved label 'name'`.
 2. **Invalid Scope Jump**: If a `goto` statement jumps over a local variable declaration into its scope, flag it as an error: `Cannot jump into the scope of local variable`.
 3. **Duplicate Labels**: If a block defines the same label name more than once, flag the subsequent definitions as an error: `Duplicate label 'name'`.
+
+## 5. Requirements & Implementation Status
+
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `SYNTAX-12-01` | **Unresolved Label Detection** | **M** | Implemented | Flag `goto` statements that refer to non-existent labels. |
+| `SYNTAX-12-02` | **Invalid Scope Jump Detection** | **M** | Implemented | Flag `goto` statements that jump forward over local declarations. |
+| `SYNTAX-12-03` | **Duplicate Label Detection** | **M** | Implemented | Flag duplicate label definitions in the same block. |
+| `SYNTAX-12-04` | **Function Boundary Isolation** | **S** | Implemented | Labels are not visible across function boundaries. |
+| `SYNTAX-12-05` | **Label Shadowing** | **S** | Implemented | Labels in nested blocks correctly shadow labels in outer blocks. |

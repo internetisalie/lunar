@@ -79,7 +79,9 @@
     <annotator
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaGlobalBindingsAnnotator"/>
-
+    <annotator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaGotoAnnotator"/>
     <annotator
             language="Lua"
             implementationClass="net.internetisalie.lunar.luacats.lang.syntax.LuaCatsAnnotator"/>

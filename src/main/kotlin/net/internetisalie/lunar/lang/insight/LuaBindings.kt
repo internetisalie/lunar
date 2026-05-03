@@ -31,7 +31,7 @@ data class Binding(
     var param: Boolean = false
 }
 
-data class DelayedBinding(val offset: Int, val name: String)
+data class DelayedBinding(val offset: Int, val name: String, val scope: Scope)
 
 data class DottedElements(val parts: List<PsiElement>) {
     fun split(): Pair<DottedElements?, PsiElement> {
@@ -268,7 +268,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
     private val delayed = mutableSetOf<DelayedBinding>()
     private val global = Scope(null) // non-local variables
     private var file = Scope(global) // local variables at file scope
-    private val labels = Scope(null) // labels
+    private var labelScope = Scope(null) // labels
     private val requires = mutableListOf<String>()
     private var scope = file
 
@@ -281,6 +281,23 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
         scope = Scope(parentScope)
         fn()
         scope = parentScope
+    }
+
+    private fun inEnclosedLabelScope(fn: () -> Unit) {
+        val parentLabelScope = labelScope
+        labelScope = Scope(parentLabelScope)
+        fn()
+        labelScope = parentLabelScope
+    }
+
+    private fun inFunctionScope(fn: () -> Unit) {
+        val parentScope = scope
+        val parentLabelScope = labelScope
+        scope = Scope(parentScope)
+        labelScope = Scope(null)
+        fn()
+        scope = parentScope
+        labelScope = parentLabelScope
     }
 
     private fun newOrExistingName(target: Scope, name: String, binding: Binding): Binding {
@@ -308,7 +325,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
     }
 
     override fun visitLocalFuncDecl(o: LuaLocalFuncDecl) {
-        inEnclosedScope {
+        inFunctionScope {
             super.visitLocalFuncDecl(o)
         }
         val identifier = o.nameRef.identifier
@@ -376,7 +393,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
     }
 
     override fun visitFuncDecl(o: LuaFuncDecl) {
-        inEnclosedScope {
+        inFunctionScope {
             if (o.funcName.funcNameMethod != null) {
                 val identifier = o.funcName.funcNameMethod!!.nameRef.identifier
                 scope.declarations["self"] = Binding(identifier, Kind.Variable)
@@ -386,6 +403,12 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
 
             val elements = getFuncNameElements(o.funcName)
             visitFuncNameElements(elements)
+        }
+    }
+
+    override fun visitFuncDef(o: LuaFuncDef) {
+        inFunctionScope {
+            super.visitFuncDef(o)
         }
     }
 
@@ -487,43 +510,57 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
     override fun visitLabel(o: LuaLabel) {
         val identifier = o.labelName.identifier
         val binding = Binding(identifier, Kind.Label)
-        labels.declarations[identifier.text] = binding
+
+        // Detect duplicate labels in the same block
+        if (labelScope.declarations.containsKey(identifier.text)) {
+            binding.shadowed = true // Mark as "shadowed" to indicate duplicate in same scope
+        }
+
+        labelScope.declarations[identifier.text] = binding
         references[identifier.textOffset] = Reference(binding)
         super.visitLabel(o)
     }
 
     override fun visitLabelRef(o: LuaLabelRef) {
         val identifier = o.identifier
-        delayed.add(DelayedBinding(identifier.textOffset, identifier.text))
+        delayed.add(DelayedBinding(identifier.textOffset, identifier.text, labelScope))
     }
 
     override fun visitGenericForStatement(o: LuaGenericForStatement) {
         inEnclosedScope {
-            o.nameList.nameRefList.forEach {
-                val identifier = it.identifier
-                scope.declarations[identifier.text] = scope.createBinding(identifier, Kind.Variable)
+            inEnclosedLabelScope {
+                o.nameList.nameRefList.forEach {
+                    val identifier = it.identifier
+                    scope.declarations[identifier.text] = scope.createBinding(identifier, Kind.Variable)
+                }
+                super.visitGenericForStatement(o)
             }
-            super.visitGenericForStatement(o)
         }
     }
 
     override fun visitNumericForStatement(o: LuaNumericForStatement) {
         inEnclosedScope {
-            val identifier = o.identifier
-            scope.declarations[identifier.text] = scope.createBinding(identifier, Kind.Variable)
-            super.visitNumericForStatement(o)
+            inEnclosedLabelScope {
+                val identifier = o.identifier
+                scope.declarations[identifier.text] = scope.createBinding(identifier, Kind.Variable)
+                super.visitNumericForStatement(o)
+            }
         }
     }
 
     override fun visitDoStatement(o: LuaDoStatement) {
         inEnclosedScope {
-            super.visitDoStatement(o)
+            inEnclosedLabelScope {
+                super.visitDoStatement(o)
+            }
         }
     }
 
     override fun visitRepeatStatement(o: LuaRepeatStatement) {
         inEnclosedScope {
-            super.visitRepeatStatement(o)
+            inEnclosedLabelScope {
+                super.visitRepeatStatement(o)
+            }
         }
     }
 
@@ -533,7 +570,9 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
         }
         o.getBlockList().forEach {
             inEnclosedScope {
-                super.visitBlock(it)
+                inEnclosedLabelScope {
+                    super.visitBlock(it)
+                }
             }
         }
     }
@@ -567,7 +606,7 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
 
     fun resolveDelayedReferences() {
         delayed.forEach { delayedReference ->
-            val labelReference = labels.lookupReference(delayedReference.name)
+            val labelReference = delayedReference.scope.lookupReference(delayedReference.name)
             if (!labelReference.defined) {
                 labelReference.kind = Kind.Label
                 labelReference.name = listOf(delayedReference.name)

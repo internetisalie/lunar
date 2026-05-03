@@ -45,6 +45,7 @@ Ensure the feature is robust and maintainable.
 
 ### 5. Final Documentation
 - **Task**: Update all requirement documents to reflect the final `Implemented` status.
+- **Examples**: Add an example in the `examples` folder of the test project demonstrating the new feature, if possible.
 - **TODOs**: If any items were deferred (e.g., marked as `Future`), ensure they are captured in the project's primary `GEMINI.md` or a global TODO list.
 
 ## Guidelines
