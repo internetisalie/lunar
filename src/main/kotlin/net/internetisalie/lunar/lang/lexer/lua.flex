@@ -109,6 +109,7 @@ luacats     =   ---[^\r\n]*{nl}([ \t]*--({nobrknl}{nonl}*{nl}|{nonl}{nl}|{nl}))*
 "+"          { return PLUS;}
 "*"          { return MULT;}
 "%"          { return MOD;}
+"//"         { return INTDIV; }
 "/"          { return DIV; }
 "<<"         { return BSL; }
 ">>"         { return BSR; }
@@ -127,7 +128,9 @@ luacats     =   ---[^\r\n]*{nl}([ \t]*--({nobrknl}{nonl}*{nl}|{nonl}{nl}|{nl}))*
 ":"          { return COLON; }
 "."          { return DOT;}
 "^"          { return EXP;}
-
+"&"          { return AMP; }
+"|"          { return PIPE; }
+"~"          { return NEG; }
 
 
 <XSTRINGQ>

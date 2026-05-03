@@ -15,7 +15,7 @@ class LuaBraceMatchingTest : BaseDocumentTest() {
             runReadAction {
                 myFixture.configureByText("test.lua", "(<caret>)")
                 val file = myFixture.file
-                val matcher = BraceMatchingUtil.getBraceMatcher(file.fileType, file.viewProvider.baseLanguage)
+                val matcher = BraceMatchingUtil.getBraceMatcher(file.fileType, file.language)
                 Assertions.assertNotNull(matcher)
             }
         }
