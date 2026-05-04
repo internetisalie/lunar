@@ -763,31 +763,30 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'fun' NAME '(' functionSignatureArguments? ')' functionSignatureReturnType?
+  // 'fun' '(' functionSignatureArguments? ')' functionSignatureReturnType?
   public static boolean functionSignatureType(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "functionSignatureType")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, FUNCTION_SIGNATURE_TYPE, "<function signature type>");
     r = consumeToken(b, "fun");
-    r = r && consumeToken(b, NAME);
     r = r && consumeToken(b, "(");
-    r = r && functionSignatureType_3(b, l + 1);
+    r = r && functionSignatureType_2(b, l + 1);
     r = r && consumeToken(b, ")");
-    r = r && functionSignatureType_5(b, l + 1);
+    r = r && functionSignatureType_4(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
 
   // functionSignatureArguments?
-  private static boolean functionSignatureType_3(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "functionSignatureType_3")) return false;
+  private static boolean functionSignatureType_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "functionSignatureType_2")) return false;
     functionSignatureArguments(b, l + 1);
     return true;
   }
 
   // functionSignatureReturnType?
-  private static boolean functionSignatureType_5(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "functionSignatureType_5")) return false;
+  private static boolean functionSignatureType_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "functionSignatureType_4")) return false;
     functionSignatureReturnType(b, l + 1);
     return true;
   }

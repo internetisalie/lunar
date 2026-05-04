@@ -9,14 +9,20 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 | [`DOC-03`](spec/documentation/03-external-url-links.md) | **External URL Links** | **S** | **Partial** | Support linking to external documentation (e.g., standard Lua docs) within the Quick Doc popup. |
 | [`DOC-04`](spec/documentation/04-documentation-generation.md) | **Documentation Generation** | **C** | **Partial** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
 | [`DOC-05`](spec/documentation/05-markdown-support.md) | **Markdown Support** | **S** | **Partial** | Support Markdown formatting within Lua comments for rich documentation rendering. |
-| [`DOC-06`](spec/documentation/06-documentation-indexing.md) | **Documentation Indexing** | **S** | **Partial** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. |
+| [`DOC-06`](spec/documentation/06-documentation-indexing.md) | **Documentation Indexing** | **S** | **Partial** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. Class, alias, and function names are now stub-indexed with LuaCATS metadata. |
 | [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | **Not Implemented** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+Shift+Space`). |
+| [`DOC-08`](spec/documentation/08-luacats-annotation-parsing.md) | **Comprehensive LuaCATS Parsing** | **M** | **Not Implemented** | Exhaustive support for all LuaCATS tags (overloads, generics, operators, multi-line enums) and the full type system. |
 
 ---
 
 ## Detailed Implementation Status
+...
+### DOC-08: Comprehensive LuaCATS Parsing
+- `DOC-08-01` **Full Tag Support**: **Not Implemented** (Missing specialized tags like `@operator`, `@async`, `@cast`, etc.)
+- `DOC-08-02` **Complex Type System**: **Partial** (Unions and arrays implemented; missing specialized generics and recursive types)
+- `DOC-08-03` **Multi-line Enum/Alias Support**: **Not Implemented**
+- `DOC-08-04` **Exhaustive Parser Validation**: **Not Implemented** (Currently lacks a dedicated parser test suite)
 
-### DOC-01: Quick Documentation (Ctrl+Q)
 - `DOC-01-01` **Popup Trigger**: **Implemented** (`LuaDocumentationTargetProvider`)
 - `DOC-01-02` **Rich Text Rendering**: **Implemented** (`LuaDocumentationRenderer` with Markdown)
 - `DOC-01-03` **Symbol Resolution**: **Implemented** (`LuaDocumentationTargetProvider.resolveDocumentationTarget`)
@@ -53,11 +59,11 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 - `DOC-05-04` **Paragraph Handling**: **Implemented**
 
 ### DOC-06: Documentation Indexing
-- `DOC-06-01` **Stub Indexing**: **Not Implemented** (LuaCATS elements lack stubs)
-- `DOC-06-02` **Type Map Construction**: **Not Implemented**
-- `DOC-06-03` **Incremental Updates**: **N/A**
+- `DOC-06-01` **Stub Indexing**: **Full** (Indexed `@class`/`@alias` names from `LuaLocalVarStub`, and global/local functions with LuaCATS metadata via `LuaFuncStub` and `LuaLocalFuncStub`)
+- `DOC-06-02` **Type Map Construction**: **Full** ([Design](spec/documentation/06-type-map-construction-design.md) - Object-oriented type system with dynamic stub materialization, class merging, and inheritance; `TypeParser` fully implemented including function signatures)
+- `DOC-06-03` **Incremental Updates**: **N/A** (IntelliJ stub infrastructure handles this automatically)
 - `DOC-06-04` **Full-Text Search**: **Not Implemented**
-- `DOC-06-05` **Cross-File Resolution**: **Implemented** (Via `LuaFileBindingsIndex` for general bindings)
+- `DOC-06-05` **Cross-File Resolution**: **Partial** (Via `LuaFileBindingsIndex` for general bindings; class, alias, and function stubs now queryable cross-file with metadata)
 
 ### DOC-07: Parameter Info
 - `DOC-07-01` **Popup Trigger**: **Not Implemented**

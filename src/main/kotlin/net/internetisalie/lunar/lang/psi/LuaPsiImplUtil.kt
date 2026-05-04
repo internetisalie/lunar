@@ -10,60 +10,37 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 object LuaPsiImplUtil {
     @JvmStatic
     fun getCatsComment(owner: LuaCatsCommentOwner?): LuaCatsComment? {
-        when (owner) {
-            is LuaFuncDecl, is LuaLocalFuncDecl -> {
-                val statementElement = owner.parent ?: return null
-                val lazyElement : LuaCatsComment = statementElement.prevSiblingSkipWhitespace() ?: return null
-                return lazyElement.firstChild as? LuaCatsComment
+        if (owner !is PsiElement) return null
+        
+        var current: PsiElement? = owner
+        while (current != null && current !is LuaFile) {
+            var prev = current.prevSibling
+            while (prev != null && (prev is PsiWhiteSpace || (prev is PsiComment && prev !is LuaCatsComment))) {
+                prev = prev.prevSibling
             }
+            
+            if (prev is LuaCatsComment) return prev
+            
+            // Also try finding by element type name as a fallback in tests
+            if (prev != null && prev.node.elementType.toString().contains("COMMENT")) {
+                if (prev is LuaCatsComment) return prev
+                // If it's a LuaCatsComment but the 'is' check failed? (ClassLoader issue)
+                val first = prev.firstChild
+                if (first is LuaCatsComment) return first
+            }
+            
+            current = current.parent
         }
-
+        
         return null
     }
 
 
     @JvmStatic
     fun getComment(owner: LuaCommentOwner?): PsiComment? {
-        when (owner) {
-            is LuaLocalFuncDecl, is LuaFuncDecl -> {
-                return owner.parent?.prevSiblingSkipWhitespace()
-            }
-        }
-
-        return null
+        if (owner !is PsiElement) return null
+        return owner.prevSiblingSkipWhitespace()
     }
-
-    //    @Nullable
-    //    public static LuaDocCommentOwner findDocOwner(LuaDocPsiElement docElement) {
-    //        PsiElement element = docElement;
-    //        while (element != null && element.getParent() instanceof LuaDocPsiElement) element = element.getParent();
-    //        if (element == null) return null;
-    //
-    //        while (true) {
-    //            element = element.getNextSibling();
-    //            if (element instanceof LuaBlock)
-    //                element = element.getFirstChild();
-    //            if (element == null) return null;
-    //            final ASTNode node = element.getNode();
-    //            if (node == null) return null;
-    //            if (LuaElementTypes.LUADOC_COMMENT.equals(node.getElementType()) ||
-    //                    !LuaElementTypes.WHITE_SPACES_OR_COMMENTS.contains(node.getElementType())) {
-    //                break;
-    //            }
-    //        }
-    //
-    //        if (element instanceof LuaDocCommentOwner) return (LuaDocCommentOwner) element;
-    //
-    //        if (element instanceof LuaMaybeDeclarationAssignmentStatement) {
-    //            LuaExpression[] expressions = ((LuaMaybeDeclarationAssignmentStatement) element).getDefinedSymbolValues();
-    //
-    //            for (LuaExpression e : expressions)
-    //                if (e instanceof LuaDocCommentOwner) return (LuaDocCommentOwner) e;
-    //        }
-    //
-    //
-    //        return null;
-    //    }
 
     @JvmStatic
     fun getBlockList(element : PsiElement) : List<LuaBlock> {
@@ -73,16 +50,8 @@ object LuaPsiImplUtil {
 
 inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipWhitespace(): T? {
     var prev = prevSibling
-    while (prev is PsiWhiteSpace) {
+    while (prev is PsiWhiteSpace || (prev is PsiComment && prev !is LuaCatsComment)) {
         prev = prev.prevSibling
-    }
-    if (prev == null) {
-        if (parent is LuaBlock) {
-            prev = parent.prevSibling
-            while (prev is PsiWhiteSpace) {
-                prev = prev.prevSibling
-            }
-        }
     }
     return prev as? T
 }
@@ -103,6 +72,7 @@ fun PsiElement.firstChildSkipWhitespace(): PsiElement? {
     var child = firstChild
     while (child != null) {
         if (child !is PsiWhiteSpace) { return child }
+        child = child.nextSibling
     }
     return null
 }

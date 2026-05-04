@@ -150,6 +150,10 @@
     <applicationService
             serviceImplementation="net.internetisalie.lunar.settings.LuaApplicationSettings" />
 
+    <projectService
+            serviceInterface="net.internetisalie.lunar.lang.psi.types.LuaTypeManager"
+            serviceImplementation="net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl" />
+
     <applicationConfigurable
             parentId="language"
             instance="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
@@ -179,6 +183,9 @@
 
     <!-- Indexes -->
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaFileBindingsIndex"/>
+    <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex"/>
+    <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaClassNameIndex"/>
+    <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaAliasIndex"/>
 
     <!-- Notifications -->
     <notificationGroup id="notification.group.lunar.debugger"

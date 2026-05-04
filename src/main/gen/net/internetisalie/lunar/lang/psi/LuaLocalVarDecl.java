@@ -7,7 +7,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 
-public interface LuaLocalVarDecl extends LuaStatement, LuaCommentOwner {
+import com.intellij.psi.StubBasedPsiElement;
+import net.internetisalie.lunar.lang.psi.stubs.LuaLocalVarStub;
+
+public interface LuaLocalVarDecl extends LuaStatement, LuaCommentOwner, StubBasedPsiElement<LuaLocalVarStub> {
 
   @NotNull
   List<LuaAttName> getAttNameList();

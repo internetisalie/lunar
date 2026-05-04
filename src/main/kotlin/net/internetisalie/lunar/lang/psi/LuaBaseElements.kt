@@ -9,12 +9,17 @@ import com.intellij.lexer.Lexer
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
+import com.intellij.psi.stubs.IStubElementType
+import com.intellij.extapi.psi.StubBasedPsiElementBase
+import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.tree.ILazyParseableElementType
 import net.internetisalie.lunar.lang.LuaLabelReference
 import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.LuaNameReference
+import net.internetisalie.lunar.lang.psi.LuaVisitor
 import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsLexer
 import net.internetisalie.lunar.luacats.lang.parser.LuaCatsParser
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
@@ -110,7 +115,8 @@ object LuaLazyElementTypes {
 
             val builder = PsiBuilderFactory.getInstance()
                 .createBuilder(project, chameleon, lexer, getLanguage(), chameleon.getText())
-            return parser.parse(this, builder).getFirstChildNode()
+            val root = parser.parse(this, builder)
+            return root.firstChildNode
         }
 
         override fun createNode(text: CharSequence?): ASTNode {
@@ -119,6 +125,39 @@ object LuaLazyElementTypes {
     }
 }
 
+
+abstract class LuaStatementImpl(node: ASTNode) : LuaBaseElement(node), LuaStatement {
+    open fun accept(visitor: LuaVisitor) {
+        visitor.visitStatement(this)
+    }
+
+    override fun accept(visitor: PsiElementVisitor) {
+        if (visitor is LuaVisitor) accept(visitor)
+        else super.accept(visitor)
+    }
+}
+
+abstract class LuaStubbedStatementImpl<T : StubElement<*>> : StubBasedPsiElementBase<T>, LuaStatement {
+    constructor(stub: T, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+    constructor(node: ASTNode) : super(node)
+
+    override fun getElementType(): IStubElementType<out T, *> {
+        return super.getElementType() as IStubElementType<out T, *>
+    }
+
+    override fun toString(): String {
+        return elementType.toString()
+    }
+
+    open fun accept(visitor: LuaVisitor) {
+        visitor.visitStatement(this)
+    }
+
+    override fun accept(visitor: PsiElementVisitor) {
+        if (visitor is LuaVisitor) accept(visitor)
+        else super.accept(visitor)
+    }
+}
 
 // Block Owner
 

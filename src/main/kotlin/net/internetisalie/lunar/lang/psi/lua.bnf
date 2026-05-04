@@ -78,6 +78,7 @@
 
     elementTypeHolderClass="net.internetisalie.lunar.lang.psi.LuaElementTypes"
     elementTypeClass="net.internetisalie.lunar.lang.psi.LuaElementType"
+    elementTypeFactory="net.internetisalie.lunar.lang.psi.LuaStubElementTypes.getStubElementType"
 
     psiClassPrefix='Lua'
     psiPackage='net.internetisalie.lunar.lang.psi'

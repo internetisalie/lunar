@@ -27,13 +27,13 @@ class LuaBraceMatchingTest : BaseDocumentTest() {
         val pairs = matcher.pairs
 
         val expected = setOf(
-            Pair("LuaTokenType.(", "LuaTokenType.)"),
-            Pair("LuaTokenType.[", "LuaTokenType.]"),
-            Pair("LuaTokenType.{", "LuaTokenType.}"),
-            Pair("LuaTokenType.repeat", "LuaTokenType.until"),
-            Pair("LuaTokenType.do", "LuaTokenType.end"),
-            Pair("LuaTokenType.function", "LuaTokenType.end"),
-            Pair("LuaTokenType.if", "LuaTokenType.end")
+            Pair("(", ")"),
+            Pair("[", "]"),
+            Pair("{", "}"),
+            Pair("repeat", "until"),
+            Pair("do", "end"),
+            Pair("function", "end"),
+            Pair("if", "end")
         )
 
         val actual = pairs.map { Pair(it.leftBraceType.toString(), it.rightBraceType.toString()) }.toSet()

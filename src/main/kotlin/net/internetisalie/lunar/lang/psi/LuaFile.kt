@@ -10,6 +10,10 @@ import net.internetisalie.lunar.lang.LuaLanguage
 open class LuaFile(viewProvider: FileViewProvider) :
     PsiFileBase(viewProvider, LuaLanguage) {
 
+    override fun getStub(): com.intellij.psi.stubs.PsiFileStub<out LuaFile>? {
+        return super.getStub() as? com.intellij.psi.stubs.PsiFileStub<out LuaFile>
+    }
+
     constructor(
         elementType : IElementType,
         contentElementType: IElementType,

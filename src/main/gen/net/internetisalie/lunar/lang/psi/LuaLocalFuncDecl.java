@@ -7,7 +7,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 
-public interface LuaLocalFuncDecl extends LuaStatement, LuaCommentOwner, LuaBlockParent {
+import com.intellij.psi.StubBasedPsiElement;
+import net.internetisalie.lunar.lang.psi.stubs.LuaLocalFuncStub;
+
+public interface LuaLocalFuncDecl extends LuaStatement, LuaCommentOwner, LuaBlockParent, StubBasedPsiElement<LuaLocalFuncStub> {
 
   @NotNull
   LuaBlock getBlock();

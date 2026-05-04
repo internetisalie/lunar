@@ -9,10 +9,16 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
+import net.internetisalie.lunar.lang.psi.stubs.LuaLocalFuncStub;
+import com.intellij.psi.stubs.IStubElementType;
 import com.intellij.psi.PsiComment;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 
-public class LuaLocalFuncDeclImpl extends LuaStatementImpl implements LuaLocalFuncDecl {
+public class LuaLocalFuncDeclImpl extends LuaStubbedStatementImpl<LuaLocalFuncStub> implements LuaLocalFuncDecl {
+
+  public LuaLocalFuncDeclImpl(@NotNull LuaLocalFuncStub stub, @NotNull IStubElementType<?, ?> type) {
+    super(stub, type);
+  }
 
   public LuaLocalFuncDeclImpl(@NotNull ASTNode node) {
     super(node);

@@ -9,8 +9,10 @@ import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IFileElementType
+import com.intellij.psi.tree.IStubFileElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.lexer.LuaLexer
+import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.parser.LuaParser
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
@@ -23,18 +25,6 @@ class LuaParserDefinition : ParserDefinition {
         return LuaLexer()
     }
 
-    override fun getCommentTokens(): TokenSet {
-        return LuaSyntax.CommentTokens
-    }
-
-    override fun getStringLiteralElements(): TokenSet {
-        return LuaSyntax.StringLiteralTokens
-    }
-
-    override fun getWhitespaceTokens(): TokenSet {
-        return LuaSyntax.WhiteSpaceTokens
-    }
-
     override fun createParser(project: Project): PsiParser {
         return LuaParser()
     }
@@ -43,18 +33,31 @@ class LuaParserDefinition : ParserDefinition {
         return FILE
     }
 
+    override fun getCommentTokens(): TokenSet {
+        return LuaSyntax.CommentTokens
+    }
+
+    override fun getWhitespaceTokens(): TokenSet {
+        return LuaSyntax.WhiteSpaceTokens
+    }
+
+    override fun getStringLiteralElements(): TokenSet {
+        return LuaSyntax.StringLiteralTokens
+    }
+
+    override fun createElement(node: ASTNode): PsiElement {
+        val type = node.elementType
+        if (type is LuaCatsElementType) {
+            return LuaCatsElementTypes.Factory.createElement(node)
+        }
+        return LuaElementTypes.Factory.createElement(node)
+    }
+
     override fun createFile(viewProvider: FileViewProvider): PsiFile {
         return LuaFile(viewProvider)
     }
 
-    override fun createElement(node: ASTNode): PsiElement {
-        return when (node.elementType) {
-            is LuaCatsElementType -> LuaCatsElementTypes.Factory.createElement(node)
-            else -> LuaElementTypes.Factory.createElement(node)
-        }
-    }
-
     companion object {
-        val FILE = IFileElementType(LuaLanguage)
+        val FILE = IStubFileElementType<com.intellij.psi.stubs.PsiFileStub<LuaFile>>("Lua", LuaLanguage)
     }
 }
