@@ -39,4 +39,10 @@ public class LuaCatsAliasTagImpl extends LuaCatsBaseElement implements LuaCatsAl
     return findChildByClass(LuaCatsArgType.class);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

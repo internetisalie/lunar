@@ -103,7 +103,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@alias' <<ArgName NAME>> <<ArgType type>>?
+  // '@alias' <<ArgName NAME>> <<ArgType type>>? description?
   public static boolean aliasTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "aliasTag")) return false;
     boolean r;
@@ -111,6 +111,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, "@alias");
     r = r && ArgName(b, l + 1, NAME_parser_);
     r = r && aliasTag_2(b, l + 1);
+    r = r && aliasTag_3(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -119,6 +120,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   private static boolean aliasTag_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "aliasTag_2")) return false;
     ArgType(b, l + 1, LuaCatsParser::type);
+    return true;
+  }
+
+  // description?
+  private static boolean aliasTag_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "aliasTag_3")) return false;
+    description(b, l + 1);
     return true;
   }
 
@@ -203,14 +211,22 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@async'
+  // '@async' description?
   public static boolean asyncTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "asyncTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, ASYNC_TAG, "<async tag>");
     r = consumeToken(b, "@async");
+    r = r && asyncTag_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean asyncTag_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "asyncTag_1")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -260,7 +276,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@cast' <<ArgName castName>> <<ArgType castModifier>> { ',' <<ArgType castModifier>> }*
+  // '@cast' <<ArgName castName>> <<ArgType castModifier>> { ',' <<ArgType castModifier>> }* description?
   public static boolean castTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "castTag")) return false;
     boolean r;
@@ -269,6 +285,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     r = r && ArgName(b, l + 1, LuaCatsParser::castName);
     r = r && ArgType(b, l + 1, LuaCatsParser::castModifier);
     r = r && castTag_3(b, l + 1);
+    r = r && castTag_4(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -295,8 +312,15 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return r;
   }
 
+  // description?
+  private static boolean castTag_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "castTag_4")) return false;
+    description(b, l + 1);
+    return true;
+  }
+
   /* ********************************************************** */
-  // '@class' <<ArgKeyword exactKeyword>>? <<ArgType typeName>> [':' parentTypes]
+  // '@class' <<ArgKeyword exactKeyword>>? <<ArgType typeName>> [':' parentTypes] description?
   public static boolean classTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "classTag")) return false;
     boolean r;
@@ -305,6 +329,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     r = r && classTag_1(b, l + 1);
     r = r && ArgType(b, l + 1, LuaCatsParser::typeName);
     r = r && classTag_3(b, l + 1);
+    r = r && classTag_4(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -332,6 +357,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     r = r && parentTypes(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
+  }
+
+  // description?
+  private static boolean classTag_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "classTag_4")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -380,18 +412,26 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@deprecated'
+  // '@deprecated' description?
   public static boolean deprecatedTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "deprecatedTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, DEPRECATED_TAG, "<deprecated tag>");
     r = consumeToken(b, "@deprecated");
+    r = r && deprecatedTag_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
 
+  // description?
+  private static boolean deprecatedTag_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "deprecatedTag_1")) return false;
+    description(b, l + 1);
+    return true;
+  }
+
   /* ********************************************************** */
-  // (NAME | INTEGER | STRING | SYMBOL | TEXT)+
+  // (NAME | NUMBER | STRING | SYMBOL | TEXT)+
   public static boolean description(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "description")) return false;
     boolean r;
@@ -406,12 +446,12 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // NAME | INTEGER | STRING | SYMBOL | TEXT
+  // NAME | NUMBER | STRING | SYMBOL | TEXT
   private static boolean description_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "description_0")) return false;
     boolean r;
     r = consumeToken(b, NAME);
-    if (!r) r = consumeToken(b, INTEGER);
+    if (!r) r = consumeToken(b, NUMBER);
     if (!r) r = consumeToken(b, STRING);
     if (!r) r = consumeToken(b, SYMBOL);
     if (!r) r = consumeToken(b, TEXT);
@@ -439,17 +479,52 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@diagnostic' <<ArgKeyword diagnosticState>> ':' diagnostics
+  // '@diagnostic' <<ArgKeyword diagnosticState>> [<<ArgSymbol (':')>> diagnostics] description?
   public static boolean diagnosticTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "diagnosticTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, DIAGNOSTIC_TAG, "<diagnostic tag>");
     r = consumeToken(b, "@diagnostic");
     r = r && ArgKeyword(b, l + 1, LuaCatsParser::diagnosticState);
-    r = r && consumeToken(b, ":");
-    r = r && diagnostics(b, l + 1);
+    r = r && diagnosticTag_2(b, l + 1);
+    r = r && diagnosticTag_3(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // [<<ArgSymbol (':')>> diagnostics]
+  private static boolean diagnosticTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "diagnosticTag_2")) return false;
+    diagnosticTag_2_0(b, l + 1);
+    return true;
+  }
+
+  // <<ArgSymbol (':')>> diagnostics
+  private static boolean diagnosticTag_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "diagnosticTag_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = ArgSymbol(b, l + 1, LuaCatsParser::diagnosticTag_2_0_0_0);
+    r = r && diagnostics(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (':')
+  private static boolean diagnosticTag_2_0_0_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "diagnosticTag_2_0_0_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ":");
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // description?
+  private static boolean diagnosticTag_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "diagnosticTag_3")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -511,6 +586,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   //     | functionSignatureType
   //     | parameterizedName
   //     | parameterName
+  //     | literalType
   //     | simpleType
   public static boolean distinctType(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "distinctType")) return false;
@@ -522,6 +598,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     if (!r) r = functionSignatureType(b, l + 1);
     if (!r) r = parameterizedName(b, l + 1);
     if (!r) r = parameterName(b, l + 1);
+    if (!r) r = literalType(b, l + 1);
     if (!r) r = simpleType(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
@@ -540,7 +617,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@enum' <<ArgKeyword enumKey>>? <<ArgName enumName>>
+  // '@enum' <<ArgKeyword enumKey>>? <<ArgName enumName>> description?
   public static boolean enumTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "enumTag")) return false;
     boolean r;
@@ -548,6 +625,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, "@enum");
     r = r && enumTag_1(b, l + 1);
     r = r && ArgName(b, l + 1, LuaCatsParser::enumName);
+    r = r && enumTag_3(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -556,6 +634,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   private static boolean enumTag_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "enumTag_1")) return false;
     ArgKeyword(b, l + 1, LuaCatsParser::enumKey);
+    return true;
+  }
+
+  // description?
+  private static boolean enumTag_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "enumTag_3")) return false;
+    description(b, l + 1);
     return true;
   }
 
@@ -792,13 +877,14 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@generic' genericTypeParams?
+  // '@generic' genericTypeParams? description?
   public static boolean genericTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "genericTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, GENERIC_TAG, "<generic tag>");
     r = consumeToken(b, "@generic");
     r = r && genericTag_1(b, l + 1);
+    r = r && genericTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -807,6 +893,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   private static boolean genericTag_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "genericTag_1")) return false;
     genericTypeParams(b, l + 1);
+    return true;
+  }
+
+  // description?
+  private static boolean genericTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "genericTag_2")) return false;
+    description(b, l + 1);
     return true;
   }
 
@@ -919,19 +1012,33 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // STRING | NUMBER
+  public static boolean literalType(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "literalType")) return false;
+    if (!nextTokenIs(b, "<literal type>", NUMBER, STRING)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, LITERAL_TYPE, "<literal type>");
+    r = consumeToken(b, STRING);
+    if (!r) r = consumeToken(b, NUMBER);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
   // NAME
   static boolean metaName(PsiBuilder b, int l) {
     return consumeToken(b, NAME);
   }
 
   /* ********************************************************** */
-  // '@meta' <<ArgName metaName>>?
+  // '@meta' <<ArgName metaName>>? description?
   public static boolean metaTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "metaTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, META_TAG, "<meta tag>");
     r = consumeToken(b, "@meta");
     r = r && metaTag_1(b, l + 1);
+    r = r && metaTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -943,6 +1050,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return true;
   }
 
+  // description?
+  private static boolean metaTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "metaTag_2")) return false;
+    description(b, l + 1);
+    return true;
+  }
+
   /* ********************************************************** */
   // STRING
   static boolean moduleName(PsiBuilder b, int l) {
@@ -950,15 +1064,23 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@module' <<ArgValue moduleName>>
+  // '@module' <<ArgValue moduleName>> description?
   public static boolean moduleTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "moduleTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, MODULE_TAG, "<module tag>");
     r = consumeToken(b, "@module");
     r = r && ArgValue(b, l + 1, LuaCatsParser::moduleName);
+    r = r && moduleTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean moduleTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "moduleTag_2")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -974,14 +1096,22 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@nodiscard'
+  // '@nodiscard' description?
   public static boolean nodiscardTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "nodiscardTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, NODISCARD_TAG, "<nodiscard tag>");
     r = consumeToken(b, "@nodiscard");
+    r = r && nodiscardTag_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean nodiscardTag_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "nodiscardTag_1")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -991,7 +1121,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'unm' | 'add' | 'sub' | 'mul' | 'div' | 'idiv' | 'mod' | 'pow' | 'concat'
+  // 'unm' | 'add' | 'sub' | 'mul' | 'div' | 'idiv' | 'mod' | 'pow' | 'concat' | 'len' | 'eq' | 'lt' | 'le' | 'call' | 'index' | 'newindex'
   static boolean operatorName(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "operatorName")) return false;
     boolean r;
@@ -1004,6 +1134,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, "mod");
     if (!r) r = consumeToken(b, "pow");
     if (!r) r = consumeToken(b, "concat");
+    if (!r) r = consumeToken(b, "len");
+    if (!r) r = consumeToken(b, "eq");
+    if (!r) r = consumeToken(b, "lt");
+    if (!r) r = consumeToken(b, "le");
+    if (!r) r = consumeToken(b, "call");
+    if (!r) r = consumeToken(b, "index");
+    if (!r) r = consumeToken(b, "newindex");
     return r;
   }
 
@@ -1077,15 +1214,23 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@operator' operatorSignature
+  // '@operator' operatorSignature description?
   public static boolean operatorTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "operatorTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, OPERATOR_TAG, "<operator tag>");
     r = consumeToken(b, "@operator");
     r = r && operatorSignature(b, l + 1);
+    r = r && operatorTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean operatorTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "operatorTag_2")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1152,26 +1297,42 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@overload' overloadFunctionSignature
+  // '@overload' overloadFunctionSignature description?
   public static boolean overloadTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "overloadTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, OVERLOAD_TAG, "<overload tag>");
     r = consumeToken(b, "@overload");
     r = r && overloadFunctionSignature(b, l + 1);
+    r = r && overloadTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
 
+  // description?
+  private static boolean overloadTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "overloadTag_2")) return false;
+    description(b, l + 1);
+    return true;
+  }
+
   /* ********************************************************** */
-  // '@package'
+  // '@package' description?
   public static boolean packageTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "packageTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, PACKAGE_TAG, "<package tag>");
     r = consumeToken(b, "@package");
+    r = r && packageTag_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean packageTag_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "packageTag_1")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1335,25 +1496,41 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@private'
+  // '@private' description?
   public static boolean privateTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "privateTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, PRIVATE_TAG, "<private tag>");
     r = consumeToken(b, "@private");
+    r = r && privateTag_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
 
+  // description?
+  private static boolean privateTag_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "privateTag_1")) return false;
+    description(b, l + 1);
+    return true;
+  }
+
   /* ********************************************************** */
-  // '@protected'
+  // '@protected' description?
   public static boolean protectedTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "protectedTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, PROTECTED_TAG, "<protected tag>");
     r = consumeToken(b, "@protected");
+    r = r && protectedTag_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean protectedTag_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "protectedTag_1")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1438,15 +1615,23 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@see' <<ArgName NAME>>
+  // '@see' <<ArgName NAME>> description?
   public static boolean seeTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "seeTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, SEE_TAG, "<see tag>");
     r = consumeToken(b, "@see");
     r = r && ArgName(b, l + 1, NAME_parser_);
+    r = r && seeTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean seeTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "seeTag_2")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1460,15 +1645,23 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@source' <<ArgValue STRING>>
+  // '@source' <<ArgValue STRING>> description?
   public static boolean sourceTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "sourceTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, SOURCE_TAG, "<source tag>");
     r = consumeToken(b, "@source");
     r = r && ArgValue(b, l + 1, STRING_parser_);
+    r = r && sourceTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean sourceTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "sourceTag_2")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1590,7 +1783,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '|' <<ArgValue (STRING | CODE)>> [ '#' description ]
+  // '|' <<ArgValue (STRING | CODE | NUMBER | NAME)>> [ '#' description ]
   public static boolean typeOption(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "typeOption")) return false;
     boolean r;
@@ -1602,12 +1795,14 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // STRING | CODE
+  // STRING | CODE | NUMBER | NAME
   private static boolean typeOption_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "typeOption_1_0")) return false;
     boolean r;
     r = consumeToken(b, STRING);
     if (!r) r = consumeToken(b, CODE);
+    if (!r) r = consumeToken(b, NUMBER);
+    if (!r) r = consumeToken(b, NAME);
     return r;
   }
 
@@ -1642,15 +1837,23 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@type' <<ArgType type>>
+  // '@type' <<ArgType type>> description?
   public static boolean typeTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "typeTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, TYPE_TAG, "<type tag>");
     r = consumeToken(b, "@type");
     r = r && ArgType(b, l + 1, LuaCatsParser::type);
+    r = r && typeTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean typeTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "typeTag_2")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1688,15 +1891,23 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@vararg' <<ArgType type>>
+  // '@vararg' <<ArgType type>> description?
   public static boolean varargTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "varargTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, VARARG_TAG, "<vararg tag>");
     r = consumeToken(b, "@vararg");
     r = r && ArgType(b, l + 1, LuaCatsParser::type);
+    r = r && varargTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean varargTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "varargTag_2")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1790,15 +2001,23 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@version' versionSpecs
+  // '@version' versionSpecs description?
   public static boolean versionTag(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "versionTag")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, VERSION_TAG, "<version tag>");
     r = consumeToken(b, "@version");
     r = r && versionSpecs(b, l + 1);
+    r = r && versionTag_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  // description?
+  private static boolean versionTag_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "versionTag_2")) return false;
+    description(b, l + 1);
+    return true;
   }
 
   static final Parser NAME_parser_ = (b, l) -> consumeToken(b, NAME);

@@ -8,6 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface LuaCatsGenericTag extends PsiElement {
 
   @Nullable
+  LuaCatsDescription getDescription();
+
+  @Nullable
   LuaCatsGenericTypeParams getGenericTypeParams();
 
 }

@@ -53,6 +53,12 @@ public class LuaCatsDistinctTypeImpl extends LuaCatsBaseElement implements LuaCa
 
   @Override
   @Nullable
+  public LuaCatsLiteralType getLiteralType() {
+    return findChildByClass(LuaCatsLiteralType.class);
+  }
+
+  @Override
+  @Nullable
   public LuaCatsNamedType getNamedType() {
     return findChildByClass(LuaCatsNamedType.class);
   }

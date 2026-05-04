@@ -39,4 +39,10 @@ public class LuaCatsCastTagImpl extends LuaCatsBaseElement implements LuaCatsCas
     return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsArgType.class);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

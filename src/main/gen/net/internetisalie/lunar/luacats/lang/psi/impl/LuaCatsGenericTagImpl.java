@@ -29,6 +29,12 @@ public class LuaCatsGenericTagImpl extends LuaCatsBaseElement implements LuaCats
 
   @Override
   @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
+  @Override
+  @Nullable
   public LuaCatsGenericTypeParams getGenericTypeParams() {
     return findChildByClass(LuaCatsGenericTypeParams.class);
   }

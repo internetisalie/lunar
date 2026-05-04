@@ -28,6 +28,12 @@ public class LuaCatsOperatorTagImpl extends LuaCatsBaseElement implements LuaCat
   }
 
   @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
+  @Override
   @NotNull
   public LuaCatsOperatorSignature getOperatorSignature() {
     return findNotNullChildByClass(LuaCatsOperatorSignature.class);

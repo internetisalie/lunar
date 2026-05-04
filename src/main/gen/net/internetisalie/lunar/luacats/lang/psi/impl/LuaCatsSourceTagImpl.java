@@ -33,4 +33,10 @@ public class LuaCatsSourceTagImpl extends LuaCatsBaseElement implements LuaCatsS
     return findNotNullChildByClass(LuaCatsArgValue.class);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

@@ -7,6 +7,9 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaCatsVersionTag extends PsiElement {
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
   @NotNull
   LuaCatsVersionSpecs getVersionSpecs();
 

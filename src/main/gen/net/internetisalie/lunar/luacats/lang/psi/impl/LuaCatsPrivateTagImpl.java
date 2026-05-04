@@ -27,4 +27,10 @@ public class LuaCatsPrivateTagImpl extends LuaCatsBaseElement implements LuaCats
     else super.accept(visitor);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

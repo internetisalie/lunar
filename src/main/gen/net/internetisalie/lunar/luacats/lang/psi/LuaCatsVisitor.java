@@ -147,6 +147,10 @@ public class LuaCatsVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitLiteralType(@NotNull LuaCatsLiteralType o) {
+    visitPsiElement(o);
+  }
+
   public void visitMetaTag(@NotNull LuaCatsMetaTag o) {
     visitPsiElement(o);
   }

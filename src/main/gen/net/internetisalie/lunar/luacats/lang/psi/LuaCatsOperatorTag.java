@@ -7,6 +7,9 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaCatsOperatorTag extends PsiElement {
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
   @NotNull
   LuaCatsOperatorSignature getOperatorSignature();
 

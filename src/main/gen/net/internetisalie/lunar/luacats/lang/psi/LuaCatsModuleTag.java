@@ -10,4 +10,7 @@ public interface LuaCatsModuleTag extends PsiElement {
   @NotNull
   LuaCatsArgValue getArgValue();
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
 }

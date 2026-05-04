@@ -33,4 +33,10 @@ public class LuaCatsMetaTagImpl extends LuaCatsBaseElement implements LuaCatsMet
     return findChildByClass(LuaCatsArgName.class);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

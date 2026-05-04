@@ -10,4 +10,7 @@ public interface LuaCatsMetaTag extends PsiElement {
   @Nullable
   LuaCatsArgName getArgName();
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
 }

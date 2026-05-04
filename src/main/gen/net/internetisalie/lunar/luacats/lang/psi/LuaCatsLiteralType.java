@@ -5,15 +5,6 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaCatsEnumTag extends PsiElement {
-
-  @Nullable
-  LuaCatsArgKeyword getArgKeyword();
-
-  @NotNull
-  LuaCatsArgName getArgName();
-
-  @Nullable
-  LuaCatsDescription getDescription();
+public interface LuaCatsLiteralType extends PsiElement {
 
 }

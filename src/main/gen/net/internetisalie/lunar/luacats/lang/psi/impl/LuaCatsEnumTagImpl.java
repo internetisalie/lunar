@@ -39,4 +39,10 @@ public class LuaCatsEnumTagImpl extends LuaCatsBaseElement implements LuaCatsEnu
     return findNotNullChildByClass(LuaCatsArgName.class);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

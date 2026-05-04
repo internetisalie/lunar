@@ -41,6 +41,12 @@ public class LuaCatsClassTagImpl extends LuaCatsBaseElement implements LuaCatsCl
 
   @Override
   @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
+  @Override
+  @Nullable
   public LuaCatsParentTypes getParentTypes() {
     return findChildByClass(LuaCatsParentTypes.class);
   }

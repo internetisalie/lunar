@@ -34,9 +34,21 @@ public class LuaCatsDiagnosticTagImpl extends LuaCatsBaseElement implements LuaC
   }
 
   @Override
-  @NotNull
+  @Nullable
+  public LuaCatsArgSymbol getArgSymbol() {
+    return findChildByClass(LuaCatsArgSymbol.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
+  @Override
+  @Nullable
   public LuaCatsDiagnostics getDiagnostics() {
-    return findNotNullChildByClass(LuaCatsDiagnostics.class);
+    return findChildByClass(LuaCatsDiagnostics.class);
   }
 
 }

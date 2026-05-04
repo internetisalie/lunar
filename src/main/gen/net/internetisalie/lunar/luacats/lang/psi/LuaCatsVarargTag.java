@@ -10,4 +10,7 @@ public interface LuaCatsVarargTag extends PsiElement {
   @NotNull
   LuaCatsArgType getArgType();
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
 }

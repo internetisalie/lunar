@@ -13,4 +13,7 @@ public interface LuaCatsAliasTag extends PsiElement {
   @Nullable
   LuaCatsArgType getArgType();
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
 }

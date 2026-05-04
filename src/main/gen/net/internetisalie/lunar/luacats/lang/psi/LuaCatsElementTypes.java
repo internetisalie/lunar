@@ -44,6 +44,7 @@ public interface LuaCatsElementTypes {
   IElementType GENERIC_TYPE_PARAM = new LuaCatsElementType("GENERIC_TYPE_PARAM");
   IElementType GENERIC_TYPE_PARAMS = new LuaCatsElementType("GENERIC_TYPE_PARAMS");
   IElementType LITERAL_TABLE_TYPE = new LuaCatsElementType("LITERAL_TABLE_TYPE");
+  IElementType LITERAL_TYPE = new LuaCatsElementType("LITERAL_TYPE");
   IElementType META_TAG = new LuaCatsElementType("META_TAG");
   IElementType MODULE_TAG = new LuaCatsElementType("MODULE_TAG");
   IElementType NAMED_TYPE = new LuaCatsElementType("NAMED_TYPE");
@@ -78,13 +79,14 @@ public interface LuaCatsElementTypes {
 
   IElementType CODE = new LuaCatsElementType("CODE");
   IElementType DASHES = new LuaCatsElementType("DASHES");
-  IElementType INTEGER = new LuaCatsElementType("INTEGER");
   IElementType KEYWORD = new LuaCatsElementType("KEYWORD");
   IElementType NAME = new LuaCatsElementType("NAME");
+  IElementType NUMBER = new LuaCatsElementType("NUMBER");
   IElementType STRING = new LuaCatsElementType("STRING");
   IElementType SYMBOL = new LuaCatsElementType("SYMBOL");
   IElementType TAG = new LuaCatsElementType("TAG");
   IElementType TEXT = new LuaCatsElementType("zzz");
+  IElementType ___ = new LuaCatsElementType("]*\\");
 
   class Factory {
     public static PsiElement createElement(ASTNode node) {
@@ -193,6 +195,9 @@ public interface LuaCatsElementTypes {
       }
       else if (type == LITERAL_TABLE_TYPE) {
         return new LuaCatsLiteralTableTypeImpl(node);
+      }
+      else if (type == LITERAL_TYPE) {
+        return new LuaCatsLiteralTypeImpl(node);
       }
       else if (type == META_TAG) {
         return new LuaCatsMetaTagImpl(node);

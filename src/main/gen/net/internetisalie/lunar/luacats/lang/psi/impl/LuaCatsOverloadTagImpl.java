@@ -28,6 +28,12 @@ public class LuaCatsOverloadTagImpl extends LuaCatsBaseElement implements LuaCat
   }
 
   @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
+  @Override
   @NotNull
   public LuaCatsOverloadFunctionSignature getOverloadFunctionSignature() {
     return findNotNullChildByClass(LuaCatsOverloadFunctionSignature.class);

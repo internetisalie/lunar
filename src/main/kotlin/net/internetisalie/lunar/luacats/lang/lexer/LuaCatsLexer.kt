@@ -16,6 +16,7 @@ class LuaCatsLexer : FlexAdapter(_LuaCatsLexer(null)) {
         LuaCatsTokenTypes.LCATS_TAG to LuaCatsElementTypes.TAG,
         LuaCatsTokenTypes.LCATS_KEYWORD to LuaCatsElementTypes.KEYWORD,
         LuaCatsTokenTypes.LCATS_CODE to LuaCatsElementTypes.CODE,
+        LuaCatsTokenTypes.LCATS_NUMBER to LuaCatsElementTypes.NUMBER,
     );
 
     val tokenSet : TokenSet = TokenSet.create(
@@ -28,6 +29,7 @@ class LuaCatsLexer : FlexAdapter(_LuaCatsLexer(null)) {
         LuaCatsElementTypes.TAG,
         LuaCatsElementTypes.KEYWORD,
         LuaCatsElementTypes.CODE,
+        LuaCatsElementTypes.NUMBER,
     )
 
     override fun getTokenType(): IElementType? {

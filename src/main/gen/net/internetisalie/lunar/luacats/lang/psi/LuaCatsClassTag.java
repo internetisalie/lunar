@@ -14,6 +14,9 @@ public interface LuaCatsClassTag extends PsiElement {
   LuaCatsArgType getArgType();
 
   @Nullable
+  LuaCatsDescription getDescription();
+
+  @Nullable
   LuaCatsParentTypes getParentTypes();
 
 }

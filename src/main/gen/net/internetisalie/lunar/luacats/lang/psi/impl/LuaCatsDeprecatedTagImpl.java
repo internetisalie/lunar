@@ -27,4 +27,10 @@ public class LuaCatsDeprecatedTagImpl extends LuaCatsBaseElement implements LuaC
     else super.accept(visitor);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

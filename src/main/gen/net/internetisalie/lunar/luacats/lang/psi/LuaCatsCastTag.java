@@ -13,4 +13,7 @@ public interface LuaCatsCastTag extends PsiElement {
   @NotNull
   List<LuaCatsArgType> getArgTypeList();
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
 }

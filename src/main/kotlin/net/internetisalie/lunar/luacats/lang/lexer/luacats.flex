@@ -59,14 +59,17 @@ QUOTE=\"
 ARRAY="[]"
 
 DIGIT=[0-9]
+INT={DIGIT}+
+FLOAT={DIGIT}+"."{DIGIT}*|{DIGIT}*"."{DIGIT}+
+NUMBER={INT}|{FLOAT}
 ALPHA_LOWER=[a-z]
 ALPHA_UPPER=[A-Z]
 HIGH_ASCII=[\x80-\xff]
 
-NAME_LEADING={ALPHA_LOWER}|{ALPHA_UPPER}|{DIGIT}|{UNDERSCORE}|{HIGH_ASCII}
+NAME_LEADING={ALPHA_LOWER}|{ALPHA_UPPER}|{UNDERSCORE}|{HIGH_ASCII}
 NAME_TRAILING={ALPHA_LOWER}|{ALPHA_UPPER}|{DIGIT}|{UNDERSCORE}|{HIGH_ASCII}|{PERIOD}|{MINUS}|{ASTERISK}
 CODE={BACKTICK}[^`]+{BACKTICK}
-NAME={NAME_LEADING}{NAME_TRAILING}*
+NAME=({NAME_LEADING}{NAME_TRAILING}*)|({DIGIT}+{NAME_TRAILING}+)
 TYPES={LT}|{GT}|{ARRAY}|{QUESTION}|{PIPE}|{LBRACE}|{RBRACE}|{LBRACKET}|{RBRACKET}|{LPAREN}|{RPAREN}|{COLON}|{COMMA}
 DIAGNOSTIC={ALPHA_LOWER}+(-({ALPHA_LOWER}|{DIGIT})+)*
 STRINGS={APOS}{NAME}{APOS}
@@ -100,13 +103,13 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     "@generic"              { yybegin(TAG_TYPE); return LCATS_TAG; }
     "@meta"                 { yybegin(TAG_META); return LCATS_TAG; }
     "@module"               { yybegin(TAG_MODULE); return LCATS_TAG; }
-    "@nodiscard"            { yybegin(COMMENT_END); return LCATS_TAG; }
+    "@nodiscard"            { yybegin(COMMENT_DATA); return LCATS_TAG; }
     "@operator"             { yybegin(TAG_OPERATOR); return LCATS_TAG; }
     "@overload"             { yybegin(TAG_TYPE); return LCATS_TAG; }
-    "@package"              { yybegin(COMMENT_END); return LCATS_TAG; }
+    "@package"              { yybegin(COMMENT_DATA); return LCATS_TAG; }
     "@param"                { yybegin(TAG_PARAM); return LCATS_TAG; }
-    "@private"              { yybegin(COMMENT_END); return LCATS_TAG; }
-    "@protected"            { yybegin(COMMENT_END); return LCATS_TAG; }
+    "@private"              { yybegin(COMMENT_DATA); return LCATS_TAG; }
+    "@protected"            { yybegin(COMMENT_DATA); return LCATS_TAG; }
     "@return"               { yybegin(TAG_RETURN); return LCATS_TAG; }
     "@see"                  { yybegin(TAG_SEE); return LCATS_TAG; }
     "@source"               { yybegin(TAG_SOURCE); return LCATS_TAG; }
@@ -211,6 +214,7 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
 <TAG_TYPE> {
     // Needs support for other lua language literals
     "fun"                   { return LCATS_KEYWORD; }
+    {NUMBER}                { return LCATS_NUMBER; }
     {NAME}                  { return LCATS_NAME; }
     {STRINGD}               { return LCATS_STRING; }
     {STRINGS}               { return LCATS_STRING; }
@@ -226,6 +230,7 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
 }
 
 <OPTION> {
+    {NUMBER}                { return LCATS_NUMBER; }
     {STRINGD}               { return LCATS_STRING; }
     {STRINGS}               { return LCATS_STRING; }
     {CODE}                  { return LCATS_CODE; }

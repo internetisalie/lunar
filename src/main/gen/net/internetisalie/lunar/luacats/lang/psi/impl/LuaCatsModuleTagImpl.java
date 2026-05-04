@@ -33,4 +33,10 @@ public class LuaCatsModuleTagImpl extends LuaCatsBaseElement implements LuaCatsM
     return findNotNullChildByClass(LuaCatsArgValue.class);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

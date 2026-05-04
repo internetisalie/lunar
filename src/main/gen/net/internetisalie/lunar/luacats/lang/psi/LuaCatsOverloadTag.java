@@ -7,6 +7,9 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaCatsOverloadTag extends PsiElement {
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
   @NotNull
   LuaCatsOverloadFunctionSignature getOverloadFunctionSignature();
 

@@ -3,12 +3,12 @@
     tokens = [
         WHITESPACE     =   'regexp:[ \t\v\a]+'
         NL             =   'regexp:\r?\n'
-        STRING         =   'regexp:xxx|5\.1|5\.2|5\.3|5\.4|JIT'
+        NUMBER         =   'regexp:[0-9]+(\.[0-9]*)?|(\.[0-9]+)'
         KEYWORD        =   "regexp:\(exact\)|fun|disable-next-line|disable-line|disable|enable|\(key\)|private|protected|public"
         TEXT           =   'zzz'
         NAME           =   'regexp:[A-Za-z0-9_][A-Za-z0-9_.*\-]*'
         CODE           =   'regexp:`[A-Za-z0-9_][A-Za-z0-9_.*\-]*`'
-        STRING         =   'regexp:("[^"]+")'
+        STRING         =   'regexp:("[^"]*")|(\'[^\']*\')'
         DASHES         =   'regexp:---+'
         TAG            =   'regexp:@alias|@async|@cast|@class|@deprecated|@diagnostic|@enum|@field|@generic|@meta|@module|@nodiscard|@overload|@operator|@package|@param|@private|@protected|@return|@see|@source|@type|@vararg|@version'
         SYMBOL         =   "regexp:[<>|,:.\[\]()*?]|\.\.\."
@@ -48,7 +48,7 @@ meta ArgSymbol ::= <<child>>
 
 // Type Options
 
-typeOption ::= '|' <<ArgValue (STRING | CODE)>> [ '#' description ]
+typeOption ::= '|' <<ArgValue (STRING | CODE | NUMBER | NAME)>> [ '#' description ]
 
 /// Tags
 
@@ -78,29 +78,29 @@ private anyTag ::=
     | varargTag
     | versionTag
 
-aliasTag ::= '@alias' <<ArgName NAME>> <<ArgType type>>?
+aliasTag ::= '@alias' <<ArgName NAME>> <<ArgType type>>? description?
 
-asyncTag ::= '@async'
+asyncTag ::= '@async' description?
 
-castTag ::= '@cast' <<ArgName castName>> <<ArgType castModifier>> { ',' <<ArgType castModifier>> }*
+castTag ::= '@cast' <<ArgName castName>> <<ArgType castModifier>> { ',' <<ArgType castModifier>> }* description?
 private castName ::= NAME
 castModifier ::= addOrSubtract? type
 addOrSubtract ::= '+' | '-'
 
-classTag ::= '@class' <<ArgKeyword exactKeyword>>? <<ArgType typeName>> [':' parentTypes]
+classTag ::= '@class' <<ArgKeyword exactKeyword>>? <<ArgType typeName>> [':' parentTypes] description?
 private exactKeyword ::= '(exact)'
 parentTypes ::= <<ArgType parentType>> { ',' <<ArgType parentType>> }*
 private typeName ::= parameterizedName | NAME
 private parentType ::= type
 
-deprecatedTag ::= '@deprecated'
+deprecatedTag ::= '@deprecated' description?
 
-diagnosticTag ::= '@diagnostic' <<ArgKeyword diagnosticState>> ':' diagnostics
+diagnosticTag ::= '@diagnostic' <<ArgKeyword diagnosticState>> [<<ArgSymbol (':')>> diagnostics] description?
 diagnosticState ::= 'disable-next-line' | 'disable-line' | 'disable' | 'enable'
 diagnostics ::= <<ArgName diagnosticName>> {',' <<ArgName diagnosticName>>}*
 private diagnosticName ::= NAME
 
-enumTag ::= '@enum' <<ArgKeyword enumKey>>? <<ArgName enumName>>
+enumTag ::= '@enum' <<ArgKeyword enumKey>>? <<ArgName enumName>> description?
 private enumKey ::= '(key)'
 private enumName ::= NAME
 
@@ -111,25 +111,25 @@ fieldScope ::= 'private' | 'protected' | 'public'
 fieldNameDescriptor ::= NAME '?'?
 fieldKeyDescriptor ::= '[' type ']'
 
-genericTag ::= '@generic' genericTypeParams?
+genericTag ::= '@generic' genericTypeParams? description?
 genericTypeParams ::= genericTypeParam { ',' genericTypeParam }*
 genericTypeParam ::= <<ArgName typeParam>> ( <<ArgSymbol (':')>> <<ArgType parentType>> )?
 
-metaTag ::= '@meta' <<ArgName metaName>>?
+metaTag ::= '@meta' <<ArgName metaName>>? description?
 private metaName ::= NAME
 
-moduleTag ::= '@module' <<ArgValue moduleName>>
+moduleTag ::= '@module' <<ArgValue moduleName>> description?
 private moduleName ::= STRING
 
-nodiscardTag ::= '@nodiscard'
+nodiscardTag ::= '@nodiscard' description?
 
-operatorTag ::= '@operator' operatorSignature
+operatorTag ::= '@operator' operatorSignature description?
 operatorSignature ::= <<ArgName operatorName>> [<<ArgSymbol ('(')>> <<ArgType operatorArgumentType>> <<ArgSymbol (')')>>] <<ArgSymbol (':')>> <<ArgType operatorReturnType>>
-private operatorName ::= 'unm' | 'add' | 'sub' | 'mul' | 'div' | 'idiv' | 'mod' | 'pow' | 'concat'
+private operatorName ::= 'unm' | 'add' | 'sub' | 'mul' | 'div' | 'idiv' | 'mod' | 'pow' | 'concat' | 'len' | 'eq' | 'lt' | 'le' | 'call' | 'index' | 'newindex'
 private operatorArgumentType ::= type
 private operatorReturnType ::= type
 
-overloadTag ::= '@overload' overloadFunctionSignature
+overloadTag ::= '@overload' overloadFunctionSignature description?
 overloadFunctionSignature ::=
     <<ArgKeyword ('fun')>>
     <<ArgSymbol ('(')>>
@@ -137,24 +137,24 @@ overloadFunctionSignature ::=
     <<ArgSymbol (')')>>
     functionSignatureReturnType?
 
-packageTag ::= '@package'
+packageTag ::= '@package' description?
 
 paramTag ::= '@param' ((<<ArgName NAME>> <<ArgSymbol ('?')>>?) | <<ArgSymbol ('...')>>) <<ArgType type>> description?
 
-privateTag ::= '@private'
-protectedTag ::= '@protected'
+privateTag ::= '@private' description?
+protectedTag ::= '@protected' description?
 
 returnTag ::= '@return' <<ArgType type>> [(<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? )]
 
-seeTag ::= '@see' <<ArgName NAME>>
+seeTag ::= '@see' <<ArgName NAME>> description?
 
-sourceTag ::= '@source' <<ArgValue STRING>>
+sourceTag ::= '@source' <<ArgValue STRING>> description?
 
-typeTag ::= '@type' <<ArgType type>>
+typeTag ::= '@type' <<ArgType type>> description?
 
-varargTag ::= '@vararg' <<ArgType type>>
+varargTag ::= '@vararg' <<ArgType type>> description?
 
-versionTag ::= '@version' versionSpecs
+versionTag ::= '@version' versionSpecs description?
 versionSpecs ::= versionSpec { <<ArgSymbol (',')>> versionSpec }*
 versionSpec ::= <<ArgSymbol versionComparison>>? <<ArgValue versionNumber>>
 versionNumber ::= '5.1' | '5.2' | '5.3' | '5.4' | 'JIT'
@@ -172,8 +172,10 @@ distinctType ::=
     | functionSignatureType
     | parameterizedName
     | parameterName
+    | literalType
     | simpleType
 
+literalType ::= STRING | NUMBER
 tupleType ::= '[' type { ',' type }* ']'
 dictionaryType ::= '{' '[' type ']' ':' type '}'
 literalTableType ::= '{' tableLiteralEntries? '}'
@@ -194,4 +196,4 @@ namedType ::= NAME
 
 /// Explanatory Text
 
-description ::= (NAME | INTEGER | STRING | SYMBOL | TEXT)+
+description ::= (NAME | NUMBER | STRING | SYMBOL | TEXT)+

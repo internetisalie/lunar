@@ -28,6 +28,12 @@ public class LuaCatsVersionTagImpl extends LuaCatsBaseElement implements LuaCats
   }
 
   @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
+  @Override
   @NotNull
   public LuaCatsVersionSpecs getVersionSpecs() {
     return findNotNullChildByClass(LuaCatsVersionSpecs.class);

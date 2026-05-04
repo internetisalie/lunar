@@ -10,7 +10,13 @@ public interface LuaCatsDiagnosticTag extends PsiElement {
   @NotNull
   LuaCatsArgKeyword getArgKeyword();
 
-  @NotNull
+  @Nullable
+  LuaCatsArgSymbol getArgSymbol();
+
+  @Nullable
+  LuaCatsDescription getDescription();
+
+  @Nullable
   LuaCatsDiagnostics getDiagnostics();
 
 }

@@ -11,26 +11,20 @@ import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsNodiscardTagImpl extends LuaCatsBaseElement implements LuaCatsNodiscardTag {
+public class LuaCatsLiteralTypeImpl extends LuaCatsBaseElement implements LuaCatsLiteralType {
 
-  public LuaCatsNodiscardTagImpl(@NotNull ASTNode node) {
+  public LuaCatsLiteralTypeImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaCatsVisitor visitor) {
-    visitor.visitNodiscardTag(this);
+    visitor.visitLiteralType(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof LuaCatsVisitor) accept((LuaCatsVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @Nullable
-  public LuaCatsDescription getDescription() {
-    return findChildByClass(LuaCatsDescription.class);
   }
 
 }

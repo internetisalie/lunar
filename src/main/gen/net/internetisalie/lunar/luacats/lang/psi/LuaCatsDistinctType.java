@@ -20,6 +20,9 @@ public interface LuaCatsDistinctType extends PsiElement {
   LuaCatsLiteralTableType getLiteralTableType();
 
   @Nullable
+  LuaCatsLiteralType getLiteralType();
+
+  @Nullable
   LuaCatsNamedType getNamedType();
 
   @Nullable

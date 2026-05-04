@@ -27,4 +27,10 @@ public class LuaCatsAsyncTagImpl extends LuaCatsBaseElement implements LuaCatsAs
     else super.accept(visitor);
   }
 
+  @Override
+  @Nullable
+  public LuaCatsDescription getDescription() {
+    return findChildByClass(LuaCatsDescription.class);
+  }
+
 }

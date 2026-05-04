@@ -7,4 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaCatsNodiscardTag extends PsiElement {
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
 }

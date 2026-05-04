@@ -15,6 +15,7 @@ public interface LuaCatsTokenTypes {
     IElementType LCATS_TAG = new LuaCatsElementType("LCATS_TAG");
     IElementType LCATS_KEYWORD = new LuaCatsElementType("LCATS_KEYWORD");
     IElementType LCATS_CODE = new LuaCatsElementType("LCATS_CODE");
+    IElementType LCATS_NUMBER = new LuaCatsElementType("LCATS_NUMBER");
 
     IElementType LCATS_BAD_CHARACTER = TokenType.BAD_CHARACTER;
 
@@ -27,6 +28,7 @@ public interface LuaCatsTokenTypes {
             LCATS_SYMBOL,
             LCATS_TAG,
             LCATS_KEYWORD,
-            LCATS_CODE
+            LCATS_CODE,
+            LCATS_NUMBER
     );
 }

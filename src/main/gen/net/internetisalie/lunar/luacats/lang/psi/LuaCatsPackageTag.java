@@ -7,4 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaCatsPackageTag extends PsiElement {
 
+  @Nullable
+  LuaCatsDescription getDescription();
+
 }
