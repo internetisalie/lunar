@@ -10,7 +10,10 @@ import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.createSmartPointer
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.elementType
+import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
@@ -45,11 +48,15 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         }
 
         // Resolve reference upwards
-        return if (reference.binding != null) {
-            findElementDocCommentOwner(reference.binding.element)
-        } else {
-            null
+        if (reference.binding != null) {
+            return findElementDocCommentOwner(reference.binding.element)
         }
+        
+        // Try cross-file type lookup if binding resolution failed
+        val elementText = element.text ?: return null
+        val scope = GlobalSearchScope.projectScope(element.project)
+        val classDecl = StubIndex.getElements(LuaClassNameIndex.KEY, elementText, element.project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+        return classDecl
     }
 
     private fun findElementDocCommentOwner(element: PsiElement): LuaCatsCommentOwner? {
@@ -62,6 +69,14 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             && element.parent.parent is LuaLocalFuncDecl
         ) {
             return element.parent.parent as LuaCatsCommentOwner
+        } else if (element.parent is LuaNameRef
+            && element.parent.parent is LuaLocalVarDecl
+        ) {
+            val localVar = element.parent.parent as LuaLocalVarDecl
+            val catsComment = localVar.catsComment
+            if (catsComment != null && (catsComment.classTagList.isNotEmpty() || catsComment.typeTagList.isNotEmpty())) {
+                return localVar as LuaCatsCommentOwner
+            }
         }
         return null
     }

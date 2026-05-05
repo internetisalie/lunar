@@ -1,5 +1,7 @@
 package net.internetisalie.lunar.lang.doc
 
+import com.intellij.codeInsight.documentation.DocumentationManagerProtocol
+import com.intellij.codeInsight.documentation.DocumentationManagerUtil
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.util.text.HtmlChunk
@@ -10,9 +12,11 @@ import net.internetisalie.lunar.lang.psi.LuaCommentOwner
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaParList
+import net.internetisalie.lunar.lang.psi.types.LuaPrimitiveType
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 import net.internetisalie.lunar.lang.syntax.extractLuaComment
 import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDocumentationRenderer
+import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsHighlight
 
 object LuaDocumentationRenderer {
     val DOC_COMMENT_HEADER = """
@@ -114,4 +118,13 @@ fun codeFragment(key: TextAttributesKey, text: String): String {
     val fontColor = EditorColorsManager.getInstance().globalScheme.getAttributes(key).foregroundColor
     val fontHex = "#${GuiUtils.colorToHex(fontColor)}"
     return "<font color=${fontHex}>${HtmlChunk.text(text)}</font>"
+}
+
+fun buildTypeLink(typeName: String): String {
+    if (LuaPrimitiveType.PRIMITIVES.containsKey(typeName)) {
+        return codeFragment(LuaCatsHighlight.TYPE, typeName)
+    }
+    val sb = StringBuilder()
+    DocumentationManagerUtil.createHyperlink(sb, typeName, typeName, true)
+    return sb.toString()
 }

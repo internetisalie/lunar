@@ -53,6 +53,9 @@
             order="first"
             implementation="net.internetisalie.lunar.lang.doc.LuaDocumentationTargetProvider" />
 
+    <platform.backend.documentation.linkHandler
+            implementation="net.internetisalie.lunar.lang.doc.LuaDocumentationLinkHandler"/>
+
     <colorSettingsPage
             implementation="net.internetisalie.lunar.lang.syntax.LuaColorSettingsPage"/>
 
@@ -183,6 +186,7 @@
 
     <!-- Indexes -->
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaFileBindingsIndex"/>
+    <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaDescriptionIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaClassNameIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaAliasIndex"/>
