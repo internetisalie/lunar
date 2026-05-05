@@ -101,12 +101,7 @@ class LuaCatsLazyCommentImpl(text: CharSequence?) : LazyParseablePsiElement(LuaL
     }
 
     override fun getReturnTagList(): List<LuaCatsReturnTag> {
-        val result = PsiTreeUtil.findChildrenOfType(this, LuaCatsReturnTag::class.java).toList()
-        if (result.isEmpty()) {
-             println("LuaCatsLazyCommentImpl: No return tags found in: [" + text + "]")
-             println("DEBUG TREE:\n" + com.intellij.psi.impl.DebugUtil.psiToString(this, false))
-        }
-        return result
+        return PsiTreeUtil.findChildrenOfType(this, LuaCatsReturnTag::class.java).toList()
     }
 
     override fun getSeeTagList(): List<LuaCatsSeeTag> {

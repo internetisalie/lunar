@@ -24,16 +24,22 @@ Documentation indexing ensures that type annotations, class definitions, and des
 
 ## 3. Editor Requirements
 
-| ID | Requirement | Priority |
-| :--- | :--- | :---: |
-| `DOC-06-01` | **Stub Indexing** | **M** | Integrate documentation parsing into the IntelliJ Platform's stub indexing system. |
-| `DOC-06-02` | **Type Map Construction** | **M** | Build a global map of user-defined types (classes, aliases) for resolution. |
-| `DOC-06-03` | **Incremental Updates** | **M** | Ensure indices are updated incrementally as files are modified. |
-| `DOC-06-04` | **Full-Text Search** | **S** | Support searching for symbols based on their documentation descriptions. |
-| `DOC-06-05` | **Cross-File Resolution** | **M** | Resolve types and classes defined in other files within the same project or libraries. |
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `DOC-06-01` | **Stub Indexing** | **M** | **Full** | Integrate documentation parsing into the IntelliJ Platform's stub indexing system. |
+| `DOC-06-02` | **Type Map Construction** | **M** | **Full** | Build a global map of user-defined types (classes, aliases) for resolution. |
+| `DOC-06-03` | **Incremental Updates** | **M** | **Full** | Ensure indices are updated incrementally as files are modified. |
+| `DOC-06-04` | **Full-Text Search** | **S** | **Not Implemented** | Support searching for symbols based on their documentation descriptions. |
+| `DOC-06-05` | **Cross-File Resolution** | **M** | **Full** | Resolve types and classes defined in other files within the same project or libraries. |
 
 ## 4. Performance Considerations
 
 - **Memory Usage**: Keep the index size manageable by only storing essential information.
 - **Background Processing**: Perform indexing in background threads to avoid UI freezes.
 - **Cache Invalidation**: Correctly invalidate cached values when comments change.
+
+## 5. Examples
+
+Examples demonstrating LuaCATS indexing and cross-file resolution can be found in the test project:
+- `examples/luacats_definitions.lua`: Defines `@class`, `@alias`, and functions with `@param`.
+- `examples/luacats_usage.lua`: Uses `@type` and references symbols defined in `luacats_definitions.lua`.

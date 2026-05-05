@@ -44,12 +44,12 @@ class LuaInterpreterService() {
                     if (result != null) results.add(result)
                 }
             } else {
-                LOG.warn("Checking lua binary ${directoryName}/${exeName}")
+                LOG.debug("Checking lua binary ${directoryName}/${exeName}")
                 val executable = directory.findChild(exeName)
                 val result = validate(executable, family)
                 if (result != null) {
                     results.add(result)
-                    LOG.warn("Found interpreter: ${result.path} ${result.product} ${result.version}")
+                    LOG.debug("Found interpreter: ${result.path} ${result.product} ${result.version}")
                 }
             }
         }
@@ -84,7 +84,7 @@ class LuaInterpreterService() {
         val processOutput = LuaProcessUtil.capture(cmd)
         if (processOutput.exitCode != 0) {
             interpreter.banner = processOutput.stderr
-            LOG.warn("Error inspecting ${interpreter.path}: ${interpreter.banner}")
+            LOG.debug("Error inspecting ${interpreter.path}: ${interpreter.banner}")
             return
         }
 
@@ -94,7 +94,7 @@ class LuaInterpreterService() {
         // Parse the version banner
         val banner = Banner.create(processOutput) ?: return
         interpreter.banner = banner.full
-        LOG.warn("Received banner from ${interpreter.path}: ${interpreter.banner}")
+        LOG.debug("Received banner from ${interpreter.path}: ${interpreter.banner}")
 
         // Find a matching family
         val interpreterFamily = LuaInterpreterFamily.find(banner.product, executable.name) ?: return
@@ -106,7 +106,7 @@ class LuaInterpreterService() {
         interpreter.languageLevel = interpreterFamily.languageLevel(banner.version)?.version
         interpreter.platform = interpreterFamily.platform.label
 
-        LOG.warn("Identified ${interpreter.path}: product=${interpreter.product} version=${interpreter.version}")
+        LOG.debug("Identified ${interpreter.path}: product=${interpreter.product} version=${interpreter.version}")
     }
 
     private fun pathFromEnvVarString(from: String): Path {

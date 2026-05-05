@@ -76,7 +76,7 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 | `DOC-06-02` | Type Map Construction | **Full** | [Design](spec/documentation/06-type-map-construction-design.md) - Object-oriented type system with dynamic stub materialization, class merging, and inheritance; `TypeParser` fully implemented including function signatures |
 | `DOC-06-03` | Incremental Updates | **N/A** | IntelliJ stub infrastructure handles this automatically |
 | `DOC-06-04` | Full-Text Search | **Not Implemented** | — |
-| `DOC-06-05` | Cross-File Resolution | **Partial** | Via `LuaFileBindingsIndex` for general bindings; class, alias, and function stubs now queryable cross-file with metadata |
+| `DOC-06-05` | Cross-File Resolution | **Full** | General bindings via `LuaFileBindingsIndex`; class, alias, and function stubs via `StubIndex` |
 
 ### DOC-07: Parameter Info
 

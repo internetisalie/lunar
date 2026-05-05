@@ -3,16 +3,17 @@ package net.internetisalie.lunar.lang
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectScope
+import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.LuaIcons.FILE
-import net.internetisalie.lunar.lang.indexing.FilesQueryResult
-import net.internetisalie.lunar.lang.indexing.RequiredFilesQuery
-import net.internetisalie.lunar.lang.indexing.VirtualFilesQuery
-import net.internetisalie.lunar.lang.indexing.queryFiles
+import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaNameReference(element: PsiElement, textRange: TextRange) :
@@ -51,9 +52,24 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
                     collectFileResults(results, referenceName, filesQueryResult)
                 }
             }
+
+            val project = element.project
+            val scope = GlobalSearchScope.allScope(project)
+
+            StubIndex.getElements(LuaClassNameIndex.KEY, referenceName, project, scope, LuaLocalVarDecl::class.java).forEach { decl ->
+                results.add(PsiElementResolveResult(decl))
+            }
+
+            StubIndex.getElements(LuaAliasIndex.KEY, referenceName, project, scope, LuaLocalVarDecl::class.java).forEach { decl ->
+                results.add(PsiElementResolveResult(decl))
+            }
+
+            StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, referenceName, project, scope, LuaFuncDecl::class.java).forEach { decl ->
+                results.add(PsiElementResolveResult(decl))
+            }
         }
 
-        return results.toTypedArray()
+        return results.distinctBy { it.element }.toTypedArray()
     }
 
     private fun collectFileResults(

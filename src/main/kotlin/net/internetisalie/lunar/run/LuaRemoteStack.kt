@@ -111,11 +111,7 @@ class LuaRemoteVariable(
 }
 
 object LuaRemoteResultFactory {
-    var log = logger<LuaRemoteResultFactory>()
-
-    init {
-        log.setLevel(LogLevel.ALL)
-    }
+    private val log = logger<LuaRemoteResultFactory>()
 
     fun create(file: PsiFile): LuaValue {
         if (file !is LuaFile) return LuaValue.NONE
@@ -127,7 +123,6 @@ object LuaRemoteResultFactory {
         for (statement in wrapper.block.statementList) {
             when (statement) {
                 is LuaLocalVarDecl -> {
-                    log.warn("local var declaration: ${statement.attNameList.joinToString(", ") { it.nameRef.text }}")
                     for ((index, attName) in statement.attNameList.withIndex()) {
                         val name = attName.nameRef.text
                         val psiValue = statement.exprList?.exprList[index] ?: continue
@@ -136,12 +131,9 @@ object LuaRemoteResultFactory {
                 }
 
                 is LuaAssignmentStatement -> {
-                    log.warn("assignment statement: ${statement.varList.text}")
-
                 }
 
                 is LuaFinalStatement -> {
-                    log.warn("return statement: ${statement.exprList?.text}")
                     val varName = statement.exprList?.exprList[0]?.text ?: continue
 
                     return if (!variables.containsKey(varName)) {
