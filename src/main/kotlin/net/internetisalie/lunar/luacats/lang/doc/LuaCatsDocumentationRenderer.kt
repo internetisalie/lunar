@@ -396,10 +396,44 @@ object LuaCatsDocumentationRenderer {
         return parentDecl?.catsComment
     }
 
+    private fun highlightLuaCode(code: String): String {
+        val lexer = net.internetisalie.lunar.lang.lexer.LuaLexer()
+        lexer.start(code)
+        val highlighter = net.internetisalie.lunar.lang.syntax.LuaSyntaxHighlighter()
+        val sb = StringBuilder()
+        while (lexer.tokenType != null) {
+            val tokenType = lexer.tokenType!!
+            val tokenText = code.substring(lexer.tokenStart, lexer.tokenEnd)
+            val highlights = highlighter.getTokenHighlights(tokenType)
+            if (highlights.isNotEmpty()) {
+                sb.append(codeFragment(highlights[0], tokenText))
+            } else {
+                sb.append(com.intellij.openapi.util.text.HtmlChunk.text(tokenText))
+            }
+            lexer.advance()
+        }
+        return sb.toString()
+    }
+
     private fun markdownDescription(markdown: String): String {
         val flavour = CommonMarkFlavourDescriptor()
         val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
-        val html = HtmlGenerator(markdown, parsedTree, flavour).generateHtml()
+        var html = HtmlGenerator(markdown, parsedTree, flavour).generateHtml()
+
+        // Post-process to highlight Lua code blocks
+        val regex = Regex("<pre><code class=\"language-lua\">([\\s\\S]*?)</code></pre>")
+        html = regex.replace(html) { matchResult ->
+            val escapedCode = matchResult.groupValues[1]
+            // Basic unescape (since Markdown library might have escaped it)
+            val code = escapedCode.replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+
+            "<pre><code>${highlightLuaCode(code)}</code></pre>"
+        }
+
         // Strip <body> and <html> wrappers if present
         return html.removePrefix("<body>").removeSuffix("</body>")
             .removePrefix("<html>").removeSuffix("</html>")

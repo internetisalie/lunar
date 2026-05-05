@@ -137,6 +137,32 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
         }
     }
 
+    @Test
+    fun testMarkdownCodeBlock() {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                configureByText("""
+                    --- This is a code block:
+                    --- ```lua
+                    --- local x = 10
+                    --- ```
+                    function <caret>code_test() end
+                """.trimIndent())
+
+                val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
+                val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
+                val doc = LuaCatsDocumentationRenderer.renderDoc(element!!)
+                println("Markdown Code Block doc:\n$doc")
+
+                assertNotNull(doc)
+                assertContains(doc, "<div class='content'>")
+                assertContains(doc, "local")
+                assertContains(doc, "10")
+                // Verify syntax highlighting is applied
+                assertContains(doc, "<font color=")
+            }
+        }
+    }
     private fun assertContains(text: String, substring: String) {
         assertTrue(text.contains(substring), "Expected to find '$substring' in '$text'")
     }
