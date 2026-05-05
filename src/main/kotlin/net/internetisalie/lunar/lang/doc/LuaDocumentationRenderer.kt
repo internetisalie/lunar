@@ -21,12 +21,12 @@ import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsHighlight
 object LuaDocumentationRenderer {
     val DOC_COMMENT_HEADER = """
             <html>
-                <head>    
+                <head>
                     <style type="text/css">
                         #error {
-                            background-color: #eeeeee;            
-                            margin-bottom: 10px;        
-                        }        
+                            background-color: #eeeeee;
+                            margin-bottom: 10px;
+                        }
                         .body {
                            text-indent: 20px;
                            margin-bottom: 5px;
@@ -37,7 +37,7 @@ object LuaDocumentationRenderer {
             """.trimIndent()
 
     val DOC_COMMENT_FOOTER = """
-                </body>    
+                </body>
             </html>
             """.trimIndent()
 
@@ -115,7 +115,11 @@ object LuaPlainDocumentationRenderer {
 }
 
 fun codeFragment(key: TextAttributesKey, text: String): String {
-    val fontColor = EditorColorsManager.getInstance().globalScheme.getAttributes(key).foregroundColor
+    val attributes = EditorColorsManager.getInstance().globalScheme.getAttributes(key)
+    val fontColor = attributes?.foregroundColor
+    if (fontColor == null) {
+        return HtmlChunk.text(text).toString()
+    }
     val fontHex = "#${GuiUtils.colorToHex(fontColor)}"
     return "<font color=${fontHex}>${HtmlChunk.text(text)}</font>"
 }

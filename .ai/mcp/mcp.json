@@ -10,6 +10,16 @@
         "VNC_PORT": "5900",
         "VNC_PASSWORD": "vncpass"
       }
+    },
+    "saga": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "saga-mcp"
+      ],
+      "env": {
+        "DB_PATH": "/home/mini/Documents/src/lua/lunar.tracker.db"
+      }
     }
   }
 }

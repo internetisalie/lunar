@@ -37,16 +37,35 @@ Documentation is associated with a symbol if the comment block immediately prece
 
 ## 4. Editor Requirements
 
-| ID | Requirement | Priority |
-| :--- | :--- | :---: |
-| `DOC-01-01` | **Popup Trigger** | **M** | Show the documentation popup when the user presses the Quick Documentation shortcut. |
-| `DOC-01-02` | **Rich Text Rendering** | **M** | Render documentation using HTML/Markdown for formatting (bold, italics, code blocks). |
-| `DOC-01-03` | **Symbol Resolution** | **M** | Correctly resolve the symbol at the caret to fetch its documentation. |
-| `DOC-01-04` | **Type Formatting** | **M** | Display types defined in LuaCATS in a readable format. |
-| `DOC-01-05` | **Interactive Links** | **S** | Allow clicking on types or "See Also" symbols to navigate to their definitions or documentation. |
-| `DOC-01-06` | **Inherited Documentation** | **S** | Support displaying documentation inherited from base classes or interfaces. |
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `DOC-01-01` | **Popup Trigger** | **M** | **Done** | Show the documentation popup when the user presses the Quick Documentation shortcut. |
+| `DOC-01-02` | **Rich Text Rendering** | **M** | **Done** | Render documentation using HTML/Markdown for formatting (bold, italics, code blocks). |
+| `DOC-01-03` | **Symbol Resolution** | **M** | **Done** | Correctly resolve the symbol at the caret to fetch its documentation. |
+| `DOC-01-04` | **Type Formatting** | **M** | **Done** | Display types defined in LuaCATS in a readable format. |
+| `DOC-01-05` | **Interactive Links** | **S** | **Done** | Allow clicking on types or "See Also" symbols to navigate to their definitions or documentation. |
+| `DOC-01-06` | **Inherited Documentation** | **S** | **Done** | Support displaying documentation inherited from base classes or interfaces. |
+| `DOC-01-07` | **Modern Layout Redesign** | **M** | **Done** | Implement the modern IntelliJ three-block structure (Definition, Content, Sections) with syntax highlighting, theme colors, and enum support. |
 
-## 5. Examples
+## 5. Modern Layout Redesign (DOC-01-07)
+
+The documentation renderer is being refactored to follow the modern IntelliJ documentation style, consisting of three distinct blocks:
+
+### 5.1 Definition Block
+- A gray-background header containing the symbol signature.
+- Must include syntax highlighting for keywords (`function`, `local`, `class`, `enum`) and type names.
+- Should handle deprecation styling (strikethrough).
+
+### 5.2 Content Block
+- The main description area.
+- Supports Markdown rendering including paragraphs and basic formatting.
+
+### 5.3 Sections Table
+- A structured table for metadata like `@param`, `@return`, and `@field`.
+- Uses standard IntelliJ section headers (e.g., "Parameters:", "Returns:").
+- Supports `@enum` value listings.
+
+## 6. Examples
 
 ### Example: Function Documentation
 ```lua

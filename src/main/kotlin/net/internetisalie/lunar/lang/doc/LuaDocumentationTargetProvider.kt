@@ -12,6 +12,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.createSmartPointer
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
@@ -51,7 +52,7 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         if (reference.binding != null) {
             return findElementDocCommentOwner(reference.binding.element)
         }
-        
+
         // Try cross-file type lookup if binding resolution failed
         val elementText = element.text ?: return null
         val scope = GlobalSearchScope.projectScope(element.project)
@@ -60,25 +61,25 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
     }
 
     private fun findElementDocCommentOwner(element: PsiElement): LuaCatsCommentOwner? {
-        if (element.parent is LuaNameRef
-            && element.parent.parent is LuaFuncName
-            && element.parent.parent.parent is LuaFuncDecl
-        ) {
-            return element.parent.parent.parent as LuaCatsCommentOwner
-        } else if (element.parent is LuaNameRef
-            && element.parent.parent is LuaLocalFuncDecl
-        ) {
-            return element.parent.parent as LuaCatsCommentOwner
-        } else if (element.parent is LuaNameRef
-            && element.parent.parent is LuaLocalVarDecl
-        ) {
-            val localVar = element.parent.parent as LuaLocalVarDecl
-            val catsComment = localVar.catsComment
-            if (catsComment != null && (catsComment.classTagList.isNotEmpty() || catsComment.typeTagList.isNotEmpty())) {
-                return localVar as LuaCatsCommentOwner
+        val owner = PsiTreeUtil.getParentOfType(element, LuaCatsCommentOwner::class.java) ?: return null
+
+        return when (owner) {
+            is LuaFuncDecl -> owner
+            is LuaLocalFuncDecl -> owner
+            is LuaLocalVarDecl -> {
+                val catsComment = owner.catsComment
+                if (catsComment != null && (
+                    catsComment.classTagList.isNotEmpty() ||
+                    catsComment.typeTagList.isNotEmpty() ||
+                    catsComment.enumTagList.isNotEmpty())
+                ) {
+                    owner
+                } else {
+                    null
+                }
             }
+            else -> null
         }
-        return null
     }
 }
 

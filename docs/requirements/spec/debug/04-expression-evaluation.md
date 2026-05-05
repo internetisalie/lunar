@@ -27,7 +27,7 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
 
 ### Functional Requirements
 
-#### FR-01: Expression Parsing
+#### DEBUG-04-01: Expression Parsing
 - Parse and validate Lua expressions entered by the user
 - Support all Lua expression types:
   - Literals: `42`, `"hello"`, `true`, `nil`, `{1,2,3}`
@@ -39,7 +39,7 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
   - Inline tables: `{a=1, b=2}`
 - Reject invalid syntax with clear error messages
 
-#### FR-02: Expression Mode
+#### DEBUG-04-02: Expression Mode
 - When user enters an expression (without assignment), wrap it with `return` keyword
 - Execute: `return <user_input>`
 - Examples:
@@ -47,7 +47,7 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
   - User: `t.field` → Execute: `return t.field`
   - User: `math.max(1, 2)` → Execute: `return math.max(1, 2)`
 
-#### FR-03: Statement Mode
+#### DEBUG-04-03: Statement Mode
 - Allow raw Lua statements (assignments, loops, conditionals)
 - Execute exactly as entered: `<user_input>`
 - Useful for complex debugging scenarios
@@ -56,7 +56,7 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
   - User: `x = 10; return x` → Execute as-is
   - User: `for i=1,3 do print(i) end` → Execute as-is
 
-#### FR-04: Result Parsing
+#### DEBUG-04-04: Result Parsing
 - Parse Mobdebug response format for evaluated expressions
 - Convert Mobdebug value table to `LuaDebugValue` instances
 - Extract value, type, and display representation
@@ -69,7 +69,7 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
   - Userdata: `userdata: 0x...`
   - C function: `cfunction: 0x...`
 
-#### FR-05: Context-Aware Expression Range Detection
+#### DEBUG-04-05: Context-Aware Expression Range Detection
 - Identify evaluable expressions at cursor position in editor
 - Use IntelliJ's `XDebuggerUtil.findContextElement()` to locate PSI element
 - Walk up PSI tree to find complete expression
@@ -77,7 +77,7 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
 - Handle multi-line expressions
 - Respect `sideEffectsAllowed` flag to avoid mutations during hover evaluation
 
-#### FR-06: Error Handling
+#### DEBUG-04-06: Error Handling
 - Return meaningful error messages:
   - Syntax errors: `"Syntax error: unexpected token"`
   - Runtime errors: `"attempt to call nil value"`
@@ -85,7 +85,7 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
 - Display errors in IntelliJ's evaluation UI without crashing
 - Log unexpected errors for debugging plugin issues
 
-#### FR-07: Timeout & Cancellation
+#### DEBUG-04-07: Timeout & Cancellation
 - Set timeout for evaluation (suggest 5 seconds)
 - Allow user cancellation of long-running evaluations
 - Return appropriate error message if timeout exceeded
@@ -93,17 +93,17 @@ Expression Evaluation allows developers to evaluate arbitrary Lua expressions an
 
 ### Non-Functional Requirements
 
-#### NFR-01: Performance
+#### DEBUG-04-08: Performance
 - Expression evaluation should complete within 500ms for typical expressions
 - Large table introspection may take up to 5 seconds
 - Parsing and validation should be sub-100ms
 
-#### NFR-02: Reliability
+#### DEBUG-04-09: Reliability
 - Handle malformed Mobdebug responses gracefully
 - Never crash the debugger on evaluation error
 - Recover cleanly from interrupted connections
 
-#### NFR-03: User Experience
+#### DEBUG-04-10: User Experience
 - Show visual feedback during evaluation (loading spinner)
 - Display results in familiar IntelliJ formats (inline watch, debug panel)
 - Support inline evaluation preview on hover

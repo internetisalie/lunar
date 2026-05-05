@@ -17,9 +17,13 @@ object LuaDocSummary {
 
 object LuaCatsSummary {
     fun getText(comment : LuaCatsComment) : String? {
-        var next : PsiElement = comment.firstChild ?: return null
+        var first = comment.firstChild ?: return null
+        if (first.elementType == LuaCatsElementTypes.COMMENT) {
+            first = first.firstChild ?: return null
+        }
+        var next : PsiElement? = first
         val lines = mutableListOf<String>()
-        while (true) {
+        while (next != null) {
             when {
                 next is PsiWhiteSpace -> { next = next.nextSibling }
                 next.elementType == LuaCatsElementTypes.DASHES -> {
@@ -34,12 +38,12 @@ object LuaCatsSummary {
                     val line = " ".repeat(leadingSpace) + description.text
                     lines.add(line)
 
-                    next = next.nextSibling ?: break
+                    next = next.nextSibling
                 }
                 else -> break
             }
         }
-        return lines.joinToString("\n").trimIndent()
+        return if (lines.isEmpty()) null else lines.joinToString("\n").trimIndent()
     }
 }
 
