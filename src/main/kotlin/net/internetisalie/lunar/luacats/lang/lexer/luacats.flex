@@ -128,6 +128,7 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     {NAME}                  { return LCATS_NAME; }
     {PLUS}|{MINUS}          { return LCATS_SYMBOL; }
     {TYPES}                 { return LCATS_SYMBOL; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_CLASS> {
@@ -147,11 +148,13 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     {DIAGNOSTIC}            { return LCATS_NAME; }
     {COLON}                 { return LCATS_SYMBOL; }
     {COMMA}                 { return LCATS_SYMBOL; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_ENUM> {
     "(key)"                 { return LCATS_KEYWORD; }
     {NAME}                  { return LCATS_NAME; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_FIELD> {
@@ -165,11 +168,13 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
 
 <TAG_META> {
     {NAME}                  { return LCATS_NAME; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_MODULE> {
     {STRINGS}               { return LCATS_STRING; }
     {STRINGD}               { return LCATS_STRING; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_OPERATOR> {
@@ -205,10 +210,12 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     {NAME}                  { return LCATS_NAME; }
     {PERIOD}                { return LCATS_SYMBOL; }
     {COLON}                 { return LCATS_SYMBOL; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_SOURCE> {
     {NOT_WHITESPACE}+       { return LCATS_STRING; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_TYPE> {
@@ -219,6 +226,7 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     {STRINGD}               { return LCATS_STRING; }
     {STRINGS}               { return LCATS_STRING; }
     {TYPES}                 { return LCATS_SYMBOL; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <TAG_VERSION> {
@@ -227,6 +235,7 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     {COMMA}                 { return LCATS_SYMBOL; }
     {PIPE}                  { return LCATS_SYMBOL; }
     {STRINGV}               { return LCATS_STRING; }
+    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
 <OPTION> {
