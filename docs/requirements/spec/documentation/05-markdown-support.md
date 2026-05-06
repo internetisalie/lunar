@@ -36,12 +36,12 @@ The following CommonMark-compatible features should be supported:
 
 ## 3. Editor Requirements
 
-| ID | Requirement | Priority |
-| :--- | :--- | :---: |
-| `DOC-05-01` | **Markdown Rendering** | **M** | Correctly parse and render Markdown syntax in the Quick Documentation popup. |
-| `DOC-05-02` | **Syntax Highlighting in Code Blocks** | **S** | Provide syntax highlighting for Lua code blocks within documentation. |
-| `DOC-05-03` | **Escape Character Support** | **M** | Correctly handle escaped characters (e.g., `\@param` should not be treated as a tag). |
-| `DOC-05-04` | **Paragraph Handling** | **M** | Properly preserve line breaks and paragraphs as defined in Markdown. |
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `DOC-05-01` | **Markdown Rendering** | **M** | **Full** | Correctly parse and render Markdown syntax in the Quick Documentation popup. |
+| `DOC-05-02` | **Syntax Highlighting in Code Blocks** | **S** | **Full** | Provide syntax highlighting for Lua code blocks within documentation. |
+| `DOC-05-03` | **Escape Character Support** | **M** | **Full** | Correctly handle escaped characters (e.g., `\@param` should not be treated as a tag). |
+| `DOC-05-04` | **Paragraph Handling** | **M** | **Full** | Properly preserve line breaks and paragraphs as defined in Markdown. |
 
 ## 4. Examples
 

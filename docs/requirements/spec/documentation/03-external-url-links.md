@@ -22,13 +22,13 @@ The `@see` tag can be used to point to an external resource.
 
 ## 3. Editor Requirements
 
-| ID | Requirement | Priority |
-| :--- | :--- | :---: |
-| `DOC-03-01` | **URL Detection** | **M** | Identify URLs within Lua comments and Quick Doc popups. |
-| `DOC-03-02` | **Clickable Links** | **M** | Render URLs as clickable hyperlinks in the Quick Documentation popup. |
-| `DOC-03-03` | **Default Browser Integration** | **M** | Open the system's default web browser when a link is clicked. |
-| `DOC-03-04` | **Markdown Link Rendering** | **S** | Support `[label](url)` syntax for descriptive links. |
-| `DOC-03-05` | **Lua Standard Library Links** | **S** | Provide automatic links to the official Lua manual for standard library functions (e.g., `print`, `table.insert`). |
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `DOC-03-01` | **URL Detection** | **M** | **Full** | Identify URLs within Lua comments and Quick Doc popups. |
+| `DOC-03-02` | **Clickable Links** | **M** | **Full** | Render URLs as clickable hyperlinks in the Quick Documentation popup. |
+| `DOC-03-03` | **Default Browser Integration** | **M** | **Full** | Open the system's default web browser when a link is clicked. |
+| `DOC-03-04` | **Markdown Link Rendering** | **S** | **Full** | Support `[label](url)` syntax for descriptive links. |
+| `DOC-03-05` | **Lua Standard Library Links** | **S** | **Full** | Provide automatic links to the official Lua manual for standard library functions (e.g., `print`, `table.insert`). |
 
 ## 4. Examples
 

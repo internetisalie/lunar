@@ -100,10 +100,6 @@ internal class LuaCatsDocumentationTarget(
         return targetPresentation(element)
     }
 
-    override fun computeDocumentationHint(): String? {
-        return LuaDocumentationRenderer.renderHintDocumentation(element)
-    }
-
     override val navigatable: Navigatable?
         get() = element as? Navigatable
 

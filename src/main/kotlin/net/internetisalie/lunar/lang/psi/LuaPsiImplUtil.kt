@@ -41,7 +41,15 @@ object LuaPsiImplUtil {
     @JvmStatic
     fun getComment(owner: LuaCommentOwner?): PsiComment? {
         if (owner !is PsiElement) return null
-        return owner.prevSiblingSkipWhitespace()
+
+        var current: PsiElement? = owner
+        while (current != null && current !is LuaFile) {
+            val comment = current.prevSiblingSkipWhitespaceOnly<PsiComment>()
+            if (comment != null && comment !is LuaCatsComment) return comment
+            current = current.parent
+        }
+
+        return null
     }
 
     @JvmStatic
@@ -66,6 +74,14 @@ object LuaPsiImplUtil {
 inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipWhitespace(): T? {
     var prev = prevSibling
     while (prev is PsiWhiteSpace || (prev is PsiComment && prev !is LuaCatsComment)) {
+        prev = prev.prevSibling
+    }
+    return prev as? T
+}
+
+inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipWhitespaceOnly(): T? {
+    var prev = prevSibling
+    while (prev is PsiWhiteSpace) {
         prev = prev.prevSibling
     }
     return prev as? T

@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.ui.GuiUtils
 import net.internetisalie.lunar.lang.psi.LuaCommentOwner
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
@@ -16,7 +17,11 @@ import net.internetisalie.lunar.lang.psi.types.LuaPrimitiveType
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 import net.internetisalie.lunar.lang.syntax.extractLuaComment
 import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDocumentationRenderer
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsHighlight
+import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.MarkdownParser
 
 object LuaDocumentationRenderer {
     val DOC_COMMENT_HEADER = """
@@ -47,13 +52,18 @@ object LuaDocumentationRenderer {
 
     // Render the full documentation for the specified element.
     fun renderFullDocumentation(element: PsiElement): String? {
-        val sb = StringBuilder()
-        sb.append(DOC_COMMENT_HEADER)
+        val sbContent = StringBuilder()
         if (element is LuaCommentOwner) {
-            renderCommentOwnerDocumentation(sb, element)
+            renderCommentOwnerDocumentation(sbContent, element)
         }
-        sb.append(DOC_COMMENT_FOOTER)
-        return sb.toString()
+
+        if (sbContent.isEmpty()) return null
+
+        return buildString {
+            append(DOC_COMMENT_HEADER)
+            append(sbContent)
+            append(DOC_COMMENT_FOOTER)
+        }
     }
 
     fun renderCommentOwnerDocumentation(sb: StringBuilder, element: LuaCommentOwner) {
@@ -70,7 +80,49 @@ object LuaDocumentationRenderer {
         }
     }
 
+    fun highlightLuaCode(code: String): String {
+        val lexer = net.internetisalie.lunar.lang.lexer.LuaLexer()
+        lexer.start(code)
+        val highlighter = net.internetisalie.lunar.lang.syntax.LuaSyntaxHighlighter()
+        val sb = StringBuilder()
+        while (lexer.tokenType != null) {
+            val tokenType = lexer.tokenType!!
+            val tokenText = code.substring(lexer.tokenStart, lexer.tokenEnd)
+            val highlights = highlighter.getTokenHighlights(tokenType)
+            if (highlights.isNotEmpty()) {
+                sb.append(codeFragment(highlights[0], tokenText))
+            } else {
+                sb.append(HtmlChunk.text(tokenText))
+            }
+            lexer.advance()
+        }
+        return sb.toString()
+    }
 
+    fun markdownDescription(markdown: String): String {
+        val flavour = GFMFlavourDescriptor()
+        val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
+        var html = HtmlGenerator(markdown, parsedTree, flavour).generateHtml()
+
+        // Post-process to highlight Lua code blocks
+        val regex = Regex("<pre><code class=\"language-lua\">([\\s\\S]*?)</code></pre>")
+        html = regex.replace(html) { matchResult ->
+            val escapedCode = matchResult.groupValues[1]
+            // Basic unescape (since Markdown library might have escaped it)
+            val code = escapedCode.replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+
+            "<pre><code>${highlightLuaCode(code)}</code></pre>"
+        }
+
+        // Strip <body> and <html> wrappers if present
+        return html.removePrefix("<body>").removeSuffix("</body>")
+            .removePrefix("<html>").removeSuffix("</html>")
+            .trim()
+    }
 }
 
 object LuaPlainDocumentationRenderer {
@@ -101,9 +153,29 @@ object LuaPlainDocumentationRenderer {
     }
 
     private fun renderComment(sb: StringBuilder, comment: PsiComment) {
-        val text = extractLuaComment(comment.text ?: return)
+        val comments = mutableListOf<PsiComment>()
+        var curr: PsiElement? = comment
+
+        // Walk backwards to find the first contiguous comment
+        while (curr is PsiComment && curr !is LuaCatsComment) {
+            comments.add(0, curr)
+            var prev = curr.prevSibling
+            var hasBlankLine = false
+            while (prev is PsiWhiteSpace) {
+                if (prev.text.count { it == '\n' } > 1) {
+                    hasBlankLine = true
+                    break
+                }
+                prev = prev.prevSibling
+            }
+            if (hasBlankLine) break
+            curr = prev
+        }
+
+        val fullText = comments.joinToString("\n") { it.text }
+        val text = extractLuaComment(fullText)
         sb.append("<hr size=1>\n")
-        sb.append(text)
+        sb.append(LuaDocumentationRenderer.markdownDescription(text))
     }
 
     private fun renderLuaParList(sb: StringBuilder, element: LuaParList?) {

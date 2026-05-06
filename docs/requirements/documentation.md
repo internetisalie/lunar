@@ -6,9 +6,9 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 | :--- | :--- | :---: | :--- |
 | [`DOC-01`](spec/documentation/01-quick-documentation.md) | **Quick Documentation (Ctrl+Q)** | **M** | Display formatted documentation in a popup for any symbol at the caret, including types, parameter descriptions, and interactive type links with class inheritance support. |
 | [`DOC-02`](spec/documentation/02-luacats-highlighting.md) | **LuaCATS Syntax Highlighting** | **M** | **Full** | Provide highlighting for tags (`@param`, `@class`, etc.) and types within Lua comments. |
-| [`DOC-03`](spec/documentation/03-external-url-links.md) | **External URL Links** | **S** | Support linking to external documentation (e.g., standard Lua docs) within the Quick Doc popup. |
+| [`DOC-03`](spec/documentation/03-external-url-links.md) | **External URL Links** | **S** | **Full** | Support linking to external documentation (e.g., standard Lua docs) within the Quick Doc popup. |
 | [`DOC-04`](spec/documentation/04-documentation-generation.md) | **Documentation Generation** | **C** | **Full** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
-| [`DOC-05`](spec/documentation/05-markdown-support.md) | **Markdown Support** | **S** | Support Markdown formatting within Lua comments for rich documentation rendering. |
+| [`DOC-05`](spec/documentation/05-markdown-support.md) | **Markdown Support** | **S** | **Full** | Support Markdown formatting within Lua comments for rich documentation rendering. |
 | [`DOC-06`](spec/documentation/06-documentation-indexing.md) | **Documentation Indexing** | **S** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. Class, alias, and function names are now stub-indexed with LuaCATS metadata. |
 | [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+P`). |
 | [`DOC-08`](spec/documentation/08-luacats-annotation-parsing.md) | **Comprehensive LuaCATS Parsing** | **M** | All 19 LuaCATS tags, complex types, and multi-line support fully implemented and tested (18/18 tests passing). |
@@ -41,13 +41,13 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 
 ### DOC-03: External URL Links
 
-| ID | Requirement | Implementation |
-| :--- | :--- | :--- |
-| `DOC-03-01` | URL Detection | Via Markdown parser |
-| `DOC-03-02` | Clickable Links | — |
-| `DOC-03-03` | Default Browser Integration | — |
-| `DOC-03-04` | Markdown Link Rendering | — |
-| `DOC-03-05` | Lua Standard Library Links | — |
+| ID | Requirement | Implementation | Status |
+| :--- | :--- | :--- | :--- |
+| `DOC-03-01` | URL Detection | Via GFM autolinks and `@see` tag combining | **Full** |
+| `DOC-03-02` | Clickable Links | Rendered as `<a href>` tags | **Full** |
+| `DOC-03-03` | Default Browser Integration | Handled by IntelliJ Platform for non-PSI links | **Full** |
+| `DOC-03-04` | Markdown Link Rendering | Supported via GFM flavour | **Full** |
+| `DOC-03-05` | Lua Standard Library Links | `buildStdlibSection` generates links to lua.org | **Full** |
 
 ### DOC-04: Documentation Generation
 
@@ -61,12 +61,12 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 
 ### DOC-05: Markdown Support
 
-| ID | Requirement | Implementation |
-| :--- | :--- | :--- |
-| `DOC-05-01` | Markdown Rendering | `org.intellij.markdown` |
-| `DOC-05-02` | Syntax Highlighting in Code Blocks | — |
-| `DOC-05-03` | Escape Character Support | — |
-| `DOC-05-04` | Paragraph Handling | — |
+| ID | Requirement | Implementation | Status |
+| :--- | :--- | :--- | :--- |
+| `DOC-05-01` | Markdown Rendering | `org.intellij.markdown` | **Full** |
+| `DOC-05-02` | Syntax Highlighting in Code Blocks | `LuaDocumentationRenderer.highlightLuaCode` | **Full** |
+| `DOC-05-03` | Escape Character Support | Supported via Markdown parser | **Full** |
+| `DOC-05-04` | Paragraph Handling | Supported via Markdown parser | **Full** |
 
 ### DOC-06: Documentation Indexing
 

@@ -30,7 +30,11 @@ object LuaCatsSummary {
                     val dashes = next
                     next = next.nextSibling ?: break
                     if (next is PsiWhiteSpace) {
-                        if (next.text == "\n") continue
+                        if (next.text == "\n") {
+                            lines.add("")
+                            next = next.nextSibling
+                            continue
+                        }
                         next = next.nextSibling ?: break
                     }
                     val description = next as? LuaCatsDescription ?: break

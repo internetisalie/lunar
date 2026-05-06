@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import net.internetisalie.lunar.lang.doc.LuaDocumentationRenderer
 import net.internetisalie.lunar.lang.doc.buildTypeLink
 import net.internetisalie.lunar.lang.doc.codeFragment
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
@@ -12,9 +13,6 @@ import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 import net.internetisalie.lunar.luacats.lang.psi.*
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
-import org.intellij.markdown.html.HtmlGenerator
-import org.intellij.markdown.parser.MarkdownParser
 
 object LuaCatsDocumentationRenderer {
     // Three-block structure constants
@@ -232,7 +230,7 @@ object LuaCatsDocumentationRenderer {
     private fun buildContentBlock(comment: LuaCatsComment): String {
         val summary = LuaCatsSummary.getText(comment) ?: ""
         return if (summary.isNotEmpty()) {
-            markdownDescription(summary)
+            LuaDocumentationRenderer.markdownDescription(summary)
         } else {
             ""
         }
@@ -256,9 +254,33 @@ object LuaCatsDocumentationRenderer {
         }
 
         buildSeeSection(comment, sb)
+        buildStdlibSection(element, sb)
         buildDeprecatedSection(comment, sb)
 
         return sb.toString()
+    }
+
+    private fun buildStdlibSection(element: PsiElement, sb: StringBuilder) {
+        val virtualFile = element.containingFile.virtualFile ?: return
+        val path = virtualFile.path
+        if (!path.contains("platform/Lua")) return
+
+        val funcName = when (element) {
+            is LuaFuncDecl -> element.funcName.text
+            is LuaLocalFuncDecl -> element.nameRef.text
+            else -> return
+        }
+
+        val project = element.project
+        val languageLevel = net.internetisalie.lunar.settings.LuaProjectSettings.getInstance(project).state.languageLevel
+        val version = languageLevel.version
+
+        // Handle special cases for URLs if any
+        val manualUrl = "https://www.lua.org/manual/$version/manual.html#pdf-$funcName"
+
+        buildSectionHeader("Manual:", sb)
+        sb.append("<p><a href=\"").append(manualUrl).append("\">").append(funcName).append("</a></p>")
+        sb.append(SECTION_END)
     }
 
     private fun buildSectionHeader(title: String, sb: StringBuilder) {
@@ -280,7 +302,7 @@ object LuaCatsDocumentationRenderer {
             sb.append("<p><code>").append(name).append("</code>")
             sb.append(" <span style='color: #808080;'>(").append(buildTypeLink(type)).append(")</span>")
             if (desc.isNotEmpty()) {
-                sb.append(" - ").append(markdownDescription(desc))
+                sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(desc))
             }
             sb.append("</p>")
         }
@@ -302,7 +324,7 @@ object LuaCatsDocumentationRenderer {
                 sb.append(" <code>").append(name).append("</code>")
             }
             if (desc.isNotEmpty()) {
-                sb.append(" - ").append(markdownDescription(desc))
+                sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(desc))
             }
             sb.append("</p>")
         }
@@ -343,7 +365,7 @@ object LuaCatsDocumentationRenderer {
         sb.append("<p><code>").append(name).append("</code>")
         sb.append(" <span style='color: #808080;'>(").append(buildTypeLink(type)).append(")</span>")
         if (tag.description != null) {
-            sb.append(" - ").append(markdownDescription(tag.description!!.text))
+            sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(tag.description!!.text))
         }
         sb.append("</p>")
     }
@@ -363,7 +385,7 @@ object LuaCatsDocumentationRenderer {
 
             sb.append("<p><code>").append(type).append("</code>")
             if (desc.isNotEmpty()) {
-                sb.append(" - ").append(markdownDescription(desc))
+                sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(desc))
             }
             sb.append("</p>")
         }
@@ -376,8 +398,27 @@ object LuaCatsDocumentationRenderer {
 
         buildSectionHeader("See Also:", sb)
         tags.forEach { tag ->
-            val reference = tag.argName.text ?: ""
-            sb.append("<p><code>").append(reference).append("</code></p>")
+            val reference = tag.argName.text
+            val description = tag.description?.text ?: ""
+            val fullText = (reference + description).trim()
+
+            // Try to extract URL from the start
+            val urlMatch = Regex("^(https?://[^\\s]+)(.*)$").find(fullText)
+            if (urlMatch != null) {
+                val url = urlMatch.groupValues[1]
+                val remainingDesc = urlMatch.groupValues[2].trim()
+                sb.append("<p><a href=\"").append(url).append("\">").append(url).append("</a>")
+                if (remainingDesc.isNotEmpty()) {
+                    sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(remainingDesc))
+                }
+                sb.append("</p>")
+            } else {
+                sb.append("<p><code>").append(reference).append("</code>")
+                if (description.isNotEmpty()) {
+                    sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(description.trim()))
+                }
+                sb.append("</p>")
+            }
         }
         sb.append(SECTION_END)
     }
@@ -386,7 +427,7 @@ object LuaCatsDocumentationRenderer {
 
         buildSectionHeader("<span style='color: #FF6B68;'>⚠ Deprecated:</span>", sb)
         val desc = tag.description?.text ?: "This item is deprecated"
-        sb.append("<p>").append(markdownDescription(desc)).append("</p>")
+        sb.append("<p>").append(LuaDocumentationRenderer.markdownDescription(desc)).append("</p>")
         sb.append(SECTION_END)
     }
 
@@ -394,49 +435,5 @@ object LuaCatsDocumentationRenderer {
         val scope = GlobalSearchScope.projectScope(project)
         val parentDecl = StubIndex.getElements(LuaClassNameIndex.KEY, parentTypeName, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
         return parentDecl?.catsComment
-    }
-
-    private fun highlightLuaCode(code: String): String {
-        val lexer = net.internetisalie.lunar.lang.lexer.LuaLexer()
-        lexer.start(code)
-        val highlighter = net.internetisalie.lunar.lang.syntax.LuaSyntaxHighlighter()
-        val sb = StringBuilder()
-        while (lexer.tokenType != null) {
-            val tokenType = lexer.tokenType!!
-            val tokenText = code.substring(lexer.tokenStart, lexer.tokenEnd)
-            val highlights = highlighter.getTokenHighlights(tokenType)
-            if (highlights.isNotEmpty()) {
-                sb.append(codeFragment(highlights[0], tokenText))
-            } else {
-                sb.append(com.intellij.openapi.util.text.HtmlChunk.text(tokenText))
-            }
-            lexer.advance()
-        }
-        return sb.toString()
-    }
-
-    private fun markdownDescription(markdown: String): String {
-        val flavour = CommonMarkFlavourDescriptor()
-        val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
-        var html = HtmlGenerator(markdown, parsedTree, flavour).generateHtml()
-
-        // Post-process to highlight Lua code blocks
-        val regex = Regex("<pre><code class=\"language-lua\">([\\s\\S]*?)</code></pre>")
-        html = regex.replace(html) { matchResult ->
-            val escapedCode = matchResult.groupValues[1]
-            // Basic unescape (since Markdown library might have escaped it)
-            val code = escapedCode.replace("&quot;", "\"")
-                .replace("&apos;", "'")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&amp;", "&")
-
-            "<pre><code>${highlightLuaCode(code)}</code></pre>"
-        }
-
-        // Strip <body> and <html> wrappers if present
-        return html.removePrefix("<body>").removeSuffix("</body>")
-            .removePrefix("<html>").removeSuffix("</html>")
-            .trim()
     }
 }
