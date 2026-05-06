@@ -37,6 +37,7 @@ Formulate a plan and execute it surgically.
 Ensure the feature is robust and maintainable.
 - **Task**: Run all relevant project tests (e.g., `./gradlew test`).
 - **Linter**: Run project-specific quality checks (e.g., `./gradlew ktlintCheck`).
+- **Exceptions**: Review the idea.log after a user verification session, checking for any unexpected exceptions, errors, or output.
 - **Refinement**: Review your own implementation. Look for:
   - Opportunities for abstraction.
   - Performance bottlenecks.

@@ -2,13 +2,16 @@ package net.internetisalie.lunar.lang.format
 
 import com.intellij.codeInsight.editorActions.enter.EnterHandlerDelegate
 import com.intellij.codeInsight.editorActions.enter.EnterHandlerDelegate.Result
+import com.intellij.codeInsight.template.TemplateManager
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler
 import com.intellij.psi.PsiFile
-import net.internetisalie.lunar.lang.psi.LuaFile
+import com.intellij.psi.util.PsiTreeUtil
+import net.internetisalie.lunar.lang.insight.LuaDocGenerator
+import net.internetisalie.lunar.lang.psi.*
 
 class LuaEnterHandlerDelegate : EnterHandlerDelegate {
 
@@ -77,6 +80,26 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
         // (this happens when Enter was pressed mid-line)
         if (currentLineText.isNotEmpty()) {
             return Result.Continue
+        }
+
+        // DOC-04: If previous line was exactly "---", try to generate boilerplate
+        if (prevLineTrimmed == "---") {
+            var leaf = file.findElementAt(currentLineEnd)
+            while (leaf != null && (leaf is com.intellij.psi.PsiWhiteSpace || leaf is com.intellij.psi.PsiComment)) {
+                leaf = PsiTreeUtil.nextLeaf(leaf)
+            }
+
+            val target = PsiTreeUtil.getNonStrictParentOfType(leaf, LuaCommentOwner::class.java)
+            if (target != null && LuaDocGenerator.isDocCommentEmpty(target.catsComment)) {
+                val template = LuaDocGenerator.createTemplate(file.project, target, prevLineIndent)
+                if (template != null) {
+                    val endOffset = if (line < document.lineCount - 1) document.getLineStartOffset(line + 1) else document.textLength
+                    document.deleteString(prevLineStart, endOffset)
+                    editor.caretModel.moveToOffset(prevLineStart)
+                    TemplateManager.getInstance(file.project).startTemplate(editor, template)
+                    return Result.Stop
+                }
+            }
         }
 
         // Auto-continue: Insert the prefix "--- " on the new line

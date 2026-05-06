@@ -26,10 +26,12 @@
 <luadoc>--- External Documentation URL (shift-F1)</luadoc>
 <luadoc>-- This is called by shift-F1 on the symbol, or by the</luadoc>
 <luadoc>-- external documentation button on the quick help panel</luadoc>
-<luadoc>-- <luadoc-tag>@class</luadoc-tag> <luadoc-value>tag-name</luadoc-value> The name to get documentation for.</luadoc>
-<luadoc>-- <luadoc-tag>@param</luadoc-tag> <parameter>name</parameter> The name to get documentation for.</luadoc>
-<luadoc>-- <luadoc-tag>@return</luadoc-tag> the URL of the external documentation</luadoc>
-        function <global>getDocumentationUrl</global>(<parameter>name</parameter>)
+<luadoc>-- <luacats-tag>@class</luacats-tag> <luacats-name>Player</luacats-name></luadoc>
+<luadoc>-- <luacats-tag>@field</luacats-tag> <luacats-name>name</luacats-name> <luacats-type>string</luacats-type></luadoc>
+<luadoc>-- <luacats-tag>@param</luadoc-tag> <luacats-name>id</luacats-name> <luacats-type>number</luacats-type> The ID</luadoc>
+<luadoc>-- <luacats-tag>@return</luacats-tag> <luacats-type>Player</luacats-type></luadoc>
+<luadoc>-- <luacats-tag>@deprecated</luacats-tag> Use something else</luadoc>
+        function <func-global>getDocumentationUrl</func-global>(<parameter>name</parameter>)
         local <local>p1</local>, <local>p2</local> = <global>string</global>.<field>match</field>(<parameter>name</parameter>, "(%a+)\.?(%a*)")
         local <local>url</local> = <global>BASE_URL</global> .. "/docs/api/" .. <local>p1</local> .. <string-brackets>[[</string-brackets>long string<string-brackets>]]</string-brackets>
 

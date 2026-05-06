@@ -37,70 +37,72 @@ import javax.swing.Icon
 class LuaColorSettingsPage : ColorSettingsPage {
     private val demoText: String = """
         <call-platform>require</call-platform> "os"
-                             
-        <global>a</global> = { 
-            <global>foo</global>.<field>bar</field>,  
-            <global>foo</global>.<field>bar</field>(), 
-            <global>fx</global>(), 
-            <field>f</field> = <global>a</global>, 
-            1,  
-            <global>FOO</global> 
-        } -- url http://www.url.com 
-        
+
+        <global>a</global> = {
+            <global>foo</global>.<field>bar</field>,
+            <global>foo</global>.<field>bar</field>(),
+            <global>fx</global>(),
+            <field>f</field> = <global>a</global>,
+            1,
+            <global>FOO</global>
+        } -- url http://www.url.com
+
         local <local>x</local>,<local>y&lt;<attrib-name>const</attrib-name>&gt;</local> = 20,nil
         for <local>i</local>=1,10 do
           local <local>y</local> = 0
-          <global>a</global>[<local>i</local>] = function() 
+          <global>a</global>[<local>i</local>] = function()
             <local><upval>y</upval></local>=<local><upval>y</upval></local>+1; return <local><upval>x</upval></local>+<local>y</local>
           end
         end
-        
+
         <package>os</package>.<call-platform>getenv</call-platform>("VARNAME")
-         
+
         <comment-brackets>--[[</comment-brackets>   Multiline
           Comment
         <comment-brackets>]]</comment-brackets>
-         
+
         <documentation>--- Documentation using LuaCats format (shift-F1)</documentation>
         <documentation>-- This is called by shift-F1 on the symbol, or by the</documentation>
         <documentation>-- external documentation button on the quick help panel</documentation>
-        <documentation>-- <documentation-tag>@class</documentation-tag> <documentation-value>tag-name</documentation-value> The name to get documentation for.</documentation>
-        <documentation>-- <documentation-tag>@param</documentation-tag> <parameter>name</parameter> The name to get documentation for.</documentation>
-        <documentation>-- <documentation-tag>@return</documentation-tag> the URL of the external documentation</documentation>
-        function <global>getDocumentationUrl</global>(<parameter>name</parameter>) 
+        <documentation>-- <luacats-tag>@class</luacats-tag> <luacats-name>Player</luacats-name></documentation>
+        <documentation>-- <luacats-tag>@field</luacats-tag> <luacats-name>name</luacats-name> <luacats-type>string</luacats-type></documentation>
+        <documentation>-- <luacats-tag>@param</luacats-tag> <luacats-name>id</luacats-name> <luacats-type>number</luacats-type> The ID</documentation>
+        <documentation>-- <luacats-tag>@return</luacats-tag> <luacats-type>Player</luacats-type></documentation>
+        <documentation>-- <luacats-tag>@deprecated</luacats-tag> Use something else</documentation>
+        function <func-global>getDocumentationUrl</func-global>(<parameter>name</parameter>)
           local <local>p1</local>, <local>p2</local> = <global>string</global>.<field>match</field>(<parameter>name</parameter>, "(%a+)\.?(%a*)")
           local <local>url</local> = <global>BASE_URL</global> .. "/docs/api/" .. <local>p1</local> .. <string-brackets>[[</string-brackets>long string<string-brackets>]]</string-brackets>
-        
+
           if <local>p2</local> and true then <local>url</local> = <local>url</local> .. <local>p2</local>; end
-        
+
           function() local <local>upval_parameter</local> = <parameter><upval>name</upval></parameter> end
-        
+
           <local><upval>x</upval></local>, <local><upval>y</upval></local> = <local>p1</local>, <local>p2</local>
-        
+
           return <local>url</local>
         end
-        
+
         -- Some comment
         function <func-global>globalFunction</func-global>(<parameter>name</parameter>)
           return "two"
         end
-        
+
         <call-global>globalFunction</call-global>("one")
-        
+
         if true then
             local function <func-local>localFunction</func-local>(<parameter>name</parameter>)
                 return "four"
             end
             <call-local>localFunction</call-local>("three")
-            
+
             local <local>globalFunction</local>
         end
-        
+
         <label>::here::</label>
-        if false then 
+        if false then
             goto <label>here</label>
         end
-        
+
         <global>a</global> = "BAD
         """
 
@@ -129,6 +131,8 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.luacats.type", LuaCatsHighlight.TYPE),
         Pair("color.luacats.name", LuaCatsHighlight.NAME),
         Pair("color.luacats.symbol", LuaCatsHighlight.SYMBOL),
+        Pair("color.luacats.brackets", LuaCatsHighlight.BRACKETS),
+        Pair("color.luacats.deprecated", LuaCatsHighlight.DEPRECATED),
         // Identifiers
         Pair("color.platform", LuaHighlight.VAR_PLATFORM),
         Pair("color.globals", LuaHighlight.VAR_GLOBAL),
@@ -178,6 +182,12 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("documentation", LuaHighlight.DOC_COMMENT),
         Pair("documentation-tag", LuaHighlight.DOC_TAG),
         Pair("documentation-value", LuaHighlight.DOC_VALUE),
+        Pair("luacats-tag", LuaCatsHighlight.TAG),
+        Pair("luacats-name", LuaCatsHighlight.NAME),
+        Pair("luacats-type", LuaCatsHighlight.TYPE),
+        Pair("luacats-keyword", LuaCatsHighlight.KEYWORD),
+        Pair("luacats-value", LuaCatsHighlight.VALUE),
+        Pair("luacats-symbol", LuaCatsHighlight.SYMBOL),
         Pair("string-brackets", LuaHighlight.LONGSTRING_BRACES),
         Pair("comment-brackets", LuaHighlight.LONGCOMMENT_BRACES),
     )

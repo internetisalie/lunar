@@ -35,14 +35,14 @@ Punctuation used in type definitions.
 
 ## 3. Editor Requirements
 
-| ID | Requirement | Priority |
-| :--- | :--- | :---: |
-| `DOC-02-01` | **Comment Detection** | **M** | Only apply LuaCATS highlighting within doc comments (starting with `---`). |
-| `DOC-02-02` | **Tag Highlighting** | **M** | Highlight `@` followed by a valid LuaCATS tag name. |
-| `DOC-02-03` | **Type Parsing and Highlighting** | **M** | Correctly parse and highlight complex nested types (unions, generics, function types). |
-| `DOC-02-04` | **Parameter Alignment** | **S** | Highlight parameter names after `@param` to distinguish them from the type and description. |
-| `DOC-02-05` | **Field Identification** | **S** | Highlight field names after `@field`. |
-| `DOC-02-06` | **Deprecated/Since Tags** | **S** | Provide distinct highlighting or strikethrough for `@deprecated`. |
+| ID | Requirement | Priority | Status |
+| :--- | :--- | :---: | :---: |
+| `DOC-02-01` | **Comment Detection** | **M** | **Full** |
+| `DOC-02-02` | **Tag Highlighting** | **M** | **Full** |
+| `DOC-02-03` | **Type Parsing and Highlighting** | **M** | **Full** |
+| `DOC-02-04` | **Parameter Alignment** | **S** | **Full** |
+| `DOC-02-05` | **Field Identification** | **S** | **Full** |
+| `DOC-02-06` | **Deprecated/Since Tags** | **S** | **Full** |
 
 ## 4. Examples
 

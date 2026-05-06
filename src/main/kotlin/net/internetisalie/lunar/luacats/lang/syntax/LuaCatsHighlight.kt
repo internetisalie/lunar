@@ -19,5 +19,10 @@ object LuaCatsHighlight {
         TextAttributesKey.createTextAttributesKey("LUACATS_VALUE", LuaHighlight.STRING)
     var SYMBOL: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUACATS_SYMBOL", LuaHighlight.OPERATORS)
+    var BRACKETS: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUACATS_BRACKETS", LuaHighlight.BRACKETS)
+
+    var DEPRECATED: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUACATS_DEPRECATED", LuaHighlight.COMMENT)
 
 }

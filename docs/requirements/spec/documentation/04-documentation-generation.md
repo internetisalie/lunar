@@ -24,13 +24,13 @@ The generated boilerplate should include:
 
 ## 4. Editor Requirements
 
-| ID | Requirement | Priority |
-| :--- | :--- | :---: |
-| `DOC-04-01` | **Boilerplate Insertion** | **M** | Insert a template comment block above the target symbol. |
-| `DOC-04-02` | **Parameter Extraction** | **M** | Automatically include `@param` tags matching the function's parameter names. |
-| `DOC-04-03` | **Template Editing** | **M** | Use live templates or tab stops to allow the user to quickly fill in descriptions and types. |
-| `DOC-04-04` | **Type Inference (Basic)** | **S** | Attempt to infer parameter types based on usage or common patterns (e.g., `name` -> `string`, `count` -> `number`). |
-| `DOC-04-05` | **Return Tag Detection** | **S** | Include a `@return` tag if the function body contains `return` statements. |
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `DOC-04-01` | **Boilerplate Insertion** | **M** | **Full** | Insert a template comment block above the target symbol. |
+| `DOC-04-02` | **Parameter Extraction** | **M** | **Full** | Automatically include `@param` tags matching the function's parameter names. |
+| `DOC-04-03` | **Template Editing** | **M** | **Full** | Use live templates or tab stops to allow the user to quickly fill in descriptions and types. |
+| `DOC-04-04` | **Type Inference (Basic)** | **S** | **Full** | Attempt to infer parameter types based on usage or common patterns (e.g., `name` -> `string`, `count` -> `number`). |
+| `DOC-04-05` | **Return Tag Detection** | **S** | **Full** | Include a `@return` tag if the function body contains `return` statements. |
 
 ## 5. Examples
 

@@ -201,6 +201,11 @@
                        isLogByDefault="true" bundle="net.internetisalie.lunar.LuaBundle"
                        key="notification.group.lua.debugger"/>
 
+    <intentionAction>
+      <className>net.internetisalie.lunar.lang.insight.LuaGenerateDocIntention</className>
+      <category>Lua</category>
+    </intentionAction>
+
   </extensions>
 
   <actions>

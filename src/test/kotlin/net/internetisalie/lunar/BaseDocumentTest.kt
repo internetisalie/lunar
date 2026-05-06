@@ -1,5 +1,6 @@
 package net.internetisalie.lunar
 
+import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightProjectDescriptor
@@ -33,6 +34,7 @@ open class BaseDocumentTest {
             LightTempDirTestFixtureImpl(false),
         )
         myFixture.setUp()
+        TemplateManagerImpl.setTemplateTesting(myFixture.testRootDisposable)
     }
 
     @AfterTest

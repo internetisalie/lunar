@@ -109,6 +109,9 @@ data class Reference(val binding: Binding?) {
         get() =  binding != null
 
     override fun toString(): String {
+        val bindingElement = binding?.element
+        val isValid = bindingElement?.isValid == true
+
         return """
             <html><body><pre>
             binding:
@@ -118,8 +121,8 @@ data class Reference(val binding: Binding?) {
               shadowed: ${binding?.shadowed}
               param: ${binding?.param}
               element:
-                textOffset: ${binding?.element?.textOffset}
-                file: ${binding?.element?.containingFile?.name}
+                textOffset: ${if (isValid) bindingElement?.textOffset else "invalid"}
+                file: ${if (isValid) bindingElement?.containingFile?.name else "invalid"}
             external:
                 global: $global
                 name: ${name.joinToString(".")}

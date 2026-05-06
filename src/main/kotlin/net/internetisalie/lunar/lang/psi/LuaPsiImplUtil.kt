@@ -4,6 +4,8 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaParList
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 
@@ -11,16 +13,16 @@ object LuaPsiImplUtil {
     @JvmStatic
     fun getCatsComment(owner: LuaCatsCommentOwner?): LuaCatsComment? {
         if (owner !is PsiElement) return null
-        
+
         var current: PsiElement? = owner
         while (current != null && current !is LuaFile) {
             var prev = current.prevSibling
             while (prev != null && (prev is PsiWhiteSpace || (prev is PsiComment && prev !is LuaCatsComment))) {
                 prev = prev.prevSibling
             }
-            
+
             if (prev is LuaCatsComment) return prev
-            
+
             // Also try finding by element type name as a fallback in tests
             if (prev != null && prev.node.elementType.toString().contains("COMMENT")) {
                 if (prev is LuaCatsComment) return prev
@@ -28,10 +30,10 @@ object LuaPsiImplUtil {
                 val first = prev.firstChild
                 if (first is LuaCatsComment) return first
             }
-            
+
             current = current.parent
         }
-        
+
         return null
     }
 
@@ -45,6 +47,19 @@ object LuaPsiImplUtil {
     @JvmStatic
     fun getBlockList(element : PsiElement) : List<LuaBlock> {
         return PsiTreeUtil.getChildrenOfType(element, LuaBlock::class.java)?.toList() ?: emptyList()
+    }
+
+    @JvmStatic
+    fun getParameters(parList: LuaParList?): List<String> {
+        if (parList == null) return emptyList()
+        val result = mutableListOf<String>()
+        parList.nameList?.nameRefList?.forEach {
+            it.name?.let { name -> result.add(name) }
+        }
+        if (parList.node.findChildByType(LuaElementTypes.ELLIPSIS) != null) {
+            result.add("...")
+        }
+        return result
     }
 }
 

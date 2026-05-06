@@ -20,17 +20,43 @@ class LuaCatsAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         when (element) {
             is LuaCatsArgKeyword -> highlight(holder, element, LuaCatsHighlight.KEYWORD)
-            is LuaCatsNamedType -> highlight(holder, element, LuaCatsHighlight.TYPE)
+            is LuaCatsNamedType -> {
+                // If it's the direct child of classTag or aliasTag, it's a name
+                val parent = element.parent
+                if (parent is LuaCatsArgType && (parent.parent is LuaCatsClassTag || parent.parent is LuaCatsAliasTag)) {
+                    highlight(holder, element, LuaCatsHighlight.NAME)
+                } else {
+                    highlight(holder, element, LuaCatsHighlight.TYPE)
+                }
+            }
             is LuaCatsTypeParam -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsBuiltinType -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsGenericType -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsArgName -> highlight(holder, element, LuaCatsHighlight.NAME)
+            is LuaCatsParameterName -> highlight(holder, element, LuaCatsHighlight.NAME)
+            is LuaCatsFieldNameDescriptor -> highlight(holder, element, LuaCatsHighlight.NAME)
+            is LuaCatsDeprecatedTag -> highlight(holder, element, LuaCatsHighlight.DEPRECATED)
             is LuaCatsArgValue -> highlight(holder, element, LuaCatsHighlight.VALUE)
             is LuaCatsArgSymbol -> highlight(holder, element, LuaCatsHighlight.SYMBOL)
             is LuaCatsDescription -> highlight(holder, element, LuaCatsHighlight.CONTENT)
             else -> {
-                if (element.elementType == LuaCatsTokenTypes.LCATS_SYMBOL) {
-                    highlight(holder, element, LuaCatsHighlight.SYMBOL)
+                val et = element.elementType
+                if (et == LuaCatsElementTypes.SYMBOL) {
+                    val text = element.text
+                    if (text == "(" || text == ")" || text == "[" || text == "]" || text == "{" || text == "}" || text == "<" || text == ">") {
+                        highlight(holder, element, LuaCatsHighlight.BRACKETS)
+                    } else {
+                        highlight(holder, element, LuaCatsHighlight.SYMBOL)
+                    }
+                } else if (et == LuaCatsElementTypes.TAG) {
+                    highlight(holder, element, LuaCatsHighlight.TAG)
+                } else if (et == LuaCatsElementTypes.KEYWORD) {
+                    highlight(holder, element, LuaCatsHighlight.KEYWORD)
+                } else if (et == LuaCatsElementTypes.NAME) {
+                    val parent = element.parent
+                    if (parent is LuaCatsArgType && parent.parent is LuaCatsClassTag) {
+                        highlight(holder, element, LuaCatsHighlight.NAME)
+                    }
                 }
             }
         }

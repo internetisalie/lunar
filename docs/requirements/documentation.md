@@ -5,9 +5,9 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 | ID | Requirement | Priority | Description |
 | :--- | :--- | :---: | :--- |
 | [`DOC-01`](spec/documentation/01-quick-documentation.md) | **Quick Documentation (Ctrl+Q)** | **M** | Display formatted documentation in a popup for any symbol at the caret, including types, parameter descriptions, and interactive type links with class inheritance support. |
-| [`DOC-02`](spec/documentation/02-luacats-highlighting.md) | **LuaCATS Syntax Highlighting** | **M** | Provide highlighting for tags (`@param`, `@class`, etc.) and types within Lua comments. |
+| [`DOC-02`](spec/documentation/02-luacats-highlighting.md) | **LuaCATS Syntax Highlighting** | **M** | **Full** | Provide highlighting for tags (`@param`, `@class`, etc.) and types within Lua comments. |
 | [`DOC-03`](spec/documentation/03-external-url-links.md) | **External URL Links** | **S** | Support linking to external documentation (e.g., standard Lua docs) within the Quick Doc popup. |
-| [`DOC-04`](spec/documentation/04-documentation-generation.md) | **Documentation Generation** | **C** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
+| [`DOC-04`](spec/documentation/04-documentation-generation.md) | **Documentation Generation** | **C** | **Full** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
 | [`DOC-05`](spec/documentation/05-markdown-support.md) | **Markdown Support** | **S** | Support Markdown formatting within Lua comments for rich documentation rendering. |
 | [`DOC-06`](spec/documentation/06-documentation-indexing.md) | **Documentation Indexing** | **S** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. Class, alias, and function names are now stub-indexed with LuaCATS metadata. |
 | [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+P`). |
@@ -32,12 +32,12 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 
 | ID | Requirement | Implementation |
 | :--- | :--- | :--- |
-| `DOC-02-01` | Comment Detection | `LuaCatsAnnotator` |
-| `DOC-02-02` | Tag Highlighting | — |
-| `DOC-02-03` | Type Parsing and Highlighting | — |
-| `DOC-02-04` | Parameter Alignment | — |
-| `DOC-02-05` | Field Identification | — |
-| `DOC-02-06` | Deprecated/Since Tags | Parsed but no special highlighting/strikethrough |
+| `DOC-02-01` | Comment Detection | `LuaCatsAnnotator` targets `---` doc comments |
+| `DOC-02-02` | Tag Highlighting | `LuaCatsAnnotator` handles `LCATS_TAG` tokens |
+| `DOC-02-03` | Type Highlighting | `LuaCatsAnnotator` handles builtin and named types |
+| `DOC-02-04` | Parameter Alignment | `LuaCatsAnnotator` handles `LuaCatsArgName` in `@param` |
+| `DOC-02-05` | Field Identification | `LuaCatsAnnotator` handles `LuaCatsFieldNameDescriptor` |
+| `DOC-02-06` | Deprecated/Since Tags | `LuaCatsAnnotator` handles `LuaCatsDeprecatedTag` with custom attributes |
 
 ### DOC-03: External URL Links
 
@@ -53,11 +53,11 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 
 | ID | Requirement | Implementation |
 | :--- | :--- | :--- |
-| `DOC-04-01` | Boilerplate Insertion | Only `--- ` prefix continuation in `LuaEnterHandlerDelegate` |
-| `DOC-04-02` | Parameter Extraction | — |
-| `DOC-04-03` | Template Editing | — |
-| `DOC-04-04` | Type Inference (Basic) | — |
-| `DOC-04-05` | Return Tag Detection | — |
+| `DOC-04-01` | Boilerplate Insertion | `LuaDocGenerator` creates `Template` for functions and class tables |
+| `DOC-04-02` | Parameter Extraction | `LuaPsiImplUtil.getParameters` extracts names including varargs |
+| `DOC-04-03` | Template Editing | `TemplateManager` starts interactive session with tab stops |
+| `DOC-04-04` | Type Inference (Basic) | `inferTypeByName` maps common names to types (e.g., `count` -> `number`) |
+| `DOC-04-05` | Return Tag Detection | `hasReturnStatement` scans function block for return statements |
 
 ### DOC-05: Markdown Support
 
