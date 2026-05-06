@@ -599,6 +599,48 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
         requires.add(packageName)
     }
 
+    override fun visitMethodExpr(o: LuaMethodExpr) {
+        super.visitMethodExpr(o)
+        val identifier = o.nameRef.identifier
+        val name = identifier.text
+
+        val nameAndArgs = o.parent as? LuaNameAndArgs
+        val funcCall = nameAndArgs?.parent as? LuaFuncCall
+        if (funcCall != null) {
+            // Try to find the receiver scope
+            val target = funcCall.varOrExp
+            val receiverVar = target.`var`
+            if (receiverVar != null) {
+                val receiverElements = getVarElements(receiverVar)
+                if (receiverElements != null) {
+                    var receiverScope: Scope? = null
+                    for (part in receiverElements.iterator()) {
+                        receiverScope = (receiverScope ?: scope.lookupContainingScope(part.text) ?: global).table(part.text)
+                    }
+                    if (receiverScope != null) {
+                        val reference = receiverScope.lookupReference(name)
+                        if (reference.defined) {
+                            references[identifier.textOffset] = reference
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    override fun visitIndexExpr(o: LuaIndexExpr) {
+        super.visitIndexExpr(o)
+        val nameRef = o.nameRef
+        if (nameRef != null) {
+            val identifier = nameRef.identifier
+            val name = identifier.text
+            val reference = scope.lookupReference(name)
+            if (reference.defined) {
+                references[identifier.textOffset] = reference
+            }
+        }
+    }
+
     override fun visitFuncCall(o: LuaFuncCall) {
         visitRequire(o)
         super.visitFuncCall(o)

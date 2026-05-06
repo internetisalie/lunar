@@ -147,6 +147,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaCodeBlockSupportHandler" />
 
+    <codeInsight.parameterInfo
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaParameterInfoHandler" />
+
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 
     <!-- Options -->

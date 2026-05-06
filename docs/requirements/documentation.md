@@ -10,7 +10,7 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 | [`DOC-04`](spec/documentation/04-documentation-generation.md) | **Documentation Generation** | **C** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
 | [`DOC-05`](spec/documentation/05-markdown-support.md) | **Markdown Support** | **S** | Support Markdown formatting within Lua comments for rich documentation rendering. |
 | [`DOC-06`](spec/documentation/06-documentation-indexing.md) | **Documentation Indexing** | **S** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. Class, alias, and function names are now stub-indexed with LuaCATS metadata. |
-| [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+Shift+Space`). |
+| [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+P`). |
 | [`DOC-08`](spec/documentation/08-luacats-annotation-parsing.md) | **Comprehensive LuaCATS Parsing** | **M** | All 19 LuaCATS tags, complex types, and multi-line support fully implemented and tested (18/18 tests passing). |
 
 ---
@@ -82,11 +82,12 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 
 | ID | Requirement | Implementation |
 | :--- | :--- | :--- |
-| `DOC-07-01` | Popup Trigger | — |
-| `DOC-07-02` | Active Parameter Tracking | — |
-| `DOC-07-03` | Overload Support | — |
-| `DOC-07-04` | Type Integration | — |
-| `DOC-07-05` | Vararg Support | — |
+| `DOC-07-01` | Popup Trigger | `LuaParameterInfoHandler` registered in `plugin.xml` |
+| `DOC-07-02` | Active Parameter Tracking | `updateParameterInfo` calculates index based on comma count |
+| `DOC-07-03` | Overload Support | `resolveCandidates` extracts `@overload` tags from `LuaCatsComment` |
+| `DOC-07-04` | Type Integration | Signature candidate includes types from LuaCATS tags |
+| `DOC-07-05` | Vararg Support | Correctly handles `...` tokens in function signatures |
+
 
 ### DOC-08: Comprehensive LuaCATS Parsing
 
