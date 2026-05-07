@@ -6,9 +6,11 @@ import com.intellij.psi.PsiElement
 
 interface LuaTypeManager {
     fun resolveType(name: String, context: PsiElement): LuaType?
-    
+
+    fun resolveModule(moduleName: String, context: PsiElement): LuaType?
+
     fun inferType(element: PsiElement): LuaType
-    
+
     fun createTypeReference(name: String, context: PsiElement): LuaType
 
     companion object {

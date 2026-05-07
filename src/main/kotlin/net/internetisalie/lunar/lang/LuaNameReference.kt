@@ -35,36 +35,32 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         // === PHASE 1: Local Resolution (LAZY) ===
         // Walk up the PSI tree and process declarations at each scope
         val processor = LuaScopeProcessor(name)
+        var prev: PsiElement? = null
         var current: PsiElement? = element
-        
+
         while (current != null && current !is PsiFile) {
+            val state = ResolveState.initial()
+
             // Process declarations in scope elements
-            when (current) {
-                is LuaBlock -> {
-                    if (!current.processDeclarations(processor, ResolveState.initial(), element, element)) break
-                }
-                is LuaFuncDef -> {
-                    if (!current.processDeclarations(processor, ResolveState.initial(), element, element)) break
-                }
-                is LuaFuncDecl -> {
-                    if (!current.processDeclarations(processor, ResolveState.initial(), element, element)) break
-                }
-                is LuaLocalFuncDecl -> {
-                    if (!current.processDeclarations(processor, ResolveState.initial(), element, element)) break
-                }
-                is LuaNumericForStatement -> {
-                    if (!current.processDeclarations(processor, ResolveState.initial(), element, element)) break
-                }
-                is LuaGenericForStatement -> {
-                    if (!current.processDeclarations(processor, ResolveState.initial(), element, element)) break
-                }
+            val matchFound = when (current) {
+                is LuaBlock -> !current.processDeclarations(processor, state, element, element)
+                is LuaFuncDef -> !current.processDeclarations(processor, state, element, element)
+                is LuaFuncDecl -> !current.processDeclarations(processor, state, element, element)
+                is LuaLocalFuncDecl -> !current.processDeclarations(processor, state, element, element)
+                is LuaNumericForStatement -> !current.processDeclarations(processor, state, element, element)
+                is LuaGenericForStatement -> !current.processDeclarations(processor, state, element, element)
+                else -> false
             }
+
+            if (matchFound) break
+
+            prev = current
             current = current.parent
         }
-        
+
         // Also process the file itself
-        if (current is LuaFile && !current.processDeclarations(processor, ResolveState.initial(), element, element)) {
-            // Found a match in file
+        if (current is LuaFile && processor.result == null) {
+            current.processDeclarations(processor, ResolveState.initial(), element, element)
         }
 
         if (processor.result != null) {
@@ -128,7 +124,7 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
     private fun extractRequires(file: PsiFile): List<String> {
         val requires = mutableListOf<String>()
         if (file !is LuaFile) return requires
-        
+
         // Walk all statements in all blocks to find require() calls
         file.getBlockList().forEach { block ->
             block.statementList.forEach { stmt ->
@@ -140,7 +136,7 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
 
     private fun extractRequiresFromStatement(stmt: PsiElement?, requires: MutableList<String>) {
         if (stmt == null) return
-        
+
         // Recursively walk to find require() calls
         stmt.accept(object : PsiRecursiveElementVisitor() {
             override fun visitElement(element: PsiElement) {
@@ -148,17 +144,17 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
                     // Try to extract require() call
                     val varOrExp = element.varOrExp ?: return@visitElement
                     val luaVar = varOrExp.`var` ?: return@visitElement
-                    
+
                     // Check if function name is "require"
                     val nameAndArgsList = element.nameAndArgsList
                     if (nameAndArgsList.isEmpty()) return@visitElement
-                    
+
                     if (luaVar.nameRef?.identifier?.text != "require") return@visitElement
-                    
+
                     // Extract string argument
                     val nameAndArgs = nameAndArgsList[0]
                     val args = nameAndArgs.args ?: return@visitElement
-                    
+
                     // Try to get string from args
                     var stringElem = args.string
                     if (stringElem == null) {
@@ -171,7 +167,7 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
                             }
                         }
                     }
-                    
+
                     stringElem?.let {
                         val str = extractLuaString(it.text)
                         if (str != null && !requires.contains(str)) {

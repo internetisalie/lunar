@@ -6,9 +6,11 @@ class LuaTypeReference(
     override val name: String,
     private val context: PsiElement
 ) : LuaType {
-    private val resolved: LuaType by lazy {
+    val resolved: LuaType by lazy {
         LuaTypeManager.getInstance(context.project).resolveType(name, context) ?: LuaPrimitiveType.UNKNOWN
     }
+
+    fun resolveType(): LuaType = resolved
 
     override fun resolveMember(name: String): LuaTypeMember? = resolved.resolveMember(name)
 

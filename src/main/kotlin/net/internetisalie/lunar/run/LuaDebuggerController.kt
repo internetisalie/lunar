@@ -356,9 +356,11 @@ class LuaDebuggerController(
         }
 
         override fun onRunExecutionError(file: String) {
-            log.error("Received execution error in $file")
+            log.error("Received execution error: $file")
 
-            TODO("Not yet implemented")
+            printToConsole("Execution Error: $file", ConsoleViewContentType.ERROR_OUTPUT)
+            session.reportError("Execution Error: $file")
+            session.stop()
         }
 
         override fun onDisconnected() {

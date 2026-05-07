@@ -9,12 +9,13 @@ import com.intellij.psi.scope.PsiScopeProcessor
 import com.intellij.psi.tree.IElementType
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.LuaLanguage
+import net.internetisalie.lunar.lang.psi.stubs.LuaFileStub
 
 open class LuaFile(viewProvider: FileViewProvider) :
     PsiFileBase(viewProvider, LuaLanguage) {
 
-    override fun getStub(): com.intellij.psi.stubs.PsiFileStub<out LuaFile>? {
-        return super.getStub() as? com.intellij.psi.stubs.PsiFileStub<out LuaFile>
+    override fun getStub(): LuaFileStub? {
+        return super.getStub() as? LuaFileStub
     }
 
     constructor(

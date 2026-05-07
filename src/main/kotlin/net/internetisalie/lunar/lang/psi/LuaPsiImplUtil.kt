@@ -21,14 +21,20 @@ object LuaPsiImplUtil {
                 prev = prev.prevSibling
             }
 
-            if (prev is LuaCatsComment) return prev
+            if (prev != null) {
+                val typeStr = prev.node.elementType.toString()
+                val isCats = prev is LuaCatsComment || typeStr.contains("LUACATS") || typeStr.contains("COMMENT")
+                if (isCats) {
+                    if (prev is LuaCatsComment) return prev
+                    val first = prev.firstChild
+                    if (first is LuaCatsComment) return first
+                }
+            }
 
-            // Also try finding by element type name as a fallback in tests
-            if (prev != null && prev.node.elementType.toString().contains("COMMENT")) {
-                if (prev is LuaCatsComment) return prev
-                // If it's a LuaCatsComment but the 'is' check failed? (ClassLoader issue)
-                val first = prev.firstChild
-                if (first is LuaCatsComment) return first
+            // If we found a sibling that is NOT a comment/whitespace,
+            // then any comment before it belongs to that sibling, not us.
+            if (prev != null && prev !is PsiWhiteSpace && prev !is PsiComment && !prev.node.elementType.toString().contains("COMMENT")) {
+                break
             }
 
             current = current.parent

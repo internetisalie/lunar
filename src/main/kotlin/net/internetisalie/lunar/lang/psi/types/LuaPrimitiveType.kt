@@ -23,7 +23,10 @@ class LuaPrimitiveType(override val name: String) : LuaType {
         val BOOLEAN = LuaPrimitiveType("boolean")
         val VOID = LuaPrimitiveType("void")
         val UNKNOWN = LuaPrimitiveType("unknown")
+        val FUNCTION = LuaPrimitiveType("function")
+        val TABLE = LuaPrimitiveType("table")
+        val INTEGER = LuaPrimitiveType("integer")
 
-        val PRIMITIVES = listOf(ANY, NIL, NUMBER, STRING, BOOLEAN, VOID, UNKNOWN).associateBy { it.name }
+        val PRIMITIVES = listOf(ANY, NIL, NUMBER, STRING, BOOLEAN, VOID, UNKNOWN, FUNCTION, TABLE, INTEGER).associateBy { it.name }
     }
 }

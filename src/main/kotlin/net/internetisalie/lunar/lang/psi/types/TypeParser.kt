@@ -30,7 +30,14 @@ object TypeParser {
 
     private fun parseUnionType(unionType: LuaCatsUnionType, context: PsiElement): LuaType {
         val arrays = unionType.arrayTypeList
-        if (arrays.isEmpty()) return LuaPrimitiveType.UNKNOWN
+        if (arrays.isEmpty()) {
+            // Fallback: try to parse distinct types if arrayTypeList is empty for some reason
+            val distinctTypes = PsiTreeUtil.findChildrenOfType(unionType, LuaCatsDistinctType::class.java)
+            if (distinctTypes.isEmpty()) return LuaPrimitiveType.UNKNOWN
+            val types = distinctTypes.map { parseDistinctType(it, context) }.toSet()
+            if (types.size == 1) return types.first()
+            return LuaUnionType(types)
+        }
 
         val types = arrays.map { parseArrayType(it, context) }.toSet()
         if (types.size == 1) return types.first()
@@ -91,9 +98,13 @@ object TypeParser {
         distinctType.functionSignatureType?.let { funcSig ->
             val params = funcSig.functionSignatureArgumentList.map { arg ->
                 val argName = arg.argName.text
+                val isVararg = argName == "..."
+                // The parser doesn't explicitly handle '?' in function signatures yet,
+                // but we can check if it exists as a raw symbol child.
+                val isOptional = arg.children.any { it.text == "?" }
                 val argTypeNode = PsiTreeUtil.findChildOfType(arg.argType, LuaCatsType::class.java)
                 val argType = if (argTypeNode != null) parseType(argTypeNode, context) else LuaPrimitiveType.ANY
-                LuaParameter(argName, argType)
+                LuaParameter(argName, argType, isOptional, isVararg)
             }
             val returnTypeNode = PsiTreeUtil.findChildOfType(funcSig.functionSignatureReturnType?.argType, LuaCatsType::class.java)
             val returnType = if (returnTypeNode != null) parseType(returnTypeNode, context) else LuaPrimitiveType.VOID

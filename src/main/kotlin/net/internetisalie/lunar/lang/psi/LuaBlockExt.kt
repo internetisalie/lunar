@@ -25,11 +25,9 @@ fun LuaBlock.processDeclarations(
 
         when (statement) {
             is LuaLocalVarDecl -> {
-                // Process each declared name in the local variable declaration
-                for (attName in statement.attNameList) {
-                    if (!processor.execute(attName, state)) {
-                        return false  // Processor found match, stop walk
-                    }
+                // Process the local variable declaration statement
+                if (!processor.execute(statement, state)) {
+                    return false  // Processor found match, stop walk
                 }
             }
 

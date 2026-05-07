@@ -65,14 +65,26 @@ class LuaAliasType(
     override fun toString(): String = name
 }
 
-data class LuaParameter(val name: String, val type: LuaType)
+data class LuaParameter(
+    val name: String,
+    val type: LuaType,
+    val isOptional: Boolean = false,
+    val isVararg: Boolean = false
+)
 
 class LuaFunctionType(
     val params: List<LuaParameter>,
     val returnType: LuaType,
     val typeParameters: List<LuaGenericType> = emptyList()
 ) : LuaType {
-    override val name: String = "fun(${params.joinToString(", ") { "${it.name}: ${it.type.name}" }}): ${returnType.name}"
+    override val name: String = run {
+        val paramsStr = params.joinToString(", ") { param ->
+            val prefix = if (param.isVararg) "..." else param.name
+            val suffix = if (param.isOptional) "?" else ""
+            "$prefix$suffix: ${param.type.name}"
+        }
+        "fun($paramsStr): ${returnType.name}"
+    }
 
     override fun resolveMember(name: String): LuaTypeMember? = null
 

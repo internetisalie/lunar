@@ -94,6 +94,25 @@
     <annotator
             language="Lua"
             implementationClass="net.internetisalie.lunar.luacats.lang.syntax.LuaCatsAnnotator"/>
+    <annotator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaTypesAnnotator"/>
+
+    <localInspection
+            language="Lua"
+            displayName="Type assignability"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="net.internetisalie.lunar.analysis.LuaTypeAssignabilityInspection"/>
+
+    <localInspection
+            language="Lua"
+            displayName="Return type mismatch"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="net.internetisalie.lunar.analysis.LuaReturnTypeMismatchInspection"/>
 
     <externalAnnotator
             language="Lua"
@@ -150,6 +169,16 @@
     <codeInsight.parameterInfo
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaParameterInfoHandler" />
+
+    <codeInsight.declarativeInlayProvider
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaTypeInlayHintProvider"
+            isInternal="false"
+            isEnabledByDefault="true"
+            group="TYPES_GROUP"
+            providerId="lua.type.hints"
+            bundle="net.internetisalie.lunar.LuaBundle"
+            nameKey="lua.type.hints.name"/>
 
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 

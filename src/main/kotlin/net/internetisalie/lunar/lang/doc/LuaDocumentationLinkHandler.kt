@@ -17,7 +17,7 @@ class LuaDocumentationLinkHandler : DocumentationLinkHandler {
         val typeName = url.removePrefix(DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL)
         
         val project = target.element.project
-        val scope = GlobalSearchScope.projectScope(project)
+        val scope = GlobalSearchScope.allScope(project)
         
         // Try class first, then alias
         val decl = StubIndex.getElements(LuaClassNameIndex.KEY, typeName, project, scope, LuaLocalVarDecl::class.java).firstOrNull()

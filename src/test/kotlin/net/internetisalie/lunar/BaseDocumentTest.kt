@@ -1,7 +1,6 @@
 package net.internetisalie.lunar
 
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
@@ -12,6 +11,18 @@ import org.junit.jupiter.api.TestInfo
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 
+/**
+ * Base class for Lua document-based tests with standard fixture setup.
+ *
+ * Provides:
+ * - Fresh [CodeInsightTestFixture] for each test
+ * - PSI tree access via [configureByText]
+ * - Template testing support
+ *
+ * **Does NOT force stub index rebuild** to keep tests fast.
+ * If your tests require indexed content (type resolution, documentation lookups),
+ * extend [IndexedDocumentTest] instead.
+ */
 open class BaseDocumentTest {
     lateinit var myFixture: CodeInsightTestFixture
     lateinit var myProjectDescriptor: LightProjectDescriptor
@@ -20,7 +31,7 @@ open class BaseDocumentTest {
     protected val luaFileName = "test.lua"
 
     @BeforeTest
-    fun before(testInfo: TestInfo) {
+    open fun before(testInfo: TestInfo) {
         myProjectDescriptor = LightProjectDescriptor()
 
         val factory = IdeaTestFixtureFactory.getFixtureFactory()
@@ -45,5 +56,4 @@ open class BaseDocumentTest {
     fun configureByText(text: String) : PsiFile {
         return myFixture.configureByText(luaFileName, text)
     }
-
 }

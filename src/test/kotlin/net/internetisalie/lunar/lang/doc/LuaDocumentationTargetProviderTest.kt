@@ -67,27 +67,47 @@ class LuaDocumentationTargetProviderTest : BaseDocumentTest() {
     }
 
     @Test
-    fun `test documentationTargets handles standard library functions`() {
+    fun `test documentationTargets resolves types in same file`() {
         val code = """
-            local a = {a=1}
-            local b = {[a]=2}
-            print(b)
+            --- @class MyType
+            local MyType = {}
+
+            --- @param x MyType
+            local function test(x) end
         """.trimIndent()
-        
+
         myFixture.configureByText(LuaFileType, code)
         
         runReadAction {
             val file = myFixture.file
-            
-            // Find the identifier "print" in the call
-            val callOffset = file.text.lastIndexOf("print(")
+            val offset = file.text.lastIndexOf("MyType")
             
             val provider = LuaDocumentationTargetProvider()
-            val targets = provider.documentationTargets(file, callOffset)
+            val targets = provider.documentationTargets(file, offset)
             
-            // This may be empty if print is from platform library and not indexed properly
-            // But at minimum, should not crash
-            assertNotNull(targets, "Should not return null for standard library functions")
+            assertTrue(targets.isNotEmpty(), "Should find documentation targets for 'MyType'")
+        }
+    }
+
+    @Test
+    fun `test documentationTargets resolves global functions in same file`() {
+        val code = """
+            --- Prints the arguments
+            function my_print(...) end
+
+            my_print(1)
+        """.trimIndent()
+
+        myFixture.configureByText(LuaFileType, code)
+        
+        runReadAction {
+            val file = myFixture.file
+            val offset = file.text.lastIndexOf("my_print")
+            
+            val provider = LuaDocumentationTargetProvider()
+            val targets = provider.documentationTargets(file, offset)
+            
+            assertTrue(targets.isNotEmpty(), "Should find documentation targets for 'my_print'")
         }
     }
 }

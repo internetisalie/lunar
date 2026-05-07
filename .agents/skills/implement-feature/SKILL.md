@@ -69,6 +69,23 @@ Ensure the feature is robust and maintainable.
 - **Review**: Ensure commit messages explain "why", follow conventional formats, and that the commit remains atomic.
 - **Tracking**: Record the commit information (hash, message, files changed) in Saga using `mcp_saga_note_save` or by linking the commit to relevant tasks.
 
+### 6. Commit
+- **Task**: Commit your changes to the feature branch, ensuring all tests pass and code quality checks are met.
+- **Review**:
+  - Ensure the commit message is clear and concise, following the conventional commit format.
+  - Verify that the commit does not introduce any new warnings or errors.
+  - Check that the codebase remains clean and follows the project's coding standards.
+  - If the change is a bug fix, ensure the test case reproduces the failure.
+  - If the change is a new feature, ensure it aligns with the project's roadmap and user needs.
+  - If the change is a refactoring, ensure it simplifies the code without changing its behavior.
+  - If the change is a performance improvement, ensure it does not regress existing functionality and is benchmarked against the previous implementation.
+  - If the change is a security fix, ensure it does not introduce new vulnerabilities and is reviewed by a security expert.
+  - If the change is a documentation update, ensure it is clear, concise, and accurate.
+  - If the change is a style update, ensure it maintains consistency with the project's style guide and does not introduce new issues.
+  - If the change is a build system update, ensure it does not break existing workflows and is thoroughly tested.
+  - If the change is a dependency update, ensure it does not introduce new vulnerabilities and is reviewed by a security expert.
+  - If the change is a configuration update, ensure it does not break existing functionality and is tested against the previous configuration.
+
 ## Guidelines
 - **Atomic Commits**: If requested to commit, keep them atomic (one feature/fix per commit).
 - **Concise Documentation**: Keep requirements focused on behavior and constraints.

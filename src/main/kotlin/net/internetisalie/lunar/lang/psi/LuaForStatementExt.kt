@@ -14,7 +14,7 @@ fun LuaNumericForStatement.processDeclarations(
     if (!processor.execute(this, state)) {
         return false
     }
-    
+
     // Then process loop body
     val block = block
     return block?.processDeclarations(processor, state, lastParent, place) ?: true
@@ -27,11 +27,10 @@ fun LuaGenericForStatement.processDeclarations(
     place: PsiElement
 ): Boolean {
     // Process loop variable list first
-    val nameList = nameList
-    if (!processor.execute(nameList, state)) {
+    if (!processor.execute(this, state)) {
         return false
     }
-    
+
     // Then process loop body
     val block = block
     return block?.processDeclarations(processor, state, lastParent, place) ?: true

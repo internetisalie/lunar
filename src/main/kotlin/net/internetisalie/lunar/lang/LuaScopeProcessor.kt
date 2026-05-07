@@ -36,7 +36,7 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
                     if (attName.nameRef.identifier.text == name) {
                         result = attName.nameRef.identifier
                         found = true
-                        return false  // Stop walk
+                        return@execute false  // Stop walk
                     }
                 }
             }
@@ -44,6 +44,21 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
             is LuaLocalFuncDecl -> {
                 if (element.nameRef.identifier.text == name) {
                     result = element.nameRef.identifier
+                    found = true
+                    return false
+                }
+            }
+
+            is LuaFuncDecl -> {
+                // Check function name (for recursion)
+                if (element.funcName.nameRef.identifier.text == name) {
+                    result = element.funcName.nameRef.identifier
+                    found = true
+                    return false
+                }
+                // Check implicit self
+                if (name == "self" && element.funcName.funcNameMethod != null) {
+                    result = element.funcName.funcNameMethod!!.nameRef.identifier
                     found = true
                     return false
                 }
@@ -57,7 +72,7 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
                         if (nameRef.identifier.text == name) {
                             result = nameRef.identifier
                             found = true
-                            return false
+                            return@execute false
                         }
                     }
                 }
@@ -76,7 +91,7 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
                     if (nameRef.identifier.text == name) {
                         result = nameRef.identifier
                         found = true
-                        return false
+                        return@execute false
                     }
                 }
             }
@@ -109,6 +124,13 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
 
             is LuaLocalFuncDecl -> {
                 results.add(element.nameRef.identifier.text)
+            }
+
+            is LuaFuncDecl -> {
+                results.add(element.funcName.nameRef.identifier.text)
+                if (element.funcName.funcNameMethod != null) {
+                    results.add("self")
+                }
             }
 
             is LuaParList -> {

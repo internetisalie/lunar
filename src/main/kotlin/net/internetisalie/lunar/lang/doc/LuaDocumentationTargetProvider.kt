@@ -16,13 +16,17 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
+import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
+import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
 class LuaDocumentationTargetProvider : DocumentationTargetProvider {
     override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
         var element = file.findElementAt(offset) ?: return emptyList()
-        if (element.elementType == LuaElementTypes.IDENTIFIER) {
+        val et = element.elementType
+        if (et == LuaElementTypes.IDENTIFIER || et == LuaCatsElementTypes.NAME || et == LuaCatsElementTypes.BUILTIN_TYPE) {
             element = resolveDocumentationTarget(element) ?: return emptyList()
         }
         if (element is LuaCatsCommentOwner) {
@@ -34,36 +38,35 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
     private fun resolveDocumentationTarget(element: PsiElement): PsiElement? {
         // First try resolving through reference (for call sites)
         val parent = element.parent
-        
-        val resolvedElement = parent?.let {
-            when {
-                it is LuaNameRefElement -> {
-                    val ref = it.reference
-                    var resolved = ref?.resolve()
-                    
-                    // The reference might resolve to a name token or another leaf element
-                    // Get the parent to get the actual declaration
-                    if (resolved != null && resolved !is LuaCatsCommentOwner) {
-                        // First try to unwrap it to a declaration
-                        val commentOwner = findElementDocCommentOwner(resolved)
-                        if (commentOwner != null) {
-                            resolved = commentOwner
-                        } else {
-                            // If that fails, try the resolved element's parent directly
-                            // (in case it's already wrapped in a declaration)
-                            val parent = resolved.parent
-                            if (parent is LuaCatsCommentOwner) {
-                                resolved = parent
-                            }
+
+        val resolvedElement = when {
+            parent is LuaNameRefElement -> {
+                val ref = parent.reference
+                var resolved = ref?.resolve()
+
+                // The reference might resolve to a name token or another leaf element
+                // Get the parent to get the actual declaration
+                if (resolved != null && resolved !is LuaCatsCommentOwner) {
+                    // First try to unwrap it to a declaration
+                    val commentOwner = findElementDocCommentOwner(resolved)
+                    if (commentOwner != null) {
+                        resolved = commentOwner
+                    } else {
+                        // If that fails, try the resolved element's parent directly
+                        // (in case it's already wrapped in a declaration)
+                        val p = resolved.parent
+                        if (p is LuaCatsCommentOwner) {
+                            resolved = p
                         }
                     }
-                    resolved
                 }
-                it is PsiReference -> it.resolve()
-                else -> null
+                resolved
             }
+            parent is PsiReference -> parent.resolve()
+            element is PsiReference -> element.resolve()
+            else -> null
         }
-        
+
         if (resolvedElement != null && resolvedElement is LuaCatsCommentOwner) {
             return resolvedElement
         }
@@ -76,9 +79,30 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
 
         // Try cross-file type lookup using PSI search and stubs
         val elementText = element.text ?: return null
-        val scope = GlobalSearchScope.projectScope(element.project)
-        val classDecl = StubIndex.getElements(LuaClassNameIndex.KEY, elementText, element.project, scope, LuaLocalVarDecl::class.java).firstOrNull()
-        return classDecl
+        val project = element.project
+        val scope = GlobalSearchScope.allScope(project)
+
+        val classDecl = StubIndex.getElements(LuaClassNameIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+        if (classDecl != null) return classDecl
+
+        val aliasDecl = StubIndex.getElements(LuaAliasIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+        if (aliasDecl != null) return aliasDecl
+
+        val funcDecl = StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, elementText, project, scope, LuaFuncDecl::class.java).firstOrNull()
+        if (funcDecl != null) return funcDecl
+
+        // Fallback for member functions like math.abs
+        if (parent is LuaNameRefElement) {
+            val topExpr = PsiTreeUtil.getTopmostParentOfType(parent, LuaExpr::class.java)
+            if (topExpr != null) {
+                val fullName = topExpr.text
+                if (fullName != null && fullName != elementText) {
+                    return StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, fullName, project, scope, LuaFuncDecl::class.java).firstOrNull()
+                }
+            }
+        }
+
+        return null
     }
 
     private fun findElementDocCommentOwner(element: PsiElement): LuaCatsCommentOwner? {

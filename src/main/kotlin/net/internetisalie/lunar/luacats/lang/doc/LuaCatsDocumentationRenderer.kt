@@ -432,7 +432,7 @@ object LuaCatsDocumentationRenderer {
     }
 
     private fun lookupParentComment(project: Project, parentTypeName: String): LuaCatsComment? {
-        val scope = GlobalSearchScope.projectScope(project)
+        val scope = GlobalSearchScope.allScope(project)
         val parentDecl = StubIndex.getElements(LuaClassNameIndex.KEY, parentTypeName, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
         return parentDecl?.catsComment
     }

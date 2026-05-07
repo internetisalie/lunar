@@ -16,6 +16,7 @@ import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.parser.LuaParser
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFileElementType
 import net.internetisalie.lunar.lang.syntax.LuaSyntax
 import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsElementType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
@@ -58,6 +59,6 @@ class LuaParserDefinition : ParserDefinition {
     }
 
     companion object {
-        val FILE = IStubFileElementType<com.intellij.psi.stubs.PsiFileStub<LuaFile>>("Lua", LuaLanguage)
+        val FILE = LuaFileElementType()
     }
 }

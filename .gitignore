@@ -41,6 +41,7 @@ bin/
 ### Mac OS ###
 .DS_Store
 .idea/
+/test
 
 src/main/gen/net/internetisalie/lunar/lang/lexer/_LuaLexer.java~
 
@@ -54,3 +55,5 @@ docker/.ide-cache/
 docker/ide-staging/
 
 docs/.obsidian/
+
+docs/plan.md

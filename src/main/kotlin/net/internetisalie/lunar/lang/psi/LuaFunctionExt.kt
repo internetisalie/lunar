@@ -62,19 +62,13 @@ fun LuaFuncDecl.processDeclarations(
     lastParent: PsiElement?,
     place: PsiElement
 ): Boolean {
-    val funcName = funcName
-    val parList = parList
+    // 1. Process function name and implicit self first
+    if (!processor.execute(this, state)) {
+        return false
+    }
 
-    // For methods (function obj:method(...)), add implicit "self"
-    if (funcName.funcNameMethod != null && parList != null) {
-        // Method: implicit self is first parameter
-        // The PsiScopeProcessor will handle matching "self" specially
-        // For now, execute the parList which contains the explicit parameters
-        if (!processor.execute(parList, state)) {
-            return false
-        }
-    } else if (parList != null) {
-        // Regular function: just expose parameters
+    val parList = parList
+    if (parList != null) {
         if (!processor.execute(parList, state)) {
             return false
         }

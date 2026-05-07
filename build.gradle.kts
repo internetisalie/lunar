@@ -55,6 +55,7 @@ dependencies {
     testImplementation(libs.ide.starter)
     testImplementation("com.jetbrains.intellij.tools:ide-starter:253.29346.240")
     testImplementation(kotlin("test"))
+    testImplementation("org.junit.vintage:junit-vintage-engine:5.9.2")
     integrationTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
     integrationTestImplementation("org.kodein.di:kodein-di-jvm:7.20.2")
     integrationTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1")
