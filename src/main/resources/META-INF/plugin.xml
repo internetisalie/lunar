@@ -206,6 +206,10 @@
       <category>Lua</category>
     </intentionAction>
 
+    <codeInsight.lineMarkerProvider
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaLineMarkerProvider"/>
+
   </extensions>
 
   <actions>

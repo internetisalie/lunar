@@ -328,13 +328,14 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
     }
 
     override fun visitLocalFuncDecl(o: LuaLocalFuncDecl) {
-        inFunctionScope {
-            super.visitLocalFuncDecl(o)
-        }
         val identifier = o.nameRef.identifier
         val binding = scope.createBinding(identifier, Kind.Function)
         scope.declarations[identifier.text] = binding
         references[identifier.textOffset] = Reference(binding)
+
+        inFunctionScope {
+            super.visitLocalFuncDecl(o)
+        }
     }
 
     private fun visitFuncNameElements(elements: DottedElements) {
@@ -396,6 +397,9 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
     }
 
     override fun visitFuncDecl(o: LuaFuncDecl) {
+        val elements = getFuncNameElements(o.funcName)
+        visitFuncNameElements(elements)
+
         inFunctionScope {
             if (o.funcName.funcNameMethod != null) {
                 val identifier = o.funcName.funcNameMethod!!.nameRef.identifier
@@ -403,9 +407,6 @@ class LuaBindingsVisitor(private val imports : LuaImports?) : LuaRecursiveVisito
             }
 
             super.visitFuncDecl(o)
-
-            val elements = getFuncNameElements(o.funcName)
-            visitFuncNameElements(elements)
         }
     }
 
