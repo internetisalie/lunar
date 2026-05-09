@@ -6,11 +6,11 @@ This feature enables seamless integration of LuaRocks package management within 
 
 The LuaRocks integration introduces a standardized workflow for managing Lua dependencies, combining CLI functionality with IDE-native tools. It includes:
 
-- Project initialization wizard with default configurations
-- IDE-native dependency management interface
-- Package browser for local and remote repository exploration
-- Context-aware package installation and removal
-- Cross-environment consistency enforcement
+1. **ROCKS-01: Project Initialization & Setup** - Scaffolding, Rockspec generation, and module resolution.
+2. **ROCKS-02: Package Browser** - Remote search and repository exploration (split-view).
+3. **ROCKS-03: Dependency Resolution** - Hierarchical tree view and conflict detection.
+4. **ROCKS-04: Task Execution & Run Configurations** - Target-based command execution (similar to Maven/Makefile).
+5. **ROCKS-08: Publishing & Lifecycle [Could]** - Wizard for versioning and remote uploads.
 
 ## Key Use Cases
 
@@ -29,7 +29,7 @@ The LuaRocks integration introduces a standardized workflow for managing Lua dep
    - Rollback support for CI/CD pipelines
 
 4. **Dependency Resolution**
-   - Visual dependency graph in IDE
+   - Hierarchical dependency tree view
    - Conflict detection between packages
    - Automatic version pinning
 
@@ -84,7 +84,7 @@ The package browser provides an IDE-native interface for repository exploration:
 ### Functional Scope
 - Search by package name, version, or keyword
 - Filter by repository type (LuaRocks.org, custom repos)
-- Dependency tree visualization
+- Hierarchical dependency tree rendering
 - Version matrix with compatibility checks
 - Direct install/uninstall actions
 - Package metadata preview (homepages, licenses)
@@ -94,7 +94,7 @@ The package browser provides an IDE-native interface for repository exploration:
    - Downloads and caches repository manifests locally
    - Reduces network traffic while maintaining freshness
 
-2. **Graph-based discovery**
+2. **Tree-based discovery**
    - Builds dependency trees from manifest data
    - Shows transitive dependencies
 
@@ -121,9 +121,13 @@ The package browser provides an IDE-native interface for repository exploration:
 
 ## Implementation Roadmap
 
-1. Complete UI mockups (2 weeks)
-2. Implement manifest parser (1 week)
-3. Build package browser UI (3 weeks)
-4. Integrate CLI commands (1 week)
-5. Testing and QA (2 weeks)
-6. Documentation (1 week)
+1. **Phase 1: Foundation (ROCKS-01 & ROCKS-04)**
+   - Project initialization wizard.
+   - LuaRocks Run Configuration type for command execution.
+2. **Phase 2: Discovery (ROCKS-02)**
+   - Manifest parsing and remote search UI.
+3. **Phase 3: Management (ROCKS-03 & ROCKS-04 Extended)**
+   - Dependency tree view.
+   - Install/Remove integration.
+4. **Phase 4: Lifecycle (ROCKS-08) [Could]**
+   - Publishing wizard and metadata management.
