@@ -41,12 +41,20 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
                     val ref = it.reference
                     var resolved = ref?.resolve()
                     
-                    // The reference resolves to the name token, not the declaration
+                    // The reference might resolve to a name token or another leaf element
                     // Get the parent to get the actual declaration
                     if (resolved != null && resolved !is LuaCatsCommentOwner) {
+                        // First try to unwrap it to a declaration
                         val commentOwner = findElementDocCommentOwner(resolved)
                         if (commentOwner != null) {
                             resolved = commentOwner
+                        } else {
+                            // If that fails, try the resolved element's parent directly
+                            // (in case it's already wrapped in a declaration)
+                            val parent = resolved.parent
+                            if (parent is LuaCatsCommentOwner) {
+                                resolved = parent
+                            }
                         }
                     }
                     resolved

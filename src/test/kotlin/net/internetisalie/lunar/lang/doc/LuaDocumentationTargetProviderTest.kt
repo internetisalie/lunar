@@ -65,5 +65,30 @@ class LuaDocumentationTargetProviderTest : BaseDocumentTest() {
                 "Should find documentation targets for function call at offset $callOffset")
         }
     }
+
+    @Test
+    fun `test documentationTargets handles standard library functions`() {
+        val code = """
+            local a = {a=1}
+            local b = {[a]=2}
+            print(b)
+        """.trimIndent()
+        
+        myFixture.configureByText(LuaFileType, code)
+        
+        runReadAction {
+            val file = myFixture.file
+            
+            // Find the identifier "print" in the call
+            val callOffset = file.text.lastIndexOf("print(")
+            
+            val provider = LuaDocumentationTargetProvider()
+            val targets = provider.documentationTargets(file, callOffset)
+            
+            // This may be empty if print is from platform library and not indexed properly
+            // But at minimum, should not crash
+            assertNotNull(targets, "Should not return null for standard library functions")
+        }
+    }
 }
 

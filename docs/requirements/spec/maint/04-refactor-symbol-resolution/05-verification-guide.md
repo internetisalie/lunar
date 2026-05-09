@@ -3,12 +3,16 @@
 **Date Completed**: May 9, 2026  
 **Status**: ✅ Complete (All 329 tests passing)
 
-**Issues Found During Validation**: 2 identified and resolved
-- ✅ Scenario 5: Documentation hover not working → **FIXED** (May 9, 2026, Commit 348c8cd)
+**Issues Found During Validation**: 2 identified
+- ✅ Scenario 5: Documentation hover not working for user-defined functions → **FIXED** (Commit 348c8cd)
   - Root cause: Reference resolution returned name token, not declaration
   - Fix: Unwrap resolved token to get parent declaration
   - Test coverage: LuaDocumentationTargetProviderTest
 - ⚠️ Scenario 4: Incomplete string syntax error → Expected behavior (not a regression)
+
+**Known Limitation** (out of scope for MAINT-04):
+- Standard library functions (e.g., `print` from platform library) do not show documentation in hover
+- This is a separate feature request; platform library documentation indexing is beyond MAINT-04 scope
 
 ---
 
