@@ -3,8 +3,11 @@
 **Date Completed**: May 9, 2026  
 **Status**: ✅ Complete (All 329 tests passing)
 
-**Issues Found During Validation**: 2 identified and 1 fixed
-- ✅ Scenario 5: Documentation hover not working → **FIXED** (May 9, 2026)
+**Issues Found During Validation**: 2 identified and resolved
+- ✅ Scenario 5: Documentation hover not working → **FIXED** (May 9, 2026, Commit 348c8cd)
+  - Root cause: Reference resolution returned name token, not declaration
+  - Fix: Unwrap resolved token to get parent declaration
+  - Test coverage: LuaDocumentationTargetProviderTest
 - ⚠️ Scenario 4: Incomplete string syntax error → Expected behavior (not a regression)
 
 ---
@@ -214,18 +217,24 @@ add(1, 2)
 - ✅ Parameter types display: `a: number`, `b: number`
 - ✅ Return type shows: `number`
 
-**Fix Applied** (May 9, 2026):
-This scenario was initially not working because the documentation provider was not resolving references at call sites. We fixed this by adding reference resolution to `LuaDocumentationTargetProvider.resolveDocumentationTarget()`:
-- Check if parent element is `LuaNameRefElement` with a reference
-- Try parent as `PsiReference`
-- Fall back to parent comment owner lookup (for declarations)
+**Fix Applied** (May 9, 2026, Commit 348c8cd):
 
-This ensures documentation appears when hovering over function/variable usages anywhere in the code.
+This scenario was initially not working because reference resolution was returning the name token, not the function declaration. The fix implements proper unwrapping:
+
+1. When `LuaNameRefElement.reference?.resolve()` returns a token
+2. Check if it's already a `LuaCatsCommentOwner`
+3. If not, find its parent declaration using `findElementDocCommentOwner()`
+4. Return the declaration so documentation can be rendered
+
+This pattern matches `LuaParameterInfoHandler` and ensures robust resolution regardless of what the reference chain returns.
+
+**Test Coverage**: Added `LuaDocumentationTargetProviderTest` with 2 test cases validating documentation resolution at call sites.
 
 **What This Validates**:
-- Documentation resolution works lazily at call sites
-- LuaCATS type annotations are parsed correctly
-- Symbol resolution finds function documentation through reference chain
+- Documentation resolution works lazily at call sites (not just declarations)
+- Reference unwrapping correctly finds parent declarations
+- LuaCATS type annotations are parsed and displayed correctly
+- Symbol resolution finds function documentation through complete reference chain
 
 ---
 
@@ -358,6 +367,20 @@ All scenarios above are covered by the comprehensive unit test suite:
 4. Search file for matching function declarations
 
 **Method Call Handling**: Special case for Lua method syntax (`Obj:method()`)
+
+### Documentation Hover Fix
+**File**: `src/main/kotlin/net/internetisalie/lunar/lang/doc/LuaDocumentationTargetProvider.kt`
+
+**Problem**: Documentation popup was not showing at function call sites (Scenario 5)  
+**Root Cause**: Reference resolution returns the name token (identifier), not the declaration  
+**Solution**: Unwrap resolved tokens to get parent declaration:
+1. When `parent.reference?.resolve()` returns a token
+2. Check if it's already a `LuaCatsCommentOwner` (declaration)
+3. If not, find its parent using `findElementDocCommentOwner()`
+4. Return the declaration so documentation can be rendered
+
+**Pattern**: Mirrors `LuaParameterInfoHandler` for robustness  
+**Test Coverage**: `LuaDocumentationTargetProviderTest` with 2 test cases
 
 ### LuaBindingsVisitor Removal
 **File**: `src/main/kotlin/net/internetisalie/lunar/lang/LuaBindings.kt`
