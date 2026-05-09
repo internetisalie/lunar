@@ -9,6 +9,7 @@ import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiReference
 import com.intellij.psi.createSmartPointer
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
@@ -31,7 +32,19 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
     }
 
     private fun resolveDocumentationTarget(element: PsiElement): PsiElement? {
-        // Resolve upwards
+        // First try resolving through reference (for call sites)
+        val resolvedElement = element.parent?.let { parent ->
+            when (parent) {
+                is LuaNameRefElement -> parent.reference?.resolve()
+                is PsiReference -> parent.resolve()
+                else -> null
+            }
+        }
+        if (resolvedElement != null && resolvedElement is LuaCatsCommentOwner) {
+            return resolvedElement
+        }
+
+        // Resolve upwards (for identifiers that are part of declarations)
         val ownerElement = findElementDocCommentOwner(element)
         if (ownerElement != null) {
             return ownerElement
