@@ -48,6 +48,8 @@ Ensure the feature is robust and maintainable.
 - **Task**: Update all requirement documents to reflect the final `Implemented` status.
 - **Examples**: Add an example in the `examples` folder of the test project demonstrating the new feature, if possible.
 - **TODOs**: If any items were deferred (e.g., marked as `Future`), ensure they are captured in the project's primary `GEMINI.md` or a global TODO list.
+- **Verification**: Prepare a QA checklist for implementation verification, including unit tests, integration tests, and manual testing scenarios.
+- **Documentation**: Update the project's documentation with the new feature, including usage examples, configuration details, and any breaking changes.
 
 ## Guidelines
 - **Atomic Commits**: If requested to commit, keep them atomic (one feature/fix per commit).

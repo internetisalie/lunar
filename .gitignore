@@ -52,3 +52,5 @@ src/main/gen/net/internetisalie/lunar/lang/lexer/_LuaLexer.java~
 ### Docker ###
 docker/.ide-cache/
 docker/ide-staging/
+
+docs/.obsidian/
