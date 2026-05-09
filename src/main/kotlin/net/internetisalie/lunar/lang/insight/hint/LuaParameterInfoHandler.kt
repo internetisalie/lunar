@@ -53,9 +53,45 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         } ?: return emptyList()
 
         val identifier = findIdentifier(target) ?: return emptyList()
+        val identifierName = identifier.text
 
         // Try to resolve via PsiReference (modern approach without LuaBindingsVisitor)
-        val boundElement = identifier.references.firstNotNullOfOrNull { it.resolve() } ?: return emptyList()
+        // First try identifier's parent which should be a LuaNameRefElement with getReference()
+        var boundElement: PsiElement? = null
+        val parent = identifier.parent
+        if (parent is LuaNameRefElement) {
+            boundElement = parent.reference?.resolve()
+        }
+        // Fallback: try identifier.references array
+        if (boundElement == null) {
+            boundElement = identifier.references.firstNotNullOfOrNull { it.resolve() }
+        }
+        // Fallback: try parent as PsiReference
+        if (boundElement == null) {
+            boundElement = (parent as? com.intellij.psi.PsiReference)?.resolve()
+        }
+        // Fallback: search file for function definitions with matching name
+        if (boundElement == null) {
+            val file = funcCall.containingFile
+            val allFuncDecls = PsiTreeUtil.findChildrenOfType(file, LuaFuncDecl::class.java)
+            
+            // For method calls (where methodExpr is not null), we need to look for method declarations
+            if (methodExpr != null) {
+                // Look for a function declaration with funcNameMethod matching identifierName
+                boundElement = allFuncDecls.find { 
+                    it.funcName.funcNameMethod?.nameRef?.text == identifierName
+                }
+            } else {
+                // For regular function calls, look for direct name matches
+                val allLocalFuncDecls = PsiTreeUtil.findChildrenOfType(file, LuaLocalFuncDecl::class.java)
+                boundElement = allFuncDecls.find { it.funcName.nameRef.text == identifierName }
+                    ?: allLocalFuncDecls.find { it.nameRef.text == identifierName }
+            }
+        }
+        
+        if (boundElement == null) {
+            return emptyList()
+        }
 
         // Find the actual declaration containing this identifier
         val definition = PsiTreeUtil.getParentOfType(boundElement, LuaFuncDecl::class.java, false)
