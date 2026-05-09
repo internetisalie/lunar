@@ -1,1 +1,1 @@
-.instructions.md
+.agents/instructions.md
