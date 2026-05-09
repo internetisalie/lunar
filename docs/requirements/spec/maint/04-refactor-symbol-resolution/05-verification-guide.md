@@ -3,6 +3,10 @@
 **Date Completed**: May 9, 2026  
 **Status**: ✅ Complete (All 329 tests passing)
 
+**Issues Found During Validation**: 2 identified and 1 fixed
+- ✅ Scenario 5: Documentation hover not working → **FIXED** (May 9, 2026)
+- ⚠️ Scenario 4: Incomplete string syntax error → Expected behavior (not a regression)
+
 ---
 
 ## Overview
@@ -168,10 +172,19 @@ local p = Player:new(<cursor here>
 - ✅ Correctly recognizes this as a method call (`:` notation)
 - ✅ Parameter hints display properly
 
+**Known Behavior - Incomplete Statements**:
+⚠️ When typing an incomplete string literal (e.g., `Player:new("Alice` without closing quote), the IDE may highlight a syntax error. This is **expected behavior** during incomplete code entry. The parameter hints work correctly once you complete the statement:
+- Complete the string: `Player:new("Alice")`
+- Close the parenthesis: `Player:new("Alice")`
+- Manually trigger hints: Press **Ctrl+P**
+
+This syntax highlighting is not a bug but rather an artifact of how IDE completion handles incomplete syntax during editing. The resolution mechanism itself works correctly.
+
 **What This Validates**:
 - Method function declaration resolution works
 - Lua's `:` method syntax is properly handled
 - Fixed special case for method calls in `LuaParameterInfoHandler`
+- Parameter hints work correctly despite incomplete syntax highlighting
 
 ---
 
@@ -201,10 +214,18 @@ add(1, 2)
 - ✅ Parameter types display: `a: number`, `b: number`
 - ✅ Return type shows: `number`
 
+**Fix Applied** (May 9, 2026):
+This scenario was initially not working because the documentation provider was not resolving references at call sites. We fixed this by adding reference resolution to `LuaDocumentationTargetProvider.resolveDocumentationTarget()`:
+- Check if parent element is `LuaNameRefElement` with a reference
+- Try parent as `PsiReference`
+- Fall back to parent comment owner lookup (for declarations)
+
+This ensures documentation appears when hovering over function/variable usages anywhere in the code.
+
 **What This Validates**:
-- Documentation resolution works lazily
+- Documentation resolution works lazily at call sites
 - LuaCATS type annotations are parsed correctly
-- Symbol resolution finds function documentation on first lookup
+- Symbol resolution finds function documentation through reference chain
 
 ---
 
