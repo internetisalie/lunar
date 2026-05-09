@@ -50,4 +50,9 @@ public class LuaGenericForStatementImpl extends LuaStatementImpl implements LuaG
     return LuaPsiImplUtil.getBlockList(this);
   }
 
+  @Override
+  public boolean processDeclarations(@NotNull com.intellij.psi.scope.PsiScopeProcessor processor, @NotNull com.intellij.psi.ResolveState state, @Nullable PsiElement lastParent, @NotNull PsiElement place) {
+    return net.internetisalie.lunar.lang.psi.LuaForStatementExtKt.processDeclarations(this, processor, state, lastParent, place);
+  }
+
 }

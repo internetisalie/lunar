@@ -18,4 +18,6 @@ public interface LuaGenericForStatement extends LuaStatement, LuaBlockParent {
 
   @NotNull List<@NotNull LuaBlock> getBlockList();
 
+  boolean processDeclarations(@NotNull com.intellij.psi.scope.PsiScopeProcessor processor, @NotNull com.intellij.psi.ResolveState state, @Nullable PsiElement lastParent, @NotNull PsiElement place);
+
 }
