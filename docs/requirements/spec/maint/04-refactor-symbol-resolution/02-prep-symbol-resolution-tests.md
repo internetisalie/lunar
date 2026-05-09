@@ -148,29 +148,49 @@ This work serves as a prerequisite to MAINT-04, establishing clear behavioral sp
 
 ## 4. Test Implementation Phases
 
-### Phase 1: Foundation (Baseline)
+### Phase 1: Foundation (Baseline) — ✅ COMPLETED
 **Duration:** 3-4 days
 **Deliverable:** LuaSymbolResolutionTest with local scope coverage
 
-**Tasks:**
-- `test-local-scoping` — Implement all "Scope Chaining" test cases
-- `test-function-params` — Implement all "Function Parameters" test cases
-- `test-loop-variables` — Implement all "Loop Variables" test cases
+**Implementation:** Commit `c980e23`
+- ✅ `test-local-scoping` — Implemented "Scope Chaining" test cases (4 tests)
+- ✅ `test-function-params` — Implemented "Function Parameters" test cases (2 tests)
+- ✅ `test-loop-variables` — Implemented "Loop Variables" test cases (3 tests)
+- ✅ `test-control-flow-edge-cases` — Implemented redeclaration and nested functions (1 test)
 
-**Validation:** Run test suite, ensure ~80% of tests pass with current implementation
+**Validation:** ✅ All 10 tests pass with current LuaBindingsVisitor implementation
 
-### Phase 2: Global & Cross-File
+**Actual Test Coverage (Phase 1):**
+1. ✅ `testSimpleLocalVariable` — Basic local variable resolution
+2. ✅ `testNestedBlockScoping` — Nested block variable visibility
+3. ✅ `testMultipleDeclarationsInScope` — Multiple locals in same scope
+4. ✅ `testFunctionParameterResolution` — Function parameter resolution
+5. ✅ `testMultipleParameters` — Multiple function parameters
+6. ✅ `testForLoopVariableResolution` — For loop variable scoping
+7. ✅ `testGenericForLoopMultipleVariables` — Generic for loop with multiple vars
+8. ✅ `testWhileLoopNoVariableScope` — While loop scoping rules
+9. ✅ `testRedeclarationInSameScope` — Variable redeclaration handling
+10. ✅ `testNestedFunctions` — Nested function parameter visibility
+
+**Deferred to Phase 2 (pending):**
+- Shadowing test (advanced case)
+- Forward reference test (validation case)
+- Repeat-until loops
+- Conditional scoping (if/else/elseif)
+- Empty block handling
+
+### Phase 2: Global & Cross-File (Pending)
 **Duration:** 2-3 days
 **Deliverable:** LuaGlobalResolutionTest and LuaReferenceNavigationTest (goto/find)
 
 **Tasks:**
-- `test-global-resolution` — Implement all "Global Variable Resolution" test cases
-- `test-import-require` — Implement all "Import/Require Resolution" test cases
+- `test-global-resolution` — Implement "Global Variable Resolution" test cases
+- `test-import-require` — Implement "Import/Require Resolution" test cases
 - `test-goto-definition` — Implement "Goto Definition" test cases
 
 **Validation:** Run expanded test suite; document expected vs actual for failing tests
 
-### Phase 3: Labels & Navigation
+### Phase 3: Labels & Navigation (Pending)
 **Duration:** 2-3 days
 **Deliverable:** LuaLabelResolutionTest and LuaCompletionIntegrationTest
 
@@ -202,7 +222,18 @@ This work serves as a prerequisite to MAINT-04, establishing clear behavioral sp
 
 ## 6. Success Criteria
 
-✅ **Full Test Suite Implementation**
+✅ **Phase 1 Complete (Commit c980e23):**
+- ✅ 10 local scope and parameter resolution tests implemented
+- ✅ All tests pass with current LuaBindingsVisitor
+- ✅ Baseline established for MAINT-04 validation
+- ✅ Test file: `src/test/kotlin/net/internetisalie/lunar/lang/LuaSymbolResolutionTest.kt`
+
+**Phase 2 & 3 (Pending):**
+- ⏳ Full test suite implementation (50+ total tests across 3 modules)
+- ⏳ 100% pass rate with current implementation (establishes regression baseline)
+- ⏳ Documentation and performance baselines for MAINT-04
+
+✅ **Full Test Suite Success Criteria (All Phases):**
 - All test cases from sections 3.1–3.5 implemented
 - Baseline established with current LuaBindingsVisitor
 - Pass rate documented for each module
@@ -221,13 +252,47 @@ This work serves as a prerequisite to MAINT-04, establishing clear behavioral sp
 - Test execution <5 minutes for full suite
 - No test causes >1 second delay in IDE (indicates hang)
 
-## 7. Dependency on MAINT-04
+## 7. Implementation Status by Phase
+
+### Phase 1: Foundation (✅ Complete)
+
+**Module:** `LuaSymbolResolutionTest` (10 tests)
+
+| Test Case | Status | Notes |
+|-----------|--------|-------|
+| testSimpleLocalVariable | ✅ Implemented | Basic local variable resolution |
+| testNestedBlockScoping | ✅ Implemented | Nested block variable visibility |
+| testMultipleDeclarationsInScope | ✅ Implemented | Multiple locals with distinct names |
+| testFunctionParameterResolution | ✅ Implemented | Function parameter resolution |
+| testMultipleParameters | ✅ Implemented | Multiple function parameters |
+| testForLoopVariableResolution | ✅ Implemented | For loop variable scoping |
+| testGenericForLoopMultipleVariables | ✅ Implemented | Generic for loop with multiple iteration vars |
+| testWhileLoopNoVariableScope | ✅ Implemented | While loop scoping behavior |
+| testRedeclarationInSameScope | ✅ Implemented | Variable redeclaration handling |
+| testNestedFunctions | ✅ Implemented | Nested function parameter visibility |
+
+**Baseline Status:** ✅ All 10/10 tests pass with current LuaBindingsVisitor
+
+### Phase 2: Global & Cross-File (⏳ Pending)
+
+**Modules:** `LuaGlobalResolutionTest`, `LuaReferenceNavigationTest` (20+ tests)
+
+**Status:** Not yet implemented. Blocked by Phase 1 completion (now satisfied).
+
+### Phase 3: Labels & Navigation (⏳ Pending)
+
+**Modules:** `LuaLabelResolutionTest`, `LuaCompletionIntegrationTest` (20+ tests)
+
+**Status:** Not yet implemented. Blocked by Phase 2 completion.
+
+## 8. Dependency on MAINT-04
 
 This test suite is a **strict prerequisite** to MAINT-04:
 
-1. MAINT-04 implementation MUST pass all tests from this suite
-2. If tests fail, MAINT-04 is considered incomplete
-3. New edge cases discovered during MAINT-04 MUST be added to this suite before merge
+1. ✅ Phase 1 baseline established (commit c980e23)
+2. ⏳ MAINT-04 implementation MUST pass all tests from this suite
+3. ⏳ If tests fail, MAINT-04 is considered incomplete
+4. ⏳ New edge cases discovered during MAINT-04 MUST be added to this suite before merge
 
 ## 8. Risk Mitigation
 
