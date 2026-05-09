@@ -6,6 +6,8 @@ import org.jetbrains.annotations.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
+import com.intellij.psi.ResolveState;
+import com.intellij.psi.scope.PsiScopeProcessor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
@@ -66,6 +68,11 @@ public class LuaFuncDeclImpl extends LuaStubbedStatementImpl<LuaFuncStub> implem
   @Override
   public @NotNull List<@NotNull LuaBlock> getBlockList() {
     return LuaPsiImplUtil.getBlockList(this);
+  }
+
+  @Override
+  public boolean processDeclarations(@NotNull PsiScopeProcessor processor, @NotNull ResolveState state, @Nullable PsiElement lastParent, @NotNull PsiElement place) {
+    return net.internetisalie.lunar.lang.psi.LuaFunctionExtKt.processDeclarations(this, processor, state, lastParent, place);
   }
 
 }

@@ -68,4 +68,9 @@ public class LuaLocalFuncDeclImpl extends LuaStubbedStatementImpl<LuaLocalFuncSt
     return LuaPsiImplUtil.getBlockList(this);
   }
 
+  @Override
+  public boolean processDeclarations(@NotNull com.intellij.psi.scope.PsiScopeProcessor processor, @NotNull com.intellij.psi.ResolveState state, @Nullable com.intellij.psi.PsiElement lastParent, @NotNull com.intellij.psi.PsiElement place) {
+    return net.internetisalie.lunar.lang.psi.LuaFunctionExtKt.processDeclarations(this, processor, state, lastParent, place);
+  }
+
 }
