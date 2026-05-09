@@ -15,7 +15,6 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
-import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 
@@ -38,22 +37,7 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             return ownerElement
         }
 
-        // Resolve locally
-        val bindings = LuaBindingsVisitor.getBindings(element)
-        var reference = bindings.lookup(element) ?: return null
-
-        // Resolve globally
-        if (reference.global) {
-            val bindingsWithImports = LuaBindingsVisitor.getBindingsWithImports(element)
-            reference = bindingsWithImports.lookup(element) ?: return null
-        }
-
-        // Resolve reference upwards
-        if (reference.binding != null) {
-            return findElementDocCommentOwner(reference.binding.element)
-        }
-
-        // Try cross-file type lookup if binding resolution failed
+        // Try cross-file type lookup using PSI search and stubs
         val elementText = element.text ?: return null
         val scope = GlobalSearchScope.projectScope(element.project)
         val classDecl = StubIndex.getElements(LuaClassNameIndex.KEY, elementText, element.project, scope, LuaLocalVarDecl::class.java).firstOrNull()

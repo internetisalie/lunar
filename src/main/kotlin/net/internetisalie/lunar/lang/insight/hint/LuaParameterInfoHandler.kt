@@ -4,7 +4,6 @@ import com.intellij.lang.parameterInfo.*
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
-import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.psi.*
 
 class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHandler.LuaParameterInfoCandidate> {
@@ -55,9 +54,8 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
 
         val identifier = findIdentifier(target) ?: return emptyList()
 
-        val bindings = LuaBindingsVisitor.getBindingsWithImports(funcCall)
-        val reference = bindings.lookup(identifier)
-        val boundElement = reference?.binding?.element ?: (identifier.parent as? com.intellij.psi.PsiReference)?.resolve() ?: return emptyList()
+        // Try to resolve via PsiReference (modern approach without LuaBindingsVisitor)
+        val boundElement = identifier.references.firstNotNullOfOrNull { it.resolve() } ?: return emptyList()
 
         // Find the actual declaration containing this identifier
         val definition = PsiTreeUtil.getParentOfType(boundElement, LuaFuncDecl::class.java, false)

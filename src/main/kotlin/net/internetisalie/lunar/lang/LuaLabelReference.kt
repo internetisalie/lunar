@@ -6,7 +6,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.LuaIcons.FILE
-import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.psi.LuaLabel
 import net.internetisalie.lunar.lang.psi.LuaLabelRef
 
@@ -16,10 +15,10 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
 
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         val element = myElement ?: return emptyArray()
-        val bindings = LuaBindingsVisitor.getBindings(element)
-        val reference = bindings.references[element.textOffset] ?: return emptyArray()
-        val binding = reference.binding ?: return emptyArray()
-        return arrayOf(PsiElementResolveResult(binding.element))
+        // Label resolution: find labels with matching name in file
+        val labels = findLabels(element.containingFile, name)
+        if (labels.isEmpty()) return emptyArray()
+        return labels.map { PsiElementResolveResult(it.labelName.identifier) }.toTypedArray()
     }
 
     override fun resolve(): PsiElement? {
