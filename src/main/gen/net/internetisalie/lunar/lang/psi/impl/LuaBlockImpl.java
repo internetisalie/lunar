@@ -6,6 +6,8 @@ import org.jetbrains.annotations.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
+import com.intellij.psi.ResolveState;
+import com.intellij.psi.scope.PsiScopeProcessor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.LuaBaseElement;
@@ -31,6 +33,11 @@ public class LuaBlockImpl extends LuaBaseElement implements LuaBlock {
   @NotNull
   public List<LuaStatement> getStatementList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaStatement.class);
+  }
+
+  @Override
+  public boolean processDeclarations(@NotNull PsiScopeProcessor processor, @NotNull ResolveState state, @Nullable PsiElement lastParent, @NotNull PsiElement place) {
+    return net.internetisalie.lunar.lang.psi.LuaBlockExtKt.processDeclarations(this, processor, state, lastParent, place);
   }
 
 }
