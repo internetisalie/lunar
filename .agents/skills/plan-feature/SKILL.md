@@ -57,6 +57,7 @@ This skill provides a structured process for taking a high-level feature request
 
 ### Step 7: Tracker Setup (Saga)
 - Initialize the feature in the tracker using `saga_epic_create`.
+- **Naming Convention**: Use the format `CODE: Title` for epic titles (e.g., `TOOL: Tool Inventory Management`).
 - Create tasks for each implementation phase and de-risking action using `saga_task_create`.
 - Use the `priority` field to reflect M/S/C status (High/Medium/Low).
 - Add granular subtasks to each task for checklist tracking.
@@ -71,7 +72,7 @@ This skill provides a structured process for taking a high-level feature request
 
 A well-planned feature should have the following folder structure:
 ```
-requirements/spec/<domain>/<feature-name>/
+docs/requirements/spec/<domain>/<feature-name>/
 ├── requirements.md               # SRS: Functional details & Test Cases
 ├── design.md                     # TDD: Technical architecture
 ├── implementation-plan.md        # Phases & prioritized roadmap

@@ -24,10 +24,10 @@ A meta-skill for creating new Agent Skills. Use this skill when you need to scaf
 
 ### Step 1: Create the Skill Directory
 
-Create a new folder with a lowercase, hyphenated name:
+Create a new folder with a lowercase, hyphenated name in the `.agents/skills/` directory:
 
 ```
-skills/<skill-name>/
+.agents/skills/<skill-name>/
 └── SKILL.md          # Required
 ```
 

@@ -11,8 +11,8 @@ This skill provides a structured, senior-engineer-led workflow for delivering hi
 
 ### 1. Research & Specification
 Before writing code, establish a clear source of truth for what the feature should do.
-- **Task**: Create a detailed requirements document in `docs/requirements/spec/`.
-- **Naming**: Use the project's ID convention (e.g., `syntax-XX-name.md`).
+- **Task**: Create a detailed requirements document in `docs/requirements/spec/<domain>/<feature-name>/`.
+- **Naming**: Use the feature name for the directory (e.g., `01-inventory-management`) and name the file `requirements.md`.
 - **Structure**:
   - **Scope**: What is and isn't included.
   - **Syntax/Behavior**: Formal definition of the feature.
