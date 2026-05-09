@@ -33,13 +33,29 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
 
     private fun resolveDocumentationTarget(element: PsiElement): PsiElement? {
         // First try resolving through reference (for call sites)
-        val resolvedElement = element.parent?.let { parent ->
-            when (parent) {
-                is LuaNameRefElement -> parent.reference?.resolve()
-                is PsiReference -> parent.resolve()
+        val parent = element.parent
+        
+        val resolvedElement = parent?.let {
+            when {
+                it is LuaNameRefElement -> {
+                    val ref = it.reference
+                    var resolved = ref?.resolve()
+                    
+                    // The reference resolves to the name token, not the declaration
+                    // Get the parent to get the actual declaration
+                    if (resolved != null && resolved !is LuaCatsCommentOwner) {
+                        val commentOwner = findElementDocCommentOwner(resolved)
+                        if (commentOwner != null) {
+                            resolved = commentOwner
+                        }
+                    }
+                    resolved
+                }
+                it is PsiReference -> it.resolve()
                 else -> null
             }
         }
+        
         if (resolvedElement != null && resolvedElement is LuaCatsCommentOwner) {
             return resolvedElement
         }
