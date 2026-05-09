@@ -77,6 +77,7 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 | `DOC-06-03` | Incremental Updates | IntelliJ stub infrastructure handles this automatically |
 | `DOC-06-04` | Full-Text Search | — |
 | `DOC-06-05` | Cross-File Resolution | General bindings via `LuaFileBindingsIndex`; class, alias, and function stubs via `StubIndex` |
+| `DOC-06-06` | Platform Symbol Documentation | Lookup and display documentation for symbols from platform/library files (e.g., Lua standard library) |
 
 ### DOC-07: Parameter Info
 

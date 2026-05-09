@@ -31,6 +31,7 @@ Documentation indexing ensures that type annotations, class definitions, and des
 | `DOC-06-03` | **Incremental Updates** | **M** | **Full** | Ensure indices are updated incrementally as files are modified. |
 | `DOC-06-04` | **Full-Text Search** | **S** | **Not Implemented** | Support searching for symbols based on their documentation descriptions. |
 | `DOC-06-05` | **Cross-File Resolution** | **M** | **Full** | Resolve types and classes defined in other files within the same project or libraries. |
+| `DOC-06-06` | **Platform Symbol Documentation** | **M** | **Not Implemented** | Lookup and display documentation for symbols from platform/library files (e.g., Lua standard library). |
 
 ## 4. Performance Considerations
 
