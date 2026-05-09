@@ -9,15 +9,17 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.LuaIcons.FILE
 import net.internetisalie.lunar.lang.indexing.*
-import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncDef
 import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
+import net.internetisalie.lunar.lang.syntax.extractLuaString
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 import net.internetisalie.lunar.project.PlatformLibraryIndex
@@ -125,11 +127,61 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
 
     private fun extractRequires(file: PsiFile): List<String> {
         val requires = mutableListOf<String>()
-        // Cache requires list by traversing file once
-        // For now, we'll extract requires on-demand (alternative: cache in index)
-        val bindings = LuaBindingsVisitor.getBindings(file)
-        requires.addAll(bindings.requires)
+        if (file !is LuaFile) return requires
+        
+        // Walk all statements in all blocks to find require() calls
+        file.getBlockList().forEach { block ->
+            block.statementList.forEach { stmt ->
+                extractRequiresFromStatement(stmt, requires)
+            }
+        }
         return requires
+    }
+
+    private fun extractRequiresFromStatement(stmt: PsiElement?, requires: MutableList<String>) {
+        if (stmt == null) return
+        
+        // Recursively walk to find require() calls
+        stmt.accept(object : PsiRecursiveElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                if (element is LuaFuncCall) {
+                    // Try to extract require() call
+                    val varOrExp = element.varOrExp ?: return@visitElement
+                    val luaVar = varOrExp.`var` ?: return@visitElement
+                    
+                    // Check if function name is "require"
+                    val nameAndArgsList = element.nameAndArgsList
+                    if (nameAndArgsList.isEmpty()) return@visitElement
+                    
+                    if (luaVar.nameRef?.identifier?.text != "require") return@visitElement
+                    
+                    // Extract string argument
+                    val nameAndArgs = nameAndArgsList[0]
+                    val args = nameAndArgs.args ?: return@visitElement
+                    
+                    // Try to get string from args
+                    var stringElem = args.string
+                    if (stringElem == null) {
+                        // Try to get from exprList
+                        val exprList = args.exprList?.exprList ?: return@visitElement
+                        if (exprList.size == 1) {
+                            val expr = exprList[0]
+                            if (expr is LuaTerminalExpr) {
+                                stringElem = expr.string
+                            }
+                        }
+                    }
+                    
+                    stringElem?.let {
+                        val str = extractLuaString(it.text)
+                        if (str != null && !requires.contains(str)) {
+                            requires.add(str)
+                        }
+                    }
+                }
+                super.visitElement(element)
+            }
+        })
     }
 
     override fun resolve(): PsiElement? {
@@ -144,15 +196,8 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
     }
 
     override fun getVariants(): Array<Any> {
-        val element = myElement ?: return emptyArray()
-        val bindings = LuaBindingsVisitor.getBindings(element)
-        val reference = bindings.references[element.textOffset] ?: return emptyArray()
-        if (!reference.defined) return emptyArray()
-        return arrayOf(
-            LookupElementBuilder
-                .create(reference.binding!!.element)
-                .withIcon(FILE)
-                .withTypeText(element.containingFile.name)
-        )
+        // Code completion: return empty for now
+        // (Modern IntelliJ uses CompletionContributor instead of PsiReference.getVariants())
+        return emptyArray()
     }
 }

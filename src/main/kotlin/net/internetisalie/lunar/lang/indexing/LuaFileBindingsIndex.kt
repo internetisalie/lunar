@@ -3,6 +3,9 @@ package net.internetisalie.lunar.lang.indexing
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.IndexPatternProvider
 import com.intellij.util.indexing.FileBasedIndex
@@ -11,9 +14,11 @@ import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
 import com.intellij.util.io.EnumeratorIntegerDescriptor
 import com.intellij.util.io.KeyDescriptor
-import net.internetisalie.lunar.lang.insight.LuaBindingsVisitor
-import net.internetisalie.lunar.lang.insight.Scope
 import net.internetisalie.lunar.lang.path.SourcePathPattern
+import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncCall
+import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
+import net.internetisalie.lunar.lang.syntax.extractLuaString
 import org.jetbrains.annotations.NonNls
 import java.beans.PropertyChangeListener
 import java.io.DataInput
@@ -279,29 +284,118 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
     private val logger = Logger.getInstance(LuaFileBindingsIndexer::class.java)
 
     override fun computeValue(inputData: FileContent): LuaFileBindingsRecord {
+        val psiFile = inputData.psiFile
         val fileBindings = mutableListOf<LuaBinding>()
-        val bindings = LuaBindingsVisitor.getBindings(inputData.psiFile)
-        walk(fileBindings, bindings.global, null)
-        val result = LuaFileBindingsRecord(fileBindings.sortedBy { it.name }, bindings.requires)
-        return result
+        val requires = mutableListOf<String>()
+
+        // Extract requires by walking statements
+        extractRequires(psiFile, requires)
+        
+        // Extract bindings - for now, keep old approach but can be refactored
+        // TODO: Replace with processDeclarations() for consistency
+        if (psiFile is LuaFile) {
+            extractBindings(psiFile, fileBindings)
+        }
+
+        return LuaFileBindingsRecord(fileBindings.sortedBy { it.name }, requires)
     }
 
-    private fun walk(bindings: MutableList<LuaBinding>, scope: Scope, leading: Dotted<String>?) {
-        // scope.declarations contains exported un-dotted names
-        scope.declarations.forEach {
-            bindings.add(
-                LuaBinding(
-                    Dotted(it.key, leading).toString(),
-                    it.value.element.textOffset,
-                    it.value.kind.index,
-                ),
-            )
+    private fun extractRequires(psiFile: PsiFile, requires: MutableList<String>) {
+        if (psiFile !is LuaFile) return
+        
+        // Walk all statements in all blocks to find require() calls
+        psiFile.getBlockList().forEach { block ->
+            block.statementList.forEach { stmt ->
+                extractRequiresFromStatement(stmt, requires)
+            }
         }
+    }
 
-        // scope.tables contains exported dotted names
-        scope.tables.forEach {
-            walk(bindings, it.value, Dotted(it.key, leading))
+    private fun extractRequiresFromStatement(stmt: PsiElement?, requires: MutableList<String>) {
+        if (stmt == null) return
+        
+        // Recursively walk to find require() calls
+        stmt.accept(object : PsiRecursiveElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                if (element is LuaFuncCall) {
+                    // Try to extract require() call
+                    val varOrExp = element.varOrExp ?: return@visitElement
+                    val luaVar = varOrExp.`var` ?: return@visitElement
+                    
+                    // Check if function name is "require"
+                    val nameAndArgsList = element.nameAndArgsList
+                    if (nameAndArgsList.isEmpty()) return@visitElement
+                    
+                    if (luaVar.nameRef?.identifier?.text != "require") return@visitElement
+                    
+                    // Extract string argument
+                    val nameAndArgs = nameAndArgsList[0]
+                    val args = nameAndArgs.args ?: return@visitElement
+                    
+                    // Try to get string from args
+                    var stringElem = args.string
+                    if (stringElem == null) {
+                        // Try to get from exprList
+                        val exprList = args.exprList?.exprList ?: return@visitElement
+                        if (exprList.size == 1) {
+                            val expr = exprList[0]
+                            if (expr is LuaTerminalExpr) {
+                                stringElem = expr.string
+                            }
+                        }
+                    }
+                    
+                    stringElem?.let {
+                        val str = extractLuaString(it.text)
+                        if (str != null && !requires.contains(str)) {
+                            requires.add(str)
+                        }
+                    }
+                }
+                super.visitElement(element)
+            }
+        })
+    }
+
+    private fun extractBindings(file: LuaFile, fileBindings: MutableList<LuaBinding>) {
+        // Extract top-level and dotted names (table.field)
+        // This maintains backward compatibility with index structure
+        val visited = mutableSetOf<String>()
+        
+        file.getBlockList().forEach { block ->
+            block.statementList.forEach { stmt ->
+                extractBindingsFromStatement(stmt, fileBindings, visited)
+            }
         }
+    }
+
+    private fun extractBindingsFromStatement(
+        stmt: PsiElement?,
+        fileBindings: MutableList<LuaBinding>,
+        visited: MutableSet<String>,
+    ) {
+        if (stmt == null) return
+        
+        stmt.accept(object : PsiRecursiveElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                when (element) {
+                    is com.intellij.psi.PsiNamedElement -> {
+                        val name = element.name ?: return@visitElement
+                        if (!visited.contains(name)) {
+                            visited.add(name)
+                            fileBindings.add(
+                                LuaBinding(
+                                    name,
+                                    element.textOffset,
+                                    0,  // Kind.Variable
+                                )
+                            )
+                        }
+                    }
+                }
+                super.visitElement(element)
+            }
+        })
     }
 }
 
