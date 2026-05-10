@@ -5,25 +5,25 @@
 
 ## Progress by Epic
 
-| Epic | Priority | Progress | Tasks | Completion |
-|:-----|:---------|:---------|:------|:-----------|
-| **ANALYSIS: Static Analysis** | 🟡 Medium | **100%** | 5/5 | ██████████ |
-| **DOC: Documentation** | 🟡 Medium | **100%** | 8/8 | ██████████ |
-| **DEBUG/RUN: Debugging & Execution** | 🟢 Low | **84.6%** | 11/13 | ████████░░ |
-| **SYNTAX: Syntax & Editor** | 🟡 Medium | **70.6%** | 12/17 | ███████░░░ |
-| **COMP: Code Completion** | 🔴 High | **60%** | 3/5 | █████░░░░░ |
-| **TYPE: Type System** | 🔴 High | **58.8%** | 20/34 | ███████░░░ |
-| **NAV: Code Navigation** | 🟡 Medium | **45.5%** | 5/11 | █████░░░░░ |
-| **INSP: Inspections & Diagnostics** | 🟡 Medium | **50%** | 2/4 | █████░░░░░ |
-| **REFACT/INTENT: Refactoring & Intentions** | 🟢 Low | **50%** | 2/4 | █████░░░░░ |
-| **FORMAT: Formatting** | 🟡 Medium | **33.3%** | 2/6 | ███░░░░░░░ |
-| **MAINT: Maintenance & Refactoring** | 🟢 Low | **20%** | 2/10 | ██░░░░░░░░ |
-| **Platform Symbol Documentation** | 🟡 Medium | **50%** | 2/4 | █████░░░░░ |
-| **TOOL: Tool Inventory Management** | 🔴 High | **0%** | 0/6 | ░░░░░░░░░░ |
-| **ROCKS: LuaRocks Integration** | 🔴 High | **0%** | 0/7 | ░░░░░░░░░░ |
-| **BUG: Bugfixes & Stability** | 🔴 Critical | **0%** | 0/5 | ░░░░░░░░░░ |
-| **TYPE: Type Inference & Inlay Hint Bug Fixes** | 🔴 High | **100%** | 5/5 | ██████████ |
-| **TYPE: Union Type Fixes** | 🟡 Medium | **100%** | 1/1 | ██████████ |
+| Epic                                            | Priority    | Progress  | Tasks | Completion |
+| :---------------------------------------------- | :---------- | :-------- | :---- | :--------- |
+| **ANALYSIS: Static Analysis**                   | 🟡 Medium   | **100%**  | 5/5   | ██████████ |
+| **DOC: Documentation**                          | 🟡 Medium   | **100%**  | 8/8   | ██████████ |
+| **DEBUG/RUN: Debugging & Execution**            | 🟢 Low      | **84.6%** | 11/13 | ████████░░ |
+| **SYNTAX: Syntax & Editor**                     | 🟡 Medium   | **70.6%** | 12/17 | ███████░░░ |
+| **COMP: Code Completion**                       | 🔴 High     | **60%**   | 3/5   | █████░░░░░ |
+| **TYPE: Type System**                           | 🔴 High     | **58.8%** | 20/34 | ███████░░░ |
+| **NAV: Code Navigation**                        | 🟡 Medium   | **45.5%** | 5/11  | █████░░░░░ |
+| **INSP: Inspections & Diagnostics**             | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░ |
+| **REFACT/INTENT: Refactoring & Intentions**     | 🟢 Low      | **50%**   | 2/4   | █████░░░░░ |
+| **FORMAT: Formatting**                          | 🟡 Medium   | **33.3%** | 2/6   | ███░░░░░░░ |
+| **MAINT: Maintenance & Refactoring**            | 🟢 Low      | **20%**   | 2/10  | ██░░░░░░░░ |
+| **Platform Symbol Documentation**               | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░ |
+| **TOOL: Tool Inventory Management**             | 🔴 High     | **0%**    | 0/6   | ░░░░░░░░░░ |
+| **ROCKS: LuaRocks Integration**                 | 🔴 High     | **0%**    | 0/7   | ░░░░░░░░░░ |
+| **BUG: Bugfixes & Stability**                   | 🔴 Critical | **0%**    | 0/5   | ░░░░░░░░░░ |
+| **TYPE: Type Inference & Inlay Hint Bug Fixes** | 🔴 High     | **100%**  | 5/5   | ██████████ |
+| **TYPE: Union Type Fixes**                      | 🟡 Medium   | **100%**  | 1/1   | ██████████ |
 
 ## Highlights
 
