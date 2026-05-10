@@ -461,7 +461,7 @@ processHandler?.addProcessListener(object : ProcessListener {
 
 ## See Also
 
-- [IDE Execution Guide](IDE_EXECUTION_GUIDE.md)
-- [LuaApplicationSettings](../settings/LuaApplicationSettings.kt)
-- [LuaProjectSettings](../project/LuaProjectSettings.kt)
-- [newLuaInterpreterCommandLine](../command/InterpreterCommand.kt)
+- [IDE Execution Guide](ide-execution-integration-tests.md)
+- [LuaApplicationSettings](../../../../src/main/kotlin/net/internetisalie/lunar/settings/LuaApplicationSettings.kt)
+- [LuaProjectSettings](../../../../src/main/kotlin/net/internetisalie/lunar/project/LuaProjectSettings.kt)
+- [newLuaInterpreterCommandLine](../../../../src/main/kotlin/net/internetisalie/lunar/command/InterpreterCommand.kt)

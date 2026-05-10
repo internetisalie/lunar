@@ -50,3 +50,6 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 - **`TestLuaDebugValue`**: Type checking (string, number, bool, table, error).
 - **`TestLuaExecutionStack`**: Remote stack management.
 - **`TestLuaStackFrame`**: Stack frame structure.
+
+## Guides
+- [Container Execution Guide](container-execution-guide.md)

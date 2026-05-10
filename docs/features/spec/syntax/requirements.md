@@ -46,3 +46,6 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 ### SYNTAX-12: Label & Goto Scope Resolution
 - **Status**: **Implemented** (`LuaGotoAnnotator`)
 
+
+## Test Cases
+- [Exhaustive Lua Parsing Tests Collection](parsing-test-cases.md)
