@@ -1,36 +1,41 @@
 # Change Log
 
-## Unreleased
+All notable changes to the Lunar Lua IDE plugin are documented in this file.
 
-### Added
+## [1.0.0-SNAPSHOT] - In Development
 
-- **Type Inference Engine (Foundation)**: Implemented cubic biunification type graph engine for constraint-based, flow-sensitive type analysis over Lua PSI trees
-  - Bipartite flow graph architecture with ValueNode, UseNode, and VariableNode for bidirectional type propagation
-  - O(n³) incremental reachability algorithm for maintaining transitively closed flow relations
-  - Type caching via `CachedValuesManager` to prevent stale types after edits
-  - Support for `@type`, `@param`, and `@return` LuaCATS annotations
+### Core Language Support
+- **Lua Grammar & Parsing**: Full Lua 5.1-5.4 syntax support with AST-based PSI model
+- **Lexer & Tokenization**: Comprehensive lexical analysis with proper handling of comments, strings, and operators
+- **Syntax Highlighting**: Color scheme configuration with semantic highlighting for syntax elements
 
-- **Type Inlay Hints**: Display inferred types for variables as inline editor hints
-  - Correctly shows union types when annotated variables are assigned to other variables
-  - Skips hints for variables with explicit type annotations
-  - Comprehensive integration with IntelliJ's declarative inlay hint provider
+### Documentation & Type Hints
+- **LuaDoc Support**: Traditional Lua documentation format with inline documentation
+- **LuaCATS Support**: Modern type annotation system with type hints, overloads, and generics
+- **Inlay Hints**: Display inferred types for variables as inline editor hints
+- **Type Inference Engine**: Cubic biunification constraint-based type analysis
 
-- **Type Annotations Support**: Full integration of LuaCATS type annotations in type inference
-  - `@type` annotations inject both value and constraint edges for proper type flow and validation
-  - `@param` annotations properly scope parameter types within function bodies
-  - `@return` annotations track function return types across multiple return statements
+### IDE Features
+- **Navigation**: Symbol resolution and cross-file references
+- **Structure View**: Outline view of file structure
+- **Code Completion**: Intelligent completion for variables, functions, and members
+- **Refactoring**: Basic rename refactoring support
+- **Code Style**: Settings for indentation, spacing, and formatting
+- **Run Configurations**: Lua script execution and debugging support
+- **Breakpoint Debugging**: DBGp protocol support for remote debugging
 
-- **Comprehensive Type Tests**: 444 test cases covering type inference and annotations
-  - Literal type inference (nil, boolean, number, string)
-  - Annotation seeding and injection
-  - Parameter and return type handling
-  - Name-ref data flow and variable scoping
-  - Function scope binding and nested scopes
-  - Union type rendering and compatibility checking
+### Analysis & Quality Tools
+- **Luacheck Integration**: Static analysis integration
+- **Type Checking**: Constraint-based type validation with error reporting
+- **Inspections**: Type assignability and return type mismatch detection
 
-### Fixed
+### Project Features
+- **Platform Libraries**: Lua standard library definitions and type information
+- **Project Settings**: Language level configuration (Lua 5.1-5.4)
+- **Application Settings**: Interpreter detection and workspace configuration
 
-- Type annotation union hint rendering for inlay hints
-  - Variables receiving values from annotated variables now show correct union types
-  - Type annotations properly flow as values to dependent expressions
-  - Type checking validates assignments against declared types
+### Architecture
+- **Bipartite Type Graph**: O(n³) incremental reachability for type constraints
+- **Scope Binding**: Lexical scope chains with proper shadowing and function scoping
+- **Annotation Support**: Full LuaCATS @type, @param, @return injection
+- **Type Caching**: CachedValuesManager integration for efficient type resolution
