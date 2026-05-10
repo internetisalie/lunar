@@ -1,7 +1,7 @@
 # Lunar Project Status Report
 
-**Overall Completion: 59.7%**
-(163 of 273 tasks completed across 16 active epics)
+**Overall Completion: 59.9%**
+(164 of 274 tasks completed across 26 epics)
 
 ## Progress by Epic
 
@@ -12,14 +12,14 @@
 | **TARGET: Runtime Environment Configuration** | 🔴 High     | **100%**  | 70/70  | ██████████ |
 | **DEBUG/RUN: Debugging & Execution**          | 🟢 Low      | **84.6%** | 11/13  | ████████░░ |
 | **SYNTAX: Syntax & Editor**                   | 🟡 Medium   | **70.6%** | 12/17  | ███████░░░ |
-| **TYPE: Type System**                         | 🔴 High     | **65%**   | 26/40  | ██████░░░░ |
+| **TYPE: Type System**                         | 🔴 High     | **63.4%** | 26/41  | ██████░░░░ |
 | **COMP: Code Completion**                     | 🔴 High     | **60%**   | 3/5    | █████░░░░░ |
 | **Platform Symbol Documentation**             | 🟡 Medium   | **50%**   | 2/4    | █████░░░░░ |
 | **INSP: Inspections & Diagnostics**           | 🟡 Medium   | **50%**   | 2/4    | █████░░░░░ |
 | **REFACT/INTENT: Refactoring & Intentions**   | 🟢 Low      | **50%**   | 2/4    | █████░░░░░ |
 | **NAV: Code Navigation**                      | 🟡 Medium   | **45.5%** | 5/11   | █████░░░░░ |
 | **FORMAT: Formatting**                        | 🟡 Medium   | **33.3%** | 2/6    | ███░░░░░░░ |
-| **BUG: Bugfixes & Stability**                 | 🔴 Critical | **28.6%** | 2/7    | ███░░░░░░░ |
+| **BUG: Bugfixes & Stability**                 | 🔴 Critical | **42.9%** | 3/7    | ████░░░░░░ |
 | **MAINT: Maintenance & Refactoring**          | 🟢 Low      | **15.4%** | 2/13   | ██░░░░░░░░ |
 | **TOOL: Tool Inventory Management**           | 🔴 High     | **0%**    | 0/6    | ░░░░░░░░░░ |
 | **ROCKS: LuaRocks Integration**               | 🔴 High     | **0%**    | 0/7    | ░░░░░░░░░░ |
@@ -29,8 +29,9 @@
 - **Major Milestone**: TARGET: Runtime Environment Configuration (70/70 tasks) fully complete
 - **Completed**: ANALYSIS (5/5), DOC (8/8), all delivered
 - **Nearly Complete**: DEBUG/RUN at 84.6% with only 2 tasks remaining
-- **Strong Progress**: TYPE system now at 65% (26/40) after consolidating bug-fix tasks
-- **Bugfix Consolidation**: TYPE bug-fix and bugfix epics merged into main epics (removed 3 sub-epics)
+- **Strong Progress**: TYPE system at 63.4% (26/41) with core type inference operational
+- **Current Focus**: Member-aware resolution for platform globals (e.g., `cjson.decode()`)
+- **Recent Fix**: Recursive local function resolution bug (task 23 completed)
 
 ## Blocked Tasks
 
@@ -41,13 +42,12 @@
 
 ## Recent Milestones
 
-- **Parameter Info Fix** (2026-05-13) — Fixed parameter info popups for dotted platform globals (e.g., `cjson.decode()`). Added qualified name extraction and platform library resolution fallback in `LuaParameterInfoHandler`. New test: `ReproduceParameterInfoIssueTest`. All 17 tests passing. Merged to `main`.
+- **Recursive Local Function Resolution** (2026-05-13) — Fixed critical bug in local function resolution affecting recursive calls. Completed BUG-01 task.
+- **Member-Aware Resolution In Progress** (2026-05-13) — Working on qualified name resolution for platform globals to enable type inference for library methods (e.g., `cjson.decode()`, `redis.call()`).
+- **Parameter Info Fix** (2026-05-13) — Fixed parameter info popups for dotted platform globals. All 17 tests passing. Merged to `main`.
 - **TARGET integration** (2026-05-13) — All TARGET Phase commits successfully integrated to `main` branch
-- **Epic consolidation** (2026-05-12) — Merged TYPE bug-fix epics and Bug Fixes epic into active epics to reduce tracker clutter
 - **TARGET epic completed** (2026-05-12) — 70 tasks across 7 phases: data model, settings integration, UI update, library resolution, luacheck integration, legacy migration, and final verification
-- Settings migration validated across 5 scenarios (Standard, Redis, Tarantool, Luau, unknown version)
-- Unified `src/main/resources/runtime/` structure deployed; legacy `platform/` and `sdk/` directories removed
 
 ---
 
-*Last updated: 2026-05-13T16:53:00-04:00*
+*Last updated: 2026-05-13T17:20:00-04:00*

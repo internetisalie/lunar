@@ -253,7 +253,8 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
                     val debuggerPreloaderFile = pluginLuaPath.findChild(DEBUGGER_PRELOADER_FILE)
                         ?: throw ExecutionException("Failed to locate debugger preloader")
 
-                    commandLine.withEnvironment(ENV_LUNAR_LUA_PATH_TEMPLATE, pluginLuaPath.path + "/?/init.lua")
+                    commandLine.withEnvironment(ENV_LUNAR_LUA_PATH_TEMPLATE,
+                        pluginLuaPath.path + "/?/init.lua;" + pluginLuaPath.path + "/?.lua")
                     commandLine.withEnvironment(ENV_LUNAR_DEBUGGER_PACKAGE, DEBUGGER_PACKAGE)
                     commandLine.withEnvironment(ENV_LUA_INIT, "@${debuggerPreloaderFile.path}")
                 }

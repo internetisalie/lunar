@@ -1,14 +1,19 @@
 --- Export a rockspec manifest to JSON.
--- ```sh
--- lua rockspec.lua luacheck-dev-1.rockspec
--- ```
-local luna = require "lunajson"
+--- ```sh
+--- export LUNAR_LUA_PATH_TEMPLATE="<path-to-plugin-lua-directory>/?/init.lua;<path-to-plugin-lua-directory>/?.lua"
+--- lua rockspec.lua luacheck-dev-1.rockspec
+--- ```
+
+local lunar_path = os.getenv("LUNAR_LUA_PATH_TEMPLATE")
+package.path = lunar_path .. ";" .. package.path
 
 -- Execute the requested manifest
+-- No _ENV substitution in Lua 5.1
 dofile(arg[1])
 
--- Set the required exports
-local exports ={
+-- Export the fields defined
+-- in the rockspec schema.
+require("lunar.export").json(_G, {
     "rockspec_format",
     "package",
     "version",
@@ -21,16 +26,6 @@ local exports ={
     "source",
     "build",
     "test",
-}
-
--- Collect the specified names from the _G table into the data table
-local data = {}
-for _, key in ipairs(exports) do
-    local value = _G[key]
-    if value ~= nil then
-        data[key] = value
-    end
-end
-
--- Print the data table formatted as a JSON object
-print(luna.encode(data))
+    "deploy",
+    "hooks"
+})

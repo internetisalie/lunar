@@ -1,0 +1,318 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Luarocks Rockspec v3.0",
+  "description": "JSON Schema for LuaRocks v3.0 .rockspec files",
+  "type": "object",
+  "required": [
+    "package",
+    "version",
+    "source",
+    "build"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "rockspec_format": {
+      "type": "string",
+      "description": "The rockspec format version (e.g., '1.0', '3.0'). Defaults to '1.0' if omitted.",
+      "default": "1.0"
+    },
+    "package": {
+      "type": "string",
+      "description": "The name of the package (case-insensitive)."
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the package plus the rockspec revision (e.g., '1.0-1').",
+      "pattern": "^[a-zA-Z0-9._]+-[0-9]+$"
+    },
+    "description": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "detailed": {
+          "type": "string"
+        },
+        "homepage": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "maintainer": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "issues_url": {
+          "type": "string"
+        }
+      }
+    },
+    "supported_platforms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "$ref": "#/definitions/dependencies"
+    },
+    "external_dependencies": {
+      "type": "object",
+      "description": "External dependencies (libraries, headers, programs).",
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/external_dependencies_map"
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "string"
+          },
+          "header": {
+            "type": "string"
+          },
+          "library": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "source": {
+      "$ref": "#/definitions/source"
+    },
+    "build": {
+      "$ref": "#/definitions/build"
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "post_install": {
+          "type": "string"
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "post_install": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "properties": {
+        "wrap_bin_scripts": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "dependencies": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "platforms": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/dependencies"
+              }
+            }
+          },
+          "patternProperties": {
+            "^[0-9]+$": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "external_dependencies_map": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "string"
+          },
+          "header": {
+            "type": "string"
+          },
+          "library": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "md5": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "dir": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "cvs_tag": {
+          "type": "string"
+        },
+        "cvs_module": {
+          "type": "string"
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/source"
+          }
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Build type (e.g., 'builtin', 'make', 'cmake', 'command')."
+        },
+        "modules": {
+          "type": "object",
+          "description": "Map of module names to source files or build instructions.",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "defines": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "incdirs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "libraries": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "libdirs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "install": {
+          "type": "object",
+          "properties": {
+            "lua": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "lib": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "conf": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "bin": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "copy_directories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/build"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

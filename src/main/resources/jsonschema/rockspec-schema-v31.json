@@ -1,0 +1,343 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Luarocks Rockspec v3.1",
+  "description": "JSON Schema for Luarocks v3.1 rockspec files.",
+  "type": "object",
+  "required": [
+    "package",
+    "source",
+    "version"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "external_dependencies": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "header": {
+            "type": "string"
+          },
+          "program": {
+            "type": "string"
+          },
+          "library": {
+            "type": "string"
+          }
+        }
+      },
+      "type": "object",
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "header": {
+                  "type": "string"
+                },
+                "program": {
+                  "type": "string"
+                },
+                "library": {
+                  "type": "string"
+                }
+              }
+            },
+            "type": "object",
+            "properties": []
+          }
+        }
+      }
+    },
+    "description": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "license": {
+          "type": "string"
+        },
+        "maintainer": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "detailed": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "homepage": {
+          "type": "string"
+        },
+        "issues_url": {
+          "type": "string"
+        }
+      }
+    },
+    "deploy": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "wrap_bin_scripts": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dependencies": {
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^%s*([a-zA-Z0-9%.%-%_]*/?[a-zA-Z0-9][a-zA-Z0-9%.%-%_]*)%s*([^/]*)$"
+      },
+      "type": "object",
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^%s*([a-zA-Z0-9][a-zA-Z0-9%.%-%_]*)%s*([^/]*)$"
+            },
+            "type": "object",
+            "properties": []
+          }
+        }
+      }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[%w.]+-[%d]+$"
+    },
+    "build_dependencies": {
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^%s*([a-zA-Z0-9%.%-%_]*/?[a-zA-Z0-9][a-zA-Z0-9%.%-%_]*)%s*([^/]*)$"
+      },
+      "type": "object",
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    },
+    "test_dependencies": {
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^%s*([a-zA-Z0-9%.%-%_]*/?[a-zA-Z0-9][a-zA-Z0-9%.%-%_]*)%s*([^/]*)$"
+      },
+      "type": "object",
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    },
+    "rockspec_format": {
+      "type": "string"
+    },
+    "test": {
+      "additionalProperties": true,
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    },
+    "build": {
+      "additionalProperties": true,
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "install": {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "lib": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "lua": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "conf": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "bin": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "copy_directories": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "install": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "lib": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "lua": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "conf": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "bin": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "copy_directories": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "hooks": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "post_install": {
+          "type": "string"
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "post_install": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "package": {
+      "type": "string"
+    },
+    "source": {
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "cvs_tag": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": {
+            "required": [
+              "url"
+            ],
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "file": {
+                "type": "string"
+              },
+              "cvs_tag": {
+                "type": "string"
+              },
+              "module": {
+                "type": "string"
+              },
+              "tag": {
+                "type": "string"
+              },
+              "dir": {
+                "type": "string"
+              },
+              "cvs_module": {
+                "type": "string"
+              },
+              "branch": {
+                "type": "string"
+              },
+              "md5": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "dir": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "cvs_module": {
+          "type": "string"
+        },
+        "md5": {
+          "type": "string"
+        }
+      }
+    },
+    "supported_platforms": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}
