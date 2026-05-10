@@ -270,7 +270,7 @@ file.encoding=UTF-8
 
 - [Integration Tests - JetBrains Docs](https://plugins.jetbrains.com/docs/intellij/integration-tests-intro.html)
 - [Lua Reference Manual](https://www.lua.org/manual/5.1/)
-- [Lunar Plugin Documentation](../../../../README.md)
+- [Lunar Plugin Documentation](../../../README.md)
 
 ## Contributing
 

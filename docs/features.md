@@ -2,19 +2,22 @@
 
 This document serves as the index for the functional and technical requirements of the Lunar Lua plugin. Requirements are categorized into specialized sub-documents for better maintainability.
 
+## Project Status
+- [**Feature Implementation Summary**](features/status.md)
+
 ## Core Documentation
-- [[TYPE] Type System Requirements](features/spec/type/requirements.md)
-- [[COMP] Code Completion Requirements](features/spec/completion/requirements.md)
-- [[NAV] Code Navigation Requirements](features/spec/navigation/requirements.md)
-- [[INSP] Inspections & Diagnostics Requirements](features/spec/inspections/requirements.md)
-- [[ANALYSIS] Static Analysis Requirements](features/spec/analysis/requirements.md)
-- [[DEBUG/RUN] Debugging & Execution Requirements](features/spec/debug/requirements.md)
-- [[SYNTAX] Syntax & Editor Requirements](features/spec/syntax/requirements.md)
-- [[FORMAT] Formatting Requirements](features/spec/formatting/requirements.md)
-- [[DOC] Documentation Requirements](features/spec/documentation/requirements.md)
-- [[TOOL] Tool Inventory Management](features/spec/tool/requirements.md)
-- [[ROCKS] LuaRocks Integration](features/spec/rocks/requirements.md)
-- [[REFACT/INTENT] Refactoring & Intentions Requirements](features/spec/refactoring/requirements.md)
+- [[TYPE] Type System Requirements](features/type/requirements.md)
+- [[COMP] Code Completion Requirements](features/completion/requirements.md)
+- [[NAV] Code Navigation Requirements](features/navigation/requirements.md)
+- [[INSP] Inspections & Diagnostics Requirements](features/inspections/requirements.md)
+- [[ANALYSIS] Static Analysis Requirements](features/analysis/requirements.md)
+- [[DEBUG/RUN] Debugging & Execution Requirements](features/debug/requirements.md)
+- [[SYNTAX] Syntax & Editor Requirements](features/syntax/requirements.md)
+- [[FORMAT] Formatting Requirements](features/formatting/requirements.md)
+- [[DOC] Documentation Requirements](features/documentation/requirements.md)
+- [[TOOL] Tool Inventory Management](features/tool/requirements.md)
+- [[ROCKS] LuaRocks Integration](features/rocks/requirements.md)
+- [[REFACT/INTENT] Refactoring & Intentions Requirements](features/refactoring/requirements.md)
 - [Technical Non-Functional Requirements](features/non-functional.md)
 
 ## Requirement Classification (MoSCoW)

@@ -707,7 +707,7 @@ local LogLevel = {
 
 **Actions:**
 1. Take screenshots of each test case showing Quick Documentation popup
-2. Save to `docs/features/spec/documentation/design/screenshots/`
+2. Save to `docs/features/documentation/design/screenshots/`
 3. Compare with designer mockups to verify alignment
 
 ---
@@ -747,7 +747,7 @@ local LogLevel = {
 fun renderDoc(element: LuaPsiElement): String? { ... }
 ```
 
-2. Update `docs/features/spec/documentation/01-quick-documentation.md`:
+2. Update `docs/features/documentation/01-quick-documentation.md`:
    - Mark DOC-01 status as "Full" (fully implemented)
    - Add implementation notes section
    - Reference this implementation plan

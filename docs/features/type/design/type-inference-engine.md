@@ -1,8 +1,8 @@
 # Type Inference Engine Design
 
-**Branch**: [`inference`](../../../../src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaTypeInference.kt) (Exploration)  
+**Branch**: [`inference`](../../../src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaTypeInference.kt) (Exploration)  
 **Status**: Experimental Exploration  
-**Related requirement**: [`TYPE-01`](../../type-system.md) — Basic Type Inference
+**Related requirement**: [`TYPE-01`](../requirements.md) — Basic Type Inference
 
 ---
 

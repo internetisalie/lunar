@@ -438,4 +438,4 @@ All scenarios above are covered by the comprehensive unit test suite:
 **Related Documentation**:
 - [Technical Design](04-technical-design.md)
 - [Requirements](03-requirements.md)
-- [CHANGELOG.md](../../../../../../CHANGELOG.md)
+- [CHANGELOG.md](../../../../../CHANGELOG.md)
