@@ -4,14 +4,14 @@ Lunar provides rich integration with LuaCATS and LuaDoc to document code and pro
 
 | ID | Requirement | Priority | Description |
 | :--- | :--- | :---: | :--- |
-| [`DOC-01`](spec/documentation/01-quick-documentation.md) | **Quick Documentation (Ctrl+Q)** | **M** | Display formatted documentation in a popup for any symbol at the caret, including types, parameter descriptions, and interactive type links with class inheritance support. |
-| [`DOC-02`](spec/documentation/02-luacats-highlighting.md) | **LuaCATS Syntax Highlighting** | **M** | **Full** | Provide highlighting for tags (`@param`, `@class`, etc.) and types within Lua comments. |
-| [`DOC-03`](spec/documentation/03-external-url-links.md) | **External URL Links** | **S** | **Full** | Support linking to external documentation (e.g., standard Lua docs) within the Quick Doc popup. |
-| [`DOC-04`](spec/documentation/04-documentation-generation.md) | **Documentation Generation** | **C** | **Full** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
-| [`DOC-05`](spec/documentation/05-markdown-support.md) | **Markdown Support** | **S** | **Full** | Support Markdown formatting within Lua comments for rich documentation rendering. |
-| [`DOC-06`](spec/documentation/06-documentation-indexing.md) | **Documentation Indexing** | **S** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. Class, alias, and function names are now stub-indexed with LuaCATS metadata. |
-| [`DOC-07`](spec/documentation/07-parameter-info.md) | **Parameter Info** | **S** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+P`). |
-| [`DOC-08`](spec/documentation/08-luacats-annotation-parsing.md) | **Comprehensive LuaCATS Parsing** | **M** | All 19 LuaCATS tags, complex types, and multi-line support fully implemented and tested (18/18 tests passing). |
+| [`DOC-01`](01-quick-documentation/01-quick-documentation.md) | **Quick Documentation (Ctrl+Q)** | **M** | Display formatted documentation in a popup for any symbol at the caret, including types, parameter descriptions, and interactive type links with class inheritance support. |
+| [`DOC-02`](02-luacats-highlighting/02-luacats-highlighting.md) | **LuaCATS Syntax Highlighting** | **M** | **Full** | Provide highlighting for tags (`@param`, `@class`, etc.) and types within Lua comments. |
+| [`DOC-03`](03-external-url-links/03-external-url-links.md) | **External URL Links** | **S** | **Full** | Support linking to external documentation (e.g., standard Lua docs) within the Quick Doc popup. |
+| [`DOC-04`](04-documentation-generation/04-documentation-generation.md) | **Documentation Generation** | **C** | **Full** | Generate boilerplate LuaCATS comments for functions and classes based on their signature. |
+| [`DOC-05`](05-markdown-support/05-markdown-support.md) | **Markdown Support** | **S** | **Full** | Support Markdown formatting within Lua comments for rich documentation rendering. |
+| [`DOC-06`](06-documentation-indexing/06-documentation-indexing.md) | **Documentation Indexing** | **S** | Index LuaDoc and LuaCATS comments for full-text search and quick documentation retrieval. Class, alias, and function names are now stub-indexed with LuaCATS metadata. |
+| [`DOC-07`](07-parameter-info/07-parameter-info.md) | **Parameter Info** | **S** | Display parameter names, types, and descriptions in a popup when calling a function (e.g., `Ctrl+P`). |
+| [`DOC-08`](08-luacats-annotation-parsing/08-luacats-annotation-parsing.md) | **Comprehensive LuaCATS Parsing** | **M** | All 19 LuaCATS tags, complex types, and multi-line support fully implemented and tested (18/18 tests passing). |
 
 ---
 
