@@ -52,3 +52,7 @@ local n = identity(123)     -- n: number
 ---@return table<K, V>
 local function makePair(key, value) end
 ```
+
+## 6. References
+- [LuaLS Generics Super Issue Analysis](design/luals-generics-super-issue.md)
+
