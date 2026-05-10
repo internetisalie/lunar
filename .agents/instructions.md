@@ -176,9 +176,10 @@ This workflow was used to fix expression evaluation returning wrong types:
 ### Running Tests
 1. `./gradlew test` - Run all unit tests
 2. `./gradlew test --tests "*Glob*"`  - Run specific tests matching the glob pattern
-   This should be used when not verifying all tests.
+    This should be used when not verifying all tests.
 3. Tests require sandbox setup (automatic via `prepareSandbox`)
 4. Test base class: `BaseDocumentTest` for PSI fixture tests
+5. **Maintaining highly performant tests is a top priority** - Avoid slow operations in tests, use mocks/stubs where appropriate, and ensure tests complete quickly to maintain developer productivity.
 
 ## Key Files & Packages
 
