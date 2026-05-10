@@ -10,7 +10,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Syntax Highlighting**: Color scheme configuration with semantic highlighting for syntax elements
 
 ### Documentation & Type Hints
-- **LuaDoc Support**: Traditional Lua documentation format with inline documentation
+- **Markdown Comments**: Plain comment documentation with Markdown support (no tag parsing)
 - **LuaCATS Support**: Modern type annotation system with type hints, overloads, and generics
 - **Inlay Hints**: Display inferred types for variables as inline editor hints
 - **Type Inference Engine**: Cubic biunification constraint-based type analysis
