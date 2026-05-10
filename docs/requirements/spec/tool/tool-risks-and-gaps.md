@@ -26,6 +26,10 @@ This document tracks identified technical risks, design gaps, and required de-ri
 *   **Gap**: Tool version info may be written to `stderr` instead of `stdout`.
 *   **Requirement**: `LuaToolValidator` must merge output streams before applying regex patterns.
 
+### G3: Cross-Platform E2E Testing
+*   **Gap**: No established approach for end-to-end testing of tool inventory features on Windows environments.
+*   **Requirement**: Implement E2E test infrastructure using Docker Windows Server containers to validate tool discovery, PATH injection, and execution across Windows and Linux platforms.
+
 ## 3. De-risking Action Items [Must]
 
 | ID | Action Item | Priority | Target Feature | Status |
@@ -34,3 +38,4 @@ This document tracks identified technical risks, design gaps, and required de-ri
 | **TOOL-DR-02** | Define OS-specific filename patterns for `luarocks` | Medium | `TOOL-01` | Pending |
 | **TOOL-DR-03** | Verify `PersistentStateComponent` map serialization | Medium | `TOOL-01/02` | Pending |
 | **TOOL-DR-04** | Implement Async wrapper for `LuaProcessUtil` calls | Medium | `TOOL-01` | Pending |
+| **TOOL-DR-05** | Implement E2E test infrastructure using Docker Windows Server containers | High | `TOOL Epic` | Pending |

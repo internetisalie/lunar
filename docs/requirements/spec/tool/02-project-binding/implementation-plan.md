@@ -16,11 +16,15 @@ This plan covers the logic for binding tools to projects and making them availab
 - [ ] Integrate this provider into `LuaRunConfiguration` or via a `RunConfigurationExtension`.
 
 ## Phase 4: Terminal Integration [Must]
-- [ ] Implement a `LocalTerminalDirectRunner` extension or `TerminalCustomizer`.
+- [ ] Implement a `LocalTerminalDirectRunner` extension and `TerminalCustomizer`.
 - [ ] On terminal session creation, identify bound tools for the current project.
 - [ ] Prepend tool binary directories to the `PATH` environment variable of the terminal process.
+- [ ] Implement `LuaTerminalEnvironmentService` to calculate and cache tool directories.
+- [ ] Handle shell-specific PATH modification for CMD, PowerShell, Bash, and Zsh.
+- [ ] Register extensions in plugin.xml.
 
 ## Verification Tasks
 - [ ] **Integration Test**: Verify that project settings correctly override global settings for tool resolution.
 - [ ] **Functional Test**: Launch a `LuaRunConfiguration` and verify `PATH` includes the bound tool directory.
 - [ ] **Manual Test**: Open the Integrated Terminal and run `which luarocks` to verify path augmentation.
+- [ ] **Cross-Platform E2E Test**: Use Docker Windows Server containers and Linux containers to validate tool discovery, PATH injection, and execution across Windows and Linux platforms (TOOL-DR-05).

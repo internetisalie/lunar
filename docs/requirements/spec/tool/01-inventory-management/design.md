@@ -72,3 +72,8 @@ The following tools are supported out-of-the-box:
 ## Testing Strategy
 - **Unit Tests**: Test regex version extraction against various CLI output mocks.
 - **Integration Tests**: Verify settings persistence of the `toolInventory`.
+- **Cross-Platform E2E Tests**: Use Docker Windows Server containers and Linux containers to validate tool discovery, PATH injection, and execution across Windows and Linux platforms. Tests should cover:
+  - OS-specific filename pattern resolution (e.g., luarocks.exe vs luarocks)
+  - PATH augmentation in both CMD/PowerShell and Bash/Zsh environments
+  - Health check execution and validation in containerized environments
+  - Tool execution through IDE actions (formatting, linting) in cross-platform scenarios

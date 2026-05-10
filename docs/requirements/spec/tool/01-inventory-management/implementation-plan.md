@@ -14,6 +14,7 @@ This plan covers the foundational logic for managing external Lua tools.
 - [ ] Add regex patterns for `luarocks`, `luacheck`, `stylua`, and `lua-format`.
 - [ ] Implement `detectLuaVersion(path, type)` logic for best-effort compatibility checks.
 - [ ] Implement `checkCompatibility(tool, interpreter)` logic.
+- [ ] **Implement async wrapper for GeneralCommandLine executions** - Ensure all CLI calls are wrapped in `Task.Backgroundable` and never run on EDT to prevent UI freezes (TOOL-DR-04).
 
 ## Phase 3: Discovery Service [Must]
 - [ ] Create `net.internetisalie.lunar.util.LuaToolDiscoveryService`.
@@ -32,3 +33,4 @@ This plan covers the foundational logic for managing external Lua tools.
 - [ ] **Unit Test**: `LuaToolValidatorTest` to verify regex against mock CLI outputs.
 - [ ] **Unit Test**: `LuaToolDiscoveryServiceTest` (using mock environment).
 - [ ] **Integration Test**: Verify `LuaApplicationSettings` persistence of the `toolInventory`.
+- [ ] **Verification Task**: Verify `PersistentStateComponent` map serialization does not cause issues - use simple types where possible and validate with integration tests that restart settings component (TOOL-DR-03).
