@@ -14,10 +14,11 @@ The LuaRocks integration introduces a standardized workflow for managing Lua dep
 
 ## Key Use Cases
 
-1. **Project Initialization**
-   - Automated creation of standardized project structure
-   - Automatic generation of `.rockspec` and `src/setup.lua`
-   - Default dependency slots for common libraries
+  1. **Project Initialization**
+     - Automated creation of standardized project structure for single rocks
+     - Optional generation of `.rockspec` and `setup.lua` (for application loader setup)
+     - Default dependency slots for common libraries
+     - Workspace creation for managing multiple related rocks
 
 2. **Adding Dependencies**
    - Right-click context menu integration in code editor
