@@ -1,30 +1,51 @@
-# Lunar Project Feature Summary
+# Lunar Project Status Report
 
 **Overall Completion: 44.3%**
 (85 of 192 tasks completed across 18 active epics)
 
-| Epic                                      | Priority    | Progress  | Tasks | Completion Bar |
-| :---------------------------------------- | :---------- | :-------- | :---- | :------------- |
-| **Static Analysis**                       | 🟢 Medium   | **100%**  | 5/5   | `██████████`   |
-| **Documentation**                         | 🟢 Medium   | **100%**  | 8/8   | `██████████`   |
-| **Type Inference & Inlay Hint Bug Fixes** | 🟠 High     | **100%**  | 5/5   | `██████████`   |
-| **Union Type Fixes**                      | 🟢 Medium   | **100%**  | 1/1   | `██████████`   |
-| **Bug Fixes**                             | 🟢 Medium   | **100%**  | 2/2   | `██████████`   |
-| **Debugging & Execution**                 | 🔵 Low      | **84.6%** | 11/13 | `████████░░`   |
-| **Syntax & Editor**                       | 🟢 Medium   | **70.6%** | 12/17 | `███████░░░`   |
-| **Code Completion**                       | 🟠 High     | **60%**   | 3/5   | `██████░░░░`   |
-| **Type System**                           | 🟠 High     | **58.8%** | 20/34 | `██████░░░░`   |
-| **Inspections & Diagnostics**             | 🟢 Medium   | **50%**   | 2/4   | `█████░░░░░`   |
-| **Refactoring & Intentions**              | 🔵 Low      | **50%**   | 2/4   | `█████░░░░░`   |
-| **Platform Symbol Documentation**         | 🟢 Medium   | **50%**   | 2/4   | `█████░░░░░`   |
-| **Code Navigation**                       | 🟢 Medium   | **45.5%** | 5/11  | `█████░░░░░`   |
-| **Formatting**                            | 🟢 Medium   | **33.3%** | 2/6   | `███░░░░░░░`   |
-| **Maintenance & Refactoring**             | 🔵 Low      | **20%**   | 2/10  | `██░░░░░░░░`   |
-| **Bugfixes & Stability**                  | 🔴 Critical | **0%**    | 0/5   | `░░░░░░░░░░`   |
-| **Tool Inventory Management**             | 🟠 High     | **0%**    | 0/6   | `░░░░░░░░░░`   |
-| **LuaRocks Integration**                  | 🟠 High     | **0%**    | 0/7   | `░░░░░░░░░░`   |
+## Progress by Epic
 
-## Recent Milestone
-The **DOC-06-06 - Platform Symbol Documentation** task has been completed, enabling documentation lookup for symbols originating from platform/library files like the Lua standard library. Additionally, the implementation strategy for the **TOOL** and **ROCKS** epics has been consolidated and tracked in the new `features/` documentation structure.
+| Epic | Priority | Progress | Tasks | Completion |
+|:-----|:---------|:---------|:------|:-----------|
+| **ANALYSIS: Static Analysis** | 🟡 Medium | **100%** | 5/5 | ██████████ |
+| **DOC: Documentation** | 🟡 Medium | **100%** | 8/8 | ██████████ |
+| **DEBUG/RUN: Debugging & Execution** | 🟢 Low | **84.6%** | 11/13 | ████████░░ |
+| **SYNTAX: Syntax & Editor** | 🟡 Medium | **70.6%** | 12/17 | ███████░░░ |
+| **COMP: Code Completion** | 🔴 High | **60%** | 3/5 | █████░░░░░ |
+| **TYPE: Type System** | 🔴 High | **58.8%** | 20/34 | ███████░░░ |
+| **NAV: Code Navigation** | 🟡 Medium | **45.5%** | 5/11 | █████░░░░░ |
+| **INSP: Inspections & Diagnostics** | 🟡 Medium | **50%** | 2/4 | █████░░░░░ |
+| **REFACT/INTENT: Refactoring & Intentions** | 🟢 Low | **50%** | 2/4 | █████░░░░░ |
+| **FORMAT: Formatting** | 🟡 Medium | **33.3%** | 2/6 | ███░░░░░░░ |
+| **MAINT: Maintenance & Refactoring** | 🟢 Low | **20%** | 2/10 | ██░░░░░░░░ |
+| **Platform Symbol Documentation** | 🟡 Medium | **50%** | 2/4 | █████░░░░░ |
+| **TOOL: Tool Inventory Management** | 🔴 High | **0%** | 0/6 | ░░░░░░░░░░ |
+| **ROCKS: LuaRocks Integration** | 🔴 High | **0%** | 0/7 | ░░░░░░░░░░ |
+| **BUG: Bugfixes & Stability** | 🔴 Critical | **0%** | 0/5 | ░░░░░░░░░░ |
+| **TYPE: Type Inference & Inlay Hint Bug Fixes** | 🔴 High | **100%** | 5/5 | ██████████ |
+| **TYPE: Union Type Fixes** | 🟡 Medium | **100%** | 1/1 | ██████████ |
 
-*Last updated: 2026-05-10T10:52:00-04:00*
+## Highlights
+
+- **Completed**: ANALYSIS (5/5), DOC (8/8), and both type bug-fix epics are fully resolved
+- **Nearly Complete**: DEBUG/RUN at 84.6% with only 2 tasks remaining
+- **On Track**: SYNTAX at 70.6% and COMP at 60%, making solid progress toward higher feature coverage
+- **Type System Development**: Core type system progresses well at 58.8%, with 20 of 34 tasks complete
+
+## Blocked Tasks
+
+37 tasks are currently blocked, primarily awaiting:
+- Tool infrastructure (TOOL-01, TOOL-02, TOOL-03: 20 blocked tasks)
+- Symbol resolution test de-risking (MAINT: 12 blocked tasks)
+- LuaRocks setup infrastructure (ROCKS-01: 5 blocked tasks)
+
+## Recent Milestones
+
+- Platform symbol documentation completed (2026-05-10)
+- Type inference and union type bug fixes verified (2026-05-10)
+- Bug Fixes epic transitioned to completed status
+- Tool infrastructure dependency tasks created for de-risking
+
+---
+
+*Last updated: 2026-05-10T11:53:51.755-04:00*
