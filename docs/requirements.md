@@ -3,16 +3,18 @@
 This document serves as the index for the functional and technical requirements of the Lunar Lua plugin. Requirements are categorized into specialized sub-documents for better maintainability.
 
 ## Core Documentation
-- [[TYPE] Type System Requirements](requirements/type-system.md)
-- [[COMP] Code Completion Requirements](requirements/code-completion.md)
-- [[NAV] Code Navigation Requirements](requirements/navigation.md)
-- [[INSP] Inspections & Diagnostics Requirements](requirements/inspections.md)
-- [[ANALYSIS] Static Analysis Requirements](requirements/static-analysis.md)
-- [[DEBUG/RUN] Debugging & Execution Requirements](requirements/debugging-execution.md)
-- [[SYNTAX] Syntax & Editor Requirements](requirements/syntax-editor.md)
-- [[FORMAT] Formatting Requirements](requirements/formatting.md)
-- [[DOC] Documentation Requirements](requirements/documentation.md)
-- [[REFACT/INTENT] Refactoring & Intentions Requirements](requirements/refactoring-intentions.md)
+- [[TYPE] Type System Requirements](requirements/spec/type/requirements.md)
+- [[COMP] Code Completion Requirements](requirements/spec/completion/requirements.md)
+- [[NAV] Code Navigation Requirements](requirements/spec/navigation/requirements.md)
+- [[INSP] Inspections & Diagnostics Requirements](requirements/spec/inspections/requirements.md)
+- [[ANALYSIS] Static Analysis Requirements](requirements/spec/analysis/requirements.md)
+- [[DEBUG/RUN] Debugging & Execution Requirements](requirements/spec/debug/requirements.md)
+- [[SYNTAX] Syntax & Editor Requirements](requirements/spec/syntax/requirements.md)
+- [[FORMAT] Formatting Requirements](requirements/spec/formatting/requirements.md)
+- [[DOC] Documentation Requirements](requirements/spec/documentation/requirements.md)
+- [[TOOL] Tool Inventory Management](requirements/spec/tool/requirements.md)
+- [[ROCKS] LuaRocks Integration](requirements/spec/rocks/requirements.md)
+- [[REFACT/INTENT] Refactoring & Intentions Requirements](requirements/spec/refactoring/requirements.md)
 - [Technical Non-Functional Requirements](requirements/non-functional.md)
 
 ## Requirement Classification (MoSCoW)
