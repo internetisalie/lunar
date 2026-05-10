@@ -19,7 +19,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Navigation**: Symbol resolution and cross-file references
 - **Structure View**: Outline view of file structure
 - **Code Completion**: Intelligent completion for variables, functions, and members
-- **Refactoring**: Basic rename refactoring support
+- **Refactoring**: Label refactoring support
 - **Code Style**: Settings for indentation, spacing, and formatting
 - **Run Configurations**: Lua script execution and debugging support
 - **Breakpoint Debugging**: DBGp protocol support for remote debugging
