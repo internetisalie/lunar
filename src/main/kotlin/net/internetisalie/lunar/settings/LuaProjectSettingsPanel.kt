@@ -57,7 +57,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         mainPanel = FormBuilder.createFormBuilder()
             .addLabeledComponent("Platform", platformComboBox, 0)
             .addLabeledComponent("Version", versionComboBox, 2)
-            .addLabeledComponent("", languageLevelLabel, 0)
+            .addLabeledComponent("Language Level", languageLevelLabel, 2)
             .addLabeledComponent("Interpreter", interpreter, 2)
             .addLabeledComponent("Source path patterns", sourcePath, 2)
             .addComponentFillVertically(JPanel(), 2)
@@ -79,7 +79,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         val platform = platformComboBox.selectedItem as? LuaPlatform ?: return
         val version = versionComboBox.selectedItem as? VersionEntry ?: return
         val level = Target(platform, version).getImplicitLanguageLevel()
-        languageLevelLabel.text = "Language Level: $level"
+        languageLevelLabel.text = level.toString()
     }
 
     fun apply(state: LuaProjectSettings.State) {
