@@ -54,6 +54,13 @@ class LuaFuncStubElementType(debugName: String) :
     }
 
     override fun indexStub(stub: LuaFuncStub, sink: IndexSink) {
-        stub.name?.let { sink.occurrence(LuaGlobalDeclarationIndex.KEY, it) }
+        stub.name?.let { 
+            sink.occurrence(LuaGlobalDeclarationIndex.KEY, it)
+            // If it's a dotted name like 'cjson.decode', also index the base 'cjson'
+            // to allow basic resolution of the module/table global.
+            if (it.contains('.')) {
+                sink.occurrence(LuaGlobalDeclarationIndex.KEY, it.substringBefore('.'))
+            }
+        }
     }
 }

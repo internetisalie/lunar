@@ -16,6 +16,7 @@ class LuaFileInputFilter : FileBasedIndex.InputFilter {
         return myFileTypes.contains(file.fileType)
     }
 
+
     companion object {
         private val myFileTypes: List<FileType> = java.util.List.of<FileType>(LuaFileType)
     }

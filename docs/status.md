@@ -1,36 +1,36 @@
 # Lunar Project Status Report
 
-**Overall Completion: 44.3%**
-(85 of 192 tasks completed across 18 active epics)
+**Overall Completion: 59.7%**
+(163 of 273 tasks completed across 16 active epics)
 
 ## Progress by Epic
 
-| Epic                                            | Priority    | Progress  | Tasks | Completion |
-| :---------------------------------------------- | :---------- | :-------- | :---- | :--------- |
-| **ANALYSIS: Static Analysis**                   | 🟡 Medium   | **100%**  | 5/5   | ██████████ |
-| **DOC: Documentation**                          | 🟡 Medium   | **100%**  | 8/8   | ██████████ |
-| **DEBUG/RUN: Debugging & Execution**            | 🟢 Low      | **84.6%** | 11/13 | ████████░░ |
-| **SYNTAX: Syntax & Editor**                     | 🟡 Medium   | **70.6%** | 12/17 | ███████░░░ |
-| **COMP: Code Completion**                       | 🔴 High     | **60%**   | 3/5   | █████░░░░░ |
-| **TYPE: Type System**                           | 🔴 High     | **58.8%** | 20/34 | ███████░░░ |
-| **NAV: Code Navigation**                        | 🟡 Medium   | **45.5%** | 5/11  | █████░░░░░ |
-| **INSP: Inspections & Diagnostics**             | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░ |
-| **REFACT/INTENT: Refactoring & Intentions**     | 🟢 Low      | **50%**   | 2/4   | █████░░░░░ |
-| **FORMAT: Formatting**                          | 🟡 Medium   | **33.3%** | 2/6   | ███░░░░░░░ |
-| **MAINT: Maintenance & Refactoring**            | 🟢 Low      | **20%**   | 2/10  | ██░░░░░░░░ |
-| **Platform Symbol Documentation**               | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░ |
-| **TOOL: Tool Inventory Management**             | 🔴 High     | **0%**    | 0/6   | ░░░░░░░░░░ |
-| **ROCKS: LuaRocks Integration**                 | 🔴 High     | **0%**    | 0/7   | ░░░░░░░░░░ |
-| **BUG: Bugfixes & Stability**                   | 🔴 Critical | **0%**    | 0/5   | ░░░░░░░░░░ |
-| **TYPE: Type Inference & Inlay Hint Bug Fixes** | 🔴 High     | **100%**  | 5/5   | ██████████ |
-| **TYPE: Union Type Fixes**                      | 🟡 Medium   | **100%**  | 1/1   | ██████████ |
+| Epic                                          | Priority    | Progress  | Tasks  | Completion |
+| :-------------------------------------------- | :---------- | :-------- | :----- | :--------- |
+| **ANALYSIS: Static Analysis**                 | 🟡 Medium   | **100%**  | 5/5    | ██████████ |
+| **DOC: Documentation**                        | 🟡 Medium   | **100%**  | 8/8    | ██████████ |
+| **TARGET: Runtime Environment Configuration** | 🔴 High     | **100%**  | 70/70  | ██████████ |
+| **DEBUG/RUN: Debugging & Execution**          | 🟢 Low      | **84.6%** | 11/13  | ████████░░ |
+| **SYNTAX: Syntax & Editor**                   | 🟡 Medium   | **70.6%** | 12/17  | ███████░░░ |
+| **TYPE: Type System**                         | 🔴 High     | **65%**   | 26/40  | ██████░░░░ |
+| **COMP: Code Completion**                     | 🔴 High     | **60%**   | 3/5    | █████░░░░░ |
+| **Platform Symbol Documentation**             | 🟡 Medium   | **50%**   | 2/4    | █████░░░░░ |
+| **INSP: Inspections & Diagnostics**           | 🟡 Medium   | **50%**   | 2/4    | █████░░░░░ |
+| **REFACT/INTENT: Refactoring & Intentions**   | 🟢 Low      | **50%**   | 2/4    | █████░░░░░ |
+| **NAV: Code Navigation**                      | 🟡 Medium   | **45.5%** | 5/11   | █████░░░░░ |
+| **FORMAT: Formatting**                        | 🟡 Medium   | **33.3%** | 2/6    | ███░░░░░░░ |
+| **BUG: Bugfixes & Stability**                 | 🔴 Critical | **28.6%** | 2/7    | ███░░░░░░░ |
+| **MAINT: Maintenance & Refactoring**          | 🟢 Low      | **15.4%** | 2/13   | ██░░░░░░░░ |
+| **TOOL: Tool Inventory Management**           | 🔴 High     | **0%**    | 0/6    | ░░░░░░░░░░ |
+| **ROCKS: LuaRocks Integration**               | 🔴 High     | **0%**    | 0/7    | ░░░░░░░░░░ |
 
 ## Highlights
 
-- **Completed**: ANALYSIS (5/5), DOC (8/8), and both type bug-fix epics are fully resolved
+- **Major Milestone**: TARGET: Runtime Environment Configuration (70/70 tasks) fully complete
+- **Completed**: ANALYSIS (5/5), DOC (8/8), all delivered
 - **Nearly Complete**: DEBUG/RUN at 84.6% with only 2 tasks remaining
-- **On Track**: SYNTAX at 70.6% and COMP at 60%, making solid progress toward higher feature coverage
-- **Type System Development**: Core type system progresses well at 58.8%, with 20 of 34 tasks complete
+- **Strong Progress**: TYPE system now at 65% (26/40) after consolidating bug-fix tasks
+- **Bugfix Consolidation**: TYPE bug-fix and bugfix epics merged into main epics (removed 3 sub-epics)
 
 ## Blocked Tasks
 
@@ -41,11 +41,11 @@
 
 ## Recent Milestones
 
-- Platform symbol documentation completed (2026-05-10)
-- Type inference and union type bug fixes verified (2026-05-10)
-- Bug Fixes epic transitioned to completed status
-- Tool infrastructure dependency tasks created for de-risking
+- **Epic consolidation** (2026-05-12) — Merged TYPE bug-fix epics and Bug Fixes epic into active epics to reduce tracker clutter
+- **TARGET epic completed** (2026-05-12) — 70 tasks across 7 phases: data model, settings integration, UI update, library resolution, luacheck integration, legacy migration, and final verification
+- Settings migration validated across 5 scenarios (Standard, Redis, Tarantool, Luau, unknown version)
+- Unified `src/main/resources/runtime/` structure deployed; legacy `platform/` and `sdk/` directories removed
 
 ---
 
-*Last updated: 2026-05-10T11:53:51.755-04:00*
+*Last updated: 2026-05-12T19:14:58-04:00*

@@ -17,11 +17,15 @@ import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncDef
 import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaIndexExpr
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
+import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.lang.psi.LuaVarSuffix
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaNameReference(element: PsiElement, textRange: TextRange) :
@@ -71,7 +75,7 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         // === PHASE 2: External Resolution (unchanged) ===
         // Only proceed if local resolution failed
         val platformQuery = VirtualFilesQuery(
-            ProjectScope.getLibrariesScope(element.project),
+            GlobalSearchScope.allScope(element.project),
             PlatformLibraryIndex.getPackageFiles(element.project),
         )
         val requiresQuery = RequiredFilesQuery(
@@ -93,6 +97,14 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         val project = element.project
         val scope = GlobalSearchScope.allScope(project)
 
+        val qualifiedName = getQualifiedName(element)
+
+        if (qualifiedName != null) {
+            StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, qualifiedName, project, scope, LuaFuncDecl::class.java).forEach { decl ->
+                results.add(PsiElementResolveResult(decl))
+            }
+        }
+
         StubIndex.getElements(LuaClassNameIndex.KEY, referenceName, project, scope, LuaLocalVarDecl::class.java).forEach { decl ->
             results.add(PsiElementResolveResult(decl))
         }
@@ -106,6 +118,43 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         }
 
         return results.distinctBy { it.element }.toTypedArray()
+    }
+
+    private fun getQualifiedName(element: PsiElement): String? {
+        if (element !is LuaNameRef) return null
+        val parent = element.parent
+        if (parent is LuaIndexExpr) {
+            val isDot = parent.node.findChildByType(LuaElementTypes.DOT) != null
+            if (!isDot) return null
+
+            val varSuffix = parent.parent as? LuaVarSuffix ?: return null
+            val luaVar = varSuffix.parent as? LuaVar ?: return null
+
+            val sb = StringBuilder()
+            val baseNameRef = luaVar.nameRef
+            if (baseNameRef == null) {
+                // System.out.println("  No base name ref in var")
+                return null
+            }
+            sb.append(baseNameRef.text)
+
+            for (suffix in luaVar.varSuffixList) {
+                val indexExpr = suffix.indexExpr
+                if (indexExpr.node.findChildByType(LuaElementTypes.DOT) != null) {
+                    val mNameRef = indexExpr.nameRef
+                    if (mNameRef != null) {
+                        sb.append(".")
+                        sb.append(mNameRef.text)
+                        if (mNameRef == element) {
+                            val result = sb.toString()
+                            // System.out.println("  Reconstructed qualified name: $result")
+                            return result
+                        }
+                    } else break
+                } else break
+            }
+        }
+        return null
     }
 
     private fun collectFileResults(
