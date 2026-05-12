@@ -8,6 +8,7 @@ import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
+import com.intellij.openapi.project.ProjectManager
 
 @Service(Service.Level.PROJECT)
 @State(
@@ -15,7 +16,7 @@ import net.internetisalie.lunar.platform.target.Target
     storages = [Storage("lunar.xml")],
     category = SettingsCategory.PLUGINS,
 )
-class LuaProjectSettings: PersistentStateComponent<LuaProjectSettings.State> {
+class LuaProjectSettings(private val project: Project? = null): PersistentStateComponent<LuaProjectSettings.State> {
     /**
      * XML-serializable wrapper for Target.
      * Used to persist target as {platform, version label} for deserialization via registry lookup.
@@ -88,6 +89,18 @@ class LuaProjectSettings: PersistentStateComponent<LuaProjectSettings.State> {
 
     override fun loadState(state: State) {
         myState = state
+    }
+
+    /**
+     * Updates the target and fires a [LuaSettingsChangedEvent] to notify listeners.
+     * This should be called instead of directly calling state.setTarget() to ensure
+     * that all listeners are notified of the change.
+     *
+     * @param newTarget The new target to set
+     */
+    fun setTargetAndNotify(newTarget: Target) {
+        state.setTarget(newTarget)
+        project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
     }
 
     companion object {
