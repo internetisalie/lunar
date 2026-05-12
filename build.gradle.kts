@@ -160,6 +160,9 @@ tasks {
         from(layout.projectDirectory.dir("src/main/resources/platform")) {
             into(pluginName.map { "$it/platform" })
         }
+        from(layout.projectDirectory.dir("src/main/resources/runtime")) {
+            into(pluginName.map { "$it/runtime" })
+        }
         from(layout.projectDirectory.dir("src/main/lua")) {
             into(pluginName.map { "$it/lua"})
         }
