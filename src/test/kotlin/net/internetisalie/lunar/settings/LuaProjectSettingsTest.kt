@@ -551,3 +551,133 @@ class LuaProjectSettingsBackwardCompatibilityTest {
         }
     }
 }
+
+/**
+ * Tests for IMPL-24: platform/version registry interactions used by the UI panel.
+ *
+ * Panel class itself requires a live IntelliJ project context, so these tests validate
+ * the core logic that the panel delegates to: PlatformVersionRegistry, Target state
+ * transitions, and language level derivation.
+ */
+class LuaProjectSettingsPanelLogicTest {
+
+    @Test
+    fun `each platform has at least one version entry`() {
+        val registry = PlatformVersionRegistry
+        for (platform in LuaPlatform.entries) {
+            val versions = registry.getVersions(platform)
+            assertTrue(versions.isNotEmpty(), "Platform ${platform.label} should have at least one version")
+        }
+    }
+
+    @Test
+    fun `default version exists for all platforms`() {
+        val registry = PlatformVersionRegistry
+        for (platform in LuaPlatform.entries) {
+            val default = registry.defaultVersion(platform)
+            assertNotNull(default, "Platform ${platform.label} should have a default version")
+        }
+    }
+
+    @Test
+    fun `last version in list is the most recent for STANDARD platform`() {
+        val versions = PlatformVersionRegistry.getVersions(LuaPlatform.STANDARD)
+        val last = versions.last()
+        // Standard Lua versions are numeric like "5.x" — just verify it's a valid version label
+        assertTrue(last.label.matches(Regex("5\\.\\d+")), "Last Standard version label should be '5.x', was '${last.label}'")
+    }
+
+    @Test
+    fun `changing platform to REDIS yields Redis-specific versions`() {
+        val versions = PlatformVersionRegistry.getVersions(LuaPlatform.REDIS)
+        assertTrue(versions.all { it.label.contains("7") || it.label.contains("+") || it.label.matches(Regex("\\d.*")) })
+        assertTrue(versions.isNotEmpty())
+    }
+
+    @Test
+    fun `Target getImplicitLanguageLevel reflects version for STANDARD`() {
+        val registry = PlatformVersionRegistry
+        val version51 = registry.findVersion(LuaPlatform.STANDARD, "5.1")
+        assertNotNull(version51)
+        val target = Target(LuaPlatform.STANDARD, version51)
+        assertEquals(LuaLanguageLevel.LUA51, target.getImplicitLanguageLevel())
+    }
+
+    @Test
+    fun `apply logic - setting target on state round-trips through getTarget`() {
+        val registry = PlatformVersionRegistry
+        val version = registry.getVersions(LuaPlatform.LUAJIT).last()
+        val newTarget = Target(LuaPlatform.LUAJIT, version)
+
+        val state = LuaProjectSettings.State()
+        state.setTarget(newTarget)
+
+        val retrieved = state.getTarget()
+        assertEquals(LuaPlatform.LUAJIT, retrieved.platform)
+        assertEquals(version.label, retrieved.version.label)
+    }
+
+    @Test
+    fun `reset logic - state after setTarget reflects platform and version`() {
+        val registry = PlatformVersionRegistry
+        val redisPlatform = LuaPlatform.REDIS
+        val redisVersion = registry.getVersions(redisPlatform).first()
+        val target = Target(redisPlatform, redisVersion)
+
+        val state = LuaProjectSettings.State()
+        state.setTarget(target)
+
+        val restoredTarget = state.getTarget()
+        assertEquals(redisPlatform, restoredTarget.platform)
+        assertEquals(redisVersion.label, restoredTarget.version.label)
+    }
+
+    @Test
+    fun `isModified logic - same target means not modified`() {
+        val registry = PlatformVersionRegistry
+        val version = registry.getVersions(LuaPlatform.STANDARD).last()
+        val target = Target(LuaPlatform.STANDARD, version)
+
+        val state = LuaProjectSettings.State()
+        state.setTarget(target)
+
+        val savedTarget = state.getTarget()
+        // Simulate panel comparison logic
+        val panelPlatform = LuaPlatform.STANDARD
+        val panelVersion = version
+        val isModified = panelPlatform != savedTarget.platform || panelVersion != savedTarget.version
+        assertFalse(isModified)
+    }
+
+    @Test
+    fun `isModified logic - different platform means modified`() {
+        val registry = PlatformVersionRegistry
+        val version = registry.getVersions(LuaPlatform.STANDARD).last()
+        val state = LuaProjectSettings.State()
+        state.setTarget(Target(LuaPlatform.STANDARD, version))
+
+        val savedTarget = state.getTarget()
+        // Simulate panel showing a different platform selection
+        val panelPlatform = LuaPlatform.REDIS
+        val panelVersion = registry.getVersions(LuaPlatform.REDIS).last()
+        val isModified = panelPlatform != savedTarget.platform || panelVersion != savedTarget.version
+        assertTrue(isModified)
+    }
+
+    @Test
+    fun `all platforms are listed in registry`() {
+        val registryPlatforms = PlatformVersionRegistry.platforms()
+        for (platform in LuaPlatform.entries) {
+            assertTrue(registryPlatforms.contains(platform), "Registry should contain platform ${platform.label}")
+        }
+    }
+
+    @Test
+    fun `version labels are unique within a platform`() {
+        for (platform in LuaPlatform.entries) {
+            val versions = PlatformVersionRegistry.getVersions(platform)
+            val labels = versions.map { it.label }
+            assertEquals(labels.size, labels.toSet().size, "Platform ${platform.label} should have unique version labels")
+        }
+    }
+}

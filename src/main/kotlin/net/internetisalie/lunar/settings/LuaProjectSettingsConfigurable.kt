@@ -16,7 +16,7 @@ class LuaProjectSettingsConfigurable(val project : Project) : Configurable {
 
     override fun createComponent(): JComponent? {
         mySettingsPanel = LuaProjectSettingsPanel(project)
-        mySettingsPanel!!.setData(LuaProjectSettings.getInstance(project).state)
+        mySettingsPanel!!.reset()
         return mySettingsPanel!!.mainPanel
     }
 
