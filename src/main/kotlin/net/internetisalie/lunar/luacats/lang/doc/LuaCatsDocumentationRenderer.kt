@@ -272,7 +272,7 @@ object LuaCatsDocumentationRenderer {
         }
 
         val project = element.project
-        val languageLevel = net.internetisalie.lunar.settings.LuaProjectSettings.getInstance(project).state.languageLevel
+        val languageLevel = net.internetisalie.lunar.settings.LuaProjectSettings.getInstance(project).state.getTarget().getImplicitLanguageLevel()
         val version = languageLevel.version
 
         // Handle special cases for URLs if any

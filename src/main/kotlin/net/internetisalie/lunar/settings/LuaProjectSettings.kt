@@ -2,6 +2,7 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
+import com.intellij.util.xmlb.annotations.Property
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.platform.LuaInterpreter
@@ -44,7 +45,8 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA54
         @Deprecated("Use target.platform instead", replaceWith = ReplaceWith("target?.platform"))
         var platform : LuaPlatform = LuaPlatform.STANDARD
-        var targetState: TargetState? = null
+        @Property(surroundWithTag = false)
+        var target: TargetState? = null
         var interpreter: LuaInterpreter? = null
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
 
@@ -67,15 +69,15 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         }
 
         fun getTarget(): Target {
-            if (targetState == null) {
-                val target = migrateFromLegacySettings()
-                targetState = TargetState.from(target)
+            if (target == null) {
+                val t = migrateFromLegacySettings()
+                setTarget(t)
             }
-            return targetState!!.toTarget() ?: Target.default()
+            return target!!.toTarget() ?: Target.default()
         }
 
         fun setTarget(newTarget: Target) {
-            targetState = TargetState.from(newTarget)
+            target = TargetState.from(newTarget)
             platform = newTarget.platform
             languageLevel = newTarget.getImplicitLanguageLevel()
         }

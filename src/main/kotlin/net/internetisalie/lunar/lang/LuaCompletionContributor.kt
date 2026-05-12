@@ -20,7 +20,7 @@ class LuaCompletionContributor : CompletionContributor() {
                     result: CompletionResultSet
                 ) {
                     val project = parameters.editor.project ?: return
-                    val level = LuaProjectSettings.getInstance(project).state.languageLevel
+                    val level = LuaProjectSettings.getInstance(project).state.getTarget().getImplicitLanguageLevel()
                     if (level < LuaLanguageLevel.LUA54) return
 
                     result.addElement(LookupElementBuilder.create("const"))
@@ -40,7 +40,7 @@ class LuaCompletionContributor : CompletionContributor() {
                     result: CompletionResultSet
                 ) {
                     val project = parameters.editor.project ?: return
-                    val level = LuaProjectSettings.getInstance(project).state.languageLevel
+                    val level = LuaProjectSettings.getInstance(project).state.getTarget().getImplicitLanguageLevel()
                     if (level < LuaLanguageLevel.LUA54) return
 
                     val position = parameters.position

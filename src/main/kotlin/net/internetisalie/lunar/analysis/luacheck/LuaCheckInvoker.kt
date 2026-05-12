@@ -16,7 +16,7 @@ object LuaCheckInvoker {
         val dir = virtualFile.parent ?:  return emptyList()
         val relativeFilePath = virtualFile.name
 
-        val cmd = newLuaCheckCommandLine(relativeFilePath, dir) ?: return emptyList()
+        val cmd = newLuaCheckCommandLine(psiFile.project, relativeFilePath, dir) ?: return emptyList()
         val problems = mutableListOf<Problem>()
         val listener = newLuaCheckCommandListener(psiFile, problems)
 

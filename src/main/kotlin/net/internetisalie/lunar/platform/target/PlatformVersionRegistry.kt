@@ -33,7 +33,7 @@ object PlatformVersionRegistry {
             VersionEntry("2.10", "tarantool-2.10", luacheckStd = null),
         ),
         LuaPlatform.NGX to listOf(
-            VersionEntry("latest", "ngx-latest", luacheckStd = "luajit"),
+            VersionEntry("latest", "ngx-latest", luacheckStd = null),
         ),
         LuaPlatform.LUAU to listOf(
             VersionEntry("latest", "luau-latest", luacheckStd = null),

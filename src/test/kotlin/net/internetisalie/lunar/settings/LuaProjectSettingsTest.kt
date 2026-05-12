@@ -6,11 +6,7 @@ import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
-import kotlin.test.assertNotNull
-import kotlin.test.assertFalse
+import kotlin.test.*
 
 class LuaProjectSettingsTest {
     @Test
@@ -26,7 +22,7 @@ class LuaProjectSettingsTest {
     }
 
     @Test
-    fun `getTarget returns stored targetState if present`() {
+    fun `getTarget returns stored target if present`() {
         val state = LuaProjectSettings.State()
         val registry = PlatformVersionRegistry
         val version = registry.getVersions(LuaPlatform.REDIS)[0]
@@ -40,7 +36,7 @@ class LuaProjectSettingsTest {
     }
 
     @Test
-    fun `setTarget updates targetState and synchronizes legacy fields`() {
+    fun `setTarget updates target and synchronizes legacy fields`() {
         val state = LuaProjectSettings.State()
         val registry = PlatformVersionRegistry
         val version = registry.getVersions(LuaPlatform.LUAJIT)[1]
@@ -54,7 +50,7 @@ class LuaProjectSettingsTest {
     }
 
     @Test
-    fun `targetState round-trip preserves target through serialization`() {
+    fun `target round-trip preserves target through serialization`() {
         val state = LuaProjectSettings.State()
         val registry = PlatformVersionRegistry
         val versions = registry.getVersions(LuaPlatform.TARANTOOL)
@@ -62,11 +58,11 @@ class LuaProjectSettingsTest {
 
         state.setTarget(original)
 
-        val targetState = state.targetState
-        assertEquals(LuaPlatform.TARANTOOL, targetState?.platform)
-        assertEquals(versions[0].label, targetState?.versionLabel)
+        val target = state.target
+        assertEquals(LuaPlatform.TARANTOOL, target?.platform)
+        assertEquals(versions[0].label, target?.versionLabel)
 
-        val restored = targetState?.toTarget()
+        val restored = target?.toTarget()
         assertEquals(original, restored)
     }
 
@@ -334,7 +330,7 @@ class LuaProjectSettingsEdgeCasesTest {
 
         assertEquals(LuaLanguageLevel.LUA54, state.languageLevel)
         assertEquals(LuaPlatform.STANDARD, state.platform)
-        assertNull(state.targetState)
+        assertNull(state.target)
         assertNull(state.interpreter)
         assertEquals(PathConfiguration.DEFAULT_SOURCE_PATH, state.sourcePath)
     }
@@ -356,7 +352,7 @@ class LuaProjectSettingsEdgeCasesTest {
 
             val target = state.getTarget()
             assertEquals(LuaPlatform.STANDARD, target.platform)
-            
+
             // LUA50 doesn't exist in registry, so will get default
             if (langLevel == LuaLanguageLevel.LUA50) {
                 assertEquals("5.1", target.version.label)
@@ -367,25 +363,25 @@ class LuaProjectSettingsEdgeCasesTest {
     }
 
     @Test
-    fun `targetState becomes non-null after first getTarget call`() {
+    fun `target becomes non-null after first getTarget call`() {
         val state = LuaProjectSettings.State()
         state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA52
 
-        assertNull(state.targetState)
+        assertNull(state.target)
 
         state.getTarget()
 
-        assertNotNull(state.targetState)
-        assertEquals(LuaPlatform.STANDARD, state.targetState?.platform)
-        assertEquals("5.2", state.targetState?.versionLabel)
+        assertNotNull(state.target)
+        assertEquals(LuaPlatform.STANDARD, state.target?.platform)
+        assertEquals("5.2", state.target?.versionLabel)
     }
 
     @Test
-    fun `targetState becomes non-null after setTarget`() {
+    fun `target becomes non-null after setTarget`() {
         val state = LuaProjectSettings.State()
 
-        assertNull(state.targetState)
+        assertNull(state.target)
 
         val registry = PlatformVersionRegistry
         val version = registry.getVersions(LuaPlatform.LUAJIT)[0]
@@ -393,7 +389,7 @@ class LuaProjectSettingsEdgeCasesTest {
 
         state.setTarget(target)
 
-        assertNotNull(state.targetState)
+        assertNotNull(state.target)
     }
 }
 
@@ -449,7 +445,7 @@ class LuaProjectSettingsServiceTest {
     fun `state preserves target configuration after load`() {
         val settings = LuaProjectSettings()
         val state = LuaProjectSettings.State()
-        
+
         val registry = PlatformVersionRegistry
         val version = registry.getVersions(LuaPlatform.TARANTOOL)[0]
         val target = Target(LuaPlatform.TARANTOOL, version)
@@ -473,7 +469,7 @@ class LuaProjectSettingsBackwardCompatibilityTest {
         val state = LuaProjectSettings.State()
         state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA54
-        // No targetState set (simulates old settings file)
+        // No target set (simulates old settings file)
 
         val target = state.getTarget()
 
@@ -484,11 +480,11 @@ class LuaProjectSettingsBackwardCompatibilityTest {
     @Test
     fun `mixed old and new settings use new if available`() {
         val state = LuaProjectSettings.State()
-        
+
         // Old fields
         state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA51
-        
+
         // New field (set explicitly)
         val registry = PlatformVersionRegistry
         val version = registry.getVersions(LuaPlatform.REDIS)[1]

@@ -91,12 +91,28 @@ class TargetTest {
     }
 
     @Test
-    fun testGetLuacheckStd() {
-        val withStd = Target(LuaPlatform.STANDARD, VersionEntry("5.1", "lua-5.1", luacheckStd = "lua51"))
-        assertEquals("lua51", withStd.getLuacheckStd())
+    fun testGetLuacheckStdMappingTable() {
+        // STANDARD
+        assertEquals("lua51", Target(LuaPlatform.STANDARD, VersionEntry("5.1", "lua-5.1", luacheckStd = "lua51")).getLuacheckStd())
+        assertEquals("lua52", Target(LuaPlatform.STANDARD, VersionEntry("5.2", "lua-5.2", luacheckStd = "lua52")).getLuacheckStd())
+        assertEquals("lua53", Target(LuaPlatform.STANDARD, VersionEntry("5.3", "lua-5.3", luacheckStd = "lua53")).getLuacheckStd())
+        assertEquals("lua54", Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4", luacheckStd = "lua54")).getLuacheckStd())
+        assertEquals("lua54", Target(LuaPlatform.STANDARD, VersionEntry("5.5", "lua-5.5", luacheckStd = "lua54")).getLuacheckStd())
 
-        val withoutStd = Target(LuaPlatform.LUAU, VersionEntry("latest", "luau-latest"))
-        assertEquals(null, withoutStd.getLuacheckStd())
+        // LUAJIT
+        assertEquals("luajit", Target(LuaPlatform.LUAJIT, VersionEntry("2.0", "luajit-2.0", luacheckStd = "luajit")).getLuacheckStd())
+        assertEquals("luajit", Target(LuaPlatform.LUAJIT, VersionEntry("2.1", "luajit-2.1", luacheckStd = "luajit")).getLuacheckStd())
+
+        // REDIS
+        assertEquals("redis5", Target(LuaPlatform.REDIS, VersionEntry("5", "redis-5", luacheckStd = "redis5")).getLuacheckStd())
+        assertEquals("redis6", Target(LuaPlatform.REDIS, VersionEntry("6", "redis-6", luacheckStd = "redis6")).getLuacheckStd())
+        assertEquals("redis7", Target(LuaPlatform.REDIS, VersionEntry("7+", "redis-7", luacheckStd = "redis7")).getLuacheckStd())
+
+        // OMITTED (null)
+        assertEquals(null, Target(LuaPlatform.TARANTOOL, VersionEntry("2.10", "tarantool-2.10", luacheckStd = null)).getLuacheckStd())
+        assertEquals(null, Target(LuaPlatform.NGX, VersionEntry("latest", "ngx-latest", luacheckStd = null)).getLuacheckStd())
+        assertEquals(null, Target(LuaPlatform.LUAU, VersionEntry("latest", "luau-latest", luacheckStd = null)).getLuacheckStd())
+        assertEquals(null, Target(LuaPlatform.PANDOC, VersionEntry("latest", "pandoc-latest", luacheckStd = null)).getLuacheckStd())
     }
 
     @Test
