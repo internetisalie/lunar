@@ -83,12 +83,8 @@
 ---@class _G
 _G = {}
 
----Lua version string (e.g., "Lua 5.4")
-_VERSION = "Lua 5.4"
-
----Current environment table (Lua 5.2+)
----@type table
-_ENV = _G
+---Lua version string (e.g., "Lua 5.1")
+_VERSION = "Lua 5.1"
 
 ---Returns a string describing the type of its only argument
 ---Possible return values: "nil", "boolean", "number", "string", "table", "function", "thread", "userdata"
@@ -180,28 +176,30 @@ function rawget(t, key) end
 ---@param value any
 function rawset(t, key, value) end
 
----Tests if two values are equal without invoking metamethods
----@param a any
----@param b any
----@return boolean
-function rawequal(a, b) end
-
 ---Loads Lua code from reader function
 ---@param reader fun(): string|nil
 ---@param chunkname? string
----@param mode? '"b"'|'"t"'|'"bt"'
----@param env? table
 ---@return function|nil, string|nil
-function load(reader, chunkname, mode, env) end
+function load(reader, chunkname) end
 
 ---Loads Lua code from file
 ---@overload fun(): function
 ---@overload fun(filename: string): function|nil
 ---@param filename? string
----@param mode? '"b"'|'"t"'|'"bt"'
----@param env? table
 ---@return function|nil, string|nil
-function loadfile(filename, mode, env) end
+function loadfile(filename) end
+
+---Loads and executes Lua code from string (deprecated, use load+pcall)
+---@deprecated
+---@param chunk string
+---@param chunkname? string
+---@return function|nil, string|nil
+function loadstring(chunk, chunkname) end
+
+---Executes string chunk (deprecated)
+---@deprecated
+---@param chunk string
+function dostring(chunk) end
 
 ---Selects arguments after index
 ---@param index integer|'"#"'
@@ -222,11 +220,36 @@ function assert(v, message) end
 ---@return any
 function dofile(filename) end
 
+---Gets the function environment (Lua 5.1 only)
+---@overload fun(): table
+---@param f integer|function
+---@return table
+function getfenv(f) end
+
 ---Gets the metatable of object
 ---Returns nil if no metatable or __metatable field
 ---@param object any
 ---@return table|nil
 function getmetatable(object) end
+
+---Declares a module and returns its environment
+---Sets it in package.loaded and returns the table
+---@param name string
+---@vararg any
+---@return table
+function module(name, ...) end
+
+---Compares two values for equality without invoking __eq
+---@param v1 any
+---@param v2 any
+---@return boolean
+function rawequal(v1, v2) end
+
+---Sets the function environment (Lua 5.1 only)
+---@param f integer|function
+---@param table table
+---@return function
+function setfenv(f, table) end
 
 ---Sets the metatable for a table
 ---Can be prevented by __metatable field
@@ -235,4 +258,10 @@ function getmetatable(object) end
 ---@return table
 function setmetatable(table, metatable) end
 
-
+---Unpacks list[i], list[i+1], ..., list[j]
+---Equivalent to table.unpack in Lua 5.2+
+---@param list table
+---@param i? integer
+---@param j? integer
+---@return ...
+function unpack(list, i, j) end

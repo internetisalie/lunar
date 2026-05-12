@@ -22,6 +22,40 @@
 
 ---@meta
 
----UTF8 LIBRARY
----@class utf8
-utf8 = {}
+---@class coroutine
+coroutine = {}
+
+---Creates new coroutine with function body
+---Returns thread object; coroutine not started yet
+---@param f fun(...: any): ...
+---@return thread
+function coroutine.create(f) end
+
+---Starts or resumes coroutine
+---First call uses passed arguments; subsequent calls resume from yield
+---Returns true + values yielded, or false + error message
+---@param co thread
+---@vararg any
+---@return boolean success, ...
+function coroutine.resume(co, ...) end
+
+---Returns currently running coroutine and true/false
+---@return thread, boolean
+function coroutine.running() end
+
+---Returns coroutine status: "suspended", "running", "normal", "dead"
+---@param co thread
+---@return '"suspended"'|'"running"'|'"normal"'|'"dead"'
+function coroutine.status(co) end
+
+---Creates iterator that resumes coroutine on each call
+---@param co thread
+---@return function
+function coroutine.wrap(co) end
+
+---Suspends coroutine execution
+---Cannot be called from C function, metamethod, or iterator
+---Returns values passed to resume that woke it
+---@vararg any
+---@return ...
+function coroutine.yield(...) end

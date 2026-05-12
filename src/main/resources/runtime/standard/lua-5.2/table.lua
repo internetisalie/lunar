@@ -1,100 +1,74 @@
--- Copyright (c) 2018. tangzx(love.tangzx@qq.com)
+-- MIT License
 --
--- Licensed under the Apache License, Version 2.0 (the "License"); you may not
--- use this file except in compliance with the License. You may obtain a copy of
--- the License at
+-- Copyright © 1994–2025 Lua.org, PUC-Rio.
 --
--- http://www.apache.org/licenses/LICENSE-2.0
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- Unless required by applicable law or agreed to in writing, software
--- distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
--- WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
--- License for the specific language governing permissions and limitations under
--- the License.
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
+---@meta
+
+---TABLE LIBRARY
+---@class table
 table = {}
 
----
---- Given a list where all elements are strings or numbers, returns the string
---- `list[i]..sep..list[i+1] ... sep..list[j]`. The default value for
---- `sep` is the empty string, the default for `i` is 1, and the default for
---- `j` is #list. If `i` is greater than `j`, returns the empty string.
----@overload fun(list:table):string
----@overload fun(list:table, sep:string):string
----@overload fun(list:table, sep:string, i:number):string
+---Concatenates table elements into string
+---sep: separator (default empty), i/j: first/last index
+---@overload fun(list: table): string
+---@overload fun(list: table, sep: string): string
 ---@param list table
----@param sep string
----@param i number
----@param j number
+---@param sep? string
+---@param i? integer
+---@param j? integer
 ---@return string
 function table.concat(list, sep, i, j) end
 
----
---- Inserts element `value` at position `pos` in `list`, shifting up the
---- elements to `list[pos]`, `list[pos+1]`, `···`, `list[#list]`. The default
---- value for `pos` is ``#list+1`, so that a call `table.insert(t,x)`` inserts
---- `x` at the end of list `t`.
----@overload fun(list:table, value:any):number
+---Inserts element into table at position pos
+---pos defaults to #list+1 (end of table)
+---@overload fun(list: table, value: any): nil
 ---@param list table
----@param pos number
----@param value any
----@return number
+---@param pos? integer
+---@param value? any
 function table.insert(list, pos, value) end
 
----
---- Returns a new table with all arguments stored into keys 1, 2, etc. and
---- with a field "`n`" with the total number of arguments. Note that the
---- resulting table may not be a sequence, if some arguments are **nil**.
+---Removes element from table at position pos
+---pos defaults to #list (last element)
+---@overload fun(list: table): any
+---@param list table
+---@param pos? integer
+---@return any
+function table.remove(list, pos) end
+
+---Sorts table in-place
+---comp: comparison function(a, b) returning true if a should come before b
+---@param list table
+---@param comp? fun(a: any, b: any): boolean
+function table.sort(list, comp) end
+
+---Unpacks list[i], list[i+1], ..., list[j]
+---Moved from global unpack in Lua 5.1
+---@param list table
+---@param i? integer
+---@param j? integer
+---@return ...
+function table.unpack(list, i, j) end
+
+---Returns table with values as list elements and field 'n' with count
+---@vararg any
 ---@return table
 function table.pack(...) end
 
----
---- Removes from `list` the element at position `pos`, returning the value of
---- the removed element. When `pos` is an integer between 1 and `#list`, it
---- shifts down the elements `list[pos+1]`, `list[pos+2]`, `···`,
---- `list[#list]` and erases element `list[#list]`; The index pos can also be 0
---- when `#list` is 0, or `#list` + 1; in those cases, the function erases
---- the element `list[pos]`.
----
---- The default value for `pos` is `#list`, so that a call `table.remove(l)`
---- removes the last element of list `l`.
----@overload fun<V>(list:table<number, V> | V[]):V
----@generic V
----@param list table<number, V>
----@param pos number
----@return V
-function table.remove(list, pos) end
-
----
---- Sorts list elements in a given order, *in-place*, from `list[1]` to
---- `list[#list]`. If `comp` is given, then it must be a function that receives
---- two list elements and returns true when the first element must come before
---- the second in the final order (so that, after the sort, `i < j` implies not
---- `comp(list[j],list[i]))`. If `comp` is not given, then the standard Lua
---- operator `<` is used instead.
----
---- Note that the `comp` function must define a strict partial order over the
---- elements in the list; that is, it must be asymmetric and transitive.
---- Otherwise, no valid sort may be possible.
----
---- The sort algorithm is not stable: elements considered equal by the given
---- order may have their relative positions changed by the sort.
----@overload fun(list:table):number
----@generic V
----@param list table<number, V> | V[]
----@param comp fun(a:V, b:V):boolean
----@return number
-function table.sort(list, comp) end
-
----
---- Returns the elements from the given list. This function is equivalent to
---- return `list[i]`, `list[i+1]`, `···`, `list[j]`
---- By default, i is 1 and j is #list.
----@overload fun(list:table):any
----@param list table
----@param i number
----@param j number
----@return any
-function table.unpack(list, i, j) end
-
-return table

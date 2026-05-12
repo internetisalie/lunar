@@ -22,10 +22,6 @@
 
 ---@meta
 
----IO LIBRARY
----@class io
-io = {}
-
 ---@class File
 local File = {}
 
@@ -68,6 +64,10 @@ function File:close() end
 ---@return boolean|nil
 function File:iseof() end
 
+
+---@class io
+io = {}
+
 ---Opens file with given mode
 ---Modes: "r" (read), "w" (write), "a" (append), "r+" (read/write), etc.
 ---Binary modes append "b": "rb", "wb", "ab", etc.
@@ -80,7 +80,6 @@ function io.open(filename, mode) end
 
 ---Sets current input file to filename
 ---Equivalent to io.input(io.open(filename))
----With no argument, returns current input file
 ---@overload fun(): File
 ---@param filename? string
 ---@return File|nil, string|nil
@@ -88,14 +87,12 @@ function io.input(filename) end
 
 ---Sets current output file to filename
 ---Equivalent to io.output(io.open(filename, "w"))
----With no argument, returns current output file
 ---@overload fun(): File
 ---@param filename? string
 ---@return File|nil, string|nil
 function io.output(filename) end
 
 ---Closes file (defaults to current output)
----Returns true on success, nil + error on failure
 ---@param file? File
 ---@return boolean|nil, string|nil
 function io.close(file) end
@@ -158,4 +155,3 @@ io.stdout = nil
 ---Standard error file
 ---@type File
 io.stderr = nil
-

@@ -22,7 +22,6 @@
 
 ---@meta
 
----TABLE LIBRARY
 ---@class table
 table = {}
 
@@ -59,27 +58,8 @@ function table.remove(list, pos) end
 ---@param comp? fun(a: any, b: any): boolean
 function table.sort(list, comp) end
 
----Unpacks list[i], list[i+1], ..., list[j]
----Moved from global unpack in Lua 5.1
----@param list table
----@param i? integer
----@param j? integer
----@return ...
-function table.unpack(list, i, j) end
-
----Returns table with values as list elements and field 'n' with count
----@vararg any
----@return table
-function table.pack(...) end
-
----Moves elements from table src to table dst starting at destination index
----Inserts src[i], src[i+1], ..., src[j] into dst starting at position t
----Returns dst
----@param src table
----@param i integer
----@param j integer
----@param t integer
----@param dst? table
----@return table
-function table.move(src, i, j, t, dst) end
-
+---Returns largest positive integer index (deprecated - use # operator)
+---@deprecated
+---@param t table
+---@return integer
+function table.maxn(t) end
