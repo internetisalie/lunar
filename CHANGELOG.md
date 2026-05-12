@@ -4,6 +4,13 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 
 ## [1.0.0-SNAPSHOT] - In Development
 
+### Runtime & Platform Support
+- **Target Selection**: Introduced comprehensive project environment selection with platform and version granularity.
+- **New Platforms**: Added explicit support for **LuaJIT**, **Redis (5/6/7)**, **Tarantool**, **OpenResty (NGX)**, **Luau**, and **Pandoc**.
+- **Dynamic Standard Libraries**: Automatic resolution of platform-specific library definitions (e.g., Redis globals, LuaJIT-specific functions) based on the selected target.
+- **Environment-Aware Luacheck**: Luacheck now dynamically adjusts its analysis standard (`--std`) to match the active project environment.
+- **Legacy Migration**: Automated migration of existing project settings to the new environment-aware data model.
+
 ### Core Language Support
 - **Lua Grammar & Parsing**: Full Lua 5.1-5.4 syntax support with AST-based PSI model
 - **Lexer & Tokenization**: Comprehensive lexical analysis with proper handling of comments, strings, and operators
