@@ -16,18 +16,18 @@ class SandboxAssetsIntegrationTest {
         val platformName = "GO-2026.1"
 
         val pluginSandboxRoot = sandboxHome.resolve("${platformName}/plugins/${pluginName}")
-        val platformDir = pluginSandboxRoot.resolve("platform")
+        val runtimeDir = pluginSandboxRoot.resolve("runtime")
         val luaDir = pluginSandboxRoot.resolve("lua")
 
-        assertTrue(platformDir.exists(), "Expected platform assets directory to exist: ${platformDir.pathString}")
-        assertTrue(platformDir.isDirectory(), "Expected platform assets path to be a directory: ${platformDir.pathString}")
+        assertTrue(runtimeDir.exists(), "Expected runtime assets directory to exist: ${runtimeDir.pathString}")
+        assertTrue(runtimeDir.isDirectory(), "Expected runtime assets path to be a directory: ${runtimeDir.pathString}")
 
         assertTrue(luaDir.exists(), "Expected lua assets directory to exist: ${luaDir.pathString}")
         assertTrue(luaDir.isDirectory(), "Expected lua assets path to be a directory: ${luaDir.pathString}")
 
         assertTrue(
-            platformDir.listDirectoryEntries().isNotEmpty(),
-            "Expected at least one copied platform asset in: ${platformDir.pathString}"
+            runtimeDir.listDirectoryEntries().isNotEmpty(),
+            "Expected at least one copied runtime asset in: ${runtimeDir.pathString}"
         )
         assertTrue(
             luaDir.listDirectoryEntries().isNotEmpty(),
@@ -35,3 +35,4 @@ class SandboxAssetsIntegrationTest {
         )
     }
 }
+

@@ -32,6 +32,7 @@ import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.indexing.PackageFile
 import net.internetisalie.lunar.lang.path.PathConfiguration
+import net.internetisalie.lunar.platform.target.RuntimeLibraryProvider
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.util.LuaFileUtil
 import java.nio.file.Paths
@@ -107,14 +108,13 @@ object PlatformLibraryIndex {
         return folder
     }
 
-    fun getPlatformLibrary(project: Project) : Pair<LuaLanguageLevel, VirtualFile>? {
-        val settingsState = LuaProjectSettings.getInstance(project).state
-        val level = settingsState.languageLevel
-        val platformDirectory = LuaFileUtil.pluginVirtualDirectory
-            ?.findChild("platform")
-            ?.findChild("Lua${level.major}${level.minor}")
-            ?: return null
-        return Pair(level, platformDirectory)
+    fun getPlatformLibrary(project: Project): Pair<LuaLanguageLevel, VirtualFile>? {
+        val settings = LuaProjectSettings.getInstance(project).state
+        val target = settings.getTarget()
+        val level = target.getImplicitLanguageLevel()
+        val runtimeProvider = RuntimeLibraryProvider(project)
+        val libraryRoot = runtimeProvider.getLibraryRoot(target) ?: return null
+        return Pair(level, libraryRoot)
     }
 
     fun getPackageFiles(project: Project): List<PackageFile> {
