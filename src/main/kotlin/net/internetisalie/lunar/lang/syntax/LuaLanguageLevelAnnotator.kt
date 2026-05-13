@@ -46,20 +46,20 @@ class LuaLanguageLevelAnnotator : Annotator {
     private fun checkLua52Features(element: PsiElement, holder: AnnotationHolder, languageLevel: LuaLanguageLevel) {
         when (element) {
             is LuaGotoStatement -> {
-                holder.newAnnotation(
-                    HighlightSeverity.ERROR,
-                    "Goto statements are a Lua 5.2+ feature (project configured for $languageLevel)"
-                )
+                val message = "Goto statements are a Lua 5.2+ feature (project configured for $languageLevel)"
+                val annotation = holder.newAnnotation(HighlightSeverity.ERROR, message)
                     .range(element)
-                    .create()
+                    .withFix(UpgradeLanguageLevelFix(LuaLanguageLevel.LUA52))
+                    .withFix(RemoveGotoFix())
+                annotation.create()
             }
             is LuaLabel -> {
-                holder.newAnnotation(
-                    HighlightSeverity.ERROR,
-                    "Labels are a Lua 5.2+ feature (project configured for $languageLevel)"
-                )
+                val message = "Labels are a Lua 5.2+ feature (project configured for $languageLevel)"
+                val annotation = holder.newAnnotation(HighlightSeverity.ERROR, message)
                     .range(element)
-                    .create()
+                    .withFix(UpgradeLanguageLevelFix(LuaLanguageLevel.LUA52))
+                    .withFix(RemoveLabelFix())
+                annotation.create()
             }
         }
     }
@@ -73,33 +73,31 @@ class LuaLanguageLevelAnnotator : Annotator {
                 val operator = element.text
                 when {
                     operator == "//" -> {
-                        holder.newAnnotation(
-                            HighlightSeverity.ERROR,
-                            "Integer division (//) is a Lua 5.3+ feature (project configured for $languageLevel)"
-                        )
+                        val message = "Integer division (//) is a Lua 5.3+ feature (project configured for $languageLevel)"
+                        val annotation = holder.newAnnotation(HighlightSeverity.ERROR, message)
                             .range(element)
-                            .create()
+                            .withFix(UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53))
+                            .withFix(ReplaceIntegerDivisionFix())
+                        annotation.create()
                     }
                     isBitwiseOperator(operator) -> {
                         val featureName = getBitwiseOperatorName(operator)
-                        holder.newAnnotation(
-                            HighlightSeverity.ERROR,
-                            "$featureName is a Lua 5.3+ feature (project configured for $languageLevel)"
-                        )
+                        val message = "$featureName is a Lua 5.3+ feature (project configured for $languageLevel)"
+                        val annotation = holder.newAnnotation(HighlightSeverity.ERROR, message)
                             .range(element)
-                            .create()
+                            .withFix(UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53))
+                        annotation.create()
                     }
                 }
             }
             is LuaUnOp -> {
                 val operator = element.text
                 if (operator == "~") {
-                    holder.newAnnotation(
-                        HighlightSeverity.ERROR,
-                        "Bitwise NOT operator (~) is a Lua 5.3+ feature (project configured for $languageLevel)"
-                    )
+                    val message = "Bitwise NOT operator (~) is a Lua 5.3+ feature (project configured for $languageLevel)"
+                    val annotation = holder.newAnnotation(HighlightSeverity.ERROR, message)
                         .range(element)
-                        .create()
+                        .withFix(UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53))
+                    annotation.create()
                 }
             }
         }
@@ -110,12 +108,11 @@ class LuaLanguageLevelAnnotator : Annotator {
      */
     private fun checkLua54Features(element: PsiElement, holder: AnnotationHolder, languageLevel: LuaLanguageLevel) {
         if (element is LuaAttrib) {
-            holder.newAnnotation(
-                HighlightSeverity.ERROR,
-                "Variable attributes are a Lua 5.4 feature (project configured for $languageLevel)"
-            )
+            val message = "Variable attributes are a Lua 5.4 feature (project configured for $languageLevel)"
+            val annotation = holder.newAnnotation(HighlightSeverity.ERROR, message)
                 .range(element)
-                .create()
+                .withFix(UpgradeLanguageLevelFix(LuaLanguageLevel.LUA54))
+            annotation.create()
         }
     }
 
