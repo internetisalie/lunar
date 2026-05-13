@@ -4,7 +4,11 @@ import com.intellij.lang.parameterInfo.*
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import net.internetisalie.lunar.lang.indexing.*
+import net.internetisalie.lunar.lang.insight.LuaImports
+import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.*
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHandler.LuaParameterInfoCandidate> {
 
@@ -70,15 +74,33 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         if (boundElement == null) {
             boundElement = (parent as? com.intellij.psi.PsiReference)?.resolve()
         }
+
+        // Fallback: try platform library resolution for dotted globals (e.g. cjson.decode)
+        if (boundElement == null) {
+            val qName = getQualifiedName(target)
+            if (qName != null && qName.contains('.')) {
+                val project = funcCall.project
+                val scope = com.intellij.psi.search.GlobalSearchScope.allScope(project)
+                val elements = com.intellij.psi.stubs.StubIndex.getElements(
+                    LuaGlobalDeclarationIndex.KEY,
+                    qName,
+                    project,
+                    scope,
+                    LuaFuncDecl::class.java
+                )
+                boundElement = elements.firstOrNull()
+            }
+        }
+
         // Fallback: search file for function definitions with matching name
         if (boundElement == null) {
             val file = funcCall.containingFile
             val allFuncDecls = PsiTreeUtil.findChildrenOfType(file, LuaFuncDecl::class.java)
-            
+
             // For method calls (where methodExpr is not null), we need to look for method declarations
             if (methodExpr != null) {
                 // Look for a function declaration with funcNameMethod matching identifierName
-                boundElement = allFuncDecls.find { 
+                boundElement = allFuncDecls.find {
                     it.funcName.funcNameMethod?.nameRef?.text == identifierName
                 }
             } else {
@@ -88,7 +110,7 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                     ?: allLocalFuncDecls.find { it.nameRef.text == identifierName }
             }
         }
-        
+
         if (boundElement == null) {
             return emptyList()
         }
@@ -195,6 +217,42 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         if (element.elementType == LuaElementTypes.IDENTIFIER) return element
         if (element is LuaNameRef) return element.identifier
         return PsiTreeUtil.findChildOfType(element, LuaNameRef::class.java)?.identifier
+    }
+
+    private fun getQualifiedName(element: PsiElement): String? {
+        if (element !is LuaNameRef && element !is LuaVarOrExp) return null
+
+        val luaVar = if (element is LuaVarOrExp) {
+            element.`var` ?: return null
+        } else {
+            val parent = element.parent
+            if (parent is LuaIndexExpr) {
+                val varSuffix = parent.parent as? LuaVarSuffix ?: return null
+                varSuffix.parent as? LuaVar ?: return null
+            } else {
+                element.parent as? LuaVar ?: return null
+            }
+        }
+
+        val baseNameRef = luaVar.nameRef ?: return null
+        val sb = StringBuilder()
+        sb.append(baseNameRef.text)
+
+        for (suffix in luaVar.varSuffixList) {
+            val indexExpr = suffix.indexExpr
+            if (indexExpr.node.findChildByType(LuaElementTypes.DOT) != null) {
+                val mNameRef = indexExpr.nameRef
+                if (mNameRef != null) {
+                    sb.append(".")
+                    sb.append(mNameRef.text)
+                    if (mNameRef == element) return sb.toString()
+                } else break
+            } else break
+        }
+
+        if (element is LuaVarOrExp || element == baseNameRef) return sb.toString()
+
+        return null
     }
 
     override fun showParameterInfo(element: LuaArgs, context: CreateParameterInfoContext) {
