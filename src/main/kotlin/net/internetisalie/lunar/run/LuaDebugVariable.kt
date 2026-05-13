@@ -21,14 +21,21 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.PsiFile
+import com.intellij.psi.ResolveState
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.XDebuggerUtil
 import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.frame.*
+import net.internetisalie.lunar.lang.LuaScopeProcessor
 import net.internetisalie.lunar.lang.psi.LuaBlock
-import net.internetisalie.lunar.lang.psi.LuaNameRef
+import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncDef
+import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 
 class LuaDebugVariable private constructor(
     name: String,
@@ -91,45 +98,36 @@ class LuaDebugVariable private constructor(
 
         if (contextElement == null) return
 
-        // TODO: check bindings instead of all this
+        // Use standard bindings resolution to find the variable declaration
+        val processor = LuaScopeProcessor(name)
+        var current: PsiElement? = contextElement
 
-        var block: LuaBlock? = PsiTreeUtil.getParentOfType(contextElement, LuaBlock::class.java)
+        while (current != null && current !is PsiFile) {
+            val state = ResolveState.initial()
 
-        if (!isLocal) {
-            block = PsiTreeUtil.getParentOfType(block, LuaBlock::class.java, true)
-        }
-
-        val candidates: MutableList<LuaNameRef> = mutableListOf()
-
-        var found = false
-
-        while (block != null && !found) {
-            for (local in emptyList<LuaNameRef>()) { // block.getLocals()) {
-                val localName: String? = local.getName()
-                if (localName != null && localName == getName()) {
-                    candidates.add(local)
-                    found = true
-                }
+            // Process declarations in scope elements
+            val matchFound = when (current) {
+                is LuaBlock -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                is LuaFuncDef -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                is LuaFuncDecl -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                is LuaLocalFuncDecl -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                is LuaNumericForStatement -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                is LuaGenericForStatement -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                else -> false
             }
 
-            block = PsiTreeUtil.getParentOfType(block, LuaBlock::class.java, true)
+            if (matchFound) break
+            current = current.parent
         }
 
-
-        if (candidates.size == 0) return
-
-        var resolved: LuaNameRef? = null
-        for (candidate in candidates) {
-            if (resolved == null) {
-                resolved = candidate
-            } else {
-                if (candidate.getTextOffset() < contextElement.getTextOffset() && candidate.getTextOffset() > resolved.getTextOffset()) {
-                    resolved = candidate
-                }
-            }
+        // Also process the file itself
+        if (current is LuaFile && processor.result == null) {
+            current.processDeclarations(processor, ResolveState.initial(), contextElement, contextElement)
         }
 
-        navigatable.setSourcePosition(XDebuggerUtil.getInstance().createPositionByElement(resolved))
+        if (processor.result != null) {
+            navigatable.setSourcePosition(XDebuggerUtil.getInstance().createPositionByElement(processor.result))
+        }
     }
 
 //    val evaluationExpression: String?
