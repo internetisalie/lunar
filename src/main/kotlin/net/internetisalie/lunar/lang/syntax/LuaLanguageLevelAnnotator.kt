@@ -24,19 +24,15 @@ class LuaLanguageLevelAnnotator : Annotator {
         val project = element.project
         val languageLevel = getLuaLanguageLevel(project)
 
-        when {
-            // Lua 5.2+ syntax checks
-            languageLevel < LuaLanguageLevel.LUA52 -> {
-                checkLua52Features(element, holder, languageLevel)
-            }
-            // Lua 5.3+ syntax checks
-            languageLevel < LuaLanguageLevel.LUA53 -> {
-                checkLua53Features(element, holder, languageLevel)
-            }
-            // Lua 5.4+ syntax checks
-            languageLevel < LuaLanguageLevel.LUA54 -> {
-                checkLua54Features(element, holder, languageLevel)
-            }
+        // Check all applicable language level constraints
+        if (languageLevel < LuaLanguageLevel.LUA52) {
+            checkLua52Features(element, holder, languageLevel)
+        }
+        if (languageLevel < LuaLanguageLevel.LUA53) {
+            checkLua53Features(element, holder, languageLevel)
+        }
+        if (languageLevel < LuaLanguageLevel.LUA54) {
+            checkLua54Features(element, holder, languageLevel)
         }
     }
 
