@@ -17,7 +17,7 @@ class UpgradeLanguageLevelFix(
 
     override fun getFamilyName(): String = "Lua Language Level"
 
-    override fun getText(): String = "Upgrade project to Lua $requiredLevel"
+    override fun getText(): String = "Upgrade project to $requiredLevel"
 
     override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean = true
 
