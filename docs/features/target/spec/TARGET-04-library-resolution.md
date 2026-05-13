@@ -34,8 +34,6 @@ src/main/resources/runtime/
 │   └── tarantool-2.10/  (future — no files yet)
 ├── ngx/
 │   └── ngx-latest/      (future — no files yet)
-├── luau/
-│   └── luau-latest/     (future — no files yet)
 └── pandoc/
     └── pandoc-latest/   (future — no files yet)
 ```
@@ -117,7 +115,7 @@ This event-driven flow ensures that changing the target in the settings dialog t
 
 ## Null-Library Platforms
 
-Platforms without bundled library files today (LUAJIT, NGX, LUAU, PANDOC, TARANTOOL) will resolve to `null` from `getLibraryRoot()`. This is handled gracefully:
+Platforms without bundled library files today (LUAJIT, NGX, PANDOC, TARANTOOL) will resolve to `null` from `getLibraryRoot()`. This is handled gracefully:
 
 - `getLibraryFiles()` returns an empty list
 - `PlatformLibraryProvider` treats an empty file list as "no library contribution"

@@ -25,7 +25,6 @@ Add a `pathSegment` property to the existing enum. `pathSegment` is the stable r
 enum class LuaPlatform(val label: String, val pathSegment: String) {
     STANDARD  ("Standard",   "standard"),
     LUAJIT    ("LuaJIT",     "luajit"),
-    LUAU      ("Luau",       "luau"),
     PANDOC    ("Pandoc",     "pandoc"),
     REDIS     ("Redis",      "redis"),
     TARANTOOL ("Tarantool",  "tarantool"),
@@ -106,7 +105,6 @@ object PlatformVersionRegistry {
         ),
         LuaPlatform.TARANTOOL to listOf(VersionEntry("2.10", "tarantool-2.10")),
         LuaPlatform.NGX       to listOf(VersionEntry("latest", "ngx-latest")),
-        LuaPlatform.LUAU      to listOf(VersionEntry("latest", "luau-latest")),
         LuaPlatform.PANDOC    to listOf(VersionEntry("latest", "pandoc-latest")),
     )
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides the technical design for the **Target Configuration** feature (`TARGET`), which manages the runtime environment for Lua code by allowing users to switch between different platforms (e.g., Standard Lua, Redis, Luau) and their respective versions.
+This document provides the technical design for the **Target Configuration** feature (`TARGET`), which manages the runtime environment for Lua code by allowing users to switch between different platforms (e.g., Standard Lua, Redis, LuaJIT) and their respective versions.
 
 ---
 
@@ -18,7 +18,6 @@ The `LuaPlatform` enum already exists at `net.internetisalie.lunar.platform.LuaP
 enum class LuaPlatform(val label: String, val pathSegment: String) {
     STANDARD("Standard",   "standard"),
     LUAJIT  ("LuaJIT",     "luajit"),
-    LUAU    ("Luau",       "luau"),
     PANDOC  ("Pandoc",     "pandoc"),
     REDIS   ("Redis",      "redis"),
     TARANTOOL("Tarantool", "tarantool"),
@@ -153,7 +152,6 @@ object PlatformVersionRegistry {
         ),
         LuaPlatform.TARANTOOL to listOf(VersionEntry("2.10", "tarantool-2.10")),
         LuaPlatform.NGX       to listOf(VersionEntry("latest", "ngx-latest")),
-        LuaPlatform.LUAU      to listOf(VersionEntry("latest", "luau-latest")),
         LuaPlatform.PANDOC    to listOf(VersionEntry("latest", "pandoc-latest")),
     )
 
@@ -225,8 +223,6 @@ resources/
     │   └── tarantool-2.10/
     ├── ngx/
     │   └── ngx-latest/
-    ├── luau/
-    │   └── luau-latest/
     └── pandoc/
         └── pandoc-latest/
 ```
@@ -469,17 +465,17 @@ object RuntimeLibraryProvider : LibraryProvider {
     override fun getLibrary(target: Target): LuaLibrary? {
         val rootPath = target.getLibraryRootPath()
         val pluginPath = getPluginResourcePath(rootPath)
-        // Returns null if the directory doesn't exist (e.g., LUAU/PANDOC/NGX have no bundled libs yet)
+        // Returns null if the directory doesn't exist (e.g., PANDOC/NGX have no bundled libs yet)
         return loadLibraryFromPath(pluginPath)
     }
 }
 ```
 
-**Note on missing libraries**: If `loadLibraryFromPath` returns null (directory not found), the platform provider returns null, and no library is contributed. This is the expected behavior for platforms with no bundled library files (e.g., LUAU, PANDOC, NGX). Future work will add library files for these platforms.
+**Note on missing libraries**: If `loadLibraryFromPath` returns null (directory not found), the platform provider returns null, and no library is contributed. This is the expected behavior for platforms with no bundled library files (e.g., PANDOC, NGX). Future work will add library files for these platforms.
 
 **Key Design Principles**:
 - **Separation of Concerns**: Each platform/provider handles its own library loading
-- **Composability**: Easy to add new providers for new platforms (e.g., Luau)
+- **Composability**: Easy to add new providers for new platforms (e.g., LuaJIT variants)
 - **Testability**: Providers can be unit tested independently
 - **Target-Driven**: Language level automatically derives from target; no need to track separately
 
@@ -721,7 +717,6 @@ src/main/resources/
     │   └── redis-7/    # Redis 7+ SDK (migrated from sdk/redis-8/)
     ├── tarantool/      # (future — files to be created)
     ├── ngx/            # (future — files to be created)
-    ├── luau/           # (future — files to be created)
     └── pandoc/         # (future — files to be created)
 ```
 
@@ -752,7 +747,7 @@ src/main/resources/
 |------|-----------|
 | Existing projects fail to load | `migrateFromLegacySettings()` handles both `platform` + `languageLevel` legacy fields |
 | Library path resolution broken | Unified `RuntimeLibraryProvider` with null-safe path loading; unit tests for each platform |
-| Platforms with no library files (LUAU, PANDOC, NGX, TARANTOOL) | `loadLibraryFromPath` returns null gracefully; no library contributed |
+| Platforms with no library files (PANDOC, NGX, TARANTOOL) | `loadLibraryFromPath` returns null gracefully; no library contributed |
 | UI layout doesn't fit | Use FormBuilder for responsive layout; collapsible sections if needed |
 | Symbol resolution inconsistent | Single Target source of truth; derived language level prevents mismatches |
 | `LUAJIT`/`NGX` missing from `LuaPlatform.kt` | Enum additions are listed as explicit prerequisites before Phase 1 |

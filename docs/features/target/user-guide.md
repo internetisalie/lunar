@@ -14,12 +14,11 @@ To configure your project's target:
 
 ## Supported Platforms
 
-- **Standard**: Official Lua versions 5.1 through 5.4.
+- **Standard**: Official Lua versions 5.1 through 5.4 (+ future 5.5).
 - **LuaJIT**: Performance-oriented Lua JIT compiler.
 - **Redis**: Embedded Lua scripting environment for Redis versions 5, 6, and 7+.
 - **Tarantool**: Lua-based application server and database.
 - **OpenResty (NGX)**: Nginx-based web platform.
-- **Luau**: Roblox's derived Lua dialect.
 - **Pandoc**: Document converter scripting environment.
 
 ## Integration with Luacheck

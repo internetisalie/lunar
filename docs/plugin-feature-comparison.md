@@ -22,7 +22,6 @@
 | Lua 5.3 | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Lua 5.4 (`<const>`, `<close>`) | ✔ | ✗ | ✔ | ✔ | ✔ |
 | LuaJIT | ✗ (planned) | ✔ | ✗ | ✔ | ✗ |
-| Luau | ✗ (planned) | ✗ | ✗ | ✗ | ✗ |
 | | | | | | |
 | **CODE COMPLETION** | | | | | |
 | Keyword completion | ✗ | ✔ | ✔ | ✔ (LSP) | ✔ |

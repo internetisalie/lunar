@@ -42,7 +42,7 @@ runConfig.interpreter = interpreter
 
 **Structure** (`LuaInterpreter`):
 - `path: String` - Full path to interpreter executable
-- `product: LuaInterpreterFamily` - Interpreter type (LUA_5_1, LUA_5_4, LUAU, MLUA, etc.)
+- `product: LuaInterpreterFamily` - Interpreter type (LUA_5_1, LUA_5_4, MLUA, etc.)
 - `version: String?` - Version string if detected
 
 **Available Products**:
@@ -50,7 +50,6 @@ runConfig.interpreter = interpreter
 - `LUA_5_2` - Lua 5.2  
 - `LUA_5_3` - Lua 5.3
 - `LUA_5_4` - Lua 5.4
-- `LUAU` - Roblox Luau
 - `MLUA` - MLua (Rust FFI)
 - `UNKNOWN_PRODUCT` - Unknown interpreter
 

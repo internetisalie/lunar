@@ -46,7 +46,6 @@ fun getLuacheckStd(): String? = version.luacheckStd
 | REDIS    | 7+      | `"redis7"`    | `--std redis7`   |
 | TARANTOOL| 2.10    | `null`        | (omitted)        |
 | NGX      | latest  | `null`        | (omitted)        |
-| LUAU     | latest  | `null`        | (omitted)        |
 | PANDOC   | latest  | `null`        | (omitted)        |
 
 **Note on `lua55`**: luacheck may not yet have a `lua55` standard. If the luacheck invocation fails with an unrecognised std, fall back to `"lua54"`. This must be re-evaluated when luacheck adds official Lua 5.5 support.
@@ -79,7 +78,7 @@ When `getLuacheckStd()` returns `null`, the `--std` argument is **omitted entire
 
 ## Null-Std Platforms
 
-Platforms with `luacheckStd = null` (TARANTOOL, NGX, LUAU, PANDOC) are platforms where:
+Platforms with `luacheckStd = null` (TARANTOOL, NGX, PANDOC) are platforms where:
 - Luacheck has no bundled standard library definition
 - Passing an incorrect `--std` would produce worse results than omitting it
 

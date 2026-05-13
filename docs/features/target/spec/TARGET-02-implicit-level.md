@@ -62,7 +62,6 @@ fun getImplicitLanguageLevel(): LuaLanguageLevel {
 | REDIS    | 7+      | `LUA51`                 |
 | TARANTOOL| 2.10    | `LUA51`                 |
 | NGX      | latest  | `LUA51`                 |
-| LUAU     | latest  | `LUA54` (fallback)      |
 | PANDOC   | latest  | `LUA54` (fallback)      |
 
 ---

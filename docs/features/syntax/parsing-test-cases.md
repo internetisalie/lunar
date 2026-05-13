@@ -5,7 +5,6 @@ This document collects Lua parsing test cases from various sources to be used fo
 ## Sources
 - **Official Lua Test Suite**: `errors.lua`, `literals.lua`, `constructs.lua`, `attrib.lua`.
 - **Luacheck**: `spec/parser_spec.lua`, `spec/lexer_spec.lua`.
-- **Luau Conformance Tests**: `tests/conformance/*.lua`.
 - **Lunar Current Tests**: `TestLuaAttributesParser.kt`.
 - **IntelliJ-EmmyLua / Luanalysis**: `ParsingTest.kt`.
 

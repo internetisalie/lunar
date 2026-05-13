@@ -312,7 +312,7 @@ import java.util.concurrent.TimeUnit
 
 2. **Verify Lua Installation**: Ensure Lua interpreter is available
    - Check IDE settings → Languages & Frameworks → Lua
-   - Path should point to valid lua/luau/mlua executable
+   - Path should point to valid lua/mlua executable
 
 3. **Check Working Directory**: Verify it's set correctly
    ```kotlin
@@ -410,7 +410,7 @@ System.getProperty("plugin.testing.base.path")  // e.g., "build/test-projects/"
 - Check sandbox isn't corrupted: `rm -rf build/idea-sandbox/`
 
 ### Lua Interpreter Not Found
-- Ensure lua/lua5.4/mlua/luau installed on system
+- Ensure lua/lua5.4/mlua installed on system
 - Configure in IDE settings or test setup
 - Check PATH environment variable
 

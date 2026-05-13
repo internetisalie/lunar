@@ -79,7 +79,7 @@ Implement a **semantic annotator** (`LuaLanguageLevelAnnotator`) that:
 ✅ Flags errors only when language level is insufficient  
 ✅ No parser changes required  
 ✅ All tests passing  
-✅ Works with all runtime platforms (Standard, Redis, Luau, LuaJIT)  
+✅ Works with all runtime platforms (Standard, Redis, LuaJIT, OpenResty, Pandoc, Tarantool)  
 
 ## Files to Modify/Create
 

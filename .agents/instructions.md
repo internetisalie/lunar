@@ -301,7 +301,6 @@ Standard table header: `| ID | Requirement | Priority | Status | Description |`
 ## Key Pending TODOs
 
 - [ ] Finish Kotlin conversion (from Java)
-- [ ] Luau syntax support
 - [ ] Advanced code formatting (review stylua)
 - [ ] Label refactoring
 - [ ] Auto-complete (general support)

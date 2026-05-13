@@ -109,7 +109,6 @@ fun LuaLanguageLevel.toVersionLabel(): String = when (this) {
 | `STANDARD` (or null)| `LUA50`                | `STANDARD / "5.1"`          |
 | `REDIS`             | `LUA51`                | `REDIS / "7+"` (default)    |
 | `TARANTOOL`         | `LUA51`                | `TARANTOOL / "2.10"` (def.) |
-| `LUAU`              | `LUA54`                | `LUAU / "latest"` (default) |
 | `PANDOC`            | `LUA54`                | `PANDOC / "latest"` (def.)  |
 
 ---
