@@ -128,7 +128,7 @@ class LuaLanguageLevelAnnotator : Annotator {
      * Check if an operator is a bitwise operator.
      */
     private fun isBitwiseOperator(operator: String): Boolean =
-        operator in setOf("&", "|", "~", "<<", ">>", "^")
+        operator in setOf("&", "|", "~", "<<", ">>")  // Note: ^ is power, not XOR
 
     /**
      * Get a human-readable name for a bitwise operator.
@@ -140,7 +140,6 @@ class LuaLanguageLevelAnnotator : Annotator {
             "~" -> "Bitwise NOT operator (~)"
             "<<" -> "Left shift operator (<<)"
             ">>" -> "Right shift operator (>>)"
-            "^" -> "XOR operator (^)"
             else -> "Bitwise operator"
         }
 }

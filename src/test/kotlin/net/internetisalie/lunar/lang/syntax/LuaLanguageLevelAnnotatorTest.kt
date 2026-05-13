@@ -247,6 +247,379 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
         Assertions.assertTrue(errors.isEmpty(), "No errors expected in Lua 5.4 for multiple attributes")
     }
 
+    // ==================== Version transition tests (5.1 → 5.2 → 5.3 → 5.4) ====================
+
+    @Test
+    fun lua51ToLua52TransitionGoto() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "goto exit ::exit::")
+        val errorsBefore = getLanguageLevelErrors()
+        Assertions.assertTrue(errorsBefore.size >= 2, "Expected errors for goto and label in Lua 5.1")
+        
+        // After upgrade
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(LuaFileType, "goto exit ::exit::")
+        val errorsAfter = getLanguageLevelErrors()
+        Assertions.assertTrue(errorsAfter.isEmpty(), "No errors expected after upgrade to Lua 5.2")
+    }
+
+    @Test
+    fun lua52ToLua53TransitionBitwiseOps() {
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(LuaFileType, "local x = 1 & 2")
+        val errorsBefore = getLanguageLevelErrors()
+        Assertions.assertTrue(errorsBefore.any { it.contains("Bitwise AND") }, "Expected error in Lua 5.2")
+        
+        // After upgrade
+        setLanguageLevel(LuaLanguageLevel.LUA53)
+        myFixture.configureByText(LuaFileType, "local x = 1 & 2")
+        val errorsAfter = getLanguageLevelErrors()
+        Assertions.assertTrue(errorsAfter.isEmpty(), "No errors expected after upgrade to Lua 5.3")
+    }
+
+    @Test
+    fun lua53ToLua54TransitionAttributes() {
+        setLanguageLevel(LuaLanguageLevel.LUA53)
+        myFixture.configureByText(LuaFileType, "local x <const> = 1")
+        val errorsBefore = getLanguageLevelErrors()
+        Assertions.assertTrue(errorsBefore.any { it.contains("Variable attributes") }, "Expected error in Lua 5.3")
+        
+        // After upgrade
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(LuaFileType, "local x <const> = 1")
+        val errorsAfter = getLanguageLevelErrors()
+        Assertions.assertTrue(errorsAfter.isEmpty(), "No errors expected after upgrade to Lua 5.4")
+    }
+
+    // ==================== No false positives: Allowed features ====================
+
+    @Test
+    fun noErrorsForFeaturesAllowedInLua51() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            local x = 1
+            local y = x + 1
+            local z = x * 2
+            local a = x ^ 2
+            local t = {1, 2, 3}
+            function foo() return x end
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "Standard Lua 5.1 features should not error")
+    }
+
+    @Test
+    fun noErrorsForAllFeaturesInLua54() {
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            goto skip
+            ::skip::
+            local x = 1 & 2 | 3 ~ 4 << 1 >> 1
+            local y = 10 // 3
+            local a <const> = 1
+            local b <close> = io.open('f')
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "All features should be allowed in Lua 5.4")
+    }
+
+    @Test
+    fun noErrorsForRegularOperatorsInAllVersions() {
+        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local a = 1 + 2")
+            var errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Addition should work in $level")
+            
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local b = 3 - 1")
+            errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Subtraction should work in $level")
+            
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local c = 2 * 3")
+            errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Multiplication should work in $level")
+            
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local d = 10 / 3")
+            errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Division should work in $level")
+            
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local e = 2 ^ 3")
+            errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Power should work in $level")
+            
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local f = \"hello\" .. \"world\"")
+            errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Concatenation should work in $level")
+        }
+    }
+
+    // ==================== Cross-version compatibility ====================
+
+    @Test
+    fun mixedCodeWithSomeDisallowedFeatures() {
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            -- Allowed
+            goto exit
+            ::exit::
+            local x = 10 / 3
+            
+            -- Not allowed
+            local y = 1 & 2
+            local z = 10 // 3
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertEquals(2, errors.size, "Should have exactly 2 errors for disallowed bitwise/div")
+    }
+
+    @Test
+    fun noErrorsWhenLanguageLevelExceeds() {
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            -- All of these should be fine in Lua 5.4
+            goto skip
+            ::skip::
+            local a = 1 & 2
+            local b = 1 | 2
+            local c = ~1
+            local d = 1 << 2
+            local e = 1 >> 2
+            local f = 1 ^ 2
+            local g = 10 // 3
+            local h <const> = 1
+            local i <close> = nil
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "Lua 5.4 should support all features")
+    }
+
+    // ==================== Nested and complex expressions ====================
+
+    @Test
+    fun nestedBitwiseOperationsInLua52() {
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(LuaFileType, "local x = (1 & 2) | (3 << 2)")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.size >= 2, "Multiple bitwise ops should each error")
+    }
+
+    @Test
+    fun bitwiseOperatorsInFunctionCall() {
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(LuaFileType, "print(1 & 2)")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.any { it.contains("Bitwise AND") }, "Should detect bitwise in function call")
+    }
+
+    @Test
+    fun bitwiseOperatorsInTableConstructor() {
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(LuaFileType, "local t = {1 & 2, 3 | 4}")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.size >= 2, "Should detect bitwise in table")
+    }
+
+    @Test
+    fun integerDivisionInNestedExpression() {
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(LuaFileType, "local x = (10 // 3) + 5")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.any { it.contains("Integer division") }, "Should detect // in nested expr")
+    }
+
+    @Test
+    fun attributesInMultipleLocalDeclarations() {
+        setLanguageLevel(LuaLanguageLevel.LUA53)
+        myFixture.configureByText(LuaFileType, "local x <const>, y <close> = 1, nil")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.size >= 2, "Both attributes should error in Lua 5.3")
+    }
+
+    // ==================== Boundary conditions ====================
+
+    @Test
+    fun emptyFileNoErrors() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "Empty file should not error")
+    }
+
+    @Test
+    fun onlyCommentsNoErrors() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "-- This is a comment")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "Comments should not error")
+    }
+
+    @Test
+    fun stringContainingGotoNotError() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "local s = \"goto exit\"")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "String containing 'goto' should not error")
+    }
+
+    @Test
+    fun stringContainingBitwiseSymbolsNotError() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "local s = \"1 & 2\"")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "String containing '&' should not error")
+    }
+
+    // ==================== Version-specific operator behavior ====================
+
+    @Test
+    fun xorBinaryInLua52() {
+        setLanguageLevel(LuaLanguageLevel.LUA52)
+        myFixture.configureByText(LuaFileType, "local x = 1 ^ 2")
+        val errors = getLanguageLevelErrors()
+        // In Lua 5.2, ^ is power, not XOR. No error expected.
+        Assertions.assertTrue(errors.isEmpty(), "^ should be power in Lua 5.2, not bitwise XOR")
+    }
+
+    @Test
+    fun xorBinaryInLua53Plus() {
+        setLanguageLevel(LuaLanguageLevel.LUA53)
+        myFixture.configureByText(LuaFileType, "local x = 1 ^ 2")
+        val errors = getLanguageLevelErrors()
+        // In Lua 5.3+, ^ can be used for XOR in bitwise context (actually it's XOR)
+        // But the grammar shows ^ is used for both power and XOR
+        Assertions.assertTrue(errors.isEmpty(), "^ is allowed in Lua 5.3+")
+    }
+
+    @Test
+    fun unaryMinusAllowedInAllVersions() {
+        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local x = -5")
+            val errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Unary minus should work in $level")
+        }
+    }
+
+    @Test
+    fun notOperatorAllowedInAllVersions() {
+        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local x = not true")
+            val errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Not operator should work in $level")
+        }
+    }
+
+    @Test
+    fun lengthOperatorAllowedInAllVersions() {
+        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+            setLanguageLevel(level)
+            myFixture.configureByText(LuaFileType, "local x = #t")
+            val errors = getLanguageLevelErrors()
+            Assertions.assertTrue(errors.isEmpty(), "Length operator should work in $level")
+        }
+    }
+
+    @Test
+    fun gotoWithinNestedScopes() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            local function foo()
+                local function bar()
+                    goto exit
+                    ::exit::
+                end
+            end
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.size >= 2, "Goto in nested function should error in Lua 5.1")
+    }
+
+    // ==================== Real-world usage patterns ====================
+
+    @Test
+    fun typicalModernLua54Code() {
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            local function process(data)
+                if not data then
+                    goto skip_processing
+                end
+                
+                local result <const> = data & 0xFF
+                local count <close> = io.open('count')
+                
+                return result // 16
+                
+                ::skip_processing::
+                return 0
+            end
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "Modern Lua 5.4 code should be error-free")
+    }
+
+    @Test
+    fun typicalLegacyLua51Code() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            local function process(data)
+                if not data then
+                    return 0
+                end
+                
+                local result = data
+                return result / 16
+            end
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "Legacy Lua 5.1 code should be error-free")
+    }
+
+    @Test
+    fun migrationFromLua51ToLua53() {
+        setLanguageLevel(LuaLanguageLevel.LUA53)
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            -- Migrating to Lua 5.3
+            local x = 10 // 3      -- Integer division (5.3+)
+            local mask = 0xFF & data -- Bitwise AND (5.3+)
+            local flags = mask | 0x80 -- Bitwise OR (5.3+)
+            
+            -- Still no goto/labels (Lua 5.1 compat)
+            """.trimIndent()
+        )
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "Lua 5.3 migration code should be error-free")
+    }
+
     // ==================== Helper methods ====================
 
     private fun setLanguageLevel(level: LuaLanguageLevel) {
