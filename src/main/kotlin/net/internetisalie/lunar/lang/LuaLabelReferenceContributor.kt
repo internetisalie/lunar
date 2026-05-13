@@ -16,7 +16,7 @@ class LuaLabelReferenceContributor : PsiReferenceContributor() {
                     context: ProcessingContext
                 ): Array<PsiReference> {
                     val labelRef = element as LuaLabelRef
-                    val value = labelRef.identifier.text
+                    val value = labelRef.identifier?.text ?: labelRef.firstChild?.text
                     if (value != null) {
                         val label = TextRange(0, value.length)
                         return arrayOf(LuaLabelReference(element, label))

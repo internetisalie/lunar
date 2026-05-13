@@ -44,7 +44,9 @@ abstract class LuaNameDeclElementImpl(node: ASTNode) : LuaBaseElement(node), Lua
         val identifierNode = node.findChildByType(LuaElementTypes.IDENTIFIER)
         if (identifierNode != null) {
             val newIdentifier = LuaElementFactory.createIdentifier(project, newName)
-            node.replaceChild(identifierNode, newIdentifier.node)
+            if (newIdentifier != null) {
+                node.replaceChild(identifierNode, newIdentifier.node)
+            }
         }
         return this
     }
@@ -63,7 +65,9 @@ abstract class LuaNameRefElementImpl(node: ASTNode) : LuaBaseElement(node), LuaN
         val identifierNode = node.findChildByType(LuaElementTypes.IDENTIFIER)
         if (identifierNode != null) {
             val newIdentifier = LuaElementFactory.createIdentifier(project, newName)
-            node.replaceChild(identifierNode, newIdentifier.node)
+            if (newIdentifier != null) {
+                node.replaceChild(identifierNode, newIdentifier.node)
+            }
         }
         return this
     }

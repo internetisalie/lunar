@@ -35,14 +35,14 @@ class LuaLabelFindUsagesProvider : FindUsagesProvider {
 
     override fun getDescriptiveName(element: PsiElement): String {
         if (element is LuaLabelName) {
-            return element.identifier.text
+            return element.identifier?.text ?: element.firstChild?.text ?: ""
         }
         return ""
     }
 
     override fun getNodeText(element: PsiElement, useFullName: Boolean): String {
         if (element is LuaLabelName) {
-            return element.identifier.text
+            return element.identifier?.text ?: element.firstChild?.text ?: ""
         }
         return ""
     }

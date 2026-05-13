@@ -18,7 +18,10 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
         // Label resolution: find labels with matching name in file
         val labels = findLabels(element.containingFile, name)
         if (labels.isEmpty()) return emptyArray()
-        return labels.map { PsiElementResolveResult(it.labelName.identifier) }.toTypedArray()
+        return labels.mapNotNull { label ->
+            val target = label.labelName.identifier ?: label.labelName.firstChild
+            if (target != null) PsiElementResolveResult(target) else null
+        }.toTypedArray()
     }
 
     override fun resolve(): PsiElement? {
@@ -28,7 +31,7 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
 
     override fun isReferenceTo(element: PsiElement): Boolean {
         return (element is LuaLabelRef) &&
-                element.identifier.text == name &&
+                element.identifier?.text == name &&
                 resolve() === element
     }
 
@@ -37,7 +40,8 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
         val labels = findLabels(containingFile, name)
         val variants: MutableList<LookupElement> = ArrayList()
         for (label in labels) {
-            if (!label.labelName.identifier.text.isEmpty()) {
+            val identifier = label.labelName.identifier ?: label.labelName.firstChild
+            if (identifier != null && identifier.text.isNotEmpty()) {
                 variants.add(
                     LookupElementBuilder
                         .create(label)
@@ -53,7 +57,8 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
         val result: MutableList<LuaLabel> = ArrayList()
         val labels = PsiTreeUtil.findChildrenOfType(containingFile, LuaLabel::class.java)
         for (label in labels) {
-            if (label.getLabelName().getIdentifier().getText() == name) {
+            val identifier = label.labelName.identifier ?: label.labelName.firstChild
+            if (identifier?.text == name) {
                 result.add(label)
             }
         }

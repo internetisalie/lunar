@@ -8,9 +8,9 @@ import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.run.LuaCodeFragment
 
 object LuaElementFactory {
-    fun createIdentifier(project: Project, name: String?): PsiElement {
+    fun createIdentifier(project: Project, name: String?): PsiElement? {
         val luaLabelRef = createLabelRef(project, name)
-        return luaLabelRef.getIdentifier()
+        return luaLabelRef.identifier ?: luaLabelRef.firstChild
     }
 
     fun createLabelRef(project: Project, name: String?): LuaLabelRef {
