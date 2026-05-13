@@ -63,7 +63,7 @@ For detailed specifications on all features, implementation status, and planned 
 
 The project covers the following areas:
 
-- **[SYNTAX]** Syntax & Editor support (Lua 5.4, Luau, folding, highlighting, formatting)
+- **[SYNTAX]** Syntax & Editor support (Lua 5.4, folding, highlighting, formatting)
 - **[COMP]** Code Completion (keywords, symbols, cross-file, type inference)
 - **[NAV]** Code Navigation (go to definition, find usages, structure view, markers, references)
 - **[TYPE]** Type System (LuaCATS, type inference, function signatures)
