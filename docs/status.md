@@ -41,6 +41,8 @@
 
 ## Recent Milestones
 
+- **Parameter Info Fix** (2026-05-13) — Fixed parameter info popups for dotted platform globals (e.g., `cjson.decode()`). Added qualified name extraction and platform library resolution fallback in `LuaParameterInfoHandler`. New test: `ReproduceParameterInfoIssueTest`. All 17 tests passing. Merged to `main`.
+- **TARGET integration** (2026-05-13) — All TARGET Phase commits successfully integrated to `main` branch
 - **Epic consolidation** (2026-05-12) — Merged TYPE bug-fix epics and Bug Fixes epic into active epics to reduce tracker clutter
 - **TARGET epic completed** (2026-05-12) — 70 tasks across 7 phases: data model, settings integration, UI update, library resolution, luacheck integration, legacy migration, and final verification
 - Settings migration validated across 5 scenarios (Standard, Redis, Tarantool, Luau, unknown version)
@@ -48,4 +50,4 @@
 
 ---
 
-*Last updated: 2026-05-12T19:14:58-04:00*
+*Last updated: 2026-05-13T16:53:00-04:00*
