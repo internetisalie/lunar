@@ -68,17 +68,5 @@ class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
         assertEquals("2.10", target.version.label)
     }
 
-    fun testScenario5LuauLua54() {
-        val settings = LuaProjectSettings.getInstance(project)
-        val state = LuaProjectSettings.State()
-        @Suppress("DEPRECATION")
-        state.platform = LuaPlatform.LUAU
-        state.languageLevel = LuaLanguageLevel.LUA54
-
-        settings.loadState(state)
-
-        val target = settings.state.getTarget()
-        assertEquals(LuaPlatform.LUAU, target.platform)
-        assertEquals("latest", target.version.label)
-    }
 }
+

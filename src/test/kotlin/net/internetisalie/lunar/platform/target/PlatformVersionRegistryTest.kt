@@ -88,7 +88,6 @@ class PlatformVersionRegistryTest {
         assertTrue(platforms.contains(LuaPlatform.REDIS))
         assertTrue(platforms.contains(LuaPlatform.TARANTOOL))
         assertTrue(platforms.contains(LuaPlatform.NGX))
-        assertTrue(platforms.contains(LuaPlatform.LUAU))
         assertTrue(platforms.contains(LuaPlatform.PANDOC))
     }
 
@@ -109,11 +108,6 @@ class PlatformVersionRegistryTest {
         val lua55 = PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, "5.5")
         assertNotNull(lua55)
         assertEquals("lua54", lua55.luacheckStd)  // Fallback to lua54
-
-        // Luau should have null luacheckStd (not yet supported)
-        val luau = PlatformVersionRegistry.findVersion(LuaPlatform.LUAU, "latest")
-        assertNotNull(luau)
-        assertNull(luau.luacheckStd)
     }
 
     @Test

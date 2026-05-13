@@ -66,11 +66,6 @@ class TargetTest {
         assertEquals(LuaLanguageLevel.LUA51, target.getImplicitLanguageLevel())
     }
 
-    @Test
-    fun testLuauIsLua54() {
-        val target = Target(LuaPlatform.LUAU, VersionEntry("latest", "luau-latest"))
-        assertEquals(LuaLanguageLevel.LUA54, target.getImplicitLanguageLevel())
-    }
 
     @Test
     fun testPandocIsLua54() {
@@ -111,7 +106,6 @@ class TargetTest {
         // OMITTED (null)
         assertEquals(null, Target(LuaPlatform.TARANTOOL, VersionEntry("2.10", "tarantool-2.10", luacheckStd = null)).getLuacheckStd())
         assertEquals(null, Target(LuaPlatform.NGX, VersionEntry("latest", "ngx-latest", luacheckStd = null)).getLuacheckStd())
-        assertEquals(null, Target(LuaPlatform.LUAU, VersionEntry("latest", "luau-latest", luacheckStd = null)).getLuacheckStd())
         assertEquals(null, Target(LuaPlatform.PANDOC, VersionEntry("latest", "pandoc-latest", luacheckStd = null)).getLuacheckStd())
     }
 

@@ -35,9 +35,6 @@ object PlatformVersionRegistry {
         LuaPlatform.NGX to listOf(
             VersionEntry("latest", "ngx-latest", luacheckStd = null),
         ),
-        LuaPlatform.LUAU to listOf(
-            VersionEntry("latest", "luau-latest", luacheckStd = null),
-        ),
         LuaPlatform.PANDOC to listOf(
             VersionEntry("latest", "pandoc-latest", luacheckStd = null),
         ),

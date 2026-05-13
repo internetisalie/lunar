@@ -20,6 +20,8 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 | [`SYNTAX-12`](./12-goto-scope.md) | **Label & Goto Scope Resolution** | **S** | Flag unresolved `goto` statements and invalid scope jumps. |
 | [`SYNTAX-13`](./13-standalone-expression.md) | **Standalone Expression Annotator** | **M** | Flag expressions incorrectly used as statements. |
 | [`SYNTAX-14`](./14-vararg-context.md) | **Vararg Context Annotator** | **M** | Flag `...` used outside of vararg functions. |
+| [`SYNTAX-15`](./15-lexer-optimization.md) | **Lexer Pushback Optimization** | **C** | Optimize `{luacats}` rule in lexer to pushback only newline. |
+| [`SYNTAX-16`](./16-language-level-enforcement.md) | **Language Level Enforcement** | **M** | Validate code doesn't use version-specific syntax for configured Lua level (5.1-5.4). |
 
 ---
 
@@ -45,6 +47,11 @@ Lunar ensures high-fidelity representation of Lua code with support for modern l
 
 ### SYNTAX-12: Label & Goto Scope Resolution
 - **Status**: **Implemented** (`LuaGotoAnnotator`)
+
+### SYNTAX-16: Language Level Enforcement
+- **Status**: **Planned** (`LuaLanguageLevelAnnotator`)
+- **Scope**: Annotator-based validation across Lua 5.1-5.4
+
 
 
 ## Test Cases

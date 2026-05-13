@@ -3,7 +3,6 @@ package net.internetisalie.lunar.platform
 enum class LuaPlatform(val label: String, val pathSegment: String) {
     STANDARD("Standard", "standard"),
     LUAJIT("LuaJIT", "luajit"),
-    LUAU("Luau", "luau"),
     NGX("OpenResty", "ngx"),
     PANDOC("Pandoc", "pandoc"),
     REDIS("Redis", "redis"),

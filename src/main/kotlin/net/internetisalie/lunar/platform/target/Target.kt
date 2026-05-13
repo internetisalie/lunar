@@ -30,7 +30,6 @@ data class Target(
      * - Redis (all versions) -> LUA51
      * - Tarantool (all versions) -> LUA51
      * - OpenResty/NGX (all versions) -> LUA51 (OpenResty uses LuaJIT)
-     * - Luau (all versions) -> LUA54
      * - Pandoc (all versions) -> LUA54
      *
      * @return The corresponding LuaLanguageLevel
@@ -46,7 +45,6 @@ data class Target(
             platform == LuaPlatform.REDIS -> LuaLanguageLevel.LUA51
             platform == LuaPlatform.TARANTOOL -> LuaLanguageLevel.LUA51
             platform == LuaPlatform.NGX -> LuaLanguageLevel.LUA51
-            platform == LuaPlatform.LUAU -> LuaLanguageLevel.LUA54
             platform == LuaPlatform.PANDOC -> LuaLanguageLevel.LUA54
             else -> LuaLanguageLevel.LUA54  // Default fallback
         }

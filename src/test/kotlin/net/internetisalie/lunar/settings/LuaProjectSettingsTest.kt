@@ -105,18 +105,6 @@ class LuaProjectSettingsTest {
         assertEquals("lua54", target.getLuacheckStd())
     }
 
-    @Test
-    fun `migration with unsupported languageLevel falls back to default`() {
-        val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.LUAU
-        state.languageLevel = LuaLanguageLevel.LUA51  // LUAU doesn't support LUA51
-
-        val target = state.getTarget()
-
-        assertEquals(LuaPlatform.LUAU, target.platform)
-        // Should get the default version for LUAU
-        assertTrue(target.version.label.isNotEmpty())
-    }
 
     @Test
     fun `getTarget idempotent - multiple calls return same migrated target`() {
@@ -244,17 +232,6 @@ class TargetStateTest {
         assertEquals("5.1", restored.version.label)
     }
 
-    @Test
-    fun `TargetState toTarget() returns default when all lookups fail`() {
-        val state = LuaProjectSettings.TargetState()
-        state.platform = LuaPlatform.LUAU
-        state.versionLabel = "unknown-version"
-
-        val restored = state.toTarget()
-
-        assertNotNull(restored)
-        assertEquals(LuaPlatform.LUAU, restored.platform)
-    }
 
     @Test
     fun `TargetState serialization preserves platform enum`() {
