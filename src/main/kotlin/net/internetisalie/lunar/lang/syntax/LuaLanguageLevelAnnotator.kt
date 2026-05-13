@@ -68,22 +68,35 @@ class LuaLanguageLevelAnnotator : Annotator {
      * Check for Lua 5.3+ features (bitwise operators, integer division).
      */
     private fun checkLua53Features(element: PsiElement, holder: AnnotationHolder, languageLevel: LuaLanguageLevel) {
-        if (element is LuaBinOp) {
-            val operator = element.text
-            when {
-                operator == "//" -> {
-                    holder.newAnnotation(
-                        HighlightSeverity.ERROR,
-                        "Integer division (//) is a Lua 5.3+ feature (project configured for $languageLevel)"
-                    )
-                        .range(element)
-                        .create()
+        when (element) {
+            is LuaBinOp -> {
+                val operator = element.text
+                when {
+                    operator == "//" -> {
+                        holder.newAnnotation(
+                            HighlightSeverity.ERROR,
+                            "Integer division (//) is a Lua 5.3+ feature (project configured for $languageLevel)"
+                        )
+                            .range(element)
+                            .create()
+                    }
+                    isBitwiseOperator(operator) -> {
+                        val featureName = getBitwiseOperatorName(operator)
+                        holder.newAnnotation(
+                            HighlightSeverity.ERROR,
+                            "$featureName is a Lua 5.3+ feature (project configured for $languageLevel)"
+                        )
+                            .range(element)
+                            .create()
+                    }
                 }
-                isBitwiseOperator(operator) -> {
-                    val featureName = getBitwiseOperatorName(operator)
+            }
+            is LuaUnOp -> {
+                val operator = element.text
+                if (operator == "~") {
                     holder.newAnnotation(
                         HighlightSeverity.ERROR,
-                        "$featureName is a Lua 5.3+ feature (project configured for $languageLevel)"
+                        "Bitwise NOT operator (~) is a Lua 5.3+ feature (project configured for $languageLevel)"
                     )
                         .range(element)
                         .create()
