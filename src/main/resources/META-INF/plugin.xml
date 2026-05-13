@@ -93,6 +93,9 @@
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaVarargAnnotator"/>
     <annotator
             language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaLanguageLevelAnnotator"/>
+    <annotator
+            language="Lua"
             implementationClass="net.internetisalie.lunar.luacats.lang.syntax.LuaCatsAnnotator"/>
     <annotator
             language="Lua"
