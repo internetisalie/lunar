@@ -62,11 +62,7 @@ fun LuaFuncDecl.processDeclarations(
     lastParent: PsiElement?,
     place: PsiElement
 ): Boolean {
-    // 1. Process function name and implicit self first
-    if (!processor.execute(this, state)) {
-        return false
-    }
-
+    // 1. Process parameter list first (parameters are visible in body)
     val parList = parList
     if (parList != null) {
         if (!processor.execute(parList, state)) {
@@ -74,9 +70,14 @@ fun LuaFuncDecl.processDeclarations(
         }
     }
 
-    // Process function body
+    // 2. Process function body
     val block = block
-    return block?.processDeclarations(processor, state, lastParent, place) ?: true
+    if (block != null && !block.processDeclarations(processor, state, lastParent, place)) {
+        return false
+    }
+
+    // 3. Process function name and implicit self (for recursion)
+    return processor.execute(this, state)
 }
 
 /**
@@ -107,5 +108,10 @@ fun LuaLocalFuncDecl.processDeclarations(
 
     // 2. Process function body
     val block = block
-    return block?.processDeclarations(processor, state, lastParent, place) ?: true
+    if (block != null && !block.processDeclarations(processor, state, lastParent, place)) {
+        return false
+    }
+
+    // 3. Process function name (for recursion)
+    return processor.execute(this, state)
 }
