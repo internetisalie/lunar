@@ -454,21 +454,33 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val returnCount = returnTags.size
         val returnNodes: MutableList<VariableNode> = MutableList(maxOf(1, returnCount)) { graph.variable(element) }.toMutableList()
 
-        val paramNodes: MutableMap<String, VariableNode> = mutableMapOf()
+        val paramNodesMap: MutableMap<String, VariableNode> = mutableMapOf()
+        val paramNodesList = mutableListOf<VariableNode>()
+        val paramNamesList = mutableListOf<String>()
         val enclosingScope = scope
         val funcScope = enclosingScope.createFunctionScope(returnNodes)
         val previousScope = scope
         scope = funcScope
 
         try {
-            val params = parList?.nameList?.nameRefList?.map { nameRef ->
+            val catsParams = allCats.flatMap { it.getParamTagList() }
+
+            val params = parList?.nameList?.nameRefList?.mapIndexed { index, nameRef ->
+                val astName = nameRef.text
                 val paramNode = graph.variable(nameRef)
-                funcScope.declare(nameRef.text, paramNode)
-                paramNodes[nameRef.text] = paramNode
+                funcScope.declare(astName, paramNode)
+                paramNodesMap[astName] = paramNode
+                paramNodesList.add(paramNode)
+                paramNamesList.add(astName)
                 elementNodes[nameRef] = listOf(paramNode)
 
-                val isOptional = allCats.flatMap { it.getParamTagList() }.find { it.argName?.text == nameRef.text }?.argSymbol?.text == "?"
-                LuaGraphType.Function.Parameter(paramNode, nameRef.text, isOptional, false)
+                val matchingCat = catsParams.find { it.argName?.text == astName }
+                    ?: catsParams.getOrNull(index)
+
+                val paramName = matchingCat?.argName?.text ?: astName
+                val isOptional = matchingCat?.argSymbol?.text == "?"
+
+                LuaGraphType.Function.Parameter(paramNode, paramName, isOptional, false)
             } ?: emptyList()
 
             val hasVararg = parList?.node?.findChildByType(LuaElementTypes.ELLIPSIS) != null
@@ -480,7 +492,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             }
 
             allCats.forEach { cats ->
-                LuaTypeGraphBridge.injectParamAnnotations(cats, paramNodes, graph, element)
+                LuaTypeGraphBridge.injectParamAnnotations(cats, paramNodesList, paramNamesList, graph, element)
                 LuaTypeGraphBridge.injectReturnAnnotations(cats, returnNodes, graph, element)
             }
 

@@ -40,4 +40,13 @@ class LuaParameterInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
             log("hello")
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
+
+    fun testLuaCatsParameterNames() {
+        doTestProvider("test.lua", """
+            ---@param speed number
+            ---@param force number
+            local function apply(s/*<# : number #>*/, f/*<# : number #>*/) end
+            apply(/*<# speed: #>*/10, /*<# force: #>*/20)
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
 }

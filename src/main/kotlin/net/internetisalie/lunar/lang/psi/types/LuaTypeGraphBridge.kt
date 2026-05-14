@@ -71,11 +71,11 @@ object LuaTypeGraphBridge {
         val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: return
 
         val graphType = LuaGraphType.fromLuaType(resolvedType, graph)
-        
+
         // Create a ValueNode edge so that the annotation type flows as a value to readers
         // of this variable (e.g., when assigning tags to other, other receives the union type).
         graph.addEdge(graph.value(element, graphType), variable)
-        
+
         // Create a UseNode constraint that represents the variable's declared type.
         // The constraint validates that values flowing into this variable are assignable to the declared type.
         val useNode = graph.use(element, graphType)
@@ -96,7 +96,8 @@ object LuaTypeGraphBridge {
      */
     fun injectParamAnnotations(
         cats: LuaCatsComment,
-        paramNodes: Map<String, VariableNode>,
+        paramNodes: List<VariableNode>,
+        paramNames: List<String>,
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
@@ -105,11 +106,15 @@ object LuaTypeGraphBridge {
             .map { it.argName.text }
             .toSet()
 
-        for (paramTag in cats.getParamTagList()) {
-            val paramName = paramTag.argName?.text?.trim() ?: continue
-            val paramNode = paramNodes[paramName] ?: continue
+        cats.getParamTagList().forEachIndexed { index, paramTag ->
+            val paramName = paramTag.argName?.text?.trim() ?: return@forEachIndexed
+            var astIndex = paramNames.indexOf(paramName)
+            if (astIndex == -1) {
+                astIndex = index
+            }
+            val paramNode = paramNodes.getOrNull(astIndex) ?: return@forEachIndexed
             val typeName = paramTag.argType.text.trim()
-            val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: continue
+            val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: return@forEachIndexed
 
             val graphType = LuaGraphType.fromLuaType(resolvedType, graph)
             // For generics, we must inject both a source and a sink so that the variable's

@@ -9,6 +9,7 @@ import com.intellij.psi.PsiWhiteSpace
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.LuaFunctionType
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
+import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 
 class LuaTypeInlayHintProvider : InlayHintsProvider {
@@ -67,7 +68,11 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                             val resolved = methodExpr.nameRef?.reference?.resolve()
                             val funcDecl = resolved?.parent?.parent as? LuaFuncDecl
                             if (funcDecl != null) {
-                                types.graphTypeToLuaType(types.getValueType(funcDecl)) as? LuaFunctionType
+                                val declFile = funcDecl.containingFile as? LuaFile
+                                if (declFile != null) {
+                                    val declTypes = LuaTypesSnapshot.forFile(declFile)
+                                    declTypes.graphTypeToLuaType(declTypes.getValueType(funcDecl)) as? LuaFunctionType
+                                } else null
                             } else null
                         }
                     } else null
@@ -80,7 +85,11 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                         val resolved = (callee as? LuaNameRef)?.reference?.resolve()
                         val decl = resolved?.parent as? LuaLocalFuncDecl ?: resolved as? LuaFuncDecl ?: resolved?.parent?.parent as? LuaFuncDecl
                         if (decl != null) {
-                            types.graphTypeToLuaType(types.getValueType(decl)) as? LuaFunctionType
+                            val declFile = decl.containingFile as? LuaFile
+                            if (declFile != null) {
+                                val declTypes = LuaTypesSnapshot.forFile(declFile)
+                                declTypes.graphTypeToLuaType(declTypes.getValueType(decl)) as? LuaFunctionType
+                            } else null
                         } else null
                     }
                 }

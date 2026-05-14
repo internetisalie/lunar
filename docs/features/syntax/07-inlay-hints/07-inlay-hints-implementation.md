@@ -38,7 +38,7 @@ SYNTAX-07 inlay hints are **partially implemented** with **5 of 11 requirements 
   local flag/*<# : boolean #>*/ = true
   ```
 
-#### ✅ SYNTAX-07-03: LuaCATS Type Inference
+####  SYNTAX-07-03: LuaCATS Type Inference
 - **Status**: **FULL**
 - **Evidence**:
   - Uses `LuaTypesVisitor.getTypes()` which respects LuaCATS annotations
@@ -50,6 +50,16 @@ SYNTAX-07 inlay hints are **partially implemented** with **5 of 11 requirements 
   local function greet() return "hi" end
   local msg/*<# : string #>*/ = greet()
   ```
+
+#### ✅ SYNTAX-07-04: Parameter Name Hints at Call Sites
+- **Status**: **FULL**
+- **Evidence**:
+- **Required Scope**:
+    - Collect function call expressions in visitor
+    - Resolve the called function
+    - Extract parameter names from function definition or `@param` annotations
+    - Generate hints before each argument (`param: value`)
+    - Apply suppression rules (matching names, single-char, method calls)
 
 #### ✅ SYNTAX-07-08: Annotation Suppression
 - **Status**: **FULL**
@@ -90,20 +100,6 @@ SYNTAX-07 inlay hints are **partially implemented** with **5 of 11 requirements 
 ---
 
 ### Not Implemented Requirements (5/11)
-
-#### ❌ SYNTAX-07-04: Parameter Name Hints at Call Sites
-- **Status**: **NOT IMPLEMENTED**
-- **Evidence**: 
-  - No parameter name hint logic in `LuaTypeInlayHintProvider`
-  - `LuaParameterInfoHandler` exists but serves a different purpose (inline parameter info popup, not inlay hints)
-  - No tests for parameter name inlay hints
-- **Required Scope**:
-  - Collect function call expressions in visitor
-  - Resolve the called function
-  - Extract parameter names from function definition or `@param` annotations
-  - Generate hints before each argument (`param: value`)
-  - Apply suppression rules (matching names, single-char, method calls)
-- **Spec**: Section 2.2
 
 #### ❌ SYNTAX-07-06: Return Type Hints for Function Definitions
 - **Status**: **NOT IMPLEMENTED**
