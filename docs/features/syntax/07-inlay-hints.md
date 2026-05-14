@@ -159,9 +159,9 @@ When a LuaCATS annotation is already present, the corresponding hint **must not*
 | `SYNTAX-07-04` | **Parameter Name Hints** | **S** | Pending | Show parameter names at call sites for locally resolved functions. |
 | `SYNTAX-07-05` | **Parameter Hint Suppression** | **S** | Pending | Suppress hints when argument name matches parameter, or parameter is single-char / `_`. |
 | `SYNTAX-07-06` | **Return Type Hints** | **C** | Pending | Show inferred return types after function parameter lists. |
-| `SYNTAX-07-07` | **Method Chaining Hints** | **S** | Pending | Show return types for intermediate method calls in a fluent chain. |
+| `SYNTAX-07-07` | **Method Chaining Hints** | **S** | Pending | Show return types for intermediate method calls in a fluent chain. [[Detailed Requirements]](07-inlay-hints/07-07-method-chaining-hints/requirements.md) |
 | `SYNTAX-07-08` | **Annotation Suppression** | **M** | Pending | Do not show a hint when the corresponding LuaCATS annotation is already present. |
-| `SYNTAX-07-09` | **Per-Category Settings** | **M** | Pending | Expose toggles for each hint category under respective settings paths. |
+| `SYNTAX-07-09` | **Per-Category Settings** | **M** | In Progress | Expose toggles for each hint category under respective settings paths. [[Detailed Requirements]](07-inlay-hints/07-09-per-category-settings/requirements.md) |
 | `SYNTAX-07-10` | **Background Execution** | **M** | Pending | Compute all hints off the EDT to ensure editor responsiveness. |
 | `SYNTAX-07-11` | **Large File Threshold** | **C** | Pending | Skip hint computation for files exceeding the configurable line-count threshold. |
 
