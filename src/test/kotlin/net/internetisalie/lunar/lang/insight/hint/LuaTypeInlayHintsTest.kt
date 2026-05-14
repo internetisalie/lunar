@@ -49,7 +49,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
         doTestProvider("test.lua", """
             local function greet(name/*<# : string #>*/, age/*<# : number #>*/)
             end
-            greet("John", 30)
+            greet(/*<# name: #>*/"John", /*<# age: #>*/30)
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 

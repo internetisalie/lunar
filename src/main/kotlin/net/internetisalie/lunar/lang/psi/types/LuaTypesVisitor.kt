@@ -468,13 +468,13 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 elementNodes[nameRef] = listOf(paramNode)
 
                 val isOptional = allCats.flatMap { it.getParamTagList() }.find { it.argName?.text == nameRef.text }?.argSymbol?.text == "?"
-                LuaGraphType.Function.Parameter(paramNode, isOptional, false)
+                LuaGraphType.Function.Parameter(paramNode, nameRef.text, isOptional, false)
             } ?: emptyList()
 
             val hasVararg = parList?.node?.findChildByType(LuaElementTypes.ELLIPSIS) != null
             val finalParams = if (hasVararg) {
                 val varargNode = graph.variable(element)
-                params + LuaGraphType.Function.Parameter(varargNode, false, true)
+                params + LuaGraphType.Function.Parameter(varargNode, "...", false, true)
             } else {
                 params
             }

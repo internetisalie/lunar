@@ -28,6 +28,7 @@ sealed class LuaGraphType {
     ) : LuaGraphType() {
         data class Parameter(
             val node: VariableNode,
+            val name: kotlin.String? = null,
             val isOptional: kotlin.Boolean = false,
             val isVararg: kotlin.Boolean = false,
         )
@@ -66,9 +67,9 @@ sealed class LuaGraphType {
         is Generic -> name
         is Function -> {
             val paramsStr = params.joinToString(", ") { param ->
-                val prefix = if (param.isVararg) "..." else "p"
+                val name = param.name ?: if (param.isVararg) "..." else "p"
                 val suffix = if (param.isOptional) "?" else ""
-                "$prefix$suffix"
+                "$name$suffix"
             }
             "fun($paramsStr)"
         }
@@ -108,7 +109,7 @@ sealed class LuaGraphType {
                         // Inject both source and sink for structural matching
                         paramNode.upSet.add(graph.value(paramNode.element, pType))
                         paramNode.downSet.add(graph.use(paramNode.element, pType))
-                        Function.Parameter(paramNode, p.isOptional, p.isVararg)
+                        Function.Parameter(paramNode, p.name, p.isOptional, p.isVararg)
                     }
                     val returnNode = graph.variable(graph.nodes.firstOrNull()?.element ?: error("Graph must have at least one node"))
                     val rType = fromLuaType(type.returnType, graph, visited)

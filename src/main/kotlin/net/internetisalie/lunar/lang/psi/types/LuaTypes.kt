@@ -49,6 +49,20 @@ class LuaTypesSnapshot(
     override fun getValueType(element: PsiElement): LuaGraphType {
         val node = elementNodes[element]?.firstOrNull() ?: return LuaGraphType.Undefined
         return when (node) {
+            is VariableNode -> {
+                val write = node.write
+                val read = node.read
+                if (write is LuaGraphType.Table && read is LuaGraphType.Table) {
+                    val mergedMembers = mutableMapOf<String, VariableNode>()
+                    mergedMembers.putAll(write.members)
+                    mergedMembers.putAll(read.members)
+                    LuaGraphType.Table(write.className ?: read.className, mergedMembers, write.superTypes, write.isExact)
+                } else if (write != LuaGraphType.Undefined) {
+                    write
+                } else {
+                    if (read != LuaGraphType.Any) read else LuaGraphType.Undefined
+                }
+            }
             is ValueNode -> node.write
             is UseNode -> node.read
             else -> LuaGraphType.Undefined
@@ -76,7 +90,12 @@ class LuaTypesSnapshot(
         }
         is LuaGraphType.Function -> {
             val params = type.params.map { p ->
-                LuaParameter("p", graphTypeToLuaType(p.node.write), p.isOptional, p.isVararg)
+                val name = p.name ?: when (val el = p.node.element) {
+                    is net.internetisalie.lunar.lang.psi.LuaNameRef -> el.text
+                    is net.internetisalie.lunar.lang.psi.LuaAttName -> el.nameRef.text
+                    else -> "p"
+                }
+                LuaParameter(name, graphTypeToLuaType(p.node.write), p.isOptional, p.isVararg)
             }
             val returnType = type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write) } ?: LuaPrimitiveType.VOID
             LuaFunctionType(params, returnType)

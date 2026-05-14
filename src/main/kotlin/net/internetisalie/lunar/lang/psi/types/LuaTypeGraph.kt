@@ -156,7 +156,7 @@ class LuaTypeGraph {
             val pType = p.node.write
             if (pType is LuaGraphType.Generic) {
                 val freshVar = substitutionMap.getOrPut(pType.name) { variable(element) }
-                LuaGraphType.Function.Parameter(freshVar, p.isOptional, p.isVararg)
+                LuaGraphType.Function.Parameter(freshVar, p.name, p.isOptional, p.isVararg)
             } else {
                 // Not generic, but might contain generics (e.g. Union or nested)
                 // For Phase 5, we only handle direct Generic parameters.
