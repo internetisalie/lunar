@@ -5,8 +5,12 @@ import com.intellij.codeInsight.hints.declarative.DeclarativeInlayHintsSettings
 import com.intellij.codeInsight.hints.declarative.InlayHintsProvider
 import com.intellij.codeInsight.hints.declarative.InlayProviderPassInfo
 import com.intellij.codeInsight.hints.declarative.impl.DeclarativeInlayHintsPass
+import com.intellij.codeInsight.hints.declarative.impl.util.DeclarativeHintsDumpUtil
+import com.intellij.codeInsight.hints.declarative.impl.views.InlayPresentationList
+import com.intellij.codeInsight.hints.declarative.impl.views.TextInlayPresentationEntry
 import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.testFramework.utils.inlays.declarative.DeclarativeInlayHintsProviderTestCase
 import java.io.File
 
@@ -30,37 +34,45 @@ abstract class LuaInlayHintsTestCase : DeclarativeInlayHintsProviderTestCase() {
         
         val declarativeSettings = DeclarativeInlayHintsSettings.getInstance()
         
-        val providers = listOf(LuaTypeInlayHintProvider(), LuaParameterInlayHintsProvider(), LuaMethodChainInlayHintProvider())
-        val providerInfos = providers.map { p ->
-            val providerId = when (p) {
-                is LuaTypeInlayHintProvider -> LuaTypeInlayHintProvider.PROVIDER_ID
-                is LuaParameterInlayHintsProvider -> LuaParameterInlayHintsProvider.PROVIDER_ID
-                is LuaMethodChainInlayHintProvider -> LuaMethodChainInlayHintProvider.PROVIDER_ID
-                else -> "unknown"
+        val allProviders = listOf(LuaTypeInlayHintProvider(), LuaParameterInlayHintsProvider(), LuaMethodChainInlayHintProvider())
+        val providerInfos = allProviders
+            .filter { p ->
+                val id = when (p) {
+                    is LuaTypeInlayHintProvider -> LuaTypeInlayHintProvider.PROVIDER_ID
+                    is LuaParameterInlayHintsProvider -> LuaParameterInlayHintsProvider.PROVIDER_ID
+                    is LuaMethodChainInlayHintProvider -> LuaMethodChainInlayHintProvider.PROVIDER_ID
+                    else -> "unknown"
+                }
+                declarativeSettings.isProviderEnabled(id) ?: true
             }
-            
-            val options = mutableMapOf<String, Boolean>()
-            val optionIds = when (p) {
-                is LuaTypeInlayHintProvider -> listOf(
-                    LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID,
-                    LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID,
-                    LuaTypeInlayHintProvider.RESPECT_ANNOTATIONS_OPTION_ID
-                )
-                is LuaParameterInlayHintsProvider -> listOf(
-                    LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID
-                )
-                is LuaMethodChainInlayHintProvider -> listOf(
-                    LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID
-                )
-                else -> emptyList()
+            .map { p ->
+                val providerId = when (p) {
+                    is LuaTypeInlayHintProvider -> LuaTypeInlayHintProvider.PROVIDER_ID
+                    is LuaParameterInlayHintsProvider -> LuaParameterInlayHintsProvider.PROVIDER_ID
+                    is LuaMethodChainInlayHintProvider -> LuaMethodChainInlayHintProvider.PROVIDER_ID
+                    else -> "unknown"
+                }
+                
+                val options = mutableMapOf<String, Boolean>()
+                val optionIds = when (p) {
+                    is LuaTypeInlayHintProvider -> listOf(
+                        LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID,
+                        LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID,
+                        LuaTypeInlayHintProvider.RESPECT_ANNOTATIONS_OPTION_ID
+                    )
+                    is LuaParameterInlayHintsProvider -> emptyList()
+                    is LuaMethodChainInlayHintProvider -> listOf(
+                        LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID
+                    )
+                    else -> emptyList()
+                }
+                
+                optionIds.forEach { id ->
+                    options[id] = enabledOptions[id] ?: declarativeSettings.isOptionEnabled(id, providerId) ?: true
+                }
+                
+                InlayProviderPassInfo(p, providerId, options)
             }
-            
-            optionIds.forEach { id ->
-                options[id] = enabledOptions[id] ?: declarativeSettings.isOptionEnabled(id, providerId) ?: true
-            }
-            
-            InlayProviderPassInfo(p, providerId, options)
-        }
         
         val file = myFixture.file!!
         val editor = myFixture.editor
@@ -69,19 +81,19 @@ abstract class LuaInlayHintsTestCase : DeclarativeInlayHintsProviderTestCase() {
             DeclarativeInlayHintsPass(file, editor, providerInfos, isPreview = false)
         }
         
-        // Use the extension property directly
         pass.setContext(file.codeInsightContext)
         
-        val method = DeclarativeInlayHintsProviderTestCase::class.java.getDeclaredMethod(
-            "applyPassAndCheckResult",
-            DeclarativeInlayHintsPass::class.java,
-            File::class.java,
-            String::class.java,
-            String::class.java,
-            ProviderTestMode::class.java
-        )
-        method.isAccessible = true
-        method.invoke(this, pass, expectedFile, sourceText, expectedText, testMode)
+        ActionUtil.underModalProgress(project, "") {
+            pass.doCollectInformation(EmptyProgressIndicator())
+        }
+        pass.applyInformationToEditor()
+
+        val dump = DeclarativeHintsDumpUtil.dumpHints(sourceText, editor = myFixture.editor, renderer = { presentationList ->
+            val entries = presentationList.getEntries()
+            entries.joinToString(separator = "") { (it as TextInlayPresentationEntry).text }
+        })
+        
+        assertEquals(expectedText.trim(), dump.trim())
     }
 
     override fun setUp() {

@@ -12,7 +12,6 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 class LuaParameterInlayHintsProvider : InlayHintsProvider {
     companion object {
         const val PROVIDER_ID = "lua.parameter.hints"
-        const val PARAMETER_NAME_OPTION_ID = "lua.parameter.name"
     }
 
     override fun createCollector(file: PsiFile, editor: Editor): InlayHintsCollector? {
@@ -29,9 +28,7 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 if (file !is LuaFile) return
 
                 if (element is LuaFuncCall) {
-                    sink.whenOptionEnabled(PARAMETER_NAME_OPTION_ID) {
-                        collectParameterHints(element, sink)
-                    }
+                    collectParameterHints(element, sink)
                 }
             }
 

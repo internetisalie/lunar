@@ -13,7 +13,7 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         super.setUp()
         // Enable all inlay hint categories for testing by default
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, true)
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, true)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, true)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, true)
         setOptionEnabled(LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID, true)
         setOptionEnabled(LuaTypeInlayHintProvider.RESPECT_ANNOTATIONS_OPTION_ID, true)
@@ -22,12 +22,17 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
 
     private fun setOptionEnabled(optionId: String, enabled: Boolean) {
         val providerId = when (optionId) {
-            LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID -> LuaParameterInlayHintsProvider.PROVIDER_ID
             LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID -> LuaMethodChainInlayHintProvider.PROVIDER_ID
             else -> LuaTypeInlayHintProvider.PROVIDER_ID
         }
         WriteAction.run<RuntimeException> {
             DeclarativeInlayHintsSettings.getInstance().setOptionEnabled(optionId, providerId, enabled)
+        }
+    }
+
+    private fun setProviderEnabled(providerId: String, enabled: Boolean) {
+        WriteAction.run<RuntimeException> {
+            DeclarativeInlayHintsSettings.getInstance().setProviderEnabled(providerId, enabled)
         }
     }
 
@@ -45,7 +50,7 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
     fun testLocalVariableHintsEnabled() {
         // Enable local variable hints
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, true)
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, false)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
         doLuaTestProvider("test.lua", """
@@ -54,8 +59,8 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
     }
 
     fun testParameterHintsDisabled() {
-        // Disable parameter hints
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, false)
+        // Disable parameter hints provider
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
 
         doLuaTestProvider("test.lua", """
             local function move(posX/*<# : number #>*/, posY/*<# : number #>*/) end
@@ -64,8 +69,8 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
     }
 
     fun testParameterHintsEnabled() {
-        // Enable parameter hints
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, true)
+        // Enable parameter hints provider
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, true)
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
@@ -79,7 +84,7 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         // Disable return type hints
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, false)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
 
         doLuaTestProvider("test.lua", """
             local function double()
@@ -92,7 +97,7 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         // Enable return type hints
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, true)
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, false)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
 
         doLuaTestProvider("test.lua", """
             local function double()/*<# : number #>*/
@@ -105,7 +110,7 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         // Enable annotation respect - hints should be suppressed
         setOptionEnabled(LuaTypeInlayHintProvider.RESPECT_ANNOTATIONS_OPTION_ID, true)
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, true)
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, false)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
         doLuaTestProvider("test.lua", """
@@ -118,7 +123,7 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         // Disable annotation respect - hints should show even with explicit type
         setOptionEnabled(LuaTypeInlayHintProvider.RESPECT_ANNOTATIONS_OPTION_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, true)
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, false)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
         doLuaTestProvider("test.lua", """
@@ -131,7 +136,7 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         // Enable method chain hints
         setOptionEnabled(LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID, true)
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
-        setOptionEnabled(LuaParameterInlayHintsProvider.PARAMETER_NAME_OPTION_ID, false)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
         // Note: Currently no logic in the provider, so this just verifies the provider is called without error

@@ -223,13 +223,7 @@
             group="PARAMETERS_GROUP"
             providerId="lua.parameter.hints"
             bundle="net.internetisalie.lunar.LuaBundle"
-            nameKey="lua.type.hints.parameter.name">
-      <option bundle="net.internetisalie.lunar.LuaBundle"
-              optionId="lua.parameter.name"
-              enabledByDefault="true"
-              nameKey="lua.type.hints.parameter.name"
-              descriptionKey="lua.type.hints.parameter.name.desc"/>
-    </codeInsight.declarativeInlayProvider>
+            nameKey="lua.type.hints.parameter.name"/>
 
     <codeInsight.declarativeInlayProviderCustomSettingsProvider
             language="Lua"

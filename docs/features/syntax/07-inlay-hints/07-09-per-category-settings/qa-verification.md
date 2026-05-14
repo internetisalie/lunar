@@ -21,14 +21,15 @@ This document provides verification instructions for the SYNTAX-07-09 Per-Catego
 **Steps**:
 1. Open IntelliJ IDEA
 2. Navigate to `File` → `Settings` (or `IntelliJ IDEA` → `Preferences` on macOS)
-3. Navigate to `Editor` → `Inlay Hints` → `Lua`
+3. Navigate to `Editor` → `Inlay Hints`
 
 **Expected Result**:
-- The Lua settings page loads without errors
-- The page displays under `Editor` → `Inlay Hints` → `Lua`
-- Two sections are visible:
-  - "Hint Categories" with 5 checkboxes
-  - "Performance" with threshold input field
+- "Lua" entries appear in three groups:
+  - **Parameter names**: Simple checkbox (no expand arrow)
+  - **Types**: Expandable entry (with arrow)
+  - **Method chains**: Expandable entry (with arrow)
+- Expanding **Types > Lua** shows a "Settings" link that opens a "Performance" section with a threshold input field.
+- The "Settings" UI loads without errors.
 
 ---
 
@@ -42,11 +43,11 @@ local name = "hello"
 ```
 
 **Steps**:
-1. Ensure "Show local variable type hints" is **checked**
-2. Observe the editor - hints should show `: number` and `: string`
-3. Open Settings and **uncheck** "Show local variable type hints"
-4. Click "Apply"
-5. Return to the editor
+1. Navigate to `Editor` → `Inlay Hints` → `Types` → `Lua`
+2. Ensure "Local variable types" is **checked**
+3. Observe the editor - hints should show `: number` and `: string`
+4. Open Settings and **uncheck** "Local variable types"
+5. Click "Apply"
 
 **Expected Result**:
 - When checked: Type hints appear after `x` and `name`
@@ -64,10 +65,11 @@ move(10, 20)
 ```
 
 **Steps**:
-1. Ensure "Show parameter name hints" is **checked**
-2. Observe the editor - hints should show `posX:` and `posY:` before arguments
-3. Open Settings and **uncheck** "Show parameter name hints"
-4. Click "Apply"
+1. Navigate to `Editor` → `Inlay Hints` → `Parameter names`
+2. Ensure **Lua** is **checked**
+3. Observe the editor - hints should show `posX:` and `posY:` before arguments
+4. Open Settings and **uncheck** **Lua**
+5. Click "Apply"
 
 **Expected Result**:
 - When checked: Parameter name hints appear before `10` and `20`
@@ -86,10 +88,11 @@ end
 ```
 
 **Steps**:
-1. Ensure "Show return type hints" is **unchecked** (default)
-2. Observe the editor after `()` - no return type hint should appear
-3. Open Settings and **check** "Show return type hints"
-4. Click "Apply"
+1. Navigate to `Editor` → `Inlay Hints` → `Types` → `Lua`
+2. Ensure "Return types" is **unchecked** (default)
+3. Observe the editor after `()` - no return type hint should appear
+4. Open Settings and **check** "Return types"
+5. Click "Apply"
 
 **Expected Result**:
 - When unchecked: No return type hint after function declaration
@@ -109,13 +112,14 @@ local y = 100
 ```
 
 **Steps**:
-1. Ensure "Respect type annotations" is **checked**
-2. Ensure "Show local variable type hints" is **checked**
-3. Observe the editor:
+1. Navigate to `Editor` → `Inlay Hints` → `Types` → `Lua`
+2. Ensure "Respect type annotations" is **checked**
+3. Ensure "Local variable types" is **checked**
+4. Observe the editor:
    - `x` should have NO type hint (suppressed by `@type` annotation)
    - `y` should show `: number` hint
-4. Open Settings and **uncheck** "Respect type annotations"
-5. Click "Apply"
+5. Open Settings and **uncheck** "Respect type annotations"
+6. Click "Apply"
 
 **Expected Result**:
 - When checked: `x` has no hint, `y` has hint
@@ -129,13 +133,14 @@ local y = 100
 **Precondition**: Create a Lua file with more than 50 lines
 
 **Steps**:
-1. Open Settings → Editor → Inlay Hints → Lua
-2. Set "Large file threshold" to **10**
-3. Click "Apply"
-4. Open a Lua file with more than 10 lines
-5. Observe inlay hints
-6. Change threshold to **10000**
-7. Click "Apply"
+1. Open Settings → Editor → Inlay Hints → Types → Lua
+2. Click the "Settings" link (if not automatically showing settings)
+3. Set "Large file threshold" to **10**
+4. Click "Apply"
+5. Open a Lua file with more than 10 lines
+6. Observe inlay hints
+7. Change threshold to **10000**
+8. Click "Apply"
 
 **Expected Result**:
 - With threshold 10: No inlay hints appear in files with >10 lines
@@ -147,20 +152,22 @@ local y = 100
 **Objective**: Verify settings persist across IDE restarts.
 
 **Steps**:
-1. Open Settings → Editor → Inlay Hints → Lua
+1. Open Settings → Editor → Inlay Hints
 2. Make several changes:
-   - Uncheck "Show local variable type hints"
-   - Check "Show return type hints"
-   - Change threshold to 5000
+   - Under **Types > Lua**, uncheck "Local variable types"
+   - Under **Types > Lua**, check "Return types"
+   - Under **Types > Lua > Settings**, change threshold to 5000
+   - Under **Parameter names**, uncheck **Lua**
 3. Click "OK" to close settings
 4. Restart IntelliJ IDEA
-5. Reopen Settings → Editor → Inlay Hints → Lua
+5. Reopen Settings → Editor → Inlay Hints
 
 **Expected Result**:
 - All previously changed settings are preserved
-- "Show local variable type hints" remains unchecked
-- "Show return type hints" remains checked
+- "Local variable types" remains unchecked
+- "Return types" remains checked
 - Threshold shows 5000
+- **Lua** under **Parameter names** remains unchecked
 
 ---
 
@@ -168,12 +175,12 @@ local y = 100
 **Objective**: Verify manual reset to defaults works.
 
 **Steps**:
-1. Open Settings → Editor → Inlay Hints → Lua
+1. Open Settings → Editor → Inlay Hints
 2. Change all settings to non-default values:
-   - Uncheck all hint categories
+   - Uncheck all hint categories across all groups
    - Set threshold to 500
 3. Click "Cancel" (to discard changes)
-4. Reopen Settings → Editor → Inlay Hints → Lua
+4. Reopen Settings → Editor → Inlay Hints
 
 **Expected Result**:
 - Settings return to their previously saved values
@@ -181,12 +188,10 @@ local y = 100
 **Alternative for Apply-then-Reset**:
 1. Make changes and click "Apply"
 2. Manually reset each setting to default:
-   - Check "Show local variable type hints"
-   - Check "Show parameter name hints"
-   - Uncheck "Show return type hints"
-   - Check "Show method chaining hints"
-   - Check "Respect type annotations"
-   - Set threshold to 10000
+   - Types > Lua: Check "Local variable types", Uncheck "Return types", Check "Respect type annotations"
+   - Parameter names > Lua: Check
+   - Method chains > Lua: Check
+   - Performance: Set threshold to 10000
 3. Click "OK"
 
 **Expected Result**:
@@ -200,9 +205,9 @@ local y = 100
 **Precondition**: A Lua file is open and visible
 
 **Steps**:
-1. Open Settings → Editor → Inlay Hints → Lua
+1. Open Settings → Editor → Inlay Hints
 2. Ensure some hints are visible in the editor
-3. Toggle "Show local variable type hints" multiple times
+3. Toggle "Local variable types" multiple times
 4. Click "Apply" after each toggle
 
 **Expected Result**:

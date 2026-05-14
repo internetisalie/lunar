@@ -16,35 +16,24 @@ Implement a robust settings infrastructure that allows users to customize their 
     - `largeFileThreshold: Int = 10000`
 
 ### 2. Provider Group Configuration
-The `InlayHintsProvider` is registered in `plugin.xml` with the `group` attribute set to `TYPES_GROUP`:
+Inlay hints are split across three specialized providers to align with standard IDE groups:
 
-```xml
-<codeInsight.declarativeInlayProvider
-        language="Lua"
-        implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaTypeInlayHintProvider"
-        isInternal="false"
-        isEnabledByDefault="true"
-        group="TYPES_GROUP"
-        providerId="lua.type.hints"
-        ...>
-```
+1. **`LuaTypeInlayHintProvider`** (`TYPES_GROUP`)
+   - Handles local variable types and return types.
+   - Provides granular options with expand arrows.
 
-**Available Inlay Groups** (from `com.intellij.codeInsight.hints.InlayGroup`):
-- `CODE_VISION_GROUP_NEW` - Code vision hints (new style)
-- `CODE_VISION_GROUP` - Code vision hints
-- `PARAMETERS_GROUP` - Parameter name hints
-- `TYPES_GROUP` - Type-related hints (used by Lunar)
-- `VALUES_GROUP` - Value hints
-- `ANNOTATIONS_GROUP` - Annotation hints
-- `METHOD_CHAINS_GROUP` - Method chain hints
-- `LAMBDAS_GROUP` - Lambda-related hints
+2. **`LuaParameterInlayHintsProvider`** (`PARAMETERS_GROUP`)
+   - Handles function call parameter names.
+   - Registered without nested options to provide a simple top-level checkbox in the "Parameter names" group.
 
-The `TYPES_GROUP` categorizes our provider under **Settings | Editor | Inlay Hints | Types**, which is appropriate for Lua type hints (local variable types, return types).
+3. **`LuaMethodChainInlayHintProvider`** (`METHOD_CHAINS_GROUP`)
+   - Handles method chaining hints.
+   - Registered with a dedicated option in the "Method chains" group.
 
 ### 3. UI Integration
-- **`LuaInlayHintsCustomSettingsProvider`**: Provides additional custom settings UI (e.g., large file threshold) integrated into the platform's inlay hints settings page.
-- **Declarative Inlay Integration**: Since we use the Declarative Inlay Hints API, the provider appears in the `Settings -> Editor -> Inlay Hints` tree under `Lua` within the `TYPES_GROUP`.
-- **Refresh Mechanism**: On `apply()`, the configurable will trigger an editor refresh for all open Lua files to ensure hints are updated immediately.
+- **`LuaInlayHintsCustomSettingsProvider`**: Provides additional custom settings UI (e.g., large file threshold) integrated into the platform's inlay hints settings page (specifically linked to the `lua.type.hints` provider).
+- **Declarative Inlay Integration**: Providers appear in their respective groups in the `Settings -> Editor -> Inlay Hints` tree.
+- **Refresh Mechanism**: On `apply()`, the platform's inlay hints infrastructure handles immediate updates; for custom settings, an editor refresh is triggered manually if needed (though the platform's `persistSettings` call usually suffices when integrated).
 
 ### 4. Logic Integration
 - Update `LuaTypeInlayHintProvider` to:

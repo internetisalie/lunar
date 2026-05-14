@@ -9,6 +9,7 @@ Provide users with granular control over which inlay hints are displayed in the 
 - Define configuration properties in the Lunar settings model.
 - Implement persistence for these settings.
 - Create a settings UI integrated into the IntelliJ Inlay Hints settings page.
+- Refactor logic into three specialized providers: `LuaTypeInlayHintProvider`, `LuaParameterInlayHintsProvider`, and `LuaMethodChainInlayHintProvider`.
 - Update all inlay hint providers to check these settings before rendering.
 
 ### Out of Scope
