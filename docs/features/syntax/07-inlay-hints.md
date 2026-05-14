@@ -153,16 +153,16 @@ When a LuaCATS annotation is already present, the corresponding hint **must not*
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| `SYNTAX-07-01` | **Local Variable Type Hints** | **M** | Pending | Show inferred types for `local` variable declarations. |
-| `SYNTAX-07-02` | **Literal Type Inference** | **M** | Pending | Infer `string`, `number`, `integer`, `boolean`, `nil`, `table`, `function` from literal initializers. |
-| `SYNTAX-07-03` | **LuaCATS Type Inference** | **S** | Pending | Use `---@return` and `---@type` annotations to infer types for hints. |
-| `SYNTAX-07-04` | **Parameter Name Hints** | **S** | Pending | Show parameter names at call sites for locally resolved functions. [[Detailed Requirements]](07-inlay-hints/07-04-parameter-hints/requirements.md) |
-| `SYNTAX-07-05` | **Parameter Hint Suppression** | **S** | Pending | Suppress hints when argument name matches parameter, or parameter is single-char / `_`. |
-| `SYNTAX-07-06` | **Return Type Hints** | **C** | Pending | Show inferred return types after function parameter lists. [[Detailed Requirements]](07-inlay-hints/07-06-return-type-hints/requirements.md) |
+| `SYNTAX-07-01` | **Local Variable Type Hints** | **M** | **Full** | Show inferred types for `local` variable declarations. |
+| `SYNTAX-07-02` | **Literal Type Inference** | **M** | **Full** | Infer `string`, `number`, `integer`, `boolean`, `nil`, `table`, `function` from literal initializers. |
+| `SYNTAX-07-03` | **LuaCATS Type Inference** | **S** | **Full** | Use `---@return` and `---@type` annotations to infer types for hints. |
+| `SYNTAX-07-04` | **Parameter Name Hints** | **S** | **Full** | Show parameter names at call sites for locally resolved functions. [[Detailed Requirements]](07-inlay-hints/07-04-parameter-hints/requirements.md) |
+| `SYNTAX-07-05` | **Parameter Hint Suppression** | **S** | **Full** | Suppress hints when argument name matches parameter, or parameter is single-char / `_`. |
+| `SYNTAX-07-06` | **Return Type Hints** | **C** | **Full** | Show inferred return types after function parameter lists. [[Detailed Requirements]](07-inlay-hints/07-06-return-type-hints/requirements.md) |
 | `SYNTAX-07-07` | **Method Chaining Hints** | **S** | Pending | Show return types for intermediate method calls in a fluent chain. [[Detailed Requirements]](07-inlay-hints/07-07-method-chaining-hints/requirements.md) |
-| `SYNTAX-07-08` | **Annotation Suppression** | **M** | Pending | Do not show a hint when the corresponding LuaCATS annotation is already present. |
+| `SYNTAX-07-08` | **Annotation Suppression** | **M** | **Full** | Do not show a hint when the corresponding LuaCATS annotation is already present. |
 | `SYNTAX-07-09` | **Per-Category Settings** | **M** | In Progress | Expose toggles for each hint category under respective settings paths. [[Detailed Requirements]](07-inlay-hints/07-09-per-category-settings/requirements.md) |
-| `SYNTAX-07-10` | **Background Execution** | **M** | Pending | Compute all hints off the EDT to ensure editor responsiveness. |
+| `SYNTAX-07-10` | **Background Execution** | **M** | **Full** | Compute all hints off the EDT to ensure editor responsiveness. |
 | `SYNTAX-07-11` | **Large File Threshold** | **C** | In Progress | Skip hint computation for files exceeding the configurable line-count threshold. [[Detailed Requirements]](07-inlay-hints/07-11-large-file-threshold/requirements.md) |
 
 ## 8. Test Cases

@@ -186,6 +186,62 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         elementNodes[o] = listOf(valueNode)
     }
 
+    override fun visitBinOpExpr(o: LuaBinOpExpr) {
+        super.visitBinOpExpr(o)
+        val left = o.left
+        val right = o.right
+        val op = o.node.findChildByType(LuaElementTypes.BIN_OP)?.text ?: ""
+
+        val leftNode = firstNode(unwrapExpression(left)) ?: graph.nil(left)
+        val rightNode = firstNode(unwrapExpression(right)) ?: graph.nil(right ?: o)
+
+        val resType = when (op) {
+            "+", "-", "*", "/", "//", "^", "%" -> {
+                graph.addEdge(leftNode, graph.use(o, LuaGraphType.Number))
+                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
+                LuaGraphType.Number
+            }
+            ".." -> {
+                graph.addEdge(leftNode, graph.use(o, LuaGraphType.String))
+                graph.addEdge(rightNode, graph.use(o, LuaGraphType.String))
+                LuaGraphType.String
+            }
+            "==", "~=", "<", ">", "<=", ">=" -> {
+                LuaGraphType.Boolean
+            }
+            "and", "or" -> {
+                // Simplified: result is one of the operands
+                val leftType = (leftNode as? ValueNode)?.write ?: LuaGraphType.Any
+                val rightType = (rightNode as? ValueNode)?.write ?: LuaGraphType.Any
+                LuaGraphType.Union(setOf(leftType, rightType))
+            }
+            else -> LuaGraphType.Any
+        }
+        elementNodes[o] = listOf(graph.value(o, resType))
+    }
+
+    override fun visitUnOpExpr(o: LuaUnOpExpr) {
+        super.visitUnOpExpr(o)
+        val op = o.unOp.text
+        val right = o.right
+        val rightNode = firstNode(unwrapExpression(right)) ?: graph.nil(right ?: o)
+
+        val resType = when (op) {
+            "#" -> {
+                // # right implies right is string or table
+                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Union(setOf(LuaGraphType.String, LuaGraphType.Table()))))
+                LuaGraphType.Number
+            }
+            "-" -> {
+                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
+                LuaGraphType.Number
+            }
+            "not" -> LuaGraphType.Boolean
+            else -> LuaGraphType.Any
+        }
+        elementNodes[o] = listOf(graph.value(o, resType))
+    }
+
     override fun visitTableConstructor(o: LuaTableConstructor) {
         super.visitTableConstructor(o)
 
@@ -431,6 +487,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             elementNodes[o] = rhsNodes
             val returnNodes = scope.enclosingReturnNodes()
             if (returnNodes != null) {
+                while (returnNodes.size < rhsNodes.size) {
+                    returnNodes.add(graph.variable(o))
+                }
                 graph.flowList(rhsNodes, returnNodes)
             }
         }

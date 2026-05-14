@@ -134,11 +134,31 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     fun testHigherOrderFunction() {
         doTestProvider("test.lua", """
             ---@param callback fun(msg: string): boolean
-            local function process(callback)
+            local function process(callback)/*<# : boolean #>*/
                 return callback("data")
             end
 
-            process(function(m/*<# : string #>*/)
+            process(function(m/*<# : string #>*/)/*<# : boolean #>*/
+                return #m > 0
+            end)
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testInferredReturnArithmetic() {
+        doTestProvider("test.lua", """
+            local function double(n/*<# : number #>*/)/*<# : number #>*/
+                return n * 2
+            end
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testHigherOrderFunctionInferred() {
+        doTestProvider("test.lua", """
+            local function process(callback/*<# : fun(m) #>*/)/*<# : boolean #>*/
+                return callback("data")
+            end
+
+            process(function(m/*<# : string #>*/)/*<# : boolean #>*/
                 return #m > 0
             end)
         """.trimIndent(), LuaTypeInlayHintProvider())
@@ -177,12 +197,37 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
 
             -- Member function using @self
             ---@param self User
-            function User:getDisplayName()
+            function User:getDisplayName()/*<# : string #>*/
                 return self.username .. " (#" .. self.id .. ")"
             end
 
             -- To trigger graph build and checkTypes
             local x/*<# : { ... } | User #>*/ = current_user
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testFunctionReturnType() {
+        doTestProvider("test.lua", """
+            local function f()/*<# : number #>*/
+                return 1
+            end
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testFunctionMultipleReturnTypes() {
+        doTestProvider("test.lua", """
+            local function f()/*<# : number, string #>*/
+                return 1, "two"
+            end
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testFunctionReturnTypeSuppression() {
+        doTestProvider("test.lua", """
+            ---@return number
+            local function f()
+                return 1
+            end
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 }

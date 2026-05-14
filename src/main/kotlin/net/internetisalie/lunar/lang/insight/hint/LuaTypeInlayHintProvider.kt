@@ -6,6 +6,7 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.LuaFunctionType
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
@@ -20,10 +21,8 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
 
                 if (element is LuaNameRef) {
                     val parent = element.parent
-                    // Check if it's a declaration (inside LuaAttName or LuaNameList from LuaParList)
                     val isDecl = parent is LuaAttName || (parent is LuaNameList && parent.parent is LuaParList)
                     if (isDecl) {
-                        // Check if it already has an explicit annotation
                         if (hasExplicitAnnotation(element)) return
 
                         val types = LuaTypesVisitor.getTypes(element)
@@ -31,7 +30,6 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
 
                         if (type != LuaGraphType.Any && type != LuaGraphType.Undefined) {
                             val typeName = type.displayName()
-                            // Only show if not trivial (e.g. number literal is often obvious, but for now we follow spec)
                             sink.addPresentation(
                                 InlineInlayPosition(element.textRange.endOffset, true),
                                 null,
@@ -47,6 +45,62 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                 if (element is LuaFuncCall) {
                     collectParameterHints(element, sink)
                 }
+
+                // Return type hints added at RPAREN of the function declaration
+                if (element.text == ")") {
+                    val func = element.parent
+                    if (func is LuaFuncDecl || func is LuaLocalFuncDecl || func is LuaFuncDef) {
+                        collectReturnTypeHints(func, element, sink)
+                    }
+                }
+            }
+
+            private fun collectReturnTypeHints(func: PsiElement, rparen: PsiElement, sink: InlayTreeSink) {
+                if (hasExplicitReturnAnnotation(func)) return
+
+                val types = LuaTypesVisitor.getTypes(func)
+                val funcGraphType = types.getValueType(func)
+
+                if (funcGraphType !is LuaGraphType.Function) return
+
+                val returnTypesStrings = funcGraphType.returns.map { node ->
+                    val t = if (node.write != LuaGraphType.Undefined) node.write else node.read
+                    types.graphTypeToLuaType(t).name
+                }
+
+                val lastSignificant = returnTypesStrings.indexOfLast { it != "any" && it != "unknown" && it != "void" }
+                val filteredReturns = if (lastSignificant >= 0) returnTypesStrings.take(lastSignificant + 1) else emptyList()
+
+                val hintText = filteredReturns.joinToString(", ")
+                if (hintText.isEmpty() || hintText == "unknown" || hintText == "any" || hintText == "void") {
+                    return
+                }
+
+                sink.addPresentation(
+                    InlineInlayPosition(rparen.textRange.endOffset, true),
+                    null,
+                    null,
+                    HintFormat.default
+                ) {
+                    text(": $hintText")
+                }
+            }
+
+            private fun hasExplicitReturnAnnotation(element: PsiElement): Boolean {
+                var current: PsiElement? = element
+                if (current is LuaFuncDef) {
+                    while (current != null && current !is LuaLocalVarDecl && current !is LuaStatement) {
+                        current = current.parent
+                    }
+                }
+
+                if (current is LuaCommentOwner) {
+                    val cats = current.catsComment
+                    if (cats != null) {
+                        return cats.getReturnTagList().isNotEmpty()
+                    }
+                }
+                return false
             }
 
             private fun collectParameterHints(element: LuaFuncCall, sink: InlayTreeSink) {
@@ -138,16 +192,12 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
             }
 
             private fun shouldShowHint(paramName: String, argExpr: PsiElement): Boolean {
-                // Suppress if non-descriptive
                 if (paramName.length <= 1 || paramName == "_" || paramName == "p") return false
-
-                // Suppress if name matches arg
                 if (argExpr is LuaNameRef && argExpr.text == paramName) return false
                 if (argExpr is LuaExpr) {
                     val unwrapped = unwrapExpression(argExpr)
                     if (unwrapped is LuaNameRef && unwrapped.text == paramName) return false
                 }
-
                 return true
             }
 
@@ -170,7 +220,6 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
             }
 
             private fun hasExplicitAnnotation(element: LuaNameRef): Boolean {
-                // Find containing declaration
                 var current: PsiElement? = element
                 while (current != null && current !is LuaLocalVarDecl && current !is LuaFuncDecl && current !is LuaFuncDef && current !is LuaLocalFuncDecl) {
                     current = current.parent
@@ -179,12 +228,10 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                 if (current is LuaCommentOwner) {
                     val cats = current.catsComment
                     if (cats != null) {
-                        // If it's a param, check for @param with matching name
                         if (element.parent is LuaNameList) {
                             val name = element.text
                             return cats.getParamTagList().any { it.argName?.text == name }
                         }
-                        // If it's a local var, check for @type
                         if (current is LuaLocalVarDecl) {
                             val hasType = cats.getTypeTagList().isNotEmpty()
                             val hasClass = cats.getClassTagList().isNotEmpty()
