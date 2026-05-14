@@ -181,7 +181,60 @@
             group="TYPES_GROUP"
             providerId="lua.type.hints"
             bundle="net.internetisalie.lunar.LuaBundle"
-            nameKey="lua.type.hints.name"/>
+            nameKey="lua.type.hints.name">
+      <option bundle="net.internetisalie.lunar.LuaBundle"
+              optionId="lua.local.variable.type"
+              enabledByDefault="true"
+              nameKey="lua.type.hints.local.variable"
+              descriptionKey="lua.type.hints.local.variable.desc"/>
+      <option bundle="net.internetisalie.lunar.LuaBundle"
+              optionId="lua.return.type"
+              enabledByDefault="false"
+              nameKey="lua.type.hints.return.type"
+              descriptionKey="lua.type.hints.return.type.desc"/>
+      <option bundle="net.internetisalie.lunar.LuaBundle"
+              optionId="lua.respect.annotations"
+              enabledByDefault="true"
+              nameKey="lua.type.hints.respect.annotations"
+              descriptionKey="lua.type.hints.respect.annotations.desc"/>
+    </codeInsight.declarativeInlayProvider>
+
+    <codeInsight.declarativeInlayProvider
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaMethodChainInlayHintProvider"
+            isInternal="false"
+            isEnabledByDefault="true"
+            group="METHOD_CHAINS_GROUP"
+            providerId="lua.method.chain.hints"
+            bundle="net.internetisalie.lunar.LuaBundle"
+            nameKey="lua.type.hints.method.chain">
+      <option bundle="net.internetisalie.lunar.LuaBundle"
+              optionId="lua.method.chain"
+              enabledByDefault="true"
+              nameKey="lua.type.hints.method.chain"
+              descriptionKey="lua.type.hints.method.chain.desc"/>
+    </codeInsight.declarativeInlayProvider>
+
+    <codeInsight.declarativeInlayProvider
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaParameterInlayHintsProvider"
+            isInternal="false"
+            isEnabledByDefault="true"
+            group="PARAMETERS_GROUP"
+            providerId="lua.parameter.hints"
+            bundle="net.internetisalie.lunar.LuaBundle"
+            nameKey="lua.type.hints.parameter.name">
+      <option bundle="net.internetisalie.lunar.LuaBundle"
+              optionId="lua.parameter.name"
+              enabledByDefault="true"
+              nameKey="lua.type.hints.parameter.name"
+              descriptionKey="lua.type.hints.parameter.name.desc"/>
+    </codeInsight.declarativeInlayProvider>
+
+    <codeInsight.declarativeInlayProviderCustomSettingsProvider
+            language="Lua"
+            providerId="lua.type.hints"
+            implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaInlayHintsCustomSettingsProvider"/>
 
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
 
@@ -219,6 +272,9 @@
 
     <!-- Luacheck -->
     <applicationService serviceImplementation="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings"/>
+
+    <!-- Inlay Hints Settings -->
+    <applicationService serviceImplementation="net.internetisalie.lunar.lang.insight.hint.LuaInlayHintsSettings"/>
 
     <!-- Indexes -->
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaFileBindingsIndex"/>

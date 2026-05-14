@@ -1,17 +1,15 @@
 package net.internetisalie.lunar.lang.insight.hint
 
-import com.intellij.testFramework.utils.inlays.declarative.DeclarativeInlayHintsProviderTestCase
-
-class LuaParameterInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
+class LuaParameterInlayHintsTest : LuaInlayHintsTestCase() {
     fun testBasicParameterHints() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function move(posX/*<# : number #>*/, posY/*<# : number #>*/) end
             move(/*<# posX: #>*/10, /*<# posY: #>*/20)
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testColonCallSuppressesSelf() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local obj/*<# : { ... } #>*/ = {}
             function obj:method(value) end
             obj:method(5) -- suppressed because only one param after self
@@ -19,7 +17,7 @@ class LuaParameterInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testMultipleParametersColonCall() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local obj/*<# : { ... } #>*/ = {}
             function obj:move(posX, posY) end
             obj:move(/*<# posX: #>*/10, /*<# posY: #>*/20)
@@ -27,7 +25,7 @@ class LuaParameterInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testSuppressionWhenNameMatches() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function move(posX/*<# : number #>*/, posY/*<# : number #>*/) end
             local posX/*<# : number #>*/, posY/*<# : number #>*/ = 1, 2
             move(posX, posY)
@@ -35,14 +33,14 @@ class LuaParameterInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testSuppressionForSingleParameter() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function log(message/*<# : string #>*/) end
             log("hello")
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testLuaCatsParameterNames() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@param speed number
             ---@param force number
             local function apply(s/*<# : number #>*/, f/*<# : number #>*/) end

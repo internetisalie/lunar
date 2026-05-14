@@ -15,7 +15,7 @@ class CrossFileInlayHintsTest : IndexedDeclarativeInlayHintsTest() {
             function setup_config2(speed, force) end
         """.trimIndent())
 
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             setup_config(/*<# speed: #>*/5000, /*<# force: #>*/3)
             setup_config2(/*<# speed: #>*/5000, /*<# force: #>*/3)
         """.trimIndent(), LuaTypeInlayHintProvider())

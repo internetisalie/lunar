@@ -1,44 +1,42 @@
 package net.internetisalie.lunar.lang.insight.hint
 
-import com.intellij.testFramework.utils.inlays.declarative.DeclarativeInlayHintsProviderTestCase
-
-class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
+class LuaTypeInlayHintsTest : LuaInlayHintsTestCase() {
     fun testLocalVariable() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local x/*<# : number #>*/ = 42
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testArrayType() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@type string[]
             local tags = { "lua", "intellij", "lunar" }
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testSuppressionWithExplicitType() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@type number
             local x = 42
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testSuppressionWithClass() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@class User
             local User = {}
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testSuppressionWithAlias() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@alias MyString string
             local x = "hi"
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testInferredArrayInAssignment() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@type string[]
             local tags = {}
             local other/*<# : { ... } | string[] #>*/ = tags
@@ -46,7 +44,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testFunctionParameters() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function greet(name/*<# : string #>*/, age/*<# : number #>*/)
             end
             greet(/*<# name: #>*/"John", /*<# age: #>*/30)
@@ -56,7 +54,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     fun testUserReportedBug() {
         // This should show NO inlay hints on current_user because of @type User
         // and no errors.
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@class User
             ---@field id number
             ---@field username string
@@ -69,26 +67,26 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testBooleanLiteral() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local is_active/*<# : boolean #>*/ = true
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testMultipleAssignment() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local a/*<# : number #>*/, b/*<# : string #>*/ = 10, "hello"
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testTypePropagation() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local name/*<# : string #>*/ = "Lunar"
             local another_name/*<# : string #>*/ = name
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
 
     fun testFunctionReturnValue() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@param a number
             ---@param b number
             ---@return number
@@ -101,7 +99,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testGenericFunction() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@generic T
             ---@param value T
             ---@return T
@@ -115,7 +113,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testUnionTypePropagation() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@param input string | number
             local function handle(input)
                 local x/*<# : string | number #>*/ = input
@@ -124,7 +122,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testParameterizedTable() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@type table<str, num>
             local scores = { player1 = 100 }
             local s/*<# : { ... } | table<str, num> #>*/ = scores
@@ -132,7 +130,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testHigherOrderFunction() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@param callback fun(msg: string): boolean
             local function process(callback)/*<# : boolean #>*/
                 return callback("data")
@@ -145,7 +143,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testInferredReturnArithmetic() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function double(n/*<# : number #>*/)/*<# : number #>*/
                 return n * 2
             end
@@ -153,7 +151,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testHigherOrderFunctionInferred() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function process(callback/*<# : fun(m) #>*/)/*<# : boolean #>*/
                 return callback("data")
             end
@@ -165,7 +163,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testGenericClassUsage() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@generic K, V
             ---@class P<K, V>
             ---@field key K
@@ -182,7 +180,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     fun testMemberFunctionConstructorIssue() {
         // This test specifically checks for the "Missing required field" error
         // on table constructors when a member function is defined on the class.
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@class User
             ---@field id number
             ---@field username string
@@ -207,7 +205,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testFunctionReturnType() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function f()/*<# : number #>*/
                 return 1
             end
@@ -215,7 +213,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testFunctionMultipleReturnTypes() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             local function f()/*<# : number, string #>*/
                 return 1, "two"
             end
@@ -223,7 +221,7 @@ class LuaTypeInlayHintsTest : DeclarativeInlayHintsProviderTestCase() {
     }
 
     fun testFunctionReturnTypeSuppression() {
-        doTestProvider("test.lua", """
+        doLuaTestProvider("test.lua", """
             ---@return number
             local function f()
                 return 1
