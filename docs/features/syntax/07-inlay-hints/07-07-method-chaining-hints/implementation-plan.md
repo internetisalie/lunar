@@ -6,7 +6,8 @@
 - [ ] Implement a utility to detect multi-line method chains from a `LuaFuncCall`.
 
 ## Phase 2: Core Implementation
-- [ ] Extend `LuaTypeInlayHintProvider` to visit `LuaFuncCall` for chaining hints.
+- [ ] Create `LuaMethodChainInlayHintProvider` and register it in `plugin.xml` under `METHOD_CHAINS_GROUP`.
+- [ ] Implement the collector to visit `LuaFuncCall` and emit chaining hints.
 - [ ] Implement `self` type resolution to map to concrete receiver classes.
 - [ ] Integrate generic instantiation into the hint resolution loop.
 - [ ] Implement the logic to position hints after the closing parenthesis of the call.

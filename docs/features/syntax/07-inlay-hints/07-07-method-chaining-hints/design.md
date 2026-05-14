@@ -1,9 +1,15 @@
 # Design: SYNTAX-07-07 Method Chaining Hints
 
 ## Objective
-The goal is to implement a hint collector that identifies fluent interface patterns (method chains) in Lua and displays the return type of intermediate calls. This is particularly useful in builders, DSLs, or libraries that use chaining extensively.
+The goal is to implement a dedicated `InlayHintsProvider` that identifies fluent interface patterns (method chains) in Lua and displays the return type of intermediate calls. This is particularly useful in builders, DSLs, or libraries that use chaining extensively.
 
 ## Architecture
+
+### 0. Provider Registration
+- **Provider**: `LuaMethodChainInlayHintProvider`
+- **Group**: `METHOD_CHAINS_GROUP`
+- **ID**: `lua.method.chain.hints`
+- **Language**: `Lua`
 
 ### 1. Chain Detection
 - Traverse the PSI tree looking for `LuaFuncCall` elements.

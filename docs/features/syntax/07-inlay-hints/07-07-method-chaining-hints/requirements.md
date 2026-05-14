@@ -7,6 +7,7 @@ Surface the return types of intermediate method calls in fluent interface chains
 
 ### In Scope
 - Method calls using the colon syntax (`obj:method()`).
+- Implementation as a **separate** `InlayHintsProvider` registered in the standard IntelliJ `Method chains` group.
 - Chained calls where the receiver and the call expression are on different lines.
 - Resolution of return types from LuaCATS `---@return` annotations.
 - Basic type inference for methods returning `self` or a known class instance.
@@ -29,6 +30,7 @@ Surface the return types of intermediate method calls in fluent interface chains
 | **07-07-REQ-07** | [Must] | Ensure hint computation does not trigger expensive recursive resolution for chains deeper than 10 calls. | Pending |
 | **07-07-REQ-08** | [Must] | Resolve `self` return types to the concrete class of the receiver. | Pending |
 | **07-07-REQ-09** | [Should] | Suppress hints for trivial primitive types (boolean, number) unless they are part of a multi-type return. | Pending |
+| **07-07-REQ-10** | [Must] | Implement as a dedicated `LuaMethodChainInlayHintProvider` in the `METHOD_CHAINS_GROUP`. | Pending |
 
 ## Test Cases (TC)
 
