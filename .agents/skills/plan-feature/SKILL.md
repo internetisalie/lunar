@@ -27,7 +27,7 @@ This skill provides a structured process for taking a high-level feature request
 
 ### Step 2: Modularize
 - Evaluate if the request (Epic) should be split into multiple distinct features.
-- Create sub-directories under `requirements/spec/<domain>/<feature-name>/` to house artifacts.
+- Create sub-directories under `features/<domain>/<feature-name>/` to house artifacts.
 - Rename generic files (e.g., `tool.md`) to specific ones (e.g., `tool-product-requirements.md`).
 
 ### Step 3: Define Functional Specs (SRS)
@@ -72,7 +72,7 @@ This skill provides a structured process for taking a high-level feature request
 
 A well-planned feature should have the following folder structure:
 ```
-docs/requirements/spec/<domain>/<feature-name>/
+docs/features/<domain>/<feature-name>/
 ├── requirements.md               # SRS: Functional details & Test Cases
 ├── design.md                     # TDD: Technical architecture
 ├── implementation-plan.md        # Phases & prioritized roadmap
@@ -82,7 +82,7 @@ docs/requirements/spec/<domain>/<feature-name>/
 
 ### Example: Tool Epic Structure
 ```
-docs/requirements/spec/tool/
+docs/features/tool/
 ├── tool-product-requirements.md      # Epic PRD
 ├── tool-risks-and-gaps.md            # Epic-level risks & de-risking actions
 ├── human-verification-checklists.md  # Master checklist for all tasks

@@ -11,6 +11,7 @@ Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE
 | [`TYPE-05`](./05-generics-support.md) | **Generics Support** | **S** | Parse and resolve `@generic` tags. |
 | [`TYPE-06`](./06-return-type-checking.md) | **Return Type Checking** | **S** | Validate that `return` statements match the `@return` tag. |
 | [`TYPE-07`](./07-external-api-stubs.md) | **External API Stubs** | **S** | Allow `.lua` files to define types for external modules. |
+| [`TYPE-09`](./09-union-distribution-logic/requirements.md) | **Union Distribution Logic** | **M** | Distributive checking for union types. |
 | `TYPE-08` | **Flow-Sensitive Analysis** | **C** | Narrow types based on control flow. |
 
 ---
