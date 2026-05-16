@@ -29,6 +29,16 @@ Intelligent completion is the primary driver of productivity in the IDE.
 ### COMP-01: Keyword Completion
 - **Status**: **Full** (`LuaCompletionContributor`)
 
+### COMP-02: Basic Symbol Completion
+- **Status**: **Full** (`LuaCompletionContributor`)
+- **Implementation**: Local variables, parameters, local functions, for-loop variables, and file-level global functions
+- **Features**:
+  - Local variable suggestions from current and parent scopes
+  - Function parameter suggestions
+  - Local function name suggestions
+  - For-loop variable suggestions (numeric and generic)
+  - Global function suggestions (file-level)
+  - Proper shadowing handling (inner scope takes precedence)
 
 ### COMP-03: Cross-file Completion
 - **Status**: **Planned**

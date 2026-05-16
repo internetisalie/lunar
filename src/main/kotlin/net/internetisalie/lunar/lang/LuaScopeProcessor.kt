@@ -4,6 +4,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.ResolveState
 import com.intellij.psi.scope.PsiScopeProcessor
+import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
@@ -11,6 +12,7 @@ import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameList
 import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 import net.internetisalie.lunar.lang.psi.LuaParList
+import net.internetisalie.lunar.lang.psi.LuaVar
 
 /**
  * Lazy scope processor for resolving named symbols in Lua.
@@ -145,6 +147,24 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
 
             is LuaGenericForStatement -> {
                 element.nameList.nameRefList.forEach { nameRef ->
+                    results.add(nameRef.identifier.text)
+                }
+            }
+
+            is LuaAssignmentStatement -> {
+                // Collect variable names from assignment (for global variables at file level)
+                element.varList.varList.forEach { varElement ->
+                    val nameRef = varElement.nameRef
+                    if (nameRef != null) {
+                        results.add(nameRef.identifier.text)
+                    }
+                }
+            }
+
+            is LuaVar -> {
+                // Process variable from assignment (for global variables)
+                val nameRef = element.nameRef
+                if (nameRef != null) {
                     results.add(nameRef.identifier.text)
                 }
             }

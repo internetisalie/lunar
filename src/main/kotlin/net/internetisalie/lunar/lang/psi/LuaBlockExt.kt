@@ -3,6 +3,15 @@ package net.internetisalie.lunar.lang.psi
 import com.intellij.psi.ResolveState
 import com.intellij.psi.PsiElement
 import com.intellij.psi.scope.PsiScopeProcessor
+import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
+import net.internetisalie.lunar.lang.psi.LuaBlock
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaNameList
+import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
+import net.internetisalie.lunar.lang.psi.LuaParList
 
 /**
  * Extension function to implement processDeclarations for LuaBlock.
@@ -35,6 +44,19 @@ fun LuaBlock.processDeclarations(
                 // Process the local function declaration itself
                 if (!processor.execute(statement, state)) {
                     return false  // Processor found match, stop walk
+                }
+            }
+
+            is LuaAssignmentStatement -> {
+                // Process global variable assignments (at file level)
+                // Collect variable names from assignment
+                statement.varList.varList.forEach { varElement ->
+                    val nameRef = varElement.nameRef
+                    if (nameRef != null) {
+                        if (!processor.execute(varElement, state)) {
+                            return false  // Processor found match, stop walk
+                        }
+                    }
                 }
             }
         }

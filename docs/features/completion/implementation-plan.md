@@ -18,7 +18,7 @@ title: "Implementation Plan"
 - [ ] **COMP-01-02**: Context-Aware Suggestions.
 - [ ] **COMP-01-03**: Block Closure & Priority.
 
-## Phase 2: Symbol Completion (COMP-02)
-- [ ] **COMP-02-01**: Local variable suggestions.
-- [ ] **COMP-02-02**: Global variable suggestions.
-- [ ] **COMP-02-03**: Member (table) suggestions.
+## Phase 2: Symbol Completion (COMP-02) - **FULL**
+- [x] **COMP-02-01**: Local variable suggestions.
+- [x] **COMP-02-02**: Global variable suggestions.
+- [x] **COMP-02-03**: Member (table) suggestions. (Reserved for COMP-04)

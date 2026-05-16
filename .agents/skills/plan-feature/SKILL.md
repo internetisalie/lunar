@@ -53,7 +53,7 @@ This skill provides a structured process for taking a high-level feature request
 - Identify technical risks (e.g., platform dependencies) and design gaps.
 - Document these in a `risks-and-gaps.md` file.
 - Create specific **De-risking Tasks** (DR actions) to prototype or research unknowns early.
-- Prepend IDs with `<EPIC>-DR-*`.
+- Prepend IDs with `<EPIC>-00-*`.
 
 ### Step 7: Tracker Setup (Saga)
 - Initialize the feature in the tracker using `saga_epic_create`.

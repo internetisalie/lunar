@@ -6,6 +6,8 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.codeInsight.lookup.TailTypeDecorator
 import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.ResolveState
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
@@ -17,6 +19,7 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
 class LuaCompletionContributor : CompletionContributor() {
     companion object {
         private const val KEYWORD_PRIORITY = 80.0
+        private const val SYMBOL_PRIORITY = 50.0
 
         private val STATEMENT_KEYWORDS = listOf(
             "if", "while", "function", "local", "for", "repeat", "return", "do", "break"
@@ -31,8 +34,8 @@ class LuaCompletionContributor : CompletionContributor() {
         )
 
         private fun addKeywords(result: CompletionResultSet, keywords: Collection<String>) {
-            for (keyword in keywords) {
-                var builder = LookupElementBuilder.create(keyword).withBoldness(true)
+            keywords.forEach { keyword ->
+                val builder = LookupElementBuilder.create(keyword).withBoldness(true)
 
                 val element = if (SPACE_KEYWORDS.contains(keyword)) {
                     PrioritizedLookupElement.withPriority(
@@ -44,6 +47,59 @@ class LuaCompletionContributor : CompletionContributor() {
                 }
 
                 result.addElement(element)
+            }
+        }
+
+        private fun addSymbolCompletions(position: PsiElement, result: CompletionResultSet) {
+            val processor = LuaCompletionScopeProcessor()
+            addSymbols(result, position, processor)
+        }
+
+        private fun addSymbols(
+            result: CompletionResultSet,
+            position: PsiElement,
+            processor: LuaCompletionScopeProcessor,
+            prefix: String? = null
+        ) {
+            // Walk up the PSI tree to collect declarations from all enclosing scopes
+            var current: PsiElement? = position
+            while (current != null) {
+                val state = ResolveState.initial()
+
+                when (current) {
+                    is LuaBlock -> {
+                        current.processDeclarations(processor, state, position, position)
+                    }
+                    is LuaFuncDef -> {
+                        current.processDeclarations(processor, state, position, position)
+                    }
+                    is LuaFuncDecl -> {
+                        current.processDeclarations(processor, state, position, position)
+                    }
+                    is LuaLocalFuncDecl -> {
+                        current.processDeclarations(processor, state, position, position)
+                    }
+                    is LuaNumericForStatement -> {
+                        current.processDeclarations(processor, state, position, position)
+                    }
+                    is LuaGenericForStatement -> {
+                        current.processDeclarations(processor, state, position, position)
+                    }
+                    is LuaFile -> {
+                        current.processDeclarations(processor, state, position, position)
+                    }
+                }
+                current = current.parent
+            }
+
+            // Add collected symbols to completion result
+            processor.results.forEach { symbolName ->
+                // Filter by prefix if provided
+                if (prefix == null || symbolName.startsWith(prefix)) {
+                    val builder = LookupElementBuilder.create(symbolName)
+                    val element = PrioritizedLookupElement.withPriority(builder, SYMBOL_PRIORITY)
+                    result.addElement(element)
+                }
             }
         }
     }
@@ -108,7 +164,16 @@ class LuaCompletionContributor : CompletionContributor() {
                     }
 
                     if (canBeExpressionStart) {
-                        addKeywords(result, EXPRESSION_KEYWORDS)
+                        // Add symbols in expression contexts
+                        addSymbolCompletions(position, result)
+                        
+                        // Only add expression keywords if there's no prefix AND we're not at statement start
+                        // (expression keywords like nil, true, false should only appear when explicitly starting an expression)
+                        val prevLeaf = PsiTreeUtil.prevVisibleLeaf(position)
+                        val hasPrefix = prevLeaf != null && prevLeaf.node.elementType == LuaElementTypes.IDENTIFIER
+                        if (!hasPrefix && !isStatementStart) {
+                            addKeywords(result, EXPRESSION_KEYWORDS)
+                        }
                     }
 
                     // 3. Context-Specific Keywords
@@ -119,6 +184,30 @@ class LuaCompletionContributor : CompletionContributor() {
                         // else, elseif, end
                         addBlockClosureKeywords(prevLeaf, result)
                     }
+
+                    // 4. Symbol Completion (COMP-02)
+                    // Add symbols in expression contexts
+                    // Note: We add symbols even at statement start if canBeExpressionStart is true
+                    // (e.g., after `local x = ` or at the start of a file where variables can appear)
+                    if (canBeExpressionStart) {
+                        addSymbolCompletions(position, result)
+                    }
+                }
+            }
+        )
+
+        // Symbol completion provider - triggers on identifier elements
+        extend(
+            CompletionType.BASIC,
+            psiElement().withElementType(LuaElementTypes.IDENTIFIER),
+            object : CompletionProvider<CompletionParameters>() {
+                override fun addCompletions(
+                    parameters: CompletionParameters,
+                    context: ProcessingContext,
+                    result: CompletionResultSet
+                ) {
+                    val position = parameters.position
+                    addSymbolCompletions(position, result)
                 }
             }
         )
@@ -297,7 +386,7 @@ class LuaCompletionContributor : CompletionContributor() {
         ) {
             addKeywords(result, listOf("end"))
             if (prevType == LuaElementTypes.REPEAT) {
-                 addKeywords(result, listOf("until"))
+                addKeywords(result, listOf("until"))
             }
         }
 

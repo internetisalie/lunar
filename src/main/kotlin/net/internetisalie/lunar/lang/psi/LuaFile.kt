@@ -44,7 +44,27 @@ open class LuaFile(viewProvider: FileViewProvider) :
         lastParent: com.intellij.psi.PsiElement?,
         place: com.intellij.psi.PsiElement
     ): Boolean {
-        // File scope = root block; delegate to block's processDeclarations
+        // File scope = root block + global function declarations + global variable assignments
+        
+        // First, process global function declarations (they're at file level, not in blocks)
+        for (child in children) {
+            if (child is LuaFuncDecl) {
+                if (!processor.execute(child, state)) {
+                    return false  // Processor found match, stop walk
+                }
+            }
+        }
+
+        // Then process global variable assignments (assignments at file level create globals)
+        for (child in children) {
+            if (child is LuaAssignmentStatement) {
+                if (!processor.execute(child, state)) {
+                    return false  // Processor found match, stop walk
+                }
+            }
+        }
+
+        // Then process blocks
         val blocks = getBlockList()
         if (blocks.isEmpty()) {
             return true  // No blocks, continue walk to parent scope
