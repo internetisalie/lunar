@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: todo
+title: "10: Access Detector"
+---
+
 # Specification: NAV-10 Access Detector
 
 This document defines the requirements for detecting how variables are accessed (Read vs. Write).

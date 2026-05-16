@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints|hints]]"
+title: "07: Method Chaining Hints"
+priority: medium
+status: todo
+---
+
 # Requirements: SYNTAX-07-07 Method Chaining Hints
 
 ## Overview

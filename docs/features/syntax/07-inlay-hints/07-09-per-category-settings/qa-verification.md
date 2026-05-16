@@ -1,3 +1,8 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-09-per-category-settings/requirements|requirements]]"
+title: QA Verification
+---
 # QA Verification: SYNTAX-07-09 Per-Category Settings
 
 ## Overview

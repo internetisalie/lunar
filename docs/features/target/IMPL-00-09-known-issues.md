@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "IMPL-00-09: Known Issues & Mitigations"
+---
+
 # IMPL-00-09: Known Issues & Mitigations
 
 **Documented**: 2026-05-12  

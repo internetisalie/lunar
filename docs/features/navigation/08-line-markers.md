@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "08: Line Markers"
+---
 # Specification: NAV-08 Line Markers
 
 This document defines the requirements for gutter line markers.

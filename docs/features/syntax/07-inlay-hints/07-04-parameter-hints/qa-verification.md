@@ -1,3 +1,8 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-04-parameter-hints/requirements|requirements]]"
+title: QA Verification
+---
 # QA Verification: SYNTAX-07-04 Parameter Name Hints
 
 ## Overview

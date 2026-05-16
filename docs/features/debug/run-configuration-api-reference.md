@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/debug/requirements|requirements]]"
+title: "Run Configuration API Reference"
+---
+
 # Lunar Run Configuration API Reference
 
 ## Overview

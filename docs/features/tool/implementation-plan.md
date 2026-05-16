@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/requirements|requirements]]"
+title: Implementation Plan
+---
+
 # Overall Implementation Plan: Tool Inventory Management (TOOL Epic)
 
 This document provides the consolidated, chronological implementation sequence for the Tool Inventory Management features, integrating de-risking actions with functional phases.

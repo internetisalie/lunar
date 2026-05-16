@@ -1,3 +1,12 @@
+---
+folders:
+  - "[[features]]"
+title: "DOC: Documentation & LuaCATS"
+priority: medium
+status: completed
+vf_icon: ✅
+---
+
 # Documentation Requirements (`DOC`)
 
 Lunar provides rich integration with LuaCATS and LuaDoc to document code and provide real-time assistance.

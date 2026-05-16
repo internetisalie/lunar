@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/debug/requirements|requirements]]"
+title: "Lua Program Execution Integration Tests"
+---
+
 # Lua Program Execution Integration Tests
 
 ## Overview

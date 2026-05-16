@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "04: Platform Library Resolution"
+---
+
 # TARGET-04: Platform Library Resolution
 
 **Requirement**: Library definitions must be resolved from a unified `runtime/` resource directory tree, derived from the project's `Target` with no string transformation.  

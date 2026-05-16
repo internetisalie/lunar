@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "02: Class/Table Definitions"
+---
 # Specification: TYPE-02 Class/Table Definitions
 
 This document defines the requirements for supporting structured types via LuaCATS `@class`, `@alias`, and `@field` tags.

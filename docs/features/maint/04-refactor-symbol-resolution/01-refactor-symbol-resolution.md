@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
+title: "01: Refactor Symbol Resolution"
+---
+
 # Specification: MAINT-04 Refactor Symbol Resolution
 
 ## 1. Overview

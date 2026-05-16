@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/04-task-execution/requirements|requirements]]"
+title: "Technical Design"
+---
+
 # Technical Design: Task Execution & Run Configurations (ROCKS-04)
 
 ## Overview

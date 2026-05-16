@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "ROCKS: LuaRocks Integration"
+priority: high
+status: planned
+---
+
 # LuaRocks Integration Requirements (`ROCKS`)
 
 Lunar provides deep integration with LuaRocks for dependency management, package discovery, and project lifecycle automation.

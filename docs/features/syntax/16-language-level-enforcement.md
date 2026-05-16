@@ -1,8 +1,12 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "16: Language Level Enforcement"
+---
 # SYNTAX-16: Enforce Language Level Restrictions
-
-**Status**: Planned  
-**Priority**: Medium  
-**Epic**: SYNTAX: Syntax & Editor  
 **Task ID**: 111
 
 ## Overview

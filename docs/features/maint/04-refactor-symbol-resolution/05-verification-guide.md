@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
+title: "Verification Guide"
+---
+
 # MAINT-04: Verification Guide
 
 **Date Completed**: May 9, 2026  

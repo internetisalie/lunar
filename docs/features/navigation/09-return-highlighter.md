@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: todo
+title: "09: Return Highlighter"
+---
+
 # Specification: NAV-09 Return Highlighter
 
 This document outlines the requirements for highlighting `return` statements and function exit points.

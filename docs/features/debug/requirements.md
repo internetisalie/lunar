@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "DEBUG: Debugging & Execution"
+priority: low
+status: planned
+---
+
 # Debugging & Execution Requirements (`DEBUG`, `RUN`)
 
 Lunar provides a seamless experience for running and debugging Lua applications directly from the IDE.
@@ -13,7 +21,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-07` | **Lazy Remote Stack Evaluation** | **S** | **Full** | Defer parsing of frame details until explicitly accessed. |
 | `RUN-01` | **Lua Interpreter SDK** | **M** | **Full** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
 | `RUN-02` | **Run Configurations** | **M** | **Full** | Create and save configurations for script execution. |
-| [`RUN-03`](../run/03-interactive-console.md) | **Interactive Console (REPL) Specification** | **S** | **Partial** | Provide a Lua REPL console within the IDE using the selected project SDK. |
+| [`RUN-03`](./03-interactive-console.md) | **Interactive Console (REPL) Specification** | **S** | **Partial** | Provide a Lua REPL console within the IDE using the selected project SDK. |
 | `RUN-04` | **Run Configuration Validation** | **M** | **Full** | Validate run configurations before execution. |
 
 ---
@@ -51,5 +59,8 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 - **`TestLuaExecutionStack`**: Remote stack management.
 - **`TestLuaStackFrame`**: Stack frame structure.
 
-## Guides
+## Guides & Reference
 - [Container Execution Guide](container-execution-guide.md)
+- [Run Configuration API Reference](run-configuration-api-reference.md)
+- [IDE Execution Integration Tests](ide-execution-integration-tests.md)
+- [Lua Program Execution Tests](lua-program-execution-tests.md)

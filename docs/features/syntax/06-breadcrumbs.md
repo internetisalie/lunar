@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "06: Breadcrumbs"
+---
 # Specification: SYNTAX-06 Breadcrumbs
 
 This document defines the behavior and hierarchy for the Lua Breadcrumbs support in Lunar. Breadcrumbs provide a horizontal navigation bar at the top or bottom of the editor, showing the path from the file root to the current cursor position.

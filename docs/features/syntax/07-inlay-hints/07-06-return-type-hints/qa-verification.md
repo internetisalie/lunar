@@ -1,3 +1,8 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-06-return-type-hints/requirements|requirements]]"
+title: QA Verification
+---
 # QA Verification: SYNTAX-07-06 (Return Type Inlay Hints)
 
 This document outlines the QA verification steps for the return type inlay hints feature.

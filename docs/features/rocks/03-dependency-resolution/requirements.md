@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "03: Dependency Resolution"
+---
+
 # ROCKS-03: Dependency Resolution
 
 ## Scope

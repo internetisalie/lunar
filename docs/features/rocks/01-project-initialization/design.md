@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/01-project-initialization/requirements|requirements]]"
+title: "Technical Design"
+---
+
 # Technical Design: Project Initialization & Setup (ROCKS-01)
 
 ## Overview

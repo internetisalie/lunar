@@ -1,3 +1,10 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+title: "09: Union Distribution Logic"
+priority: high
+status: in_progress
+---
 # TYPE-09: Union Distribution Logic - Requirements Specification
 
 **Task ID:** TYPE-09  

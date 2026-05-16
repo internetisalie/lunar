@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/01-inventory-management/requirements|requirements]]"
+title: Implementation Plan
+---
+
 # Implementation Plan: Tool Registry & Discovery (`TOOL-01`)
 
 This plan covers the foundational logic for managing external Lua tools.

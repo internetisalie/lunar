@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # TARGET Implementation Plan
 
 **Feature**: Runtime environment configuration (platform + version selection)  

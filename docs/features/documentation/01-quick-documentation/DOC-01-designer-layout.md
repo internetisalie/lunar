@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/documentation/01-quick-documentation/01-quick-documentation|requirements]]"
+title: "Technical Design"
+---
+
 # Designer Layout Brief: Lunar Quick Documentation
 
 ## 1. Project Overview

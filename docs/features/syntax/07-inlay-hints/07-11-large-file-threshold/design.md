@@ -1,3 +1,10 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-11-large-file-threshold/requirements|requirements]]"
+title: Technical Design
+priority: medium
+status: in_progress
+---
 # Design: SYNTAX-07-11 Large File Threshold
 
 ## Objective

@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/02-project-binding/requirements|requirements]]"
+title: Implementation Plan
+---
+
 # Implementation Plan: Project Binding & Environment Integration (`TOOL-02`)
 
 This plan covers the logic for binding tools to projects and making them available in the environment.

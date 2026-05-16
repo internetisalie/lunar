@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/documentation/06-documentation-indexing/platform-symbol-documentation/requirements|requirements]]"
+title: "Technical Design"
+---
+
 # Technical Design: DOC-06-06 Platform Symbol Documentation
 
 ## 1. Overview

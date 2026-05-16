@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+title: "Parsing Test Cases"
+---
+
 # Exhaustive Lua Parsing Tests Collection
 
 This document collects Lua parsing test cases from various sources to be used for generating tests for Lunar.

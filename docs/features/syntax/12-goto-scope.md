@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "12: Label & Goto Scope Resolution"
+---
 # Specification: SYNTAX-12 Label & Goto Scope Resolution
 
 This document defines the requirements for resolving `goto` statements and verifying their validity according to Lua 5.4 scope rules.

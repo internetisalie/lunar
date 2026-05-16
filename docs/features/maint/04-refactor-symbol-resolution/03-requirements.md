@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/maint/requirements|MAINT]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "04: Refactor Symbol Resolution"
+---
 # Requirements: MAINT-04 — Refactor Symbol Resolution (PsiScopeProcessor)
 
 ## 1. Overview

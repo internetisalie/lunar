@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+priority: high
+status: done
+vf_icon: ✅
+title: "04: Union Types"
+---
 # Specification: TYPE-04 Union Types
 
 This document defines the requirements for supporting variables that can hold multiple types using LuaCATS union syntax.

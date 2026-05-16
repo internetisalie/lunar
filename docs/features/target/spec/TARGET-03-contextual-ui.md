@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "03: UI Contextual Versions"
+---
+
 # TARGET-03: UI Contextual Versions
 
 **Requirement**: The Project Settings panel must dynamically update available version options based on the selected Platform. Language level must be read-only, derived from the current Target.  

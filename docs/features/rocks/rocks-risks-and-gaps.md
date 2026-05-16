@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "Design Gaps & De-risking"
+---
+
 # Design Gaps & De-risking: LuaRocks Integration (ROCKS Epic)
 
 ## 1. Technical Risks

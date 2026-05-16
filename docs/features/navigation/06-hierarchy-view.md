@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: todo
+title: "06: Hierarchy View"
+---
+
 # Specification: NAV-06 Hierarchy View
 
 This document defines the requirements for the Type Hierarchy tool window.

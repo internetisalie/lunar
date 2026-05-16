@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "07: Reference Contributors"
+---
 # Specification: NAV-07 Reference Contributors
 
 This document outlines the requirements for custom reference contributors.

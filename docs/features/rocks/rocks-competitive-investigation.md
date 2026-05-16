@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "Competitive Investigation"
+---
+
 # Competitive Investigation: Remote Repository Management
 
 This document summarizes how other JetBrains plugins and built-in features handle remote repository management, search, and dependency visualization. These serve as reference implementations for the **ROCKS** integration.

@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "TOOL: Tool Inventory Management"
+priority: high
+status: planned
+---
+
 # Tool Inventory Management Requirements (`TOOL`)
 
 Lunar provides a comprehensive registry for managing external Lua tool binaries (e.g., `luarocks`, `lua-format`, `luacheck`), ensuring consistent behavior across projects and environments.

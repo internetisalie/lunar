@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "Setup Investigation"
+---
+
 # LuaRocks Project Setup Investigation
 
 Based on the article "Lua project setup with LuaRocks" from martin-fieber.de, here are the key findings and recommendations for setting up a Lua project with LuaRocks.

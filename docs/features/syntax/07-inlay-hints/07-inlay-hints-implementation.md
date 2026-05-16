@@ -1,21 +1,27 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints|hints]]"
+title: "Implementation Status"
+---
+
 # SYNTAX-07 Inlay Hints — Implementation Status Report
 
-**Date**: 2026-05-14  
+**Date**: 2026-05-16  
 **Audit Coverage**: Full codebase review (source, tests, configuration)
 
 ---
 
 ## Executive Summary
 
-SYNTAX-07 inlay hints are **substantially implemented** with **8 of 11 requirements fully complete** (73% coverage). The core type inference, parameter name hints, and return type hints for function definitions are fully functional with comprehensive test coverage. Remaining work focuses on method chaining hints, per-category settings UI, and performance optimizations for large files.
+SYNTAX-07 inlay hints are **substantially implemented** with **9 of 11 requirements fully complete** (81% coverage). The core type inference, parameter name hints, return type hints, and per-category settings are fully functional. Remaining work focuses on method chaining hints and final verification/UX for large file thresholds.
 
-**Status**: Implementation in progress; core features delivered.
+**Status**: Implementation nearing completion.
 
 ---
 
 ## Detailed Requirements Analysis
 
-### Implemented Requirements (8/11)
+### Implemented Requirements (9/11)
 
 #### ✅ SYNTAX-07-01: Local Variable Type Hints
 - **Status**: **FULL**
@@ -51,6 +57,11 @@ SYNTAX-07 inlay hints are **substantially implemented** with **8 of 11 requireme
 - **Evidence**: `hasExplicitAnnotation` and `hasExplicitReturnAnnotation` helpers.
 - **Implementation**: Suppresses hints when corresponding LuaCATS annotations are already visible.
 
+#### ✅ SYNTAX-07-09: Per-Category Settings UI
+- **Status**: **FULL**
+- **Evidence**: `LuaInlayHintsSettings.kt` and `LuaInlayHintsCustomSettingsProvider.kt`.
+- **Implementation**: Provides granular control over Local Variable, Parameter Name, Return Type, and Method Chaining hints.
+
 #### ✅ SYNTAX-07-10: Background Execution
 - **Status**: **FULL**
 - **Evidence**: Uses `SharedBypassCollector` via Declarative Inlay Hints API.
@@ -58,7 +69,7 @@ SYNTAX-07 inlay hints are **substantially implemented** with **8 of 11 requireme
 
 ---
 
-### In Progress Requirements (3/11)
+### In Progress Requirements (2/11)
 
 #### 🚧 SYNTAX-07-07: Method Chaining Hints
 - **Status**: **IN PROGRESS**
@@ -66,17 +77,12 @@ SYNTAX-07 inlay hints are **substantially implemented** with **8 of 11 requireme
 - **Documentation**: `docs/features/syntax/07-inlay-hints/07-07-method-chaining-hints/`
 - **Missing**: Logic to detect multi-line chains and position hints at the end of each line.
 
-#### 🚧 SYNTAX-07-09: Per-Category Settings UI
-- **Status**: **IN PROGRESS**
-- **Saga Task**: Task 282
-- **Documentation**: `docs/features/syntax/07-inlay-hints/07-09-per-category-settings/`
-- **Missing**: `LuaInlayHintsSettings` persistence model and UI Configurable.
-
 #### 🚧 SYNTAX-07-11: Large File Threshold
-- **Status**: **IN PROGRESS**
+- **Status**: **IN PROGRESS** (Functional, lacking UX feedback)
 - **Saga Task**: Task 283
 - **Documentation**: `docs/features/syntax/07-inlay-hints/07-11-large-file-threshold/`
-- **Missing**: Integration with settings and early exit check in provider.
+- **Missing**: Integration with visual status or notification when hints are disabled (REQ-06).
+
 
 ---
 

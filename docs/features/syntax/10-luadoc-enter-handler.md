@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "10: Enter Handler for Comments"
+---
 # Specification: SYNTAX-10 Enter Handler for Comments
 
 This document defines the requirements for the Enter handler inside LuaDOC comments in the Lunar editor, which enhances the documentation authoring experience by automatically continuing comment blocks.

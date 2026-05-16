@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/02-project-binding/requirements|requirements]]"
+title: "Terminal PATH Injection Design"
+---
+
 # Terminal PATH Injection Design (`TOOL-02`)
 
 ## Overview

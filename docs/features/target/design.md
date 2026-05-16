@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "Detailed Design"
+---
+
 # Target Configuration Design Document
 
 ## Overview

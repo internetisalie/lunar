@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "QA Verification Scenarios"
+---
+
 # QA Verification Scenarios: TARGET - Runtime Environment Configuration
 
 This document outlines the formal verification scenarios for the TARGET feature.

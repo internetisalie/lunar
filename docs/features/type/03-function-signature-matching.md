@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+priority: medium
+status: todo
+title: "03: Function Signature Matching"
+---
+
 # Specification: TYPE-03 Function Signature Matching
 
 This document defines the requirements for validating function call sites against their LuaCATS signatures.

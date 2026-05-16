@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/02-project-binding/requirements|requirements]]"
+title: Technical Design
+---
+
 # Technical Design: Project Binding & Environment Integration (`TOOL-02`)
 
 ## Overview

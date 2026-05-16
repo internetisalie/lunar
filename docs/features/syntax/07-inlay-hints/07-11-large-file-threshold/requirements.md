@@ -1,3 +1,10 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints|hints]]"
+title: "11: Large File Threshold"
+priority: medium
+status: in_progress
+---
 # Requirements: SYNTAX-07-11 Large File Threshold
 
 ## Overview
@@ -19,12 +26,12 @@ To prevent performance degradation and editor hangs, inlay hints should be disab
 
 | ID | Priority | Description | Status |
 | :--- | :---: | :--- | :---: |
-| **07-11-REQ-01** | [Must] | Add a `largeFileThreshold` property to `LuaInlayHintsSettings` (Task 282). | Pending |
-| **07-11-REQ-02** | [Must] | The default value for `largeFileThreshold` must be 10,000 lines. | Pending |
-| **07-11-REQ-03** | [Must] | In `LuaTypeInlayHintProvider.collectFromElement`, check if the file's line count exceeds the threshold. | Pending |
-| **07-11-REQ-04** | [Must] | If the threshold is exceeded, the provider must immediately return an empty collection without traversing the PSI. | Pending |
-| **07-11-REQ-05** | [Should] | Expose an input field for the threshold in the settings UI. | Pending |
-| **07-11-REQ-06** | [Should] | Provide a visual indication or a way for the user to know hints were disabled due to file size (e.g., a notification or status bar hint, though this might be too intrusive). | Pending |
+| **07-11-REQ-01** | [Must] | Add a `largeFileThreshold` property to `LuaInlayHintsSettings` (Task 282). | **Full** |
+| **07-11-REQ-02** | [Must] | The default value for `largeFileThreshold` must be 10,000 lines. | **Full** |
+| **07-11-REQ-03** | [Must] | In `LuaTypeInlayHintProvider.collectFromElement`, check if the file's line count exceeds the threshold. | **Full** |
+| **07-11-REQ-04** | [Must] | If the threshold is exceeded, the provider must immediately return an empty collection without traversing the PSI. | **Full** |
+| **07-11-REQ-05** | [Should] | Expose an input field for the threshold in the settings UI. | **Full** |
+| **07-11-REQ-06** | [Should] | Provide a visual indication or a way for the user to know hints were disabled due to file size (e.g., a notification or status bar hint, though this might be too intrusive). | **Todo** |
 
 ## Test Cases (TC)
 

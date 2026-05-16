@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "REFACT: Refactoring & Intentions"
+priority: low
+status: planned
+---
+
 # Refactoring & Intentions Requirements (`REFACT`, `INTENT`)
 
 Lunar provides tools to safely restructure code and perform automated transformations.

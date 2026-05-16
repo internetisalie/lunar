@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "TYPE: Type System"
+priority: high
+status: planned
+---
+
 # Type System Requirements (`TYPE`)
 
 Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE features.
@@ -65,4 +73,9 @@ Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE
 - `TYPE-07-01` **Standard Library Definitions**: **Implemented** (Bundled in `resources/platform/`)
 - `TYPE-07-02` **Library Provider**: **Implemented** (`PlatformLibraryProvider`)
 - `TYPE-07-03` **Graph Injection**: **Not Implemented** (Inject stub ValueNodes on `require`)
+
+### TYPE-09: Union Distribution Logic
+- **Status**: **Planned**
+- **Strategy**: Type Algebra (Distributive laws)
+- **Detailed Specification**: [`09-union-distribution-logic/requirements.md`](./09-union-distribution-logic/requirements.md)
 

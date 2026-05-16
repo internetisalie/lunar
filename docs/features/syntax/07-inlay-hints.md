@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: in_progress
+title: "07: Inlay Hints"
+---
+
 # Specification: SYNTAX-07 Inlay Hints
 
 This document defines the requirements for inlay hints in the Lunar editor, which surface implicit information directly in the code editor without modifying the source text.

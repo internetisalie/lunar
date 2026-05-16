@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/requirements|requirements]]"
+title: "02: Project Binding & Environment Integration"
+---
+
 # Project Binding & Environment Integration (`TOOL-02`)
 
 ## Scope

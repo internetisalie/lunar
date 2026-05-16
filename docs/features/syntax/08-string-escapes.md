@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "08: String Escape Processing"
+---
 # Specification: SYNTAX-08 String Escape Processing
 
 This document defines the expected behavior for processing Lua escape sequences in string literals during syntax parsing and conversion.

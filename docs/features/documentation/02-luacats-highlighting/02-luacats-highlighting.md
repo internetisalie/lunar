@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "02: LuaCATS Syntax Highlighting"
+---
 # Specification: DOC-02 LuaCATS Syntax Highlighting
 
 This document defines the requirements for syntax highlighting of LuaCATS (Lua Code Annotation Toolset) tags and types within Lua comments.

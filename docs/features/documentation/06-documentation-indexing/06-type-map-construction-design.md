@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/documentation/06-documentation-indexing/06-documentation-indexing|requirements]]"
+title: "Technical Design: Type Map Construction"
+---
+
 # Design: DOC-06-02 Type Map Construction
 
 This document defines the architecture and implementation plan for building a Type Map in Lunar, based on stub-indexed documentation metadata.

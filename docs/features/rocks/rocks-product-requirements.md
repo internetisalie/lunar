@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|ROCKS]]"
+title: "Product Requirements"
+---
+
 # LuaRocks Integration Feature for IDS
 
 This feature enables seamless integration of LuaRocks package management within the [IDE Name] development environment, providing a complete ecosystem for dependency handling, package discovery, and code quality enforcement.

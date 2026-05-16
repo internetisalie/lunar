@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/03-dependency-resolution/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # Implementation Plan: Dependency Resolution (ROCKS-03)
 
 ## Phase 1: Data Extraction [Must]

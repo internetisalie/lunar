@@ -1,3 +1,10 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-11-large-file-threshold/requirements|requirements]]"
+title: Implementation Plan
+priority: medium
+status: in_progress
+---
 # Implementation Plan: SYNTAX-07-11 Large File Threshold
 
 ## Phase 1: Settings Extension

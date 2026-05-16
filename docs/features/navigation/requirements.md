@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "NAV: Code Navigation"
+priority: medium
+status: planned
+---
+
 # Code Navigation Requirements (`NAV`)
 
 Lunar provides powerful tools to explore and navigate the Lua codebase.

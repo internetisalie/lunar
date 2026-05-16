@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/01-inventory-management/requirements|requirements]]"
+title: Technical Design
+---
+
 # Technical Design: Tool Registry & Discovery (`TOOL-01`)
 
 ## Overview

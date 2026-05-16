@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "07: Parameter Info"
+---
 # Specification: DOC-07 Parameter Info
 
 This document defines the requirements for providing Parameter Info support in the Lunar editor for Lua function calls.

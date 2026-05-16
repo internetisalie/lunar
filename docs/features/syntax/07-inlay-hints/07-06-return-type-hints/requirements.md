@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints|hints]]"
+title: "06: Return Type Hints"
+priority: medium
+status: done
+vf_icon: ✅
+---
 # Requirements: SYNTAX-07-06 Return Type Hints
 
 ## Overview
@@ -21,13 +29,13 @@ Show inferred return types as inline editor hints at function definition sites (
 
 | ID | Priority | Description | Status |
 | :--- | :---: | :--- | :---: |
-| **07-06-REQ-01** | [Must] | Identify function definition nodes (`LuaFuncDecl`, `LuaLocalFuncDecl`, `LuaFuncDef`). | Pending |
-| **07-06-REQ-02** | [Must] | Analyze `return` statements within the function body to infer the return type(s). | Pending |
-| **07-06-REQ-03** | [Must] | Render `: <type>` hints immediately after the closing `)` of the function parameter list. | Pending |
-| **07-06-REQ-04** | [Must] | Render `: <type1>, <type2>` hints for multiple return types. | Pending |
-| **07-06-REQ-05** | [Must] | Suppress hint if an explicit `---@return` annotation is present on the function. | Pending |
-| **07-06-REQ-06** | [Should] | Suppress hint if the function has no `return` statement or only empty returns. | Pending |
-| **07-06-REQ-07** | [Should] | Suppress hint if the return type resolves to `unknown` or cannot be determined. | Pending |
+| **07-06-REQ-01** | [Must] | Identify function definition nodes (`LuaFuncDecl`, `LuaLocalFuncDecl`, `LuaFuncDef`). | **Full** |
+| **07-06-REQ-02** | [Must] | Analyze `return` statements within the function body to infer the return type(s). | **Full** |
+| **07-06-REQ-03** | [Must] | Render `: <type>` hints immediately after the closing `)` of the function parameter list. | **Full** |
+| **07-06-REQ-04** | [Must] | Render `: <type1>, <type2>` hints for multiple return types. | **Full** |
+| **07-06-REQ-05** | [Must] | Suppress hint if an explicit `---@return` annotation is present on the function. | **Full** |
+| **07-06-REQ-06** | [Should] | Suppress hint if the function has no `return` statement or only empty returns. | **Full** |
+| **07-06-REQ-07** | [Should] | Suppress hint if the return type resolves to `unknown` or cannot be determined. | **Full** |
 
 ## Test Cases (TC)
 

@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "QA Verification Scenarios"
+---
+
 # QA & User Validation Scenarios: LuaRocks Integration (ROCKS Epic)
 
 This document defines high-level validation scenarios to ensure the LuaRocks integration meets user needs and functions correctly in real-world development workflows.

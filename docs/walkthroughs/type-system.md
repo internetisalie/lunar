@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/type/requirements|TYPE]]"
+title: "Verification Walkthroughs"
+---
+
 # End-User Walkthroughs: TYPE Epic Verification
 
 This document provides step-by-step walkthroughs to verify the implementation of the **TYPE** epic in the Lunar plugin.

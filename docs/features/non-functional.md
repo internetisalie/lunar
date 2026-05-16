@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features]]"
+title: "Non-Functional Requirements"
+---
+
 # Technical Non-Functional Requirements
 
 - **Kotlin Idiomaticity:** 100% of new logic must be in Kotlin, leveraging coroutines for background indexing. Finish conversion of legacy Java code.

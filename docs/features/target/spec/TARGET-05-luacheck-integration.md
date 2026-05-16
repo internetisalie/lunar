@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "05: Luacheck Integration"
+---
+
 # TARGET-05: Luacheck Integration
 
 **Requirement**: The Luacheck static analyser must use the correct `--std` value for the active project Target. The std value is declared on the `VersionEntry` and requires no string transformation.  

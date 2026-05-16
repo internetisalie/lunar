@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: todo
+title: "05: Method Override Markers"
+---
+
 # Specification: NAV-05 Method Override Markers
 
 This document defines the requirements for displaying gutter icons for overridden or implemented methods.

@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints|hints]]"
+title: "09: Per-Category Settings"
+priority: medium
+status: done
+vf_icon: ✅
+---
 # Requirements: SYNTAX-07-09 Per-Category Settings
 
 ## Overview

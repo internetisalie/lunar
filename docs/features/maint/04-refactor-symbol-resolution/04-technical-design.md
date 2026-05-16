@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
+title: "Technical Design"
+---
+
 # Technical Design: MAINT-04 — Refactor Symbol Resolution (PsiScopeProcessor)
 
 ## 1. Architecture Overview

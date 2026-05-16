@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "11: Numeric Literal Validation"
+---
 # Specification: SYNTAX-11 Numeric Literal Validation
 
 This document defines the requirements for verifying and validating Lua 5.4 numeric literals in the Lunar editor.

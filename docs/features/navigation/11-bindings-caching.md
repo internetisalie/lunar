@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "11: Bindings Caching"
+---
 # Specification: NAV-11 Bindings Caching
 
 This document outlines the requirements for caching PSI analysis results.

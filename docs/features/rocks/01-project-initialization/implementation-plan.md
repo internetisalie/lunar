@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/01-project-initialization/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # Implementation Plan: Project Initialization & Setup (ROCKS-01)
 
 ## Phase 1: Templates & Resources [Must]

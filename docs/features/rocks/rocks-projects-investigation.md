@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "Project Layout Investigation"
+---
+
 # Open-Source Lua Project Layout Investigation
 
 This document summarizes common directory structures and configuration patterns found in popular open-source Lua projects (e.g., Kong, Lapis, Busted, Neovim plugins). These findings inform the requirements for the **ROCKS-01: Project Initialization** feature.

@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/type/09-union-distribution-logic/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # TYPE-09: Union Distribution Logic - Implementation Plan
 
 ## Phase 0: Prep & De-Risking [Must]

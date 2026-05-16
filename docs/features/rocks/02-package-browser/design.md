@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/02-package-browser/requirements|requirements]]"
+title: "Technical Design"
+---
+
 # Technical Design: Package Browser (ROCKS-02)
 
 ## 1. Overview

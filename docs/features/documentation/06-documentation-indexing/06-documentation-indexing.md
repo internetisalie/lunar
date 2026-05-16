@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+title: "06: Documentation Indexing"
+---
+
 # Specification: DOC-06 Documentation Indexing
 
 This document defines the requirements for indexing LuaDoc and LuaCATS comments in the Lunar editor to support fast lookup and analysis.

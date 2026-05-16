@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features]]"
+title: "Lunar Project Features"
+---
+
 # Lunar Project Features
 
 This document serves as the index for the functional and technical requirements of the Lunar Lua plugin. Requirements are categorized into specialized sub-documents for better maintainability.
@@ -18,6 +24,9 @@ This document serves as the index for the functional and technical requirements 
 - [[TOOL] Tool Inventory Management](features/tool/requirements.md)
 - [[ROCKS] LuaRocks Integration](features/rocks/requirements.md)
 - [[REFACT/INTENT] Refactoring & Intentions Requirements](features/refactoring/requirements.md)
+- [[MAINT] Maintenance & Refactoring](features/maint/requirements.md)
+- [[TARGET] Target Configuration](features/target/requirements.md)
+- [[BUG] Bugfixes & Stability](features/bug-fixes.md)
 - [Technical Non-Functional Requirements](features/non-functional.md)
 
 ## Requirement Classification (MoSCoW)

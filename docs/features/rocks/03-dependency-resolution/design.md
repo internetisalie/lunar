@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/03-dependency-resolution/requirements|requirements]]"
+title: "Technical Design"
+---
+
 # Technical Design: Dependency Resolution (ROCKS-03)
 
 ## 1. Overview

@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/requirements|requirements]]"
+title: Design Gaps & De-risking
+---
+
 # Design Gaps & De-risking: Tool Inventory Management (TOOL Epic)
 
 This document tracks identified technical risks, design gaps, and required de-risking actions for the Tool Inventory Management features.

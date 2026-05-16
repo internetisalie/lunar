@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/03-ui-and-health-checks/requirements|requirements]]"
+title: Implementation Plan
+---
+
 # Implementation Plan: UI/UX & Health Monitoring (`TOOL-03`)
 
 This plan covers the user interface and background maintenance of the tool inventory.

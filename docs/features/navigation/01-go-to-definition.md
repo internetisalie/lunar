@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "01: Go to Definition"
+---
 # Specification: NAV-01 Go to Definition
 
 This document outlines the requirements for Go to Definition.

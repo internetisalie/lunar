@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "04: Task Execution & Run Configurations"
+---
+
 # ROCKS-04: Task Execution & Run Configurations
 
 ## Scope

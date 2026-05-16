@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: todo
+title: "03: Go to Class/File/Symbol"
+---
+
 # Specification: NAV-03 Go to Class/File/Symbol
 
 This document outlines the requirements for quick navigation via "Search Everywhere" or dedicated Go to Class / Symbol actions.

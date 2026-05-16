@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "02: Package Browser"
+---
+
 # ROCKS-02: Package Browser
 
 ## Scope

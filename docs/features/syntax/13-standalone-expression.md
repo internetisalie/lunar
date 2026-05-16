@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "13: Standalone Expression Annotator"
+---
 # Specification: SYNTAX-13 Standalone Expression Annotator
 
 This document defines the requirements for identifying and flagging expressions that are incorrectly used as standalone statements in Lua.

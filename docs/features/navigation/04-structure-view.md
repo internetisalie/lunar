@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "04: Structure View"
+---
 # Specification: NAV-04 Structure View
 
 This document defines the expected behavior, tree hierarchy, and visual representation for the Lua Structure View in Lunar.

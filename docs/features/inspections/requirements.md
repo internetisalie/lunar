@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "INSP: Inspections & Diagnostics"
+priority: medium
+status: planned
+---
+
 # Inspections & Diagnostics Requirements (`INSP`)
 
 Lunar leverages its type engine and PSI tree to provide real-time feedback and catch errors before execution.

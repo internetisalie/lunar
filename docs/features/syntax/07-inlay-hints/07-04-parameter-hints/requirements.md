@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints|hints]]"
+title: "04: Parameter Name Hints"
+priority: high
+status: done
+vf_icon: ✅
+---
 # Requirements: SYNTAX-07-04 Parameter Name Hints
 
 ## Overview

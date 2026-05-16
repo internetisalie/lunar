@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "01: Lua 5.4 Support"
+---
 # Specification: SYNTAX-01 Lua 5.4 Variable Attributes
 
 This document defines the requirements for supporting Lua 5.4 variable attributes (`<const>` and `<close>`) in the Lunar editor.

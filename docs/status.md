@@ -1,29 +1,34 @@
+---
+folders:
+  - "[[features]]"
+title: "Project Status"
+---
 # Lunar Project Status Report
 
-**Overall Completion: 55.6%**
-(173 of 311 tasks completed across 17 active epics)
+**Overall Completion: 63.8%**
+(162 of 254 tasks completed across 15 active epics)
 
 ## Progress by Epic
 
-| Epic                                          | Priority    | Progress  | Tasks  | Completion Bar |
-| :-------------------------------------------- | :---------- | :-------- | :----- | :------------- |
-| **ANALYSIS: Static Analysis**                 | 🟡 Medium   | **100%**  | 5/5    | ██████████     |
-| **DOC: Documentation**                        | 🟡 Medium   | **100%**  | 8/8    | ██████████     |
-| **TARGET: Runtime Environment Configuration** | 🔴 High     | **100%**  | 70/70  | ██████████     |
-| **DEBUG/RUN: Debugging & Execution**          | 🟢 Low      | **92.3%** | 12/13  | █████████░     |
-| **SYNTAX: Syntax & Editor**                   | 🟡 Medium   | **73.1%** | 19/26  | ███████░░░     |
-| **TYPE: Type System**                         | 🔴 High     | **64.3%** | 27/42  | ██████░░░░     |
-| **COMP: Code Completion**                     | 🔴 High     | **60%**   | 3/5    | ██████░░░░     |
-| **Platform Symbol Documentation**             | 🟡 Medium   | **50%**   | 2/4    | █████░░░░░     |
-| **INSP: Inspections & Diagnostics**           | 🟡 Medium   | **50%**   | 2/4    | █████░░░░░     |
-| **REFACT/INTENT: Refactoring & Intentions**   | 🟢 Low      | **50%**   | 2/4    | █████░░░░░     |
-| **NAV: Code Navigation**                      | 🟡 Medium   | **45.5%** | 5/11   | █████░░░░░     |
-| **BUG: Bugfixes & Stability**                 | 🔴 Critical | **42.9%** | 3/7    | ████░░░░░░     |
-| **FORMAT: Formatting**                        | 🟡 Medium   | **33.3%** | 2/6    | ███░░░░░░░     |
-| **MAINT: Maintenance & Refactoring**          | 🟢 Low      | **14.3%** | 2/14   | ██░░░░░░░░     |
-| **TYPE-09: Union Distribution Logic**         | 🔴 High     | **0%**    | 0/22   | ░░░░░░░░░░     |
-| **TOOL: Tool Inventory Management**           | 🔴 High     | **0%**    | 0/6    | ░░░░░░░░░░     |
-| **ROCKS: LuaRocks Integration**               | 🔴 High     | **0%**    | 0/7    | ░░░░░░░░░░     |
+| Epic                                          | Priority    | Progress  | Tasks | Completion Bar |
+| :-------------------------------------------- | :---------- | :-------- | :---- | :------------- |
+| **ANALYSIS: Static Analysis**                 | 🟡 Medium   | **100%**  | 5/5   | ██████████     |
+| **DOC: Documentation**                        | 🟡 Medium   | **100%**  | 8/8   | ██████████     |
+| **TARGET: Runtime Environment Configuration** | 🔴 High     | **100%**  | 70/70 | ██████████     |
+| **DEBUG/RUN: Debugging & Execution**          | 🟢 Low      | **92.3%** | 12/13 | █████████░     |
+| **SYNTAX: Syntax & Editor**                   | 🟡 Medium   | **73.1%** | 19/26 | ███████░░░     |
+| **TYPE: Type System**                         | 🔴 High     | **64.3%** | 27/42 | ██████░░░░     |
+| **COMP: Code Completion**                     | 🔴 High     | **60%**   | 3/5   | ██████░░░░     |
+| **Platform Symbol Documentation**             | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░     |
+| **INSP: Inspections & Diagnostics**           | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░     |
+| **REFACT/INTENT: Refactoring & Intentions**   | 🟢 Low      | **50%**   | 2/4   | █████░░░░░     |
+| **NAV: Code Navigation**                      | 🟡 Medium   | **45.5%** | 5/11  | █████░░░░░     |
+| **BUG: Bugfixes & Stability**                 | 🔴 Critical | **42.9%** | 3/7   | ████░░░░░░     |
+| **FORMAT: Formatting**                        | 🟡 Medium   | **33.3%** | 2/6   | ███░░░░░░░     |
+| **MAINT: Maintenance & Refactoring**          | 🟢 Low      | **14.3%** | 2/14  | ██░░░░░░░░     |
+| **TYPE-09: Union Distribution Logic**         | 🔴 High     | **0%**    | 0/22  | ░░░░░░░░░░     |
+| **TOOL: Tool Inventory Management**           | 🔴 High     | **0%**    | 0/6   | ░░░░░░░░░░     |
+| **ROCKS: LuaRocks Integration**               | 🔴 High     | **0%**    | 0/7   | ░░░░░░░░░░     |
 
 ## Recent Milestones
 
@@ -34,4 +39,4 @@
 ## Current Focus
 Active development is focused on **TYPE-09: Union Distribution Logic** and the final stabilization of Inlay Hints under **SYNTAX-07**.
 
-*Last updated: 2026-05-16T07:04:00-04:00*
+*Last updated: 2026-05-16T13:49:00-04:00*

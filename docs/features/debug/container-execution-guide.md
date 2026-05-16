@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/debug/requirements|requirements]]"
+title: "Container Execution Guide"
+---
+
 # Container Execution Guide
 
 Running the Lunar IDE plugin in a Docker container with desktop GUI access via VNC.

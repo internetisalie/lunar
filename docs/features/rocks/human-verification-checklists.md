@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/requirements|requirements]]"
+title: "Verification Checklists"
+---
+
 # Human Verification Checklists: LuaRocks Integration (ROCKS Epic)
 
 This document provides step-by-step verification procedures for the ROCKS tasks.

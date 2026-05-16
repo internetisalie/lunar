@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/04-task-execution/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # Implementation Plan: Task Execution & Run Configurations (ROCKS-04)
 
 ## Phase 1: Core Type [Must]

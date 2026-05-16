@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "Risk Register"
+---
+
 # TARGET Risk Register
 
 **Last Updated**: 2026-05-12  

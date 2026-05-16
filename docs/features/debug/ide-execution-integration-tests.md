@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/debug/requirements|requirements]]"
+title: "IDE Execution Integration Tests"
+---
+
 # Implementing Full IDE Lua Program Execution in Integration Tests
 
 ## Overview

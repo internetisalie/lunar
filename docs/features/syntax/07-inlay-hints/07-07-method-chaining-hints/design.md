@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-07-method-chaining-hints/requirements|requirements]]"
+title: "Technical Design"
+---
+
 # Design: SYNTAX-07-07 Method Chaining Hints
 
 ## Objective

@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "14: Vararg Context Annotator"
+---
 # Specification: SYNTAX-14 Vararg Context Annotator
 
 This document defines the requirements for verifying the valid contextual use of the vararg expression (`...`).

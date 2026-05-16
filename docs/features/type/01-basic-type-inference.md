@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "01: Basic Type Inference"
+---
 # Specification: TYPE-01 Basic Type Inference
 
 This document defines the requirements for inferring basic types from Lua source code in the Lunar plugin.

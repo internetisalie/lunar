@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "02: Implicit Language Level"
+---
+
 # TARGET-02: Implicit Language Level
 
 **Requirement**: Selecting a Target must automatically derive the `LuaLanguageLevel` (e.g., Redis implies Lua 5.1). The language level is not independently user-selectable when a platform is active.  

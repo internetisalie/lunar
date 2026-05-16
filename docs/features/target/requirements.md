@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "TARGET: Runtime Environment Configuration"
+priority: high
+status: completed
+vf_icon: ✅
+---
 # Target Configuration Requirements (`TARGET`)
 
 The Target Configuration feature manages the runtime environment for Lua code, allowing users to switch between different platforms (e.g., Standard Lua, Redis, LuaJIT) and their respective versions.

@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "04: Documentation Generation"
+---
 # Specification: DOC-04 Documentation Generation
 
 This document defines the requirements for automatic generation of LuaCATS/LuaDoc documentation boilerplate in the Lunar editor.

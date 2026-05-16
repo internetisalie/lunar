@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "01: Quick Documentation"
+---
 # Specification: DOC-01 Quick Documentation (Ctrl+Q)
 
 This document defines the requirements for providing Quick Documentation support in the Lunar editor for Lua symbols.

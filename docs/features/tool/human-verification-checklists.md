@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/requirements|requirements]]"
+title: Human Verification Checklists
+---
+
 # Human Verification Checklists: Tool Inventory Management (TOOL Epic)
 
 This document provides step-by-step verification procedures for humans (developers/QA) to validate the implementation of each TOOL task.

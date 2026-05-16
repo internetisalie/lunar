@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "06: Settings Migration"
+---
+
 # TARGET-06: Settings Migration
 
 **Requirement**: Existing project settings must migrate to the new Target data model without user action or data loss.  

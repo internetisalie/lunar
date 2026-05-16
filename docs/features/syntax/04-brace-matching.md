@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "04: Brace Matching"
+---
 # Specification: SYNTAX-04 Brace Matching
 
 This document defines the requirements for brace matching and structural highlighting in the Lunar editor, helping users identify matching pairs of punctuation and keywords.

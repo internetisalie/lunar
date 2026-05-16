@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/debug/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "04: Expression Evaluation"
+---
 # DEBUG-04: Expression Evaluation Specification
 
 **Status:** ✅ Implemented  

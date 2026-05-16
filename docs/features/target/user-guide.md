@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements]]"
+title: User Guide
+---
+
 # User Guide: Runtime Environment Configuration (TARGET)
 
 The **Runtime Environment Configuration** feature allows you to tell the IDE exactly which Lua environment your code is targeting. This ensures that the IDE provides accurate code completion and static analysis results.

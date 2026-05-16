@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/documentation/06-documentation-indexing/06-documentation-indexing|requirements]]"
+title: "Technical Design: Stub Indexing"
+---
+
 # Design Document: Stub Indexing for LuaCATS Data (DOC-06)
 
 ## 1. Overview

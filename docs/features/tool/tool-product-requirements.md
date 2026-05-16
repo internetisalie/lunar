@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/requirements|TOOL]]"
+title: "Product Requirements"
+---
+
 # Product Requirements: Tool Inventory Management (TOOL Epic)
 
 ## 1. Feature Overview

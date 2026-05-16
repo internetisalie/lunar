@@ -1,3 +1,8 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-06-return-type-hints/requirements|requirements]]"
+title: Technical Design
+---
 # Technical Design: SYNTAX-07-06 Return Type Hints
 
 ## 1. Overview

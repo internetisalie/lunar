@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+priority: high
+status: done
+vf_icon: ✅
+title: "05: Generics Support"
+---
 # Specification: TYPE-05 Generics Support
 
 This document defines the requirements for supporting polymorphic functions and classes using LuaCATS `@generic` tags.

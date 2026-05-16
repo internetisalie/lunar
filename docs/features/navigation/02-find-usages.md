@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/navigation/requirements|requirements]]"
+priority: medium
+status: todo
+title: "02: Find Usages"
+---
+
 # Specification: NAV-02 Find Usages (Symbols)
 
 This document defines the requirements for finding references to a specific symbol across the project.

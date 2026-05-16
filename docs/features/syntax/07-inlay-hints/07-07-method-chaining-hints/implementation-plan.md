@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-07-method-chaining-hints/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # Implementation Plan: SYNTAX-07-07 Method Chaining Hints
 
 ## Phase 1: Foundation & Infrastructure

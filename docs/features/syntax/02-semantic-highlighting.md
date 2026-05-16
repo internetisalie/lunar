@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/syntax/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "02: Semantic Highlighting"
+---
 # Specification: SYNTAX-02 Semantic Highlighting
 
 This document defines the requirements for semantic highlighting in the Lunar editor, which differentiates variables based on their scope and declaration type (locals, globals, parameters, and upvalues).

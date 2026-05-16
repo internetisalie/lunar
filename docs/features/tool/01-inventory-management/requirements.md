@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/requirements|requirements]]"
+title: "01: Tool Registry & Discovery"
+---
+
 # Tool Registry & Discovery (`TOOL-01`)
 
 ## Scope

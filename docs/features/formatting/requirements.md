@@ -1,3 +1,10 @@
+---
+folders:
+  - "[[features]]"
+title: "FORMAT: Formatting"
+priority: medium
+status: planned
+---
 # Formatting Requirements (`FORMAT`)
 
 Lunar provides a highly configurable code formatter to ensure consistency across Lua projects.

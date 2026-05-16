@@ -1,3 +1,8 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-04-parameter-hints/requirements|requirements]]"
+title: Implementation Plan
+---
 # Implementation Plan: SYNTAX-07-04 Parameter Name Hints
 
 ## Phase 1: Foundation & Tests [Must]

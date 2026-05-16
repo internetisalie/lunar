@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/rocks/02-package-browser/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # Implementation Plan: Package Browser (ROCKS-02)
 
 ## Phase 1: Search Service & Caching [Must]

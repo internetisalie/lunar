@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "06: Return Type Checking"
+---
 # Specification: TYPE-06 Return Type Checking
 
 This document defines the requirements for validating that function implementations adhere to their declared return types.

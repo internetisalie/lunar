@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
+title: "02: Prep Symbol Resolution Tests"
+---
+
 # Specification: MAINT-04-Prep — Symbol Resolution Test Suite
 
 ## 1. Overview

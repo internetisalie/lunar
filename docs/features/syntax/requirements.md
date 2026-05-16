@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "SYNTAX: Syntax & Editor"
+priority: medium
+status: planned
+---
+
 # Syntax & Editor Requirements (`SYNTAX`)
 
 Lunar ensures high-fidelity representation of Lua code with support for modern language features.

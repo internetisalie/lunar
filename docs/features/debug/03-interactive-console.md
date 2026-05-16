@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/debug/requirements|requirements]]"
+priority: low
+status: todo
+title: "03: Interactive Console (REPL)"
+---
+
 # Specification: RUN-03 Interactive Console (REPL)
 
 This document defines the requirements for providing an integrated Lua REPL (Read-Eval-Print Loop) within the Lunar editor.

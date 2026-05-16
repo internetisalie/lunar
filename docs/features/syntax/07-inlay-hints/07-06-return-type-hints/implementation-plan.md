@@ -1,3 +1,8 @@
+---
+folders:
+  - "[[features/syntax/07-inlay-hints/07-06-return-type-hints/requirements|requirements]]"
+title: Implementation Plan
+---
 # Implementation Plan: SYNTAX-07-06 Return Type Hints
 
 ## Overview

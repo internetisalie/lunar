@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/target/requirements|requirements]]"
+title: "01: Target Data Model"
+---
+
 # TARGET-01: Target Data Model
 
 **Requirement**: Define a `Target` configuration combining a `LuaPlatform` and a platform-specific `VersionEntry`.  

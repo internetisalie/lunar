@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "07: External API Stubs"
+---
 # Specification: TYPE-07 External API Stubs
 
 This document defines the requirements for supporting type definitions for external C-modules via LuaCATS stub files.

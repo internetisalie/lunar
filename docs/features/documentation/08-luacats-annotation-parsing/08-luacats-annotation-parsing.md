@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "08: LuaCATS Annotation Parsing"
+---
 # Specification: DOC-08 Comprehensive LuaCATS Parsing
 
 This document specifies the requirements for exhaustive support of the LuaCATS annotation system, ensuring compatibility with the official [Lua Language Server (sumneko.lua)](https://luals.github.io/wiki/annotations/) specification.

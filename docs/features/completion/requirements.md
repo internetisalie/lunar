@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features]]"
+title: "COMP: Code Completion"
+priority: high
+status: planned
+---
+
 # Code Completion Requirements (`COMP`)
 
 Intelligent completion is the primary driver of productivity in the IDE.

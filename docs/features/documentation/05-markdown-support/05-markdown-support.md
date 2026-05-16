@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "05: Markdown Support"
+---
 # Specification: DOC-05 Markdown Support
 
 This document defines the requirements for supporting Markdown formatting within Lua documentation in the Lunar editor.

@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/requirements|requirements]]"
+title: "03: UI/UX & Health Monitoring"
+---
+
 # UI/UX & Health Monitoring (`TOOL-03`)
 
 ## Scope

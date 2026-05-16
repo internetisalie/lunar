@@ -1,11 +1,13 @@
+---
+folders:
+  - "[[features/type/requirements|requirements]]"
+title: "Type Inference Engine Design"
+---
+
 # Type Inference Engine Design
 
-<<<<<<< HEAD:docs/features/type/design/type-inference-engine.md
-**Branch**: [`inference`](../../../src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaTypeInference.kt) (Exploration)  
-=======
->>>>>>> 8a62cee (feat(types): implement type inference engine foundation and fix inlay hint rendering):docs/requirements/spec/type/design/type-inference-engine.md
 **Status**: Experimental Exploration  
-**Related requirement**: [`TYPE-01`](../requirements.md) — Basic Type Inference
+**Related requirement**: [`TYPE-01`](./01-basic-type-inference.md) — Basic Type Inference
 
 ---
 

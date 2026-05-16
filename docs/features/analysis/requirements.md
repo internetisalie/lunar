@@ -1,3 +1,12 @@
+---
+folders:
+  - "[[features]]"
+title: "ANALYSIS: Static Analysis"
+priority: medium
+status: completed
+vf_icon: ✅
+---
+
 # Static Analysis Requirements (`ANALYSIS`)
 
 Lunar integrates with external static analysis tools to catch errors and provide code quality feedback.
@@ -15,11 +24,17 @@ Lunar integrates with external static analysis tools to catch errors and provide
 ## Detailed Implementation Status
 
 ### ANALYSIS-01: Luacheck Integration
-- **Status**: **Implemented** (`LuaCheckAnnotator`)
+- **Status**: **Implemented**
 
 ### ANALYSIS-02: Settings Panel Integration
-- **Status**: **Implemented** (`LuaCheckSettingsPanel`)
+- **Status**: **Implemented**
 
 ### ANALYSIS-03: External Annotator
-- **Status**: **Implemented** (`LuaCheckAnnotator` extends `ExternalAnnotator`)
+- **Status**: **Implemented**
+
+### ANALYSIS-04: Luacheck Output Parsing
+- **Status**: **Implemented**
+
+### ANALYSIS-05: Custom Rules Support
+- **Status**: **Implemented**
 

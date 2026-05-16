@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/tool/03-ui-and-health-checks/requirements|requirements]]"
+title: Technical Design
+---
+
 # Technical Design: UI/UX & Health Monitoring (`TOOL-03`)
 
 ## Overview

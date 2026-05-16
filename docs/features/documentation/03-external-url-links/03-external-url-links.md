@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/requirements|requirements]]"
+priority: medium
+status: done
+vf_icon: ✅
+title: "03: External URL Links"
+---
 # Specification: DOC-03 External URL Links
 
 This document defines the requirements for supporting external URL links within Lua documentation in the Lunar editor.

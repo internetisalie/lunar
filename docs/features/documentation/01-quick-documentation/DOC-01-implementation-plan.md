@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/documentation/01-quick-documentation/01-quick-documentation|requirements]]"
+title: "Implementation Plan"
+---
+
 # DOC-01 Quick Documentation Implementation Plan
 
 ## Overview

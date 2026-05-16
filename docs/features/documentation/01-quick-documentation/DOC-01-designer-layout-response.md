@@ -1,3 +1,11 @@
+---
+folders:
+  - "[[features/documentation/01-quick-documentation/01-quick-documentation|requirements]]"
+title: "Designer Layout Response"
+---
+
+# Designer Layout Response
+
 This implementation follows the JetBrains **Modern `DocumentationTarget`** standard. In this approach, the IDE provides the outer container (padding, background, and scrolling), while the plugin provides the HTML payload divided into three logical blocks: **Definition**, **Content**, and **Sections**.
 
 ### 1. The HTML Template
