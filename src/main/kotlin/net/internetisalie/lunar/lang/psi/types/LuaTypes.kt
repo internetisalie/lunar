@@ -54,8 +54,8 @@ class LuaTypesSnapshot(
                 val read = node.read
                 if (write is LuaGraphType.Table && read is LuaGraphType.Table) {
                     val mergedMembers = mutableMapOf<String, VariableNode>()
-                    mergedMembers.putAll(write.members)
-                    mergedMembers.putAll(read.members)
+                    mergedMembers.putAll(write.localMembers)
+                    mergedMembers.putAll(read.localMembers)
                     LuaGraphType.Table(write.className ?: read.className, mergedMembers, write.superTypes, write.isExact)
                 } else if (write != LuaGraphType.Undefined) {
                     write
@@ -79,13 +79,13 @@ class LuaTypesSnapshot(
         LuaGraphType.Number -> LuaPrimitiveType.NUMBER
         LuaGraphType.String -> LuaPrimitiveType.STRING
         is LuaGraphType.Table -> {
-            val members = type.members.mapValues { (name, node) ->
+            val membersMap = type.getMembers().mapValues { (name, node) ->
                 LuaTypeMember(name, graphTypeToLuaType(node.write))
             }
             if (type.className != null) {
-                LuaClassType(type.className, emptyList(), members)
+                LuaClassType(type.className, emptyList(), membersMap)
             } else {
-                LuaTableLiteralType(members)
+                LuaTableLiteralType(membersMap)
             }
         }
         is LuaGraphType.Function -> {

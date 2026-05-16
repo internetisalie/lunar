@@ -3,7 +3,7 @@ folders:
   - "[[features]]"
 title: "COMP: Code Completion"
 priority: high
-status: planned
+status: in_progress
 ---
 
 # Code Completion Requirements (`COMP`)
@@ -12,6 +12,7 @@ Intelligent completion is the primary driver of productivity in the IDE.
 
 | ID | Requirement | Priority | Description |
 | :--- | :--- | :---: | :--- |
+| `COMP-00` | **Roadmap & Risks** | **M** | Epic roadmap, technical risks, and design gaps. [Risks & Gaps](features/completion/completion-risks-and-gaps.md) |
 | `COMP-01` | **Keyword Completion** | **M** | Suggest Lua keywords based on syntax context (e.g., `then` after `if`, `end` to close blocks). [[COMP-01] Spec](features/completion/01-keyword-completion/requirements.md) |
 | `COMP-02` | **Basic Symbol Completion** | **M** | Suggest local variables, parameters, and global symbols within the current scope. [[COMP-02] Spec](features/completion/02-symbol-completion/requirements.md) |
 | `COMP-03` | **Cross-file Completion** | **M** | Suggest symbols exported from other files via `require()` or global definitions. [[COMP-03] Spec](features/completion/03-cross-file-completion/requirements.md) |

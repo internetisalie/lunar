@@ -3,11 +3,30 @@ package net.internetisalie.lunar.lang.psi.types
 class LuaClassType(
     override val name: String,
     val superTypes: List<LuaType> = emptyList(),
-    val members: Map<String, LuaTypeMember> = emptyMap(),
+    val localMembers: Map<String, LuaTypeMember> = emptyMap(),
     val typeParameters: List<LuaGenericType> = emptyList()
 ) : LuaType {
     override fun resolveMember(name: String): LuaTypeMember? {
         return resolveMemberInternal(name, mutableSetOf())
+    }
+
+    override fun getMembers(): Map<String, LuaTypeMember> {
+        return getMembersInternal(mutableSetOf())
+    }
+
+    private fun getMembersInternal(visited: MutableSet<String>): Map<String, LuaTypeMember> {
+        if (!visited.add(this.name)) return emptyMap()
+
+        val result = mutableMapOf<String, LuaTypeMember>()
+        // Super types first (so local members override them)
+        for (superType in superTypes.reversed()) {
+            when (superType) {
+                is LuaClassType -> result.putAll(superType.getMembersInternal(visited))
+                else -> result.putAll(superType.getMembers())
+            }
+        }
+        result.putAll(localMembers)
+        return result
     }
 
     private fun resolveMemberInternal(name: String, visited: MutableSet<String>): LuaTypeMember? {
@@ -15,7 +34,7 @@ class LuaClassType(
         if (!visited.add(this.name)) return null
 
         // 1. Local member
-        members[name]?.let { return it }
+        localMembers[name]?.let { return it }
 
         // 2. Inherited member
         for (superType in superTypes) {
@@ -59,6 +78,7 @@ class LuaAliasType(
     val targetType: LuaType
 ) : LuaType {
     override fun resolveMember(name: String): LuaTypeMember? = targetType.resolveMember(name)
+    override fun getMembers(): Map<String, LuaTypeMember> = targetType.getMembers()
 
     override fun isAssignableTo(other: LuaType): Boolean = targetType.isAssignableTo(other)
 
@@ -87,6 +107,7 @@ class LuaFunctionType(
     }
 
     override fun resolveMember(name: String): LuaTypeMember? = null
+    override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
 
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true

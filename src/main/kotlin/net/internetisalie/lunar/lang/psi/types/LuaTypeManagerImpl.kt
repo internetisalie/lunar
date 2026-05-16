@@ -133,13 +133,13 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
     }
 
     private fun materializeClass(name: String, decls: Collection<LuaLocalVarDecl>): LuaType {
-        val members = mutableMapOf<String, LuaTypeMember>()
+        val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
         for (decl in decls) {
             val stub = decl.stub
             if (stub != null) {
                 stub.luacatsFields.forEach { (fName, fTypeStr) ->
-                    members[fName] = LuaTypeMember(fName, LuaTypeReference(fTypeStr, decl), sourceElement = decl)
+                    membersMap[fName] = LuaTypeMember(fName, LuaTypeReference(fTypeStr, decl), sourceElement = decl)
                 }
                 stub.luacatsExtends?.split(',')?.forEach {
                     val extendedType = it.trim()
@@ -158,7 +158,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                         fName = fName.removeSuffix("?")
                         fTypeStr = "($fTypeStr) | nil"
                     }
-                    members[fName] = LuaTypeMember(fName, LuaTypeReference(fTypeStr, decl), sourceElement = it)
+                    membersMap[fName] = LuaTypeMember(fName, LuaTypeReference(fTypeStr, decl), sourceElement = it)
                 }
                 cats?.getClassTagList()?.firstOrNull()?.parentTypes?.let { parentTypes ->
                     parentTypes.argTypeList.forEach { parentType ->
@@ -167,7 +167,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                 }
             }
         }
-        return LuaClassType(name, superTypes, members)
+        return LuaClassType(name, superTypes, membersMap)
     }
 
     private fun materializeAlias(name: String, decl: LuaLocalVarDecl): LuaType {

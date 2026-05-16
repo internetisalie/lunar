@@ -2,6 +2,7 @@ package net.internetisalie.lunar.lang.psi.types
 
 class LuaPrimitiveType(override val name: String) : LuaType {
     override fun resolveMember(name: String): LuaTypeMember? = null
+    override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
 
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == ANY) return true

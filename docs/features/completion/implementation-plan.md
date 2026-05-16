@@ -1,3 +1,9 @@
+---
+folders:
+  - "[[features/completion/requirements|requirements]]"
+title: "Implementation Plan"
+---
+
 # Completion Implementation Plan
 
 **Feature**: Code Completion (`COMP`)  
@@ -5,7 +11,7 @@
 
 ## Phase 0: De-risking & Scaffolding
 - [x] **COMP-DR-01**: Prototype keyword completion & verify context detection.
-- [ ] **COMP-DR-02**: Evaluate completion sorting/grouping strategy.
+- [x] **COMP-DR-02**: Evaluate completion sorting/grouping strategy.
 
 ## Phase 1: Keyword Completion (COMP-01)
 - [ ] **COMP-01-01**: Basic Scaffolding & Unconditional Keywords.

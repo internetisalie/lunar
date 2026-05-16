@@ -245,7 +245,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     override fun visitTableConstructor(o: LuaTableConstructor) {
         super.visitTableConstructor(o)
 
-        val tableType = LuaGraphType.Table()
+        val localMembers = mutableMapOf<String, VariableNode>()
+        val tableType = LuaGraphType.Table(null, localMembers)
         o.fieldList?.fieldList?.forEach { field ->
             val key = field.identifier?.text
             val valExpr = field.exprList.lastOrNull()
@@ -253,7 +254,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 val valNode = firstNode(unwrapExpression(valExpr)) ?: graph.nil(valExpr)
                 val memberNode = graph.variable(field)
                 graph.addEdge(valNode, memberNode)
-                tableType.members[key] = memberNode
+                localMembers[key] = memberNode
             }
         }
         elementNodes[o] = listOf(graph.value(o, tableType))
@@ -321,7 +322,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             if (propName != null) {
                 val memberNode = graph.variable(prop)
                 val tableConstraint = LuaGraphType.Table()
-                tableConstraint.members[propName] = memberNode
+                tableConstraint.localMembers[propName] = memberNode
                 graph.addEdge(calleeNode, graph.use(prop, tableConstraint))
                 calleeNode = memberNode
             }
@@ -333,7 +334,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             if (methodName != null) {
                 val memberNode = graph.variable(method)
                 val tableConstraint = LuaGraphType.Table()
-                tableConstraint.members[methodName] = memberNode
+                tableConstraint.localMembers[methodName] = memberNode
                 graph.addEdge(calleeNode, graph.use(method, tableConstraint))
                 calleeNode = memberNode
             }
@@ -380,7 +381,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             if (methodName != null) {
                 val memberNode = graph.variable(methodExpr)
                 val tableConstraint = LuaGraphType.Table()
-                tableConstraint.members[methodName] = memberNode
+                tableConstraint.localMembers[methodName] = memberNode
                 graph.addEdge(calleeNode, graph.use(methodExpr, tableConstraint))
                 calleeNode = memberNode
             }
@@ -472,7 +473,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 val receiverNode = firstNode(unwrapExpression(varElement.firstChild)) ?: return
                 val memberNode = graph.variable(o)
                 val tableConstraint = LuaGraphType.Table()
-                tableConstraint.members[nameRef.text] = memberNode
+                tableConstraint.localMembers[nameRef.text] = memberNode
                 graph.addEdge(receiverNode, graph.use(o, tableConstraint))
                 elementNodes[o] = listOf(memberNode)
             }

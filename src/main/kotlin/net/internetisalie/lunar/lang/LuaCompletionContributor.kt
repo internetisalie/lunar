@@ -11,6 +11,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.*
+import net.internetisalie.lunar.lang.psi.types.*
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 class LuaCompletionContributor : CompletionContributor() {
@@ -117,6 +118,41 @@ class LuaCompletionContributor : CompletionContributor() {
 
                         // else, elseif, end
                         addBlockClosureKeywords(prevLeaf, result)
+                    }
+                }
+            }
+        )
+
+        // Member completion provider
+        extend(
+            CompletionType.BASIC,
+            psiElement().afterLeaf(".", ":"),
+            object : CompletionProvider<CompletionParameters>() {
+                override fun addCompletions(
+                    parameters: CompletionParameters,
+                    context: ProcessingContext,
+                    result: CompletionResultSet
+                ) {
+                    val position = parameters.position
+                    val prevLeaf = PsiTreeUtil.prevVisibleLeaf(position) ?: return
+                    val isColon = prevLeaf.text == ":"
+
+                    val receiver = PsiTreeUtil.prevVisibleLeaf(prevLeaf) ?: return
+                    val receiverExpr = findReceiverExpr(receiver) ?: return
+
+                    val snapshot = LuaTypesVisitor.getTypes(parameters.originalFile)
+                    val type = snapshot.getValueType(receiverExpr)
+
+                    val members = type.getMembers()
+                    for ((name, memberNode) in members) {
+                        val memberType = memberNode.write
+                        // If it's a colon completion, only show functions
+                        if (isColon && memberType !is LuaGraphType.Function) continue
+
+                        val builder = LookupElementBuilder.create(name)
+                            .withTypeText(memberType.displayName())
+
+                        result.addElement(PrioritizedLookupElement.withPriority(builder, 100.0))
                     }
                 }
             }
@@ -296,5 +332,25 @@ class LuaCompletionContributor : CompletionContributor() {
                 addKeywords(result, listOf("end", "else", "elseif"))
             }
         }
+    }
+
+    private fun findReceiverExpr(receiver: PsiElement): PsiElement? {
+        // If receiver is an identifier, it might be a NameRef or part of a Var/Expr
+        var current: PsiElement? = receiver
+        while (current != null) {
+            if (current is LuaExpr || current is LuaVar || current is LuaNameRef) {
+                // If it's part of a larger expression that ends here, we want the larger one.
+                val parent = current.parent
+                if (parent is LuaExpr || parent is LuaVar || parent is LuaNameRef) {
+                    if (parent.textRange.endOffset == current.textRange.endOffset) {
+                        current = parent
+                        continue
+                    }
+                }
+                return current
+            }
+            current = current.parent
+        }
+        return null
     }
 }

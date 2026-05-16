@@ -13,6 +13,7 @@ class LuaTypeReference(
     fun resolveType(): LuaType = resolved
 
     override fun resolveMember(name: String): LuaTypeMember? = resolved.resolveMember(name)
+    override fun getMembers(): Map<String, LuaTypeMember> = resolved.getMembers()
 
     override fun isAssignableTo(other: LuaType): Boolean = resolved.isAssignableTo(other)
 

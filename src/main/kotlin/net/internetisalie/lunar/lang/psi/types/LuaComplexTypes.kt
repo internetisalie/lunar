@@ -14,6 +14,18 @@ class LuaUnionType(val types: Set<LuaType>) : LuaType {
         return LuaTypeMember(name, LuaUnionType(members.map { it!!.type }.toSet()))
     }
 
+    override fun getMembers(): Map<String, LuaTypeMember> {
+        val allMembers = mutableMapOf<String, MutableSet<LuaType>>()
+        for (type in types) {
+            for ((name, member) in type.getMembers()) {
+                allMembers.getOrPut(name) { mutableSetOf() }.add(member.type)
+            }
+        }
+        return allMembers.mapValues { (name, typeSet) ->
+            LuaTypeMember(name, if (typeSet.size == 1) typeSet.first() else LuaUnionType(typeSet))
+        }
+    }
+
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true
         if (this == other) return true
@@ -31,6 +43,8 @@ class LuaArrayType(val elementType: LuaType) : LuaType {
         return null
     }
 
+    override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
+
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true
         if (other is LuaArrayType) {
@@ -47,6 +61,7 @@ class LuaArrayType(val elementType: LuaType) : LuaType {
 
 class LuaGenericType(override val name: String) : LuaType {
     override fun resolveMember(name: String): LuaTypeMember? = null
+    override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
 
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true
@@ -66,6 +81,8 @@ class LuaParameterizedType(val baseType: LuaType, val arguments: List<LuaType>) 
         return baseType.resolveMember(name)
     }
 
+    override fun getMembers(): Map<String, LuaTypeMember> = baseType.getMembers()
+
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true
         if (other is LuaUnionType) {
@@ -82,10 +99,11 @@ class LuaParameterizedType(val baseType: LuaType, val arguments: List<LuaType>) 
     override fun toString(): String = name
 }
 
-class LuaTableLiteralType(val members: Map<String, LuaTypeMember>) : LuaType {
-    override val name: String = "{ ${members.entries.joinToString(", ") { "${it.key}: ${it.value.type.name}" }} }"
+class LuaTableLiteralType(val localMembers: Map<String, LuaTypeMember>) : LuaType {
+    override val name: String = "{ ${localMembers.entries.joinToString(", ") { "${it.key}: ${it.value.type.name}" }} }"
 
-    override fun resolveMember(name: String): LuaTypeMember? = members[name]
+    override fun resolveMember(name: String): LuaTypeMember? = localMembers[name]
+    override fun getMembers(): Map<String, LuaTypeMember> = localMembers
 
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true
@@ -93,8 +111,8 @@ class LuaTableLiteralType(val members: Map<String, LuaTypeMember>) : LuaType {
             return other.types.any { this.isAssignableTo(it) }
         }
         if (other is LuaTableLiteralType) {
-            return other.members.all { (name, otherMember) ->
-                val thisMember = members[name]
+            return other.localMembers.all { (name, otherMember) ->
+                val thisMember = localMembers[name]
                 thisMember != null && thisMember.type.isAssignableTo(otherMember.type)
             }
         }

@@ -12,6 +12,7 @@ interface LuaType {
     val name: String
 
     fun resolveMember(name: String): LuaTypeMember?
+    fun getMembers(): Map<String, LuaTypeMember>
 
     fun isAssignableTo(other: LuaType): Boolean
 }

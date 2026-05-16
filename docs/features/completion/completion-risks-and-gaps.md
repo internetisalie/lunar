@@ -1,7 +1,7 @@
 ---
 folders:
   - "[[features/completion/requirements|requirements]]"
-title: Risks & Gaps
+title: "00: Design Gaps & De-risking"
 ---
 
 # Risks & Design Gaps: COMP Epic
@@ -20,7 +20,7 @@ This document tracks technical risks and design gaps for the Code Completion (`C
 
 | ID | Gap | Description | De-risking Action |
 | :--- | :--- | :--- | :--- |
-| `COMP-G-01` | **LuaCATS Parsing** | How to suggest members from LuaCATS annotations when the PSI isn't fully resolved? | `COMP-DR-01`: Research `LuaCATS` integration with the type graph for completion. |
+| `COMP-G-01` | **LuaCATS Parsing** | How to suggest members from LuaCATS annotations when the PSI isn't fully resolved? | **Resolved**: Enhanced `LuaTypeGraphBridge` to recognize `@class` and implemented robust receiver identification in `LuaCompletionContributor`. |
 | `COMP-G-02` | **Priority Ranking** | How to balance keywords vs. symbols vs. cross-file symbols? | `COMP-DR-02`: Define a weighting strategy for different completion types. |
 
 ## De-risking Tasks (DR)

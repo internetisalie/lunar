@@ -61,8 +61,13 @@ object LuaTypeGraphBridge {
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
-        val typeTag = cats.getTypeTagList().firstOrNull() ?: return
-        val typeName = typeTag.argType.text.trim()
+        val typeTag = cats.getTypeTagList().firstOrNull()
+        val classTag = cats.getClassTagList().firstOrNull()
+        
+        val typeName = typeTag?.argType?.text?.trim() 
+            ?: classTag?.argType?.text?.trim() 
+            ?: return
+
         val genericNames = cats.getGenericTagList()
             .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
             .map { it.argName.text }

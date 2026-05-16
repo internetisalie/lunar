@@ -354,8 +354,8 @@ class LuaTypeGraph {
         use: LuaGraphType.Table,
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>>,
     ): Boolean {
-        for ((key, useNode) in use.members) {
-            val valueNode = value.members[key]
+        for ((key, useNode) in use.getMembers()) {
+            val valueNode = value.getMembers()[key]
             if (valueNode != null) {
                 if (!isCompatible(valueNode.write, useNode.read, visited)) return false
             } else if (!isOptional(useNode.read)) {
@@ -422,8 +422,8 @@ class LuaTypeGraph {
     ) {
         if (isNominallyCompatible(value, use, mutableSetOf())) return
 
-        for ((key, useNode) in use.members) {
-            val valueNode = value.members[key]
+        for ((key, useNode) in use.getMembers()) {
+            val valueNode = value.getMembers()[key]
             if (valueNode != null) {
                 // Bi-directional flow for mutable table fields (invariance)
                 // This prevents unsound covariant widening of mutable properties.
