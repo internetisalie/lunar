@@ -26,11 +26,8 @@ Intelligent completion is the primary driver of productivity in the IDE.
 ## Detailed Implementation Status
 
 ### COMP-01: Keyword Completion
-- **Status**: **Partial** (De-risked via `COMP-DR-01`)
-- **Implementation**: `LuaCompletionContributor` (basic keywords implemented)
+- **Status**: **Full** (`LuaCompletionContributor`)
 
-### COMP-02: Basic Symbol Completion
-- **Status**: **Planned**
 
 ### COMP-03: Cross-file Completion
 - **Status**: **Planned**

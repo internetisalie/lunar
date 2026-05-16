@@ -5,8 +5,8 @@ title: "Project Status"
 ---
 # Lunar Project Status Report
 
-**Overall Completion: 62.6%**
-(159 of 254 tasks completed across 15 active epics)
+**Overall Completion: 63.7%**
+(165 of 259 tasks completed across 17 active epics)
 
 ## Progress by Epic
 
@@ -18,7 +18,7 @@ title: "Project Status"
 | **DEBUG/RUN: Debugging & Execution**          | 🟢 Low      | **92.3%** | 12/13 | █████████░     |
 | **SYNTAX: Syntax & Editor**                   | 🟡 Medium   | **73.1%** | 19/26 | ███████░░░     |
 | **TYPE: Type System**                         | 🔴 High     | **64.3%** | 27/42 | ██████░░░░     |
-| **COMP: Code Completion**                     | 🔴 High     | **0%**    | 0/5   | ░░░░░░░░░░     |
+| **COMP: Code Completion**                     | 🔴 High     | **60%**   | 6/10  | ██████░░░░     |
 | **Platform Symbol Documentation**             | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░     |
 | **INSP: Inspections & Diagnostics**           | 🟡 Medium   | **50%**   | 2/4   | █████░░░░░     |
 | **REFACT/INTENT: Refactoring & Intentions**   | 🟢 Low      | **50%**   | 2/4   | █████░░░░░     |
@@ -32,11 +32,12 @@ title: "Project Status"
 
 ## Recent Milestones
 
+- **COMP-01: Keyword Completion** (2026-05-16) — Implemented context-aware keyword completion for Lua 5.1-5.4, including statement start, block closure, and TailType support.
 - **Epic Consolidation** (2026-05-16) — Consolidated all remaining inlay hint bugfixes and refactoring tasks (from Epics 28 and 29) into **SYNTAX-07** for unified feature tracking.
 - **SYNTAX-16: Language Level Enforcement** (2026-05-16) — Implemented `LuaLanguageLevelAnnotator` to enforce version-specific syntax restrictions (5.1-5.4).
 - **SYNTAX-07 Inlay Hints Enhancements** (2026-05-14) — Completed implementation of per-category settings (SYNTAX-07-09) and parameter name hints (SYNTAX-07-04).
 
 ## Current Focus
-Active development is focused on **TYPE-09: Union Distribution Logic** and the final stabilization of Inlay Hints under **SYNTAX-07**.
+Active development is focused on **TYPE-09: Union Distribution Logic** and the remaining tasks in the **COMP** and **NAV** epics.
 
-*Last updated: 2026-05-16T13:49:00-04:00*
+*Last updated: 2026-05-16T14:24:00-04:00*

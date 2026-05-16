@@ -1,21 +1,54 @@
 package net.internetisalie.lunar.lang
 
+import com.intellij.codeInsight.TailType
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.codeInsight.lookup.TailTypeDecorator
 import com.intellij.patterns.PlatformPatterns.psiElement
-import com.intellij.util.ProcessingContext
 import com.intellij.psi.PsiElement
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.ProcessingContext
+import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 class LuaCompletionContributor : CompletionContributor() {
-    private val KEYWORDS = listOf(
-        "if", "while", "function", "local", "for", "repeat", "return", "do", "break", "goto"
-    )
+    companion object {
+        private const val KEYWORD_PRIORITY = 80.0
+
+        private val STATEMENT_KEYWORDS = listOf(
+            "if", "while", "function", "local", "for", "repeat", "return", "do", "break"
+        )
+
+        private val EXPRESSION_KEYWORDS = listOf(
+            "nil", "true", "false", "not", "function"
+        )
+
+        private val SPACE_KEYWORDS = setOf(
+            "if", "while", "function", "local", "for", "repeat", "return", "do", "until", "and", "or", "in", "elseif", "goto"
+        )
+
+        private fun addKeywords(result: CompletionResultSet, keywords: Collection<String>) {
+            for (keyword in keywords) {
+                var builder = LookupElementBuilder.create(keyword).withBoldness(true)
+                
+                val element = if (SPACE_KEYWORDS.contains(keyword)) {
+                    PrioritizedLookupElement.withPriority(
+                        TailTypeDecorator.withTail(builder, TailType.SPACE),
+                        KEYWORD_PRIORITY
+                    )
+                } else {
+                    PrioritizedLookupElement.withPriority(builder, KEYWORD_PRIORITY)
+                }
+                
+                result.addElement(element)
+            }
+        }
+    }
 
     init {
-        // Suggest basic keywords and contextual keywords
+        // Main keyword completion provider
         extend(
             CompletionType.BASIC,
             psiElement(),
@@ -25,10 +58,12 @@ class LuaCompletionContributor : CompletionContributor() {
                     context: ProcessingContext,
                     result: CompletionResultSet
                 ) {
+                    val project = parameters.editor.project ?: return
+                    val level = LuaProjectSettings.getInstance(project).state.getTarget().getImplicitLanguageLevel()
                     val position = parameters.position
                     val prevLeaf = PsiTreeUtil.prevVisibleLeaf(position)
 
-                    // Statement start suggestions
+                    // 1. Statement Start Suggestions
                     val isStatementStart = prevLeaf == null ||
                         prevLeaf.node.elementType == LuaElementTypes.THEN ||
                         prevLeaf.node.elementType == LuaElementTypes.DO ||
@@ -36,69 +71,37 @@ class LuaCompletionContributor : CompletionContributor() {
                         prevLeaf.node.elementType == LuaElementTypes.ELSEIF ||
                         prevLeaf.node.elementType == LuaElementTypes.REPEAT ||
                         prevLeaf.node.elementType == LuaElementTypes.END ||
-                        prevLeaf.node.elementType == LuaElementTypes.SEMI
+                        prevLeaf.node.elementType == LuaElementTypes.SEMI ||
+                        prevLeaf.node.elementType == LuaTokenTypes.NEWLINE
 
                     if (isStatementStart) {
-                        KEYWORDS.forEach { result.addElement(LookupElementBuilder.create(it)) }
+                        addKeywords(result, STATEMENT_KEYWORDS)
+                        if (level >= LuaLanguageLevel.LUA52) {
+                            addKeywords(result, listOf("goto"))
+                        }
                     }
 
-                    // Context-specific suggestions
+                    // 2. Expression Keywords
+                    // Suggest in most contexts where a value could start
+                    val canBeExpressionStart = prevLeaf == null ||
+                        prevLeaf.node.elementType == LuaElementTypes.ASSIGN ||
+                        prevLeaf.node.elementType == LuaElementTypes.LPAREN ||
+                        prevLeaf.node.elementType == LuaElementTypes.LBRACK ||
+                        prevLeaf.node.elementType == LuaElementTypes.LCURLY ||
+                        prevLeaf.node.elementType == LuaElementTypes.COMMA ||
+                        isStatementStart
+
+                    if (canBeExpressionStart) {
+                        addKeywords(result, EXPRESSION_KEYWORDS)
+                    }
+
+                    // 3. Context-Specific Keywords
                     if (prevLeaf != null) {
-                        // Scan backwards for 'if' or 'elseif' to suggest 'then'
-                        var leaf: PsiElement? = prevLeaf
-                        var foundIf = false
-                        var foundThen = false
-                        var limit = 20
-                        while (leaf != null && limit-- > 0) {
-                            val type = leaf.node.elementType
-                            if (type == LuaElementTypes.IF || type == LuaElementTypes.ELSEIF) {
-                                foundIf = true
-                                break
-                            }
-                            if (type == LuaElementTypes.THEN || type == LuaElementTypes.SEMI || type == LuaElementTypes.END) {
-                                foundThen = true
-                                break
-                            }
-                            leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
-                        }
-
-                        if (foundIf && !foundThen) {
-                            result.addElement(LookupElementBuilder.create("then"))
-                        }
-
-                        // Suggest 'end' if we are inside a block that needs it
-                        if (prevLeaf.node.elementType == LuaElementTypes.THEN ||
-                            prevLeaf.node.elementType == LuaElementTypes.ELSE ||
-                            prevLeaf.node.elementType == LuaElementTypes.ELSEIF ||
-                            prevLeaf.node.elementType == LuaElementTypes.DO ||
-                            prevLeaf.node.elementType == LuaElementTypes.REPEAT
-                        ) {
-                            result.addElement(LookupElementBuilder.create("end"))
-                        }
-
-                        // After 'then' or in an if-block, suggest 'else', 'elseif', 'end'
-                        // Again, token based walking
-                        leaf = prevLeaf
-                        foundThen = false
-                        var foundEnd = false
-                        limit = 50
-                        while (leaf != null && limit-- > 0) {
-                             val type = leaf.node.elementType
-                             if (type == LuaElementTypes.THEN || type == LuaElementTypes.ELSE || type == LuaElementTypes.ELSEIF) {
-                                 foundThen = true
-                                 break
-                             }
-                             if (type == LuaElementTypes.END) {
-                                 foundEnd = true
-                                 break
-                             }
-                             leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
-                        }
-                        if (foundThen && !foundEnd) {
-                            result.addElement(LookupElementBuilder.create("else"))
-                            result.addElement(LookupElementBuilder.create("elseif"))
-                            result.addElement(LookupElementBuilder.create("end"))
-                        }
+                        // then, do, in, until
+                        addContextualKeywords(prevLeaf, result)
+                        
+                        // else, elseif, end
+                        addBlockClosureKeywords(prevLeaf, result)
                     }
                 }
             }
@@ -149,5 +152,98 @@ class LuaCompletionContributor : CompletionContributor() {
                 }
             }
         )
+    }
+
+    private fun addContextualKeywords(prevLeaf: PsiElement, result: CompletionResultSet) {
+        val prevType = prevLeaf.node.elementType
+
+        // Scan backwards for 'if' or 'elseif' to suggest 'then'
+        var leaf: PsiElement? = prevLeaf
+        var foundIf = false
+        var foundThen = false
+        var limit = 30
+        while (leaf != null && limit-- > 0) {
+            val type = leaf.node.elementType
+            if (type == LuaElementTypes.IF || type == LuaElementTypes.ELSEIF) {
+                foundIf = true
+                break
+            }
+            if (type == LuaElementTypes.THEN || type == LuaElementTypes.SEMI || type == LuaElementTypes.END) {
+                foundThen = true
+                break
+            }
+            leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
+        }
+        if (foundIf && !foundThen) {
+            addKeywords(result, listOf("then"))
+        }
+
+        // Scan backwards for 'while' or 'for' to suggest 'do'
+        leaf = prevLeaf
+        var foundLoop = false
+        var foundDo = false
+        limit = 30
+        while (leaf != null && limit-- > 0) {
+            val type = leaf.node.elementType
+            if (type == LuaElementTypes.WHILE || type == LuaElementTypes.FOR) {
+                foundLoop = true
+                break
+            }
+            if (type == LuaElementTypes.DO || type == LuaElementTypes.SEMI || type == LuaElementTypes.END) {
+                foundDo = true
+                break
+            }
+            leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
+        }
+        if (foundLoop && !foundDo) {
+            addKeywords(result, listOf("do"))
+        }
+        
+        // Suggest 'in' in generic for
+        if (prevType == LuaElementTypes.IDENTIFIER || prevType == LuaElementTypes.COMMA) {
+            val nameList = PsiTreeUtil.getParentOfType(prevLeaf, LuaNameList::class.java)
+            if (nameList != null && nameList.parent is LuaGenericForStatement) {
+                 addKeywords(result, listOf("in"))
+            }
+        }
+    }
+
+    private fun addBlockClosureKeywords(prevLeaf: PsiElement, result: CompletionResultSet) {
+        val prevType = prevLeaf.node.elementType
+        
+        // Suggest 'end' if we just started a block
+        if (prevType == LuaElementTypes.THEN ||
+            prevType == LuaElementTypes.ELSE ||
+            prevType == LuaElementTypes.ELSEIF ||
+            prevType == LuaElementTypes.DO ||
+            prevType == LuaElementTypes.REPEAT
+        ) {
+            addKeywords(result, listOf("end"))
+            if (prevType == LuaElementTypes.REPEAT) {
+                 addKeywords(result, listOf("until"))
+            }
+        }
+
+        // Scan backwards to see if we are in an unclosed block
+        var leaf: PsiElement? = prevLeaf
+        var foundBlockStart = false
+        var foundBlockEnd = false
+        var limit = 100
+        while (leaf != null && limit-- > 0) {
+            val type = leaf.node.elementType
+            if (type == LuaElementTypes.THEN || type == LuaElementTypes.ELSE || type == LuaElementTypes.ELSEIF || type == LuaElementTypes.DO || type == LuaElementTypes.REPEAT) {
+                foundBlockStart = true
+                break
+            }
+            if (type == LuaElementTypes.END || type == LuaElementTypes.UNTIL) {
+                foundBlockEnd = true
+                break
+            }
+            leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
+        }
+        
+        if (foundBlockStart && !foundBlockEnd) {
+            addKeywords(result, listOf("end", "else", "elseif"))
+        }
     }
 }
