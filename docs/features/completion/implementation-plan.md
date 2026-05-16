@@ -8,11 +8,11 @@
 - [ ] **COMP-DR-02**: Evaluate completion sorting/grouping strategy.
 
 ## Phase 1: Keyword Completion (COMP-01)
-- [ ] **COMP-01-P1**: Basic Scaffolding & Unconditional Keywords.
-- [ ] **COMP-01-P2**: Context-Aware Suggestions.
-- [ ] **COMP-01-P3**: Block Closure & Priority.
+- [ ] **COMP-01-01**: Basic Scaffolding & Unconditional Keywords.
+- [ ] **COMP-01-02**: Context-Aware Suggestions.
+- [ ] **COMP-01-03**: Block Closure & Priority.
 
 ## Phase 2: Symbol Completion (COMP-02)
-- [ ] **COMP-02-P1**: Local variable suggestions.
-- [ ] **COMP-02-P2**: Global variable suggestions.
-- [ ] **COMP-02-P3**: Member (table) suggestions.
+- [ ] **COMP-02-01**: Local variable suggestions.
+- [ ] **COMP-02-02**: Global variable suggestions.
+- [ ] **COMP-02-03**: Member (table) suggestions.
