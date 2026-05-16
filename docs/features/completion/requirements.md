@@ -12,7 +12,7 @@ Intelligent completion is the primary driver of productivity in the IDE.
 
 | ID | Requirement | Priority | Description |
 | :--- | :--- | :---: | :--- |
-| `COMP-01` | **Keyword Completion** | **M** | Suggest Lua keywords based on syntax context (e.g., `then` after `if`, `end` to close blocks). |
+| `COMP-01` | **Keyword Completion** | **M** | Suggest Lua keywords based on syntax context (e.g., `then` after `if`, `end` to close blocks). [Spec](./01-keyword-completion/requirements.md) |
 | `COMP-02` | **Basic Symbol Completion** | **M** | Suggest local variables, parameters, and global symbols within the current scope. |
 | `COMP-03` | **Cross-file Completion** | **M** | Suggest symbols exported from other files via `require()` or global definitions. |
 | `COMP-04` | **Type-Inferred Completion** | **S** | Suggest members of a table or class based on its inferred type (via LuaCATS or assignment). |
@@ -26,7 +26,8 @@ Intelligent completion is the primary driver of productivity in the IDE.
 ## Detailed Implementation Status
 
 ### COMP-01: Keyword Completion
-- **Status**: **Planned**
+- **Status**: **Partial** (De-risked via `COMP-DR-01`)
+- **Implementation**: `LuaCompletionContributor` (basic keywords implemented)
 
 ### COMP-02: Basic Symbol Completion
 - **Status**: **Planned**

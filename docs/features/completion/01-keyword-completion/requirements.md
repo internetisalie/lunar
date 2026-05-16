@@ -53,3 +53,44 @@ Keyword completion provides context-aware suggestions for Lua reserved words.
 - **Input**: `for k, v |`
 - **Action**: Press `Ctrl+Space`.
 - **Output**: `in` is suggested.
+
+---
+
+# COMP-DR-01: Keyword Completion De-risking
+
+## 1. Scope
+Prototype and verify the basic infrastructure for Lua keyword completion. This task de-risks the core `CompletionContributor` implementation and context detection logic before full-scale implementation of all keywords.
+
+### In Scope
+- Verification of `LuaCompletionContributor` registration.
+- Prototyping suggestions for a subset of keywords: `if`, `then`, `else`, `end`.
+- Basic context detection (e.g., `then` only after `if`).
+- Unit test suite for completion.
+
+### Out of Scope
+- Full list of all Lua keywords (reserved for `COMP-01`).
+- Context-aware symbol completion (reserved for `COMP-02`).
+- Advanced sorting and grouping (reserved for `COMP-DR-02`).
+
+## 2. Requirements
+
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| `COMP-DR-01-01` | **Contributor Registration** | **M** | **Full** | `LuaCompletionContributor` is registered in `plugin.xml`. |
+| `COMP-DR-01-02` | **Basic Keyword Suggestions** | **M** | **Full** | Suggestions for `if`, `while`, `function`, etc. implemented. |
+| `COMP-DR-01-03` | **Contextual 'then'** | **S** | **Full** | `then`, `else`, `elseif`, `end` suggested based on context. |
+| `COMP-DR-01-04` | **Test Infrastructure** | **M** | **Full** | `LuaCompletionTest` base class and initial tests established. |
+
+## 3. Test Cases
+
+### TC-01: Statement Start
+- **Input**: `<caret>`
+- **Expected**: Suggestions include `if`, `while`, `function`, `local`.
+
+### TC-02: After 'if'
+- **Input**: `if true <caret>`
+- **Expected**: Suggestions include `then`.
+
+### TC-03: Inside 'if'
+- **Input**: `if true then <caret>`
+- **Expected**: Suggestions include `if`, `while`, etc., but NOT `then`.
