@@ -32,7 +32,7 @@ class LuaCompletionContributor : CompletionContributor() {
         private fun addKeywords(result: CompletionResultSet, keywords: Collection<String>) {
             for (keyword in keywords) {
                 var builder = LookupElementBuilder.create(keyword).withBoldness(true)
-                
+
                 val element = if (SPACE_KEYWORDS.contains(keyword)) {
                     PrioritizedLookupElement.withPriority(
                         TailTypeDecorator.withTail(builder, TailType.SPACE),
@@ -41,7 +41,7 @@ class LuaCompletionContributor : CompletionContributor() {
                 } else {
                     PrioritizedLookupElement.withPriority(builder, KEYWORD_PRIORITY)
                 }
-                
+
                 result.addElement(element)
             }
         }
@@ -64,15 +64,22 @@ class LuaCompletionContributor : CompletionContributor() {
                     val prevLeaf = PsiTreeUtil.prevVisibleLeaf(position)
 
                     // 1. Statement Start Suggestions
-                    val isStatementStart = prevLeaf == null ||
+                    var isStatementStart = false
+                    val statement = PsiTreeUtil.getParentOfType(position, LuaStatement::class.java)
+                    if (statement != null && statement.textRange.startOffset == position.textRange.startOffset) {
+                        isStatementStart = true
+                    }
+
+                    if (!isStatementStart && (prevLeaf == null ||
                         prevLeaf.node.elementType == LuaElementTypes.THEN ||
                         prevLeaf.node.elementType == LuaElementTypes.DO ||
                         prevLeaf.node.elementType == LuaElementTypes.ELSE ||
                         prevLeaf.node.elementType == LuaElementTypes.ELSEIF ||
                         prevLeaf.node.elementType == LuaElementTypes.REPEAT ||
                         prevLeaf.node.elementType == LuaElementTypes.END ||
-                        prevLeaf.node.elementType == LuaElementTypes.SEMI ||
-                        prevLeaf.node.elementType == LuaTokenTypes.NEWLINE
+                        prevLeaf.node.elementType == LuaElementTypes.SEMI)) {
+                        isStatementStart = true
+                    }
 
                     if (isStatementStart) {
                         addKeywords(result, STATEMENT_KEYWORDS)
@@ -83,13 +90,21 @@ class LuaCompletionContributor : CompletionContributor() {
 
                     // 2. Expression Keywords
                     // Suggest in most contexts where a value could start
-                    val canBeExpressionStart = prevLeaf == null ||
+                    var canBeExpressionStart = false
+                    val expr = PsiTreeUtil.getParentOfType(position, LuaExpr::class.java)
+                    if (expr != null && expr.textRange.startOffset == position.textRange.startOffset) {
+                        canBeExpressionStart = true
+                    }
+
+                    if (!canBeExpressionStart && (prevLeaf == null ||
                         prevLeaf.node.elementType == LuaElementTypes.ASSIGN ||
                         prevLeaf.node.elementType == LuaElementTypes.LPAREN ||
                         prevLeaf.node.elementType == LuaElementTypes.LBRACK ||
                         prevLeaf.node.elementType == LuaElementTypes.LCURLY ||
                         prevLeaf.node.elementType == LuaElementTypes.COMMA ||
-                        isStatementStart
+                        isStatementStart)) {
+                        canBeExpressionStart = true
+                    }
 
                     if (canBeExpressionStart) {
                         addKeywords(result, EXPRESSION_KEYWORDS)
@@ -99,7 +114,7 @@ class LuaCompletionContributor : CompletionContributor() {
                     if (prevLeaf != null) {
                         // then, do, in, until
                         addContextualKeywords(prevLeaf, result)
-                        
+
                         // else, elseif, end
                         addBlockClosureKeywords(prevLeaf, result)
                     }
@@ -198,7 +213,7 @@ class LuaCompletionContributor : CompletionContributor() {
         if (foundLoop && !foundDo) {
             addKeywords(result, listOf("do"))
         }
-        
+
         // Suggest 'in' in generic for
         if (prevType == LuaElementTypes.IDENTIFIER || prevType == LuaElementTypes.COMMA) {
             val nameList = PsiTreeUtil.getParentOfType(prevLeaf, LuaNameList::class.java)
@@ -210,7 +225,7 @@ class LuaCompletionContributor : CompletionContributor() {
 
     private fun addBlockClosureKeywords(prevLeaf: PsiElement, result: CompletionResultSet) {
         val prevType = prevLeaf.node.elementType
-        
+
         // Suggest 'end' if we just started a block
         if (prevType == LuaElementTypes.THEN ||
             prevType == LuaElementTypes.ELSE ||
@@ -241,7 +256,7 @@ class LuaCompletionContributor : CompletionContributor() {
             }
             leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
         }
-        
+
         if (foundBlockStart && !foundBlockEnd) {
             addKeywords(result, listOf("end", "else", "elseif"))
         }
