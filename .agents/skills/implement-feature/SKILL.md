@@ -55,8 +55,9 @@ Ensure the feature is robust and maintainable.
   3. Analyze `idea.log` (located at `build/idea-sandbox/GO-*/log/idea.log`).
 - **Strategic Re-evaluation**: If a fix fails >3 times, stop. Re-read the task, list assumptions, and propose a different architectural approach.
 - **Full Test Suite**: Run `./gradlew test` and `./gradlew ktlintCheck`.
-- **Refinement**: Look for opportunities for abstraction, performance improvements, and missing edge cases.
-- **Tracking**: Record the verification steps, test results, and any issues found during verification in Saga using `mcp_saga_note_save` or by updating relevant tasks.
+- **Code Review**: Invoke the `@reviewer` subagent to perform a formal review of the implementation. Provide the reviewer with the context of the requirements and the diff of the changes. Address all critical and major feedback before proceeding.
+- **Refinement**: Look for opportunities for abstraction, performance improvements, and missing edge cases based on internal analysis and reviewer feedback.
+- **Tracking**: Record the verification steps, reviewer feedback, test results, and any issues found during verification in Saga using `mcp_saga_note_save` or by updating relevant tasks.
 
 ### 5. Final Documentation
 - **Task**: Update all requirement documents to reflect the final `Implemented` status.
@@ -66,7 +67,7 @@ Ensure the feature is robust and maintainable.
 
 ### 6. Commit
 - **Task**: Commit changes if explicitly requested.
-- **Review**: Ensure commit messages explain "why", follow conventional formats, and that the commit remains atomic.
+- **Review**: Ensure commit messages explain "why", follow conventional formats, and that the commit remains atomic. Verify that the code has been reviewed by `@reviewer` and all blocking feedback has been addressed.
 - **Tracking**: Record the commit information (hash, message, files changed) in Saga using `mcp_saga_note_save` or by linking the commit to relevant tasks.
 
 ## Guidelines
