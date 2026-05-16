@@ -193,10 +193,11 @@ class LuaCompletionContributor : CompletionContributor() {
             addKeywords(result, listOf("then"))
         }
 
-        // Scan backwards for 'while' or 'for' to suggest 'do'
+        // Scan backwards for 'while' or 'for' to suggest 'do' or 'in'
         leaf = prevLeaf
         var foundLoop = false
         var foundDo = false
+        var foundIn = false
         limit = 30
         while (leaf != null && limit-- > 0) {
             val type = leaf.node.elementType
@@ -208,19 +209,44 @@ class LuaCompletionContributor : CompletionContributor() {
                 foundDo = true
                 break
             }
+            if (type == LuaElementTypes.IN) {
+                foundIn = true
+                break
+            }
             leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
         }
-        if (foundLoop && !foundDo) {
-            addKeywords(result, listOf("do"))
-        }
 
-        // Suggest 'in' in generic for
-        if (prevType == LuaElementTypes.IDENTIFIER || prevType == LuaElementTypes.COMMA) {
-            val nameList = PsiTreeUtil.getParentOfType(prevLeaf, LuaNameList::class.java)
-            if (nameList != null && nameList.parent is LuaGenericForStatement) {
-                 addKeywords(result, listOf("in"))
+        if (foundLoop && !foundDo) {
+            val isGenericFor = isGenericForContext(prevLeaf)
+            if (isGenericFor && !foundIn) {
+                addKeywords(result, listOf("in"))
+            } else {
+                addKeywords(result, listOf("do"))
             }
         }
+    }
+
+    private fun isGenericForContext(position: PsiElement): Boolean {
+        // Scan backwards from the current position.
+        // A generic for has the form: for <names> in <exprs> do
+        // A numeric for has the form:  for <name> = <start>, <limit> [, <step>] do
+        // Key distinction: a numeric for always has '=' between 'for' and 'do', a generic for never does.
+        // So if we reach 'for' without seeing '=', 'in', 'do', or a statement boundary, it's generic.
+        var leaf: PsiElement? = position
+        var limit = 30
+        while (leaf != null && limit-- > 0) {
+            val type = leaf.node.elementType
+            when (type) {
+                LuaElementTypes.FOR -> return true   // reached 'for' with no '=' → generic for
+                LuaElementTypes.ASSIGN,              // '=' seen → numeric for
+                LuaElementTypes.IN,                  // already past 'in' → not the name-list position
+                LuaElementTypes.DO,
+                LuaElementTypes.SEMI,
+                LuaElementTypes.END -> return false
+            }
+            leaf = PsiTreeUtil.prevVisibleLeaf(leaf)
+        }
+        return false
     }
 
     private fun addBlockClosureKeywords(prevLeaf: PsiElement, result: CompletionResultSet) {
@@ -243,11 +269,13 @@ class LuaCompletionContributor : CompletionContributor() {
         var leaf: PsiElement? = prevLeaf
         var foundBlockStart = false
         var foundBlockEnd = false
+        var blockStartType: IElementType? = null
         var limit = 100
         while (leaf != null && limit-- > 0) {
             val type = leaf.node.elementType
             if (type == LuaElementTypes.THEN || type == LuaElementTypes.ELSE || type == LuaElementTypes.ELSEIF || type == LuaElementTypes.DO || type == LuaElementTypes.REPEAT) {
                 foundBlockStart = true
+                blockStartType = type
                 break
             }
             if (type == LuaElementTypes.END || type == LuaElementTypes.UNTIL) {
@@ -258,7 +286,15 @@ class LuaCompletionContributor : CompletionContributor() {
         }
 
         if (foundBlockStart && !foundBlockEnd) {
-            addKeywords(result, listOf("end", "else", "elseif"))
+            // 'else' and 'elseif' are only valid after 'if'/'elseif' blocks, not after 'do' blocks
+            if (blockStartType == LuaElementTypes.DO || blockStartType == LuaElementTypes.REPEAT) {
+                addKeywords(result, listOf("end"))
+                if (blockStartType == LuaElementTypes.REPEAT) {
+                    addKeywords(result, listOf("until"))
+                }
+            } else {
+                addKeywords(result, listOf("end", "else", "elseif"))
+            }
         }
     }
 }

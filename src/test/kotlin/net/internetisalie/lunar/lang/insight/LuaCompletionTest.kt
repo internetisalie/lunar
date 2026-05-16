@@ -45,4 +45,19 @@ class LuaCompletionTest : BaseDocumentTest() {
     fun `test else after then block`() {
         doTest("if true then print(1) <caret>", "else", "elseif", "end")
     }
+
+    @Test
+    fun `test in after for name list`() {
+        doTest("for k, v <caret>", "in")
+    }
+
+    @Test
+    fun `test do after for identifier equals`() {
+        doTest("for i = 1, 10 <caret>", "do")
+    }
+
+    @Test
+    fun `test no do after for k v in`() {
+        doNotContainTest("for k, v <caret>", "do")
+    }
 }
