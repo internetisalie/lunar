@@ -23,17 +23,16 @@ This plan covers the user interface and background maintenance of the tool inven
 
 ## Phase 3: Health Monitoring [Should]
 - [ ] Create `net.internetisalie.lunar.util.LuaToolHealthCheckActivity`.
-- [ ] Implement a `ProjectActivity` (or `BackgroundPostStartupActivity`) to verify bound tools.
+- [ ] **Two-Stage Logic**: Implement optimized check (Existence check -> mtime check -> Version check).
+- [ ] **Reactive Monitoring**: Register a `VirtualFileListener` to track tool binary changes in real-time.
 - [ ] Periodically check if `tool.path` exists and compare `mtime` with `lastModified`.
 - [ ] Re-validate via `LuaToolValidator` if `mtime` has changed.
 - [ ] Update `LuaTool.isValid` flag and metadata.
 
 ## Phase 4: Notifications & Diagnostics [Should]
-- [ ] Implement notification logic for:
-    - Missing tools (path not found).
-    - Outdated tools (below minimum version).
-    - Invalid executables.
-- [ ] Use `NotificationGroupManager` for standardized IDE alerts.
+- [ ] Implement notification logic using **Editor Banners** for project-level tool issues.
+- [ ] Use `NotificationGroupManager` for critical global tool issues.
+- [ ] Implement specialized tooltips in `LuaToolInventoryPanel` to display exact failure reasons.
 - [ ] Add diagnostic logging to `LuaToolManager` resolution and `LuaToolValidator` execution.
 - [ ] Ensure logs include tool version, path, and any CLI errors for support troubleshooting.
 

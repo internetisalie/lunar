@@ -39,10 +39,10 @@ This document outlines the technical implementation for injecting Lua tool direc
 ### 3. Services
 
 #### `LuaTerminalEnvironmentService`
-- Calculates the appropriate PATH modification for current project
-- Handles caching of tool directory paths
-- Provides shell-specific PATH modification strings
-- Thread-safe for concurrent terminal sessions
+- **Project-level Service**: Scoped to the project to prevent memory leaks.
+- Calculates the appropriate PATH modification for current project.
+- Subscribes to settings changes via Message Bus for instant cache invalidation.
+- Provides shell-specific PATH modification strings.
 
 ## Implementation Details
 
@@ -54,40 +54,49 @@ class LuaTerminalCustomizer : TerminalCustomizer {
         environment: Map<String, String>,
         initCommands: MutableList<String>
     ) {
-        val project = getCurrentProject()
-        if (project == null) return
+        // ... Logic to get project from terminal context ...
+        val project = getProject() ?: return
+        val envService = project.service<LuaTerminalEnvironmentService>()
         
-        val luaToolsDirs = LuaTerminalEnvironmentService.getToolDirectories(project)
+        val luaToolsDirs = envService.getToolDirectories()
         if (luaToolsDirs.isEmpty()) return
         
-        val pathModification = when (terminalType) {
-            TerminalType.COMMAND -> buildCmdPathModification(luaToolsDirs, environment["PATH"])
-            TerminalType.POWERSHELL -> buildPowerShellPathModification(luaToolsDirs, environment["PATH"])
-            else -> buildPosixPathModification(luaToolsDirs, environment["PATH"])
+        // Prepend to environment for initial process
+        val originalPath = environment["PATH"]
+        environment["PATH"] = buildPath(luaToolsDirs, originalPath, terminalType)
+        
+        // Use initCommands to ensure PATH persists after shell profiles load
+        val exportCmd = when (terminalType) {
+            TerminalType.COMMAND -> "set PATH=${luaToolsDirs.joinToString(";")};%PATH%"
+            TerminalType.POWERSHELL -> "\$env:PATH = \"${luaToolsDirs.joinToString(";")};\$env:PATH\""
+            else -> "export PATH=\"${luaToolsDirs.joinToString(":")}:\$PATH\""
         }
-        
-        environment["PATH"] = pathModification
-        
-        // Add init command to verify injection (optional, for debugging)
-        initCommands.add("echo Lua tools PATH injected: $pathModification")
-    }
-    
-    private fun buildCmdPathModification(toolDirs: List<String>, originalPath: String?): String {
-        val toolsPath = toolDirs.joinToString(";")
-        return if (originalPath.isNullOrBlank()) toolsPath else "$toolsPath;$originalPath"
-    }
-    
-    private fun buildPowerShellPathModification(toolDirs: List<String>, originalPath: String?): String {
-        val toolsPath = toolDirs.joinToString(";")
-        return if (originalPath.isNullOrBlank()) toolsPath else "$toolsPath;$originalPath"
-    }
-    
-    private fun buildPosixPathModification(toolDirs: List<String>, originalPath: String?): String {
-        val toolsPath = toolDirs.joinToString(":")
-        return if (originalPath.isNullOrBlank()) toolsPath else "$toolsPath:$originalPath"
+        initCommands.add(exportCmd)
     }
 }
 ```
+
+### LuaTerminalEnvironmentService
+```kotlin
+@Service(Service.Level.PROJECT)
+class LuaTerminalEnvironmentService(private val project: Project) {
+    private var cachedPath: String? = null
+    
+    init {
+        // Subscribe to settings changes to invalidate cache
+        project.messageBus.connect().subscribe(LUA_SETTINGS_TOPIC, object : LuaSettingsListener {
+            override fun settingsChanged() {
+                cachedPath = null
+            }
+        })
+    }
+
+    fun getToolDirectories(): List<String> {
+        // ... Implementation ...
+    }
+}
+```
+
 
 ### LocalTerminalDirectRunner Extension
 ```kotlin

@@ -24,13 +24,16 @@ This document outlines the UI components and background monitoring for tools.
 ### 2. Monitoring
 
 #### Health Checks
-- `ProjectActivity`: Periodically verify tool paths.
-- Update `LuaTool.isValid` flag.
+- **Two-Stage Verification**:
+    1. **Fast Check**: Verify `File.exists()` and `File.canExecute()` via `LocalFileSystem`.
+    2. **Slow Check**: Execute binary (`--version`) only if the fast check passes and the file's `mtime` (last modified) has changed.
+- **Reactive Monitoring**:
+    - Use `VirtualFileListener` or `AsyncFileListener` to track tool binaries.
+    - Instantly invalidate tools and notify users if binaries are moved/deleted.
 
-## Implementation Details
-
-### Security Considerations
-- All tool executions (for health checks/versioning) must use `GeneralCommandLine` with timeouts.
+#### User Notifications
+- **Editor Banners**: Use contextual banners for project-specific tool issues (less intrusive than balloons).
+- **Settings UI**: Display specific error reasons (e.g., "Binary missing", "Permission denied") in tooltips.
 
 ## Testing Strategy
 - **UI Tests**: Test the inventory table and panels.

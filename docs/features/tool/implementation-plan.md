@@ -9,13 +9,14 @@ title: Implementation Plan
 This document provides the consolidated, chronological implementation sequence for the Tool Inventory Management features, integrating de-risking actions with functional phases.
 
 ## Phase 0: Foundations & De-risking [Must]
-*Start here to ensure the technical architecture is sound and high-uncertainty items are addressed.*
+*Start here to ensure the technical architecture is sound and high-uncertainty items are addressed. See the [detailed de-risking requirements](00-de-risking/requirements.md) and [implementation plan](00-de-risking/implementation-plan.md) for specifics.*
 
-- [ ] **TOOL-DR-03**: Verify `PersistentStateComponent` map serialization (Critical for data persistence).
-- [ ] **TOOL-DR-02**: Define OS-specific filename patterns (Necessary for cross-platform validation).
+- [ ] **TOOL-00-03**: Verify `PersistentStateComponent` map serialization (Critical for data persistence).
+- [ ] **TOOL-00-02**: Define OS-specific filename patterns (Necessary for cross-platform validation).
 - [ ] **TOOL-01 Phase 1**: Implement `LuaToolType` enum, `LuaTool` data class, and `LuaApplicationSettings.State` storage.
-- [ ] **TOOL-DR-04**: Implement Async wrapper for `GeneralCommandLine` executions (Required before any CLI calls).
-- [ ] **TOOL-DR-01**: Prototype Terminal `PATH` injection (De-risks the most complex part of `TOOL-02`).
+- [ ] **TOOL-00-04**: Implement Async wrapper for `GeneralCommandLine` executions (Required before any CLI calls).
+- [ ] **TOOL-00-01**: Prototype Terminal `PATH` injection (De-risks the most complex part of `TOOL-02`).
+- [ ] **TOOL-00-06**: Verify VFS listener impact on performance for deep tool paths (De-risks `TOOL-03`).
 
 ## Phase 1: Registry & Discovery (TOOL-01) [Must]
 *Building the core services that manage the tool inventory.*
@@ -46,5 +47,5 @@ This document provides the consolidated, chronological implementation sequence f
 - [ ] **TOOL-03 Phase 4**: IDE Notifications and Diagnostics for missing/invalid tools.
 
 ## Phase 5: Final Verification [Must]
-- [ ] **TOOL-DR-05**: Implement E2E test infrastructure using Docker Windows/Linux containers.
+- [ ] **TOOL-00-05**: Implement E2E test infrastructure using Docker Windows/Linux containers.
 - [ ] **Validation**: Run full integration and functional test suite across platforms.

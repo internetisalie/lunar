@@ -12,6 +12,7 @@ Lunar provides a comprehensive registry for managing external Lua tool binaries 
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
+| [`TOOL-00`](00-de-risking/requirements.md) | **De-risking & Technical Spikes** | **M** | **Not Implemented** | Critical technical validations and architectural spikes. |
 | [`TOOL-01`](01-inventory-management/requirements.md) | **Core Tool Registry & Discovery** | **M** | **Not Implemented** | Foundational registry for discovery and validation of binaries. |
 | [`TOOL-02`](02-project-binding/requirements.md) | **Project Binding & Environment Integration** | **M** | **Not Implemented** | Per-project overrides and PATH injection for terminals and run configs. |
 | [`TOOL-03`](03-ui-and-health-checks/requirements.md) | **UI/UX & Health Monitoring** | **M** | **Not Implemented** | User interface for configuration and background health/validation. |

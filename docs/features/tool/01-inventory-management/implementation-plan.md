@@ -10,21 +10,25 @@ This plan covers the foundational logic for managing external Lua tools.
 
 ## Phase 1: Data Models & Storage [Must]
 - [ ] Create `net.internetisalie.lunar.settings.LuaToolType` enum.
-- [ ] Create `net.internetisalie.lunar.settings.LuaTool` data class with `id`, `type`, `name`, `path`, `version`, `luaVersion`, `lastModified`, `isValid`.
+- [ ] Create `net.internetisalie.lunar.settings.LuaTool` data class with `id` (UUID), `type`, `name`, `path`, `version`, `luaVersion`, `lastModified`, `isValid`.
+    - Ensure it has a no-arg constructor and use `@Tag` / `@AbstractCollection` for robust XML serialization.
 - [ ] Update `LuaApplicationSettings.State` to include `toolInventory: MutableList<LuaTool>`.
 - [ ] Implement `LuaApplicationSettings.getTool(id: String)` helper.
 
 ## Phase 2: Validation Logic [Must]
 - [ ] Create `net.internetisalie.lunar.util.LuaToolValidator` utility.
-- [ ] Implement `extractVersion(path, type)` using `GeneralCommandLine` (merging streams) and regex.
+- [ ] Implement `extractVersion(path, type)` using `GeneralCommandLine`.
+    - **Robustness**: Use `withContext(Dispatchers.IO)` and `serviceCoroutineScope`.
+    - **Stream Merging**: Merge `stdout` and `stderr` before applying regex.
+    - **Timeouts**: Enforce a 10s timeout for all CLI calls.
 - [ ] Add regex patterns for `luarocks`, `luacheck`, `stylua`, and `lua-format`.
 - [ ] Implement `detectLuaVersion(path, type)` logic for best-effort compatibility checks.
 - [ ] Implement `checkCompatibility(tool, interpreter)` logic.
-- [ ] **Implement async wrapper for GeneralCommandLine executions** - Ensure all CLI calls are wrapped in `Task.Backgroundable` and never run on EDT to prevent UI freezes (TOOL-DR-04).
 
 ## Phase 3: Discovery Service [Must]
 - [ ] Create `net.internetisalie.lunar.util.LuaToolDiscoveryService`.
-- [ ] Implement `discoverKnownTools()` to scan standard OS paths (`PATH`, `/usr/local/bin`, etc.).
+- [ ] Implement `discoverKnownTools()` using `PathEnvironmentVariableUtil.findInPath()`.
+- [ ] **Windows Parity**: Ensure detection of `.bat`, `.cmd`, and `.exe` extensions and search standard Windows paths (Program Files, AppData).
 - [ ] Filter discovered paths by checking if they are executable.
 
 ## Phase 4: Core Management Service [Must]
@@ -39,4 +43,4 @@ This plan covers the foundational logic for managing external Lua tools.
 - [ ] **Unit Test**: `LuaToolValidatorTest` to verify regex against mock CLI outputs.
 - [ ] **Unit Test**: `LuaToolDiscoveryServiceTest` (using mock environment).
 - [ ] **Integration Test**: Verify `LuaApplicationSettings` persistence of the `toolInventory`.
-- [ ] **Verification Task**: Verify `PersistentStateComponent` map serialization does not cause issues - use simple types where possible and validate with integration tests that restart settings component (TOOL-DR-03).
+- [ ] **Verification Task**: Verify `PersistentStateComponent` map serialization does not cause issues - use simple types where possible and validate with integration tests that restart settings component (TOOL-00-03).

@@ -23,9 +23,10 @@ This plan covers the logic for binding tools to projects and making them availab
 
 ## Phase 4: Terminal Integration [Must]
 - [ ] Implement a `LocalTerminalDirectRunner` extension and `TerminalCustomizer`.
-- [ ] On terminal session creation, identify bound tools for the current project.
-- [ ] Prepend tool binary directories to the `PATH` environment variable of the terminal process.
-- [ ] Implement `LuaTerminalEnvironmentService` to calculate and cache tool directories.
+- [ ] **Project-level Service**: Implement `LuaTerminalEnvironmentService` as a project-level service.
+- [ ] **Reactive Invalidation**: Subscribe to the Message Bus to invalidate terminal environment cache on settings changes.
+- [ ] **initCommands Injection**: Use `initCommands` in `TerminalCustomizer` to prepend `PATH` *after* shell initialization (prevents profile clobbering).
+- [ ] **Shell-Aware Paths**: Detect shell type (CMD, PS, Bash) to determine the correct path separator and `export`/`set` syntax.
 - [ ] Handle shell-specific PATH modification for CMD, PowerShell, Bash, and Zsh.
 - [ ] Register extensions in plugin.xml.
 
@@ -33,4 +34,4 @@ This plan covers the logic for binding tools to projects and making them availab
 - [ ] **Integration Test**: Verify that project settings correctly override global settings for tool resolution.
 - [ ] **Functional Test**: Launch a `LuaRunConfiguration` and verify `PATH` includes the bound tool directory.
 - [ ] **Manual Test**: Open the Integrated Terminal and run `which luarocks` to verify path augmentation.
-- [ ] **Cross-Platform E2E Test**: Use Docker Windows Server containers and Linux containers to validate tool discovery, PATH injection, and execution across Windows and Linux platforms (TOOL-DR-05).
+- [ ] **Cross-Platform E2E Test**: Use Docker Windows Server containers and Linux containers to validate tool discovery, PATH injection, and execution across Windows and Linux platforms (TOOL-00-05).

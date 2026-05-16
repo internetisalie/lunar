@@ -10,6 +10,31 @@ This document provides step-by-step verification procedures for humans (develope
 
 ---
 
+## TOOL-00: De-risking & Technical Spikes
+
+### TOOL-00-01: Prototype Terminal PATH injection (#148)
+- [ ] **Cross-Shell Test**: Verify the prototype works in Bash, Zsh, CMD, and PowerShell.
+- [ ] **Override Test**: Verify the injected path persists even if the user's `.zshrc` or `.bashrc` modifies the `PATH`.
+
+### TOOL-00-02: Define OS-specific filename patterns (#149)
+- [ ] **Windows Review**: Verify `luarocks.bat` and `luarocks.exe` are both included in the search patterns.
+- [ ] **POSIX Review**: Verify no-extension and `.sh` variants are considered where applicable.
+
+### TOOL-00-03: Verify map serialization in settings (#150)
+- [ ] **Stress Test**: Populate a map with 50+ entries and non-standard characters in the keys. Verify the resulting XML is valid and correctly escaped.
+
+### TOOL-00-04: Implement Async process wrapper (#151)
+- [ ] **Thread Safety**: Use the "Internal Actions" -> "UI Freeze Detector" or simply watch the UI while running a slow discovery. Verify the "spinning wheel" cursor never appears.
+
+### TOOL-00-05: Implement E2E test infrastructure (#152)
+- [ ] **Container Execution**: Verify that a test can successfully trigger a command inside a Docker container (Linux and Windows) and retrieve the exit code.
+- [ ] **Environment Parity**: Verify the container environment correctly mimics a clean user machine with the expected tools installed.
+
+### TOOL-00-06: Verify VFS listener impact (#153)
+- [ ] **Performance Profile**: Use the IntelliJ Profiler while performing a massive file operation (e.g., `git checkout` on a large repo) in a directory watched by the tool listener. Verify no significant CPU spikes from `LuaToolHealthCheckActivity`.
+
+---
+
 ## TOOL-01: Core Tool Registry & Discovery
 
 ### TOOL-01 Phase 1: Data Models & Storage (#136)
@@ -69,21 +94,3 @@ This document provides step-by-step verification procedures for humans (develope
 
 ### TOOL-03 Phase 4: Notifications (#147)
 - [ ] **Alerting**: Open a project with a bound tool that is now missing. Verify a non-modal notification balloon appears with a "Fix..." link.
-
----
-
-## TOOL-DR: De-risking Tasks
-
-### TOOL-DR-01: Prototype Terminal PATH injection (#148)
-- [ ] **Cross-Shell Test**: Verify the prototype works in Bash, Zsh, CMD, and PowerShell.
-- [ ] **Override Test**: Verify the injected path persists even if the user's `.zshrc` or `.bashrc` modifies the `PATH`.
-
-### TOOL-DR-02: Define OS-specific filename patterns (#149)
-- [ ] **Windows Review**: Verify `luarocks.bat` and `luarocks.exe` are both included in the search patterns.
-- [ ] **POSIX Review**: Verify no-extension and `.sh` variants are considered where applicable.
-
-### TOOL-DR-03: Verify map serialization in settings (#150)
-- [ ] **Stress Test**: Populate a map with 50+ entries and non-standard characters in the keys. Verify the resulting XML is valid and correctly escaped.
-
-### TOOL-DR-04: Implement Async process wrapper (#151)
-- [ ] **Thread Safety**: Use the "Internal Actions" -> "UI Freeze Detector" or simply watch the UI while running a slow discovery. Verify the "spinning wheel" cursor never appears.

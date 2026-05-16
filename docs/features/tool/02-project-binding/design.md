@@ -35,6 +35,11 @@ class State {
 - `getEffectiveTool(project: Project?, type: LuaToolType): LuaTool?`: Resolves Project override > Global default.
 - Fallback logic: If a project-bound tool ID is invalid or missing, it automatically attempts to return the Global default for that type.
 
+#### `LuaTerminalEnvironmentService` (Project-level Service)
+- **Scoping**: Defined as a Project-level Service to avoid memory leaks and ensure automatic cleanup.
+- **Caching**: Caches the calculated `PATH` modification for the project.
+- **Invalidation**: Subscribes to the IntelliJ **Message Bus** to invalidate the cache immediately when tool settings change.
+
 ### 3. Integration Points
 
 #### IDE Actions (Formatting/Linting)

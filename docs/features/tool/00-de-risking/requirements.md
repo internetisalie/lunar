@@ -1,10 +1,10 @@
 ---
 folders:
-  - "[[features/tool/requirements|requirements]]"
-title: Design Gaps & De-risking
+  - "[[features/tool/requirements|TOOL]]"
+title: "00: De-risking & Technical Spikes"
 ---
 
-# Design Gaps & De-risking: Tool Inventory Management (TOOL Epic)
+# TOOL-00: De-risking & Technical Spikes
 
 This document tracks identified technical risks, design gaps, and required de-risking actions for the Tool Inventory Management features.
 
@@ -40,8 +40,9 @@ This document tracks identified technical risks, design gaps, and required de-ri
 
 | ID | Action Item | Priority | Target Feature | Status |
 | :--- | :--- | :---: | :--- | :--- |
-| **TOOL-DR-01** | Prototype Terminal `PATH` injection for Bash/CMD | High | `TOOL-02` | Pending |
-| **TOOL-DR-02** | Define OS-specific filename patterns for `luarocks` | Medium | `TOOL-01` | Pending |
-| **TOOL-DR-03** | Verify `PersistentStateComponent` map serialization | Medium | `TOOL-01/02` | Pending |
-| **TOOL-DR-04** | Implement Async wrapper for `LuaProcessUtil` calls | Medium | `TOOL-01` | Pending |
-| **TOOL-DR-05** | Implement E2E test infrastructure using Docker Windows Server containers | High | `TOOL Epic` | Pending |
+| **TOOL-00-01** | Prototype Terminal `initCommands` for PATH injection | High | `TOOL-02` | Pending |
+| **TOOL-00-02** | Define OS-specific filename patterns for `luarocks` | Medium | `TOOL-01` | Pending |
+| **TOOL-00-03** | Verify `PersistentStateComponent` serialization with Coroutines | Medium | `TOOL-01/02` | Pending |
+| **TOOL-00-04** | Implement Async/Coroutine wrapper for CLI calls | Medium | `TOOL-01` | Pending |
+| **TOOL-00-05** | Implement E2E test infrastructure using Docker containers | High | `TOOL Epic` | Pending |
+| **TOOL-00-06** | Verify VFS listener impact on performance for deep tool paths | Low | `TOOL-03` | Pending |
