@@ -68,6 +68,11 @@ This skill provides a structured process for taking a high-level feature request
 - Create a `human-verification-checklists.md` for manual validation of each task.
 - Ensure all artifacts are linked and consistent.
 
+### Step 9: Design Review
+- **Task**: Ask the `@reviewer` subagent to review the generated feature documents (`requirements.md`, `design.md`, `implementation-plan.md`).
+- **Input**: Provide the contents or paths of these files to the reviewer.
+- **Goal**: Incorporate feedback from the reviewer to improve the technical rigor, identify missed edge cases, and ensure alignment with project standards before proceeding to implementation or tracker setup.
+
 ## Artifact Structure
 
 A well-planned feature should have the following folder structure:
