@@ -22,12 +22,16 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | `MAINT-06` | **LuaCATS Literal Highlighting** | **M** | **Todo** | Add color formatting for literal types in LuaCATS tags. |
 | `MAINT-07` | **Interpreter Search Path Globs** | **M** | **Todo** | Add globbing support for interpreter search paths to improve module resolution. |
 | `MAINT-08` | **LuaCheck UI Grouping** | **L** | **Todo** | Implement hierarchical grouping for LuaCheck inspection results. |
-| `MAINT-14` | **Scope Reduction (Luau)** | **L** | **Todo** | Remove Luau support references to focus on standard Lua (5.1-5.4). |
+| `MAINT-14` | **Scope Reduction (Luau)** | **L** | **Done** | Remove Luau support references to focus on standard Lua (5.1-5.4). |
 | `MAINT-XX` | **Test Coverage Improvement** | **H** | **Todo** | Increase unit test coverage for legacy code across the codebase. |
 
 ---
 
 ## Detailed Implementation Status
+
+### MAINT-14: Scope Reduction (Luau)
+- **Status**: **✅ Completed**
+- **Action**: All references to Luau support have been removed from the documentation, backlog, and requirements to ensure project focus on standard Lua 5.1-5.4, LuaJIT, and Redis.
 
 ### MAINT-04: Refactor Symbol Resolution
 - **Status**: **✅ Implemented**

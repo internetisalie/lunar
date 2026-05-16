@@ -12,7 +12,7 @@ Lunar leverages its type engine and PSI tree to provide real-time feedback and c
 
 | ID | Requirement | Priority | Description |
 | :--- | :--- | :---: | :--- |
-| `INSP-01` | **Undeclared Variable** | **M** | Highlight variables that are used but never defined. |
+| [`INSP-01`](01-undeclared-variable/requirements.md) | **Undeclared Variable** | **M** | Highlight variables that are used but never defined. |
 | `INSP-02` | **Unused Local/Parameter** | **M** | Warn when a local variable or function parameter is defined but never read. |
 | `INSP-03` | **Type Mismatch** | **S** | Warn when assigning a value with a conflicting LuaCATS `@type`. |
 | `INSP-04` | **Unreachable Code** | **S** | Detect code following a `return` or `break` that can never be executed. |
@@ -27,7 +27,9 @@ Lunar leverages its type engine and PSI tree to provide real-time feedback and c
 ## Detailed Implementation Status
 
 ### INSP-01: Undeclared Variable
-- **Status**: **Partial** (Implemented for local scopes in `LuaLocalBindingsAnnotator`)
+- **Status**: **Planned**
+- **Strategy**: Lazy `PsiReference.resolve()` via `LuaNameReference`.
+- **Detailed Specification**: [`01-undeclared-variable/requirements.md`](01-undeclared-variable/requirements.md)
 
 ### INSP-05: Global Creation Warning
 - **Status**: **Partial** (Implemented in `LuaGlobalBindingsAnnotator`)

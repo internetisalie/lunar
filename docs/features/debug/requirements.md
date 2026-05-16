@@ -3,7 +3,7 @@ folders:
   - "[[features]]"
 title: "DEBUG: Debugging & Execution"
 priority: low
-status: planned
+status: in_progress
 ---
 
 # Debugging & Execution Requirements (`DEBUG`, `RUN`)
