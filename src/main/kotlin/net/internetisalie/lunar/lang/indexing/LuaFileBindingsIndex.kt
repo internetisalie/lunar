@@ -25,7 +25,7 @@ import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
 
-private val LuaFileBindingsIndexName: @NonNls ID<Int, LuaFileBindingsRecord> =
+public val LuaFileBindingsIndexName: @NonNls ID<Int, LuaFileBindingsRecord> =
     ID.create("$ExternalIdPrefix.FileBindings")
 
 class LuaFileBindingsIndex : FileBasedIndexExtension<Int, LuaFileBindingsRecord>() {

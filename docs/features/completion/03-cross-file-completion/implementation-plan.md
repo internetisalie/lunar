@@ -15,6 +15,7 @@ type: plan
 - Implement **transitive caching** using `CachedValuesManager`.
 - Implement **cycle detection** for recursive `require` resolution.
 - **Verification**: Tests for completion of symbols from a `require`'d file.
+- **Tracker**: Task [343](saga://task/343)
 
 ### Phase 2: Project-wide Globals [Must]
 - Integrate `StubIndex` lookups into the completion provider using `processElements`.
@@ -22,6 +23,7 @@ type: plan
 - Implement visibility filtering for `_` prefixed symbols.
 - Filter out symbols already provided by local or imported lookup.
 - **Verification**: Tests for global functions appearing from non-required files.
+- **Tracker**: Task [344](saga://task/344)
 
 ### Phase 3: [[03-auto-import|Auto-import]] [Should]
 - Implement `LuaAutoImportInsertHandler`.
@@ -29,14 +31,16 @@ type: plan
 - Implement name heuristics for module assignments.
 - Support `init.lua` path normalization.
 - **Verification**: Selection test that inserts a `require` statement.
+- **Tracker**: Task [345](saga://task/345)
 
 ### Phase 4: Recursive & Advanced Patterns [Could]
 - Support recursive `require` resolution.
 - Refine export detection (e.g., table field assignment `M.func = ...`).
+- **Tracker**: Task [347](saga://task/347)
 
 ## Verification Tasks
 
-- [ ] [Must] Implement `CrossFileCompletionTests`.
+- [ ] [Must] Implement `CrossFileCompletionTests`. **Tracker**: Task [346](saga://task/346)
 - [ ] [Must] Verify performance with a large number of indexed files.
 - [ ] [Should] Test auto-import with various project structures.
 - [ ] [Could] Verify transitive imports (A -> B -> C).

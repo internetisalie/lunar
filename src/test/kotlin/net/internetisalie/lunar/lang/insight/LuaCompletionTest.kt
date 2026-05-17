@@ -1,11 +1,11 @@
 package net.internetisalie.lunar.lang.insight
 
-import net.internetisalie.lunar.BaseDocumentTest
+import net.internetisalie.lunar.IndexedDocumentTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class LuaCompletionTest : BaseDocumentTest() {
+class LuaCompletionTest : IndexedDocumentTest() {
 
     private fun doTest(text: String, vararg expected: String) {
         configureByText(text)

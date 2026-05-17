@@ -14,6 +14,7 @@ import com.intellij.util.ProcessingContext
 import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.*
+import net.internetisalie.lunar.lang.completion.LuaCrossFileCompletionProvider
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 class LuaCompletionContributor : CompletionContributor() {
@@ -210,6 +211,13 @@ class LuaCompletionContributor : CompletionContributor() {
                     addSymbolCompletions(position, result)
                 }
             }
+        )
+
+        // Cross-file completion provider (COMP-03)
+        extend(
+            CompletionType.BASIC,
+            psiElement().withElementType(LuaElementTypes.IDENTIFIER),
+            LuaCrossFileCompletionProvider()
         )
 
         // Member completion provider

@@ -279,13 +279,18 @@ When validating implementation patterns or researching idiomatic IntelliJ plugin
 - **Static Singletons**: All `IElementType` instances (including `IFileElementType`, `LuaTokenType`, and `LuaElementType`) **must** be created as static singletons. 
 - **Registry Limit**: The IntelliJ Platform maintains a global registry of element types with a strict size limit. Dynamically instantiating `IElementType` per file or per parse (e.g., inside `ParserDefinition.getFileNodeType()`) will exhaust this registry and lead to `ArrayIndexOutOfBoundsException` at `IElementType.java` during bulk operations like running the test suite.
 
-## Requirement Documentation Standards
+## Documentation
 
-When updating requirement documents in `docs/requirements/`, adhere to the following standards for table formatting and implementation status.
+### Location
+`docs/features/` contains feature specifications and documentation. Each feature should have its own Markdown file with clear descriptions, requirements, and implementation notes.
+
+### Requirement Documentation Standards
+
+When updating requirement documents in `docs/features/`, adhere to the following standards for table formatting and implementation status.
 
 ### Table Format
 Standard table header: `| ID | Requirement | Priority | Status | Description |`
-- **ID**: Linked to the detailed specification in `docs/requirements/spec/` if it exists.
+- **ID**: Linked to the detailed specification in `docs/features/` if it exists.
 - **Requirement**: The name of the feature or requirement in bold.
 - **Priority**: MoSCoW classification (M, S, C, W).
 - **Status**: Current implementation state using standardized bold keywords.
