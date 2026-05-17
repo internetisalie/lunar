@@ -23,7 +23,7 @@ type: plan
 - Filter out symbols already provided by local or imported lookup.
 - **Verification**: Tests for global functions appearing from non-required files.
 
-### Phase 3: Auto-import [Should]
+### Phase 3: [[03-auto-import|Auto-import]] [Should]
 - Implement `LuaAutoImportInsertHandler`.
 - Add logic for **local assignment templates** (`local x = require("...")`).
 - Implement name heuristics for module assignments.

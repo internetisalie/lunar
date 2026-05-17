@@ -23,6 +23,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | `MAINT-07` | **Interpreter Search Path Globs** | **M** | **Todo** | Add globbing support for interpreter search paths to improve module resolution. |
 | `MAINT-08` | **LuaCheck UI Grouping** | **L** | **Todo** | Implement hierarchical grouping for LuaCheck inspection results. |
 | `MAINT-14` | **Scope Reduction (Luau)** | **L** | **Done** | Remove Luau support references to focus on standard Lua (5.1-5.4). |
+| `MAINT-15` | **Remove Legacy Annotators** | **L** | **Todo** | Remove `LuaLocalBindingsAnnotator` and related legacy components. |
 | `MAINT-XX` | **Test Coverage Improvement** | **H** | **Todo** | Increase unit test coverage for legacy code across the codebase. |
 
 ---

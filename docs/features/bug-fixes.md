@@ -14,6 +14,7 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-134` | **@return Comma Parsing** | **H** | **Todo** | Fix parse error on comma-separated multiple types in `@return` tags. |
 | `BUG-135` | **Stdlib Inlay Hints** | **M** | **Todo** | Fix missing inlay hints for values returned from standard library functions. |
 | `BUG-272` | **Local Var Navigation** | **H** | **Done** | Fix Go to Definition failures for local variables with table initializers. |
+| `BUG-349` | **Flaky Inlay Hint Tests** | **M** | **Todo** | Fix intermittent failures in inlay hint tests caused by state pollution and cache staling. |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).
