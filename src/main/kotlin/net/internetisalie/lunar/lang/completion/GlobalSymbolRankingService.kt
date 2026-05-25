@@ -77,44 +77,44 @@ class GlobalSymbolRankingService(private val project: Project) {
         val scope = GlobalSearchScope.projectScope(project)
 
         val allFuncKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
-        allFuncKeys.forEach { key ->
-            // Early exit if we've collected enough candidates
-            if (result.size >= MAX_CANDIDATES) {
-                return@forEach
-            }
-
+         
+        // Use labeled for loop to properly exit nested loops when limit is reached
+        outer@ for (key in allFuncKeys) {
+            // Check early exit and cancellation before processing each key
+            if (result.size >= MAX_CANDIDATES) break
             ProgressManager.checkCanceled()
-            StubIndex.getElements(
+             
+            val functions = StubIndex.getElements(
                 LuaGlobalDeclarationIndex.KEY,
                 key,
                 project,
                 scope,
                 LuaFuncDecl::class.java
-            ).forEach { funcDecl ->
+            )
+             
+            for (funcDecl in functions) {
                 // Check cancellation in inner loop
                 ProgressManager.checkCanceled()
 
-                // Check if we've collected enough candidates
-                if (result.size >= MAX_CANDIDATES) {
-                    return@forEach
-                }
+                // Exit both loops if limit reached
+                if (result.size >= MAX_CANDIDATES) break@outer
 
-                val name = extractFuncDeclName(funcDecl) ?: return@forEach
+                val name = extractFuncDeclName(funcDecl) ?: continue
 
                 // Apply visibility rules
                 if (suppressUnderscore && name.startsWith("_")) {
-                    return@forEach
+                    continue
                 }
 
                 // Deduplicate with local and imported symbols
                 if (localSymbolNames.contains(name) || importedSymbolNames.contains(name)) {
-                    return@forEach
+                    continue
                 }
 
                 // Calculate proximity and recency weight
                 val weight = ProximityCalculator.calculateWeight(
                     currentFile,
-                    funcDecl.containingFile ?: return@forEach,
+                    funcDecl.containingFile ?: continue,
                     isClassType = false
                 )
 
@@ -146,44 +146,44 @@ class GlobalSymbolRankingService(private val project: Project) {
         val scope = GlobalSearchScope.projectScope(project)
 
         val allClassKeys = StubIndex.getInstance().getAllKeys(LuaClassNameIndex.KEY, project)
-        allClassKeys.forEach { className ->
-            // Early exit if we've collected enough candidates
-            if (result.size >= MAX_CANDIDATES) {
-                return@forEach
-            }
-
+         
+        // Use labeled for loop to properly exit nested loops when limit is reached
+        outer@ for (className in allClassKeys) {
+            // Check early exit and cancellation before processing each key
+            if (result.size >= MAX_CANDIDATES) break
             ProgressManager.checkCanceled()
-            StubIndex.getElements(
+             
+            val classes = StubIndex.getElements(
                 LuaClassNameIndex.KEY,
                 className,
                 project,
                 scope,
                 LuaLocalVarDecl::class.java
-            ).forEach { classElement ->
+            )
+             
+            for (classElement in classes) {
                 // Check cancellation in inner loop
                 ProgressManager.checkCanceled()
 
-                // Check if we've collected enough candidates
-                if (result.size >= MAX_CANDIDATES) {
-                    return@forEach
-                }
+                // Exit both loops if limit reached
+                if (result.size >= MAX_CANDIDATES) break@outer
 
-                val name = extractClassElementName(classElement) ?: return@forEach
+                val name = extractClassElementName(classElement) ?: continue
 
                 // Apply visibility rules
                 if (suppressUnderscore && name.startsWith("_")) {
-                    return@forEach
+                    continue
                 }
 
                 // Deduplicate with local and imported symbols
                 if (localSymbolNames.contains(name) || importedSymbolNames.contains(name)) {
-                    return@forEach
+                    continue
                 }
 
                 // Calculate proximity and recency weight (with class boost)
                 val weight = ProximityCalculator.calculateWeight(
                     currentFile,
-                    classElement.containingFile ?: return@forEach,
+                    classElement.containingFile ?: continue,
                     isClassType = true
                 )
 
