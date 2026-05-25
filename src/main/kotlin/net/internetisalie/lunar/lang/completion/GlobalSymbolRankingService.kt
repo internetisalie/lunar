@@ -78,6 +78,11 @@ class GlobalSymbolRankingService(private val project: Project) {
 
         val allFuncKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
         allFuncKeys.forEach { key ->
+            // Early exit if we've collected enough candidates
+            if (result.size >= MAX_CANDIDATES) {
+                return@forEach
+            }
+
             ProgressManager.checkCanceled()
             StubIndex.getElements(
                 LuaGlobalDeclarationIndex.KEY,
@@ -86,6 +91,14 @@ class GlobalSymbolRankingService(private val project: Project) {
                 scope,
                 LuaFuncDecl::class.java
             ).forEach { funcDecl ->
+                // Check cancellation in inner loop
+                ProgressManager.checkCanceled()
+
+                // Check if we've collected enough candidates
+                if (result.size >= MAX_CANDIDATES) {
+                    return@forEach
+                }
+
                 val name = extractFuncDeclName(funcDecl) ?: return@forEach
 
                 // Apply visibility rules
@@ -134,6 +147,11 @@ class GlobalSymbolRankingService(private val project: Project) {
 
         val allClassKeys = StubIndex.getInstance().getAllKeys(LuaClassNameIndex.KEY, project)
         allClassKeys.forEach { className ->
+            // Early exit if we've collected enough candidates
+            if (result.size >= MAX_CANDIDATES) {
+                return@forEach
+            }
+
             ProgressManager.checkCanceled()
             StubIndex.getElements(
                 LuaClassNameIndex.KEY,
@@ -142,6 +160,14 @@ class GlobalSymbolRankingService(private val project: Project) {
                 scope,
                 LuaLocalVarDecl::class.java
             ).forEach { classElement ->
+                // Check cancellation in inner loop
+                ProgressManager.checkCanceled()
+
+                // Check if we've collected enough candidates
+                if (result.size >= MAX_CANDIDATES) {
+                    return@forEach
+                }
+
                 val name = extractClassElementName(classElement) ?: return@forEach
 
                 // Apply visibility rules
@@ -197,6 +223,8 @@ class GlobalSymbolRankingService(private val project: Project) {
     }
 
     companion object {
+       private const val MAX_CANDIDATES = 500
+
        fun getInstance(project: Project): GlobalSymbolRankingService =
            project.getService(GlobalSymbolRankingService::class.java)
     }
