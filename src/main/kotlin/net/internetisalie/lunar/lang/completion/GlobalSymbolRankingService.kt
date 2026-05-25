@@ -59,7 +59,8 @@ class GlobalSymbolRankingService(private val project: Project) {
         allSymbols.addAll(collectGlobalFunctions(currentFile, localSymbolNames, importedSymbolNames))
         allSymbols.addAll(collectClassSymbols(currentFile, localSymbolNames, importedSymbolNames))
 
-        return deduplicateAndSort(allSymbols)
+        // Use improved deduplication by PSI element identity (Phase 2.2 enhancement)
+        return DeduplicationService.deduplicateByPsiIdentity(allSymbols)
     }
 
     /**
@@ -97,14 +98,18 @@ class GlobalSymbolRankingService(private val project: Project) {
                     return@forEach
                 }
 
-                // Calculate proximity weight
-                val proximityWeight = calculateProximityWeight(currentFile, funcDecl.containingFile ?: return@forEach)
+                // Calculate proximity and recency weight
+                val weight = ProximityCalculator.calculateWeight(
+                    currentFile,
+                    funcDecl.containingFile ?: return@forEach,
+                    isClassType = false
+                )
 
                 result.add(
                     GlobalSymbolCompletion(
                         name = name,
                         psiElement = funcDecl,
-                        proximityWeight = proximityWeight,
+                        proximityWeight = weight,
                         isClassType = false
                     )
                 )
@@ -149,15 +154,18 @@ class GlobalSymbolRankingService(private val project: Project) {
                     return@forEach
                 }
 
-                // Calculate proximity weight (using currentFile correctly)
-                val proximityWeight = calculateProximityWeight(currentFile, classElement.containingFile ?: return@forEach)
-                val boostedWeight = proximityWeight + 0.25
+                // Calculate proximity and recency weight (with class boost)
+                val weight = ProximityCalculator.calculateWeight(
+                    currentFile,
+                    classElement.containingFile ?: return@forEach,
+                    isClassType = true
+                )
 
                 result.add(
                     GlobalSymbolCompletion(
                         name = name,
                         psiElement = classElement,
-                        proximityWeight = boostedWeight,
+                        proximityWeight = weight,
                         isClassType = true
                     )
                 )
@@ -165,21 +173,6 @@ class GlobalSymbolRankingService(private val project: Project) {
         }
 
         return result
-    }
-
-    /**
-     * Deduplicate symbols by name (keeping highest weight) and sort by proximity (descending).
-     */
-    private fun deduplicateAndSort(symbols: List<GlobalSymbolCompletion>): List<GlobalSymbolCompletion> {
-        val deduped = mutableMapOf<String, GlobalSymbolCompletion>()
-        symbols.forEach { symbol ->
-            val existing = deduped[symbol.name]
-            if (existing == null || symbol.proximityWeight > existing.proximityWeight) {
-                deduped[symbol.name] = symbol
-            }
-        }
-
-        return deduped.values.sortedByDescending { it.proximityWeight }
     }
 
     /**
@@ -194,45 +187,17 @@ class GlobalSymbolRankingService(private val project: Project) {
     }
 
     /**
-     * Extract the name from a LuaLocalVarDecl (used for @class declarations).
-     * Typically gets the first name from the local variable declaration.
-     */
+    * Extract the name from a LuaLocalVarDecl (used for @class declarations).
+    * Typically gets the first name from the local variable declaration.
+    */
     private fun extractClassElementName(element: LuaLocalVarDecl): String? {
-        val attNames = element.attNameList.firstOrNull() ?: return null
-        val identifier = attNames.nameRef.identifier ?: return null
-        return identifier.text
-    }
-
-    /**
-     * Calculate proximity weight based on file/module structure.
-     *
-     * Weights:
-     * - Same module: 0.9
-     * - Same directory: 0.7
-     * - Different module: 0.5
-     */
-    private fun calculateProximityWeight(currentFile: PsiFile, symbolFile: PsiFile): Double {
-        if (currentFile == symbolFile) {
-            return 0.9 // Same file
-        }
-
-        val currentPath = currentFile.virtualFile?.path ?: return 0.5
-        val symbolPath = symbolFile.virtualFile?.path ?: return 0.5
-
-        // Same directory
-        val currentDir = File(currentPath).parent
-        val symbolDir = File(symbolPath).parent
-        if (currentDir != null && currentDir == symbolDir) {
-            return 0.7
-        }
-
-        // Different module/directory
-        return 0.5
+       val attNames = element.attNameList.firstOrNull() ?: return null
+       val identifier = attNames.nameRef.identifier ?: return null
+       return identifier.text
     }
 
     companion object {
-        fun getInstance(project: Project): GlobalSymbolRankingService =
-            project.getService(GlobalSymbolRankingService::class.java)
+       fun getInstance(project: Project): GlobalSymbolRankingService =
+           project.getService(GlobalSymbolRankingService::class.java)
     }
 }
-
