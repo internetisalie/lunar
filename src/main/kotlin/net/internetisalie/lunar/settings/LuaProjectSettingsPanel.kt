@@ -13,6 +13,7 @@ import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.platform.target.VersionEntry
 import net.internetisalie.lunar.project.PlatformLibraryIndex
+import javax.swing.JCheckBox
 import javax.swing.JLabel
 import javax.swing.JPanel
 
@@ -23,6 +24,7 @@ class LuaProjectSettingsPanel(val project: Project) {
     private val languageLevelLabel: JLabel
     private val interpreter: ComboBox<LuaInterpreter>
     private val sourcePath: ExpandableTextField
+    private val suppressUnderscorePrefixedCheckBox: JCheckBox
 
     init {
         platformComboBox = ComboBox(PlatformVersionRegistry.platforms().sortedBy { it.label }.toTypedArray())
@@ -44,6 +46,10 @@ class LuaProjectSettingsPanel(val project: Project) {
         sourcePath.columns = 60
         sourcePath.text = PathConfiguration.DEFAULT_SOURCE_PATH
 
+        suppressUnderscorePrefixedCheckBox = JCheckBox(
+            "Suppress symbols with underscore prefix (_) from completion suggestions"
+        )
+
         platformComboBox.addItemListener {
             onPlatformChanged(platformComboBox.selectedItem as? LuaPlatform)
         }
@@ -60,6 +66,7 @@ class LuaProjectSettingsPanel(val project: Project) {
             .addLabeledComponent("Language Level", languageLevelLabel, 2)
             .addLabeledComponent("Interpreter", interpreter, 2)
             .addLabeledComponent("Source path patterns", sourcePath, 2)
+            .addComponent(suppressUnderscorePrefixedCheckBox, 2)
             .addComponentFillVertically(JPanel(), 2)
             .panel
     }
@@ -90,6 +97,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         state.setTarget(newTarget)
         state.interpreter = interpreter.selectedItem as? LuaInterpreter
         state.sourcePath = sourcePath.text
+        state.suppressUnderscorePrefixedGlobals = suppressUnderscorePrefixedCheckBox.isSelected
         if (newTarget.getImplicitLanguageLevel() != previousTarget.getImplicitLanguageLevel()) {
             PlatformLibraryIndex.reload()
         }
@@ -107,6 +115,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         updateLanguageLevelDisplay()
         interpreter.selectedItem = data.interpreter
         sourcePath.text = data.sourcePath
+        suppressUnderscorePrefixedCheckBox.isSelected = data.suppressUnderscorePrefixedGlobals
     }
 
     fun isModified(data: LuaProjectSettings.State): Boolean {
@@ -117,6 +126,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         if (currentVersion != savedTarget.version) return true
         if (interpreter.selectedItem != data.interpreter) return true
         if (sourcePath.text != data.sourcePath) return true
+        if (suppressUnderscorePrefixedCheckBox.isSelected != data.suppressUnderscorePrefixedGlobals) return true
         return false
     }
 }
