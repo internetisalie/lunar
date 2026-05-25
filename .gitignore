@@ -4,6 +4,15 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+### AI ###
+/.agents/
+/.ai/
+/.gemini/
+/.kilo/
+/.kilocode/
+/GEMINI.md
+/.instructions.md
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml

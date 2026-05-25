@@ -1,4 +1,0 @@
-- Read the implement-feature skill in .agents/skills
-- Read the repository instructions in .agents/instructions.md
-- We are using the saga mcp tracker for task tracking
-- Let me know to regenerate the lexer or parser for updates.
