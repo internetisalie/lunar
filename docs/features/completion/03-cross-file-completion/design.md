@@ -55,3 +55,9 @@ The cross-file completion system leverages the existing indexing infrastructure 
 - **Transitive Caching**: Transitive bindings are cached at the file level and invalidated on any change to the module graph.
 - **Bulk Processing**: Use `StubIndex.processElements` to avoid loading all keys into memory at once.
 - **Visibility Filtering**: Skip symbols starting with `_` unless they are defined in the current file.
+
+## Phase-Specific Documentation
+
+- **Phase 1: Imported Symbols** — Core completion provider (✅ Complete, Task 343)
+- **Phase 2: Project-wide Globals** — [[02-project-wide-globals/design|See Phase 2 Technical Design]]
+- **Phase 3: Auto-import** — [[03-auto-import|See Phase 3 Specification]]
