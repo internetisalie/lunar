@@ -148,4 +148,84 @@ class LuaCompletionTest : IndexedDocumentTest() {
         val strings = myFixture.lookupElementStrings ?: return
         assertTrue(strings.contains("global_var"), "Completion should contain 'global_var'")
     }
+
+    // COMP-03 DR-03: Phase 1 + Phase 2 Integration Tests
+
+    @Test
+    fun `DR-03-01 Verify circular dependency doesn't crash - A requires B, B requires A`() {
+        // Spike test to verify that circular require statements don't cause
+        // stack overflow or other crashes when completion is triggered
+        myFixture.addFileToProject(
+            "module_a.lua",
+            """
+            local b = require("module_b")
+            function function_a() end
+            """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "module_b.lua",
+            """
+            local a = require("module_a")
+            function function_b() end
+            """.trimIndent()
+        )
+
+        configureByText("local a = require(\"module_a\")\nif true <caret>")
+
+        try {
+            myFixture.completeBasic()
+            // Test passes if no stack overflow or exception is thrown
+        } catch (e: StackOverflowError) {
+            throw AssertionError("Circular dependency A->B->A caused stack overflow", e)
+        }
+    }
+
+    @Test
+    fun `DR-03-03 Verify test fixture supports multi-file projects`() {
+        // Spike test to verify that test infrastructure can handle multi-file scenarios
+        // (Actual cache invalidation will be tested in Phase 2.1 after GlobalSymbolRankingService is added)
+        myFixture.addFileToProject(
+            "config.lua",
+            "return { debug = true }"
+        )
+
+        // Verify the test fixture can handle multiple files
+        configureByText("local cfg = require(\"config\")\nif true <caret>")
+        
+        // Test passes if fixture handles multi-file scenario without crashing
+        myFixture.completeBasic()
+    }
+
+    @Test
+    fun `DR-03-04 Ready for Phase 2 - test fixtures can handle global symbol completion`() {
+        // Spike test to verify that the test infrastructure is ready for Phase 2 global symbol testing
+        // Creates a realistic multi-file project structure
+        myFixture.addFileToProject(
+            "service.lua",
+            """
+            function create_service() return {} end
+            function destroy_service() end
+            return {}
+            """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "utils.lua",
+            """
+            function helper() end
+            function cleanup() end
+            return {}
+            """.trimIndent()
+        )
+
+        configureByText(
+            """
+            local svc = require("service")
+            local util = require("utils")
+            if <caret>
+            """.trimIndent()
+        )
+
+        // Test passes if fixture handles multi-module project without crashing
+        myFixture.completeBasic()
+    }
 }

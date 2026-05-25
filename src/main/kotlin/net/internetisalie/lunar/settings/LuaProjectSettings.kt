@@ -49,6 +49,7 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var target: TargetState? = null
         var interpreter: LuaInterpreter? = null
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
+        var suppressUnderscorePrefixedGlobals: Boolean = true
 
         fun expandSourcePath(project : Project) : String {
             return sourcePath.trim(' ').expandMacros(project)
@@ -104,6 +105,9 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         state.setTarget(newTarget)
         project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
     }
+
+    val suppressUnderscorePrefixedGlobals: Boolean
+        get() = state.suppressUnderscorePrefixedGlobals
 
     companion object {
         fun getInstance(project: Project): LuaProjectSettings {

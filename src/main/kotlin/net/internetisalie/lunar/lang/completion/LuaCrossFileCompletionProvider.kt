@@ -3,8 +3,8 @@ package net.internetisalie.lunar.lang.completion
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.PrioritizedLookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -12,7 +12,10 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiNamedElement
+import com.intellij.psi.ResolveState
+import com.intellij.psi.scope.PsiScopeProcessor
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValue
@@ -52,6 +55,8 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         val requires = extractRequires(currentFile)
         val visited = mutableSetOf<String>()
 
+        // Collect imported symbol names for deduplication
+        val importedSymbolNames = mutableSetOf<String>()
         requires.forEach { requireName ->
             resolveAndAddSymbols(
                 project,
@@ -60,11 +65,35 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
                 prefix,
                 result,
                 visited,
-                currentFile.virtualFile
+                currentFile.virtualFile,
+                importedSymbolNames
             )
         }
 
-        processGlobals(project, prefix, result)
+        // Get local symbol names for deduplication
+        val localSymbolNames = getLocalSymbolNames(currentFile)
+
+        // Phase 2: Add project-wide globals with proximity weighting
+        processGlobalsWithRanking(project, currentFile, prefix, result, localSymbolNames, importedSymbolNames)
+    }
+
+    private fun getLocalSymbolNames(currentFile: LuaFile): Set<String> {
+        val processor = object : PsiScopeProcessor {
+            val names = mutableSetOf<String>()
+
+            override fun execute(element: PsiElement, state: ResolveState): Boolean {
+                if (element is PsiNamedElement) {
+                    element.name?.let { names.add(it) }
+                }
+                return true
+            }
+
+            override fun <T : Any?> getHint(hintKey: Key<T>): T? = null
+            override fun handleEvent(event: PsiScopeProcessor.Event, associated: Any?) {}
+        }
+
+        currentFile.processDeclarations(processor, ResolveState.initial(), currentFile, currentFile)
+        return processor.names
     }
 
     private fun extractRequires(file: LuaFile): List<String> {
@@ -94,16 +123,17 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         prefix: String,
         result: CompletionResultSet,
         visited: MutableSet<String>,
-        contextFile: VirtualFile? = null
+        contextFile: VirtualFile? = null,
+        importedSymbolNames: MutableSet<String>? = null
     ) {
         if (visited.contains(requireName)) return
         visited.add(requireName)
 
         val virtualFile = findRequireFile(project, requireName, sourcePathPatterns, contextFile) ?: return
         
-        val psiFile = com.intellij.psi.PsiManager.getInstance(project).findFile(virtualFile) as? LuaFile ?: return
+        val psiFile = PsiManager.getInstance(project).findFile(virtualFile) as? LuaFile ?: return
 
-        addSymbolsFromFile(psiFile, prefix, result)
+        addSymbolsFromFile(psiFile, prefix, result, importedSymbolNames)
     }
 
     private fun findRequireFile(
@@ -152,11 +182,12 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         return normalized.replace(File.separatorChar, '/')
     }
 
-    private fun addSymbolsFromFile(file: LuaFile, prefix: String, result: CompletionResultSet) {
+    private fun addSymbolsFromFile(file: LuaFile, prefix: String, result: CompletionResultSet, importedSymbolNames: MutableSet<String>? = null) {
         val processor = LuaCrossFileCompletionScopeProcessor(prefix)
         file.processDeclarations(processor, com.intellij.psi.ResolveState.initial(), file, file)
         
         processor.results.forEach { (symbolName, element) ->
+            importedSymbolNames?.add(symbolName)
             val icon = when (element) {
                 is LuaFuncDecl -> com.intellij.icons.AllIcons.Nodes.Function
                 is LuaLocalVarDecl -> com.intellij.icons.AllIcons.Nodes.Variable
@@ -170,42 +201,34 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         }
     }
 
-    private fun processGlobals(
+    private fun processGlobalsWithRanking(
         project: Project,
+        currentFile: LuaFile,
         prefix: String,
-        result: CompletionResultSet
+        result: CompletionResultSet,
+        localSymbolNames: Set<String>,
+        importedSymbolNames: Set<String>
     ) {
-        val scope = GlobalSearchScope.allScope(project)
+        val rankingService = GlobalSymbolRankingService.getInstance(project)
+        val globalSymbols = rankingService.getProjectGlobalSymbols(currentFile, localSymbolNames, importedSymbolNames)
 
-        // Process global function declarations
-        val allKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
-        allKeys.filter { it.startsWith(prefix) }.forEach { key ->
-            StubIndex.getElements(
-                LuaGlobalDeclarationIndex.KEY,
-                key,
-                project,
-                scope,
-                LuaFuncDecl::class.java
-            ).forEach { funcDecl ->
-                val name = (funcDecl as? PsiNamedElement)?.name ?: return@forEach
-                if (name.startsWith(prefix)) {
-                    val sourceFile = funcDecl.containingFile?.name ?: "unknown"
-                    val builder = LookupElementBuilder.create(name)
-                        .withTypeText(sourceFile)
-                        .withIcon(com.intellij.icons.AllIcons.Nodes.Function)
-
-                    result.addElement(builder)
-                }
+        globalSymbols.filter { it.name.startsWith(prefix) }.forEach { symbol ->
+            val icon = if (symbol.isClassType) {
+                com.intellij.icons.AllIcons.Nodes.Class
+            } else {
+                com.intellij.icons.AllIcons.Nodes.Function
             }
-        }
-
-        // Process class declarations - iterate over keys to get class names
-        val classKeys = StubIndex.getInstance().getAllKeys(LuaClassNameIndex.KEY, project)
-        classKeys.filter { it.startsWith(prefix) }.forEach { className ->
-            val builder = LookupElementBuilder.create(className)
-                .withTypeText("class")
-                .withIcon(com.intellij.icons.AllIcons.Nodes.Class)
-            result.addElement(builder)
+            val sourceFile = symbol.psiElement.containingFile?.name ?: "unknown"
+            val builder = LookupElementBuilder.create(symbol.name)
+                .withTypeText(sourceFile)
+                .withIcon(icon)
+            
+            // Apply proximity-based weighting
+            val weighted = com.intellij.codeInsight.completion.PrioritizedLookupElement.withPriority(
+                builder,
+                symbol.proximityWeight
+            )
+            result.addElement(weighted)
         }
     }
 }
