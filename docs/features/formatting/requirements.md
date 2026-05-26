@@ -2,7 +2,7 @@
 id: "FORMAT"
 title: "FORMAT: Formatting"
 type: "epic"
-status: "in_progress"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features]]"

@@ -1,7 +1,11 @@
 ---
+id: "MAINT-04-VERIFY"
 folders:
   - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
 title: "Verification Guide"
+type: "qa"
+parent_id: "MAINT-04"
+status: "done"
 ---
 
 # MAINT-04: Verification Guide

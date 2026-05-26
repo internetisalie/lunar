@@ -1,10 +1,13 @@
 ---
+id: "DOC-08"
 folders:
   - "[[features/documentation/requirements|requirements]]"
 priority: medium
 status: done
 vf_icon: ✅
 title: "08: LuaCATS Annotation Parsing"
+type: "feature"
+parent_id: "DOC"
 ---
 # Specification: DOC-08 Comprehensive LuaCATS Parsing
 

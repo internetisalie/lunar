@@ -1,10 +1,13 @@
 ---
+id: "DOC-05"
 folders:
   - "[[features/documentation/requirements|requirements]]"
 priority: medium
 status: done
 vf_icon: ✅
 title: "05: Markdown Support"
+type: "feature"
+parent_id: "DOC"
 ---
 # Specification: DOC-05 Markdown Support
 

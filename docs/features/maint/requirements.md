@@ -1,9 +1,11 @@
 ---
-folders:
-  - "[[features]]"
+id: "MAINT"
 title: "MAINT: Maintenance & Refactoring"
+type: "epic"
 priority: low
 status: planned
+folders:
+  - "[[features]]"
 ---
 
 # Maintenance & Refactoring Requirements (`MAINT`)

@@ -5,6 +5,7 @@ folders:
   - "[[features/completion/02-symbol-completion/requirements|requirements]]"
 title: "Implementation Status"
 type: "task"
+status: "done"
 ---
 
 # COMP-02: Basic Symbol Completion - Implementation Complete

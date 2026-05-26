@@ -1,10 +1,13 @@
 ---
+id: "DOC-06-PLAT"
 folders:
   - "[[features/documentation/06-documentation-indexing/06-documentation-indexing|indexing]]"
 priority: medium
 status: done
 vf_icon: ✅
 title: "06: Platform Symbol Documentation"
+type: "feature"
+parent_id: "DOC-06"
 ---
 # Specification: DOC-06-06 Platform Symbol Documentation
 

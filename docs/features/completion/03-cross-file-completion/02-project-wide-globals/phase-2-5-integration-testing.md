@@ -5,6 +5,7 @@ folders:
   - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|requirements]]"
 title: "COMP-03-02 Phase 2.5: Integration Testing & Validation"
 type: "qa"
+status: "done"
 ---
 
 # COMP-03-02 Phase 2.5: Integration Testing & Validation

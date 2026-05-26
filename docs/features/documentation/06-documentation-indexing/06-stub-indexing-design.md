@@ -1,7 +1,11 @@
 ---
+id: "DOC-06-DESIGN-STUB"
 folders:
   - "[[features/documentation/06-documentation-indexing/06-documentation-indexing|requirements]]"
 title: "Technical Design: Stub Indexing"
+type: "design"
+parent_id: "DOC-06"
+status: "done"
 ---
 
 # Design Document: Stub Indexing for LuaCATS Data (DOC-06)

@@ -1,7 +1,11 @@
 ---
+id: "DOC-06-PLAT-DESIGN"
 folders:
   - "[[features/documentation/06-documentation-indexing/platform-symbol-documentation/requirements|requirements]]"
 title: "Technical Design"
+type: "design"
+parent_id: "DOC-06-PLAT"
+status: "done"
 ---
 
 # Technical Design: DOC-06-06 Platform Symbol Documentation

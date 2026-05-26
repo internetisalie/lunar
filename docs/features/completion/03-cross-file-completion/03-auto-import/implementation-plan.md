@@ -5,6 +5,7 @@ folders:
   - "[[features/completion/03-cross-file-completion/03-auto-import/requirements|parent]]"
 title: "COMP-03-03: Implementation Plan"
 type: "plan"
+status: "todo"
 ---
 
 # COMP-03-03: Implementation Plan

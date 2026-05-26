@@ -1,8 +1,8 @@
 ---
-id: "DEBUG"
+id: "DEBUG/RUN"
 title: "DEBUG: Debugging & Execution"
 type: "epic"
-status: "in_progress"
+status: "planned"
 priority: "low"
 folders:
   - "[[features]]"

@@ -1,9 +1,11 @@
 ---
-folders:
-  - "[[features]]"
+id: "REFACT/INTENT"
 title: "REFACT: Refactoring & Intentions"
+type: "epic"
 priority: low
 status: planned
+folders:
+  - "[[features]]"
 ---
 
 # Refactoring & Intentions Requirements (`REFACT`, `INTENT`)

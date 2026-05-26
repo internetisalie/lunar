@@ -5,6 +5,7 @@ folders:
   - "[[features/completion/03-cross-file-completion/03-auto-import/requirements|parent]]"
 title: "COMP-03-03: Technical Design"
 type: "design"
+status: "todo"
 ---
 
 # COMP-03-03: Technical Design

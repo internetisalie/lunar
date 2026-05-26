@@ -5,6 +5,7 @@ folders:
   - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|parent]]"
 title: "DR-04: Test Traceability Matrix Validation"
 type: "risk"
+status: "done"
 ---
 
 # DR-04: Test Traceability Matrix Validation

@@ -5,8 +5,7 @@ folders:
   - "[[features]]"
 title: "TARGET: Runtime Environment Configuration"
 priority: high
-status: in_progress
-vf_icon: 🚧
+status: done
 ---
 # Target Configuration Requirements (`TARGET`)
 

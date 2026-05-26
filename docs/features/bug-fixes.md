@@ -1,7 +1,11 @@
 ---
+id: "BUG"
+title: "BUG: Bugfixes & Stability"
+type: "epic"
+priority: critical
+status: planned
 folders:
   - "[[features]]"
-title: "BUG: Bugfixes & Stability"
 ---
 # Bugfixes & Stability Requirements (`BUG`)
 This document tracks critical stability issues and functional bugs that impact the reliability of Lunar.
