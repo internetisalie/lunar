@@ -10,13 +10,15 @@ fun LuaNumericForStatement.processDeclarations(
     lastParent: PsiElement?,
     place: PsiElement
 ): Boolean {
-    // Process loop counter variable first
-    if (!processor.execute(this, state)) {
-        return false
+    // Loop variable is only visible in the loop body (block)
+    val block = block
+    if (lastParent == block) {
+        if (!processor.execute(this, state)) {
+            return false
+        }
     }
 
-    // Then process loop body
-    val block = block
+    // Then process loop body (recursive call to process inner variables)
     return block?.processDeclarations(processor, state, lastParent, place) ?: true
 }
 
@@ -26,12 +28,15 @@ fun LuaGenericForStatement.processDeclarations(
     lastParent: PsiElement?,
     place: PsiElement
 ): Boolean {
-    // Process loop variable list first
-    if (!processor.execute(this, state)) {
-        return false
+    // Loop variables are only visible in the loop body (block)
+    val block = block
+    if (lastParent == block) {
+        if (!processor.execute(this, state)) {
+            return false
+        }
     }
 
-    // Then process loop body
-    val block = block
+    // Then process loop body (recursive call to process inner variables)
     return block?.processDeclarations(processor, state, lastParent, place) ?: true
 }
+

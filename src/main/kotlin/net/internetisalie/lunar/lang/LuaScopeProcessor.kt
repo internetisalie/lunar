@@ -113,41 +113,55 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
  * Collects all visible names in scope without stopping, suitable for code completion.
  */
 class LuaCompletionScopeProcessor : PsiScopeProcessor {
-    val results: MutableSet<String> = mutableSetOf()
+    enum class SymbolType {
+        LOCAL,
+        PARAMETER,
+        GLOBAL
+    }
+
+    data class SymbolInfo(val name: String, val element: PsiElement, val type: SymbolType)
+
+    val results: MutableMap<String, SymbolInfo> = mutableMapOf()
 
     override fun execute(element: PsiElement, state: ResolveState): Boolean {
         // Collect all names, don't stop
         when (element) {
             is LuaLocalVarDecl -> {
                 element.attNameList.forEach { attName ->
-                    results.add(attName.nameRef.identifier.text)
+                    val name = attName.nameRef.identifier.text
+                    results.putIfAbsent(name, SymbolInfo(name, attName, SymbolType.LOCAL))
                 }
             }
 
             is LuaLocalFuncDecl -> {
-                results.add(element.nameRef.identifier.text)
+                val name = element.nameRef.identifier.text
+                results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.LOCAL))
             }
 
             is LuaFuncDecl -> {
-                results.add(element.funcName.nameRef.identifier.text)
+                val name = element.funcName.nameRef.identifier.text
+                results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.GLOBAL))
                 if (element.funcName.funcNameMethod != null) {
-                    results.add("self")
+                    results.putIfAbsent("self", SymbolInfo("self", element, SymbolType.PARAMETER))
                 }
             }
 
             is LuaParList -> {
                 element.nameList?.nameRefList?.forEach { nameRef ->
-                    results.add(nameRef.identifier.text)
+                    val name = nameRef.identifier.text
+                    results.putIfAbsent(name, SymbolInfo(name, nameRef, SymbolType.PARAMETER))
                 }
             }
 
             is LuaNumericForStatement -> {
-                results.add(element.identifier.text)
+                val name = element.identifier.text
+                results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.LOCAL))
             }
 
             is LuaGenericForStatement -> {
                 element.nameList.nameRefList.forEach { nameRef ->
-                    results.add(nameRef.identifier.text)
+                    val name = nameRef.identifier.text
+                    results.putIfAbsent(name, SymbolInfo(name, nameRef, SymbolType.LOCAL))
                 }
             }
 
@@ -156,7 +170,8 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
                 element.varList.varList.forEach { varElement ->
                     val nameRef = varElement.nameRef
                     if (nameRef != null) {
-                        results.add(nameRef.identifier.text)
+                        val name = nameRef.identifier.text
+                        results.putIfAbsent(name, SymbolInfo(name, varElement, SymbolType.GLOBAL))
                     }
                 }
             }
@@ -165,7 +180,8 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
                 // Process variable from assignment (for global variables)
                 val nameRef = element.nameRef
                 if (nameRef != null) {
-                    results.add(nameRef.identifier.text)
+                    val name = nameRef.identifier.text
+                    results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.GLOBAL))
                 }
             }
         }

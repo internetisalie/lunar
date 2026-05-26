@@ -64,40 +64,57 @@ class LuaCompletionContributor : CompletionContributor() {
         ) {
             // Walk up the PSI tree to collect declarations from all enclosing scopes
             var current: PsiElement? = position
+            var last: PsiElement? = null
             while (current != null) {
                 val state = ResolveState.initial()
 
                 when (current) {
                     is LuaBlock -> {
-                        current.processDeclarations(processor, state, position, position)
+                        current.processDeclarations(processor, state, last, position)
                     }
                     is LuaFuncDef -> {
-                        current.processDeclarations(processor, state, position, position)
+                        current.processDeclarations(processor, state, last, position)
                     }
                     is LuaFuncDecl -> {
-                        current.processDeclarations(processor, state, position, position)
+                        current.processDeclarations(processor, state, last, position)
                     }
                     is LuaLocalFuncDecl -> {
-                        current.processDeclarations(processor, state, position, position)
+                        current.processDeclarations(processor, state, last, position)
                     }
                     is LuaNumericForStatement -> {
-                        current.processDeclarations(processor, state, position, position)
+                        current.processDeclarations(processor, state, last, position)
                     }
                     is LuaGenericForStatement -> {
-                        current.processDeclarations(processor, state, position, position)
+                        current.processDeclarations(processor, state, last, position)
                     }
                     is LuaFile -> {
-                        current.processDeclarations(processor, state, position, position)
+                        current.processDeclarations(processor, state, last, position)
                     }
                 }
+                last = current
                 current = current.parent
             }
 
             // Add collected symbols to completion result
-            processor.results.forEach { symbolName ->
+            processor.results.forEach { (symbolName, info) ->
                 // Filter by prefix if provided
                 if (prefix == null || symbolName.startsWith(prefix)) {
+                    val icon = when (info.type) {
+                        LuaCompletionScopeProcessor.SymbolType.LOCAL -> com.intellij.icons.AllIcons.Nodes.Variable
+                        LuaCompletionScopeProcessor.SymbolType.PARAMETER -> com.intellij.icons.AllIcons.Nodes.Parameter
+                        LuaCompletionScopeProcessor.SymbolType.GLOBAL -> com.intellij.icons.AllIcons.Nodes.Function
+                    }
+
+                    val tailText = when (info.type) {
+                        LuaCompletionScopeProcessor.SymbolType.LOCAL -> " local"
+                        LuaCompletionScopeProcessor.SymbolType.PARAMETER -> " parameter"
+                        LuaCompletionScopeProcessor.SymbolType.GLOBAL -> " global"
+                    }
+
                     val builder = LookupElementBuilder.create(symbolName)
+                        .withIcon(icon)
+                        .withTailText(tailText, true)
+                    
                     val element = PrioritizedLookupElement.withPriority(builder, SYMBOL_PRIORITY)
                     result.addElement(element)
                 }

@@ -48,6 +48,10 @@ open class LuaFile(viewProvider: FileViewProvider) :
         
         // First, process global function declarations (they're at file level, not in blocks)
         for (child in children) {
+            // Visibility filtering: stop if we reached the place of completion
+            if (lastParent != null && child.textOffset >= lastParent.textOffset) {
+                break
+            }
             if (child is LuaFuncDecl) {
                 if (!processor.execute(child, state)) {
                     return false  // Processor found match, stop walk
@@ -57,6 +61,10 @@ open class LuaFile(viewProvider: FileViewProvider) :
 
         // Then process global variable assignments (assignments at file level create globals)
         for (child in children) {
+            // Visibility filtering: stop if we reached the place of completion
+            if (lastParent != null && child.textOffset >= lastParent.textOffset) {
+                break
+            }
             if (child is LuaAssignmentStatement) {
                 if (!processor.execute(child, state)) {
                     return false  // Processor found match, stop walk
