@@ -1,7 +1,12 @@
 ---
+id: "DEBUG-RUN-API"
+title: "Run Configuration API Reference"
+type: "spec"
+parent_id: "DEBUG"
+status: "done"
+priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"
-title: "Run Configuration API Reference"
 ---
 
 # Lunar Run Configuration API Reference

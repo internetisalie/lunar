@@ -1,10 +1,12 @@
 ---
+id: "DEBUG-12"
+title: "12: Refactor Variable Resolution"
+type: "feature"
+parent_id: "DEBUG"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/debug/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "12: Refactor Variable Resolution"
 ---
 # DEBUG-12: Refactor Debugger Variable Resolution
 

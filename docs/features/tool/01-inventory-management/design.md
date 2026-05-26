@@ -1,8 +1,12 @@
 ---
+id: "TOOL-01-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "TOOL-01"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/01-inventory-management/requirements|requirements]]"
-title: "Technical Design"
-type: design
 ---
 
 # Technical Design: Tool Registry & Discovery (`TOOL-01`)

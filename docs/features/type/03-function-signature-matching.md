@@ -1,9 +1,12 @@
 ---
+id: "TYPE-03"
+title: "03: Function Signature Matching"
+type: "feature"
+parent_id: "TYPE"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/type/requirements|requirements]]"
-priority: medium
-status: todo
-title: "03: Function Signature Matching"
 ---
 
 # Specification: TYPE-03 Function Signature Matching

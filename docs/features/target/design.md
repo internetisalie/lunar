@@ -1,7 +1,11 @@
 ---
+id: TARGET-DESIGN
+parent_id: TARGET
+type: design
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "Detailed Design"
+status: done
 ---
 
 # Target Configuration Design Document
@@ -679,13 +683,13 @@ class LuaProjectSettingsSerializer : AbstractProjectComponent() {
 docs/features/target/
 ├── requirements.md       # User-facing requirements (existing)
 ├── design.md            # This document
-└── spec/                # (Future) Detailed specs per requirement
-    ├── TARGET-01-data-model.md
-    ├── TARGET-02-implicit-level.md
-    ├── TARGET-03-contextual-ui.md
-    ├── TARGET-04-library-resolution.md
-    ├── TARGET-05-luacheck-integration.md
-    └── TARGET-06-migration.md
+├── 00-preparatory-activities/
+├── 01-data-model/
+├── 02-implicit-level/
+├── 03-contextual-ui/
+├── 04-library-resolution/
+├── 05-luacheck-integration/
+└── 06-migration/
 
 src/main/kotlin/net/internetisalie/lunar/
 ├── project/

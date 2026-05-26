@@ -1,7 +1,12 @@
 ---
+id: "SYNTAX-07-06-QA"
+title: "QA Verification"
+type: "spec"
+parent_id: "SYNTAX-07-06"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints/07-06-return-type-hints/requirements|requirements]]"
-title: QA Verification
 ---
 # QA Verification: SYNTAX-07-06 (Return Type Inlay Hints)
 

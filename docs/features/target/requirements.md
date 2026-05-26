@@ -1,10 +1,12 @@
 ---
+id: TARGET
+type: epic
 folders:
   - "[[features]]"
 title: "TARGET: Runtime Environment Configuration"
 priority: high
-status: completed
-vf_icon: ✅
+status: in_progress
+vf_icon: 🚧
 ---
 # Target Configuration Requirements (`TARGET`)
 
@@ -12,12 +14,13 @@ The Target Configuration feature manages the runtime environment for Lua code, a
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| [`TARGET-01`](spec/TARGET-01-data-model.md) | **Target Data Model** | **M** | **Not Implemented** | Define a `Target` configuration combining a `LuaPlatform` and a platform-specific Version string. |
-| [`TARGET-02`](spec/TARGET-02-implicit-level.md) | **Implicit Language Level** | **M** | **Not Implemented** | Selecting a Target must automatically set the `LuaLanguageLevel` (e.g., Redis implies Lua 5.1). |
-| [`TARGET-03`](spec/TARGET-03-contextual-ui.md) | **UI Contextual Versions** | **M** | **Not Implemented** | The Project Settings panel must dynamically update the available version options based on the selected Platform. |
-| [`TARGET-04`](spec/TARGET-04-library-resolution.md) | **Library Root Resolution** | **M** | **Not Implemented** | `PlatformLibraryProvider` must inject the correct standard library and SDK stubs based on the target. |
-| [`TARGET-05`](spec/TARGET-05-luacheck-integration.md) | **Luacheck Integration** | **M** | **Not Implemented** | Map each Target to its corresponding luacheck `--std` argument via explicit `VersionEntry.luacheckStd` values. |
-| [`TARGET-06`](spec/TARGET-06-migration.md) | **Target Migration** | **C** | **Not Implemented** | Existing projects using `LuaLanguageLevel` should gracefully migrate to the `Target` model. |
+| [`TARGET-00`](00-preparatory-activities/requirements.md) | **Preparatory Activities** | **H** | **Completed** | Complete all prerequisite work, including design sign-off and risk mitigation. |
+| [`TARGET-01`](01-data-model/requirements.md) | **Target Data Model** | **M** | **Not Implemented** | Define a `Target` configuration combining a `LuaPlatform` and a platform-specific Version string. |
+| [`TARGET-02`](02-implicit-level/requirements.md) | **Implicit Language Level** | **M** | **Not Implemented** | Selecting a Target must automatically set the `LuaLanguageLevel` (e.g., Redis implies Lua 5.1). |
+| [`TARGET-03`](03-contextual-ui/requirements.md) | **UI Contextual Versions** | **M** | **Not Implemented** | The Project Settings panel must dynamically update the available version options based on the selected Platform. |
+| [`TARGET-04`](04-library-resolution/requirements.md) | **Library Root Resolution** | **M** | **Not Implemented** | `PlatformLibraryProvider` must inject the correct standard library and SDK stubs based on the target. |
+| [`TARGET-05`](05-luacheck-integration/requirements.md) | **Luacheck Integration** | **M** | **Not Implemented** | Map each Target to its corresponding luacheck `--std` argument via explicit `VersionEntry.luacheckStd` values. |
+| [`TARGET-06`](06-migration/requirements.md) | **Target Migration** | **C** | **Not Implemented** | Existing projects using `LuaLanguageLevel` should gracefully migrate to the `Target` model. |
 
 ---
 

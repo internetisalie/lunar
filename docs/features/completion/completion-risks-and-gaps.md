@@ -1,7 +1,12 @@
 ---
+id: "COMP-RISKS"
+title: "00: Design Gaps & De-risking"
+type: "risk"
+parent_id: "COMP"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"
-title: "00: Design Gaps & De-risking"
 ---
 
 # Risks & Design Gaps: COMP Epic

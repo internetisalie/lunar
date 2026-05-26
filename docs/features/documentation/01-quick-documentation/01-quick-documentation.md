@@ -1,10 +1,12 @@
 ---
+id: "DOC-01"
+title: "01: Quick Documentation"
+type: "feature"
+parent_id: "DOC"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/documentation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "01: Quick Documentation"
 ---
 # Specification: DOC-01 Quick Documentation (Ctrl+Q)
 

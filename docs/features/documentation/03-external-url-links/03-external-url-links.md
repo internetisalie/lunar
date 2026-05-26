@@ -1,10 +1,12 @@
 ---
+id: "DOC-03"
+title: "03: External URL Links"
+type: "feature"
+parent_id: "DOC"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/documentation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "03: External URL Links"
 ---
 # Specification: DOC-03 External URL Links
 

@@ -1,9 +1,11 @@
 ---
+id: "INSP"
+title: "INSP: Inspections & Diagnostics"
+type: "epic"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features]]"
-title: "INSP: Inspections & Diagnostics"
-priority: medium
-status: planned
 ---
 
 # Inspections & Diagnostics Requirements (`INSP`)

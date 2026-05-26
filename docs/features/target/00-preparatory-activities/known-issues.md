@@ -1,7 +1,11 @@
 ---
+id: TARGET-00-ISSUES
+parent_id: TARGET-00
+type: risk
 folders:
-  - "[[features/target/requirements|requirements]]"
-title: "IMPL-00-09: Known Issues & Mitigations"
+  - "[[features/target/00-preparatory-activities/requirements|requirements]]"
+title: "TARGET-00: Known Issues & Mitigations"
+status: done
 ---
 
 # IMPL-00-09: Known Issues & Mitigations

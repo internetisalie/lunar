@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-04"
+title: "04: Brace Matching"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "04: Brace Matching"
 ---
 # Specification: SYNTAX-04 Brace Matching
 

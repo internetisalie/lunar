@@ -1,9 +1,12 @@
 ---
+id: "SYNTAX-07-11-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "SYNTAX-07-11"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints/07-11-large-file-threshold/requirements|requirements]]"
-title: Implementation Plan
-priority: medium
-status: in_progress
 ---
 # Implementation Plan: SYNTAX-07-11 Large File Threshold
 

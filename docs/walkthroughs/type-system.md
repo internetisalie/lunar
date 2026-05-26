@@ -1,7 +1,12 @@
 ---
+id: "TYPE-WALKTHROUGH"
+title: "Verification Walkthroughs"
+type: "spec"
+parent_id: "TYPE"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/type/requirements|TYPE]]"
-title: "Verification Walkthroughs"
 ---
 
 # End-User Walkthroughs: TYPE Epic Verification

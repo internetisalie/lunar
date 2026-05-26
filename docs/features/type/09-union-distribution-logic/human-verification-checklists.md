@@ -1,7 +1,12 @@
 ---
+id: "TYPE-09-CHECKLIST"
+title: "Verification Checklists"
+type: "spec"
+parent_id: "TYPE-09"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/requirements|requirements]]"
-title: "Verification Checklists"
 ---
 
 # TYPE-09: Union Distribution Logic - Human Verification Checklist

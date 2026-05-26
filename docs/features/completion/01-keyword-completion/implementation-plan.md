@@ -1,7 +1,12 @@
 ---
+id: "COMP-01-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "COMP-01"
+status: "done"
+priority: "high"
 folders:
   - "[[features/completion/01-keyword-completion/requirements|requirements]]"
-title: Implementation Plan
 ---
 
 # Implementation Plan: COMP-01 Keyword Completion

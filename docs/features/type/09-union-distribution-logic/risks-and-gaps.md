@@ -1,7 +1,12 @@
 ---
+id: "TYPE-09-RISKS"
+title: "Design Gaps & De-risking"
+type: "spec"
+parent_id: "TYPE-09"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/requirements|requirements]]"
-title: "Design Gaps & De-risking"
 ---
 
 # TYPE-09: Union Distribution Logic - Risks and Gaps

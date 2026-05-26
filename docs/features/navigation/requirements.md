@@ -1,9 +1,11 @@
 ---
+id: "NAV"
+title: "NAV: Code Navigation"
+type: "epic"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features]]"
-title: "NAV: Code Navigation"
-priority: medium
-status: planned
 ---
 
 # Code Navigation Requirements (`NAV`)

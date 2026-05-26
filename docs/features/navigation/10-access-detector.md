@@ -1,9 +1,12 @@
 ---
+id: "NAV-10"
+title: "10: Access Detector"
+type: "feature"
+parent_id: "NAV"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: todo
-title: "10: Access Detector"
 ---
 
 # Specification: NAV-10 Access Detector

@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-07-06"
+title: "06: Return Type Hints"
+type: "feature"
+parent_id: "SYNTAX-07"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"
-title: "06: Return Type Hints"
-priority: medium
-status: done
-vf_icon: ✅
 ---
 # Requirements: SYNTAX-07-06 Return Type Hints
 

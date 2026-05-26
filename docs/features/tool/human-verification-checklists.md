@@ -1,7 +1,12 @@
 ---
+id: "TOOL-CHECKLIST"
+title: "Human Verification Checklists"
+type: "spec"
+parent_id: "TOOL"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"
-title: Human Verification Checklists
 ---
 
 # Human Verification Checklists: Tool Inventory Management (TOOL Epic)

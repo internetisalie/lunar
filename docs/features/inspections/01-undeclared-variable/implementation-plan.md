@@ -1,7 +1,12 @@
 ---
+id: "INSP-01-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "INSP-01"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/inspections/01-undeclared-variable/requirements|requirements]]"
-title: Implementation Plan
 ---
 
 # Implementation Plan: INSP-01 Undeclared Variable

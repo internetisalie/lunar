@@ -1,7 +1,12 @@
 ---
+id: "TOOL-01"
+title: "01: Tool Registry & Discovery"
+type: "feature"
+parent_id: "TOOL"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"
-title: "01: Tool Registry & Discovery"
 ---
 
 # Tool Registry & Discovery (`TOOL-01`)

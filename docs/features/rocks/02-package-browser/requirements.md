@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-02"
+title: "02: Package Browser"
+type: "feature"
+parent_id: "ROCKS"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/rocks/requirements|requirements]]"
-title: "02: Package Browser"
 ---
 
 # ROCKS-02: Package Browser

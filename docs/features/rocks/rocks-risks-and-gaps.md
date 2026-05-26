@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-RISKS"
+title: "Design Gaps & De-risking"
+type: "spec"
+parent_id: "ROCKS"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
-title: "Design Gaps & De-risking"
 ---
 
 # Design Gaps & De-risking: LuaRocks Integration (ROCKS Epic)

@@ -1,7 +1,12 @@
 ---
+id: "COMP-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "COMP"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"
-title: "Implementation Plan"
 ---
 
 # Completion Implementation Plan

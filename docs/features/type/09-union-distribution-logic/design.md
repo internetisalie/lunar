@@ -1,7 +1,12 @@
 ---
+id: "TYPE-09-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "TYPE-09"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/requirements|requirements]]"
-title: "Technical Design"
 ---
 
 # TYPE-09: Union Distribution Logic - Technical Design

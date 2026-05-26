@@ -1,9 +1,11 @@
 ---
+id: "SYNTAX"
+title: "SYNTAX: Syntax & Editor"
+type: "epic"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features]]"
-title: "SYNTAX: Syntax & Editor"
-priority: medium
-status: planned
 ---
 
 # Syntax & Editor Requirements (`SYNTAX`)

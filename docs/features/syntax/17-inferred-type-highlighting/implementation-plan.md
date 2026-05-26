@@ -1,7 +1,11 @@
 ---
-folders: ["[[features/syntax/17-inferred-type-highlighting/requirements]]"]
+id: "SYNTAX-17-PLAN"
 title: "Implementation Plan"
-type: plan
+type: "plan"
+parent_id: "SYNTAX-17"
+status: "planned"
+priority: "low"
+folders: ["[[features/syntax/17-inferred-type-highlighting/requirements]]"]
 ---
 
 # SYNTAX-17: Inferred-Type Highlighting Implementation Plan

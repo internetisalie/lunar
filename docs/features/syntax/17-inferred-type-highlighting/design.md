@@ -1,8 +1,12 @@
 ---
+id: "SYNTAX-17-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "SYNTAX-17"
+status: "planned"
+priority: "low"
 folders:
   - "[[features/syntax/17-inferred-type-highlighting/requirements|requirements]]"
-title: "Technical Design"
-type: design
 ---
 
 # SYNTAX-17: Inferred-Type Highlighting Design

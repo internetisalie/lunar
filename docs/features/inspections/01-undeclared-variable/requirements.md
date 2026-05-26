@@ -1,7 +1,12 @@
 ---
+id: "INSP-01"
+title: "01: Undeclared Variable"
+type: "feature"
+parent_id: "INSP"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/inspections/requirements|requirements]]"
-title: "INSP-01: Undeclared Variable"
 ---
 
 # Undeclared Variable Requirements (`INSP-01`)

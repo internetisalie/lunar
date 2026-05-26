@@ -1,9 +1,12 @@
 ---
+id: "COMP-03"
+title: "03: Cross-file Completion"
+type: "feature"
+parent_id: "COMP"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"
-title: "03: Cross-file Completion"
-priority: high
-status: planned
 ---
 
 # COMP-03: Cross-file Completion Requirements
@@ -46,6 +49,6 @@ Suggest symbols exported from other files via `require()` or global definitions.
 ## Related Documentation
 
 - **Phase 1: Imported Symbols** — Task 343 (✅ Done)
-- **Phase 2: Project-wide Globals** — [[02-project-wide-globals/requirements|Phase 2 Requirements]], [[02-project-wide-globals/design|Technical Design]], [[02-project-wide-globals/risks-and-gaps|Risks & Gaps]]
+- **Phase 2: Project-wide Globals** — [[02-project-wide-globals/requirements|Phase 2 Requirements]], [[02-project-wide-globals/design|Technical Design]], [[02-project-wide-globals/risks-and-gaps|Risks & Gaps]] (✅ Done)
 - **Phase 3: Auto-import** — [[03-auto-import|Phase 3 Specification]]
 - **Phase 4: Recursive Resolution** — Task 347 (Future work)

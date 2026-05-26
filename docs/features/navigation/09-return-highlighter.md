@@ -1,9 +1,12 @@
 ---
+id: "NAV-09"
+title: "09: Return Highlighter"
+type: "feature"
+parent_id: "NAV"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: todo
-title: "09: Return Highlighter"
 ---
 
 # Specification: NAV-09 Return Highlighter

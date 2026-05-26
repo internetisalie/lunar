@@ -1,7 +1,11 @@
 ---
+id: TARGET-GUIDE
+parent_id: TARGET
+type: guide
 folders:
   - "[[features/target/requirements]]"
 title: User Guide
+status: not_implemented
 ---
 
 # User Guide: Runtime Environment Configuration (TARGET)

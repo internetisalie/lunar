@@ -1,9 +1,12 @@
 ---
+id: "SYNTAX-07-11"
+title: "11: Large File Threshold"
+type: "feature"
+parent_id: "SYNTAX-07"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"
-title: "11: Large File Threshold"
-priority: medium
-status: in_progress
 ---
 # Requirements: SYNTAX-07-11 Large File Threshold
 

@@ -1,9 +1,12 @@
 ---
+id: "NAV-06"
+title: "06: Hierarchy View"
+type: "feature"
+parent_id: "NAV"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: todo
-title: "06: Hierarchy View"
 ---
 
 # Specification: NAV-06 Hierarchy View

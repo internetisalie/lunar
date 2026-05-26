@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-CHECKLIST"
+title: "Verification Checklists"
+type: "spec"
+parent_id: "ROCKS"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
-title: "Verification Checklists"
 ---
 
 # Human Verification Checklists: LuaRocks Integration (ROCKS Epic)

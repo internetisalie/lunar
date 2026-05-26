@@ -1,7 +1,12 @@
 ---
+id: "DEBUG-PROGRAM-TESTS"
+title: "Lua Program Execution Integration Tests"
+type: "spec"
+parent_id: "DEBUG"
+status: "done"
+priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"
-title: "Lua Program Execution Integration Tests"
 ---
 
 # Lua Program Execution Integration Tests

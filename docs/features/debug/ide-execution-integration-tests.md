@@ -1,7 +1,12 @@
 ---
+id: "DEBUG-IDE-TESTS"
+title: "IDE Execution Integration Tests"
+type: "spec"
+parent_id: "DEBUG"
+status: "done"
+priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"
-title: "IDE Execution Integration Tests"
 ---
 
 # Implementing Full IDE Lua Program Execution in Integration Tests

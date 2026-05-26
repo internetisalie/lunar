@@ -1,8 +1,12 @@
 ---
+id: "COMP-03-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "COMP-03"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|requirements]]"
-title: "Implementation Plan"
-type: plan
 ---
 
 # COMP-03: Cross-file Completion Implementation Plan
@@ -50,7 +54,7 @@ type: plan
 | Phase | Task | Status | Priority |
 |-------|------|--------|----------|
 | Phase 1: Imported Symbols | [343](saga://task/343) | ✅ Done | High |
-| Phase 2: Project-wide Globals | [350](saga://task/350) | ⬜ Todo | High |
+| Phase 2: Project-wide Globals | [350](saga://task/350) | ✅ Done | High |
 | Phase 3: Auto-import | [345](saga://task/345) | ⬜ Todo | Medium |
 | Verification: Tests | [346](saga://task/346) | ⬜ Todo | High |
 | Phase 4: Recursive Resolution | [347](saga://task/347) | ⬜ Todo | Low |

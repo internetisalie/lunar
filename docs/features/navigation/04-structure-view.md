@@ -1,10 +1,12 @@
 ---
+id: "NAV-04"
+title: "04: Structure View"
+type: "feature"
+parent_id: "NAV"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "04: Structure View"
 ---
 # Specification: NAV-04 Structure View
 

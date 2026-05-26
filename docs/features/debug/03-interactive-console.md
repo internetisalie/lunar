@@ -1,9 +1,12 @@
 ---
+id: "RUN-03"
+title: "03: Interactive Console (REPL)"
+type: "feature"
+parent_id: "DEBUG"
+status: "planned"
+priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"
-priority: low
-status: todo
-title: "03: Interactive Console (REPL)"
 ---
 
 # Specification: RUN-03 Interactive Console (REPL)

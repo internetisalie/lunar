@@ -1,9 +1,12 @@
 ---
+id: "SYNTAX-17"
+title: "17: Inferred-Type Highlighting"
+type: "feature"
+parent_id: "SYNTAX"
+status: "planned"
+priority: "low"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-title: "17: Inferred-Type Highlighting"
-priority: low
-status: planned
 ---
 
 # SYNTAX-17: Inferred-Type Highlighting Requirements

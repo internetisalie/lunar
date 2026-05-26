@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-01"
+title: "01: Project Initialization & Setup"
+type: "feature"
+parent_id: "ROCKS"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
-title: "01: Project Initialization & Setup"
 ---
 
 # ROCKS-01: Project Initialization & Setup

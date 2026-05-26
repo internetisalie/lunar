@@ -1,9 +1,11 @@
 ---
+id: "FORMAT"
+title: "FORMAT: Formatting"
+type: "epic"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features]]"
-title: "FORMAT: Formatting"
-priority: medium
-status: planned
 ---
 # Formatting Requirements (`FORMAT`)
 

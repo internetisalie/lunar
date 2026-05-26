@@ -1,10 +1,12 @@
 ---
+id: "TYPE-06"
+title: "06: Return Type Checking"
+type: "feature"
+parent_id: "TYPE"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/type/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "06: Return Type Checking"
 ---
 # Specification: TYPE-06 Return Type Checking
 

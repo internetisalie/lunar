@@ -1,7 +1,12 @@
 ---
+id: "SYNTAX-07-09-QA"
+title: "QA Verification"
+type: "spec"
+parent_id: "SYNTAX-07-09"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints/07-09-per-category-settings/requirements|requirements]]"
-title: QA Verification
 ---
 # QA Verification: SYNTAX-07-09 Per-Category Settings
 

@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-04-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "ROCKS-04"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/04-task-execution/requirements|requirements]]"
-title: "Technical Design"
 ---
 
 # Technical Design: Task Execution & Run Configurations (ROCKS-04)

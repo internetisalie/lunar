@@ -1,10 +1,12 @@
 ---
+id: "NAV-11"
+title: "11: Bindings Caching"
+type: "feature"
+parent_id: "NAV"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "11: Bindings Caching"
 ---
 # Specification: NAV-11 Bindings Caching
 

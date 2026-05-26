@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-14"
+title: "14: Vararg Context Annotator"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "14: Vararg Context Annotator"
 ---
 # Specification: SYNTAX-14 Vararg Context Annotator
 

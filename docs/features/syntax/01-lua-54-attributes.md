@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-01"
+title: "01: Lua 5.4 Support"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "01: Lua 5.4 Support"
 ---
 # Specification: SYNTAX-01 Lua 5.4 Variable Attributes
 

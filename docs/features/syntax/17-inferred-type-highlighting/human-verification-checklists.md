@@ -1,6 +1,11 @@
 ---
-folders: ["[[features/syntax/17-inferred-type-highlighting/requirements]]"]
+id: "SYNTAX-17-CHECKLIST"
 title: "Verification Checklists"
+type: "spec"
+parent_id: "SYNTAX-17"
+status: "planned"
+priority: "low"
+folders: ["[[features/syntax/17-inferred-type-highlighting/requirements]]"]
 ---
 
 # SYNTAX-17: Human Verification Checklists

@@ -1,7 +1,12 @@
 ---
+id: "TOOL-01-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "TOOL-01"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/01-inventory-management/requirements|requirements]]"
-title: Implementation Plan
 ---
 
 # Implementation Plan: Tool Registry & Discovery (`TOOL-01`)

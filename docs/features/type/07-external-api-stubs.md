@@ -1,10 +1,12 @@
 ---
+id: "TYPE-07"
+title: "07: External API Stubs"
+type: "feature"
+parent_id: "TYPE"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/type/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "07: External API Stubs"
 ---
 # Specification: TYPE-07 External API Stubs
 

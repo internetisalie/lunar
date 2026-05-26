@@ -1,8 +1,10 @@
 ---
+id: "COMP-03-03-RISKS"
+parent_id: "COMP-03-03"
 folders:
   - "[[features/completion/03-cross-file-completion/03-auto-import/requirements|parent]]"
 title: "COMP-03-03: Risks & Gaps"
-type: technical
+type: "risk"
 ---
 
 # COMP-03-03: Risks & Gaps

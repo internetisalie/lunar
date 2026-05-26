@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-04"
+title: "04: Task Execution & Run Configurations"
+type: "feature"
+parent_id: "ROCKS"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
-title: "04: Task Execution & Run Configurations"
 ---
 
 # ROCKS-04: Task Execution & Run Configurations

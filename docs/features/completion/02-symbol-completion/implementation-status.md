@@ -1,8 +1,10 @@
 ---
+id: "COMP-02-STATUS"
+parent_id: "COMP-02"
 folders:
   - "[[features/completion/02-symbol-completion/requirements|requirements]]"
 title: "Implementation Status"
-type: status
+type: "task"
 ---
 
 # COMP-02: Basic Symbol Completion - Implementation Complete
@@ -49,9 +51,13 @@ type: status
   - Collects local functions at file level
   - Works correctly even when caret is after function declaration
 
-### Phase 4: Iconography & UI 🚧
-- **Status**: **Future Work**
-- **Notes**: Icons and type hints can be added later as enhancements
+### Phase 4: Iconography & UI ✅
+- **Status**: **Full**
+- **Implementation**: Added icons and scope hints to `LuaCompletionContributor` and `LuaCompletionScopeProcessor`.
+
+### Phase 5: Visibility Filtering ✅
+- **Status**: **Full**
+- **Implementation**: Updated `LuaBlockExt`, `LuaFile`, and `LuaForStatementExt` to respect declaration position.
 
 ---
 
@@ -77,19 +83,15 @@ type: status
 1. **No global variables from other files**: Cross-file completion is reserved for COMP-03
 2. **No member completion**: Table.field completion is reserved for COMP-04
 3. **No type-based filtering**: Type information is not displayed in completion items (future enhancement)
-4. **No icons**: Completion items don't have distinct icons for different symbol types (future enhancement)
-5. **No visibility filtering**: All symbols in scope are suggested regardless of their declaration position relative to the cursor (e.g., symbols declared after the cursor position are still suggested)
 
 ---
 
 ## Future Enhancements
 
-- Add icons for locals, parameters, globals
 - Add type hints to completion items
 - Add documentation lookup
 - Implement cross-file completion (COMP-03)
 - Implement member completion (COMP-04)
-- Implement visibility filtering to exclude symbols declared after the cursor position
 
 ---
 

@@ -1,7 +1,11 @@
 ---
+id: TARGET-RISKS
+parent_id: TARGET
+type: risk
 folders:
   - "[[features/target/requirements|requirements]]"
-title: "Risk Register"
+title: "Design Gaps & De-risking"
+status: in_progress
 ---
 
 # TARGET Risk Register

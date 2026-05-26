@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-07-04"
+title: "04: Parameter Name Hints"
+type: "feature"
+parent_id: "SYNTAX-07"
+status: "done"
+priority: "high"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"
-title: "04: Parameter Name Hints"
-priority: high
-status: done
-vf_icon: ✅
 ---
 # Requirements: SYNTAX-07-04 Parameter Name Hints
 

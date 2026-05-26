@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-08"
+title: "08: String Escape Processing"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "08: String Escape Processing"
 ---
 # Specification: SYNTAX-08 String Escape Processing
 

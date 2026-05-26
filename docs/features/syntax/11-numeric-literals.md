@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-11"
+title: "11: Numeric Literal Validation"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "11: Numeric Literal Validation"
 ---
 # Specification: SYNTAX-11 Numeric Literal Validation
 

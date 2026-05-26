@@ -1,9 +1,11 @@
 ---
+id: "TYPE"
+title: "TYPE: Type System"
+type: "epic"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features]]"
-title: "TYPE: Type System"
-priority: high
-status: planned
 ---
 
 # Type System Requirements (`TYPE`)

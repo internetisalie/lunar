@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-10"
+title: "10: Enter Handler for Comments"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "10: Enter Handler for Comments"
 ---
 # Specification: SYNTAX-10 Enter Handler for Comments
 

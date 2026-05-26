@@ -1,10 +1,12 @@
 ---
+id: "DEBUG-04"
+title: "04: Expression Evaluation"
+type: "feature"
+parent_id: "DEBUG"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/debug/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "04: Expression Evaluation"
 ---
 # DEBUG-04: Expression Evaluation Specification
 

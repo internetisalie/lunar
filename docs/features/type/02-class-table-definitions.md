@@ -1,10 +1,12 @@
 ---
+id: "TYPE-02"
+title: "02: Class/Table Definitions"
+type: "feature"
+parent_id: "TYPE"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "02: Class/Table Definitions"
 ---
 # Specification: TYPE-02 Class/Table Definitions
 

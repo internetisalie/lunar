@@ -1,7 +1,12 @@
 ---
+id: "COMP-01-DESIGN"
+title: "Design"
+type: "design"
+parent_id: "COMP-01"
+status: "done"
+priority: "high"
 folders:
   - "[[features/completion/01-keyword-completion/requirements|requirements]]"
-title: Design
 ---
 
 # Technical Design: COMP-01 Keyword Completion

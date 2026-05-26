@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-INVESTIGATION-SETUP"
+title: "Setup Investigation"
+type: "spec"
+parent_id: "ROCKS"
+status: "done"
+priority: "low"
 folders:
   - "[[features/rocks/requirements|requirements]]"
-title: "Setup Investigation"
 ---
 
 # LuaRocks Project Setup Investigation

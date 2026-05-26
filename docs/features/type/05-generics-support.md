@@ -1,10 +1,12 @@
 ---
+id: "TYPE-05"
+title: "05: Generics Support"
+type: "feature"
+parent_id: "TYPE"
+status: "done"
+priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"
-priority: high
-status: done
-vf_icon: ✅
-title: "05: Generics Support"
 ---
 # Specification: TYPE-05 Generics Support
 

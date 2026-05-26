@@ -1,8 +1,10 @@
 ---
+id: "COMP-03-02-QA"
+parent_id: "COMP-03-02"
 folders:
-  - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|parent]]"
+  - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|requirements]]"
 title: "COMP-03-02 Phase 2.5: Integration Testing & Validation"
-type: specification
+type: "qa"
 ---
 
 # COMP-03-02 Phase 2.5: Integration Testing & Validation

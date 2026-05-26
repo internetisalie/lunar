@@ -1,7 +1,12 @@
 ---
+id: "TOOL-02-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "TOOL-02"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/02-project-binding/requirements|requirements]]"
-title: Technical Design
 ---
 
 # Technical Design: Project Binding & Environment Integration (`TOOL-02`)

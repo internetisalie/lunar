@@ -1,10 +1,12 @@
 ---
+id: "NAV-08"
+title: "08: Line Markers"
+type: "feature"
+parent_id: "NAV"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "08: Line Markers"
 ---
 # Specification: NAV-08 Line Markers
 

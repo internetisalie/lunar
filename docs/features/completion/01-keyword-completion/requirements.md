@@ -1,7 +1,12 @@
 ---
+id: "COMP-01"
+title: "01: Keyword Completion"
+type: "feature"
+parent_id: "COMP"
+status: "done"
+priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"
-title: "01: Keyword Completion"
 ---
 
 # Keyword Completion Requirements (`COMP-01`)

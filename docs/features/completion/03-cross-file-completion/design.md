@@ -1,8 +1,12 @@
 ---
+id: "COMP-03-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "COMP-03"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|requirements]]"
-title: "Technical Design"
-type: design
 ---
 
 # COMP-03: Cross-file Completion Design

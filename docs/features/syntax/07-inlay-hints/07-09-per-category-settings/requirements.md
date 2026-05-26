@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-07-09"
+title: "09: Per-Category Settings"
+type: "feature"
+parent_id: "SYNTAX-07"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"
-title: "09: Per-Category Settings"
-priority: medium
-status: done
-vf_icon: ✅
 ---
 # Requirements: SYNTAX-07-09 Per-Category Settings
 

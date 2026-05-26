@@ -1,9 +1,12 @@
 ---
+id: "SYNTAX-07-07"
+title: "07: Method Chaining Hints"
+type: "feature"
+parent_id: "SYNTAX-07"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"
-title: "07: Method Chaining Hints"
-priority: medium
-status: todo
 ---
 
 # Requirements: SYNTAX-07-07 Method Chaining Hints

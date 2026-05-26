@@ -1,7 +1,12 @@
 ---
+id: "TOOL-PRD"
+title: "Product Requirements"
+type: "spec"
+parent_id: "TOOL"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/requirements|TOOL]]"
-title: "Product Requirements"
 ---
 
 # Product Requirements: Tool Inventory Management (TOOL Epic)

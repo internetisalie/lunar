@@ -1,8 +1,11 @@
 ---
+id: "COMP-03-02-DESIGN"
+parent_id: "COMP-03-02"
 folders:
-  - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|parent]]"
+  - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|requirements]]"
 title: "COMP-03-02: Technical Design"
-type: design
+type: "design"
+status: "done"
 ---
 
 # COMP-03-02: Technical Design

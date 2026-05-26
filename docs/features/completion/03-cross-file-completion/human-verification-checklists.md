@@ -1,7 +1,12 @@
 ---
+id: "COMP-03-QA"
+title: "Verification Checklists"
+type: "qa"
+parent_id: "COMP-03"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|requirements]]"
-title: "Verification Checklists"
 ---
 
 # COMP-03: Human Verification Checklists

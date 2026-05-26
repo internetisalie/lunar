@@ -1,9 +1,11 @@
 ---
+id: "DEBUG"
+title: "DEBUG: Debugging & Execution"
+type: "epic"
+status: "in_progress"
+priority: "low"
 folders:
   - "[[features]]"
-title: "DEBUG: Debugging & Execution"
-priority: low
-status: in_progress
 ---
 
 # Debugging & Execution Requirements (`DEBUG`, `RUN`)

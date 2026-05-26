@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-13"
+title: "13: Standalone Expression Annotator"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "13: Standalone Expression Annotator"
 ---
 # Specification: SYNTAX-13 Standalone Expression Annotator
 

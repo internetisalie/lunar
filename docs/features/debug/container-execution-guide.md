@@ -1,7 +1,12 @@
 ---
+id: "DEBUG-CONTAINER-GUIDE"
+title: "Container Execution Guide"
+type: "spec"
+parent_id: "DEBUG"
+status: "done"
+priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"
-title: "Container Execution Guide"
 ---
 
 # Container Execution Guide

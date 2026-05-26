@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-03-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "ROCKS-03"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/03-dependency-resolution/requirements|requirements]]"
-title: "Technical Design"
 ---
 
 # Technical Design: Dependency Resolution (ROCKS-03)

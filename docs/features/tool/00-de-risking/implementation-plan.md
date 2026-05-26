@@ -1,8 +1,12 @@
 ---
+id: "TOOL-00-PLAN"
+title: "Implementation Plan: De-risking"
+type: "plan"
+parent_id: "TOOL-00"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/00-de-risking/requirements|requirements]]"
-title: "Implementation Plan: De-risking"
-type: plan
 ---
 
 # Implementation Plan: De-risking (`TOOL-00`)

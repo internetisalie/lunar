@@ -1,7 +1,11 @@
 ---
+id: "FEATURES"
+title: "Lunar Project Features"
+type: "spec"
+status: "done"
+priority: "medium"
 folders:
   - "[[features]]"
-title: "Lunar Project Features"
 ---
 
 # Lunar Project Features

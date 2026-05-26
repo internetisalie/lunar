@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-06"
+title: "06: Breadcrumbs"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "06: Breadcrumbs"
 ---
 # Specification: SYNTAX-06 Breadcrumbs
 

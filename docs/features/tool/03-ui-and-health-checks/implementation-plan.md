@@ -1,7 +1,12 @@
 ---
+id: "TOOL-03-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "TOOL-03"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/03-ui-and-health-checks/requirements|requirements]]"
-title: Implementation Plan
 ---
 
 # Implementation Plan: UI/UX & Health Monitoring (`TOOL-03`)

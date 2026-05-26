@@ -1,10 +1,12 @@
 ---
+id: "DOC-02"
+title: "02: LuaCATS Syntax Highlighting"
+type: "feature"
+parent_id: "DOC"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/documentation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "02: LuaCATS Syntax Highlighting"
 ---
 # Specification: DOC-02 LuaCATS Syntax Highlighting
 

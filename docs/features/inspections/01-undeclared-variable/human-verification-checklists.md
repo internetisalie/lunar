@@ -1,7 +1,12 @@
 ---
+id: "INSP-01-CHECKLIST"
+title: "Human Verification Checklist"
+type: "spec"
+parent_id: "INSP-01"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/inspections/01-undeclared-variable/requirements|requirements]]"
-title: Human Verification Checklist
 ---
 
 # Human Verification Checklist: INSP-01 Undeclared Variable

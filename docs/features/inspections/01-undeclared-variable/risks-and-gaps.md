@@ -1,7 +1,12 @@
 ---
+id: "INSP-01-RISKS"
+title: "Risks & Gaps"
+type: "spec"
+parent_id: "INSP-01"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/inspections/01-undeclared-variable/requirements|requirements]]"
-title: Risks & Gaps
 ---
 
 # Risks & Design Gaps: INSP-01 Undeclared Variable

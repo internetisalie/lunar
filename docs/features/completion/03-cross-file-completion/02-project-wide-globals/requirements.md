@@ -1,8 +1,11 @@
 ---
+id: "COMP-03-02"
+parent_id: "COMP-03"
 folders:
-  - "[[features/completion/03-cross-file-completion/requirements|parent]]"
+  - "[[features/completion/03-cross-file-completion/requirements|requirements]]"
 title: "COMP-03-02: Global Symbol Suggestions"
-type: specification
+type: "feature"
+status: "done"
 ---
 
 # COMP-03-02: Global Symbol Suggestions

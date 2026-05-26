@@ -1,9 +1,11 @@
 ---
+id: "TOOL"
+title: "TOOL: Tool Inventory Management"
+type: "epic"
+status: "planned"
+priority: "high"
 folders:
   - "[[features]]"
-title: "TOOL: Tool Inventory Management"
-priority: high
-status: planned
 ---
 
 # Tool Inventory Management Requirements (`TOOL`)

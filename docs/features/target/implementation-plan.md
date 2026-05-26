@@ -1,14 +1,18 @@
 ---
+id: TARGET-PLAN
+parent_id: TARGET
+type: plan
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "Implementation Plan"
+status: not_implemented
 ---
 
 # TARGET Implementation Plan
 
 **Feature**: Runtime environment configuration (platform + version selection)  
 **Design Document**: [design.md](design.md)  
-**Specification**: [spec/](spec/)  
+**Specification**: [Features](requirements.md)  
 **Status**: Planning phase  
 
 ---

@@ -1,7 +1,11 @@
 ---
+id: "COMPARISON"
+title: "Plugin Feature Comparison"
+type: "spec"
+status: "done"
+priority: "low"
 folders:
   - "[[features]]"
-title: "Plugin Feature Comparison"
 ---
 
 # Lua IntelliJ Plugin Feature Comparison Matrix

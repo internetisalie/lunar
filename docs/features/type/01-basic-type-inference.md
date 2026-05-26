@@ -1,10 +1,12 @@
 ---
+id: "TYPE-01"
+title: "01: Basic Type Inference"
+type: "feature"
+parent_id: "TYPE"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/type/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "01: Basic Type Inference"
 ---
 # Specification: TYPE-01 Basic Type Inference
 

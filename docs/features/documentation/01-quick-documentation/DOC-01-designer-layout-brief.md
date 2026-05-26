@@ -1,7 +1,12 @@
 ---
+id: "DOC-01-BRIEF"
+title: "Designer Layout Brief"
+type: "spec"
+parent_id: "DOC-01"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/documentation/01-quick-documentation/01-quick-documentation|requirements]]"
-title: "Designer Layout Brief"
 ---
 
 # DOC-01 Quick Documentation: Designer Layout Brief

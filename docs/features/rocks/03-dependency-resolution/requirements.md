@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-03"
+title: "03: Dependency Resolution"
+type: "feature"
+parent_id: "ROCKS"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
-title: "03: Dependency Resolution"
 ---
 
 # ROCKS-03: Dependency Resolution

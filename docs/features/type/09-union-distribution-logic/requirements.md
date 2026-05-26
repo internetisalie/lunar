@@ -1,9 +1,12 @@
 ---
+id: "TYPE-09"
+title: "09: Union Distribution Logic"
+type: "feature"
+parent_id: "TYPE"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"
-title: "09: Union Distribution Logic"
-priority: high
-status: in_progress
 ---
 # TYPE-09: Union Distribution Logic - Requirements Specification
 

@@ -1,10 +1,12 @@
 ---
+id: "NAV-01"
+title: "01: Go to Definition"
+type: "feature"
+parent_id: "NAV"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "01: Go to Definition"
 ---
 # Specification: NAV-01 Go to Definition
 

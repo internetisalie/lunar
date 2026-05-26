@@ -1,10 +1,12 @@
 ---
+id: "TYPE-04"
+title: "04: Union Types"
+type: "feature"
+parent_id: "TYPE"
+status: "done"
+priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"
-priority: high
-status: done
-vf_icon: ✅
-title: "04: Union Types"
 ---
 # Specification: TYPE-04 Union Types
 

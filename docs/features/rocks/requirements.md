@@ -1,9 +1,11 @@
 ---
+id: "ROCKS"
+title: "ROCKS: LuaRocks Integration"
+type: "epic"
+status: "planned"
+priority: "high"
 folders:
   - "[[features]]"
-title: "ROCKS: LuaRocks Integration"
-priority: high
-status: planned
 ---
 
 # LuaRocks Integration Requirements (`ROCKS`)

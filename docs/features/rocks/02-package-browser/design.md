@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-02-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "ROCKS-02"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/rocks/02-package-browser/requirements|requirements]]"
-title: "Technical Design"
 ---
 
 # Technical Design: Package Browser (ROCKS-02)

@@ -1,9 +1,12 @@
 ---
+id: "SYNTAX-07"
+title: "07: Inlay Hints"
+type: "feature"
+parent_id: "SYNTAX"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: in_progress
-title: "07: Inlay Hints"
 ---
 
 # Specification: SYNTAX-07 Inlay Hints

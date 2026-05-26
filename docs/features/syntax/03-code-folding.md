@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-03"
+title: "03: Code Folding"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "03: Code Folding"
 ---
 # Specification: SYNTAX-03 Code Folding
 

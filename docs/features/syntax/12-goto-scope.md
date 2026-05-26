@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-12"
+title: "12: Label & Goto Scope Resolution"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "12: Label & Goto Scope Resolution"
 ---
 # Specification: SYNTAX-12 Label & Goto Scope Resolution
 

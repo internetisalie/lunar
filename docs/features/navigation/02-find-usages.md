@@ -1,9 +1,12 @@
 ---
+id: "NAV-02"
+title: "02: Find Usages"
+type: "feature"
+parent_id: "NAV"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: todo
-title: "02: Find Usages"
 ---
 
 # Specification: NAV-02 Find Usages (Symbols)

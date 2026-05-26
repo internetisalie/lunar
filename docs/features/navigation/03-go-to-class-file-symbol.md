@@ -1,9 +1,12 @@
 ---
+id: "NAV-03"
+title: "03: Go to Class/File/Symbol"
+type: "feature"
+parent_id: "NAV"
+status: "planned"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: todo
-title: "03: Go to Class/File/Symbol"
 ---
 
 # Specification: NAV-03 Go to Class/File/Symbol

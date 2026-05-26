@@ -1,7 +1,12 @@
 ---
+id: "TYPE-DESIGN"
+title: "Type Inference Engine Design"
+type: "design"
+parent_id: "TYPE"
+status: "in_progress"
+priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"
-title: "Type Inference Engine Design"
 ---
 
 # Type Inference Engine Design

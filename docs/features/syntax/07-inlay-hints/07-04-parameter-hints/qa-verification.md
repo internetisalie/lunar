@@ -1,7 +1,12 @@
 ---
+id: "SYNTAX-07-04-QA"
+title: "QA Verification"
+type: "spec"
+parent_id: "SYNTAX-07-04"
+status: "done"
+priority: "high"
 folders:
   - "[[features/syntax/07-inlay-hints/07-04-parameter-hints/requirements|requirements]]"
-title: QA Verification
 ---
 # QA Verification: SYNTAX-07-04 Parameter Name Hints
 

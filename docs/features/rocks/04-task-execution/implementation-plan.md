@@ -1,7 +1,12 @@
 ---
+id: "ROCKS-04-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "ROCKS-04"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/rocks/04-task-execution/requirements|requirements]]"
-title: "Implementation Plan"
 ---
 
 # Implementation Plan: Task Execution & Run Configurations (ROCKS-04)

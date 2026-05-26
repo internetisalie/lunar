@@ -1,10 +1,12 @@
 ---
+id: "NAV-07"
+title: "07: Reference Contributors"
+type: "feature"
+parent_id: "NAV"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "07: Reference Contributors"
 ---
 # Specification: NAV-07 Reference Contributors
 

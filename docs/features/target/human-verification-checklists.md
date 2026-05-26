@@ -1,7 +1,11 @@
 ---
+id: TARGET-QA
+parent_id: TARGET
+type: qa
 folders:
   - "[[features/target/requirements|requirements]]"
-title: "QA Verification Scenarios"
+title: "Verification Checklists"
+status: not_implemented
 ---
 
 # QA Verification Scenarios: TARGET - Runtime Environment Configuration

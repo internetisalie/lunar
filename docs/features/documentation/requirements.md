@@ -1,10 +1,11 @@
 ---
+id: "DOC"
+title: "DOC: Documentation & LuaCATS"
+type: "epic"
+status: "done"
+priority: "medium"
 folders:
   - "[[features]]"
-title: "DOC: Documentation & LuaCATS"
-priority: medium
-status: completed
-vf_icon: ✅
 ---
 
 # Documentation Requirements (`DOC`)

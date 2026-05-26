@@ -1,9 +1,12 @@
 ---
+id: "COMP-04"
+title: "04: Type-Inferred Completion"
+type: "feature"
+parent_id: "COMP"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"
-title: "04: Type-Inferred Completion"
-priority: high
-status: planned
 ---
 
 # COMP-04: Type-Inferred Completion Requirements

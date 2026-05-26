@@ -1,9 +1,12 @@
 ---
+id: "COMP-02"
+title: "02: Basic Symbol Completion"
+type: "feature"
+parent_id: "COMP"
+status: "done"
+priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"
-title: "02: Basic Symbol Completion"
-priority: high
-status: implemented
 ---
 
 # COMP-02: Basic Symbol Completion Requirements
@@ -35,9 +38,9 @@ Suggest local variables, parameters, and global symbols within the current scope
 | `COMP-02-02` | **Parameter Completion** | **M** | ✅ | Suggest parameters of the containing function. |
 | `COMP-02-03` | **Local Shadowing** | **M** | ✅ | Correctly handle shadowing; do not suggest shadowed locals. |
 | `COMP-02-04` | **Global Symbol Completion** | **M** | ✅ | Suggest globals defined in the current file. |
-| `COMP-02-05` | **Iconography** | **S** | 🚧 | Display distinct icons for locals, parameters, and globals in the completion list. |
-| `COMP-02-06` | **Scope Hints** | **S** | 🚧 | Display the origin scope (e.g., "local", "parameter") in the completion tail text to clarify shadowed or similar names. |
-| `COMP-02-07` | **Visibility Filtering** | **C** | 🚧 | Exclude symbols declared after the cursor position in the same scope. |
+| `COMP-02-05` | **Iconography** | **S** | ✅ | Display distinct icons for locals, parameters, and globals in the completion list. |
+| `COMP-02-06` | **Scope Hints** | **S** | ✅ | Display the origin scope (e.g., "local", "parameter") in the completion tail text to clarify shadowed or similar names. |
+| `COMP-02-07` | **Visibility Filtering** | **C** | ✅ | Exclude symbols declared after the cursor position in the same scope. |
 
 ## Test Cases
 

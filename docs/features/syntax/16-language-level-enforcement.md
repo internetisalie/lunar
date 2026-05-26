@@ -1,10 +1,12 @@
 ---
+id: "SYNTAX-16"
+title: "16: Language Level Enforcement"
+type: "feature"
+parent_id: "SYNTAX"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"
-priority: medium
-status: done
-vf_icon: ✅
-title: "16: Language Level Enforcement"
 ---
 # SYNTAX-16: Enforce Language Level Restrictions
 **Task ID**: 111

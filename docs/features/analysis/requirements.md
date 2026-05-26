@@ -1,10 +1,11 @@
 ---
+id: "ANALYSIS"
+title: "ANALYSIS: Static Analysis"
+type: "epic"
+status: "done"
+priority: "medium"
 folders:
   - "[[features]]"
-title: "ANALYSIS: Static Analysis"
-priority: medium
-status: completed
-vf_icon: ✅
 ---
 
 # Static Analysis Requirements (`ANALYSIS`)

@@ -1,23 +1,14 @@
 ---
+id: TARGET-05-DESIGN
+parent_id: TARGET-05
+type: design
 folders:
-  - "[[features/target/requirements|requirements]]"
-title: "05: Luacheck Integration"
+  - "[[features/target/05-luacheck-integration/requirements|requirements]]"
+title: "Technical Design"
+status: not_implemented
 ---
 
-# TARGET-05: Luacheck Integration
-
-**Requirement**: The Luacheck static analyser must use the correct `--std` value for the active project Target. The std value is declared on the `VersionEntry` and requires no string transformation.  
-**Priority**: Must  
-**Status**: Not Implemented  
-**Design reference**: [design.md §4.4](../design.md)
-
----
-
-## Overview
-
-Luacheck's `--std` flag controls which global symbols and built-in functions are recognised for a given Lua environment. If `--std` is wrong for the project's platform, luacheck emits false-positive "undefined global" errors (e.g., `redis.call` flagged in a Redis project) or misses real errors (e.g., `bit` used in a non-LuaJIT project). After TARGET, `--std` is always taken directly from `target.getLuacheckStd()` — there is no mapping logic at the call site.
-
----
+# Technical Design: Luacheck Integration
 
 ## Data Flow
 
@@ -95,14 +86,3 @@ For these platforms, luacheck runs without `--std`. Users who want stricter anal
 ## Change Detection
 
 When the project Target changes, any luacheck results already cached for open files must be invalidated so that the next analysis pass uses the new `--std`. This is achieved via the same `LuaSettingsChangedEvent` that triggers library refresh (see TARGET-04).
-
----
-
-## Acceptance Criteria
-
-- [ ] `Target.getLuacheckStd()` returns the correct value for every row in the mapping table above
-- [ ] Luacheck invocations pass `--std <value>` when `getLuacheckStd()` is non-null
-- [ ] Luacheck invocations omit `--std` entirely when `getLuacheckStd()` is null
-- [ ] Changing the Target clears cached luacheck results for open files
-- [ ] No string transformation is performed between `VersionEntry.luacheckStd` and the `--std` argument
-- [ ] Unit tests verify `getLuacheckStd()` output for all registered targets

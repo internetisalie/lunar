@@ -1,8 +1,10 @@
 ---
+id: "COMP-03-03-PLAN"
+parent_id: "COMP-03-03"
 folders:
   - "[[features/completion/03-cross-file-completion/03-auto-import/requirements|parent]]"
 title: "COMP-03-03: Implementation Plan"
-type: plan
+type: "plan"
 ---
 
 # COMP-03-03: Implementation Plan

@@ -1,7 +1,12 @@
 ---
+id: "TOOL-00"
+title: "00: De-risking & Technical Spikes"
+type: "feature"
+parent_id: "TOOL"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/requirements|TOOL]]"
-title: "00: De-risking & Technical Spikes"
 ---
 
 # TOOL-00: De-risking & Technical Spikes

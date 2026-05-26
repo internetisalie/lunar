@@ -1,8 +1,12 @@
 ---
+id: "COMP-04-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "COMP-04"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/completion/04-type-inferred-completion/requirements|requirements]]"
-title: "Technical Design"
-type: design
 ---
 
 # COMP-04: Type-Inferred Completion Design

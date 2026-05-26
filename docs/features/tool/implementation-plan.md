@@ -1,7 +1,12 @@
 ---
+id: "TOOL-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "TOOL"
+status: "planned"
+priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"
-title: Implementation Plan
 ---
 
 # Overall Implementation Plan: Tool Inventory Management (TOOL Epic)

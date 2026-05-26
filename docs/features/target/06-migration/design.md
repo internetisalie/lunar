@@ -1,23 +1,14 @@
 ---
+id: TARGET-06-DESIGN
+parent_id: TARGET-06
+type: design
 folders:
-  - "[[features/target/requirements|requirements]]"
-title: "06: Settings Migration"
+  - "[[features/target/06-migration/requirements|requirements]]"
+title: "Technical Design"
+status: not_implemented
 ---
 
-# TARGET-06: Settings Migration
-
-**Requirement**: Existing project settings must migrate to the new Target data model without user action or data loss.  
-**Priority**: Must  
-**Status**: Not Implemented  
-**Design reference**: [design.md §5](../design.md)
-
----
-
-## Overview
-
-Before TARGET, `LuaProjectSettings.State` stores `languageLevel: LuaLanguageLevel` and `platform: LuaPlatform` as separate fields. After TARGET, `target: Target?` is the single source of truth. Opening an existing project must silently convert the old fields to a `Target` and persist the result.
-
----
+# Technical Design: Target Migration
 
 ## Legacy State Structure (before migration)
 
@@ -143,17 +134,3 @@ On read, `LuaProjectSettings` first attempts to populate `state.target`:
 3. If `target` element is absent → `state.target` remains null → `getTarget()` triggers migration
 
 No exception may propagate from deserialization; all unrecognised values must degrade gracefully.
-
----
-
-## Acceptance Criteria
-
-- [ ] `migrateFromLegacySettings()` is called when `state.target` is null
-- [ ] Migration correctly handles all `LuaLanguageLevel` values including `LUA50`
-- [ ] Non-STANDARD legacy platforms migrate to the platform's default version
-- [ ] STANDARD legacy platform migrates using `languageLevel` to version label mapping
-- [ ] After migration, `state.target` is populated and `state.languageLevel` is in sync
-- [ ] XML serialization writes both `target` and `languageLevel` fields
-- [ ] XML deserialization reads `target`; falls back to migration if absent
-- [ ] Unknown version label on deserialization uses `defaultVersion()`, not an exception
-- [ ] Unit tests cover all rows in the Migration Scenarios table above

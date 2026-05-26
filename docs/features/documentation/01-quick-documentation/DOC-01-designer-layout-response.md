@@ -1,7 +1,12 @@
 ---
+id: "DOC-01-RESPONSE"
+title: "Designer Layout Response"
+type: "spec"
+parent_id: "DOC-01"
+status: "done"
+priority: "medium"
 folders:
   - "[[features/documentation/01-quick-documentation/01-quick-documentation|requirements]]"
-title: "Designer Layout Response"
 ---
 
 # Designer Layout Response
