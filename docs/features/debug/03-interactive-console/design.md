@@ -42,13 +42,15 @@ across sessions; stderr is visually distinct.
   ```kotlin
   class LuaConsoleRunner(project: Project)
       : AbstractConsoleRunnerWithHistory<LuaConsoleView>(project, "Lua Console", null) {
-      override fun createProcessHandler(): ProcessHandler {
-          val cmd = (newProjectLuaInterpreterCommandLine(project)
-              ?: error("No project Lua interpreter configured")).withParameters("-i")
-          // RUN-03-08: unbuffered — prepend `-e "io.stdout:setvbuf('no'); io.stderr:setvbuf('no')"`
-          return OSProcessHandler(cmd)
-      }
-      override fun createConsoleView(): LuaConsoleView
+      // built once; RUN-03-08 unbuffered via `-e "io.stdout:setvbuf('no'); io.stderr:setvbuf('no')"`
+      private val commandLine: GeneralCommandLine = (newProjectLuaInterpreterCommandLine(project)
+          ?: error("No project Lua interpreter configured"))
+          .withParameters("-e", "io.stdout:setvbuf('no'); io.stderr:setvbuf('no')", "-i")
+      // AbstractConsoleRunnerWithHistory declares TWO abstract methods:
+      override fun createProcess(): Process = commandLine.createProcess()
+      override fun createProcessHandler(process: Process): OSProcessHandler =
+          OSProcessHandler(process, commandLine.commandLineString, commandLine.charset)
+      override fun createConsoleView(): LuaConsoleView = LuaConsoleView(project)
       override fun createExecuteActionHandler(): ProcessBackedConsoleExecuteActionHandler  // §3.1
   }
   ```
