@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-03: UI Contextual Versions"
-status: not_implemented
+status: "done"
 ---
 
 # TARGET-03: UI Contextual Versions

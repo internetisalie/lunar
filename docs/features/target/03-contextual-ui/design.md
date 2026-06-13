@@ -5,7 +5,7 @@ type: design
 folders:
   - "[[features/target/03-contextual-ui/requirements|requirements]]"
 title: "Technical Design"
-status: not_implemented
+status: "done"
 ---
 
 # Technical Design: UI Contextual Versions

@@ -5,7 +5,7 @@ type: design
 folders:
   - "[[features/target/01-data-model/requirements|requirements]]"
 title: "Technical Design"
-status: not_implemented
+status: "done"
 ---
 
 # Technical Design: Target Data Model

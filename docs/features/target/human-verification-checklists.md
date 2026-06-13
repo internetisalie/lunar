@@ -5,7 +5,7 @@ type: qa
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "Verification Checklists"
-status: not_implemented
+status: "done"
 ---
 
 # QA Verification Scenarios: TARGET - Runtime Environment Configuration

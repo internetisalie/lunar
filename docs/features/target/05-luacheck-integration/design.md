@@ -5,7 +5,7 @@ type: design
 folders:
   - "[[features/target/05-luacheck-integration/requirements|requirements]]"
 title: "Technical Design"
-status: not_implemented
+status: "done"
 ---
 
 # Technical Design: Luacheck Integration

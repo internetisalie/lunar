@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-05: Luacheck Integration"
-status: not_implemented
+status: "done"
 ---
 
 # TARGET-05: Luacheck Integration

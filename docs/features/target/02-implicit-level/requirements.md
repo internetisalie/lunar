@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-02: Implicit Language Level"
-status: not_implemented
+status: "done"
 ---
 
 # TARGET-02: Implicit Language Level

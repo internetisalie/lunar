@@ -58,7 +58,7 @@ Active development is focused on **TYPE-09: Union Distribution Logic** and the r
   - `in_progress` — actively being built
   - `done` — complete
   - `cancelled` — dropped from scope
-  The non-canonical `completed` has been folded into `done`. **Outstanding:** `not_implemented`
-  (14 docs) is off-vocabulary and still needs a mapping decision (likely `todo` or `planned`).
+  The non-canonical `completed` and `not_implemented` values have been folded into `done`
+  (the `not_implemented` set were stale TARGET sub-feature/design docs; TARGET is complete).
 
 *Last updated: 2026-05-16T14:35:00-04:00 (figures); normalization notes added 2026-06-13.*

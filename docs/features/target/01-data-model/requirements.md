@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-01: Target Data Model"
-status: not_implemented
+status: "done"
 ---
 
 # TARGET-01: Target Data Model
