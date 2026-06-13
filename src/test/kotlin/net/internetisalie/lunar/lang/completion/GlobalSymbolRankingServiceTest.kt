@@ -1,8 +1,9 @@
 package net.internetisalie.lunar.lang.completion
 
 import net.internetisalie.lunar.BaseDocumentTest
+import com.intellij.openapi.application.runReadAction
 import net.internetisalie.lunar.lang.psi.LuaFile
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 /**
  * Tests for GlobalSymbolRankingService
@@ -29,12 +30,14 @@ class GlobalSymbolRankingServiceTest : BaseDocumentTest() {
         val mainFile = myFixture.file as LuaFile
         val service = GlobalSymbolRankingService.getInstance(myFixture.project)
 
-        // Test getting globals from main.lua
-        val globals = service.getProjectGlobalSymbols(
-            mainFile,
-            localSymbolNames = setOf("x"),
-            importedSymbolNames = emptySet()
-        )
+        // Test getting globals from main.lua (PSI reads require a read action)
+        val globals = runReadAction {
+            service.getProjectGlobalSymbols(
+                mainFile,
+                localSymbolNames = setOf("x"),
+                importedSymbolNames = emptySet()
+            )
+        }
 
         // Should include globalFunc and anotherGlobal, but NOT _privateFunc (suppressed by default)
         val names = globals.map { it.name }
@@ -57,12 +60,14 @@ class GlobalSymbolRankingServiceTest : BaseDocumentTest() {
         val mainFile = myFixture.file as LuaFile
         val service = GlobalSymbolRankingService.getInstance(myFixture.project)
 
-        // Test deduplication: helper is in importedSymbolNames
-        val globals = service.getProjectGlobalSymbols(
-            mainFile,
-            localSymbolNames = emptySet(),
-            importedSymbolNames = setOf("helper")
-        )
+        // Test deduplication: helper is in importedSymbolNames (PSI reads require a read action)
+        val globals = runReadAction {
+            service.getProjectGlobalSymbols(
+                mainFile,
+                localSymbolNames = emptySet(),
+                importedSymbolNames = setOf("helper")
+            )
+        }
 
         val names = globals.map { it.name }
         assert(!names.contains("helper")) { "Should NOT include imported symbol helper" }
