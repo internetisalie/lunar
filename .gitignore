@@ -5,12 +5,19 @@ build/
 !**/src/test/**/build/
 
 ### AI ###
+# Shared, tool-agnostic source of truth (skills, AGENTS.md, prompt.md, templates).
 /.agents/
+# Tool-specific config dirs (each symlinks/points into .agents/).
 /.ai/
 /.claude/
 /.gemini/
 /.kilo/
 /.kilocode/
+/.opencode/
+/.antigravity/
+/.agent/
+# Per-tool instruction entry points (all symlink to .agents/AGENTS.md).
+/AGENTS.md
 /CLAUDE.md
 /GEMINI.md
 /.instructions.md
