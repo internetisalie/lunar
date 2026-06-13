@@ -152,6 +152,17 @@ tasks {
         }
     }
 
+    register<Exec>("lintDocs") {
+        group = "verification"
+        description = "Validate documentation front-matter against the manage-docs standard"
+        workingDir = rootDir
+        commandLine("python3", "scripts/lint_docs.py", "docs")
+    }
+
+    named("check") {
+        dependsOn("lintDocs")
+    }
+
     publishPlugin {
         dependsOn(patchChangelog)
     }
