@@ -427,4 +427,3 @@ All toggles live in `LuaProjectSettings` (project-level, `.idea/lunar.xml`):
 - **Implementation Plan**: [[implementation-plan|Implementation Plan]]
 - **Phase 2 Design**: [[../02-project-wide-globals/design|Phase 2 Technical Design]]
 - **Parent Architecture**: [[../design|COMP-03 Architecture Overview]]
-- **Tracker**: [[saga://task/345|Task 345]]

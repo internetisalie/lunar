@@ -78,13 +78,11 @@ SYNTAX-07 inlay hints are **substantially implemented** with **9 of 11 requireme
 
 #### 🚧 SYNTAX-07-07: Method Chaining Hints
 - **Status**: **IN PROGRESS**
-- **Saga Task**: Task 280
 - **Documentation**: `docs/features/syntax/07-inlay-hints/07-07-method-chaining-hints/`
 - **Missing**: Logic to detect multi-line chains and position hints at the end of each line.
 
 #### 🚧 SYNTAX-07-11: Large File Threshold
 - **Status**: **IN PROGRESS** (Functional, lacking UX feedback)
-- **Saga Task**: Task 283
 - **Documentation**: `docs/features/syntax/07-inlay-hints/07-11-large-file-threshold/`
 - **Missing**: Integration with visual status or notification when hints are disabled (REQ-06).
 

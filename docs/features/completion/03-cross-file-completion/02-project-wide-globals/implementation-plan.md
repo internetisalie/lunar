@@ -16,7 +16,6 @@ status: "done"
 
 Phase 2 implements project-wide global symbol suggestions by leveraging existing indexing (`LuaGlobalDeclarationIndex`, `LuaClassNameIndex`, file stubs) and integrating with the completion provider using proximity-based ranking.
 
-**Tracker**: [[saga://task/350|Task 350]]  
 **Estimated Effort**: 12-16 hours (de-risking + implementation + testing)  
 **Critical Path**: DR-01 → DR-02 → Phase 2.1 → Phase 2.5
 
@@ -265,5 +264,3 @@ Expected reuse (no changes):
 - **Requirements**: [[requirements|Phase 2 Requirements]]
 - **Design**: [[design|Technical Design]]
 - **Risks & Gaps**: [[risks-and-gaps|Risk Assessment]]
-- **Tracker**: [[saga://task/350|Task 350]]
-- **Phase 1 Reference**: [[saga://task/343|Task 343]]

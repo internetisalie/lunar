@@ -16,7 +16,6 @@ status: "todo"
 
 Phase 3 adds auto-import insertion to the cross-file completion flow. When a user selects a non-imported global symbol from the completion popup, the appropriate `require` statement is automatically inserted at the correct location in the current file.
 
-**Tracker**: [[saga://task/345|Task 345]]  
 **Estimated Effort**: 12–17 hours (de-risking + implementation + testing)  
 **Critical Path**: DR-01 → DR-02 → Phase 3.1 → Phase 3.2 → Phase 3.5  
 **Hard Prerequisite**: Phase 2 (Task 350) must pass all quality gates before Phase 3.1 begins.
@@ -273,4 +272,3 @@ All de-risking must complete before implementation.
 - **Design**: [[design|Technical Design]]
 - **Risks & Gaps**: [[risks-and-gaps|Risks & Gaps]]
 - **Phase 2 Plan**: [[../02-project-wide-globals/implementation-plan|Phase 2 Implementation Plan]]
-- **Tracker**: [[saga://task/345|Task 345]]

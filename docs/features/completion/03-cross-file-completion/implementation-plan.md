@@ -44,17 +44,17 @@ folders:
 
 ## Verification Tasks
 
-- [ ] [Must] Implement `CrossFileCompletionTests`. **Tracker**: Task [346](saga://task/346)
+- [ ] [Must] Implement `CrossFileCompletionTests`.
 - [ ] [Must] Verify performance with a large number of indexed files.
 - [ ] [Should] Test auto-import with various project structures.
 - [ ] [Must] Verify transitive imports (A -> B -> C).
 
 ## Task Summary
 
-| Phase | Task | Status | Priority |
-|-------|------|--------|----------|
-| Phase 1: Imported Symbols | [343](saga://task/343) | ✅ Done | High |
-| Phase 2: Project-wide Globals | [350](saga://task/350) | ✅ Done | High |
-| Phase 3: Auto-import | [345](saga://task/345) | ⬜ Todo | Medium |
-| Verification: Tests | [346](saga://task/346) | ⬜ Todo | High |
-| Phase 4: Recursive Resolution | [347](saga://task/347) | ⬜ Todo | Low |
+| Phase | Status | Priority |
+|-------|--------|----------|
+| Phase 1: Imported Symbols | ✅ Done | High |
+| Phase 2: Project-wide Globals | ✅ Done | High |
+| Phase 3: Auto-import | ⬜ Todo | Medium |
+| Verification: Tests | ⬜ Todo | High |
+| Phase 4: Recursive Resolution | ⬜ Todo | Low |
