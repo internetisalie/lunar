@@ -159,8 +159,22 @@ tasks {
         commandLine("python3", "scripts/lint_docs.py", "docs")
     }
 
+    register<Exec>("genStatus") {
+        group = "documentation"
+        description = "Regenerate docs/status.md from documentation front-matter"
+        workingDir = rootDir
+        commandLine("python3", "scripts/gen_status.py")
+    }
+
+    register<Exec>("checkStatus") {
+        group = "verification"
+        description = "Verify docs/status.md matches the generated front-matter rollup"
+        workingDir = rootDir
+        commandLine("python3", "scripts/gen_status.py", "--check")
+    }
+
     named("check") {
-        dependsOn("lintDocs")
+        dependsOn("lintDocs", "checkStatus")
     }
 
     publishPlugin {

@@ -22,3 +22,5 @@ jobs:
       - run: pip install pyyaml
       - name: Lint documentation front-matter
         run: python3 scripts/lint_docs.py docs
+      - name: Check status.md is up to date
+        run: python3 scripts/gen_status.py --check
