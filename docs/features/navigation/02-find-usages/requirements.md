@@ -3,7 +3,7 @@ id: "NAV-02"
 title: "02: Find Usages"
 type: "feature"
 parent_id: "NAV"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -30,3 +30,32 @@ This document defines the requirements for finding references to a specific symb
 ## 3. UI/UX Elements
 - Standard IntelliJ "Find Usages" tool window grouping by file, package, and usage type (Read/Write).
 - "Show Usages" popup (Ctrl+Alt+F7 / Cmd+Option+F7) support.
+
+## 4. Test Cases
+
+Verified with `myFixture.findUsages(targetElement)` asserting the count and read/write type.
+
+### TC-NAV-02-01: Local Variable (NAV-02-01)
+- **Input**: `local x = 1; print(x); x = 2`.
+- **Action**: Find Usages on the `local x` declaration.
+- **Output**: 2 usages — `print(x)` (Read) and `x = 2` (Write); the declaration is not a usage.
+
+### TC-NAV-02-02: Cross-File Global (NAV-02-02)
+- **Input**: `a.lua`: `function Helper() end`; `b.lua`: `Helper()`.
+- **Action**: Find Usages on `Helper` (both indexed).
+- **Output**: 1 usage in `b.lua` (Read).
+
+### TC-NAV-02-03: Label (NAV-02-03)
+- **Input**: `::done:: goto done`.
+- **Action**: Find Usages on the `done` label.
+- **Output**: 1 usage (`goto done`).
+
+### TC-NAV-02-04: Scope Isolation (NAV-02-01)
+- **Input**: `local x=1` used once in `f`; `local x=2` used once in `g`.
+- **Action**: Find Usages on `f`'s `x`.
+- **Output**: only `f`'s usage (the `g` usage excluded via `resolve()` scoping).
+
+### TC-NAV-02-05: Read/Write Classification (NAV-10 integration)
+- **Input**: `t = {}; t.k = 1; print(t)`.
+- **Action**: Find Usages on global `t`.
+- **Output**: `t` in `t.k = 1` is Read (index base); `print(t)` Read; `t = {}` Write.
