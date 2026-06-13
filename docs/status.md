@@ -19,21 +19,21 @@ folders:
 
 | Epic | Priority | Epic status | Features done | Completion |
 | :--- | :--- | :--- | :--- | :--- |
-| **ANALYSIS** | medium | done | 5/5 | ██████████ 100% |
-| **MAINT** | low | planned | 1/1 | ██████████ 100% |
-| **TARGET** | high | done | 7/7 | ██████████ 100% |
-| **DEBUG/RUN** | low | planned | 13/15 | █████████░ 86% |
-| **DOC** | medium | planned | 14/17 | ████████░░ 82% |
-| **SYNTAX** | medium | planned | 15/19 | ████████░░ 78% |
-| **COMP** | high | in_progress | 6/9 | ███████░░░ 66% |
-| **REFACT/INTENT** | low | planned | 2/4 | █████░░░░░ 50% |
-| **TYPE** | high | planned | 6/13 | █████░░░░░ 46% |
-| **NAV** | medium | planned | 4/11 | ████░░░░░░ 36% |
-| **FORMAT** | medium | planned | 2/6 | ███░░░░░░░ 33% |
-| **BUG** | critical | planned | 0/0 | ░░░░░░░░░░ 0% |
-| **INSP** | medium | planned | 0/1 | ░░░░░░░░░░ 0% |
-| **ROCKS** | high | planned | 0/4 | ░░░░░░░░░░ 0% |
-| **TOOL** | high | planned | 0/4 | ░░░░░░░░░░ 0% |
+| **ANALYSIS** | 🟡 medium | ✅ done | 5/5 | ██████████ 100% |
+| **MAINT** | 🟢 low | ⚪ planned | 1/1 | ██████████ 100% |
+| **TARGET** | 🔴 high | ✅ done | 7/7 | ██████████ 100% |
+| **DEBUG/RUN** | 🟢 low | ⚪ planned | 13/15 | █████████░ 86% |
+| **DOC** | 🟡 medium | ⚪ planned | 14/17 | ████████░░ 82% |
+| **SYNTAX** | 🟡 medium | ⚪ planned | 15/19 | ████████░░ 78% |
+| **COMP** | 🔴 high | 🔵 in_progress | 6/9 | ███████░░░ 66% |
+| **REFACT/INTENT** | 🟢 low | ⚪ planned | 2/4 | █████░░░░░ 50% |
+| **TYPE** | 🔴 high | ⚪ planned | 6/13 | █████░░░░░ 46% |
+| **NAV** | 🟡 medium | ⚪ planned | 4/11 | ████░░░░░░ 36% |
+| **FORMAT** | 🟡 medium | ⚪ planned | 2/6 | ███░░░░░░░ 33% |
+| **BUG** | 🔴 critical | ⚪ planned | 0/0 | ░░░░░░░░░░ 0% |
+| **INSP** | 🟡 medium | ⚪ planned | 0/1 | ░░░░░░░░░░ 0% |
+| **ROCKS** | 🔴 high | ⚪ planned | 0/4 | ░░░░░░░░░░ 0% |
+| **TOOL** | 🔴 high | ⚪ planned | 0/4 | ░░░░░░░░░░ 0% |
 
 ## Notes
 

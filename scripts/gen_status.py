@@ -19,6 +19,9 @@ except ImportError:
 FEATURES = "docs/features"
 STATUS_MD = "docs/status.md"
 STATUSES = ["done", "in_progress", "planned", "todo", "blocked", "cancelled"]
+PRIORITY_DOT = {"critical": "🔴", "high": "🔴", "medium": "🟡", "low": "🟢"}
+STATUS_DOT = {"done": "✅", "in_progress": "🔵", "planned": "⚪",
+              "todo": "⚫", "blocked": "🟠", "cancelled": "🚫"}
 
 
 def frontmatter(path):
@@ -104,7 +107,9 @@ def render():
         "| :--- | :--- | :--- | :--- | :--- |",
     ]
     for r in rows:
-        out.append(f"| **{r['id']}** | {r['priority']} | {r['status']} | "
+        prio = f"{PRIORITY_DOT.get(r['priority'], '⚪')} {r['priority']}"
+        stat = f"{STATUS_DOT.get(r['status'], '')} {r['status']}".strip()
+        out.append(f"| **{r['id']}** | {prio} | {stat} | "
                    f"{r['done']}/{r['total']} | {bar(r['pct'])} {r['pct']}% |")
     out += [
         "", "## Notes", "",
