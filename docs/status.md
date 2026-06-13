@@ -13,21 +13,21 @@ folders:
      The Saga tracker is retired; the docs are the source of truth.
      Do not edit by hand — run `python3 scripts/gen_status.py`. -->
 
-**Feature completion: 65%** (69 of 106 feature docs `done`)
+**Completion: 67%** (61 of 90 work items `done`)
 
 ## Progress by Epic
 
-| Epic | Priority | Epic status | Features done | Completion |
+| Epic | Priority | Epic status | Work items done | Completion |
 | :--- | :--- | :--- | :--- | :--- |
 | **ANALYSIS** | 🟡 medium | ✅ done | 5/5 | ██████████ 100% |
-| **DOC** | 🟡 medium | ⚪ planned | 9/9 | ██████████ 100% |
+| **DOC** | 🟡 medium | ⚪ planned | 8/8 | ██████████ 100% |
 | **MAINT** | 🟢 low | ⚪ planned | 1/1 | ██████████ 100% |
 | **TARGET** | 🔴 high | ✅ done | 7/7 | ██████████ 100% |
 | **DEBUG/RUN** | 🟢 low | ⚪ planned | 12/13 | █████████░ 92% |
-| **SYNTAX** | 🟡 medium | ⚪ planned | 15/19 | ████████░░ 78% |
-| **COMP** | 🔴 high | 🔵 in_progress | 6/9 | ███████░░░ 66% |
+| **SYNTAX** | 🟡 medium | ⚪ planned | 12/14 | ████████░░ 85% |
+| **TYPE** | 🔴 high | ⚪ planned | 6/8 | ████████░░ 75% |
+| **COMP** | 🔴 high | 🔵 in_progress | 2/4 | █████░░░░░ 50% |
 | **REFACT/INTENT** | 🟢 low | ⚪ planned | 2/4 | █████░░░░░ 50% |
-| **TYPE** | 🔴 high | ⚪ planned | 6/13 | █████░░░░░ 46% |
 | **NAV** | 🟡 medium | ⚪ planned | 4/11 | ████░░░░░░ 36% |
 | **FORMAT** | 🟡 medium | ⚪ planned | 2/6 | ███░░░░░░░ 33% |
 | **BUG** | 🔴 critical | ⚪ planned | 0/0 | ░░░░░░░░░░ 0% |
@@ -37,9 +37,9 @@ folders:
 
 ## Notes
 
-- Completion is **feature-doc based** (`type: feature` docs marked `done`), derived
-  from front-matter — not the retired Saga task counts. Decomposition granularity
-  varies across epics, so read this as direction-of-progress.
+- Completion counts an epic's **direct work-item children** (`feature`/`user-story`/
+  `task`) marked `done` — not nested descendants, not design/plan/qa/risk artifacts.
+  Derived from front-matter (the Saga tracker is retired).
 - Status vocabulary: `todo` (not defined) · `planned` (ready to execute) ·
   `in_progress` · `done` · `cancelled`.
 - Regenerate with `python3 scripts/gen_status.py` (CI runs `--check`).
