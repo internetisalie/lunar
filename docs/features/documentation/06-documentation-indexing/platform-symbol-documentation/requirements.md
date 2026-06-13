@@ -1,7 +1,7 @@
 ---
 id: "DOC-06-PLAT"
 folders:
-  - "[[features/documentation/06-documentation-indexing/06-documentation-indexing|indexing]]"
+  - "[[features/documentation/06-documentation-indexing/requirements|indexing]]"
 priority: medium
 status: done
 vf_icon: ✅

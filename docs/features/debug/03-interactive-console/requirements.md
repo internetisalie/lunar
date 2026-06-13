@@ -2,7 +2,7 @@
 id: "RUN-03"
 title: "03: Interactive Console (REPL)"
 type: "feature"
-parent_id: "DEBUG"
+parent_id: "DEBUG/RUN"
 status: "planned"
 priority: "low"
 folders:

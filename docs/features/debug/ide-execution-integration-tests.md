@@ -2,7 +2,7 @@
 id: "DEBUG-IDE-TESTS"
 title: "IDE Execution Integration Tests"
 type: "spec"
-parent_id: "DEBUG"
+parent_id: "DEBUG/RUN"
 status: "done"
 priority: "low"
 folders:

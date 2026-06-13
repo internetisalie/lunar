@@ -1,7 +1,7 @@
 ---
 id: "DOC-06-DESIGN-MAP"
 folders:
-  - "[[features/documentation/06-documentation-indexing/06-documentation-indexing|requirements]]"
+  - "[[features/documentation/06-documentation-indexing/requirements|requirements]]"
 title: "Technical Design: Type Map Construction"
 type: "design"
 parent_id: "DOC-06"

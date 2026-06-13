@@ -6,7 +6,7 @@ parent_id: "DOC-01"
 status: "done"
 priority: "medium"
 folders:
-  - "[[features/documentation/01-quick-documentation/01-quick-documentation|requirements]]"
+  - "[[features/documentation/01-quick-documentation/requirements|requirements]]"
 ---
 
 # DOC-01 Quick Documentation Implementation Plan
