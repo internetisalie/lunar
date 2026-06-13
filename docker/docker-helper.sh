@@ -59,8 +59,15 @@ case "${1:-help}" in
         # Build command with optional volume mount.
         # Bind published ports to loopback only — the VNC password is weak/known, so don't
         # expose it on the LAN. (The container itself listens on 0.0.0.0 inside its netns.)
+        #
+        # apparmor=unconfined: with snap-packaged Docker the daemon runs under the
+        # 'snap.docker.dockerd' AppArmor label, and the default 'docker-default' container
+        # profile refuses to *receive* signals from that peer — so 'docker stop/kill/restart'
+        # fail with "permission denied". Dropping the profile for this dev container restores
+        # normal lifecycle control. (Local dev IDE container only; not for production images.)
         RUN_CMD="docker run -d \
             --name lunar-ide \
+            --security-opt apparmor=unconfined \
             -p 127.0.0.1:5900:5900 \
             -p 127.0.0.1:9090:9090 \
             -e DISPLAY=:99 \
