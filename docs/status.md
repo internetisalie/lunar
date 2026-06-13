@@ -42,4 +42,18 @@ folders:
 ## Current Focus
 Active development is focused on **TYPE-09: Union Distribution Logic** and the remaining tasks in the **COMP** and **NAV** epics.
 
-*Last updated: 2026-05-16T14:35:00-04:00*
+## Accuracy Notes
+
+- **Headline figures are stale.** The completion numbers above date to 2026-05-16 and were
+  *not* refreshed by the 2026-06-13 tracker ingestion; recomputing them faithfully requires
+  the live Saga tracker. Treat them as approximate pending a tracker-driven refresh.
+- **Task counts are not comparable across epics.** Decomposition granularity varies widely
+  (some epics are split into fine-grained subtasks, others are not yet broken down, and
+  several `requirements.md` files are placeholder stubs). Read completion % as
+  direction-of-progress, not remaining effort. A doc-derived rollup of `type: feature` docs
+  by `status` is a useful complementary metric.
+- **Status vocabulary is inconsistent** and needs a canonical decision: docs currently mix
+  `done`/`completed` and `todo`/`planned` (plus `cancelled`). Normalize once the canonical
+  set is confirmed against the tracker.
+
+*Last updated: 2026-05-16T14:35:00-04:00 (figures); normalization notes added 2026-06-13.*

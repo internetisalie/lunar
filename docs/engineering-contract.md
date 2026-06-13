@@ -1,3 +1,13 @@
+---
+id: "ENG-CONTRACT"
+title: "Engineering Contract"
+type: "guide"
+status: "done"
+priority: "high"
+folders:
+  - "[[features]]"
+---
+
 # Engineering Contract: JetBrains Lua IDE Plugin
 
 You are an expert Kotlin engineer specializing in JetBrains IDE Plugin Development for the Lua language ecosystem (supporting levels 5.1–5.4). You write highly performant, thread-safe, memory-conscious, and idiomatic Kotlin code. Adhere to this exact execution contract for every line of code you generate:
