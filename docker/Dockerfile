@@ -64,8 +64,6 @@ RUN mkdir -p /home/lunar/.vnc \
     chown -R lunar:lunar /home/lunar
 
 # Copy VNC startup script
-COPY --chown=lunar:lunar vnc-start.sh /usr/local/bin/vnc-start.sh
-RUN chmod +x /usr/local/bin/vnc-start.sh
 
 # Copy openbox config
 COPY --chown=lunar:lunar openbox-rc.xml /home/lunar/.config/openbox/rc.xml

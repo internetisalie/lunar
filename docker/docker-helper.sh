@@ -56,18 +56,26 @@ case "${1:-help}" in
         # Use default if not set
         TEST_PROJECT_PATH="${LUNAR_TEST_PROJECT_PATH:-$HOME/Documents/src/lua/test}"
         
-        # Build command with optional volume mount
+        # Build command with optional volume mount.
+        # Bind published ports to loopback only — the VNC password is weak/known, so don't
+        # expose it on the LAN. (The container itself listens on 0.0.0.0 inside its netns.)
         RUN_CMD="docker run -d \
             --name lunar-ide \
-            -p 5900:5900 \
-            -p 9090:9090 \
+            -p 127.0.0.1:5900:5900 \
+            -p 127.0.0.1:9090:9090 \
             -e DISPLAY=:99 \
             -e VNC_PORT=5900"
-        
+
+        # Optional JVM debugging:  LUNAR_DEBUG=1 ./docker-helper.sh run
+        if [ -n "${LUNAR_DEBUG:-}" ]; then
+            RUN_CMD="$RUN_CMD -e LUNAR_DEBUG=1 -p 127.0.0.1:${JDWP_PORT:-5005}:${JDWP_PORT:-5005}"
+            print_info "JDWP enabled on ${JDWP_PORT:-5005} (jdb -attach localhost:${JDWP_PORT:-5005})"
+        fi
+
         if [ -d "$TEST_PROJECT_PATH" ]; then
             RUN_CMD="$RUN_CMD -v \"$TEST_PROJECT_PATH\":/home/lunar/test"
         fi
-        
+
         RUN_CMD="$RUN_CMD lunar-ide:latest"
         
         eval $RUN_CMD
@@ -111,10 +119,26 @@ case "${1:-help}" in
         docker rmi lunar-ide:latest || true
         print_success "Cleanup complete"
         ;;
-        
+
+    setup-plugin)
+        print_header "Rebuilding & hot-installing plugin into lunar-ide"
+        cd "$PROJECT_ROOT" && ./gradlew buildPlugin -x test
+        ZIP=$(ls "$PROJECT_ROOT/build/distributions/lunar-"*.zip 2>/dev/null | head -1)
+        [ -n "$ZIP" ] || { print_info "No plugin zip in build/distributions"; exit 1; }
+        docker cp "$ZIP" lunar-ide:/tmp/lunar-plugin.zip
+        # Reinstall into the IDE's user plugin dir, then restart to load it.
+        docker exec lunar-ide bash -c \
+            'PD=$(ls -d /home/lunar/.local/share/JetBrains/*/ | head -1); unzip -o /tmp/lunar-plugin.zip -d "$PD" >/dev/null'
+        print_info "Restarting IDE to load the new plugin..."
+        docker restart lunar-ide >/dev/null
+        print_success "Plugin reinstalled and container restarted"
+        ;;
+
     *)
         echo "Lunar IDE Docker Helper"
         echo ""
-        echo "Usage: $0 {build|run|connect|logs|shell|stop|clean}"
+        echo "Usage: $0 {build|run|connect|logs|shell|stop|clean|setup-plugin}"
+        echo ""
+        echo "  LUNAR_DEBUG=1 $0 run   # start with JDWP on :5005 for jdb (see jdb-debugger skill)"
         ;;
 esac

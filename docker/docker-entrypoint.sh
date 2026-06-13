@@ -46,7 +46,19 @@ case "$COMMAND" in
         # Start IDE if found
         if [ -n "$IDE_BIN" ]; then
             echo "[*] Starting IDE ($(basename $IDE_BIN))..."
-            
+
+            # Optional JDWP debugging (set LUNAR_DEBUG=1). Scoped to the IDE JVM via its
+            # <PRODUCT>_VM_OPTIONS file: copy the bundled defaults, then append the agent
+            # (so heap/GC defaults are preserved and child JVMs don't inherit the port).
+            if [ -n "${LUNAR_DEBUG:-}" ]; then
+                PROD=$(basename "$IDE_BIN" .sh)
+                CUSTOM_VMOPTS="/home/lunar/lunar-debug.vmoptions"
+                { [ -f "/home/lunar/ide/bin/${PROD}64.vmoptions" ] && cat "/home/lunar/ide/bin/${PROD}64.vmoptions"; \
+                  echo "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:${JDWP_PORT:-5005}"; } > "$CUSTOM_VMOPTS"
+                export "$(echo "$PROD" | tr '[:lower:]' '[:upper:]')_VM_OPTIONS=$CUSTOM_VMOPTS"
+                echo "[*] JDWP enabled on ${JDWP_PORT:-5005} (attach: docker exec -it lunar-ide jdb -attach localhost:${JDWP_PORT:-5005})"
+            fi
+
             # Open test project if it exists
             if [ -d "/home/lunar/test" ]; then
                 echo "[*] Opening test project: /home/lunar/test"
@@ -54,10 +66,18 @@ case "$COMMAND" in
             else
                 $IDE_BIN &
             fi
-            
+
             IDE_PID=$!
             sleep 5
             echo "[✓] IDE started (PID: $IDE_PID)"
+
+            # Stable log path (req 7): symlink the active IDE log to /home/lunar/logs/idea.log
+            mkdir -p /home/lunar/logs
+            IDE_LOG_DIR=$(ls -d /home/lunar/.cache/JetBrains/*/log 2>/dev/null | head -1)
+            if [ -n "$IDE_LOG_DIR" ]; then
+                ln -sfn "$IDE_LOG_DIR/idea.log" /home/lunar/logs/idea.log
+                echo "[✓] Log linked: /home/lunar/logs/idea.log -> $IDE_LOG_DIR/idea.log"
+            fi
         else
             echo "[!] IDE not found. Use 'docker cp' to copy IDE installation."
             echo "[!] Expected executable in: /home/lunar/ide/bin/*.sh"

@@ -2,7 +2,7 @@
 id: "AGENT-DEBUG"
 title: "Agent Debugging Requirements"
 type: "guide"
-status: "todo"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features]]"
@@ -130,16 +130,20 @@ the host and the container sees changes immediately. Keep the mount read-write.
 
 ## Current status
 
+*Docker-side items implemented 2026-06-13 (in `docker/`); **pending a `docker-helper.sh build`
++ smoke test** to verify in a live container. The `jdb` workflow itself is documented in the
+`jdb-debugger` skill.*
+
 | Requirement | Status |
 |---|---|
-| VNC MCP server registered with Claude Code | ❌ registered with Gemini/Antigravity only |
-| VNC reachable from host | ⚠️ verify — `-listen localhost` vs bridge networking |
+| VNC MCP server registered with Claude Code | ❌ **user action** — run the `claude mcp add vnc …` command above (modifies your Claude config) |
+| VNC reachable from host | ✅ entrypoint already listens `0.0.0.0`; dead `vnc-start.sh` (the `-listen localhost` red herring) removed; host ports now bound to `127.0.0.1` |
 | Stable container name | ✅ `lunar-ide` |
 | 1920x1080 display | ✅ |
-| JDWP launch toggle | ❌ not yet in entrypoint/docs |
+| JDWP launch toggle | ✅ `LUNAR_DEBUG=1 ./docker-helper.sh run` → entrypoint adds `-agentlib:jdwp=…:5005` to the IDE VM options |
 | `jdb` in image | ✅ (openjdk-21-jdk) |
-| Non-interactive plugin install | ✅ `setup-plugin` (verify IDE restart handling) |
-| Stable log path | ⚠️ per-IDE path, not documented/symlinked |
+| Non-interactive plugin install | ✅ `./docker-helper.sh setup-plugin` — rebuild + `docker cp` + reinstall + restart IDE |
+| Stable log path | ✅ entrypoint symlinks the IDE log to `/home/lunar/logs/idea.log` |
 | Test project mount | ✅ |
 
 ## Practical notes for agent sessions
