@@ -31,6 +31,8 @@ WIKILINK = re.compile(r"^\[\[.+\]\]$")
 
 errors = []
 warnings = []
+id_paths = {}      # id -> [paths]  (duplicate-id detection)
+parent_refs = []   # [(path, parent_id)]  (orphan detection)
 
 
 def split_frontmatter(text):
@@ -60,6 +62,14 @@ def check(path):
     for field in ("id", "title", "type"):
         if not str(fm.get(field, "")).strip():
             errors.append((rel, f"missing required field '{field}'"))
+
+    # Collect for cross-doc link checks (duplicate ids, orphaned parents).
+    doc_id = str(fm.get("id", "")).strip()
+    if doc_id:
+        id_paths.setdefault(doc_id, []).append(rel)
+    parent = str(fm.get("parent_id", "")).strip()
+    if parent:
+        parent_refs.append((rel, parent))
 
     doc_type = fm.get("type")
     if doc_type is not None and doc_type not in TYPES:
@@ -103,6 +113,16 @@ def main():
             if name.endswith(".md"):
                 check(os.path.join(dirpath, name))
                 count += 1
+
+    # Cross-doc link integrity (matches how the backlog dashboard builds its tree).
+    for doc_id, paths in id_paths.items():
+        if len(paths) > 1:
+            for p in paths:
+                errors.append((p, f"duplicate id '{doc_id}' (also: {[x for x in paths if x != p]})"))
+    known = set(id_paths)
+    for rel, parent in parent_refs:
+        if parent not in known:
+            errors.append((rel, f"parent_id '{parent}' has no matching doc (orphan)"))
 
     for rel, msg in sorted(warnings):
         print(f"WARN  {rel}: {msg}")
