@@ -3,23 +3,27 @@ id: "TYPE-09"
 title: "09: Union Distribution Logic"
 type: "feature"
 parent_id: "TYPE"
-status: "todo"
+status: "in_progress"
 priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"
 ---
 # TYPE-09: Union Distribution Logic - Requirements Specification
 
-> **Status note (2026-06-13).** Demoted parent from `in_progress` → `todo`: the five phase
-> docs (P0–P4) are undefined stubs, so the parent must not claim active progress. **However**,
-> the union-distribution *core* is already implemented in `LuaTypeGraph` (AND/OR distribution,
-> flattening, union errors) — see the "Current implementation status" note at the top of
-> [design.md](./design.md). The phases capture the *remaining* polish (canonicalization, limits,
-> memoization, closest-match errors, pruning, benchmarks), not greenfield work.
+> **Decomposition note (2026-06-13).** TYPE-09 is an **epic** decomposed into five
+> sub-feature stories, P0–P4 — those are the planning/tracking unit, and the parent status is
+> **derived** from them. Their true statuses reflect that the union-distribution core is already
+> implemented in `LuaTypeGraph`: **P1 (Infrastructure & Flattening)** and **P2 (Compatibility
+> Logic)** are `in_progress` (Union node, `flatten`, and AND/OR distribution exist; canonicalization,
+> safety limits and memoization remain); **P3 (Error Reporting)** is `in_progress` (basic union
+> errors exist; member-specific diagnostics remain); **P0 (De-risking)** and **P4 (Verification &
+> Performance)** are `planned`. The parent is therefore `in_progress`. See each phase's
+> `requirements.md`/`design.md` for the per-story bar, and the "Current implementation status"
+> note in [design.md](./design.md).
 
 **Task ID:** TYPE-09  
 **Epic:** [TYPE: Type System](../../../status.md)  
-**Status:** todo (core implemented; phase breakdown not yet planned)  
+**Status:** in_progress (derived from P0–P4 — core implemented, hardening/diagnostics/perf remain)  
 **Related Documents:** [Technical Design](./design.md), [Implementation Plan](./implementation-plan.md), [Risks and Gaps](./risks-and-gaps.md)
 
 ## 1. Introduction
