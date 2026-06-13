@@ -52,8 +52,13 @@ Active development is focused on **TYPE-09: Union Distribution Logic** and the r
   several `requirements.md` files are placeholder stubs). Read completion % as
   direction-of-progress, not remaining effort. A doc-derived rollup of `type: feature` docs
   by `status` is a useful complementary metric.
-- **Status vocabulary is inconsistent** and needs a canonical decision: docs currently mix
-  `done`/`completed` and `todo`/`planned` (plus `cancelled`). Normalize once the canonical
-  set is confirmed against the tracker.
+- **Status vocabulary.** Canonical values and meanings:
+  - `todo` — not yet defined (no breakdown/spec)
+  - `planned` — defined and ready to execute
+  - `in_progress` — actively being built
+  - `done` — complete
+  - `cancelled` — dropped from scope
+  The non-canonical `completed` has been folded into `done`. **Outstanding:** `not_implemented`
+  (14 docs) is off-vocabulary and still needs a mapping decision (likely `todo` or `planned`).
 
 *Last updated: 2026-05-16T14:35:00-04:00 (figures); normalization notes added 2026-06-13.*
