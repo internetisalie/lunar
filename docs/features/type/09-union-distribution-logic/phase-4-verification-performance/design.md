@@ -3,7 +3,7 @@ id: "TYPE-09-P4-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "TYPE-09-P4"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-4-verification-performance/requirements|requirements]]"
@@ -24,7 +24,15 @@ suite covering P1–P3 + the parent requirements §4 matrix.
 
 ## 2. Core Components
 
-### 2.1 `net.internetisalie.lunar.lang.psi.types.LuaDiscriminantPruner` (new)
+> **DEFERRED (TYPE-DR-05).** §2.1/§3.1 below describe discriminant pruning, which requires the
+> graph to model scalar string/number *literal* types so `{type="A"}` and `{type="B"}` are
+> distinguishable. The current engine reduces both to a `String` field, so this optimization is
+> not yet expressible and is deferred to a literal-type feature. Correctness is unaffected (the P2
+> structural path already type-checks these unions); only the pruning *speedup* is deferred, and
+> P0 showed there is no performance need (~400× headroom). The retained text is the intended
+> design for when literal types land.
+
+### 2.1 `net.internetisalie.lunar.lang.psi.types.LuaDiscriminantPruner` (new, deferred)
 ```kotlin
 object LuaDiscriminantPruner {
     /** Given a value table and a union of table members, return the members whose discriminant

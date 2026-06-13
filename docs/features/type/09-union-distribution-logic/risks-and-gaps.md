@@ -19,6 +19,7 @@ folders:
 | **TYPE-DR-02** | **Infinite Recursion**: Recursive types involving unions might cause the engine to hang. | Use the existing `visited` set in `checkCompatibility` and ensure it properly handles union heads. |
 | **TYPE-DR-03** | **Inaccurate Error Ranges**: Reporting an error on a union member that is deeply nested might be difficult to map back to the PSI. | Ensure the `TypeMismatchError` carries enough context to identify the specific failing member's PSI element. |
 | **TYPE-DR-04** | **Depth-cutoff soundness** (surfaced by P0): returning `false` (incompatible) when `distributionDepth > 10` emits false-positive type errors on valid deep types. | P2 returns `true`/assume-compatible at the depth cutoff (matching the cycle-guard convention) and logs a diagnostic instead. Documented in design §2.3.1. |
+| **TYPE-DR-05** | **Discriminant pruning needs literal types** (surfaced by P4): the design's tagged-union pruning (P4-01) discriminates by literal tag value (`type="A"` vs `"B"`), but the type graph models no scalar string/number literal — both reduce to a `String` field. | P4-01 deferred to a future literal-type feature. Correctness is unaffected (P2 structural checks still type these unions); the pruning is a perf optimization P0 showed is unneeded (~400× headroom). |
 
 ## 2. Design Gaps
 

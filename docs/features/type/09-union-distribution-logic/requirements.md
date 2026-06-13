@@ -3,7 +3,7 @@ id: "TYPE-09"
 title: "09: Union Distribution Logic"
 type: "feature"
 parent_id: "TYPE"
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"

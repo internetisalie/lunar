@@ -11,13 +11,27 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 /**
- * TYPE-09-P2 — distributive compatibility safety limits (breadth/depth) and per-run memoization.
+ * TYPE-09 — comprehensive union-distribution suite (TYPE-09-P4-03).
  *
- * The OR/AND distribution itself shipped in P1; these tests pin the P2 additions:
+ * This class is the consolidated lock for the whole TYPE-09 behaviour. It pins both the parent
+ * requirements §4 matrix and the P1–P3 phase additions.
+ *
+ * Parent requirements §4 matrix (TC-09-01..05) — locked here:
+ *  - TC-09-01 OR-distribution success: `number` into `string|number` → no error.
+ *  - TC-09-02 OR-distribution failure: `true` (boolean) into `string|number` → error.
+ *  - TC-09-03 AND-distribution failure: `string|number` into `string`/`number` → error naming the
+ *    offending member.
+ *  - TC-09-04 union-to-union: `string|number` value into `string|number|boolean` use → success
+ *    (every value member is in the use union).
+ *  - TC-09-05 nested-union resolution: `number` into `string|(number|boolean)` → success
+ *    (P1 flattening makes the nested member reachable).
+ *
+ * Phase additions also pinned here:
  *  - TC-TYPE-09-P2-01/02 regressions for OR success / AND failure.
  *  - TC-TYPE-09-P2-03 depth-limit termination that ASSUMES compatibility (returns true), per
  *    the reconciled requirement / TYPE-DR-04 (no false-positive error).
  *  - breadth >100 head-match fallback.
+ *  - TC-TYPE-09-P3-01/02 member-specific / closest-match diagnostics.
  *  - memo isolation across distinct generic instantiations.
  */
 @RunWith(JUnit4::class)
@@ -46,10 +60,10 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         return graph.errors.map { it.message }
     }
 
-    // -- TC-TYPE-09-P2-01: OR success (regression) ---------------------------------------------
+    // -- TC-09-01 / TC-TYPE-09-P2-01: OR success (regression) ----------------------------------
 
     @Test
-    fun testOrDistributionSucceeds() {
+    fun testOrDistributionSucceeds() { // TC-09-01: number into string|number → no error
         val file = myFixture.configureByText(
             "or.lua",
             """
@@ -61,10 +75,10 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         assertTrue("number into string|number must be compatible, got: ${errors.map { it.message }}", errors.isEmpty())
     }
 
-    // -- TC-TYPE-09-P2-02: AND failure (regression) --------------------------------------------
+    // -- TC-09-03 / TC-TYPE-09-P2-02: AND failure (regression) ---------------------------------
 
     @Test
-    fun testAndDistributionFails() {
+    fun testAndDistributionFails() { // TC-09-03: string|number into string → error naming both
         val file = myFixture.configureByText(
             "and.lua",
             """
@@ -81,6 +95,33 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
             "Error should mention number and string, got: ${errors.map { it.message }}",
             errors.any { it.message.contains("number") && it.message.contains("string") },
         )
+    }
+
+    // -- TC-09-04: Union-to-Union distribution (success) ---------------------------------------
+
+    @Test
+    fun testUnionToUnionSucceedsWhenEveryValueMemberIsInUse() {
+        val graph = LuaTypeGraph()
+        // value `string|number` into use `string|number|boolean`: every value member is present in
+        // the use union, so AND-over-value × OR-over-use distribution succeeds with no error.
+        val value = LuaGraphType.Union(setOf(LuaGraphType.String, LuaGraphType.Number))
+        val use = LuaGraphType.Union(setOf(LuaGraphType.String, LuaGraphType.Number, LuaGraphType.Boolean))
+        val errors = check(graph, value, use)
+        assertTrue("string|number into string|number|boolean must be compatible, got: $errors", errors.isEmpty())
+    }
+
+    // -- TC-09-05: Nested-union resolution (success, exercises P1 flattening) -------------------
+
+    @Test
+    fun testNestedUnionResolvesViaFlattening() {
+        val graph = LuaTypeGraph()
+        // use `string|(number|boolean)` built with a RAW nested Union (no pre-canonicalization) so
+        // this regression-checks the engine's runtime flattening end-to-end; value `number` reaches
+        // the nested member, so the check is compatible.
+        val nested = LuaGraphType.Union(setOf(LuaGraphType.Number, LuaGraphType.Boolean))
+        val use = LuaGraphType.Union(setOf(LuaGraphType.String, nested))
+        val errors = check(graph, LuaGraphType.Number, use)
+        assertTrue("number into string|(number|boolean) must resolve via flattening, got: $errors", errors.isEmpty())
     }
 
     // -- TC-TYPE-09-P2-03: depth limit -> terminates, assumes compatibility --------------------
@@ -116,10 +157,10 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         assertTrue("Over-breadth union vs head-compatible target must complete without error, got: $errors", errors.isEmpty())
     }
 
-    // -- TC-TYPE-09-P3-01: OR-failure message stays generic for a non-table value (boolean) ----
+    // -- TC-09-02 / TC-TYPE-09-P3-01: OR-failure message stays generic for a non-table value ----
 
     @Test
-    fun testOrFailureMessageIsGenericForBoolean() {
+    fun testOrFailureMessageIsGenericForBoolean() { // TC-09-02: true into string|number → error
         val file = myFixture.configureByText(
             "or-fail.lua",
             """
