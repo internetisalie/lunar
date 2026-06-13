@@ -3,7 +3,7 @@ id: "TOOL-00"
 title: "00: De-risking & Technical Spikes"
 type: "feature"
 parent_id: "TOOL"
-status: "todo"
+status: "planned"
 priority: "high"
 folders:
   - "[[features/tool/requirements|TOOL]]"
@@ -43,11 +43,14 @@ This document tracks identified technical risks, design gaps, and required de-ri
 
 ## 3. De-risking Action Items [Must]
 
-| ID | Action Item | Priority | Target Feature | Status |
-| :--- | :--- | :---: | :--- | :--- |
-| **TOOL-00-01** | Prototype Terminal `initCommands` for PATH injection | High | `TOOL-02` | Pending |
-| **TOOL-00-02** | Define OS-specific filename patterns for `luarocks` | Medium | `TOOL-01` | Pending |
-| **TOOL-00-03** | Verify `PersistentStateComponent` serialization with Coroutines | Medium | `TOOL-01/02` | Pending |
-| **TOOL-00-04** | Implement Async/Coroutine wrapper for CLI calls | Medium | `TOOL-01` | Pending |
-| **TOOL-00-05** | Implement E2E test infrastructure using Docker containers | High | `TOOL Epic` | Pending |
-| **TOOL-00-06** | Verify VFS listener impact on performance for deep tool paths | Low | `TOOL-03` | Pending |
+Each item is **done** only when its measurable success criterion is met and the named
+deliverable exists (full method + thresholds in `design.md` §2).
+
+| ID | Action Item | Success Criterion (pass/fail) | Deliverable | Target |
+| :--- | :--- | :--- | :--- | :--- |
+| **TOOL-00-01** | Prototype Terminal PATH injection | Injected dir is first in `PATH` and `which/where luarocks` resolves to it on Bash, Zsh, CMD, PowerShell | `results/terminal-path.md` + prototype `TerminalCustomizer` | `TOOL-02` |
+| **TOOL-00-02** | OS-specific tool filenames | luarocks/luacheck/stylua each resolve via `findInPath` on Linux + Windows; descriptor table complete | `LuaToolDescriptor` map + `results/tool-filenames.md` | `TOOL-01` |
+| **TOOL-00-03** | Settings serialization round-trip | `MutableList`/`MutableMap` State deep-equals after getState→loadState; no leaky/null XML tags; 2-coroutine concurrent write safe | `LuaSettingsSerializationTest` (green) | `TOOL-01/02` |
+| **TOOL-00-04** | Async/cancellable CLI wrapper | EDT never blocked; cancel → `ProcessCanceledException` ≤100 ms; 10 s timeout → `exitCode == -1` | `LuaProcessCoroutineTest` + wrapper | `TOOL-01` |
+| **TOOL-00-05** | Cross-platform E2E infra | Discovery+exec scenario green on Linux; Windows green or deferred with documented blocker | Dockerfiles + runner + 1 E2E test | `TOOL Epic` |
+| **TOOL-00-06** | VFS-listener performance | Added overhead < 5 % (or < 50 ms) on a 1000-file bulk op; else recommend fallback | `results/vfs-perf.md` with numbers | `TOOL-03` |
