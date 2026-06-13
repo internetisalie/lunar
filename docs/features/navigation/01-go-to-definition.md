@@ -22,4 +22,4 @@ This document outlines the requirements for Go to Definition.
 
 ## 2. Technical Details
 - Uses `PsiReference.resolve()` returning the target element.
-- Supported by `LuaBindingsVisitor` for local resolution and `StubIndex` for global resolution.
+- Supported by lazy `PsiScopeProcessor`-based resolution (`LuaScopeProcessor` via `processDeclarations()`) for local resolution and `StubIndex` for global resolution.

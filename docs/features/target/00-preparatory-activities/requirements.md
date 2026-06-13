@@ -6,9 +6,9 @@ folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-00: Preparatory Activities"
 status: done
+vf_icon: ✅
 priority: high
 ---
-
 # TARGET-00: Preparatory Activities
 
 **Requirement**: Complete all prerequisite work before beginning implementation phases; ensure designs are approved, code is ready, and risks are mitigated.

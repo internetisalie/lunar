@@ -24,7 +24,7 @@ Lunar provides powerful tools to explore and navigate the Lua codebase.
 | [`NAV-08`](08-line-markers.md) | **Line Markers** | **S** | Display gutter markers for special call types: recursive calls and tail calls. |
 | [`NAV-09`](09-return-highlighter.md) | **Return Highlighter** | **C** | Highlight `return` statements and their corresponding function definitions for visual clarity. |
 | [`NAV-10`](10-access-detector.md) | **Access Detector** | **S** | Detect and highlight variable access patterns (read vs. write) for semantic analysis. |
-| [`NAV-11`](11-bindings-caching.md) | **Bindings Caching** | **M** | Use `CachedValuesManager` to cache `getReferences` and `getFileGlobals` results, invalidating on PSI changes. |
+| [`NAV-11`](11-bindings-caching.md) | ~~**Bindings Caching**~~ (Retired) | **—** | **Retired** — premise removed by MAINT-04 (lazy `PsiScopeProcessor`/`PsiReference` resolution replaced the cached `LuaBindingsVisitor`). See [`11-bindings-caching.md`](11-bindings-caching.md). |
 
 ---
 
@@ -42,6 +42,6 @@ Lunar provides powerful tools to explore and navigate the Lua codebase.
 ### NAV-07: Reference Contributors
 - **Status**: **Implemented** (`LuaLabelReferenceContributor`)
 
-### NAV-11: Bindings Caching
-- **Status**: **Implemented** (`LuaBindingsVisitor.getBindings`)
+### NAV-11: Bindings Caching — Retired
+- **Status**: **Retired (2026-06-13)** — `LuaBindingsVisitor.getBindings` was removed in MAINT-04 (lazy `PsiScopeProcessor`/`PsiReference` resolution replaced the cached visitor), so the feature's premise no longer applies. Spec retained for history: [`11-bindings-caching.md`](11-bindings-caching.md).
 

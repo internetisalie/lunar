@@ -77,7 +77,7 @@ For example, a function value type `(T₁ → U₁)` flowing to a function use t
 - `U₁ → U₂` (return value flows forward, covariant)
 - `T₂ → T₁` (argument flows backward, contravariant)
 
-In Lunar it corresponds to `checkTypes()` in `LuaTypeGraph`, which is **currently a stub** (returns success unconditionally).
+In Lunar it corresponds to `checkTypes()` / `checkCompatibility()` in `LuaTypeGraph`, which performs this checking and records an `ElementError` for each incompatible flow.
 
 ---
 
@@ -215,7 +215,7 @@ downSets : Map<TypeNode, OrderedSet<TypeNode>>   // who reads from this node
 2. For each pending edge, call `addEdge` which:
    - Inserts the edge into `downSets[left]` / `upSets[right]`.
    - **Transitively propagates** (the O(n³) step): for each node already upstream of `left`, enqueue an edge to `right`; for each node already downstream of `right`, enqueue an edge from `left`.
-3. For each newly confirmed direct use→value pair, calls `checkTypes(use.read, value.write)` — which is **currently a stub**.
+3. For each newly confirmed direct use→value pair, calls `checkCompatibility(value.write, use.read, …)`, which reports incompatible assignments as `ElementError`s.
 
 This gives the graph **transitive closure** on edge insertion, so type constraints propagate through chains of variables automatically, maintaining the wormhole invariant from §2.3.
 
@@ -301,11 +301,16 @@ This is consumed by `visitLocalFuncDecl` / `visitFuncDef` to synthesize a `Funct
 
 ```kotlin
 companion object {
-    private val typesKey = Key<FileUserData<LuaTypes>>("LuaTypesAnnotator.KEY_TYPES")
+    internal val KEY: Key<FileUserData<LuaTypes>> = Key.create("LuaTypesSnapshotV3")
 
-    fun getTypes(element: PsiElement): LuaTypes {
-        val bindings = LuaBindingsVisitor.getBindings(element)
-        return typesKey.cacheFileUserData(element) { psiFile -> visit(psiFile, bindings) }
+    fun getTypes(element: PsiElement): LuaTypes =
+        KEY.cacheFileUserData(element) { file -> buildSnapshot(file) }
+
+    internal fun buildSnapshot(file: PsiFile): LuaTypes {
+        val visitor = LuaTypesVisitor()
+        file.accept(visitor)
+        visitor.graph.checkTypes()   // constraint checking runs here
+        return visitor.buildSnapshot()
     }
 }
 ```
@@ -328,9 +333,13 @@ This gives a lightweight "type hover" experience while the system is being devel
 
 > **Note**: With large-scale type inference, inferred types tend to be verbose and not human-readable. The tooltip approach here treats types as a debugging tool rather than a user-facing feature, which is appropriate for the current stage of development.
 
-### 8.2 Dependency on `LuaBindings`
+### 8.2 Cross-file / Module Resolution
 
-`LuaTypesVisitor` receives a `LuaBindings` instance at construction (though the current implementation does not yet use it for type resolution — bindings are used separately by `LuaLocalBindingsAnnotator` / `LuaGlobalBindingsAnnotator`). The intent is to eventually feed resolved binding information into scope initialisation to handle cross-file types.
+`LuaTypesVisitor` no longer depends on the (removed) `LuaBindingsVisitor`; lexical scope is tracked internally by `LuaScope` during the walk. Cross-file types are resolved on demand by `LuaTypeManager.resolveModule(moduleName, context)` (`LuaTypeManagerImpl`):
+
+- The target file is located via the project source-path patterns, falling back to a filename-index lookup in `allScope`.
+- Its **exported type** is read from the file stub's `exportedTypeString` — the type of the file's trailing `return`, captured at indexing time by `LuaFileElementType.extractExportedType` — and parsed via `TypeParser`, avoiding a re-parse of the dependency. If no stub is available it falls back to live analysis of the file's return type.
+- Results are memoised in a per-resolver module cache, and a `resolvingModules` thread-local set guards against `require` cycles (a detected cycle resolves to `ANY`).
 
 ---
 
@@ -338,7 +347,11 @@ This gives a lightweight "type hover" experience while the system is being devel
 
 | Area | Status | Notes |
 |---|---|---|
-| `checkTypes` / head compatibility | **Stub** | No type mismatch errors reported yet |
+| `checkTypes` / head compatibility | **Implemented** | Constraint checking runs in `checkTypes()` with iteration (1000) and time (5 s) safety caps; `checkCompatibility()` reports `ElementError`s for incompatible assignments and arg-count mismatches |
+| Scope shadowing detection | **Not implemented** | `LuaScope` tracks `name → node` via a change journal but does not flag or warn on shadowed redeclarations in nested scopes |
+| Large-input cost bound | **Partial** | Reachability is O(n³); `checkTypes()` has iteration/time safety limits but there is no node-count cap, large-file fallback, or measured performance threshold |
+| Error attribution side | **Known limitation** | Incompatibility errors attach to the value/RHS element (e.g. `local x: string = nil` underlines `nil`, not `x`); LHS attribution may read clearer |
+| Edge-case test coverage | **Gap** | Circular references, mid-flow type reassignment, nil defaults, varargs, and anonymous-function inference are not yet covered by tests |
 | `NodeList` last-element flattening | **TODO** | Vararg / multi-return list expansion not yet handled |
 | `..` operands | `STRING` constraint | Should be relaxed to a `STRINGABLE` trait |
 | Relational operands | `NUMBER` constraint | Should be relaxed to an `ORDERED` trait |

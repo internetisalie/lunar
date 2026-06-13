@@ -6,6 +6,7 @@ folders:
 title: "TARGET: Runtime Environment Configuration"
 priority: high
 status: done
+vf_icon: ✅
 ---
 # Target Configuration Requirements (`TARGET`)
 

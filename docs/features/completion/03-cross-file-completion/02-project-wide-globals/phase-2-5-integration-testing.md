@@ -5,7 +5,7 @@ folders:
   - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|requirements]]"
 title: "COMP-03-02 Phase 2.5: Integration Testing & Validation"
 type: "qa"
-status: "done"
+status: "in_progress"
 ---
 
 # COMP-03-02 Phase 2.5: Integration Testing & Validation
@@ -13,6 +13,8 @@ status: "done"
 **Final Phase of COMP-03-02: Global Symbol Suggestions**
 
 Comprehensive integration testing, acceptance criteria validation, and end-to-end verification of Phase 2.1-2.4 implementations.
+
+> **Status note (2026-06-13):** The dedicated `GlobalSymbolIntegrationTest.kt` suite described below was **not created**. The 12 integration scenarios (IT-01…IT-12) were instead validated against the existing Phase 2.1–2.4 unit and performance tests (`GlobalSymbolRankingServiceTest`, `ProximityCalculatorTest`, `DeduplicationServiceTest`, `GlobalSymbolCompletionPerformanceTest`), which cover the same acceptance criteria. The `INT-01…INT-10` rows below therefore remain **Not Implemented** as a distinct suite. Treat this document as the integration-test *specification*; standing up the dedicated suite is deferred.
 
 ## Scope (In-Scope)
 
@@ -156,15 +158,15 @@ test-project/
 - [ ] Dumb mode tested
 - [ ] Cache invalidation tested
 
-## Success Criteria
+## Success Criteria (target)
 
-- ✅ All 12 integration tests passing
-- ✅ 100% acceptance criteria coverage
+- ⬜ Dedicated `GlobalSymbolIntegrationTest` suite (12 tests) — **deferred** (see status note); ACs validated via existing Phase 2.1–2.4 tests
+- ✅ Acceptance criteria covered (via existing unit/performance tests)
 - ✅ No Phase 1 regression
 - ✅ Performance targets met (<200ms at 5000 symbols)
 - ✅ Code review approval
 - ✅ Engineering contract compliant
-- ✅ Ready for production merge
+- ✅ Phase 2.1–2.4 functionality merged
 
 ## Next Steps
 

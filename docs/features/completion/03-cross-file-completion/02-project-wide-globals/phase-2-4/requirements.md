@@ -2,7 +2,7 @@
 id: "COMP-03-02-PHASE-2.4"
 title: "Phase 2.4: Performance Tuning"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "COMP-03-02"
 folders:
@@ -21,17 +21,17 @@ This phase optimizes global symbol completion performance to ensure fast respons
 
 | ID | Requirement | Priority | Status |
 | :--- | :--- | :---: | :---: |
-| `COMP-03-02-2.4-01` | **Cancellation Support** | **High** | **In Progress** | Add cancellation checks in collection loops. |
-| `COMP-03-02-2.4-02` | **Candidate Limiting** | **High** | **Todo** | Limit candidates to ~500 before ranking. |
-| `COMP-03-02-2.4-03` | **Hot Path Optimization** | **Medium** | **Todo** | Profile and optimize critical paths. |
-| `COMP-03-02-2.4-04` | **Performance Benchmarks** | **Medium** | **Todo** | Create and maintain performance benchmarks. |
+| `COMP-03-02-2.4-01` | **Cancellation Support** | **High** | **Full** | Add cancellation checks in collection loops. |
+| `COMP-03-02-2.4-02` | **Candidate Limiting** | **High** | **Full** | Limit candidates to ~500 before ranking. |
+| `COMP-03-02-2.4-03` | **Hot Path Optimization** | **Medium** | **Full** | Profile and optimize critical paths. |
+| `COMP-03-02-2.4-04` | **Performance Benchmarks** | **Medium** | **Full** | Create and maintain performance benchmarks. |
 
 ## Implementation Status
 
 - ✓ Cancellation infrastructure implemented
-- ⏳ Candidate limiting in progress
-- ⏱️ Hot path optimization planned
-- 📊 Benchmarks framework created
+- ✓ Candidate limiting implemented (`GlobalSymbolRankingService.MAX_CANDIDATES = 500`, labeled-break early exit)
+- ✓ Hot path optimization (candidate cap + early exit in `GlobalSymbolRankingService`)
+- ✓ Performance benchmarks created (`GlobalSymbolCompletionPerformanceTest`, `GlobalSymbolPerformanceOptimizationTest`)
 
 ## Acceptance Criteria
 
@@ -42,5 +42,5 @@ This phase optimizes global symbol completion performance to ensure fast respons
 
 ---
 
-**Status**: Planned  
-**Last Updated**: 2026-05-26
+**Status**: Done  
+**Last Updated**: 2026-06-13

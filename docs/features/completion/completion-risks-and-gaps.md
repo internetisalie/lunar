@@ -32,3 +32,9 @@ This document tracks technical risks and design gaps for the Code Completion (`C
 
 - [ ] `COMP-DR-01`: Prototype a simple member completion from a `LuaCATS` annotated table.
 - [ ] `COMP-DR-02`: Evaluate standard IntelliJ sorting/grouping for completion results.
+
+## Known / Deferred Defects
+
+| ID | Defect | Severity | Status | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `COMP-D-01` | **`lo` prefix completion dropout** | Medium | Deferred | Typing `l` lists `local`, `lo` drops it, and `loc` lists it again — completion intermittently fails at a two-character keyword prefix. A fix was attempted but did not resolve the behaviour in the live IDE. Deferred until the COMP epic is otherwise complete. Reproducer: `LuaCompletionBugTest` (currently print-only / assertion-free, so it does not fail CI). |

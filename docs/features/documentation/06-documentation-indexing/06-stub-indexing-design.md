@@ -18,8 +18,8 @@ Currently, the Lunar plugin relies on a custom `FileBasedIndex` (`LuaFileBinding
 
 ## 2. Current Architecture & Limitations
 
-### 2.1 In-File Resolution (`LuaBindingsVisitor`)
-The `LuaBindingsVisitor` traverses the entire PSI tree of a file upfront to build a complete map of declarations, scopes, and references. This map is cached using `CachedValuesManager`. `LuaNameReference.multiResolve()` looks up offsets in this map for local resolution.
+### 2.1 In-File Resolution (`PsiScopeProcessor`)
+In-file resolution is lazy: `LuaNameReference.multiResolve()` walks up the PSI scope chain, invoking each scope element's `processDeclarations()` with a `LuaScopeProcessor` that stops on the first matching declaration (no eager full-file traversal or cached binding map).
 
 ### 2.2 Cross-File Resolution (`LuaFileBindingsIndex`)
 For global symbols, resolution falls back to `LuaFileBindingsIndex`. 

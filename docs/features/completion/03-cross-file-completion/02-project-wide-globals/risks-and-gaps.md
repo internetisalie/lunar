@@ -113,6 +113,10 @@ These tasks should be completed **before** Phase 2 full implementation:
 | DR-03 | Test Phase 1 + Phase 2 cache invalidation | 2-3 hrs | Verify no deduplication issues |
 | DR-04 | Document Lua version compatibility matrix | 1 hr | Define supported Lua features |
 
+### DR-02 Results
+
+DR-02 benchmarking (recorded by the de-risking task) cleared the performance gates: combined Phase 1 + Phase 2 completion timing was measured at **~76 ms @ 1,000 symbols, ~154 ms @ 5,000, and ~242 ms @ 10,000**. This confirmed that proximity-only ranking with a 500-candidate cap (the Risk 1.2 mitigation) meets the <200 ms target for realistic project sizes, so usage-frequency ranking remained safely deferred to Phase 4. The benchmark harness lives in `GlobalSymbolCompletionPerformanceTest` / `GlobalSymbolPerformanceOptimizationTest`; the cap is `GlobalSymbolRankingService.MAX_CANDIDATES = 500`.
+
 ## Test Case Gaps
 
 Current test cases do not cover:

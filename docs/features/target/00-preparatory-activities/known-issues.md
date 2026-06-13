@@ -6,8 +6,8 @@ folders:
   - "[[features/target/00-preparatory-activities/requirements|requirements]]"
 title: "TARGET-00: Known Issues & Mitigations"
 status: done
+vf_icon: ✅
 ---
-
 # IMPL-00-09: Known Issues & Mitigations
 
 **Documented**: 2026-05-12  

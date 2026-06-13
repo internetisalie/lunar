@@ -5,15 +5,15 @@ type: plan
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "Implementation Plan"
-status: not_implemented
+status: done
+vf_icon: ✅
 ---
-
 # TARGET Implementation Plan
 
 **Feature**: Runtime environment configuration (platform + version selection)  
 **Design Document**: [design.md](design.md)  
 **Specification**: [Features](requirements.md)  
-**Status**: Planning phase  
+**Status**: Implemented (TARGET epic complete)  
 
 ---
 
@@ -346,6 +346,13 @@ Phase 7: Final QA & Release
 - Code completion works for selected platform
 - Luacheck produces correct results per platform
 - Opening old project with legacy settings auto-migrates
+
+### As-Built Test Coverage
+
+- **Settings/data model**: `LuaProjectSettingsTest` — **43 unit tests** across 6 nested classes (core, `TargetState`, edge cases, service, backward compatibility, panel logic). The target data-model package is fully unit-covered.
+- **Library resolution**: `RuntimeLibraryProviderTest` — 7 tests covering library-root and file resolution per platform.
+- **Migration**: `LuaProjectSettingsMigrationIntegrationTest` — legacy-project scenarios (Standard, Redis-no-lang, unknown-version, Tarantool).
+- The settings UI classes (`LuaProjectSettingsPanel`, configurable) are intentionally **not** unit-tested and rely on integration/manual testing.
 
 ---
 
