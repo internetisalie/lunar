@@ -4,7 +4,7 @@
 --- @param include_nils bool                Whether to include nil values in the result
 local function extract(source, names, include_nils)
     local data = {}
-    for _, key in ipairs(name) do
+    for _, key in ipairs(names) do
         local value = source[key]
         if (value ~= nil) or include_nils then
             data[key] = value
