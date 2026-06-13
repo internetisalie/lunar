@@ -30,3 +30,12 @@ folders:
 - [ ] `TYPE-02-DR-01`: If cross-file implicit fields are needed, add a stub/file index keyed on
       `className` → assigned field names.
 - [ ] `TYPE-02-DR-02`: Decide whether to model nested implicit field paths.
+- [ ] `TYPE-02-DR-03`: **Precise RHS type inference for implicit fields is deferred.**
+      Implicit-field collection runs inside `materializeClass`, which itself runs inside
+      `resolveType` during `LuaTypesVisitor` graph-building. Calling
+      `LuaTypesVisitor.getTypes(file)` / `resolveType` from materialization would re-enter the
+      same class (uncached mid-materialization → recursion) and re-enter `getTypes` mid-build,
+      so RHS types are derived by **light syntactic inference** (literal/table/function KIND →
+      primitive type) only. A `resolvingTypes` ThreadLocal guard in `resolveType` defends
+      against any transitive re-entry. When precise implicit-field RHS types are needed, infer
+      them outside the materialization path (e.g. a post-pass keyed off the cached class type).

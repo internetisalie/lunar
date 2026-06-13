@@ -3,7 +3,7 @@ id: "TYPE-02-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "TYPE-02"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/type/02-class-table-definitions/requirements|requirements]]"
@@ -62,11 +62,18 @@ contribute an `hp` member to `Player`.
        `function <className>:m()` / `function <className>.m()` (the enclosing `LuaFuncDecl`'s
        receiver name == `className`) → field name = the suffix name.
   2. If `into` does not already contain the field (explicit `@field` wins), add
-     `into[field] = LuaTypeMember(field, inferredType(rhs) ?: LuaPrimitiveType.ANY,
-     sourceElement = theVar)`.
-  - `inferredType(rhs)`: the value type of the matching RHS expression via
-    `LuaTypesVisitor.getTypes(stmt).getValueType(rhsExpr)` converted with `graphTypeToLuaType`;
-    fall back to `ANY`.
+     `into[field] = LuaTypeMember(field, lightInferType(rhs), sourceElement = theVar)`.
+  - `lightInferType(rhs)`: **light syntactic RHS inference only** — map the RHS expression KIND
+    directly to a type with NO graph / `resolveType` call: number literal → `NUMBER`, string
+    literal → `STRING`, `true`/`false` → `BOOLEAN`, `nil` → `NIL`, table constructor → `TABLE`,
+    function expr (`LuaFuncDef`) → `FUNCTION`; anything else → `ANY`. **Do NOT** use
+    `LuaTypesVisitor.getTypes(...)` / the full type graph here: `collect` runs inside
+    `materializeClass`, which runs inside `resolveType` during graph-building, so a graph/resolve
+    call would re-enter `resolveType(sameClass)` (uncached mid-materialization → recursion) and
+    `getTypes(sameFile)` mid-build. Precise RHS inference is deferred (`TYPE-02-DR-03`). A
+    `resolvingTypes` ThreadLocal guard in `resolveType` (mirroring `resolvingModules`) defends
+    against any transitive re-entry: after the cache check, `if (name in resolvingTypes) return null`,
+    bracketing `doResolveType` with add/remove in a `finally`.
 - **Edge handling**: multi-assignment `a.x, a.y = 1, 2` pairs each LHS var with its positional
   RHS; if RHS is shorter, extra fields get `ANY`.
 

@@ -48,17 +48,22 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         )
 
     private val resolvingModules = ThreadLocal.withInitial { mutableSetOf<String>() }
+    private val resolvingTypes = ThreadLocal.withInitial { mutableSetOf<String>() }
 
     override fun resolveType(name: String, context: PsiElement): LuaType? {
         LuaPrimitiveType.PRIMITIVES[name]?.let { return it }
         val cache = typeCache.value
         if (cache.containsKey(name)) return cache[name]
+        if (name in resolvingTypes.get()) return null // Break reentrant cycles
 
         return try {
+            resolvingTypes.get().add(name)
             doResolveType(name, project)
         } catch (e: Exception) {
             logError("Error resolving type $name", e)
             throw e
+        } finally {
+            resolvingTypes.get().remove(name)
         }
     }
 
@@ -167,6 +172,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                 }
             }
         }
+        LuaImplicitFields.collect(name, decls, membersMap)
         return LuaClassType(name, superTypes, membersMap)
     }
 
