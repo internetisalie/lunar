@@ -65,38 +65,45 @@ When a user initializes a LuaRocks project:
 | **ROCKS-01-02** | **Rockspec Generation** | **Must** | **Pending** | Generate a valid `.rockspec` file with user-provided metadata. |
 | **ROCKS-01-03** | **Module Setup Script** | **Must** | **Pending** | Generate `src/setup.lua` to enable local module resolution. |
 | **ROCKS-01-04** | **Git Integration** | **Should** | **Pending** | Automatically add `lua_modules`, `.luarocks`, and coverage files to `.gitignore`. |
-| **ROCKS-01-05** | **Run Config Patching** | **Must** | **Pending** | Automatically set `LUA_INIT` or `-l setup` in project run configurations. |
+| **ROCKS-01-05** | **Run Config Patching** | **Must** | **Pending** | Automatically set `LUA_INIT` to preload `src/setup.lua` in the project's Lua run-config template. |
 | **ROCKS-01-06** | **Lua Version Selection** | **Should** | **Pending** | Allow users to select supported Lua versions during init. |
-| **ROCKS-01-07** | **Standard Configs** | **Must** | **Pending** | Generate `.luacheckrc` and `.stylua.toml` during scaffolding. |
 
 ## Test Cases
 
 ### TC-ROCKS-01-01: Minimal Single Rock Project Init (No Options)
-- **Input**: User selects "Initialize LuaRocks Project", enters name "my-lib", selects kind "Single Rock", type "Library", and does not select any optional components.
-- **Action**: IDE runs `luarocks init`.
-- **Expected Output**: Directory contains `my-lib-scm-1.rockspec`, `src/`, and `.luarocks/`.
+- **Input**: Generator settings name "my-lib", kind Single Rock, type Library, no options.
+- **Action**: `LuaRocksScaffolder.scaffold` runs (template generation; no binary required).
+- **Expected Output**: Directory contains `my-lib-scm-1.rockspec`, `src/my-lib.lua`,
+  `lua_modules/`, and `.gitignore`. (`.luarocks/` only if a `luarocks` binary is available.)
 
 ### TC-ROCKS-01-02: Single Rock Application with Loader Setup
-- **Input**: User selects "Initialize LuaRocks Project", enters name "my-app", selects kind "Single Rock", type "Application", and selects "Loader Setup".
-- **Action**: IDE runs `luarocks init` and generates `src/setup.lua`.
-- **Expected Output**: Directory contains `my-app-scm-1.rockspec`, `.luarocks/`, `src/`, and `src/setup.lua`.
+- **Input**: name "my-app", Single Rock, type Application, "Loader Setup".
+- **Action**: `scaffold` generates `src/setup.lua` and patches the run-config template.
+- **Expected Output**: Directory contains `my-app-scm-1.rockspec`, `src/main.lua`,
+  `src/setup.lua`, `lua_modules/`, `.gitignore`.
 
 ### TC-ROCKS-01-03: Single Rock Library with Busted Configuration
-- **Input**: User selects "Initialize LuaRocks Project", enters name "my-lib", selects kind "Single Rock", type "Library", and selects "Busted Configuration".
-- **Action**: IDE runs `luarocks init` and creates `spec/` directory with a placeholder.
-- **Expected Output**: Directory contains `my-lib-scm-1.rockspec`, `.luarocks/`, `src/`, and `spec/` directory with `spec/placeholder.lua`.
+- **Input**: name "my-lib", Single Rock, type Library, "Busted Configuration".
+- **Action**: `scaffold` creates `spec/`.
+- **Expected Output**: Directory contains `my-lib-scm-1.rockspec`, `src/my-lib.lua`,
+  `spec/my-lib_spec.lua`, `lua_modules/`, `.gitignore`.
 
 ### TC-ROCKS-01-04: Single Rock Application with All Options
-- **Input**: User selects "Initialize LuaRocks Project", enters name "my-app", selects kind "Single Rock", type "Application", and selects all optional components (Loader Setup, Busted Configuration, Makefile).
-- **Action**: IDE runs `luarocks init`, generates `src/setup.lua`, creates `spec/` directory, and creates `Makefile`.
-- **Expected Output**: Directory contains `my-app-scm-1.rockspec`, `.luarocks/`, `src/`, `src/setup.lua`, `spec/` directory with `spec/placeholder.lua`, and `Makefile`.
+- **Input**: name "my-app", Single Rock, type Application, all options (Loader Setup, Busted,
+  Makefile).
+- **Action**: `scaffold` generates all template files.
+- **Expected Output**: Directory contains `my-app-scm-1.rockspec`, `src/main.lua`,
+  `src/setup.lua`, `spec/my-app_spec.lua`, `Makefile`, `lua_modules/`, `.gitignore`.
 
 ### TC-ROCKS-01-05: Workspace Project Init
-- **Input**: User selects "Initialize LuaRocks Project", enters workspace name "my-workspace", selects kind "Workspace", and specifies 2 initial rocks named "rock1" and "rock2".
-- **Action**: IDE creates workspace configuration and directories for initial rocks.
-- **Expected Output**: Directory contains workspace configuration file (e.g., `workspace.lua`), directories `rock1/` and `rock2/`, and `.gitignore` with appropriate exclusions.
+- **Input**: workspace name "my-workspace", kind Workspace, initial rocks "rock1", "rock2".
+- **Action**: `scaffold` (workspace path) runs.
+- **Expected Output**: Directory contains `workspace.lua` (with `workspace = "my-workspace"`
+  and `rocks = {"rock1","rock2"}`), directories `rock1/` and `rock2/`, and `.gitignore`.
 
 ### TC-ROCKS-01-06: Run Configuration Environment (with Loader Setup)
-- **Input**: Run a Lua file in an initialized single rock project that has loader setup selected.
-- **Action**: Inspect environment variables.
-- **Expected Output**: `LUA_INIT` is set to point to the project's `src/setup.lua`.
+- **Input**: A single-rock project initialized with Loader Setup (TC-ROCKS-01-02).
+- **Action**: Read `RunManager.getInstance(project).getConfigurationTemplate(luaFactory)
+  .configuration` env after scaffolding.
+- **Expected Output**: the template's `LUA_INIT` env var equals `@<baseDir>/src/setup.lua`, so
+  new Lua run configs inherit it.

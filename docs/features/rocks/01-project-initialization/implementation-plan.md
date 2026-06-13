@@ -11,34 +11,32 @@ folders:
 
 # Implementation Plan: Project Initialization & Setup (ROCKS-01)
 
-## Phase 1: Templates & Resources [Must]
-- [ ] Add `setup.lua` template for loader setup.
-- [ ] Add `spec/` placeholder file for Busted configuration.
-- [ ] Add basic Makefile template.
-- [ ] Add workspace configuration file template (e.g., `workspace.lua`).
-- [ ] Implement `LuaRocksScaffolder.generateSetupLua(version)`.
-- [ ] Implement `LuaRocksScaffolder.generateSpecPlaceholder()`.
-- [ ] Implement `LuaRocksScaffolder.generateMakefile()`.
-- [ ] Implement `LuaRocksScaffolder.generateWorkspaceConfig(workspaceName, initialRocks)`.
+Implements `design.md`. Targets GoLand (small IDE) via `DirectoryProjectGenerator`. Phases map
+to requirement IDs.
 
-## Phase 2: CLI Integration [Must]
-- [ ] Implement `LuaRocksScaffolder.init(projectPath, luaVersions)` using `GeneralCommandLine`.
-- [ ] Add logic to update `.gitignore` automatically.
+## Phase 1: Templates & Scaffolder [Must] — ROCKS-01-02/03/04
+- [ ] Create package `net.internetisalie.lunar.rocks.init`.
+- [ ] `LuaRocksProjectSettings` data class (§2.1).
+- [ ] `LuaRocksTemplates` with the exact bodies in §4 (rockspec library/application, setup.lua,
+      mainModule, makefile, bustedSpec, gitignore, workspaceLua).
+- [ ] `LuaRocksScaffolder.scaffold` single-rock (§3.1 steps 1–7) + workspace (§3.2), via
+      `WriteAction` + `VfsUtil.saveText`/`createChildData`/`createChildDirectory`.
+- [ ] Integration tests (temp VFS dir): TC-ROCKS-01-01/02/03/04/05 file presence + contents.
 
-## Phase 3: Project Wizard [Must]
-- [ ] Implement `LuaRocksProjectGenerator` for the "New Project" dialog.
-- [ ] Create the UI for Project Kind selection (Single Rock vs Workspace).
-- [ ] If Single Rock selected:
-    - Create the UI for Project Type selection (Application vs Library).
-    - Create the UI for Optional Components (Loader Setup, Busted Configuration, Makefile) with appropriate enable/disable logic (Loader Setup only for Application).
-- [ ] If Workspace selected:
-    - Create the UI for Workspace Name.
-    - Create the UI for initial rock count and names (optional).
-- [ ] Link the wizard to the `LuaRocksScaffolder`.
+## Phase 2: Run-Config Patching + CLI Enrichment [Must/Should] — ROCKS-01-05/06
+- [ ] `LUA_INIT` template patching (§3.3) via `RunManager.getConfigurationTemplate`.
+- [ ] Optional `luarocks init --lua-versions` enrichment (§3.1 step 9) + `git init` (§3.1
+      step 7), both best-effort via `LuaProcessUtil.capture`, run off the `WriteAction`.
+- [ ] Unit/integration test: TC-ROCKS-01-06 (template env contains `LUA_INIT`).
+
+## Phase 3: Wizard UI [Must] — ROCKS-01-01
+- [ ] `LuaRocksProjectGenerator : DirectoryProjectGeneratorBase<…>` (§2.2) +
+      `<directoryProjectGenerator>` registration.
+- [ ] `LuaRocksGeneratorPeer` (§2.3): name/Kind/Type/options/workspace widgets with
+      show/hide + enable/disable logic; `validate()` rejects blank/invalid names.
+- [ ] Manual verification per `human-verification-checklists.md`.
 
 ## Verification Tasks
-- [ ] **Integration Test**: Scaffolding test that runs `init` for single rock and asserts file existence based on selected options.
-- [ ] **Integration Test**: Scaffolding test for workspace that asserts workspace config file and gitignore are created.
-- [ ] **Manual Test**: Create a new "Application" project with all options and verify the structure.
-- [ ] **Manual Test**: Create a new "Library" project with only Makefile and verify the structure.
-- [ ] **Manual Test**: Create a new workspace with initial rocks and verify the structure.
+- Integration: scaffolder file/content assertions (Phase 1); LUA_INIT patch (Phase 2).
+- Manual: create Application (all options), Library (Makefile only), and a Workspace; verify
+  structure in the GoLand sandbox.
