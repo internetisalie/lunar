@@ -12,7 +12,7 @@ folders:
 # Type Inference Engine Design
 
 **Status**: Experimental Exploration  
-**Related requirement**: [`TYPE-01`](./01-basic-type-inference.md) — Basic Type Inference
+**Related requirement**: [`TYPE-01`](./01-basic-type-inference/requirements.md) — Basic Type Inference
 
 ---
 
