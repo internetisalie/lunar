@@ -28,6 +28,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Navigation**: Symbol resolution and cross-file references
 - **Structure View**: Outline view of file structure
 - **Code Completion**: Intelligent completion for variables, functions, and members
+- **Type-Inferred Member Completion**: Completing after `.`/`:` now suggests a receiver's inferred members (fields and methods, with icons), including inherited `@class` members, `self` inside methods, and members exposed through `setmetatable`'s `__index`
 - **Refactoring**: Label refactoring support
 - **Code Style**: Settings for indentation, spacing, and formatting
 - **Run Configurations**: Lua script execution and debugging support

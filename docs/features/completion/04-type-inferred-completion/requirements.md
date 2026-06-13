@@ -3,7 +3,7 @@ id: "COMP-04"
 title: "04: Type-Inferred Completion"
 type: "feature"
 parent_id: "COMP"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"
@@ -53,3 +53,11 @@ Suggest members of a table or class based on its inferred type (via LuaCATS or a
 | `TC-04` | `---@type string|number; local v; v.` | Suggest members of both `string` and `number` (or intersection). |
 | `TC-05` | `local t = setmetatable({}, { __index = { x = 1 } }); t.` | `x` appears in the completion list. |
 | `TC-06` | `function MyClass:method() self.` | Members of `MyClass` appear in the completion list. |
+
+## Deferred (Future Work)
+
+- **COMP-04-06 Union "partial" marking (S):** Future Work — union receivers list all members; per-branch "(partial)" tagging is not yet implemented.
+- **COMP-04-10 Overload expansion (S):** Future Work — a single lookup element is shown per member; multi-signature overload sets are not split into separate entries.
+- **Visibility filtering (S):** Future Work — all public/non-public members are offered; visibility-based filtering is not yet applied.
+- **Method-definition member registration:** Future Work — a method written as `function C:test() end` is not merged into `@type C`'s member set, so TC-03 is verified via `---@field test function` instead. Same implicit-member-registration capability tracked by **TYPE-02** (implicit fields); once TYPE-02 lands, the `function C:m()` colon-completion path can be covered directly.
+- **`@field x fun(...)` member typing:** known LuaCATS gap — `fun(...)` field annotations do not yet resolve to a `Function` type (use `---@field x function` meanwhile); tracked separately from COMP-04.

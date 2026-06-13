@@ -15,6 +15,7 @@ import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.*
 import net.internetisalie.lunar.lang.completion.LuaCrossFileCompletionProvider
+import net.internetisalie.lunar.lang.completion.LuaMemberLookup
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 class LuaCompletionContributor : CompletionContributor() {
@@ -254,7 +255,10 @@ class LuaCompletionContributor : CompletionContributor() {
                     val receiver = PsiTreeUtil.prevVisibleLeaf(prevLeaf) ?: return
                     val receiverExpr = findReceiverExpr(receiver) ?: return
 
-                    val snapshot = LuaTypesVisitor.getTypes(parameters.originalFile)
+                    // Build the snapshot from the file that actually owns receiverExpr (the in-memory
+                    // completion copy), not parameters.originalFile — otherwise the PSI identities
+                    // differ and the elementNodes lookup misses.
+                    val snapshot = LuaTypesVisitor.getTypes(receiverExpr.containingFile)
                     val type = snapshot.getValueType(receiverExpr)
 
                     val members = type.getMembers()
@@ -263,10 +267,8 @@ class LuaCompletionContributor : CompletionContributor() {
                         // If it's a colon completion, only show functions
                         if (isColon && memberType !is LuaGraphType.Function) continue
 
-                        val builder = LookupElementBuilder.create(name)
-                            .withTypeText(memberType.displayName())
-
-                        result.addElement(PrioritizedLookupElement.withPriority(builder, 100.0))
+                        val element = LuaMemberLookup.create(name, memberType)
+                        result.addElement(PrioritizedLookupElement.withPriority(element, 100.0))
                     }
                 }
             }

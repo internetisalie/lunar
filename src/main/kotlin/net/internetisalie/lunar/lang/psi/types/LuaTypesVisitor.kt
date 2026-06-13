@@ -24,6 +24,16 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     /** Current lexical scope. Updated as we enter/leave blocks and functions. */
     private var scope: LuaScope = LuaScope.root(rootReturnNodes)
 
+    /**
+     * `self` binding for the next [visitFunctionBody] call (COMP-04-09): the receiver's type node
+     * plus a distinct PSI anchor for the injected `self` node. Set immediately before the call and
+     * consumed (cleared) inside it, so the function keeps its ≤3 parameters instead of threading a
+     * 4th argument.
+     */
+    private var pendingSelf: SelfBinding? = null
+
+    private data class SelfBinding(val receiver: VariableNode, val anchor: PsiElement)
+
     private fun getNodes(element: PsiElement?): List<TypeNode> {
         return elementNodes[element] ?: emptyList()
     }
@@ -43,6 +53,39 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             ?: args.exprList?.exprList?.firstOrNull()?.let { unwrapExpression(it) }?.let { (it as? LuaTerminalExpr)?.string }
 
         return stringElement?.text?.trim('\"', '\'')
+    }
+
+    /**
+     * COMP-04-08: models `setmetatable(t, mt)` by adding `mt.__index`'s table type as a super type
+     * of `t`, so `t.getMembers()` includes the index table's members (TC-05). The call's result
+     * value is bound to the augmented `t` type.
+     *
+     * COMP-04-DR-01: only literal/locally-inferable `mt` tables are handled; a dynamic metatable
+     * (no inferable `__index` table) falls through to normal call handling. Returns true when the
+     * call was fully handled.
+     */
+    private fun handleSetMetatable(o: LuaFuncCall, resultNode: VariableNode): Boolean {
+        val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return false
+        val argExprs = nameAndArgs.args.exprList?.exprList ?: return false
+        if (argExprs.size < 2) return false
+
+        val tType = (firstNode(unwrapExpression(argExprs[0])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
+        val mtType = (firstNode(unwrapExpression(argExprs[1])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
+
+        val indexType = indexTableOf(mtType) ?: return false
+        tType.superTypes.add(indexType)
+        graph.addEdge(graph.value(o, tType), resultNode)
+        return true
+    }
+
+    /** Resolves the table exposed via a metatable's `__index` member (a table, or a function's first table return). */
+    private fun indexTableOf(metatable: LuaGraphType.Table): LuaGraphType.Table? {
+        val indexWrite = metatable.getMembers()["__index"]?.write ?: return null
+        return when (indexWrite) {
+            is LuaGraphType.Table -> indexWrite
+            is LuaGraphType.Function -> indexWrite.returns.firstOrNull()?.write as? LuaGraphType.Table
+            else -> null
+        }
     }
 
     private fun unwrapExpression(expr: PsiElement?, maxDepth: Int = 10): PsiElement? {
@@ -329,6 +372,11 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         }
 
         val method = funcName.funcNameMethod
+        // COMP-04-09: for a `:` method, `calleeNode` here still holds the receiver's type node
+        // (e.g. `C` in `function C:m()`), so `self` can flow from it. Captured before the branch
+        // below reassigns `calleeNode` to the method member node.
+        val selfReceiver: VariableNode? = if (method?.nameRef?.text != null) calleeNode else null
+        val selfAnchor: PsiElement? = method?.nameRef
         if (method != null) {
             val methodName = method.nameRef?.text
             if (methodName != null) {
@@ -343,6 +391,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         graph.addEdge(graph.value(o, LuaGraphType.Undefined), calleeNode) // Initial placeholder
         graph.addEdge(funcNode, calleeNode)
 
+        if (selfReceiver != null && selfAnchor != null) {
+            pendingSelf = SelfBinding(selfReceiver, selfAnchor)
+        }
         visitFunctionBody(element = o, parList = o.parList, funcNode = funcNode)
     }
 
@@ -368,6 +419,11 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                     return
                 }
             }
+        }
+
+        // COMP-04-08: setmetatable(t, mt) exposes mt.__index's members on t.
+        if (calleeUnwrapped?.text == "setmetatable") {
+            if (handleSetMetatable(o, callResultNodes.first())) return
         }
 
         val calleeNodeRef = firstNode(calleeUnwrapped) ?: return
@@ -521,6 +577,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val funcScope = enclosingScope.createFunctionScope(returnNodes)
         val previousScope = scope
         scope = funcScope
+
+        val selfBinding = pendingSelf
+        pendingSelf = null
+        if (selfBinding != null) {
+            val selfNode = graph.variable(selfBinding.anchor)
+            funcScope.declare("self", selfNode)
+            graph.addEdge(selfBinding.receiver, selfNode)
+        }
 
         try {
             val catsParams = allCats.flatMap { it.getParamTagList() }
