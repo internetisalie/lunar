@@ -3,7 +3,7 @@ id: "TYPE-09-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "TYPE-09"
-status: "in_progress"
+status: "todo"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/requirements|requirements]]"
@@ -11,27 +11,44 @@ folders:
 
 # TYPE-09: Union Distribution Logic - Technical Design
 
+> **Current implementation status (reconciled 2026-06-13).** The union model and the core
+> distributive checks described below are **already implemented** in the real engine, which
+> uses **`LuaGraphType.Union(types: Set<LuaGraphType>)`** (`LuaGraphType.kt`) — **not** the
+> `UnionTypeNode`/`TypeHead.UNION` named in early drafts (that model does not exist). Concretely
+> already built:
+> - **AND/OR distribution** — `LuaTypeGraph.isCompatible` (`LuaTypeGraph.kt:341-342`):
+>   `value is Union → types.all { … }`, `use is Union → types.any { … }`; plus the
+>   error-emitting `checkCompatibility` union branches (`:264`, `:270`, `:279-295`).
+> - **Nested flattening** — `LuaTypeNodes.kt:79-93` (`flatten`).
+> - **Cycle handling** — the `visited` set threaded through `isCompatible`.
+>
+> **Remaining (not yet built)** and the real subject of the phase docs: canonicalization /
+> simplification (`T | any → any`, `T | T → T`, sort + collapse-to-single), the breadth (100) /
+> depth (10) safety limits, context-keyed memoization, member-specific "closest-match" error
+> messages, discriminant-based pruning, and the benchmark/test suite. The sections below are the
+> target spec; map each to the real `LuaGraphType.Union` model, not `UnionTypeNode`.
+
 ## 1. Data Models
 
-### UnionTypeNode
-Extends `LuaTypeNode` in `net.internetisalie.lunar.lang.psi.types`.
-- `members: List<LuaTypeNode>`: A collection of types making up the union.
-- `head: TypeHead.UNION`: New entry in `TypeHead` enum.
+### Union representation (existing)
+`net.internetisalie.lunar.lang.psi.types.LuaGraphType.Union(val types: Set<LuaGraphType>)`
+— already the union node. `getMembers()` (`LuaGraphType.kt:87`) merges union members. New
+algebra (flatten/simplify/canonicalize) is added as a `LuaTypeAlgebra` helper that the
+`Union` construction path delegates to (Phase 1).
 
 ## 2. Services & Integration Points
 
-### 2.1 LuaTypeGraph.kt
-The core constraint solver. 
-- **Method**: `checkCompatibility(value: LuaTypeNode, use: LuaTypeNode): Boolean`
-- **Logic**: Updated to implement distributive matching as described in the Requirements Specification.
+### 2.1 LuaTypeGraph.kt (existing core)
+The constraint solver. Distribution lives in `isCompatible(value, use, visited)` (`:329`) and
+the error-reporting `checkCompatibility(...)` (`:246`). Phase 2 hardens these with the breadth/
+depth limits and memoization; the OR/AND logic itself is already present (`:341-342`).
 
 ### 2.2 LuaTypesVisitor.kt
-Responsible for graph construction.
-- **Integration**: `visitUnionType()` will now call `flattenUnion()` before creating graph nodes.
+Graph construction. Union members arrive via `LuaGraphType.fromLuaType` (`LuaGraphType.kt:181`,
+`is LuaUnionType`). Phase 1 routes construction through `LuaTypeAlgebra.canonicalize`.
 
 ### 2.3 LuaTypeNodes.kt
-Type representation layer.
-- **Integration**: Add `UnionTypeNode` implementation.
+Hosts the existing `flatten` (`:79`); Phase 1 extends it into the `LuaTypeAlgebra` utility.
 
 ## 3. Implementation Specifics
 
