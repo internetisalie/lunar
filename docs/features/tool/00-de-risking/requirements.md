@@ -3,7 +3,7 @@ id: "TOOL-00"
 title: "00: De-risking & Technical Spikes"
 type: "feature"
 parent_id: "TOOL"
-status: "planned"
+status: "todo"
 priority: "high"
 folders:
   - "[[features/tool/requirements|TOOL]]"

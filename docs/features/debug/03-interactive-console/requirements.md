@@ -3,7 +3,7 @@ id: "RUN-03"
 title: "03: Interactive Console (REPL)"
 type: "feature"
 parent_id: "DEBUG/RUN"
-status: "planned"
+status: "todo"
 priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"

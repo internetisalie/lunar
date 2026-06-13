@@ -3,7 +3,7 @@ id: "NAV-05"
 title: "05: Method Override Markers"
 type: "feature"
 parent_id: "NAV"
-status: "planned"
+status: "todo"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"

@@ -3,7 +3,7 @@ id: "TYPE-02"
 title: "02: Class/Table Definitions"
 type: "feature"
 parent_id: "TYPE"
-status: "in_progress"
+status: "todo"
 priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"

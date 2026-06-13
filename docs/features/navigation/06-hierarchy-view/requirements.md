@@ -3,7 +3,7 @@ id: "NAV-06"
 title: "06: Hierarchy View"
 type: "feature"
 parent_id: "NAV"
-status: "planned"
+status: "todo"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"

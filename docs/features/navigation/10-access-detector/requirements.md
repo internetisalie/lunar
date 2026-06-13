@@ -3,7 +3,7 @@ id: "NAV-10"
 title: "10: Access Detector"
 type: "feature"
 parent_id: "NAV"
-status: "planned"
+status: "todo"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"

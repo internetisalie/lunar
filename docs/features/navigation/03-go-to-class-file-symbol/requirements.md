@@ -3,7 +3,7 @@ id: "NAV-03"
 title: "03: Go to Class/File/Symbol"
 type: "feature"
 parent_id: "NAV"
-status: "planned"
+status: "todo"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"

@@ -3,7 +3,7 @@ id: "NAV-02"
 title: "02: Find Usages"
 type: "feature"
 parent_id: "NAV"
-status: "in_progress"
+status: "todo"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
