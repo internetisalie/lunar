@@ -58,3 +58,26 @@ The Dependency Resolution feature provides a visual, hierarchical view of the pr
 - **Input**: `A` requires `lib >= 2.0`, `B` requires `lib < 1.5`.
 - **Action**: View graph.
 - **Expected Output**: Both `A` and `B` (or the `lib` node) are flagged with a conflict warning.
+
+### TC-ROCKS-03-03: Version Comparator (unit — INSP design §3.1/§3.2)
+- **Input → Expected** (via `LuaRocksVersion.parse(...).compareTo(...)`):
+  - `parse("3.1-0") < parse("3.1-1")` → true (revision tiebreak).
+  - `parse("3.1") < parse("3.2")` → true.
+  - `parse("1.0") < parse("scm-1")` → true (`scm` delta `1.1e8` ≫ `1.0`).
+  - `parse("dev-1") > parse("scm-1")` → true (`dev` 1.2e8 > `scm` 1.1e8).
+  - `parse("1.0.0").compareTo(parse("1.0"))` → `0` (zero-padding).
+- **Action**: Run unit test.
+- **Expected Output**: all assertions pass.
+
+### TC-ROCKS-03-04: Constraint Satisfaction (unit — design §3.3/§3.4)
+- **Input → Expected**:
+  - `DependencySpec.parse("lib >= 2.0, < 4.0")` satisfied by `2.5`, not by `1.9` or `4.0`.
+  - `DependencySpec.parse("copas ~> 2.1")` satisfied by `2.1.7`, not by `2.2` or `2.0`.
+  - `DependencySpec.parse("penlight")` (no constraint) satisfied by any version.
+- **Action**: Run unit test.
+- **Expected Output**: all assertions pass.
+
+### TC-ROCKS-03-05: Missing Dependency
+- **Input**: project rockspec depends on `ghost`, no `ghost` rock installed.
+- **Action**: Open the tool window.
+- **Expected Output**: a `ghost` node flagged `MISSING_DEPENDENCY` ("required but not installed").

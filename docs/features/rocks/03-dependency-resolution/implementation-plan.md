@@ -11,23 +11,46 @@ folders:
 
 # Implementation Plan: Dependency Resolution (ROCKS-03)
 
-## Phase 1: Data Extraction [Must]
-- [ ] Bundle `lunajson.lua` into plugin resources for JSON bridge support.
-- [ ] Implement `RockspecParser` using the `rockspec.lua` bridge script.
-- [ ] Implement `ManifestReader` to parse local `lua_modules` manifest files.
+Implements `design.md`. Phases map to requirement IDs; each is verified by `requirements.md`
+test cases.
 
-## Phase 2: Graph Logic & Conflict Engine [Must]
-- [ ] Implement the recursive `LuaRocksDependencyResolver` to build the full graph.
-- [ ] Create `VersionConflictEngine` to identify version mismatches between nodes.
-- [ ] Implement the "Reverse Dependency" map for impact analysis.
+## Phase 1: Version Model & Algorithms [Must] — ROCKS-03-03 core
+- [ ] Create package `net.internetisalie.lunar.rocks.deps`.
+- [ ] `LuaRocksVersion` with `parse` (§3.1, exact `DELTAS` table) and `compareTo` (§3.2).
+- [ ] `ConstraintOp`, `VersionConstraint.isSatisfiedBy` (§3.4, incl. `~>` partial match).
+- [ ] `DependencySpec.parse` (§3.3).
+- [ ] Unit tests: TC-ROCKS-03-03, TC-ROCKS-03-04.
 
-## Phase 3: Tree View & Visualization [Must]
-- [ ] Register the `Dependencies` tab in the LuaRocks tool window.
-- [ ] Implement `DependencyTreeComponent` with custom icons for conflicts and transitive nodes.
-- [ ] Build the `DependencyInspectorPanel` to show detailed info and reverse dependencies.
-- [ ] Add filtering/search logic for the dependency tree.
+## Phase 2: Data Extraction [Must] — ROCKS-03-01/02 inputs
+- [ ] Relocate the bridge scripts to `src/main/resources/lua/` so they are packaged
+      (`rockspec.lua`, `lunar/json.lua`, `lunar/export.lua`); fix `export.lua` `name`→`names`.
+- [ ] `LuaRocksBridgeFiles` (§2.6a): extract the 3 classpath resources to a cached temp dir;
+      `rockspecScript()`, `luaPathTemplate()`.
+- [ ] `RockspecBridge.read` (§4.1): build `GeneralCommandLine` (interpreter `path ?: "lua"`)
+      with `LUNAR_LUA_PATH_TEMPLATE`, run via `LuaProcessUtil.capture`, parse JSON
+      (`com.google.gson.JsonParser`), consume only `package`/`version`/`dependencies`.
+- [ ] Smoke-test the bridge end-to-end against a real rockspec.
+- [ ] `LuaRocksTreeLocator` (§4.2): `treeRoot`, `installedRocks` (directory enumeration),
+      `projectRockspec`.
+- [ ] Unit tests with a synthetic `lua_modules` tree: locator returns the expected triples.
+
+## Phase 3: Graph & Conflict Engine [Must] — ROCKS-03-02/03/05
+- [ ] `DependencyNode`, `ConflictInfo`.
+- [ ] `LuaRocksDependencyResolver.resolve` (§3.5): recursive build, cycle detection, reverse
+      edges.
+- [ ] `VersionConflictEngine.annotate` (§3.6): MISSING + VERSION_MISMATCH + unsatisfiable-set.
+- [ ] Unit tests: TC-ROCKS-03-01, TC-ROCKS-03-02, TC-ROCKS-03-05 (synthetic rockspecs).
+
+## Phase 4: Tool Window UI [Must/Should] — ROCKS-03-01/04/05/06
+- [ ] `LuaRocksToolWindowFactory` + `<toolWindow id="LuaRocks" …>` registration (§7).
+- [ ] `DependencyTreePanel` (JTree + `DefaultTreeModel`) with conflict/transitive icons;
+      resolution on a pooled thread, model update via `invokeLater`.
+- [ ] `DependencyInspectorPanel`: selected-node metadata + "Required by" reverse list (§2.10).
+- [ ] Toolbar: expand/collapse/refresh + name/version filter (ROCKS-03-06).
+- [ ] Manual verification per `human-verification-checklists.md`.
 
 ## Verification Tasks
-- [ ] **Unit Test**: Build a complex graph from synthetic rockspecs and verify transitive resolution.
-- [ ] **Unit Test**: Test the conflict engine with overlapping and conflicting version constraints.
-- [ ] **Manual Test**: Open a project with deep dependencies (e.g., `luacheck` or `busted`) and verify the tree structure and inspector data.
+- Unit: version comparator & constraints (Phase 1); locator (Phase 2); resolver + conflicts
+  (Phase 3) — all listed above against the TC IDs.
+- Integration/manual: open a project with `busted`/`luacheck` installed under `lua_modules`;
+  verify transitive tree, a synthetic conflict, and a missing dep.
