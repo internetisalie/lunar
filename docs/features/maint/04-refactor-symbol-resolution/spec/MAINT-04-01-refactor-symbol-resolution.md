@@ -1,9 +1,9 @@
 ---
 id: "MAINT-04-01"
 folders:
-  - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
+  - "[[features/maint/04-refactor-symbol-resolution/requirements|requirements]]"
 title: "01: Refactor Symbol Resolution"
-type: "feature"
+type: "spec"
 parent_id: "MAINT-04"
 status: "done"
 ---

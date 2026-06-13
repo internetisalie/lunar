@@ -13,18 +13,18 @@ folders:
      The Saga tracker is retired; the docs are the source of truth.
      Do not edit by hand — run `python3 scripts/gen_status.py`. -->
 
-**Feature completion: 64%** (77 of 119 feature docs `done`)
+**Feature completion: 64%** (75 of 116 feature docs `done`)
 
 ## Progress by Epic
 
 | Epic | Priority | Epic status | Features done | Completion |
 | :--- | :--- | :--- | :--- | :--- |
 | **ANALYSIS** | medium | done | 5/5 | ██████████ 100% |
+| **MAINT** | low | planned | 1/1 | ██████████ 100% |
 | **TARGET** | high | done | 7/7 | ██████████ 100% |
 | **DEBUG/RUN** | low | planned | 13/15 | █████████░ 86% |
 | **DOC** | medium | planned | 14/17 | ████████░░ 82% |
 | **SYNTAX** | medium | planned | 15/19 | ████████░░ 78% |
-| **MAINT** | low | planned | 3/4 | ████████░░ 75% |
 | **COMP** | high | in_progress | 6/9 | ███████░░░ 66% |
 | **REFACT/INTENT** | low | planned | 2/4 | █████░░░░░ 50% |
 | **TYPE** | high | planned | 6/13 | █████░░░░░ 46% |

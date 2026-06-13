@@ -1,7 +1,7 @@
 ---
 id: "MAINT-04-VERIFY"
 folders:
-  - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
+  - "[[features/maint/04-refactor-symbol-resolution/requirements|requirements]]"
 title: "Verification Guide"
 type: "qa"
 parent_id: "MAINT-04"
@@ -447,5 +447,5 @@ All scenarios above are covered by the comprehensive unit test suite:
 
 **Related Documentation**:
 - [Technical Design](design.md)
-- [Requirements](03-requirements.md)
+- [Requirements](requirements.md)
 - [CHANGELOG.md](../../../../../CHANGELOG.md)

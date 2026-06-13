@@ -1,7 +1,7 @@
 ---
 id: "MAINT-04-DESIGN"
 folders:
-  - "[[features/maint/04-refactor-symbol-resolution/03-requirements|requirements]]"
+  - "[[features/maint/04-refactor-symbol-resolution/requirements|requirements]]"
 title: "Technical Design"
 type: "design"
 parent_id: "MAINT-04"

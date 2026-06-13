@@ -19,7 +19,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | `MAINT-01` | **Kotlin Conversion** | **M** | **Todo** | Convert remaining legacy Java files to idiomatic Kotlin. |
 | `MAINT-02` | **Label Refactoring** | **M** | **Todo** | Refactor Lua `goto` and label handling to use lazy resolution. |
 | `MAINT-03` | **Deprecation Cleanup** | **L** | **Todo** | Remove usage of deprecated IntelliJ APIs and modernize platform integration. |
-| [`MAINT-04`](04-refactor-symbol-resolution/03-requirements.md) | **Refactor Symbol Resolution** | **M** | **Done** | Replace eager `LuaBindingsVisitor` with lazy `PsiScopeProcessor`. |
+| [`MAINT-04`](04-refactor-symbol-resolution/requirements.md) | **Refactor Symbol Resolution** | **M** | **Done** | Replace eager `LuaBindingsVisitor` with lazy `PsiScopeProcessor`. |
 | `MAINT-05` | **Type Engine Cleanup** | **M** | **Done** | Remove redundant type checks and unused parameters in the type engine. |
 | `MAINT-06` | **LuaCATS Literal Highlighting** | **M** | **Todo** | Add color formatting for literal types in LuaCATS tags. |
 | `MAINT-07` | **Interpreter Search Path Globs** | **M** | **Todo** | Add globbing support for interpreter search paths to improve module resolution. |
@@ -39,7 +39,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 ### MAINT-04: Refactor Symbol Resolution
 - **Status**: **✅ Implemented**
 - **Strategy**: PSI Scope Processor (Lazy evaluation)
-- **Detailed Specification**: [`04-refactor-symbol-resolution/03-requirements.md`](04-refactor-symbol-resolution/03-requirements.md)
+- **Detailed Specification**: [`04-refactor-symbol-resolution/requirements.md`](04-refactor-symbol-resolution/requirements.md)
 
 ### MAINT-05: Type Engine Cleanup
 - **Status**: **✅ Implemented**
