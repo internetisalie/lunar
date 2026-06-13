@@ -11,37 +11,40 @@ folders:
 
 # Implementation Plan: UI/UX & Health Monitoring (`TOOL-03`)
 
-This plan covers the user interface and background maintenance of the tool inventory.
+Implements `design.md`, mirroring the existing `LuaInterpretersTable`/settings patterns.
+Depends on TOOL-01/02 (LuaTool, LuaToolType, LuaToolManager, bindings). Phases map to req IDs.
 
-## Phase 1: Global Inventory UI [Must]
-- [ ] Create `LuaToolInventoryPanel` using `ToolbarDecorator` and `JBTable`.
-- [ ] Implement columns: Name, Type, Version, Path, Status.
-- [ ] Implement Add (File Picker), Edit, and Remove actions.
-- [ ] Add an "Auto-Detect" button that triggers `LuaToolDiscoveryService`.
-- [ ] Register the panel in `LuaApplicationSettingsConfigurable`.
+## Phase 1: Global Inventory UI [Must] — TOOL-03-01
+- [ ] `LuaToolsTable : ListTableWithButtons<LuaTool>` (§2.1): Type/Path/Version/Status columns
+      (`CellModelBase`, `LocalPathCellEditor`), Add/Edit/Remove + "Auto-Detect" extra action.
+- [ ] `LuaToolsConfigurable` (§2.2) + `<applicationConfigurable parentId=…Lua… displayName="Tools">`.
+- [ ] UI test: table renders, add via file picker.
 
-## Phase 2: Project Binding UI [Must]
-- [ ] Create `LuaProjectToolPanel` with `ComboBox` for each `LuaToolType`.
-- [ ] Populate dropdowns with registered tools from `LuaApplicationSettings`.
-- [ ] Include an "Inherit Global" option.
-- [ ] Register the panel in `LuaProjectSettingsConfigurable`.
+## Phase 2: Project Binding UI [Must] — TOOL-03-02
+- [ ] `LuaProjectToolBindingPanel` (§2.3): one combo per `LuaToolType` + "(use global default)";
+      bind to `LuaProjectSettings.State.projectToolBindings`.
+- [ ] Add the panel into `LuaProjectSettingsConfigurable.createComponent()`.
 
-## Phase 3: Health Monitoring [Should]
-- [ ] Create `net.internetisalie.lunar.util.LuaToolHealthCheckActivity`.
-- [ ] **Two-Stage Logic**: Implement optimized check (Existence check -> mtime check -> Version check).
-- [ ] **Reactive Monitoring**: Register a `VirtualFileListener` to track tool binary changes in real-time.
-- [ ] Periodically check if `tool.path` exists and compare `mtime` with `lastModified`.
-- [ ] Re-validate via `LuaToolValidator` if `mtime` has changed.
-- [ ] Update `LuaTool.isValid` flag and metadata.
+## Phase 3: Health Monitoring [Should] — TOOL-03-03
+- [ ] Add `lastCheckedMtime: Long` and `lastCheckReason: String` to the TOOL-01 `LuaTool`
+      model (mtime gate + cached reason for table/banner/diagnostics).
+- [ ] `LuaToolHealthChecker.check` (§3.1): fast (exists/canExecute) → mtime gate → slow
+      (`--version` via `LuaProcessUtil.capture`, `Banner` parse).
+- [ ] `LuaToolHealthMonitor` (`@Service(PROJECT)`): `start()` registers
+      `addAsyncFileListenerBackgroundable` (§3.2); `revalidateAll()` background task (§3.3).
+- [ ] `LuaToolHealthStartup : ProjectActivity` (`<postStartupActivity>`) → start + revalidate.
+- [ ] Unit tests: TC-TOOL-03-01 (fast invalid), TC-TOOL-03-02 (version), TC-TOOL-03-03 (mtime
+      gate — assert no process spawned).
 
-## Phase 4: Notifications & Diagnostics [Should]
-- [ ] Implement notification logic using **Editor Banners** for project-level tool issues.
-- [ ] Use `NotificationGroupManager` for critical global tool issues.
-- [ ] Implement specialized tooltips in `LuaToolInventoryPanel` to display exact failure reasons.
-- [ ] Add diagnostic logging to `LuaToolManager` resolution and `LuaToolValidator` execution.
-- [ ] Ensure logs include tool version, path, and any CLI errors for support troubleshooting.
+## Phase 4: Notifications & Diagnostics [Must] — TOOL-03-04/05
+- [ ] `LuaToolEditorNotificationProvider` (§2.6) + `<editorNotificationProvider>`; refresh via
+      `EditorNotifications.updateAllNotifications()`.
+- [ ] `<notificationGroup id="notification.group.lunar.tools">`; balloon on project open when a
+      tool became invalid.
+- [ ] `LuaToolDiagnostics.logSnapshot` (§2.7) + a "Report Tool Status" action.
+- [ ] Tests: TC-TOOL-03-04 (banner data), TC-TOOL-03-05 (log snapshot).
 
 ## Verification Tasks
-- [ ] **UI Test**: Verify table rendering and tool addition via file picker.
-- [ ] **Manual Test**: Delete a tool binary from disk and verify it is marked "Invalid" in settings.
-- [ ] **Manual Test**: Verify notifications appear when a project is opened with missing tools.
+- Unit: health checker (fast/slow/mtime), banner data, diagnostics.
+- Manual: delete a binary → table shows Invalid + banner + balloon; open project with a
+  missing bound tool → notification.

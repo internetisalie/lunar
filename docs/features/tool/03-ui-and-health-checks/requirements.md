@@ -32,6 +32,30 @@ This feature provides the user interface for managing tools and background healt
 
 ## Test Cases
 
-### TC-TOOL-05: Health Check Notification
-- **Action**: Delete a registered tool binary from disk.
-- **Expected Output**: IDE marks tool as invalid in settings and optionally notifies user on project open.
+### TC-TOOL-03-01: Health Check Invalidation (fast check — design §3.1)
+- **Input**: A registered tool whose `path` points at a deleted file.
+- **Action**: `LuaToolHealthChecker.check(tool)`.
+- **Expected Output**: `HealthResult(isValid=false, version=null, reason="Binary missing")`.
+
+### TC-TOOL-03-02: Version Extraction (slow check — design §3.1)
+- **Input**: A tool whose `--version` mock stdout is `luacheck 1.1.0`.
+- **Action**: `check(tool)` with the fast check passing.
+- **Expected Output**: `HealthResult(isValid=true, version="1.1.0", reason="OK 1.1.0")`.
+
+### TC-TOOL-03-03: mtime Gating (design §3.1 step 2)
+- **Input**: A previously-valid tool (`isValid=true`, `version="1.1.0"`,
+  `lastCheckedMtime == file.lastModified()`).
+- **Action**: `check(tool)`.
+- **Expected Output**: returns `OK 1.1.0` **without** spawning a `--version` process (assert
+  no process invocation).
+
+### TC-TOOL-03-04: Editor Banner (design §3.4)
+- **Input**: A project with a binding to an invalid tool; a `.lua` file open.
+- **Action**: `LuaToolEditorNotificationProvider.collectNotificationData(project, luaFile)`.
+- **Expected Output**: a non-null `Function` producing an `EditorNotificationPanel`
+  (Warning) whose text names the tool type + reason; for a non-Lua file → null.
+
+### TC-TOOL-03-05: Diagnostic Snapshot (design §2.7)
+- **Action**: `LuaToolDiagnostics.logSnapshot(project)` with two tools (one valid, one not).
+- **Expected Output**: the log contains one line per tool with type, path, version, isValid,
+  and reason.
