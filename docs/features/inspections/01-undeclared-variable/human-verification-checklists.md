@@ -46,6 +46,14 @@ Use this checklist to manually verify the implementation of undeclared variable 
 - [ ] Verify `x` is not highlighted.
 
 ## Settings
-- [ ] Add `myCustomGlobal` to the "Ignored Globals" in project settings.
+- [ ] Add `myCustomGlobal` to the "Additional Globals" list in project settings.
 - [ ] Use it in a file: `print(myCustomGlobal)`.
 - [ ] Verify it is NOT highlighted.
+- [ ] Use the "Add 'X' to Additional Globals" quick fix on an undeclared variable and verify
+      the warning clears.
+
+## Inline Suppression
+- [ ] Above `print(mysteryGlobal)`, add `---@diagnostic disable-next-line: undefined-global`;
+      verify the warning is gone.
+- [ ] Add a trailing `-- luacheck: ignore mysteryGlobal`; verify the warning is gone.
+- [ ] Verify a `_`-prefixed global (e.g. `_FOO`) is not highlighted with default settings.

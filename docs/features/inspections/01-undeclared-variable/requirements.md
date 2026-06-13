@@ -11,61 +11,136 @@ folders:
 
 # Undeclared Variable Requirements (`INSP-01`)
 
-Highlights variables that are used but have no visible declaration in the current scope or project.
+Highlights variables that are *used* (read) but have no visible declaration in the current
+scope, the file, the project, or the configured standard library.
 
 ## Scope
 
 - **In Scope**:
-    - Highlighting identifiers in expressions that do not resolve to a local or global definition.
-    - Recognition of standard Lua globals (e.g., `_G`, `string`, `print`).
-    - Recognition of user-defined globals across different files in the project.
-    - Handling of variables used before their `local` declaration.
+    - Highlighting `LuaNameRef` identifiers in read position that do not resolve to a local,
+      parameter, loop variable, file/project global, or standard-library symbol.
+    - Recognition of standard Lua globals per language level (Lua 5.1–5.4).
+    - Recognition of user-defined globals across files in the project (via the existing
+      resolution path in `LuaNameReference`).
+    - Correct handling of variables used *before* their `local` declaration (Lua early
+      binding).
+    - A project-level "Additional Globals" allowlist.
+    - Inline suppression via `---@diagnostic` and `-- luacheck: ignore` comments.
 - **Out of Scope**:
     - Symbols added dynamically to the global table (e.g., `_G["myVar"] = 1`).
-    - Symbols provided by C-based host environments without Lua stubs.
+    - Symbols provided by C-based host environments without Lua stubs (covered by the
+      Additional Globals allowlist instead).
+    - Flagging *write* targets (`x = 1`) as undeclared — implicit global creation is the
+      separate INSP-05 inspection, not this one.
 
 ## Requirements Table
 
-| ID | Requirement | Priority | Description |
-| :--- | :--- | :---: | :--- |
-| `INSP-01-01` | **Resolve to Local** | **M** | Variables must resolve to a valid local declaration in an accessible scope. |
-| `INSP-01-02` | **Resolve to Global** | **M** | Variables not found in local scope must resolve to a global definition in the project. |
-| `INSP-01-03` | **Standard Library Support** | **M** | Standard Lua globals (Lua 5.1-5.4) must not be highlighted as undeclared. |
-| `INSP-01-04` | **Error Highlighting** | **M** | Unresolved variables should be highlighted with an Error or Warning severity. |
-| `INSP-01-05` | **User Configuration** | **S** | Allow users to define a list of "Additional Globals" to ignore. |
+| ID | Requirement | Priority | Status | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| `INSP-01-01` | **Resolve to Local** | **M** | Not Implemented | A read of a name that resolves to a local / parameter / loop variable in an accessible scope is not flagged. |
+| `INSP-01-02` | **Resolve to Global** | **M** | Not Implemented | A read that resolves to a file-level or project-wide global definition is not flagged. |
+| `INSP-01-03` | **Standard Library Support** | **M** | Not Implemented | Standard Lua globals for the project's language level (5.1–5.4) are never flagged. |
+| `INSP-01-04` | **Unresolved Highlighting** | **M** | Not Implemented | A read that resolves to nothing is highlighted with a configurable severity (default `WARNING`) and the message `Undeclared variable '<name>'`. |
+| `INSP-01-05` | **Early Binding** | **M** | Not Implemented | A read appearing textually before the `local` that declares the name is flagged (it does not bind to the later local). |
+| `INSP-01-06` | **Write Target Exclusion** | **M** | Not Implemented | A simple assignment target (`name = ...`) is never flagged by this inspection; the base of an indexed write (`name.field = ...`) is still treated as a read. |
+| `INSP-01-07` | **Additional Globals** | **S** | Not Implemented | Names listed in the project's "Additional Globals" allowlist are never flagged. |
+| `INSP-01-08` | **Inline Suppression** | **S** | Not Implemented | `---@diagnostic disable[-next-line\|-line]: undefined-global` and `-- luacheck: ignore [names]` comments suppress the warning over their defined scope. |
 
 ## Test Cases
 
-### TC-01: Simple Local Resolution
+### TC-01: Simple Local Resolution (INSP-01-01)
 - **Input**:
   ```lua
   local x = 10
   print(x)
   ```
-- **Action**: Run inspection.
-- **Output**: No warning on `x`.
+- **Action**: Run inspection on the file.
+- **Output**: No warning on `x` (line 2). No warning on `print`.
 
-### TC-02: Undeclared Global
+### TC-02: Undeclared Global (INSP-01-04)
 - **Input**:
   ```lua
   print(undeclaredVar)
   ```
 - **Action**: Run inspection.
-- **Output**: Warning on `undeclaredVar`: "Undeclared variable 'undeclaredVar'".
+- **Output**: One `WARNING` highlight on `undeclaredVar` with message
+  `Undeclared variable 'undeclaredVar'`.
 
-### TC-03: Used Before Local Declaration
+### TC-03: Used Before Local Declaration (INSP-01-05)
 - **Input**:
   ```lua
   print(x)
   local x = 10
   ```
 - **Action**: Run inspection.
-- **Output**: Warning on first `x`.
+- **Output**: One warning on the `x` of line 1; no warning on the `x` of line 2 (declaration
+  site).
 
-### TC-04: Standard Library Global
-- **Input**:
+### TC-04: Standard Library Global (INSP-01-03)
+- **Input** (project language level = any of 5.1–5.4):
   ```lua
   print(math.abs(-10))
   ```
 - **Action**: Run inspection.
 - **Output**: No warning on `print` or `math`.
+
+### TC-05: Cross-File Global (INSP-01-02)
+- **Input**: file `a.lua` contains `function Helper() end`; file `b.lua` contains
+  ```lua
+  Helper()
+  ```
+- **Action**: Run inspection on `b.lua` with both files indexed.
+- **Output**: No warning on `Helper`.
+
+### TC-06: Write Target Excluded (INSP-01-06)
+- **Input**:
+  ```lua
+  newGlobal = 5
+  existing.field = 6
+  ```
+- **Action**: Run inspection (no prior declaration of `newGlobal` or `existing`).
+- **Output**: No warning on `newGlobal` (write target). One warning on `existing` (read of
+  the index base). No warning on `field`.
+
+### TC-07: Additional Globals Allowlist (INSP-01-07)
+- **Input**: project setting Additional Globals = `["love"]`; file:
+  ```lua
+  love.graphics.print("hi")
+  ```
+- **Action**: Run inspection.
+- **Output**: No warning on `love`.
+
+### TC-08: Diagnostic Suppression (INSP-01-08)
+- **Input**:
+  ```lua
+  ---@diagnostic disable-next-line: undefined-global
+  print(mysteryGlobal)
+  ```
+- **Action**: Run inspection.
+- **Output**: No warning on `mysteryGlobal`.
+
+### TC-09: Luacheck Suppression (INSP-01-08)
+- **Input**:
+  ```lua
+  print(mysteryGlobal) -- luacheck: ignore mysteryGlobal
+  ```
+- **Action**: Run inspection.
+- **Output**: No warning on `mysteryGlobal`.
+
+### TC-11: Function-Name Head (INSP-01-06)
+- **Input**:
+  ```lua
+  function PlainGlobal() end
+  function undeclaredTable.method() end
+  ```
+- **Action**: Run inspection (no prior declaration of `undeclaredTable`).
+- **Output**: No warning on `PlainGlobal` (plain global function declaration). One warning on
+  `undeclaredTable` (read of the table being indexed). No warning on `method`.
+
+### TC-10: Underscore-Prefixed Globals (INSP-01-04)
+- **Input** (default project settings, `suppressUnderscorePrefixedGlobals = true`):
+  ```lua
+  print(_ENV_PLACEHOLDER)
+  ```
+- **Action**: Run inspection.
+- **Output**: No warning on `_ENV_PLACEHOLDER` (suppressed by underscore-prefix setting).

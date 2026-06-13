@@ -11,45 +11,64 @@ folders:
 
 # Implementation Plan: INSP-01 Undeclared Variable
 
-This plan outlines the steps to implement real-time highlighting for undeclared variables.
+Implements the design in `design.md`. Each phase maps to requirement IDs and is verified by
+the test cases in `requirements.md`.
 
-## Phase 1: Core Logic & Local Resolution [Must]
+## Phase 1: Inspection Skeleton & Read Classification [Must] — INSP-01-01,02,04,05,06
 
-Goal: Highlight variables that fail to resolve to a local scope.
+Goal: flag unresolved reads; never flag declarations or simple write targets.
 
-- [ ] Create `LuaUndeclaredVariableAnnotator` and register it in `plugin.xml`.
-- [ ] Implement basic check: call `resolve()` on `LuaNameRef`.
-- [ ] Implement "Read Context" detection to avoid flagging assignments as undeclared.
-- [ ] Add unit tests for local undeclared variables.
+- [ ] Create package `net.internetisalie.lunar.analysis.inspections`.
+- [ ] Add `LuaUndeclaredVariableInspection : LocalInspectionTool` with `getShortName` =
+      `"LuaUndeclaredVariable"`, group `"Lua"`, default level `WARNING`, `buildVisitor`
+      filtering on `element is LuaNameRef` (§2.1).
+- [ ] Implement `isReadUse(ref)` per §3.1 (declaration-site + write-target exclusion).
+- [ ] Implement `inspectNameRef` steps 1–2, 7–8, 10 (resolve-null → `registerProblem`
+      `GENERIC_ERROR_OR_WARNING`, message `Undeclared variable '<name>'`).
+- [ ] Register `<localInspection …>` in `META-INF/plugin.xml` exactly as in design §7.
+- [ ] Unit tests: TC-01, TC-02, TC-03, TC-05, TC-06, TC-11.
 
-## Phase 2: Global & Library Integration [Must]
+## Phase 2: Standard-Globals Floor [Must] — INSP-01-03
 
-Goal: Ensure globals and standard libraries are correctly handled.
+Goal: built-ins never flagged, independent of platform-library configuration.
 
-- [ ] Verify that `resolve()` correctly handles project-wide globals via stubs.
-- [ ] Verify that `resolve()` correctly handles standard library symbols via `PlatformLibraryIndex`.
-- [ ] Fix any "Used before declaration" false positives/negatives in local scope.
-- [ ] Add unit tests for cross-file globals and standard library functions.
+- [ ] Add `LuaStandardGlobals` object with the exact base/delta sets from §3.3.
+- [ ] Wire `inspectNameRef` step 3–4 (language level from `LuaProjectSettings`, allowlist
+      check) and step 6 (underscore suppression).
+- [ ] Unit tests: TC-04 (each level 5.1–5.4), TC-10.
 
-## Phase 3: Refinement & Configuration [Should]
+## Phase 3: Additional Globals & Suppression [Should] — INSP-01-07,08
 
-Goal: Add suppression and user-defined globals.
+Goal: user allowlist and inline comment suppression.
 
-- [ ] Add support for "Ignored Globals" in `LuaProjectSettings`.
-- [ ] Implement suppression via comments (e.g., `-- luacheck: ignore`).
-- [ ] Refine error messages and prioritize against other inspections.
+- [ ] Add `additionalGlobals: MutableList<String>` to `LuaProjectSettings.State` + accessor
+      (§2.4); confirm round-trip serialization to `lunar.xml`.
+- [ ] Wire `inspectNameRef` step 5 (allowlist check).
+- [ ] Add `LuaInspectionSuppression` with the two parsers/scope rules from §4 (cached per
+      file via `CachedValuesManager`); wire `inspectNameRef` step 9.
+- [ ] Add `LuaAddToGlobalsQuickFix` (§2.5) and attach it to the registered problem.
+- [ ] Add the "Additional Globals" list editor to the Lua project settings page (§7).
+- [ ] Unit tests: TC-07, TC-08, TC-09.
 
 ## Verification Tasks
 
-### Unit Tests
-- `LuaUndeclaredVariableInspectionTest.kt`:
-    - `testLocalUndeclared()`
-    - `testGlobalUndeclared()`
-    - `testStandardLibraryResolved()`
-    - `testAssignmentIsExcluded()`
+### Unit Tests (`LuaUndeclaredVariableInspectionTest.kt`, `BasePlatformTestCase`)
+Use `myFixture.configureByText("a.lua", …)` + `myFixture.checkHighlighting()` with
+`<warning descr="Undeclared variable 'x'">x</warning>` markup.
+
+| Test | Covers | Asserts |
+| :--- | :--- | :--- |
+| `testLocalResolved` | TC-01 | no highlight on resolved local |
+| `testUndeclaredGlobal` | TC-02 | one WARNING with exact message |
+| `testUsedBeforeLocal` | TC-03 | warning on use, none on declaration |
+| `testStandardLibrary` (×4 levels) | TC-04 | no highlight on `print`/`math` |
+| `testCrossFileGlobal` | TC-05 | no highlight after indexing `a.lua` |
+| `testWriteTargetExcluded` | TC-06 | warning on `existing`, none on `newGlobal` |
+| `testFunctionNameHead` | TC-11 | warning on `undeclaredTable`, none on `PlainGlobal` |
+| `testAdditionalGlobals` | TC-07 | no highlight after adding `love` to settings |
+| `testDiagnosticSuppression` | TC-08 | no highlight under `disable-next-line` |
+| `testLuacheckSuppression` | TC-09 | no highlight with trailing `luacheck: ignore` |
+| `testUnderscoreSuppressed` | TC-10 | no highlight on `_`-prefixed name |
 
 ### Manual Verification
-- Open a project with multiple files.
-- Verify that valid globals from other files are NOT highlighted.
-- Verify that `print`, `math`, etc., are NOT highlighted.
-- Verify that a typo in a variable name IS highlighted.
+See `human-verification-checklists.md`.
