@@ -3,7 +3,7 @@ id: "NAV-03"
 title: "03: Go to Class/File/Symbol"
 type: "feature"
 parent_id: "NAV"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -26,3 +26,20 @@ This document outlines the requirements for quick navigation via "Search Everywh
 - Requires implementation of `ChooseByNameContributor` and `GotoClassContributor` / `GotoSymbolContributor`.
 - Must be backed by `StubIndex` (e.g., `LuaClassNameIndex`, `LuaGlobalDeclarationIndex`) to ensure fast, project-wide lookup without parsing files.
 - Ensure appropriate icons (Classes vs Functions vs Variables) are displayed in the popup.
+
+## 3. Test Cases
+
+### TC-NAV-03-01: Go to Class (NAV-03-01)
+- **Input**: a file with `---@class MyClass\nlocal MyClass = {}`.
+- **Action**: `LuaGotoClassContributor.processNames` / `processElementsWithName("MyClass")`.
+- **Output**: `"MyClass"` is among the names; the element is the `@class` `LuaLocalVarDecl`.
+
+### TC-NAV-03-02: Go to Symbol (NAV-03-02)
+- **Input**: `function GlobalFn() end`.
+- **Action**: `LuaGotoSymbolContributor.processElementsWithName("GlobalFn")`.
+- **Output**: the `LuaFuncDecl` for `GlobalFn` is returned.
+
+### TC-NAV-03-04: Go to Alias (NAV-03-04)
+- **Input**: `---@alias MyAlias string`.
+- **Action**: `LuaGotoClassContributor.processElementsWithName("MyAlias")`.
+- **Output**: the alias declaration is returned.
