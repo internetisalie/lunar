@@ -22,6 +22,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Inlay Hints**: Display inferred types for variables as inline editor hints
 - **Type Inference Engine**: Cubic biunification constraint-based type analysis
 - **Canonical Union Types**: Union types are normalized at construction — nested unions flattened, members de-duplicated, `T | any` simplified to `any`, and members sorted — for stable type display and comparison
+- **Union Mismatch Diagnostics**: When a table value fails against a union type, the error names the closest-matching member and its specific missing field (e.g. `closest match 'Point': missing field 'y'`) instead of a generic message
 
 ### IDE Features
 - **Navigation**: Symbol resolution and cross-file references

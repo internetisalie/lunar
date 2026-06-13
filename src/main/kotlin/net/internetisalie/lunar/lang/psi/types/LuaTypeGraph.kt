@@ -321,7 +321,13 @@ class LuaTypeGraph {
                 return
             }
 
-            addError(ElementError(valueElement, "${valueType.displayName()} is not assignable to union ${useType.displayName()}", ErrorSeverity.ERROR))
+            val closest = LuaUnionDiagnostics.closestMatch(valueType, useType.types)
+            val message = if (closest != null) {
+                "${valueType.displayName()} is not assignable to ${useType.displayName()}; closest match '${closest.member.displayName()}': ${closest.reason}"
+            } else {
+                "${valueType.displayName()} is not assignable to union ${useType.displayName()}"
+            }
+            addError(ElementError(valueElement, message, ErrorSeverity.ERROR))
             return
         }
 

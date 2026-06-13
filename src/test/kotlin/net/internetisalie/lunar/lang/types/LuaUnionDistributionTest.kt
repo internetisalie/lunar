@@ -5,6 +5,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
 import net.internetisalie.lunar.lang.psi.types.LuaTypeGraph
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
+import net.internetisalie.lunar.lang.psi.types.LuaUnionDiagnostics
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -113,6 +114,131 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         // Table heads overlap -> compatible). Must terminate and emit no assignability error.
         val errors = check(graph, wide, emptyUse)
         assertTrue("Over-breadth union vs head-compatible target must complete without error, got: $errors", errors.isEmpty())
+    }
+
+    // -- TC-TYPE-09-P3-01: OR-failure message stays generic for a non-table value (boolean) ----
+
+    @Test
+    fun testOrFailureMessageIsGenericForBoolean() {
+        val file = myFixture.configureByText(
+            "or-fail.lua",
+            """
+            ---@type string | number
+            local x = true -- Error: boolean is not a member of string | number
+            """.trimIndent(),
+        )
+        val errors = LuaTypesSnapshot.forFile(file).getErrors()
+        assertFalse("boolean into string|number must error", errors.isEmpty())
+        val message = errors.first { it.message.contains("boolean") }.message
+        assertTrue("Message must name the value type, got: $message", message.contains("boolean"))
+        assertTrue("Message must name string member, got: $message", message.contains("string"))
+        assertTrue("Message must name number member, got: $message", message.contains("number"))
+        assertFalse("Non-table value must NOT get a closest-match message, got: $message", message.contains("closest match"))
+    }
+
+    // -- TC-TYPE-09-P3-02: closest-match names the overlapping member and its missing field -----
+
+    @Test
+    fun testClosestMatchNamesOverlappingMemberAndMissingField() {
+        val graph = LuaTypeGraph()
+        // value {x=1}: one required field x. union {x:number, y:number} | {z:number}.
+        val value = tableWith(graph, "x")
+        // Named members so the message's closest-match segment can be asserted by name (anonymous
+        // tables would both print as "{ ... }" and not discriminate which member was chosen).
+        val xy = LuaGraphType.Table(
+            className = "XY",
+            localMembers = mutableMapOf(
+                "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                "y" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+            ),
+            isExact = true,
+        )
+        val z = LuaGraphType.Table(
+            className = "Z",
+            localMembers = mutableMapOf(
+                "z" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+            ),
+            isExact = true,
+        )
+        val errors = check(graph, value, LuaGraphType.Union(setOf(xy, z)))
+
+        assertFalse("incompatible table into union must error, got: $errors", errors.isEmpty())
+        val message = errors.first { it.contains("closest match") }
+        assertTrue("Closest-match must name the overlapping member XY, got: $message", message.contains("closest match 'XY'"))
+        assertFalse("Must NOT choose the unrelated member Z as closest, got: $message", message.contains("closest match 'Z'"))
+        assertTrue("Must report the missing 'y' field, got: $message", message.contains("missing field 'y'"))
+    }
+
+    // -- Direct unit tests of LuaUnionDiagnostics.closestMatch ----------------------------------
+
+    @Test
+    fun testClosestMatchSelectsHighestOverlap() {
+        val graph = LuaTypeGraph()
+        val value = LuaGraphType.Table(
+            className = null,
+            localMembers = mutableMapOf(
+                "a" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                "b" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+            ),
+            isExact = true,
+        )
+        val oneOverlap = tableWith(graph, "a") // overlap 1
+        val twoOverlap = LuaGraphType.Table(
+            className = null,
+            localMembers = mutableMapOf(
+                "a" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                "b" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                "c" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+            ),
+            isExact = true,
+        )
+        val match = LuaUnionDiagnostics.closestMatch(value, setOf(oneOverlap, twoOverlap))
+        assertNotNull(match)
+        assertSame("Highest-overlap member must win", twoOverlap, match!!.member)
+        assertEquals("missing field 'c'", match.reason)
+    }
+
+    @Test
+    fun testClosestMatchTieBreaksByFewestExtraRequiredFields() {
+        val graph = LuaTypeGraph()
+        val value = tableWith(graph, "x") // single field x
+        // Both members overlap on x (overlap 1). leaner adds one missing field; fatter adds two.
+        val leaner = LuaGraphType.Table(
+            className = null,
+            localMembers = mutableMapOf(
+                "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                "y" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+            ),
+            isExact = true,
+        )
+        val fatter = LuaGraphType.Table(
+            className = null,
+            localMembers = mutableMapOf(
+                "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                "p" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                "q" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+            ),
+            isExact = true,
+        )
+        val match = LuaUnionDiagnostics.closestMatch(value, setOf(fatter, leaner))
+        assertNotNull(match)
+        assertSame("Tie on overlap must break to fewest extra required fields", leaner, match!!.member)
+        assertEquals("missing field 'y'", match.reason)
+    }
+
+    @Test
+    fun testClosestMatchNullForNonTableValue() {
+        val graph = LuaTypeGraph()
+        val match = LuaUnionDiagnostics.closestMatch(LuaGraphType.Boolean, setOf(tableWith(graph, "x")))
+        assertNull("Non-table value must not produce a closest match", match)
+    }
+
+    @Test
+    fun testClosestMatchNullWhenNoOverlap() {
+        val graph = LuaTypeGraph()
+        val value = tableWith(graph, "x")
+        val match = LuaUnionDiagnostics.closestMatch(value, setOf(tableWith(graph, "y"), tableWith(graph, "z")))
+        assertNull("Zero overlap across all members must fall back to generic message", match)
     }
 
     // -- Memo: distinct generic instantiations do not collide ----------------------------------

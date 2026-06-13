@@ -2,7 +2,7 @@
 id: "TYPE-09-P3"
 title: "Phase 3: Error Reporting & Diagnostics"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "TYPE-09"
 folders: ["[[features/type/09-union-distribution-logic/requirements|requirements]]"]
@@ -28,7 +28,7 @@ Turn union compatibility failures into actionable, member-specific messages.
 | :--- | :--- | :---: | :--- | :--- |
 | `TYPE-09-P3-01` | **Union OR-failure message** | **M** | Full | "Value of type 'T' is not assignable to any of 'A\|B'." |
 | `TYPE-09-P3-02` | **Union AND-failure message** | **M** | Full | "Union member 'A' is not assignable to type 'T'." |
-| `TYPE-09-P3-03` | **Closest-match diagnostic** | **S** | Not Implemented | On OR failure, name the nearest member and its specific missing field/mismatch. |
+| `TYPE-09-P3-03` | **Closest-match diagnostic** | **S** | Full | On OR failure, name the nearest member and its specific missing field/mismatch. |
 
 ## Test Cases
 
