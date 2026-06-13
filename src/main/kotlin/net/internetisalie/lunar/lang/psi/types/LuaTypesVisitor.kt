@@ -213,7 +213,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 // Simplified: result is one of the operands
                 val leftType = (leftNode as? ValueNode)?.write ?: LuaGraphType.Any
                 val rightType = (rightNode as? ValueNode)?.write ?: LuaGraphType.Any
-                LuaGraphType.Union(setOf(leftType, rightType))
+                LuaGraphType.Union.create(setOf(leftType, rightType))
             }
             else -> LuaGraphType.Any
         }
@@ -229,7 +229,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val resType = when (op) {
             "#" -> {
                 // # right implies right is string or table
-                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Union(setOf(LuaGraphType.String, LuaGraphType.Table()))))
+                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Union.create(setOf(LuaGraphType.String, LuaGraphType.Table()))))
                 LuaGraphType.Number
             }
             "-" -> {

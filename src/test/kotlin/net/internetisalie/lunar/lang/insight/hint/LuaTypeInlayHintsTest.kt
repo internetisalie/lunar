@@ -116,7 +116,7 @@ class LuaTypeInlayHintsTest : LuaInlayHintsTestCase() {
         doLuaTestProvider("test.lua", """
             ---@param input string | number
             local function handle(input)
-                local x/*<# : string | number #>*/ = input
+                local x/*<# : number | string #>*/ = input
             end
         """.trimIndent(), LuaTypeInlayHintProvider())
     }

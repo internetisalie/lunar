@@ -2,7 +2,7 @@
 id: "TYPE-09-P1"
 title: "Phase 1: Infrastructure & Flattening"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "TYPE-09"
 folders: ["[[features/type/09-union-distribution-logic/requirements|requirements]]"]
@@ -30,8 +30,8 @@ Provide a canonical union representation: flatten nested unions and simplify/ded
 | :--- | :--- | :---: | :--- | :--- |
 | `TYPE-09-P1-01` | **Union node** | **M** | Full | A `Union` type with a member set. (Implemented: `LuaGraphType.Union`.) |
 | `TYPE-09-P1-02` | **Nested flattening** | **M** | Full | `Union(Union(A\|B)\|C)` flattens to `Union(A\|B\|C)`. (Implemented: `flatten`.) |
-| `TYPE-09-P1-03` | **Simplification** | **S** | Not Implemented | `T\|any → any`, `T\|T → T`. |
-| `TYPE-09-P1-04` | **Canonical form** | **S** | Not Implemented | Dedupe + sort members; collapse a 1-member union to the member. |
+| `TYPE-09-P1-03` | **Simplification** | **S** | Full | `T\|any → any`, `T\|T → T`. |
+| `TYPE-09-P1-04` | **Canonical form** | **S** | Full | Dedupe + sort members; collapse a 1-member union to the member. |
 
 ## Test Cases
 

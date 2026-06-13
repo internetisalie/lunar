@@ -43,7 +43,13 @@ sealed class LuaGraphType {
 
     data class Union(
         val types: Set<LuaGraphType>,
-    ) : LuaGraphType()
+    ) : LuaGraphType() {
+        companion object {
+            /** Builds a canonical union (flattened, simplified, deduped, sorted, collapsed). */
+            fun create(members: Collection<LuaGraphType>): LuaGraphType =
+                LuaTypeAlgebra.canonicalize(members)
+        }
+    }
 
     data class Array(
         val elementType: LuaGraphType,
@@ -182,7 +188,7 @@ sealed class LuaGraphType {
                     val result = Union(emptySet())
                     visited[type] = result
                     val memberTypes = type.types.map { fromLuaType(it, graph, visited) }.toSet()
-                    val finalUnion = Union(memberTypes)
+                    val finalUnion = Union.create(memberTypes)
                     visited[type] = finalUnion
                     finalUnion
                 }

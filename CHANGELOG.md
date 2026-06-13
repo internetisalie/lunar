@@ -21,6 +21,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **LuaCATS Support**: Modern type annotation system with type hints, overloads, and generics
 - **Inlay Hints**: Display inferred types for variables as inline editor hints
 - **Type Inference Engine**: Cubic biunification constraint-based type analysis
+- **Canonical Union Types**: Union types are normalized at construction — nested unions flattened, members de-duplicated, `T | any` simplified to `any`, and members sorted — for stable type display and comparison
 
 ### IDE Features
 - **Navigation**: Symbol resolution and cross-file references
