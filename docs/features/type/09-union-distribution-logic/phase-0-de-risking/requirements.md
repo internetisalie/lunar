@@ -2,7 +2,7 @@
 id: "TYPE-09-P0"
 title: "Phase 0: De-risking & Spikes"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "TYPE-09"
 folders: ["[[features/type/09-union-distribution-logic/requirements|requirements]]"]

@@ -85,9 +85,18 @@ The `LuaTypeAlgebra` handles recursive type construction in `fromLuaType` by usi
 The `checkCompatibility` function recursively propagates structural constraints for all composite types, including `Table`, `Function`, `Array`, and `Generic` types.
 
 #### 2.3.1 Recursion and Combinatorial Limits
-To prevent "Combinatorial Explosion" (TYPE-DR-01), the distributive check will implement the following limits:
+The **load-bearing** bound against "Combinatorial Explosion" (TYPE-DR-01) is the existing
+`visited: Set<Pair<value, use>>` guard (§2.3.3): because a `Union` is a `Set` and each type-pair
+is visited at most once, distribution over distinct members is already bounded to the number of
+distinct pairs. P2 **must preserve** this guard. The breadth/depth limits below are cheap,
+deterministic **defense-in-depth** backstops for adversarial or machine-generated inputs (and for
+future features that mint fresh per-node instances, e.g. generic instantiation or discriminant
+expansion); on normal code they never trip. This is confirmed empirically by the P0 spike
+(`phase-0-de-risking/results/union-perf.md`): even a width-8 × depth-14 pathological union stayed
+sub-millisecond, ~400× under budget, with vs. without the limits effectively equal.
+
 - **Max Union Breadth**: Unions with more than 100 members will fallback to a shallow head-matching check to avoid performance degradation.
-- **Max Distribution Depth**: The algorithm will track a `distributionDepth`. If the depth exceeds 10, the check will return `false` (incompatible) to prevent stack overflow or infinite loops.
+- **Max Distribution Depth**: The algorithm will track a `distributionDepth`. If the depth exceeds 10, the check will **assume compatibility (return `true`)** — consistent with how the `visited` cycle-guard returns `true` — and emit a diagnostic/log rather than a user-facing error. Returning `false` here is a **soundness hazard** (TYPE-DR-04): it would produce false-positive type errors on legitimately deep but valid types. The 50 ms budget is enforced as a CI regression gate (the P0 spike), not a runtime timer.
 
 #### 2.3.2 Interaction with Special Types
 - **AnyType**: If a `UnionTypeNode` contains `Any`, OR-distribution (Case A) will immediately succeed. AND-distribution (Case B) will treat `Any` as compatible with any `use` type.

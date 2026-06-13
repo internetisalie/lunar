@@ -18,6 +18,7 @@ folders:
 | **TYPE-DR-01** | **Combinatorial Explosion**: Deeply nested unions could lead to exponential growth in compatibility checks. | Implement a maximum recursion depth for union distribution and memoize intermediate results. |
 | **TYPE-DR-02** | **Infinite Recursion**: Recursive types involving unions might cause the engine to hang. | Use the existing `visited` set in `checkCompatibility` and ensure it properly handles union heads. |
 | **TYPE-DR-03** | **Inaccurate Error Ranges**: Reporting an error on a union member that is deeply nested might be difficult to map back to the PSI. | Ensure the `TypeMismatchError` carries enough context to identify the specific failing member's PSI element. |
+| **TYPE-DR-04** | **Depth-cutoff soundness** (surfaced by P0): returning `false` (incompatible) when `distributionDepth > 10` emits false-positive type errors on valid deep types. | P2 returns `true`/assume-compatible at the depth cutoff (matching the cycle-guard convention) and logs a diagnostic instead. Documented in design §2.3.1. |
 
 ## 2. Design Gaps
 
@@ -34,6 +35,8 @@ folders:
 - **Structural Propagation**: Addressed in Technical Design (§2.3). `checkCompatibility` is now specified to walk all structural types (Array, Generic, etc.), not just Tables and Functions.
 
 ## 4. Technical Risks
+
+- **Combinatorial Explosion — P0 empirical update (2026-06-13):** the single-distribution blow-up **did not reproduce** — the `visited`-pair guard already bounds it (see `phase-0-de-risking/results/union-perf.md`, width-8 × depth-14 stayed sub-millisecond). The `distributionDepth` limit is reclassified as defense-in-depth (design §2.3.1); the `visited` guard is load-bearing and must be preserved by P2.
 
 - **Combinatorial Explosion (TYPE-DR-01)**: While identified as a risk, the mitigation (`distributionDepth`) is not yet implemented in the codebase. A union of 10 tables, each with 10 fields that are themselves unions, can cause the `checkTypes` fixed-point iteration to exceed its time limit (5000ms) or max iterations (1000).
 - **Invariance Leakage**: Table fields in `LuaTypeGraph` use bi-directional flow (`addEdge(A, B)` and `addEdge(B, A)`) to enforce invariance for mutable properties. Distributive logic must be carefully verified to ensure it doesn't accidentally allow covariant widening of a mutable union field, which would be unsound.
