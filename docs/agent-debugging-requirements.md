@@ -2,7 +2,7 @@
 id: "AGENT-DEBUG"
 title: "Agent Debugging Requirements"
 type: "guide"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"
@@ -130,13 +130,14 @@ the host and the container sees changes immediately. Keep the mount read-write.
 
 ## Current status
 
-*Docker-side items implemented 2026-06-13 (in `docker/`); **pending a `docker-helper.sh build`
-+ smoke test** to verify in a live container. The `jdb` workflow itself is documented in the
-`jdb-debugger` skill.*
+*Verified 2026-06-13 via `docker-helper.sh build` + `LUNAR_DEBUG=1 ./docker-helper.sh run`:
+VNC reachable on `127.0.0.1:5900`; `jdb -attach localhost:5005` connects to the live IDE JVM;
+the log symlink resolves to `GoLand2026.1/log/idea.log`; `setup-plugin` reinstalls into the
+correct IDE dir. The `jdb` workflow is documented in the `jdb-debugger` skill.*
 
 | Requirement | Status |
 |---|---|
-| VNC MCP server registered with Claude Code | ❌ **user action** — run the `claude mcp add vnc …` command above (modifies your Claude config) |
+| VNC MCP server registered with Claude Code | ✅ registered in `~/.claude.json` — note MCP servers connect at **session start**, so start the container *before* the session that uses VNC |
 | VNC reachable from host | ✅ entrypoint already listens `0.0.0.0`; dead `vnc-start.sh` (the `-listen localhost` red herring) removed; host ports now bound to `127.0.0.1` |
 | Stable container name | ✅ `lunar-ide` |
 | 1920x1080 display | ✅ |

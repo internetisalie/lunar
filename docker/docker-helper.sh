@@ -126,12 +126,13 @@ case "${1:-help}" in
         ZIP=$(ls "$PROJECT_ROOT/build/distributions/lunar-"*.zip 2>/dev/null | head -1)
         [ -n "$ZIP" ] || { print_info "No plugin zip in build/distributions"; exit 1; }
         docker cp "$ZIP" lunar-ide:/tmp/lunar-plugin.zip
-        # Reinstall into the IDE's user plugin dir, then restart to load it.
+        # Reinstall into the IDE's user plugin dir (the <Product><version> dir, which has a
+        # digit — excludes the JetBrains 'Daemon' dir), then restart to load it.
         docker exec lunar-ide bash -c \
-            'PD=$(ls -d /home/lunar/.local/share/JetBrains/*/ | head -1); unzip -o /tmp/lunar-plugin.zip -d "$PD" >/dev/null'
+            'PD=$(ls -d /home/lunar/.local/share/JetBrains/*[0-9]*/ | head -1); unzip -o /tmp/lunar-plugin.zip -d "$PD" >/dev/null && echo "installed into $PD"'
         print_info "Restarting IDE to load the new plugin..."
-        docker restart lunar-ide >/dev/null
-        print_success "Plugin reinstalled and container restarted"
+        docker restart lunar-ide >/dev/null || print_info "restart failed — restart the container manually to load the plugin"
+        print_success "Plugin reinstalled (restart to load)"
         ;;
 
     *)
