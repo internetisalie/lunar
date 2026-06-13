@@ -62,3 +62,29 @@ Running the configuration will:
 ### TC-ROCKS-04-02: Environment Variables
 - **Input**: Add `DEBUG=1` to environment. Run.
 - **Expected Output**: Process receives variable; verbose output seen if supported by tool.
+
+### TC-ROCKS-04-03: Configuration Round-Trip (serialization — design §4.1)
+- **Input**: A config with command `make`, globalFlags `--tree lua_modules`, rockspecPath set,
+  env `{DEBUG=1}`, passParentEnvs on.
+- **Action**: Serialize via the run manager, then deserialize a fresh instance.
+- **Expected Output**: every field equals the original; the XML contains
+  `<option name="command" value="make"/>`, `<option name="globalFlags" .../>`, and an
+  `environmentVariables` `<map>` entry for `DEBUG`.
+
+### TC-ROCKS-04-04: Command-Line Assembly (unit — design §3.1)
+- **Input**: command `build`, globalFlags `--local`, arguments `--no-doc`, rockspecPath
+  `app-1.rockspec`.
+- **Action**: Invoke command-line construction.
+- **Expected Output**: argv = `luarocks --local build --no-doc app-1.rockspec`, work dir =
+  project base.
+
+### TC-ROCKS-04-05: Before Launch (manual — ROCKS-04-06)
+- **Input**: Add the `luarocks make` config as a "Before Launch" step of a Lua run config.
+- **Action**: Run the Lua config.
+- **Expected Output**: `luarocks make` runs first; on its failure the Lua launch is aborted.
+
+### TC-ROCKS-04-06: C-Library Build Env (manual — ROCKS-04-08)
+- **Input**: A rockspec with a C `build.type = "builtin"` module; default config (pass parent
+  env on); system C compiler present.
+- **Action**: Run `luarocks make`.
+- **Expected Output**: the C module compiles (the inherited `PATH`/`CC` reaches luarocks).
