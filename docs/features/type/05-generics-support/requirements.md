@@ -64,5 +64,5 @@ local function makePair(key, value) end
 ```
 
 ## 6. References
-- [LuaLS Generics Super Issue Analysis](../design/luals-generics-super-issue.md)
+- [LuaLS Generics Super Issue Analysis](design-luals-generics-super-issue.md)
 

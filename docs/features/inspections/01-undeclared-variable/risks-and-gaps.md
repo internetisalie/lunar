@@ -1,7 +1,7 @@
 ---
 id: "INSP-01-RISKS"
 title: "Risks & Gaps"
-type: "spec"
+type: "risk"
 parent_id: "INSP-01"
 status: "planned"
 priority: "medium"

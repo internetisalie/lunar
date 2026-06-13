@@ -1,7 +1,7 @@
 ---
 id: "SYNTAX-07-09-QA"
 title: "QA Verification"
-type: "spec"
+type: "qa"
 parent_id: "SYNTAX-07-09"
 status: "done"
 priority: "medium"

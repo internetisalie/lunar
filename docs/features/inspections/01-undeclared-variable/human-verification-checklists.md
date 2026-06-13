@@ -1,7 +1,7 @@
 ---
 id: "INSP-01-CHECKLIST"
 title: "Human Verification Checklist"
-type: "spec"
+type: "qa"
 parent_id: "INSP-01"
 status: "planned"
 priority: "medium"

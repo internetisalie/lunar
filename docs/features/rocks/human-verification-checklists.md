@@ -1,7 +1,7 @@
 ---
 id: "ROCKS-CHECKLIST"
 title: "Verification Checklists"
-type: "spec"
+type: "qa"
 parent_id: "ROCKS"
 status: "planned"
 priority: "high"

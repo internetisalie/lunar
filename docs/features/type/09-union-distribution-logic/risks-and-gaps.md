@@ -1,7 +1,7 @@
 ---
 id: "TYPE-09-RISKS"
 title: "Design Gaps & De-risking"
-type: "spec"
+type: "risk"
 parent_id: "TYPE-09"
 status: "in_progress"
 priority: "high"

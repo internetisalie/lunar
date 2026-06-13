@@ -1,7 +1,7 @@
 ---
 id: "TYPE-09-CHECKLIST"
 title: "Verification Checklists"
-type: "spec"
+type: "qa"
 parent_id: "TYPE-09"
 status: "in_progress"
 priority: "high"

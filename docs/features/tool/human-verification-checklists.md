@@ -1,7 +1,7 @@
 ---
 id: "TOOL-CHECKLIST"
 title: "Human Verification Checklists"
-type: "spec"
+type: "qa"
 parent_id: "TOOL"
 status: "planned"
 priority: "high"
