@@ -3,7 +3,7 @@ id: "RUN-03"
 title: "03: Interactive Console (REPL)"
 type: "feature"
 parent_id: "DEBUG/RUN"
-status: "todo"
+status: "planned"
 priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"
@@ -72,3 +72,18 @@ Command history is persisted at the project level (`.idea/lua-console-history`) 
 > error("oops")
 [Error] stdin:1: oops
 ```
+
+## 6. Test Cases
+
+### TC-RUN-03-01: Complete one-liner (RUN-03-03)
+- **Input**: `LuaChunkCompletion.isComplete("return 1 + 1")`.
+- **Output**: `true` (submitted immediately).
+
+### TC-RUN-03-02: Incomplete block (RUN-03-03)
+- **Input**: `isComplete("function greet(name)")` then `isComplete("function greet(name)\n  return name")`.
+- **Output**: `false` both times (error at EOF — missing `end`); console stays in multi-line.
+
+### TC-RUN-03-03: Mid-chunk syntax error (RUN-03-03)
+- **Input**: `isComplete("return 1 +")` — incomplete at EOF → `false`; `isComplete("local 1x = 2")`
+  — error is **not** at EOF → `true` (submitted; interpreter reports the error).
+- **Output**: as stated.
