@@ -1,5 +1,6 @@
 ---
 id: "COMP-02-05"
+type: "user-story"
 parent_id: "COMP-02"
 title: "User Story: Iconography"
 folders: ["[[features/completion/02-symbol-completion/requirements|requirements]]"]

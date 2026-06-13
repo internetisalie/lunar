@@ -1,5 +1,6 @@
 ---
 id: "COMP-02-04"
+type: "user-story"
 parent_id: "COMP-02"
 title: "User Story: Global Symbol Completion"
 folders: ["[[features/completion/02-symbol-completion/requirements|requirements]]"]
