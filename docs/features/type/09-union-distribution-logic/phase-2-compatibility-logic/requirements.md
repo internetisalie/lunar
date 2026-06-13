@@ -2,7 +2,7 @@
 id: "TYPE-09-P2"
 title: "Phase 2: Compatibility Logic"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "TYPE-09"
 folders: ["[[features/type/09-union-distribution-logic/requirements|requirements]]"]
@@ -32,8 +32,8 @@ robust.
 | `TYPE-09-P2-01` | **OR-distribution** | **M** | Full | `T <= A\|B` iff `T<=A` or `T<=B`. (Implemented `:342`.) |
 | `TYPE-09-P2-02` | **AND-distribution** | **M** | Full | `A\|B <= T` iff `A<=T` and `B<=T`. (Implemented `:341`.) |
 | `TYPE-09-P2-03` | **Transitive** | **M** | Full | Distribution works through variable assignments (graph flow). |
-| `TYPE-09-P2-04` | **Breadth/depth limits** | **S** | Not Implemented | Unions >100 members fall back to head-matching; distribution depth >10 returns incompatible. |
-| `TYPE-09-P2-05` | **Memoization** | **S** | Not Implemented | Cache `isCompatible` keyed on `(value, use, substitutions)`. |
+| `TYPE-09-P2-04` | **Breadth/depth limits** | **S** | Full | Unions >100 members fall back to head-matching; distribution depth >10 **assumes compatibility** (returns `true`) and logs a diagnostic — see TYPE-DR-04: returning incompatible would emit false-positive errors on valid deep types. |
+| `TYPE-09-P2-05` | **Memoization** | **S** | Full | Cache `isCompatible` keyed on `(value, use)` (generics pre-instantiated to identity-distinct nodes; `subst` reserved); cleared per fixed-point iteration. |
 
 ## Test Cases
 
@@ -47,4 +47,5 @@ robust.
 
 ### TC-TYPE-09-P2-03: Depth limit
 - **Input**: a pathological nesting exceeding depth 10.
-- **Output**: the check returns incompatible (does not stack-overflow).
+- **Output**: the check **terminates without stack overflow** and **assumes compatibility**
+  (returns `true` / emits no false-positive error) — per TYPE-DR-04 and parent design §2.3.1.

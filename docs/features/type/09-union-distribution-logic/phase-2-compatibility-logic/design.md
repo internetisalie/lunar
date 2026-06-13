@@ -3,7 +3,7 @@ id: "TYPE-09-P2-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "TYPE-09-P2"
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-2-compatibility-logic/requirements|requirements]]"
@@ -30,24 +30,35 @@ Add the parent design's §2.3.1 limits and §2.3.4 memoization to the existing d
 ### 2.1 `LuaTypeGraph.isCompatible` (modify) — limits
 - Add a `depth: Int = 0` parameter; on union branches increment it. Guard:
   ```kotlin
-  if (depth > MAX_DISTRIBUTION_DEPTH) return false            // 10
-  if (type is Union && type.types.size > MAX_UNION_BREADTH)    // 100
-      return shallowHeadMatch(value, use)                      // compare type heads only
+  if (depth > MAX_DISTRIBUTION_DEPTH) return true             // 10 — assume-compatible (TYPE-DR-04)
+  if (type is Union && type.types.size > MAX_UNION_BREADTH)   // 100
+      return shallowHeadMatch(value, use)                     // compare type heads only
   ```
   Constants: `MAX_DISTRIBUTION_DEPTH = 10`, `MAX_UNION_BREADTH = 100`.
+  The depth cutoff returns **`true`** (assume-compatible) — matching the `visited` cycle-guard
+  convention — and logs a diagnostic, **not** `false`: returning incompatible would surface
+  false-positive type errors on legitimately deep but valid types (P0 finding, TYPE-DR-04). The
+  cutoff is defense-in-depth (the `visited` guard is the primary bound, parent §2.3.1) and
+  effectively never trips on real code.
 
 ### 2.2 `LuaTypeGraph` memo (add)
 - A `private val compatMemo = HashMap<CompatKey, Boolean>()` where
   `data class CompatKey(val value: LuaGraphType, val use: LuaGraphType, val subst: Map<String,
   LuaGraphType>)` — the substitution map captures the current generic context (parent §2.3.4).
-  `isCompatible` checks/populates the memo; cleared per `checkTypes()` run (per-snapshot).
+  `isCompatible` checks/populates the memo; only genuine structural results are stored (never the
+  depth/breadth/cycle fallbacks). Cleared **each fixed-point iteration** of `checkTypes()` — not
+  just once per run — because `addEdge` grows up/down sets between iterations and a result cached
+  in an earlier iteration could otherwise leak a stale false negative. Per-iteration clearing keeps
+  the within-pass cache benefit and guarantees soundness (verifier finding; perf headroom from P0).
+  In the current architecture generics are pre-instantiated to identity-distinct `VariableNode`s,
+  so `(value, use)` is already a sound key and `subst` is reserved for future explicit threading.
 
 ## 3. Algorithms
 
 ### 3.1 Bounded, memoized compatibility (TYPE-09-P2-04/05)
 - **Steps** (wrapping the existing logic):
   1. `compatMemo[CompatKey(value, use, subst)]?.let { return it }`.
-  2. If `depth > 10` → result `false`.
+  2. If `depth > 10` → result `true` (assume-compatible; log a diagnostic — TYPE-DR-04).
   3. If `value`/`use` is a `Union` with `>100` members → `shallowHeadMatch` (compare only the
      type constructors, ignoring members).
   4. Otherwise the **existing** OR/AND/structural logic (`:341-352`), passing `depth + 1` into
@@ -89,8 +100,12 @@ short-circuits on the first compatible member → result cached under the curren
 | TYPE-09-P2-05 Memoization | S | §2.2, §3.1 |
 
 ## 9. Alternatives Considered
-- **Per-snapshot memo vs global**: clearing the memo each `checkTypes()` avoids cross-file
-  staleness; the snapshot is already rebuilt per document edit.
+- **Per-iteration vs per-run memo clear**: clearing once per `checkTypes()` run risked stale
+  cross-iteration reuse (the graph mutates via `addEdge` during the fixed point). Clearing each
+  iteration is one extra line, costs nothing measurable (P0), and removes the false-negative window
+  while retaining within-pass caching — chosen.
+- **Per-snapshot memo vs global**: a graph-local memo avoids cross-file staleness; the snapshot is
+  already rebuilt per document edit.
 
 ## 10. Open Questions
 

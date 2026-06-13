@@ -13,6 +13,29 @@ import com.intellij.psi.PsiElement
  */
 class LuaTypeGraph {
 
+    /**
+     * Threaded compatibility context (TYPE-09-P2). Replaces a bare `visited` set so we can carry
+     * the union-distribution [depth] without pushing `isCompatible` over the contract's 3-arg cap.
+     * The [visited] set is SHARED across [deeper] frames (cycle guard); only [depth] grows, and
+     * only on union-member recursion (it tracks distribution nesting, not structural depth).
+     */
+    private class CompatContext(
+        val visited: MutableSet<Pair<LuaGraphType, LuaGraphType>> = mutableSetOf(),
+        val depth: Int = 0,
+    ) {
+        fun deeper(): CompatContext = CompatContext(visited, depth + 1)
+    }
+
+    /** Per-run memo for [isCompatible] (TYPE-09-P2-05). Cleared at the start of each [checkTypes]. */
+    private data class CompatKey(
+        val value: LuaGraphType,
+        val use: LuaGraphType,
+        // reserved for explicit substitution context — generics are pre-instantiated to identity-
+        // distinct VariableNodes before isCompatible runs, so (value, use) is already a sound key.
+    )
+
+    private val compatMemo = HashMap<CompatKey, Boolean>()
+
     private val _nodes: MutableList<TypeNode> = mutableListOf()
 
     /** All nodes in the order they were added. Immutable snapshot for callers. */
@@ -203,6 +226,12 @@ class LuaTypeGraph {
         do {
             changed = false
             iterations++
+            // Clear the compatibility memo each fixed-point iteration (not just once per run):
+            // addEdge grows up/down sets between iterations, so a (value, use) result cached in an
+            // earlier iteration can become stale and leak a false negative. Per-iteration clearing
+            // keeps the within-pass cache benefit while guaranteeing soundness (TYPE-09-P2-05;
+            // perf headroom confirmed by the P0 spike).
+            compatMemo.clear()
             if (iterations > maxIterations) {
                 val log = com.intellij.openapi.diagnostic.Logger.getInstance(LuaTypeGraph::class.java)
                 log.error("Type checking exceeded max iterations ($maxIterations). Potential infinite loop detected.")
@@ -260,7 +289,7 @@ class LuaTypeGraph {
         // Union distributive rules
         if (valueType is LuaGraphType.Union) {
             // Value(Union(A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
-            if (!isCompatible(valueType, useType, mutableSetOf())) {
+            if (!isCompatible(valueType, useType, CompatContext())) {
                 addError(ElementError(valueElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
                 return
             }
@@ -277,13 +306,13 @@ class LuaTypeGraph {
             // Value(T) ≤ Use(Union(A | B)) iff (T ≤ A OR T ≤ B)
             // Find all members that are compatible and propagate to them.
             val hasCompatible = useType.types.any { member ->
-                isCompatible(valueType, member, mutableSetOf())
+                isCompatible(valueType, member, CompatContext())
             }
 
             if (hasCompatible) {
                 for (member in useType.types) {
                     // Propagate structural constraints to compatible members
-                    if (isCompatible(valueType, member, mutableSetOf())) {
+                    if (isCompatible(valueType, member, CompatContext())) {
                         if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
                             checkCompatibility(valueType, member, valueElement, useElement, visited)
                         }
@@ -329,35 +358,75 @@ class LuaTypeGraph {
     private fun isCompatible(
         value: LuaGraphType,
         use: LuaGraphType,
-        visited: MutableSet<Pair<LuaGraphType, LuaGraphType>>,
+        ctx: CompatContext,
     ): Boolean {
         if (value == LuaGraphType.Any || use == LuaGraphType.Any) return true
         if (value == LuaGraphType.Undefined || use == LuaGraphType.Undefined) return true
         if (value == use) return true
 
-        if (!visited.add(value to use)) return true // Cycle = assume compatible for now
+        // Safety limits (TYPE-09-P2-04). Both fall through to assume-compatible-ish approximations
+        // and must NOT be memoized (they are context-dependent, not genuine structural results).
+        if (ctx.depth > MAX_DISTRIBUTION_DEPTH) {
+            // Assume compatible (TYPE-DR-04): returning false would emit false-positive errors on
+            // legitimately deep but valid types. The visited guard is the primary bound; on real
+            // code this cutoff effectively never trips, so a once-style debug log suffices.
+            log.debug("Distribution depth exceeded $MAX_DISTRIBUTION_DEPTH; assuming compatibility")
+            return true
+        }
+        if (value is LuaGraphType.Union && value.types.size > MAX_UNION_BREADTH ||
+            use is LuaGraphType.Union && use.types.size > MAX_UNION_BREADTH
+        ) {
+            return shallowHeadMatch(value, use)
+        }
 
-        return when {
-            value is LuaGraphType.Union -> value.types.all { isCompatible(it, use, visited) }
-            use is LuaGraphType.Union -> use.types.any { isCompatible(value, it, visited) }
-            value is LuaGraphType.Array && use is LuaGraphType.Array -> isCompatible(value.elementType, use.elementType, visited)
-            value is LuaGraphType.Table && use is LuaGraphType.Table -> isNominallyCompatible(value, use, mutableSetOf()) || isStructurallyCompatible(value, use, visited)
+        // Memo (TYPE-09-P2-05): only genuine structural results below are stored, so reusing a hit
+        // is sound — depth/breadth limits never trip on the cached path on real code.
+        val key = CompatKey(value, use)
+        compatMemo[key]?.let { return it }
+
+        if (!ctx.visited.add(value to use)) return true // Cycle = assume compatible (NOT memoized)
+
+        // Depth grows ONLY on union-member recursion (distribution nesting); structural/array/
+        // function recursion reuses ctx unchanged.
+        val result = when {
+            value is LuaGraphType.Union -> value.types.all { isCompatible(it, use, ctx.deeper()) }
+            use is LuaGraphType.Union -> use.types.any { isCompatible(value, it, ctx.deeper()) }
+            value is LuaGraphType.Array && use is LuaGraphType.Array -> isCompatible(value.elementType, use.elementType, ctx)
+            value is LuaGraphType.Table && use is LuaGraphType.Table -> isNominallyCompatible(value, use, mutableSetOf()) || isStructurallyCompatible(value, use, ctx)
             (value == LuaGraphType.String || value == LuaGraphType.Number || value == LuaGraphType.Boolean) && use is LuaGraphType.Table -> true
-            value is LuaGraphType.Function && use is LuaGraphType.Function -> isFunctionCompatible(value, use, visited)
+            value is LuaGraphType.Function && use is LuaGraphType.Function -> isFunctionCompatible(value, use, ctx)
             value == LuaGraphType.Nil -> use == LuaGraphType.Nil
             else -> false
         }
+        compatMemo[key] = result
+        return result
+    }
+
+    /**
+     * Cheap over-approximation used when a union exceeds [MAX_UNION_BREADTH] (TYPE-09-P2-04): true
+     * iff some member shares the other operand's head kind (same [LuaGraphType] subclass). A
+     * deliberate soundness/perf trade-off (parent design §2.3.1) — never memoized.
+     */
+    private fun shallowHeadMatch(value: LuaGraphType, use: LuaGraphType): Boolean {
+        val valueHeads = headKinds(value)
+        val useHeads = headKinds(use)
+        return valueHeads.any { it in useHeads }
+    }
+
+    private fun headKinds(type: LuaGraphType): Set<Class<out LuaGraphType>> = when (type) {
+        is LuaGraphType.Union -> type.types.map { it::class.java }.toSet()
+        else -> setOf(type::class.java)
     }
 
     private fun isStructurallyCompatible(
         value: LuaGraphType.Table,
         use: LuaGraphType.Table,
-        visited: MutableSet<Pair<LuaGraphType, LuaGraphType>>,
+        ctx: CompatContext,
     ): Boolean {
         for ((key, useNode) in use.getMembers()) {
             val valueNode = value.getMembers()[key]
             if (valueNode != null) {
-                if (!isCompatible(valueNode.write, useNode.read, visited)) return false
+                if (!isCompatible(valueNode.write, useNode.read, ctx)) return false
             } else if (!isOptional(useNode.read)) {
                 return false
             }
@@ -368,7 +437,7 @@ class LuaTypeGraph {
     private fun isFunctionCompatible(
         value: LuaGraphType.Function,
         use: LuaGraphType.Function,
-        visited: MutableSet<Pair<LuaGraphType, LuaGraphType>>,
+        ctx: CompatContext,
     ): Boolean {
         // Simple arity check for dry-run
         val minParams = value.params.count { !it.isOptional && !it.isVararg }
@@ -376,12 +445,12 @@ class LuaTypeGraph {
 
         // Return types
         for (i in 0 until minOf(value.returns.size, use.returns.size)) {
-            if (!isCompatible(value.returns[i].write, use.returns[i].read, visited)) return false
+            if (!isCompatible(value.returns[i].write, use.returns[i].read, ctx)) return false
         }
 
         // Param types (contravariant)
         for (i in 0 until minOf(value.params.size, use.params.size)) {
-            if (!isCompatible(use.params[i].node.write, value.params[i].node.read, visited)) return false
+            if (!isCompatible(use.params[i].node.write, value.params[i].node.read, ctx)) return false
         }
 
         return true
@@ -494,6 +563,20 @@ class LuaTypeGraph {
     private fun propagateBiEdge(from: VariableElement, to: VariableElement) {
         propagateDownward(from, to)
         propagateUpward(from, to)
+    }
+
+    /** @return current per-run memo size; for tests asserting cache behaviour. */
+    @org.jetbrains.annotations.TestOnly
+    internal fun compatMemoSize(): Int = compatMemo.size
+
+    private companion object {
+        /** Distribution-nesting cutoff (TYPE-09-P2-04); assume-compatible beyond it (TYPE-DR-04). */
+        private const val MAX_DISTRIBUTION_DEPTH = 10
+
+        /** Union-member cap (TYPE-09-P2-04); larger unions fall back to shallow head matching. */
+        private const val MAX_UNION_BREADTH = 100
+
+        private val log = com.intellij.openapi.diagnostic.Logger.getInstance(LuaTypeGraph::class.java)
     }
 }
 
