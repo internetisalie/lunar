@@ -7,9 +7,11 @@ build/
 ### AI ###
 /.agents/
 /.ai/
+/.claude/
 /.gemini/
 /.kilo/
 /.kilocode/
+/CLAUDE.md
 /GEMINI.md
 /.instructions.md
 
