@@ -3,7 +3,7 @@ id: "NAV-10"
 title: "10: Access Detector"
 type: "feature"
 parent_id: "NAV"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -25,3 +25,20 @@ This document defines the requirements for detecting how variables are accessed 
 ## 2. Technical Details
 - Requires implementing a `ReadWriteAccessDetector`.
 - Needs to accurately analyze `LuaAssignmentStatement` structures (matching LHS var list to RHS expr list).
+
+## 3. Test Cases
+
+### TC-NAV-10-01: Write detection (NAV-10-01)
+- **Input**: `x = 1` (global) and `local y = 2`.
+- **Action**: `getExpressionAccess` on the `x` ref; `isDeclarationWriteAccess` on the `y` binding.
+- **Output**: both `Access.Write`.
+
+### TC-NAV-10-02: Read detection (NAV-10-02)
+- **Input**: `print(x); t.k = 1`.
+- **Action**: `getExpressionAccess` on `x` and on `t`.
+- **Output**: both `Access.Read` (`t` is the index base of `t.k = 1`).
+
+### TC-NAV-10-03: Highlight colors (NAV-10-03)
+- **Input**: `x = 1; print(x)`; caret on `x`.
+- **Action**: identifier highlight-usages.
+- **Output**: `x = 1` uses the Write color, `print(x)` the Read color.

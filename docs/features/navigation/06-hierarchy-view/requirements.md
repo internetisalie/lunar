@@ -3,7 +3,7 @@ id: "NAV-06"
 title: "06: Hierarchy View"
 type: "feature"
 parent_id: "NAV"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -24,3 +24,15 @@ This document defines the requirements for the Type Hierarchy tool window.
 ## 2. Technical Details
 - Requires implementation of `HierarchyProvider`.
 - Depends heavily on the type inference engine (`TYPE` requirements) and stub indexing to resolve inheritance chains across the project.
+
+## 3. Test Cases
+
+### TC-NAV-06-02: Supertypes (NAV-06-02)
+- **Input**: `---@class Base` and `---@class Derived : Base`; caret on `Derived`.
+- **Action**: build the supertype hierarchy structure.
+- **Output**: the supertype tree contains `Base`.
+
+### TC-NAV-06-01: Subtypes (NAV-06-01)
+- **Input**: same as above; caret on `Base`.
+- **Action**: build the subtype hierarchy structure (scan `LuaClassNameIndex`).
+- **Output**: the subtype tree contains `Derived`.

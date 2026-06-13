@@ -3,7 +3,7 @@ id: "NAV-09"
 title: "09: Return Highlighter"
 type: "feature"
 parent_id: "NAV"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -24,3 +24,15 @@ This document outlines the requirements for highlighting `return` statements and
 ## 2. Technical Details
 - Implementing `HighlightUsagesHandlerFactory` allows reusing standard IDE settings for colors and navigation (Next/Previous highlighted usage).
 - Care must be taken with nested functions: highlighting a `return` in a nested function must NOT highlight `return`s in the outer function.
+
+## 3. Test Cases
+
+### TC-NAV-09-01: Same-scope returns (NAV-09-01)
+- **Input**: `function f() if a then return 1 end return 2 end`; caret on `return 1`.
+- **Action**: highlight-usages handler.
+- **Output**: both `return 1` and `return 2` highlighted.
+
+### TC-NAV-09-02: Nested excluded (NAV-09-01)
+- **Input**: `function f() local g = function() return 1 end return 2 end`; caret on `return 2`.
+- **Action**: highlight-usages handler.
+- **Output**: only `return 2` highlighted (the nested `return 1` is excluded).
