@@ -36,8 +36,13 @@ Enhance editor visuals by coloring identifiers based on their inferred value typ
 
 ## Test Cases
 
-| ID | Action | Expected Output |
+Verified via `myFixture.doHighlighting()` asserting a `HighlightInfo` at the identifier range
+carries the expected `forcedTextAttributesKey` (the keys defined in design §2.2).
+
+| ID | Input | Expected Output |
 | :--- | :--- | :--- |
-| `TC-01` | `local x = function() end; x()` | `x` in the call is highlighted as a "Local Call". |
-| `TC-02` | `---@class MyClass; local o = MyClass()` | `MyClass` is highlighted with the "Class" text attribute. |
-| `TC-03` | `t.data = 1; t:func()` | `data` and `func` have distinct colors (Field vs Method). |
+| `TC-01` | `local x = function() end; x()` | the `x` in `x()` carries `INFERRED_LOCAL_CALL`. |
+| `TC-02` | `---@class MyClass; local o = MyClass()` | `MyClass` in `MyClass()` carries `INFERRED_CLASS`. |
+| `TC-03` | `local t = {}; t.data = 1; function t:func() end; t.data; t:func()` | the member `data` carries `INFERRED_FIELD`; the member `func` carries `INFERRED_METHOD`. |
+| `TC-04` | `print("hi")` | `print` carries `INFERRED_GLOBAL_CALL` (resolves to a non-local function). |
+| `TC-05` | indexing in progress (dumb mode) | `classify` returns null for all identifiers (no forced attributes). |

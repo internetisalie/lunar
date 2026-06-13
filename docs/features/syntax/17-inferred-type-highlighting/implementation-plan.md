@@ -10,32 +10,28 @@ folders: ["[[features/syntax/17-inferred-type-highlighting/requirements]]"]
 
 # SYNTAX-17: Inferred-Type Highlighting Implementation Plan
 
-## Phases
+A single `Annotator` reusing the cached type snapshot. Phases map to requirement IDs and design
+sections.
 
-### Phase 1: Call Site Highlighting [Must]
-- Implement `LuaTypeHighlightingAnnotator` to identify `LuaNameRef` in `LuaFuncCall`.
-- Integrate with `LuaTypeManager` to resolve function/method definitions.
-- Apply `CALL_LOCAL`, `CALL_GLOBAL`, or `CALL_PLATFORM` attributes based on resolution results.
-- **Verification**: Unit tests with various call types.
+## Phase 1: Keys + Annotator skeleton [Must] — SYNTAX-17-01/04
+- [ ] Add the five `TextAttributesKey`s to `LuaHighlight` (§2.2) and register them in
+      `LuaColorSettingsPage` (§2.3).
+- [ ] `LuaInferredTypeAnnotator : Annotator` (§2.1) + `<annotator language="Lua">`; dumb-mode
+      guard; `newSilentAnnotation(...).textAttributes(key)`.
+- [ ] `classify` step 3 (call site, local vs global via `resolve()`); helpers ≤30 lines.
+- [ ] Tests: TC-01 (local call), TC-04 (global call), TC-05 (dumb mode → null).
 
-### Phase 2: Class & Enum Highlighting [Should]
-- Extend annotator to resolve identifiers pointing to `@class` or `@alias` (enums).
-- Implement lookup for user-defined type definitions.
-- **Verification**: Test cases for LuaCATS defined classes.
+## Phase 2: Member field/method [Should] — SYNTAX-17-03
+- [ ] `classify` step 2: member of `LuaIndexExpr` → `receiverOf` + `getMembers()[name]`;
+      Function → `INFERRED_METHOD`, else `INFERRED_FIELD` (reuse the completion receiver helper).
+- [ ] Test: TC-03 (field vs method distinct keys).
 
-### Phase 3: Member Highlighting [Could]
-- Resolve table indexing (`t.field`) and method calls (`t:method()`).
-- Differentiate between functions stored in tables vs data fields.
-- **Verification**: Complex table structure tests.
-
-### Phase 4: Performance & Caching [Must]
-- Implement viewport-only analysis.
-- Add `DumbMode` checks.
-- Integrate with `CachedValuesManager` to prevent re-inference on every keystroke.
+## Phase 3: Class references [Should] — SYNTAX-17-02
+- [ ] `classify` step 4: `Table.className` match → `INFERRED_CLASS`.
+- [ ] Test: TC-02.
 
 ## Verification Tasks
-
-- [ ] [Must] Implement `LuaTypeHighlightingAnnotatorTests`.
-- [ ] [Must] Verify "Silent" annotations don't interfere with error reporting.
-- [ ] [Should] Manual verification of color customization in Settings.
-- [ ] [Must] Profile editor performance with large files.
+- Unit (`BasePlatformTestCase` + `myFixture.doHighlighting()`): assert the `HighlightInfo` at
+  each identifier carries the expected `forcedTextAttributesKey` (TC-01…05).
+- Manual: recolor a key in *Settings ▸ Color Scheme ▸ Lua* and confirm it applies; profile a
+  large file (the platform pass is viewport-limited).
