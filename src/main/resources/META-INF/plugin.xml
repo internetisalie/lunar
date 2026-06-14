@@ -308,6 +308,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaOverrideLineMarkerProvider"/>
 
+    <typeHierarchyProvider
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.hierarchy.LuaTypeHierarchyProvider"/>
+
   </extensions>
 
   <actions>
