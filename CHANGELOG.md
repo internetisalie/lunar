@@ -33,6 +33,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Code Completion**: Intelligent completion for variables, functions, and members
 - **Type-Inferred Member Completion**: Completing after `.`/`:` now suggests a receiver's inferred members (fields and methods, with icons), including inherited `@class` members, `self` inside methods, and members exposed through `setmetatable`'s `__index`
 - **Refactoring**: Label refactoring support
+- **Introduce Variable**: extract a selected expression into a `local <name> = <expr>` before the enclosing statement and replace the occurrence, with a name suggestion and inline rename (replace-all across occurrences is partial — wired in the API, interactive chooser pending)
 - **Code Style**: Settings for indentation, spacing, and formatting
 - **Run Configurations**: Lua script execution and debugging support
 - **Breakpoint Debugging**: DBGp protocol support for remote debugging

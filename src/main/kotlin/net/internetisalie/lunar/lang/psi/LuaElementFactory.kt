@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.psi
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.run.LuaCodeFragment
@@ -31,6 +32,10 @@ object LuaElementFactory {
     fun createExpression(project: Project, value : String) : LuaExpr? {
         val luaFile = createFile(project, "local _ = $value")
         return PsiTreeUtil.findChildOfType(luaFile, LuaExpr::class.java)
+    }
+
+    fun createNewLine(project: Project): PsiElement {
+        return PsiParserFacade.getInstance(project).createWhiteSpaceFromText("\n")
     }
 
     fun createFile(project: Project, text: String): LuaFile {
