@@ -117,6 +117,15 @@
             level="ERROR"
             implementationClass="net.internetisalie.lunar.analysis.LuaReturnTypeMismatchInspection"/>
 
+    <localInspection
+            language="Lua"
+            shortName="LuaUndeclaredVariable"
+            displayName="Undeclared variable"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.analysis.inspections.LuaUndeclaredVariableInspection"/>
+
     <externalAnnotator
             language="Lua"
             implementationClass="net.internetisalie.lunar.analysis.luacheck.LuaCheckAnnotator"/>

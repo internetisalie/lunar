@@ -39,6 +39,8 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Luacheck Integration**: Static analysis integration
 - **Type Checking**: Constraint-based type validation with error reporting
 - **Inspections**: Type assignability and return type mismatch detection
+- **Undeclared-Variable Inspection**: Flags reads of names that resolve to nothing — respecting locals, parameters, loop variables, file/project globals, the per-version standard library, an "Additional Globals" allowlist, and `---@diagnostic`/`-- luacheck: ignore` suppression comments
+- **For-loop Variable Resolution**: `for` loop variables now resolve correctly within the loop body (navigation, completion, and inspections no longer treat them as undeclared)
 
 ### Project Features
 - **Platform Libraries**: Lua standard library definitions and type information

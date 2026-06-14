@@ -3,7 +3,7 @@ id: "INSP-01-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "INSP-01"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/inspections/01-undeclared-variable/requirements|requirements]]"

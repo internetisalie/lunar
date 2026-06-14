@@ -3,7 +3,7 @@ id: "INSP-01"
 title: "01: Undeclared Variable"
 type: "feature"
 parent_id: "INSP"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/inspections/requirements|requirements]]"
@@ -37,14 +37,14 @@ scope, the file, the project, or the configured standard library.
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| `INSP-01-01` | **Resolve to Local** | **M** | Not Implemented | A read of a name that resolves to a local / parameter / loop variable in an accessible scope is not flagged. |
-| `INSP-01-02` | **Resolve to Global** | **M** | Not Implemented | A read that resolves to a file-level or project-wide global definition is not flagged. |
-| `INSP-01-03` | **Standard Library Support** | **M** | Not Implemented | Standard Lua globals for the project's language level (5.1–5.4) are never flagged. |
-| `INSP-01-04` | **Unresolved Highlighting** | **M** | Not Implemented | A read that resolves to nothing is highlighted with a configurable severity (default `WARNING`) and the message `Undeclared variable '<name>'`. |
-| `INSP-01-05` | **Early Binding** | **M** | Not Implemented | A read appearing textually before the `local` that declares the name is flagged (it does not bind to the later local). |
-| `INSP-01-06` | **Write Target Exclusion** | **M** | Not Implemented | A simple assignment target (`name = ...`) is never flagged by this inspection; the base of an indexed write (`name.field = ...`) is still treated as a read. |
-| `INSP-01-07` | **Additional Globals** | **S** | Not Implemented | Names listed in the project's "Additional Globals" allowlist are never flagged. |
-| `INSP-01-08` | **Inline Suppression** | **S** | Not Implemented | `---@diagnostic disable[-next-line\|-line]: undefined-global` and `-- luacheck: ignore [names]` comments suppress the warning over their defined scope. |
+| `INSP-01-01` | **Resolve to Local** | **M** | Full | A read of a name that resolves to a local / parameter / loop variable in an accessible scope is not flagged. |
+| `INSP-01-02` | **Resolve to Global** | **M** | Full | A read that resolves to a file-level or project-wide global definition is not flagged. |
+| `INSP-01-03` | **Standard Library Support** | **M** | Full | Standard Lua globals for the project's language level (5.1–5.4) are never flagged. |
+| `INSP-01-04` | **Unresolved Highlighting** | **M** | Full | A read that resolves to nothing is highlighted with a configurable severity (default `WARNING`) and the message `Undeclared variable '<name>'`. |
+| `INSP-01-05` | **Early Binding** | **M** | Full | A read appearing textually before the `local` that declares the name is flagged (it does not bind to the later local). |
+| `INSP-01-06` | **Write Target Exclusion** | **M** | Full | A simple assignment target (`name = ...`) is never flagged; the base of an indexed write (`name.field = ...`) is treated as a read. (Func-name heads are not flagged at all — see Deferred: the dotted-base case `function undeclaredTable.method()`.) |
+| `INSP-01-07` | **Additional Globals** | **S** | Full | Names in the project's "Additional Globals" allowlist are never flagged (via `state.additionalGlobals`, populated by the quick fix; settings-panel UI deferred — see Deferred). |
+| `INSP-01-08` | **Inline Suppression** | **S** | Full | `---@diagnostic disable[-next-line\|-line]: undefined-global` and `-- luacheck: ignore [names]` comments suppress the warning over their defined scope. |
 
 ## Test Cases
 
@@ -144,3 +144,15 @@ scope, the file, the project, or the configured standard library.
   ```
 - **Action**: Run inspection.
 - **Output**: No warning on `_ENV_PLACEHOLDER` (suppressed by underscore-prefix setting).
+
+## Deferred (Future Work)
+
+- **Additional-Globals settings UI (INSP-01-07):** the allowlist is fully functional via
+  `state.additionalGlobals` (the "Add to globals" quick fix writes it), but a dedicated list
+  editor in the Lua settings panel is deferred to avoid scope creep.
+- **Dotted func-name head flagging (TC-11 negative half):** a func-name head is never flagged.
+  The resolver resolves a func-name head only to itself in every case (even when its base table
+  is genuinely declared), so there is no signal to distinguish a truly-undeclared dotted base
+  (`function undeclaredTable.method()`) from a declared one — flagging would false-positive on
+  valid `function declared.m()`. Deferred until the resolver links a func-name head's base to
+  its declaration.

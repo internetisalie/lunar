@@ -50,6 +50,7 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var interpreter: LuaInterpreter? = null
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
         var suppressUnderscorePrefixedGlobals: Boolean = true
+        var additionalGlobals: MutableList<String> = mutableListOf()
 
         fun expandSourcePath(project : Project) : String {
             return sourcePath.trim(' ').expandMacros(project)
@@ -108,6 +109,9 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
 
     val suppressUnderscorePrefixedGlobals: Boolean
         get() = state.suppressUnderscorePrefixedGlobals
+
+    val additionalGlobals: List<String>
+        get() = state.additionalGlobals
 
     companion object {
         fun getInstance(project: Project): LuaProjectSettings {
