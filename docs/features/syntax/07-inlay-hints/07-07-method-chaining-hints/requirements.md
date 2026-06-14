@@ -3,7 +3,7 @@ id: "SYNTAX-07-07"
 title: "07: Method Chaining Hints"
 type: "feature"
 parent_id: "SYNTAX-07"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"

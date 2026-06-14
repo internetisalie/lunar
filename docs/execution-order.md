@@ -10,6 +10,12 @@ folders:
 
 # Backlog Execution Order
 
+> **Status is a point-in-time snapshot** (last refreshed 2026-06-14). The authoritative, live
+> per-feature status is each feature's `requirements.md` front-matter, aggregated into
+> [status.md](status.md) by `scripts/gen_status.py`. As of this refresh: **Waves 0–2 are `done`**;
+> **Wave 3 is in progress** (NAV-10). This doc's value is the *ordering and dependency edges*, which
+> remain valid regardless of status drift.
+
 A dependency-aware sequencing of every **executable** feature (status `planned` or
 `in_progress`) so implementation agents can pull work in a safe, high-leverage order. This is
 **not** a priority sort — ordering precedence is:
@@ -41,13 +47,13 @@ These are partly built and unblock the entire lead theme. Do them first, in this
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TYPE-09-P0 | Union: De-risking spikes | planned | H | — | TYPE-09-P2 | ✓ (throwaway spikes) |
-| TYPE-09-P1 | Union: Infra & Flattening | in_progress | H | — | TYPE-09-P3/P4 | Serial: type-engine |
-| TYPE-09-P2 | Union: Compatibility (limits+memo) | in_progress | H | TYPE-09-P0 | TYPE-09-P3/P4 | Serial: type-engine |
-| TYPE-09-P3 | Union: Error reporting | in_progress | H | TYPE-09-P2 | TYPE-09-P4 | Serial: type-engine |
-| TYPE-09-P4 | Union: Verification & perf | planned | H | P1, P2, P3 | — | Serial: type-engine |
-| COMP-04 | Type-inferred completion (engine: self/`__index`) | planned | H | — | SYNTAX-17, NAV-05/06 richness | Serial: type-engine, then ✓ (provider) |
-| TYPE-02 | Class/Table defs (implicit fields) | planned | H | — | NAV-05/06, COMP-04 richness | Serial: type-engine |
+| TYPE-09-P0 | Union: De-risking spikes | done | H | — | TYPE-09-P2 | ✓ (throwaway spikes) |
+| TYPE-09-P1 | Union: Infra & Flattening | done | H | — | TYPE-09-P3/P4 | Serial: type-engine |
+| TYPE-09-P2 | Union: Compatibility (limits+memo) | done | H | TYPE-09-P0 | TYPE-09-P3/P4 | Serial: type-engine |
+| TYPE-09-P3 | Union: Error reporting | done | H | TYPE-09-P2 | TYPE-09-P4 | Serial: type-engine |
+| TYPE-09-P4 | Union: Verification & perf | done | H | P1, P2, P3 | — | Serial: type-engine |
+| COMP-04 | Type-inferred completion (engine: self/`__index`) | done | H | — | SYNTAX-17, NAV-05/06 richness | Serial: type-engine, then ✓ (provider) |
+| TYPE-02 | Class/Table defs (implicit fields) | done | H | — | NAV-05/06, COMP-04 richness | Serial: type-engine |
 
 > The TYPE-09 phases are the sub-stories of the union epic; P0 (spikes) informs P2 (the limits),
 > and P4 verifies P1–P3. COMP-04 and TYPE-02 cores already exist — only the named deltas remain.
@@ -56,27 +62,27 @@ These are partly built and unblock the entire lead theme. Do them first, in this
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| INSP-01 | Undeclared-variable inspection | planned | M | — (uses existing `resolve`) | — | ✓ new inspection |
-| COMP-03-03 | Auto-import completion | planned | H | COMP-03 (cross-file baseline) | — | ✓ |
-| SYNTAX-07-11 | Inlay: large-file threshold | in_progress | M | — | SYNTAX-07-07 | ✓ inlay infra |
-| SYNTAX-07-07 | Inlay: method-chaining hints | planned | M | SYNTAX-07-11 | — | ✓ |
-| SYNTAX-17 | Inferred-type highlighting | planned | L | COMP-04 (receiver helper) | — | ✓ new annotator |
-| NAV-05 | Method override markers | planned | M | TYPE-02 *(soft — richer)* | — | ✓ new marker |
-| NAV-06 | Type hierarchy view | planned | M | TYPE-02 *(soft)* | — | ✓ new hierarchy |
+| INSP-01 | Undeclared-variable inspection | done | M | — (uses existing `resolve`) | — | ✓ new inspection |
+| COMP-03-03 | Auto-import completion | done | H | COMP-03 (cross-file baseline) | — | ✓ |
+| SYNTAX-07-11 | Inlay: large-file threshold | done | M | — | SYNTAX-07-07 | ✓ inlay infra |
+| SYNTAX-07-07 | Inlay: method-chaining hints | done | M | SYNTAX-07-11 | — | ✓ |
+| SYNTAX-17 | Inferred-type highlighting | done | L | COMP-04 (receiver helper) | — | ✓ new annotator |
+| NAV-05 | Method override markers | done | M | TYPE-02 *(soft — richer)* | — | ✓ new marker |
+| NAV-06 | Type hierarchy view | done | M | TYPE-02 *(soft)* | — | ✓ new hierarchy |
 
 ## Wave 2 — Navigation & references core  *(parallel-safe)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| NAV-02 | Find usages | planned | M | — | NAV-10, REFACT-03 | ✓ (small edit to find-usages provider) |
-| NAV-03 | Go to class/file/symbol | planned | M | — | — | ✓ new contributors |
-| NAV-09 | Return highlighter | planned | M | — | — | ✓ new handler |
+| NAV-02 | Find usages | done | M | — | NAV-10, REFACT-03 | ✓ (small edit to find-usages provider) |
+| NAV-03 | Go to class/file/symbol | done | M | — | — | ✓ new contributors |
+| NAV-09 | Return highlighter | done | M | — | — | ✓ new handler |
 
 ## Wave 3 — Navigation dependents & refactoring
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| NAV-10 | Read/Write access detector | planned | M | **NAV-02** | — | ✓ new detector |
+| NAV-10 | Read/Write access detector | in_progress | M | **NAV-02** | — | ✓ new detector |
 | REFACT-02 | Introduce variable | planned | M | — | REFACT-03 | ✓ new handler (consolidates the refactoring provider) |
 | REFACT-03 | Safe delete | planned | M | **NAV-02, REFACT-02** | — | ✓ new processor |
 
@@ -140,8 +146,9 @@ Everything else is independent and can start as soon as its wave is reached.
 
 ## Maintenance
 
-- This is a point-in-time plan (2026-06-13). When a feature reaches `done`, mark it in its
-  `requirements.md`, re-run `scripts/gen_status.py`, and its dependents become ready.
+- This is a point-in-time plan (created 2026-06-13; status column refreshed 2026-06-14). When a
+  feature reaches `done`, mark it in its `requirements.md`, re-run `scripts/gen_status.py`, and its
+  dependents become ready. Treat the status column here as advisory — `status.md` is canonical.
 - If cross-epic priorities change, re-order the waves; the **Depends on** column is the
   invariant that must always hold.
 - See [planning-gaps.md](planning-gaps.md) for the original audit and
