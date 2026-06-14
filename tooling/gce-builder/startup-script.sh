@@ -12,10 +12,13 @@ export DEBIAN_FRONTEND=noninteractive
 # scheme, which calls into AWT FontManager. On a headless minimal image with no fonts this throws
 # "Fontconfig head is null, check your fonts or fonts configuration" and every editor-touching
 # test fails. fonts-dejavu-core provides a font set; fontconfig provides the config/cache.
-if ! command -v git >/dev/null || ! command -v rsync >/dev/null || ! command -v fc-cache >/dev/null; then
+if ! command -v git >/dev/null || ! command -v rsync >/dev/null || ! command -v fc-cache >/dev/null \
+   || ! command -v lua5.4 >/dev/null; then
   apt-get update -y
+  # lua5.4 + lua-socket: the debug-harness integration test execs an interpreter (sync wires
+  # ~/bin/lua -> it) and its mobdebug bootstrap requires LuaSocket for the DBGp TCP connection.
   apt-get install -y --no-install-recommends \
-    git rsync wget ca-certificates python3 tar fontconfig fonts-dejavu-core
+    git rsync wget ca-certificates python3 tar fontconfig fonts-dejavu-core lua5.4 lua-socket
   fc-cache -f >/dev/null 2>&1 || true
 fi
 

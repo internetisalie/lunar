@@ -79,14 +79,26 @@ cmd_sync() {
   local ip; ip="$(external_ip)"
   [ -n "$ip" ] || die "Instance has no external IP (rsync transport needs one)."
   [ -f "$SSH_KEY" ] || die "SSH key $SSH_KEY missing — run './gce-builder.sh shell' once to generate it."
+  local ssh_t="ssh -i '$SSH_KEY' -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes"
   log "Syncing working tree → $REMOTE_USER@$ip:$REMOTE_DIR via rsync (honoring .gitignore)…"
   # Honor the project's .gitignore (per-directory merge) so generated trees are skipped — out/
   # (IDE output, ~10GB), build/, .gradle/, idea-sandbox, etc. — without hand-maintaining a list.
   # .git itself isn't gitignored, so exclude it explicitly. --delete keeps the remote a mirror.
+  # `test` is a symlink to vendored data outside the repo; -a would copy a DANGLING link, so skip
+  # it here and push its real contents (with -L) below.
   rsync -az --delete \
-    --filter=':- .gitignore' --exclude='/.git/' \
-    -e "ssh -i '$SSH_KEY' -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes" \
+    --filter=':- .gitignore' --exclude='/.git/' --exclude='/test' \
+    -e "$ssh_t" \
     "$REPO_ROOT/" "$REMOTE_USER@$ip:$REMOTE_DIR/"
+  # Vendored test data (e.g. test/luacheck) needed by integration tests: follow the symlink (-L)
+  # and push the real files so they survive --delete and aren't a dangling link on the VM.
+  if [ -d "$REPO_ROOT/test/luacheck" ]; then
+    ssh_exec --command "rm -f '$REMOTE_DIR/test' 2>/dev/null; mkdir -p '$REMOTE_DIR/test/luacheck'" >/dev/null 2>&1 || true
+    rsync -aLz --delete -e "$ssh_t" \
+      "$REPO_ROOT/test/luacheck/" "$REMOTE_USER@$ip:$REMOTE_DIR/test/luacheck/"
+  fi
+  # The debug-harness test execs ~/bin/lua; ensure it points at the bootstrap-installed lua5.4.
+  ssh_exec --command "command -v lua5.4 >/dev/null && { mkdir -p ~/bin; ln -sf \$(command -v lua5.4) ~/bin/lua; }" >/dev/null 2>&1 || true
   log "Sync done."
 }
 
