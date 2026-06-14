@@ -51,8 +51,12 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
                 is LuaFuncDef -> !current.processDeclarations(processor, state, element, element)
                 is LuaFuncDecl -> !current.processDeclarations(processor, state, element, element)
                 is LuaLocalFuncDecl -> !current.processDeclarations(processor, state, element, element)
-                is LuaNumericForStatement -> !current.processDeclarations(processor, state, element, element)
-                is LuaGenericForStatement -> !current.processDeclarations(processor, state, element, element)
+                // Pass `prev` (the child we ascended from) as lastParent: a for-loop variable is
+                // visible only when the reference sits in the loop body block (prev == block), not
+                // in the iterator expression. processDeclarations gates loop-var visibility on
+                // `lastParent == block`, which the deep reference element never satisfies.
+                is LuaNumericForStatement -> !current.processDeclarations(processor, state, prev ?: element, element)
+                is LuaGenericForStatement -> !current.processDeclarations(processor, state, prev ?: element, element)
                 else -> false
             }
 
