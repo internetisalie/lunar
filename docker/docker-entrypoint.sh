@@ -69,7 +69,12 @@ case "$COMMAND" in
         echo "Display: $DISPLAY"
         echo "VNC Port: $VNC_PORT"
         
-        # Start Xvfb
+        # Start Xvfb. Clear any stale lock/socket left by a previous boot first: on
+        # `docker start`/`docker restart` the writable layer is reused, so a leftover
+        # /tmp/.X<n>-lock makes the new Xvfb fail to claim the display and exit, which
+        # (via `wait $XVFB_PID` below) tears the whole container down within seconds.
+        DISPLAY_NUM="${DISPLAY#:}"
+        rm -f "/tmp/.X${DISPLAY_NUM}-lock" "/tmp/.X11-unix/X${DISPLAY_NUM}" 2>/dev/null || true
         echo "[*] Starting Xvfb (virtual X display)..."
         Xvfb ${DISPLAY} -screen 0 1920x1080x24 &
         XVFB_PID=$!
