@@ -49,6 +49,12 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaParserDefinition"/>
 
+    <!-- Navigation: Go to Class / Symbol (NAV-03) -->
+    <gotoClassContributor
+            implementation="net.internetisalie.lunar.lang.navigation.LuaGotoClassContributor"/>
+    <gotoSymbolContributor
+            implementation="net.internetisalie.lunar.lang.navigation.LuaGotoSymbolContributor"/>
+
     <platform.backend.documentation.targetProvider
             order="first"
             implementation="net.internetisalie.lunar.lang.doc.LuaDocumentationTargetProvider" />
