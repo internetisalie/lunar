@@ -25,9 +25,11 @@ import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.ProcessingContext
 import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.*
+import net.internetisalie.lunar.lang.path.LuaModulePathResolver
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.syntax.extractLuaString
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
 
 class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>() {
@@ -212,17 +214,11 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         val rankingService = GlobalSymbolRankingService.getInstance(project)
         val globalSymbols = rankingService.getProjectGlobalSymbols(currentFile, localSymbolNames, importedSymbolNames)
 
+        val showHints = LuaProjectSettings.getInstance(project).showAutoImportHints
+
         globalSymbols.filter { it.name.startsWith(prefix) }.forEach { symbol ->
-            val icon = if (symbol.isClassType) {
-                com.intellij.icons.AllIcons.Nodes.Class
-            } else {
-                com.intellij.icons.AllIcons.Nodes.Function
-            }
-            val sourceFile = symbol.psiElement.containingFile?.name ?: "unknown"
-            val builder = LookupElementBuilder.create(symbol.name)
-                .withTypeText(sourceFile)
-                .withIcon(icon)
-            
+            val builder = buildGlobalLookupElement(symbol, showHints)
+
             // Apply proximity-based weighting
             val weighted = com.intellij.codeInsight.completion.PrioritizedLookupElement.withPriority(
                 builder,
@@ -230,5 +226,41 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
             )
             result.addElement(weighted)
         }
+    }
+
+    /**
+     * Build a lookup element for a project-wide global. Non-imported symbols (Phase 3)
+     * receive a [LuaAutoImportInsertHandler] and an optional "(auto-import)" tail text.
+     */
+    private fun buildGlobalLookupElement(
+        symbol: GlobalSymbolRankingService.GlobalSymbolCompletion,
+        showHints: Boolean
+    ): LookupElementBuilder {
+        val icon = if (symbol.isClassType) {
+            com.intellij.icons.AllIcons.Nodes.Class
+        } else {
+            com.intellij.icons.AllIcons.Nodes.Function
+        }
+        val sourceFile = symbol.psiElement.containingFile?.name ?: "unknown"
+
+        var builder = LookupElementBuilder.create(symbol.name)
+            .withTypeText(sourceFile)
+            .withIcon(icon)
+
+        val targetFile = symbol.sourceVirtualFile
+        if (!symbol.isImported && targetFile != null) {
+            builder = builder.withInsertHandler(
+                LuaAutoImportInsertHandler(
+                    targetFile = targetFile,
+                    modulePathResolver = LuaModulePathResolver(),
+                    exportStyleDetector = LuaExportStyleDetector(),
+                    importNameResolver = LuaImportNameResolver(),
+                )
+            )
+            if (showHints) {
+                builder = builder.withTailText(" (auto-import)", true)
+            }
+        }
+        return builder
     }
 }

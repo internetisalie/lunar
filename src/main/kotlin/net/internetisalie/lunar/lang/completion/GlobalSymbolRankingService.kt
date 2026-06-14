@@ -4,6 +4,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
@@ -33,7 +34,9 @@ class GlobalSymbolRankingService(private val project: Project) {
         val name: String,
         val psiElement: PsiElement,
         val proximityWeight: Double,
-        val isClassType: Boolean = false
+        val isClassType: Boolean = false,
+        val sourceVirtualFile: VirtualFile? = null,
+        val isImported: Boolean = false
     )
 
     /**
@@ -123,7 +126,9 @@ class GlobalSymbolRankingService(private val project: Project) {
                         name = name,
                         psiElement = funcDecl,
                         proximityWeight = weight,
-                        isClassType = false
+                        isClassType = false,
+                        sourceVirtualFile = funcDecl.containingFile?.virtualFile,
+                        isImported = false
                     )
                 )
             }
@@ -192,7 +197,9 @@ class GlobalSymbolRankingService(private val project: Project) {
                         name = name,
                         psiElement = classElement,
                         proximityWeight = weight,
-                        isClassType = true
+                        isClassType = true,
+                        sourceVirtualFile = classElement.containingFile?.virtualFile,
+                        isImported = false
                     )
                 )
             }

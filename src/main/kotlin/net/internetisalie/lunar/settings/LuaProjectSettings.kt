@@ -51,6 +51,8 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
         var suppressUnderscorePrefixedGlobals: Boolean = true
         var additionalGlobals: MutableList<String> = mutableListOf()
+        var showAutoImportHints: Boolean = true
+        var autoImportStyle: AutoImportStyle = AutoImportStyle.AUTO_DETECT
 
         fun expandSourcePath(project : Project) : String {
             return sourcePath.trim(' ').expandMacros(project)
@@ -113,6 +115,12 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
     val additionalGlobals: List<String>
         get() = state.additionalGlobals
 
+    val showAutoImportHints: Boolean
+        get() = state.showAutoImportHints
+
+    val autoImportStyle: AutoImportStyle
+        get() = state.autoImportStyle
+
     companion object {
         fun getInstance(project: Project): LuaProjectSettings {
             return project.getService(LuaProjectSettings::class.java)
@@ -124,4 +132,17 @@ fun String.expandMacros(project: Project) : String {
     return PathMacroManager
         .getInstance(project)
         .expandPath(this)
+}
+
+/**
+ * User-configurable override for the auto-import template style (COMP-03-03).
+ *
+ * - [AUTO_DETECT]: inspect the target module for a root `return` to choose the template.
+ * - [FORCE_LOCAL_ASSIGN]: always emit `local name = require("path")`.
+ * - [FORCE_GLOBAL]: always emit a bare `require("path")`.
+ */
+enum class AutoImportStyle {
+    AUTO_DETECT,
+    FORCE_LOCAL_ASSIGN,
+    FORCE_GLOBAL,
 }

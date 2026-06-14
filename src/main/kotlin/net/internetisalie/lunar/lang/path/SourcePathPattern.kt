@@ -29,6 +29,10 @@ data class SourcePathPattern(val spec: String) {
     val leadingPath : String
         get() = spec.substringBefore(PathConfiguration.SUBSTITUTION_MARK)
 
+    // The literal portion after the substitution mark (e.g. ".lua" or "/init.lua").
+    val suffix : String
+        get() = spec.substringAfter(PathConfiguration.SUBSTITUTION_MARK)
+
     fun interpolate(packageName: String): String {
         return spec.replace(
             PathConfiguration.SUBSTITUTION_MARK,
