@@ -10,7 +10,6 @@ import com.intellij.psi.stubs.StubIndexKey
 import com.intellij.util.Processor
 import com.intellij.util.indexing.FindSymbolParameters
 import com.intellij.util.indexing.IdFilter
-import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
@@ -26,7 +25,7 @@ class LuaGotoSymbolContributor : ChooseByNameContributorEx {
         val index = StubIndex.getInstance()
         index.processAllKeys(LuaGlobalDeclarationIndex.KEY, processor, scope, filter)
         index.processAllKeys(LuaClassNameIndex.KEY, processor, scope, filter)
-        index.processAllKeys(LuaAliasIndex.KEY, processor, scope, filter)
+        LuaAliasNavigation.processNames(processor, scope, filter)
     }
 
     override fun processElementsWithName(
@@ -38,7 +37,7 @@ class LuaGotoSymbolContributor : ChooseByNameContributorEx {
         val scope = parameters.searchScope
         if (!emitFunctions(name, project, scope, processor)) return
         if (!emitVars(LuaClassNameIndex.KEY, name, project, scope, processor)) return
-        emitVars(LuaAliasIndex.KEY, name, project, scope, processor)
+        LuaAliasNavigation.processElements(name, project, scope, AllIcons.Nodes.Type, processor)
     }
 
     private fun emitFunctions(

@@ -57,18 +57,32 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
         assertEquals("Item should locate to klass.lua", "klass.lua", item.presentation?.locationString)
     }
 
-    /** TC-NAV-03-04: a `@alias MyAlias` is found by Go to Class under the name "MyAlias". */
+    /**
+     * TC-NAV-03-04: a *bare* `@alias` comment — no following `local`, the normal LuaCATS form — is
+     * found by Go to Class. This is the realistic case the stub-only index missed.
+     */
     @Test
-    fun testGotoClassFindsAlias() {
-        myFixture.addFileToProject("aliases.lua", "---@alias MyAlias string\nlocal MyAlias = {}")
+    fun testGotoClassFindsBareAlias() {
+        myFixture.addFileToProject("aliases.lua", "--- @alias DeviceSide table<string,Bob>\n")
         val contributor = LuaGotoClassContributor()
 
-        assertTrue("processNames should enumerate the alias name 'MyAlias'", namesOf(contributor).contains("MyAlias"))
+        assertTrue("processNames should enumerate the bare alias name 'DeviceSide'", namesOf(contributor).contains("DeviceSide"))
 
-        val items = itemsOf(contributor, "MyAlias")
-        assertEquals("Expected one Go-to-Class item for the alias 'MyAlias'", 1, items.size)
-        assertEquals("Alias item name must be the index key", "MyAlias", items.first().name)
+        val items = itemsOf(contributor, "DeviceSide")
+        assertEquals("Expected one Go-to-Class item for the alias 'DeviceSide'", 1, items.size)
+        assertEquals("Alias item name must be the index key", "DeviceSide", items.first().name)
         assertEquals("Alias item should locate to aliases.lua", "aliases.lua", items.first().presentation?.locationString)
+        assertTrue("Alias item should be navigable", items.first().canNavigate())
+    }
+
+    /** Go to Symbol also surfaces a bare `@alias` declaration. */
+    @Test
+    fun testGotoSymbolFindsBareAlias() {
+        myFixture.addFileToProject("symalias.lua", "--- @alias Side \"'left'\" | \"'right'\"\n")
+        val contributor = LuaGotoSymbolContributor()
+
+        assertTrue("Go to Symbol should enumerate the bare alias name 'Side'", namesOf(contributor).contains("Side"))
+        assertEquals("Go to Symbol should yield the alias item", 1, itemsOf(contributor, "Side").size)
     }
 
     /** TC-NAV-03-02: a global function `Helper` is found by Go to Symbol. */
