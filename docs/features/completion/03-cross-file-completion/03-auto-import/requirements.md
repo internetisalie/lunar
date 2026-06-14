@@ -3,7 +3,7 @@ id: "COMP-03-03"
 title: "COMP-03-03: Auto-import Completion"
 type: "feature"
 parent_id: "COMP-03"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|parent]]"
