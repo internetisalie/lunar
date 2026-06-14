@@ -4,8 +4,10 @@ import java.io.File
 import java.net.ServerSocket
 import java.net.Socket
 
-private val LUA_BIN = "/home/mini/bin/lua"
-private val PROJECT_ROOT = File("/home/mini/Documents/src/lua/lunar")
+// Resolve from the environment so the harness is portable (CI/remote builders), not pinned to one
+// machine: the project root is the gradle working dir; the interpreter is ~/bin/lua.
+private val LUA_BIN = File(System.getProperty("user.home"), "bin/lua").absolutePath
+private val PROJECT_ROOT = File(System.getProperty("user.dir"))
 private val DEBUG_LUA = File(PROJECT_ROOT, "src/main/lua/debug.lua")
 private val MOBDEBUG_DIR = File(PROJECT_ROOT, "src/main/lua")
 
