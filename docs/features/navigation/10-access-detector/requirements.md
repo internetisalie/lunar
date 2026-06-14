@@ -3,7 +3,7 @@ id: "NAV-10"
 title: "10: Access Detector"
 type: "feature"
 parent_id: "NAV"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -17,10 +17,10 @@ This document defines the requirements for detecting how variables are accessed 
 
 | ID | Feature | Expected Behavior | Priority | Status |
 | :--- | :--- | :--- | :---: | :--- |
-| `NAV-10-01` | **Write Detection** | Identify if a variable reference is on the Left-Hand Side (LHS) of an assignment statement. | **S** | Not Implemented |
-| `NAV-10-02` | **Read Detection** | Identify if a variable reference is on the Right-Hand Side (RHS) of an assignment, in an expression, or passed as an argument. | **S** | Not Implemented |
-| `NAV-10-03` | **Highlighting Colors** | Apply different highlight colors for Read vs. Write usages when a variable is selected. | **S** | Not Implemented |
-| `NAV-10-04` | **Find Usages Filter** | Allow "Find Usages" dialog to filter by Read or Write access. | **S** | Not Implemented |
+| `NAV-10-01` | **Write Detection** | Identify if a variable reference is on the Left-Hand Side (LHS) of an assignment statement. | **S** | Full |
+| `NAV-10-02` | **Read Detection** | Identify if a variable reference is on the Right-Hand Side (RHS) of an assignment, in an expression, or passed as an argument. | **S** | Full |
+| `NAV-10-03` | **Highlighting Colors** | Apply different highlight colors for Read vs. Write usages when a variable is selected. | **S** | Full |
+| `NAV-10-04` | **Find Usages Filter** | Allow "Find Usages" dialog to filter by Read or Write access. | **S** | Full |
 
 ## 2. Technical Details
 - Requires implementing a `ReadWriteAccessDetector`.

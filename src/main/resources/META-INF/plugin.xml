@@ -158,6 +158,8 @@
             implementationClass="net.internetisalie.lunar.lang.insight.LuaFindUsagesProvider"/>
     <usageTypeProvider
             implementation="net.internetisalie.lunar.lang.insight.LuaReadWriteUsageTypeProvider"/>
+    <readWriteAccessDetector
+            implementation="net.internetisalie.lunar.lang.insight.LuaReadWriteAccessDetector"/>
     <referencesSearch
             implementation="net.internetisalie.lunar.lang.insight.LuaNameReferenceSearcher"/>
     <lang.refactoringSupport
