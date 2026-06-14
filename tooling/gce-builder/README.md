@@ -45,15 +45,26 @@ GCE_BUILDER_MACHINE=c2-standard-16 GCE_BUILDER_ZONE=northamerica-northeast1-b ./
 Spot is billed only while **running**. Three layers keep it from billing when forgotten:
 
 1. **Hard TTL (native)** — `--max-run-duration` (default `4h`) with `--instance-termination-action=STOP`:
-   GCE auto-stops the VM that long after it starts, regardless of activity.
+   GCE auto-stops the VM that long after it starts, regardless of activity. The ultimate backstop.
 2. **Idle auto-shutdown (on-VM)** — a systemd timer (`lunar-idle.timer`, every 5 min) powers the
-   VM off after `GCE_BUILDER_IDLE_MINUTES` (default `30`) with no established inbound SSH session
-   (sync/run/shell). Handles "ran a build, walked away."
+   VM off after `GCE_BUILDER_IDLE_MINUTES` (default `30`) of no real build activity. Liveness is
+   measured by **CPU loadavg** (busy ⇔ 1-min loadavg ≥ `GCE_BUILDER_IDLE_LOAD_THRESHOLD`, default
+   `1.0`), **not** by SSH-connection presence — so a leaked/background SSH session (agents are
+   known to not reap these) can't pin the VM alive. `sshd` `ClientAliveInterval`/`CountMax` also
+   reap dead/half-open tunnels server-side, and the client sets `ServerAliveInterval` so a killed
+   local process tears its session down rather than leaving a half-open socket. Handles "ran a
+   build, walked away" and "an automation client leaked a connection."
 3. **Manual** — `stop` (halt compute billing) and `delete` / `delete --with-cache` (full teardown).
 
 Both automatic actions **STOP** the VM (disks persist, `start` to resume), so nothing is lost —
 only compute billing halts. The persistent cache disk still costs ~$6/mo until `delete --with-cache`.
-Tune via `GCE_BUILDER_MAX_RUN_DURATION`, `GCE_BUILDER_IDLE_MINUTES`, `GCE_BUILDER_TERMINATION_ACTION`.
+Tune via `GCE_BUILDER_MAX_RUN_DURATION`, `GCE_BUILDER_IDLE_MINUTES`, `GCE_BUILDER_IDLE_LOAD_THRESHOLD`,
+`GCE_BUILDER_TERMINATION_ACTION`.
+
+> Note on leaked SSH sessions: never background a `run`/`shell` (e.g. `&` or an agent's
+> run-in-background). It's no longer *necessary* for safety — idle shutdown ignores connections —
+> but a backgrounded interactive `shell` doing nothing will still be reaped after the idle window,
+> and a backgrounded `run` whose build finished simply wastes the open socket until then.
 
 Optionally, set a project **billing budget alert** (account-level email warning):
 ```bash

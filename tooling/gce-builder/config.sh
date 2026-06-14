@@ -18,9 +18,14 @@ PROVISIONING_MODEL="${GCE_BUILDER_PROVISIONING_MODEL:-SPOT}"
 # --- cost safeguards (auto-termination) ----------------------------------------------------
 # Hard TTL: GCE auto-stops the VM this long after it starts, regardless of activity (belt).
 MAX_RUN_DURATION="${GCE_BUILDER_MAX_RUN_DURATION:-4h}"
-# Idle auto-shutdown: the VM powers itself off after this many minutes with no SSH session
-# (suspenders — see startup-script.sh). Both actions STOP (not delete): disks persist, restartable.
+# Idle auto-shutdown: the VM powers itself off after this many minutes of no real build activity
+# (suspenders — see startup-script.sh). Liveness is measured by CPU loadavg, NOT by SSH-connection
+# presence, so a leaked/background SSH session cannot pin the VM alive. Both actions STOP (not
+# delete): disks persist, restartable.
 IDLE_MINUTES="${GCE_BUILDER_IDLE_MINUTES:-30}"
+# 1-min loadavg at/above which the VM counts as "busy building" (idle Gradle daemon / idle shell
+# / leaked idle SSH all sit well below this on an 8-vCPU box).
+IDLE_LOAD_THRESHOLD="${GCE_BUILDER_IDLE_LOAD_THRESHOLD:-1.0}"
 TERMINATION_ACTION="${GCE_BUILDER_TERMINATION_ACTION:-STOP}"
 
 # Boot disk (ephemeral — re-created with the VM).

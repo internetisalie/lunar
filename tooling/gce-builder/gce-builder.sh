@@ -29,7 +29,11 @@ external_ip()     { gc compute instances describe "$INSTANCE" --zone "$ZONE" \
 # replay piped stdin to a second attempt).
 SSH_FLAGS=(--quiet)
 [ -n "${GCE_BUILDER_TUNNEL_IAP:-}" ] && SSH_FLAGS+=(--tunnel-through-iap)
-ssh_exec() { gc compute ssh "$INSTANCE" --zone "$ZONE" "${SSH_FLAGS[@]}" "$@"; }
+# Client keepalive: if THIS process is killed or the network drops, the server sees no responses
+# and tears the session down (paired with sshd ClientAlive* on the VM) instead of leaving a
+# half-open tunnel that the VM might mistake for activity. Extra args after `--` go to ssh(1).
+SSH_KEEPALIVE=(-o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=30)
+ssh_exec() { gc compute ssh "$INSTANCE" --zone "$ZONE" "${SSH_FLAGS[@]}" "$@" -- "${SSH_KEEPALIVE[@]}"; }
 
 cmd_create() {
   if ! disk_exists; then
@@ -54,7 +58,7 @@ cmd_create() {
       --boot-disk-size "$BOOT_DISK_SIZE" --boot-disk-type pd-balanced \
       --disk "name=$CACHE_DISK,device-name=$CACHE_DEVICE_NAME,mode=rw,boot=no,auto-delete=no" \
       --metadata-from-file startup-script="$DIR/startup-script.sh" \
-      --metadata "idle-minutes=$IDLE_MINUTES" \
+      --metadata "idle-minutes=$IDLE_MINUTES,idle-load-threshold=$IDLE_LOAD_THRESHOLD" \
       --scopes cloud-platform
     log "Safeguards: hard TTL ${MAX_RUN_DURATION} (action ${TERMINATION_ACTION}) + idle auto-shutdown ${IDLE_MINUTES}m."
   fi
@@ -90,7 +94,9 @@ cmd_run() {
   local args="${*:-test}"
   cmd_sync
   log "Running on $INSTANCE: ./gradlew $args"
-  ssh_exec --command "cd '$REMOTE_DIR' && JAVA_HOME='$REMOTE_JAVA_HOME' GRADLE_USER_HOME='$GRADLE_USER_HOME' ./gradlew $args"
+  # Stamp the activity marker at start so the load-based idle check never trips during a build's
+  # brief low-CPU startup window; the build's own CPU load keeps it alive thereafter.
+  ssh_exec --command "touch /var/run/lunar-last-activity 2>/dev/null; cd '$REMOTE_DIR' && JAVA_HOME='$REMOTE_JAVA_HOME' GRADLE_USER_HOME='$GRADLE_USER_HOME' ./gradlew $args"
 }
 
 cmd_status() {
@@ -98,7 +104,7 @@ cmd_status() {
   gc compute instances describe "$INSTANCE" --zone "$ZONE" \
      --format='table(name,status,machineType.basename(),scheduling.provisioningModel,scheduling.instanceTerminationAction,scheduling.maxRunDuration.seconds)'
   log "External IP: $(external_ip 2>/dev/null || echo n/a)"
-  log "Safeguards: hard TTL ${MAX_RUN_DURATION} + idle auto-shutdown ${IDLE_MINUTES}m (maxRunDuration above is in seconds)."
+  log "Safeguards: hard TTL ${MAX_RUN_DURATION} + idle auto-shutdown ${IDLE_MINUTES}m @ loadavg<${IDLE_LOAD_THRESHOLD} (maxRunDuration above is in seconds)."
   disk_exists && log "Cache disk $CACHE_DISK: present (persists across VM delete)."
 }
 

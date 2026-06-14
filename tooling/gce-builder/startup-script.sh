@@ -49,27 +49,48 @@ export GRADLE_USER_HOME="$MOUNT/gradle"
 EOF
 
 # --- idle auto-shutdown safeguard ----------------------------------------------------------
-# Powers the VM off after $IDLE_MINUTES with no established inbound SSH session (sync/run/shell),
-# so a forgotten idle VM stops billing. A guest poweroff -> instance STOPPED (disks persist,
-# restartable). Complements the native --max-run-duration hard TTL set at create time.
-IDLE_MINUTES="$(wget -qO- --header='Metadata-Flavor: Google' \
-  'http://metadata.google.internal/computeMetadata/v1/instance/attributes/idle-minutes' 2>/dev/null || echo 30)"
+# Powers the VM off after $IDLE_MINUTES of no real build activity, so a forgotten VM stops
+# billing. A guest poweroff -> instance STOPPED (disks persist, restartable). Complements the
+# native --max-run-duration hard TTL set at create time.
+#
+# IMPORTANT: liveness is measured by CPU LOAD, *not* by the presence of an SSH connection.
+# An idle agent/automation client is known to leak background SSH sessions; if those counted as
+# "active" they would pin the VM alive indefinitely (defeating this safeguard). An active
+# ./gradlew build drives 1-min loadavg well above the threshold on this many vCPUs, while an
+# idle Gradle daemon, an idle shell, or a leaked-but-idle SSH tunnel all sit near zero — so a
+# leaked connection can no longer keep the VM up. sshd keepalive (below) reaps dead tunnels too.
+meta() { wget -qO- --header='Metadata-Flavor: Google' \
+  "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$1" 2>/dev/null; }
+IDLE_MINUTES="$(meta idle-minutes || echo 30)"; IDLE_MINUTES="${IDLE_MINUTES:-30}"
+LOAD_THRESHOLD="$(meta idle-load-threshold || echo 1.0)"; LOAD_THRESHOLD="${LOAD_THRESHOLD:-1.0}"
 cat >/usr/local/sbin/lunar-idle-check <<EOF
 #!/bin/bash
 IDLE=${IDLE_MINUTES}
+THRESHOLD=${LOAD_THRESHOLD}
 marker=/var/run/lunar-last-activity
-# An established connection to local port 22 = an active sync/run/shell session -> keep alive.
-if ss -tH state established 2>/dev/null | awk '{print \$4}' | grep -q ':22\$'; then
+load1=\$(awk '{print \$1}' /proc/loadavg)
+# Active build -> high load -> keep alive. Idle (incl. a leaked idle SSH session) -> low load.
+if awk "BEGIN{exit !(\$load1 >= \$THRESHOLD)}"; then
   touch "\$marker"; exit 0
 fi
 [ -f "\$marker" ] || touch "\$marker"
 age=\$(( (\$(date +%s) - \$(stat -c %Y "\$marker")) / 60 ))
 [ "\$age" -lt "\$IDLE" ] && exit 0
-logger "lunar-builder: idle \${IDLE}m with no SSH session, powering off to stop billing"
+logger "lunar-builder: idle \${IDLE}m (loadavg \${load1} < \${THRESHOLD}), powering off to stop billing"
 /sbin/poweroff
 EOF
 chmod +x /usr/local/sbin/lunar-idle-check
 touch /var/run/lunar-last-activity
+
+# Reap dead/half-open SSH tunnels server-side: if a client stops responding (its process was
+# killed, network dropped) sshd closes the session after ~ClientAliveInterval*CountMax seconds,
+# so leaked connections don't linger as established sockets.
+cat >/etc/ssh/sshd_config.d/lunar-keepalive.conf <<'EOF'
+ClientAliveInterval 120
+ClientAliveCountMax 3
+TCPKeepAlive yes
+EOF
+systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
 cat >/etc/systemd/system/lunar-idle.service <<'EOF'
 [Unit]
 Description=Lunar builder idle auto-shutdown check
