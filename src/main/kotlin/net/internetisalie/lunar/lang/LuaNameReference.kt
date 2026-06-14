@@ -239,9 +239,22 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
     }
 
     override fun isReferenceTo(element: PsiElement): Boolean {
-        return element.elementType == LuaElementTypes.IDENTIFIER &&
-                element.text == name &&
-                resolve() === element
+        // A declaration's own name is not a usage of itself — exclude it from Find Usages
+        // (otherwise the declaration site, which resolves to itself, is counted as a usage).
+        val self = myElement
+        if (self is LuaNameRef && self.identifier === element) return false
+        if (element.elementType != LuaElementTypes.IDENTIFIER || element.text != name) return false
+        val resolved = resolve() ?: return false
+        // Phase-1 (local) resolution returns the IDENTIFIER leaf; Phase-2 (stub-index, cross-file)
+        // returns the declaration element — normalize the latter to its name identifier so a
+        // cross-file usage still matches the declaration's leaf target.
+        return resolved === element || declarationIdentifier(resolved) === element
+    }
+
+    private fun declarationIdentifier(decl: PsiElement): PsiElement? = when (decl) {
+        is LuaFuncDecl -> decl.funcName.funcNameMethod?.nameRef?.identifier ?: decl.funcName.nameRef.identifier
+        is LuaLocalVarDecl -> decl.attNameList.firstOrNull()?.nameRef?.identifier
+        else -> null
     }
 
     override fun getVariants(): Array<Any> {

@@ -149,7 +149,11 @@
 
     <lang.findUsagesProvider
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.insight.LuaLabelFindUsagesProvider"/>
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaFindUsagesProvider"/>
+    <usageTypeProvider
+            implementation="net.internetisalie.lunar.lang.insight.LuaReadWriteUsageTypeProvider"/>
+    <referencesSearch
+            implementation="net.internetisalie.lunar.lang.insight.LuaNameReferenceSearcher"/>
     <lang.refactoringSupport
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaLabelRefactoringSupportProvider"/>

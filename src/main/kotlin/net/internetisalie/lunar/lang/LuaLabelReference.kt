@@ -7,7 +7,7 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.LuaIcons.FILE
 import net.internetisalie.lunar.lang.psi.LuaLabel
-import net.internetisalie.lunar.lang.psi.LuaLabelRef
+import net.internetisalie.lunar.lang.psi.LuaLabelName
 
 class LuaLabelReference(element: PsiElement, textRange: TextRange) :
     PsiReferenceBase<PsiElement?>(element, textRange), PsiPolyVariantReference {
@@ -30,9 +30,12 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
     }
 
     override fun isReferenceTo(element: PsiElement): Boolean {
-        return (element is LuaLabelRef) &&
-                element.identifier?.text == name &&
-                resolve() === element
+        // resolve() returns the label's IDENTIFIER leaf. Find Usages / ReferencesSearch
+        // targets the LuaLabelName (a PsiNamedElement) whose name drives the word scan;
+        // accept either that owner or its identifier leaf so the reverse search matches.
+        val resolved = resolve() ?: return false
+        val target = if (element is LuaLabelName) element.identifier ?: element.firstChild else element
+        return resolved === target && resolved.text == name
     }
 
     override fun getVariants(): Array<Any> {

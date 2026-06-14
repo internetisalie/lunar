@@ -3,7 +3,7 @@ id: "NAV-02"
 title: "02: Find Usages"
 type: "feature"
 parent_id: "NAV"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -17,8 +17,8 @@ This document defines the requirements for finding references to a specific symb
 
 | ID | Feature | Expected Behavior | Priority | Status |
 | :--- | :--- | :--- | :---: | :--- |
-| `NAV-02-01` | **Local Variable Usages** | Find all reads and writes of a local variable within its scope. | **M** | Partial |
-| `NAV-02-02` | **Global Symbol Usages** | Find all usages of a global function or variable across the entire project, using the stub index. | **M** | Not Implemented |
+| `NAV-02-01` | **Local Variable Usages** | Find all reads and writes of a local variable within its scope. | **M** | Full |
+| `NAV-02-02` | **Global Symbol Usages** | Find all usages of a global function or variable across the entire project, using the stub index. | **M** | Full |
 | `NAV-02-03` | **Label Usages** | Find all `goto` statements referencing a specific label within a function scope. | **S** | Full |
 | `NAV-02-04` | **Table Field Usages** | Find usages of a specific table field, differentiating by type if possible, or offering broad text-based searches. | **C** | Not Implemented |
 | `NAV-02-05` | **LuaCATS Type Usages** | Find usages of a LuaCATS type definition (e.g., where a `@class` is used in `@type` annotations). | **S** | Not Implemented |
