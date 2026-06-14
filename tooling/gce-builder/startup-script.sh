@@ -8,9 +8,15 @@ echo "=== lunar-builder bootstrap $(date -u) ==="
 export DEBIAN_FRONTEND=noninteractive
 
 # --- packages (skip if already present so reboots are fast) ---------------------------------
-if ! command -v git >/dev/null || ! command -v rsync >/dev/null; then
+# fontconfig + a base font are REQUIRED: IntelliJ editor/inlay tests initialize an editor color
+# scheme, which calls into AWT FontManager. On a headless minimal image with no fonts this throws
+# "Fontconfig head is null, check your fonts or fonts configuration" and every editor-touching
+# test fails. fonts-dejavu-core provides a font set; fontconfig provides the config/cache.
+if ! command -v git >/dev/null || ! command -v rsync >/dev/null || ! command -v fc-cache >/dev/null; then
   apt-get update -y
-  apt-get install -y --no-install-recommends git rsync wget ca-certificates python3 tar
+  apt-get install -y --no-install-recommends \
+    git rsync wget ca-certificates python3 tar fontconfig fonts-dejavu-core
+  fc-cache -f >/dev/null 2>&1 || true
 fi
 
 # --- persistent cache disk: format once, then mount at /opt/cache --------------------------
