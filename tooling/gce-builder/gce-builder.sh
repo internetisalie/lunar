@@ -104,7 +104,7 @@ cmd_status() {
   gc compute instances describe "$INSTANCE" --zone "$ZONE" \
      --format='table(name,status,machineType.basename(),scheduling.provisioningModel,scheduling.instanceTerminationAction,scheduling.maxRunDuration.seconds)'
   log "External IP: $(external_ip 2>/dev/null || echo n/a)"
-  log "Safeguards: hard TTL ${MAX_RUN_DURATION} + idle auto-shutdown ${IDLE_MINUTES}m @ loadavg<${IDLE_LOAD_THRESHOLD} (maxRunDuration above is in seconds)."
+  log "Safeguards: hard TTL ${MAX_RUN_DURATION} (the cap) + idle early-stop ${IDLE_MINUTES}m when no SSH session & loadavg<${IDLE_LOAD_THRESHOLD} (maxRunDuration above is in seconds)."
   disk_exists && log "Cache disk $CACHE_DISK: present (persists across VM delete)."
 }
 

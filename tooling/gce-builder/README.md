@@ -42,18 +42,26 @@ GCE_BUILDER_MACHINE=c2-standard-16 GCE_BUILDER_ZONE=northamerica-northeast1-b ./
 ```
 
 ## Cost control & auto-termination safeguards
-Spot is billed only while **running**. Three layers keep it from billing when forgotten:
+Spot is billed only while **running**. The design is *one hard guarantee plus a friendly
+early-stop*, so worst-case billing is bounded and the VM isn't killed out from under active use:
 
-1. **Hard TTL (native)** — `--max-run-duration` (default `4h`) with `--instance-termination-action=STOP`:
-   GCE auto-stops the VM that long after it starts, regardless of activity. The ultimate backstop.
-2. **Idle auto-shutdown (on-VM)** — a systemd timer (`lunar-idle.timer`, every 5 min) powers the
-   VM off after `GCE_BUILDER_IDLE_MINUTES` (default `30`) of no real build activity. Liveness is
-   measured by **CPU loadavg** (busy ⇔ 1-min loadavg ≥ `GCE_BUILDER_IDLE_LOAD_THRESHOLD`, default
-   `1.0`), **not** by SSH-connection presence — so a leaked/background SSH session (agents are
-   known to not reap these) can't pin the VM alive. `sshd` `ClientAliveInterval`/`CountMax` also
-   reap dead/half-open tunnels server-side, and the client sets `ServerAliveInterval` so a killed
-   local process tears its session down rather than leaving a half-open socket. Handles "ran a
-   build, walked away" and "an automation client leaked a connection."
+1. **Hard TTL — the guarantee** — `--max-run-duration` (default `2h`) with
+   `--instance-termination-action=STOP`: GCE auto-stops the VM that long after it starts,
+   regardless of activity. This bounds worst-case billing for *any* failure (leak, hang, forgotten
+   VM) to a single TTL — cents at spot pricing — so nothing below needs to be bulletproof.
+2. **Idle early-stop (on-VM)** — a systemd timer (`lunar-idle.timer`, every 5 min) powers the VM
+   off after `GCE_BUILDER_IDLE_MINUTES` (default `30`) **only when genuinely abandoned**: no live
+   SSH session **and** CPU 1-min loadavg below `GCE_BUILDER_IDLE_LOAD_THRESHOLD` (default `1.0`).
+   So an interactive or intermittent session keeps it up — it is *not* killed merely because no
+   build is running this instant. Leak handling lives in the layers around it, not in refusing to
+   count connections: `sshd` `ClientAliveInterval`/`CountMax` reap **dead/half-open** tunnels in
+   ~6 min (a killed agent's leaked connection stops counting shortly after), the client sets
+   `ServerAliveInterval` so a dying local process tears its own session down, and a **live-but-idle**
+   leaked session is bounded by the hard TTL above.
+
+   > Caveat on measurement: load is *sampled* every 5 min (the kernel's 1-min rolling average), not
+   > continuously accounted — adequate because a `run`/`shell` holds its SSH session for the whole
+   > duration (always observed) and a connection-less build is caught by the load test.
 3. **Manual** — `stop` (halt compute billing) and `delete` / `delete --with-cache` (full teardown).
 
 Both automatic actions **STOP** the VM (disks persist, `start` to resume), so nothing is lost —
@@ -61,10 +69,9 @@ only compute billing halts. The persistent cache disk still costs ~$6/mo until `
 Tune via `GCE_BUILDER_MAX_RUN_DURATION`, `GCE_BUILDER_IDLE_MINUTES`, `GCE_BUILDER_IDLE_LOAD_THRESHOLD`,
 `GCE_BUILDER_TERMINATION_ACTION`.
 
-> Note on leaked SSH sessions: never background a `run`/`shell` (e.g. `&` or an agent's
-> run-in-background). It's no longer *necessary* for safety — idle shutdown ignores connections —
-> but a backgrounded interactive `shell` doing nothing will still be reaped after the idle window,
-> and a backgrounded `run` whose build finished simply wastes the open socket until then.
+> Note on leaked SSH sessions: prefer not to background a `run`/`shell` (e.g. `&` or an agent's
+> run-in-background). A live idle session counts as "busy" and keeps the VM up until the hard TTL
+> — bounded (cents), but wasteful. A *dead* backgrounded session is reaped by keepalive in ~6 min.
 
 Optionally, set a project **billing budget alert** (account-level email warning):
 ```bash
