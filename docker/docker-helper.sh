@@ -83,6 +83,22 @@ case "${1:-help}" in
             RUN_CMD="$RUN_CMD -v \"$TEST_PROJECT_PATH\":/home/lunar/test"
         fi
 
+        # Optional: persist the IDE config dir (which holds the license key goland.key) across
+        # container recreations, so a one-time "Start Trial"/activation survives. This is the only
+        # prompt that can't be pre-seeded into the image (the license is account/trial-bound).
+        #   LUNAR_PERSIST_CONFIG=1        -> docker named volume 'lunar-ide-config'
+        #   LUNAR_PERSIST_CONFIG=/abs/dir -> bind-mount that host directory
+        # NOTE: only ~/.config/JetBrains is persisted; ~/.local/share/JetBrains is intentionally
+        # left alone because the bundled Lunar plugin lives there and a volume would shadow it.
+        if [ -n "${LUNAR_PERSIST_CONFIG:-}" ]; then
+            case "$LUNAR_PERSIST_CONFIG" in
+                1|true|yes) CONFIG_SRC="lunar-ide-config" ;;
+                *)          CONFIG_SRC="$LUNAR_PERSIST_CONFIG" ;;
+            esac
+            RUN_CMD="$RUN_CMD -v \"$CONFIG_SRC\":/home/lunar/.config/JetBrains"
+            print_info "Persisting IDE config (license) via: $CONFIG_SRC -> /home/lunar/.config/JetBrains"
+        fi
+
         RUN_CMD="$RUN_CMD lunar-ide:latest"
         
         eval $RUN_CMD

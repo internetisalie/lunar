@@ -102,9 +102,20 @@ open project (no VNC clicking required):
 - **Project trust** — seeds `trusted-paths.xml` for the mounted `/home/lunar/test`.
 
 **Not auto-bypassed: the license.** GoLand is commercial, so the *License / Register* dialog still
-appears on a fresh container — a license can't be baked into the image (it's account/trial-bound).
-Options: click **Start Trial** once, or persist the IDE config dir on a volume so a one-time
-activation survives restarts, or supply a license via your usual JetBrains mechanism.
+appears on a fresh container — a license can't be baked into the image (it's signed and
+account/trial-bound; it's saved to `~/.config/JetBrains/<product>/goland.key`). To make it a
+**one-time** step, persist the config dir across container recreations:
+
+```bash
+# docker named volume (survives 'run' which recreates the container):
+LUNAR_PERSIST_CONFIG=1 ./docker-helper.sh run
+# ...or bind-mount a host directory:
+LUNAR_PERSIST_CONFIG=$HOME/.lunar-ide-config ./docker-helper.sh run
+```
+
+First run → click **Start Trial** (or activate) once; every subsequent `run` then boots straight
+into the licensed IDE with no prompts. Only `~/.config/JetBrains` is persisted (where `goland.key`
+lives); `~/.local/share/JetBrains` is left alone so the bundled Lunar plugin isn't shadowed.
 
 ## Docker Helper Commands
 

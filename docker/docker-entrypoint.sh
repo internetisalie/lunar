@@ -120,6 +120,10 @@ case "$COMMAND" in
             export "$(echo "$PROD" | tr '[:lower:]' '[:upper:]')_VM_OPTIONS=$CUSTOM_VMOPTS"
             [ -n "${LUNAR_DEBUG:-}" ] && echo "[*] JDWP enabled on ${JDWP_PORT:-5005} (attach: docker exec -it lunar-ide jdb -attach localhost:${JDWP_PORT:-5005})"
 
+            # A persisted-config mount (LUNAR_PERSIST_CONFIG) can arrive root-owned (a fresh docker
+            # named volume); make it writable by the IDE user before the IDE/seed touch it.
+            sudo chown -R "$(id -u):$(id -g)" "$HOME/.config/JetBrains" 2>/dev/null || true
+
             # Pre-accept EULA / data-sharing / project-trust so startup isn't blocked.
             seed_ide_first_run
 
