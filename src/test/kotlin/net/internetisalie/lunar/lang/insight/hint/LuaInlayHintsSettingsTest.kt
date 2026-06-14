@@ -133,8 +133,41 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
-        // Note: Currently no logic in the provider, so this just verifies the provider is called without error
+        // A multi-line chain shows the resolved return type after the intermediate call.
         doLuaTestProvider("test.lua", """
+            ---@class Builder
+            local Builder = {}
+
+            ---@return Builder
+            function Builder:m1() end
+
+            ---@return Builder
+            function Builder:m2() end
+
+            local obj = Builder
+            obj:m1()
+               :m2()/*<# : Builder #>*/
+        """.trimIndent(), LuaMethodChainInlayHintProvider())
+    }
+
+    fun testMethodChainHintsDisabled() {
+        // Disable method chain hints; no hints should be emitted even for a multi-line chain.
+        setOptionEnabled(LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID, false)
+        setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
+        setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
+        setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
+
+        doLuaTestProvider("test.lua", """
+            ---@class Builder
+            local Builder = {}
+
+            ---@return Builder
+            function Builder:m1() end
+
+            ---@return Builder
+            function Builder:m2() end
+
+            local obj = Builder
             obj:m1()
                :m2()
         """.trimIndent(), LuaMethodChainInlayHintProvider())
