@@ -132,24 +132,24 @@ tasks {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
 
-    register("ktlintCheck") {
+    register<JavaExec>("ktlintCheck") {
         group = "verification"
         description = "Check Kotlin code style with ktlint"
-        doFirst {
-            val ktlintJar = ktlintConfig.files.first { it.name.contains("ktlint-cli") }
-            println("ktlint check with: ${ktlintJar.absolutePath}")
-            println("Run: java -jar ${ktlintJar.absolutePath} --reporter=plain src/**/*.kt")
-        }
+        classpath = ktlintConfig
+        mainClass.set("com.pinterest.ktlint.Main")
+        // ktlint discovers .editorconfig from each file's directory upward.
+        args("src/**/*.kt")
+        // ktlint 1.x performs reflective access that JDK 17+ blocks by default.
+        jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
     }
 
-    register("ktlintFormat") {
+    register<JavaExec>("ktlintFormat") {
         group = "formatting"
         description = "Format Kotlin code with ktlint"
-        doFirst {
-            val ktlintJar = ktlintConfig.files.first { it.name.contains("ktlint-cli") }
-            println("ktlint format with: ${ktlintJar.absolutePath}")
-            println("Run: java -jar ${ktlintJar.absolutePath} -F src/**/*.kt")
-        }
+        classpath = ktlintConfig
+        mainClass.set("com.pinterest.ktlint.Main")
+        args("-F", "src/**/*.kt")
+        jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
     }
 
     register<Exec>("lintDocs") {
