@@ -13,26 +13,32 @@ import com.intellij.util.io.KeyDescriptor
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgName
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import org.jetbrains.annotations.NonNls
 import java.io.DataInput
 import java.io.DataOutput
 
-private val LuaAliasNameIndexId: @NonNls ID<String, String> = ID.create("lunar.luacats.alias.name")
+private val LuaCatsTypeNameIndexId: @NonNls ID<String, String> = ID.create("lunar.luacats.typename")
 
 /**
- * File-based index of every LuaCATS `@alias` name (NAV-03-04).
+ * File-based index of every LuaCATS type name — both `@class` (NAV-03-01) and `@alias` (NAV-03-04).
  *
- * Unlike [LuaAliasIndex] — a stub index keyed on the `LuaLocalVarDecl` a `@alias` happens to sit
- * above — this captures the alias straight from its `LuaCatsAliasTag`, so a *bare*
- * `--- @alias Name type` comment (the normal LuaCATS form, with no following `local Name = {}`) is
- * found too. The value is unused; navigation re-resolves the tag PSI on demand
- * (see [net.internetisalie.lunar.lang.navigation.LuaAliasNavigation]).
+ * Unlike the stub indexes (`LuaClassNameIndex` / `LuaAliasIndex`), which read the name off the stub of
+ * whatever `LuaLocalVarDecl` a tag happens to sit above, this reads it straight from the
+ * `LuaCatsClassTag` / `LuaCatsAliasTag`. So a *bare* `--- @class Name` / `--- @alias Name` (the normal
+ * LuaCATS form, with no following `local Name = {}`) is indexed too. The value is unused; navigation
+ * re-resolves the tag PSI on demand and derives the kind/icon from it (see
+ * [net.internetisalie.lunar.lang.navigation.LuaCatsTypeNavigation]).
+ *
+ * Note the name-slot asymmetry: a class name is the tag's `LuaCatsArgType`, an alias name its
+ * `LuaCatsArgName` (mirrors `LuaLocalVarStubElementType.createStub`).
  */
-class LuaAliasNameIndex : FileBasedIndexExtension<String, String>() {
+class LuaCatsTypeNameIndex : FileBasedIndexExtension<String, String>() {
     private val externalizer: DataExternalizer<String> = StringDataExternalizer()
     private val indexer: DataIndexer<String, String, FileContent> = Indexer()
 
-    override fun getName(): ID<String, String> = LuaAliasNameIndexId
+    override fun getName(): ID<String, String> = LuaCatsTypeNameIndexId
     override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
     override fun getValueExternalizer(): DataExternalizer<String> = externalizer
     override fun getIndexer(): DataIndexer<String, String, FileContent> = indexer
@@ -57,6 +63,10 @@ class LuaAliasNameIndex : FileBasedIndexExtension<String, String>() {
             val psiFile = inputData.psiFile
             if (psiFile !is LuaFile) return emptyMap()
             val result = mutableMapOf<String, String>()
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaCatsClassTag::class.java).forEach { tag ->
+                val name = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java)?.text?.trim()
+                if (!name.isNullOrEmpty()) result[name] = ""
+            }
             PsiTreeUtil.findChildrenOfType(psiFile, LuaCatsAliasTag::class.java).forEach { tag ->
                 val name = PsiTreeUtil.getChildOfType(tag, LuaCatsArgName::class.java)?.text?.trim()
                 if (!name.isNullOrEmpty()) result[name] = ""
@@ -66,6 +76,6 @@ class LuaAliasNameIndex : FileBasedIndexExtension<String, String>() {
     }
 
     companion object {
-        val KEY: ID<String, String> = LuaAliasNameIndexId
+        val KEY: ID<String, String> = LuaCatsTypeNameIndexId
     }
 }

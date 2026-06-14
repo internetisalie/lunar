@@ -27,7 +27,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 
 ### IDE Features
 - **Navigation**: Symbol resolution and cross-file references
-- **Go to Alias**: Go to Class / Go to Symbol now find bare `--- @alias` declarations (the normal LuaCATS form with no following `local`), not only aliases attached to a local declaration
+- **Go to Type (bare `@class`/`@alias`)**: Go to Class / Go to Symbol now find bare `--- @class` and `--- @alias` declarations (pure type-level forms with no following `local`), not only types attached to a local declaration
 - **Structure View**: Outline view of file structure
 - **Code Completion**: Intelligent completion for variables, functions, and members
 - **Type-Inferred Member Completion**: Completing after `.`/`:` now suggests a receiver's inferred members (fields and methods, with icons), including inherited `@class` members, `self` inside methods, and members exposed through `setmetatable`'s `__index`

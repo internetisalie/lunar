@@ -58,6 +58,24 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
     }
 
     /**
+     * A *bare* `@class` comment — no following `local`, a pure type-level declaration — is found by
+     * Go to Class. Same latent gap as bare `@alias`, fixed by the shared file-based type index.
+     */
+    @Test
+    fun testGotoClassFindsBareClass() {
+        myFixture.addFileToProject("bare.lua", "--- @class Bob\n--- @field name string\n")
+        val contributor = LuaGotoClassContributor()
+
+        assertTrue("processNames should enumerate the bare class name 'Bob'", namesOf(contributor).contains("Bob"))
+
+        val items = itemsOf(contributor, "Bob")
+        assertEquals("Expected one Go-to-Class item for the bare class 'Bob'", 1, items.size)
+        assertEquals("Bare class item name must be the index key", "Bob", items.first().name)
+        assertEquals("Bare class item should locate to bare.lua", "bare.lua", items.first().presentation?.locationString)
+        assertTrue("Bare class item should be navigable", items.first().canNavigate())
+    }
+
+    /**
      * TC-NAV-03-04: a *bare* `@alias` comment — no following `local`, the normal LuaCATS form — is
      * found by Go to Class. This is the realistic case the stub-only index missed.
      */
