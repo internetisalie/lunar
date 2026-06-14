@@ -3,7 +3,7 @@ id: "SYNTAX-17"
 title: "17: Inferred-Type Highlighting"
 type: "feature"
 parent_id: "SYNTAX"
-status: "planned"
+status: "done"
 priority: "low"
 folders:
   - "[[features/syntax/requirements|requirements]]"
@@ -46,3 +46,12 @@ carries the expected `forcedTextAttributesKey` (the keys defined in design §2.2
 | `TC-03` | `local t = {}; t.data = 1; function t:func() end; t.data; t:func()` | the member `data` carries `INFERRED_FIELD`; the member `func` carries `INFERRED_METHOD`. |
 | `TC-04` | `print("hi")` | `print` carries `INFERRED_GLOBAL_CALL` (resolves to a non-local function). |
 | `TC-05` | indexing in progress (dumb mode) | `classify` returns null for all identifiers (no forced attributes). |
+
+## Implementation status
+
+Implemented by `LuaInferredTypeAnnotator` (`lang/syntax/`). 17-01 (call sites), 17-02 (class refs)
+and 17-04 (dumb-mode/background pass) are Full. 17-03 (field vs method) is Partial: data fields and
+assignment-registered methods (`t.func = function`) are distinguished, but colon-declared methods
+(`function t:func()`) are not class members in the type engine (see the type-engine idioms in the
+agent guide), so they are colored best-effort. TC-05 is verified by invoking the annotator directly
+in dumb mode (calling `doHighlighting` inside a forced dumb block deadlocks).
