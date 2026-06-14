@@ -316,6 +316,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.hierarchy.LuaTypeHierarchyProvider"/>
 
+    <highlightUsagesHandlerFactory
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaReturnHighlightUsagesHandlerFactory"/>
+
   </extensions>
 
   <actions>

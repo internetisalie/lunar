@@ -3,7 +3,7 @@ id: "NAV-09"
 title: "09: Return Highlighter"
 type: "feature"
 parent_id: "NAV"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
