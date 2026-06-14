@@ -30,12 +30,6 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         }
     }
 
-    private fun setProviderEnabled(providerId: String, enabled: Boolean) {
-        WriteAction.run<RuntimeException> {
-            DeclarativeInlayHintsSettings.getInstance().setProviderEnabled(providerId, enabled)
-        }
-    }
-
     fun testLocalVariableHintsDisabled() {
         // Disable local variable hints
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)

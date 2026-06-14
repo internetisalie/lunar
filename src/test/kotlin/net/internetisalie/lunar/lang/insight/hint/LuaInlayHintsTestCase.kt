@@ -10,6 +10,7 @@ import com.intellij.codeInsight.hints.declarative.impl.views.InlayPresentationLi
 import com.intellij.codeInsight.hints.declarative.impl.views.TextInlayPresentationEntry
 import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.testFramework.utils.inlays.declarative.DeclarativeInlayHintsProviderTestCase
 import java.io.File
@@ -96,8 +97,68 @@ abstract class LuaInlayHintsTestCase : DeclarativeInlayHintsProviderTestCase() {
         assertEquals(expectedText.trim(), dump.trim())
     }
 
+    // (optionId -> providerId) and providerIds whose enabled-state this harness manages. These are
+    // application-level (JVM-wide) settings, so a test that toggles them MUST restore them or it
+    // pollutes every later inlay test in the same JVM (e.g. disabling a provider => no hints).
+    private val managedOptions: List<Pair<String, String>> = listOf(
+        LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID to LuaTypeInlayHintProvider.PROVIDER_ID,
+        LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID to LuaTypeInlayHintProvider.PROVIDER_ID,
+        LuaTypeInlayHintProvider.RESPECT_ANNOTATIONS_OPTION_ID to LuaTypeInlayHintProvider.PROVIDER_ID,
+        LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID to LuaMethodChainInlayHintProvider.PROVIDER_ID,
+    )
+    private val managedProviders: List<String> = listOf(
+        LuaTypeInlayHintProvider.PROVIDER_ID,
+        LuaParameterInlayHintsProvider.PROVIDER_ID,
+        LuaMethodChainInlayHintProvider.PROVIDER_ID,
+    )
+
+    private val savedOptions = mutableMapOf<Pair<String, String>, Boolean?>()
+    private val savedProviders = mutableMapOf<String, Boolean?>()
+    private var savedThreshold: Int = 0
+
+    /** Enables or disables an inlay option; subclasses use this to drive setting-dependent tests. */
+    protected fun setOptionEnabled(optionId: String, providerId: String, enabled: Boolean) {
+        WriteAction.run<RuntimeException> {
+            DeclarativeInlayHintsSettings.getInstance().setOptionEnabled(optionId, providerId, enabled)
+        }
+    }
+
+    /** Enables or disables an inlay provider; subclasses use this to drive setting-dependent tests. */
+    protected fun setProviderEnabled(providerId: String, enabled: Boolean) {
+        WriteAction.run<RuntimeException> {
+            DeclarativeInlayHintsSettings.getInstance().setProviderEnabled(providerId, enabled)
+        }
+    }
+
     override fun setUp() {
         super.setUp()
+        val settings = DeclarativeInlayHintsSettings.getInstance()
+        // Snapshot the JVM-wide inlay settings so tearDown can restore them exactly.
+        managedOptions.forEach { (optionId, providerId) ->
+            savedOptions[optionId to providerId] = settings.isOptionEnabled(optionId, providerId)
+        }
+        managedProviders.forEach { savedProviders[it] = settings.isProviderEnabled(it) }
+        savedThreshold = LuaInlayHintsSettings.instance.state.largeFileThreshold
+
+        // Establish a clean, fully-enabled baseline so every inlay test starts from the same state
+        // regardless of what a prior test left behind.
+        managedOptions.forEach { (optionId, providerId) -> setOptionEnabled(optionId, providerId, true) }
+        managedProviders.forEach { setProviderEnabled(it, true) }
         LuaInlayHintsSettings.instance.state.largeFileThreshold = 100000
+    }
+
+    override fun tearDown() {
+        try {
+            val settings = DeclarativeInlayHintsSettings.getInstance()
+            savedOptions.forEach { (key, value) ->
+                if (value != null) setOptionEnabled(key.first, key.second, value)
+            }
+            savedProviders.forEach { (providerId, value) ->
+                if (value != null) setProviderEnabled(providerId, value)
+            }
+            LuaInlayHintsSettings.instance.state.largeFileThreshold = savedThreshold
+        } finally {
+            super.tearDown()
+        }
     }
 }
