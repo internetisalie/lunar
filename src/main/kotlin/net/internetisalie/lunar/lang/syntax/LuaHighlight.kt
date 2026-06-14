@@ -105,4 +105,15 @@ object LuaHighlight {
 
     val ATTRIB_NAME: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_ATTR_NAME", DefaultLanguageHighlighterColors.IDENTIFIER)
+
+    val INFERRED_LOCAL_CALL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_LOCAL_CALL", DefaultLanguageHighlighterColors.FUNCTION_CALL)
+    val INFERRED_GLOBAL_CALL: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_GLOBAL_CALL", DefaultLanguageHighlighterColors.FUNCTION_CALL)
+    val INFERRED_CLASS: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_CLASS", DefaultLanguageHighlighterColors.CLASS_NAME)
+    val INFERRED_FIELD: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_FIELD", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
+    val INFERRED_METHOD: TextAttributesKey =
+        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_METHOD", DefaultLanguageHighlighterColors.INSTANCE_METHOD)
 }

@@ -150,6 +150,11 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("color.call.global", LuaHighlight.CALL_GLOBAL),
         Pair("color.call.local", LuaHighlight.CALL_LOCAL),
         Pair("color.attrib", LuaHighlight.ATTRIB_NAME),
+        Pair("color.inferred.localCall", LuaHighlight.INFERRED_LOCAL_CALL),
+        Pair("color.inferred.globalCall", LuaHighlight.INFERRED_GLOBAL_CALL),
+        Pair("color.inferred.class", LuaHighlight.INFERRED_CLASS),
+        Pair("color.inferred.field", LuaHighlight.INFERRED_FIELD),
+        Pair("color.inferred.method", LuaHighlight.INFERRED_METHOD),
     )
         .map { pair: Pair<String, TextAttributesKey> ->
             AttributesDescriptor(
@@ -178,6 +183,11 @@ class LuaColorSettingsPage : ColorSettingsPage {
         Pair("call-global", LuaHighlight.CALL_GLOBAL),
         Pair("call-local", LuaHighlight.CALL_LOCAL),
         Pair("attrib-name", LuaHighlight.ATTRIB_NAME),
+        Pair("inferred-local-call", LuaHighlight.INFERRED_LOCAL_CALL),
+        Pair("inferred-global-call", LuaHighlight.INFERRED_GLOBAL_CALL),
+        Pair("inferred-class", LuaHighlight.INFERRED_CLASS),
+        Pair("inferred-field", LuaHighlight.INFERRED_FIELD),
+        Pair("inferred-method", LuaHighlight.INFERRED_METHOD),
         // Docs
         Pair("documentation", LuaHighlight.DOC_COMMENT),
         Pair("documentation-tag", LuaHighlight.DOC_TAG),
