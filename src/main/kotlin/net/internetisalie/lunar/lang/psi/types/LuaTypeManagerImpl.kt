@@ -11,6 +11,8 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
+import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
@@ -173,7 +175,65 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             }
         }
         LuaImplicitFields.collect(name, decls, membersMap)
+        // Method-aware members: `function Class:m` / `function Class.fn` declarations are not
+        // captured as @field/implicit members, so resolveMember would miss them otherwise.
+        collectMethodMembers(name, membersMap)
         return LuaClassType(name, superTypes, membersMap)
+    }
+
+    /**
+     * Enumerate every `function <className>:method` and `function <className>.fn` declaration
+     * project-wide via [LuaGlobalDeclarationIndex] key iteration, reading from stubs only, and
+     * add them as function-typed members. The result is memoized by the caller (materializeClass
+     * is cached in [typeCache], invalidated on PSI modification).
+     */
+    private fun collectMethodMembers(className: String, membersMap: MutableMap<String, LuaTypeMember>) {
+        val scope = GlobalSearchScope.projectScope(project)
+        val colonPrefix = "$className:"
+        val dotPrefix = "$className."
+        val allKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
+        for (key in allKeys) {
+            val isColon = key.startsWith(colonPrefix)
+            val isDot = key.startsWith(dotPrefix)
+            if (!isColon && !isDot) continue
+            val memberName = key.substring(className.length + 1)
+            // Skip nested qualifiers (e.g. "Foo.bar.baz" when collecting members of "Foo")
+            if (memberName.contains('.') || memberName.contains(':')) continue
+            if (membersMap.containsKey(memberName)) continue
+
+            val decls = StubIndex.getElements(
+                LuaGlobalDeclarationIndex.KEY,
+                key,
+                project,
+                scope,
+                LuaFuncDecl::class.java,
+            )
+            val decl = decls.firstOrNull() ?: continue
+            val fnType = funcTypeFromStub(className, decl)
+            membersMap[memberName] = LuaTypeMember(memberName, fnType, sourceElement = decl)
+        }
+    }
+
+    private fun funcTypeFromStub(className: String, decl: LuaFuncDecl): LuaType {
+        // Prefer the stub (no AST load) but fall back to the cats comment for AST-backed decls —
+        // the stub is null when the method is declared in the file currently being edited, where
+        // resolving its `---@return` still matters (NAV-05/06, parameter hints). Mirrors how
+        // materializeClass reads @field from either the stub or LuaPsiImplUtil.getCatsComment.
+        val stub = decl.stub
+        val cats = if (stub == null) net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl) else null
+        val paramTypes: Map<String, String> = stub?.luacatsParamTypes
+            ?: cats?.getParamTagList()?.associate { (it.argName?.text ?: "") to it.argType.text }
+            ?: emptyMap()
+        val rawReturn = stub?.luacatsReturnType ?: cats?.getReturnTagList()?.firstOrNull()?.argType?.text
+
+        val params = paramTypes.map { (pName, pType) -> LuaParameter(pName, LuaTypeReference(pType, decl)) }
+        // `---@return self` parses to a type literally named "self"; substitute the receiver class.
+        val returnType: LuaType = when {
+            rawReturn == null -> LuaPrimitiveType.UNKNOWN
+            rawReturn == "self" -> LuaTypeReference(className, decl)
+            else -> LuaTypeReference(rawReturn, decl)
+        }
+        return LuaFunctionType(params, returnType)
     }
 
     private fun materializeAlias(name: String, decl: LuaLocalVarDecl): LuaType {

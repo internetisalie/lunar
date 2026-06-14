@@ -558,7 +558,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         elementNodes[o] = listOf(boundNode)
     }
 
-    fun buildSnapshot(): LuaTypesSnapshot = LuaTypesSnapshot(graph, elementNodes.toMap(), fileReturnType)
+    fun buildSnapshot(contextFile: PsiFile? = null): LuaTypesSnapshot =
+        LuaTypesSnapshot(graph, elementNodes.toMap(), fileReturnType, contextFile)
 
     private fun visitFunctionBody(
         element: PsiElement,
@@ -649,7 +650,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val visitor = LuaTypesVisitor()
             file.accept(visitor)
             visitor.graph.checkTypes()
-            return visitor.buildSnapshot()
+            return visitor.buildSnapshot(file)
         }
     }
 }

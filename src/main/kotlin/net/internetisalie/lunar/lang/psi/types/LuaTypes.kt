@@ -42,6 +42,8 @@ class LuaTypesSnapshot(
     /** Maps each PSI element to the graph node that represents its inferred type. */
     private val elementNodes: Map<PsiElement, List<TypeNode>>,
     private val fileReturnType: LuaGraphType = LuaGraphType.Any,
+    /** The file this snapshot was built for — the context handle for nominal type resolution. */
+    private val contextFile: PsiFile? = null,
 ) : LuaTypes {
 
     override fun getFileReturnType(): LuaGraphType = fileReturnType
@@ -83,7 +85,20 @@ class LuaTypesSnapshot(
                 LuaTypeMember(name, graphTypeToLuaType(node.write))
             }
             if (type.className != null) {
-                LuaClassType(type.className, emptyList(), membersMap)
+                // Enrich the graph-derived class with nominal members (incl. methods + supertypes)
+                // from the type manager, so method-aware members reach nominal consumers such as
+                // LuaParameterInlayHintsProvider.resolveMember and the NAV-05/06 hierarchy walk.
+                val nominal = contextFile?.let {
+                    LuaTypeManager.getInstance(it.project).resolveType(type.className, it)
+                }
+                if (nominal is LuaClassType) {
+                    val merged = LinkedHashMap<String, LuaTypeMember>()
+                    merged.putAll(nominal.getMembers())
+                    merged.putAll(membersMap) // graph members win on collision
+                    LuaClassType(type.className, nominal.superTypes, merged)
+                } else {
+                    LuaClassType(type.className, emptyList(), membersMap)
+                }
             } else {
                 LuaTableLiteralType(membersMap)
             }
