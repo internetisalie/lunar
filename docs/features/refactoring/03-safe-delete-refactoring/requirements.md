@@ -2,7 +2,7 @@
 id: "REFACT-03"
 title: "03: Safe Delete Refactoring"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: "REFACT/INTENT"
 folders: ["[[features/refactoring/requirements|requirements]]"]
@@ -21,9 +21,9 @@ Delete a symbol declaration only after confirming it has no remaining usages.
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| `REFACT-03-01` | **Enable for declarations** | **M** | Not Implemented | Safe Delete is offered on local/parameter/global symbol declarations. |
-| `REFACT-03-02` | **Usage search** | **M** | Not Implemented | Before deleting, search for usages (via the references engine); if none, delete the declaration. |
-| `REFACT-03-03` | **Conflict prompt** | **S** | Not Implemented | If usages remain, show the standard "usages found" dialog before proceeding. |
+| `REFACT-03-01` | **Enable for declarations** | **M** | Full | Safe Delete is offered on local/parameter/global symbol declarations. |
+| `REFACT-03-02` | **Usage search** | **M** | Full | Before deleting, search for usages (via the references engine); if none, delete the declaration. |
+| `REFACT-03-03` | **Conflict prompt** | **S** | Full | If usages remain, show the standard "usages found" dialog before proceeding. |
 
 ## Test Cases
 

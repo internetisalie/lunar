@@ -12,9 +12,9 @@ folders:
 
 > **Status is a point-in-time snapshot** (last refreshed 2026-06-14). The authoritative, live
 > per-feature status is each feature's `requirements.md` front-matter, aggregated into
-> [status.md](status.md) by `scripts/gen_status.py`. As of this refresh: **Waves 0–2 are `done`**;
-> **Wave 3 is in progress** (NAV-10 + REFACT-02 done; REFACT-03 next). This doc's value is the
-> *ordering and dependency edges*, which remain valid regardless of status drift.
+> [status.md](status.md) by `scripts/gen_status.py`. As of this refresh: **Waves 0–3 are `done`**;
+> **Wave 4 (LuaRocks & Tooling) is next**. This doc's value is the *ordering and dependency edges*,
+> which remain valid regardless of status drift.
 
 A dependency-aware sequencing of every **executable** feature (status `planned` or
 `in_progress`) so implementation agents can pull work in a safe, high-leverage order. This is
@@ -84,7 +84,7 @@ These are partly built and unblock the entire lead theme. Do them first, in this
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | NAV-10 | Read/Write access detector | done | M | **NAV-02** | — | ✓ new detector |
 | REFACT-02 | Introduce variable | done | M | — | REFACT-03 | ✓ new handler (consolidates the refactoring provider) |
-| REFACT-03 | Safe delete | planned | M | **NAV-02, REFACT-02** | — | ✓ new processor |
+| REFACT-03 | Safe delete | done | M | **NAV-02, REFACT-02** | — | ✓ new processor |
 
 ## Wave 4 — LuaRocks & Tooling  *(two independent tracks — run A and B concurrently)*
 
