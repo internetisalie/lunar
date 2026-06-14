@@ -89,6 +89,23 @@ sed -i 's/platformType = .*/platformType = IC/' gradle.properties
 ./docker-helper.sh run
 ```
 
+## First-run dialogs (auto-bypassed)
+
+The entrypoint pre-accepts the JetBrains first-run dialogs so the container boots straight into the
+open project (no VNC clicking required):
+
+- **EULA** — seeds the accepted EUA version as a `java.util.prefs` value
+  (`jetbrains/privacy_policy/eua_accepted_version`, compared by *major* version). If JetBrains bumps
+  the EULA major and it starts prompting again, override `LUNAR_EULA_VERSION` (default `2.0`).
+- **Data sharing** — writes a declined `consentOptions/accepted` (versions matched to the bundled
+  `consents.json`) and sets `-Djb.consents.confirmation.enabled=false`.
+- **Project trust** — seeds `trusted-paths.xml` for the mounted `/home/lunar/test`.
+
+**Not auto-bypassed: the license.** GoLand is commercial, so the *License / Register* dialog still
+appears on a fresh container — a license can't be baked into the image (it's account/trial-bound).
+Options: click **Start Trial** once, or persist the IDE config dir on a volume so a one-time
+activation survives restarts, or supply a license via your usual JetBrains mechanism.
+
 ## Docker Helper Commands
 
 Full usage: `./docker-helper.sh {command}`
