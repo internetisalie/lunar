@@ -198,6 +198,18 @@ tasks {
         dependsOn(prepareSandbox)
         systemProperty("sandbox.home", layout.buildDirectory.dir("idea-sandbox").get().asFile.absolutePath)
         systemProperty("plugin.name", providers.gradleProperty("pluginName").get())
+        // Performance/benchmark suites are excluded from the routine loop to keep it fast. Run the
+        // whole suite including them on demand with `./gradlew test -PwithPerf`. (NB: the perf
+        // suites currently have a warmup/isolation dependency and only pass as part of the full
+        // run, not when filtered to run alone — tracked as a separate perf-test cleanup. They reuse
+        // the IntelliJ-configured `test` task; a standalone Test task fails at platform fixture init.)
+        if (!project.hasProperty("withPerf")) {
+            filter {
+                excludeTestsMatching("*Performance*")
+                excludeTestsMatching("*Benchmark*")
+                isFailOnNoMatchingTests = false
+            }
+        }
     }
 
     val integrationTest by intellijPlatformTesting.testIdeUi.registering {

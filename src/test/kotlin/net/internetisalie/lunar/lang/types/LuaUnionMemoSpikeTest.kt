@@ -1,7 +1,9 @@
 package net.internetisalie.lunar.lang.types
 
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -18,8 +20,10 @@ import org.junit.runners.JUnit4
  * Red-then-green in spirit: the naive cache is asserted to return the WRONG (stale) answer for
  * the second context, while the context-keyed cache returns the correct answer for both.
  */
+// Pure-logic spike (models a memo with LuaGraphType + Map only) — no PSI, so it deliberately does
+// NOT extend BasePlatformTestCase, avoiding the IntelliJ platform boot per test.
 @RunWith(JUnit4::class)
-class LuaUnionMemoSpikeTest : BasePlatformTestCase() {
+class LuaUnionMemoSpikeTest {
 
     private val genericT = LuaGraphType.Generic("T")
     private val use = LuaGraphType.String
