@@ -48,12 +48,15 @@ cmd_create() {
       --zone "$ZONE" \
       --machine-type "$MACHINE" \
       --provisioning-model "$PROVISIONING_MODEL" \
-      --instance-termination-action STOP \
+      --instance-termination-action "$TERMINATION_ACTION" \
+      --max-run-duration "$MAX_RUN_DURATION" \
       --image-family "$BOOT_IMAGE_FAMILY" --image-project "$BOOT_IMAGE_PROJECT" \
       --boot-disk-size "$BOOT_DISK_SIZE" --boot-disk-type pd-balanced \
       --disk "name=$CACHE_DISK,device-name=$CACHE_DEVICE_NAME,mode=rw,boot=no,auto-delete=no" \
       --metadata-from-file startup-script="$DIR/startup-script.sh" \
+      --metadata "idle-minutes=$IDLE_MINUTES" \
       --scopes cloud-platform
+    log "Safeguards: hard TTL ${MAX_RUN_DURATION} (action ${TERMINATION_ACTION}) + idle auto-shutdown ${IDLE_MINUTES}m."
   fi
 
   log "Waiting for bootstrap (JDK 21 + cache mount)…"
@@ -93,8 +96,9 @@ cmd_run() {
 cmd_status() {
   instance_exists || { log "Instance $INSTANCE: NOT CREATED"; disk_exists && log "Cache disk $CACHE_DISK: exists"; return 0; }
   gc compute instances describe "$INSTANCE" --zone "$ZONE" \
-     --format='table(name,status,machineType.basename(),scheduling.provisioningModel)'
+     --format='table(name,status,machineType.basename(),scheduling.provisioningModel,scheduling.instanceTerminationAction,scheduling.maxRunDuration.seconds)'
   log "External IP: $(external_ip 2>/dev/null || echo n/a)"
+  log "Safeguards: hard TTL ${MAX_RUN_DURATION} + idle auto-shutdown ${IDLE_MINUTES}m (maxRunDuration above is in seconds)."
   disk_exists && log "Cache disk $CACHE_DISK: present (persists across VM delete)."
 }
 

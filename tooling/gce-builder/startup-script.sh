@@ -48,5 +48,47 @@ export PATH="\$JAVA_HOME/bin:\$PATH"
 export GRADLE_USER_HOME="$MOUNT/gradle"
 EOF
 
+# --- idle auto-shutdown safeguard ----------------------------------------------------------
+# Powers the VM off after $IDLE_MINUTES with no established inbound SSH session (sync/run/shell),
+# so a forgotten idle VM stops billing. A guest poweroff -> instance STOPPED (disks persist,
+# restartable). Complements the native --max-run-duration hard TTL set at create time.
+IDLE_MINUTES="$(wget -qO- --header='Metadata-Flavor: Google' \
+  'http://metadata.google.internal/computeMetadata/v1/instance/attributes/idle-minutes' 2>/dev/null || echo 30)"
+cat >/usr/local/sbin/lunar-idle-check <<EOF
+#!/bin/bash
+IDLE=${IDLE_MINUTES}
+marker=/var/run/lunar-last-activity
+# An established connection to local port 22 = an active sync/run/shell session -> keep alive.
+if ss -tH state established 2>/dev/null | awk '{print \$4}' | grep -q ':22\$'; then
+  touch "\$marker"; exit 0
+fi
+[ -f "\$marker" ] || touch "\$marker"
+age=\$(( (\$(date +%s) - \$(stat -c %Y "\$marker")) / 60 ))
+[ "\$age" -lt "\$IDLE" ] && exit 0
+logger "lunar-builder: idle \${IDLE}m with no SSH session, powering off to stop billing"
+/sbin/poweroff
+EOF
+chmod +x /usr/local/sbin/lunar-idle-check
+touch /var/run/lunar-last-activity
+cat >/etc/systemd/system/lunar-idle.service <<'EOF'
+[Unit]
+Description=Lunar builder idle auto-shutdown check
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lunar-idle-check
+EOF
+cat >/etc/systemd/system/lunar-idle.timer <<'EOF'
+[Unit]
+Description=Run the lunar idle check every 5 minutes
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload
+systemctl enable --now lunar-idle.timer
+echo "Idle auto-shutdown armed: ${IDLE_MINUTES}m."
+
 echo "=== bootstrap complete: $($JAVA_HOME/bin/java -version 2>&1 | head -1) ==="
 touch /var/run/lunar-bootstrap-done

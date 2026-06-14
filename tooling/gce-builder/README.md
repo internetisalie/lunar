@@ -41,9 +41,25 @@ All values are env-overridable (see `config.sh`), e.g.:
 GCE_BUILDER_MACHINE=c2-standard-16 GCE_BUILDER_ZONE=northamerica-northeast1-b ./gce-builder.sh create
 ```
 
-## Cost control
-Spot is billed only while **running**. `stop` halts compute billing; the small persistent-disk
-charge continues until `delete --with-cache`. Always `stop` or `delete` when done.
+## Cost control & auto-termination safeguards
+Spot is billed only while **running**. Three layers keep it from billing when forgotten:
+
+1. **Hard TTL (native)** — `--max-run-duration` (default `4h`) with `--instance-termination-action=STOP`:
+   GCE auto-stops the VM that long after it starts, regardless of activity.
+2. **Idle auto-shutdown (on-VM)** — a systemd timer (`lunar-idle.timer`, every 5 min) powers the
+   VM off after `GCE_BUILDER_IDLE_MINUTES` (default `30`) with no established inbound SSH session
+   (sync/run/shell). Handles "ran a build, walked away."
+3. **Manual** — `stop` (halt compute billing) and `delete` / `delete --with-cache` (full teardown).
+
+Both automatic actions **STOP** the VM (disks persist, `start` to resume), so nothing is lost —
+only compute billing halts. The persistent cache disk still costs ~$6/mo until `delete --with-cache`.
+Tune via `GCE_BUILDER_MAX_RUN_DURATION`, `GCE_BUILDER_IDLE_MINUTES`, `GCE_BUILDER_TERMINATION_ACTION`.
+
+Optionally, set a project **billing budget alert** (account-level email warning):
+```bash
+gcloud billing budgets create --billing-account=<ID> --display-name="lunar-builder" \
+  --budget-amount=10USD --threshold-rule=percent=0.5 --threshold-rule=percent=0.9
+```
 
 ## Files
 - `config.sh` — parameters (project, zone, machine, disks), env-overridable.
