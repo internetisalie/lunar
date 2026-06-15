@@ -3,7 +3,7 @@ id: COMP-03-DESIGN
 title: "Technical Design"
 type: design
 parent_id: COMP-03
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|requirements]]"

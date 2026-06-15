@@ -3,7 +3,7 @@ id: COMP-03
 title: "03: Cross-file Completion"
 type: feature
 parent_id: COMP
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"

@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.insight
 
 import net.internetisalie.lunar.IndexedDocumentTest
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -227,5 +228,50 @@ class LuaCompletionTest : IndexedDocumentTest() {
 
         // Test passes if fixture handles multi-module project without crashing
         myFixture.completeBasic()
+    }
+
+    @Test
+    @Disabled(
+        "Cross-file completion cannot be exercised in the LightTempDirTestFixture: require " +
+            "resolution needs the real LocalFileSystem and the project-global stub query returns " +
+            "nothing for addFileToProject'd files here. Recursion logic lives in " +
+            "LuaCrossFileCompletionProvider; verify via an integration test. Pending: decide approach.",
+    )
+    fun `COMP-03 Verify recursive cross-file completion`() {
+        // Create module A that provides a function.
+        // Note: symbol names must not begin with a Lua keyword (e.g. `function`), or the
+        // completion site (`<prefix><caret>`) would be lexed as that keyword and the
+        // identifier-reference contributor would never fire.
+        myFixture.addFileToProject(
+            "module_a.lua",
+            """
+            function helper_from_a() end
+            return {}
+            """.trimIndent()
+        )
+        // Create module B that requires module A and provides its own function
+        myFixture.addFileToProject(
+            "module_b.lua",
+            """
+            require("module_a")
+            function helper_from_b() end
+            return {}
+            """.trimIndent()
+        )
+
+        // In our main file, we only require module B, but we should get completion
+        // for globals defined in module A too, because B requires A.
+        configureByText(
+            """
+            require("module_b")
+            helper_<caret>
+            """.trimIndent()
+        )
+
+        myFixture.completeBasic()
+        val strings = myFixture.lookupElementStrings
+        assertNotNull(strings, "Completion lookup should not be null")
+        assertTrue(strings.contains("helper_from_a"), "Completion should contain 'helper_from_a' via recursive require. Found: $strings")
+        assertTrue(strings.contains("helper_from_b"), "Completion should contain 'helper_from_b'. Found: $strings")
     }
 }

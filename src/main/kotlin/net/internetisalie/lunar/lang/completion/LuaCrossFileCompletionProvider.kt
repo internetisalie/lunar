@@ -132,10 +132,25 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         visited.add(requireName)
 
         val virtualFile = findRequireFile(project, requireName, sourcePathPatterns, contextFile) ?: return
-        
+
         val psiFile = PsiManager.getInstance(project).findFile(virtualFile) as? LuaFile ?: return
 
         addSymbolsFromFile(psiFile, prefix, result, importedSymbolNames)
+
+        // Recursively add symbols from dependencies
+        val childRequires = extractRequires(psiFile)
+        childRequires.forEach { childRequireName ->
+            resolveAndAddSymbols(
+                project,
+                childRequireName,
+                sourcePathPatterns,
+                prefix,
+                result,
+                visited,
+                virtualFile,
+                importedSymbolNames
+            )
+        }
     }
 
     private fun findRequireFile(
