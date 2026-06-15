@@ -149,8 +149,21 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
         
         val mylibVar = varDecls.first { it.text.contains("local mylib") }.attNameList.first().nameRef
         val mylibType = snapshot.getValueType(mylibVar)
+
+        // `require("mylib")` returns the module's `lib` table, annotated `---@class MyLib` with a
+        // `version` field — so the inferred type of `mylib` must flow that class through: it should
+        // surface the MyLib class name and its `version` member.
+        val rendered = mylibType.toString()
+        assertTrue("mylib should carry the MyLib class type, was: $rendered", rendered.contains("MyLib"))
+        assertTrue("mylib type should expose the 'version' field, was: $rendered", rendered.contains("version"))
+
+        // The class itself resolves with its annotated member.
         val resolvedMylib = LuaTypeManager.getInstance(project).resolveType("MyLib", myFixture.file)
-        throw AssertionError("mylibType: $mylibType, resolvedMylib: $resolvedMylib, members: ${resolvedMylib?.getMembers()?.keys}")
+        assertNotNull("MyLib class should resolve", resolvedMylib)
+        assertTrue(
+            "MyLib should expose the 'version' field",
+            resolvedMylib!!.getMembers().keys.contains("version"),
+        )
     }
 
     @Test
