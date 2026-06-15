@@ -31,9 +31,18 @@ RUN apt-get update && apt-get install -y \
 
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
-# Non-root build/run user (matches host UID 1000 for bind-mount write access).
-RUN useradd -m -s /bin/bash lunar && \
-    usermod -aG sudo lunar && \
+# Non-root build/run user. The UID/GID MUST match the host that owns the bind-mounted repo at
+# /workspace, or gradle can't write build/ or .gradle/ (Permission denied on the lock files).
+# Default to 1000 (the typical single-user host); docker-helper.sh passes the real `id -u`/`id -g`.
+# ubuntu:24.04 ships a default `ubuntu` user/group squatting on 1000, so free that id first.
+ARG HOST_UID=1000
+ARG HOST_GID=1000
+RUN set -eux; \
+    if getent passwd "$HOST_UID" >/dev/null; then userdel -r "$(getent passwd "$HOST_UID" | cut -d: -f1)" 2>/dev/null || true; fi; \
+    if getent group "$HOST_GID" >/dev/null; then groupdel "$(getent group "$HOST_GID" | cut -d: -f1)" 2>/dev/null || true; fi; \
+    groupadd -g "$HOST_GID" lunar; \
+    useradd -m -s /bin/bash -u "$HOST_UID" -g "$HOST_GID" lunar; \
+    usermod -aG sudo lunar; \
     echo "lunar ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 USER lunar

@@ -48,7 +48,12 @@ case "${1:-help}" in
             touch "$SCRIPT_DIR/lunar-plugin.zip"
         fi
 
-        docker build --target "$TARGET" -t "lunar-ide:$TARGET" "$SCRIPT_DIR"
+        # Bake the host UID/GID into the image so the `lunar` user can write the bind-mounted
+        # repo (/workspace) during build/integration-test runs.
+        docker build --target "$TARGET" \
+            --build-arg HOST_UID="$(id -u)" \
+            --build-arg HOST_GID="$(id -g)" \
+            -t "lunar-ide:$TARGET" "$SCRIPT_DIR"
         # Keep lunar-ide:latest pointing at the interactive IDE image (run/clean use it).
         [ "$TARGET" = vnc ] && docker tag "lunar-ide:vnc" lunar-ide:latest
 
