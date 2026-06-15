@@ -3,7 +3,7 @@ id: INSP-06-PLAN
 title: Local Shadowing Implementation Plan
 type: plan
 parent_id: INSP-06
-status: planned
+status: done
 ---
 
 # Implementation Plan

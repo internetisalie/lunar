@@ -3,7 +3,7 @@ id: INSP-06-DESIGN
 title: Local Shadowing Design
 type: design
 parent_id: INSP-06
-status: planned
+status: done
 ---
 
 # Technical Design: Local Shadowing

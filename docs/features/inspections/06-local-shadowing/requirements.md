@@ -3,7 +3,7 @@ id: INSP-06-REQ
 title: Local Shadowing Requirements
 type: requirements
 parent_id: INSP-06
-status: planned
+status: done
 ---
 
 # Local Shadowing Requirements
