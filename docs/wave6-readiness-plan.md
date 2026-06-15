@@ -76,13 +76,29 @@ that only needs a real filesystem + real indexing (e.g. cross-file completion) b
   test`. (Completes **Q1**'s durable half — #1b.)
 - **Depends on:** 1.1 (green baseline).
 
-### 2.2 Get one integration test green end-to-end — *solo*
-- Run `LuaCrossFileCompletionIntegrationTest` in the new `integration-test` docker image; diagnose
-  the GoLand **exit-code-3 / remote-dev** failure seen on the GCE builder (likely a launch flag /
-  headless config). Pin the fix into the image.
-- **Acceptance:** the integration test passes in the docker `integration-test` target. (Addresses
-  **Q3**.)
+### 2.2 Get one integration test green end-to-end — *solo* — ✅ DONE
+- `LuaCrossFileCompletionIntegrationTest` now passes in the docker `integration-test` image on
+  GoLand 2026.1.3 (1 test, 0 failures, ~23s). The controlled image made the real failure legible —
+  it was **not** the GCE-builder's exit-code-3/remote-dev mystery but a chain of four concrete
+  gates, each found by clearing the prior one (commit `06172131`):
+  1. **Bind-mount UID mismatch** — `lunar` was UID 1001 (ubuntu:24.04's default `ubuntu` squats on
+     1000); gradle couldn't write `/workspace`. Fixed by baking the host UID/GID into the image
+     (commit `9d9d8726`).
+  2. **Commercial license modal** — fresh ide-starter config has no license → GoLand's Activation
+     dialog blocked to a 5-min timeout. `IdeProductResolver.applyLicense` injects a key
+     (`LUNAR_LICENSE_KEY` / host `goland.key`) via `IDETestContext.setLicense`; docker-helper mounts
+     the host key. (Also caught a *self-inflicted* regression: removing the "dead" `testVersion`
+     downgraded the ide-starter IDE to its 2024.3.1 fallback — `IdeProductResolver` reads it; fixed
+     in `d3e259eb`.)
+  3. **`completion.command.report.dir` unset** — `assertCompletionCommandContains` needs that
+     system property; set via `applyVMOptionsPatch`.
+  4. **No exit after the script** — the script-chain `runIDE` (unlike `runIdeWithDriver`) has no
+     implicit quit; the open lookup idled to timeout. Append `closeLookup().exitApp()`.
+- **Acceptance:** ✅ passes in the docker `integration-test` target. (Addresses **Q3**.)
 - **Depends on:** 1.2 Dockerfile split.
+- **Follow-ups (not blocking):** propagate `applyLicense` is already on all launch sites; consider
+  pinning the ide-starter IDE to the baked image build to skip its separate ~1.2 GB download;
+  retrofit the shallow no-IDE tests (that's 3.3).
 
 ## Phase 3 — Raise the floor (highest leverage)
 
@@ -124,11 +140,20 @@ Q8 (done) ─────────────► 3.1 grounding audit
 
 ## Resume pointer
 
-**Next up: 2.2 (get one integration test green in the `integration-test` docker image) — or 2.1 /
-3.2, which only depend on the green baseline.** Done so far: Q1, Q8, Phase 1.1, and Phase 1.2 (all
-committed). Working tree clean apart from `scratch/`. The 2.2 integration run benefits from the
-operational notes below; the `integration-test` image + `./docker-helper.sh integration-test` are
-now ready for it.
+**Next up: 2.1 (COMP-03 heavy fixture) and/or 3.1 (grounding audit), 3.2 (coverage), 3.3
+(integration quality/depth).** Done so far: Q1, Q8, Phase 1.1, 1.2, **2.2** (all committed), plus
+the GoLand 2026.1.3 bump (gradle `platformVersion` + `testVersion` + docker `IDE_VERSION`). Working
+tree clean apart from `scratch/`.
+
+**Integration-test harness now works (use it for 3.3):** `./docker-helper.sh build integration-test`
+then `./docker-helper.sh integration-test [--tests "*Foo*"]`. It mounts the host GoLand license
+(`LUNAR_LICENSE_KEY`, default newest `~/.config/JetBrains/GoLand*/goland.key`) so the commercial
+Activation modal doesn't block; the `lunar` user is UID-matched to the host for `/workspace` writes;
+a `lunar-gradle-cache` volume persists downloads. **Version knobs (three, all 2026.1.3, independent
+on purpose):** gradle `platformVersion` (compile+unit), gradle `testVersion` (ide-starter IDE — read
+by `IdeProductResolver.kt`, NOT the gradle plugin), docker `IDE_VERSION` (VNC IDE). For a script-chain
+`runIDE` completion test, end the chain with `closeLookup().exitApp()` and set
+`completion.command.report.dir` or it hangs to the timeout.
 
 ### Operational notes (hard-won this session)
 - **Driving the IDE over VNC:** open a project from a **container-owned dir** (e.g.
@@ -149,5 +174,5 @@ now ready for it.
 - [x] `./gradlew test` green (1.1) — 829 passed, 0 failed.
 - [x] Dockerfile targets build; integration-test image exists (1.2).
 - [ ] COMP-03 has an in-process regression guard (2.1).
-- [ ] At least one integration test passes in the docker harness (2.2).
+- [x] At least one integration test passes in the docker harness (2.2).
 - [ ] Wave 6's planned designs pass the grounding audit (3.1).
