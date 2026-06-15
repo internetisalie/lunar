@@ -24,7 +24,7 @@ MAX_RUN_DURATION="${GCE_BUILDER_MAX_RUN_DURATION:-2h}"
 # It will NOT kill the VM merely because no build is running this instant; an interactive or
 # intermittent session keeps it up. Dead leaked sessions are reaped by sshd keepalive; a live-idle
 # leak is bounded by the hard TTL above. Both actions STOP (not delete): disks persist, restartable.
-IDLE_MINUTES="${GCE_BUILDER_IDLE_MINUTES:-30}"
+IDLE_MINUTES="${GCE_BUILDER_IDLE_MINUTES:-10}"
 # 1-min loadavg at/above which a connection-less VM still counts as "busy building" (covers a
 # build whose SSH link dropped; an idle Gradle daemon sits well below this on an 8-vCPU box).
 IDLE_LOAD_THRESHOLD="${GCE_BUILDER_IDLE_LOAD_THRESHOLD:-1.0}"

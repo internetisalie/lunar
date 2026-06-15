@@ -74,7 +74,7 @@ EOF
 # it is always observed; a connection-less build (dropped link) is covered by the load test.
 meta() { wget -qO- --header='Metadata-Flavor: Google' \
   "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$1" 2>/dev/null; }
-IDLE_MINUTES="$(meta idle-minutes || echo 30)"; IDLE_MINUTES="${IDLE_MINUTES:-30}"
+IDLE_MINUTES="$(meta idle-minutes || echo 10)"; IDLE_MINUTES="${IDLE_MINUTES:-10}"
 LOAD_THRESHOLD="$(meta idle-load-threshold || echo 1.0)"; LOAD_THRESHOLD="${LOAD_THRESHOLD:-1.0}"
 cat >/usr/local/sbin/lunar-idle-check <<EOF
 #!/bin/bash
