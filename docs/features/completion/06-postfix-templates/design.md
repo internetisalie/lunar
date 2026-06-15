@@ -3,7 +3,7 @@ id: COMP-06-DESIGN
 title: Postfix Templates Design
 type: design
 parent_id: COMP-06
-status: planned
+status: done
 ---
 
 # Technical Design: Postfix Templates

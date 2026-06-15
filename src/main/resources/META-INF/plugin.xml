@@ -183,6 +183,7 @@
             language="Lua"
             implementation="net.internetisalie.lunar.lang.LuaRequireReferenceContributor"/>
 
+    <codeInsight.template.postfixTemplateProvider language="Lua" implementationClass="net.internetisalie.lunar.lang.completion.postfix.LuaPostfixTemplateProvider"/>
     <completion.contributor
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaCompletionContributor"/>
