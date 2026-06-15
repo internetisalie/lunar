@@ -175,6 +175,9 @@
     <psi.referenceContributor
             language="Lua"
             implementation="net.internetisalie.lunar.lang.LuaLabelReferenceContributor"/>
+    <psi.referenceContributor
+            language="Lua"
+            implementation="net.internetisalie.lunar.lang.LuaRequireReferenceContributor"/>
 
     <completion.contributor
             language="Lua"
@@ -284,6 +287,7 @@
             implementationClass="net.internetisalie.lunar.lang.insight.hint.LuaInlayHintsCustomSettingsProvider"/>
 
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
+    <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.lang.library.LuaLibraryProvider"/>
 
     <!-- Options -->
     <applicationService

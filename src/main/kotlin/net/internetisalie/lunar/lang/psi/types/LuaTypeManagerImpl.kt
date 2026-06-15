@@ -86,6 +86,24 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         }
     }
 
+    private fun getModuleType(psiFile: LuaFile, context: PsiElement): LuaType? {
+        val stub = psiFile.stub
+        if (stub != null) {
+            val exportedTypeString = stub.exportedTypeString
+            if (exportedTypeString != null) {
+                return TypeParser.parse(exportedTypeString, context)
+            }
+        } else {
+            // Fallback: use live analysis if stub is not available
+            val snapshot = LuaTypesVisitor.getTypes(psiFile)
+            val graphType = snapshot.getFileReturnType()
+            if (graphType != LuaGraphType.Any && graphType != LuaGraphType.Undefined) {
+                return snapshot.graphTypeToLuaType(graphType)
+            }
+        }
+        return null
+    }
+
     private fun doResolveModule(moduleName: String, context: PsiElement): LuaType {
         val patterns = PathConfiguration.getProjectSourcePathPatterns(project)
         for (pattern in patterns) {
@@ -101,22 +119,25 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             if (virtualFile == null) continue
 
             val psiFile = PsiManager.getInstance(project).findFile(virtualFile) as? LuaFile ?: continue
+            getModuleType(psiFile, context)?.let { return it }
+        }
 
-            val stub = psiFile.stub
-            if (stub != null) {
-                val exportedTypeString = stub.exportedTypeString
-                if (exportedTypeString != null) {
-                    return TypeParser.parse(exportedTypeString, context)
-                }
-            } else {
-                // Fallback: use live analysis if stub is not available
-                val snapshot = LuaTypesVisitor.getTypes(psiFile)
-                val graphType = snapshot.getFileReturnType()
-                if (graphType != LuaGraphType.Any && graphType != LuaGraphType.Undefined) {
-                    return snapshot.graphTypeToLuaType(graphType)
-                }
+        // If not found in source path patterns, look in the filename index (stubs/libraries)
+        val fileName = moduleName.substringAfterLast('.') + ".lua"
+        val expectedPathPart = moduleName.replace('.', '/') + ".lua"
+        val expectedInitPathPart = moduleName.replace('.', '/') + "/init.lua"
+        val projectScope = GlobalSearchScope.allScope(project)
+        val virtualFiles = FilenameIndex.getVirtualFilesByName(fileName, projectScope) +
+                           FilenameIndex.getVirtualFilesByName("init.lua", projectScope)
+
+        for (virtualFile in virtualFiles) {
+            val path = virtualFile.path
+            if (path.endsWith(expectedPathPart) || path.endsWith(expectedInitPathPart) || !moduleName.contains('.')) {
+                val psiFile = PsiManager.getInstance(project).findFile(virtualFile) as? LuaFile ?: continue
+                getModuleType(psiFile, context)?.let { return it }
             }
         }
+
         return LuaPrimitiveType.ANY
     }
 

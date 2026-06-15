@@ -29,6 +29,10 @@ open class LuaBaseElement(node: ASTNode) : ASTWrapperPsiElement(node) {
     override fun toString(): String {
         return this.node.elementType.toString()
     }
+
+    override fun getReferences(): Array<PsiReference> {
+        return com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry.getReferencesFromProviders(this)
+    }
 }
 
 // Name Declaration
