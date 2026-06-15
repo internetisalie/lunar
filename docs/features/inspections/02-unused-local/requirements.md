@@ -3,7 +3,7 @@ id: INSPECTIONS-02
 title: Unused Local Variable Requirements
 type: feature
 parent_id: INSP
-status: planned
+status: done
 ---
 
 # Unused Local Variable Requirements
@@ -11,8 +11,8 @@ status: planned
 ## Requirements Table
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| INSP-02-01 | Unused Variable Detection | Must | planned | Detect local variables with no read accesses in the CFG. |
-| INSP-02-02 | Remove Quick Fix | Must | planned | Provide quick fix to safely remove the unused variable. |
+| INSP-02-01 | Unused Variable Detection | Must | done | Detect local variables with no read accesses in the CFG. |
+| INSP-02-02 | Remove Quick Fix | Must | done | Provide quick fix to safely remove the unused variable. |
 
 ## Test Cases
 ### Test Case 1
