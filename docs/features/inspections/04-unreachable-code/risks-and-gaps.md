@@ -1,7 +1,7 @@
 ---
 id: INSP-04-RISKS
 title: Unreachable Code Risks
-type: risks
+type: risk
 parent_id: INSP-04
 status: planned
 ---

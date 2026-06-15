@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-16"
+id: SYNTAX-16
 title: "16: Language Level Enforcement"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

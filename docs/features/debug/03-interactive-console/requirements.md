@@ -1,8 +1,8 @@
 ---
-id: "RUN-03"
+id: DEBUG-03
 title: "03: Interactive Console (REPL)"
-type: "feature"
-parent_id: "DEBUG/RUN"
+type: feature
+parent_id: DEBUG/RUN
 status: "planned"
 priority: "low"
 folders:

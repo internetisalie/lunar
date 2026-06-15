@@ -1,8 +1,8 @@
 ---
-id: ROCKS-08-REQ
+id: ROCKS-08
 title: Publishing Requirements
-type: requirements
-parent_id: ROCKS-08
+type: feature
+parent_id: ROCKS
 status: planned
 ---
 

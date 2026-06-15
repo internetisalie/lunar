@@ -1,8 +1,8 @@
 ---
-id: COMP-08-REQ
+id: COMP-08
 title: Auto Complete Requirements
-type: requirements
-parent_id: COMP-08
+type: feature
+parent_id: COMP
 status: planned
 ---
 

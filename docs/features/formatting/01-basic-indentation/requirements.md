@@ -1,10 +1,10 @@
 ---
-id: "FORMAT-01"
+id: FORMAT-01
 title: "01: Basic Indentation"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "FORMAT"
+parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]
 ---
 

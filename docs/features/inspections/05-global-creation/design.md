@@ -1,8 +1,8 @@
 ---
-id: INSP-05-DESIGN
+id: INSPECTIONS-05-DESIGN
 title: Global Creation Design
 type: design
-parent_id: INSP-05
+parent_id: INSPECTIONS-05
 status: done
 vf_icon: ✅
 folders:

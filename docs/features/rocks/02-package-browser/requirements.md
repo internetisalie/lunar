@@ -1,8 +1,8 @@
 ---
-id: "ROCKS-02"
+id: ROCKS-02
 title: "02: Package Browser"
-type: "feature"
-parent_id: "ROCKS"
+type: feature
+parent_id: ROCKS
 status: "planned"
 priority: "medium"
 folders:

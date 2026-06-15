@@ -1,8 +1,8 @@
 ---
-id: SYNTAX-05-REQ
+id: SYNTAX-05
 title: Method Separators Requirements
-type: requirements
-parent_id: SYNTAX-05
+type: feature
+parent_id: SYNTAX
 status: planned
 ---
 

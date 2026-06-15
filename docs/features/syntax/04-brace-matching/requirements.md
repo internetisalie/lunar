@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-04"
+id: SYNTAX-04
 title: "04: Brace Matching"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

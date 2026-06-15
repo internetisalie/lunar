@@ -1,8 +1,8 @@
 ---
-id: "TYPE-02"
+id: TYPE-02
 title: "02: Class/Table Definitions"
-type: "feature"
-parent_id: "TYPE"
+type: feature
+parent_id: TYPE
 status: "done"
 priority: "high"
 folders:

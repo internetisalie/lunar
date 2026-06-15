@@ -1,8 +1,8 @@
 ---
-id: "INSP-01-DESIGN"
+id: INSP-01-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "INSP-01"
+type: design
+parent_id: INSP-01
 status: "done"
 priority: "medium"
 folders:

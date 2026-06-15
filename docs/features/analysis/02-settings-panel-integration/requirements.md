@@ -1,10 +1,10 @@
 ---
-id: "ANALYSIS-02"
+id: ANALYSIS-02
 title: "02: Settings Panel Integration"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "ANALYSIS"
+parent_id: ANALYSIS
 folders: ["[[features/analysis/requirements|requirements]]"]
 ---
 

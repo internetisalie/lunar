@@ -1,8 +1,8 @@
 ---
-id: "DOC-01-PLAN"
+id: DOC-01-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "DOC-01"
+type: plan
+parent_id: DOC-01
 status: "done"
 priority: "medium"
 folders:

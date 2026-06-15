@@ -1,13 +1,13 @@
 ---
-id: "MAINT-04"
+id: MAINT-04
 folders:
   - "[[features/maint/requirements|requirements]]"
 priority: medium
 status: done
 vf_icon: ✅
 title: "04: Refactor Symbol Resolution"
-type: "feature"
-parent_id: "MAINT"
+type: feature
+parent_id: MAINT
 ---
 # Requirements: MAINT-04 — Refactor Symbol Resolution (PsiScopeProcessor)
 

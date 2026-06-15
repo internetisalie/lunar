@@ -1,8 +1,8 @@
 ---
-id: "NAV-02-PLAN"
+id: NAV-02-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "NAV-02"
+type: plan
+parent_id: NAV-02
 status: "planned"
 priority: "medium"
 folders:

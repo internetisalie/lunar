@@ -1,10 +1,10 @@
 ---
-id: "DEBUG-03"
+id: RUN-03
 title: "03: Step Over/Into/Out"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "DEBUG/RUN"
+parent_id: DEBUG/RUN
 folders: ["[[features/debug/requirements|requirements]]"]
 ---
 

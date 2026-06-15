@@ -1,8 +1,8 @@
 ---
-id: INTENT-01-REQ
+id: INTENT-01
 title: String Conversion Requirements
-type: requirements
-parent_id: INTENT-01
+type: feature
+parent_id: REFACT/INTENT
 status: planned
 ---
 

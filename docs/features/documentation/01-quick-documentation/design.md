@@ -1,8 +1,8 @@
 ---
-id: "DOC-01-DESIGN"
+id: DOC-01-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "DOC-01"
+type: design
+parent_id: DOC-01
 status: "done"
 priority: "medium"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: BUG-349-REQ
+id: BUG-349
 title: Flaky Inlay Tests Requirements
-type: requirements
-parent_id: BUG-349
+type: feature
+parent_id: BUG
 status: planned
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: INSP-02-DESIGN
+id: INSPECTIONS-02-DESIGN
 title: Unused Local Variable Design
 type: design
-parent_id: INSP-02
+parent_id: INSPECTIONS-02
 status: planned
 ---
 

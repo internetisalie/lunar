@@ -1,8 +1,8 @@
 ---
-id: "REFACT-02-DESIGN"
+id: REFACT-02-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "REFACT-02"
+type: design
+parent_id: REFACT-02
 status: "planned"
 priority: "medium"
 folders:

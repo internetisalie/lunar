@@ -1,10 +1,10 @@
 ---
-id: "FORMAT-03"
+id: FORMAT-03
 title: "03: Blank Line Management"
-type: "feature"
+type: feature
 status: "planned"
 priority: "medium"
-parent_id: "FORMAT"
+parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]
 ---
 

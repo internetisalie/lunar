@@ -1,8 +1,8 @@
 ---
-id: "NAV-11"
+id: NAVIGATION-11
 title: "11: Bindings Caching"
-type: "feature"
-parent_id: "NAV"
+type: feature
+parent_id: NAV
 status: "cancelled"
 priority: "medium"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-06"
+id: SYNTAX-06
 title: "06: Breadcrumbs"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: INSP-07-PLAN
+id: INSPECTIONS-07-PLAN
 title: Suspicious Concatenation Implementation Plan
 type: plan
-parent_id: INSP-07
+parent_id: INSPECTIONS-07
 status: planned
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: "TYPE-09"
+id: TYPE-09
 title: "09: Union Distribution Logic"
-type: "feature"
-parent_id: "TYPE"
+type: feature
+parent_id: TYPE
 status: "done"
 priority: "high"
 folders:

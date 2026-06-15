@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-12"
+id: SYNTAX-12
 title: "12: Label & Goto Scope Resolution"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

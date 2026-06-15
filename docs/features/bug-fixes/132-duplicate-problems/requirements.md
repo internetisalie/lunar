@@ -1,8 +1,8 @@
 ---
-id: BUG-132-REQ
+id: BUG-132
 title: Duplicate Problems Requirements
-type: requirements
-parent_id: BUG-132
+type: feature
+parent_id: BUG
 status: planned
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: "COMP-03"
+id: COMP-03
 title: "03: Cross-file Completion"
-type: "feature"
-parent_id: "COMP"
+type: feature
+parent_id: COMP
 status: "in_progress"
 priority: "high"
 folders:

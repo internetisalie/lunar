@@ -1,8 +1,8 @@
 ---
-id: "TOOL-00-DESIGN"
+id: TOOL-00-DESIGN
 title: "Spike Methodology & Acceptance"
-type: "design"
-parent_id: "TOOL-00"
+type: design
+parent_id: TOOL-00
 status: "planned"
 priority: "high"
 folders:

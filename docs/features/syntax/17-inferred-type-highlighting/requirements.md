@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-17"
+id: SYNTAX-17
 title: "17: Inferred-Type Highlighting"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "low"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: "TOOL-03"
+id: TOOL-03
 title: "03: UI/UX & Health Monitoring"
-type: "feature"
-parent_id: "TOOL"
+type: feature
+parent_id: TOOL
 status: "planned"
 priority: "high"
 folders:

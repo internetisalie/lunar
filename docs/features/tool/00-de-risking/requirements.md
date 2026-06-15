@@ -1,8 +1,8 @@
 ---
-id: "TOOL-00"
+id: TOOL-00
 title: "00: De-risking & Technical Spikes"
-type: "feature"
-parent_id: "TOOL"
+type: feature
+parent_id: TOOL
 status: "planned"
 priority: "high"
 folders:

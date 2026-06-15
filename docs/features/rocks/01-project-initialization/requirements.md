@@ -1,8 +1,8 @@
 ---
-id: "ROCKS-01"
+id: ROCKS-01
 title: "01: Project Initialization & Setup"
-type: "feature"
-parent_id: "ROCKS"
+type: feature
+parent_id: ROCKS
 status: "planned"
 priority: "high"
 folders:

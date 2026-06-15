@@ -1,8 +1,8 @@
 ---
-id: "TOOL-00-PLAN"
+id: TOOL-00-PLAN
 title: "Implementation Plan: De-risking"
-type: "plan"
-parent_id: "TOOL-00"
+type: plan
+parent_id: TOOL-00
 status: "planned"
 priority: "high"
 folders:

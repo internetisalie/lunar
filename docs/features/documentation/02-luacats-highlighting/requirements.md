@@ -1,8 +1,8 @@
 ---
-id: "DOC-02"
+id: DOC-02
 title: "02: LuaCATS Syntax Highlighting"
-type: "feature"
-parent_id: "DOC"
+type: feature
+parent_id: DOC
 status: "done"
 priority: "medium"
 folders:

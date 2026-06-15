@@ -1,8 +1,8 @@
 ---
-id: "ROCKS-04-DESIGN"
+id: ROCKS-04-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "ROCKS-04"
+type: design
+parent_id: ROCKS-04
 status: "planned"
 priority: "high"
 folders:

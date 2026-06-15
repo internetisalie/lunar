@@ -1,10 +1,10 @@
 ---
-id: "DEBUG-07"
+id: RUN-07
 title: "07: Lazy Remote Stack Evaluation"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "DEBUG/RUN"
+parent_id: DEBUG/RUN
 folders: ["[[features/debug/requirements|requirements]]"]
 ---
 

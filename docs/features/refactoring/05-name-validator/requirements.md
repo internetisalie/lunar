@@ -1,8 +1,8 @@
 ---
-id: REFACT-05-REQ
+id: REFACT-05
 title: Name Validator Requirements
-type: requirements
-parent_id: REFACT-05
+type: feature
+parent_id: REFACT/INTENT
 status: planned
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-10"
+id: SYNTAX-10
 title: "10: Enter Handler for Comments"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

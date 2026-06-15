@@ -1,8 +1,8 @@
 ---
-id: MAINT-01-REQ
+id: MAINT-01
 title: Kotlin Conversion Requirements
-type: requirements
-parent_id: MAINT-01
+type: feature
+parent_id: MAINT
 status: planned
 ---
 

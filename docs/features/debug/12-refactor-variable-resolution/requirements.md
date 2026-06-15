@@ -1,8 +1,8 @@
 ---
-id: "DEBUG-12"
+id: RUN-12
 title: "12: Refactor Variable Resolution"
-type: "feature"
-parent_id: "DEBUG/RUN"
+type: feature
+parent_id: DEBUG/RUN
 status: "done"
 priority: "medium"
 folders:

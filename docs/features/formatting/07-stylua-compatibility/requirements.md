@@ -1,8 +1,8 @@
 ---
-id: FORMAT-07-REQ
+id: FORMAT-07
 title: Stylua Compatibility Requirements
-type: requirements
-parent_id: FORMAT-07
+type: feature
+parent_id: FORMAT
 status: planned
 ---
 

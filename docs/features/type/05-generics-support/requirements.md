@@ -1,8 +1,8 @@
 ---
-id: "TYPE-05"
+id: TYPE-05
 title: "05: Generics Support"
-type: "feature"
-parent_id: "TYPE"
+type: feature
+parent_id: TYPE
 status: "done"
 priority: "high"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: SYNTAX-15-REQ
+id: SYNTAX-15
 title: Lexer Optimization Requirements
-type: requirements
-parent_id: SYNTAX-15
+type: feature
+parent_id: SYNTAX
 status: planned
 ---
 

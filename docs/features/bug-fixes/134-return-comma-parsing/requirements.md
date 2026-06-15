@@ -1,8 +1,8 @@
 ---
-id: BUG-134-REQ
+id: BUG-134
 title: Return Comma Parsing Requirements
-type: requirements
-parent_id: BUG-134
+type: feature
+parent_id: BUG
 status: planned
 ---
 

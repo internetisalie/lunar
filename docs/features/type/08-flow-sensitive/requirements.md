@@ -1,8 +1,8 @@
 ---
-id: TYPE-08-REQ
+id: TYPE-08
 title: Flow Sensitive Typing Requirements
-type: requirements
-parent_id: TYPE-08
+type: feature
+parent_id: TYPE
 status: planned
 ---
 

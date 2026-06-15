@@ -1,8 +1,8 @@
 ---
-id: INTENT-02-REQ
+id: INTENT-02
 title: Invert If Requirements
-type: requirements
-parent_id: INTENT-02
+type: feature
+parent_id: REFACT/INTENT
 status: planned
 ---
 

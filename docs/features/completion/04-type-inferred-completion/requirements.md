@@ -1,8 +1,8 @@
 ---
-id: "COMP-04"
+id: COMP-04
 title: "04: Type-Inferred Completion"
-type: "feature"
-parent_id: "COMP"
+type: feature
+parent_id: COMP
 status: "done"
 priority: "high"
 folders:

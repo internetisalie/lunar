@@ -1,8 +1,8 @@
 ---
-id: INSP-06-DESIGN
+id: INSPECTIONS-06-DESIGN
 title: Local Shadowing Design
 type: design
-parent_id: INSP-06
+parent_id: INSPECTIONS-06
 status: done
 ---
 

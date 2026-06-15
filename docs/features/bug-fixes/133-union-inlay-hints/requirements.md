@@ -1,8 +1,8 @@
 ---
-id: BUG-133-REQ
+id: BUG-133
 title: Union Inlay Hints Requirements
-type: requirements
-parent_id: BUG-133
+type: feature
+parent_id: BUG
 status: planned
 ---
 

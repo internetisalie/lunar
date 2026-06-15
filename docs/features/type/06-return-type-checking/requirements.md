@@ -1,8 +1,8 @@
 ---
-id: "TYPE-06"
+id: TYPE-06
 title: "06: Return Type Checking"
-type: "feature"
-parent_id: "TYPE"
+type: feature
+parent_id: TYPE
 status: "done"
 priority: "medium"
 folders:

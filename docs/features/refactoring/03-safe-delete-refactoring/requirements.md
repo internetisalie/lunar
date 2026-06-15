@@ -1,10 +1,10 @@
 ---
-id: "REFACT-03"
+id: REFACT-03
 title: "03: Safe Delete Refactoring"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "REFACT/INTENT"
+parent_id: REFACT/INTENT
 folders: ["[[features/refactoring/requirements|requirements]]"]
 ---
 

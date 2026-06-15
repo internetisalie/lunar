@@ -1,10 +1,10 @@
 ---
-id: "DEBUG-02"
+id: DEBUG-02
 title: "02: Stack Frames & Variables"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "DEBUG/RUN"
+parent_id: DEBUG/RUN
 folders: ["[[features/debug/requirements|requirements]]"]
 ---
 

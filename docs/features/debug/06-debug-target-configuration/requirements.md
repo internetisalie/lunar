@@ -1,10 +1,10 @@
 ---
-id: "DEBUG-06"
+id: RUN-06
 title: "06: Debug Target Configuration"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "DEBUG/RUN"
+parent_id: DEBUG/RUN
 folders: ["[[features/debug/requirements|requirements]]"]
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: "REFACT-02-PLAN"
+id: REFACT-02-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "REFACT-02"
+type: plan
+parent_id: REFACT-02
 status: "planned"
 priority: "medium"
 folders:

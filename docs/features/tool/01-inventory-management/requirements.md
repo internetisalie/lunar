@@ -1,8 +1,8 @@
 ---
-id: "TOOL-01"
+id: TOOL-01
 title: "01: Tool Registry & Discovery"
-type: "feature"
-parent_id: "TOOL"
+type: feature
+parent_id: TOOL
 status: "planned"
 priority: "high"
 folders:

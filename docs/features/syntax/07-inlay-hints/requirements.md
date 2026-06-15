@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-07"
+id: SYNTAX-07
 title: "07: Inlay Hints"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "in_progress"
 priority: "medium"
 folders:

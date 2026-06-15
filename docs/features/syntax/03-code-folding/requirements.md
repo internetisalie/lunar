@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-03"
+id: SYNTAX-03
 title: "03: Code Folding"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

@@ -1,7 +1,7 @@
 ---
 id: ANALYSIS-06-RISKS
 title: Control Flow Graph (CFG) Risks
-type: risks
+type: risk
 parent_id: ANALYSIS-06
 status: planned
 ---

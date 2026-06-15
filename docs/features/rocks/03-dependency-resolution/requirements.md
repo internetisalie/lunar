@@ -1,8 +1,8 @@
 ---
-id: "ROCKS-03"
+id: ROCKS-03
 title: "03: Dependency Resolution"
-type: "feature"
-parent_id: "ROCKS"
+type: feature
+parent_id: ROCKS
 status: "planned"
 priority: "high"
 folders:

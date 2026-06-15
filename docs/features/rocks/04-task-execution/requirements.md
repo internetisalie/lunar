@@ -1,8 +1,8 @@
 ---
-id: "ROCKS-04"
+id: ROCKS-04
 title: "04: Task Execution & Run Configurations"
-type: "feature"
-parent_id: "ROCKS"
+type: feature
+parent_id: ROCKS
 status: "planned"
 priority: "high"
 folders:

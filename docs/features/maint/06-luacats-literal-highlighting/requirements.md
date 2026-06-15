@@ -1,8 +1,8 @@
 ---
-id: MAINT-06-REQ
+id: MAINT-06
 title: LuaCATS Literal Highlighting Requirements
-type: requirements
-parent_id: MAINT-06
+type: feature
+parent_id: MAINT
 status: planned
 ---
 

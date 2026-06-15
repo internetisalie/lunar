@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-08"
+id: SYNTAX-08
 title: "08: String Escape Processing"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: INTENT-03-REQ
+id: INTENT-03
 title: Name Suggestion Requirements
-type: requirements
-parent_id: INTENT-03
+type: feature
+parent_id: REFACT/INTENT
 status: planned
 ---
 

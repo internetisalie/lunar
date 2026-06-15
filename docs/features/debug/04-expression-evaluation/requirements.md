@@ -1,8 +1,8 @@
 ---
-id: "DEBUG-04"
+id: DEBUG-04
 title: "04: Expression Evaluation"
-type: "feature"
-parent_id: "DEBUG/RUN"
+type: feature
+parent_id: DEBUG/RUN
 status: "done"
 priority: "medium"
 folders:

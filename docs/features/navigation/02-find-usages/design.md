@@ -1,8 +1,8 @@
 ---
-id: "NAV-02-DESIGN"
+id: NAV-02-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "NAV-02"
+type: design
+parent_id: NAV-02
 status: "planned"
 priority: "medium"
 folders:

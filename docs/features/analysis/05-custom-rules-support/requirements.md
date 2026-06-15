@@ -1,10 +1,10 @@
 ---
-id: "ANALYSIS-05"
+id: ANALYSIS-05
 title: "05: Custom Rules Support"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "ANALYSIS"
+parent_id: ANALYSIS
 folders: ["[[features/analysis/requirements|requirements]]"]
 ---
 

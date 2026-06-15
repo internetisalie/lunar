@@ -1,8 +1,8 @@
 ---
-id: SYNTAX-09-REQ
+id: SYNTAX-09
 title: Lua 5.5 Requirements
-type: requirements
-parent_id: SYNTAX-09
+type: feature
+parent_id: SYNTAX
 status: planned
 ---
 

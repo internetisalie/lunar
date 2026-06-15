@@ -1,8 +1,8 @@
 ---
-id: "COMP-01"
+id: COMP-01
 title: "01: Keyword Completion"
-type: "feature"
-parent_id: "COMP"
+type: feature
+parent_id: COMP
 status: "done"
 priority: "high"
 folders:

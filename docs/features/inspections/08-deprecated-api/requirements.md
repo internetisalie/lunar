@@ -1,8 +1,8 @@
 ---
-id: INSP-08-REQ
+id: INSPECTIONS-08
 title: Deprecated API Requirements
-type: requirements
-parent_id: INSP-08
+type: feature
+parent_id: INSP
 status: done
 ---
 

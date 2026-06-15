@@ -1,8 +1,8 @@
 ---
-id: COMP-06-REQ
+id: COMP-06
 title: Postfix Templates Requirements
-type: requirements
-parent_id: COMP-06
+type: feature
+parent_id: COMP
 status: planned
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: INSP-07-REQ
+id: INSPECTIONS-07
 title: Suspicious Concatenation Requirements
-type: requirements
-parent_id: INSP-07
+type: feature
+parent_id: INSP
 status: planned
 ---
 

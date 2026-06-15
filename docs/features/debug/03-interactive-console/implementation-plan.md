@@ -1,8 +1,8 @@
 ---
-id: "RUN-03-PLAN"
+id: DEBUG-03-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "RUN-03"
+type: plan
+parent_id: DEBUG-03
 status: "planned"
 priority: "low"
 folders:

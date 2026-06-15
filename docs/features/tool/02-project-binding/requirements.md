@@ -1,8 +1,8 @@
 ---
-id: "TOOL-02"
+id: TOOL-02
 title: "02: Project Binding & Environment Integration"
-type: "feature"
-parent_id: "TOOL"
+type: feature
+parent_id: TOOL
 status: "planned"
 priority: "high"
 folders:

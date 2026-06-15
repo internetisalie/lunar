@@ -1,8 +1,8 @@
 ---
-id: "ROCKS-02-PLAN"
+id: ROCKS-02-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "ROCKS-02"
+type: plan
+parent_id: ROCKS-02
 status: "planned"
 priority: "medium"
 folders:

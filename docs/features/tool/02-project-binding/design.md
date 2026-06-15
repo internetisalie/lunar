@@ -1,8 +1,8 @@
 ---
-id: "TOOL-02-DESIGN"
+id: TOOL-02-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "TOOL-02"
+type: design
+parent_id: TOOL-02
 status: "planned"
 priority: "high"
 folders:

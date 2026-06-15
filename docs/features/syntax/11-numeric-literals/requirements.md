@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-11"
+id: SYNTAX-11
 title: "11: Numeric Literal Validation"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

@@ -1,10 +1,10 @@
 ---
-id: "REFACT-02"
+id: REFACT-02
 title: "02: Introduce Variable Refactoring"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "REFACT/INTENT"
+parent_id: REFACT/INTENT
 folders: ["[[features/refactoring/requirements|requirements]]"]
 ---
 

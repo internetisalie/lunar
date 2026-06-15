@@ -1,8 +1,8 @@
 ---
-id: "DOC-03"
+id: DOC-03
 title: "03: External URL Links"
-type: "feature"
-parent_id: "DOC"
+type: feature
+parent_id: DOC
 status: "done"
 priority: "medium"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: "FORMAT-06-PLAN"
+id: FORMAT-06-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "FORMAT-06"
+type: plan
+parent_id: FORMAT-06
 status: "planned"
 priority: "medium"
 folders:

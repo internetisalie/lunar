@@ -1,8 +1,8 @@
 ---
-id: MAINT-03-REQ
+id: MAINT-03
 title: Deprecation Cleanup Requirements
-type: requirements
-parent_id: MAINT-03
+type: feature
+parent_id: MAINT
 status: planned
 ---
 

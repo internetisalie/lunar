@@ -1,8 +1,8 @@
 ---
-id: COMP-07-REQ
+id: COMP-07
 title: Live Templates Requirements
-type: requirements
-parent_id: COMP-07
+type: feature
+parent_id: COMP
 status: planned
 ---
 

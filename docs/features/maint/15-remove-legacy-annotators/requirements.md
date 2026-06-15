@@ -1,8 +1,8 @@
 ---
-id: MAINT-15-REQ
+id: MAINT-15
 title: Remove Legacy Annotators Requirements
-type: requirements
-parent_id: MAINT-15
+type: feature
+parent_id: MAINT
 status: planned
 ---
 

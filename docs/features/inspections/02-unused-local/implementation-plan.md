@@ -1,8 +1,8 @@
 ---
-id: INSP-02-PLAN
+id: INSPECTIONS-02-PLAN
 title: Unused Local Variable Implementation Plan
 type: plan
-parent_id: INSP-02
+parent_id: INSPECTIONS-02
 status: planned
 ---
 

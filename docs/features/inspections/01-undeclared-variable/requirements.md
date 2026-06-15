@@ -1,8 +1,8 @@
 ---
-id: "INSP-01"
+id: INSP-01
 title: "01: Undeclared Variable"
-type: "feature"
-parent_id: "INSP"
+type: feature
+parent_id: INSP
 status: "done"
 priority: "medium"
 folders:

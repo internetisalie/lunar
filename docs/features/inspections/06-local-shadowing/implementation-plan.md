@@ -1,8 +1,8 @@
 ---
-id: INSP-06-PLAN
+id: INSPECTIONS-06-PLAN
 title: Local Shadowing Implementation Plan
 type: plan
-parent_id: INSP-06
+parent_id: INSPECTIONS-06
 status: done
 ---
 

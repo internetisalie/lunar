@@ -1,10 +1,10 @@
 ---
-id: "ANALYSIS-01"
+id: ANALYSIS-01
 title: "01: Luacheck Integration"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "ANALYSIS"
+parent_id: ANALYSIS
 folders: ["[[features/analysis/requirements|requirements]]"]
 ---
 

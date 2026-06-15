@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-14"
+id: SYNTAX-14
 title: "14: Vararg Context Annotator"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

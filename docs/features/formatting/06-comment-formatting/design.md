@@ -1,8 +1,8 @@
 ---
-id: "FORMAT-06-DESIGN"
+id: FORMAT-06-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "FORMAT-06"
+type: design
+parent_id: FORMAT-06
 status: "planned"
 priority: "medium"
 folders:

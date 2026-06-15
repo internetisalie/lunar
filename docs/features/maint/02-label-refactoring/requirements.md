@@ -1,8 +1,8 @@
 ---
-id: MAINT-02-REQ
+id: MAINT-02
 title: Label Refactoring Requirements
-type: requirements
-parent_id: MAINT-02
+type: feature
+parent_id: MAINT
 status: planned
 ---
 

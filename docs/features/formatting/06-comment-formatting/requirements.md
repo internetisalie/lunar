@@ -1,10 +1,10 @@
 ---
-id: "FORMAT-06"
+id: FORMAT-06
 title: "06: Comment Formatting"
-type: "feature"
+type: feature
 status: "planned"
 priority: "medium"
-parent_id: "FORMAT"
+parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: "DOC-01"
+id: DOC-01
 title: "01: Quick Documentation"
-type: "feature"
-parent_id: "DOC"
+type: feature
+parent_id: DOC
 status: "done"
 priority: "medium"
 folders:

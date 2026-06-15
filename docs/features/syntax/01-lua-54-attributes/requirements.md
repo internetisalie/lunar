@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-01"
+id: SYNTAX-01
 title: "01: Lua 5.4 Support"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

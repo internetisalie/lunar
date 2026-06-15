@@ -1,5 +1,5 @@
 ---
-id: INSP-05
+id: INSPECTIONS-05
 title: "05: Global Creation"
 type: feature
 parent_id: INSP

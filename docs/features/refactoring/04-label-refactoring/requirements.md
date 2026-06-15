@@ -1,10 +1,10 @@
 ---
-id: "REFACT-04"
+id: REFACT-04
 title: "04: Label Refactoring"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "REFACT/INTENT"
+parent_id: REFACT/INTENT
 folders: ["[[features/refactoring/requirements|requirements]]"]
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: "COMP-02-PLAN"
+id: COMP-02-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "COMP-02"
+type: plan
+parent_id: COMP-02
 status: "done"
 priority: "high"
 folders:

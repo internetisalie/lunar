@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-02"
+id: SYNTAX-02
 title: "02: Semantic Highlighting"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

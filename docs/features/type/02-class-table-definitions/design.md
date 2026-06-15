@@ -1,8 +1,8 @@
 ---
-id: "TYPE-02-DESIGN"
+id: TYPE-02-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "TYPE-02"
+type: design
+parent_id: TYPE-02
 status: "done"
 priority: "high"
 folders:

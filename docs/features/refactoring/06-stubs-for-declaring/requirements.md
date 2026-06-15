@@ -1,8 +1,8 @@
 ---
-id: REFACT-06-REQ
+id: REFACT-06
 title: Create from Usage Requirements
-type: requirements
-parent_id: REFACT-06
+type: feature
+parent_id: REFACT/INTENT
 status: planned
 ---
 

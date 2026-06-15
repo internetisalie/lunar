@@ -1,10 +1,10 @@
 ---
-id: "DEBUG-01"
+id: DEBUG-01
 title: "01: Line Breakpoints"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "DEBUG/RUN"
+parent_id: DEBUG/RUN
 folders: ["[[features/debug/requirements|requirements]]"]
 ---
 

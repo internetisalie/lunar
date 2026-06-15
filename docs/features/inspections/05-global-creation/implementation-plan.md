@@ -1,8 +1,8 @@
 ---
-id: INSP-05-PLAN
+id: INSPECTIONS-05-PLAN
 title: Global Creation Implementation Plan
 type: plan
-parent_id: INSP-05
+parent_id: INSPECTIONS-05
 status: done
 vf_icon: ✅
 folders:

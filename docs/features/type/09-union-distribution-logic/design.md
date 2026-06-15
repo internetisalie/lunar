@@ -1,8 +1,8 @@
 ---
-id: "TYPE-09-DESIGN"
+id: TYPE-09-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "TYPE-09"
+type: design
+parent_id: TYPE-09
 status: "in_progress"
 priority: "high"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: "SYNTAX-13"
+id: SYNTAX-13
 title: "13: Standalone Expression Annotator"
-type: "feature"
-parent_id: "SYNTAX"
+type: feature
+parent_id: SYNTAX
 status: "done"
 priority: "medium"
 folders:

@@ -1,8 +1,8 @@
 ---
-id: BUG-135-REQ
+id: BUG-135
 title: Stdlib Inlay Hints Requirements
-type: requirements
-parent_id: BUG-135
+type: feature
+parent_id: BUG
 status: planned
 ---
 

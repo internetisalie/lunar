@@ -1,13 +1,13 @@
 ---
-id: "DOC-04"
+id: DOC-04
 folders:
   - "[[features/documentation/requirements|requirements]]"
 priority: medium
 status: done
 vf_icon: ✅
 title: "04: Documentation Generation"
-type: "feature"
-parent_id: "DOC"
+type: feature
+parent_id: DOC
 ---
 # Specification: DOC-04 Documentation Generation
 

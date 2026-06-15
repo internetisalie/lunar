@@ -1,10 +1,10 @@
 ---
-id: "ANALYSIS-03"
+id: ANALYSIS-03
 title: "03: External Annotator"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "ANALYSIS"
+parent_id: ANALYSIS
 folders: ["[[features/analysis/requirements|requirements]]"]
 ---
 

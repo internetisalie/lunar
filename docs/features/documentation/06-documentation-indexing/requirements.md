@@ -1,10 +1,10 @@
 ---
-id: "DOC-06"
+id: DOC-06
 folders:
   - "[[features/documentation/requirements|requirements]]"
 title: "06: Documentation Indexing"
-type: "feature"
-parent_id: "DOC"
+type: feature
+parent_id: DOC
 status: "done"
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: "TYPE-04"
+id: TYPE-04
 title: "04: Union Types"
-type: "feature"
-parent_id: "TYPE"
+type: feature
+parent_id: TYPE
 status: "done"
 priority: "high"
 folders:

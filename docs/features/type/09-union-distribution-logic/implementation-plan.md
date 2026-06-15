@@ -1,8 +1,8 @@
 ---
-id: "TYPE-09-PLAN"
+id: TYPE-09-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "TYPE-09"
+type: plan
+parent_id: TYPE-09
 status: "in_progress"
 priority: "high"
 folders:

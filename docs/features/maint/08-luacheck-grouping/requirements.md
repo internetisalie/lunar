@@ -1,8 +1,8 @@
 ---
-id: MAINT-08-REQ
+id: MAINT-08
 title: Luacheck Grouping Requirements
-type: requirements
-parent_id: MAINT-08
+type: feature
+parent_id: MAINT
 status: planned
 ---
 

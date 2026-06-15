@@ -1,10 +1,10 @@
 ---
-id: "DEBUG-05"
+id: RUN-05
 title: "05: Remote Debugging"
-type: "feature"
+type: feature
 status: "done"
 priority: "medium"
-parent_id: "DEBUG/RUN"
+parent_id: DEBUG/RUN
 folders: ["[[features/debug/requirements|requirements]]"]
 ---
 

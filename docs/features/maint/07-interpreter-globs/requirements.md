@@ -1,8 +1,8 @@
 ---
-id: MAINT-07-REQ
+id: MAINT-07
 title: Interpreter Globs Requirements
-type: requirements
-parent_id: MAINT-07
+type: feature
+parent_id: MAINT
 status: planned
 ---
 

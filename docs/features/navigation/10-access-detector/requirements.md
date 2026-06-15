@@ -1,8 +1,8 @@
 ---
-id: "NAV-10"
+id: NAV-10
 title: "10: Access Detector"
-type: "feature"
-parent_id: "NAV"
+type: feature
+parent_id: NAV
 status: "done"
 priority: "medium"
 folders:

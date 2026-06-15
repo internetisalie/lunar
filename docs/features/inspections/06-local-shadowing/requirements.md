@@ -1,8 +1,8 @@
 ---
-id: INSP-06-REQ
+id: INSPECTIONS-06
 title: Local Shadowing Requirements
-type: requirements
-parent_id: INSP-06
+type: feature
+parent_id: INSP
 status: done
 ---
 

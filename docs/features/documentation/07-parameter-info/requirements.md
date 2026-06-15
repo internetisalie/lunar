@@ -1,13 +1,13 @@
 ---
-id: "DOC-07"
+id: DOC-07
 folders:
   - "[[features/documentation/requirements|requirements]]"
 priority: medium
 status: done
 vf_icon: ✅
 title: "07: Parameter Info"
-type: "feature"
-parent_id: "DOC"
+type: feature
+parent_id: DOC
 ---
 # Specification: DOC-07 Parameter Info
 

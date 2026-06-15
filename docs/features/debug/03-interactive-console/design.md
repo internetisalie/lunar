@@ -1,8 +1,8 @@
 ---
-id: "RUN-03-DESIGN"
+id: DEBUG-03-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "RUN-03"
+type: design
+parent_id: DEBUG-03
 status: "planned"
 priority: "low"
 folders:

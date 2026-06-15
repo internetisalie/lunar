@@ -1,8 +1,8 @@
 ---
-id: "TYPE-01"
+id: TYPE-01
 title: "01: Basic Type Inference"
-type: "feature"
-parent_id: "TYPE"
+type: feature
+parent_id: TYPE
 status: "done"
 priority: "medium"
 folders:

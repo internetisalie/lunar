@@ -1,8 +1,8 @@
 ---
-id: INSP-02-REQ
+id: INSPECTIONS-02
 title: Unused Local Variable Requirements
-type: requirements
-parent_id: INSP-02
+type: feature
+parent_id: INSP
 status: planned
 ---
 

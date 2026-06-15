@@ -1,8 +1,8 @@
 ---
-id: ANALYSIS-06-REQ
+id: ANALYSIS-06
 title: Control Flow Graph (CFG) Requirements
-type: requirements
-parent_id: ANALYSIS-06
+type: feature
+parent_id: ANALYSIS
 status: planned
 ---
 

@@ -1,8 +1,8 @@
 ---
-id: INSP-07-DESIGN
+id: INSPECTIONS-07-DESIGN
 title: Suspicious Concatenation Design
 type: design
-parent_id: INSP-07
+parent_id: INSPECTIONS-07
 status: planned
 ---
 

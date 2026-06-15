@@ -1,8 +1,8 @@
 ---
-id: "NAV-01"
+id: NAVIGATION-01
 title: "01: Go to Definition"
-type: "feature"
-parent_id: "NAV"
+type: feature
+parent_id: NAV
 status: "done"
 priority: "medium"
 folders:

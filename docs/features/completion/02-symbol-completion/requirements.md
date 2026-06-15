@@ -1,8 +1,8 @@
 ---
-id: "COMP-02"
+id: COMP-02
 title: "02: Basic Symbol Completion"
-type: "feature"
-parent_id: "COMP"
+type: feature
+parent_id: COMP
 status: "done"
 priority: "high"
 folders:

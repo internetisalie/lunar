@@ -1,8 +1,8 @@
 ---
-id: INSP-04-REQ
+id: INSP-04
 title: Unreachable Code Requirements
-type: requirements
-parent_id: INSP-04
+type: feature
+parent_id: INSP
 status: planned
 ---
 

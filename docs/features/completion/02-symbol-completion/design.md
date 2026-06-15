@@ -1,8 +1,8 @@
 ---
-id: "COMP-02-DESIGN"
+id: COMP-02-DESIGN
 title: "Technical Design"
-type: "design"
-parent_id: "COMP-02"
+type: design
+parent_id: COMP-02
 status: "done"
 priority: "high"
 folders:

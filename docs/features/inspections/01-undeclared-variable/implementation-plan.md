@@ -1,8 +1,8 @@
 ---
-id: "INSP-01-PLAN"
+id: INSP-01-PLAN
 title: "Implementation Plan"
-type: "plan"
-parent_id: "INSP-01"
+type: plan
+parent_id: INSP-01
 status: "planned"
 priority: "medium"
 folders:
