@@ -247,13 +247,13 @@ The IDE version is configured in **two independent places** (intentionally — t
 purposes and can differ):
 
 - **Gradle build / unit + integration tests** — `platformVersion` in `gradle.properties`
-  (currently `2026.1`, the GA baseline the plugin compiles against). This becomes the artifact
-  coordinate `go:goland:<platformVersion>`.
-- **Docker containerized IDE** — `IDE_VERSION` in `docker/Dockerfile` (currently `2026.1.3`, the
-  latest 2026.1 patch, for interactive/manual verification).
+  (currently `2026.1.3`). This becomes the artifact coordinate `go:goland:<platformVersion>`.
+- **Docker containerized IDE** — `IDE_VERSION` in `docker/Dockerfile` (currently `2026.1.3`).
 
-Keeping the docker IDE on the latest patch while pinning the gradle baseline at the GA minor is the
-standard "compile against the lowest supported version" practice.
+Both track the latest 2026.1 patch so dev/test runs on the same bugfixed platform users get.
+`pluginSinceBuild = 261` keeps the whole 2026.1.x branch as the declared compatibility floor
+(patch releases are bugfix-only, so compiling against `.3` doesn't narrow it). If/when the plugin
+ships, add a CI matrix that also tests against the GA floor to validate that declared `sinceBuild`.
 
 ## Troubleshooting
 

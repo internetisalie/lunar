@@ -45,8 +45,8 @@ See [docker/README.md](docker/README.md) for detailed Docker instructions.
 The IDE the plugin builds and tests against is controlled by `gradle.properties`:
 
 ```properties
-platformType = GO          # IDE for builds: GO (GoLand), IC (IntelliJ Community), etc.
-platformVersion = 2026.1   # platform version (becomes the artifact coordinate, e.g. go:goland:2026.1)
+platformType = GO            # IDE for builds: GO (GoLand), IC (IntelliJ Community), etc.
+platformVersion = 2026.1.3   # platform version (becomes the artifact coordinate, e.g. go:goland:2026.1.3)
 ```
 
 The containerized debug IDE version is set separately by `IDE_VERSION` in
