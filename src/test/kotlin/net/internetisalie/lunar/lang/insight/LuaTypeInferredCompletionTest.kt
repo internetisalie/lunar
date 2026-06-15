@@ -100,5 +100,28 @@ class LuaTypeInferredCompletionTest : IndexedDocumentTest() {
         )
     }
 
+    /**
+     * TYPE-02 × COMP-04 integration: implicit `@class` fields (from `self.field =` inside a method
+     * and `Class.field =`) must reach member completion, not just the type manager. The implicit-
+     * fields unit test checks `resolveType(...).getMembers()` directly; this checks the real flow.
+     */
+    @Test
+    fun `implicit class fields appear in completion`() {
+        doContains(
+            """
+            ---@class Player
+            local Player = {}
+            function Player:heal() self.hp = 1 end
+            Player.maxHp = 100
+
+            ---@type Player
+            local p
+            p.<caret>
+            """.trimIndent(),
+            "hp",
+            "maxHp",
+        )
+    }
+
     // TC-04 (union completion, COMP-04-06 S-priority) is deferred — see requirements Future Work.
 }
