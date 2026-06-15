@@ -4,7 +4,7 @@ Docker setup to run GoLand (or other JetBrains IDEs) with the Lunar plugin as a 
 
 ## Features
 
-- **Pre-staged IDE**: GoLand 2026.1.1 baked into image (no download needed)
+- **Pre-staged IDE**: GoLand 2026.1.3 baked into image (no download needed)
 - **Xvfb**: Virtual X11 display (headless)
 - **x11vnc**: VNC server for remote desktop access
 - **Openbox**: Lightweight window manager
@@ -20,10 +20,8 @@ Docker setup to run GoLand (or other JetBrains IDEs) with the Lunar plugin as a 
 ```
 
 This will:
-- Read IDE type and version from gradle.properties
-- Pre-stage GoLand 2026.1.1 (if not already cached)
-- Build multi-stage Docker image (6.5GB)
-- Tag as `lunar-ide:latest` and `lunar-ide:GO`
+- Pre-stage GoLand 2026.1.3 (the `IDE_VERSION` baked into the `ide` layer of the Dockerfile)
+- Build the `vnc` target (default) and tag it `lunar-ide:vnc` + `lunar-ide:latest`
 
 ### 2. Run Container
 
@@ -57,12 +55,16 @@ Recommended VNC viewers:
 
 ## Configuration
 
-IDE selection is controlled by `gradle.properties`:
+The IDE **type** comes from `IDE_TYPE` and the **version** from `IDE_VERSION`, both set as `ENV`
+in the `ide` stage of the Dockerfile (the container does **not** read `gradle.properties`):
 
-```properties
-platformType = GO                    # IDE type (GO=GoLand, IC=IntelliJ Community, etc.)
-testVersion = 2026.1.1              # IDE version for testing/Docker
+```dockerfile
+ENV DISPLAY=:99 \
+    IDE_TYPE=GO \
+    IDE_VERSION=2026.1.3
 ```
+
+`IDE_TYPE` accepts the same codes as gradle's `platformType` (GO=GoLand, IC=IntelliJ Community, …).
 
 Supported IDE types:
 - `GO` - GoLand
@@ -187,7 +189,7 @@ Cache directory: `docker/.ide-cache/`
 
 To manually stage an IDE:
 ```bash
-./docker-helper.sh cache stage GO 2026.1.1
+./docker-helper.sh cache stage GO 2026.1.3
 ```
 
 ## Directory Structure
@@ -241,15 +243,17 @@ Rebuild image: `./docker-helper.sh build`
 
 ## Integration with IDE Testing
 
-The Docker container uses the same IDE version as integration tests:
-- **gradle.properties** `testVersion = 2026.1.1`
-- **Integration tests**: `./gradlew integrationTest` downloads 2026.1.1
-- **Docker**: `./docker-helper.sh build` stages 2026.1.1
+The IDE version is configured in **two independent places** (intentionally — they serve different
+purposes and can differ):
 
-This ensures plugin testing is consistent across:
-1. Gradle integration tests (IDE Starter framework)
-2. Docker containerized IDE
-3. CI/CD pipelines
+- **Gradle build / unit + integration tests** — `platformVersion` in `gradle.properties`
+  (currently `2026.1`, the GA baseline the plugin compiles against). This becomes the artifact
+  coordinate `go:goland:<platformVersion>`.
+- **Docker containerized IDE** — `IDE_VERSION` in `docker/Dockerfile` (currently `2026.1.3`, the
+  latest 2026.1 patch, for interactive/manual verification).
+
+Keeping the docker IDE on the latest patch while pinning the gradle baseline at the GA minor is the
+standard "compile against the lowest supported version" practice.
 
 ## Troubleshooting
 
@@ -336,7 +340,7 @@ Run integration tests in the container (bind-mounts the repo, persists a gradle 
 - Xvfb, x11vnc, Openbox
 - Git, wget, curl, tar
 - X11 libraries and fonts
-- GoLand 2026.1.1 (or other selected IDE)
+- GoLand 2026.1.3 (or other selected IDE)
 
 ## Next Steps
 
