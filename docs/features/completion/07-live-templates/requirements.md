@@ -3,7 +3,7 @@ id: COMP-07
 title: Live Templates Requirements
 type: feature
 parent_id: COMP
-status: planned
+status: done
 ---
 
 # Live Templates Requirements

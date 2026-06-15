@@ -1,0 +1,32 @@
+<templateSet group="Lua">
+    <template name="fun" value="function $NAME$($ARGS$)&#10;    $END$&#10;end" description="Function declaration" toReformat="true" toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
+        <variable name="ARGS" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA" value="true" />
+        </context>
+    </template>
+    <template name="fori" value="for $VAR$ = $START$, $END_VAL$ do&#10;    $END$&#10;end" description="Numeric for loop" toReformat="true" toShortenFQNames="true">
+        <variable name="VAR" expression="" defaultValue="i" alwaysStopAt="true" />
+        <variable name="START" expression="" defaultValue="1" alwaysStopAt="true" />
+        <variable name="END_VAL" expression="" defaultValue="10" alwaysStopAt="true" />
+        <context>
+            <option name="LUA" value="true" />
+        </context>
+    </template>
+    <template name="forp" value="for $K$, $V$ in pairs($TABLE$) do&#10;    $END$&#10;end" description="Generic for loop" toReformat="true" toShortenFQNames="true">
+        <variable name="K" expression="" defaultValue="k" alwaysStopAt="true" />
+        <variable name="V" expression="" defaultValue="v" alwaysStopAt="true" />
+        <variable name="TABLE" expression="" defaultValue="t" alwaysStopAt="true" />
+        <context>
+            <option name="LUA" value="true" />
+        </context>
+    </template>
+    <template name="loc" value="local $NAME$ = $VALUE$" description="Local variable" toReformat="true" toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
+        <variable name="VALUE" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA" value="true" />
+        </context>
+    </template>
+</templateSet>

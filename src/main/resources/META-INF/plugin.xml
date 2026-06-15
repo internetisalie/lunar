@@ -183,6 +183,8 @@
             language="Lua"
             implementation="net.internetisalie.lunar.lang.LuaRequireReferenceContributor"/>
 
+    <defaultLiveTemplates file="liveTemplates/lua.xml"/>
+    <liveTemplateContext implementation="net.internetisalie.lunar.lang.completion.templates.LuaTemplateContextType"/>
     <codeInsight.template.postfixTemplateProvider language="Lua" implementationClass="net.internetisalie.lunar.lang.completion.postfix.LuaPostfixTemplateProvider"/>
     <completion.contributor
             language="Lua"

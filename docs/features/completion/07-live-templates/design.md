@@ -3,7 +3,7 @@ id: COMP-07-DESIGN
 title: Live Templates Design
 type: design
 parent_id: COMP-07
-status: planned
+status: done
 ---
 
 # Technical Design: Live Templates
