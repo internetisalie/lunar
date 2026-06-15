@@ -47,16 +47,23 @@ that only needs a real filesystem + real indexing (e.g. cross-file completion) b
   `throw AssertionError` debug dump; finished with real assertions. Commit `74a5220d`.
 - **Acceptance:** ✅ `./gradlew test` → 829 passed, 0 failed.
 
-### 1.2 Split the Dockerfile into targets — *solo*
-- Refactor `docker/Dockerfile` into a multi-stage `target` layering:
-  - `build` — ubuntu + JDK21 + git/build deps only (reproducible `./gradlew build/test`).
-  - `ide` — `FROM build` + xvfb + **pre-staged GoLand baked into a layer** (the "pre-installed IDE
-    image"; caches the ~1.2 GB so integration runs don't re-download it).
-  - `integration-test` — `FROM ide`, entrypoint runs `./gradlew integrationTest`.
-  - `vnc` — `FROM ide` + x11vnc/openbox/firefox (today's interactive-debug behavior).
-- Update `docker/docker-helper.sh` to build/select targets.
-- **Acceptance:** `docker build --target build|ide|integration-test|vnc` each succeed; `vnc` target
-  still serves the IDE on :5900.
+### 1.2 Split the Dockerfile into targets — *solo* — ✅ DONE
+- Refactored `docker/Dockerfile` into a multi-stage `target` layering:
+  - `build` — ubuntu:24.04 + JDK21 + git/build deps + fontconfig/fonts (headless unit tests).
+  - `ide` — `FROM build` + xvfb + native render libs + **pre-staged GoLand baked into a layer**
+    (caches the ~1.2 GB so integration runs don't re-download it).
+  - `integration-test` — `FROM ide`; new `integration-test-entrypoint.sh` starts Xvfb then
+    `exec ./gradlew integrationTest` (exit code propagates for CI; `sudo chown`s the gradle-cache
+    volume since a fresh named volume mounts root-owned). Repo bind-mounted at `/workspace`.
+  - `vnc` — `FROM ide` + x11vnc/openbox/firefox + bundled plugin (today's interactive-debug image;
+    still tagged `lunar-ide:latest`).
+- Updated `docker/docker-helper.sh`: `build [target]` selects a target (default `vnc`); new
+  `integration-test [gradle-args]` command runs the test image with the repo + a persistent
+  `lunar-gradle-cache` volume. README "Build Targets" section documents all four.
+- **Acceptance:** ✅ all four `docker build --target …` succeed; `vnc` verified serving VNC on
+  :5900 (IDE launched, X display 1920×1080); `integration-test` entrypoint verified end-to-end
+  (Xvfb + JDK21 + bind-mounted gradle wrapper resolve — `./gradlew --version` green). The
+  `integrationTest` task itself passing is **2.2**'s scope.
 - **Depends on:** nothing. (Addresses **Q2**.)
 
 ## Phase 2 — Verification infrastructure
@@ -117,9 +124,11 @@ Q8 (done) ─────────────► 3.1 grounding audit
 
 ## Resume pointer
 
-**Next up: 1.2 (Dockerfile split).** Done so far: Q1, Q8, and Phase 1.1 (all committed). Working
-tree clean apart from `scratch/`. The 1.2 docker work and 2.2 integration run benefit from the
-operational notes below.
+**Next up: 2.2 (get one integration test green in the `integration-test` docker image) — or 2.1 /
+3.2, which only depend on the green baseline.** Done so far: Q1, Q8, Phase 1.1, and Phase 1.2 (all
+committed). Working tree clean apart from `scratch/`. The 2.2 integration run benefits from the
+operational notes below; the `integration-test` image + `./docker-helper.sh integration-test` are
+now ready for it.
 
 ### Operational notes (hard-won this session)
 - **Driving the IDE over VNC:** open a project from a **container-owned dir** (e.g.
@@ -138,7 +147,7 @@ operational notes below.
 ## Exit criteria for "ready to start Wave 6"
 
 - [x] `./gradlew test` green (1.1) — 829 passed, 0 failed.
-- [ ] Dockerfile targets build; integration-test image exists (1.2).
+- [x] Dockerfile targets build; integration-test image exists (1.2).
 - [ ] COMP-03 has an in-process regression guard (2.1).
 - [ ] At least one integration test passes in the docker harness (2.2).
 - [ ] Wave 6's planned designs pass the grounding audit (3.1).

@@ -307,9 +307,28 @@ docker stop <container-id>
 - **Uncompressed**: ~6.5GB (running on disk)
 - **IDE cached**: ~1.2GB + 3.4GB extracted
 
-### Build Stages
-- **Stage 1 (base)**: Ubuntu 24.04 + system packages (~300MB)
-- **Stage 2 (runtime)**: IDE, config, and scripts (~6.5GB total)
+### Build Targets
+
+The Dockerfile is split into four layered targets (`docker build --target <name> docker/`):
+
+| Target | Builds on | Contents | Purpose |
+|--------|-----------|----------|---------|
+| `build` | ubuntu:24.04 | JDK 21 + git/build deps + fonts | reproducible `./gradlew build` / `test` |
+| `ide` | `build` | + xvfb + native render libs + pre-staged GoLand | the heavy ~1.2GB IDE layer (cached) |
+| `integration-test` | `ide` | + entrypoint running `./gradlew integrationTest` under Xvfb | headless integration tests |
+| `vnc` | `ide` | + x11vnc/openbox/firefox + bundled plugin | interactive VNC desktop IDE (**default**) |
+
+Select a target with the helper: `./docker-helper.sh build [build|ide|integration-test|vnc]`
+(default `vnc`, which is also tagged `lunar-ide:latest`). The repo source is **not** baked in —
+`build` / `integration-test` bind-mount it at `/workspace`.
+
+Run integration tests in the container (bind-mounts the repo, persists a gradle cache volume):
+
+```bash
+./docker-helper.sh build integration-test
+./docker-helper.sh integration-test            # runs ./gradlew integrationTest
+./docker-helper.sh integration-test --tests "*CrossFile*"   # extra gradle args pass through
+```
 
 ### Pre-installed
 - Ubuntu 24.04

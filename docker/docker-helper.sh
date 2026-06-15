@@ -23,25 +23,54 @@ print_success() {
 
 case "${1:-help}" in
     build)
-        print_header "Building Lunar IDE Docker Image"
-        
-        # Prepare plugin
-        print_info "Building plugin..."
-        cd "$PROJECT_ROOT" && ./gradlew buildPlugin -x test > /dev/null 2>&1
-        
-        PLUGIN_PATH=$(ls "$PROJECT_ROOT/build/distributions/lunar-"*.zip | head -1 2>/dev/null || echo "")
-        if [ -n "$PLUGIN_PATH" ]; then
-            print_info "Copying plugin to build context..."
-            cp "$PLUGIN_PATH" "$SCRIPT_DIR/lunar-plugin.zip"
+        # Target selection: build|ide|integration-test|vnc (default vnc = today's IDE image).
+        TARGET="${2:-vnc}"
+        case "$TARGET" in
+            build|ide|integration-test|vnc) ;;
+            *) print_info "Unknown target '$TARGET' (use: build|ide|integration-test|vnc)"; exit 1 ;;
+        esac
+        print_header "Building Lunar Docker Image (target: $TARGET)"
+
+        # Only the vnc target bakes in the plugin; other targets don't need it. COPY in the
+        # Dockerfile still expects the file to exist in the context, so always provide one
+        # (empty placeholder for non-vnc builds — the install step skips a zero-byte zip).
+        if [ "$TARGET" = vnc ]; then
+            print_info "Building plugin..."
+            cd "$PROJECT_ROOT" && ./gradlew buildPlugin -x test > /dev/null 2>&1
+            PLUGIN_PATH=$(ls "$PROJECT_ROOT/build/distributions/lunar-"*.zip 2>/dev/null | head -1 || echo "")
+            if [ -n "$PLUGIN_PATH" ]; then
+                print_info "Copying plugin to build context..."
+                cp "$PLUGIN_PATH" "$SCRIPT_DIR/lunar-plugin.zip"
+            else
+                touch "$SCRIPT_DIR/lunar-plugin.zip"
+            fi
         else
             touch "$SCRIPT_DIR/lunar-plugin.zip"
         fi
-        
-        docker build -t lunar-ide:latest "$SCRIPT_DIR"
-            
+
+        docker build --target "$TARGET" -t "lunar-ide:$TARGET" "$SCRIPT_DIR"
+        # Keep lunar-ide:latest pointing at the interactive IDE image (run/clean use it).
+        [ "$TARGET" = vnc ] && docker tag "lunar-ide:vnc" lunar-ide:latest
+
         rm -f "$SCRIPT_DIR/lunar-plugin.zip"
-        
-        print_success "Docker image built: lunar-ide:latest"
+
+        print_success "Docker image built: lunar-ide:$TARGET$([ "$TARGET" = vnc ] && echo ' (also tagged :latest)')"
+        ;;
+
+    integration-test)
+        print_header "Running integrationTest in docker (target: integration-test)"
+        if ! docker image inspect lunar-ide:integration-test >/dev/null 2>&1; then
+            print_info "Image lunar-ide:integration-test not found — build it first:"
+            print_info "  $0 build integration-test"
+            exit 1
+        fi
+        # Bind-mount the repo at /workspace; persist the gradle cache across runs so the
+        # IDE-starter download and dependency resolution aren't repeated every time.
+        docker run --rm \
+            --security-opt apparmor=unconfined \
+            -v "$PROJECT_ROOT":/workspace \
+            -v lunar-gradle-cache:/home/lunar/.gradle \
+            lunar-ide:integration-test "${@:2}"
         ;;
         
     run)
@@ -161,8 +190,12 @@ case "${1:-help}" in
     *)
         echo "Lunar IDE Docker Helper"
         echo ""
-        echo "Usage: $0 {build|run|connect|logs|shell|stop|clean|setup-plugin}"
+        echo "Usage: $0 {build [target]|run|integration-test|connect|logs|shell|stop|clean|setup-plugin}"
         echo ""
-        echo "  LUNAR_DEBUG=1 $0 run   # start with JDWP on :5005 for jdb (see jdb-debugger skill)"
+        echo "  build [target]          build a Dockerfile target (default: vnc)"
+        echo "                          targets: build | ide | integration-test | vnc"
+        echo "  integration-test [args] run ./gradlew integrationTest in the integration-test image"
+        echo ""
+        echo "  LUNAR_DEBUG=1 $0 run    # start the VNC IDE with JDWP on :5005 (see jdb-debugger skill)"
         ;;
 esac
