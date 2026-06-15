@@ -5,11 +5,13 @@ import com.intellij.lang.annotation.AnnotationSession
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.colors.TextAttributesKey
+import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.DumbModeTestUtils
 import net.internetisalie.lunar.IndexedDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaNameRef
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -166,18 +168,36 @@ class LuaInferredTypeAnnotatorTest : IndexedDocumentTest() {
     // ── TC-05: dumb mode → no inferred colors ────────────────────────────────────
 
     /**
-     * TC-05: while the index is unavailable (dumb mode), [LuaInferredTypeAnnotator] must
-     * return early and produce no annotations.
+     * TC-05 (platform contract — the real dumb-mode guarantee): [LuaInferredTypeAnnotator] must NOT
+     * be [DumbAware]. The highlighting machinery only runs DumbAware annotators while indexes
+     * rebuild, so being non-DumbAware is what actually stops inferred colors — which need type
+     * resolution over the (unavailable) indexes — from appearing during indexing.
      *
-     * The annotator is invoked DIRECTLY (not via [doHighlighting]) inside
-     * [DumbModeTestUtils.runInDumbModeSynchronously]. Calling `doHighlighting` inside a forced
-     * dumb-mode block deadlocks — highlighting waits for smart mode on the EDT while the dumb
-     * block is held open until its body returns — so we drive the annotator straight into a
-     * real [AnnotationHolderImpl] instead, which exercises the `DumbService.isDumb` guard
-     * without any EDT round-trip.
+     * This is asserted directly rather than via [doHighlighting]: driving the daemon inside
+     * [DumbModeTestUtils.runInDumbModeSynchronously] deadlocks, because highlighting waits for smart
+     * mode on the EDT while the forced dumb block is held open. If someone makes this annotator
+     * DumbAware, this test fails — flagging that the platform would then run it during indexing.
      */
     @Test
-    fun `TC-05 no inferred highlights produced in dumb mode`() {
+    fun `TC-05 annotator is not dumb-aware so the platform skips it while indexing`() {
+        // Typed as Any so the `is` check is a genuine runtime test (and not a compile-time
+        // "always false" that KTLC-365 will turn into an error): it fails the day someone makes
+        // the annotator DumbAware, which is exactly the regression we want to catch.
+        val annotator: Any = LuaInferredTypeAnnotator()
+        assertFalse(
+            annotator is DumbAware,
+            "LuaInferredTypeAnnotator must not be DumbAware, or the platform would run it during " +
+                "indexing when type resolution is unavailable.",
+        )
+    }
+
+    /**
+     * TC-05 (defense in depth): even if the annotator is invoked while the project is dumb, its
+     * [DumbService.isDumb] guard returns early and produces no annotations. Invoked directly into a
+     * real [AnnotationHolderImpl] (not via [doHighlighting], which deadlocks in a forced dumb block).
+     */
+    @Test
+    fun `TC-05 dumb guard produces no highlights even if invoked`() {
         myFixture.configureByText(LuaFileType, "local x = function() end\nx()")
         DumbModeTestUtils.runInDumbModeSynchronously(myFixture.project) {
             runReadAction {
