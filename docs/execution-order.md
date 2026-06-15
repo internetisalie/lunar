@@ -10,17 +10,10 @@ folders:
 
 # Backlog Execution Order
 
-> **Status is a point-in-time snapshot** (last refreshed 2026-06-15). The authoritative, live
-> per-feature status is each feature's `requirements.md` front-matter, aggregated into
-> [status.md](status.md) by `scripts/gen_status.py`. As of this refresh: **Waves 0–3 done**;
-> **Wave 4 (Inspections) is next**. ⚠️ Most TYPE features read `done` in their front-matter, but
-> **TYPE-07** (cross-file stubs) and **TYPE-09** (union hardening) are **source-verified
-> `in_progress`** — they are restored as **Wave 5** (the front-matter is the stale outlier; trust the
-> source-verified status). This doc's value is the *ordering and dependency edges*, which remain valid
-> regardless of status drift.
->
-> **Waves 4+ re-prioritized 2026-06-15** from the planning agent's source-verified epic assessment
-> (user impact × competitive gap × proximity-to-done).
+> **This doc's durable value is the ordering and dependency edges — not the `Status` column.**
+> Live per-feature status lives in each feature's `requirements.md` front-matter, aggregated into
+> [status.md](status.md) by `scripts/gen_status.py`; that is canonical, so treat the `Status`
+> columns here as advisory and possibly stale. Wave-level priorities last revised 2026-06-15.
 
 A dependency-aware sequencing of every **executable** feature (status `planned` or
 `in_progress`) so implementation agents can pull work in a safe, high-leverage order. This is
@@ -48,9 +41,8 @@ A dependency-aware sequencing of every **executable** feature (status `planned` 
   cluster.
 - **Update `status` to `done`** in the feature's `requirements.md` as you finish; that makes its
   dependents *ready*. Re-run `scripts/gen_status.py`.
-- Waves 0–3 (and the whole TYPE epic) are **done**; start at **Wave 4**. Some Wave 4+ items are
-  partly built (`in_progress`) — read the design's "Current implementation status" note first; the
-  remaining work is scoped there.
+- Some items are partly built (`in_progress`) — read the design's "Current implementation status"
+  note first; the remaining work is scoped there.
 
 ---
 
