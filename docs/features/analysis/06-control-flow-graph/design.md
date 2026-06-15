@@ -27,4 +27,6 @@ status: planned
 - **Responsibility**: Manages caching. Uses `CachedValuesManager` attached to the `LuaFunctionDecl` or `LuaFile` to cache the `ControlFlow` instance. It invalidates on PSI changes within the scope.
 
 ## 3. Integration Points
-- This feature operates purely as a foundational utility. It will be explicitly consumed by `LuaUnreachableCodeInspection` and `LuaUnusedLocalInspection`.
+- This feature operates purely as a foundational utility. 
+- It will be explicitly consumed by `LuaUnreachableCodeInspection` (INSP-04), which remains fully CFG-based.
+- In the future, it will also be consumed by `LuaUnusedLocalInspection` (INSP-02) for advanced dead-store detection (while INSP-02 currently relies on `ReferencesSearch` for basic unused detection).
