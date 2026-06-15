@@ -153,6 +153,15 @@
             level="WEAK WARNING"
             implementationClass="net.internetisalie.lunar.analysis.inspections.LuaShadowingVariableInspection"/>
 
+    <localInspection
+            language="Lua"
+            shortName="LuaDeprecatedApi"
+            displayName="Deprecated API"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.analysis.inspections.LuaDeprecatedApiInspection"/>
+
     <externalAnnotator
             language="Lua"
             implementationClass="net.internetisalie.lunar.analysis.luacheck.LuaCheckAnnotator"/>

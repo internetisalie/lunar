@@ -3,7 +3,7 @@ id: INSP-08-REQ
 title: Deprecated API Requirements
 type: requirements
 parent_id: INSP-08
-status: planned
+status: done
 ---
 
 # Deprecated API Requirements

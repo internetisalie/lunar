@@ -3,7 +3,7 @@ id: INSP-08-DESIGN
 title: Deprecated API Design
 type: design
 parent_id: INSP-08
-status: planned
+status: done
 ---
 
 # Technical Design: Deprecated API
