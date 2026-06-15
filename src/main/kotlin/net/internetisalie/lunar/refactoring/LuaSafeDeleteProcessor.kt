@@ -42,7 +42,20 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
     // -------------------------------------------------------------------------
 
     override fun handlesElement(element: PsiElement): Boolean =
-        findUsagesProvider.canFindUsagesFor(element)
+        findUsagesProvider.canFindUsagesFor(element) || isElevatedDeclaration(element)
+
+    /**
+     * True for the whole-declaration nodes [getElementsToSearch] elevates a leaf to. The platform
+     * re-dispatches `handlesElement` on the elevated element before calling [findUsages]; if this
+     * returned false the delegate would be dropped and the declaration deleted with NO usage
+     * search (silently orphaning references). [canFindUsagesFor] only accepts IDENTIFIER leaves,
+     * so the elevated nodes must be admitted explicitly.
+     */
+    private fun isElevatedDeclaration(element: PsiElement): Boolean =
+        element is LuaLocalVarDecl ||
+            element is LuaLocalFuncDecl ||
+            element is LuaFuncDecl ||
+            element is LuaAttName
 
     // -------------------------------------------------------------------------
     // Elements to search / delete (REFACT-03-02)

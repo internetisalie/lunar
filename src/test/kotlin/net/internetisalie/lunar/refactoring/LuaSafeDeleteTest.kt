@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.refactoring
 
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.safeDelete.SafeDeleteHandler
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.insight.LuaFindUsagesProvider
@@ -109,19 +110,44 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
     }
 
     @Test
-    fun testUnavailableOnLabelRef() {
-        // A label declaration IS valid (LuaLabelName), but a raw non-identifier
-        // leaf such as a keyword must not be accepted.
+    fun testHandlesElevatedDeclaration() {
+        // getElementsToSearch elevates the caret leaf to its LuaLocalVarDecl, and the platform
+        // re-dispatches handlesElement on that elevated node before calling findUsages. If the
+        // delegate did not handle the elevated node, the platform would fall back to the default
+        // delete and remove the declaration WITHOUT a usage search (silently orphaning references).
         myFixture.configureByText("test.lua", "local x = 1")
-
-        // Find a LuaLocalVarDecl — it should NOT be a valid safe-delete target
-        // because canFindUsagesFor only accepts IDENTIFIER leaves, not parent nodes.
         val decl = requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaLocalVarDecl::class.java)) {
             "Expected a LuaLocalVarDecl in test.lua"
         }
-        assertFalse(
-            "handlesElement must be false for a LuaLocalVarDecl node (not an IDENTIFIER leaf)",
+        assertTrue(
+            "handlesElement must be true for the elevated LuaLocalVarDecl, or Safe Delete skips usage search",
             processor.handlesElement(decl),
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // TC-REFACT-03-03 (integration): Safe Delete of a USED local must NOT delete
+    // silently — the platform must surface a conflict. In unit-test mode an
+    // unresolved conflict throws ConflictsInTestsException. This is the test that
+    // catches the regression where the elevated decl was not handlesElement-ed.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun testUsedLocalRaisesConflict() {
+        myFixture.configureByText("test.lua", "local x = 1\nprint(x)\n")
+        val attName = PsiTreeUtil.findChildOfType(myFixture.file, LuaAttName::class.java)!!
+        val xLeaf = attName.nameRef.identifier
+
+        try {
+            SafeDeleteHandler.invoke(project, arrayOf(xLeaf), true)
+            fail("Safe Delete of a used local must raise a conflict, not delete silently: ${myFixture.file.text}")
+        } catch (expected: BaseRefactoringProcessor.ConflictsInTestsException) {
+            // expected: the print(x) usage is reported as a conflict
+        }
+
+        assertFalse(
+            "The used local must survive when a conflict is raised: ${myFixture.file.text}",
+            PsiTreeUtil.findChildrenOfType(myFixture.file, LuaLocalVarDecl::class.java).isEmpty(),
         )
     }
 
