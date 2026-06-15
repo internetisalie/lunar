@@ -6,6 +6,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Pass
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.codeInsight.PsiEquivalenceUtil
@@ -13,6 +14,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.RefactoringActionHandler
 import com.intellij.refactoring.RefactoringBundle
+import com.intellij.refactoring.introduce.inplace.OccurrencesChooser
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import net.internetisalie.lunar.lang.psi.LuaBinOpExpr
 import net.internetisalie.lunar.lang.psi.LuaBlock
@@ -84,12 +86,21 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
             return
         }
         val name = suggestName(target, block)
-        val occurrences = if (ApplicationManager.getApplication().isUnitTestMode) {
-            collectOccurrences(target, block)
-        } else {
-            listOf(target)
+        val occurrences = collectOccurrences(target, block)
+        // Test mode must be deterministic (no popup): replace every occurrence. A single
+        // occurrence needs no choice either. Otherwise let the user pick this-vs-all.
+        if (ApplicationManager.getApplication().isUnitTestMode || occurrences.size <= 1) {
+            performIntroduce(project, editor, IntroduceContext(target, anchor, block, name, occurrences))
+            return
         }
-        performIntroduce(project, editor, IntroduceContext(target, anchor, block, name, occurrences))
+        OccurrencesChooser.simpleChooser<LuaExpr>(editor).showChooser(
+            target,
+            occurrences,
+            Pass.create { choice ->
+                val chosen = if (choice == OccurrencesChooser.ReplaceChoice.ALL) occurrences else listOf(target)
+                performIntroduce(project, editor, IntroduceContext(target, anchor, block, name, chosen))
+            },
+        )
     }
 
     private fun performIntroduce(project: Project, editor: Editor, context: IntroduceContext) {

@@ -23,7 +23,7 @@ Extract a selected expression into a `local` variable, replacing the occurrence(
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
 | `REFACT-02-01` | **Extract expression** | **M** | Full | Insert `local <name> = <selected expr>` before the enclosing statement and replace the selection with `<name>`. |
-| `REFACT-02-02` | **Replace all occurrences** | **S** | Partial | Offer to replace all identical occurrences of the expression in the enclosing scope. |
+| `REFACT-02-02` | **Replace all occurrences** | **S** | Full | Offer to replace all identical occurrences of the expression in the enclosing scope. |
 | `REFACT-02-03` | **Name suggestion + inline rename** | **S** | Full | Suggest a name and start an inline rename template on the introduced variable. |
 
 ## Test Cases
