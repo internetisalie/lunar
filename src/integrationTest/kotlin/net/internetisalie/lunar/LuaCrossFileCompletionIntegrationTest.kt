@@ -7,7 +7,9 @@ import com.intellij.ide.starter.runner.Starter
 import com.intellij.tools.ide.performanceTesting.commands.CommandChain
 import com.intellij.tools.ide.performanceTesting.commands.CompletionType
 import com.intellij.tools.ide.performanceTesting.commands.assertCompletionCommandContains
+import com.intellij.tools.ide.performanceTesting.commands.closeLookup
 import com.intellij.tools.ide.performanceTesting.commands.doComplete
+import com.intellij.tools.ide.performanceTesting.commands.exitApp
 import com.intellij.tools.ide.performanceTesting.commands.goto
 import com.intellij.tools.ide.performanceTesting.commands.openFile
 import com.intellij.tools.ide.performanceTesting.commands.waitForSmartMode
@@ -47,6 +49,15 @@ class LuaCrossFileCompletionIntegrationTest {
                 projectInfo = LocalProjectInfo(projectDir),
             ).withVersion(IdeProductResolver.getTestVersion()),
         )
+        IdeProductResolver.applyLicense(context)
+
+        // assertCompletionCommandContains reads dumped completion items from the directory named by
+        // the `completion.command.report.dir` system property; without it the IDE-side command
+        // throws "Completion items dump dir not set". Point it at a writable path in the launched
+        // IDE (the per-test system dir, which the CompletionCommand mkdirs into).
+        context.applyVMOptionsPatch {
+            addSystemProperty("completion.command.report.dir", context.paths.systemDir.resolve("completion-report"))
+        }
 
         val pathToPlugin = System.getProperty("path.to.build.plugin")
         require(pathToPlugin != null) { "path.to.build.plugin system property not set" }
@@ -59,6 +70,10 @@ class LuaCrossFileCompletionIntegrationTest {
             .goto(2, 8)
             .doComplete(CompletionType.BASIC)
             .assertCompletionCommandContains(listOf("helper_from_a", "helper_from_b"))
+            // Dismiss the lookup and quit, else the open completion popup keeps the IDE alive until
+            // the runTimeout (the script-chain runIDE has no implicit exit like runIdeWithDriver).
+            .closeLookup()
+            .exitApp()
 
         context.runIDE(commands = commands, runTimeout = 5.minutes)
     }

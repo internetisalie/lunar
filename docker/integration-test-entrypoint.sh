@@ -18,9 +18,7 @@ sudo chown -R "$(id -u):$(id -g)" "$HOME/.gradle" 2>/dev/null || true
 
 cd /workspace
 
-GRADLE_ARGS=("$@")
-[ ${#GRADLE_ARGS[@]} -eq 0 ] && GRADLE_ARGS=("integrationTest")
-
-echo "[*] Running ./gradlew ${GRADLE_ARGS[*]} ..."
+# Always run the integrationTest task; any args (e.g. `--tests "*Foo*"`) are appended to it.
+echo "[*] Running ./gradlew integrationTest $* ..."
 # exec so gradle's exit code propagates to `docker run` (CI-friendly).
-exec ./gradlew "${GRADLE_ARGS[@]}"
+exec ./gradlew integrationTest "$@"

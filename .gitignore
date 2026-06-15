@@ -34,6 +34,9 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+# ide-starter integration-test report output
+allure-results/
+
 ### Eclipse ###
 .apt_generated
 .classpath

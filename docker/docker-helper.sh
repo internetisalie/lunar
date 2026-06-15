@@ -69,12 +69,27 @@ case "${1:-help}" in
             print_info "  $0 build integration-test"
             exit 1
         fi
+        # GoLand is commercial: without a license the ide-starter run blocks on the License modal
+        # and times out. Mount the host key (read-only) and point the tests at it via
+        # LUNAR_LICENSE_KEY (consumed by IdeProductResolver.applyLicense). Override the source with
+        # LUNAR_LICENSE_KEY=/path/to/<ide>.key; default to the newest host GoLand key.
+        LICENSE_SRC="${LUNAR_LICENSE_KEY:-$(ls -t "$HOME"/.config/JetBrains/GoLand*/goland.key 2>/dev/null | head -1)}"
+        LICENSE_ARGS=""
+        if [ -n "$LICENSE_SRC" ] && [ -f "$LICENSE_SRC" ]; then
+            LICENSE_ARGS="-v \"$LICENSE_SRC\":/license/ide.key:ro -e LUNAR_LICENSE_KEY=/license/ide.key"
+            print_info "Mounting license key: $LICENSE_SRC"
+        else
+            print_info "No GoLand license key found — the run will block on the License dialog."
+            print_info "Set LUNAR_LICENSE_KEY=/path/to/goland.key (see jdb/docker docs)."
+        fi
+
         # Bind-mount the repo at /workspace; persist the gradle cache across runs so the
         # IDE-starter download and dependency resolution aren't repeated every time.
-        docker run --rm \
+        eval docker run --rm \
             --security-opt apparmor=unconfined \
-            -v "$PROJECT_ROOT":/workspace \
+            -v "\"$PROJECT_ROOT\":/workspace" \
             -v lunar-gradle-cache:/home/lunar/.gradle \
+            $LICENSE_ARGS \
             lunar-ide:integration-test "${@:2}"
         ;;
         

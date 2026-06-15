@@ -80,14 +80,15 @@ class LuaProgramExecutionWithIDEIntegrationTest {
                 projectInfo = LocalProjectInfo(projectDir)
             ).withVersion(IdeProductResolver.getTestVersion())
         )
-        
+        IdeProductResolver.applyLicense(context)
+
         // Install the Lunar plugin
         val pathToPlugin = System.getProperty("path.to.build.plugin")
         require(pathToPlugin != null) { "path.to.build.plugin system property not set" }
-        
+
         com.intellij.ide.starter.plugins.PluginConfigurator(context)
             .installPluginFromPath(File(pathToPlugin).toPath())
-        
+
         // Run IDE with driver and execute test
         val result = context.runIdeWithDriver(
             launchName = "simple-print-test",
@@ -137,10 +138,11 @@ class LuaProgramExecutionWithIDEIntegrationTest {
                 projectInfo = LocalProjectInfo(projectDir)
             ).withVersion(IdeProductResolver.getTestVersion())
         )
-        
+        IdeProductResolver.applyLicense(context)
+
         val pathToPlugin = System.getProperty("path.to.build.plugin")
         require(pathToPlugin != null) { "path.to.build.plugin system property not set" }
-        
+
         com.intellij.ide.starter.plugins.PluginConfigurator(context)
             .installPluginFromPath(File(pathToPlugin).toPath())
         

@@ -1,8 +1,12 @@
 package net.internetisalie.lunar
 
+import com.intellij.ide.starter.ide.IDETestContext
 import com.intellij.ide.starter.ide.IdeProductProvider
 import com.intellij.ide.starter.models.IdeInfo
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * IDE product resolver that reads from gradle.properties
@@ -13,7 +17,67 @@ object IdeProductResolver {
     private const val GRADLE_PROPERTIES_PATH = "gradle.properties"
     private const val PLATFORM_TYPE_KEY = "platformType"
     private const val TEST_VERSION_KEY = "testVersion"
-    
+    private const val LICENSE_ENV = "LUNAR_LICENSE_KEY"
+
+    /**
+     * Apply a JetBrains license to a commercial integration-test IDE (e.g. GoLand) so its
+     * License / Activation modal doesn't block the headless ide-starter run (which otherwise times
+     * out "due to a dialog being shown"). The key file is located via the LUNAR_LICENSE_KEY env var
+     * — docker-helper.sh mounts the host key in and sets it — falling back to the standard host
+     * config location for local `./gradlew integrationTest` runs. No-op with a warning when no key
+     * is found (the run will then hit the activation dialog).
+     *
+     * The key is the raw `<ide>.key` file; [IDETestContext.setLicense] base64-encodes it and writes
+     * it into the per-test config dir. Licenses are account-bound and never committed.
+     */
+    fun applyLicense(context: IDETestContext): IDETestContext {
+        val keyPath = resolveLicenseKeyPath(context.ide.productCode)
+        if (keyPath == null) {
+            println("⚠ No license key found (set $LICENSE_ENV=/path/to/<ide>.key). A commercial IDE will block on the License dialog.")
+            return context
+        }
+        println("✓ Applying integration-test license from: $keyPath")
+        return context.setLicense(keyPath)
+    }
+
+    /**
+     * Resolve the license key file: LUNAR_LICENSE_KEY env var first, then the newest matching
+     * `~/.config/JetBrains/<Product><version>/<product>.key` on the host. Null if none found.
+     */
+    private fun resolveLicenseKeyPath(productCode: String): Path? {
+        System.getenv(LICENSE_ENV)?.takeIf { it.isNotBlank() }?.let { env ->
+            val explicit = Paths.get(env)
+            if (Files.isRegularFile(explicit)) return explicit
+            println("⚠ $LICENSE_ENV=$env does not point to a readable file; ignoring")
+        }
+        val (configPrefix, keyFileName) = hostKeyCoordinates(productCode) ?: return null
+        val jetbrainsDir = Paths.get(System.getProperty("user.home"), ".config", "JetBrains")
+        if (!Files.isDirectory(jetbrainsDir)) return null
+        return Files.list(jetbrainsDir).use { stream ->
+            stream
+                .filter { Files.isDirectory(it) && it.fileName.toString().startsWith(configPrefix) }
+                .map { it.resolve(keyFileName) }
+                .filter { Files.isRegularFile(it) }
+                .sorted(Comparator.reverseOrder())
+                .findFirst()
+                .orElse(null)
+        }
+    }
+
+    /** Host config-dir prefix and key file name for a product code (only commercial IDEs). */
+    private fun hostKeyCoordinates(productCode: String): Pair<String, String>? = when (productCode) {
+        "GO" -> "GoLand" to "goland.key"
+        "IU" -> "IntelliJIdea" to "idea.key"
+        "RM" -> "RubyMine" to "rubymine.key"
+        "WS" -> "WebStorm" to "webstorm.key"
+        "PS" -> "PhpStorm" to "phpstorm.key"
+        "PY" -> "PyCharm" to "pycharm.key"
+        "DB" -> "DataGrip" to "datagrip.key"
+        "CL" -> "CLion" to "clion.key"
+        "RD" -> "Rider" to "rider.key"
+        else -> null
+    }
+
     /**
      * Get IDE info from gradle.properties platformType
      * @return IdeInfo for the configured platform type, defaults to IC if not found
