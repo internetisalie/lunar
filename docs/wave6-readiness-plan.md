@@ -33,14 +33,19 @@ that only needs a real filesystem + real indexing (e.g. cross-file completion) b
 
 ## Phase 1 — Foundation (do first; unblocks everything else)
 
-### 1.1 Restore a green test baseline — *solo*
-- Fix the **5 pre-existing failures** on `main`: `LuaFindUsagesTest` (testScopeIsolation,
-  testLocalVariableUsagesCount), `LuaFindUsagesCrossFileTest` (testCrossFileGlobalFunctionUsage),
-  `LuaSafeDeleteTest` (testUsedLocalReturnsUsages, testUsedLocalRaisesConflict).
-- These share `LuaNameReference` / `LuaNameReferenceSearcher`; the held **`LuaNameReference.kt`**
-  WIP (incomplete `isReferenceTo` change) belongs here — finish or revert it as part of the fix.
-- **Acceptance:** `./gradlew test` reports 0 failures (per the wave-baseline gate).
-- **Depends on:** nothing.
+### 1.1 Restore a green test baseline — *solo* — ✅ DONE
+- The baseline was more broken than the reported 5: **12 pre-existing failures** —
+  `LuaFindUsagesTest` (3), `LuaFindUsagesCrossFileTest` (1), `LuaSafeDeleteTest` (2),
+  `LuaNavigationTest` (6), and `LuaRequireTypeFlowTest` (1).
+- Root cause (11 of them): a `LuaNameReference` lives on the `LuaNameRef` composite, not the
+  IDENTIFIER leaf. `LuaBaseElement.getReferences()` dropped the element's own `getReference()` (broke
+  Go to Declaration / `findReferenceAt`), and the word-index search inspects only the leaf's
+  references (broke Find Usages / Safe Delete). Fixed in `LuaBaseElements.getReferences()` +
+  `LuaNameReferenceSearcher` (PSI-scan candidate files). Commit `1537e6c5`. The held
+  `LuaNameReference.kt` WIP was unnecessary and dropped.
+- The 12th (`LuaRequireTypeFlowTest`) was an unfinished test ending in an unconditional
+  `throw AssertionError` debug dump; finished with real assertions. Commit `74a5220d`.
+- **Acceptance:** ✅ `./gradlew test` → 829 passed, 0 failed.
 
 ### 1.2 Split the Dockerfile into targets — *solo*
 - Refactor `docker/Dockerfile` into a multi-stage `target` layering:
