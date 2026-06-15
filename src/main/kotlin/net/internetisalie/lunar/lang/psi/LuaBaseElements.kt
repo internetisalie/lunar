@@ -31,7 +31,13 @@ open class LuaBaseElement(node: ASTNode) : ASTWrapperPsiElement(node) {
     }
 
     override fun getReferences(): Array<PsiReference> {
-        return com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry.getReferencesFromProviders(this)
+        // Include this element's own reference (e.g. LuaNameReference from getReference()) alongside
+        // contributed ones. The platform default does this; without it, findReferenceAt() —
+        // and therefore Go to Declaration on locals — never sees the name reference, which lives
+        // on the LuaNameRef composite rather than a registered contributor.
+        val contributed = com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry.getReferencesFromProviders(this)
+        val own = getReference()
+        return if (own == null) contributed else arrayOf(own) + contributed
     }
 }
 
