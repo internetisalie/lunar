@@ -97,6 +97,15 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
                     }
                 }
             }
+
+            is LuaVar -> {
+                val nameRef = element.nameRef
+                if (nameRef != null && nameRef.identifier.text == name) {
+                    result = nameRef.identifier
+                    found = true
+                    return false
+                }
+            }
         }
 
         return true  // Continue walk

@@ -135,6 +135,15 @@
             level="WARNING"
             implementationClass="net.internetisalie.lunar.analysis.inspections.LuaUndeclaredVariableInspection"/>
 
+    <localInspection
+            language="Lua"
+            shortName="LuaGlobalCreation"
+            displayName="Global creation"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.analysis.inspections.LuaGlobalCreationInspection"/>
+
     <externalAnnotator
             language="Lua"
             implementationClass="net.internetisalie.lunar.analysis.luacheck.LuaCheckAnnotator"/>
