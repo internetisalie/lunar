@@ -115,9 +115,29 @@ Q8 (done) ─────────────► 3.1 grounding audit
 1.2 Dockerfile split ──► 2.2 integration green ──► 3.3 integration quality/depth
 ```
 
+## Resume pointer
+
+**Next up: 1.2 (Dockerfile split).** Done so far: Q1, Q8, and Phase 1.1 (all committed). Working
+tree clean apart from `scratch/`. The 1.2 docker work and 2.2 integration run benefit from the
+operational notes below.
+
+### Operational notes (hard-won this session)
+- **Driving the IDE over VNC:** open a project from a **container-owned dir** (e.g.
+  `/home/lunar/<proj>` created via `docker exec -u lunar`), **not** the host bind-mount
+  `/home/lunar/test` — that mount is owned by the host UID, so the container IDE can't create
+  backup/save files and falls into a "Cannot Save Files" retry loop. The `vnc` MCP tool's key names
+  are `Enter` / `BackSpace` (NOT `Return` / `Delete`, which type literal letters).
+- **Refreshing the plugin in the running container** without a rebuild: `docker cp` the freshly
+  built `build/distributions/.../lunar-*.jar` over
+  `/home/lunar/.local/share/JetBrains/GoLand2026.1/lunar/lib/lunar-*.jar`, then `docker restart lunar-ide`.
+- **2.2's known failure mode:** on the GCE builder the ide-starter run exited **code 3** with
+  EventBus connection errors and `rdserver`/`RemoteModCommandExecutor` warnings (GoLand launched in
+  remote-dev/backend mode), and produced no `idea.log`. The command script itself was correct. The
+  controlled docker `integration-test` image (1.2) is the place to pin a launch-flag fix.
+
 ## Exit criteria for "ready to start Wave 6"
 
-- [ ] `./gradlew test` green (1.1).
+- [x] `./gradlew test` green (1.1) — 829 passed, 0 failed.
 - [ ] Dockerfile targets build; integration-test image exists (1.2).
 - [ ] COMP-03 has an in-process regression guard (2.1).
 - [ ] At least one integration test passes in the docker harness (2.2).
