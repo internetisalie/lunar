@@ -246,14 +246,20 @@ Rebuild image: `./docker-helper.sh build`
 The IDE version is configured in **two independent places** (intentionally — they serve different
 purposes and can differ):
 
-- **Gradle build / unit + integration tests** — `platformVersion` in `gradle.properties`
-  (currently `2026.1.3`). This becomes the artifact coordinate `go:goland:<platformVersion>`.
+- **Compile + unit tests** — `platformVersion` in `gradle.properties` (currently `2026.1.3`).
+  Becomes the artifact coordinate `go:goland:<platformVersion>`.
+- **ide-starter integration tests** — `testVersion` in `gradle.properties` (currently `2026.1.3`),
+  read at runtime by `IdeProductResolver` in `src/integrationTest` (not by the gradle plugin).
 - **Docker containerized IDE** — `IDE_VERSION` in `docker/Dockerfile` (currently `2026.1.3`).
 
-Both track the latest 2026.1 patch so dev/test runs on the same bugfixed platform users get.
+All three track the latest 2026.1 patch so dev/test runs on the same bugfixed platform users get.
 `pluginSinceBuild = 261` keeps the whole 2026.1.x branch as the declared compatibility floor
-(patch releases are bugfix-only, so compiling against `.3` doesn't narrow it). If/when the plugin
-ships, add a CI matrix that also tests against the GA floor to validate that declared `sinceBuild`.
+(patch releases are bugfix-only, so compiling against `.3` doesn't narrow it).
+
+> **Note:** the integration tests launch GoLand, which is commercial — a fresh ide-starter config
+> has no license, so the **License/Activation modal blocks the run** (5-min timeout "due to a dialog
+> being shown"). The plugin only depends on `com.intellij.modules.platform`, so the license-free fix
+> is to run the ide-starter tests on IntelliJ IDEA **Community** instead. See the Wave-6 plan §2.2.
 
 ## Troubleshooting
 

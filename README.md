@@ -46,11 +46,13 @@ The IDE the plugin builds and tests against is controlled by `gradle.properties`
 
 ```properties
 platformType = GO            # IDE for builds: GO (GoLand), IC (IntelliJ Community), etc.
-platformVersion = 2026.1.3   # platform version (becomes the artifact coordinate, e.g. go:goland:2026.1.3)
+platformVersion = 2026.1.3   # compile + unit-test platform (artifact coordinate, e.g. go:goland:2026.1.3)
+testVersion = 2026.1.3       # ide-starter INTEGRATION-test IDE (read at runtime by IdeProductResolver.kt)
 ```
 
-The containerized debug IDE version is set separately by `IDE_VERSION` in
-[docker/Dockerfile](docker/Dockerfile).
+`testVersion` is parsed directly from this file by `IdeProductResolver` in `src/integrationTest`,
+not by the gradle plugin, so it must be kept in sync by hand. The containerized debug IDE version is
+separate again — `IDE_VERSION` in [docker/Dockerfile](docker/Dockerfile).
 
 Change to use different IDE:
 ```bash
