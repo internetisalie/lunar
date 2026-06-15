@@ -115,9 +115,9 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| INSP-05 | Global-creation inspection | in_progress | M | — | — | ✓ wire analysis logic |
-| INSP-06 | Variable-shadowing inspection | in_progress | M | — | — | ✓ |
-| INSP-08 | Deprecated-usage inspection | in_progress | M | — | — | ✓ |
+| INSP-05 | Global-creation inspection | done | M | — | — | ✓ wire analysis logic |
+| INSP-06 | Variable-shadowing inspection | done | M | — | — | ✓ |
+| INSP-08 | Deprecated-usage inspection | done | M | — | — | ✓ |
 | INSP-02 | Unused local / parameter (must-have) | planned | M | NAV-02 (usages) ✓ | — | ✓ |
 | INSP (rest) | Remaining inspections toward peer parity | planned | M/S | — | — | ✓ specs pending |
 
@@ -134,8 +134,8 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TYPE-07 | External-API stubs — cross-file `require`→stub resolution + stub type injection (TYPE-07-03/04) | in_progress | S | — | cross-file accuracy for COMP / INSP / hints | Serial: type-engine |
-| TYPE-09 | Union distribution hardening — canonicalization limits + memoization (P2), member-specific diagnostics (P3), de-risking spikes (P0), verification & perf (P4) | in_progress | H | — | diagnostic quality | Serial: type-engine |
+| TYPE-07 | External-API stubs — cross-file `require`→stub resolution + stub type injection (TYPE-07-03/04) | done | S | — | cross-file accuracy for COMP / INSP / hints | Serial: type-engine |
+| TYPE-09 | Union distribution hardening — canonicalization limits + memoization (P2), member-specific diagnostics (P3), de-risking spikes (P0), verification & perf (P4) | done | H | — | diagnostic quality | Serial: type-engine |
 
 ## Wave 6 — Completion polish  *(parallel-safe; user-visible)*
 
