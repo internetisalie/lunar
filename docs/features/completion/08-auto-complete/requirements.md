@@ -3,7 +3,7 @@ id: COMP-08
 title: Auto Complete Requirements
 type: feature
 parent_id: COMP
-status: planned
+status: done
 ---
 
 # Auto Complete Requirements

@@ -3,7 +3,7 @@ id: COMP-08-DESIGN
 title: Auto Complete Design
 type: design
 parent_id: COMP-08
-status: planned
+status: done
 ---
 
 # Technical Design: Auto Complete
