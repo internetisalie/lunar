@@ -101,6 +101,20 @@ FORMAT-03/04/05/06, REFACT-02/03, TYPE-09-P0/P1/P2/P3/P4.
   (the parent is non-leaf, so the planning gate does not catch it) — demote it or fill
   the phases.
 
+## Caveat: this audit measured completeness, not grounding (added 2026-06-15)
+
+This audit's PASS/FAIL ratings judged only the **completeness** axis (every section filled,
+algorithms specified, registrations stated). It did **not** verify the second axis —
+**grounding**: whether the PSI types / methods / services a design names actually exist in
+Lunar. Two designs that would score PASS here, **INSP-03** and **INSP-09**, were later found
+to reference EmmyLua's API throughout (`LuaLocalDef`, `LuaReturnStat`, `getExpressionType`,
+`isAssignable`, a non-existent `LuaBitwiseOp`) and, in INSP-09's case, to silently duplicate
+the live `LuaLanguageLevelAnnotator`. Both were corrected on 2026-06-15.
+
+**Implication for the re-review (#7):** a fresh pass must grep every named symbol against the
+codebase, not just check that sections are filled. The plan-feature bar now carries a
+**Grounding** axis (SKILL.md → "The second axis") to prevent recurrence.
+
 ## Recommendation (priority order)
 
 1. **Cheap wins first — close the 7 PARTIAL to PASS.** Each needs only a bounded
