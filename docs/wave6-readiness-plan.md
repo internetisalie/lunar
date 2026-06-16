@@ -68,12 +68,16 @@ that only needs a real filesystem + real indexing (e.g. cross-file completion) b
 
 ## Phase 2 — Verification infrastructure
 
-### 2.1 COMP-03 durable regression guard — *solo*
-- Add an in-process heavy test (`TempDirTestFixture` on real disk) that reproduces the transitive
-  require chain so `LocalFileSystem` resolution + real stub indexing work — the regression guard the
-  light fixture cannot provide. Keep the `@Disabled` light unit test as a pointer.
-- **Acceptance:** test asserts `helper_from_a` + `helper_from_b` appear; runs green in `./gradlew
-  test`. (Completes **Q1**'s durable half — #1b.)
+### 2.1 COMP-03 durable regression guard — *solo* — ✅ DONE
+- Added `LuaCrossFileCompletionHeavyTest` (commit `d21b7257`): a heavy project fixture +
+  real-disk `TempDirTestFixtureImpl` with an `EmptyModuleFixtureBuilder` source content root, so
+  `require()` resolution (real `LocalFileSystem`) and stub indexing work in-process. Reproduces
+  `main → module_b → module_a` and asserts completion offers `helper_from_b` (direct) +
+  `helper_from_a` (transitive). Gotchas pinned for next time: a module-less heavy project indexes
+  nothing (must add a source content root), and heavy module building + PSI/VFS writes need the EDT
+  (wrap lifecycle + body in `runInEdtAndWait`). Light `@Disabled` test kept as a pointer.
+- **Acceptance:** ✅ test green; full suite 830 passed, 0 failed, 1 skipped (the pointer).
+  (Completes **Q1**'s durable half — #1b.)
 - **Depends on:** 1.1 (green baseline).
 
 ### 2.2 Get one integration test green end-to-end — *solo* — ✅ DONE
@@ -140,10 +144,10 @@ Q8 (done) ─────────────► 3.1 grounding audit
 
 ## Resume pointer
 
-**Next up: 2.1 (COMP-03 heavy fixture) and/or 3.1 (grounding audit), 3.2 (coverage), 3.3
-(integration quality/depth).** Done so far: Q1, Q8, Phase 1.1, 1.2, **2.2** (all committed), plus
-the GoLand 2026.1.3 bump (gradle `platformVersion` + `testVersion` + docker `IDE_VERSION`). Working
-tree clean apart from `scratch/`.
+**Next up: Phase 3 — 3.1 (grounding audit, workflow), 3.2 (coverage push), 3.3 (integration
+quality/depth).** Done so far: Q1, Q8, Phase 1.1, 1.2, 2.1, **2.2** (all committed), plus the GoLand
+2026.1.3 bump (gradle `platformVersion` + `testVersion` + docker `IDE_VERSION`). Working tree clean
+apart from `scratch/`. Only one exit-criteria box remains: 3.1 (grounding audit).
 
 **Integration-test harness now works (use it for 3.3):** `./docker-helper.sh build integration-test`
 then `./docker-helper.sh integration-test [--tests "*Foo*"]`. It mounts the host GoLand license
@@ -173,6 +177,6 @@ by `IdeProductResolver.kt`, NOT the gradle plugin), docker `IDE_VERSION` (VNC ID
 
 - [x] `./gradlew test` green (1.1) — 829 passed, 0 failed.
 - [x] Dockerfile targets build; integration-test image exists (1.2).
-- [ ] COMP-03 has an in-process regression guard (2.1).
+- [x] COMP-03 has an in-process regression guard (2.1).
 - [x] At least one integration test passes in the docker harness (2.2).
 - [ ] Wave 6's planned designs pass the grounding audit (3.1).
