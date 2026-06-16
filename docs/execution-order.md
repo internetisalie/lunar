@@ -136,7 +136,7 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| COMP-03 | Cross-file completion | done | H | TYPE-07 *(soft — richer cross-file)* | — | 7/7; recursive/transitive resolution + cycle guard in `LuaCrossFileCompletionProvider`, verified by heavy + integration guards (wave6-readiness 2.1/2.2) |
+| COMP-03 | Cross-file completion | done | H | TYPE-07 *(soft — richer cross-file)* | — | 7/7; recursive/transitive resolution + cycle guard in `LuaCrossFileCompletionProvider`, verified by heavy + integration guards (Wave 6 readiness 2.1/2.2) |
 | COMP-06 | Postfix completion templates | done | S | — | — | 11 templates shipped (was `.if` only): Must `.not`/`.var`/`.for`/`.forp`/`.fori` + Should `.ifnot`/`.nil`/`.notnil`/`.return`/`.print`; shared `LuaExprSelector`. Surfaced+fixed a unary-`not` formatter bug (`not x` → `notx`). Could/Watch parked |
 | COMP-07 | Live templates | done | S | — | — | 16 templates shipped (was 4): +4 Must (`if`/`ifel`/`lfun`/`while`) +4 Should insertion (`repeat`/`forip`/`req`/`mod`) +4 surround; **`LuaCodeContextType` fixes the strings/comments/numbers defect**. `LuaIfContextType`/`elseif` parked (Could) |
 | COMP-08 | Block auto-complete | done | S | — | — | base hardened: **balance-check bug fix (no redundant `end`/`until`/`}`)** + full opener coverage incl. table `{}` + between-pair indent (`LuaEnterBetweenBlockHandler`) + stateless reformat; shared `LuaBlockPairs` (brace matcher left intact per design §2.3) |

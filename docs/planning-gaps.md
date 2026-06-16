@@ -115,7 +115,7 @@ the live `LuaLanguageLevelAnnotator`. Both were corrected on 2026-06-15.
 codebase, not just check that sections are filled. The plan-feature bar now carries a
 **Grounding** axis (SKILL.md → "The second axis") to prevent recurrence.
 
-## Grounding audit — Wave 7 formatter cluster (wave6-readiness §3.1, 2026-06-15)
+## Grounding audit — Wave 7 formatter cluster (Wave 6 readiness §3.1, 2026-06-15)
 
 First application of the new **Grounding** axis to a next-to-implement batch: the Wave 7 serial
 formatter cluster (`FORMAT-03/04/05/06`), which had only stub requirements at the 2026-06-13 audit
