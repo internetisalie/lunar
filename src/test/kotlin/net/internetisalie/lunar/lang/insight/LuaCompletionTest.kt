@@ -234,8 +234,9 @@ class LuaCompletionTest : IndexedDocumentTest() {
     @Disabled(
         "Cross-file completion cannot be exercised in the LightTempDirTestFixture: require " +
             "resolution needs the real LocalFileSystem and the project-global stub query returns " +
-            "nothing for addFileToProject'd files here. Recursion logic lives in " +
-            "LuaCrossFileCompletionProvider; verify via an integration test. Pending: decide approach.",
+            "nothing for addFileToProject'd files here. The durable in-process guard is " +
+            "LuaCrossFileCompletionHeavyTest (heavy fixture + real-disk TempDirTestFixture); the " +
+            "end-to-end guard is LuaCrossFileCompletionIntegrationTest. Kept here as a pointer.",
     )
     fun `COMP-03 Verify recursive cross-file completion`() {
         // Create module A that provides a function.
