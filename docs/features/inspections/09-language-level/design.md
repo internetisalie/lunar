@@ -2,7 +2,7 @@
 id: "INSP-09-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
+status: "done"
 parent_id: "INSP-09"
 folders:
   - "[[features/inspections/09-language-level/requirements|requirements]]"

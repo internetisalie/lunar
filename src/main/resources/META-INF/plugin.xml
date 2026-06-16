@@ -123,9 +123,6 @@
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaVarargAnnotator"/>
     <annotator
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaLanguageLevelAnnotator"/>
-    <annotator
-            language="Lua"
             implementationClass="net.internetisalie.lunar.luacats.lang.syntax.LuaCatsAnnotator"/>
     <annotator
             language="Lua"
@@ -207,6 +204,15 @@
             enabledByDefault="true"
             level="WARNING"
             implementationClass="net.internetisalie.lunar.analysis.inspections.LuaUnreachableCodeInspection"/>
+
+    <localInspection
+            language="Lua"
+            shortName="LuaLanguageLevel"
+            displayName="Language level compliance"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="net.internetisalie.lunar.analysis.inspections.LuaLanguageLevelInspection"/>
 
     <externalAnnotator
             language="Lua"

@@ -1,4 +1,4 @@
-package net.internetisalie.lunar.lang.syntax
+package net.internetisalie.lunar.analysis.inspections
 
 import com.intellij.lang.annotation.HighlightSeverity
 import net.internetisalie.lunar.BaseDocumentTest
@@ -9,10 +9,16 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
+/**
+ * Migrated from `LuaLanguageLevelAnnotatorTest` when INSP-09 replaced the annotator with
+ * [LuaLanguageLevelInspection]. Same inputs, same messages, same `doHighlighting(ERROR)` assertions;
+ * only the source of the diagnostics changed (annotator → enabled inspection).
+ */
+class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
 
     @BeforeEach
     fun setupProject() {
+        myFixture.enableInspections(LuaLanguageLevelInspection())
         // Default to Lua 5.4 for each test
         setLanguageLevel(LuaLanguageLevel.LUA54)
     }
@@ -97,10 +103,8 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
     fun xorNotAllowedInLua52() {
         setLanguageLevel(LuaLanguageLevel.LUA52)
         myFixture.configureByText(LuaFileType, "local x = 1 ^ 2")
-        val errors = getLanguageLevelErrors()
-        // XOR uses ^ which is also power operator, so we need to verify it's caught for Lua 5.2
-        // In Lua 5.2, ^ is power; in 5.3+ it's also used for XOR in some contexts
-        // Note: This test may need adjustment based on actual grammar
+        getLanguageLevelErrors()
+        // XOR uses ^ which is also power operator; ^ is never flagged. No assertion (parity with original).
     }
 
     // ==================== Lua 5.3+ Features (integer division) ====================
@@ -191,7 +195,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
                 goto exit
                 ::exit::
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.any { it.contains("Goto statements") }, "Expected goto error in function")
@@ -205,10 +209,9 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
             LuaFileType,
             """
             local x <const> = 1 & 2
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
-        // Attributes not allowed in 5.3, bitwise AND allowed
         Assertions.assertTrue(errors.any { it.contains("Variable attributes") }, "Expected attribute error")
         Assertions.assertTrue(errors.none { it.contains("Bitwise AND") }, "Bitwise AND should be allowed in 5.3")
     }
@@ -255,8 +258,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "goto exit ::exit::")
         val errorsBefore = getLanguageLevelErrors()
         Assertions.assertTrue(errorsBefore.size >= 2, "Expected errors for goto and label in Lua 5.1")
-        
-        // After upgrade
+
         setLanguageLevel(LuaLanguageLevel.LUA52)
         myFixture.configureByText(LuaFileType, "goto exit ::exit::")
         val errorsAfter = getLanguageLevelErrors()
@@ -269,8 +271,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = 1 & 2")
         val errorsBefore = getLanguageLevelErrors()
         Assertions.assertTrue(errorsBefore.any { it.contains("Bitwise AND") }, "Expected error in Lua 5.2")
-        
-        // After upgrade
+
         setLanguageLevel(LuaLanguageLevel.LUA53)
         myFixture.configureByText(LuaFileType, "local x = 1 & 2")
         val errorsAfter = getLanguageLevelErrors()
@@ -283,8 +284,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x <const> = 1")
         val errorsBefore = getLanguageLevelErrors()
         Assertions.assertTrue(errorsBefore.any { it.contains("Variable attributes") }, "Expected error in Lua 5.3")
-        
-        // After upgrade
+
         setLanguageLevel(LuaLanguageLevel.LUA54)
         myFixture.configureByText(LuaFileType, "local x <const> = 1")
         val errorsAfter = getLanguageLevelErrors()
@@ -305,7 +305,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
             local a = x ^ 2
             local t = {1, 2, 3}
             function foo() return x end
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.isEmpty(), "Standard Lua 5.1 features should not error")
@@ -323,7 +323,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
             local y = 10 // 3
             local a <const> = 1
             local b <close> = io.open('f')
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.isEmpty(), "All features should be allowed in Lua 5.4")
@@ -336,27 +336,27 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
             myFixture.configureByText(LuaFileType, "local a = 1 + 2")
             var errors = getLanguageLevelErrors()
             Assertions.assertTrue(errors.isEmpty(), "Addition should work in $level")
-            
+
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local b = 3 - 1")
             errors = getLanguageLevelErrors()
             Assertions.assertTrue(errors.isEmpty(), "Subtraction should work in $level")
-            
+
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local c = 2 * 3")
             errors = getLanguageLevelErrors()
             Assertions.assertTrue(errors.isEmpty(), "Multiplication should work in $level")
-            
+
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local d = 10 / 3")
             errors = getLanguageLevelErrors()
             Assertions.assertTrue(errors.isEmpty(), "Division should work in $level")
-            
+
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local e = 2 ^ 3")
             errors = getLanguageLevelErrors()
             Assertions.assertTrue(errors.isEmpty(), "Power should work in $level")
-            
+
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local f = \"hello\" .. \"world\"")
             errors = getLanguageLevelErrors()
@@ -376,11 +376,11 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
             goto exit
             ::exit::
             local x = 10 / 3
-            
+
             -- Not allowed
             local y = 1 & 2
             local z = 10 // 3
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertEquals(2, errors.size, "Should have exactly 2 errors for disallowed bitwise/div")
@@ -404,7 +404,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
             local g = 10 // 3
             local h <const> = 1
             local i <close> = nil
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.isEmpty(), "Lua 5.4 should support all features")
@@ -493,7 +493,6 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
         setLanguageLevel(LuaLanguageLevel.LUA52)
         myFixture.configureByText(LuaFileType, "local x = 1 ^ 2")
         val errors = getLanguageLevelErrors()
-        // In Lua 5.2, ^ is power, not XOR. No error expected.
         Assertions.assertTrue(errors.isEmpty(), "^ should be power in Lua 5.2, not bitwise XOR")
     }
 
@@ -502,8 +501,6 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
         setLanguageLevel(LuaLanguageLevel.LUA53)
         myFixture.configureByText(LuaFileType, "local x = 1 ^ 2")
         val errors = getLanguageLevelErrors()
-        // In Lua 5.3+, ^ can be used for XOR in bitwise context (actually it's XOR)
-        // But the grammar shows ^ is used for both power and XOR
         Assertions.assertTrue(errors.isEmpty(), "^ is allowed in Lua 5.3+")
     }
 
@@ -549,7 +546,7 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
                     ::exit::
                 end
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.size >= 2, "Goto in nested function should error in Lua 5.1")
@@ -567,16 +564,16 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
                 if not data then
                     goto skip_processing
                 end
-                
+
                 local result <const> = data & 0xFF
                 local count <close> = io.open('count')
-                
+
                 return result // 16
-                
+
                 ::skip_processing::
                 return 0
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.isEmpty(), "Modern Lua 5.4 code should be error-free")
@@ -592,11 +589,11 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
                 if not data then
                     return 0
                 end
-                
+
                 local result = data
                 return result / 16
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.isEmpty(), "Legacy Lua 5.1 code should be error-free")
@@ -612,12 +609,38 @@ class LuaLanguageLevelAnnotatorTest : BaseDocumentTest() {
             local x = 10 // 3      -- Integer division (5.3+)
             local mask = 0xFF & data -- Bitwise AND (5.3+)
             local flags = mask | 0x80 -- Bitwise OR (5.3+)
-            
+
             -- Still no goto/labels (Lua 5.1 compat)
-            """.trimIndent()
+            """.trimIndent(),
         )
         val errors = getLanguageLevelErrors()
         Assertions.assertTrue(errors.isEmpty(), "Lua 5.3 migration code should be error-free")
+    }
+
+    // ==================== Quick fixes (INSP-09-07) ====================
+
+    @Test
+    fun upgradeQuickFixRaisesLanguageLevel() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "go<caret>to exit")
+        myFixture.doHighlighting(HighlightSeverity.ERROR)
+        val fix = myFixture.findSingleIntention("Upgrade project to Lua 5.2")
+        myFixture.launchAction(fix)
+        Assertions.assertEquals(
+            LuaLanguageLevel.LUA52,
+            LuaProjectSettings.getInstance(myFixture.project).state.languageLevel,
+            "Upgrade fix should raise the project language level to 5.2 (clearing the goto error)",
+        )
+    }
+
+    @Test
+    fun removeGotoQuickFixDeletesStatement() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "go<caret>to exit")
+        myFixture.doHighlighting(HighlightSeverity.ERROR)
+        val fix = myFixture.findSingleIntention("Remove goto statement")
+        myFixture.launchAction(fix)
+        Assertions.assertFalse(myFixture.file.text.contains("goto"), "Remove fix should delete the goto statement")
     }
 
     // ==================== Helper methods ====================

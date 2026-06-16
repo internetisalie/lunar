@@ -2,7 +2,7 @@
 id: "INSP-09"
 title: "09: Language-Level Compliance Inspection"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "INSP"
 folders:

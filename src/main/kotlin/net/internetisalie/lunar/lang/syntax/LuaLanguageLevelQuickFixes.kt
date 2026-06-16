@@ -5,7 +5,10 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.LuaLanguageLevel
+import net.internetisalie.lunar.lang.psi.LuaGotoStatement
+import net.internetisalie.lunar.lang.psi.LuaLabel
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
@@ -43,16 +46,7 @@ class RemoveGotoFix : BaseIntentionAction() {
     override fun invoke(project: Project, editor: Editor, file: PsiFile) {
         val offset = editor.caretModel.offset
         val element = file.findElementAt(offset) ?: return
-        
-        // Find parent goto statement
-        var current: PsiElement? = element
-        while (current != null) {
-            if (current.javaClass.simpleName == "LuaGotoStatement") {
-                current.delete()
-                return
-            }
-            current = current.parent
-        }
+        PsiTreeUtil.getParentOfType(element, LuaGotoStatement::class.java, false)?.delete()
     }
 
     override fun startInWriteAction(): Boolean = true
@@ -72,16 +66,7 @@ class RemoveLabelFix : BaseIntentionAction() {
     override fun invoke(project: Project, editor: Editor, file: PsiFile) {
         val offset = editor.caretModel.offset
         val element = file.findElementAt(offset) ?: return
-        
-        // Find parent label
-        var current: PsiElement? = element
-        while (current != null) {
-            if (current.javaClass.simpleName == "LuaLabel") {
-                current.delete()
-                return
-            }
-            current = current.parent
-        }
+        PsiTreeUtil.getParentOfType(element, LuaLabel::class.java, false)?.delete()
     }
 
     override fun startInWriteAction(): Boolean = true
