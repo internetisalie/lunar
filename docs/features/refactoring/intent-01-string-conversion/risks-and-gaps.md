@@ -2,7 +2,7 @@
 id: INTENT-01-RISKS
 title: "Risks & Gaps"
 type: risk
-status: todo
+status: done
 parent_id: INTENT-01
 folders:
   - "[[features/refactoring/intent-01-string-conversion/requirements|requirements]]"
@@ -79,9 +79,9 @@ were genuine forks are recorded below as resolved._
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| INTENT-01-00-DR-01 | In a `BasePlatformTestCase` spike, `configureByText` each of `'x'`, `"x"`, `[[x]]`; assert `findElementAt(caret)`'s enclosing `LuaTerminalExpr.string` is non-null and its element type is `LuaElementTypes.STRING` for all three. | Risk 1.1 | todo |
-| INTENT-01-00-DR-02 | Round-trip spike: for sample values incl. `a"b`, `it's`, a tab, and a leading-newline value, assert `extractLuaString(encodeLuaString(v, form)) == v` for every `form`. | Risk 1.2, 1.4 | todo |
-| INTENT-01-00-DR-03 | Unit-test `longBracketLevel` against `"hello"`→0, `"a]]b"`→1, `"a]=]b"`→? (a value containing both `]]` and `]=]`); confirm the opener/closer it produces are absent from the content. | Risk 1.3 | todo |
+| INTENT-01-00-DR-01 | In a `BasePlatformTestCase` spike, `configureByText` each of `'x'`, `"x"`, `[[x]]`; assert `findElementAt(caret)`'s enclosing `LuaTerminalExpr.string` is non-null and its element type is `LuaElementTypes.STRING` for all three. | Risk 1.1 | done |
+| INTENT-01-00-DR-02 | Round-trip spike: for sample values incl. `a"b`, `it's`, a tab, and a leading-newline value, assert `extractLuaString(encodeLuaString(v, form)) == v` for every `form`. | Risk 1.2, 1.4 | done |
+| INTENT-01-00-DR-03 | Unit-test `longBracketLevel` against `"hello"`→0, `"a]]b"`→1, `"a]=]b"`→? (a value containing both `]]` and `]=]`); confirm the opener/closer it produces are absent from the content. | Risk 1.3 | done |
 
 ## Test Case Gaps
 - A value containing BOTH `]]` and `]=]` (needs level ≥2) is not yet a requirements test case;

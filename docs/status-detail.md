@@ -137,7 +137,7 @@ folders:
 | REFACT-04 | Label Refactoring | done | Rename + find-usages for labels via consolidated providers |
 | REFACT-05 | Name Validator | done | `LuaNamesValidator` — rejects Lua keywords and non-identifier names in Rename |
 | REFACT-06 | Stubs for Declaring Identifiers | todo | No stub file generation |
-| INTENT-01 | String Style Conversion | todo | No intention action |
+| INTENT-01 | String Style Conversion | done | `LuaStringConversionIntention` |
 | INTENT-02 | Invert If Statement | todo | No intention action |
 | INTENT-03 | Name Suggestion | todo | No `NameSuggestionProvider` |
 

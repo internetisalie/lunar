@@ -3,7 +3,7 @@ id: INTENT-01
 title: String Conversion Requirements
 type: feature
 parent_id: REFACT/INTENT
-status: planned
+status: done
 folders:
   - "[[features]]"
 ---
@@ -20,9 +20,9 @@ string is preserved across the conversion.
 
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| INTENT-01-01 | Cycle Quote Type | Must | planned | Provide an intention to cycle a string literal between single quotes (`'…'`), double quotes (`"…"`), and long brackets (`[[…]]`), preserving the runtime string value (escaping/unescaping as needed). |
-| INTENT-01-02 | Caret-in-string applicability | Must | planned | The intention is offered only when the caret is inside a string literal (`LuaTerminalExpr` whose child leaf is the `STRING` token), and not elsewhere. |
-| INTENT-01-03 | Long-string `]]` guard | Should | planned | When the next form in the cycle is the long-bracket form and the content contains the closing sequence `]]` (or the chosen level's closer), skip directly to the following form rather than producing a broken literal, OR raise the bracket level so a safe closer exists. |
+| INTENT-01-01 | Cycle Quote Type | Must | Full | Provide an intention to cycle a string literal between single quotes (`'…'`), double quotes (`"…"`), and long brackets (`[[…]]`), preserving the runtime string value (escaping/unescaping as needed). |
+| INTENT-01-02 | Caret-in-string applicability | Must | Full | The intention is offered only when the caret is inside a string literal (`LuaTerminalExpr` whose child leaf is the `STRING` token), and not elsewhere. |
+| INTENT-01-03 | Long-string `]]` guard | Should | Full | When the next form in the cycle is the long-bracket form and the content contains the closing sequence `]]` (or the chosen level's closer), skip directly to the following form rather than producing a broken literal, OR raise the bracket level so a safe closer exists. |
 
 ## Test Cases
 

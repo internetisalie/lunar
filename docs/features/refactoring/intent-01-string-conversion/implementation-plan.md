@@ -3,7 +3,7 @@ id: INTENT-01-PLAN
 title: String Conversion Implementation Plan
 type: plan
 parent_id: INTENT-01
-status: planned
+status: done
 folders:
   - "[[features/refactoring/intent-01-string-conversion/requirements|requirements]]"
   - "[[features/refactoring/intent-01-string-conversion/design|design]]"

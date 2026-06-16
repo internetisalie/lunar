@@ -105,6 +105,54 @@ private fun unescapeLuaString(str: String): String {
     return result.toString()
 }
 
+enum class LuaStringForm { SINGLE, DOUBLE, LONG, UNKNOWN }
+
+private val NAMED_ESCAPES = mapOf(
+    '\u0007' to "\\a",
+    '\b' to "\\b",
+    '\u000C' to "\\f",
+    '\n' to "\\n",
+    '\r' to "\\r",
+    '\t' to "\\t",
+    '\u000B' to "\\v"
+)
+
+private fun escapeShort(value: String, delimiter: Char): String {
+    val result = StringBuilder()
+    for (ch in value) {
+        when {
+            ch == '\\' -> result.append("\\\\")
+            ch == delimiter -> result.append('\\').append(delimiter)
+            ch in NAMED_ESCAPES -> result.append(NAMED_ESCAPES[ch])
+            else -> result.append(ch)
+        }
+    }
+    return result.toString()
+}
+
+fun longBracketLevel(value: String): Int {
+    var level = 0
+    while (value.contains("]" + "=".repeat(level) + "]")) {
+        level++
+    }
+    return level
+}
+
+private fun encodeLong(value: String): String {
+    val level = longBracketLevel(value)
+    val pad = "=".repeat(level)
+    val lead = if (value.startsWith("\n")) "\n" else ""
+    return "[$pad[$lead$value]$pad]"
+}
+
+fun encodeLuaString(value: String, target: LuaStringForm): String =
+    when (target) {
+        LuaStringForm.SINGLE -> "'" + escapeShort(value, '\'') + "'"
+        LuaStringForm.DOUBLE -> "\"" + escapeShort(value, '"') + "\""
+        LuaStringForm.LONG -> encodeLong(value)
+        LuaStringForm.UNKNOWN -> value
+    }
+
 fun getLuaStringDelimiterLength(str: String): Int {
     if (str.isEmpty()) return 0
     return when (str[0]) {

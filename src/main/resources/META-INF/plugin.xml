@@ -360,6 +360,11 @@
       <category>Lua</category>
     </intentionAction>
 
+    <intentionAction>
+      <className>net.internetisalie.lunar.lang.insight.LuaStringConversionIntention</className>
+      <category>Lua</category>
+    </intentionAction>
+
     <codeInsight.lineMarkerProvider
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaLineMarkerProvider"/>
