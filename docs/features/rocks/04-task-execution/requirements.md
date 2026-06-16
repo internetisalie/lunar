@@ -36,7 +36,7 @@ The configuration dialog will include:
 
 ### Execution
 Running the configuration will:
-1. Resolve the project's bound `luarocks` binary (via `TOOL-01/02`).
+1. Resolve the `luarocks` binary from `LuaRocksSettings.executablePath` (default: `luarocks` on `PATH`). *(Future: source it from the project-bound TOOL-01/02 registry once that integration lands — ROCKS does not depend on the TOOL track for Wave 10.)*
 2. Execute the command in the IDE's execution console with proper ANSI color support.
 
 ## Requirements Table

@@ -29,7 +29,7 @@ The Package Browser provides an IDE-native interface for exploring, searching, a
 ## Syntax/Behavior
 
 ### Search Logic
-- Leverages the project-bound `luarocks` binary (see `TOOL-02`).
+- Uses the `luarocks` binary from `LuaRocksSettings.executablePath`. *(Future: project-bound resolution via TOOL-02 — not a Wave-10 dependency.)*
 - Supports fuzzy matching and regex patterns for advanced discovery.
 - Filters results based on the current Lua version compatibility (using `--lua-version` flag).
 

@@ -22,6 +22,20 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 
 ---
 
+## Relationship to the TOOL track
+
+**ROCKS is independent of the TOOL track for Wave 10** — the two tracks (TOOL inventory, ROCKS
+integration) are designed to be implemented and shipped in parallel. Every ROCKS feature resolves the
+`luarocks` binary from its own `LuaRocksSettings.executablePath` (a `@Service(APP)` defined in ROCKS-04,
+default `luarocks` on `PATH`), **not** from `LuaToolManager` / the TOOL registry. The designs were
+corrected (2026-06-16 grounding audit) to remove the earlier `LuaToolManager` references; some
+requirements prose still mentioned TOOL-01/02 and has been reconciled to match.
+
+**Future integration (post-Wave-10, not a dependency):** once both tracks exist, ROCKS can consume the
+project-bound `luarocks` from TOOL-01/02 (single source of truth, version enforcement) instead of its own
+`executablePath`. Until then, configuring `luarocks` in both places is an accepted, deliberate trade-off
+that preserves track independence.
+
 ## Motivation
 Managing Lua dependencies manually is error-prone and lacks IDE visibility. Integrating LuaRocks directly into the workflow provides a standardized ecosystem for package management, reducing context switching between the terminal and the editor.
 

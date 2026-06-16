@@ -15,7 +15,7 @@ folders:
 
 ### R1: CLI Version Mismatch (Medium)
 - **Risk**: The user might try to run commands (like \`init\`) with an old version of LuaRocks that doesn't support specific flags.
-- **Mitigation**: \`TOOL-01\`'s minimum version enforcement must be used.
+- **Mitigation (Wave 10)**: ROCKS resolves the binary from \`LuaRocksSettings.executablePath\` and surfaces the \`luarocks\` error/exit code on failure — it does **not** hard-require the TOOL track. \`TOOL-01\`'s minimum-version enforcement would pre-empt this and is a **future integration** (see [the TOOL relationship note](requirements.md#relationship-to-the-tool-track)), not a Wave-10 dependency.
 
 ### R2: LUA_INIT Collisions (High)
 - **Risk**: Users might already have `LUA_INIT` defined in their shell. Prepending or overwriting it in the IDE might cause unexpected behavior.
