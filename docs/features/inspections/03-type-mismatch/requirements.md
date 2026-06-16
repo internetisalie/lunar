@@ -3,7 +3,7 @@ id: INSP-03
 title: "03: Type Mismatch"
 type: feature
 parent_id: INSP
-status: planned
+status: "done"
 priority: medium
 folders:
   - "[[features/inspections/requirements|requirements]]"

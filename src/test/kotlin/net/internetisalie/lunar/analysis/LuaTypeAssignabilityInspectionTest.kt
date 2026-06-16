@@ -85,6 +85,39 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    /** A scalar type mismatch (`number` assigned to `---@type string`) must be reported (TC1). */
+    @Test
+    fun testScalarTypeMismatchReported() {
+        val descs = descriptions(
+            """
+            ---@type string
+            local x = 42
+            """.trimIndent(),
+        )
+        assertTrue(
+            "Expected a 'not assignable' problem mentioning 'number' and 'string', got: $descs",
+            descs.any { it.contains("not assignable") && it.contains("number") && it.contains("string") },
+        )
+    }
+
+    /**
+     * A value whose type is a member of the declared union (`number` into `string|number`) must
+     * NOT be reported (TC2).
+     */
+    @Test
+    fun testUnionMemberMatchNotReported() {
+        val descs = descriptions(
+            """
+            ---@type string|number
+            local x = 42
+            """.trimIndent(),
+        )
+        assertFalse(
+            "A union member match must not produce a 'not assignable' warning, got: $descs",
+            descs.any { it.contains("not assignable") },
+        )
+    }
+
     /**
      * TYPE-09 union diagnostics on REAL Lua (the union-distribution unit tests build graphs by
      * hand). A table that fails a union should name the closest-matching member and its missing
