@@ -36,8 +36,8 @@ This document provides the consolidated, chronological implementation sequence f
 
 - [ ] **TOOL-02 Phase 1**: Update Project and App settings to store tool bindings.
 - [ ] **TOOL-02 Phase 2**: Implement `LuaToolManager.getEffectiveTool` (Inheritance logic: Project > Global).
-- [ ] **TOOL-02 Phase 3**: Implement `LuaToolEnvironmentProvider` and integrate with `LuaRunConfiguration`.
-- [ ] **TOOL-02 Phase 4**: Implement `LocalTerminalDirectRunner` for Terminal `PATH` injection.
+- [ ] **TOOL-02 Phase 3**: Patch `GeneralCommandLine.environment` in `command/LuaCommandLine.kt` (alternative: `RunConfigurationExtension.patchCommandLine`) to inject tool dirs into `PATH`.
+- [ ] **TOOL-02 Phase 4**: Implement a `ShellExecOptionsCustomizer` (deprecated fallback `LocalTerminalCustomizer`) for Terminal `PATH` injection via the env map.
 
 ## Phase 3: User Interface & Experience (TOOL-03) [Must]
 *Exposing the logic to the user via settings panels.*

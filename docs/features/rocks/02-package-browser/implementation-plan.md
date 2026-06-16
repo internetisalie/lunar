@@ -15,6 +15,9 @@ Implements `design.md` using `luarocks --porcelain` output and `LuaRocksSettings
 for the binary path. Phases map to requirement IDs.
 
 ## Phase 1: Services, Parsing & Cache [Must/Should] — ROCKS-02-01/03/05
+- [ ] **Pre-req (shared)**: add `val ROCKET = getIcon("/icons/rocket_16.png", LuaIcons::class.java)` to
+      `net.internetisalie.lunar.lang.LuaIcons` (currently only `FILE` exists, which already maps to that
+      asset) — referenced by the tool-window/icon registrations.
 - [ ] Create package `net.internetisalie.lunar.rocks.browser`; data models `LuaRockPackage`,
       `LuaRockMetadata` (§2.1).
 - [ ] `LuaRocksSearchService.search`/`installed` (§3.1) parsing §4.1 (5-field, collapse

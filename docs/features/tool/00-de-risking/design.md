@@ -33,10 +33,13 @@ work uses the existing `net.internetisalie.lunar.util.LuaProcessUtil`. Every spi
 ## 2. Per-spike acceptance
 
 ### TOOL-00-01 — Terminal PATH injection
-- **Question**: Does prepending a tool dir to `PATH` via `com.intellij.terminal.TerminalCustomizer`
-  survive shell-profile loading on each target shell?
-- **Method**: implement a minimal `TerminalCustomizer` that prepends a known dir; open a fresh
-  built-in terminal per shell and run `echo $PATH` / `echo %PATH%` and `which/where luarocks`.
+- **Question**: Does prepending a tool dir to `PATH` via the env map of
+  `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer` (deprecated fallback
+  `org.jetbrains.plugins.terminal.LocalTerminalCustomizer`) reach each target shell?
+- **Method**: implement a minimal `ShellExecOptionsCustomizer` whose `customizeExecOptions(project,
+  options)` prepends a known dir to `options.environment["PATH"]`; open a fresh built-in terminal per
+  shell and run `echo $PATH` / `echo %PATH%` and `which/where luarocks`. (No `export`/`set` init
+  commands — injection is purely via the env map.)
 - **Pass threshold**: on Bash, Zsh, CMD, PowerShell the injected dir appears **first** and
   `which/where` resolves to it. Any shell that fails is documented with a fallback.
 - **Deliverable**: `results/terminal-path.md` (per-shell table) + the prototype customizer.

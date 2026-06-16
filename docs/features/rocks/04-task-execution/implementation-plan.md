@@ -15,6 +15,9 @@ Implements `design.md` by cloning the existing `net.internetisalie.lunar.run.Lua
 pattern for `luarocks`. Phases map to requirement IDs.
 
 ## Phase 1: Settings + Type Registration [Must] — ROCKS-04-01
+- [ ] **Pre-req (shared)**: add `val ROCKET = getIcon("/icons/rocket_16.png", LuaIcons::class.java)` to
+      `net.internetisalie.lunar.lang.LuaIcons` (currently only `FILE` exists, which already maps to that
+      asset) — referenced by the tool-window/icon registrations.
 - [ ] `LuaRocksSettings` app service (§2.1, clone of `LuaCheckSettings`) +
       `<applicationService>` registration.
 - [ ] `LuaRocksRunConfigurationType` (id `LuaRocksRunConfiguration`) + `…Factory` (§2.2–2.3) +

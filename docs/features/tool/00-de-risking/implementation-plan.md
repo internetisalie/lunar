@@ -16,9 +16,15 @@ This plan covers the critical de-risking actions required to validate the techni
 ## Phase 1: Environment & Execution [Must]
 *De-risks R1 (Terminal PATH) and R3 (CLI Execution).*
 
-- [ ] **TOOL-00-01: Prototype Terminal `initCommands` for PATH injection**
-    - Create a minimal `TerminalCustomizer` implementation.
-    - Verify that `initCommands` (e.g., `export PATH="..."`) correctly prepends to PATH after shell profile loading.
+- [ ] **TOOL-00-01: Prototype Terminal env-map PATH injection**
+    - Create a minimal `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer` implementation
+      (`customizeExecOptions(project, options: MutableShellExecOptions)`; EP `org.jetbrains.plugins.terminal.shellExecOptionsCustomizer`;
+      `@ApiStatus.Experimental`, runs on a background thread).
+    - Inject PATH by mutating the environment in the exec options (no `export` init commands — the
+      env map is the injection point). Verify the prepended tool dir appears on PATH in the spawned shell.
+    - As a comparison/fallback, prototype the deprecated `org.jetbrains.plugins.terminal.LocalTerminalCustomizer`
+      (`customizeCommandAndEnvironment(project, workingDirectory, command, envs)`; EP `…localTerminalCustomizer`),
+      injecting PATH into the `envs` map; confirm which one GoLand 2026.1 honors.
     - Test on Linux (Bash) and Windows (CMD, PowerShell).
 - [ ] **TOOL-00-04: Implement Async/Coroutine wrapper for CLI calls**
     - Create a utility method using `serviceCoroutineScope` and `withContext(Dispatchers.IO)`.

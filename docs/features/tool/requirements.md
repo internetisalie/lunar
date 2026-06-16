@@ -46,8 +46,8 @@ The IDE maintains an inventory of configured Lua interpreter binaries but lacks 
 | :--- | :--- | :--- |
 | `TOOL-02-01` | Per-Project Tool Binding | `LuaProjectSettings` |
 | `TOOL-02-02` | Context-Aware Invocation | `LuaToolManager.getEffectiveTool` |
-| `TOOL-02-03` | PATH Augmentation | `LuaToolEnvironmentProvider` |
-| `TOOL-02-04` | Terminal Integration | `LocalTerminalDirectRunner` / `TerminalCustomizer` |
+| `TOOL-02-03` | PATH Augmentation | `LuaCommandLine` env patch (`GeneralCommandLine.environment`) |
+| `TOOL-02-04` | Terminal Integration | `ShellExecOptionsCustomizer` (fallback `LocalTerminalCustomizer`) |
 
 ### TOOL-03: UI/UX & Health Monitoring
 | ID | Requirement | Implementation |

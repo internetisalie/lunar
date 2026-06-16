@@ -56,7 +56,8 @@ class State {
 #### `LuaTerminalEnvironmentService` (Project-level Service)
 - **Scoping**: Defined as a Project-level Service to avoid memory leaks and ensure automatic cleanup.
 - **Caching**: Caches the calculated `PATH` modification for the project.
-- **Invalidation**: Subscribes to the IntelliJ **Message Bus** to invalidate the cache immediately when tool settings change.
+- **Invalidation**: Subscribes to `LuaSettingsChangedListener.TOPIC` (`onSettingsChanged()`) on the
+  project **Message Bus** to invalidate the cache immediately when tool settings change.
 
 ### 3. Integration Points
 
@@ -65,14 +66,18 @@ class State {
 - This ensures consistency between manual terminal use and IDE-automated actions.
 
 #### Language Server & Debugger Integration
-- If the plugin spawns a Language Server (LSP) or a debug adapter that depends on external tools (e.g., for completion or static analysis), the `LuaToolEnvironmentProvider` must be used to patch the environment of these server processes.
+- If the plugin spawns a Language Server (LSP) or a debug adapter that depends on external tools (e.g., for completion or static analysis), the same PATH-patching helper (`command/LuaCommandLine.kt`, mutating `GeneralCommandLine.environment`) must be used to patch the environment of these server processes.
 - This addresses the "auto-complete injection" requirement by ensuring the server sees the project-bound tool versions.
 
 ## Implementation Details
 
 ### PATH Augmentation
-- `LuaToolEnvironmentProvider`: Implements `EnvironmentProvider` to prepend tool directories.
-- Terminal integration: Use `LocalTerminalDirectRunner` extension to inject `PATH`.
+- Run/launch processes: prepend tool directories to `GeneralCommandLine.environment["PATH"]` in
+  `command/LuaCommandLine.kt` (alternative for external configs: `RunConfigurationExtension.patchCommandLine`).
+  There is no platform `EnvironmentProvider` interface.
+- Terminal integration: register a `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer`
+  (EP `…shellExecOptionsCustomizer`) and prepend tool dirs to the PATH env var in the exec options
+  (deprecated fallback: `LocalTerminalCustomizer.customizeCommandAndEnvironment` injecting into the `envs` map).
 
 ## Testing Strategy
 - **Integration Tests**: Verify binding retrieval and resolution logic.

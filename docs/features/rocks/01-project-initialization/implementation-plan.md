@@ -15,6 +15,9 @@ Implements `design.md`. Targets GoLand (small IDE) via `DirectoryProjectGenerato
 to requirement IDs.
 
 ## Phase 1: Templates & Scaffolder [Must] — ROCKS-01-02/03/04
+- [ ] **Pre-req (shared)**: add `val ROCKET = getIcon("/icons/rocket_16.png", LuaIcons::class.java)` to
+      `net.internetisalie.lunar.lang.LuaIcons` (currently only `FILE` exists, which already maps to that
+      asset) — referenced by the tool-window/icon registrations.
 - [ ] Create package `net.internetisalie.lunar.rocks.init`.
 - [ ] `LuaRocksProjectSettings` data class (§2.1).
 - [ ] `LuaRocksTemplates` with the exact bodies in §4 (rockspec library/application, setup.lua,

@@ -11,6 +11,18 @@ folders:
 
 # Terminal PATH Injection Design (`TOOL-02`)
 
+> **⚠ Grounding correction (2026-06-16) — read before implementing.** The original draft of this
+> document was built on symbols that do not exist in the 2026.1 platform: `com.intellij.terminal.TerminalCustomizer`,
+> `customizeTerminal(terminalType, environment, initCommands)`, the `TerminalType` enum, the
+> `LocalTerminalDirectRunner.EpExtension`/`ProcessExecutor`/`localTerminalDirectRunner` EP, and an
+> invented `LUA_SETTINGS_TOPIC`/`LuaSettingsListener`. The sections below have been corrected to the
+> real API: `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer` (preferred) /
+> `org.jetbrains.plugins.terminal.LocalTerminalCustomizer` (deprecated fallback), with PATH injected
+> via the environment map (no shell `export`/`set` init commands), and the existing
+> `LuaSettingsChangedListener.TOPIC` for cache invalidation. The resolution logic, ordering, and
+> caching intent are unchanged.
+> See [planning-gaps.md](../../../planning-gaps.md#wave-10-grounding-audit-2026-06-16).
+
 ## Overview
 This document outlines the technical implementation for injecting Lua tool directories into the PATH of IntelliJ's built-in terminal, ensuring consistent tool availability across different shells and operating systems.
 
@@ -18,15 +30,20 @@ This document outlines the technical implementation for injecting Lua tool direc
 
 ### 1. Extension Points
 
-#### `TerminalCustomizer` Implementation
-- Custom implementation of `com.intellij.terminal.TerminalCustomizer`
-- Responsible for modifying the environment variables of terminal sessions
-- Specifically targets PATH variable to prepend Lua tool directories
+#### `ShellExecOptionsCustomizer` Implementation (preferred)
+- Custom implementation of `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer`
+  (EP `org.jetbrains.plugins.terminal.shellExecOptionsCustomizer`; `@ApiStatus.Experimental`).
+- Method `customizeExecOptions(project: Project, options: MutableShellExecOptions)` runs on a
+  background thread (no EDT blocking).
+- Responsible for modifying the environment variables of terminal sessions, specifically prepending
+  Lua tool directories to the PATH entry of the exec options' environment.
 
-#### `LocalTerminalDirectRunner` Extension
-- Extension of `com.intellij.terminal.LocalTerminalDirectRunner`
-- Handles direct execution of terminal processes with customized environment
-- Works in conjunction with TerminalCustomizer for complete PATH injection
+#### `LocalTerminalCustomizer` (deprecated fallback)
+- `org.jetbrains.plugins.terminal.LocalTerminalCustomizer` (EP
+  `org.jetbrains.plugins.terminal.localTerminalCustomizer`).
+- Method `customizeCommandAndEnvironment(project, workingDirectory, command, envs): Array<String>` —
+  inject PATH by mutating the `envs: Map<String, String>` map and returning `command` unchanged.
+- Use only if `ShellExecOptionsCustomizer` is unavailable in the target IDE build.
 
 ### 2. Environment Management
 
@@ -34,163 +51,114 @@ This document outlines the technical implementation for injecting Lua tool direc
 1. Retrieve effective Lua tools via `LuaToolManager.getEffectiveTool()`
 2. Extract directory paths from valid tool binaries
 3. Deduplicate paths while preserving order (project overrides take precedence)
-4. Construct PATH string: `[tool_dirs]:[original_path]`
+4. Prepend to the existing PATH: `[tool_dirs]<sep>[original_path]`, joined with `File.pathSeparator`
 
-#### Shell-Specific Handling
-- **Windows CMD**: Modify PATH using `set PATH=new_path;%PATH%`
-- **Windows PowerShell**: Modify PATH using `$env:PATH = "new_path;$env:PATH"`
-- **POSIX Shells (Bash/Zsh)**: Modify PATH using `export PATH="new_path:$PATH"`
+#### Injection Mechanism
+- PATH is injected **only via the environment map** of the exec options (or the `envs` map in the
+  deprecated customizer) — there are **no** shell `export`/`set` init commands and no `initCommands`
+  list. Mutating the env map applies to the spawned shell process directly, so there is no profile to
+  clobber and no per-shell syntax to emit.
+- Use `File.pathSeparator` (`:` on POSIX, `;` on Windows) when joining tool directories — the OS,
+  not the shell flavor, determines the separator.
 
 ### 3. Services
 
-#### `LuaTerminalEnvironmentService`
-- **Project-level Service**: Scoped to the project to prevent memory leaks.
-- Calculates the appropriate PATH modification for current project.
-- Subscribes to settings changes via Message Bus for instant cache invalidation.
-- Provides shell-specific PATH modification strings.
+#### `LuaTerminalEnvironmentService` (Project-level Service)
+- **Project-level Service** (`@Service(Service.Level.PROJECT)`): scoped to the project to prevent
+  memory leaks. This is the single, canonical service definition.
+- Calculates the effective Lua tool directories for the current project.
+- Subscribes to `LuaSettingsChangedListener.TOPIC` (`onSettingsChanged()`) on the project Message Bus
+  for instant cache invalidation.
 
 ## Implementation Details
 
-### TerminalCustomizer Implementation
+### ShellExecOptionsCustomizer Implementation (preferred)
 ```kotlin
-class LuaTerminalCustomizer : TerminalCustomizer {
-    override fun customizeTerminal(
-        terminalType: TerminalType,
-        environment: Map<String, String>,
-        initCommands: MutableList<String>
-    ) {
-        // ... Logic to get project from terminal context ...
-        val project = getProject() ?: return
-        val envService = project.service<LuaTerminalEnvironmentService>()
-        
-        val luaToolsDirs = envService.getToolDirectories()
-        if (luaToolsDirs.isEmpty()) return
-        
-        // Prepend to environment for initial process
-        val originalPath = environment["PATH"]
-        environment["PATH"] = buildPath(luaToolsDirs, originalPath, terminalType)
-        
-        // Use initCommands to ensure PATH persists after shell profiles load
-        val exportCmd = when (terminalType) {
-            TerminalType.COMMAND -> "set PATH=${luaToolsDirs.joinToString(";")};%PATH%"
-            TerminalType.POWERSHELL -> "\$env:PATH = \"${luaToolsDirs.joinToString(";")};\$env:PATH\""
-            else -> "export PATH=\"${luaToolsDirs.joinToString(":")}:\$PATH\""
+class LuaShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
+    // Runs on a background thread; safe to do tool resolution here.
+    override fun customizeExecOptions(project: Project, options: MutableShellExecOptions) {
+        val toolDirs = project.service<LuaTerminalEnvironmentService>().getToolDirectories()
+        if (toolDirs.isEmpty()) return
+
+        val env = options.environment // MutableMap<String, String>
+        val originalPath = env["PATH"]
+        val toolsPath = toolDirs.joinToString(File.pathSeparator)
+        env["PATH"] = if (originalPath.isNullOrBlank()) {
+            toolsPath
+        } else {
+            "$toolsPath${File.pathSeparator}$originalPath"
         }
-        initCommands.add(exportCmd)
     }
 }
 ```
 
-### LuaTerminalEnvironmentService
+### LocalTerminalCustomizer (deprecated fallback)
+```kotlin
+// Use only if ShellExecOptionsCustomizer is unavailable in the target IDE build.
+class LuaLocalTerminalCustomizer : LocalTerminalCustomizer() {
+    override fun customizeCommandAndEnvironment(
+        project: Project,
+        workingDirectory: String?,
+        command: Array<String>,
+        envs: MutableMap<String, String>,
+    ): Array<String> {
+        val toolDirs = project.service<LuaTerminalEnvironmentService>().getToolDirectories()
+        if (toolDirs.isNotEmpty()) {
+            val originalPath = envs["PATH"]
+            val toolsPath = toolDirs.joinToString(File.pathSeparator)
+            envs["PATH"] = if (originalPath.isNullOrBlank()) {
+                toolsPath
+            } else {
+                "$toolsPath${File.pathSeparator}$originalPath"
+            }
+        }
+        return command // command unchanged; PATH injected via envs map
+    }
+}
+```
+
+### LuaTerminalEnvironmentService (single, project-level definition)
 ```kotlin
 @Service(Service.Level.PROJECT)
 class LuaTerminalEnvironmentService(private val project: Project) {
-    private var cachedPath: String? = null
-    
+    @Volatile private var cachedToolDirectories: List<String>? = null
+
     init {
-        // Subscribe to settings changes to invalidate cache
-        project.messageBus.connect().subscribe(LUA_SETTINGS_TOPIC, object : LuaSettingsListener {
-            override fun settingsChanged() {
-                cachedPath = null
-            }
-        })
+        // Invalidate the cache when Lua settings change.
+        project.messageBus.connect().subscribe(
+            LuaSettingsChangedListener.TOPIC,
+            object : LuaSettingsChangedListener {
+                override fun onSettingsChanged() {
+                    cachedToolDirectories = null
+                }
+            },
+        )
     }
 
     fun getToolDirectories(): List<String> {
-        // ... Implementation ...
-    }
-}
-```
-
-
-### LocalTerminalDirectRunner Extension
-```kotlin
-@ExtensionPointId("com.intellij.terminal.localTerminalDirectRunner")
-class LuaTerminalDirectRunnerExtension : LocalTerminalDirectRunner.EpExtension {
-    override fun createRunner(
-        project: Project,
-        session: LocalTerminalSession,
-        originalRunner: LocalTerminalDirectRunner
-    ): LocalTerminalDirectRunner {
-        return object : LocalTerminalDirectRunner(project, session) {
-            override fun createProcessExecutor(): ProcessExecutor {
-                val originalExecutor = super.createProcessExecutor()
-                return object : ProcessExecutor by originalExecutor {
-                    override fun executeProcess(
-                        commandLine: GeneralCommandLine,
-                        processHandler: ProcessHandler
-                    ): OSProcess {
-                        // Ensure tool directories are in PATH for direct execution
-                        val project = session.project
-                        if (project != null) {
-                            val env = commandLine.environment
-                            val originalPath = env.get("PATH")
-                            val luaToolsDirs = LuaTerminalEnvironmentService.getToolDirectories(project)
-                            
-                            if (luaToolsDirs.isNotEmpty()) {
-                                val toolsPath = luaToolsDirs.joinToString(File.pathSeparator)
-                                val newPath = if (originalPath.isNullOrBlank()) {
-                                    toolsPath
-                                } else {
-                                    "$toolsPath${File.pathSeparator}$originalPath"
-                                }
-                                env.put("PATH", newPath)
-                            }
-                        }
-                        return originalExecutor.executeProcess(commandLine, processHandler)
-                    }
-                }
-            }
-        }
-    }
-}
-```
-
-### LuaTerminalEnvironmentService
-```kotlin
-@Service
-class LuaTerminalEnvironmentService @Autowired constructor(
-    private val luaToolManager: LuaToolManager
-) {
-    @Volatile private var cachedToolDirectories: Map<Project, List<String>> = mapOf()
-    @Volatile private var lastCacheUpdate: Map<Project, Long> = mapOf()
-    
-    fun getToolDirectories(project: Project): List<String> {
-        val now = System.currentTimeMillis()
-        val lastUpdate = lastCacheUpdate[project] ?: 0L
-        
-        // Refresh cache every 30 seconds or if not cached
-        if (now - lastUpdate > 30_000 || !cachedToolDirectories.containsKey(project)) {
-            val directories = luaToolManager.getAllValidTools(project)
-                .mapNotNull { it.path }
-                .map { File(it).parent }
-                .distinct()
-                .sortedBy { it } // Consistent ordering
-            
-            cachedToolDirectories[project] = directories
-            lastCacheUpdate[project] = now
-            return directories
-        }
-        
-        return cachedToolDirectories[project] ?: emptyList()
-    }
-    
-    fun invalidateCache(project: Project) {
-        cachedToolDirectories.remove(project)
-        lastCacheUpdate.remove(project)
+        cachedToolDirectories?.let { return it }
+        val directories = project.service<LuaToolManager>()
+            .getAllValidTools(project)
+            .mapNotNull { it.path }
+            .map { File(it).parent }
+            .distinct()
+        cachedToolDirectories = directories
+        return directories
     }
 }
 ```
 
 ## Registration in plugin.xml
 ```xml
-<!-- Terminal Customizer -->
-<extension points="com.intellij.terminal.TerminalCustomizer"
-          class="net.internetisalie.lunar.tool.terminal.LuaTerminalCustomizer"/>
+<!-- Preferred: Shell exec options customizer -->
+<extension points="org.jetbrains.plugins.terminal.shellExecOptionsCustomizer"
+          class="net.internetisalie.lunar.tool.terminal.LuaShellExecOptionsCustomizer"/>
 
-<!-- Terminal Direct Runner Extension -->
-<extension points="com.intellij.terminal.localTerminalDirectRunner"
-          class="net.internetisalie.lunar.tool.terminal.LuaTerminalDirectRunnerExtension"/>
+<!-- Deprecated fallback: local terminal customizer (register only one) -->
+<!--
+<extension points="org.jetbrains.plugins.terminal.localTerminalCustomizer"
+          class="net.internetisalie.lunar.tool.terminal.LuaLocalTerminalCustomizer"/>
+-->
 ```
 
 ## Validation and Compatibility

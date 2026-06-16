@@ -17,7 +17,7 @@ This document tracks identified technical risks, design gaps, and required de-ri
 
 ### R1: Terminal Environment Injection (High)
 *   **Risk**: Prepending directories to the `PATH` in the built-in terminal is platform and shell-dependent. Standard extensions may not work uniformly across all OS versions or may be overridden by user shell configurations.
-*   **Mitigation**: Prototype `com.intellij.terminal.TerminalCustomizer` and `LocalTerminalDirectRunner` extensions. Verify behavior on Windows (CMD/PowerShell) and POSIX (Bash/Zsh).
+*   **Mitigation**: Prototype `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer` (deprecated fallback `org.jetbrains.plugins.terminal.LocalTerminalCustomizer`), injecting PATH via the env map. Verify behavior on Windows (CMD/PowerShell) and POSIX (Bash/Zsh).
 
 ### R2: Settings Serialization (Medium)
 *   **Risk**: Complex objects and `MutableMap` in `PersistentStateComponent` can lead to serialization issues or "leaky" settings in `lunar.xml`.
@@ -48,7 +48,7 @@ deliverable exists (full method + thresholds in `design.md` §2).
 
 | ID | Action Item | Success Criterion (pass/fail) | Deliverable | Target |
 | :--- | :--- | :--- | :--- | :--- |
-| **TOOL-00-01** | Prototype Terminal PATH injection | Injected dir is first in `PATH` and `which/where luarocks` resolves to it on Bash, Zsh, CMD, PowerShell | `results/terminal-path.md` + prototype `TerminalCustomizer` | `TOOL-02` |
+| **TOOL-00-01** | Prototype Terminal PATH injection | Injected dir is first in `PATH` and `which/where luarocks` resolves to it on Bash, Zsh, CMD, PowerShell | `results/terminal-path.md` + prototype `ShellExecOptionsCustomizer` | `TOOL-02` |
 | **TOOL-00-02** | OS-specific tool filenames | luarocks/luacheck/stylua each resolve via `findInPath` on Linux + Windows; descriptor table complete | `LuaToolDescriptor` map + `results/tool-filenames.md` | `TOOL-01` |
 | **TOOL-00-03** | Settings serialization round-trip | `MutableList`/`MutableMap` State deep-equals after getState→loadState; no leaky/null XML tags; 2-coroutine concurrent write safe | `LuaSettingsSerializationTest` (green) | `TOOL-01/02` |
 | **TOOL-00-04** | Async/cancellable CLI wrapper | EDT never blocked; cancel → `ProcessCanceledException` ≤100 ms; 10 s timeout → `exitCode == -1` | `LuaProcessCoroutineTest` + wrapper | `TOOL-01` |

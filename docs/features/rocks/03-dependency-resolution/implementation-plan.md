@@ -15,6 +15,9 @@ Implements `design.md`. Phases map to requirement IDs; each is verified by `requ
 test cases.
 
 ## Phase 1: Version Model & Algorithms [Must] — ROCKS-03-03 core
+- [ ] **Pre-req (shared)**: add `val ROCKET = getIcon("/icons/rocket_16.png", LuaIcons::class.java)` to
+      `net.internetisalie.lunar.lang.LuaIcons` (currently only `FILE` exists, which already maps to that
+      asset) — referenced by the tool-window/icon registrations.
 - [ ] Create package `net.internetisalie.lunar.rocks.deps`.
 - [ ] `LuaRocksVersion` with `parse` (§3.1, exact `DELTAS` table) and `compareTo` (§3.2).
 - [ ] `ConstraintOp`, `VersionConstraint.isSatisfiedBy` (§3.4, incl. `~>` partial match).
@@ -22,8 +25,15 @@ test cases.
 - [ ] Unit tests: TC-ROCKS-03-03, TC-ROCKS-03-04.
 
 ## Phase 2: Data Extraction [Must] — ROCKS-03-01/02 inputs
-- [ ] Relocate the bridge scripts to `src/main/resources/lua/` so they are packaged
-      (`rockspec.lua`, `lunar/json.lua`, `lunar/export.lua`); fix `export.lua` `name`→`names`.
+- [ ] **Gated build step**: relocate the bridge scripts from `src/main/lua/` to
+      `src/main/resources/lua/` so they ship on the classpath (`rockspec.lua`, `lunar/json.lua`,
+      `lunar/export.lua`). This relocation is genuine un-done build work — do not skip it; the
+      classpath-resource extraction below depends on it. (Note: the historical `export.lua`
+      `ipairs(name)`→`ipairs(names)` bug is **already fixed** in the tree — line 7 uses `ipairs(names)`;
+      no code change needed there.)
+- [ ] Verify the bridge's actual JSON output shape against a real rockspec (run the relocated
+      `export.lua` over a known rockspec and confirm the `package`/`version`/`dependencies` keys and
+      nesting match what `RockspecBridge.read` expects).
 - [ ] `LuaRocksBridgeFiles` (§2.6a): extract the 3 classpath resources to a cached temp dir;
       `rockspecScript()`, `luaPathTemplate()`.
 - [ ] `RockspecBridge.read` (§4.1): build `GeneralCommandLine` (interpreter `path ?: "lua"`)

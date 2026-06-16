@@ -22,17 +22,24 @@ This plan covers the logic for binding tools to projects and making them availab
 - [ ] Implement inheritance logic: Project Binding > Global Binding > `null`.
 
 ## Phase 3: Run Configuration Integration [Must]
-- [ ] Create `net.internetisalie.lunar.run.LuaToolEnvironmentProvider`.
-- [ ] Implement `patchEnvironment(commandLine, project, type)` to prepend tool directory to `PATH`.
-- [ ] Integrate this provider into `LuaRunConfiguration` or via a `RunConfigurationExtension`.
+- [ ] **Primary**: Patch the environment directly in `command/LuaCommandLine.kt`'s command-line builder —
+      prepend the effective tool directories to `GeneralCommandLine.environment["PATH"]` (definitely
+      available, no extra EP).
+- [ ] **Alternative**: For configs not built through `LuaCommandLine`, integrate via a
+      `RunConfigurationExtension.patchCommandLine(...)` that mutates `GeneralCommandLine.environment`.
+      (There is no platform `EnvironmentProvider` interface — do not invent one.)
 
 ## Phase 4: Terminal Integration [Must]
-- [ ] Implement a `LocalTerminalDirectRunner` extension and `TerminalCustomizer`.
+- [ ] Register a `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer` (EP
+      `org.jetbrains.plugins.terminal.shellExecOptionsCustomizer`) that prepends the effective tool
+      directories to the PATH entry of the exec options' environment in `customizeExecOptions(project, options)`.
+      (Deprecated fallback: `LocalTerminalCustomizer.customizeCommandAndEnvironment(...)` injecting into the `envs` map.)
 - [ ] **Project-level Service**: Implement `LuaTerminalEnvironmentService` as a project-level service.
-- [ ] **Reactive Invalidation**: Subscribe to the Message Bus to invalidate terminal environment cache on settings changes.
-- [ ] **initCommands Injection**: Use `initCommands` in `TerminalCustomizer` to prepend `PATH` *after* shell initialization (prevents profile clobbering).
-- [ ] **Shell-Aware Paths**: Detect shell type (CMD, PS, Bash) to determine the correct path separator and `export`/`set` syntax.
-- [ ] Handle shell-specific PATH modification for CMD, PowerShell, Bash, and Zsh.
+- [ ] **Reactive Invalidation**: Subscribe to `LuaSettingsChangedListener.TOPIC` (`onSettingsChanged()`)
+      to invalidate the terminal environment cache on settings changes.
+- [ ] **Env-map Injection**: Prepend `PATH` by mutating the env map (no `export`/`set` init commands and
+      no `initCommands` list — the env map is the single injection point, which also avoids profile clobbering).
+- [ ] **Path Separator**: Use the OS path separator (`File.pathSeparator`) when joining tool directories.
 - [ ] Register extensions in plugin.xml.
 
 ## Verification Tasks
