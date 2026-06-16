@@ -4,14 +4,14 @@ import com.intellij.codeInsight.template.postfix.templates.StringBasedPostfixTem
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider
 import com.intellij.psi.PsiElement
 
-class LuaIfPostfixTemplate(provider: PostfixTemplateProvider? = null) : StringBasedPostfixTemplate(
-    "if",
-    "if expr then ... end",
+class LuaNilPostfixTemplate(provider: PostfixTemplateProvider? = null) : StringBasedPostfixTemplate(
+    "nil",
+    "if expr == nil then ... end",
     LuaExprSelector(),
     provider
 ) {
     override fun getTemplateString(element: PsiElement): String {
-        return "if \$expr\$ then\n    \$END\$\nend"
+        return "if \$expr\$ == nil then\n    \$END\$\nend"
     }
 
     override fun getElementToRemove(expr: PsiElement): PsiElement {

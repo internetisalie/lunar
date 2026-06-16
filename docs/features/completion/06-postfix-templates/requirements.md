@@ -3,7 +3,7 @@ id: COMP-06
 title: Postfix Templates Requirements
 type: feature
 parent_id: COMP
-status: in_progress
+status: done
 ---
 
 # Postfix Templates Requirements
@@ -18,16 +18,16 @@ postfixes are intentionally excluded (no Lua equivalent).
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
 | COMP-06-01 | `.if` Template | Must | done | Convert `expr.if` into `if expr then … end`. Built (`LuaIfPostfixTemplate`). |
-| COMP-06-02 | `.not` Template | Must | planned | Convert `expr.not` into `not expr`. _[EmmyLua `LuaIfNotPostfixTemplate`/`not`]_ |
-| COMP-06-03 | `.var` Template | Must | planned | Convert `expr.var` into `local name = expr`, with `name` an editable tab stop (string template; delegating to `LuaIntroduceVariableHandler` was rejected — see design §9). _[EmmyLua `LuaLocalPostfixTemplate`; mechanism per JetBrains `CastVarPostfixTemplate`]_ |
-| COMP-06-04 | `.for` Template | Must | planned | Convert `expr.for` into `for i = 1, expr do … end`. _[EmmyLua `LuaForAPostfixTemplate`]_ |
-| COMP-06-05 | `.forp` Template | Must | planned | Convert `expr.forp` into `for k, v in pairs(expr) do … end`. _[EmmyLua `LuaForPPostfixTemplate`]_ |
-| COMP-06-06 | `.fori` Template | Must | planned | Convert `expr.fori` into `for i, v in ipairs(expr) do … end`. _[EmmyLua `LuaForIPostfixTemplate`]_ |
-| COMP-06-07 | `.ifnot` Template | Should | planned | Convert `expr.ifnot` into `if not expr then … end` (statement guard; distinct from `.not`). _[EmmyLua `LuaIfNotPostfixTemplate`]_ |
-| COMP-06-08 | `.nil` Template | Should | planned | Convert `expr.nil` into `if expr == nil then … end` (Lua analog of platform `.null`). _[EmmyLua `LuaCheckNilPostfixTemplate`]_ |
-| COMP-06-09 | `.notnil` Template | Should | planned | Convert `expr.notnil` into `if expr ~= nil then … end` (Lua analog of `.nn`/`.notnull`). _[EmmyLua `LuaCheckIfNotNilPostfixTemplate`]_ |
-| COMP-06-10 | `.return` Template | Should | planned | Convert `expr.return` into `return expr`. _[EmmyLua `LuaReturnPostfixTemplate`; platform-universal]_ |
-| COMP-06-11 | `.print` Template | Should | planned | Convert `expr.print` into `print(expr)` (Lua's primary debug idiom). _[EmmyLua `LuaPrintPostfixTemplate`]_ |
+| COMP-06-02 | `.not` Template | Must | done | Convert `expr.not` into `not expr`. _[EmmyLua `LuaIfNotPostfixTemplate`/`not`]_ |
+| COMP-06-03 | `.var` Template | Must | done | Convert `expr.var` into `local name = expr`, with `name` an editable tab stop (string template; delegating to `LuaIntroduceVariableHandler` was rejected — see design §9). _[EmmyLua `LuaLocalPostfixTemplate`; mechanism per JetBrains `CastVarPostfixTemplate`]_ |
+| COMP-06-04 | `.for` Template | Must | done | Convert `expr.for` into `for i = 1, expr do … end`. _[EmmyLua `LuaForAPostfixTemplate`]_ |
+| COMP-06-05 | `.forp` Template | Must | done | Convert `expr.forp` into `for k, v in pairs(expr) do … end`. _[EmmyLua `LuaForPPostfixTemplate`]_ |
+| COMP-06-06 | `.fori` Template | Must | done | Convert `expr.fori` into `for i, v in ipairs(expr) do … end`. _[EmmyLua `LuaForIPostfixTemplate`]_ |
+| COMP-06-07 | `.ifnot` Template | Should | done | Convert `expr.ifnot` into `if not expr then … end` (statement guard; distinct from `.not`). _[EmmyLua `LuaIfNotPostfixTemplate`]_ |
+| COMP-06-08 | `.nil` Template | Should | done | Convert `expr.nil` into `if expr == nil then … end` (Lua analog of platform `.null`). _[EmmyLua `LuaCheckNilPostfixTemplate`]_ |
+| COMP-06-09 | `.notnil` Template | Should | done | Convert `expr.notnil` into `if expr ~= nil then … end` (Lua analog of `.nn`/`.notnull`). _[EmmyLua `LuaCheckIfNotNilPostfixTemplate`]_ |
+| COMP-06-10 | `.return` Template | Should | done | Convert `expr.return` into `return expr`. _[EmmyLua `LuaReturnPostfixTemplate`; platform-universal]_ |
+| COMP-06-11 | `.print` Template | Should | done | Convert `expr.print` into `print(expr)` (Lua's primary debug idiom). _[EmmyLua `LuaPrintPostfixTemplate`]_ |
 
 ## Backlog (Could / Watch — parked, not yet prioritized into the plan)
 Surveyed and viable, deferred per scope decision (2026-06-15):

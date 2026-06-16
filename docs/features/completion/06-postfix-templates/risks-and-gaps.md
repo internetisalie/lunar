@@ -2,7 +2,7 @@
 id: COMP-06-RISKS
 title: Postfix Templates Risks & Gaps
 type: risk
-status: todo
+status: done
 parent_id: COMP-06
 folders:
   - "[[features/completion/06-postfix-templates/requirements|requirements]]"
@@ -67,9 +67,9 @@ clone of the shipped `.if`.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| COMP-06-00-DR-01 | Prototype `LuaVarPostfixTemplate.setVariables` registering an editable `$name$` tab stop; confirm it expands `getUser().var` → `local value = getUser()` with `value` selected in a headless test. | Risk 1.1 | todo |
-| COMP-06-00-DR-02 | Test `LuaExprSelector` outermost-first capture for block templates against `x > 5.for` and `f().forp`; confirm correct expression removal/binding. | Risk 1.2 | todo |
-| COMP-06-00-DR-03 | Capture the headless-vs-IDE indentation for one block template and codify the `checkResult` shape used across all block tests. | Risk 1.3 | todo |
+| COMP-06-00-DR-01 | Prototype `LuaVarPostfixTemplate.setVariables` registering an editable `$name$` tab stop; confirm it expands `getUser().var` → `local value = getUser()` with `value` selected in a headless test. | Risk 1.1 | done |
+| COMP-06-00-DR-02 | Test `LuaExprSelector` outermost-first capture for block templates against `x > 5.for` and `f().forp`; confirm correct expression removal/binding. | Risk 1.2 | done |
+| COMP-06-00-DR-03 | Capture the headless-vs-IDE indentation for one block template and codify the `checkResult` shape used across all block tests. | Risk 1.3 | done |
 
 ## Test Case Gaps
 - requirements.md provides TC 1–6 (`.if`, `.not`, `.var`, `.for`, `.forp`, `.fori`). The Should

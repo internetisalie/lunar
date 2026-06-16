@@ -32,10 +32,12 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Structure View**: Outline view of file structure
 - **Code Completion**: Intelligent completion for variables, functions, and members
 - **Type-Inferred Member Completion**: Completing after `.`/`:` now suggests a receiver's inferred members (fields and methods, with icons), including inherited `@class` members, `self` inside methods, and members exposed through `setmetatable`'s `__index`
+- **Postfix Templates**: Type an expression followed by `.if`/`.not`/`.var`/`.for`/`.forp`/`.fori`/`.ifnot`/`.nil`/`.notnil`/`.return`/`.print` and press Tab to rewrite it into the matching statement (e.g. `ready.not` → `not ready`, `getUser().var` → `local value = getUser()` with an editable name)
 - **Refactoring**: Label refactoring support
 - **Introduce Variable**: extract a selected expression into a `local <name> = <expr>` before the enclosing statement and replace the occurrence, with a name suggestion, inline rename, and a this-occurrence/all-occurrences chooser when the expression repeats
 - **Safe Delete**: deleting a local/parameter/global/label declaration first searches for usages — removes it silently when unused, or shows the standard "usages found" conflict dialog when references remain
 - **Code Style**: Settings for indentation, spacing, and formatting
+- **Formatter Fix**: Unary `not` now keeps a space before its operand when reformatting (`not x`); previously it collapsed to the distinct identifier `notx`. Symbolic unary operators (`-`, `#`, `~`) remain tight.
 - **Run Configurations**: Lua script execution and debugging support
 - **Breakpoint Debugging**: DBGp protocol support for remote debugging
 

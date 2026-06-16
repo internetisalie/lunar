@@ -2,7 +2,7 @@
 id: COMP-06-PLAN
 title: Postfix Templates Plan
 type: plan
-status: planned
+status: done
 parent_id: COMP-06
 folders:
   - "[[features/completion/06-postfix-templates/requirements|requirements]]"
@@ -89,7 +89,7 @@ existing `LuaPostfixTemplateTest` (`BasePlatformTestCase`,
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: Extract shared selector | todo | Must |
-| Phase 1: Must string templates (`.not`/`.for`/`.forp`/`.fori`) | todo | Must |
-| Phase 2: `.var` editable-name template | todo | Must |
-| Phase 3: Should set (`.ifnot`/`.nil`/`.notnil`/`.return`/`.print`) | todo | Should |
+| Phase 0: Extract shared selector | done | Must |
+| Phase 1: Must string templates (`.not`/`.for`/`.forp`/`.fori`) | done | Must |
+| Phase 2: `.var` editable-name template | done | Must |
+| Phase 3: Should set (`.ifnot`/`.nil`/`.notnil`/`.return`/`.print`) | done | Should |

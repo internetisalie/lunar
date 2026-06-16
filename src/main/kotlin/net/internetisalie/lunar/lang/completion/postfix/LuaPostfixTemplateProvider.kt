@@ -7,7 +7,10 @@ import com.intellij.psi.PsiFile
 
 class LuaPostfixTemplateProvider : PostfixTemplateProvider {
     private val templates = setOf<PostfixTemplate>(
-        LuaIfPostfixTemplate()
+        LuaIfPostfixTemplate(this), LuaNotPostfixTemplate(this), LuaVarPostfixTemplate(this),
+        LuaForPostfixTemplate(this), LuaForPairsPostfixTemplate(this), LuaForIpairsPostfixTemplate(this),
+        LuaIfNotPostfixTemplate(this), LuaNilPostfixTemplate(this), LuaNotNilPostfixTemplate(this),
+        LuaReturnPostfixTemplate(this), LuaPrintPostfixTemplate(this),
     )
 
     override fun getTemplates(): Set<PostfixTemplate> = templates
