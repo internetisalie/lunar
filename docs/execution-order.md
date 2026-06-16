@@ -136,10 +136,10 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| COMP-03 | Cross-file completion — finish last sub-req | in_progress | H | TYPE-07 *(soft — richer cross-file)* | — | ✓ 6/7 done; verify multi-file completion *live* |
-| (COMP) | Postfix completion templates | planned | S | — | — | ✓ spec pending |
-| (COMP) | Live templates | planned | S | — | — | ✓ spec pending |
-| (COMP) | Block auto-complete (e.g. `function`→`end`) | planned | S | — | — | ✓ spec pending |
+| COMP-03 | Cross-file completion — finish last sub-req | in_progress | H | TYPE-07 *(soft — richer cross-file)* | — | ✓ 6/7 done; verified live + heavy/integration guards (wave6-readiness 2.1/2.2) |
+| COMP-06 | Postfix completion templates | **partial** | S | — | — | `.if` built+tested; **`.not` (Must) NOT implemented** — design backfilled (grounded) |
+| COMP-07 | Live templates | done | S | — | — | `fun`/`fori`/`forp`/`loc` shipped; design backfilled; req text needs naming reconcile (`fun`≠`func`) |
+| COMP-08 | Block auto-complete (`function`→`end`) | done | S | — | — | `lang.completion.LuaEnterHandler` built+tested (+`repeat`→`until`); design backfilled; 2nd Enter handler is the complementary DOC one |
 
 ## Wave 7 — Formatting  *(high daily-use; serial cluster `LuaFormatBlock`/`LuaCodeStyleSettings`)*
 

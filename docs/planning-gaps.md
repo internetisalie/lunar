@@ -138,9 +138,28 @@ INSP-03/INSP-09 EmmyLua-API failure mode does **not** recur here.
 
 These four are cleared to implement on grounding. The non-blocking notes are precision/idiom
 tightening an implementer should fold in, not blockers. **Scope note:** this batch was the next one
-slated for implementation (Wave 6 completion features are already `done`); the remaining
-`planned` designs (Wave 8 intentions, Wave 10 TOOL/ROCKS, etc.) have **not** had a grounding pass
-and should get one before their wave begins.
+slated for implementation; the remaining `planned` designs (Wave 8 intentions, Wave 10 TOOL/ROCKS,
+etc.) have **not** had a grounding pass and should get one before their wave begins.
+
+## Retro design backfill — Wave 6 completion (COMP-06/07/08, 2026-06-15)
+
+COMP-06/07/08 were *implemented and tested* but carried only 22–24-line skeleton `design.md` docs
+(a component name + an XML reg) marked `done` — well below the bar — and `execution-order.md` still
+listed them as "spec pending". Backfilled real, source-grounded designs (every symbol read from
+`src/main`, `file:line` cited) and reconciled `execution-order.md`. The backfill surfaced two
+status-overstatements the skeleton "done" had hidden:
+
+- **COMP-06 is actually partial.** `.if` (`LuaIfPostfixTemplate`) is built+tested, but **`.not`
+  (COMP-06-02, a `Must`) is NOT implemented**. Design now specifies `LuaNotPostfixTemplate`;
+  execution-order downgraded to `partial`.
+- **COMP-07 req↔impl naming drift.** Shipped abbreviations are `fun`/`fori`/`forp`/`loc`, but the
+  requirement names `func` and calls `fori` an "ipairs loop" (it is numeric). Documented; needs a
+  requirement-text reconcile (not a code change).
+- **COMP-08 "duplicate" Enter handler is a false alarm.** `lang/completion/LuaEnterHandler`
+  (block `end` insertion, `preprocessEnter` — COMP-08) and `lang/format/LuaEnterHandlerDelegate`
+  (LuaDoc `---` continuation, `postProcessEnter` — a DOC feature) are **complementary**, disjoint
+  triggers/phases, intentionally both registered. Only the near-identical names are confusing;
+  an optional clarity rename is noted in the COMP-08 design, not required.
 
 ## Recommendation (priority order)
 
