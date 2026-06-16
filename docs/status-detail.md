@@ -83,7 +83,7 @@ folders:
 |:---|:--------|:-------|:------|
 | COMP-01 | Keyword Completion | done | `LuaCompletionContributor` — context-aware, language-level-aware |
 | COMP-02 | Basic Symbol Completion | done | Local/global/param symbols via scope processor + stub index |
-| COMP-03 | Cross-file Completion | in progress | `require()` resolution, global ranking, auto-import all done; recursive resolution not yet |
+| COMP-03 | Cross-file Completion | done | `require()` resolution, global ranking, auto-import, and recursive/transitive resolution (`resolveAndAddSymbols` with `visited` cycle guard) all done |
 | COMP-04 | Type-Inferred Completion | done | Dot/colon member completion via `LuaTypesVisitor` + `LuaGraphType.getMembers()` |
 | COMP-05 | Parameter Name Hints | done | `LuaParameterInlayHintsProvider` + `LuaParameterInfoHandler` |
 | COMP-06 | Postfix Templates | done | 11 `StringBasedPostfixTemplate`s in `lang/completion/postfix/` (`.if`/`.not`/`.var`/`.for`/`.forp`/`.fori`/`.ifnot`/`.nil`/`.notnil`/`.return`/`.print`) on `LuaPostfixTemplateProvider`, shared `LuaExprSelector` |

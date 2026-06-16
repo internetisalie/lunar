@@ -136,7 +136,7 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| COMP-03 | Cross-file completion — finish last sub-req | in_progress | H | TYPE-07 *(soft — richer cross-file)* | — | ✓ 6/7 done; verified live + heavy/integration guards (wave6-readiness 2.1/2.2) |
+| COMP-03 | Cross-file completion | done | H | TYPE-07 *(soft — richer cross-file)* | — | 7/7; recursive/transitive resolution + cycle guard in `LuaCrossFileCompletionProvider`, verified by heavy + integration guards (wave6-readiness 2.1/2.2) |
 | COMP-06 | Postfix completion templates | done | S | — | — | 11 templates shipped (was `.if` only): Must `.not`/`.var`/`.for`/`.forp`/`.fori` + Should `.ifnot`/`.nil`/`.notnil`/`.return`/`.print`; shared `LuaExprSelector`. Surfaced+fixed a unary-`not` formatter bug (`not x` → `notx`). Could/Watch parked |
 | COMP-07 | Live templates | done | S | — | — | 16 templates shipped (was 4): +4 Must (`if`/`ifel`/`lfun`/`while`) +4 Should insertion (`repeat`/`forip`/`req`/`mod`) +4 surround; **`LuaCodeContextType` fixes the strings/comments/numbers defect**. `LuaIfContextType`/`elseif` parked (Could) |
 | COMP-08 | Block auto-complete | done | S | — | — | base hardened: **balance-check bug fix (no redundant `end`/`until`/`}`)** + full opener coverage incl. table `{}` + between-pair indent (`LuaEnterBetweenBlockHandler`) + stateless reformat; shared `LuaBlockPairs` (brace matcher left intact per design §2.3) |
@@ -206,7 +206,7 @@ Active edges (Waves 4+):
 TYPE-07, TYPE-09 (P0–P4)  ── type engine, SERIAL (one agent at a time), in_progress
 TYPE-07 ┄soft┄▶ COMP-03   (richer cross-file completion accuracy)
 INSP-02 ──depends──▶ NAV-02 (done, so INSP-02 is ready)
-COMP-03 ── finish last cross-file sub-req (in_progress)
+COMP-03 ── cross-file completion incl. recursive resolution (done) — Wave 6 complete
 FORMAT-03 ─(files)─▶ FORMAT-04 ─▶ FORMAT-05 ─▶ FORMAT-06   (serial cluster)
 ROCKS-04 (LuaRocksSettings) ──▶ ROCKS-02, ROCKS-03
 TOOL-00 ──▶ TOOL-01, TOOL-02 ──▶ TOOL-03

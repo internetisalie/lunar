@@ -3,7 +3,7 @@ id: COMP-03-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: COMP-03
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|requirements]]"
@@ -44,10 +44,10 @@ folders:
 
 ## Verification Tasks
 
-- [ ] [Must] Implement `CrossFileCompletionTests`.
-- [ ] [Must] Verify performance with a large number of indexed files.
-- [ ] [Should] Test auto-import with various project structures.
-- [ ] [Must] Verify transitive imports (A -> B -> C).
+- [x] [Must] Implement `CrossFileCompletionTests`.
+- [x] [Must] Verify performance with a large number of indexed files (`LuaCrossFileCompletionHeavyTest`).
+- [x] [Should] Test auto-import with various project structures.
+- [x] [Must] Verify transitive imports (A -> B -> C) — `LuaCrossFileCompletionIntegrationTest` (full IDE) + `LuaCrossFileCompletionHeavyTest` (in-process). The light unit form is disabled (a module-less light fixture indexes nothing); the heavy + integration guards cover it.
 
 ## Task Summary
 
@@ -55,6 +55,6 @@ folders:
 |-------|--------|----------|
 | Phase 1: Imported Symbols | ✅ Done | High |
 | Phase 2: Project-wide Globals | ✅ Done | High |
-| Phase 3: Auto-import | ⬜ Todo | Medium |
-| Verification: Tests | ⬜ Todo | High |
-| Phase 4: Recursive Resolution | ⬜ Todo | Low |
+| Phase 3: Auto-import | ✅ Done | Medium |
+| Verification: Tests | ✅ Done | High |
+| Phase 4: Recursive Resolution | ✅ Done | Low |
