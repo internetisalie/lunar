@@ -27,6 +27,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 
 ### IDE Features
 - **Convert String Quotes Intention**: An Alt+Enter intention cycles the string literal under the caret between single quotes, double quotes, and long-bracket form, preserving the runtime value (escaping/unescaping and raising the bracket level as needed)
+- **Invert 'if' Statement Intention**: An Alt+Enter intention negates the condition of an `if … then … else … end` statement and swaps its `then` / `else` branch bodies, preserving behaviour (relational operators are flipped, a `not X` condition is unwrapped, and any other condition is wrapped as `not (…)`); offered only when the statement has an `else` branch and no `elseif`
 - **Rename Validation**: The Rename refactoring now rejects new names that are Lua reserved keywords (e.g. `local`, `goto`, `end`) or are not syntactically valid Lua identifiers (e.g. `1var`, `a-b`)
 - **Navigation**: Symbol resolution and cross-file references
 - **Go to Type (bare `@class`/`@alias`)**: Go to Class / Go to Symbol now find bare `--- @class` and `--- @alias` declarations (pure type-level forms with no following `local`), not only types attached to a local declaration

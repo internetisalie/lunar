@@ -3,7 +3,7 @@ id: INTENT-02-RISKS
 title: Invert If Risks & Gaps
 type: risk
 parent_id: INTENT-02
-status: planned
+status: done
 ---
 
 # INTENT-02: Risks & Gaps
@@ -72,8 +72,8 @@ status: planned
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| INTENT-02-00-DR-01 | Prototype the §4 rebuild-and-`replace` on an `if/else` whose branches contain inline + full-line comments and nested indentation; confirm comments/indentation survive after `CodeStyleManager.reformat`. Fold the exact body-capture call (`LuaBlock.text` vs node-range substring) back into design §4. | Risk 1.1 | todo |
-| INTENT-02-00-DR-02 | Spike `LuaConditionInverter` against: `x == 1`, `not ready`, `isValid()`, `a and b`, `x < 10`, `(x == 1)`, `-x`. Confirm each operator leaf is reachable via `binOp.firstChild?.node?.elementType` and matches the §3 table; decide whether to unwrap a leading parenthesized expr (Risk 1.3). | Risk 1.2, Risk 1.3 | todo |
+| INTENT-02-00-DR-01 | Prototype the §4 rebuild-and-`replace` on an `if/else` whose branches contain inline + full-line comments and nested indentation; confirm comments/indentation survive after `CodeStyleManager.reformat`. Fold the exact body-capture call (`LuaBlock.text` vs node-range substring) back into design §4. | Risk 1.1 | done |
+| INTENT-02-00-DR-02 | Spike `LuaConditionInverter` against: `x == 1`, `not ready`, `isValid()`, `a and b`, `x < 10`, `(x == 1)`, `-x`. Confirm each operator leaf is reachable via `binOp.firstChild?.node?.elementType` and matches the §3 table; decide whether to unwrap a leading parenthesized expr (Risk 1.3). | Risk 1.2, Risk 1.3 | done |
 
 ## Test Case Gaps
 - No coverage yet for a branch containing comments (covered operationally by DR-01; add a

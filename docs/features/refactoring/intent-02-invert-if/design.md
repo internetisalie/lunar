@@ -3,7 +3,7 @@ id: INTENT-02-DESIGN
 title: Invert If Design
 type: design
 parent_id: INTENT-02
-status: planned
+status: done
 ---
 
 # Technical Design: Invert If

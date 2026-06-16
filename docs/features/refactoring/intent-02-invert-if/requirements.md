@@ -3,7 +3,7 @@ id: INTENT-02
 title: Invert If Requirements
 type: feature
 parent_id: REFACT/INTENT
-status: planned
+status: done
 ---
 
 # Invert If Requirements
@@ -23,9 +23,9 @@ De Morgan distribution over `and` / `or` is explicitly **out of scope** (see
 
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| INTENT-02-01 | Invert Condition | Must | planned | Negate the condition of the `if` statement per the inversion table in [design.md](design.md) §3: flip relational operators (`==`↔`~=`, `<`↔`>=`, `<=`↔`>`, `>`↔`<=`, `>=`↔`<`), unwrap a `not X` unary into `X`, and wrap any other expression (bare name, call, `and`/`or` chain) as `not ( … )`. |
-| INTENT-02-02 | Swap Branches | Must | planned | Swap the body of the `then` block with the body of the `else` block, preserving statement order, comments, and indentation within each block. |
-| INTENT-02-03 | Applicability Gating | Must | planned | Offer the intention only for a `LuaIfStatement` with exactly one `then` block, one `else` block, and no `elseif`. Do not offer it for an `if` without `else`, or an `if` containing any `elseif`. |
+| INTENT-02-01 | Invert Condition | Must | done | Negate the condition of the `if` statement per the inversion table in [design.md](design.md) §3: flip relational operators (`==`↔`~=`, `<`↔`>=`, `<=`↔`>`, `>`↔`<=`, `>=`↔`<`), unwrap a `not X` unary into `X`, and wrap any other expression (bare name, call, `and`/`or` chain) as `not ( … )`. |
+| INTENT-02-02 | Swap Branches | Must | done | Swap the body of the `then` block with the body of the `else` block, preserving statement order, comments, and indentation within each block. |
+| INTENT-02-03 | Applicability Gating | Must | done | Offer the intention only for a `LuaIfStatement` with exactly one `then` block, one `else` block, and no `elseif`. Do not offer it for an `if` without `else`, or an `if` containing any `elseif`. |
 
 ## Test Cases
 
