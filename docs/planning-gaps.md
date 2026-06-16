@@ -115,6 +115,33 @@ the live `LuaLanguageLevelAnnotator`. Both were corrected on 2026-06-15.
 codebase, not just check that sections are filled. The plan-feature bar now carries a
 **Grounding** axis (SKILL.md → "The second axis") to prevent recurrence.
 
+## Grounding audit — Wave 7 formatter cluster (wave6-readiness §3.1, 2026-06-15)
+
+First application of the new **Grounding** axis to a next-to-implement batch: the Wave 7 serial
+formatter cluster (`FORMAT-03/04/05/06`), which had only stub requirements at the 2026-06-13 audit
+and have since gained full designs. One subagent per design (sequential), each grepping every named
+PSI type / method / service / extension point against `src/main`, `src/main/gen`, and `plugin.xml`.
+
+**Result: all four PASS (grounded).** No fictional or EmmyLua-ported symbols, no components
+duplicated instead of extended. The designs cite real files/lines accurately (e.g.
+`LuaFormatBlock.kt:227-230`, `LuaCodeStyleSettings.kt:50/57`) and the formatter infra they build on
+(`LuaSpacingBuilder`, `LuaCodeStyleSettings`, `LuaLanguageCodeStyleSettingsProvider`,
+`LuaCommenter`, real element types `SHORTCOMMENT`/`LUACATS_COMMENT`/`ASSIGN`) all exist. The
+INSP-03/INSP-09 EmmyLua-API failure mode does **not** recur here.
+
+| Design | Verdict | Non-blocking notes for the implementer (not grounding defects) |
+| :--- | :--- | :--- |
+| FORMAT-03 Blank-line mgmt | ✅ PASS | `LuaTrailingNewlinePostProcessor` + `<postFormatProcessor>` are new (fine). §2.1's `createSpacing(0,0,…)` drops the existing `1,1` min/max — harmless in a newline context, just a sanity note. |
+| FORMAT-04 Expression wrapping | ✅ PASS | (1) §2.3 uses platform-deprecated `WRAP_OPTIONS`/`WRAP_VALUES`; prefer `CodeStyleSettingsCustomizableOptions.getInstance()` (already used at `LuaCodeStyleSettings.kt:59`). (2) `LuaFormatBlock` doesn't yet hold a `LuaCodeStyleSettings` ref — thread it in (the `LuaSpacingBuilder` already holds `luaSettings` at `LuaFormatBlock.kt:156`); `getInstance` is nullable. |
+| FORMAT-05 Alignment logic | ✅ PASS | (1) `createAlignment(true)` diverges from the in-file no-arg precedent (`LuaFormatBlock.kt:53`) — intentional (allowBackwardShift); note it so it isn't "tidied" away. (2) `showCustomOption` shorthand needs `LuaCodeStyleSettings::class.java` + a real `SettingsType` group (the design's "ALIGNMENT_SETTINGS" isn't an IntelliJ `SettingsType`; nearest is `WRAPPING_AND_BRACES_SETTINGS`). (3) the `=` is the `ASSIGN` leaf token with no `LuaField` accessor — tag during the child walk. |
+| FORMAT-06 Comment formatting | ✅ PASS | `LuaCommentWrapPostProcessor` + `WRAP_LONG_COMMENTS` are new (fine). §3.2's "no new code" for the leading space is correct — the commenter options at `LuaCodeStyleSettings.kt:92-95` already wire it. |
+
+These four are cleared to implement on grounding. The non-blocking notes are precision/idiom
+tightening an implementer should fold in, not blockers. **Scope note:** this batch was the next one
+slated for implementation (Wave 6 completion features are already `done`); the remaining
+`planned` designs (Wave 8 intentions, Wave 10 TOOL/ROCKS, etc.) have **not** had a grounding pass
+and should get one before their wave begins.
+
 ## Recommendation (priority order)
 
 1. **Cheap wins first — close the 7 PARTIAL to PASS.** Each needs only a bounded

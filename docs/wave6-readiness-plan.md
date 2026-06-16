@@ -106,16 +106,20 @@ that only needs a real filesystem + real indexing (e.g. cross-file completion) b
 
 ## Phase 3 — Raise the floor (highest leverage)
 
-### 3.1 Grounding audit of planned features — *workflow (subagent fan-out)*
-- Run one verification subagent per planned `design.md`, prioritized by `execution-order.md`, using
-  the new **Grounding** rubric: grep every named PSI type / method / service / extension point;
-  flag foreign (EmmyLua) APIs and any existing component the design duplicates. (This is the same
-  check that caught the INSP-09 `LuaLanguageLevelAnnotator` duplication.)
-- **Scope:** the **next N** features slated for implementation (not all 59 at once) — at minimum the
-  Wave 6 completion features about to be built.
-- **Acceptance:** each audited design is marked PASS (grounded) or gets a fix list; update
-  `docs/planning-gaps.md`. (Addresses **Q7**.)
+### 3.1 Grounding audit of planned features — *sequential subagents (one per design)* — ✅ DONE (Wave 7 batch)
+- Ran one grounding subagent per design, **sequentially** (one at a time — provider under load),
+  each grepping every named PSI type / method / service / extension point against `src/main` +
+  `src/main/gen` + `plugin.xml`, flagging fictional/EmmyLua APIs and duplications.
+- **Scope (this pass):** the next-to-implement batch = Wave 7 serial formatter cluster
+  `FORMAT-03/04/05/06` (Wave 6 completion features are already `done`, so they were not the
+  frontier). All four **PASS (grounded)** — no fictional/EmmyLua symbols, no duplications; the
+  INSP-03/09 failure mode did not recur. Per-design verdicts + non-blocking implementer notes
+  recorded in `docs/planning-gaps.md` → "Grounding audit — Wave 7 formatter cluster".
+- **Acceptance:** ✅ each audited design marked PASS with evidence; `docs/planning-gaps.md` updated.
+  (Addresses **Q7**.)
 - **Depends on:** Q8 (done — provides the rubric).
+- **Remaining (next waves, not blocking Wave-6 readiness):** the other `planned` designs (Wave 8
+  intentions, Wave 10 TOOL/ROCKS, …) still need a grounding pass before their wave begins.
 
 ### 3.2 Unit-test coverage push — *solo, Kover-guided*
 - Generate a Kover baseline; target gaps in high-logic/high-risk packages (analysis, type engine,
@@ -144,10 +148,11 @@ Q8 (done) ─────────────► 3.1 grounding audit
 
 ## Resume pointer
 
-**Next up: Phase 3 — 3.1 (grounding audit, workflow), 3.2 (coverage push), 3.3 (integration
-quality/depth).** Done so far: Q1, Q8, Phase 1.1, 1.2, 2.1, **2.2** (all committed), plus the GoLand
-2026.1.3 bump (gradle `platformVersion` + `testVersion` + docker `IDE_VERSION`). Working tree clean
-apart from `scratch/`. Only one exit-criteria box remains: 3.1 (grounding audit).
+**All five exit-criteria boxes are now ticked.** Remaining Phase-3 items are quality polish, not
+readiness gates: 3.2 (coverage push, Kover-guided) and 3.3 (integration quality/depth — retrofit the
+shallow no-assert integration tests; the docker harness from 2.2 is ready). Done so far: Q1, Q8,
+Phase 1.1, 1.2, 2.1, 2.2, **3.1** (Wave 7 formatter grounding audit — all PASS), plus the GoLand
+2026.1.3 bump. Working tree clean apart from `scratch/`.
 
 **Integration-test harness now works (use it for 3.3):** `./docker-helper.sh build integration-test`
 then `./docker-helper.sh integration-test [--tests "*Foo*"]`. It mounts the host GoLand license
@@ -179,4 +184,4 @@ by `IdeProductResolver.kt`, NOT the gradle plugin), docker `IDE_VERSION` (VNC ID
 - [x] Dockerfile targets build; integration-test image exists (1.2).
 - [x] COMP-03 has an in-process regression guard (2.1).
 - [x] At least one integration test passes in the docker harness (2.2).
-- [ ] Wave 6's planned designs pass the grounding audit (3.1).
+- [x] Next-to-implement designs pass the grounding audit (3.1) — Wave 7 formatter cluster, all PASS.
