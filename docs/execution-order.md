@@ -137,9 +137,9 @@ bug and gave the type inspections false confidence until this session's coverage
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | COMP-03 | Cross-file completion — finish last sub-req | in_progress | H | TYPE-07 *(soft — richer cross-file)* | — | ✓ 6/7 done; verified live + heavy/integration guards (wave6-readiness 2.1/2.2) |
-| COMP-06 | Postfix completion templates | in_progress | S | — | — | `.if` built; **scope expanded** 2026-06-15 (competitor survey): +4 Must (`.not`/`.var`/`.for`/`.forp`/`.fori`) +5 Should — pending impl; Could/Watch parked |
-| COMP-07 | Live templates | in_progress | S | — | — | 4 shipped; **scope expanded**: +4 Must (`if`/`ifel`/`lfun`/`while`) +6 Should incl. **context-split (strings/comments defect)** & surround — pending impl |
-| COMP-08 | Block auto-complete | in_progress | S | — | — | base built; **scope expanded**: +1 Must = **balance-check bug fix (redundant `end`)** +3 Should (table `{}`, between-pair indent, reformat) — pending impl |
+| COMP-06 | Postfix completion templates | done | S | — | — | 11 templates shipped (was `.if` only): Must `.not`/`.var`/`.for`/`.forp`/`.fori` + Should `.ifnot`/`.nil`/`.notnil`/`.return`/`.print`; shared `LuaExprSelector`. Surfaced+fixed a unary-`not` formatter bug (`not x` → `notx`). Could/Watch parked |
+| COMP-07 | Live templates | done | S | — | — | 16 templates shipped (was 4): +4 Must (`if`/`ifel`/`lfun`/`while`) +4 Should insertion (`repeat`/`forip`/`req`/`mod`) +4 surround; **`LuaCodeContextType` fixes the strings/comments/numbers defect**. `LuaIfContextType`/`elseif` parked (Could) |
+| COMP-08 | Block auto-complete | done | S | — | — | base hardened: **balance-check bug fix (no redundant `end`/`until`/`}`)** + full opener coverage incl. table `{}` + between-pair indent (`LuaEnterBetweenBlockHandler`) + stateless reformat; shared `LuaBlockPairs` (brace matcher left intact per design §2.3) |
 
 ## Wave 7 — Formatting  *(high daily-use; serial cluster `LuaFormatBlock`/`LuaCodeStyleSettings`)*
 

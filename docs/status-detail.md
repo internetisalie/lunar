@@ -86,9 +86,9 @@ folders:
 | COMP-03 | Cross-file Completion | in progress | `require()` resolution, global ranking, auto-import all done; recursive resolution not yet |
 | COMP-04 | Type-Inferred Completion | done | Dot/colon member completion via `LuaTypesVisitor` + `LuaGraphType.getMembers()` |
 | COMP-05 | Parameter Name Hints | done | `LuaParameterInlayHintsProvider` + `LuaParameterInfoHandler` |
-| COMP-06 | Postfix Templates | todo | No `PostfixTemplate` classes |
-| COMP-07 | Live Templates | todo | No live template XML or context |
-| COMP-08 | Auto-complete Enhancement | todo | No implementation |
+| COMP-06 | Postfix Templates | done | 11 `StringBasedPostfixTemplate`s in `lang/completion/postfix/` (`.if`/`.not`/`.var`/`.for`/`.forp`/`.fori`/`.ifnot`/`.nil`/`.notnil`/`.return`/`.print`) on `LuaPostfixTemplateProvider`, shared `LuaExprSelector` |
+| COMP-07 | Live Templates | done | 16 templates in `liveTemplates/lua.xml` (insertion + 4 surround); `LuaCodeContextType`/`LuaSurroundContextType` (+ `LuaCodeContextPredicate`) suppress strings/comments/numbers |
+| COMP-08 | Auto-complete Enhancement | done | `LuaEnterHandler` balance check (no redundant `end`) + full opener coverage incl. table `{}` + reformat; `LuaEnterBetweenBlockHandler` between-pair indent; shared `LuaBlockPairs` |
 
 ---
 
