@@ -43,6 +43,14 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
          * Serialised by the IntelliJ XML state serializer; entries must have no-arg constructors.
          */
         var toolInventory: MutableList<LuaTool> = ArrayList()
+
+        /**
+         * Global default tool bindings (TOOL-02): maps a [net.internetisalie.lunar.tool.LuaToolType]
+         * name to the bound [LuaTool.id]. Used when no project-level override is present.
+         * Keyed by the enum's `name` (not the enum itself) so the IntelliJ XML serializer
+         * round-trips it reliably.
+         */
+        var globalToolBindings: MutableMap<String, String> = HashMap()
     }
 
     private var myState = State()

@@ -3,7 +3,9 @@ package net.internetisalie.lunar.tool
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.settings.LuaApplicationSettings
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
 
 /**
@@ -141,6 +143,57 @@ class LuaToolManager {
         }
         LOG.debug("Auto-discovery complete: ${results.size} tool(s) registered/refreshed")
         return results
+    }
+
+    // ---------------------------------------------------------------------------
+    // TOOL-02: project binding & resolution
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Resolves the effective tool for [type] for the given [project] using the precedence:
+     *
+     *   project binding > global default > first valid registered tool of that type.
+     *
+     * Each candidate id is re-validated against the live inventory: a bound id that no longer
+     * resolves to a *valid* tool is skipped so resolution falls through to the next tier
+     * (TOOL-02-06 fallback). [project] may be `null` to resolve global defaults only.
+     *
+     * **Threading:** safe on any thread; performs a lazy disk re-validation pass via [getTools].
+     */
+    fun getEffectiveTool(project: Project?, type: LuaToolType): LuaTool? {
+        val valid = getTools(type).filter { it.isValid }
+        if (valid.isEmpty()) return null
+
+        val projectBinding = project
+            ?.let { LuaProjectSettings.getInstance(it).state.projectToolBindings[type.name] }
+            ?.let { id -> valid.firstOrNull { it.id == id } }
+        if (projectBinding != null) return projectBinding
+
+        val globalBinding = LuaApplicationSettings.instance.state.globalToolBindings[type.name]
+            ?.let { id -> valid.firstOrNull { it.id == id } }
+        if (globalBinding != null) return globalBinding
+
+        return valid.first()
+    }
+
+    /**
+     * Returns the effective valid tool for every [LuaToolType] resolvable in [project]
+     * (one per type, de-duplicated). Used by [LuaTerminalEnvironmentService] and the
+     * run-config PATH patcher to compute the tool-directory set.
+     */
+    fun getAllValidTools(project: Project?): List<LuaTool> =
+        LuaToolType.entries.mapNotNull { getEffectiveTool(project, it) }
+
+    /** Binds the global-default tool for [type] (or clears it when [id] is `null`). */
+    fun setGlobalBinding(type: LuaToolType, id: String?) {
+        val bindings = LuaApplicationSettings.instance.state.globalToolBindings
+        if (id == null) bindings.remove(type.name) else bindings[type.name] = id
+    }
+
+    /** Returns the globally-bound tool for [type], if one is bound and still valid. */
+    fun getGlobalBinding(type: LuaToolType): LuaTool? {
+        val id = LuaApplicationSettings.instance.state.globalToolBindings[type.name] ?: return null
+        return getTools(type).firstOrNull { it.id == id && it.isValid }
     }
 
     // ---------------------------------------------------------------------------

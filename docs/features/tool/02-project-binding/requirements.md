@@ -3,7 +3,7 @@ id: TOOL-02
 title: "02: Project Binding & Environment Integration"
 type: feature
 parent_id: TOOL
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"
@@ -31,12 +31,12 @@ The directory containing the bound tool's binary is prepended to the PATH for th
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **TOOL-02-01** | **Per-Project Tool Binding** | **M** | **Not Implemented** | Users can bind a registered tool to a specific project or set it as global. |
-| **TOOL-02-02** | **Context-Aware Invocation** | **M** | **Not Implemented** | When running ROCKS feature operations, the IDE uses the project-bound tool binary. |
-| **TOOL-02-03** | **PATH Augmentation** | **M** | **Not Implemented** | Project-bound tool binary directories are prepended to PATH for subprocesses. |
-| **TOOL-02-04** | **Terminal Integration** | **M** | **Not Implemented** | Integrated terminals automatically have the project-bound tool binary directories prepended to PATH. |
-| **TOOL-02-05** | **IDE Action Integration** | **M** | **Not Implemented** | IDE actions (formatting, linting) resolve and use the bound tool. |
-| **TOOL-02-06** | **Fallback Mechanism** | **M** | **Not Implemented** | Fall back to global tools if project tools are missing/invalid. |
+| **TOOL-02-01** | **Per-Project Tool Binding** | **M** | **Full** | `LuaProjectSettings.State.projectToolBindings` / `LuaApplicationSettings.State.globalToolBindings` (keyed by `LuaToolType.name` → `LuaTool.id`); set via `LuaToolManager.setGlobalBinding` / `LuaProjectSettings.setProjectToolBindingAndNotify`. Persisted in `lunar.xml` (round-trip tested). |
+| **TOOL-02-02** | **Context-Aware Invocation** | **M** | **Full** | `LuaToolManager.getEffectiveTool(project, type)` resolves the project-bound binary; ROCKS/run paths consume it via the env service + cmdline patcher. |
+| **TOOL-02-03** | **PATH Augmentation** | **M** | **Full** | `LuaToolEnvironment.prependToolDirsToPath` prepends effective tool dirs to `GeneralCommandLine` PATH; wired into `newProjectLuaInterpreterCommandLine`. (No platform `EnvironmentProvider`; `RunConfigurationExtension` is in the Java module, not on this plugin's classpath — direct cmdline patch used instead.) |
+| **TOOL-02-04** | **Terminal Integration** | **M** | **Full** | `LuaShellExecOptionsCustomizer` prepends the env service's tool dirs via `prependEntryToPATH`. Per-shell live-terminal matrix (TOOL-00-01) is **manual-verification only** (not headlessly testable). |
+| **TOOL-02-05** | **IDE Action Integration** | **M** | **Full** | IDE actions resolve via `LuaToolManager.getEffectiveTool(project, type)` (single resolution entry point shared with run/terminal). |
+| **TOOL-02-06** | **Fallback Mechanism** | **M** | **Full** | `getEffectiveTool` precedence project > global > first-valid, skipping bound ids that no longer resolve to a valid tool (stale-binding fallback tested). |
 
 ## Test Cases
 

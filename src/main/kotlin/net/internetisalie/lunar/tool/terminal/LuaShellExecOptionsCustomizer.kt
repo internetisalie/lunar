@@ -1,7 +1,7 @@
 package net.internetisalie.lunar.tool.terminal
 
 import com.intellij.openapi.project.Project
-import net.internetisalie.lunar.tool.LuaToolDescriptor
+import net.internetisalie.lunar.tool.LuaTerminalEnvironmentService
 import org.jetbrains.plugins.terminal.startup.MutableShellExecOptions
 import org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer
 
@@ -22,19 +22,20 @@ import org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer
  * translates local paths to the remote environment (WSL/Docker/SSH) automatically. This is the
  * idiom used by the platform's own `ShellExecOptionsCustomizerTest`.
  *
- * This spike proves the API compiles and the injection point works. TOOL-02 owns the production
- * service (`LuaTerminalEnvironmentService`), caching, and settings-change invalidation; the
- * customizer simply delegates tool-dir resolution there.
+ * TOOL-02 wires this to the production project-level [LuaTerminalEnvironmentService], which owns
+ * resolution (project binding > global default), caching, and settings-change invalidation. The
+ * customizer simply prepends the resolved directories to PATH.
  */
 class LuaShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
     override fun customizeExecOptions(project: Project, shellExecOptions: MutableShellExecOptions) {
-        // Background thread, no read action — safe to resolve tools off PATH here.
-        for (descriptor in LuaToolDescriptor.DESCRIPTORS) {
-            val binary = descriptor.resolveOnPath() ?: continue
-            val toolDir = binary.parentFile?.toPath() ?: continue
-            // prependEntryToPATH handles ordering, the OS/remote path separator, and
-            // local->remote path translation. Do NOT touch the read-only envs map directly.
-            shellExecOptions.prependEntryToPATH(toolDir)
+        // Background thread, no read action — safe to resolve tools here.
+        val toolDirs = LuaTerminalEnvironmentService.getInstance(project).getToolDirectories()
+        // getToolDirectories() returns highest-priority first. prependEntryToPATH inserts each
+        // entry at the front, so prepend in reverse to keep the first entry first on PATH.
+        // It also handles the OS/remote path separator and local->remote path translation; do NOT
+        // touch the read-only envs map directly.
+        for (dir in toolDirs.asReversed()) {
+            shellExecOptions.prependEntryToPATH(dir)
         }
     }
 }
