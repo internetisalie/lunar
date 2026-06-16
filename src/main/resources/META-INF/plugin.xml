@@ -30,6 +30,10 @@
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
 
+    <!-- LuaRocks project generator (ROCKS-01) -->
+    <directoryProjectGenerator
+            implementation="net.internetisalie.lunar.rocks.init.LuaRocksProjectGenerator"/>
+
     <!-- LuaRocks dependency tool window (ROCKS-03) -->
     <toolWindow
             id="LuaRocks"
