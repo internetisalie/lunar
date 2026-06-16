@@ -3,7 +3,7 @@ id: COMP-07-DESIGN
 title: Live Templates Design
 type: design
 parent_id: COMP-07
-status: planned
+status: in_progress
 folders:
   - "[[features/completion/07-live-templates/requirements|requirements]]"
 ---
@@ -103,11 +103,11 @@ true (file is `LuaFile`) → platform expands the `fun` template → caret lands
 | Requirement | Priority | Implemented by (section) | Status |
 |-------------|----------|--------------------------|--------|
 | COMP-07-01 Basic Templates (`func`/`forp`/`fori`) | M | §2.1, §2.2 | **Built**, with naming reconciliations (see §1): shipped as `fun`/`forp`/`fori`(+`loc`); `fori` is numeric not ipairs |
+| COMP-07-02…11 (`if`/`ifel`/`lfun`/`while`/`repeat`/`forip`/`req`/`mod`/context-split/surround) | M/S | **pending design** | Added 2026-06-15 from the competitor survey. -02…-09 are pure-XML templates; -10 (context split) + -11 (surround) need new `TemplateContextType`/`$SELECTION$` wiring — design sections to be added before implementation |
 
 ## 9. Alternatives Considered
 - Programmatic templates vs. bundled XML: bundled `defaultLiveTemplates` is the platform-idiomatic
   way to ship read-only built-ins users can copy/edit; chosen over building `Template` objects in code.
 
 ## 10. Open Questions
-_None._ The discrepancies in §1 are documentation reconciliations (update the requirement text or
-add optional templates), not unresolved design decisions.
+_None — the §1 discrepancies are documentation reconciliations (update requirement text or add optional templates), not unresolved design decisions._

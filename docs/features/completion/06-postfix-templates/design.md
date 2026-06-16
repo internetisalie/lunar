@@ -3,7 +3,7 @@ id: COMP-06-DESIGN
 title: Postfix Templates Design
 type: design
 parent_id: COMP-06
-status: planned
+status: in_progress
 folders:
   - "[[features/completion/06-postfix-templates/requirements|requirements]]"
 ---
@@ -127,11 +127,11 @@ No new registration needed for `.not` — it is added to the existing provider's
 |-------------|----------|--------------------------|--------|
 | COMP-06-01 `.if` | M | §2.2, §3.1 | **Built** (`LuaIfPostfixTemplate.kt`) |
 | COMP-06-02 `.not` | M | §2.3, §3.1 | **Not yet implemented** — design specifies it |
+| COMP-06-03…11 (`.var`/`.for`/`.forp`/`.fori`/`.ifnot`/`.nil`/`.notnil`/`.return`/`.print`) | M/S | **pending design** | Added 2026-06-15 from the competitor survey; all are `StringBasedPostfixTemplate` subclasses on the §3.1 selector — design sections to be added before implementation |
 
 ## 9. Alternatives Considered
 - A single multi-template class vs. one class per template: the platform's `StringBasedPostfixTemplate`
   is one-template-per-class; per-class matches the framework and keeps selectors simple.
 
 ## 10. Open Questions
-_None._ The only outstanding item is implementation of COMP-06-02 (`.not`), which is fully
-specified in §2.3 — an implementation task, not an unresolved design decision.
+_None — the feature has cleared the planning bar; unbuilt requirements (`.not` etc., specified in §2.3 and the requirements table) are implementation tasks, not open design decisions._

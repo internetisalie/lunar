@@ -3,7 +3,7 @@ id: COMP-08-DESIGN
 title: Auto Complete Design
 type: design
 parent_id: COMP-08
-status: planned
+status: in_progress
 folders:
   - "[[features/completion/08-auto-complete/requirements|requirements]]"
 ---
@@ -111,6 +111,8 @@ returns to the line after `function f()` → `DefaultForceIndent` re-indents →
 | Requirement | Priority | Implemented by (section) | Status |
 |-------------|----------|--------------------------|--------|
 | COMP-08-01 Block Auto-close (`then`/`do`/`function`) | M | §2.1, §3.1 | **Built** — also covers `repeat`→`until` (beyond the `Must`) |
+| COMP-08-02 Balance check (no redundant `end`) | M | §3.1/§6 (limitation noted) | **pending** — the fix is sketched in §6; bug fix added 2026-06-15 |
+| COMP-08-03…05 (opener coverage incl. `{`→`}` / between-pair indent / reformat+caret) | S | **pending design** | Added 2026-06-15 from the competitor survey — design sections to be added before implementation |
 
 ## 9. Alternatives Considered
 - **Brace-matcher / typed-handler** instead of an Enter handler: rejected — the requirement is
