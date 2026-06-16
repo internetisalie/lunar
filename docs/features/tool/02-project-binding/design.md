@@ -11,6 +11,19 @@ folders:
 
 # Technical Design: Project Binding & Environment Integration (`TOOL-02`)
 
+> **⚠ Grounding correction (2026-06-16) — read before implementing.** Several symbols below
+> do not exist in the 2026.1 platform. (1) **Terminal PATH injection:** `com.intellij.terminal.TerminalCustomizer`,
+> `customizeTerminal(terminalType, environment, initCommands)`, the `TerminalType` enum, and the
+> `LocalTerminalDirectRunner.EpExtension`/`ProcessExecutor`/`localTerminalDirectRunner` EP are all
+> invented — use `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer.customizeExecOptions`
+> (EP `…shellExecOptionsCustomizer`; deprecated fallback `LocalTerminalCustomizer.customizeCommandAndEnvironment`),
+> injecting PATH by mutating the `envs` map. (2) There is **no `EnvironmentProvider` platform interface** —
+> integrate run configs via `RunConfigurationExtension.patchCommandLine` or patch
+> `GeneralCommandLine.environment` in `command/LuaCommandLine.kt`. (3) Reuse the existing
+> `LuaSettingsChangedListener.TOPIC`, not an invented `LUA_SETTINGS_TOPIC`. (4) Reconcile the two
+> contradictory `LuaTerminalEnvironmentService` definitions into one project-level service.
+> See [planning-gaps.md](../../../planning-gaps.md#wave-10-grounding-audit-2026-06-16).
+
 ## Overview
 This document outlines how tools are bound to projects and integrated into the execution environment.
 

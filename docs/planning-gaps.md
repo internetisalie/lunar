@@ -182,3 +182,65 @@ For each open leaf feature, read its full doc bundle (`requirements.md`, `design
 and plan fail structurally (the *how* is unwritten). The 14 features carrying both were
 read and scored individually against the bar above. Status vocabulary and the leaf-feature
 definition match `scripts/gen_status.py`.
+
+---
+
+# Wave 10 Grounding Audit (2026-06-16)
+
+A pre-implementation grounding pass over the **TOOL** (Tool Inventory) and **ROCKS**
+(LuaRocks) tracks — verifying every symbol each design names exists (or is a legitimately
+new class to create) against `src/main`, `src/main/gen`, `plugin.xml`, and the 2026.1
+platform source (`~/Documents/src/lua/intellij-community`). Two track-level subagents.
+
+## Verdicts (go / fix-first)
+
+| Feature | Verdict | Blocking gap (if any) |
+| :--- | :--- | :--- |
+| TOOL-00 De-risking | **NEEDS-FIXES** | Only spike 00-01 (terminal API) — see Terminal fix below |
+| TOOL-01 Registry & discovery | **READY** | — (mirrors `LuaInterpreter*`/settings patterns cleanly) |
+| TOOL-02 Project binding & env | **NEEDS-FIXES** | Terminal API + `EnvironmentProvider` + invented topic/service (below) |
+| TOOL-03 UI & health | **READY** | — (most rigorously grounded; note: adds 2 fields to TOOL-01 `LuaTool`) |
+| ROCKS-01 Project init | **READY** *(after `LuaIcons.ROCKET`)* | shared icon field only |
+| ROCKS-02 Package browser | **READY** *(after `LuaIcons.ROCKET`)* | shared icon + porcelain-format risk note |
+| ROCKS-03 Dependency resolution | **NEEDS-FIXES** | stale `export.lua` task + `src/main/lua`→`resources/lua` relocation gate |
+| ROCKS-04 Task execution | **READY** *(after `LuaIcons.ROCKET`)* | defines shared `LuaRocksSettings` (consistent) |
+| ROCKS-08 Publishing | **NEEDS-FIXES** | 9-line stub — under-specified; "Could" priority, defer |
+
+## Cross-cutting fixes required before implementation
+
+1. **Terminal PATH-injection API is wrong everywhere it appears** (TOOL-00-01, TOOL-02
+   `design.md` + `design-terminal-path.md`). The named `com.intellij.terminal.TerminalCustomizer`,
+   `customizeTerminal(terminalType, environment, initCommands)`, `TerminalType` enum, and the
+   fabricated `LocalTerminalDirectRunner.EpExtension`/`ProcessExecutor`/`localTerminalDirectRunner`
+   EP **do not exist in 2026.1**. Standardize on
+   `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer.customizeExecOptions(project,
+   MutableShellExecOptions)` (EP `org.jetbrains.plugins.terminal.shellExecOptionsCustomizer`,
+   `@ApiStatus.Experimental`, background thread); deprecated fallback is
+   `org.jetbrains.plugins.terminal.LocalTerminalCustomizer.customizeCommandAndEnvironment(...)`
+   (EP `…localTerminalCustomizer`) — both inject PATH by mutating the `envs` map (no `initCommands`).
+2. **`LuaIcons.ROCKET` does not exist** — referenced by ROCKS-01/02/03/04 plugin.xml/icon code.
+   `LuaIcons` currently has only `FILE` (which already maps to `/icons/rocket_16.png`). One-line fix:
+   add `val ROCKET = getIcon("/icons/rocket_16.png", …)` (or reuse `FILE`). Hard blocker for 4 designs.
+3. **TOOL-02 invented symbols:** there is no platform `EnvironmentProvider` interface — integrate run
+   configs via `RunConfigurationExtension.patchCommandLine` (confirm GoLand ships the Java
+   `execution-impl` module) or patch `GeneralCommandLine.environment` directly in
+   `command/LuaCommandLine.kt` (definitely available). Reuse the existing
+   `LuaSettingsChangedListener.TOPIC` (not an invented `LUA_SETTINGS_TOPIC`); reconcile the two
+   contradictory `LuaTerminalEnvironmentService` definitions into one project-level service.
+4. **ROCKS-03 stale task:** the "`export.lua` latent bug `ipairs(name)`→`ipairs(names)`" is already
+   fixed in the tree (line 7 uses `ipairs(names)`) — drop that task; instead verify the bridge's
+   actual JSON output shape against a real rockspec. The `src/main/lua/` → `src/main/resources/lua/`
+   relocation (to package the bridge scripts) is genuine un-done build work — make it an explicit gate.
+5. **ROCKS-08** is too thin to implement: package name inconsistency (`lang.rocks` vs the track's
+   `rocks.*`), no `<action>` registration, no `PasswordSafe` for the API key, no `LuaRocksSettings`
+   reuse for the binary path. Needs a small design pass; it is `Could`-priority, so defer to last.
+
+## Readiness summary
+
+- **Ready to implement now** (4): TOOL-01, TOOL-03, ROCKS-04, ROCKS-01 — plus ROCKS-02 once the
+  shared `LuaIcons.ROCKET` lands. The `LuaRocksSettings` shared dependency (defined in ROCKS-04,
+  consumed by ROCKS-02) is consistent across designs; no drift.
+- **Need a bounded design fix first** (4): TOOL-00 + TOOL-02 (the terminal API rewrite — one shared
+  fix covers both), ROCKS-03 (drop stale task + gate the resource relocation), ROCKS-08 (flesh out).
+- **Recommended order** (unchanged from execution-order): **TOOL** `00 → 01 → 02 → 03`;
+  **ROCKS** `04 → {02 ∥ 03} → 01 → 08`. The two tracks are independent and run concurrently.

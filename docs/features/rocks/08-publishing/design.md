@@ -8,6 +8,13 @@ status: planned
 
 # Technical Design: Publishing
 
+> **⚠ Grounding correction (2026-06-16):** this 9-line design is too thin to implement. Before coding:
+> rename the package `net.internetisalie.lunar.lang.rocks` → `net.internetisalie.lunar.rocks.publish`
+> (track convention), store the API key via `PasswordSafe` (not a plain field), reuse
+> `LuaRocksSettings.executablePath` for the binary, register the `<action>` in `plugin.xml`, and run the
+> upload under `Task.Backgroundable`. `Could`-priority — defer to last.
+> See [planning-gaps.md](../../../planning-gaps.md#wave-10-grounding-audit-2026-06-16).
+
 ## 1. Architecture Overview
 - **Component**: `net.internetisalie.lunar.lang.rocks.PublishRockAction`
 - **Implements**: `com.intellij.openapi.actionSystem.AnAction`

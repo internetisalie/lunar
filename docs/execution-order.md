@@ -172,23 +172,31 @@ bug and gave the type inspections false confidence until this session's coverage
 
 ## Wave 10 — New feature areas  *(two independent tracks — run A and B concurrently)*
 
+> **Grounding-audited 2026-06-16** — readiness per feature below; full findings + fixes in
+> [planning-gaps.md](planning-gaps.md#wave-10-grounding-audit-2026-06-16). **Two shared pre-reqs:**
+> (a) add `LuaIcons.ROCKET` (blocks all ROCKS plugin.xml/icon code; one line — `FILE` already maps
+> to `rocket_16.png`); (b) rewrite the **terminal PATH-injection API** in TOOL-00-01/TOOL-02 to the
+> real 2026.1 `ShellExecOptionsCustomizer` (the named `TerminalCustomizer`/`initCommands`/
+> `LocalTerminalDirectRunner.EpExtension` don't exist).
+
 **Track A — Tool inventory** (auto-discovery of lua / luacheck / luarocks):
 
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TOOL-00 | De-risking spikes | planned | H | — | TOOL-01, TOOL-02 | ✓ spikes |
-| TOOL-01 | Tool registry & discovery | planned | H | TOOL-00 | TOOL-03 | ✓ |
-| TOOL-02 | Project binding & env | planned | H | TOOL-00 | TOOL-03 | ✓ |
-| TOOL-03 | UI & health monitoring | planned | H | **TOOL-01, TOOL-02** | — | ✓ |
+| ID | Title | Status | Readiness | Depends on | Unblocks |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| TOOL-00 | De-risking spikes | planned | **fix-first**: correct the 00-01 terminal spike to `ShellExecOptionsCustomizer` | — | TOOL-01, TOOL-02 |
+| TOOL-01 | Tool registry & discovery | planned | **READY** (mirrors `LuaInterpreter*`/settings) | TOOL-00 | TOOL-03 |
+| TOOL-02 | Project binding & env | planned | **fix-first**: terminal API + no `EnvironmentProvider` iface (use `RunConfigurationExtension`/direct cmdline env) + reuse `LuaSettingsChangedListener.TOPIC` + dedupe `LuaTerminalEnvironmentService` | TOOL-00 | TOOL-03 |
+| TOOL-03 | UI & health monitoring | planned | **READY** (most grounded; adds 2 fields to TOOL-01 `LuaTool`) | **TOOL-01, TOOL-02** | — |
 
 **Track B — LuaRocks** (largest effort; shares `LuaRocksSettings` defined in ROCKS-04):
 
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ROCKS-04 | Task execution & run configs | planned | H | — (defines `LuaRocksSettings`) | ROCKS-02, ROCKS-03 | ✓ new package |
-| ROCKS-03 | Dependency resolution | planned | H | ROCKS-04 | — | ✓ |
-| ROCKS-02 | Package browser | planned | M | ROCKS-04 | — | ✓ |
-| ROCKS-01 | Project initialization | planned | H | — | — | ✓ standalone wizard |
+| ID | Title | Status | Readiness | Depends on | Unblocks |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| ROCKS-04 | Task execution & run configs | planned | **READY** after `LuaIcons.ROCKET`; defines `LuaRocksSettings` (clones `LuaRunConfiguration`/`LuaCheckSettings`) | — | ROCKS-02, ROCKS-03 |
+| ROCKS-03 | Dependency resolution | planned | **fix-first**: drop stale `export.lua` task (already fixed); gate `src/main/lua`→`resources/lua` relocation | ROCKS-04 *(soft — uses interpreter, not luarocks)* | — |
+| ROCKS-02 | Package browser | planned | **READY** after `LuaIcons.ROCKET`; add porcelain-format/network risk note | ROCKS-04 | — |
+| ROCKS-01 | Project initialization | planned | **READY** after `LuaIcons.ROCKET` (standalone; `DirectoryProjectGenerator`) | — | — |
+| ROCKS-08 | Publishing (Could) | planned | **fix-first**: 9-line stub — rename pkg `lang.rocks`→`rocks.publish`, `PasswordSafe` key, `<action>` reg, reuse `LuaRocksSettings`; defer to last | — | — |
 
 ## Wave 11 — Internal & maintenance  *(invisible to users; address opportunistically)*
 

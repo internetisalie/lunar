@@ -11,6 +11,12 @@ folders:
 
 # Technical Design: Dependency Resolution (ROCKS-03)
 
+> **⚠ Grounding correction (2026-06-16):** the "`export.lua` latent bug `ipairs(name)`→`ipairs(names)`"
+> task is **stale — already fixed** in the tree (line 7 uses `ipairs(names)`); drop it and instead verify
+> the bridge's JSON output shape against a real rockspec. The `src/main/lua/` → `src/main/resources/lua/`
+> relocation (to package the bridge scripts) is genuine un-done build work — treat as an explicit gate.
+> Also requires the shared `LuaIcons.ROCKET` field. See [planning-gaps.md](../../../planning-gaps.md#wave-10-grounding-audit-2026-06-16).
+
 ## 1. Architecture Overview
 
 ### Current State

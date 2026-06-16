@@ -11,6 +11,12 @@ folders:
 
 # TOOL-00: Spike Methodology & Acceptance
 
+> **⚠ Grounding correction (2026-06-16):** spike **00-01** targets a terminal API that does not
+> exist in 2026.1. The real path is `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer.customizeExecOptions(project, MutableShellExecOptions)`
+> (EP `…shellExecOptionsCustomizer`; deprecated fallback `org.jetbrains.plugins.terminal.LocalTerminalCustomizer`)
+> — there is no `TerminalCustomizer`/`initCommands`/`TerminalType`. All other TOOL-00 spikes ground.
+> See [planning-gaps.md](../../../planning-gaps.md#wave-10-grounding-audit-2026-06-16).
+
 De-risking actions are inherently exploratory, so "the bar" for this feature is not a
 production implementation — it is that **each spike has a defined question, a method, a
 measurable pass/fail threshold, and a concrete deliverable artifact**. A non-frontier executor
