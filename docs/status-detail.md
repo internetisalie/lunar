@@ -28,24 +28,24 @@ folders:
 
 ## Progress by Epic
 
-| Epic | Done | In Progress | Planned | Todo | Total | Completion |
-| :--- | ---: | ---: | ---: | ---: | ---: | :--- |
-| [**SYNTAX**](#syntax--syntax--editor) | 14 | 0 | 0 | 3 | 17 | ████████░░ 82% |
-| [**COMP**](#comp--code-completion) | 8 | 0 | 0 | 0 | 8 | ██████████ 100% |
-| [**TYPE**](#type--type-system) | 6 | 2 | 0 | 1 | 9 | ███████░░░ 67% |
-| [**NAV**](#nav--code-navigation) | 10 | 0 | 0 | 0 | 10 | ██████████ 100% |
-| [**REFACT/INTENT**](#refactintent--refactoring--intentions) | 4 | 0 | 0 | 5 | 9 | ████░░░░░░ 44% |
-| [**DEBUG/RUN**](#debugrun--debugging--execution) | 10 | 0 | 1 | 0 | 11 | █████████░ 91% |
-| [**INSP**](#insp--inspections--diagnostics) | 3 | 3 | 0 | 3 | 9 | ███░░░░░░░ 33% |
-| [**ANALYSIS**](#analysis--static-analysis-luacheck) | 5 | 0 | 0 | 0 | 5 | ██████████ 100% |
-| [**FORMAT**](#format--formatting) | 2 | 1 | 0 | 4 | 7 | ███░░░░░░░ 29% |
-| [**DOC**](#doc--documentation--luacats) | 7 | 1 | 0 | 0 | 8 | █████████░ 88% |
-| [**TOOL**](#tool--tool-inventory-management) | 0 | 0 | 4 | 0 | 4 | ░░░░░░░░░░ 0% |
-| [**ROCKS**](#rocks--luarocks-integration) | 0 | 0 | 4 | 1 | 5 | ░░░░░░░░░░ 0% |
-| [**MAINT**](#maint--maintenance--internal-refactoring) | 3 | 1 | 0 | 6 | 10 | ███░░░░░░░ 30% |
-| [**TARGET**](#target--runtime-environment-configuration) | 7 | 0 | 0 | 0 | 7 | ██████████ 100% |
-| [**BUG**](#bug--bug-fixes--stability) | 2 | 0 | 0 | 5 | 7 | ███░░░░░░░ 29% |
-| **Total** | **81** | **8** | **9** | **28** | **126** | **64%** |
+| Epic                                                        |   Done | In Progress | Planned |   Todo |   Total | Completion      |
+| :---------------------------------------------------------- | -----: | ----------: | ------: | -----: | ------: | :-------------- |
+| [**SYNTAX**](#syntax--syntax--editor)                       |     14 |           0 |       0 |      3 |      17 | ████████░░ 82%  |
+| [**COMP**](#comp--code-completion)                          |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
+| [**TYPE**](#type--type-system)                              |      6 |           2 |       0 |      1 |       9 | ███████░░░ 67%  |
+| [**NAV**](#nav--code-navigation)                            |     10 |           0 |       0 |      0 |      10 | ██████████ 100% |
+| [**REFACT/INTENT**](#refactintent--refactoring--intentions) |      4 |           0 |       0 |      5 |       9 | ████░░░░░░ 44%  |
+| [**DEBUG/RUN**](#debugrun--debugging--execution)            |     10 |           0 |       1 |      0 |      11 | █████████░ 91%  |
+| [**INSP**](#insp--inspections--diagnostics)                 |      3 |           3 |       0 |      3 |       9 | ███░░░░░░░ 33%  |
+| [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
+| [**FORMAT**](#format--formatting)                           |      2 |           1 |       0 |      4 |       7 | ███░░░░░░░ 29%  |
+| [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
+| [**TOOL**](#tool--tool-inventory-management)                |      0 |           0 |       4 |      0 |       4 | ░░░░░░░░░░ 0%   |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      0 |           0 |       4 |      1 |       5 | ░░░░░░░░░░ 0%   |
+| [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
+| [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
+| [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       0 |      5 |       7 | ███░░░░░░░ 29%  |
+| **Total**                                                   | **81** |       **8** |   **9** | **28** | **126** | **64%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
