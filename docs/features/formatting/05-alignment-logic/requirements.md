@@ -2,7 +2,7 @@
 id: FORMAT-05
 title: "05: Alignment Logic"
 type: feature
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]
@@ -22,9 +22,9 @@ Align the `=` of consecutive assignments and the keys/values of table fields for
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| `FORMAT-05-01` | **Align consecutive assignments** | **S** | Not Implemented | Align the `=` across a contiguous run of assignment/local statements. |
-| `FORMAT-05-02` | **Align table fields** | **S** | Not Implemented | Align the `=` (key→value) across the fields of a table constructor. |
-| `FORMAT-05-03` | **Configurable** | **S** | Not Implemented | Each alignment is toggled by a code-style setting (default off). |
+| `FORMAT-05-01` | **Align consecutive assignments** | **S** | Full | Align the `=` across a contiguous run of assignment/local statements. |
+| `FORMAT-05-02` | **Align table fields** | **S** | Full | Align the `=` (key→value) across the fields of a table constructor. |
+| `FORMAT-05-03` | **Configurable** | **S** | Full | Each alignment is toggled by a code-style setting (default off). |
 
 ## Test Cases
 

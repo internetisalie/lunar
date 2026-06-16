@@ -13,6 +13,19 @@ class LuaCodeStyleSettings(
     LuaLanguage.id,
     codeStyleSettings,
 ) {
+    // FORMAT-04 Expression wrapping (values: DO_NOT_WRAP / WRAP_AS_NEEDED / WRAP_ALWAYS)
+    @JvmField var WRAP_ARGUMENTS: Int = CommonCodeStyleSettings.WRAP_AS_NEEDED
+
+    @JvmField var WRAP_TABLE_CONSTRUCTOR: Int = CommonCodeStyleSettings.WRAP_AS_NEEDED
+
+    // FORMAT-05 Alignment logic
+    @JvmField var ALIGN_CONSECUTIVE_ASSIGNMENTS: Boolean = false
+
+    @JvmField var ALIGN_TABLE_FIELDS: Boolean = false
+
+    // FORMAT-06 Comment formatting
+    @JvmField var WRAP_LONG_COMMENTS: Boolean = false
+
     companion object {
         fun getInstance(settings : CodeStyleSettings) : LuaCodeStyleSettings? {
             return settings.getCustomSettings(LuaCodeStyleSettings::class.java)
@@ -86,14 +99,55 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
 //                    customizableOptions.SPACES_OTHER,
 //                )
             }
-            SettingsType.WRAPPING_AND_BRACES_SETTINGS -> consumer.showStandardOptions(
-                CodeStyleSettingsCustomizable.WrappingOrBraceOption.KEEP_LINE_BREAKS.name,
-            )
-            SettingsType.COMMENTER_SETTINGS -> consumer.showStandardOptions(
-                CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_AT_FIRST_COLUMN.name,
-                CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_ADD_SPACE.name,
-                CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_ADD_SPACE_ON_REFORMAT.name
-            )
+            SettingsType.WRAPPING_AND_BRACES_SETTINGS -> {
+                consumer.showStandardOptions(
+                    CodeStyleSettingsCustomizable.WrappingOrBraceOption.KEEP_LINE_BREAKS.name,
+                )
+                // FORMAT-04 Expression wrapping
+                consumer.showCustomOption(
+                    LuaCodeStyleSettings::class.java,
+                    "WRAP_ARGUMENTS",
+                    LuaBundle.message("codeStyle.wrapping.callArguments"),
+                    null,
+                    CodeStyleSettingsCustomizable.WRAP_OPTIONS,
+                    CodeStyleSettingsCustomizable.WRAP_VALUES,
+                )
+                consumer.showCustomOption(
+                    LuaCodeStyleSettings::class.java,
+                    "WRAP_TABLE_CONSTRUCTOR",
+                    LuaBundle.message("codeStyle.wrapping.tableConstructor"),
+                    null,
+                    CodeStyleSettingsCustomizable.WRAP_OPTIONS,
+                    CodeStyleSettingsCustomizable.WRAP_VALUES,
+                )
+                // FORMAT-05 Alignment logic
+                consumer.showCustomOption(
+                    LuaCodeStyleSettings::class.java,
+                    "ALIGN_CONSECUTIVE_ASSIGNMENTS",
+                    LuaBundle.message("codeStyle.alignment.consecutiveAssignments"),
+                    null,
+                )
+                consumer.showCustomOption(
+                    LuaCodeStyleSettings::class.java,
+                    "ALIGN_TABLE_FIELDS",
+                    LuaBundle.message("codeStyle.alignment.tableFields"),
+                    null,
+                )
+            }
+            SettingsType.COMMENTER_SETTINGS -> {
+                consumer.showStandardOptions(
+                    CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_AT_FIRST_COLUMN.name,
+                    CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_ADD_SPACE.name,
+                    CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_ADD_SPACE_ON_REFORMAT.name
+                )
+                // FORMAT-06 Comment formatting
+                consumer.showCustomOption(
+                    LuaCodeStyleSettings::class.java,
+                    "WRAP_LONG_COMMENTS",
+                    LuaBundle.message("codeStyle.commenter.wrapLongComments"),
+                    null,
+                )
+            }
             else -> consumer.showStandardOptions()
         }
     }

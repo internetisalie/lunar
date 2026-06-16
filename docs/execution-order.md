@@ -145,10 +145,10 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| FORMAT-03 | Blank-line management | planned | M | — | FORMAT-04 | Serial: formatter |
-| FORMAT-04 | Expression wrapping | planned | M | FORMAT-03 *(files)* | FORMAT-05 | Serial: formatter |
-| FORMAT-05 | Alignment logic | planned | M | FORMAT-04 *(files)* | FORMAT-06 | Serial: formatter |
-| FORMAT-06 | Comment formatting | planned | M | FORMAT-05 *(files)* | — | Serial: formatter |
+| FORMAT-03 | Blank-line management | done | M | — | FORMAT-04 | settings-driven function spacing + keep-max + `LuaTrailingNewlinePostProcessor` (whole-file EOF newline) |
+| FORMAT-04 | Expression wrapping | done | M | FORMAT-03 *(files)* | FORMAT-05 | `WRAP_ARGUMENTS`/`WRAP_TABLE_CONSTRUCTOR` shared `Wrap`s on arg/field item lists |
+| FORMAT-05 | Alignment logic | done | M | FORMAT-04 *(files)* | FORMAT-06 | `ALIGN_CONSECUTIVE_ASSIGNMENTS`/`ALIGN_TABLE_FIELDS` thread `Alignment` onto `=` (default off) |
+| FORMAT-06 | Comment formatting | done | M | FORMAT-05 *(files)* | — | `LuaCommentWrapPostProcessor` hard-wraps long `--` lines (opt-in); doc comments untouched |
 
 ## Wave 8 — Refactoring & Intentions  *(core refactorings done in Waves 2–3; gap is intentions)*
 

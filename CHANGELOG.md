@@ -45,6 +45,10 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Block Auto-close on Enter**: pressing Enter after a block opener (`then`/`do`/`function`/`repeat` and table `{`) inserts the matching `end`/`until`/`}` on the next line and opens an indented body line. A balance check now fixes a correctness bug where a redundant `end` was appended even when the block was already closed; full opener coverage spans `if`/`while`/numeric & generic `for`/bare `do`/`function`/`repeat`/table literals; and pressing Enter between an already-matched opener and its terminator indents a blank body line without inserting a duplicate.
 - **Code Style**: Settings for indentation, spacing, and formatting
 - **Formatter Fix**: Unary `not` now keeps a space before its operand when reformatting (`not x`); previously it collapsed to the distinct identifier `notx`. Symbolic unary operators (`-`, `#`, `~`) remain tight.
+- **Blank-Line Management**: Reformat now drives blank lines between function definitions from the standard *Blank Lines* code-style settings (`BLANK_LINES_AROUND_METHOD`), caps runs of blank lines between statements at *Keep blank lines* (`KEEP_BLANK_LINES_IN_CODE`), and ensures a whole-file reformat ends the file with exactly one trailing newline.
+- **Expression Wrapping**: New *Call arguments* and *Table constructor* wrapping options (Do not wrap / Wrap if long / Chop down if long) wrap long argument lists and table constructors at the right margin.
+- **Alignment**: Optional *Align consecutive assignments* and *Align table field values* code-style options line up the `=` across a run of assignments and across a table constructor's fields (both off by default).
+- **Comment Formatting**: Optional *Wrap long comments at right margin* hard-wraps over-long `--` line comments onto continuation `--` lines on reformat, preserving word boundaries and leaving LuaCATS doc comments (`---@…`) untouched.
 - **Run Configurations**: Lua script execution and debugging support
 - **Breakpoint Debugging**: DBGp protocol support for remote debugging
 

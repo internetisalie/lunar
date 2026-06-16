@@ -2,7 +2,7 @@
 id: FORMAT-06
 title: "06: Comment Formatting"
 type: feature
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]
@@ -23,8 +23,8 @@ margin.
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| `FORMAT-06-01` | **Space after `--`** | **C** | Partial | On reformat, ensure a single space after `--` for line comments (driven by `LINE_COMMENT_ADD_SPACE_ON_REFORMAT`). |
-| `FORMAT-06-02` | **Wrap long comments** | **C** | Not Implemented | Hard-wrap a line comment exceeding the right margin onto continuation `--` lines (opt-in). |
+| `FORMAT-06-01` | **Space after `--`** | **C** | Full | On reformat, ensure a single space after `--` for line comments (driven by `LINE_COMMENT_ADD_SPACE_ON_REFORMAT`). |
+| `FORMAT-06-02` | **Wrap long comments** | **C** | Full | Hard-wrap a line comment exceeding the right margin onto continuation `--` lines (opt-in). |
 
 ## Test Cases
 

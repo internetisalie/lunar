@@ -2,7 +2,7 @@
 id: "FORMAT"
 title: "FORMAT: Formatting"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"
@@ -30,4 +30,21 @@ Lunar provides a highly configurable code formatter to ensure consistency across
 
 ### FORMAT-02: Configurable Code Style
 - **Status**: **Implemented** (`LuaCodeStyleSettingsProvider`, `LuaLanguageCodeStyleSettingsProvider`)
+
+### FORMAT-03: Blank Line Management
+- **Status**: **Implemented** — settings-driven function separation + keep-max in `LuaSpacingBuilder`;
+  `LuaTrailingNewlinePostProcessor` for the EOF newline (whole-file reformat only).
+
+### FORMAT-04: Expression Wrapping
+- **Status**: **Implemented** — `WRAP_ARGUMENTS`/`WRAP_TABLE_CONSTRUCTOR` settings drive shared
+  `Wrap`s on argument `EXPR_LIST` / table `FIELD_LIST` items in `LuaFormatBlock`.
+
+### FORMAT-05: Alignment Logic
+- **Status**: **Implemented** — `ALIGN_CONSECUTIVE_ASSIGNMENTS`/`ALIGN_TABLE_FIELDS` thread a shared
+  `Alignment` onto each statement/field `=` (ASSIGN) in `LuaFormatBlock` (default off).
+
+### FORMAT-06: Comment Formatting
+- **Status**: **Implemented** — leading-space via the platform commenter option;
+  `LuaCommentWrapPostProcessor` hard-wraps long `--` lines when `WRAP_LONG_COMMENTS` is on
+  (LuaCATS doc comments untouched).
 

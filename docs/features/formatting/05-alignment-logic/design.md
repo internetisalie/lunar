@@ -3,7 +3,7 @@ id: FORMAT-05-DESIGN
 title: "Technical Design"
 type: design
 parent_id: FORMAT-05
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/formatting/05-alignment-logic/requirements|requirements]]"

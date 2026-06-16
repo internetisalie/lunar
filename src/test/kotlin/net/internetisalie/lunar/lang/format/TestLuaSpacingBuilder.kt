@@ -36,7 +36,7 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
             function test() end
             
             print ""
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -55,7 +55,7 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
         myFixture.checkResult(
             """
             local a = function() end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -72,7 +72,7 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
         myFixture.checkResult(
             """
                 if true then elseif false then else end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -98,7 +98,7 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
                 elseif false then
                 else
                 end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -115,7 +115,7 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
         myFixture.checkResult(
             """
                 repeat until true
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -135,7 +135,7 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
             """
                 repeat
                 until true
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 

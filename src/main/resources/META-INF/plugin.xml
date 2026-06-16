@@ -225,6 +225,14 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.format.LuaFormattingModelBuilder" />
 
+    <!-- FORMAT-03-03: normalize the trailing newline at EOF on reformat. -->
+    <postFormatProcessor
+            implementation="net.internetisalie.lunar.lang.format.LuaTrailingNewlinePostProcessor" />
+
+    <!-- FORMAT-06-02: hard-wrap over-long line comments (opt-in via WRAP_LONG_COMMENTS). -->
+    <postFormatProcessor
+            implementation="net.internetisalie.lunar.lang.format.LuaCommentWrapPostProcessor" />
+
     <lang.foldingBuilder
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaFoldingBuilder" />

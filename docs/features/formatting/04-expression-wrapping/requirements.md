@@ -2,7 +2,7 @@
 id: FORMAT-04
 title: "04: Expression Wrapping"
 type: feature
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]
@@ -21,9 +21,9 @@ Wrap long call-argument lists and table constructors at the configured right mar
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| `FORMAT-04-01` | **Wrap arguments** | **S** | Not Implemented | Chop down call arguments onto separate lines when the call exceeds the right margin. |
-| `FORMAT-04-02` | **Wrap table constructors** | **S** | Not Implemented | Place table fields on separate lines when the constructor exceeds the right margin. |
-| `FORMAT-04-03` | **Configurable** | **S** | Not Implemented | Expose wrap policy (Do not wrap / Wrap if long / Chop down if long) per construct in settings. |
+| `FORMAT-04-01` | **Wrap arguments** | **S** | Full | Chop down call arguments onto separate lines when the call exceeds the right margin. |
+| `FORMAT-04-02` | **Wrap table constructors** | **S** | Full | Place table fields on separate lines when the constructor exceeds the right margin. |
+| `FORMAT-04-03` | **Configurable** | **S** | Full | Expose wrap policy (Do not wrap / Wrap if long / Chop down if long) per construct in settings. |
 
 ## Test Cases
 

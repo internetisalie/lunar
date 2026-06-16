@@ -2,7 +2,7 @@
 id: FORMAT-03
 title: "03: Blank Line Management"
 type: feature
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]
@@ -22,9 +22,9 @@ Insert/remove blank lines around functions and at end-of-file, honoring the stan
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| `FORMAT-03-01` | **Blank lines around functions** | **S** | Partial | Enforce `BLANK_LINES_AROUND_METHOD` between function definitions (currently hard-coded to 1 via `STANZA_SPACING`). |
-| `FORMAT-03-02` | **Keep-max blank lines** | **S** | Not Implemented | Collapse runs of blank lines to at most `KEEP_BLANK_LINES_IN_CODE`. |
-| `FORMAT-03-03` | **Trailing newline** | **S** | Not Implemented | Ensure exactly one newline at end of file on reformat. |
+| `FORMAT-03-01` | **Blank lines around functions** | **S** | Full | Enforce `BLANK_LINES_AROUND_METHOD` between function definitions (currently hard-coded to 1 via `STANZA_SPACING`). |
+| `FORMAT-03-02` | **Keep-max blank lines** | **S** | Full | Collapse runs of blank lines to at most `KEEP_BLANK_LINES_IN_CODE`. |
+| `FORMAT-03-03` | **Trailing newline** | **S** | Full | Ensure exactly one newline at end of file on reformat. |
 
 ## Test Cases
 

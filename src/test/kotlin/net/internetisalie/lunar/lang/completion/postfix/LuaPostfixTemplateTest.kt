@@ -57,10 +57,12 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
         myFixture.type("\t")
 
         // The editable name tab stop is driven by the template harness; assert the committed text.
+        // This snippet spans the whole file from offset 0, so the FORMAT-03-03 trailing-newline
+        // post-processor (whole-file only) appends the final newline.
         myFixture.checkResult(
             """
             local value = getUser()
-            """.trimIndent()
+            """.trimIndent() + "\n"
         )
     }
 

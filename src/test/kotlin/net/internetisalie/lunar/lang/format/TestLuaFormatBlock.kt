@@ -39,7 +39,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             do
                 print ""
             end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -60,7 +60,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             while true do
                 print ""
             end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -81,7 +81,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             repeat
                 print ""
             until false
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -112,7 +112,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             else
                 print "3"
             end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -133,7 +133,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             for a = 1, 2, 3 do
                 print ""
             end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -154,7 +154,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             for a in 1, 2, 3 do
                 print ""
             end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -179,7 +179,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
                           c)
                 print ""
             end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -207,7 +207,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
                 b,
                 c
             )
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -230,7 +230,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             ::start::
                 goto start
             end
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -255,7 +255,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             local a = not b
             local c = -d
             local e = #f
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -276,7 +276,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             a,
                     b,
                     c = 1
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 
@@ -301,7 +301,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
                   c = 1,
                       2,
                       3
-        """.trimIndent()
+        """.trimIndent() + "\n"
         )
     }
 }
