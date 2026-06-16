@@ -235,6 +235,31 @@ class TestLuaFormatBlock : BaseDocumentTest() {
     }
 
     @Test
+    fun testUnaryOperatorSpacing() {
+        // Keyword `not` keeps a single space before its operand; symbolic unary
+        // operators (`-`, `#`) stay tight. Regression guard for the UN_OP spacing
+        // rule that previously tested the operand instead of the operator,
+        // collapsing `not b` into the distinct identifier `notb`.
+        myFixture.configureByText(
+            LuaFileType, """
+            local a = not b
+            local c = -d
+            local e = #f
+        """.trimIndent()
+        )
+
+        reformatText {}
+
+        myFixture.checkResult(
+            """
+            local a = not b
+            local c = -d
+            local e = #f
+        """.trimIndent()
+        )
+    }
+
+    @Test
     fun testVarList() {
         myFixture.configureByText(
             LuaFileType, """

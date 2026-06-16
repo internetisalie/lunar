@@ -167,10 +167,11 @@ class LuaSpacingBuilder(
             left.hasElementType(LuaElementTypes.MINUS)
                 -> if (right.hasElementType(LuaElementTypes.MINUS)) return SINGLE_SPACING
 
-            // Single space after unary NOT,
-            // no space after other unary operators
+            // Single space after unary NOT (a keyword operator: `not x`),
+            // no space after symbolic unary operators (`-x`, `#t`, `~x`).
+            // The operator is the left `unOp` node; test ITS child, not the right operand.
             left.hasElementType(LuaElementTypes.UN_OP)
-                -> return if (right.hasElementType(LuaElementTypes.NOT)) SINGLE_SPACING else NO_SPACING
+                -> return if (left?.node?.findChildByType(LuaElementTypes.NOT) != null) SINGLE_SPACING else NO_SPACING
 
             // Single newline after LuaCATS comment before CommentOwner,
             // double newline after freestanding LuaCATS comment
