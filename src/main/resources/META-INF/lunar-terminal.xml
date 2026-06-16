@@ -1,0 +1,10 @@
+<!-- TOOL-00 de-risking spike: optional config-file, loaded only when the bundled
+     org.jetbrains.plugins.terminal plugin is present (see <depends optional=.../> in plugin.xml).
+     Registers the source-verified terminal PATH-injection customizer.
+     EP id verified against intellij-community 2026.1 (plugins/terminal terminal.xml). -->
+<idea-plugin>
+  <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
+    <shellExecOptionsCustomizer
+        implementation="net.internetisalie.lunar.tool.terminal.LuaShellExecOptionsCustomizer"/>
+  </extensions>
+</idea-plugin>

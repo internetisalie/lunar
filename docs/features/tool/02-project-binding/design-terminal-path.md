@@ -36,13 +36,23 @@ This document outlines the technical implementation for injecting Lua tool direc
 - Method `customizeExecOptions(project: Project, options: MutableShellExecOptions)` runs on a
   background thread (no EDT blocking).
 - Responsible for modifying the environment variables of terminal sessions, specifically prepending
-  Lua tool directories to the PATH entry of the exec options' environment.
+  Lua tool directories to PATH via `shellExecOptions.prependEntryToPATH(path)`.
+- **SOURCE-VERIFIED (2026.1):** the interface method is
+  `customizeExecOptions(project: Project, shellExecOptions: MutableShellExecOptions)`.
+  `MutableShellExecOptions.envs` is a **read-only `Map<String, String>`** — there is **no
+  `options.environment` property and no map setter**. Mutate PATH only through `prependEntryToPATH(Path)`
+  / `appendEntryToPATH(Path)` / `setEnvironmentVariable(name, value?)`. `prependEntryToPATH` already
+  joins with the *remote* path separator and translates local→remote paths (WSL/Docker/SSH), so the
+  customizer must **not** join with `File.pathSeparator` itself.
 
 #### `LocalTerminalCustomizer` (deprecated fallback)
 - `org.jetbrains.plugins.terminal.LocalTerminalCustomizer` (EP
   `org.jetbrains.plugins.terminal.localTerminalCustomizer`).
-- Method `customizeCommandAndEnvironment(project, workingDirectory, command, envs): Array<String>` —
-  inject PATH by mutating the `envs: Map<String, String>` map and returning `command` unchanged.
+- **SOURCE-VERIFIED (2026.1):** the method actually used is
+  `customizeCommandAndEnvironment(project, workingDirectory, shellCommand: List<String>, envs: MutableMap<String, String>, eelDescriptor: EelDescriptor): List<String>`
+  — inject PATH by mutating the `envs` map (separator `eelDescriptor.osFamily.pathSeparator`) and
+  returning `shellCommand` unchanged. (The older `Array<String>` overload exists but is itself
+  deprecated and skips remote-path translation.)
 - Use only if `ShellExecOptionsCustomizer` is unavailable in the target IDE build.
 
 ### 2. Environment Management
@@ -75,18 +85,14 @@ This document outlines the technical implementation for injecting Lua tool direc
 ### ShellExecOptionsCustomizer Implementation (preferred)
 ```kotlin
 class LuaShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
-    // Runs on a background thread; safe to do tool resolution here.
-    override fun customizeExecOptions(project: Project, options: MutableShellExecOptions) {
-        val toolDirs = project.service<LuaTerminalEnvironmentService>().getToolDirectories()
-        if (toolDirs.isEmpty()) return
-
-        val env = options.environment // MutableMap<String, String>
-        val originalPath = env["PATH"]
-        val toolsPath = toolDirs.joinToString(File.pathSeparator)
-        env["PATH"] = if (originalPath.isNullOrBlank()) {
-            toolsPath
-        } else {
-            "$toolsPath${File.pathSeparator}$originalPath"
+    // Runs on a BACKGROUND thread with NO read action; safe to do tool resolution here.
+    override fun customizeExecOptions(project: Project, shellExecOptions: MutableShellExecOptions) {
+        val toolDirs: List<Path> = project.service<LuaTerminalEnvironmentService>().getToolDirectories()
+        // Prepend each tool dir; prependEntryToPATH inserts first, uses the REMOTE path separator,
+        // and translates local->remote paths. envs is read-only — never assign to it directly.
+        // Prepend in reverse so the first list entry ends up first on PATH.
+        for (dir in toolDirs.asReversed()) {
+            shellExecOptions.prependEntryToPATH(dir)
         }
     }
 }
@@ -95,24 +101,25 @@ class LuaShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
 ### LocalTerminalCustomizer (deprecated fallback)
 ```kotlin
 // Use only if ShellExecOptionsCustomizer is unavailable in the target IDE build.
+// Override the EEL-aware overload (List<String> + EelDescriptor), which is the one the
+// platform actually dispatches to and which performs local->remote path translation.
 class LuaLocalTerminalCustomizer : LocalTerminalCustomizer() {
     override fun customizeCommandAndEnvironment(
         project: Project,
         workingDirectory: String?,
-        command: Array<String>,
+        shellCommand: List<String>,
         envs: MutableMap<String, String>,
-    ): Array<String> {
+        eelDescriptor: EelDescriptor,
+    ): List<String> {
         val toolDirs = project.service<LuaTerminalEnvironmentService>().getToolDirectories()
         if (toolDirs.isNotEmpty()) {
+            val sep = eelDescriptor.osFamily.pathSeparator
             val originalPath = envs["PATH"]
-            val toolsPath = toolDirs.joinToString(File.pathSeparator)
-            envs["PATH"] = if (originalPath.isNullOrBlank()) {
-                toolsPath
-            } else {
-                "$toolsPath${File.pathSeparator}$originalPath"
-            }
+            // toolDirs are already remote-environment strings here; join with the remote separator.
+            val toolsPath = toolDirs.joinToString(sep)
+            envs["PATH"] = if (originalPath.isNullOrBlank()) toolsPath else "$toolsPath$sep$originalPath"
         }
-        return command // command unchanged; PATH injected via envs map
+        return shellCommand // command unchanged; PATH injected via envs map
     }
 }
 ```
@@ -121,7 +128,9 @@ class LuaLocalTerminalCustomizer : LocalTerminalCustomizer() {
 ```kotlin
 @Service(Service.Level.PROJECT)
 class LuaTerminalEnvironmentService(private val project: Project) {
-    @Volatile private var cachedToolDirectories: List<String>? = null
+    // Note: Path (not String) — prependEntryToPATH takes a java.nio.file.Path and handles
+    // local->remote translation. Resolve dirs eagerly off-EDT (see customizeExecOptions threading).
+    @Volatile private var cachedToolDirectories: List<Path>? = null
 
     init {
         // Invalidate the cache when Lua settings change.
@@ -135,12 +144,12 @@ class LuaTerminalEnvironmentService(private val project: Project) {
         )
     }
 
-    fun getToolDirectories(): List<String> {
+    fun getToolDirectories(): List<Path> {
         cachedToolDirectories?.let { return it }
         val directories = project.service<LuaToolManager>()
             .getAllValidTools(project)
             .mapNotNull { it.path }
-            .map { File(it).parent }
+            .map { Path.of(it).parent }
             .distinct()
         cachedToolDirectories = directories
         return directories
@@ -150,15 +159,20 @@ class LuaTerminalEnvironmentService(private val project: Project) {
 
 ## Registration in plugin.xml
 ```xml
-<!-- Preferred: Shell exec options customizer -->
-<extension points="org.jetbrains.plugins.terminal.shellExecOptionsCustomizer"
-          class="net.internetisalie.lunar.tool.terminal.LuaShellExecOptionsCustomizer"/>
+<!-- Register inside an optional config-file gated on the terminal plugin:
+       plugin.xml: <depends optional="true" config-file="lunar-terminal.xml">org.jetbrains.plugins.terminal</depends>
+     lunar-terminal.xml (EP uses the `implementation` attribute, NOT `class`): -->
+<extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
+  <!-- Preferred: shell exec options customizer (EP id verified against terminal.xml in 2026.1) -->
+  <shellExecOptionsCustomizer
+      implementation="net.internetisalie.lunar.tool.terminal.LuaShellExecOptionsCustomizer"/>
 
-<!-- Deprecated fallback: local terminal customizer (register only one) -->
-<!--
-<extension points="org.jetbrains.plugins.terminal.localTerminalCustomizer"
-          class="net.internetisalie.lunar.tool.terminal.LuaLocalTerminalCustomizer"/>
--->
+  <!-- Deprecated fallback: local terminal customizer (register only one) -->
+  <!--
+  <localTerminalCustomizer
+      implementation="net.internetisalie.lunar.tool.terminal.LuaLocalTerminalCustomizer"/>
+  -->
+</extensions>
 ```
 
 ## Validation and Compatibility
