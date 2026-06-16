@@ -185,6 +185,8 @@
 
     <defaultLiveTemplates file="liveTemplates/lua.xml"/>
     <liveTemplateContext implementation="net.internetisalie.lunar.lang.completion.templates.LuaTemplateContextType"/>
+    <liveTemplateContext implementation="net.internetisalie.lunar.lang.completion.templates.LuaCodeContextType"/>
+    <liveTemplateContext implementation="net.internetisalie.lunar.lang.completion.templates.LuaSurroundContextType"/>
     <enterHandlerDelegate implementation="net.internetisalie.lunar.lang.completion.LuaEnterHandler"/>
     <codeInsight.template.postfixTemplateProvider language="Lua" implementationClass="net.internetisalie.lunar.lang.completion.postfix.LuaPostfixTemplateProvider"/>
     <completion.contributor

@@ -3,7 +3,7 @@ id: COMP-07
 title: Live Templates Requirements
 type: feature
 parent_id: COMP
-status: in_progress
+status: done
 ---
 
 # Live Templates Requirements
@@ -22,16 +22,16 @@ wins (`repeat`, `pcall`, module skeleton) the competitors lack.
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
 | COMP-07-01 | Basic Templates | Must | done | Shipped: `fun` (function), `fori` (numeric for), `forp` (pairs for), `loc` (local). _(see reconciliation note above)_ |
-| COMP-07-02 | `if` template | Must | planned | `if $COND$ then ⏎  $END$ ⏎ end`. _[EmmyLua `if`]_ |
-| COMP-07-03 | `ifel` template | Must | planned | `if $COND$ then ⏎  $END$ ⏎ else ⏎ end`. _[EmmyLua `ifelse`]_ |
-| COMP-07-04 | `lfun` (local function) template | Must | planned | `local function $NAME$($ARGS$) ⏎  $END$ ⏎ end`. _[EmmyLua/Luanalysis `lfunc`]_ |
-| COMP-07-05 | `while` template | Must | planned | `while $COND$ do ⏎  $END$ ⏎ end`. _[platform loop breadth; Lua core]_ |
-| COMP-07-06 | `repeat` template | Should | planned | `repeat ⏎  $END$ ⏎ until $COND$`. Lua-specific (no competitor analog). |
-| COMP-07-07 | `forip` (ipairs for) template | Should | planned | `for $I$, $V$ in ipairs($T$) do ⏎  $END$ ⏎ end`. Distinct from numeric `fori`. _[EmmyLua `fori`]_ |
-| COMP-07-08 | `req` (require) template | Should | planned | `local $NAME$ = require("$MODULE$")`. Standard import idiom. |
-| COMP-07-09 | `mod` (module skeleton) template | Should | planned | `local $M$ = {} ⏎⏎ $END$ ⏎⏎ return $M$`. Canonical post-`module()` pattern. |
-| COMP-07-10 | Context-type refinement | Should | planned | Replace the single `LUA` context with `LuaCodeContextType` (suppress inside string/comment/number) + a statement-aware `LuaIfContextType`. **Fixes templates firing inside strings/comments.** _[EmmyLua `LuaCodeContextType`/`LuaIfContextType`]_ |
-| COMP-07-11 | Surround templates | Should | planned | Surround-with `if` / `for` / `do…end` / `function` via `$SELECTION$` (Ctrl+Alt+T). _[platform `Java.xml`/`Kotlin.xml` surround pattern]_ |
+| COMP-07-02 | `if` template | Must | done | `if $COND$ then ⏎  $END$ ⏎ end`. _[EmmyLua `if`]_ |
+| COMP-07-03 | `ifel` template | Must | done | `if $COND$ then ⏎  $END$ ⏎ else ⏎ end`. _[EmmyLua `ifelse`]_ |
+| COMP-07-04 | `lfun` (local function) template | Must | done | `local function $NAME$($ARGS$) ⏎  $END$ ⏎ end`. _[EmmyLua/Luanalysis `lfunc`]_ |
+| COMP-07-05 | `while` template | Must | done | `while $COND$ do ⏎  $END$ ⏎ end`. _[platform loop breadth; Lua core]_ |
+| COMP-07-06 | `repeat` template | Should | done | `repeat ⏎  $END$ ⏎ until $COND$`. Lua-specific (no competitor analog). |
+| COMP-07-07 | `forip` (ipairs for) template | Should | done | `for $I$, $V$ in ipairs($T$) do ⏎  $END$ ⏎ end`. Distinct from numeric `fori`. _[EmmyLua `fori`]_ |
+| COMP-07-08 | `req` (require) template | Should | done | `local $NAME$ = require("$MODULE$")`. Standard import idiom. |
+| COMP-07-09 | `mod` (module skeleton) template | Should | done | `local $M$ = {} ⏎⏎ $END$ ⏎⏎ return $M$`. Canonical post-`module()` pattern. |
+| COMP-07-10 | Context-type refinement | Should | done | Replace the single `LUA` context with `LuaCodeContextType` (suppress inside string/comment/number) + a statement-aware `LuaIfContextType`. **Fixes templates firing inside strings/comments.** _[EmmyLua `LuaCodeContextType`/`LuaIfContextType`]_ |
+| COMP-07-11 | Surround templates | Should | done | Surround-with `if` / `for` / `do…end` / `function` via `$SELECTION$` (Ctrl+Alt+T). _[platform `Java.xml`/`Kotlin.xml` surround pattern]_ |
 
 ## Backlog (Could / Watch — parked, not yet prioritized into the plan)
 - `fn` anonymous closure → `function($ARGS$) $END$ end` (Could). _[EmmyLua `closure`]_

@@ -3,7 +3,7 @@
         <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
         <variable name="ARGS" expression="" defaultValue="" alwaysStopAt="true" />
         <context>
-            <option name="LUA" value="true" />
+            <option name="LUA_CODE" value="true" />
         </context>
     </template>
     <template name="fori" value="for $VAR$ = $START$, $END_VAL$ do&#10;    $END$&#10;end" description="Numeric for loop" toReformat="true" toShortenFQNames="true">
@@ -11,7 +11,7 @@
         <variable name="START" expression="" defaultValue="1" alwaysStopAt="true" />
         <variable name="END_VAL" expression="" defaultValue="10" alwaysStopAt="true" />
         <context>
-            <option name="LUA" value="true" />
+            <option name="LUA_CODE" value="true" />
         </context>
     </template>
     <template name="forp" value="for $K$, $V$ in pairs($TABLE$) do&#10;    $END$&#10;end" description="Generic for loop" toReformat="true" toShortenFQNames="true">
@@ -19,14 +19,92 @@
         <variable name="V" expression="" defaultValue="v" alwaysStopAt="true" />
         <variable name="TABLE" expression="" defaultValue="t" alwaysStopAt="true" />
         <context>
-            <option name="LUA" value="true" />
+            <option name="LUA_CODE" value="true" />
         </context>
     </template>
     <template name="loc" value="local $NAME$ = $VALUE$" description="Local variable" toReformat="true" toShortenFQNames="true">
         <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
         <variable name="VALUE" expression="" defaultValue="" alwaysStopAt="true" />
         <context>
-            <option name="LUA" value="true" />
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="if" value="if $COND$ then&#10;    $END$&#10;end" description="if statement" toReformat="true" toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="ifel" value="if $COND$ then&#10;    $END$&#10;else&#10;    &#10;end" description="if/else statement" toReformat="true" toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="lfun" value="local function $NAME$($ARGS$)&#10;    $END$&#10;end" description="Local function declaration" toReformat="true" toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
+        <variable name="ARGS" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="while" value="while $COND$ do&#10;    $END$&#10;end" description="while loop" toReformat="true" toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="repeat" value="repeat&#10;    $END$&#10;until $COND$" description="repeat/until loop" toReformat="true" toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="forip" value="for $I$, $V$ in ipairs($T$) do&#10;    $END$&#10;end" description="ipairs for loop" toReformat="true" toShortenFQNames="true">
+        <variable name="I" expression="" defaultValue="i" alwaysStopAt="true" />
+        <variable name="V" expression="" defaultValue="v" alwaysStopAt="true" />
+        <variable name="T" expression="" defaultValue="t" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="req" value="local $NAME$ = require(&quot;$MODULE$&quot;)" description="require module" toReformat="true" toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
+        <variable name="MODULE" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="mod" value="local $M$ = {}&#10;&#10;$END$&#10;&#10;return $M$" description="Module skeleton" toReformat="true" toShortenFQNames="true">
+        <variable name="M" expression="" defaultValue="M" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_CODE" value="true" />
+        </context>
+    </template>
+    <template name="surr_if" value="if $COND$ then&#10;    $SELECTION$&#10;end" description="Surround with if" toReformat="true" toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_SURROUND" value="true" />
+        </context>
+    </template>
+    <template name="surr_for" value="for $K$, $V$ in pairs($T$) do&#10;    $SELECTION$&#10;end" description="Surround with for" toReformat="true" toShortenFQNames="true">
+        <variable name="K" expression="" defaultValue="k" alwaysStopAt="true" />
+        <variable name="V" expression="" defaultValue="v" alwaysStopAt="true" />
+        <variable name="T" expression="" defaultValue="t" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_SURROUND" value="true" />
+        </context>
+    </template>
+    <template name="surr_do" value="do&#10;    $SELECTION$&#10;end" description="Surround with do" toReformat="true" toShortenFQNames="true">
+        <context>
+            <option name="LUA_SURROUND" value="true" />
+        </context>
+    </template>
+    <template name="surr_fn" value="function $NAME$($ARGS$)&#10;    $SELECTION$&#10;end" description="Surround with function" toReformat="true" toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
+        <variable name="ARGS" expression="" defaultValue="" alwaysStopAt="true" />
+        <context>
+            <option name="LUA_SURROUND" value="true" />
         </context>
     </template>
 </templateSet>

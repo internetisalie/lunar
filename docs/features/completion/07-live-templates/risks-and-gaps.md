@@ -2,7 +2,7 @@
 id: COMP-07-RISKS
 title: Live Templates Risks & Gaps
 type: risk
-status: planned
+status: done
 parent_id: COMP-07
 folders:
   - "[[features/completion/07-live-templates/requirements|requirements]]"
@@ -76,10 +76,10 @@ Surface what could go wrong before building the COMP-07 template set. Design ref
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| COMP-07-00-DR-01 | In a fixture, log `PsiUtilCore.getElementType(file.findElementAt(offset))` for carets inside `"s"`, `[[s]]`, `--c`, `--[[c]]`, `--- @x`, and `42`; confirm each type (or an ancestor) is in `SUPPRESS` | Risk 1.1 | todo |
+| COMP-07-00-DR-01 | In a fixture, log `PsiUtilCore.getElementType(file.findElementAt(offset))` for carets inside `"s"`, `[[s]]`, `--c`, `--[[c]]`, `--- @x`, and `42`; confirm each type (or an ancestor) is in `SUPPRESS` | Risk 1.1 | done |
 | COMP-07-00-DR-02 | Toggle a bundled template off, restart the fixture, confirm enable/disable state survives the `LUA`→`LUA_CODE` migration (parent context) | Risk 1.2 | todo |
 | COMP-07-00-DR-03 | Wire one surround template (`surr_if`) + `LuaSurroundContextType`; confirm it appears in Surround-With for a selection and wraps `$SELECTION$` | Risk 1.3 | todo |
-| COMP-07-00-DR-04 | Decide literal vs. smart defaults for `req`/`mod`; record outcome in design §2.2.2 | Gap 2.1 | todo |
+| COMP-07-00-DR-04 | Decide literal vs. smart defaults for `req`/`mod`; record outcome in design §2.2.2 | Gap 2.1 | done |
 
 ## Test Case Gaps
 - requirements.md TC 6 covers string/comment suppression; **add** a number-literal suppression case

@@ -33,6 +33,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Code Completion**: Intelligent completion for variables, functions, and members
 - **Type-Inferred Member Completion**: Completing after `.`/`:` now suggests a receiver's inferred members (fields and methods, with icons), including inherited `@class` members, `self` inside methods, and members exposed through `setmetatable`'s `__index`
 - **Postfix Templates**: Type an expression followed by `.if`/`.not`/`.var`/`.for`/`.forp`/`.fori`/`.ifnot`/`.nil`/`.notnil`/`.return`/`.print` and press Tab to rewrite it into the matching statement (e.g. `ready.not` → `not ready`, `getUser().var` → `local value = getUser()` with an editable name)
+- **Live Templates**: Built-in abbreviation templates for common Lua constructs — `fun`/`lfun`/`if`/`ifel`/`while`/`repeat`/`fori`/`forip`/`forp`/`loc`/`req`/`mod` — plus Surround-With templates (`if`/`for`/`do`/`function`) via Ctrl+Alt+T. Templates are now code-aware and no longer expand inside strings, comments, or numeric literals.
 - **Refactoring**: Label refactoring support
 - **Introduce Variable**: extract a selected expression into a `local <name> = <expr>` before the enclosing statement and replace the occurrence, with a name suggestion, inline rename, and a this-occurrence/all-occurrences chooser when the expression repeats
 - **Safe Delete**: deleting a local/parameter/global/label declaration first searches for usages — removes it silently when unused, or shows the standard "usages found" conflict dialog when references remain
