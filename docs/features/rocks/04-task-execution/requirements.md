@@ -3,7 +3,7 @@ id: ROCKS-04
 title: "04: Task Execution & Run Configurations"
 type: feature
 parent_id: ROCKS
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
@@ -43,14 +43,14 @@ Running the configuration will:
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **ROCKS-04-01** | **LuaRocks Run Config** | **Must** | **Pending** | Provide a Run Configuration type for LuaRocks commands. |
-| **ROCKS-04-02** | **Command Presets** | **Must** | **Pending** | Dropdown with common commands (make, build, upload, test, install). |
-| **ROCKS-04-03** | **Rockspec Selector** | **Should** | **Pending** | Allow selecting a specific .rockspec if multiple exist. |
-| **ROCKS-04-04** | **Execution Console** | **Must** | **Pending** | Stream output to a standard IDE tool window with process controls. |
-| **ROCKS-04-05** | **Custom Flags** | **Should** | **Pending** | Support global flags like `--tree`, `--local`, or `--server`. |
-| **ROCKS-04-06** | **Before Launch Integration** | **Must** | **Pending** | Allow LuaRocks tasks to be run as "Before Launch" steps for other run configs. |
-| **ROCKS-04-07** | **Interactive Input** | **Could** | **Pending** | Support basic interactive prompts (e.g., login credentials) in the console. |
-| **ROCKS-04-08** | **C-Library Build Support** | **Must** | **Pending** | Ensure environment is set up for compiling C modules if required by the rockspec. |
+| **ROCKS-04-01** | **LuaRocks Run Config** | **Must** | **Full** | Provide a Run Configuration type for LuaRocks commands. |
+| **ROCKS-04-02** | **Command Presets** | **Must** | **Full** | Dropdown with common commands (make, build, upload, test, install). |
+| **ROCKS-04-03** | **Rockspec Selector** | **Should** | **Full** | Allow selecting a specific .rockspec if multiple exist. |
+| **ROCKS-04-04** | **Execution Console** | **Must** | **Full** | Stream output to a standard IDE tool window with process controls. |
+| **ROCKS-04-05** | **Custom Flags** | **Should** | **Full** | Support global flags like `--tree`, `--local`, or `--server`. |
+| **ROCKS-04-06** | **Before Launch Integration** | **Must** | **Full** | Allow LuaRocks tasks to be run as "Before Launch" steps for other run configs (platform built-in provider). |
+| **ROCKS-04-07** | **Interactive Input** | **Could** | **Partial** | Console PTY input via colored process handler; full interactivity best-effort. |
+| **ROCKS-04-08** | **C-Library Build Support** | **Must** | **Full** | Environment set up for compiling C modules (pass-parent-env on by default). |
 
 ## Test Cases
 
