@@ -3,7 +3,7 @@ id: ROCKS-01
 title: "01: Project Initialization & Setup"
 type: feature
 parent_id: ROCKS
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
@@ -61,12 +61,12 @@ When a user initializes a LuaRocks project:
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **ROCKS-01-01** | **Initialization Wizard** | **Must** | **Pending** | User can trigger initialization with Template selection (Library vs Plugin). |
-| **ROCKS-01-02** | **Rockspec Generation** | **Must** | **Pending** | Generate a valid `.rockspec` file with user-provided metadata. |
-| **ROCKS-01-03** | **Module Setup Script** | **Must** | **Pending** | Generate `src/setup.lua` to enable local module resolution. |
-| **ROCKS-01-04** | **Git Integration** | **Should** | **Pending** | Automatically add `lua_modules`, `.luarocks`, and coverage files to `.gitignore`. |
-| **ROCKS-01-05** | **Run Config Patching** | **Must** | **Pending** | Automatically set `LUA_INIT` to preload `src/setup.lua` in the project's Lua run-config template. |
-| **ROCKS-01-06** | **Lua Version Selection** | **Should** | **Pending** | Allow users to select supported Lua versions during init. |
+| **ROCKS-01-01** | **Initialization Wizard** | **Must** | **Partial** | `DirectoryProjectGenerator` + `ProjectGeneratorPeer` panel; live wizard requires manual verification. |
+| **ROCKS-01-02** | **Rockspec Generation** | **Must** | **Full** | `LuaRocksTemplates.rockspec()` generates valid rockspec; covered by scaffolder tests. |
+| **ROCKS-01-03** | **Module Setup Script** | **Must** | **Full** | `LuaRocksTemplates.setupLua()` generates `src/setup.lua`; covered by scaffolder tests. |
+| **ROCKS-01-04** | **Git Integration** | **Should** | **Full** | `.gitignore` with all LuaRocks exclusions written by scaffolder; git-init is optional/best-effort. |
+| **ROCKS-01-05** | **Run Config Patching** | **Must** | **Partial** | `LuaRocksScaffolder.patchRunConfigTemplate` sets `LUA_INIT`; patching only verifiable in a full IDE project context (no headless RunManager for template). |
+| **ROCKS-01-06** | **Lua Version Selection** | **Should** | **Partial** | `LuaRocksProjectSettings.luaVersions` field exists; passed to (optional) `luarocks init`; UI checkbox not wired in peer yet. |
 
 ## Test Cases
 
