@@ -398,6 +398,11 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaOverrideLineMarkerProvider"/>
 
+    <!-- SYNTAX-05: method/function separators (honors "Show method separators") -->
+    <codeInsight.lineMarkerProvider
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaMethodSeparatorProvider"/>
+
     <typeHierarchyProvider
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.hierarchy.LuaTypeHierarchyProvider"/>
@@ -406,8 +411,17 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaReturnHighlightUsagesHandlerFactory"/>
 
+    <!-- Interactive Console (REPL) history root -->
+    <scratch.rootType implementation="net.internetisalie.lunar.run.console.LuaConsoleRootType"/>
+
   </extensions>
 
   <actions>
+    <action id="Lua.Console"
+            class="net.internetisalie.lunar.run.console.LuaConsoleAction"
+            text="Lua Console"
+            description="Open an interactive Lua REPL">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
   </actions>
 </idea-plugin>

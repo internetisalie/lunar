@@ -3,7 +3,7 @@ id: SYNTAX-05
 title: Method Separators Requirements
 type: feature
 parent_id: SYNTAX
-status: planned
+status: done
 ---
 
 # Method Separators Requirements
@@ -11,4 +11,4 @@ status: planned
 ## Requirements Table
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| SYNTAX-05-01 | Visual Separators | Must | planned | Draw horizontal line separators between functions/methods in the editor. |
+| SYNTAX-05-01 | Visual Separators | Must | **Full** | Draw horizontal line separators between functions/methods in the editor. `LuaMethodSeparatorProvider` (honors the IDE "Show method separators" setting). |

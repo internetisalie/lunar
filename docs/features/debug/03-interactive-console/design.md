@@ -3,7 +3,7 @@ id: DEBUG-03-DESIGN
 title: "Technical Design"
 type: design
 parent_id: DEBUG-03
-status: "planned"
+status: done
 priority: "low"
 folders:
   - "[[features/debug/03-interactive-console/requirements|requirements]]"

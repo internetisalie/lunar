@@ -3,7 +3,7 @@ id: "RUN-03-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "RUN-03"
-status: "planned"
+status: done
 priority: "low"
 folders:
   - "[[features/debug/03-interactive-console/requirements|requirements]]"

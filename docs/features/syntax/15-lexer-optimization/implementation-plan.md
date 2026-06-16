@@ -3,7 +3,7 @@ id: SYNTAX-15-PLAN
 title: Lexer Optimization Plan
 type: plan
 parent_id: SYNTAX-15
-status: planned
+status: done
 ---
 
 # Implementation Plan
