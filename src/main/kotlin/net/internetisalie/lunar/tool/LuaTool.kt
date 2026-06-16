@@ -39,4 +39,22 @@ data class LuaTool(
      * extraction succeeded). Lazy re-validation against disk happens in [LuaToolManager] on access.
      */
     var isValid: Boolean = false,
+
+    // ----- TOOL-03 health-check state (added by TOOL-03) -----
+
+    /**
+     * The `File.lastModified()` timestamp recorded during the last successful slow check (§3.1
+     * of the TOOL-03 design).  When the file has not changed (`file.lastModified() == lastCheckedMtime`)
+     * and the tool was previously valid, the health checker short-circuits and skips re-running
+     * the binary. Defaults to 0 so that the first check always runs the slow path.
+     */
+    var lastCheckedMtime: Long = 0L,
+
+    /**
+     * Human-readable reason string from the last health check, e.g. "OK 1.1.0", "Binary missing",
+     * "Permission denied", or "Not executable".  Read by the Status column, editor banner, and
+     * [net.internetisalie.lunar.tool.health.LuaToolDiagnostics] without re-running the binary.
+     * Empty before the first health check.
+     */
+    var lastCheckReason: String = "",
 )

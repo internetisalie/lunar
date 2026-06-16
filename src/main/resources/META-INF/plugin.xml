@@ -341,6 +341,18 @@
     <applicationService
             serviceImplementation="net.internetisalie.lunar.tool.LuaToolManager" />
 
+    <!-- Tool health monitoring & UI (TOOL-03) -->
+    <projectService
+            serviceImplementation="net.internetisalie.lunar.tool.health.LuaToolHealthMonitor" />
+    <postStartupActivity
+            implementation="net.internetisalie.lunar.tool.health.LuaToolHealthStartup" />
+    <editorNotificationProvider
+            implementation="net.internetisalie.lunar.tool.health.LuaToolEditorNotificationProvider" />
+    <applicationConfigurable groupId="tools"
+            instance="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"
+            id="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"
+            displayName="Lua Tools"/>
+
     <projectService
             serviceInterface="net.internetisalie.lunar.lang.psi.types.LuaTypeManager"
             serviceImplementation="net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl" />
@@ -398,6 +410,9 @@
                        displayType="BALLOON"
                        isLogByDefault="true" bundle="net.internetisalie.lunar.LuaBundle"
                        key="notification.group.lua.luarocks"/>
+    <notificationGroup id="notification.group.lunar.tools"
+                       displayType="BALLOON"
+                       isLogByDefault="true"/>
 
     <intentionAction>
       <className>net.internetisalie.lunar.lang.insight.LuaGenerateDocIntention</className>

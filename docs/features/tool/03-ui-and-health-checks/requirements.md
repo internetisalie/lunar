@@ -3,7 +3,7 @@ id: TOOL-03
 title: "03: UI/UX & Health Monitoring"
 type: feature
 parent_id: TOOL
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"
