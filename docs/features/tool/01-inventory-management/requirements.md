@@ -3,7 +3,7 @@ id: TOOL-01
 title: "01: Tool Registry & Discovery"
 type: feature
 parent_id: TOOL
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"
@@ -34,12 +34,12 @@ The IDE executes the tool with a version flag (typically `--version` or `-v`) to
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **TOOL-01-01** | **Global Tool Registration** | **M** | **Not Implemented** | Users can register a tool binary by providing its file path and optionally a label/version. |
-| **TOOL-01-02** | **Auto-Detection** | **M** | **Not Implemented** | IDE scans standard paths (`/usr/bin`, `/usr/local/bin`, etc.) for known tools on first run or manual trigger. |
-| **TOOL-01-03** | **Manual Registration** | **M** | **Not Implemented** | Manual registration via file picker is supported for custom tool locations. |
-| **TOOL-01-04** | **Version Checking** | **M** | **Not Implemented** | The IDE validates a tool binary by checking its version output (e.g., `luarocks --version`) and parses the version string. |
-| **TOOL-01-05** | **Minimum Version Validation** | **M** | **Not Implemented** | For the ROCKS feature, the IDE ensures the `luarocks` binary meets the minimum version required (e.g., >= 3.0.0). |
-| **TOOL-01-06** | **Compatibility Matrix** | **M** | **Not Implemented** | The IDE checks compatibility between the bound Lua interpreter and the tool (e.g., LuaRocks 3.x supports Lua 5.1-5.5). |
+| **TOOL-01-01** | **Global Tool Registration** | **M** | **Full** | `LuaToolManager.registerTool(path, hintType?)` validates, extracts version, and persists to `LuaApplicationSettings.State.toolInventory`. |
+| **TOOL-01-02** | **Auto-Detection** | **M** | **Full** | `LuaToolManager.autoDiscover()` delegates to `LuaToolDiscoveryService.discoverKnownTools()`, scanning PATH + common platform directories. |
+| **TOOL-01-03** | **Manual Registration** | **M** | **Full** | `LuaToolManager.registerTool(path)` accepts any absolute path; UI layer (TOOL-03) provides the file picker. |
+| **TOOL-01-04** | **Version Checking** | **M** | **Full** | `LuaToolValidator.extractVersion(path, type)` runs `--version`, merges stdout+stderr, applies per-tool regex (LuaRocks/luacheck/StyLua). |
+| **TOOL-01-05** | **Minimum Version Validation** | **M** | **Full** | `LuaToolValidator.meetsMinimumVersion(path, LUAROCKS)` compares parsed `SemanticVersion` against `3.0.0`. |
+| **TOOL-01-06** | **Compatibility Matrix** | **M** | **Full** | `LuaToolValidator.checkCompatibility(tool, interpreterLuaVersion)` — LuaRocks version detected via `for Lua X.Y` pattern; major.minor match enforced. |
 
 ## Test Cases
 

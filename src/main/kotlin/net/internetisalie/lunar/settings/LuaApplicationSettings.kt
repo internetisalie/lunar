@@ -18,6 +18,7 @@ package net.internetisalie.lunar.settings
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
 import net.internetisalie.lunar.platform.LuaInterpreter
+import net.internetisalie.lunar.tool.LuaTool
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,6 +37,12 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
         var includeAllFieldsInCompletions: Boolean = false
         var enableTypeInference: Boolean = true
         var interpreters: List<LuaInterpreter> = ArrayList()
+
+        /**
+         * Global inventory of registered external Lua tool binaries (TOOL-01).
+         * Serialised by the IntelliJ XML state serializer; entries must have no-arg constructors.
+         */
+        var toolInventory: MutableList<LuaTool> = ArrayList()
     }
 
     private var myState = State()
@@ -60,5 +67,9 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
         fun validInterpreters() : List<LuaInterpreter> {
             return instance.state.interpreters.filter { it.valid }
         }
+
+        /** Look up a registered tool by its UUID. */
+        fun getTool(id: String): LuaTool? =
+            instance.state.toolInventory.firstOrNull { it.id == id }
     }
 }
