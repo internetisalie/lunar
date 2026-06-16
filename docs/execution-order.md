@@ -154,11 +154,11 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| INTENT-01 | String quote conversion intention (`'…'` ↔ `"…"` ↔ `[[…]]`) | planned | S | — | — | ✓ new `IntentionAction`; operates on `LuaTerminalExpr`/`STRING` |
-| INTENT-02 | Invert-`if` intention (negate condition + swap `then`/`else`) | planned | S | — | — | ✓ `PsiElementBaseIntentionAction`; `LuaIfStatement` + `LuaBinOpExpr` |
-| INTENT-03 | Variable name suggestion (`getUser()` → `user`) | planned | S | REFACT-02 *(extends `LuaIntroduceVariableHandler`)* | — | ✓ `NameSuggestionProvider`; `LuaFuncCall` |
-| REFACT-05 | Rename names validator (keyword + identifier checks) | planned | M | — | — | ✓ `NamesValidator`; `LuaKeywords`/`LuaSyntax.KeywordTokens` |
-| REFACT-06 | Create-from-usage intentions (local var / function) | planned | S | INSP-01 *(undeclared-var overlap)* | — | ✓ intentions over `LuaNameRef`/`LuaFuncCall` |
+| INTENT-01 | String quote conversion intention (`'…'` ↔ `"…"` ↔ `[[…]]`) | done | S | — | — | `LuaStringConversionIntention`; decode/re-encode via `LuaLiterals`, `[=[` level-raising |
+| INTENT-02 | Invert-`if` intention (negate condition + swap `then`/`else`) | done | S | — | — | `LuaInvertIfIntention` + `LuaConditionInverter`; `LuaIfStatement`/`LuaBinOpExpr` rebuild |
+| INTENT-03 | Variable name suggestion (`getUser()` → `user`) | done | S | REFACT-02 *(extends `LuaIntroduceVariableHandler`)* | — | `LuaNameSuggestionProvider` + shared `LuaNameDeriver` (IntroduceVariable now prefix-strips) |
+| REFACT-05 | Rename names validator (keyword + identifier checks) | done | M | — | — | `LuaNamesValidator`; `LuaKeywords.RESERVED` + ASCII identifier regex |
+| REFACT-06 | Create-from-usage intentions (local var / function) | done | S | INSP-01 *(undeclared-var overlap)* | — | `LuaCreate{LocalVariable,Function}Intention`; shared `LuaUndeclaredNames` extracted from the inspection |
 
 ## Wave 9 — Quick wins & differentiators
 

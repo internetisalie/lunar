@@ -50,17 +50,18 @@ string is preserved across the conversion.
 **Action:** Invoke "Convert to double-quoted string".
 **Expected Output:** `local s = "a\"b"`
 
-### Test Case 5: Escaping round-trip — double → single re-escapes delimiters
+### Test Case 5: Long → single leaves a non-active delimiter bare
 **Requirement:** INTENT-01-01
-**Input:** `local s = "a\"b"<caret>`
+**Input:** `local s = [[a"b]]<caret>`
 **Action:** Invoke "Convert to single-quoted string".
 **Expected Output:** `local s = 'a"b'`
-(The `\"` is no longer the active delimiter, so it is unescaped to a bare `"`; the round-trip
-of Test Case 4 then Test Case 5 returns the original `'a"b'`.)
+(The `"` is not the single-quote active delimiter, so it stays bare. The full cycle
+single → double → long → single round-trips a literal back to its original form; the complete
+escape/unescape matrix is covered exhaustively by `LuaLiteralsTest`.)
 
-### Test Case 6: Escaping — quote-in-content when converting to that quote
+### Test Case 6: Long → single escapes the active delimiter in content
 **Requirement:** INTENT-01-01
-**Input:** `local s = "it's"<caret>`
+**Input:** `local s = [[it's]]<caret>`
 **Action:** Invoke "Convert to single-quoted string".
 **Expected Output:** `local s = 'it\'s'`
 
