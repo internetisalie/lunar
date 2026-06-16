@@ -123,6 +123,14 @@ This will:
 - Build plugin JAR from source
 - Copy to container at `/home/lunar/plugin/`
 
+> **For live VNC verification of a feature, use the `verify-in-ide` skill**
+> (`.agents/skills/verify-in-ide/SKILL.md`). It documents the reliable loop: hot-swap the jar
+> (`docker cp` over `~/.local/share/JetBrains/GoLand*/lunar/lib/`) then a **clean in-container
+> relaunch** (kill GoLand + clear locks + `goland.sh <project>`). **Do not `docker restart` to
+> reload a plugin** — it races two IDE instances into a `DirectoryLock` cascade that wedges the
+> container. The `docker restart` shown later is only for recovering a dead VNC connection, not for
+> reloading plugin code.
+
 Expected output:
 ```
 === Setting up Plugin in Container ===
