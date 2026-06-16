@@ -2,7 +2,7 @@
 id: "INSP-07-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
+status: "done"
 parent_id: "INSP-07"
 folders:
   - "[[features/inspections/07-suspicious-concatenation/requirements|requirements]]"

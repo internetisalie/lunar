@@ -2,7 +2,7 @@
 id: "INSP-07"
 title: "Suspicious Concatenation Requirements"
 type: "feature"
-status: "planned"
+status: "done"
 parent_id: "INSP"
 folders:
   - "[[features/inspections/07-suspicious-concatenation/design|design]]"

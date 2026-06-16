@@ -2,7 +2,7 @@
 id: "INSP-07-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
+status: "done"
 parent_id: "INSP-07"
 folders:
   - "[[features/inspections/07-suspicious-concatenation/design|design]]"
