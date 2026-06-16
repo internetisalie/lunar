@@ -322,6 +322,10 @@
     <applicationService
             serviceImplementation="net.internetisalie.lunar.settings.LuaApplicationSettings" />
 
+    <!-- Tool registry (TOOL-01) -->
+    <applicationService
+            serviceImplementation="net.internetisalie.lunar.tool.LuaToolManager" />
+
     <projectService
             serviceInterface="net.internetisalie.lunar.lang.psi.types.LuaTypeManager"
             serviceImplementation="net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl" />
