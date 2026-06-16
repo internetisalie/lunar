@@ -30,22 +30,22 @@ folders:
 
 | Epic | Done | In Progress | Planned | Todo | Total | Completion |
 | :--- | ---: | ---: | ---: | ---: | ---: | :--- |
-| **SYNTAX** | 14 | 0 | 0 | 3 | 17 | ████████░░ 82% |
-| **COMP** | 4 | 1 | 0 | 3 | 8 | █████░░░░░ 50% |
-| **TYPE** | 6 | 2 | 0 | 1 | 9 | ███████░░░ 67% |
-| **NAV** | 10 | 0 | 0 | 0 | 10 | ██████████ 100% |
-| **REFACT/INTENT** | 4 | 0 | 0 | 5 | 9 | ████░░░░░░ 44% |
-| **DEBUG/RUN** | 10 | 0 | 1 | 0 | 11 | █████████░ 91% |
-| **INSP** | 3 | 3 | 0 | 3 | 9 | ███░░░░░░░ 33% |
-| **ANALYSIS** | 5 | 0 | 0 | 0 | 5 | ██████████ 100% |
-| **FORMAT** | 2 | 1 | 0 | 4 | 7 | ███░░░░░░░ 29% |
-| **DOC** | 7 | 1 | 0 | 0 | 8 | █████████░ 88% |
-| **TOOL** | 0 | 0 | 4 | 0 | 4 | ░░░░░░░░░░ 0% |
-| **ROCKS** | 0 | 0 | 4 | 1 | 5 | ░░░░░░░░░░ 0% |
-| **MAINT** | 3 | 1 | 0 | 6 | 10 | ███░░░░░░░ 30% |
-| **TARGET** | 7 | 0 | 0 | 0 | 7 | ██████████ 100% |
-| **BUG** | 2 | 0 | 0 | 5 | 7 | ███░░░░░░░ 29% |
-| **Total** | **77** | **9** | **9** | **31** | **126** | **61%** |
+| [**SYNTAX**](#syntax--syntax--editor) | 14 | 0 | 0 | 3 | 17 | ████████░░ 82% |
+| [**COMP**](#comp--code-completion) | 8 | 0 | 0 | 0 | 8 | ██████████ 100% |
+| [**TYPE**](#type--type-system) | 6 | 2 | 0 | 1 | 9 | ███████░░░ 67% |
+| [**NAV**](#nav--code-navigation) | 10 | 0 | 0 | 0 | 10 | ██████████ 100% |
+| [**REFACT/INTENT**](#refactintent--refactoring--intentions) | 4 | 0 | 0 | 5 | 9 | ████░░░░░░ 44% |
+| [**DEBUG/RUN**](#debugrun--debugging--execution) | 10 | 0 | 1 | 0 | 11 | █████████░ 91% |
+| [**INSP**](#insp--inspections--diagnostics) | 3 | 3 | 0 | 3 | 9 | ███░░░░░░░ 33% |
+| [**ANALYSIS**](#analysis--static-analysis-luacheck) | 5 | 0 | 0 | 0 | 5 | ██████████ 100% |
+| [**FORMAT**](#format--formatting) | 2 | 1 | 0 | 4 | 7 | ███░░░░░░░ 29% |
+| [**DOC**](#doc--documentation--luacats) | 7 | 1 | 0 | 0 | 8 | █████████░ 88% |
+| [**TOOL**](#tool--tool-inventory-management) | 0 | 0 | 4 | 0 | 4 | ░░░░░░░░░░ 0% |
+| [**ROCKS**](#rocks--luarocks-integration) | 0 | 0 | 4 | 1 | 5 | ░░░░░░░░░░ 0% |
+| [**MAINT**](#maint--maintenance--internal-refactoring) | 3 | 1 | 0 | 6 | 10 | ███░░░░░░░ 30% |
+| [**TARGET**](#target--runtime-environment-configuration) | 7 | 0 | 0 | 0 | 7 | ██████████ 100% |
+| [**BUG**](#bug--bug-fixes--stability) | 2 | 0 | 0 | 5 | 7 | ███░░░░░░░ 29% |
+| **Total** | **81** | **8** | **9** | **28** | **126** | **64%** |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
