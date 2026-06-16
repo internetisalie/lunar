@@ -208,6 +208,8 @@
             implementationClass="net.internetisalie.lunar.lang.insight.LuaRefactoringSupportProvider"/>
     <refactoring.safeDeleteProcessor
             implementation="net.internetisalie.lunar.refactoring.LuaSafeDeleteProcessor"/>
+    <nameSuggestionProvider
+            implementation="net.internetisalie.lunar.refactoring.rename.LuaNameSuggestionProvider"/>
     <lang.namesValidator
             language="Lua"
             implementationClass="net.internetisalie.lunar.refactoring.LuaNamesValidator"/>

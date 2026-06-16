@@ -61,4 +61,18 @@ class LuaIntroduceVariableTest : BasePlatformTestCase() {
         introduceSelected("print(<selection>compute()</selection>)")
         myFixture.checkResult("local compute = compute()\nprint(compute)")
     }
+
+    // INTENT-03 TC1: accessor prefix is stripped (getUser -> user)
+    @Test
+    fun testPrefixStrippedSuggestion() {
+        introduceSelected("print(<selection>getUser()</selection>)")
+        myFixture.checkResult("local user = getUser()\nprint(user)")
+    }
+
+    // INTENT-03 TC3: method-call callee name is derived (getName -> name)
+    @Test
+    fun testMethodCallSuggestion() {
+        introduceSelected("print(<selection>obj:getName()</selection>)")
+        myFixture.checkResult("local name = obj:getName()\nprint(name)")
+    }
 }

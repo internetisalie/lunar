@@ -139,7 +139,7 @@ folders:
 | REFACT-06 | Stubs for Declaring Identifiers | todo | No stub file generation |
 | INTENT-01 | String Style Conversion | done | `LuaStringConversionIntention` |
 | INTENT-02 | Invert If Statement | done | `LuaInvertIfIntention` + `LuaConditionInverter` |
-| INTENT-03 | Name Suggestion | todo | No `NameSuggestionProvider` |
+| INTENT-03 | Name Suggestion | done | `LuaNameSuggestionProvider` + shared `LuaNameDeriver` (prefix-strip), reused by `LuaIntroduceVariableHandler` |
 
 ---
 

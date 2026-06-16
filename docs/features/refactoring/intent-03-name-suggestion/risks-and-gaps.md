@@ -3,7 +3,7 @@ id: INTENT-03-RISKS
 title: Name Suggestion Risks & Gaps
 type: risk
 parent_id: INTENT-03
-status: planned
+status: done
 ---
 
 # INTENT-03: Risks & Gaps
@@ -77,9 +77,17 @@ status: planned
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| INTENT-03-00-DR-01 | Confirm `LuaIntroduceVariableHandler` does NOT consult any `NameSuggestionProvider` and that routing `baseNameFor` through a shared `LuaNameDeriver` keeps `LuaIntroduceVariableTest` green (run the existing suite after the refactor). Confirms EXTEND-not-duplicate. | Risk 1.1 | todo |
-| INTENT-03-00-DR-02 | In a scratch test, invoke Rename on `local x = getUser()` and capture the `element`/`nameSuggestionContext` PSI types passed to `getSuggestedNames`; pin the walk to the initializer `LuaExpr`. | Gap 2.1 | todo |
-| INTENT-03-00-DR-03 | Verify `LuaNameAndArgs.getMethodExpr()`/`LuaMethodExpr.getNameRef()` yields `getName` for `obj:getName()` in a fixture (PSI traversal spike). | Risk 1.2 | todo |
+| INTENT-03-00-DR-01 | Confirm `LuaIntroduceVariableHandler` does NOT consult any `NameSuggestionProvider` and that routing `baseNameFor` through a shared `LuaNameDeriver` keeps `LuaIntroduceVariableTest` green (run the existing suite after the refactor). Confirms EXTEND-not-duplicate. | Risk 1.1 | done |
+| INTENT-03-00-DR-02 | In a scratch test, invoke Rename on `local x = getUser()` and capture the `element`/`nameSuggestionContext` PSI types passed to `getSuggestedNames`; pin the walk to the initializer `LuaExpr`. | Gap 2.1 | done |
+| INTENT-03-00-DR-03 | Verify `LuaNameAndArgs.getMethodExpr()`/`LuaMethodExpr.getNameRef()` yields `getName` for `obj:getName()` in a fixture (PSI traversal spike). | Risk 1.2 | done |
+
+> **DR-02 implementation note (honest scope):** the rename element→RHS walk is implemented and
+> unit-tested (`LuaNameSuggestionProviderTest.testRenameElementShape`): when the element resolves
+> to a `LuaAttName` of an enclosing `LuaLocalVarDecl`, the provider derives from that decl's first
+> initializer expression; otherwise it derives from the element-as-`LuaExpr`. This is validated by
+> directly invoking `getSuggestedNames` with the declared-name `LuaNameRef`. Driving the live
+> platform **Rename UI** end-to-end (to confirm the exact `element`/`nameSuggestionContext` the
+> platform passes for non-local-decl rename sites) remains documented **future work**.
 
 ## Test Case Gaps
 - No test yet for keyword-producing RHS (deferred with the keyword guard, Risk 1.3 / TBD).

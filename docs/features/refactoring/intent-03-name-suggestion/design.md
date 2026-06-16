@@ -3,7 +3,7 @@ id: INTENT-03-DESIGN
 title: Name Suggestion Design
 type: design
 parent_id: INTENT-03
-status: planned
+status: done
 ---
 
 # Technical Design: Name Suggestion

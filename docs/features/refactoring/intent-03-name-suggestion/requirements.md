@@ -3,7 +3,7 @@ id: INTENT-03
 title: Name Suggestion Requirements
 type: feature
 parent_id: REFACT/INTENT
-status: planned
+status: done
 ---
 
 # Name Suggestion Requirements
@@ -17,8 +17,8 @@ agree (see [design.md](design.md) §5 "Prior Art / Integration").
 ## Requirements Table
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| INTENT-03-01 | Contextual Suggestion | Must | planned | Suggest a variable name based on the RHS expression. For a function call, derive the name from the callee's last identifier segment; for a field access (`LuaIndexExpr`), from the trailing field name; for a bare name reference, from the name itself. |
-| INTENT-03-02 | Prefix Stripping | Must | planned | Strip a leading accessor/factory prefix (`get`/`set`/`create`/`build`/`new`/`make`/`find`/`load`) from the derived name **only** when the prefix is immediately followed by an uppercase letter; lowercase that letter to form the suggestion (`getUser()` → `user`). |
+| INTENT-03-01 | Contextual Suggestion | Must | done | Suggest a variable name based on the RHS expression. For a function call, derive the name from the callee's last identifier segment; for a field access (`LuaIndexExpr`), from the trailing field name; for a bare name reference, from the name itself. |
+| INTENT-03-02 | Prefix Stripping | Must | done | Strip a leading accessor/factory prefix (`get`/`set`/`create`/`build`/`new`/`make`/`find`/`load`) from the derived name **only** when the prefix is immediately followed by an uppercase letter; lowercase that letter to form the suggestion (`getUser()` → `user`). |
 
 ## Derivation Contract (normative)
 

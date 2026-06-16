@@ -20,10 +20,9 @@ import net.internetisalie.lunar.lang.psi.LuaBinOpExpr
 import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaExpr
-import net.internetisalie.lunar.lang.psi.LuaFuncCall
-import net.internetisalie.lunar.lang.psi.LuaIndexExpr
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaStatement
+import net.internetisalie.lunar.refactoring.rename.LuaNameDeriver
 
 /**
  * Introduce Variable refactoring (REFACT-02): extracts a selected [LuaExpr] into a
@@ -141,21 +140,11 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
         return uniquify(base, expr, block)
     }
 
-    private fun baseNameFor(expr: LuaExpr): String = when (expr) {
-        is LuaFuncCall -> calleeName(expr) ?: "value"
-        is LuaBinOpExpr -> "result"
-        else -> propertyName(expr) ?: "value"
-    }
-
-    private fun calleeName(call: LuaFuncCall): String? {
-        val nameRefs = PsiTreeUtil.findChildrenOfType(call.varOrExp, LuaNameRef::class.java)
-        return nameRefs.lastOrNull()?.identifier?.text
-    }
-
-    private fun propertyName(expr: LuaExpr): String? {
-        val index = PsiTreeUtil.findChildrenOfType(expr, LuaIndexExpr::class.java).lastOrNull()
-        return index?.nameRef?.identifier?.text
-    }
+    private fun baseNameFor(expr: LuaExpr): String =
+        LuaNameDeriver.baseName(expr) ?: when (expr) {
+            is LuaBinOpExpr -> "result"
+            else -> "value"
+        }
 
     private fun uniquify(base: String, target: LuaExpr, block: LuaBlock): String {
         val targetRange = target.textRange

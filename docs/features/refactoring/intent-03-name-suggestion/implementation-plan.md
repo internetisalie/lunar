@@ -3,7 +3,7 @@ id: INTENT-03-PLAN
 title: Name Suggestion Implementation Plan
 type: plan
 parent_id: INTENT-03
-status: planned
+status: done
 ---
 
 # Implementation Plan
