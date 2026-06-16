@@ -154,7 +154,11 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| INTENT (set) | Intentions: string conversion, invert-`if`, name suggestion, … | planned | M/S | — | — | ✓ specs pending; each a new `IntentionAction` |
+| INTENT-01 | String quote conversion intention (`'…'` ↔ `"…"` ↔ `[[…]]`) | planned | S | — | — | ✓ new `IntentionAction`; operates on `LuaTerminalExpr`/`STRING` |
+| INTENT-02 | Invert-`if` intention (negate condition + swap `then`/`else`) | planned | S | — | — | ✓ `PsiElementBaseIntentionAction`; `LuaIfStatement` + `LuaBinOpExpr` |
+| INTENT-03 | Variable name suggestion (`getUser()` → `user`) | planned | S | REFACT-02 *(extends `LuaIntroduceVariableHandler`)* | — | ✓ `NameSuggestionProvider`; `LuaFuncCall` |
+| REFACT-05 | Rename names validator (keyword + identifier checks) | planned | M | — | — | ✓ `NamesValidator`; `LuaKeywords`/`LuaSyntax.KeywordTokens` |
+| REFACT-06 | Create-from-usage intentions (local var / function) | planned | S | INSP-01 *(undeclared-var overlap)* | — | ✓ intentions over `LuaNameRef`/`LuaFuncCall` |
 
 ## Wave 9 — Quick wins & differentiators
 
