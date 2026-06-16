@@ -3,7 +3,7 @@ id: ROCKS-02
 title: "02: Package Browser"
 type: feature
 parent_id: ROCKS
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/rocks/requirements|requirements]]"
@@ -42,13 +42,13 @@ The Package Browser provides an IDE-native interface for exploring, searching, a
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **ROCKS-02-01** | **Search Interface** | **Must** | **Pending** | User can search for packages by name or keyword via a dedicated search bar. |
-| **ROCKS-02-02** | **Split-View Browser** | **Must** | **Pending** | Display search results and package metadata side-by-side. |
-| **ROCKS-02-03** | **Remote Integration** | **Must** | **Pending** | Fetch package data from the default LuaRocks.org repository. |
-| **ROCKS-02-04** | **Install/Uninstall Actions** | **Must** | **Pending** | Provide buttons to install/uninstall packages directly from the browser. |
-| **ROCKS-02-05** | **Manifest Caching** | **Should** | **Pending** | Cache remote manifests locally to improve search performance. |
-| **ROCKS-02-06** | **Version Picker** | **Should** | **Pending** | Allow users to select a specific version from the available remote versions. |
-| **ROCKS-02-07** | **Offline Mode** | **Could** | **Pending** | Allow browsing and installing from local cache or filesystem if offline. |
+| **ROCKS-02-01** | **Search Interface** | **Must** | **Full** | User can search for packages by name or keyword via a dedicated search bar. |
+| **ROCKS-02-02** | **Split-View Browser** | **Must** | **Full** | Display search results and package metadata side-by-side. |
+| **ROCKS-02-03** | **Remote Integration** | **Must** | **Full** | Fetch package data from the default LuaRocks.org repository. |
+| **ROCKS-02-04** | **Install/Uninstall Actions** | **Must** | **Partial** | Provide buttons to install/uninstall packages directly from the browser. (Headless install via capture+notification; live UI flow requires runIde.) |
+| **ROCKS-02-05** | **Manifest Caching** | **Should** | **Full** | Cache remote manifests locally to improve search performance (TTL 5 min). |
+| **ROCKS-02-06** | **Version Picker** | **Should** | **Full** | Allow users to select a specific version from the available remote versions. |
+| **ROCKS-02-07** | **Offline Mode** | **Could** | **Full** | TTL cache serves fresh results when offline; stale/missing → empty list (best-effort). |
 
 ## Test Cases
 

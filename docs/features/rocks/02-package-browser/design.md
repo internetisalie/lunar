@@ -3,7 +3,7 @@ id: ROCKS-02-DESIGN
 title: "Technical Design"
 type: design
 parent_id: ROCKS-02
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/rocks/02-package-browser/requirements|requirements]]"

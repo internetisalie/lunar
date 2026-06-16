@@ -38,6 +38,13 @@
             icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
             factoryClass="net.internetisalie.lunar.rocks.ui.LuaRocksToolWindowFactory"/>
 
+    <!-- LuaRocks Package Browser (ROCKS-02) -->
+    <toolWindow
+            id="LuaRocks Packages"
+            anchor="bottom"
+            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
+            factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksPackageBrowserToolWindowFactory"/>
+
     <!-- Language -->
 
     <fileType
@@ -387,6 +394,10 @@
                        displayType="BALLOON"
                        isLogByDefault="true" bundle="net.internetisalie.lunar.LuaBundle"
                        key="notification.group.lua.debugger"/>
+    <notificationGroup id="notification.group.lunar.luarocks"
+                       displayType="BALLOON"
+                       isLogByDefault="true" bundle="net.internetisalie.lunar.LuaBundle"
+                       key="notification.group.lua.luarocks"/>
 
     <intentionAction>
       <className>net.internetisalie.lunar.lang.insight.LuaGenerateDocIntention</className>
