@@ -3,7 +3,7 @@ id: ROCKS-08-PLAN
 title: Publishing Plan
 type: plan
 parent_id: ROCKS-08
-status: planned
+status: done
 ---
 
 # Implementation Plan
@@ -11,11 +11,11 @@ status: planned
 `Could`-priority — defer to last; keep it small.
 
 ## Phase 1: Action [Must]
-- [ ] Implement `net.internetisalie.lunar.rocks.publish.PublishRockAction : AnAction`
+- [x] Implement `net.internetisalie.lunar.rocks.publish.PublishRockAction : AnAction`
       (package `rocks.publish`, **not** `lang.rocks`); visible in the context menu for `.rockspec` files.
-- [ ] Register the `<action>` in `plugin.xml` (group it under the `.rockspec` context menu).
-- [ ] Store the LuaRocks.org API key via `PasswordSafe` (credential store), not a plain settings field.
-- [ ] Reuse `LuaRocksSettings.executablePath` (ROCKS-04) for the `luarocks` binary — do not re-add a path field.
-- [ ] On invoke: confirm/prompt for the API key, then run `luarocks upload <file.rockspec> --api-key=<key>`
+- [x] Register the `<action>` in `plugin.xml` (group it under the `.rockspec` context menu).
+- [x] Store the LuaRocks.org API key via `PasswordSafe` (credential store), not a plain settings field.
+- [x] Reuse `LuaRocksSettings.executablePath` (ROCKS-04) for the `luarocks` binary — do not re-add a path field.
+- [x] On invoke: confirm/prompt for the API key, then run `luarocks upload <file.rockspec> --api-key=<key>`
       via `GeneralCommandLine` under `Task.Backgroundable` (off the EDT); surface result via a notification.
 - **Verification**: `PublishRockActionTest`.

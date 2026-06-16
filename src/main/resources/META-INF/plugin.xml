@@ -476,5 +476,15 @@
             description="Open an interactive Lua REPL">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
+
+    <!-- Publish a rockspec to luarocks.org (ROCKS-08) -->
+    <action id="Lua.Rocks.Publish"
+            class="net.internetisalie.lunar.rocks.publish.PublishRockAction"
+            text="Publish Rock to LuaRocks…"
+            description="Upload this rockspec to luarocks.org"
+            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET">
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
   </actions>
 </idea-plugin>
