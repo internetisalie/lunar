@@ -2,7 +2,7 @@
 id: REFACT-06-RISKS
 title: "Risks & Gaps"
 type: risk
-status: planned
+status: done
 parent_id: REFACT-06
 priority: medium
 folders:
@@ -89,9 +89,9 @@ each unknown a de-risking task run early. All design gaps below are resolved and
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| REFACT-06-00-DR-01 | Extract `LuaUndeclaredVariableInspection`'s resolve + `isExemptGlobal` (`:49–72`) into a shared `LuaUndeclaredNames.isUnresolvedNonGlobal`; confirm the existing inspection test stays green so intentions and inspection share one undeclared verdict. | Risk 1.1, Gap 2.1 | todo |
-| REFACT-06-00-DR-02 | Prototype the create-local re-parse: `LuaElementFactory.createFile(project, "local " + assignment.text)` then `findChildOfType(LuaStatement)`; verify it yields a valid `local x = 1` and a multi-value RHS (`x = f()`), and that `assignment.replace(decl)` produces clean text. | Risk 1.2 | todo |
-| REFACT-06-00-DR-03 | Confirm the arg-count chain on real PSI: `call.nameAndArgsList.firstOrNull()?.args?.exprList?.exprList?.size` returns 2 for `myFunc(1,2)`, 0 for `f()`, and that the single-name-callee gate rejects `obj.method(1)`. | Risk 1.4, TC4/TC5/TC7 | todo |
+| REFACT-06-00-DR-01 | Extract `LuaUndeclaredVariableInspection`'s resolve + `isExemptGlobal` (`:49–72`) into a shared `LuaUndeclaredNames.isUnresolvedNonGlobal`; confirm the existing inspection test stays green so intentions and inspection share one undeclared verdict. | Risk 1.1, Gap 2.1 | done |
+| REFACT-06-00-DR-02 | Prototype the create-local re-parse: `LuaElementFactory.createFile(project, "local " + assignment.text)` then `findChildOfType(LuaStatement)`; verify it yields a valid `local x = 1` and a multi-value RHS (`x = f()`), and that `assignment.replace(decl)` produces clean text. | Risk 1.2 | done |
+| REFACT-06-00-DR-03 | Confirm the arg-count chain on real PSI: `call.nameAndArgsList.firstOrNull()?.args?.exprList?.exprList?.size` returns 2 for `myFunc(1,2)`, 0 for `f()`, and that the single-name-callee gate rejects `obj.method(1)`. | Risk 1.4, TC4/TC5/TC7 | done |
 
 ## Test Case Gaps
 - Add a positive variant for a **call nested in an expression** (`local v = myFunc(1)` →

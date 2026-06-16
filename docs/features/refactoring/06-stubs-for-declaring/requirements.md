@@ -3,7 +3,7 @@ id: REFACT-06
 title: Create from Usage Requirements
 type: feature
 parent_id: REFACT/INTENT
-status: planned
+status: done
 ---
 
 # Create from Usage Requirements
@@ -27,8 +27,8 @@ allowlisted, underscore-suppressed). See design §"Prior Art / Integration".
 
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| REFACT-06-01 | Create Local Variable | Must | planned | Intention to declare a `local` when an undeclared name is the simple write target of an assignment (`x = expr` → `local x = expr`). Offered only on a write target, never on a read or an already-declared name. |
-| REFACT-06-02 | Create Function | Must | planned | Intention to generate a `local function name(arg1..argN) end` stub above the enclosing top-level statement when an undeclared name is the callee of a call; N = the call's positional argument count. |
+| REFACT-06-01 | Create Local Variable | Must | done | Intention to declare a `local` when an undeclared name is the simple write target of an assignment (`x = expr` → `local x = expr`). Offered only on a write target, never on a read or an already-declared name. |
+| REFACT-06-02 | Create Function | Must | done | Intention to generate a `local function name(arg1..argN) end` stub above the enclosing top-level statement when an undeclared name is the callee of a call; N = the call's positional argument count. |
 
 ## Test Cases
 

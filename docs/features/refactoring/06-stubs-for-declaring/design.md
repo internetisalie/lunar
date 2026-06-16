@@ -3,7 +3,7 @@ id: REFACT-06-DESIGN
 title: Create from Usage Design
 type: design
 parent_id: REFACT-06
-status: planned
+status: done
 priority: medium
 folders:
   - "[[features/refactoring/06-stubs-for-declaring/requirements|requirements]]"

@@ -6,7 +6,6 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
-import com.intellij.psi.PsiPolyVariantReference
 import net.internetisalie.lunar.lang.psi.LuaAttName
 import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
@@ -20,7 +19,6 @@ import net.internetisalie.lunar.lang.psi.LuaParList
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVarList
 import net.internetisalie.lunar.lang.psi.LuaVisitor
-import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
  * Flags read-position [LuaNameRef]s whose name resolves to nothing and is not exempt
@@ -48,11 +46,8 @@ class LuaUndeclaredVariableInspection : LocalInspectionTool() {
 
     private fun inspectNameRef(ref: LuaNameRef, holder: ProblemsHolder) {
         if (!isReadUse(ref)) return
+        if (!LuaUndeclaredNames.isUnresolvedNonGlobal(ref)) return
         val name = ref.identifier.text
-        if (name == "_") return
-        if (isExemptGlobal(ref, name)) return
-        val reference = ref.reference as? PsiPolyVariantReference ?: return
-        if (reference.multiResolve(false).isNotEmpty()) return
         if (LuaInspectionSuppression.isSuppressed(ref, name, DIAGNOSTIC_ID)) return
         holder.registerProblem(
             ref,
@@ -60,15 +55,6 @@ class LuaUndeclaredVariableInspection : LocalInspectionTool() {
             ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
             LuaAddToGlobalsQuickFix(name),
         )
-    }
-
-    private fun isExemptGlobal(ref: LuaNameRef, name: String): Boolean {
-        val settings = LuaProjectSettings.getInstance(ref.project)
-        val level = settings.state.languageLevel
-        if (LuaStandardGlobals.contains(name, level)) return true
-        if (name in settings.state.additionalGlobals) return true
-        if (settings.suppressUnderscorePrefixedGlobals && name.startsWith("_")) return true
-        return false
     }
 
     private fun isReadUse(ref: LuaNameRef): Boolean {

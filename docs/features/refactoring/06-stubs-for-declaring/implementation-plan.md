@@ -3,7 +3,7 @@ id: REFACT-06-PLAN
 title: Create from Usage Implementation Plan
 type: plan
 parent_id: REFACT-06
-status: planned
+status: done
 priority: medium
 folders:
   - "[[features/refactoring/06-stubs-for-declaring/requirements|requirements]]"

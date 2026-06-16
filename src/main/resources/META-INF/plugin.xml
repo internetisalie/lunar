@@ -372,6 +372,16 @@
       <category>Lua</category>
     </intentionAction>
 
+    <intentionAction>
+      <className>net.internetisalie.lunar.lang.insight.LuaCreateLocalVariableIntention</className>
+      <category>Lua</category>
+    </intentionAction>
+
+    <intentionAction>
+      <className>net.internetisalie.lunar.lang.insight.LuaCreateFunctionIntention</className>
+      <category>Lua</category>
+    </intentionAction>
+
     <codeInsight.lineMarkerProvider
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaLineMarkerProvider"/>

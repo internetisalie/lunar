@@ -136,7 +136,7 @@ folders:
 | REFACT-03 | Safe Delete | done | `LuaSafeDeleteProcessor` — usage search + conflict prompt |
 | REFACT-04 | Label Refactoring | done | Rename + find-usages for labels via consolidated providers |
 | REFACT-05 | Name Validator | done | `LuaNamesValidator` — rejects Lua keywords and non-identifier names in Rename |
-| REFACT-06 | Stubs for Declaring Identifiers | todo | No stub file generation |
+| REFACT-06 | Create from Usage | done | `LuaCreateLocalVariableIntention` + `LuaCreateFunctionIntention` (shared `LuaUndeclaredNames` helper) |
 | INTENT-01 | String Style Conversion | done | `LuaStringConversionIntention` |
 | INTENT-02 | Invert If Statement | done | `LuaInvertIfIntention` + `LuaConditionInverter` |
 | INTENT-03 | Name Suggestion | done | `LuaNameSuggestionProvider` + shared `LuaNameDeriver` (prefix-strip), reused by `LuaIntroduceVariableHandler` |
