@@ -3,7 +3,7 @@ id: ROCKS-03
 title: "03: Dependency Resolution"
 type: feature
 parent_id: ROCKS
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"
@@ -40,12 +40,12 @@ The Dependency Resolution feature provides a visual, hierarchical view of the pr
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **ROCKS-03-01** | **Dependency Tree View** | **Must** | **Pending** | Provide a tool window displaying the hierarchical tree of all dependencies. |
-| **ROCKS-03-02** | **Transitive Resolution** | **Must** | **Pending** | Correctly resolve and display dependencies of dependencies. |
-| **ROCKS-03-03** | **Conflict Detection** | **Must** | **Pending** | Identify and visually flag version conflicts within the graph. |
-| **ROCKS-03-04** | **Package Metadata** | **Should** | **Pending** | Show package info (license, homepage) on node selection. |
-| **ROCKS-03-05** | **Reverse Dependency View** | **Could** | **Pending** | Show "What depends on this?" for a selected package. |
-| **ROCKS-03-06** | **Search in Tree** | **Should** | **Pending** | Filter the dependency tree by package name or version. |
+| **ROCKS-03-01** | **Dependency Tree View** | **Must** | **Full** | Provide a tool window displaying the hierarchical tree of all dependencies. |
+| **ROCKS-03-02** | **Transitive Resolution** | **Must** | **Full** | Correctly resolve and display dependencies of dependencies. |
+| **ROCKS-03-03** | **Conflict Detection** | **Must** | **Full** | Identify and visually flag version conflicts within the graph. |
+| **ROCKS-03-04** | **Package Metadata** | **Should** | **Partial** | Inspector shows resolved version, scope, constraints, and conflicts; license/homepage display deferred (bridge exports them but the resolver consumes only package/version/dependencies). |
+| **ROCKS-03-05** | **Reverse Dependency View** | **Could** | **Full** | Inspector "Required by" lists reverse dependencies (`DependencyNode.requiredBy`). |
+| **ROCKS-03-06** | **Search in Tree** | **Should** | **Full** | Toolbar filter field filters the tree by package name or version. |
 
 ## Test Cases
 

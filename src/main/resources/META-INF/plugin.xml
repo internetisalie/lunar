@@ -25,6 +25,14 @@
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
 
+    <!-- LuaRocks dependency tool window (ROCKS-03) -->
+    <toolWindow
+            id="LuaRocks"
+            anchor="right"
+            secondary="true"
+            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
+            factoryClass="net.internetisalie.lunar.rocks.ui.LuaRocksToolWindowFactory"/>
+
     <!-- Language -->
 
     <fileType
