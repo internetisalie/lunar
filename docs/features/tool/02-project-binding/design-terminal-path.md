@@ -3,7 +3,7 @@ id: "TOOL-02-TERMINAL"
 title: "Terminal PATH Injection Design"
 type: "design"
 parent_id: "TOOL-02"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/tool/02-project-binding/requirements|requirements]]"

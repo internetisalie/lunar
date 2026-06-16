@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.settings.LuaApplicationSettings
 import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.tool.LuaToolEnvironment
 import java.nio.file.Path
 
 fun newLuaDefaultInterpreterCommandLine(): GeneralCommandLine? {
@@ -22,6 +23,9 @@ fun newProjectLuaInterpreterCommandLine(project: Project): GeneralCommandLine? {
     if (luaPath.isNotEmpty()) {
         cmd.withEnvironment("LUA_PATH", luaPath)
     }
+    // TOOL-02-03: make project-bound Lua tools (luarocks/luacheck/stylua) visible to the
+    // interpreter subprocess by prepending their directories to PATH.
+    LuaToolEnvironment.prependToolDirsToPath(cmd, project)
     return cmd
 }
 
