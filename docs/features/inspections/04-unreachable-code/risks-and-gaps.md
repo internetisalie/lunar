@@ -3,7 +3,7 @@ id: INSP-04-RISKS
 title: Unreachable Code Risks
 type: risk
 parent_id: INSP-04
-status: planned
+status: "done"
 folders:
   - "[[features/inspections/04-unreachable-code/requirements|requirements]]"
 ---
@@ -41,14 +41,17 @@ run.
 **Mitigation:** design §3.3 — filter to `inst.element as? LuaStatement` (the builder gives
 plain statements and `break`/`return`/`goto`/`for`/`repeat` a node whose `element` is the
 statement), and apply the *head rule* so only the first statement of a contiguous dead run is
-flagged (TC-6 verifies a single warning).
+flagged (TC-04-06 verifies a single warning).
 
-- **DR-2 (must, before `done`):** Confirm empirically that compound statements (`LuaIfStatement`,
-  `LuaWhileStatement`) do **not** themselves appear as an unreachable `inst.element` that would
-  cause a misplaced highlight — the builder does not start a node with `element == ifStatement`
-  (`LuaControlFlowBuilder.kt:90-141`) but does for `for`/`repeat` (`…:189,166`). Verify a dead
-  `for`/`repeat` highlights the loop keyword range acceptably (or restrict the head to the
-  first child statement). Resolved by TC-6 plus one for/repeat dead-code test added in Phase 3.
+- **DR-2 (resolved — decision recorded, design §3.3 "Highlight range"):** The highlight range is
+  the **whole head `LuaStatement` node**, uniformly, with no per-construct special-casing. Compound
+  statements that the builder gives no statement-`element` node (`LuaIfStatement`, `LuaWhileStatement`
+  — `LuaControlFlowBuilder.kt:90-141`) never surface as an `inst.element is LuaStatement` head, so the
+  only multi-line head is a dead `for`/`repeat` (`…:166,189`); greying its whole node via
+  `LIKE_UNUSED_SYMBOL` is the intended JetBrains "Unreachable code" presentation, so the range is
+  **not** narrowed to a keyword or first child. This is now a *verification* item, not an open design
+  decision: TC-04-06 pins single-warning behaviour and TC-04-09 (Phase 3) pins a dead `for`-loop's
+  range spans the loop statement.
 
 ## 3. No statement-level inline suppression
 

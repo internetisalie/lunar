@@ -3,7 +3,7 @@ id: INSP-04-DESIGN
 title: Unreachable Code Design
 type: design
 parent_id: INSP-04
-status: planned
+status: "done"
 folders:
   - "[[features/inspections/04-unreachable-code/requirements|requirements]]"
 ---
@@ -231,6 +231,20 @@ quick fix range (the fix deletes the single flagged statement; consecutive dead 
 each get their own head test only when the run is broken — in practice a contiguous dead run
 shares one head, so we highlight the first and stop). This avoids N overlapping warnings on
 `return; a(); b(); c()`.
+
+**Highlight range (decided — no per-construct special-casing).** The reported anchor is always
+the *whole* head `LuaStatement` PSI node — `registerProblem(stmt, …)` / `createProblemDescriptor(stmt, …)`
+pass `stmt` itself. This applies uniformly to simple statements **and** to compound heads whose
+CFG node's `element` is the statement (`for`/`repeat` — `LuaControlFlowBuilder.kt:166,189`). We do
+**not** restrict the range to a loop keyword token or to the first child statement. Rationale: the
+highlight type is `ProblemHighlightType.LIKE_UNUSED_SYMBOL` (`LuaUnusedLocalInspection.kt:82`), which
+*greys out* its range rather than drawing an error/warning underline, so greying an entire dead
+`for`/`repeat`/`while` block is exactly the JetBrains "Unreachable code" presentation and reads
+correctly even across multiple lines. Compound statements that the builder does **not** give a
+statement-`element` node (`LuaIfStatement`, `LuaWhileStatement` — `LuaControlFlowBuilder.kt:90-141`)
+never appear as an `inst.element is LuaStatement` head, so the only multi-line head that can occur is
+a dead `for`/`repeat`, and greying its whole node is the intended behaviour. TC-04-09 (added in
+Phase 3) pins this with a dead `for`-loop asserting the warning range spans the loop statement.
 
 ### 3.4 Cycle / loop handling
 

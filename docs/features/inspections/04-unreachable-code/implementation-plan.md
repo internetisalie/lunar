@@ -3,7 +3,7 @@ id: INSP-04-PLAN
 title: Unreachable Code Implementation Plan
 type: plan
 parent_id: INSP-04
-status: planned
+status: "done"
 folders:
   - "[[features/inspections/04-unreachable-code/requirements|requirements]]"
 ---
@@ -52,6 +52,10 @@ file to create and the `design.md` section that specifies it.
    work has a clear before/after.
    - **Verification:** TC-04-07 asserts **no** warning; TC-04-08 asserts a single warning for
      nested dead code.
+6. **Add the highlight-range test** TC-04-09 (DR-2 decision): a dead `for` loop produces one
+   `"Unreachable code"` warning whose range spans the whole loop statement node.
+   - **Verification:** TC-04-09 asserts a single warning and that the highlighted range equals the
+     `for … end` statement's text range (design §3.3 "Highlight range").
 
 ## Requirement → Phase Coverage
 
@@ -60,10 +64,10 @@ file to create and the `design.md` section that specifies it.
 | INSP-04-01 CFG-based reachability | Phase 1 (T1, T2) |
 | INSP-04-02 Highlighting | Phase 1 (T2, T3) |
 | INSP-04-03 Quick fix | Phase 2 (T4) |
-| INSP-04-04 Single head per run | Phase 1 (T2) / TC-6 |
-| INSP-04-05 goto/label correctness | Phase 1 (T2) / TC-4 |
+| INSP-04-04 Single head per run / highlight range | Phase 1 (T2) / TC-04-04 / Phase 3 (T6, TC-04-09) |
+| INSP-04-05 goto/label correctness | Phase 1 (T2) / TC-04-05 |
 | INSP-04-06 Owner-scoped once-only | Phase 1 (T1) / Phase 3 (T5) |
-| INSP-04-C1 / C2 / C3 (Could/Future) | Deferred — DR-1 / DR-2 in `risks-and-gaps.md` |
+| INSP-04-C1 / C2 / C3 (Could/Future) | Deferred — DR-1 in `risks-and-gaps.md` (DR-2 resolved) |
 
 ## Pre-commit gate (CLAUDE.md §Contribution)
 `./gradlew test --tests "*UnreachableCode*"`, then `ktlintFormat` / `ktlintCheck` on the new
