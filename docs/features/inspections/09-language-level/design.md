@@ -15,7 +15,7 @@ folders:
 ### Current State
 `net.internetisalie.lunar.lang.syntax.LuaLanguageLevelAnnotator` (an `Annotator`, registered
 in `plugin.xml:124-126`) already flags every construct in scope at `ERROR` severity, with
-quick fixes from `LuaLanguageLevelQuickFixes.kt`. A 49-test suite,
+quick fixes from `LuaLanguageLevelQuickFixes.kt`. A 51-test suite,
 `src/test/kotlin/net/internetisalie/lunar/lang/syntax/LuaLanguageLevelAnnotatorTest.kt`,
 exercises it via `myFixture.doHighlighting(HighlightSeverity.ERROR)`.
 

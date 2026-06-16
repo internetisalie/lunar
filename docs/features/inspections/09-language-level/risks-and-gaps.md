@@ -17,7 +17,7 @@ folders:
   new inspection forgot to handle.
 - **Likelihood**: low.
 - **Mitigation**: The design §1 mapping table enumerates all six annotator branches and assigns
-  each to an inspection visitor override; Phase 4 migrates the annotator's 49-test suite onto
+  each to an inspection visitor override; Phase 4 migrates the annotator's 51-test suite onto
   the inspection so any dropped construct fails a test. Full `./gradlew test` must stay green.
 
 ### Risk 1.2: Quick fixes are intentions, not `LocalQuickFix`
