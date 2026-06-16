@@ -188,6 +188,10 @@ tasks {
         from(layout.projectDirectory.dir("src/main/resources/runtime")) {
             into(pluginName.map { "$it/runtime" })
         }
+        // Debugger runtime scripts (debug.lua / mobdebug / lunar.debug) are copied to the plugin
+        // root so LuaFileUtil.getPluginVirtualDirectoryChild("lua") finds them at runtime. The
+        // LuaRocks bridge scripts (rockspec.lua / lunar.json / lunar.export) instead ship as
+        // classpath resources under src/main/resources/lua and are extracted by LuaRocksBridgeFiles.
         from(layout.projectDirectory.dir("src/main/lua")) {
             into(pluginName.map { "$it/lua"})
         }
