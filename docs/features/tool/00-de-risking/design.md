@@ -3,7 +3,7 @@ id: TOOL-00-DESIGN
 title: "Spike Methodology & Acceptance"
 type: design
 parent_id: TOOL-00
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/tool/00-de-risking/requirements|requirements]]"
@@ -37,9 +37,18 @@ work uses the existing `net.internetisalie.lunar.util.LuaProcessUtil`. Every spi
   `org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer` (deprecated fallback
   `org.jetbrains.plugins.terminal.LocalTerminalCustomizer`) reach each target shell?
 - **Method**: implement a minimal `ShellExecOptionsCustomizer` whose `customizeExecOptions(project,
-  options)` prepends a known dir to `options.environment["PATH"]`; open a fresh built-in terminal per
-  shell and run `echo $PATH` / `echo %PATH%` and `which/where luarocks`. (No `export`/`set` init
-  commands — injection is purely via the env map.)
+  shellExecOptions)` prepends a known dir via **`shellExecOptions.prependEntryToPATH(toolDir)`**
+  (where `toolDir` is a `java.nio.file.Path`); open a fresh built-in terminal per shell and run
+  `echo $PATH` / `echo %PATH%` and `which/where luarocks`. (No `export`/`set` init commands.)
+- **SOURCE-VERIFIED API CORRECTION (2026.1)**: `MutableShellExecOptions.envs` is a **read-only
+  `Map<String, String>`** — there is **no `options.environment` property and no `envs[...]=` setter**.
+  Mutate PATH only through the dedicated, EEL-aware methods: `prependEntryToPATH(Path)` /
+  `appendEntryToPATH(Path)` / `setEnvironmentVariable(name, value?)`. `prependEntryToPATH` joins with
+  the *remote* path separator (`eelDescriptor.osFamily.pathSeparator`) and translates local→remote
+  paths (WSL/Docker/SSH), so the customizer must **not** compute `File.pathSeparator` itself. This is
+  the idiom in the platform's own `ShellExecOptionsCustomizerTest`. The interface method param is
+  named `shellExecOptions` (not `options`); the call runs `@RequiresBackgroundThread` +
+  `@RequiresReadLockAbsence` (background thread, no read action).
 - **Pass threshold**: on Bash, Zsh, CMD, PowerShell the injected dir appears **first** and
   `which/where` resolves to it. Any shell that fails is documented with a fallback.
 - **Deliverable**: `results/terminal-path.md` (per-shell table) + the prototype customizer.
@@ -47,7 +56,9 @@ work uses the existing `net.internetisalie.lunar.util.LuaProcessUtil`. Every spi
 ### TOOL-00-02 — OS-specific tool filenames
 - **Question**: What candidate filenames must discovery try per OS?
 - **Method**: define `LuaToolDescriptor(toolType, candidates(os): List<String>)` and resolve
-  luarocks/luacheck/stylua via `PathEnvironmentVariableUtil.findInPath` on each OS.
+  luarocks/luacheck/stylua via `com.intellij.execution.configurations.PathEnvironmentVariableUtil.findInPath`
+  (returns `File?`; **note the package is `execution.configurations`, not `com.intellij.util`** — the
+  latter does not exist) on each OS.
 - **Pass threshold**: each of the three tools resolves on Linux (no ext) and Windows
   (`.bat`/`.exe`/`.cmd` as applicable) in a manual run; the descriptor table is complete.
 - **Deliverable**: the `LuaToolDescriptor` mapping (handed to TOOL-01) + `results/tool-filenames.md`.

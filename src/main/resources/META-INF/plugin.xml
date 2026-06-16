@@ -21,6 +21,11 @@
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
   <depends>com.intellij.modules.platform</depends>
 
+  <!-- TOOL-00 de-risking spike: optional dependency on the bundled built-in terminal so the
+       terminal PATH-injection customizer only loads when the terminal plugin is present.
+       Keeps the terminal a soft dependency rather than bloating the base plugin. -->
+  <depends optional="true" config-file="lunar-terminal.xml">org.jetbrains.plugins.terminal</depends>
+
   <!-- Extension points defined by the plugin.
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
