@@ -14,6 +14,8 @@ folders:
 > Generated **2026-06-14** by auditing `src/main/kotlin/`, `src/main/resources/META-INF/plugin.xml`,
 > and `src/main/resources/`. Requirements docs were used only as a feature *inventory*;
 > all status assessments are based on whether working code exists.
+> **Updated 2026-06-16** for Wave 10: the TOOL and ROCKS epics are now fully implemented
+> (`src/main/kotlin/.../tool/` and `.../rocks/`, registered in `plugin.xml`).
 
 **Status vocabulary:**
 
@@ -40,12 +42,12 @@ folders:
 | [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
 | [**FORMAT**](#format--formatting)                           |      2 |           1 |       0 |      4 |       7 | ███░░░░░░░ 29%  |
 | [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
-| [**TOOL**](#tool--tool-inventory-management)                |      0 |           0 |       4 |      0 |       4 | ░░░░░░░░░░ 0%   |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      0 |           0 |       4 |      1 |       5 | ░░░░░░░░░░ 0%   |
+| [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       0 |      5 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **86** |       **8** |   **9** | **23** | **126** | **68%**         |
+| **Total**                                                   | **95** |       **8** |   **1** | **22** | **126** | **75%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -222,10 +224,10 @@ folders:
 
 | ID | Feature | Status | Notes |
 |:---|:--------|:-------|:------|
-| TOOL-00 | De-risking & Technical Spikes | planned | Full feature breakdown exists in subdocs |
-| TOOL-01 | Core Tool Registry & Discovery | planned | Full feature breakdown exists |
-| TOOL-02 | Project Binding & Environment | planned | Full feature breakdown exists |
-| TOOL-03 | UI/UX & Health Monitoring | planned | Full feature breakdown exists |
+| TOOL-00 | De-risking & Technical Spikes | done | Terminal PATH-injection corrected to `ShellExecOptionsCustomizer`/`prependEntryToPATH`; `tool/terminal/LuaShellExecOptionsCustomizer` + `lunar-terminal.xml`. Remaining exploratory spikes = Future Work |
+| TOOL-01 | Core Tool Registry & Discovery | done | `tool/LuaToolManager` (`@Service` APP) + `LuaTool` + `LuaToolValidator`/`LuaToolDiscoveryService`; registered in `plugin.xml` |
+| TOOL-02 | Project Binding & Environment | done | `tool/LuaTerminalEnvironmentService` + cmdline PATH patch in `command/LuaCommandLine.kt`; reuses `LuaSettingsChangedListener.TOPIC` |
+| TOOL-03 | UI/UX & Health Monitoring | done | `tool/ui/LuaToolsConfigurable` + `tool/health/*` monitor/checker/editor-banner; 2 health fields on `LuaTool` |
 
 ---
 
@@ -233,11 +235,11 @@ folders:
 
 | ID | Feature | Status | Notes |
 |:---|:--------|:-------|:------|
-| ROCKS-01 | Project Initialization & Setup | planned | Full feature breakdown + research docs exist |
-| ROCKS-02 | Package Browser | planned | Full feature breakdown exists |
-| ROCKS-03 | Dependency Resolution | planned | Full feature breakdown exists |
-| ROCKS-04 | Task Execution & Run Configs | planned | Full feature breakdown exists |
-| ROCKS-08 | Publishing & Lifecycle | todo | No feature subdirectory |
+| ROCKS-01 | Project Initialization & Setup | done | `rocks/init/LuaRocksProjectGenerator` (`directoryProjectGenerator`) + templates/scaffolder |
+| ROCKS-02 | Package Browser | done | `rocks/browser/*` tool window "LuaRocks Packages"; porcelain search/list/show parse + TTL cache |
+| ROCKS-03 | Dependency Resolution | done | `rocks/LuaRocksDependencyResolver` + `deps/*`; bridge Lua scripts packaged as resources via `LuaRocksBridgeFiles` |
+| ROCKS-04 | Task Execution & Run Configs | done | `rocks/run/*` — `LuaRocksSettings` (shared) + `LuaRocksRunConfiguration` |
+| ROCKS-08 | Publishing & Lifecycle | done | `rocks/publish/*` — `PublishRockAction` (`Lua.Rocks.Publish`), `luarocks upload --api-key=`, key in PasswordSafe |
 
 ---
 

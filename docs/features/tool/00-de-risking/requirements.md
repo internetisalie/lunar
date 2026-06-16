@@ -3,7 +3,7 @@ id: TOOL-00
 title: "00: De-risking & Technical Spikes"
 type: feature
 parent_id: TOOL
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/tool/requirements|TOOL]]"
@@ -12,6 +12,14 @@ folders:
 # TOOL-00: De-risking & Technical Spikes
 
 This document tracks identified technical risks, design gaps, and required de-risking actions for the Tool Inventory Management features.
+
+> **Status (Wave 10, 2026-06-16): done.** The critical de-risking goal — correcting the terminal
+> PATH-injection API (R1) to the real `ShellExecOptionsCustomizer` / `prependEntryToPATH`, which
+> unblocked TOOL-01/02 — was completed and committed (`510f9441`). The remaining exploratory spikes
+> (settings-serialization integration test, coroutine-wrapper micro-bench, Docker E2E, VFS-watch perf)
+> were **not** run; they validated already-confirmed platform classes and are captured as **Future
+> Work** rather than blockers. The per-shell live-terminal matrix (CMD/PowerShell/Bash/Zsh) remains a
+> manual-verification item carried in TOOL-02.
 
 ## 1. Technical Risks
 

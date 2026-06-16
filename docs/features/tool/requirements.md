@@ -2,7 +2,7 @@
 id: "TOOL"
 title: "TOOL: Tool Inventory Management"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features]]"

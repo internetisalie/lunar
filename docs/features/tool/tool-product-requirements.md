@@ -3,7 +3,7 @@ id: "TOOL-PRD"
 title: "Product Requirements"
 type: "spec"
 parent_id: "TOOL"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/tool/requirements|TOOL]]"

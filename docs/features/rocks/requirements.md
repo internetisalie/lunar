@@ -2,7 +2,7 @@
 id: "ROCKS"
 title: "ROCKS: LuaRocks Integration"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features]]"
