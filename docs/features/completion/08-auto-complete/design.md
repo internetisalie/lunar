@@ -3,7 +3,7 @@ id: COMP-08-DESIGN
 title: Auto Complete Design
 type: design
 parent_id: COMP-08
-status: in_progress
+status: done
 folders:
   - "[[features/completion/08-auto-complete/requirements|requirements]]"
 ---
@@ -361,10 +361,10 @@ No new `LuaBlockPairs` registration is needed — it is a plain `object` consume
 | Requirement | Priority | Implemented by (section) | Status |
 |-------------|----------|--------------------------|--------|
 | COMP-08-01 Block Auto-close (`then`/`do`/`function`/`repeat`) | M | §2.1, §3.1 | **Built** |
-| COMP-08-02 Balance check (no redundant `end`) | M | §2.2, §2.3, §3.2 | **Designed** — TC 2 |
-| COMP-08-03 Full opener coverage incl. `{`→`}` | S | §2.3, §3.3 | **Designed** — TC 3 |
-| COMP-08-04 Between-pair smart indent | S | §3.4 (`LuaEnterBetweenBlockHandler`) | **Designed** — TC 4 |
-| COMP-08-05 Reformat + caret placement | S | §3.5 (`postProcessEnter`) | **Designed** |
+| COMP-08-02 Balance check (no redundant `end`) | M | §2.2, §2.3, §3.2 | **Done** — TC 2 |
+| COMP-08-03 Full opener coverage incl. `{`→`}` | S | §2.3, §3.3 | **Done** — TC 3 |
+| COMP-08-04 Between-pair smart indent | S | §3.4 (`LuaEnterBetweenBlockHandler`) | **Done** — TC 4 |
+| COMP-08-05 Reformat + caret placement | S | §3.5 (`postProcessEnter`) | **Done** |
 
 ## 9. Alternatives Considered
 - **Brace-matcher / typed-handler** instead of an Enter handler: rejected — the requirement is

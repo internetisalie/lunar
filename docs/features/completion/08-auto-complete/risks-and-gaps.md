@@ -2,7 +2,7 @@
 id: COMP-08-RISKS
 title: Auto Complete Risks & Gaps
 type: risk
-status: planned
+status: done
 parent_id: COMP-08
 folders:
   - "[[features/completion/08-auto-complete/requirements|requirements]]"
@@ -67,10 +67,10 @@ task to run early.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| COMP-08-00-DR-01 | Prototype the §3.2 balance check against live PSI: dump `statement.node.children` for `if a then⏎ if b then⏎` (nested unbalanced), `if true then⏎end` (balanced), an EOF `function f()`, AND a half-typed `function f()` / `if x then` **nested inside an already-balanced `do … end`** (the case that could mis-suppress); confirm `findChildByType(END/UNTIL/RCURLY)` is null exactly when *this* construct's terminator is missing, and that the parent lookup resolves to the inner half-typed `LuaFuncDecl`/`LuaLocalFuncDecl`/`LuaIfStatement`, not the balanced outer block | Risk 1.1 | todo |
-| COMP-08-00-DR-02 | Confirm `{` always parents to `LuaTableConstructor` (no error-node shadowing while typing) | Gap 2.1 | todo |
-| COMP-08-00-DR-03 | Verify the two `enterHandlerDelegate`s (`LuaEnterHandler`, `LuaEnterBetweenBlockHandler`) plus the DOC `lang.format.LuaEnterHandlerDelegate` do not fight: each returns `Result.Continue` when not applicable, and for a matched pair neither inserts (§3.4 ordering note). Test all three registered together | Risk 1.1 / §3.4 | todo |
-| COMP-08-00-DR-04 | Validate the **stateless** §3.5 `postProcessEnter`: re-derive the just-inserted terminator from the committed document (no instance field). Confirm it reindents correctly after a §3.2/§3.3 insert and does NOT fire on an ordinary Enter that inserted no terminator, including under **multi-caret** (where a shared delegate instance would corrupt any instance-field handoff — Risk 1.3) | Risk 1.2 / Risk 1.3 | todo |
+| COMP-08-00-DR-01 | Prototype the §3.2 balance check against live PSI: dump `statement.node.children` for `if a then⏎ if b then⏎` (nested unbalanced), `if true then⏎end` (balanced), an EOF `function f()`, AND a half-typed `function f()` / `if x then` **nested inside an already-balanced `do … end`** (the case that could mis-suppress); confirm `findChildByType(END/UNTIL/RCURLY)` is null exactly when *this* construct's terminator is missing, and that the parent lookup resolves to the inner half-typed `LuaFuncDecl`/`LuaLocalFuncDecl`/`LuaIfStatement`, not the balanced outer block | Risk 1.1 | done |
+| COMP-08-00-DR-02 | Confirm `{` always parents to `LuaTableConstructor` (no error-node shadowing while typing) | Gap 2.1 | done |
+| COMP-08-00-DR-03 | Verify the two `enterHandlerDelegate`s (`LuaEnterHandler`, `LuaEnterBetweenBlockHandler`) plus the DOC `lang.format.LuaEnterHandlerDelegate` do not fight: each returns `Result.Continue` when not applicable, and for a matched pair neither inserts (§3.4 ordering note). Test all three registered together | Risk 1.1 / §3.4 | done |
+| COMP-08-00-DR-04 | Validate the **stateless** §3.5 `postProcessEnter`: re-derive the just-inserted terminator from the committed document (no instance field). Confirm it reindents correctly after a §3.2/§3.3 insert and does NOT fire on an ordinary Enter that inserted no terminator, including under **multi-caret** (where a shared delegate instance would corrupt any instance-field handoff — Risk 1.3) | Risk 1.2 / Risk 1.3 | done |
 
 ## Test Case Gaps
 - `requirements.md` TC 1–6 now cover: `then`, no-redundant-`end`, table `{`, between-pair,

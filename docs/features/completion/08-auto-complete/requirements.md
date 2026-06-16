@@ -3,7 +3,7 @@ id: COMP-08
 title: Auto Complete Requirements
 type: feature
 parent_id: COMP
-status: in_progress
+status: done
 ---
 
 # Auto Complete Requirements
@@ -18,10 +18,10 @@ reused as the opener→terminator source of truth.
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
 | COMP-08-01 | Block Auto-close | Must | done | Insert `end` (or `until`) on Enter after a block starter (`then`/`do`/`function`/`repeat`). Built (`LuaEnterHandler`). |
-| COMP-08-02 | Balance check before insert | Must | planned | **Bug fix.** Before inserting `end`/`until`, walk the enclosing block and **skip if a matching terminator already exists** — never insert a redundant `end`. Today the `LuaBlock` parent is looked up but unused. _[EmmyLua `LuaEnterAfterUnmatchedBraceHandler` `findChildByType(endType)==null`]_ |
-| COMP-08-03 | Full opener coverage | Should | planned | Cover all Lua block openers — `if…then`, `while…do`, numeric/generic `for…do`, bare `do`, `function`, `repeat…until`, and **table-literal `{`→`}`** Enter-completion. _[EmmyLua `getEnd()` maps `TABLE_EXPR`→`RCURLY`]_ |
-| COMP-08-04 | Between-pair smart indent | Should | planned | When Enter is pressed between an already-matched opener and its terminator, smart-indent the new blank line to the nested level **without** inserting a terminator. _[EmmyLua `LuaEnterBetweenRangeBlockHandler`]_ |
-| COMP-08-05 | Reformat + caret placement | Should | planned | After inserting the terminator, reformat the new block range and place the caret on the correctly-indented body line (not rely on `DefaultForceIndent` alone). _[EmmyLua `…postProcessEnter` `adjustLineIndent`]_ |
+| COMP-08-02 | Balance check before insert | Must | done | **Bug fix.** Before inserting `end`/`until`, walk the enclosing block and **skip if a matching terminator already exists** — never insert a redundant `end`. Today the `LuaBlock` parent is looked up but unused. _[EmmyLua `LuaEnterAfterUnmatchedBraceHandler` `findChildByType(endType)==null`]_ |
+| COMP-08-03 | Full opener coverage | Should | done | Cover all Lua block openers — `if…then`, `while…do`, numeric/generic `for…do`, bare `do`, `function`, `repeat…until`, and **table-literal `{`→`}`** Enter-completion. _[EmmyLua `getEnd()` maps `TABLE_EXPR`→`RCURLY`]_ |
+| COMP-08-04 | Between-pair smart indent | Should | done | When Enter is pressed between an already-matched opener and its terminator, smart-indent the new blank line to the nested level **without** inserting a terminator. _[EmmyLua `LuaEnterBetweenRangeBlockHandler`]_ |
+| COMP-08-05 | Reformat + caret placement | Should | done | After inserting the terminator, reformat the new block range and place the caret on the correctly-indented body line (not rely on `DefaultForceIndent` alone). _[EmmyLua `…postProcessEnter` `adjustLineIndent`]_ |
 
 ## Backlog (Could / Watch — parked, not yet prioritized into the plan)
 - **Smart-Enter / Complete-Statement** (Ctrl+Shift+Enter): complete a partial `if`/`while`/`for`/`function` (add missing `then`/`do`/`end`) and move caret into the body, via `com.intellij.lang.smartEnterProcessor` (`SmartEnterProcessorWithFixers`). _[lua-for-idea `LuaSmartEnterProcessor`]_ (Could — new wiring).

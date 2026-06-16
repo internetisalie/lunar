@@ -37,6 +37,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Refactoring**: Label refactoring support
 - **Introduce Variable**: extract a selected expression into a `local <name> = <expr>` before the enclosing statement and replace the occurrence, with a name suggestion, inline rename, and a this-occurrence/all-occurrences chooser when the expression repeats
 - **Safe Delete**: deleting a local/parameter/global/label declaration first searches for usages — removes it silently when unused, or shows the standard "usages found" conflict dialog when references remain
+- **Block Auto-close on Enter**: pressing Enter after a block opener (`then`/`do`/`function`/`repeat` and table `{`) inserts the matching `end`/`until`/`}` on the next line and opens an indented body line. A balance check now fixes a correctness bug where a redundant `end` was appended even when the block was already closed; full opener coverage spans `if`/`while`/numeric & generic `for`/bare `do`/`function`/`repeat`/table literals; and pressing Enter between an already-matched opener and its terminator indents a blank body line without inserting a duplicate.
 - **Code Style**: Settings for indentation, spacing, and formatting
 - **Formatter Fix**: Unary `not` now keeps a space before its operand when reformatting (`not x`); previously it collapsed to the distinct identifier `notx`. Symbolic unary operators (`-`, `#`, `~`) remain tight.
 - **Run Configurations**: Lua script execution and debugging support
