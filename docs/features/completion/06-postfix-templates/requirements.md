@@ -19,7 +19,7 @@ postfixes are intentionally excluded (no Lua equivalent).
 |---|---|---|---|---|
 | COMP-06-01 | `.if` Template | Must | done | Convert `expr.if` into `if expr then … end`. Built (`LuaIfPostfixTemplate`). |
 | COMP-06-02 | `.not` Template | Must | planned | Convert `expr.not` into `not expr`. _[EmmyLua `LuaIfNotPostfixTemplate`/`not`]_ |
-| COMP-06-03 | `.var` Template | Must | planned | Convert `expr.var` into `local name = expr`. Reuse `LuaIntroduceVariableHandler`. _[EmmyLua `LuaLocalPostfixTemplate`]_ |
+| COMP-06-03 | `.var` Template | Must | planned | Convert `expr.var` into `local name = expr`, with `name` an editable tab stop (string template; delegating to `LuaIntroduceVariableHandler` was rejected — see design §9). _[EmmyLua `LuaLocalPostfixTemplate`; mechanism per JetBrains `CastVarPostfixTemplate`]_ |
 | COMP-06-04 | `.for` Template | Must | planned | Convert `expr.for` into `for i = 1, expr do … end`. _[EmmyLua `LuaForAPostfixTemplate`]_ |
 | COMP-06-05 | `.forp` Template | Must | planned | Convert `expr.forp` into `for k, v in pairs(expr) do … end`. _[EmmyLua `LuaForPPostfixTemplate`]_ |
 | COMP-06-06 | `.fori` Template | Must | planned | Convert `expr.fori` into `for i, v in ipairs(expr) do … end`. _[EmmyLua `LuaForIPostfixTemplate`]_ |
@@ -56,3 +56,18 @@ Surveyed and viable, deferred per scope decision (2026-06-15):
 
 ### Test Case 6: `.fori` template (COMP-06-06)
 **Input:** `list.fori` **Action:** Tab → **Output:** `for i, v in ipairs(list) do\n    <caret>\nend`
+
+### Test Case 7: `.ifnot` template (COMP-06-07)
+**Input:** `ok.ifnot` **Action:** Tab → **Output:** `if not ok then\n    <caret>\nend`
+
+### Test Case 8: `.nil` template (COMP-06-08)
+**Input:** `x.nil` **Action:** Tab → **Output:** `if x == nil then\n    <caret>\nend`
+
+### Test Case 9: `.notnil` template (COMP-06-09)
+**Input:** `x.notnil` **Action:** Tab → **Output:** `if x ~= nil then\n    <caret>\nend`
+
+### Test Case 10: `.return` template (COMP-06-10)
+**Input:** `result.return` **Action:** Tab → **Output:** `return result`
+
+### Test Case 11: `.print` template (COMP-06-11)
+**Input:** `value.print` **Action:** Tab → **Output:** `print(value)`

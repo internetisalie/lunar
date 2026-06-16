@@ -57,6 +57,14 @@ wins (`repeat`, `pcall`, module skeleton) the competitors lack.
 ### Test Case 5: `while` (COMP-07-05)
 **Input:** `while`⇥ → `while $COND$ do\n    <caret>\nend`
 
-### Test Case 6: context suppression (COMP-07-10)
+### Test Case 6: context suppression — string & line comment (COMP-07-10)
 **Input:** caret **inside a string literal** `"forp"` or a `-- comment`. **Action:** type an abbrev + Tab.
 **Expected:** no live-template expansion (templates inert in string/comment context).
+
+### Test Case 7: context suppression — number literal (COMP-07-10)
+**Input:** caret immediately after a number, e.g. `local x = 10<caret>` where the caret leaf is the `NUMBER` token. **Action:** type `if` + Tab.
+**Expected:** no expansion (exercises the `NUMBER` member of the suppression `TokenSet`).
+
+### Test Case 8: context suppression — long string / long comment (COMP-07-10)
+**Input:** caret inside a `[[ long string ]]` or a `--[[ long comment ]]`. **Action:** type an abbrev + Tab.
+**Expected:** no expansion (exercises the `LONGSTRING*`/`LONGCOMMENT` tokens + the ancestor-walk branch, since long-string content is not in `StringLiteralTokens`).

@@ -65,9 +65,14 @@ There are three context types after this feature; all extend
 
 #### 2.1.2 `LuaCodeContextType` (NEW — COMP-07-10) — the real-code context
 - **Id / name**: `("LUA_CODE", "Lua (code)")`.
-- **Parent context**: `LUA` — constructed via the two-arg super
+- **Parent context**: `LUA` — constructed via the 3-arg super
   `TemplateContextType("LUA_CODE", "Lua (code)", LuaTemplateContextType::class.java)`. Declaring the
   parent makes `LUA_CODE` show nested under `Lua` in the Settings tree and inherit its file gating.
+  **Note:** this 3-arg constructor is `@deprecated` (the platform prefers `contextId`/`baseContextId`
+  attributes on the `<liveTemplateContext>` registration), but it remains functional — the bean
+  falls back to the constructor-set id (`LiveTemplateContextBean` `getContextId()`/`createInstance()`)
+  and the already-shipped `LuaTemplateContextType` uses the deprecated 2-arg form. Either form is
+  acceptable; prefer the plugin.xml-attribute form for the new contexts to avoid the warning.
 - **Responsibility**: true only when the caret leaf is *not* inside a string, comment, or number —
   i.e. real Lua code. Fixes the defect where the `LUA`-only templates fire inside `"…"` and `--`.
 - **Predicate**: see §3.1 (grounded against `LuaSyntax` token sets).

@@ -72,9 +72,13 @@ These are the load-bearing structural facts confirmed in this repo's grammar
   `net.internetisalie.lunar.lang.psi.LuaBlockParent`
   (`LuaBaseElements.kt:178`, `fun getBlockList(): List<LuaBlock>`):
   `LuaIfStatement`, `LuaWhileStatement`, `LuaNumericForStatement`,
-  `LuaGenericForStatement`, `LuaRepeatStatement`, `LuaDoStatement`, `LuaFuncDef`
-  (all in `src/main/gen/.../lang/psi/`). `LuaTableConstructor` is an **expression**, not a
-  `LuaBlockParent`, and is handled separately (§3.3).
+  `LuaGenericForStatement`, `LuaRepeatStatement`, `LuaDoStatement`, and the **three** function
+  forms — `LuaFuncDecl` (named `function f() … end`, `lua.bnf:170`), `LuaLocalFuncDecl`
+  (`local function f() … end`, `lua.bnf:158`), and `LuaFuncDef` (anonymous `function() end`
+  expression, `lua.bnf:255`) — all in `src/main/gen/.../lang/psi/`. **All algorithms dispatch on the
+  `LuaBlockParent` interface, never on a concrete function class** — do NOT narrow the parent lookup
+  to `LuaFuncDef::class.java` (that would break the common named/local-function cases).
+  `LuaTableConstructor` is an **expression**, not a `LuaBlockParent`, and is handled separately (§3.3).
 - **The terminator token is a DIRECT CHILD of the statement node, a sibling of `LuaBlock`** —
   NOT a child of `LuaBlock`. From the grammar (`lua.bnf`):
   - `ifStatement ::= IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END` (`lua.bnf:133`)
@@ -84,7 +88,8 @@ These are the load-bearing structural facts confirmed in this repo's grammar
   - `doStatement ::= DO block END` (`lua.bnf:121`)
   - `repeatStatement ::= REPEAT block UNTIL expr` (`lua.bnf:129`)
   - `funcDef ::= FUNCTION funcBody` where `funcBody ::= '(' [parList] ')' block END` is **private**
-    (inlined), so `END` is a direct child of `LuaFuncDef` (`lua.bnf:255,261`)
+    (inlined), so `END` is a direct child of the function node — `LuaFuncDecl`/`LuaLocalFuncDecl`
+    (named/local, `lua.bnf:170,158`) or `LuaFuncDef` (anonymous, `lua.bnf:255,261`)
   - `tableConstructor ::= '{' [fieldList] '}'` — `LCURLY`/`RCURLY` are direct children of
     `LuaTableConstructor` (`lua.bnf:265`)
 - **Terminator detection is therefore a single child-type query** on the statement node:
@@ -122,12 +127,30 @@ object LuaBlockPairs {
         LuaElementTypes.UNTIL to "until",
         LuaElementTypes.RCURLY to "}"
     )
+
+    // owner-NODE-kind -> terminator, used by §3.4 between-pair indent (which starts from the
+    // owner node, not the opener leaf). Distinct from terminatorByOpener above (keyed by leaf).
+    fun terminatorForOwner(owner: PsiElement): IElementType = when (owner) {
+        is LuaRepeatStatement -> LuaElementTypes.UNTIL
+        is LuaTableConstructor -> LuaElementTypes.RCURLY
+        else -> LuaElementTypes.END   // all other LuaBlockParent (if/while/for/do/function*)
+    }
 }
 ```
 
-`LuaPairedBraceMatcher.getPairs()` is refactored to derive its keyword `BracePair`s from
-`LuaBlockPairs.terminatorByOpener` (the punctuation pairs `LPAREN`/`RPAREN`, `LBRACK`/`RBRACK` stay local
-to the matcher). This is the "reuse, don't duplicate" requirement from `requirements.md`.
+**Two maps, two purposes — keep them separate (do NOT collapse):**
+- `terminatorByOpener` is keyed by the **opener leaf at `offset-1`** (`THEN`/`DO`/`FUNCTION`/`REPEAT`/
+  `LCURLY`) — what the Enter handler sees. `if … then` keys on `THEN`, and `while`/`for` key on their
+  `DO`.
+- `LuaPairedBraceMatcher` keys its `if` pair on **`IF`→`END`** (it highlights the `if`↔`end` *span*),
+  not `THEN`. So the matcher's pairs are **not** 1:1 with `terminatorByOpener`. **Do NOT refactor the
+  matcher to derive from `terminatorByOpener`** — that would re-key brace matching from `IF` to `THEN`
+  and break `if`↔`end` highlighting (violating its "no behavior change" exit criterion). The
+  "reuse, don't duplicate" requirement is satisfied by `LuaBlockPairs` being the single source for the
+  **Enter handler's** maps; the matcher retains its own `BracePair` list (it serves a different concern
+  — span highlighting/navigation). If a shared constant is still wanted, add a separate
+  `LuaBlockPairs.braceMatcherPairs` keyed on `IF`/`REPEAT`/`DO`/`FUNCTION`/`LCURLY`; it is NOT the same
+  map as `terminatorByOpener`.
 
 ## 3. Algorithms
 
@@ -198,7 +221,7 @@ every Lua block opener plus the table literal, all keyed off element types throu
   | numeric `for … do … end` | `DO` | `LuaNumericForStatement` | `END` → `"end"` |
   | generic `for … do … end` | `DO` | `LuaGenericForStatement` | `END` → `"end"` |
   | bare `do … end` | `DO` | `LuaDoStatement` | `END` → `"end"` |
-  | `function … end` | `FUNCTION` | `LuaFuncDef` | `END` → `"end"` |
+  | `function … end` | `FUNCTION` | `LuaFuncDecl` (named) / `LuaLocalFuncDecl` (local) / `LuaFuncDef` (anon) — all `LuaBlockParent` | `END` → `"end"` |
   | `repeat … until` | `REPEAT` | `LuaRepeatStatement` | `UNTIL` → `"until"` |
   | table `{ … }` | `LCURLY` | `LuaTableConstructor` (expr) | `RCURLY` → `"}"` |
 
@@ -236,8 +259,9 @@ small per the engineering contract's ≤30-line rule.
   2. `commitDocument`. `leaf = file.findElementAt(offset - 1)`; null → `Continue`.
   3. `owner = PsiTreeUtil.getParentOfType(leaf, LuaBlockParent::class.java, false)
        ?: PsiTreeUtil.getParentOfType(leaf, LuaTableConstructor::class.java, false)`; null → `Continue`.
-  4. Determine `owner`'s terminator type via `LuaBlockPairs` (per §3.3 table; for a `LuaBlockParent`
-     pick `END`/`UNTIL` by its kind, for a table `RCURLY`).
+  4. `terminatorType = LuaBlockPairs.terminatorForOwner(owner)` (§2.3 — owner-node-kind map:
+     `LuaRepeatStatement`→`UNTIL`, `LuaTableConstructor`→`RCURLY`, every other `LuaBlockParent`→`END`).
+     This map is keyed on the owner NODE, unlike `terminatorByOpener` which is keyed on the opener leaf.
   5. `terminator = owner.node.findChildByType(terminatorType)`; if null → `Continue` (unmatched — that
      case belongs to §3.2's insert path, not here).
   6. **Between test:** `offset` lies strictly between the opener leaf's end offset and
@@ -260,16 +284,23 @@ indents the *new* line but not always the inserted terminator line).
 - **Phase:** `postProcessEnter(file, editor, dataContext): Result` on the same handler class
   (`LuaEnterHandler`), mirroring how `lang.format.LuaEnterHandlerDelegate` does its work in
   `postProcessEnter`.
-- **Coordination flag:** `preprocessEnter` records the inserted terminator's line region so
-  `postProcessEnter` knows to act. Because a single Enter action calls `preprocessEnter` then
-  `postProcessEnter` on the same delegate instance synchronously on the EDT, a transient instance field
-  (`private var pendingReformatRange: TextRange? = null`, cleared at the start of every `preprocessEnter`
-  and consumed-then-nulled in `postProcessEnter`) is sufficient; no document marker is needed.
-- **Steps (`postProcessEnter`):**
-  1. `range = pendingReformatRange ?: return Result.Continue`; set `pendingReformatRange = null`.
-  2. `PsiDocumentManager.getInstance(file.project).commitDocument(editor.document)` (the body newline +
-     terminator are now in the document; commit so the PSI/indent model is current).
-  3. `bodyLine = editor.document.getLineNumber(editor.caretModel.offset)`.
+- **Coordination — prefer STATELESS re-derivation (no instance field).** The platform registers ONE
+  `EnterHandlerDelegate` instance and reuses it across every editor/caret, so a mutable
+  `private var pendingReformatRange` would be **shared mutable state** — unsafe under multi-caret or
+  interleaved Enter actions. The existing DOC `lang.format.LuaEnterHandlerDelegate` is deliberately
+  **stateless** (it re-derives everything in `postProcessEnter` from the committed document) for exactly
+  this reason, and COMP-08-05 MUST follow that pattern: `postProcessEnter` recomputes whether the line
+  just above the caret is a freshly-inserted terminator (commit the document, inspect the leaf at the
+  caret / previous line) and reindents from that, carrying **no** state between phases. A transient
+  instance field is the rejected alternative — see risks-and-gaps Risk 1.3 + DR-04.
+- **Steps (`postProcessEnter`, stateless):**
+  1. If `file !is LuaFile` → `Result.Continue`. `PsiDocumentManager.getInstance(file.project).commitDocument(editor.document)`.
+  2. **Re-derive** the target without any carried state: `bodyLine = document.getLineNumber(caret.offset)`;
+     inspect the line immediately below the caret — if its first non-blank leaf is a terminator
+     (`END`/`UNTIL`/`RCURLY`, i.e. an `insertTextFor` value just placed by §3.2/§3.3) → this Enter opened a
+     block body, so proceed; otherwise → `Result.Continue` (nothing to reformat). This replaces the
+     instance-field check and is safe under shared-instance reuse.
+  3. `terminatorLine = bodyLine + 1` (the re-derived terminator line).
   4. `val csm = CodeStyleManager.getInstance(file.project)`
      (`com.intellij.psi.codeStyle.CodeStyleManager`).
   5. Re-indent each line in `range` (the body line and the terminator line):

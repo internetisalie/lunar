@@ -56,3 +56,19 @@ local t = {
 
 ### Test Case 4: Between-pair indent (COMP-08-04)
 **Input:** caret between an existing `function f()` and its `end` (block already balanced). **Action:** Enter → new blank line indented to the body level; no terminator inserted.
+
+### Test Case 5: Reformat + caret placement (COMP-08-05)
+**Input:** `while x do<caret>` at indent level 1 (inside an outer block). **Action:** Enter →
+```lua
+    while x do
+        <caret>
+    end
+```
+Both the body line and the inserted `end` are indented to the correct nested level (not left at column 0), and the caret rests on the indented body line.
+
+### Test Case 6: Other openers — while / for / do / repeat (COMP-08-03)
+**Input/Action/Output:**
+- `while x do<caret>` + Enter → `while x do⏎    <caret>⏎end`
+- `for i = 1, 10 do<caret>` + Enter → `for i = 1, 10 do⏎    <caret>⏎end`
+- `do<caret>` + Enter → `do⏎    <caret>⏎end`
+- `repeat<caret>` + Enter → `repeat⏎    <caret>⏎until` (terminator is `until`, not `end`)
