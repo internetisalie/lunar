@@ -3,7 +3,7 @@ id: REFACT-05-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: REFACT-05
-status: planned
+status: done
 priority: "medium"
 folders:
   - "[[features/refactoring/05-name-validator/requirements|requirements]]"

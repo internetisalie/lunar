@@ -208,6 +208,9 @@
             implementationClass="net.internetisalie.lunar.lang.insight.LuaRefactoringSupportProvider"/>
     <refactoring.safeDeleteProcessor
             implementation="net.internetisalie.lunar.refactoring.LuaSafeDeleteProcessor"/>
+    <lang.namesValidator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.refactoring.LuaNamesValidator"/>
 
     <lang.psiStructureViewFactory language="Lua"
                                   implementationClass="net.internetisalie.lunar.lang.structure.LuaStructureViewFactory"/>

@@ -135,7 +135,7 @@ folders:
 | REFACT-02 | Introduce Variable | done | `LuaIntroduceVariableHandler` — extract, replace-all, inline rename |
 | REFACT-03 | Safe Delete | done | `LuaSafeDeleteProcessor` — usage search + conflict prompt |
 | REFACT-04 | Label Refactoring | done | Rename + find-usages for labels via consolidated providers |
-| REFACT-05 | Name Validator | todo | No `NamesValidator` implementation |
+| REFACT-05 | Name Validator | done | `LuaNamesValidator` — rejects Lua keywords and non-identifier names in Rename |
 | REFACT-06 | Stubs for Declaring Identifiers | todo | No stub file generation |
 | INTENT-01 | String Style Conversion | todo | No intention action |
 | INTENT-02 | Invert If Statement | todo | No intention action |

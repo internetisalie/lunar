@@ -3,7 +3,7 @@ id: REFACT-05
 title: "05: Rename Names Validator"
 type: feature
 parent_id: REFACT/INTENT
-status: planned
+status: done
 priority: "medium"
 folders: ["[[features/refactoring/05-name-validator/requirements|requirements]]"]
 ---
@@ -18,8 +18,8 @@ Lua reserved keywords or are not syntactically valid Lua identifiers.
 
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| REFACT-05-01 | Keyword Validation | Must | Not Implemented | The validator must report every Lua reserved word (Lua 5.1–5.4 union, incl. `goto`) as a keyword, so the platform blocks renaming an identifier to a reserved word. |
-| REFACT-05-02 | Identifier Validation | Must | Not Implemented | The validator must report a string as a valid identifier iff it matches the ASCII Lua identifier grammar `^[A-Za-z_][A-Za-z0-9_]*$` **and** is not a reserved word. |
+| REFACT-05-01 | Keyword Validation | Must | Full | The validator must report every Lua reserved word (Lua 5.1–5.4 union, incl. `goto`) as a keyword, so the platform blocks renaming an identifier to a reserved word. |
+| REFACT-05-02 | Identifier Validation | Must | Full | The validator must report a string as a valid identifier iff it matches the ASCII Lua identifier grammar `^[A-Za-z_][A-Za-z0-9_]*$` **and** is not a reserved word. |
 
 ## Behaviour Contract
 
