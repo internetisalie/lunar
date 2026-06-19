@@ -35,5 +35,5 @@ folders:
 ## Phase 3: Verification [Must]
 **Goal**: Prove the bug is resolved via unit testing.
 
-1.  **Run Lexer/Parser Tests**: Ensure `LuaCatsParsingTest` passes and add a new test case asserting `---@return number, string` creates two `LuaCatsReturnTypeDescriptor` elements without `PsiErrorElement`.
+1.  **Run Lexer/Parser Tests**: Ensure `LuaCatsParserTest` passes and add a new test case asserting `---@return number, string` creates two `LuaCatsReturnTypeDescriptor` elements without `PsiErrorElement`.
 2.  **Run Type Inference Tests**: Add a test asserting `local a, b = fn()` correctly infers `a` as `number` and `b` as `string` when using the comma-separated return tag.

@@ -42,6 +42,7 @@ Given a function annotated with `---@return string, number`, the parser should i
 | # | Requirement | Given (input) | When (action) | Then (expected) |
 |---|-------------|---------------|---------------|-----------------|
 | 1 | BUG-134-01 | `---@return string id, boolean status` | Parser processes the LuaCATS comment | AST contains `LuaCatsReturnTag` with two `LuaCatsReturnTypeDescriptor` elements |
+| 3 | BUG-134-02 | `---@return string id # The user id, boolean status` | Parser processes the LuaCATS comment | AST `LuaCatsReturnTypeDescriptor` elements properly encapsulate the `argName` and `description` |
 | 2 | BUG-134-03 | `local a, b = myFunc()` where `myFunc` has `---@return number, string` | User checks inferred types of `a` and `b` | `a` is inferred as `number`, `b` is inferred as `string` |
 
 ## Acceptance Criteria
