@@ -18,6 +18,7 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 | [`ROCKS-02`](02-package-browser/requirements.md) | **Package Browser** | **S** | **Not Implemented** | Remote search and repository exploration (split-view). |
 | [`ROCKS-03`](03-dependency-resolution/requirements.md) | **Dependency Resolution** | **M** | **Not Implemented** | Hierarchical tree view and conflict detection. |
 | [`ROCKS-04`](04-task-execution/requirements.md) | **Task Execution & Run Configurations** | **M** | **Not Implemented** | Target-based command execution (similar to Maven/Makefile). |
+| [`ROCKS-05`](05-module-resolution/requirements.md) | **Rockspec Module Resolution** | **S** | **Not Implemented** | Derive source-path patterns from rockspec `build.modules` for require resolution, completion, and indexing. |
 | `ROCKS-08` | **Publishing & Lifecycle** | **C** | **Not Implemented** | Wizard for versioning and remote uploads. |
 
 ---
