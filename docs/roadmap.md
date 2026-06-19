@@ -218,7 +218,7 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| BUG-134 | `@return` Comma Parsing | todo | H | — | — | ✓ |
+| BUG-134 | `@return` Comma Parsing | planned | H | — | — | ✓ |
 | BUG-132 | Duplicate Problems Reporting | todo | M | — | — | ✓ |
 | BUG-133 | Union Inlay Hints (OR) | todo | M | — | — | ✓ |
 | BUG-135 | Stdlib Inlay Hints | todo | M | — | — | ✓ |
