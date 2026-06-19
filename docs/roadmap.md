@@ -207,30 +207,30 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| COMP-05 | Parameter Name Hints | planned | S | — | — | ✓ |
+| COMP-05 | Parameter Name Hints | todo | S | — | — | ✓ |
 | RUN-05 | Test Runner Integration | todo | S | RUN-02 *(Run Configs)* | — | ✓ |
-| FORMAT-07 | Stylua Compatibility | planned | S | FORMAT-03..06 *(Formatter)* | — | Serial: formatter |
-| TYPE-08 | Flow-Sensitive Analysis | planned | C | TYPE-01 *(Type engine)* | — | Serial: type-engine |
-| DOC-06-04 | Full-Text Documentation Search | planned | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
-| SYNTAX-09 | Lua 5.5 Support | deferred | C | language unreleased | — | — |
+| FORMAT-07 | Stylua Compatibility | todo | S | FORMAT-03..06 *(Formatter)* | — | Serial: formatter |
+| TYPE-08 | Flow-Sensitive Analysis | todo | C | TYPE-01 *(Type engine)* | — | Serial: type-engine |
+| DOC-06-04 | Full-Text Documentation Search | todo | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
+| SYNTAX-09 | Lua 5.5 Support | todo | C | language unreleased | — | — |
 
 ## Wave 13 — Internal & maintenance  *(invisible to users; address opportunistically)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| BUG-134 | `@return` Comma Parsing | planned | H | — | — | ✓ |
-| BUG-132 | Duplicate Problems Reporting | planned | M | — | — | ✓ |
-| BUG-133 | Union Inlay Hints (OR) | planned | M | — | — | ✓ |
-| BUG-135 | Stdlib Inlay Hints | planned | M | — | — | ✓ |
-| BUG-349 | Flaky Inlay Hint Tests | planned | M | — | — | ✓ |
-| MAINT-XX| Test Coverage Improvement | planned | H | — | — | ✓ |
-| MAINT-01| Kotlin Conversion | planned | M | — | — | ✓ |
-| MAINT-02| Label Refactoring | planned | M | — | — | ✓ |
-| MAINT-06| LuaCATS Literal Highlighting | planned | M | — | — | ✓ |
-| MAINT-07| Interpreter Search Path Globs | planned | M | — | — | ✓ |
-| MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
-| MAINT-08| LuaCheck UI Grouping | planned | L | — | — | ✓ |
-| MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
+| BUG-134 | `@return` Comma Parsing | todo | H | — | — | ✓ |
+| BUG-132 | Duplicate Problems Reporting | todo | M | — | — | ✓ |
+| BUG-133 | Union Inlay Hints (OR) | todo | M | — | — | ✓ |
+| BUG-135 | Stdlib Inlay Hints | todo | M | — | — | ✓ |
+| BUG-349 | Flaky Inlay Hint Tests | todo | M | — | — | ✓ |
+| MAINT-XX| Test Coverage Improvement | todo | H | — | — | ✓ |
+| MAINT-01| Kotlin Conversion | todo | M | — | — | ✓ |
+| MAINT-02| Label Refactoring | todo | M | — | — | ✓ |
+| MAINT-06| LuaCATS Literal Highlighting | todo | M | — | — | ✓ |
+| MAINT-07| Interpreter Search Path Globs | todo | M | — | — | ✓ |
+| MAINT-03| Deprecation Cleanup | todo | L | — | — | ✓ |
+| MAINT-08| LuaCheck UI Grouping | todo | L | — | — | ✓ |
+| MAINT-15| Remove Legacy Annotators | todo | L | — | — | ✓ |
 
 ---
 
