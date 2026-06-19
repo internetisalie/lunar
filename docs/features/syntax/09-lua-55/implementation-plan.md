@@ -2,7 +2,7 @@
 id: "SYNTAX-09-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "todo"
+status: "planned"
 parent_id: "SYNTAX-09"
 folders:
   - "[[features/syntax/09-lua-55/requirements|requirements]]"

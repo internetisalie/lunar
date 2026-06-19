@@ -2,7 +2,7 @@
 id: "SYNTAX-09-QA"
 title: "Verification Checklist"
 type: "qa"
-status: "todo"
+status: "planned"
 parent_id: "SYNTAX-09"
 folders:
   - "[[features/syntax/09-lua-55/requirements|requirements]]"
