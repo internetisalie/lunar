@@ -212,7 +212,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | FORMAT-07 | Stylua Compatibility | todo | S | FORMAT-03..06 *(Formatter)* | — | Serial: formatter |
 | TYPE-08 | Flow-Sensitive Analysis | todo | C | TYPE-01 *(Type engine)* | — | Serial: type-engine |
 | DOC-06-04 | Full-Text Documentation Search | todo | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
-| SYNTAX-09 | Lua 5.5 Support | todo | C | language unreleased | — | — |
+| SYNTAX-09 | Lua 5.5 Support | planned | C | language unreleased | — | — |
 
 ## Wave 13 — Internal & maintenance  *(invisible to users; address opportunistically)*
 
