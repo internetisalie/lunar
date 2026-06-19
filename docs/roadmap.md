@@ -10,6 +10,12 @@ folders:
 
 # Project Roadmap
 
+## Taxonomy
+- **Wave**: A sequential phase of execution.
+- **Epic**: A high-level grouping (e.g., `COMP`).
+- **Feature**: The deliverable unit (e.g., `COMP-01`).
+- **Story**: An atomic task within a Feature.
+
 > **This doc's durable value is the ordering and dependency edges — not the `Status` column.**
 > Live per-feature status lives in each feature's `requirements.md` front-matter, aggregated into
 > [status.md](status.md) by `scripts/gen_status.py`; that is canonical, so treat the `Status`
