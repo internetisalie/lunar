@@ -2,7 +2,7 @@
 id: "SYNTAX-09-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
+status: "todo"
 parent_id: "SYNTAX-09"
 folders:
   - "[[features/syntax/09-lua-55/requirements|requirements]]"
@@ -19,7 +19,7 @@ folders:
 - **Language Level Enum**: Defined in `src/main/kotlin/net/internetisalie/lunar/lang/LuaLanguageLevel.kt`.
 
 ### Target State
-We will *extend* the existing parser and lexer to introduce the new keywords and comment tokens. We will *extend* `LuaLanguageLevelInspection` to cover the new AST nodes.
+We will *extend* the existing parser and lexer to introduce the `global` keyword. We will *extend* `LuaLanguageLevelInspection` to cover the new AST nodes. **Note:** the `//` token is integer division (`INTDIV`), not a comment — Lua 5.5 does not change comment syntax. See [research.md](research.md).
 
 ## 2. Core Components
 
@@ -29,10 +29,9 @@ We will *extend* the existing parser and lexer to introduce the new keywords and
   Add `LUA55(5, 5)` to the `LuaLanguageLevel` enum. Update `Target.kt`'s `getImplicitLanguageLevel()` to map `version.label == "5.5"` to `LUA55`. Ensure `PlatformVersionRegistry.kt` uses `LUA55` for version `5.5` instead of `LUA54`.
 
 ### 2.2 Lexer (`lua.flex`)
-- **Responsibility**: Tokenize the `global` keyword and `//` comments.
+- **Responsibility**: Tokenize the `global` keyword.
 - **Key API**:
   Add `"global" { return GLOBAL; }` under Keywords.
-  Add `"//" { yypushback(yytext().length()); yybegin( XSHORTCOMMENT ); return advance(); }` next to the `--+` rule.
 
 ### 2.3 Parser (`lua.bnf`)
 - **Responsibility**: Define the grammar for global variable declarations.
@@ -65,15 +64,6 @@ We will *extend* the existing parser and lexer to introduce the new keywords and
       }
   }
   ```
-  Extend `visitElement()` to inspect `SHORTCOMMENT` elements containing `//`:
-  ```kotlin
-  if (o.node.elementType == LuaTokenTypes.SHORTCOMMENT && o.text.startsWith("//")) {
-      if (level(o) < LuaLanguageLevel.LUA55) {
-          holder.registerProblem(o, "Single-line comments starting with '//' are available in Lua 5.5+",
-              UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55))
-      }
-  }
-  ```
 
 
 ### 2.5 `LuaFile.kt` and `LuaBlockExt.kt`
@@ -99,8 +89,10 @@ N/A. This modifies internal IDE PSI structures.
 |-------------|----------|--------------------------|
 | SYNTAX-09-01 | M | §2.1 |
 | SYNTAX-09-02 | M | §2.2, §2.3, §2.5 |
-| SYNTAX-09-03 | M | §2.2 |
 | SYNTAX-09-04 | M | §2.4 |
 
 ## 6. Open Questions
-_None — feature has cleared the planning bar._
+- What is the exact syntax for named vararg tables? (Needs reference manual deep-dive.)
+- Does `global` have block-scoping semantics or is it always file-scoped?
+- What are the full token pipeline requirements (`LuaTokenTypes.java` entry, `LuaLexer.kt` mapping, `LuaStubElementTypes` factory)?
+- Does `LuaGlobalVarDecl` require a `StubElementType` for cross-file resolution?
