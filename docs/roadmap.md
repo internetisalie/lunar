@@ -1,6 +1,6 @@
 ---
-id: "EXECUTION-ORDER"
-title: "Backlog Execution Order"
+id: "ROADMAP"
+title: "Project Roadmap"
 type: "guide"
 status: "done"
 priority: "high"
@@ -8,7 +8,7 @@ folders:
   - "[[features]]"
 ---
 
-# Backlog Execution Order
+# Project Roadmap
 
 > **This doc's durable value is the ordering and dependency edges — not the `Status` column.**
 > Live per-feature status lives in each feature's `requirements.md` front-matter, aggregated into
@@ -168,7 +168,6 @@ bug and gave the type inspections false confidence until this session's coverage
 | RUN-03 | Interactive console (REPL) | done | L | — | — | new `run/console/` pkg: `LuaConsoleRunner`/`View`/`ExecuteHandler` + `LuaChunkCompletion` trial-parse multi-line + history; live REPL behavior pending a VNC pass |
 | SYNTAX-07 (tail) | Remaining inlay-hint sub-items | done | L | — | — | 07-07/09/11 were already implemented in code; reconciled stale doc rows |
 | SYNTAX-05 / SYNTAX-15 | Method separators / lexer optimization | done | L | — | — | SYNTAX-05 `LuaMethodSeparatorProvider`; SYNTAX-15 already satisfied (lexer is state-based — no churn) |
-| — | Lua 5.5 support (SYNTAX-09) | deferred | — | language unreleased | — | — |
 
 ## Wave 10 — New feature areas  *(two independent tracks — run A and B concurrently)*
 
@@ -204,12 +203,34 @@ bug and gave the type inspections false confidence until this session's coverage
 | ROCKS-01 | Project initialization | done | **READY** after `LuaIcons.ROCKET` (standalone; `DirectoryProjectGenerator`) | — | — |
 | ROCKS-08 | Publishing (Could) | done | **fix-first**: 9-line stub — rename pkg `lang.rocks`→`rocks.publish`, `PasswordSafe` key, `<action>` reg, reuse `LuaRocksSettings`; defer to last | — | — |
 
-## Wave 11 — Internal & maintenance  *(invisible to users; address opportunistically)*
+## Wave 12 — Backlog & Future Enhancements *(parallel-safe; deferred or unprioritized)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| BUG (set) | Edge cases: union inlay hints, `@return` parsing, flaky tests | planned | M/S | — | — | ✓ opportunistic |
-| MAINT (set) | Kotlin conversion, legacy annotator removal, deprecation cleanup | planned | M/S | — | — | mixed |
+| COMP-05 | Parameter Name Hints | planned | S | — | — | ✓ |
+| RUN-05 | Test Runner Integration | todo | S | RUN-02 *(Run Configs)* | — | ✓ |
+| FORMAT-07 | Stylua Compatibility | planned | S | FORMAT-03..06 *(Formatter)* | — | Serial: formatter |
+| TYPE-08 | Flow-Sensitive Analysis | planned | C | TYPE-01 *(Type engine)* | — | Serial: type-engine |
+| DOC-06-04 | Full-Text Documentation Search | planned | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
+| SYNTAX-09 | Lua 5.5 Support | deferred | C | language unreleased | — | — |
+
+## Wave 13 — Internal & maintenance  *(invisible to users; address opportunistically)*
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| BUG-134 | `@return` Comma Parsing | planned | H | — | — | ✓ |
+| BUG-132 | Duplicate Problems Reporting | planned | M | — | — | ✓ |
+| BUG-133 | Union Inlay Hints (OR) | planned | M | — | — | ✓ |
+| BUG-135 | Stdlib Inlay Hints | planned | M | — | — | ✓ |
+| BUG-349 | Flaky Inlay Hint Tests | planned | M | — | — | ✓ |
+| MAINT-XX| Test Coverage Improvement | planned | H | — | — | ✓ |
+| MAINT-01| Kotlin Conversion | planned | M | — | — | ✓ |
+| MAINT-02| Label Refactoring | planned | M | — | — | ✓ |
+| MAINT-06| LuaCATS Literal Highlighting | planned | M | — | — | ✓ |
+| MAINT-07| Interpreter Search Path Globs | planned | M | — | — | ✓ |
+| MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
+| MAINT-08| LuaCheck UI Grouping | planned | L | — | — | ✓ |
+| MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
 
 ---
 
@@ -241,7 +262,7 @@ Everything else is independent and can start as soon as its wave is reached.
   FORMAT-03..06, shared `LuaFormatBlock`). Concurrent edits in either will conflict.
 - A reasonable concurrent split for Waves 4+: Agent 1 = Wave 4 inspections, Agent 2 = Wave 5 type
   engine (serial within itself), Agent 3 = Wave 6 completion polish; the Wave 7 formatter is its own
-  serial cluster. Waves 8–11 slot in as capacity frees; TOOL and ROCKS (Wave 10) are independent.
+  serial cluster. Waves 8–13 slot in as capacity frees; TOOL and ROCKS (Wave 10) are independent.
 
 ## Maintenance
 

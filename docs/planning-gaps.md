@@ -144,14 +144,14 @@ etc.) have **not** had a grounding pass and should get one before their wave beg
 ## Retro design backfill — Wave 6 completion (COMP-06/07/08, 2026-06-15)
 
 COMP-06/07/08 were *implemented and tested* but carried only 22–24-line skeleton `design.md` docs
-(a component name + an XML reg) marked `done` — well below the bar — and `execution-order.md` still
+(a component name + an XML reg) marked `done` — well below the bar — and `roadmap.md` still
 listed them as "spec pending". Backfilled real, source-grounded designs (every symbol read from
-`src/main`, `file:line` cited) and reconciled `execution-order.md`. The backfill surfaced two
+`src/main`, `file:line` cited) and reconciled `roadmap.md`. The backfill surfaced two
 status-overstatements the skeleton "done" had hidden:
 
 - **COMP-06 is actually partial.** `.if` (`LuaIfPostfixTemplate`) is built+tested, but **`.not`
   (COMP-06-02, a `Must`) is NOT implemented**. Design now specifies `LuaNotPostfixTemplate`;
-  execution-order downgraded to `partial`.
+  roadmap downgraded to `partial`.
 - **COMP-07 req↔impl naming drift.** Shipped abbreviations are `fun`/`fori`/`forp`/`loc`, but the
   requirement names `func` and calls `fori` an "ipairs loop" (it is numeric). Documented; needs a
   requirement-text reconcile (not a code change).
@@ -242,5 +242,5 @@ platform source (`~/Documents/src/lua/intellij-community`). Two track-level suba
   consumed by ROCKS-02) is consistent across designs; no drift.
 - **Need a bounded design fix first** (4): TOOL-00 + TOOL-02 (the terminal API rewrite — one shared
   fix covers both), ROCKS-03 (drop stale task + gate the resource relocation), ROCKS-08 (flesh out).
-- **Recommended order** (unchanged from execution-order): **TOOL** `00 → 01 → 02 → 03`;
+- **Recommended order** (unchanged from roadmap): **TOOL** `00 → 01 → 02 → 03`;
   **ROCKS** `04 → {02 ∥ 03} → 01 → 08`. The two tracks are independent and run concurrently.

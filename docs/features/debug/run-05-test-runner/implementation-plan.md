@@ -1,0 +1,137 @@
+---
+id: "RUN-08-PLAN"
+title: "Implementation Plan"
+type: "plan"
+status: "todo"
+parent_id: "RUN-08"
+folders:
+  - "[[features/debug/run-05-test-runner/requirements|requirements]]"
+---
+
+# RUN-08: Implementation Plan
+
+## Phases
+
+### Phase 1: Tool Registration & Foundation [Must]
+- **Goal**: Register `luacov` and `busted` in the tool inventory; create the test run configuration type with editor UI.
+- **Tasks**:
+  - [ ] Add `LUACOV` and `BUSTED` to `LuaToolType` enum in [LuaToolDescriptor.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolDescriptor.kt) — realizes design §7 tool registration table
+  - [ ] Add descriptors to `LuaToolDescriptor.DESCRIPTORS` — realizes design §7 tool registration table
+  - [ ] Add `inferType()` and `displayNameFor()` cases in [LuaToolManager.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolManager.kt) — realizes design §7 tool registration table
+  - [ ] Add version patterns/flags in [LuaToolValidator.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolValidator.kt) — realizes design §7 tool registration table
+  - [ ] Create `LuaTestRunConfigurationType` — realizes design §2.1
+  - [ ] Create `LuaTestRunConfigurationFactory` — realizes design §2.2
+  - [ ] Create `LuaTestRunConfigurationOptions` — realizes design §2.3
+  - [ ] Create `LuaTestRunConfiguration` — realizes design §2.4
+  - [ ] Create `LuaTestSettingsEditor` — realizes design §2.12
+  - [ ] Register `<configurationType>` in `plugin.xml` — realizes design §7
+- **Exit criteria**: `./gradlew test` green; "Lua Tests" appears in Run Configurations dialog; user can fill in framework/target/interpreter fields and save; `busted` and `luacov` auto-discovered in Tool settings.
+
+### Phase 2: Test Execution & SMTestRunner [Must]
+- **Goal**: Execute Busted/Lunity tests and display results in the IntelliJ Test Results window.
+- **Tasks**:
+  - [ ] Create `LuaTestCommandLineState` with `buildCommandLine()` — realizes design §2.5, §3.1
+  - [ ] Create `LuaTestConsoleProperties` — realizes design §2.6
+  - [ ] Create `LuaTestOutputToEventsConverter` with Busted JSON parsing — realizes design §2.7, §3.2
+  - [ ] Add Lunity JSON line parsing to `LuaTestOutputToEventsConverter` — realizes design §2.7, §3.3
+  - [ ] Create `LuaTestFramework` enum — realizes design §2.4
+- **Exit criteria**: Running a Busted test file populates the Test Results tree with pass/fail/ignore nodes; Lunity JSON output similarly parsed; raw output falls back to console on parse failure. Covers TC #1, TC #2, TC #3.
+
+### Phase 3: Test Navigation & Gutter Icons [Should]
+- **Goal**: Navigate from test results to source; show gutter run icons on test declarations.
+- **Tasks**:
+  - [ ] Create `LuaTestLocator` — realizes design §2.8, §3.4
+  - [ ] Create `LuaTestRunConfigurationProducer` — realizes design §2.9, §3.5
+  - [ ] Create `LuaTestRunLineMarkerProvider` — realizes design §2.10, §3.6
+  - [ ] Register `<runConfigurationProducer>` and `<runLineMarkerContributor>` in `plugin.xml` — realizes design §7
+- **Exit criteria**: Clicking a test node navigates to source; right-clicking a test file offers "Run Lua Tests"; gutter Play icons appear next to `describe`/`it`/`test_` declarations. Covers TC #4, TC #5.
+
+### Phase 4: Rerun Failed Tests [Should]
+- **Goal**: Rerun only failed tests from the previous run.
+- **Tasks**:
+  - [ ] Create `LuaRerunFailedTestsAction` — realizes design §2.11, §3.7
+  - [ ] Wire into `LuaTestConsoleProperties` via `createRerunFailedTestsAction()`
+- **Exit criteria**: After a test run with failures, "Rerun Failed Tests" button re-executes only the failed test names.
+
+### Phase 5: Coverage Engine [Should]
+- **Goal**: Integrate with IntelliJ Coverage framework; parse `luacov` output; display gutter indicators.
+- **Tasks**:
+  - [ ] Create `LuaCoverageEngine` — realizes design §2.13
+  - [ ] Create `LuaCoverageRunner` with stats/report parsing dispatch — realizes design §2.14, §3.8
+  - [ ] Create `LuaCoverageAnnotator` — realizes design §2.15
+  - [ ] Create `LuaCoverageProgramRunner` — realizes design §2.16, §3.9
+  - [ ] Create `LuaCovStatsParser` — realizes design §2.19, §3.13
+  - [ ] Create `LuaCovReportParser` with state machine — realizes design §2.18, §3.11, §3.12
+  - [ ] Register `<coverageEngine>`, `<coverageRunner>`, `<programRunner>`, `<projectService>` in `plugin.xml` — realizes design §7
+- **Exit criteria**: "Run with Coverage" on a Lua test config collects `luacov` data and shows green/red gutter markers. Missing `luacov` triggers balloon notification. Covers TC #6, TC #7.
+
+### Phase 6: Coverage Import & Report Viewer [Should/Could]
+- **Goal**: Import existing report files; custom syntax highlighting and editor banner for `luacov.report.out`.
+- **Tasks**:
+  - [ ] Create `LuaCovReportImportAction` — realizes design §2.17, §3.10
+  - [ ] Register action in `plugin.xml` under `AnalyzeMenu` — realizes design §7
+  - [ ] Create `LuaCovReportLanguage` — realizes design §2.20
+  - [ ] Create `LuaCovReportFileType` — realizes design §2.21
+  - [ ] Create `LuaCovReportLexer` — realizes design §2.22
+  - [ ] Create `LuaCovReportHighlight` — realizes design §2.24
+  - [ ] Create `LuaCovReportSyntaxHighlighter` — realizes design §2.23
+  - [ ] Create `LuaCovReportSyntaxHighlighterFactory` — realizes design §2.27
+  - [ ] Create `LuaCovReportEditorHighlighterProvider` + `LuaCovReportEditorHighlighter` — realizes design §2.25
+  - [ ] Create `LuaCovReportNotificationProvider` — realizes design §2.26
+  - [ ] Register `<fileType>`, `<lang.syntaxHighlighterFactory>`, `<editorHighlighterProvider>`, `<editorNotificationProvider>` in `plugin.xml` — realizes design §7
+- **Exit criteria**: User can import a `luacov.report.out` via Analyze menu; opening a `luacov.report.out` shows colored hit prefixes with embedded Lua highlighting and a banner offering to load coverage. Covers TC #8, TC #9.
+
+### Phase 7: Assertion Diff Viewer [Could]
+- **Goal**: Parse assertion messages to show IntelliJ's comparative diff viewer.
+- **Tasks**:
+  - [ ] Implement assertion diff parsing in `LuaTestOutputToEventsConverter` — realizes design §3.14
+  - [ ] Wire `testFailed` with `expected`/`actual` parameters when diff parsed
+- **Exit criteria**: A Busted assertion failure `"Expected 4 but got 5"` shows the diff viewer button in the test results panel.
+
+## Requirement → Phase Coverage
+
+| Requirement | Priority | Delivered in |
+|-------------|----------|--------------|
+| RUN-08-01 | M | Phase 1 |
+| RUN-08-02 | M | Phase 2 |
+| RUN-08-03 | M | Phase 2 |
+| RUN-08-04 | M | Phase 2 |
+| RUN-08-05 | M | Phase 2 |
+| RUN-08-06 | M | Phase 2 |
+| RUN-08-07 | S | Phase 3 |
+| RUN-08-08 | S | Phase 3 |
+| RUN-08-09 | S | Phase 4 |
+| RUN-08-10 | C | Phase 7 |
+| RUN-08-11 | S | Phase 5 |
+| RUN-08-12 | S | Phase 5 |
+| RUN-08-13 | S | Phase 5 |
+| RUN-08-14 | S | Phase 1 |
+| RUN-08-15 | S | Phase 5 |
+| RUN-08-16 | S | Phase 6 |
+| RUN-08-17 | C | Phase 6 |
+| RUN-08-18 | C | Phase 6 |
+
+## Verification Tasks
+
+- [ ] Unit tests for `LuaCovStatsParser` — covers TC #6 (stats file parsing)
+- [ ] Unit tests for `LuaCovReportParser` — covers TC #8 (report file parsing)
+- [ ] Unit tests for Lunity JSON line parsing — covers TC #1, TC #2
+- [ ] Unit tests for Busted JSON output parsing — covers TC #1, TC #2
+- [ ] Unit tests for `LuaTestLocator` URL resolution — covers TC #4
+- [ ] Unit tests for `LuaTestRunConfigurationProducer` context detection — covers TC #5
+- [ ] Unit tests for `LuaTestRunLineMarkerProvider` gutter detection — covers TC #5
+- [ ] Unit tests for assertion diff parsing — covers RUN-08-10
+- [ ] Integration test: create and execute a "Lua Tests" config — covers TC #3
+- [ ] Manual verification: run `human-verification-checklists.md` scenarios
+
+## Task Summary
+
+| Phase | Status | Priority |
+|-------|--------|----------|
+| Phase 1: Tool Registration & Foundation | todo | Must |
+| Phase 2: Test Execution & SMTestRunner | todo | Must |
+| Phase 3: Test Navigation & Gutter Icons | todo | Should |
+| Phase 4: Rerun Failed Tests | todo | Should |
+| Phase 5: Coverage Engine | todo | Should |
+| Phase 6: Coverage Import & Report Viewer | todo | Should/Could |
+| Phase 7: Assertion Diff Viewer | todo | Could |
