@@ -10,25 +10,50 @@ folders:
 
 # Implementation Plan: SYNTAX-09 — Lua 5.5 Support
 
-## Phase 1: Core Configuration and Lexing [Must]
-**Goal**: Introduce the Lua 5.5 level and parse basic tokens.
+## Phase 1: Language Level & Token Pipeline [Must]
 
-1.  Update `LuaLanguageLevel.kt`, `Target.kt`, and `LuaProjectSettings.kt` to include `LUA55`.
-2.  Update `lua.flex` to recognize the `global` keyword and `//` comments.
-3.  Rebuild lexer.
+**Goal**: Define LUA55 and make `global` lex as a keyword.
 
-## Phase 2: Grammar and AST [Must]
-**Goal**: Allow `globalVarDecl` to be successfully integrated into the AST.
+1. Add `LUA55(5, 5)` to `LuaLanguageLevel.kt`.
+2. Update `Target.kt:43` to map `"5.5"` to `LUA55`.
+3. Add `LUA55` migration branch in `LuaProjectSettings.kt:69-81`.
+4. Update `LuaInterpreter.kt:109-116` leveler: `version.startsWith("5.5") -> LuaLanguageLevel.LUA55`.
+5. Add `IElementType GLOBAL = new LuaElementType("global")` to `LuaTokenTypes.java`.
+6. Add `"global" { return GLOBAL; }` between `"function"` and `"goto"` in `lua.flex`.
+7. Add `LuaTokenTypes.GLOBAL to LuaElementTypes.GLOBAL` between `FUNCTION` and `GOTO` in `LuaLexer.kt`.
+8. Rebuild lexer: `./gradlew generateLuaLexer`.
+9. Add lexer test in `TestLuaLexerExhaustive` for `global` token.
 
-1.  Update `lua.bnf` to include the `GLOBAL` keyword and `globalVarDecl` statement definition.
-2.  Run `generateParser` task to build the `LuaGlobalVarDecl` PSI elements.
-3.  Add unit tests in `TestLuaParsingExhaustive` to ensure `global a = 1` and `// comment` parse correctly.
+## Phase 2: Parser & PSI Generation [Must]
 
-## Phase 3: Diagnostics [Must]
-**Goal**: Prevent users from using Lua 5.5 syntax in 5.4 or lower environments.
+**Goal**: Generate `LuaGlobalVarDecl`, `LuaGlobalFuncDecl`, `LuaGlobalModeDecl` nodes.
 
-1.  Modify `LuaLanguageLevelInspection.kt` to flag `LuaGlobalVarDecl` and `//` short comments.
-2.  Add unit tests in `LuaLanguageLevelInspectionTest` to assert that warnings trigger at `LUA54` and clear at `LUA55`.
+1. Add `GLOBAL = 'global'` keyword to `lua.bnf`.
+2. Define `globalVarDecl`, `globalFuncDecl`, `globalModeDecl` grammar rules (see design §2.3).
+3. Run `./gradlew generateLuaParser`.
+4. Add parser tests in `TestLuaParsingExhaustive`:
+   - `global x = 10` → `LuaGlobalVarDecl`, no `PsiErrorElement`.
+   - `global <const> *` → `LuaGlobalModeDecl`, no parse error.
+   - `global function f() return 1 end` → `LuaGlobalFuncDecl`.
 
-## Phase 4: Verification [Must]
-**Goal**: Execute the manual verification checklist.
+## Phase 3: Scope Resolution [Must]
+
+**Goal**: Make `LuaGlobalVarDecl` visible to `LuaNameReference`.
+
+1. Consolidate `LuaFile.processDeclarations` three child-loops into single-pass `when` (see design §2.4a).
+2. Add `LuaGlobalVarDecl` branch in `LuaBlockExt.processDeclarations` `when` (see design §2.4b).
+3. **Unit test**: `global x = 10; print(x)` — verify `print(x)` resolves to `LuaGlobalVarDecl`.
+
+## Phase 4: Inspection [Must]
+
+**Goal**: Warn when `global` is used at language level < LUA55.
+
+1. Add `visitGlobalVarDecl` to `LuaLanguageLevelInspection` using `register()` helper.
+2. Add inspection test in `LuaLanguageLevelInspectionTest`:
+   - At `LUA54`: warning on `global x = 10`.
+   - At `LUA55`: no warning.
+   - Quick fix upgrades level to LUA55.
+
+## Phase 5: Verification [Must]
+
+**Goal**: Manual verification via `human-verification-checklists.md`.

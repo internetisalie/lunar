@@ -10,29 +10,46 @@ folders:
 
 # Human Verification Checklist: SYNTAX-09
 
-## 1. Project Settings Update
-**Purpose**: Verify Lua 5.5 is available to users.
-- [ ] Open the IDE Sandbox.
-- [ ] Navigate to Settings -> Languages & Frameworks -> Lunar (or Lua).
-- [ ] Verify that `5.5` appears as an option in the Language Level dropdown.
+## 1. Language Level Setting
+**Purpose**: Verify Lua 5.5 is selectable in the IDE.
+- [ ] Open the IDE Sandbox (`./gradlew runIde`).
+- [ ] Open Project Settings → Languages & Frameworks → Lunar.
+- [ ] Verify that Platform `Standard` Version `5.5` is available in the dropdown.
+- [ ] Verify that selecting `5.5` updates the Language Level label to `5.5`.
 
-## 2. Syntax Validation (Lua 5.5 Mode)
-**Purpose**: Verify new syntax parses without errors in 5.5 mode.
-- [ ] Set the project language level to `5.5`.
-- [ ] Create a new file `test.lua`.
-- [ ] Enter the following code:
+## 2. Global Variable Syntax (5.5 Mode)
+**Purpose**: Verify `global` syntax parses without errors.
+- [ ] Set project language level to `5.5`.
+- [ ] Create `global_test.lua`.
+- [ ] Enter:
   ```lua
-  // This is a single-line comment
-  global my_new_var = 10
+  global x = 10
+  global y
+  y = 20
+  print(x, y)
   ```
-- [ ] Verify that no syntax errors or red squiggly lines appear.
-- [ ] Verify that `my_new_var` is syntax-highlighted as a declared variable.
+- [ ] Verify no red squiggly lines (syntax errors) appear.
+- [ ] Verify `x` and `y` are resolved as globals (Ctrl+Click / Navigate to Declaration works on `x` in `print(x)`).
 
-## 3. Backward Compatibility Inspection
-**Purpose**: Verify 5.5 syntax throws a warning in older versions.
-- [ ] Change the project language level to `5.4` or lower.
-- [ ] Return to `test.lua`.
-- [ ] Verify that a warning appears under `//` stating: "Single-line comments starting with '//' are available in Lua 5.5+".
-- [ ] Verify that a warning appears under the `global` keyword stating: "Global variable declarations are available in Lua 5.5+".
-- [ ] Press `Alt+Enter` on the warning and execute the "Set project language level to 5.5" quick fix.
-- [ ] Verify the warnings disappear.
+## 3. Global Function Syntax (5.5 Mode)
+**Purpose**: Verify `global function` parses without errors.
+- [ ] Enter:
+  ```lua
+  global function greet(name)
+      return "Hello " .. name
+  end
+  ```
+- [ ] Verify syntax highlighting and code folding work as expected.
+
+## 4. Backward Compatibility Inspection
+**Purpose**: Verify `global` warns at language level < 5.5.
+- [ ] Change project language level to `5.4`.
+- [ ] Verify a warning appears under `global` in `global x = 10`.
+- [ ] Press `Alt+Enter` on the warning and execute "Set project language level to 5.5".
+- [ ] Verify the warning disappears and language level is now 5.5.
+
+## 5. Integer Division Not Broken
+**Purpose**: Verify `//` still works as integer division on all language levels.
+- [ ] At language levels `5.3`, `5.4`, and `5.5`:
+- [ ] Enter `local x = 10 // 3` and verify it parses without error.
+- [ ] Verify no "comment" or "global" warning appears on the `//` token.
