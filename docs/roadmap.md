@@ -209,7 +209,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | ROCKS-01 | Project initialization | done | **READY** after `LuaIcons.ROCKET` (standalone; `DirectoryProjectGenerator`) | — | — |
 | ROCKS-08 | Publishing (Could) | done | **fix-first**: 9-line stub — rename pkg `lang.rocks`→`rocks.publish`, `PasswordSafe` key, `<action>` reg, reuse `LuaRocksSettings`; defer to last | — | — |
 
-## Wave 12 — Backlog & Future Enhancements *(parallel-safe; deferred or unprioritized)*
+## Wave 11 — Backlog & Future Enhancements *(parallel-safe; deferred or unprioritized)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -220,7 +220,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | DOC-06-04 | Full-Text Documentation Search | todo | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
 | SYNTAX-09 | Lua 5.5 Support | planned | C | language unreleased | — | — |
 
-## Wave 13 — Internal & maintenance  *(invisible to users; address opportunistically)*
+## Wave 12 — Internal & maintenance  *(invisible to users; address opportunistically)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -268,7 +268,7 @@ Everything else is independent and can start as soon as its wave is reached.
   FORMAT-03..06, shared `LuaFormatBlock`). Concurrent edits in either will conflict.
 - A reasonable concurrent split for Waves 4+: Agent 1 = Wave 4 inspections, Agent 2 = Wave 5 type
   engine (serial within itself), Agent 3 = Wave 6 completion polish; the Wave 7 formatter is its own
-  serial cluster. Waves 8–13 slot in as capacity frees; TOOL and ROCKS (Wave 10) are independent.
+  serial cluster. Waves 8–12 slot in as capacity frees; TOOL and ROCKS (Wave 10) are independent.
 
 ## Maintenance
 
