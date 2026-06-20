@@ -48,7 +48,7 @@ _None — all design decisions have been resolved in design.md._
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| DR-01 | Prototype `LuaCovReportParser` against real `luacov.report.out` at `~/Documents/Kernel/v0/luacov.report.out` — validate state machine handles all line prefixes correctly | Risk 1.2 | todo |
+| DR-01 | Prototype `LuaCovReportParser` against real `luacov.report.out` at `~/Documents/Kernel/v0/luacov.report.out` — validate state machine handles all line prefixes correctly | Risk 1.2 | done |
 | DR-02 | Run `busted --output=json` on a sample spec file and capture actual JSON output to validate parsing assumptions against real Busted behavior | Risk 1.1 | todo |
 | DR-03 | Create a minimal `LuaCovReportLexer` and test `LayeredLexerEditorHighlighter` with embedded Lua highlighting to validate the layered approach works correctly | Risk 1.4 | todo |
 

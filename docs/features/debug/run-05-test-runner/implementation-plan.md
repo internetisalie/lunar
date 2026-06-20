@@ -56,13 +56,13 @@ folders:
 ### Phase 5: Coverage Engine [Should]
 - **Goal**: Integrate with IntelliJ Coverage framework; parse `luacov` output; display gutter indicators.
 - **Tasks**:
-  - [ ] Create `LuaCoverageEngine` — realizes design §2.13
-  - [ ] Create `LuaCoverageRunner` with stats/report parsing dispatch — realizes design §2.14, §3.8
-  - [ ] Create `LuaCoverageAnnotator` — realizes design §2.15
-  - [ ] Create `LuaCoverageProgramRunner` — realizes design §2.16, §3.9
-  - [ ] Create `LuaCovStatsParser` — realizes design §2.19, §3.13
-  - [ ] Create `LuaCovReportParser` with state machine — realizes design §2.18, §3.11, §3.12
-  - [ ] Register `<coverageEngine>`, `<coverageRunner>`, `<programRunner>`, `<projectService>` in `plugin.xml` — realizes design §7
+  - [x] Create `LuaCoverageEngine` — realizes design §2.13
+  - [x] Create `LuaCoverageRunner` with stats/report parsing dispatch — realizes design §2.14, §3.8
+  - [x] Create `LuaCoverageAnnotator` — realizes design §2.15
+  - [x] Create `LuaCoverageProgramRunner` — realizes design §2.16, §3.9
+  - [x] Create `LuaCovStatsParser` — realizes design §2.19, §3.13
+  - [x] Create `LuaCovReportParser` with state machine — realizes design §2.18, §3.11, §3.12
+  - [x] Register `<coverageEngine>`, `<coverageRunner>`, `<programRunner>`, `<projectService>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: "Run with Coverage" on a Lua test config collects `luacov` data and shows green/red gutter markers. Missing `luacov` triggers balloon notification. Covers TC #6, TC #7.
 
 ### Phase 6: Coverage Import & Report Viewer [Should/Could]
@@ -113,8 +113,8 @@ folders:
 
 ## Verification Tasks
 
-- [ ] Unit tests for `LuaCovStatsParser` — covers TC #6 (stats file parsing)
-- [ ] Unit tests for `LuaCovReportParser` — covers TC #8 (report file parsing)
+- [x] Unit tests for `LuaCovStatsParser` — covers TC #6 (stats file parsing)
+- [x] Unit tests for `LuaCovReportParser` — covers TC #8 (report file parsing)
 - [x] Unit tests for Lunity JSON line parsing — covers TC #1, TC #2, TC #10
 - [x] Unit tests for Busted JSON output parsing — covers TC #11, TC #12
 - [x] Unit tests for `LuaTestCommandLineState.buildCommandLine()` — covers TC #15, TC #16
@@ -134,6 +134,6 @@ folders:
 | Phase 2: Test Execution & SMTestRunner | done | Must |
 | Phase 3: Test Navigation & Gutter Icons | done | Should |
 | Phase 4: Rerun Failed Tests | done | Should |
-| Phase 5: Coverage Engine | todo | Should |
+| Phase 5: Coverage Engine | done | Should |
 | Phase 6: Coverage Import & Report Viewer | todo | Should/Could |
 | Phase 7: Assertion Diff Viewer | todo | Could |

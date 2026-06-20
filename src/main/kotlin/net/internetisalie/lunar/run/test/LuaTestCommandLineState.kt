@@ -71,6 +71,9 @@ class LuaTestCommandLineState(
         }
 
         commandLine.addParameter("--output=json")
+        if (environment.executor.id == "Coverage") {
+            commandLine.addParameter("--coverage")
+        }
         configureBustedTargets(commandLine)
 
         val extraArgs = ParametersListUtil.parse(config.extraTestArguments.orEmpty())
@@ -113,6 +116,9 @@ class LuaTestCommandLineState(
 
         val interpreterArgs = ParametersListUtil.parse(config.interpreterArguments.orEmpty())
         commandLine.addParameters(interpreterArgs)
+        if (environment.executor.id == "Coverage") {
+            commandLine.addParameter("-lluacov")
+        }
 
         val target = config.testTarget.orEmpty()
         if (target.isNotEmpty()) {

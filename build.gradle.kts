@@ -69,6 +69,8 @@ dependencies {
                 .map(String::trim)
                 .filter(String::isNotEmpty)
         )
+        bundledModule("intellij.platform.coverage")
+        bundledModule("intellij.platform.coverage.agent")
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Plugin.Go)
         testFramework(TestFrameworkType.Starter, configurationName = "integrationTestImplementation")

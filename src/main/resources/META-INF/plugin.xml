@@ -20,6 +20,7 @@
   <!-- Product and plugin compatibility requirements.
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
   <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.coverage</depends>
 
   <!-- TOOL-00 de-risking spike: optional dependency on the bundled built-in terminal so the
        terminal PATH-injection customizer only loads when the terminal plugin is present.
@@ -411,6 +412,16 @@
     <runLineMarkerContributor
             language="Lua"
             implementationClass="net.internetisalie.lunar.run.test.LuaTestRunLineMarkerProvider"/>
+
+    <!-- Coverage -->
+    <coverageEngine
+            implementation="net.internetisalie.lunar.coverage.LuaCoverageEngine"/>
+    <coverageRunner
+            implementation="net.internetisalie.lunar.coverage.LuaCoverageRunner"/>
+    <programRunner
+            implementation="net.internetisalie.lunar.coverage.LuaCoverageProgramRunner"/>
+    <projectService
+            serviceImplementation="net.internetisalie.lunar.coverage.LuaCoverageAnnotator"/>
 
     <!-- LuaRocks task execution / run configs (ROCKS-04) -->
     <configurationType
