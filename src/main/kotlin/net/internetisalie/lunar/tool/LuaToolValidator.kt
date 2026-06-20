@@ -44,6 +44,18 @@ object LuaToolValidator {
     private val STYLUA_VERSION = Pattern.compile("""stylua\s+(\S+)""", Pattern.CASE_INSENSITIVE)
 
     /**
+     * Matches: "busted 2.2.0" or just "2.2.0"
+     * Captures: group(1) = version string.
+     */
+    private val BUSTED_VERSION = Pattern.compile("""(?:busted\s+)?(\S+)""", Pattern.CASE_INSENSITIVE)
+
+    /**
+     * Matches: "LuaCov 0.15.0 - coverage analyzer for Lua"
+     * Captures: group(1) = version string.
+     */
+    private val LUACOV_VERSION = Pattern.compile("""LuaCov\s+(\S+)""", Pattern.CASE_INSENSITIVE)
+
+    /**
      * LuaRocks version flag to identify supported Lua interpreter.
      * E.g.: "... for Lua 5.4 ..."
      */
@@ -155,12 +167,16 @@ object LuaToolValidator {
         LuaToolType.LUAROCKS -> LUAROCKS_VERSION
         LuaToolType.LUACHECK -> LUACHECK_VERSION
         LuaToolType.STYLUA   -> STYLUA_VERSION
+        LuaToolType.BUSTED   -> BUSTED_VERSION
+        LuaToolType.LUACOV   -> LUACOV_VERSION
     }
 
     private fun versionFlagFor(type: LuaToolType): String = when (type) {
         LuaToolType.LUAROCKS -> "--version"
         LuaToolType.LUACHECK -> "--version"
         LuaToolType.STYLUA   -> "--version"
+        LuaToolType.BUSTED   -> "--version"
+        LuaToolType.LUACOV   -> "--help"
     }
 
     /** Minimal comparable semantic-version triple for minimum-version checks. */

@@ -210,6 +210,8 @@ class LuaToolManager {
             base == "luarocks" -> LuaToolType.LUAROCKS
             base == "luacheck" -> LuaToolType.LUACHECK
             base == "stylua"   -> LuaToolType.STYLUA
+            base == "luacov"   -> LuaToolType.LUACOV
+            base == "busted"   -> LuaToolType.BUSTED
             else               -> null
         }
     }
@@ -218,6 +220,8 @@ class LuaToolManager {
         LuaToolType.LUAROCKS -> "LuaRocks"
         LuaToolType.LUACHECK -> "luacheck"
         LuaToolType.STYLUA   -> "StyLua"
+        LuaToolType.LUACOV   -> "LuaCov"
+        LuaToolType.BUSTED   -> "Busted"
     }
 
     // ---------------------------------------------------------------------------

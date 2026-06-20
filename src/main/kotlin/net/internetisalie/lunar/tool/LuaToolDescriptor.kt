@@ -20,6 +20,8 @@ enum class LuaToolType {
     LUAROCKS,
     LUACHECK,
     STYLUA,
+    LUACOV,
+    BUSTED,
 }
 
 data class LuaToolDescriptor(val toolType: LuaToolType, private val baseName: String) {
@@ -45,6 +47,8 @@ data class LuaToolDescriptor(val toolType: LuaToolType, private val baseName: St
             LuaToolDescriptor(LuaToolType.LUAROCKS, "luarocks"),
             LuaToolDescriptor(LuaToolType.LUACHECK, "luacheck"),
             LuaToolDescriptor(LuaToolType.STYLUA, "stylua"),
+            LuaToolDescriptor(LuaToolType.LUACOV, "luacov"),
+            LuaToolDescriptor(LuaToolType.BUSTED, "busted"),
         )
     }
 }

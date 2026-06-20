@@ -113,8 +113,24 @@ class LuaToolVersionPatternTest {
             LuaToolType.LUAROCKS to Regex("""LuaRocks\s+(\S+)""", RegexOption.IGNORE_CASE),
             LuaToolType.LUACHECK to Regex("""[Ll]uacheck[:\s]+(\S+)"""),
             LuaToolType.STYLUA   to Regex("""stylua\s+(\S+)""", RegexOption.IGNORE_CASE),
+            LuaToolType.BUSTED   to Regex("""(?:busted\s+)?(\S+)""", RegexOption.IGNORE_CASE),
+            LuaToolType.LUACOV   to Regex("""LuaCov\s+(\S+)""", RegexOption.IGNORE_CASE),
         )
         return patterns[type]?.find(output)?.groupValues?.get(1)
+    }
+
+    @Test
+    fun `busted version matches`() {
+        assertEquals("2.2.0", matchVersion("busted 2.2.0", LuaToolType.BUSTED))
+        assertEquals("2.1.1", matchVersion("2.1.1", LuaToolType.BUSTED))
+    }
+
+    @Test
+    fun `luacov version matches`() {
+        val output = "LuaCov 0.15.0 - coverage analyzer for Lua"
+        val raw = matchVersion(output, LuaToolType.LUACOV)
+        assertNotNull(raw)
+        assertTrue(raw.startsWith("0.15.0"), "Expected version to start with '0.15.0', got '$raw'")
     }
 
     @Test

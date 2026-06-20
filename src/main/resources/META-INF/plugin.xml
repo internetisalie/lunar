@@ -404,6 +404,8 @@
 
     <configurationType
             implementation="net.internetisalie.lunar.run.LuaRunConfigurationType"/>
+    <configurationType
+            implementation="net.internetisalie.lunar.run.test.LuaTestRunConfigurationType"/>
 
     <!-- LuaRocks task execution / run configs (ROCKS-04) -->
     <configurationType

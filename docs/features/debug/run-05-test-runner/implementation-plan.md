@@ -2,7 +2,7 @@
 id: "RUN-08-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "todo"
+status: "in_progress"
 parent_id: "RUN-08"
 folders:
   - "[[features/debug/run-05-test-runner/requirements|requirements]]"
@@ -15,16 +15,16 @@ folders:
 ### Phase 1: Tool Registration & Foundation [Must]
 - **Goal**: Register `luacov` and `busted` in the tool inventory; create the test run configuration type with editor UI.
 - **Tasks**:
-  - [ ] Add `LUACOV` and `BUSTED` to `LuaToolType` enum in [LuaToolDescriptor.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolDescriptor.kt) — realizes design §7 tool registration table
-  - [ ] Add descriptors to `LuaToolDescriptor.DESCRIPTORS` — realizes design §7 tool registration table
-  - [ ] Add `inferType()` and `displayNameFor()` cases in [LuaToolManager.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolManager.kt) — realizes design §7 tool registration table
-  - [ ] Add version patterns/flags in [LuaToolValidator.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolValidator.kt) — realizes design §7 tool registration table
-  - [ ] Create `LuaTestRunConfigurationType` — realizes design §2.1
-  - [ ] Create `LuaTestRunConfigurationFactory` — realizes design §2.2
-  - [ ] Create `LuaTestRunConfigurationOptions` — realizes design §2.3
-  - [ ] Create `LuaTestRunConfiguration` — realizes design §2.4
-  - [ ] Create `LuaTestSettingsEditor` — realizes design §2.12
-  - [ ] Register `<configurationType>` in `plugin.xml` — realizes design §7
+  - [x] Add `LUACOV` and `BUSTED` to `LuaToolType` enum in [LuaToolDescriptor.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolDescriptor.kt) — realizes design §7 tool registration table
+  - [x] Add descriptors to `LuaToolDescriptor.DESCRIPTORS` — realizes design §7 tool registration table
+  - [x] Add `inferType()` and `displayNameFor()` cases in [LuaToolManager.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolManager.kt) — realizes design §7 tool registration table
+  - [x] Add version patterns/flags in [LuaToolValidator.kt](file:///home/mini/Documents/src/lua/lunar/src/main/kotlin/net/internetisalie/lunar/tool/LuaToolValidator.kt) — realizes design §7 tool registration table
+  - [x] Create `LuaTestRunConfigurationType` — realizes design §2.1
+  - [x] Create `LuaTestRunConfigurationFactory` — realizes design §2.2
+  - [x] Create `LuaTestRunConfigurationOptions` — realizes design §2.3
+  - [x] Create `LuaTestRunConfiguration` — realizes design §2.4
+  - [x] Create `LuaTestSettingsEditor` — realizes design §2.12
+  - [x] Register `<configurationType>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: `./gradlew test` green; "Lua Tests" appears in Run Configurations dialog; user can fill in framework/target/interpreter fields and save; `busted` and `luacov` auto-discovered in Tool settings.
 
 ### Phase 2: Test Execution & SMTestRunner [Must]
@@ -130,7 +130,7 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Tool Registration & Foundation | todo | Must |
+| Phase 1: Tool Registration & Foundation | done | Must |
 | Phase 2: Test Execution & SMTestRunner | todo | Must |
 | Phase 3: Test Navigation & Gutter Icons | todo | Should |
 | Phase 4: Rerun Failed Tests | todo | Should |

@@ -2,7 +2,7 @@
 id: "RUN-08"
 title: "RUN-08: Lua Test Runner Integration"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "DEBUG/RUN"
 folders:
@@ -34,26 +34,26 @@ Lunar provides a unified, user-facing test runner that integrates with the stand
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| RUN-08-01 | **Test Run Configuration** | M | Provide a new Run Configuration Type "Lua Tests" with fields for Test Framework (Busted, Lunity), Test Target (Directory, File, or Test Name Pattern), SDK/Interpreter, Working Directory, Env Variables, and Extra Arguments. |
-| RUN-08-02 | **Process Execution** | M | Execute the test process using the selected Lua SDK interpreter or local `busted` binary with appropriate arguments. |
-| RUN-08-03 | **SMTestRunner Event Translation** | M | Parse stdout/stderr stream from the test execution process in real-time and translate it into IntelliJ IDE test runner events. |
-| RUN-08-04 | **Lunity JSON Protocol Support** | M | Specifically support parsing JSON-line output from a custom-built Lunity framework run, mapping JSON fields to suite/test life cycle and results. |
-| RUN-08-05 | **Busted Protocol Support** | M | Support parsing Busted test output. The integration should preferably use Busted's built-in JSON output formatter or TeamCity service message formatter (if available) to ensure reliable parse results. |
-| RUN-08-06 | **Test Tree Visualization** | M | Display nested test suites (e.g., `describe`/`context` blocks in Busted, or test groups in Lunity) as a hierarchical tree inside the Test Results window. |
-| RUN-08-07 | **Navigation to Code** | S | Resolve test names/locations to direct source code lines. Clicking on a test node should jump to the `it(...)` or test function declaration in the editor. |
-| RUN-08-08 | **Gutter Run/Debug Producers** | S | Register a `RunConfigurationProducer` that detects tests in files and adds run/debug gutter icons next to Busted `describe`/`it` calls and Lunity test functions. |
-| RUN-08-09 | **Rerun Failed Tests** | S | Implement `AbstractRerunFailedTestsAction` to extract failed test names and execute only those failed tests. |
-| RUN-08-10 | **Failure Diffs** | C | For assertions comparing expected vs. actual values, parse the assertion message to display IntelliJ's comparative diff viewer dialog. |
-| RUN-08-11 | **Coverage Execution** | S | Provide a "Run with Coverage" runner that automatically executes tests with the `luacov` module loaded (e.g., via `-lluacov` argument or loading it in a custom runner helper). |
-| RUN-08-12 | **Coverage Stats/Report Parsing** | S | Parse the `luacov.stats.out` and/or `luacov.report.out` files produced by the test run to extract line execution hit counts for each Lua source file. |
-| RUN-08-13 | **Standard Coverage UI Rendering** | S | Integrate with the IntelliJ Coverage engine API to display file coverage statistics (percentages) in the project tree and colored gutter indicators (green/red line overlays) in the editor. |
-| RUN-08-14 | **Luacov Tool Discovery** | S | Register `luacov` command in the Tool Inventory Management (`TOOL`) registry, allowing auto-discovery in local/system paths and custom overrides. |
-| RUN-08-15 | **LuaRocks Coverage Installation** | S | Surface a balloon notification with a quick link to execute `luarocks install luacov` if `luacov` cannot be located when starting a Coverage run. |
-| RUN-08-16 | **Import Luacov Report File** | S | Provide a user action to import/select an existing `luacov.report.out` file, parsing its contents to render coverage highlights directly onto the project's source files in the editor. |
-| RUN-08-17 | **Report Editor Syntax Highlighting** | C | Provide custom syntax highlighting for opened `luacov.report.out` files, showing execution count prefixes in distinct colors (red/green) and syntax-highlighting the code portion as Lua. |
-| RUN-08-18 | **Coverage Editor Banner Action** | C | Display an action banner at the top of the editor when opening `luacov.report.out` files, offering a one-click action to load/import the coverage overlays onto project source files. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| RUN-08-01 | **Test Run Configuration** | M | Partial | Provide a new Run Configuration Type "Lua Tests" with fields for Test Framework (Busted, Lunity), Test Target (Directory, File, or Test Name Pattern), SDK/Interpreter, Working Directory, Env Variables, and Extra Arguments. |
+| RUN-08-02 | **Process Execution** | M | Not Implemented | Execute the test process using the selected Lua SDK interpreter or local `busted` binary with appropriate arguments. |
+| RUN-08-03 | **SMTestRunner Event Translation** | M | Not Implemented | Parse stdout/stderr stream from the test execution process in real-time and translate it into IntelliJ IDE test runner events. |
+| RUN-08-04 | **Lunity JSON Protocol Support** | M | Not Implemented | Specifically support parsing JSON-line output from a custom-built Lunity framework run, mapping JSON fields to suite/test life cycle and results. |
+| RUN-08-05 | **Busted Protocol Support** | M | Not Implemented | Support parsing Busted test output. The integration should preferably use Busted's built-in JSON output formatter or TeamCity service message formatter (if available) to ensure reliable parse results. |
+| RUN-08-06 | **Test Tree Visualization** | M | Not Implemented | Display nested test suites (e.g., `describe`/`context` blocks in Busted, or test groups in Lunity) as a hierarchical tree inside the Test Results window. |
+| RUN-08-07 | **Navigation to Code** | S | Not Implemented | Resolve test names/locations to direct source code lines. Clicking on a test node should jump to the `it(...)` or test function declaration in the editor. |
+| RUN-08-08 | **Gutter Run/Debug Producers** | S | Not Implemented | Register a `RunConfigurationProducer` that detects tests in files and adds run/debug gutter icons next to Busted `describe`/`it` calls and Lunity test functions. |
+| RUN-08-09 | **Rerun Failed Tests** | S | Not Implemented | Implement `AbstractRerunFailedTestsAction` to extract failed test names and execute only those failed tests. |
+| RUN-08-10 | **Failure Diffs** | C | Not Implemented | For assertions comparing expected vs. actual values, parse the assertion message to display IntelliJ's comparative diff viewer dialog. |
+| RUN-08-11 | **Coverage Execution** | S | Not Implemented | Provide a "Run with Coverage" runner that automatically executes tests with the `luacov` module loaded (e.g., via `-lluacov` argument or loading it in a custom runner helper). |
+| RUN-08-12 | **Coverage Stats/Report Parsing** | S | Not Implemented | Parse the `luacov.stats.out` and/or `luacov.report.out` files produced by the test run to extract line execution hit counts for each Lua source file. |
+| RUN-08-13 | **Standard Coverage UI Rendering** | S | Not Implemented | Integrate with the IntelliJ Coverage engine API to display file coverage statistics (percentages) in the project tree and colored gutter indicators (green/red line overlays) in the editor. |
+| RUN-08-14 | **Luacov Tool Discovery** | S | Full | Register `luacov` command in the Tool Inventory Management (`TOOL`) registry, allowing auto-discovery in local/system paths and custom overrides. |
+| RUN-08-15 | **LuaRocks Coverage Installation** | S | Not Implemented | Surface a balloon notification with a quick link to execute `luarocks install luacov` if `luacov` cannot be located when starting a Coverage run. |
+| RUN-08-16 | **Import Luacov Report File** | S | Not Implemented | Provide a user action to import/select an existing `luacov.report.out` file, parsing its contents to render coverage highlights directly onto the project's source files in the editor. |
+| RUN-08-17 | **Report Editor Syntax Highlighting** | C | Not Implemented | Provide custom syntax highlighting for opened `luacov.report.out` files, showing execution count prefixes in distinct colors (red/green) and syntax-highlighting the code portion as Lua. |
+| RUN-08-18 | **Coverage Editor Banner Action** | C | Not Implemented | Display an action banner at the top of the editor when opening `luacov.report.out` files, offering a one-click action to load/import the coverage overlays onto project source files. |
 
 ## Detailed Specifications
 
