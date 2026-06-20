@@ -3,7 +3,7 @@ id: DOC-06-04
 title: "04: Full-Text Documentation Search"
 type: feature
 parent_id: DOC-06
-status: planned
+status: in_progress
 priority: medium
 folders:
   - "[[features/documentation/requirements|requirements]]"
@@ -25,7 +25,7 @@ Depends on DOC-06-01 (Stub Indexing), which is already done.
 ### In Scope
 - Complete the `LuaDescriptionIndex` `Indexer.map()` to extract description text from every
   `LuaCatsComment` in a `.lua` file and index it for full-text lookup.
-- Provide a `SearchEverywhereContributor` ("Documentation Symbols") that matches user input
+- Provide a `SearchEverywhereContributor` ("Lua Documentation") that matches user input
   against indexed description text and navigates to the documented element.
 - Index covers `@class`, `@alias`, `@field`, `@param`, `@return`, `@type`, and free-form
   description text found in `---` doc comments attached to declarations.
@@ -64,14 +64,24 @@ does not replace) that indexer to perform real extraction.
 **Index key**: each distinct word (lowercased, alphanumeric, length ≥ 2) from the
 concatenated description text of a `LuaCatsComment` block.
 
-**Index value**: a tab-delimited compound string:
+**Index value**: a tab-delimited compound *record*:
 `"${ownerQualifiedName}\t${virtualFilePath}\t${declarationOffset}"`
 
+A `FileBasedIndex` maps one file to one `Map<Key, Value>`, so each word key has a **single
+value per file**. When two or more declarations in the *same file* share a word, their
+records are concatenated into that one value with a `|` separator
+(`"recordA|recordB"`) — see Behavior Rule #5. The search contributor splits the value on
+`|` before parsing each record on `\t`.
+
 Where:
-- `ownerQualifiedName`: the PSI element's text (e.g. `"MyClass"`, `"calculate"`, `"Player"`)
-  of the `LuaCommentOwner` this comment attaches to. For `LuaFuncDecl`, use the function
-  name token. For `LuaLocalVarDecl`, use the variable name. For `LuaLocalFuncDecl`, use the
-  function name.
+- `ownerQualifiedName`: the documented declaration's name, extracted **per owner type**
+  (none of these implement `PsiNamedElement`, so there is no generic `.name`):
+  - `LuaLocalVarDecl` → `attNameList.firstOrNull()?.nameRef?.text`
+    (`LuaLocalVarDecl.getAttNameList()` → `LuaAttName.getNameRef()`)
+  - `LuaFuncDecl` → `funcName.text` (`LuaFuncDecl.getFuncName()`, `@NotNull`)
+  - `LuaLocalFuncDecl` → `nameRef.text` (`LuaLocalFuncDecl.getNameRef()`, `@NotNull`)
+
+  Fall back to `owner.text` when the per-type accessor yields null.
 - `virtualFilePath`: `VirtualFile.url` of the containing `.lua` file.
 - `declarationOffset`: `PsiElement.textOffset` of the `LuaCommentOwner`.
 
@@ -95,17 +105,27 @@ Register `LuaDocSearchEverywhereContributor` implementing
 **`fetchElements(pattern, indicator, consumer)`**:
 1. If `pattern.isBlank()` or the project is in dumb mode
    (`DumbService.isDumb(project)`), return immediately.
-2. Tokenize `pattern` into words (split on whitespace; drop empty tokens).
-3. For the **first** token, query `FileBasedIndex.getInstance().getValues(LuaDescriptionIndexName, firstToken, GlobalSearchScope.allScope(project))`
-   to get candidate value strings.
-4. Parse each candidate value (`split('\t')`) to obtain `(qualifiedName, fileUrl, offset)`.
+2. Tokenize `pattern` into words the same way the indexer does (lowercase, split on
+   non-word runs `[^a-zA-Z0-9_]+`, drop tokens of length < 2). A pattern of only short
+   tokens/punctuation yields no tokens → return immediately.
+3. For the **first** token, enumerate the index keys with
+   `FileBasedIndex.getInstance().processAllKeys(LuaDescriptionIndex.KEY, processor, scope, null)`
+   and keep every key that contains `firstToken` as a case-insensitive substring (index keys
+   are stored lowercased, so `key.contains(firstToken)` is case-insensitive). Then call
+   `FileBasedIndex.getInstance().getValues(LuaDescriptionIndex.KEY, key, scope)` for each
+   retained key to get candidate value strings. Use `LuaDescriptionIndex.KEY` (the public `ID`
+   handle) — `LuaDescriptionIndexName` is `private`.
+4. For each candidate value, split it on `|` to recover the per-declaration records, then
+   parse each record with `split('\t')` to obtain `(qualifiedName, fileUrl, offset)`.
 5. Deduplicate candidates by qualified name + fileUrl (same symbol might be hit by multiple
    words in its description). Keep the first occurrence.
-6. For each candidate, if `pattern.size > 1`, re-check: retrieve the description's full
+6. For each candidate, if `tokens.size > 1`, re-check: retrieve the description's full
    text from the containing file's PSI using the **same `collectDescriptionText()` logic**
    as the indexer (includes free-form description lines and all tag descriptions), and
-   confirm the **full pattern** appears as a case-insensitive substring.
-   If the pattern is a single word, skip re-check (the index key match is sufficient).
+   confirm **every** token appears in that text as a case-insensitive substring
+   (`tokens.all { fullText.lowercase().contains(it) }` — order-independent, see design §3.2).
+   If the pattern is a single word, skip re-check (the step-3 substring key match is
+   sufficient).
 7. For each passing candidate, resolve the file via
    `VirtualFileManager.getInstance().findFileByUrl(fileUrl)`, load the PSI at `offset` to
    obtain the `LuaCommentOwner` navigation target, and call
@@ -142,17 +162,25 @@ The `getElementsRenderer()` in the contributor returns
    `runReadAction` inside `ProgressIndicatorUtils.runInReadActionWithWriteActionPriority`.
 3. **Cancellation**: Between file loads and before heavy PSI work, check
    `ProgressIndicator.checkCanceled()`.
-4. **No stale references**: The contributor never retains hard refs to `Project`, `Editor`,
-   `PsiFile`, or `VirtualFile` as fields. All lookups happen within the method call.
-5. **Index key uniqueness**: A word appearing in multiple declarations within the same file
-   produces multiple index entries (one per declaration). Deduplication happens at search
-   time.
+4. **No stale references**: The contributor never retains hard refs to `Editor`, `PsiFile`,
+   or `VirtualFile` as fields, and never caches a `Project` in a static or otherwise
+   long-lived holder. A **session-scoped** `Project` field on the contributor (or on a
+   per-result `LuaDocSearchItem`) is permitted: the contributor is created per Search
+   Everywhere session via its `Factory` and is disposed with that session, so the field's
+   lifetime is bounded by the session — it does not outlive the project. All PSI/VFS lookups
+   still happen within the method call (resolving `VirtualFile`/`PsiFile` on demand, never
+   stored).
+5. **Same-file collisions are preserved**: A word appearing in multiple declarations within
+   the same file must surface every declaration. Because a `FileBasedIndex` stores one value
+   per (key, file), those declarations' records are joined into that single value with a `|`
+   separator (the indexer must not drop collisions). The contributor splits on `|` to recover
+   each record, then deduplicates across files at search time by `qualifiedName + fileUrl`.
 
 ## Test Cases
 
 | # | Requirement | Given (input) | When (action) | Then (expected) |
 |---|-------------|---------------|---------------|-----------------|
-| 1 | DOC-06-04-01 | `test.lua` with `---@class Vector Represents a 2D vector; local Vector = {}` | Indexer runs | `LuaDescriptionIndex` contains key `"represents"` → value `"Vector\t<file-url>\t<offset>"`, key `"vector"` → value (two entries: one for the class, one for "vector" in the type annotation text) |
+| 1 | DOC-06-04-01 | `test.lua` with `---@class Vector Represents a 2D vector; local Vector = {}` | Indexer runs | `LuaDescriptionIndex` maps key `"represents"` → value `"Vector\t<file-url>\t<offset>"` and key `"vector"` → the same single record `"Vector\t<file-url>\t<offset>"`. One declaration → one record, so the value has **no** `|` separator; tokens are deduplicated per comment so `"vector"` yields exactly one record. (A second declaration in the same file sharing a word would make that key's value `"recordA\|recordB"`.) |
 | 2 | DOC-06-04-02 | Project contains `---My helper function; function helper() end` in `lib.lua` | User types `"helper"` in Search Everywhere | Contributor returns one `LuaDocSearchItem` for function `helper` |
 | 3 | DOC-06-04-02 | Project contains `---@class Vector Represents a 2D vector; local Vector = {}` | User types `"2d vector"` in Search Everywhere | Contributor returns `Vector` class as a result |
 | 4 | DOC-06-04-02 | Project contains `---@param x number The X coordinate` in function `setPos` | User types `"coordinate"` in Search Everywhere | Contributor returns `setPos` in results |
@@ -164,7 +192,7 @@ The `getElementsRenderer()` in the contributor returns
 
 ## Acceptance Criteria
 - [ ] `LuaDescriptionIndex.Indexer.map()` extracts description text from all `LuaCatsComment` blocks and emits word-level keys (TC 1, 8).
-- [x] `LuaDescriptionIndex` is already registered in `plugin.xml` (line 426); no new registration needed.
+- [x] `LuaDescriptionIndex` is already registered in `plugin.xml` (line 430); no new registration needed.
 - [ ] `LuaDocSearchEverywhereContributor` is registered in `plugin.xml` and appears as a tab in Search Everywhere (TC 2).
 - [ ] Single-word and multi-word patterns return correct matches (TC 2, 3, 4).
 - [ ] No results when nothing matches or in dumb mode (TC 5, 9).
@@ -174,7 +202,7 @@ The `getElementsRenderer()` in the contributor returns
 
 ## Non-Functional Requirements
 - **Threading**: `fetchElements` runs on a pooled thread already (Search Everywhere contract). All PSI access inside `runReadAction`. Check `ProgressIndicator.checkCanceled()` per candidate file.
-- **Memory**: No hard refs to `Project`/`VirtualFile`/`PsiFile` retained in fields. Index values are short strings (qualified name + URL + offset), so index size is bounded by symbol count × token count.
+- **Memory**: No hard refs to `VirtualFile`/`PsiFile` retained in fields, and no static/long-lived caching of `Project`. A session-scoped `Project` field (held by the per-session contributor or a per-result `LuaDocSearchItem`) is permitted because its lifetime is bounded by the Search Everywhere session, not the project. Index values are short strings (qualified name + URL + offset), so index size is bounded by symbol count × token count.
 - **Performance**: Index lookup is O(1) per token via `FileBasedIndex.getValues()`. The re-check for multi-word patterns loads the PSI of candidate files — acceptable for Could priority. A future optimization could store the full description text in the index value to avoid PSI reload.
 
 ## Dependencies

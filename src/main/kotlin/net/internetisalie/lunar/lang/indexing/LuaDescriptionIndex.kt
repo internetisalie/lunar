@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.indexing
 
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
@@ -9,7 +10,12 @@ import com.intellij.util.indexing.ID
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
+import net.internetisalie.lunar.lang.psi.LuaCommentOwner
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.syntax.collectDescriptionText
 import org.jetbrains.annotations.NonNls
 import java.io.DataInput
 import java.io.DataOutput
@@ -24,7 +30,7 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
     override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
     override fun getValueExternalizer(): DataExternalizer<String> = myExternalizer
     override fun getIndexer(): DataIndexer<String, String, FileContent> = myIndexer
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
     override fun dependsOnFileContent(): Boolean = true
     override fun indexDirectories(): Boolean = false
@@ -53,10 +59,35 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
             val psiFile = inputData.psiFile
             
             if (psiFile !is LuaFile) return result
-            
-            // Index description text from LuaCATS comments
-            // This is a simple implementation that returns an empty map
-            // In a full implementation, you would traverse the PSI tree and index all descriptions
+
+            val fileUrl = inputData.file.url
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaCommentOwner::class.java).forEach { owner ->
+                val catsComment = owner.catsComment ?: return@forEach
+                val descriptionText = collectDescriptionText(catsComment)
+                if (descriptionText.isBlank()) return@forEach
+                
+                val tokens = descriptionText
+                    .lowercase()
+                    .split(Regex("[^a-zA-Z0-9_]+"))
+                    .filter { it.length >= 2 }
+                    .distinct()
+
+                if (tokens.isEmpty()) return@forEach
+
+                val rawName = when (owner) {
+                    is LuaLocalVarDecl -> owner.attNameList.firstOrNull()?.nameRef?.text
+                    is LuaFuncDecl -> owner.funcName.text
+                    is LuaLocalFuncDecl -> owner.nameRef.text
+                    else -> null
+                } ?: owner.text
+
+                val ownerName = rawName.take(50).replace(Regex("[\t|\n\r]"), " ")
+                val value = "$ownerName\t$fileUrl\t${owner.textOffset}"
+
+                for (token in tokens) {
+                    result.merge(token, value) { existing, new -> "$existing|$new" }
+                }
+            }
             
             return result
         }

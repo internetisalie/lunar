@@ -3,9 +3,33 @@ package net.internetisalie.lunar.lang.syntax
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.elementType
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAsyncTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCastTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeprecatedTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDescription
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDiagnosticTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsEnumTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsGenericTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsMetaTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsModuleTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsNodiscardTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOperatorTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOverloadTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsPackageTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsPrivateTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsProtectedTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsReturnTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSeeTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSourceTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVarargTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVersionTag
 
 object LuaDocDescription {
     // TODO: Move out of LuaDocCommentImpl.getDescriptionElements
@@ -83,4 +107,48 @@ fun summarize(str : String) : String{
     } else {
         firstLine
     }
+}
+
+internal fun collectDescriptionText(comment: LuaCatsComment): String {
+    val sb = StringBuilder()
+    for (desc in comment.descriptionList) {
+        sb.append(desc.text).append(' ')
+    }
+    collectCoreTagsDescription(comment, sb)
+    collectAdvancedTagsDescription(comment, sb)
+    collectOtherTagsDescription(comment, sb)
+    return sb.toString()
+}
+
+private fun collectCoreTagsDescription(comment: LuaCatsComment, sb: StringBuilder) {
+    comment.classTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.aliasTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.paramTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.returnTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.fieldTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.typeTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+}
+
+private fun collectAdvancedTagsDescription(comment: LuaCatsComment, sb: StringBuilder) {
+    comment.deprecatedTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.seeTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.overloadTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.enumTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.metaTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.nodiscardTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.asyncTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.genericTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+}
+
+private fun collectOtherTagsDescription(comment: LuaCatsComment, sb: StringBuilder) {
+    comment.castTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.diagnosticTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.moduleTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.operatorTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.packageTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.privateTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.protectedTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.sourceTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.varargTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.versionTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
 }

@@ -15,7 +15,7 @@ folders:
 ### Current State
 
 `LuaDescriptionIndex` (`lang/indexing/LuaDescriptionIndex.kt:19`) is a
-`FileBasedIndexExtension<String, String>` already registered in `plugin.xml` (line 426). Its
+`FileBasedIndexExtension<String, String>` already registered in `plugin.xml` (line 430). Its
 `Indexer.map()` (line 51) returns an empty `Map`, making the index a no-op. The
 infrastructure (registration, `InputFilter`, `DataExternalizer`, version `1`) is complete —
 only the extraction logic is missing.
@@ -46,7 +46,7 @@ functionality, extending the existing placeholder index.
 │ (completed indexer) │     │ Key: word (String)       │
 │                     │     │ Value: "name\turl\toffset"│
 └─────────────────────┘     └──────────┬───────────────┘
-                                       │ getValues(word)
+                                       │ processAllKeys + getValues
                                        ▼
 ┌─────────────────────────────────────────────────────────┐
 │ LuaDocSearchEverywhereContributor                       │
@@ -54,8 +54,8 @@ functionality, extending the existing placeholder index.
 │                                                         │
 │ fetchElements(pattern, indicator, consumer):            │
 │   1. Tokenize pattern into words                        │
-│   2. Lookup first word in LuaDescriptionIndex           │
-│   3. Deduplicate, re-check multi-word                  │
+│   2. Substring-match index keys vs. first word          │
+│   3. Collect values, dedup, re-check multi-word         │
 │   4. Resolve file+offset → LuaCommentOwner              │
 │   5. Create LuaDocSearchItem, call consumer.process()   │
 └─────────────────────────┬───────────────────────────────┘
@@ -85,20 +85,41 @@ design **completes** it.
 - **Threading**: Called during indexing on a background thread by the platform. Access to
   `FileContent.psiFile` is already safe.
 - **Collaborators**:
-  - `LuaCatsComment.getDescriptionList()` (gen source: `LuaCatsComment.java:25` —
+  - `LuaCatsComment.getDescriptionList()` (gen source: `LuaCatsComment.java:26` —
     `List<LuaCatsDescription>`)
   - `LuaCatsClassTag.getDescription()` (gen source: `LuaCatsClassTag.java:17` —
     `@Nullable LuaCatsDescription`)
-  - `LuaCatsAliasTag.getDescription()` (gen source: `LuaCatsAliasTag.java:16`)
+  - `LuaCatsAliasTag.getDescription()` (gen source: `LuaCatsAliasTag.java:17`)
   - `LuaCatsParamTag.getDescription()`, `LuaCatsReturnTag.getDescription()`,
     `LuaCatsFieldTag.getDescription()`, `LuaCatsTypeTag.getDescription()`,
     `LuaCatsDeprecatedTag.getDescription()`, `LuaCatsSeeTag.getDescription()`,
-    `LuaCatsOverloadTag.getDescription()` — all gen PSI interfaces with
+    `LuaCatsOverloadTag.getDescription()`, `LuaCatsEnumTag.getDescription()`
+    (gen: `LuaCatsEnumTag.java:17`), `LuaCatsMetaTag.getDescription()`
+    (gen: `LuaCatsMetaTag.java:14`), `LuaCatsNodiscardTag.getDescription()`
+    (gen: `LuaCatsNodiscardTag.java:11`), `LuaCatsAsyncTag.getDescription()`
+    (gen: `LuaCatsAsyncTag.java:11`), `LuaCatsGenericTag.getDescription()`
+    (gen: `LuaCatsGenericTag.java:11`), `LuaCatsCastTag.getDescription()`
+    (gen: `LuaCatsCastTag.java:17`), `LuaCatsDiagnosticTag.getDescription()`
+    (gen: `LuaCatsDiagnosticTag.java:17`), `LuaCatsModuleTag.getDescription()`
+    (gen: `LuaCatsModuleTag.java:14`), `LuaCatsOperatorTag.getDescription()`
+    (gen: `LuaCatsOperatorTag.java:11`), `LuaCatsPackageTag.getDescription()`
+    (gen: `LuaCatsPackageTag.java:11`), `LuaCatsPrivateTag.getDescription()`
+    (gen: `LuaCatsPrivateTag.java:11`), `LuaCatsProtectedTag.getDescription()`
+    (gen: `LuaCatsProtectedTag.java:11`), `LuaCatsSourceTag.getDescription()`
+    (gen: `LuaCatsSourceTag.java:14`), `LuaCatsVarargTag.getDescription()`
+    (gen: `LuaCatsVarargTag.java:14`), `LuaCatsVersionTag.getDescription()`
+    (gen: `LuaCatsVersionTag.java:11`) — all gen PSI interfaces with
     `@Nullable LuaCatsDescription getDescription()`
   - `LuaCatsDescription.text` (`PsiElement.text`)
-  - `LuaCommentOwner.catsComment` (Kotlin: `LuaCatsBaseElements.kt:7` — interface property)
+  - `LuaCommentOwner.catsComment` (Kotlin: `LuaCatsBaseElements.kt:8` — `LuaCatsCommentOwner`
+    interface property)
   - `LuaCommentOwner` (Kotlin: `LuaBaseElements.kt:109` — interface extending
     `LuaCatsCommentOwner`)
+  - Owner-name accessors (none implement `PsiNamedElement`):
+    `LuaLocalVarDecl.getAttNameList()` (gen: `LuaLocalVarDecl.java:16`) →
+    `LuaAttName.getNameRef()` (gen: `LuaAttName.java:14`);
+    `LuaFuncDecl.getFuncName()` (gen: `LuaFuncDecl.java:21`);
+    `LuaLocalFuncDecl.getNameRef()` (gen: `LuaLocalFuncDecl.java:21`)
   - `PsiElement.textOffset`, `VirtualFile.url`
 - **Key API** — replacement for the inner `Indexer` class, and the shared description-text extraction function:
 
@@ -140,6 +161,51 @@ design **completes** it.
       for (tag in comment.overloadTagList) {
           tag.description?.text?.let { sb.append(it).append(' ') }
       }
+      for (tag in comment.enumTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.metaTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.nodiscardTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.asyncTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.genericTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.castTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.diagnosticTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.moduleTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.operatorTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.packageTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.privateTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.protectedTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.sourceTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.varargTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
+      for (tag in comment.versionTagList) {
+          tag.description?.text?.let { sb.append(it).append(' ') }
+      }
       return sb.toString()
   }
 
@@ -158,13 +224,26 @@ design **completes** it.
                   if (descriptionText.isBlank()) return@forEach
                   val tokens = descriptionText
                       .lowercase()
-                      .split(Regex("[^a-z0-9]+"))
+                      .split(Regex("[^a-zA-Z0-9_]+"))
                       .filter { it.length >= 2 }
                   if (tokens.isEmpty()) return@forEach
-                  val ownerName = (owner as? PsiNamedElement)?.name ?: owner.text
+                  val rawName = when (owner) {
+                      is LuaLocalVarDecl -> owner.attNameList.firstOrNull()?.nameRef?.text
+                      is LuaFuncDecl -> owner.funcName.text
+                      is LuaLocalFuncDecl -> owner.nameRef.text
+                      else -> null
+                  } ?: owner.text
+                  // The `owner.text` fallback (and, defensively, any name) can contain the
+                  // record delimiters (\t, |) or newlines, which would corrupt the
+                  // "name\tfileUrl\toffset" / '|'-joined value format. Sanitize before use.
+                  val ownerName = rawName.take(50).replace(Regex("[\t|\n\r]"), " ")
                   val value = "$ownerName\t$fileUrl\t${owner.textOffset}"
                   for (token in tokens) {
-                      result.merge(token, value) { existing, _ -> existing }
+                      // A FileBasedIndex maps ONE file to ONE Map<Key, Value>, so each token
+                      // key has a single value per file. When several declarations in this
+                      // file share `token` (Behavior Rule #5), concatenate their records with
+                      // a '|' separator instead of dropping the collision.
+                      result.merge(token, value) { existing, new -> "$existing|$new" }
                   }
               }
           return result
@@ -190,6 +269,9 @@ design **completes** it.
   - `PsiManager.getInstance(project).findFile(VirtualFile): PsiFile` (IntelliJ API)
   - `ProjectFileIndex.getInstance(project).getContentRootForFile(VirtualFile): VirtualFile` (IntelliJ API)
   - `VfsUtilCore.getRelativePath(VirtualFile, VirtualFile): String` (IntelliJ API)
+  - `com.intellij.psi.util.PsiTreeUtil.getParentOfType(PsiElement, Class): T?` (IntelliJ API)
+  - `com.intellij.pom.Navigatable` (IntelliJ API)
+  - `net.internetisalie.lunar.lang.psi.LuaCommentOwner` (Kotlin: `LuaBaseElements.kt:109`)
   - `PsiElement.getIcon(int): Icon` (IntelliJ API)
 - **Key API**:
 
@@ -212,10 +294,10 @@ design **completes** it.
               override fun getLocationString(): String = relativePath
               override fun getIcon(unused: Boolean): Icon? {
                   return runReadAction {
-                      PsiManager.getInstance(project).findFile(vFile)
-                          ?.findElementAt(declarationOffset)
-                          ?.parent
-                          ?.getIcon(0)
+                      val element = PsiManager.getInstance(project).findFile(vFile)
+                          ?.findElementAt(declarationOffset) ?: return@runReadAction null
+                      val owner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
+                      owner?.getIcon(0)
                   }
               }
           }
@@ -223,11 +305,14 @@ design **completes** it.
 
       override fun navigate(requestFocus: Boolean) {
           val vFile = VirtualFileManager.getInstance().findFileByUrl(fileUrl) ?: return
-          runReadAction {
-              val psiFile = PsiManager.getInstance(project).findFile(vFile) ?: return@runReadAction
+          val owner = runReadAction {
+              val psiFile = PsiManager.getInstance(project).findFile(vFile)
+                  ?: return@runReadAction null
               val element = psiFile.findElementAt(declarationOffset)
-              (element as? Navigatable)?.navigate(requestFocus)
+                  ?: return@runReadAction null
+              PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
           }
+          (owner as? Navigatable)?.navigate(requestFocus)
       }
 
       override fun canNavigate(): Boolean = true
@@ -244,13 +329,26 @@ design **completes** it.
 - **Threading**: `fetchElements` is called on a background thread. PSI lookups use
   `ProgressIndicatorUtils.runInReadActionWithWriteActionPriority` (following the YAML
   plugin pattern at `intellij-community/plugins/yaml/backend/src/navigation/YAMLKeysSearchEverywhereContributor.java:74`).
+  Under `ApplicationManager.getApplication().isUnitTestMode` the lookup instead runs inside
+  a plain `runReadAction { }` (the pooled-thread / write-action-priority infrastructure is
+  not present on the test thread).
 - **Collaborators**:
   - `com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor<T>`
   - `com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributorFactory<T>`
   - `com.intellij.ide.actions.searcheverywhere.SearchEverywhereManager`
   - `com.intellij.ide.util.NavigationItemListCellRenderer`
-  - `com.intellij.openapi.progress.ProgressIndicatorUtils`
-  - `FileBasedIndex.getInstance().getValues(LuaDescriptionIndexName, word, scope)`
+  - `com.intellij.openapi.progress.util.ProgressIndicatorUtils`
+  - `com.intellij.openapi.progress.ProgressManager` (`checkCanceled()` — gen/core API at
+    `intellij-community/platform/core-api/src/com/intellij/openapi/progress/ProgressManager.java:333`)
+  - `com.intellij.openapi.application.ApplicationManager` /
+    `com.intellij.openapi.application.runReadAction`
+  - `com.intellij.util.Processor`
+  - `net.internetisalie.lunar.lang.indexing.LuaDescriptionIndex.KEY` (the public `ID`
+    handle — `LuaDescriptionIndexName` itself is `private`, `LuaDescriptionIndex.kt:17`;
+    the companion exposes `KEY` at `LuaDescriptionIndex.kt:66`)
+  - `FileBasedIndex.getInstance().processAllKeys(LuaDescriptionIndex.KEY, processor, scope, null)`
+    (substring key enumeration — idiom mirrored from `lang/navigation/LuaCatsTypeNavigation.kt:29`) and
+    `FileBasedIndex.getInstance().getValues(LuaDescriptionIndex.KEY, key, scope)`
   - `com.intellij.openapi.project.DumbService.isDumb(project)`
 - **Key API**:
 
@@ -268,6 +366,10 @@ design **completes** it.
 
       override fun showInFindResults(): Boolean = true
 
+      // Render results under a dedicated "Lua Documentation" tab in Search Everywhere
+      // (the default is false, which would fold results into the "All" tab only).
+      override fun isShownInSeparateTab(): Boolean = true
+
       override fun fetchElements(
           pattern: String,
           progressIndicator: ProgressIndicator,
@@ -275,10 +377,11 @@ design **completes** it.
       ) {
           if (project.isDisposed || DumbService.isDumb(project) || pattern.isBlank()) return
 
-          val tokens = pattern.trim().lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
+          // Tokenize like the indexer (§3.3): split on non-word runs and drop tokens
+          // shorter than 2 chars, so a pattern of only stop-words/punctuation (e.g. "a",
+          // "the") yields no tokens and the contributor returns empty (Edge Cases §6).
+          val tokens = pattern.trim().lowercase().split(Regex("[^a-zA-Z0-9_]+")).filter { it.length >= 2 }
           if (tokens.isEmpty()) return
-
-          ApplicationManager.getApplication().assertIsNonDispatchThread()
 
           val task = Runnable {
               if (DumbService.isDumb(project)) return@Runnable
@@ -290,31 +393,64 @@ design **completes** it.
                   GlobalSearchScope.projectScope(project)
               }
 
-              // Step 1: candidate lookup from first token
               val index = FileBasedIndex.getInstance()
-              val candidateValues = index.getValues(LuaDescriptionIndexName, tokens[0], scope)
+              val firstToken = tokens[0]
+
+              // Step 1: collect every index key that CONTAINS the first token as a
+              // case-insensitive substring (keys are stored lowercased by the indexer, and
+              // `firstToken` is already lowercased), so "vec" matches the key "vector".
+              val matchingKeys = mutableListOf<String>()
+              index.processAllKeys(
+                  LuaDescriptionIndex.KEY,
+                  Processor { key ->
+                      ProgressManager.checkCanceled()
+                      if (key.contains(firstToken)) matchingKeys.add(key)
+                      true
+                  },
+                  scope,
+                  null,
+              )
+
+              // Step 2: resolve values for the matching keys, dedup, multi-word re-check, emit.
               val seen = hashSetOf<String>()
+              for (key in matchingKeys) {
+                  for (value in index.getValues(LuaDescriptionIndex.KEY, key, scope)) {
+                      // One file → one value. Multiple declarations in that file that share
+                      // `key` are stored as '|'-separated records (§2.1), so split before
+                      // parsing each "name\tfileUrl\toffset" record.
+                      for (record in value.split('|')) {
+                          ProgressManager.checkCanceled()
+                          val parts = record.split('\t')
+                          if (parts.size != 3) continue
+                          val (name, fileUrl, offsetStr) = parts
+                          val offset = offsetStr.toIntOrNull() ?: continue
+                          val dedupKey = "$name:$fileUrl"
+                          if (!seen.add(dedupKey)) continue
 
-              for (value in candidateValues) {
-                  ProgressIndicatorUtils.checkCancelled()
-                  val parts = value.split('\t')
-                  if (parts.size != 3) continue
-                  val (name, fileUrl, offsetStr) = parts
-                  val offset = offsetStr.toIntOrNull() ?: continue
-                  val dedupKey = "$name:$fileUrl"
-                  if (!seen.add(dedupKey)) continue
+                          // Multi-word re-check: confirm the full description contains all tokens.
+                          if (tokens.size > 1 &&
+                              !descriptionContainsAllTokens(fileUrl, offset, tokens)) continue
 
-                  // Step 2: multi-word re-check
-                  if (tokens.size > 1) {
-                      if (!descriptionContainsAllTokens(fileUrl, offset, tokens)) continue
+                          if (!consumer.process(LuaDocSearchItem(project, name, fileUrl, offset)))
+                              return@Runnable
+                      }
                   }
-
-                  val item = LuaDocSearchItem(project, name, fileUrl, offset)
-                  if (!consumer.process(item)) return
               }
           }
-          ProgressIndicatorUtils.yieldToPendingWriteActions()
-          ProgressIndicatorUtils.runInReadActionWithWriteActionPriority(task, progressIndicator)
+
+          // Threading: in production `fetchElements` runs on a Search Everywhere pooled
+          // thread, so reads must yield to pending write actions. Unit tests (`myFixture`)
+          // call `fetchElements` on the test thread where that infrastructure is absent and
+          // `assertIsNonDispatchThread` / `runInReadActionWithWriteActionPriority` would
+          // fail — there, run the lookup inside a plain read action instead.
+          val app = ApplicationManager.getApplication()
+          if (app.isUnitTestMode) {
+              runReadAction { task.run() }
+          } else {
+              app.assertIsNonDispatchThread()
+              ProgressIndicatorUtils.yieldToPendingWriteActions()
+              ProgressIndicatorUtils.runInReadActionWithWriteActionPriority(task, progressIndicator)
+          }
       }
 
       override fun processSelectedItem(
@@ -330,8 +466,14 @@ design **completes** it.
           NavigationItemListCellRenderer()
 
       class Factory : SearchEverywhereContributorFactory<LuaDocSearchItem> {
+          // The engineering contract bans `!!`. `AnActionEvent.getProject()` is
+          // `@Nullable`, so require a non-null project explicitly (the factory is only
+          // invoked with a project context; a missing one is a programming error).
           override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<LuaDocSearchItem> {
-              return LuaDocSearchEverywhereContributor(initEvent.project!!)
+              val project = requireNotNull(initEvent.project) {
+                  "LuaDocSearchEverywhereContributor requires a project context"
+              }
+              return LuaDocSearchEverywhereContributor(project)
           }
       }
   }
@@ -358,7 +500,8 @@ private fun descriptionContainsAllTokens(
     return runReadAction {
         val psiFile = PsiManager.getInstance(project).findFile(vFile) as? LuaFile ?: return@runReadAction false
         val element = psiFile.findElementAt(declOffset) ?: return@runReadAction false
-        val owner = element.parent as? LuaCommentOwner ?: return@runReadAction false
+        val owner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
+            ?: return@runReadAction false
         val comment = owner.catsComment ?: return@runReadAction false
         val fullText = collectDescriptionText(comment)
         if (fullText.isBlank()) return@runReadAction false
@@ -386,7 +529,7 @@ private fun descriptionContainsAllTokens(
 | Tag PSI type (`LuaCats*`) | Accessor on `LuaCatsComment` | Has `getDescription()`? |
 |---------------------------|-----------------------------|-------------------------|
 | `LuaCatsClassTag` | `getClassTagList()` | ✅ `LuaCatsClassTag.java:17` |
-| `LuaCatsAliasTag` | `getAliasTagList()` | ✅ `LuaCatsAliasTag.java:16` |
+| `LuaCatsAliasTag` | `getAliasTagList()` | ✅ `LuaCatsAliasTag.java:17` |
 | `LuaCatsParamTag` | `getParamTagList()` | ✅ |
 | `LuaCatsReturnTag` | `getReturnTagList()` | ✅ |
 | `LuaCatsFieldTag` | `getFieldTagList()` | ✅ |
@@ -394,10 +537,21 @@ private fun descriptionContainsAllTokens(
 | `LuaCatsDeprecatedTag` | `getDeprecatedTagList()` | ✅ |
 | `LuaCatsSeeTag` | `getSeeTagList()` | ✅ |
 | `LuaCatsOverloadTag` | `getOverloadTagList()` | ✅ |
-| `LuaCatsEnumTag` | `getEnumTagList()` | ✅ (via `typeOptionList`) |
-| `LuaCatsMetaTag` | `getMetaTagList()` | ✅ |
-| `LuaCatsNodiscardTag` | `getNodiscardTagList()` | ✅ |
-| `LuaCatsAsyncTag` | `getAsyncTagList()` | ✅ |
+| `LuaCatsEnumTag` | `getEnumTagList()` | ✅ `LuaCatsEnumTag.java:17` |
+| `LuaCatsMetaTag` | `getMetaTagList()` | ✅ `LuaCatsMetaTag.java:14` |
+| `LuaCatsNodiscardTag` | `getNodiscardTagList()` | ✅ `LuaCatsNodiscardTag.java:11` |
+| `LuaCatsAsyncTag` | `getAsyncTagList()` | ✅ `LuaCatsAsyncTag.java:11` |
+| `LuaCatsGenericTag` | `getGenericTagList()` | ✅ `LuaCatsGenericTag.java:11` |
+| `LuaCatsCastTag` | `getCastTagList()` | ✅ `LuaCatsCastTag.java:17` |
+| `LuaCatsDiagnosticTag` | `getDiagnosticTagList()` | ✅ `LuaCatsDiagnosticTag.java:17` |
+| `LuaCatsModuleTag` | `getModuleTagList()` | ✅ `LuaCatsModuleTag.java:14` |
+| `LuaCatsOperatorTag` | `getOperatorTagList()` | ✅ `LuaCatsOperatorTag.java:11` |
+| `LuaCatsPackageTag` | `getPackageTagList()` | ✅ `LuaCatsPackageTag.java:11` |
+| `LuaCatsPrivateTag` | `getPrivateTagList()` | ✅ `LuaCatsPrivateTag.java:11` |
+| `LuaCatsProtectedTag` | `getProtectedTagList()` | ✅ `LuaCatsProtectedTag.java:11` |
+| `LuaCatsSourceTag` | `getSourceTagList()` | ✅ `LuaCatsSourceTag.java:14` |
+| `LuaCatsVarargTag` | `getVarargTagList()` | ✅ `LuaCatsVarargTag.java:14` |
+| `LuaCatsVersionTag` | `getVersionTagList()` | ✅ `LuaCatsVersionTag.java:11` |
 
 ### 3.2 Search pattern matching (multi-word re-check)
 
@@ -419,13 +573,36 @@ private fun descriptionContainsAllTokens(
 ### 3.3 Tokenization (word extraction for index keys)
 
 - **Input**: `descriptionText: String` (the concatenated output from §3.1)
-- **Output**: `Set<String>` of lowercase alphanumeric tokens, length ≥ 2
+- **Output**: `Set<String>` of lowercase word tokens (`[a-z0-9_]`), length ≥ 2
 - **Steps**:
   1. `lowercased = descriptionText.lowercase()`
-  2. Split on `[^a-z0-9]+` (one or more non-alphanumeric characters)
+  2. Split on `[^a-zA-Z0-9_]+` (one or more non-word characters; the same `Regex` the
+     contributor uses in §2.3, so indexing and querying tokenize identically)
   3. Filter: keep tokens with `length >= 2`
   4. Return as `Set` (deduplicates within a single comment — a word appearing twice in the
      same description still produces only one index entry for that comment)
+
+### 3.4 Candidate key lookup (first-token substring match)
+
+- **Input**: `firstToken: String` (lowercased first token of the user pattern),
+  `scope: GlobalSearchScope`
+- **Output**: the candidate value strings whose index key contains `firstToken` as a
+  case-insensitive substring (satisfies DOC-06-04-02's "case-insensitive substring" contract;
+  index keys are stored lowercased by §3.3, so a `String.contains` comparison is already
+  case-insensitive)
+- **Steps**:
+  1. Enumerate **all** keys of `LuaDescriptionIndex.KEY` via
+     `FileBasedIndex.getInstance().processAllKeys(LuaDescriptionIndex.KEY, processor, scope, null)`
+     (same idiom as `lang/navigation/LuaCatsTypeNavigation.kt:29`). Inside the `Processor`, call
+     `ProgressManager.checkCanceled()`
+     (`com.intellij.openapi.progress.ProgressManager`), then keep each `key` for which
+     `key.contains(firstToken)` is true; return `true` to continue enumeration.
+  2. For every retained key, call
+     `FileBasedIndex.getInstance().getValues(LuaDescriptionIndex.KEY, key, scope)` to obtain
+     its candidate value strings.
+  - **Why not a single exact `getValues(KEY, firstToken, scope)`**: that is a whole-word key
+    lookup, so `"vec"` would never surface the key `"vector"`. `processAllKeys` + substring
+    filter is required to honor the substring requirement.
 
 ## 4. External Data & Parsing
 
@@ -458,9 +635,10 @@ local Vector = {}
 2. **Search** (user types `"vector"` in Search Everywhere):
    - `fetchElements("vector", indicator, consumer)` invoked.
    - Tokenized: `["vector"]`.
-   - `FileBasedIndex.getValues(LuaDescriptionIndexName, "vector", scope)` returns
-     `["Vector\tsrc/geom.lua\t<offset>"]`.
-   - Single-token pattern → no re-check needed.
+   - `processAllKeys(LuaDescriptionIndex.KEY, …)` retains every key containing `"vector"`
+     (here the key `"vector"` itself), then `getValues(LuaDescriptionIndex.KEY, "vector",
+     scope)` returns `["Vector\tsrc/geom.lua\t<offset>"]`.
+   - Single-token pattern → no multi-word re-check needed.
    - Creates `LuaDocSearchItem("Vector", "src/geom.lua", <offset>)`, calls
      `consumer.process(item)`.
 
@@ -471,7 +649,8 @@ local Vector = {}
 
 1. `fetchElements("2d vector", indicator, consumer)`.
 2. Tokenized: `["2d", "vector"]`.
-3. First token `"2d"` → index lookup gives candidate `"Vector\tsrc/geom.lua\t<offset>"`.
+3. First token `"2d"` → `processAllKeys` retains keys containing `"2d"` (the key `"2d"`),
+   then `getValues` gives candidate `"Vector\tsrc/geom.lua\t<offset>"`.
 4. Multi-word re-check: loads `src/geom.lua` PSI at offset, finds `Vector`'s comment,
    extracts full text, checks `fullText.lowercase().contains("2d") && fullText.lowercase().contains("vector")` → `true`.
 5. Processes `LuaDocSearchItem`.
@@ -482,7 +661,7 @@ local Vector = {}
 |------|----------|
 | File has no `LuaCommentOwner` elements | Indexer produces empty map for that file |
 | `LuaCatsComment` has tags but no description text (e.g. `---@class Foo`) | `collectDescriptionText()` returns blank → indexer skips (no entries) |
-| User pattern contains only stop-words (e.g. `"the"`, `"a"`) — tokenized to words of length < 2 | No tokens → contributor returns empty |
+| User pattern is only short tokens / punctuation (e.g. `"a"`, `"x"`, `"-"`) — every token has length < 2 after tokenizing (§2.3) | No tokens → contributor returns empty |
 | Multiple symbols in same file share description words | Each produces its own index entry. The contributor deduplicates by `name:fileUrl` |
 | File deleted between index and search | `findFileByUrl()` returns null → re-check returns `false`, item skipped |
 | Pattern matches description but symbol name is ambiguous (same name in multiple files) | Each file produces distinct `LuaDocSearchItem`; user sees both in results differentiated by file path |
@@ -495,7 +674,7 @@ local Vector = {}
 ### 7.1 Existing registration (no change needed)
 
 ```xml
-<!-- plugin.xml line 426 — already present -->
+<!-- plugin.xml line 430 — already present -->
 <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaDescriptionIndex"/>
 ```
 
