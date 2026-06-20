@@ -83,7 +83,6 @@ class LuaTestCommandLineState(
         if (failedTests.isNotEmpty()) {
             val filterPattern = failedTests.split(',').map { Regex.escape(it) }.joinToString("|")
             commandLine.addParameter("--filter=$filterPattern")
-            return
         }
 
         val target = config.testTarget.orEmpty()
@@ -95,7 +94,11 @@ class LuaTestCommandLineState(
                 commandLine.addParameter("--recursive")
                 commandLine.addParameter(target)
             }
-            "PATTERN" -> commandLine.addParameter("--filter=$target")
+            "PATTERN" -> {
+                if (failedTests.isEmpty()) {
+                    commandLine.addParameter("--filter=$target")
+                }
+            }
         }
     }
 

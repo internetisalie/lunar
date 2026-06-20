@@ -49,8 +49,8 @@ folders:
 ### Phase 4: Rerun Failed Tests [Should]
 - **Goal**: Rerun only failed tests from the previous run.
 - **Tasks**:
-  - [ ] Create `LuaRerunFailedTestsAction` — realizes design §2.11, §3.7
-  - [ ] Wire into `LuaTestConsoleProperties` via `createRerunFailedTestsAction()`
+  - [x] Create `LuaRerunFailedTestsAction` — realizes design §2.11, §3.7
+  - [x] Wire into `LuaTestConsoleProperties` via `createRerunFailedTestsAction()`
 - **Exit criteria**: After a test run with failures, "Rerun Failed Tests" button re-executes only the failed test names.
 
 ### Phase 5: Coverage Engine [Should]
@@ -133,7 +133,7 @@ folders:
 | Phase 1: Tool Registration & Foundation | done | Must |
 | Phase 2: Test Execution & SMTestRunner | done | Must |
 | Phase 3: Test Navigation & Gutter Icons | done | Should |
-| Phase 4: Rerun Failed Tests | todo | Should |
+| Phase 4: Rerun Failed Tests | done | Should |
 | Phase 5: Coverage Engine | todo | Should |
 | Phase 6: Coverage Import & Report Viewer | todo | Should/Could |
 | Phase 7: Assertion Diff Viewer | todo | Could |

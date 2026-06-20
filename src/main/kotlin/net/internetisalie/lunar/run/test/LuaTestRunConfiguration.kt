@@ -13,6 +13,8 @@ import com.intellij.execution.configurations.RunConfigurationOptions
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationException
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.execution.testframework.sm.runner.SMRunnerConsolePropertiesProvider
+import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.StoredProperty
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
@@ -150,7 +152,11 @@ class LuaTestRunConfigurationOptions : RunConfigurationOptions() {
 }
 
 class LuaTestRunConfiguration(project: Project, factory: ConfigurationFactory?, name: String?) :
-    RunConfigurationBase<LuaTestRunConfigurationOptions?>(project, factory, name) {
+    RunConfigurationBase<LuaTestRunConfigurationOptions?>(project, factory, name),
+    SMRunnerConsolePropertiesProvider {
+
+    override fun createTestConsoleProperties(executor: Executor): SMTRunnerConsoleProperties =
+        LuaTestConsoleProperties(this, executor)
 
     public override fun getOptions(): LuaTestRunConfigurationOptions =
         super.getOptions() as LuaTestRunConfigurationOptions

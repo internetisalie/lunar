@@ -44,7 +44,7 @@ Lunar provides a unified, user-facing test runner that integrates with the stand
 | RUN-08-06 | **Test Tree Visualization** | M | Full | Display nested test suites (e.g., `describe`/`context` blocks in Busted, or test groups in Lunity) as a hierarchical tree inside the Test Results window. |
 | RUN-08-07 | **Navigation to Code** | S | Full | Resolve test names/locations to direct source code lines. Clicking on a test node should jump to the `it(...)` or test function declaration in the editor. |
 | RUN-08-08 | **Gutter Run/Debug Producers** | S | Full | Register a `RunConfigurationProducer` that detects tests in files and adds run/debug gutter icons next to Busted `describe`/`it` calls and Lunity test functions. |
-| RUN-08-09 | **Rerun Failed Tests** | S | Not Implemented | Implement `AbstractRerunFailedTestsAction` to extract failed test names and execute only those failed tests. |
+| RUN-08-09 | **Rerun Failed Tests** | S | Full | Implement `AbstractRerunFailedTestsAction` to extract failed test names and execute only those failed tests. |
 | RUN-08-10 | **Failure Diffs** | C | Not Implemented | For assertions comparing expected vs. actual values, parse the assertion message to display IntelliJ's comparative diff viewer dialog. |
 | RUN-08-11 | **Coverage Execution** | S | Not Implemented | Provide a "Run with Coverage" runner that automatically executes tests with the `luacov` module loaded (e.g., via `-lluacov` argument or loading it in a custom runner helper). |
 | RUN-08-12 | **Coverage Stats/Report Parsing** | S | Not Implemented | Parse the `luacov.stats.out` and/or `luacov.report.out` files produced by the test run to extract line execution hit counts for each Lua source file. |

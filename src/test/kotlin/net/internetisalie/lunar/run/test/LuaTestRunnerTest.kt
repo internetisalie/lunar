@@ -310,4 +310,77 @@ class LuaTestRunnerTest : BaseDocumentTest() {
             assertEquals(document.getLineStartOffset(1), offset)
         }
     }
+
+    @Test
+    fun testRerunFailedTestsAction() {
+        val properties = createProperties(LuaTestFramework.BUSTED)
+        val config = properties.configuration
+        config.testTarget = "/project/spec/calc_spec.lua"
+        config.testTargetType = "FILE"
+        config.workingDirectory = "/project"
+
+        val tool = LuaTool(
+            type = LuaToolType.BUSTED,
+            name = "Busted",
+            path = "/bin/sh",
+            version = "2.1.0",
+            isValid = true
+        )
+        LuaApplicationSettings.instance.state.toolInventory.clear()
+        LuaApplicationSettings.instance.state.toolInventory.add(tool)
+        LuaToolManager.getInstance().setGlobalBinding(LuaToolType.BUSTED, tool.id)
+
+        try {
+            val rootProxy = com.intellij.execution.testframework.sm.runner.SMTestProxy.SMRootTestProxy()
+            val failedTestProxy = com.intellij.execution.testframework.sm.runner.SMTestProxy("test_fail", false, null)
+            failedTestProxy.setTestFailed("assertion failed", "traceback...", false)
+            rootProxy.addChild(failedTestProxy)
+
+            val passedTestProxy = com.intellij.execution.testframework.sm.runner.SMTestProxy("test_pass", false, null)
+            passedTestProxy.setFinished()
+            rootProxy.addChild(passedTestProxy)
+
+            val runningModel = object : com.intellij.execution.testframework.TestFrameworkRunningModel {
+                override fun getProperties(): TestConsoleProperties = properties
+                override fun getRoot(): com.intellij.execution.testframework.AbstractTestProxy = rootProxy
+                override fun setFilter(filter: com.intellij.execution.testframework.Filter<*>) {}
+                override fun isRunning(): Boolean = false
+                override fun getTreeView(): com.intellij.execution.testframework.TestTreeView? = null
+                override fun getTreeBuilder(): com.intellij.execution.testframework.ui.AbstractTestTreeBuilderBase<*>? = null
+                override fun hasTestSuites(): Boolean = false
+                override fun selectAndNotify(testProxy: com.intellij.execution.testframework.AbstractTestProxy?) {}
+                override fun dispose() {}
+            }
+
+            val mockConsoleView = object : com.intellij.openapi.ui.ComponentContainer {
+                val panel = javax.swing.JPanel()
+                override fun getComponent(): javax.swing.JComponent = panel
+                override fun getPreferredFocusableComponent(): javax.swing.JComponent = panel
+                override fun dispose() {}
+            }
+            val rerunAction = LuaRerunFailedTestsAction(mockConsoleView, properties)
+            rerunAction.setModel(runningModel)
+
+            val executionEnvironment = com.intellij.execution.runners.ExecutionEnvironmentBuilder.create(
+                com.intellij.execution.executors.DefaultRunExecutor.getRunExecutorInstance(), config
+            ).build()
+            val runProfile = rerunAction.getRunProfileTestAccessor(executionEnvironment)
+            kotlin.test.assertNotNull(runProfile)
+
+            val state = runProfile.getState(com.intellij.execution.executors.DefaultRunExecutor.getRunExecutorInstance(), executionEnvironment)
+            kotlin.test.assertNotNull(state)
+            assertTrue(state is LuaTestCommandLineState)
+
+            val commandLine = state.buildCommandLine()
+            assertEquals("/bin/sh", commandLine.exePath)
+            assertEquals("/project", commandLine.workDirectory.absolutePath)
+            assertEquals(
+                listOf("--output=json", "--filter=\\Qtest_fail\\E", "/project/spec/calc_spec.lua"),
+                commandLine.parametersList.list
+            )
+        } finally {
+            LuaApplicationSettings.instance.state.toolInventory.clear()
+            LuaApplicationSettings.instance.state.globalToolBindings.clear()
+        }
+    }
 }
