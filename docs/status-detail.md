@@ -38,7 +38,7 @@ folders:
 | [**NAV**](#nav--code-navigation)                            |     10 |           0 |       0 |      0 |      10 | ██████████ 100% |
 | [**REFACT/INTENT**](#refactintent--refactoring--intentions) |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
 | [**DEBUG/RUN**](#debugrun--debugging--execution)            |     11 |           0 |       0 |      0 |      11 | ██████████ 100% |
-| [**INSP**](#insp--inspections--diagnostics)                 |      4 |           3 |       2 |      0 |       9 | ████░░░░░░ 44%  |
+| [**INSP**](#insp--inspections--diagnostics)                 |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
 | [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
 | [**FORMAT**](#format--formatting)                           |      5 |           1 |       1 |      0 |       7 | ███████░░░ 71%  |
 | [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
@@ -47,7 +47,7 @@ folders:
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **102** |       **8** |   **6** | **10** | **126** | **81%**         |
+| **Total**                                                   | **107** |       **5** |   **4** | **10** | **126** | **85%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -170,12 +170,12 @@ folders:
 | INSP-01 | Undeclared Variable | done | `LuaUndeclaredVariableInspection` — multiResolve, standard globals, allowlist, quick fix |
 | INSP-02 | Unused Local/Parameter | done | NAV-02 (usages) |
 | INSP-03 | Type Mismatch | done | `LuaTypeAssignabilityInspection` + `LuaReturnTypeMismatchInspection` |
-| INSP-04 | Unreachable Code | planned | Planned for Wave 11 |
-| INSP-05 | Global Creation Warning | in progress | `LuaGlobalBindingsAnnotator` registered but body is empty (logic removed) |
-| INSP-06 | Shadowing Check | in progress | Data model exists (`LuaBindings.shadowed`, `LuaScope.isShadowing`), no user-facing warning |
-| INSP-07 | Suspicious Concatenation | planned | Planned for Wave 11 |
-| INSP-08 | Deprecated API Usage | in progress | `@deprecated` tag parsed/rendered/highlighted; no usage-site inspection |
-| INSP-09 | Language Level Compliance | done | `LuaLanguageLevelAnnotator` — comprehensive with quick fixes |
+| INSP-04 | Unreachable Code | done | `LuaUnreachableCodeInspection` |
+| INSP-05 | Global Creation Warning | done | `LuaGlobalCreationInspection` |
+| INSP-06 | Shadowing Check | done | `LuaShadowingVariableInspection` |
+| INSP-07 | Suspicious Concatenation | done | `LuaSuspiciousConcatenationInspection` |
+| INSP-08 | Deprecated API Usage | done | `LuaDeprecatedApiInspection` |
+| INSP-09 | Language Level Compliance | done | `LuaLanguageLevelInspection` |
 
 ---
 

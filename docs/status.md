@@ -21,7 +21,7 @@ folders:
 | :--- | :--- | :--- | :--- | :--- |
 | **COMP** | 🔴 high | 🔵 in_progress | 8/8 | ██████████ 100% |
 | **DOC** | 🟡 medium | ⚪ planned | 8/8 | ██████████ 100% |
-| **INSP** | 🟡 medium | ⚪ planned | 9/9 | ██████████ 100% |
+| **INSP** | 🟡 medium | ✅ done | 9/9 | ██████████ 100% |
 | **REFACT/INTENT** | 🟢 low | ⚪ planned | 9/9 | ██████████ 100% |
 | **TARGET** | 🔴 high | ✅ done | 7/7 | ██████████ 100% |
 | **TOOL** | 🔴 high | ✅ done | 4/4 | ██████████ 100% |

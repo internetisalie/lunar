@@ -117,10 +117,10 @@ bug and gave the type inspections false confidence until this session's coverage
 | INSP-06 | Variable-shadowing inspection | done | M | — | — | ✓ |
 | INSP-08 | Deprecated-usage inspection | done | M | — | — | ✓ |
 | INSP-02 | Unused local / parameter (must-have) | done | M | NAV-02 (usages) ✓ | — | ✓ |
-| INSP-04 | Unreachable code inspection | planned | M | ANALYSIS-06 (CFG) ✓ | — | ✓ |
-| INSP-07 | Suspicious concatenation inspection | planned | S | TYPE-02 (types) ✓ | — | ✓ |
+| INSP-04 | Unreachable code inspection | done | M | ANALYSIS-06 (CFG) ✓ | — | ✓ |
+| INSP-07 | Suspicious concatenation inspection | done | S | TYPE-02 (types) ✓ | — | ✓ |
 | INSP-03 | Type mismatch inspection | planned | S | TYPE-09 (unions) | — | ✓ |
-| INSP-09 | Language level compliance | planned | M | — | — | ✓ |
+| INSP-09 | Language level compliance | done | M | — | — | ✓ |
 
 ## Wave 5 — Type-system hardening  *(Sprint 2 — powers completion/inspections/hints; serial cluster: the type engine)*
 

@@ -2,7 +2,7 @@
 id: "INSP"
 title: "INSP: Inspections & Diagnostics"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"
