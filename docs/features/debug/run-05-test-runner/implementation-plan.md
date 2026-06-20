@@ -35,7 +35,7 @@ folders:
   - [ ] Create `LuaTestOutputToEventsConverter` with Busted JSON parsing — realizes design §2.7, §3.2
   - [ ] Add Lunity JSON line parsing to `LuaTestOutputToEventsConverter` — realizes design §2.7, §3.3
   - [ ] Create `LuaTestFramework` enum — realizes design §2.4
-- **Exit criteria**: Running a Busted test file populates the Test Results tree with pass/fail/ignore nodes; Lunity JSON output similarly parsed; raw output falls back to console on parse failure. Covers TC #1, TC #2, TC #3.
+- **Exit criteria**: Running a Busted test file populates the Test Results tree with pass/fail/ignore nodes; Lunity JSON output similarly parsed; raw output falls back to console on parse failure. Covers TC #1, TC #2, TC #3, TC #10, TC #11, TC #12, TC #13, TC #14, TC #17, TC #18. Command-line construction validated per TC #15, TC #16.
 
 ### Phase 3: Test Navigation & Gutter Icons [Should]
 - **Goal**: Navigate from test results to source; show gutter run icons on test declarations.
@@ -115,8 +115,10 @@ folders:
 
 - [ ] Unit tests for `LuaCovStatsParser` — covers TC #6 (stats file parsing)
 - [ ] Unit tests for `LuaCovReportParser` — covers TC #8 (report file parsing)
-- [ ] Unit tests for Lunity JSON line parsing — covers TC #1, TC #2
-- [ ] Unit tests for Busted JSON output parsing — covers TC #1, TC #2
+- [ ] Unit tests for Lunity JSON line parsing — covers TC #1, TC #2, TC #10
+- [ ] Unit tests for Busted JSON output parsing — covers TC #11, TC #12
+- [ ] Unit tests for `LuaTestCommandLineState.buildCommandLine()` — covers TC #15, TC #16
+- [ ] Unit tests for `LuaTestOutputToEventsConverter` stream routing and fallback — covers TC #17, TC #18
 - [ ] Unit tests for `LuaTestLocator` URL resolution — covers TC #4
 - [ ] Unit tests for `LuaTestRunConfigurationProducer` context detection — covers TC #5
 - [ ] Unit tests for `LuaTestRunLineMarkerProvider` gutter detection — covers TC #5
