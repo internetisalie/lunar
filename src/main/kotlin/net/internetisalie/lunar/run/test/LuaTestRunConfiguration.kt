@@ -235,8 +235,8 @@ class LuaTestRunConfiguration(project: Project, factory: ConfigurationFactory?, 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> =
         LuaTestSettingsEditor(project)
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState? =
-        null
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
+        LuaTestCommandLineState(this, environment)
 
     override fun checkConfiguration() {
         if (options.interpreter.isNullOrEmpty()) {

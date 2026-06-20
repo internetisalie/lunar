@@ -36,12 +36,12 @@ Lunar provides a unified, user-facing test runner that integrates with the stand
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| RUN-08-01 | **Test Run Configuration** | M | Partial | Provide a new Run Configuration Type "Lua Tests" with fields for Test Framework (Busted, Lunity), Test Target (Directory, File, or Test Name Pattern), SDK/Interpreter, Working Directory, Env Variables, and Extra Arguments. |
-| RUN-08-02 | **Process Execution** | M | Not Implemented | Execute the test process using the selected Lua SDK interpreter or local `busted` binary with appropriate arguments. |
-| RUN-08-03 | **SMTestRunner Event Translation** | M | Not Implemented | Parse stdout/stderr stream from the test execution process in real-time and translate it into IntelliJ IDE test runner events. |
-| RUN-08-04 | **Lunity JSON Protocol Support** | M | Not Implemented | Specifically support parsing JSON-line output from a custom-built Lunity framework run, mapping JSON fields to suite/test life cycle and results. |
-| RUN-08-05 | **Busted Protocol Support** | M | Not Implemented | Support parsing Busted test output. The integration should preferably use Busted's built-in JSON output formatter or TeamCity service message formatter (if available) to ensure reliable parse results. |
-| RUN-08-06 | **Test Tree Visualization** | M | Not Implemented | Display nested test suites (e.g., `describe`/`context` blocks in Busted, or test groups in Lunity) as a hierarchical tree inside the Test Results window. |
+| RUN-08-01 | **Test Run Configuration** | M | Full | Provide a new Run Configuration Type "Lua Tests" with fields for Test Framework (Busted, Lunity), Test Target (Directory, File, or Test Name Pattern), SDK/Interpreter, Working Directory, Env Variables, and Extra Arguments. |
+| RUN-08-02 | **Process Execution** | M | Full | Execute the test process using the selected Lua SDK interpreter or local `busted` binary with appropriate arguments. |
+| RUN-08-03 | **SMTestRunner Event Translation** | M | Full | Parse stdout/stderr stream from the test execution process in real-time and translate it into IntelliJ IDE test runner events. |
+| RUN-08-04 | **Lunity JSON Protocol Support** | M | Full | Specifically support parsing JSON-line output from a custom-built Lunity framework run, mapping JSON fields to suite/test life cycle and results. |
+| RUN-08-05 | **Busted Protocol Support** | M | Full | Support parsing Busted test output. The integration should preferably use Busted's built-in JSON output formatter or TeamCity service message formatter (if available) to ensure reliable parse results. |
+| RUN-08-06 | **Test Tree Visualization** | M | Full | Display nested test suites (e.g., `describe`/`context` blocks in Busted, or test groups in Lunity) as a hierarchical tree inside the Test Results window. |
 | RUN-08-07 | **Navigation to Code** | S | Not Implemented | Resolve test names/locations to direct source code lines. Clicking on a test node should jump to the `it(...)` or test function declaration in the editor. |
 | RUN-08-08 | **Gutter Run/Debug Producers** | S | Not Implemented | Register a `RunConfigurationProducer` that detects tests in files and adds run/debug gutter icons next to Busted `describe`/`it` calls and Lunity test functions. |
 | RUN-08-09 | **Rerun Failed Tests** | S | Not Implemented | Implement `AbstractRerunFailedTestsAction` to extract failed test names and execute only those failed tests. |

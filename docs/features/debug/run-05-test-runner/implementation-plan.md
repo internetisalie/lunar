@@ -30,11 +30,11 @@ folders:
 ### Phase 2: Test Execution & SMTestRunner [Must]
 - **Goal**: Execute Busted/Lunity tests and display results in the IntelliJ Test Results window.
 - **Tasks**:
-  - [ ] Create `LuaTestCommandLineState` with `buildCommandLine()` — realizes design §2.5, §3.1
-  - [ ] Create `LuaTestConsoleProperties` — realizes design §2.6
-  - [ ] Create `LuaTestOutputToEventsConverter` with Busted JSON parsing — realizes design §2.7, §3.2
-  - [ ] Add Lunity JSON line parsing to `LuaTestOutputToEventsConverter` — realizes design §2.7, §3.3
-  - [ ] Create `LuaTestFramework` enum — realizes design §2.4
+  - [x] Create `LuaTestCommandLineState` with `buildCommandLine()` — realizes design §2.5, §3.1
+  - [x] Create `LuaTestConsoleProperties` — realizes design §2.6
+  - [x] Create `LuaTestOutputToEventsConverter` with Busted JSON parsing — realizes design §2.7, §3.2
+  - [x] Add Lunity JSON line parsing to `LuaTestOutputToEventsConverter` — realizes design §2.7, §3.3
+  - [x] Create `LuaTestFramework` enum — realizes design §2.4
 - **Exit criteria**: Running a Busted test file populates the Test Results tree with pass/fail/ignore nodes; Lunity JSON output similarly parsed; raw output falls back to console on parse failure. Covers TC #1, TC #2, TC #3, TC #10, TC #11, TC #12, TC #13, TC #14, TC #17, TC #18. Command-line construction validated per TC #15, TC #16.
 
 ### Phase 3: Test Navigation & Gutter Icons [Should]
@@ -115,10 +115,10 @@ folders:
 
 - [ ] Unit tests for `LuaCovStatsParser` — covers TC #6 (stats file parsing)
 - [ ] Unit tests for `LuaCovReportParser` — covers TC #8 (report file parsing)
-- [ ] Unit tests for Lunity JSON line parsing — covers TC #1, TC #2, TC #10
-- [ ] Unit tests for Busted JSON output parsing — covers TC #11, TC #12
-- [ ] Unit tests for `LuaTestCommandLineState.buildCommandLine()` — covers TC #15, TC #16
-- [ ] Unit tests for `LuaTestOutputToEventsConverter` stream routing and fallback — covers TC #17, TC #18
+- [x] Unit tests for Lunity JSON line parsing — covers TC #1, TC #2, TC #10
+- [x] Unit tests for Busted JSON output parsing — covers TC #11, TC #12
+- [x] Unit tests for `LuaTestCommandLineState.buildCommandLine()` — covers TC #15, TC #16
+- [x] Unit tests for `LuaTestOutputToEventsConverter` stream routing and fallback — covers TC #17, TC #18
 - [ ] Unit tests for `LuaTestLocator` URL resolution — covers TC #4
 - [ ] Unit tests for `LuaTestRunConfigurationProducer` context detection — covers TC #5
 - [ ] Unit tests for `LuaTestRunLineMarkerProvider` gutter detection — covers TC #5
@@ -131,7 +131,7 @@ folders:
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Tool Registration & Foundation | done | Must |
-| Phase 2: Test Execution & SMTestRunner | todo | Must |
+| Phase 2: Test Execution & SMTestRunner | done | Must |
 | Phase 3: Test Navigation & Gutter Icons | todo | Should |
 | Phase 4: Rerun Failed Tests | todo | Should |
 | Phase 5: Coverage Engine | todo | Should |
