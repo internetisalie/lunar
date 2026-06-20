@@ -40,14 +40,14 @@ folders:
 | [**DEBUG/RUN**](#debugrun--debugging--execution)            |     11 |           0 |       0 |      0 |      11 | ██████████ 100% |
 | [**INSP**](#insp--inspections--diagnostics)                 |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
 | [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
-| [**FORMAT**](#format--formatting)                           |      5 |           1 |       1 |      0 |       7 | ███████░░░ 71%  |
+| [**FORMAT**](#format--formatting)                           |      6 |           1 |       0 |      0 |       7 | █████████░ 86%  |
 | [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
 | [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **107** |       **5** |   **4** | **10** | **126** | **85%**         |
+| **Total**                                                   | **108** |       **5** |   **3** | **10** | **126** | **86%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -201,7 +201,7 @@ folders:
 | FORMAT-04 | Expression Wrapping | done | Wrap logic implemented |
 | FORMAT-05 | Alignment Logic | done | Alignment logic implemented |
 | FORMAT-06 | Comment Formatting | done | `LuaCommentWrapPostProcessor` |
-| FORMAT-07 | Stylua Compatibility | planned | Planned for Wave 11 |
+| FORMAT-07 | Stylua Compatibility | done | `StyluaFormattingService` and `StyluaFormattingTask` |
 
 ---
 

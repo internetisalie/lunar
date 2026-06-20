@@ -2,7 +2,7 @@
 id: "FORMAT-07-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "in_progress"
+status: "done"
 parent_id: "FORMAT-07"
 folders:
   - "[[features/formatting/07-stylua-compatibility/requirements|requirements]]"
@@ -70,4 +70,4 @@ folders:
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Core formatting service | done | Must |
-| Phase 2: First-use notification | todo | Could |
+| Phase 2: First-use notification | done | Could |
