@@ -2,7 +2,7 @@
 id: "DOC-06-04-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "in_progress"
+status: "done"
 parent_id: "DOC-06-04"
 folders:
   - "[[features/documentation/06-04-full-text-documentation-search/requirements|requirements]]"
@@ -75,6 +75,6 @@ folders:
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Complete LuaDescriptionIndex indexer | done | Must |
-| Phase 2: Search Everywhere contributor | todo | Must |
-| Phase 3: Search result navigation | todo | Must |
-| Phase 4: Result presentation polish | todo | Should |
+| Phase 2: Search Everywhere contributor | done | Must |
+| Phase 3: Search result navigation | done | Must |
+| Phase 4: Result presentation polish | done | Should |

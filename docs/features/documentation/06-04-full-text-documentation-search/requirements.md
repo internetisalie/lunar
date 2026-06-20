@@ -3,7 +3,7 @@ id: DOC-06-04
 title: "04: Full-Text Documentation Search"
 type: feature
 parent_id: DOC-06
-status: in_progress
+status: done
 priority: medium
 folders:
   - "[[features/documentation/requirements|requirements]]"

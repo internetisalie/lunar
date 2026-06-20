@@ -273,6 +273,10 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.format.LuaFormattingModelBuilder" />
 
+    <formattingService
+            implementation="net.internetisalie.lunar.lang.formatting.external.StyluaFormattingService"
+            order="first" />
+
     <!-- FORMAT-03-03: normalize the trailing newline at EOF on reformat. -->
     <postFormatProcessor
             implementation="net.internetisalie.lunar.lang.format.LuaTrailingNewlinePostProcessor" />
@@ -429,6 +433,8 @@
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaClassNameIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaAliasIndex"/>
 
+    <searchEverywhereContributor implementation="net.internetisalie.lunar.lang.doc.LuaDocSearchEverywhereContributor$Factory"/>
+
     <!-- Notifications -->
     <notificationGroup id="notification.group.lunar.debugger"
                        displayType="BALLOON"
@@ -439,6 +445,9 @@
                        isLogByDefault="true" bundle="net.internetisalie.lunar.LuaBundle"
                        key="notification.group.lua.luarocks"/>
     <notificationGroup id="notification.group.lunar.tools"
+                       displayType="BALLOON"
+                       isLogByDefault="true"/>
+    <notificationGroup id="notification.group.lunar.stylua"
                        displayType="BALLOON"
                        isLogByDefault="true"/>
 

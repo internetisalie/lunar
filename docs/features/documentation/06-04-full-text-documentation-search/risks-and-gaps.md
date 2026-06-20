@@ -2,7 +2,7 @@
 id: "DOC-06-04-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "in_progress"
+status: "done"
 parent_id: "DOC-06-04"
 folders:
   - "[[features/documentation/06-04-full-text-documentation-search/requirements|requirements]]"
