@@ -105,7 +105,7 @@ folders:
 | TYPE-05 | Generics Support | done | `@generic` tag, `LuaGraphType.Generic`, let-polymorphism |
 | TYPE-06 | Return Type Checking | done | `LuaReturnTypeMismatchInspection` — multi-return, arity check |
 | TYPE-07 | External API Stubs | in progress | Bundled stubs + `PlatformLibraryProvider` done; full graph injection incomplete |
-| TYPE-08 | Flow-Sensitive Analysis | planned | Planned for Wave 11 |
+| TYPE-08 | Flow-Sensitive Analysis | done | `tryParseTypeofGuard`, `tryParseNilGuard`, block-local scope injection |
 | TYPE-09 | Union Distribution Logic | in progress | Core OR/AND distribution done; member-specific diagnostics and hardening remain |
 
 ---

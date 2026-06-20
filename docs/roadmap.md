@@ -216,7 +216,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | COMP-05 | Parameter Name Hints | done | S | — | — | ✓ |
 | RUN-05 | Test Runner Integration | planned | S | RUN-02 *(Run Configs)* | — | ✓ |
 | FORMAT-07 | Stylua Compatibility | done | S | FORMAT-03..06 *(Formatter)* | — | Serial: formatter |
-| TYPE-08 | Flow-Sensitive Analysis | planned | C | TYPE-01 *(Type engine)* | — | Serial: type-engine |
+| TYPE-08 | Flow-Sensitive Analysis | done | C | TYPE-01 *(Type engine)* | — | ✓ |
 | DOC-06-04 | Full-Text Documentation Search | done | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
 | SYNTAX-09 | Lua 5.5 Support | planned | C | — | — | ✓ |
 
