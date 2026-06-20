@@ -2,7 +2,7 @@
 id: "TYPE-08-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "todo"
+status: "done"
 parent_id: "TYPE-08"
 folders:
   - "[[features/type/08-flow-sensitive/requirements|requirements]]"
@@ -61,8 +61,8 @@ folders:
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| DR-01 | Search `~/Documents/src/lua/test` corpus for `type(x) == "string" and` patterns to measure compound guard frequency. | Gap 2.1 | todo |
-| DR-02 | Write a quick manual test: `local x; ---@type string\|number; if type(x) == "string" then … elseif type(x) == "number" then … end` — verify narrowing in each branch via snapshot inspection. | Gap 2.2 | todo |
+| DR-01 | Search `~/Documents/src/lua/test` corpus for `type(x) == "string" and` patterns to measure compound guard frequency. | Gap 2.1 | completed |
+| DR-02 | Write a quick manual test: `local x; ---@type string\|number; if type(x) == "string" then … elseif type(x) == "number" then … end` — verify narrowing in each branch via snapshot inspection. | Gap 2.2 | completed |
 
 ## Test Case Gaps
 - Compound condition guards (deferred, see Gap 2.1).

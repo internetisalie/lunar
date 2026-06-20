@@ -2,7 +2,7 @@
 id: "TYPE-08"
 title: "08: Flow-Sensitive Types"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "low"
 parent_id: TYPE
 folders:
@@ -128,9 +128,9 @@ with `NIL` token and the other is a `LuaNameRef` resolving to an in-scope variab
 | 13 | (no guard) | `---@type string\|number; local x; if x > 5 then print(x) end` | Inspect `x` in `then` block | `x` is `string\|number` (un-narrowed — no type guard recognized) |
 
 ## Acceptance Criteria
-- [ ] All 13 test cases pass as automated tests in `TestFlowSensitiveType`.
-- [ ] Narrowing does not change the type of `x` when accessed *after* the `if`/`end` block.
-- [ ] Non-guard conditionals continue to infer types identically (no regression).
+- [x] All 13 test cases pass as automated tests in `TestFlowSensitiveType`.
+- [x] Narrowing does not change the type of `x` when accessed *after* the `if`/`end` block.
+- [x] Non-guard conditionals continue to infer types identically (no regression).
 
 ## Non-Functional Requirements
 - **Threading**: type narrowing runs synchronously inside `LuaTypesSnapshot.forFile()` (read action). No new threads.
