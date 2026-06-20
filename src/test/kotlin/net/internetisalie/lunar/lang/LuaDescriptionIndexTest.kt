@@ -78,4 +78,90 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
         assertEquals("Vector", record1[0])
         assertEquals("Matrix", record2[0])
     }
+
+    @Test
+    fun testIndexerWithFuncDescription() {
+        val file = myFixture.configureByText("test.lua", """
+            ---@param name string The name of the player
+            function setPlayerName(name)
+            end
+        """.trimIndent())
+
+        val fileUrl = file.virtualFile.url
+        val scope = GlobalSearchScope.allScope(project)
+        val index = FileBasedIndex.getInstance()
+
+        val values = index.getValues(LuaDescriptionIndex.KEY, "player", scope)
+        assertEquals(1, values.size)
+        val parts = values.first().split('\t')
+        assertEquals("setPlayerName", parts[0])
+        assertEquals(fileUrl, parts[1])
+        val expectedOffset = file.text.indexOf("function setPlayerName")
+        assertEquals(expectedOffset, parts[2].toInt())
+    }
+
+    @Test
+    fun testIndexerWithLocalFuncDescription() {
+        val file = myFixture.configureByText("test.lua", """
+            ---@return number The coordinate value
+            local function getX()
+                return 0
+            end
+        """.trimIndent())
+
+        val fileUrl = file.virtualFile.url
+        val scope = GlobalSearchScope.allScope(project)
+        val index = FileBasedIndex.getInstance()
+
+        val values = index.getValues(LuaDescriptionIndex.KEY, "coordinate", scope)
+        assertEquals(1, values.size)
+        val parts = values.first().split('\t')
+        assertEquals("getX", parts[0])
+        assertEquals(fileUrl, parts[1])
+        val expectedOffset = file.text.indexOf("local function getX")
+        assertEquals(expectedOffset, parts[2].toInt())
+    }
+
+    @Test
+    fun testIndexRealWorldProjectAndMeasureSize() {
+        val testProjectDir = java.io.File("/home/mini/Documents/src/lua/test")
+        assertTrue(testProjectDir.exists())
+
+        var totalLoc = 0
+        var fileCount = 0
+
+        testProjectDir.walkTopDown().forEach { file ->
+            if (file.isFile && file.extension == "lua") {
+                val content = file.readText()
+                val relativePath = file.relativeTo(testProjectDir).path
+                myFixture.addFileToProject(relativePath, content)
+                totalLoc += content.lineSequence().count()
+                fileCount++
+            }
+        }
+
+        val scope = GlobalSearchScope.allScope(project)
+        val index = FileBasedIndex.getInstance()
+        val keys = index.getAllKeys(LuaDescriptionIndex.KEY, project)
+
+        var totalEntries = 0
+        var estimatedSizeBytes = 0
+
+        for (key in keys) {
+            val values = index.getValues(LuaDescriptionIndex.KEY, key, scope)
+            val keySize = key.toByteArray(Charsets.UTF_8).size + 2
+            estimatedSizeBytes += keySize
+
+            for (value in values) {
+                totalEntries++
+                val valueSize = value.toByteArray(Charsets.UTF_8).size + 2
+                estimatedSizeBytes += valueSize
+            }
+        }
+
+        // Limit of 500 KB per 10k LOC
+        val limitBytes = (totalLoc / 10000.0) * 500 * 1024
+        assertTrue("Estimated size of index ($estimatedSizeBytes bytes) exceeds limit ($limitBytes bytes) for $totalLoc LOC",
+            estimatedSizeBytes < limitBytes)
+    }
 }
