@@ -37,7 +37,7 @@ folders:
 | [**TYPE**](#type--type-system)                              |      6 |           2 |       1 |      0 |       9 | ███████░░░ 67%  |
 | [**NAV**](#nav--code-navigation)                            |     10 |           0 |       0 |      0 |      10 | ██████████ 100% |
 | [**REFACT/INTENT**](#refactintent--refactoring--intentions) |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
-| [**DEBUG/RUN**](#debugrun--debugging--execution)            |     10 |           0 |       1 |      0 |      11 | █████████░ 91%  |
+| [**DEBUG/RUN**](#debugrun--debugging--execution)            |     11 |           0 |       0 |      0 |      11 | ██████████ 100% |
 | [**INSP**](#insp--inspections--diagnostics)                 |      4 |           3 |       2 |      0 |       9 | ████░░░░░░ 44%  |
 | [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
 | [**FORMAT**](#format--formatting)                           |      5 |           1 |       1 |      0 |       7 | ███████░░░ 71%  |
@@ -47,7 +47,7 @@ folders:
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **101** |       **8** |   **7** | **10** | **126** | **80%**         |
+| **Total**                                                   | **102** |       **8** |   **6** | **10** | **126** | **81%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -158,7 +158,7 @@ folders:
 | DEBUG-07 | Lazy Remote Stack Evaluation | done | `LuaRemoteStack` lazy properties |
 | RUN-01 | Lua Interpreter SDK | done | `LuaInterpreter`, `LuaInterpreterService`, `LuaInterpreterFamily` |
 | RUN-02 | Run Configurations | done | `LuaRunConfiguration` + `LuaRunConfigurationType` |
-| RUN-03 | Interactive Console (REPL) | planned | Has 8-requirement spec; only basic `lua -i` fallback exists, no `LanguageConsoleView` |
+| RUN-03 | Interactive Console (REPL) | done | `run/console/` pkg: `LuaConsoleRunner`/`View`/`ExecuteHandler` |
 | RUN-04 | Run Configuration Validation | done | Interpreter + script validation in `getState()` |
 
 ---

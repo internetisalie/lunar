@@ -23,7 +23,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-07` | **Lazy Remote Stack Evaluation** | **S** | **Full** | Defer parsing of frame details until explicitly accessed. |
 | `RUN-01` | **Lua Interpreter SDK** | **M** | **Full** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
 | `RUN-02` | **Run Configurations** | **M** | **Full** | Create and save configurations for script execution. |
-| [`RUN-03`](./03-interactive-console/requirements.md) | **Interactive Console (REPL) Specification** | **S** | **Partial** | Provide a Lua REPL console within the IDE using the selected project SDK. |
+| [`RUN-03`](./03-interactive-console/requirements.md) | **Interactive Console (REPL) Specification** | **S** | **Full** | Provide a Lua REPL console within the IDE using the selected project SDK. |
 | `RUN-04` | **Run Configuration Validation** | **M** | **Full** | Validate run configurations before execution. |
 | [`RUN-08`](./run-05-test-runner/requirements.md) | **Test Runner Integration** | **S** | **Not Implemented** | Provide a user-facing test runner with Busted and Lunity support displaying results in the Test Results window. |
 
@@ -53,7 +53,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 - **Status**: **Implemented** (`LuaRunConfiguration`)
 
 ### RUN-03: Interactive Console (REPL)
-- **Status**: **Partial** (Runs `lua -i` but lacks full IDE console integration)
+- **Status**: **Implemented** (`LuaConsoleRunner` and full `LanguageConsoleView` integration)
 
 ### RUN-08: Test Runner Integration
 - **Status**: **Not Implemented** (Requirements defined in [RUN-08](./run-05-test-runner/requirements.md))
