@@ -28,7 +28,7 @@ folders:
 - **Interpreter**: `platform/LuaInterpreter.kt:109-116` — `LuaInterpreterFamily.FAMILIES["Lua"]` leveler lambda maps version strings.
 
 ### Target State
-We **extend** the existing token pipeline, parser, scope resolution, and inspection. No stub infrastructure is added — `LuaGlobalVarDecl` is file-scoped only (matching how `LuaAssignmentStatement` globals work today). `LuaGlobalDeclarationIndex` is typed `StringStubIndexExtension<LuaFuncDecl>` and cannot hold `LuaGlobalVarDecl` stubs without a type change; creating a separate index is deferred.
+We **extend** the existing token pipeline, parser, scope resolution, and inspection. No stub infrastructure is added — `LuaGlobalVarDecl` has no stub (cross-file resolution relies on the existing `_ENV` mechanism; within-file block-level scoping is handled by `LuaBlockExt.processDeclarations`). `LuaGlobalDeclarationIndex` is typed `StringStubIndexExtension<LuaFuncDecl>` and cannot hold `LuaGlobalVarDecl` stubs without a type change; creating a separate index is deferred.
 
 ## 2. Core Components
 
@@ -76,6 +76,7 @@ We **extend** the existing token pipeline, parser, scope resolution, and inspect
   globalVarDecl ::= GLOBAL attNameList ['=' exprList] {
       implements = ["net.internetisalie.lunar.lang.psi.LuaCommentOwner"]
       methods=[getComment getDocComment getCatsComment]
+      extends=statement
   }
   ```
   No `elementTypeFactory` — no stub. Generates `LuaGlobalVarDecl` as a plain PSI node.
@@ -88,6 +89,8 @@ We **extend** the existing token pipeline, parser, scope resolution, and inspect
   ```bnf
   globalModeDecl ::= GLOBAL [attrib] '*' {
       implements = ["net.internetisalie.lunar.lang.psi.LuaCommentOwner"]
+      methods=[getComment getDocComment getCatsComment]
+      extends=statement
   }
   ```
   Generates `LuaGlobalModeDecl`.
@@ -103,13 +106,17 @@ We **extend** the existing token pipeline, parser, scope resolution, and inspect
           "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
           "net.internetisalie.lunar.lang.psi.LuaBlockParent"
       ]
-      methods=[getComment getDocComment getCatsComment]
+      methods=[
+          getComment getDocComment getCatsComment
+          getBlockList
+      ]
+      extends=statement
   }
   ```
   No stub. Generates `LuaGlobalFuncDecl`. Per Lua 5.5 manual §3.4.11, `global function f () body end` is syntactic sugar for `global f; global f = function () body end`.
 
 ### 2.4 Scope Resolution
-- **Responsibility**: Expose `LuaGlobalVarDecl` entries to `LuaNameReference`.
+- **Responsibility**: Expose `LuaGlobalVarDecl` and `LuaGlobalFuncDecl` entries to `LuaNameReference`.
 
   **2.4a** `LuaFile.kt:41-85` — consolidate the three sequential `for (child in children)` loops into one:
   ```kotlin
@@ -117,17 +124,21 @@ We **extend** the existing token pipeline, parser, scope resolution, and inspect
       if (lastParent != null && child.textOffset >= lastParent.textOffset) break
       when (child) {
           is LuaFuncDecl -> if (!processor.execute(child, state)) return false
+          is LuaGlobalFuncDecl -> if (!processor.execute(child, state)) return false
           is LuaGlobalVarDecl -> if (!processor.execute(child, state)) return false
           is LuaAssignmentStatement -> if (!processor.execute(child, state)) return false
       }
   }
   return true
   ```
-  The existing three separate loops (lines 50-60, 63-73) are replaced by this single-pass `when`. Block processing (`getBlockList()` → `LuaBlock.processDeclarations`) remains at the end of the method (lines 76-85), unchanged.
+  The existing three separate loops (lines 50-60, 63-73) are replaced by this single-pass `when`. `LuaGlobalFuncDecl` is included despite the Lua 5.5 manual §3.4.11 describing it as syntactic sugar — the parser generates a distinct `LuaGlobalFuncDecl` node (does not desugar), so its name must be resolvable for `f()` to resolve after `global function f() end`. Block processing (`getBlockList()` → `LuaBlock.processDeclarations`) remains at the end of the method (lines 76-85), unchanged.
 
-  **2.4b** `LuaBlockExt.kt:35-56` — add a `when` branch:
+  **2.4b** `LuaBlockExt.kt:35-56` — add `when` branches:
   ```kotlin
   is LuaGlobalVarDecl -> {
+      if (!processor.execute(statement, state)) return false
+  }
+  is LuaGlobalFuncDecl -> {
       if (!processor.execute(statement, state)) return false
   }
   ```
@@ -149,9 +160,31 @@ We **extend** the existing token pipeline, parser, scope resolution, and inspect
           )
       }
   }
+
+  override fun visitGlobalFuncDecl(o: LuaGlobalFuncDecl) {
+      super.visitGlobalFuncDecl(o)
+      if (level(o) < LuaLanguageLevel.LUA55) {
+          register(
+              holder, o.firstChild,
+              "Global function declarations are only available in Lua 5.5+",
+              UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
+          )
+      }
+  }
+
+  override fun visitGlobalModeDecl(o: LuaGlobalModeDecl) {
+      super.visitGlobalModeDecl(o)
+      if (level(o) < LuaLanguageLevel.LUA55) {
+          register(
+              holder, o.firstChild,
+              "Global mode declarations are only available in Lua 5.5+",
+              UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
+          )
+      }
+  }
   ```
 
-  The generated `LuaVisitor` (at `src/main/gen/.../LuaVisitor.java`) auto-generates `visitGlobalVarDecl` and `visitGlobalFuncDecl` methods after `./gradlew generateLuaParser`.
+  The generated `LuaVisitor` (at `src/main/gen/.../LuaVisitor.java`) auto-generates `visitGlobalVarDecl`, `visitGlobalFuncDecl`, and `visitGlobalModeDecl` methods after `./gradlew generateLuaParser`.
 
   **No `plugin.xml` registration needed** — the inspection is already registered and `LuaVisitor` dispatch is automatic.
 

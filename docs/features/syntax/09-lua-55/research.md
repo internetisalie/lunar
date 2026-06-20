@@ -85,4 +85,4 @@ A new standard library function. No parser changes needed — it's a regular fun
 
 ## Open Questions
 - What is the exact syntax for named vararg tables? (Needs reference manual deep-dive.)
-- Does `global` have block-scoping semantics or is it always file-scoped?
+- ~~Does `global` have block-scoping semantics or is it always file-scoped?~~ **Resolved**: `global` declarations have block-level lexical scoping (Lua 5.5 Manual §2.2). The manual states: "All chunks start with an implicit declaration `global *`, which declares all free names as global variables; this preambular declaration becomes void inside the scope of any other **global** declaration." The example in §2.2 confirms that once the block containing a `global` declaration ends, the implicit `global *` behavior returns — i.e., `global` is scoped to the innermost block, not file-scoped. The design's `processDeclarations` in both `LuaFile` (file-scope) and `LuaBlockExt` (block-scope) correctly models this.
