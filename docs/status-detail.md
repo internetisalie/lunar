@@ -214,7 +214,7 @@ folders:
 | DOC-03 | External URL Links | done | GFM autolinks, `@see` tag, stdlib URL linking |
 | DOC-04 | Documentation Generation | done | `LuaDocGenerator` + `LuaGenerateDocIntention` + enter-handler auto-gen |
 | DOC-05 | Markdown Support | done | `org.intellij.markdown` rendering + Lua code highlighting |
-| DOC-06 | Documentation Indexing | in progress | 6 indexes implemented; full-text search missing |
+| DOC-06 | Documentation Indexing | in progress | 6 indexes implemented; full-text search done; platform symbol doc missing |
 | DOC-07 | Parameter Info | done | `LuaParameterInfoHandler` — signature help during function calls |
 | DOC-08 | Comprehensive LuaCATS Parsing | done | 19 tag types, complex type system, multi-line enum |
 

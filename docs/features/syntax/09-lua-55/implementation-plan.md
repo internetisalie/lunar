@@ -21,7 +21,7 @@ folders:
 5. Add `IElementType GLOBAL = new LuaElementType("global")` to `LuaTokenTypes.java`.
 6. Add `"global" { return GLOBAL; }` between `"function"` and `"goto"` in `lua.flex`.
 7. Add `LuaTokenTypes.GLOBAL to LuaElementTypes.GLOBAL` between `FUNCTION` and `GOTO` in `LuaLexer.kt`.
-8. Rebuild lexer: `./gradlew generateLuaLexer`.
+8. **HANDOFF:** Ask human to right-click `lua.flex` and run "Run JFlex Generator", then commit to `src/main/gen/`.
 9. Add lexer test in `TestLuaLexerExhaustive` for `global` token.
 
 ## Phase 2: Parser & PSI Generation [Must]
@@ -30,7 +30,7 @@ folders:
 
 1. Add `GLOBAL = 'global'` keyword to `lua.bnf`.
 2. Define `globalVarDecl`, `globalFuncDecl`, `globalModeDecl` grammar rules (see design §2.3).
-3. Run `./gradlew generateLuaParser`.
+3. **HANDOFF:** Ask human to right-click `lua.bnf` and run "Generate Parser Code", then commit to `src/main/gen/`.
 4. Add parser tests in `TestLuaParsingExhaustive`:
    - `global x = 10` → `LuaGlobalVarDecl`, no `PsiErrorElement`.
    - `global <const> *` → `LuaGlobalModeDecl`, no parse error.

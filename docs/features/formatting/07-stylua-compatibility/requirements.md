@@ -2,7 +2,7 @@
 id: "FORMAT-07"
 title: "FORMAT-07: Stylua Compatibility"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "FORMAT"
 folders:
@@ -42,13 +42,13 @@ Platform's `AsyncDocumentFormattingService` extension point so the CLI never blo
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| FORMAT-07-01 | **Enable Stylua as formatter** | M | When a valid Stylua binary is registered in the TOOL inventory and bound to the project (or globally), the Reformat Code action for `.lua` files uses Stylua instead of `LuaFormattingModelBuilder`. When no valid Stylua is bound, the built-in formatter is used as the fallback. |
-| FORMAT-07-02 | **Format via Stylua CLI** | M | The formatting service pipes the full document text to `stylua --stdin-filepath <filename>` and applies the returned stdout text. The document is saved to disk first (`FileDocumentManager.saveDocument`) so the CLI can detect the working-directory `.stylua.toml`. |
-| FORMAT-07-03 | **Error handling** | M | On non-zero exit, stderr is surfaced as a notification. On timeout (>30s), a different notification is shown. In both cases the document text is left unchanged. |
-| FORMAT-07-04 | **Language filtering** | M | `canFormat()` returns `true` only for `LuaLanguage` files *and* when `LuaToolManager.getEffectiveTool(project, LuaToolType.STYLUA)` returns a valid tool. Otherwise `false`, letting the built-in formatter take over. |
-| FORMAT-07-05 | **User notification on first use** | C | On the first successful format with Stylua, show a non-blocking notification: "Formatted with Stylua <version>" so the user knows which formatter is active. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| FORMAT-07-01 | **Enable Stylua as formatter** | M | Full | When a valid Stylua binary is registered in the TOOL inventory and bound to the project (or globally), the Reformat Code action for `.lua` files uses Stylua instead of `LuaFormattingModelBuilder`. When no valid Stylua is bound, the built-in formatter is used as the fallback. |
+| FORMAT-07-02 | **Format via Stylua CLI** | M | Full | The formatting service pipes the full document text to `stylua --stdin-filepath <filename>` and applies the returned stdout text. The document is saved to disk first (`FileDocumentManager.saveDocument`) so the CLI can detect the working-directory `.stylua.toml`. |
+| FORMAT-07-03 | **Error handling** | M | Full | On non-zero exit, stderr is surfaced as a notification. On timeout (>30s), a different notification is shown. In both cases the document text is left unchanged. |
+| FORMAT-07-04 | **Language filtering** | M | Full | `canFormat()` returns `true` only for `LuaLanguage` files *and* when `LuaToolManager.getEffectiveTool(project, LuaToolType.STYLUA)` returns a valid tool. Otherwise `false`, letting the built-in formatter take over. |
+| FORMAT-07-05 | **User notification on first use** | C | Not Implemented | On the first successful format with Stylua, show a non-blocking notification: "Formatted with Stylua <version>" so the user knows which formatter is active. |
 
 ## Detailed Specifications
 

@@ -39,7 +39,7 @@ Documentation indexing ensures that type annotations, class definitions, and des
 | `DOC-06-01` | **Stub Indexing** | **M** | **Full** | Integrate documentation parsing into the IntelliJ Platform's stub indexing system. |
 | `DOC-06-02` | **Type Map Construction** | **M** | **Full** | Build a global map of user-defined types (classes, aliases) for resolution. |
 | `DOC-06-03` | **Incremental Updates** | **M** | **Full** | Ensure indices are updated incrementally as files are modified. |
-| `DOC-06-04` | **Full-Text Search** | **S** | **Not Implemented** | Support searching for symbols based on their documentation descriptions. |
+| `DOC-06-04` | **Full-Text Search** | **S** | **Full** | Support searching for symbols based on their documentation descriptions. |
 | `DOC-06-05` | **Cross-File Resolution** | **M** | **Full** | Resolve types and classes defined in other files within the same project or libraries. |
 | `DOC-06-06` | **Platform Symbol Documentation** | **M** | **Not Implemented** | Lookup and display documentation for symbols from platform/library files (e.g., Lua standard library). |
 
