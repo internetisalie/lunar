@@ -49,6 +49,77 @@ class LuaTestRunConfigurationTest : BasePlatformTestCase() {
         assertEquals(envs, state.environmentVariables)
     }
 
+    fun testRunLineMarkerProvider() {
+        myFixture.configureByText("my_spec.lua", """
+            describe("suite", function()
+                it("test", function()
+                end)
+            end)
+            function test_lunity()
+            end
+        """.trimIndent())
+        
+        val gutters = myFixture.findAllGutters()
+        val runGutters = gutters.filter { it.icon == com.intellij.icons.AllIcons.RunConfigurations.TestState.Run }
+        assertEquals(3, runGutters.size)
+    }
+
+    fun testProducerFromContextBustedSpec() {
+        val psiFile = myFixture.configureByText("my_spec.lua", """
+            describe("suite", function()
+                it("test", function()
+                end)
+            end)
+        """.trimIndent())
+        
+        val context = com.intellij.execution.actions.ConfigurationContext(psiFile)
+        val producer = LuaTestRunConfigurationProducer()
+        val configFromContext = producer.createConfigurationFromContext(context) ?: throw AssertionError("Expected config")
+        val config = configFromContext.configuration as LuaTestRunConfiguration
+        
+        assertEquals(LuaTestFramework.BUSTED, config.testFramework)
+        assertEquals("FILE", config.testTargetType)
+        assertEquals(psiFile.virtualFile.path, config.testTarget)
+        assertEquals("Lua Tests: my_spec.lua", config.name)
+    }
+
+    fun testProducerFromContextBustedDescribe() {
+        val psiFile = myFixture.configureByText("my_spec.lua", """
+            describe("suite", function()
+                it("test", function()
+                end)
+            end)
+        """.trimIndent())
+        
+        val describeOffset = psiFile.text.indexOf("describe")
+        val element = psiFile.findElementAt(describeOffset)!!
+        val context = com.intellij.execution.actions.ConfigurationContext(element)
+        val producer = LuaTestRunConfigurationProducer()
+        val configFromContext = producer.createConfigurationFromContext(context) ?: throw AssertionError("Expected config")
+        val config = configFromContext.configuration as LuaTestRunConfiguration
+        
+        assertEquals(LuaTestFramework.BUSTED, config.testFramework)
+        assertEquals("PATTERN", config.testTargetType)
+        assertEquals("suite", config.testTarget)
+        assertEquals("Lua Tests: suite", config.name)
+    }
+
+    fun testProducerFromContextLunity() {
+        val psiFile = myFixture.configureByText("test_math.lua", """
+            function test_addition()
+            end
+        """.trimIndent())
+        
+        val context = com.intellij.execution.actions.ConfigurationContext(psiFile)
+        val producer = LuaTestRunConfigurationProducer()
+        val configFromContext = producer.createConfigurationFromContext(context) ?: throw AssertionError("Expected config")
+        val config = configFromContext.configuration as LuaTestRunConfiguration
+        
+        assertEquals(LuaTestFramework.LUNITY, config.testFramework)
+        assertEquals("FILE", config.testTargetType)
+        assertEquals(psiFile.virtualFile.path, config.testTarget)
+    }
+
     fun testValidationFailsWhenTargetEmpty() {
         val targetProject = project
         val type = LuaTestRunConfigurationType.getInstance()

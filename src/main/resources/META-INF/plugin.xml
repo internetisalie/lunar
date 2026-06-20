@@ -406,6 +406,11 @@
             implementation="net.internetisalie.lunar.run.LuaRunConfigurationType"/>
     <configurationType
             implementation="net.internetisalie.lunar.run.test.LuaTestRunConfigurationType"/>
+    <runConfigurationProducer
+            implementation="net.internetisalie.lunar.run.test.LuaTestRunConfigurationProducer"/>
+    <runLineMarkerContributor
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.run.test.LuaTestRunLineMarkerProvider"/>
 
     <!-- LuaRocks task execution / run configs (ROCKS-04) -->
     <configurationType

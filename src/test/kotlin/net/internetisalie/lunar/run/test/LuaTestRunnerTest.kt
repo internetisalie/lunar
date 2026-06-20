@@ -291,4 +291,23 @@ class LuaTestRunnerTest : BaseDocumentTest() {
             commandLine.parametersList.list
         )
     }
+
+    @Test
+    fun testLuaTestLocator() {
+        val targetProject = myFixture.project
+        val psiFile = myFixture.configureByText("t.lua", "local x = 1\nlocal y = 2\n")
+        val scope = com.intellij.psi.search.GlobalSearchScope.projectScope(targetProject)
+
+        val locations = LuaTestLocator.getLocation("lua", "${psiFile.virtualFile.path}:2", targetProject, scope)
+        assertEquals(1, locations.size)
+        val location = locations[0]
+        val psiElement = location.psiElement
+        kotlin.test.assertNotNull(psiElement)
+        com.intellij.openapi.application.runReadAction {
+            assertEquals(psiFile, psiElement.containingFile)
+            val document = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(psiFile.virtualFile)!!
+            val offset = psiElement.textOffset
+            assertEquals(document.getLineStartOffset(1), offset)
+        }
+    }
 }

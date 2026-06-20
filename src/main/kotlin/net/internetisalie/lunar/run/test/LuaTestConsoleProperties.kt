@@ -5,6 +5,7 @@ import com.intellij.execution.testframework.TestConsoleProperties
 import com.intellij.execution.testframework.sm.SMCustomMessagesParsing
 import com.intellij.execution.testframework.sm.runner.OutputToGeneralTestEventsConverter
 import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
+import com.intellij.execution.testframework.sm.runner.SMTestLocator
 
 class LuaTestConsoleProperties(
     val configuration: LuaTestRunConfiguration,
@@ -14,6 +15,10 @@ class LuaTestConsoleProperties(
     init {
         setIdBasedTestTree(true)
         setPrintTestingStartedTime(true)
+    }
+
+    override fun getTestLocator(): SMTestLocator {
+        return LuaTestLocator
     }
 
     override fun createTestEventsConverter(

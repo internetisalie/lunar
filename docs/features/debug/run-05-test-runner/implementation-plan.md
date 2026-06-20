@@ -40,10 +40,10 @@ folders:
 ### Phase 3: Test Navigation & Gutter Icons [Should]
 - **Goal**: Navigate from test results to source; show gutter run icons on test declarations.
 - **Tasks**:
-  - [ ] Create `LuaTestLocator` — realizes design §2.8, §3.4
-  - [ ] Create `LuaTestRunConfigurationProducer` — realizes design §2.9, §3.5
-  - [ ] Create `LuaTestRunLineMarkerProvider` — realizes design §2.10, §3.6
-  - [ ] Register `<runConfigurationProducer>` and `<runLineMarkerContributor>` in `plugin.xml` — realizes design §7
+  - [x] Create `LuaTestLocator` — realizes design §2.8, §3.4
+  - [x] Create `LuaTestRunConfigurationProducer` — realizes design §2.9, §3.5
+  - [x] Create `LuaTestRunLineMarkerProvider` — realizes design §2.10, §3.6
+  - [x] Register `<runConfigurationProducer>` and `<runLineMarkerContributor>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: Clicking a test node navigates to source; right-clicking a test file offers "Run Lua Tests"; gutter Play icons appear next to `describe`/`it`/`test_` declarations. Covers TC #4, TC #5.
 
 ### Phase 4: Rerun Failed Tests [Should]
@@ -132,7 +132,7 @@ folders:
 |-------|--------|----------|
 | Phase 1: Tool Registration & Foundation | done | Must |
 | Phase 2: Test Execution & SMTestRunner | done | Must |
-| Phase 3: Test Navigation & Gutter Icons | todo | Should |
+| Phase 3: Test Navigation & Gutter Icons | done | Should |
 | Phase 4: Rerun Failed Tests | todo | Should |
 | Phase 5: Coverage Engine | todo | Should |
 | Phase 6: Coverage Import & Report Viewer | todo | Should/Could |
