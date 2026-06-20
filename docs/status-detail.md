@@ -32,22 +32,22 @@ folders:
 
 | Epic                                                        |   Done | In Progress | Planned |   Todo |   Total | Completion      |
 | :---------------------------------------------------------- | -----: | ----------: | ------: | -----: | ------: | :-------------- |
-| [**SYNTAX**](#syntax--syntax--editor)                       |     14 |           0 |       0 |      3 |      17 | ████████░░ 82%  |
+| [**SYNTAX**](#syntax--syntax--editor)                       |     16 |           0 |       1 |      0 |      17 | █████████░ 94%  |
 | [**COMP**](#comp--code-completion)                          |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
-| [**TYPE**](#type--type-system)                              |      6 |           2 |       0 |      1 |       9 | ███████░░░ 67%  |
+| [**TYPE**](#type--type-system)                              |      6 |           2 |       1 |      0 |       9 | ███████░░░ 67%  |
 | [**NAV**](#nav--code-navigation)                            |     10 |           0 |       0 |      0 |      10 | ██████████ 100% |
 | [**REFACT/INTENT**](#refactintent--refactoring--intentions) |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
 | [**DEBUG/RUN**](#debugrun--debugging--execution)            |     10 |           0 |       1 |      0 |      11 | █████████░ 91%  |
-| [**INSP**](#insp--inspections--diagnostics)                 |      3 |           3 |       0 |      3 |       9 | ███░░░░░░░ 33%  |
+| [**INSP**](#insp--inspections--diagnostics)                 |      4 |           3 |       2 |      0 |       9 | ████░░░░░░ 44%  |
 | [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
-| [**FORMAT**](#format--formatting)                           |      2 |           1 |       0 |      4 |       7 | ███░░░░░░░ 29%  |
+| [**FORMAT**](#format--formatting)                           |      5 |           1 |       1 |      0 |       7 | ███████░░░ 71%  |
 | [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
 | [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
-| [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       0 |      5 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **95** |       **8** |   **1** | **22** | **126** | **75%**         |
+| [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
+| **Total**                                                   | **101** |       **8** |   **7** | **10** | **126** | **80%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -63,17 +63,17 @@ folders:
 | SYNTAX-02 | Semantic Highlighting | done | Highlight keys for global/local/param/upvalue/shadowed; color settings page |
 | SYNTAX-03 | Code Folding | done | `LuaFoldingBuilder` — functions, blocks, tables, comments |
 | SYNTAX-04 | Brace Matching | done | `LuaPairedBraceMatcher` — 7 pairs incl. keyword pairs; `LuaCodeBlockSupportHandler` |
-| SYNTAX-05 | Method Separators | todo | No implementation found |
+| SYNTAX-05 | Method Separators | done | `LuaMethodSeparatorProvider` |
 | SYNTAX-06 | Breadcrumbs | done | `LuaBreadcrumbsProvider` |
 | SYNTAX-07 | Inlay Hints | done | Type hints, parameter name hints, method chain hints — 3 providers |
 | SYNTAX-08 | String Escape Processing | done | `LuaLiterals.kt` — all escape forms including `\u{...}` |
-| SYNTAX-09 | Lua 5.5 Support | todo | Language not yet released |
+| SYNTAX-09 | Lua 5.5 Support | planned | Planned for Wave 11 |
 | SYNTAX-10 | Enter Handler for Comments | done | `LuaEnterHandlerDelegate` — auto-continuation of `---`, doc template generation |
 | SYNTAX-11 | Numeric Literal Validation | done | `LuaNumeralAnnotator` — decimal/hex exponent validation, int/float semantic coloring |
 | SYNTAX-12 | Label & Goto Scope Resolution | done | `LuaLabelReference` + `LuaLabelReferenceContributor` |
 | SYNTAX-13 | Standalone Expression Annotator | done | `LuaStandaloneExpressionAnnotator` — flags non-call expressions as statements |
 | SYNTAX-14 | Vararg Context Annotator | done | `LuaVarargAnnotator` — validates `...` usage in scope |
-| SYNTAX-15 | Lexer Pushback Optimization | todo | No evidence of implementation |
+| SYNTAX-15 | Lexer Pushback Optimization | done | Already satisfied (lexer is state-based) |
 | SYNTAX-16 | Language Level Enforcement | done | `LuaLanguageLevelAnnotator` — 5.2/5.3/5.4 feature detection + quick fixes |
 | SYNTAX-17 | Inferred-Type Highlighting | done | `LuaInferredTypeAnnotator` — call-site, class ref, field/method distinction |
 
@@ -105,7 +105,7 @@ folders:
 | TYPE-05 | Generics Support | done | `@generic` tag, `LuaGraphType.Generic`, let-polymorphism |
 | TYPE-06 | Return Type Checking | done | `LuaReturnTypeMismatchInspection` — multi-return, arity check |
 | TYPE-07 | External API Stubs | in progress | Bundled stubs + `PlatformLibraryProvider` done; full graph injection incomplete |
-| TYPE-08 | Flow-Sensitive Analysis | todo | No type narrowing or flow analysis code |
+| TYPE-08 | Flow-Sensitive Analysis | planned | Planned for Wave 11 |
 | TYPE-09 | Union Distribution Logic | in progress | Core OR/AND distribution done; member-specific diagnostics and hardening remain |
 
 ---
@@ -168,12 +168,12 @@ folders:
 | ID | Feature | Status | Notes |
 |:---|:--------|:-------|:------|
 | INSP-01 | Undeclared Variable | done | `LuaUndeclaredVariableInspection` — multiResolve, standard globals, allowlist, quick fix |
-| INSP-02 | Unused Local/Parameter | todo | No implementation |
+| INSP-02 | Unused Local/Parameter | done | NAV-02 (usages) |
 | INSP-03 | Type Mismatch | done | `LuaTypeAssignabilityInspection` + `LuaReturnTypeMismatchInspection` |
-| INSP-04 | Unreachable Code | todo | No implementation |
+| INSP-04 | Unreachable Code | planned | Planned for Wave 11 |
 | INSP-05 | Global Creation Warning | in progress | `LuaGlobalBindingsAnnotator` registered but body is empty (logic removed) |
 | INSP-06 | Shadowing Check | in progress | Data model exists (`LuaBindings.shadowed`, `LuaScope.isShadowing`), no user-facing warning |
-| INSP-07 | Suspicious Concatenation | todo | No implementation |
+| INSP-07 | Suspicious Concatenation | planned | Planned for Wave 11 |
 | INSP-08 | Deprecated API Usage | in progress | `@deprecated` tag parsed/rendered/highlighted; no usage-site inspection |
 | INSP-09 | Language Level Compliance | done | `LuaLanguageLevelAnnotator` — comprehensive with quick fixes |
 
@@ -198,10 +198,10 @@ folders:
 | FORMAT-01 | Basic Indentation | done | `LuaFormatBlock` — blocks, labels, tables, expressions, var lists |
 | FORMAT-02 | Configurable Code Style | done | `LuaCodeStyleSettings` + provider; indent, spacing, wrapping options |
 | FORMAT-03 | Blank Line Management | in progress | Stanza spacing between functions exists; general policy missing |
-| FORMAT-04 | Expression Wrapping | todo | Continuation indent exists but no right-margin/wrapping policy |
-| FORMAT-05 | Alignment Logic | todo | Minimal alignment for name/expr lists only |
-| FORMAT-06 | Comment Formatting | todo | No comment alignment or wrapping logic |
-| FORMAT-07 | Stylua Compatibility | todo | No stylua integration |
+| FORMAT-04 | Expression Wrapping | done | Wrap logic implemented |
+| FORMAT-05 | Alignment Logic | done | Alignment logic implemented |
+| FORMAT-06 | Comment Formatting | done | `LuaCommentWrapPostProcessor` |
+| FORMAT-07 | Stylua Compatibility | planned | Planned for Wave 11 |
 
 ---
 
@@ -281,7 +281,7 @@ folders:
 | BUG-01 | Recursive Local Resolution | done | Fixed via `PsiScopeProcessor` refactor (MAINT-04) |
 | BUG-132 | Duplicate Problems Reporting | todo | No deduplication in type inspections |
 | BUG-133 | Union Inlay Hints (OR) | todo | No `or`-expression handling in inlay hints |
-| BUG-134 | @return Comma Parsing | todo | No fix in LuaCATS parser for comma-separated @return |
+| BUG-134 | @return Comma Parsing | planned | Planned for Wave 11 |
 | BUG-135 | Stdlib Inlay Hints | todo | No stdlib return-type resolution for inlay hints |
 | BUG-272 | Local Var Navigation | done | Fixed via PsiScopeProcessor lazy resolution |
 | BUG-349 | Flaky Inlay Hint Tests | todo | No cache/state isolation fix in test infra |
