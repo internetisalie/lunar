@@ -45,13 +45,12 @@ Depends on DOC-06-01 (Stub Indexing), which is already done.
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| DOC-06-04-01 | **Index LuaCATS descriptions** | M | Complete `LuaDescriptionIndex.Indexer.map()` to extract the full description text (plain text, tag descriptions, and any free-form `LuaCatsDescription` lines) from every `LuaCatsComment` attached to a `LuaCommentOwner`, and emit index entries mapping each description-te
-xt word to the owner's qualified name and file location. |
-| DOC-06-04-02 | **Search Everywhere integration** | M | Register a `SearchEverywhereContributor` that accepts a search pattern, queries `LuaDescriptionIndex` for symbols whose description text contains the pattern (case-insensitive substring), and returns navigable items. |
-| DOC-06-04-03 | **Result navigation** | M | Selecting a search result navigates to the source file at the declaration offset, focusing the documented symbol. |
-| DOC-06-04-04 | **Result presentation** | S | Each search-result item shows the symbol name, the file path (relative to project content root), and a truncated snippet of the matching description line. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| DOC-06-04-01 | **Index LuaCATS descriptions** | M | Full | Complete `LuaDescriptionIndex.Indexer.map()` to extract the full description text (plain text, tag descriptions, and any free-form `LuaCatsDescription` lines) from every `LuaCatsComment` attached to a `LuaCommentOwner`, and emit index entries mapping each description-text word to the owner's qualified name and file location. |
+| DOC-06-04-02 | **Search Everywhere integration** | M | Full | Register a `SearchEverywhereContributor` that accepts a search pattern, queries `LuaDescriptionIndex` for symbols whose description text contains the pattern (case-insensitive substring), and returns navigable items. |
+| DOC-06-04-03 | **Result navigation** | M | Full | Selecting a search result navigates to the source file at the declaration offset, focusing the documented symbol. |
+| DOC-06-04-04 | **Result presentation** | S | Full | Each search-result item shows the symbol name, the file path (relative to project content root), and a truncated snippet of the matching description line. |
 
 ## Detailed Specifications
 
@@ -191,14 +190,14 @@ The `getElementsRenderer()` in the contributor returns
 | 9 | DOC-06-04-02 | Dumb mode (indexes not ready) | User opens Search Everywhere and types | Contributor returns empty result immediately (no NPE) |
 
 ## Acceptance Criteria
-- [ ] `LuaDescriptionIndex.Indexer.map()` extracts description text from all `LuaCatsComment` blocks and emits word-level keys (TC 1, 8).
+- [x] `LuaDescriptionIndex.Indexer.map()` extracts description text from all `LuaCatsComment` blocks and emits word-level keys (TC 1, 8).
 - [x] `LuaDescriptionIndex` is already registered in `plugin.xml` (line 430); no new registration needed.
-- [ ] `LuaDocSearchEverywhereContributor` is registered in `plugin.xml` and appears as a tab in Search Everywhere (TC 2).
-- [ ] Single-word and multi-word patterns return correct matches (TC 2, 3, 4).
-- [ ] No results when nothing matches or in dumb mode (TC 5, 9).
-- [ ] Selecting a result navigates to the declaration (TC 6).
-- [ ] Result presentation includes name, file path, and is navigable (TC 7).
-- [ ] Build passes: `./gradlew test` green with new test class.
+- [x] `LuaDocSearchEverywhereContributor` is registered in `plugin.xml` and appears as a tab in Search Everywhere (TC 2).
+- [x] Single-word and multi-word patterns return correct matches (TC 2, 3, 4).
+- [x] No results when nothing matches or in dumb mode (TC 5, 9).
+- [x] Selecting a result navigates to the declaration (TC 6).
+- [x] Result presentation includes name, file path, and is navigable (TC 7).
+- [x] Build passes: `./gradlew test` green with new test class.
 
 ## Non-Functional Requirements
 - **Threading**: `fetchElements` runs on a pooled thread already (Search Everywhere contract). All PSI access inside `runReadAction`. Check `ProgressIndicator.checkCanceled()` per candidate file.
