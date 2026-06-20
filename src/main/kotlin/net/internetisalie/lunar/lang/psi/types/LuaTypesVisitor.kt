@@ -34,6 +34,21 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
     private data class SelfBinding(val receiver: VariableNode, val anchor: PsiElement)
 
+    /**
+     * TYPE-08: a type guard parsed from an `if`/`elseif` condition.
+     *
+     * [narrowedType] is the type matched by the guard; [isEquality] is true for `==`/`type()==`
+     * (the match branch receives [narrowedType]) and false for `~=` (the match branch receives the
+     * complement). [anchor] is the condition's [LuaBinOpExpr], used as the PSI anchor for the
+     * synthetic narrowed graph nodes.
+     */
+    private data class TypeGuard(
+        val variableName: String,
+        val narrowedType: LuaGraphType,
+        val isEquality: Boolean,
+        val anchor: PsiElement,
+    )
+
     private fun getNodes(element: PsiElement?): List<TypeNode> {
         return elementNodes[element] ?: emptyList()
     }
@@ -162,17 +177,123 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         }
     }
 
+    /**
+     * TYPE-08: flow-sensitive narrowing. Each condition is parsed for a recognized type guard;
+     * the matching block's child scope receives a narrowed binding for the guarded variable, and
+     * a trailing `else` block receives the complement of every preceding guard. Narrowing is
+     * block-local — the enclosing binding is restored on the way out (Risk 1.1).
+     */
     override fun visitIfStatement(o: LuaIfStatement) {
         o.exprList.forEach { it.accept(this) }
-        o.getBlockList().forEach { block ->
+
+        val conditions = o.exprList
+        val guards = conditions.map { tryParseTypeofGuard(it) ?: tryParseNilGuard(it) }
+        val blocks = o.getBlockList()
+        val hasElseBlock = blocks.size > conditions.size
+
+        blocks.forEachIndexed { index, block ->
             val previousScope = scope
             scope = scope.child()
             try {
+                narrowBranchScope(guards, index, blocks.lastIndex, hasElseBlock)
                 block.accept(this)
             } finally {
                 scope = previousScope
             }
         }
+    }
+
+    /**
+     * Injects narrowed bindings for branch [index] into the current (already-child) scope: a match
+     * branch narrows on its own guard, while a trailing `else` block narrows on the complement of
+     * every preceding guard in sequence (so chained `elseif` exclusions accumulate — TC-9/TC-10).
+     */
+    private fun narrowBranchScope(
+        guards: List<TypeGuard?>,
+        index: Int,
+        lastIndex: Int,
+        hasElseBlock: Boolean,
+    ) {
+        guards.getOrNull(index)?.let { injectNarrowedBinding(it, matchBranch = true) }
+        if (hasElseBlock && index == lastIndex) {
+            guards.filterNotNull().forEach { injectNarrowedBinding(it, matchBranch = false) }
+        }
+    }
+
+    private fun injectNarrowedBinding(guard: TypeGuard, matchBranch: Boolean) {
+        val originalNode = scope.lookup(guard.variableName) ?: return
+        val narrowedType = if (matchBranch == guard.isEquality) {
+            guard.narrowedType
+        } else {
+            subtractType(originalNode.write, guard.narrowedType)
+        }
+        val narrowedValue = graph.value(guard.anchor, narrowedType)
+        val narrowedVar = graph.variable(guard.anchor)
+        graph.addEdge(narrowedValue, narrowedVar)
+        scope.declare(guard.variableName, narrowedVar)
+    }
+
+    /** Removes [remove] from [original], delegating union subtraction to [LuaTypeAlgebra]. */
+    private fun subtractType(original: LuaGraphType, remove: LuaGraphType): LuaGraphType = when {
+        original == remove -> LuaGraphType.Undefined
+        original is LuaGraphType.Union -> LuaTypeAlgebra.subtractMember(original, remove)
+        else -> original
+    }
+
+    /** Recognizes `type(v) == "name"` / `type(v) ~= "name"`. Returns null on no match (silent). */
+    private fun tryParseTypeofGuard(condition: LuaExpr): TypeGuard? {
+        val binOp = condition as? LuaBinOpExpr ?: return null
+        val op = binOp.node.findChildByType(LuaElementTypes.BIN_OP)?.text ?: return null
+        if (op != "==" && op != "~=") return null
+
+        val left = binOp.left
+        val right = binOp.right ?: return null
+        val typeCall = typeCallOf(left) ?: typeCallOf(right) ?: return null
+        val stringSide = if (typeCallOf(left) != null) right else left
+
+        val variableName = typeofArgumentName(typeCall) ?: return null
+        val terminal = stringSide as? LuaTerminalExpr ?: return null
+        val typeName = terminal.string?.text?.trim('"', '\'') ?: return null
+        val narrowedType = TYPEOF_MAP[typeName] ?: LuaGraphType.Any
+
+        return TypeGuard(variableName, narrowedType, isEquality = op == "==", anchor = binOp)
+    }
+
+    /** Returns the `type(...)` [LuaFuncCall] reachable from [expr], or null. */
+    private fun typeCallOf(expr: LuaExpr?): LuaFuncCall? {
+        expr ?: return null
+        val funcCall = expr as? LuaFuncCall ?: PsiTreeUtil.findChildOfType(expr, LuaFuncCall::class.java) ?: return null
+        return if (funcCall.varOrExp.text == "type") funcCall else null
+    }
+
+    /** Extracts the single positional variable name from a `type(v)` call. */
+    private fun typeofArgumentName(typeCall: LuaFuncCall): String? {
+        val nameAndArgs = typeCall.nameAndArgsList.singleOrNull() ?: return null
+        val argExprs = nameAndArgs.args.exprList?.exprList ?: return null
+        val arg = argExprs.singleOrNull() ?: return null
+        return PsiTreeUtil.findChildOfType(arg, LuaNameRef::class.java)?.text
+    }
+
+    /** Recognizes `v == nil` / `v ~= nil`. Returns null on no match (silent). */
+    private fun tryParseNilGuard(condition: LuaExpr): TypeGuard? {
+        val binOp = condition as? LuaBinOpExpr ?: return null
+        val op = binOp.node.findChildByType(LuaElementTypes.BIN_OP)?.text ?: return null
+        if (op != "==" && op != "~=") return null
+
+        val left = binOp.left
+        val right = binOp.right ?: return null
+        val nilSide = nilTerminalOf(left) ?: nilTerminalOf(right) ?: return null
+        val nameSide = if (nilSide == left) right else left
+
+        val variableName = PsiTreeUtil.findChildOfType(nameSide, LuaNameRef::class.java)?.text
+            ?: (nameSide as? LuaNameRef)?.text ?: return null
+        return TypeGuard(variableName, LuaGraphType.Nil, isEquality = op == "==", anchor = binOp)
+    }
+
+    /** Returns [expr] iff it is a `nil` terminal expression. */
+    private fun nilTerminalOf(expr: LuaExpr?): LuaExpr? {
+        val terminal = expr as? LuaTerminalExpr ?: return null
+        return if (terminal.firstChild?.elementType == LuaElementTypes.NIL) terminal else null
     }
 
     override fun visitGenericForStatement(o: LuaGenericForStatement) {
@@ -641,6 +762,18 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
     companion object {
         internal val KEY: Key<FileUserData<LuaTypes>> = Key.create("LuaTypesSnapshotV3")
+
+        /** TYPE-08: maps `type()` return strings to their graph type (requirements §TYPE-08-01). */
+        private val TYPEOF_MAP: Map<String, LuaGraphType> = mapOf(
+            "string" to LuaGraphType.String,
+            "number" to LuaGraphType.Number,
+            "boolean" to LuaGraphType.Boolean,
+            "nil" to LuaGraphType.Nil,
+            "table" to LuaGraphType.Table(),
+            "function" to LuaGraphType.Function(emptyList(), emptyList()),
+            "thread" to LuaGraphType.Any,
+            "userdata" to LuaGraphType.Any,
+        )
 
         fun getTypes(element: PsiElement): LuaTypes {
             return KEY.cacheFileUserData(element) { file -> buildSnapshot(file) }

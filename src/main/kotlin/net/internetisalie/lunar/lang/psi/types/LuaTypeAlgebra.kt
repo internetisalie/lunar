@@ -50,4 +50,14 @@ object LuaTypeAlgebra {
         1 -> members.first()
         else -> LuaGraphType.Union(members)
     }
+
+    /**
+     * Removes [toRemove] from [union] and re-canonicalizes the remaining members (TYPE-08).
+     *
+     * Delegates to [canonicalize], so an empty result collapses to [LuaGraphType.Undefined] and a
+     * single remaining member collapses to itself. Used by flow-sensitive narrowing to compute the
+     * complement type ("original type minus the guard type") for `else`/`elseif` branches.
+     */
+    fun subtractMember(union: LuaGraphType.Union, toRemove: LuaGraphType): LuaGraphType =
+        canonicalize(union.types.filterNot { it == toRemove })
 }
