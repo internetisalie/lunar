@@ -14,6 +14,7 @@ import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.run.test.LuaTestRunConfiguration
@@ -74,6 +75,12 @@ class LuaCoverageEngine : CoverageEngine() {
 
     override fun getQualifiedNames(sourceFile: PsiFile): Set<String> =
         setOf(sourceFile.virtualFile.path)
+
+    override fun getQualifiedName(outputFile: File, sourceFile: PsiFile): String =
+        outputFile.path
+
+    override fun coverageProjectViewStatisticsApplicableTo(fileOrDir: VirtualFile): Boolean =
+        !fileOrDir.isDirectory && fileOrDir.fileType == LuaFileType
 
     override fun acceptedByFilters(psiFile: PsiFile, bundle: CoverageSuitesBundle): Boolean =
         psiFile.fileType == LuaFileType

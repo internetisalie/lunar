@@ -53,7 +53,7 @@ Lunar provides a unified, user-facing test runner that integrates with the stand
 | RUN-08-15 | **LuaRocks Coverage Installation** | S | Partial | Surface a balloon notification with a quick link to execute `luarocks install luacov` if `luacov` cannot be located when starting a Coverage run. |
 | RUN-08-16 | **Import Luacov Report File** | S | Full | Provide a user action to import/select an existing `luacov.report.out` file, parsing its contents to render coverage highlights directly onto the project's source files in the editor. |
 | RUN-08-17 | **Report Editor Syntax Highlighting** | C | Full | Provide custom syntax highlighting for opened `luacov.report.out` files, showing execution count prefixes in distinct colors (red/green) and syntax-highlighting the code portion as Lua. |
-| RUN-08-18 | **Coverage Editor Banner Action** | C | Partial | Display an action banner at the top of the editor when opening `luacov.report.out` files, offering a one-click action to load/import the coverage overlays onto project source files. |
+| RUN-08-18 | **Coverage Editor Banner Action** | C | Full | Display an action banner at the top of the editor when opening `luacov.report.out` files, offering a one-click action to load/import the coverage overlays onto project source files. |
 
 ## Detailed Specifications
 

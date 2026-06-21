@@ -1,8 +1,9 @@
 package net.internetisalie.lunar.coverage
 
 import com.intellij.openapi.project.Project
-import com.intellij.rt.coverage.data.ProjectData
+import com.intellij.rt.coverage.data.LineCoverage
 import com.intellij.rt.coverage.data.LineData
+import com.intellij.rt.coverage.data.ProjectData
 import java.io.File
 
 data class FileCoverage(
@@ -12,7 +13,7 @@ data class FileCoverage(
 
 object LuaCovReportParser {
     private val BOUNDARY = Regex("^={10,}$")
-    private val UNCOVERED = Regex("^\\*\\*\\*0\\s")
+    private val UNCOVERED = Regex("^\\*+0\\s")
     private val COVERED = Regex("^\\s*(\\d+)\\s")
 
     fun parse(reportFile: File): List<FileCoverage> {
@@ -90,6 +91,7 @@ object LuaCovReportParser {
             for ((line, hits) in coverage.lineHits) {
                 val lineData = LineData(line, null)
                 lineData.hits = hits
+                lineData.setStatus(if (hits > 0) LineCoverage.FULL else LineCoverage.NONE)
                 lineDataArray[line] = lineData
             }
             classData.setLines(lineDataArray)

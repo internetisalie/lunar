@@ -61,6 +61,43 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
     }
 
     @Test
+    fun testLexerUncoveredAsteriskWidths() {
+        // luacov pads the hit-count column to its width, so the uncovered marker is a
+        // variable-length run of asterisks (***0, ****0, ...). Every width must lex to
+        // HIT_UNCOVERED so the report viewer paints it red, not grey.
+        val reportText = """
+            ==============================================================================
+            src/widths.lua
+            ==============================================================================
+            ***0 local three = 1
+            ****0 local four = 2
+              10 local covered = 3
+        """.trimIndent()
+
+        val lexer = LuaCovReportLexer()
+        lexer.start(reportText, 0, reportText.length)
+
+        val uncoveredPrefixes = mutableListOf<String>()
+        var sawCovered = false
+        while (lexer.tokenType != null) {
+            val text = reportText.substring(lexer.tokenStart, lexer.tokenEnd)
+            if (lexer.tokenType == LuaCovReportLexer.HIT_UNCOVERED) {
+                uncoveredPrefixes.add(text)
+            }
+            if (lexer.tokenType == LuaCovReportLexer.HIT_COVERED) {
+                sawCovered = true
+            }
+            lexer.advance()
+        }
+
+        // Both the 3-asterisk and 4-asterisk prefixes must be recognised as uncovered.
+        assertEquals(2, uncoveredPrefixes.size)
+        assertTrue(uncoveredPrefixes.any { it.startsWith("***0") })
+        assertTrue(uncoveredPrefixes.any { it.startsWith("****0") })
+        assertTrue(sawCovered)
+    }
+
+    @Test
     fun testParserIntegration() {
         val reportContent = """
             ==============================================================================

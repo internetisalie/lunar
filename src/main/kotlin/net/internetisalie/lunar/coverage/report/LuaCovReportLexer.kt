@@ -113,7 +113,7 @@ class LuaCovReportLexer : LexerBase() {
         } else {
             val prefixStr = buffer.subSequence(tokenStart, tokenStart + prefixLen).toString()
             tokenType = when {
-                prefixStr.startsWith("***0") -> HIT_UNCOVERED
+                prefixStr.matches(Regex("""^\*+0?\s*$""")) -> HIT_UNCOVERED
                 prefixStr.isBlank() -> HIT_NONE
                 prefixStr.matches(Regex("""^\s*\d+\s?$""")) -> HIT_COVERED
                 else -> HIT_NONE
