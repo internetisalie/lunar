@@ -2,7 +2,7 @@
 id: "DOC"
 title: "DOC: Documentation & LuaCATS"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

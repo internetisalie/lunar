@@ -2,7 +2,7 @@
 id: "FORMAT-07"
 title: "FORMAT-07: Stylua Compatibility"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "FORMAT"
 folders:

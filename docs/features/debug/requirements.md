@@ -2,7 +2,7 @@
 id: "DEBUG/RUN"
 title: "DEBUG: Debugging & Execution"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "low"
 folders:
   - "[[features]]"

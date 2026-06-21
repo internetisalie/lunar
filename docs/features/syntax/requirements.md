@@ -2,7 +2,7 @@
 id: "SYNTAX"
 title: "SYNTAX: Syntax & Editor"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

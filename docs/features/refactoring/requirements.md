@@ -3,7 +3,7 @@ id: "REFACT/INTENT"
 title: "REFACT: Refactoring & Intentions"
 type: "epic"
 priority: low
-status: planned
+status: done
 folders:
   - "[[features]]"
 ---

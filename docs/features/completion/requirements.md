@@ -2,7 +2,7 @@
 id: "COMP"
 title: "COMP: Code Completion"
 type: "epic"
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features]]"

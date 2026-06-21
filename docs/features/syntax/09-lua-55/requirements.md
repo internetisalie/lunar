@@ -2,7 +2,7 @@
 id: "SYNTAX-09"
 title: "Lua 5.5 Support"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "low"
 parent_id: "SYNTAX"
 folders:

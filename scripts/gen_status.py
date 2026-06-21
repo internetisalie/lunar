@@ -19,7 +19,6 @@ except ImportError:
 FEATURES = "docs/features"
 STATUS_MD = "docs/status.md"
 STATUSES = ["done", "in_progress", "planned", "todo", "blocked", "cancelled"]
-PRIORITY_DOT = {"critical": "🔴", "high": "🔴", "medium": "🟡", "low": "🟢"}
 STATUS_DOT = {"done": "✅", "in_progress": "🔵", "planned": "⚪",
               "todo": "⚫", "blocked": "🟠", "cancelled": "🚫"}
 # Completion counts only an epic's DIRECT children that are work items
@@ -84,13 +83,13 @@ def render():
     rows, g_done, g_total = [], 0, 0
     for fm, _dirpath in epics():
         kids = [c for c in children.get(fm.get("id"), [])
-                if c.get("type") in WORK_ITEM_TYPES]
+                if c.get("type") in WORK_ITEM_TYPES and c.get("status") != "cancelled"]
         total = len(kids)
         done = sum(1 for c in kids if c.get("status") == "done")
         pct = (done * 100 // total) if total else (100 if fm.get("status") == "done" else 0)
         rows.append({
             "id": fm.get("id", "?"), "title": fm.get("title", fm.get("id", "?")),
-            "priority": fm.get("priority", "—"), "status": fm.get("status", "—"),
+            "status": fm.get("status", "—"),
             "done": done, "total": total, "pct": pct,
         })
         g_done += done
@@ -107,13 +106,12 @@ def render():
         "     Do not edit by hand — run `python3 scripts/gen_status.py`. -->", "",
         f"**Completion: {g_pct}%** ({g_done} of {g_total} work items `done`)", "",
         "## Progress by Epic", "",
-        "| Epic | Priority | Epic status | Work items done | Completion |",
-        "| :--- | :--- | :--- | :--- | :--- |",
+        "| Epic | Status | Work items done | Completion |",
+        "| :--- | :--- | :--- | :--- |",
     ]
     for r in rows:
-        prio = f"{PRIORITY_DOT.get(r['priority'], '⚪')} {r['priority']}"
         stat = f"{STATUS_DOT.get(r['status'], '')} {r['status']}".strip()
-        out.append(f"| **{r['id']}** | {prio} | {stat} | "
+        out.append(f"| **{r['id']}** | {stat} | "
                    f"{r['done']}/{r['total']} | {bar(r['pct'])} {r['pct']}% |")
     out += [
         "", "## Notes", "",

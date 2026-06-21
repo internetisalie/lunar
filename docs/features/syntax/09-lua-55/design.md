@@ -2,7 +2,7 @@
 id: "SYNTAX-09-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
+status: "done"
 parent_id: "SYNTAX-09"
 folders:
   - "[[features/syntax/09-lua-55/requirements|requirements]]"

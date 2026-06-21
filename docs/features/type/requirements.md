@@ -2,7 +2,7 @@
 id: "TYPE"
 title: "TYPE: Type System"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features]]"

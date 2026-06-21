@@ -13,27 +13,27 @@ folders:
      The Saga tracker is retired; the docs are the source of truth.
      Do not edit by hand — run `python3 scripts/gen_status.py`. -->
 
-**Completion: 86%** (111 of 128 work items `done`)
+**Completion: 89%** (114 of 128 work items `done`)
 
 ## Progress by Epic
 
-| Epic | Priority | Epic status | Work items done | Completion |
-| :--- | :--- | :--- | :--- | :--- |
-| **COMP** | 🔴 high | 🔵 in_progress | 8/8 | ██████████ 100% |
-| **DEBUG/RUN** | 🟢 low | ⚪ planned | 14/14 | ██████████ 100% |
-| **DOC** | 🟡 medium | ⚪ planned | 8/8 | ██████████ 100% |
-| **INSP** | 🟡 medium | ✅ done | 9/9 | ██████████ 100% |
-| **REFACT/INTENT** | 🟢 low | ⚪ planned | 9/9 | ██████████ 100% |
-| **TARGET** | 🔴 high | ✅ done | 7/7 | ██████████ 100% |
-| **TOOL** | 🔴 high | ✅ done | 4/4 | ██████████ 100% |
-| **TYPE** | 🔴 high | ⚪ planned | 9/9 | ██████████ 100% |
-| **SYNTAX** | 🟡 medium | ⚪ planned | 16/17 | █████████░ 94% |
-| **NAV** | 🟡 medium | ⚪ planned | 10/11 | █████████░ 90% |
-| **FORMAT** | 🟡 medium | ✅ done | 6/7 | ████████░░ 85% |
-| **ANALYSIS** | 🟡 medium | ✅ done | 5/6 | ████████░░ 83% |
-| **ROCKS** | 🔴 high | ✅ done | 5/6 | ████████░░ 83% |
-| **MAINT** | 🟢 low | ⚪ planned | 1/8 | █░░░░░░░░░ 12% |
-| **BUG** | 🔴 critical | ⚪ planned | 0/5 | ░░░░░░░░░░ 0% |
+| Epic | Status | Work items done | Completion |
+| :--- | :--- | :--- | :--- |
+| **ANALYSIS** | ✅ done | 6/6 | ██████████ 100% |
+| **COMP** | ✅ done | 8/8 | ██████████ 100% |
+| **DEBUG/RUN** | ✅ done | 14/14 | ██████████ 100% |
+| **DOC** | ✅ done | 8/8 | ██████████ 100% |
+| **FORMAT** | ✅ done | 7/7 | ██████████ 100% |
+| **INSP** | ✅ done | 9/9 | ██████████ 100% |
+| **NAV** | ✅ done | 10/10 | ██████████ 100% |
+| **REFACT/INTENT** | ✅ done | 9/9 | ██████████ 100% |
+| **SYNTAX** | ✅ done | 17/17 | ██████████ 100% |
+| **TARGET** | ✅ done | 7/7 | ██████████ 100% |
+| **TOOL** | ✅ done | 4/4 | ██████████ 100% |
+| **TYPE** | ✅ done | 9/9 | ██████████ 100% |
+| **ROCKS** | 🔵 in_progress | 5/7 | ███████░░░ 71% |
+| **MAINT** | ⚪ planned | 1/8 | █░░░░░░░░░ 12% |
+| **BUG** | ⚪ planned | 0/5 | ░░░░░░░░░░ 0% |
 
 ## Notes
 

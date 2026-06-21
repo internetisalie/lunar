@@ -3,7 +3,7 @@ id: ANALYSIS-06
 title: Control Flow Graph (CFG) Requirements
 type: feature
 parent_id: ANALYSIS
-status: planned
+status: done
 ---
 
 # Control Flow Graph (CFG) Requirements
@@ -12,10 +12,10 @@ status: planned
 
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| ANALYSIS-06-01 | Control Flow Builder | Must | planned | Build a standard `ControlFlow` graph from a `LuaBlock` or `LuaFunctionDecl` by traversing statements and handling branches, loops, returns, and breaks. |
-| ANALYSIS-06-02 | Read/Write Instructions | Must | planned | Emit `ReadWriteInstruction` nodes for local variable reads, writes, and implicit global assignments. |
-| ANALYSIS-06-03 | Reachability Analysis | Must | planned | Provide a mechanism to query whether an `Instruction` is reachable from the entry node. |
-| ANALYSIS-06-04 | Control Flow Caching | Must | planned | Cache the CFG per `ScopeOwner` using `CachedValuesManager` to ensure performance during highlighting passes. |
+| ANALYSIS-06-01 | Control Flow Builder | Must | Full | Build a standard `ControlFlow` graph from a `LuaBlock` or `LuaFunctionDecl` by traversing statements and handling branches, loops, returns, and breaks. |
+| ANALYSIS-06-02 | Read/Write Instructions | Must | Full | Emit `ReadWriteInstruction` nodes for local variable reads, writes, and implicit global assignments. |
+| ANALYSIS-06-03 | Reachability Analysis | Must | Full | Provide a mechanism to query whether an `Instruction` is reachable from the entry node. |
+| ANALYSIS-06-04 | Control Flow Caching | Must | Full | Cache the CFG per `ScopeOwner` using `CachedValuesManager` to ensure performance during highlighting passes. |
 
 ## Test Cases
 

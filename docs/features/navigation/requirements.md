@@ -2,7 +2,7 @@
 id: "NAV"
 title: "NAV: Code Navigation"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

@@ -16,6 +16,10 @@ folders:
 > all status assessments are based on whether working code exists.
 > **Updated 2026-06-16** for Wave 10: the TOOL and ROCKS epics are now fully implemented
 > (`src/main/kotlin/.../tool/` and `.../rocks/`, registered in `plugin.xml`).
+> **Reopened 2026-06-21:** ROCKS is **in_progress**, not done — ROCKS-05 (Rockspec Module
+> Resolution) has no code, and a gap review flagged unbuilt work (server/registry config in
+> settings, broader run-config/task-panel scope, the empty ROCKS-06/07 slots). Shipped ROCKS
+> features (01–04, 08) remain source-verified `done`.
 
 **Status vocabulary:**
 
@@ -32,7 +36,7 @@ folders:
 
 | Epic                                                        |   Done | In Progress | Planned |   Todo |   Total | Completion      |
 | :---------------------------------------------------------- | -----: | ----------: | ------: | -----: | ------: | :-------------- |
-| [**SYNTAX**](#syntax--syntax--editor)                       |     16 |           0 |       1 |      0 |      17 | █████████░ 94%  |
+| [**SYNTAX**](#syntax--syntax--editor)                       |     17 |           0 |       0 |      0 |      17 | ██████████ 100% |
 | [**COMP**](#comp--code-completion)                          |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TYPE**](#type--type-system)                              |      6 |           2 |       1 |      0 |       9 | ███████░░░ 67%  |
 | [**NAV**](#nav--code-navigation)                            |     10 |           0 |       0 |      0 |      10 | ██████████ 100% |
@@ -43,11 +47,11 @@ folders:
 | [**FORMAT**](#format--formatting)                           |      6 |           1 |       0 |      0 |       7 | █████████░ 86%  |
 | [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      1 |       6 | ████████░░ 83%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **108** |       **5** |   **3** | **10** | **126** | **86%**         |
+| **Total**                                                   | **109** |       **5** |   **2** | **11** | **127** | **86%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -67,7 +71,7 @@ folders:
 | SYNTAX-06 | Breadcrumbs | done | `LuaBreadcrumbsProvider` |
 | SYNTAX-07 | Inlay Hints | done | Type hints, parameter name hints, method chain hints — 3 providers |
 | SYNTAX-08 | String Escape Processing | done | `LuaLiterals.kt` — all escape forms including `\u{...}` |
-| SYNTAX-09 | Lua 5.5 Support | planned | Planned for Wave 11 |
+| SYNTAX-09 | Lua 5.5 Support | done | Parsing, scoping, and compliance inspection for global keywords and modes |
 | SYNTAX-10 | Enter Handler for Comments | done | `LuaEnterHandlerDelegate` — auto-continuation of `---`, doc template generation |
 | SYNTAX-11 | Numeric Literal Validation | done | `LuaNumeralAnnotator` — decimal/hex exponent validation, int/float semantic coloring |
 | SYNTAX-12 | Label & Goto Scope Resolution | done | `LuaLabelReference` + `LuaLabelReferenceContributor` |
@@ -240,6 +244,7 @@ folders:
 | ROCKS-02 | Package Browser | done | `rocks/browser/*` tool window "LuaRocks Packages"; porcelain search/list/show parse + TTL cache |
 | ROCKS-03 | Dependency Resolution | done | `rocks/LuaRocksDependencyResolver` + `deps/*`; bridge Lua scripts packaged as resources via `LuaRocksBridgeFiles` |
 | ROCKS-04 | Task Execution & Run Configs | done | `rocks/run/*` — `LuaRocksSettings` (shared) + `LuaRocksRunConfiguration` |
+| ROCKS-05 | Rockspec Module Resolution | todo | No code — derive `require` source-path patterns from rockspec `build.modules`; front-matter `status: todo` |
 | ROCKS-08 | Publishing & Lifecycle | done | `rocks/publish/*` — `PublishRockAction` (`Lua.Rocks.Publish`), `luarocks upload --api-key=`, key in PasswordSafe |
 
 ---
