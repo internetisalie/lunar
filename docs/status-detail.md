@@ -44,14 +44,14 @@ folders:
 | [**DEBUG/RUN**](#debugrun--debugging--execution)            |     11 |           0 |       0 |      0 |      11 | ██████████ 100% |
 | [**INSP**](#insp--inspections--diagnostics)                 |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
 | [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
-| [**FORMAT**](#format--formatting)                           |      6 |           1 |       0 |      0 |       7 | █████████░ 86%  |
+| [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
 | [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      1 |       6 | ████████░░ 83%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **109** |       **5** |   **2** | **11** | **127** | **86%**         |
+| **Total**                                                   | **110** |       **4** |   **2** | **11** | **127** | **87%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -202,7 +202,7 @@ folders:
 |:---|:--------|:-------|:------|
 | FORMAT-01 | Basic Indentation | done | `LuaFormatBlock` — blocks, labels, tables, expressions, var lists |
 | FORMAT-02 | Configurable Code Style | done | `LuaCodeStyleSettings` + provider; indent, spacing, wrapping options |
-| FORMAT-03 | Blank Line Management | in progress | Stanza spacing between functions exists; general policy missing |
+| FORMAT-03 | Blank Line Management | done | LuaFormatBlock spacing + LuaTrailingNewlinePostProcessor |
 | FORMAT-04 | Expression Wrapping | done | Wrap logic implemented |
 | FORMAT-05 | Alignment Logic | done | Alignment logic implemented |
 | FORMAT-06 | Comment Formatting | done | `LuaCommentWrapPostProcessor` |
