@@ -171,6 +171,9 @@ bug and gave the type inspections false confidence until this session's coverage
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | DOC-06 | Documentation indexing (stub index + type map) | done | S | — | — | already complete — the "full-text search" label was stale; DOC epic 100% |
+| RUN-01 | Lua Interpreter SDK | done | M | — | RUN-02, RUN-03 | ✓ |
+| RUN-02 | Run Configurations | done | M | RUN-01 | RUN-04, RUN-05 | ✓ |
+| RUN-04 | Run Configuration Validation | done | M | RUN-02 | — | ✓ |
 | RUN-03 | Interactive console (REPL) | done | L | — | — | new `run/console/` pkg: `LuaConsoleRunner`/`View`/`ExecuteHandler` + `LuaChunkCompletion` trial-parse multi-line + history; live REPL behavior pending a VNC pass |
 | SYNTAX-07 (tail) | Remaining inlay-hint sub-items | done | L | — | — | 07-07/09/11 were already implemented in code; reconciled stale doc rows |
 | SYNTAX-05 / SYNTAX-15 | Method separators / lexer optimization | done | L | — | — | SYNTAX-05 `LuaMethodSeparatorProvider`; SYNTAX-15 already satisfied (lexer is state-based — no churn) |
