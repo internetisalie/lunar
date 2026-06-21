@@ -1,14 +1,14 @@
 ---
-id: "RUN-08-PLAN"
+id: "RUN-05-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "in_progress"
-parent_id: "RUN-08"
+status: "done"
+parent_id: "RUN-05"
 folders:
   - "[[features/debug/run-05-test-runner/requirements|requirements]]"
 ---
 
-# RUN-08: Implementation Plan
+# RUN-05: Implementation Plan
 
 ## Phases
 
@@ -64,7 +64,7 @@ folders:
   - [x] Create `LuaCovReportParser` with state machine — realizes design §2.18, §3.11, §3.12
   - [x] Register `<coverageEngine>`, `<coverageRunner>`, `<programRunner>`, `<projectService>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: "Run with Coverage" on a Lua test config collects `luacov` data and shows green/red gutter markers. Missing `luacov` triggers balloon notification. Covers TC #6, TC #7.
-- **RUN-08-13 fix (2026-06-21, status → Full)**: live `verify-in-ide` (Gate 2b) found coverage loaded but **no gutter overlays / tree percentages rendered**. Root cause: `LuaCovReportParser.toProjectData` created `LineData(line - 1, …)` (0-based line number) but stored it at the 1-based array slot `line`, so the `LineData`'s own `getLineNumber()` disagreed with its slot. The platform convention (confirmed against `intellij-community`: `LcovSerializationUtils.java:88-94`, `JaCoCoCoverageRunner.java:156-166`, and `CoverageEditorAnnotatorImpl.java:277-279`, which does `getLineNumber() - 1` for the 0-based editor line) is **1-based `LineData` line numbers stored at the same 1-based array slot** (slot 0 unused). Fix: `LineData(line, null)` so number and slot agree; `getClassData(absPath).getLineData(L)` now returns the correct hits with a consistent `getLineNumber()`. Guarded by `LuaCoverageTest.testToProjectDataLineNumbersAreOneBasedAndConsistent` (fails pre-fix `expected:<1> but was:<0>`, passes post-fix). Live Gate 2b re-verification by the supervisor follows.
+- **RUN-05-13 fix (2026-06-21, status → Full)**: live `verify-in-ide` (Gate 2b) found coverage loaded but **no gutter overlays / tree percentages rendered**. Root cause: `LuaCovReportParser.toProjectData` created `LineData(line - 1, …)` (0-based line number) but stored it at the 1-based array slot `line`, so the `LineData`'s own `getLineNumber()` disagreed with its slot. The platform convention (confirmed against `intellij-community`: `LcovSerializationUtils.java:88-94`, `JaCoCoCoverageRunner.java:156-166`, and `CoverageEditorAnnotatorImpl.java:277-279`, which does `getLineNumber() - 1` for the 0-based editor line) is **1-based `LineData` line numbers stored at the same 1-based array slot** (slot 0 unused). Fix: `LineData(line, null)` so number and slot agree; `getClassData(absPath).getLineData(L)` now returns the correct hits with a consistent `getLineNumber()`. Guarded by `LuaCoverageTest.testToProjectDataLineNumbersAreOneBasedAndConsistent` (fails pre-fix `expected:<1> but was:<0>`, passes post-fix). Live Gate 2b re-verification by the supervisor follows.
 
 ### Phase 6: Coverage Import & Report Viewer [Should/Could]
 - **Goal**: Import existing report files; custom syntax highlighting and editor banner for `luacov.report.out`.
@@ -82,7 +82,7 @@ folders:
   - [x] Create `LuaCovReportNotificationProvider` — realizes design §2.26
   - [x] Register `<fileType>`, `<lang.syntaxHighlighterFactory>`, `<editorHighlighterProvider>`, `<editorNotificationProvider>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: User can import a `luacov.report.out` via Analyze menu; opening a `luacov.report.out` shows colored hit prefixes with embedded Lua highlighting and a banner offering to load coverage. Covers TC #8, TC #9.
-- **RUN-08-17 fix (2026-06-21, status → Full)**: live `verify-in-ide` (Gate 2b) found the uncovered `***0` prefix rendered **orange**, not the red required by design §2.24 / TC #9. Root cause: `LuaCovReportHighlight.UNCOVERED` fell back to `DefaultLanguageHighlighterColors.KEYWORD` (orange in Darcula). Fix follows the design's "configured in color scheme" intent: bundled `<additionalTextAttributes>` color schemes (`resources/colorSchemes/LuaCovReportDefault.xml`, `resources/colorSchemes/LuaCovReportDarcula.xml`) define `LUACOV_UNCOVERED` red and `LUACOV_COVERED` green, registered declaratively in `plugin.xml`. The `UNCOVERED` key no longer carries the orange `KEYWORD` fallback; `COVERED` keeps the green `STRING` fallback. Live Gate 2b re-verification by the supervisor follows.
+- **RUN-05-17 fix (2026-06-21, status → Full)**: live `verify-in-ide` (Gate 2b) found the uncovered `***0` prefix rendered **orange**, not the red required by design §2.24 / TC #9. Root cause: `LuaCovReportHighlight.UNCOVERED` fell back to `DefaultLanguageHighlighterColors.KEYWORD` (orange in Darcula). Fix follows the design's "configured in color scheme" intent: bundled `<additionalTextAttributes>` color schemes (`resources/colorSchemes/LuaCovReportDefault.xml`, `resources/colorSchemes/LuaCovReportDarcula.xml`) define `LUACOV_UNCOVERED` red and `LUACOV_COVERED` green, registered declaratively in `plugin.xml`. The `UNCOVERED` key no longer carries the orange `KEYWORD` fallback; `COVERED` keeps the green `STRING` fallback. Live Gate 2b re-verification by the supervisor follows.
 
 ### Phase 7: Assertion Diff Viewer [Could]
 - **Goal**: Parse assertion messages to show IntelliJ's comparative diff viewer.
@@ -95,30 +95,30 @@ folders:
 
 | Requirement | Priority | Delivered in |
 |-------------|----------|--------------|
-| RUN-08-01 | M | Phase 1 |
-| RUN-08-02 | M | Phase 2 |
-| RUN-08-03 | M | Phase 2 |
-| RUN-08-04 | M | Phase 2 |
-| RUN-08-05 | M | Phase 2 |
-| RUN-08-06 | M | Phase 2 |
-| RUN-08-07 | S | Phase 3 |
-| RUN-08-08 | S | Phase 3 |
-| RUN-08-09 | S | Phase 4 |
-| RUN-08-10 | C | Phase 7 |
-| RUN-08-11 | S | Phase 5 |
-| RUN-08-12 | S | Phase 5 |
-| RUN-08-13 | S | Phase 5 |
-| RUN-08-14 | S | Phase 1 |
-| RUN-08-15 | S | Phase 5 |
-| RUN-08-16 | S | Phase 6 |
-| RUN-08-17 | C | Phase 6 |
-| RUN-08-18 | C | Phase 6 |
+| RUN-05-01 | M | Phase 1 |
+| RUN-05-02 | M | Phase 2 |
+| RUN-05-03 | M | Phase 2 |
+| RUN-05-04 | M | Phase 2 |
+| RUN-05-05 | M | Phase 2 |
+| RUN-05-06 | M | Phase 2 |
+| RUN-05-07 | S | Phase 3 |
+| RUN-05-08 | S | Phase 3 |
+| RUN-05-09 | S | Phase 4 |
+| RUN-05-10 | C | Phase 7 |
+| RUN-05-11 | S | Phase 5 |
+| RUN-05-12 | S | Phase 5 |
+| RUN-05-13 | S | Phase 5 |
+| RUN-05-14 | S | Phase 1 |
+| RUN-05-15 | S | Phase 5 |
+| RUN-05-16 | S | Phase 6 |
+| RUN-05-17 | C | Phase 6 |
+| RUN-05-18 | C | Phase 6 |
 
 ## Verification Tasks
 
 - [x] Unit tests for `LuaCovStatsParser` — covers TC #6 (stats file parsing)
 - [x] Unit tests for `LuaCovReportParser` — covers TC #8 (report file parsing)
-- [x] Unit test for `LuaCovReportParser.toProjectData` line-number/slot consistency (`LuaCoverageTest.testToProjectDataLineNumbersAreOneBasedAndConsistent`) — regression guard for RUN-08-13 gutter-overlay defect
+- [x] Unit test for `LuaCovReportParser.toProjectData` line-number/slot consistency (`LuaCoverageTest.testToProjectDataLineNumbersAreOneBasedAndConsistent`) — regression guard for RUN-05-13 gutter-overlay defect
 - [x] Unit tests for Lunity JSON line parsing — covers TC #1, TC #2, TC #10
 - [x] Unit tests for Busted JSON output parsing — covers TC #11, TC #12
 - [x] Unit tests for `LuaTestCommandLineState.buildCommandLine()` — covers TC #15, TC #16
@@ -126,7 +126,7 @@ folders:
 - [ ] Unit tests for `LuaTestLocator` URL resolution — covers TC #4
 - [ ] Unit tests for `LuaTestRunConfigurationProducer` context detection — covers TC #5
 - [ ] Unit tests for `LuaTestRunLineMarkerProvider` gutter detection — covers TC #5
-- [x] Unit tests for assertion diff parsing — covers RUN-08-10
+- [x] Unit tests for assertion diff parsing — covers RUN-05-10
 - [ ] Integration test: create and execute a "Lua Tests" config — covers TC #3
 - [ ] Manual verification: run `human-verification-checklists.md` scenarios
 

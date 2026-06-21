@@ -1,14 +1,14 @@
 ---
-id: "RUN-08-CHECKLIST"
+id: "RUN-05-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "todo"
-parent_id: "RUN-08"
+status: "done"
+parent_id: "RUN-05"
 folders:
   - "[[features/debug/run-05-test-runner/requirements|requirements]]"
 ---
 
-# Verification Checklists: RUN-08 — Lua Test Runner Integration
+# Verification Checklists: RUN-05 — Lua Test Runner Integration
 
 ## 1. Test Configuration UI
 

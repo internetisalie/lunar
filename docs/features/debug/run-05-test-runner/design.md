@@ -1,14 +1,14 @@
 ---
-id: "RUN-08-DESIGN"
+id: "RUN-05-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "todo"
-parent_id: "RUN-08"
+status: "done"
+parent_id: "RUN-05"
 folders:
   - "[[features/debug/run-05-test-runner/requirements|requirements]]"
 ---
 
-# Technical Design: RUN-08 — Lua Test Runner Integration
+# Technical Design: RUN-05 — Lua Test Runner Integration
 
 ## 1. Architecture Overview
 
@@ -681,7 +681,7 @@ The feature adds six subsystems:
 ### 3.3 Lunity JSON Line Parsing
 - **Input**: single line from stdout
 - **Output**: SMTestRunner events
-- **Format**: each line is a self-contained JSON object (spec from RUN-08-04):
+- **Format**: each line is a self-contained JSON object (spec from RUN-05-04):
   ```json
   {"event": "suite_start", "name": "math tests"}
   {"event": "test_start", "name": "test_addition", "suite": "math tests"}
@@ -884,7 +884,7 @@ The feature adds six subsystems:
   4. Return `results`.
   - **Note**: The stats file treats ALL lines as potentially executable (0 = not executed). This differs from the report file which only marks executable lines. For more accurate display, prefer parsing `luacov.report.out` when available.
 
-### 3.14 Assertion Diff Parsing (RUN-08-10, Could priority)
+### 3.14 Assertion Diff Parsing (RUN-05-10, Could priority)
 - **Input**: Failure message string from test output
 - **Output**: Expected/Actual pair for diff viewer (or null)
 - **Steps**:
@@ -1053,7 +1053,7 @@ The action MUST be registered against the platform group **`AnalyzePlatformMenu`
   IDE, which ships no Java plugin) and from the headless platform test fixtures. An
   `<add-to-group group-id="AnalyzeMenu">` therefore fails to resolve the group at plugin
   load, raising `PluginException` / a "group not found" error. This is the root cause of the
-  RUN-08 ABORT_REPLAN (see `risks-and-gaps.md` Risk 1.5).
+  RUN-05 ABORT_REPLAN (see `risks-and-gaps.md` Risk 1.5).
 - `AnalyzePlatformMenu` is defined in **platform-resources**
   (`intellij-community/platform/platform-resources/src/idea/LangActions.xml:380`,
   `<group id="AnalyzePlatformMenu">`). Because it ships with the platform, the group id
@@ -1097,24 +1097,24 @@ DR-04 establishes whether it is needed.
 
 | Requirement | Priority | Implemented by (section) |
 |-------------|----------|--------------------------|
-| RUN-08-01 | M | §2.1–§2.4, §2.12, §7 (configurationType) |
-| RUN-08-02 | M | §2.5, §3.1 |
-| RUN-08-03 | M | §2.6, §2.7 |
-| RUN-08-04 | M | §2.7, §3.3 |
-| RUN-08-05 | M | §2.7, §3.2 |
-| RUN-08-06 | M | §2.6, §2.7 (SMTestRunner tree is automatic) |
-| RUN-08-07 | S | §2.8, §3.4 |
-| RUN-08-08 | S | §2.9, §2.10, §3.5, §3.6, §7 (runConfigurationProducer, runLineMarkerContributor) |
-| RUN-08-09 | S | §2.11, §3.7 |
-| RUN-08-10 | C | §3.14 |
-| RUN-08-11 | S | §2.16, §3.9 |
-| RUN-08-12 | S | §2.14, §2.18, §2.19, §3.8, §3.11, §3.13 |
-| RUN-08-13 | S | §2.13, §2.15, §7 (coverageEngine, coverageRunner, projectService) |
-| RUN-08-14 | S | §7 tool registration table |
-| RUN-08-15 | S | §2.16 step 2 (balloon + LuaRocks install) |
-| RUN-08-16 | S | §2.17, §2.18, §3.10, §3.11 |
-| RUN-08-17 | C | §2.20–§2.25, §7 (fileType, syntaxHighlighterFactory, editorHighlighterProvider) |
-| RUN-08-18 | C | §2.26, §7 (editorNotificationProvider) |
+| RUN-05-01 | M | §2.1–§2.4, §2.12, §7 (configurationType) |
+| RUN-05-02 | M | §2.5, §3.1 |
+| RUN-05-03 | M | §2.6, §2.7 |
+| RUN-05-04 | M | §2.7, §3.3 |
+| RUN-05-05 | M | §2.7, §3.2 |
+| RUN-05-06 | M | §2.6, §2.7 (SMTestRunner tree is automatic) |
+| RUN-05-07 | S | §2.8, §3.4 |
+| RUN-05-08 | S | §2.9, §2.10, §3.5, §3.6, §7 (runConfigurationProducer, runLineMarkerContributor) |
+| RUN-05-09 | S | §2.11, §3.7 |
+| RUN-05-10 | C | §3.14 |
+| RUN-05-11 | S | §2.16, §3.9 |
+| RUN-05-12 | S | §2.14, §2.18, §2.19, §3.8, §3.11, §3.13 |
+| RUN-05-13 | S | §2.13, §2.15, §7 (coverageEngine, coverageRunner, projectService) |
+| RUN-05-14 | S | §7 tool registration table |
+| RUN-05-15 | S | §2.16 step 2 (balloon + LuaRocks install) |
+| RUN-05-16 | S | §2.17, §2.18, §3.10, §3.11 |
+| RUN-05-17 | C | §2.20–§2.25, §7 (fileType, syntaxHighlighterFactory, editorHighlighterProvider) |
+| RUN-05-18 | C | §2.26, §7 (editorNotificationProvider) |
 
 ## 9. Alternatives Considered
 
