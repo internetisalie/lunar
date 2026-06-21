@@ -96,19 +96,4 @@ class LuaRocksTemplatesTest {
         assertContains(gi, "/.luarocks/")
         assertContains(gi, "luacov.stats.out")
     }
-
-    // ------------------------------------------------------------------ workspaceLua
-
-    @Test
-    fun `workspaceLua with rocks list produces correct lua`() {
-        val ws = LuaRocksTemplates.workspaceLua("my-workspace", listOf("rock1", "rock2"))
-        assertContains(ws, """workspace = "my-workspace"""")
-        assertContains(ws, """"rock1", "rock2"""")
-    }
-
-    @Test
-    fun `workspaceLua with empty rocks produces empty list`() {
-        val ws = LuaRocksTemplates.workspaceLua("ws", emptyList())
-        assertContains(ws, "rocks = {}")
-    }
 }

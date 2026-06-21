@@ -55,11 +55,11 @@ folders:
 ### Phase 5: Remove `workspace.lua` scaffolding [Must]
 - **Goal**: delete the orphan workspace path and collapse `RockKind`.
 - **Tasks**:
-  - [ ] Edit `LuaRocksTemplates` (delete `workspaceLua`), `LuaRocksScaffolder` (delete
+  - [x] Edit `LuaRocksTemplates` (delete `workspaceLua`), `LuaRocksScaffolder` (delete
         `scaffoldWorkspace`, collapse `scaffold`), `LuaRocksProjectSettings` (delete `RockKind`,
         `kind`, `workspaceName`, `initialRocks`), `LuaRocksGeneratorPeer` (remove kind/workspace UI)
         — realizes design §2.6.
-  - [ ] Delete the dead workspace tests in `LuaRocksTemplatesTest`, `LuaRocksScaffolderTest`.
+  - [x] Delete the dead workspace tests in `LuaRocksTemplatesTest`, `LuaRocksScaffolderTest`.
 - **Exit criteria**: TC #9 passes; `./gradlew build` green; single-rock generator still scaffolds.
 
 ### Phase 6: Membership override [Should]
@@ -101,5 +101,5 @@ folders:
 | Phase 2: Discovery service | done | Must |
 | Phase 3: Locator + ROCKS-05 delegate | done | Must |
 | Phase 4: Multi-root resolution + panel | done | Must |
-| Phase 5: Remove `workspace.lua` scaffolding | todo | Must |
+| Phase 5: Remove `workspace.lua` scaffolding | done | Must |
 | Phase 6: Membership override | todo | Should |

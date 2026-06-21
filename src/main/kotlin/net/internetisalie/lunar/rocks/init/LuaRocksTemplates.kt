@@ -89,18 +89,4 @@ end)
 luacov.stats.out
 luacov.report.out
 """.trimStart()
-
-    fun workspaceLua(name: String, rocks: List<String>): String {
-        val rocksList = if (rocks.isEmpty()) {
-            ""
-        } else {
-            rocks.joinToString(", ") { "\"$it\"" }
-        }
-        return """
-return {
-   workspace = "$name",
-   rocks = {$rocksList},
-}
-""".trimStart()
-    }
 }

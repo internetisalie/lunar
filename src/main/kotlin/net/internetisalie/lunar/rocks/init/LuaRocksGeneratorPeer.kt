@@ -16,19 +16,15 @@ import javax.swing.JPanel
 /**
  * Settings UI peer for the LuaRocks project generator.
  *
- * Provides a simple panel with name, project kind (Single Rock / Workspace),
- * project type (Library / Application), and optional feature checkboxes.
- * The panel is kept minimal for headless-safe testing; complex show/hide
- * interactions are handled via enabled-state on the checkboxes.
+ * Provides a simple panel with name, project type (Library / Application), and optional feature
+ * checkboxes. The panel is kept minimal for headless-safe testing; complex show/hide interactions
+ * are handled via enabled-state on the checkboxes.
  */
 class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
 
     // --- widgets -----------------------------------------------------------
 
     private val nameField = JBTextField()
-
-    private val singleRockButton = JBRadioButton("Single Rock", true)
-    private val workspaceButton = JBRadioButton("Workspace", false)
 
     private val libraryButton = JBRadioButton("Library", true)
     private val applicationButton = JBRadioButton("Application", false)
@@ -37,17 +33,10 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
     private val bustedConfigCheck = JBCheckBox("Busted Configuration (spec/)")
     private val makefileCheck = JBCheckBox("Makefile")
 
-    private val workspaceNameField = JBTextField()
-    private val initialRocksField = JBTextField()
-
     private val panel: JPanel
 
     init {
-        val kindGroup = ButtonGroup().also {
-            it.add(singleRockButton)
-            it.add(workspaceButton)
-        }
-        val typeGroup = ButtonGroup().also {
+        ButtonGroup().also {
             it.add(libraryButton)
             it.add(applicationButton)
         }
@@ -62,21 +51,14 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
         panel = FormBuilder.createFormBuilder()
             .addLabeledComponent("Project name:", nameField)
             .addSeparator()
-            .addComponent(JBLabel("Project kind:"))
-            .addComponent(singleRockButton)
-            .addComponent(workspaceButton)
-            .addSeparator()
-            .addComponent(JBLabel("Project type (Single Rock):"))
+            .addComponent(JBLabel("Project type:"))
             .addComponent(libraryButton)
             .addComponent(applicationButton)
             .addSeparator()
-            .addComponent(JBLabel("Options (Single Rock):"))
+            .addComponent(JBLabel("Options:"))
             .addComponent(loaderSetupCheck)
             .addComponent(bustedConfigCheck)
             .addComponent(makefileCheck)
-            .addSeparator()
-            .addLabeledComponent("Workspace name:", workspaceNameField)
-            .addLabeledComponent("Initial rocks (comma-separated):", initialRocksField)
             .panel
     }
 
@@ -93,20 +75,13 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
 
     override fun getSettings(): LuaRocksProjectSettings {
         val name = nameField.text.trim()
-        val kind = if (workspaceButton.isSelected) RockKind.WORKSPACE else RockKind.SINGLE_ROCK
         val type = if (applicationButton.isSelected) RockType.APPLICATION else RockType.LIBRARY
-        val rocksText = initialRocksField.text.trim()
-        val initialRocks = if (rocksText.isBlank()) emptyList()
-        else rocksText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         return LuaRocksProjectSettings(
             name = name,
-            kind = kind,
             type = type,
             loaderSetup = loaderSetupCheck.isSelected,
             bustedConfig = bustedConfigCheck.isSelected,
             makefile = makefileCheck.isSelected,
-            workspaceName = workspaceNameField.text.trim(),
-            initialRocks = initialRocks,
         )
     }
 

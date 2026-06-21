@@ -18,10 +18,7 @@ import net.internetisalie.lunar.run.LuaRunConfigurationType
 object LuaRocksScaffolder {
 
     fun scaffold(project: Project, baseDir: VirtualFile, s: LuaRocksProjectSettings) {
-        when (s.kind) {
-            RockKind.SINGLE_ROCK -> scaffoldSingleRock(project, baseDir, s)
-            RockKind.WORKSPACE -> scaffoldWorkspace(baseDir, s)
-        }
+        scaffoldSingleRock(project, baseDir, s)
     }
 
     // ------------------------------------------------------------------ single rock
@@ -63,25 +60,6 @@ object LuaRocksScaffolder {
         if (s.loaderSetup) {
             patchRunConfigTemplate(project, baseDir)
         }
-    }
-
-    // ------------------------------------------------------------------ workspace
-
-    private fun scaffoldWorkspace(baseDir: VirtualFile, s: LuaRocksProjectSettings) {
-        val name = s.workspaceName.ifBlank { s.name.ifBlank { "my-workspace" } }
-
-        // workspace.lua
-        writeText(baseDir, "workspace.lua", LuaRocksTemplates.workspaceLua(name, s.initialRocks))
-
-        // per-rock subdirectories
-        for (rock in s.initialRocks) {
-            if (rock.isNotBlank()) {
-                baseDir.createChildDirectory(this, rock)
-            }
-        }
-
-        // .gitignore
-        writeText(baseDir, ".gitignore", LuaRocksTemplates.gitignore() + "# add per-rock build outputs as needed\n")
     }
 
     // ------------------------------------------------------------------ helpers

@@ -45,7 +45,6 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     fun testMinimalSingleRockLibrary() {
         val settings = LuaRocksProjectSettings(
             name = "my-lib",
-            kind = RockKind.SINGLE_ROCK,
             type = RockType.LIBRARY,
         )
         scaffold(settings)
@@ -68,7 +67,6 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     fun testApplicationWithLoaderSetup() {
         val settings = LuaRocksProjectSettings(
             name = "my-app",
-            kind = RockKind.SINGLE_ROCK,
             type = RockType.APPLICATION,
             loaderSetup = true,
         )
@@ -91,7 +89,6 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     fun testLibraryWithBustedConfig() {
         val settings = LuaRocksProjectSettings(
             name = "my-lib",
-            kind = RockKind.SINGLE_ROCK,
             type = RockType.LIBRARY,
             bustedConfig = true,
         )
@@ -113,7 +110,6 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     fun testApplicationWithAllOptions() {
         val settings = LuaRocksProjectSettings(
             name = "my-app",
-            kind = RockKind.SINGLE_ROCK,
             type = RockType.APPLICATION,
             loaderSetup = true,
             bustedConfig = true,
@@ -129,27 +125,6 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
         assertFileExists("Makefile")
         assertFileContains("Makefile", "luarocks make")
         assertFileExists("lua_modules")
-        assertFileExists(".gitignore")
-    }
-
-    // ------------------------------------------------------------------ TC-ROCKS-01-05
-
-    /** TC-ROCKS-01-05: workspace project init. */
-    @Test
-    fun testWorkspaceInit() {
-        val settings = LuaRocksProjectSettings(
-            name = "ws",
-            kind = RockKind.WORKSPACE,
-            workspaceName = "my-workspace",
-            initialRocks = listOf("rock1", "rock2"),
-        )
-        scaffold(settings)
-
-        assertFileExists("workspace.lua")
-        assertFileContains("workspace.lua", "workspace = \"my-workspace\"")
-        assertFileContains("workspace.lua", "\"rock1\", \"rock2\"")
-        assertFileExists("rock1")
-        assertFileExists("rock2")
         assertFileExists(".gitignore")
     }
 
