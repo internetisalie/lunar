@@ -1038,10 +1038,49 @@ User: Analyze → Import LuaCov Report...
             class="net.internetisalie.lunar.coverage.LuaCovReportImportAction"
             text="Import LuaCov Report..."
             description="Load coverage data from a luacov.report.out file">
-        <add-to-group group-id="AnalyzeMenu" anchor="last"/>
+        <add-to-group group-id="AnalyzePlatformMenu" anchor="last"/>
     </action>
 </actions>
 ```
+
+**Menu-group binding contract (BINDING — do not substitute `AnalyzeMenu`).**
+The action MUST be registered against the platform group **`AnalyzePlatformMenu`**, NOT
+`AnalyzeMenu`. Rationale and grounding:
+
+- `AnalyzeMenu` is defined **only** in the Java plugin's resources
+  (`intellij-community/java/java-backend/resources/META-INF/JavaActions.xml:90`,
+  `<group id="AnalyzeMenu" popup="true">`). It is absent from GoLand (the default test/target
+  IDE, which ships no Java plugin) and from the headless platform test fixtures. An
+  `<add-to-group group-id="AnalyzeMenu">` therefore fails to resolve the group at plugin
+  load, raising `PluginException` / a "group not found" error. This is the root cause of the
+  RUN-08 ABORT_REPLAN (see `risks-and-gaps.md` Risk 1.5).
+- `AnalyzePlatformMenu` is defined in **platform-resources**
+  (`intellij-community/platform/platform-resources/src/idea/LangActions.xml:380`,
+  `<group id="AnalyzePlatformMenu">`). Because it ships with the platform, the group id
+  resolves in **every** IntelliJ-based IDE (GoLand, IDEA, PyCharm, CLion, …) and in headless
+  test fixtures. It is the platform-level analog of `AnalyzeMenu` — host IDEs surface it under
+  their "Analyze" menu, so the action still lands under **Analyze ▸ Import LuaCov Report…** in
+  GoLand. `anchor="last"` is retained (no `relative-to-action` needed; the group's only
+  built-in member is `Unscramble`).
+
+**Threading (unchanged):** `LuaCovReportImportAction.actionPerformed` runs on the EDT; per
+design §2.17 / §3.10 it MUST off-load file parsing to a `Task.Backgroundable` (no I/O on the
+EDT). `update()` only toggles `isEnabledAndVisible` from `e.project` (cheap, EDT-safe).
+
+**Fallback (documented, NOT part of the MUST path).** `AnalyzePlatformMenu`'s *visibility* in
+GoLand's main menu is provided by the host IDE surfacing the group; this is tracked for live
+verification by de-risking task **DR-04** (`risks-and-gaps.md`). If DR-04 shows the action is
+not reachable from a visible menu in GoLand, the documented fallback is to ALSO register the
+action on `ToolsMenu` (a guaranteed-present, always-visible platform group already used by this
+plugin — see `plugin.xml` `Lua.Console` → `<add-to-group group-id="ToolsMenu" anchor="last"/>`):
+
+```xml
+<!-- fallback only — add ALONGSIDE the AnalyzePlatformMenu registration, do not replace it -->
+<add-to-group group-id="ToolsMenu" anchor="last"/>
+```
+
+Do not add the `ToolsMenu` registration pre-emptively; keep the MUST path single-group until
+DR-04 establishes whether it is needed.
 
 **Tool registration** (code changes, not plugin.xml):
 

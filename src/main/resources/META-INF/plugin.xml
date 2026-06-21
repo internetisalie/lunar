@@ -423,6 +423,22 @@
     <projectService
             serviceImplementation="net.internetisalie.lunar.coverage.LuaCoverageAnnotator"/>
 
+    <!-- Coverage Report Viewer -->
+    <fileType
+            name="LuaCov Report"
+            implementationClass="net.internetisalie.lunar.coverage.report.LuaCovReportFileType"
+            fieldName="INSTANCE"
+            language="LuaCovReport"
+            fileNames="luacov.report.out"/>
+    <lang.syntaxHighlighterFactory
+            language="LuaCovReport"
+            implementationClass="net.internetisalie.lunar.coverage.report.LuaCovReportSyntaxHighlighterFactory"/>
+    <editorHighlighterProvider
+            filetype="LuaCov Report"
+            implementationClass="net.internetisalie.lunar.coverage.report.LuaCovReportEditorHighlighterProvider"/>
+    <editorNotificationProvider
+            implementation="net.internetisalie.lunar.coverage.report.LuaCovReportNotificationProvider"/>
+
     <!-- LuaRocks task execution / run configs (ROCKS-04) -->
     <configurationType
             implementation="net.internetisalie.lunar.rocks.run.LuaRocksRunConfigurationType"/>
@@ -536,6 +552,13 @@
             icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+
+    <action id="Lunar.ImportLuaCovReport"
+            class="net.internetisalie.lunar.coverage.LuaCovReportImportAction"
+            text="Import LuaCov Report..."
+            description="Load coverage data from a luacov.report.out file">
+      <add-to-group group-id="AnalyzePlatformMenu" anchor="last"/>
     </action>
   </actions>
 </idea-plugin>

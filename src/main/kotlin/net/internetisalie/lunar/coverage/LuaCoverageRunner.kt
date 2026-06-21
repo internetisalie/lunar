@@ -26,7 +26,7 @@ class LuaCoverageRunner : CoverageRunner() {
             } else {
                 LuaCovReportParser.parse(sessionDataFile)
             }
-            val projectData = LuaCovReportParser.toProjectData(coverages)
+            val projectData = LuaCovReportParser.toProjectData(coverages, baseCoverageSuite?.project)
             SuccessCoverageLoadingResult(projectData)
         } catch (e: Exception) {
             FailedCoverageLoadingResult(e.message ?: "Failed to load coverage data")

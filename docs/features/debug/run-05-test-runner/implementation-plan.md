@@ -68,24 +68,25 @@ folders:
 ### Phase 6: Coverage Import & Report Viewer [Should/Could]
 - **Goal**: Import existing report files; custom syntax highlighting and editor banner for `luacov.report.out`.
 - **Tasks**:
-  - [ ] Create `LuaCovReportImportAction` — realizes design §2.17, §3.10
-  - [ ] Register action in `plugin.xml` under `AnalyzeMenu` — realizes design §7
-  - [ ] Create `LuaCovReportLanguage` — realizes design §2.20
-  - [ ] Create `LuaCovReportFileType` — realizes design §2.21
-  - [ ] Create `LuaCovReportLexer` — realizes design §2.22
-  - [ ] Create `LuaCovReportHighlight` — realizes design §2.24
-  - [ ] Create `LuaCovReportSyntaxHighlighter` — realizes design §2.23
-  - [ ] Create `LuaCovReportSyntaxHighlighterFactory` — realizes design §2.27
-  - [ ] Create `LuaCovReportEditorHighlighterProvider` + `LuaCovReportEditorHighlighter` — realizes design §2.25
-  - [ ] Create `LuaCovReportNotificationProvider` — realizes design §2.26
-  - [ ] Register `<fileType>`, `<lang.syntaxHighlighterFactory>`, `<editorHighlighterProvider>`, `<editorNotificationProvider>` in `plugin.xml` — realizes design §7
+  - [x] Create `LuaCovReportImportAction` — realizes design §2.17, §3.10
+  - [x] Register action in `plugin.xml` under `AnalyzePlatformMenu` (NOT `AnalyzeMenu` — that group is Java-plugin-only and absent in GoLand/headless tests; see design §7 "Menu-group binding contract" and risks Risk 1.5) — realizes design §7
+  - [x] Add a headless `BasePlatformTestCase` acceptance check: `ActionManager.getInstance().getAction("Lunar.ImportLuaCovReport")` is non-null AND `getAction("AnalyzePlatformMenu") as ActionGroup` contains it, with no unresolved-group warning at plugin load — resolves risks Risk 1.5
+  - [x] Create `LuaCovReportLanguage` — realizes design §2.20
+  - [x] Create `LuaCovReportFileType` — realizes design §2.21
+  - [x] Create `LuaCovReportLexer` — realizes design §2.22
+  - [x] Create `LuaCovReportHighlight` — realizes design §2.24
+  - [x] Create `LuaCovReportSyntaxHighlighter` — realizes design §2.23
+  - [x] Create `LuaCovReportSyntaxHighlighterFactory` — realizes design §2.27
+  - [x] Create `LuaCovReportEditorHighlighterProvider` + `LuaCovReportEditorHighlighter` — realizes design §2.25
+  - [x] Create `LuaCovReportNotificationProvider` — realizes design §2.26
+  - [x] Register `<fileType>`, `<lang.syntaxHighlighterFactory>`, `<editorHighlighterProvider>`, `<editorNotificationProvider>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: User can import a `luacov.report.out` via Analyze menu; opening a `luacov.report.out` shows colored hit prefixes with embedded Lua highlighting and a banner offering to load coverage. Covers TC #8, TC #9.
 
 ### Phase 7: Assertion Diff Viewer [Could]
 - **Goal**: Parse assertion messages to show IntelliJ's comparative diff viewer.
 - **Tasks**:
-  - [ ] Implement assertion diff parsing in `LuaTestOutputToEventsConverter` — realizes design §3.14
-  - [ ] Wire `testFailed` with `expected`/`actual` parameters when diff parsed
+  - [x] Implement assertion diff parsing in `LuaTestOutputToEventsConverter` — realizes design §3.14
+  - [x] Wire `testFailed` with `expected`/`actual` parameters when diff parsed
 - **Exit criteria**: A Busted assertion failure `"Expected 4 but got 5"` shows the diff viewer button in the test results panel.
 
 ## Requirement → Phase Coverage
@@ -122,7 +123,7 @@ folders:
 - [ ] Unit tests for `LuaTestLocator` URL resolution — covers TC #4
 - [ ] Unit tests for `LuaTestRunConfigurationProducer` context detection — covers TC #5
 - [ ] Unit tests for `LuaTestRunLineMarkerProvider` gutter detection — covers TC #5
-- [ ] Unit tests for assertion diff parsing — covers RUN-08-10
+- [x] Unit tests for assertion diff parsing — covers RUN-08-10
 - [ ] Integration test: create and execute a "Lua Tests" config — covers TC #3
 - [ ] Manual verification: run `human-verification-checklists.md` scenarios
 
@@ -135,5 +136,5 @@ folders:
 | Phase 3: Test Navigation & Gutter Icons | done | Should |
 | Phase 4: Rerun Failed Tests | done | Should |
 | Phase 5: Coverage Engine | done | Should |
-| Phase 6: Coverage Import & Report Viewer | todo | Should/Could |
-| Phase 7: Assertion Diff Viewer | todo | Could |
+| Phase 6: Coverage Import & Report Viewer | done | Should/Could |
+| Phase 7: Assertion Diff Viewer | done | Could |

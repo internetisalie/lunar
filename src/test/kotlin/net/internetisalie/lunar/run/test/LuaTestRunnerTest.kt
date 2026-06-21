@@ -51,7 +51,12 @@ class RecordingTestEventsProcessor(
     }
 
     override fun onTestFailure(testFailedEvent: TestFailedEvent) {
-        events.add("onTestFailure: name=${testFailedEvent.name}, id=${testFailedEvent.id}, msg=${testFailedEvent.localizedFailureMessage}, trace=${testFailedEvent.stacktrace}, isError=${testFailedEvent.isTestError}, duration=${testFailedEvent.durationMillis}")
+        val expActStr = if (testFailedEvent.comparisonFailureExpectedText != null || testFailedEvent.comparisonFailureActualText != null) {
+            ", expected=${testFailedEvent.comparisonFailureExpectedText}, actual=${testFailedEvent.comparisonFailureActualText}"
+        } else {
+            ""
+        }
+        events.add("onTestFailure: name=${testFailedEvent.name}, id=${testFailedEvent.id}, msg=${testFailedEvent.localizedFailureMessage}, trace=${testFailedEvent.stacktrace}, isError=${testFailedEvent.isTestError}, duration=${testFailedEvent.durationMillis}$expActStr")
     }
 
     override fun onTestIgnored(testIgnoredEvent: TestIgnoredEvent) {
@@ -229,6 +234,62 @@ class LuaTestRunnerTest : BaseDocumentTest() {
 
         val expected = listOf(
             "onUncapturedOutput: text=lua: segfault at 0x00\nstack traceback:\n\t[C]: ?, type=stdout"
+        )
+        assertEquals(expected, processor.events)
+    }
+
+    @Test
+    fun testAssertionDiffParsing() {
+        val properties = createProperties(LuaTestFramework.BUSTED)
+        val converter = LuaTestOutputToEventsConverter("LuaTest", properties)
+        val processor = RecordingTestEventsProcessor(myFixture.project, "LuaTest")
+        converter.setProcessor(processor)
+
+        val json = """
+            {
+              "successes": [],
+              "failures": [
+                {
+                  "name": "Calculator → addition → adds two positives",
+                  "message": "Expected objects to be equal.\nPassed in:\n4\nExpected:\n5",
+                  "trace": { "source": "@/project/calc_spec.lua", "currentline": 12 },
+                  "duration": 0.005
+                },
+                {
+                  "name": "Calculator → addition → alternative message style",
+                  "message": "Expected: 10\nGot: 9",
+                  "trace": { "source": "@/project/calc_spec.lua", "currentline": 15 },
+                  "duration": 0.002
+                },
+                {
+                  "name": "Calculator → addition → actual first style",
+                  "message": "Actual:\n[1, 2, 3]\nExpected:\n[1, 2]",
+                  "trace": { "source": "@/project/calc_spec.lua", "currentline": 18 },
+                  "duration": 0.003
+                }
+              ],
+              "errors": [],
+              "pendings": []
+            }
+        """.trimIndent()
+
+        converter.process(json, ProcessOutputTypes.STDOUT)
+        converter.flushBufferOnProcessTermination(0)
+
+        val expected = listOf(
+            "onSuiteStarted: name=Calculator, id=suite_1, parentId=null, url=null",
+            "onSuiteStarted: name=addition, id=suite_2, parentId=suite_1, url=null",
+            "onTestStarted: name=adds two positives, id=test_3, parentId=suite_2, url=lua:///project/calc_spec.lua:12",
+            "onTestFailure: name=adds two positives, id=test_3, msg=Expected objects to be equal.\nPassed in:\n4\nExpected:\n5, trace=, isError=false, duration=5, expected=5, actual=4",
+            "onTestFinished: name=adds two positives, id=test_3, duration=5",
+            "onTestStarted: name=alternative message style, id=test_4, parentId=suite_2, url=lua:///project/calc_spec.lua:15",
+            "onTestFailure: name=alternative message style, id=test_4, msg=Expected: 10\nGot: 9, trace=, isError=false, duration=2, expected=10, actual=9",
+            "onTestFinished: name=alternative message style, id=test_4, duration=2",
+            "onTestStarted: name=actual first style, id=test_5, parentId=suite_2, url=lua:///project/calc_spec.lua:18",
+            "onTestFailure: name=actual first style, id=test_5, msg=Actual:\n[1, 2, 3]\nExpected:\n[1, 2], trace=, isError=false, duration=3, expected=[1, 2], actual=[1, 2, 3]",
+            "onTestFinished: name=actual first style, id=test_5, duration=3",
+            "onSuiteFinished: name=addition, id=suite_2",
+            "onSuiteFinished: name=Calculator, id=suite_1"
         )
         assertEquals(expected, processor.events)
     }

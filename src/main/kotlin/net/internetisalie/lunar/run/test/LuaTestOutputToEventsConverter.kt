@@ -115,9 +115,11 @@ class LuaTestOutputToEventsConverter(
 
     private fun handleLunityTestFailure(name: String, isError: Boolean, duration: Long, message: String?, trace: String?) {
         val id = lunityTestNameToId[name]
+        val msg = message ?: "Test failed"
+        val diff = parseAssertionDiff(msg)
         val failedEvent = TestFailedEvent(
-            name, id, message ?: "Test failed", trace, isError,
-            null, null, null, null, false, false, duration
+            name, id, msg, trace, isError,
+            diff?.second, diff?.first, null, null, false, false, duration
         )
         processor?.onTestFailure(failedEvent)
         val finishedEvent = TestFinishedEvent(name, id, duration)
@@ -252,11 +254,12 @@ class LuaTestOutputToEventsConverter(
             "failure", "error" -> {
                 val message = item.get("message")?.asString ?: "Test failed"
                 val trace = traceObj?.get("trace")?.asString ?: ""
+                val diff = parseAssertionDiff(message)
                 val startedEvent = TestStartedEvent(testName, testId, parentId, locationUrl, null, null, null, true)
                 processor?.onTestStarted(startedEvent)
                 val failedEvent = TestFailedEvent(
                     testName, testId, message, trace, status == "error",
-                    null, null, null, null, false, false, durationMs
+                    diff?.second, diff?.first, null, null, false, false, durationMs
                 )
                 processor?.onTestFailure(failedEvent)
                 val finishedEvent = TestFinishedEvent(testName, testId, durationMs)
@@ -308,5 +311,53 @@ class LuaTestOutputToEventsConverter(
             }
         }
         return null
+    }
+
+    private fun parseAssertionDiff(message: String): Pair<String, String>? {
+        val bustedEqualMatch = BUSTED_EQUAL_PATTERN.find(message)
+        if (bustedEqualMatch != null) {
+            val actual = bustedEqualMatch.groupValues[1].trim()
+            val expected = bustedEqualMatch.groupValues[2].trim()
+            if (expected.isNotEmpty() && actual.isNotEmpty()) {
+                return Pair(expected, actual)
+            }
+        }
+
+        val expectedFirstMatch = EXPECTED_FIRST_PATTERN.find(message)
+        if (expectedFirstMatch != null) {
+            val expected = expectedFirstMatch.groupValues[1].trim()
+            val actual = expectedFirstMatch.groupValues[2].trim()
+            if (expected.isNotEmpty() && actual.isNotEmpty()) {
+                return Pair(expected, actual)
+            }
+        }
+
+        val actualFirstMatch = ACTUAL_FIRST_PATTERN.find(message)
+        if (actualFirstMatch != null) {
+            val actual = actualFirstMatch.groupValues[1].trim()
+            val expected = actualFirstMatch.groupValues[2].trim()
+            if (expected.isNotEmpty() && actual.isNotEmpty()) {
+                return Pair(expected, actual)
+            }
+        }
+
+        return null
+    }
+
+    companion object {
+        private val BUSTED_EQUAL_PATTERN = Regex(
+            "Expected objects to be equal\\.\\s*\\n*Passed in:\\s*\\n*(.*?)\\s*\\n+Expected:\\s*\\n*(.*)",
+            kotlin.text.RegexOption.DOT_MATCHES_ALL
+        )
+
+        private val EXPECTED_FIRST_PATTERN = Regex(
+            "Expected:?\\s*\\n?(.*?)\\n\\s*(?:Passed in|Got|Actual):?\\s*\\n?(.*)",
+            kotlin.text.RegexOption.DOT_MATCHES_ALL
+        )
+
+        private val ACTUAL_FIRST_PATTERN = Regex(
+            "(?:Passed in|Got|Actual):?\\s*\\n?(.*?)\\n\\s*Expected:?\\s*\\n?(.*)",
+            kotlin.text.RegexOption.DOT_MATCHES_ALL
+        )
     }
 }

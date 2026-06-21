@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.coverage
 
+import com.intellij.openapi.project.Project
 import com.intellij.rt.coverage.data.ProjectData
 import com.intellij.rt.coverage.data.LineData
 import java.io.File
@@ -69,10 +70,21 @@ object LuaCovReportParser {
         return results
     }
 
-    fun toProjectData(coverages: List<FileCoverage>): ProjectData {
+    fun toProjectData(coverages: List<FileCoverage>, project: Project? = null): ProjectData {
         val projectData = ProjectData()
         for (coverage in coverages) {
-            val classData = projectData.getOrCreateClassData(coverage.filePath)
+            val resolvedPath = if (project != null && !File(coverage.filePath).isAbsolute) {
+                val basePath = project.basePath
+                if (basePath != null) {
+                    val resolvedFile = File(basePath, coverage.filePath)
+                    resolvedFile.absolutePath
+                } else {
+                    coverage.filePath
+                }
+            } else {
+                coverage.filePath
+            }
+            val classData = projectData.getOrCreateClassData(resolvedPath)
             val maxLine = coverage.lineHits.keys.maxOrNull() ?: 0
             val lineDataArray = arrayOfNulls<LineData>(maxLine + 1)
             for ((line, hits) in coverage.lineHits) {

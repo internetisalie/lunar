@@ -32,6 +32,17 @@ folders:
 - **Likelihood**: medium
 - **Mitigation**: The report lexer must precisely emit `LUA_CODE` tokens starting at character offset 5 of each code line (after stripping the hit prefix). Unit test the lexer with representative report content including multi-line strings and comments that span boundaries.
 
+### Risk 1.5: `AnalyzeMenu` group ID does not exist in GoLand / headless tests (the test/target IDE) — RESOLVED
+- **Status**: RESOLVED (re-plan, 2026-06-20). Triggered an ABORT_REPLAN during implementation.
+- **Impact**: Registering `Lunar.ImportLuaCovReport` against `AnalyzeMenu` fails to resolve the group at plugin load, raising `PluginException` ("group not found") in GoLand and in the headless platform test fixtures, aborting plugin initialization.
+- **Likelihood**: high (was certain — reproduced as the ABORT_REPLAN block).
+- **Root cause (grounded)**: `AnalyzeMenu` is defined **only** in the Java plugin's resources — `intellij-community/java/java-backend/resources/META-INF/JavaActions.xml:90` (`<group id="AnalyzeMenu" popup="true">`). GoLand ships no Java plugin, and the headless `BasePlatformTestCase` fixtures load only platform action sets, so the group id is absent in both.
+- **Resolution (grounded)**: Register the action against the platform-level group **`AnalyzePlatformMenu`** instead. It is defined in **platform-resources** — `intellij-community/platform/platform-resources/src/idea/LangActions.xml:380` (`<group id="AnalyzePlatformMenu">`) — which ships in every IntelliJ-based IDE and in the headless test fixtures, so the group id resolves everywhere. `AnalyzePlatformMenu` is the platform analog of `AnalyzeMenu`; host IDEs surface it under their "Analyze" menu, so the action keeps its intended **Analyze ▸ Import LuaCov Report…** placement. See `design.md` §7 "Menu-group binding contract" for the exact `plugin.xml` snippet.
+- **Verification**:
+  - **Load-safety (the abort condition)** — a headless `BasePlatformTestCase` asserts the action resolves under `AnalyzePlatformMenu` with no unresolved-group warning: `ActionManager.getInstance().getAction("Lunar.ImportLuaCovReport")` is non-null AND the group obtained via `getAction("AnalyzePlatformMenu") as ActionGroup` contains it. The plugin loads in GoLand with no `PluginException` at startup.
+  - **Visibility** — confirmed live in GoLand via the `verify-in-ide` skill (tracked as DR-04 below); if not surfaced in a visible menu, apply the documented `ToolsMenu` fallback from `design.md` §7.
+- **Residual risk**: `AnalyzePlatformMenu`'s placement in GoLand's *visible* main menu is host-provided (the group is defined-but-not-referenced within platform-resources itself); load-safety is guaranteed, visibility is verified by DR-04. The `ToolsMenu` fallback (always-visible, already used by this plugin) bounds the worst case.
+
 ## Design Gaps
 
 _None — all design decisions have been resolved in design.md._
@@ -50,7 +61,8 @@ _None — all design decisions have been resolved in design.md._
 |----|--------|----------|--------|
 | DR-01 | Prototype `LuaCovReportParser` against real `luacov.report.out` at `~/Documents/Kernel/v0/luacov.report.out` — validate state machine handles all line prefixes correctly | Risk 1.2 | done |
 | DR-02 | Run `busted --output=json` on a sample spec file and capture actual JSON output to validate parsing assumptions against real Busted behavior | Risk 1.1 | todo |
-| DR-03 | Create a minimal `LuaCovReportLexer` and test `LayeredLexerEditorHighlighter` with embedded Lua highlighting to validate the layered approach works correctly | Risk 1.4 | todo |
+| DR-03 | Create a minimal `LuaCovReportLexer` and test `LayeredLexerEditorHighlighter` with embedded Lua highlighting to validate the layered approach works correctly | Risk 1.4 | Partial (bypassed visual verification blockers per Gate 2b; lexer is fully verified via unit tests, but IDE visual syntax highlighting is marked Partial) |
+| DR-04 | VNC-verify (via `verify-in-ide`) that `Lunar.ImportLuaCovReport` is reachable from a visible menu in GoLand once registered under `AnalyzePlatformMenu`; if not, add the `ToolsMenu` fallback registration from design §7 | Risk 1.5 | Partial (bypassed visual verification blockers per Gate 2b; action registration group is verified via unit tests, but live VNC verification is marked Partial) |
 
 ## Test Case Gaps
 

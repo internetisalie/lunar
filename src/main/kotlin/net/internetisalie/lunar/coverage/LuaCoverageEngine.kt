@@ -49,6 +49,14 @@ class LuaCoverageEngine : CoverageEngine() {
     override fun createCoverageEnabledConfiguration(conf: RunConfigurationBase<*>): CoverageEnabledConfiguration =
         LuaCoverageEnabledConfiguration(conf)
 
+    override fun createCoverageSuite(
+        name: String,
+        project: Project,
+        runner: CoverageRunner,
+        fileProvider: CoverageFileProvider,
+        timestamp: Long
+    ): CoverageSuite = LuaCoverageSuite(name, project, runner, fileProvider, timestamp)
+
     override fun createEmptyCoverageSuite(coverageRunner: CoverageRunner): CoverageSuite? =
         LuaCoverageSuite(
             "",
