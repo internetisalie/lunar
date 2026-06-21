@@ -99,4 +99,31 @@ class LuaCoverageTest : BasePlatformTestCase() {
         val line2 = lines[2] as? LineData ?: throw AssertionError("Line 2 not found")
         assertEquals(5, line2.hits)
     }
+
+    @Test
+    fun testToProjectDataLineNumbersAreOneBasedAndConsistent() {
+        // RUN-08-13: each LineData's own line number must match its array slot (1-based,
+        // platform convention) so SimpleCoverageAnnotator/SrcFileAnnotator align hits to
+        // editor lines. getLineData(L) must return the coverage for report line L.
+        val coverages = listOf(
+            FileCoverage(
+                filePath = "src/bar.lua",
+                lineHits = mapOf(1 to 0, 2 to 5, 7 to 3)
+            )
+        )
+        val projectData = LuaCovReportParser.toProjectData(coverages)
+        val classData = projectData.getClassData("src/bar.lua") ?: throw AssertionError("ClassData not found")
+
+        val uncovered = classData.getLineData(1) ?: throw AssertionError("Line 1 not found")
+        assertEquals(1, uncovered.lineNumber)
+        assertEquals(0, uncovered.hits)
+
+        val covered = classData.getLineData(2) ?: throw AssertionError("Line 2 not found")
+        assertEquals(2, covered.lineNumber)
+        assertEquals(5, covered.hits)
+
+        val sparse = classData.getLineData(7) ?: throw AssertionError("Line 7 not found")
+        assertEquals(7, sparse.lineNumber)
+        assertEquals(3, sparse.hits)
+    }
 }

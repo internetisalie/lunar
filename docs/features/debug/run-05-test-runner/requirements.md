@@ -48,11 +48,11 @@ Lunar provides a unified, user-facing test runner that integrates with the stand
 | RUN-08-10 | **Failure Diffs** | C | Full | For assertions comparing expected vs. actual values, parse the assertion message to display IntelliJ's comparative diff viewer dialog. |
 | RUN-08-11 | **Coverage Execution** | S | Partial | Provide a "Run with Coverage" runner that automatically executes tests with the `luacov` module loaded (e.g., via `-lluacov` argument or loading it in a custom runner helper). |
 | RUN-08-12 | **Coverage Stats/Report Parsing** | S | Full | Parse the `luacov.stats.out` and/or `luacov.report.out` files produced by the test run to extract line execution hit counts for each Lua source file. |
-| RUN-08-13 | **Standard Coverage UI Rendering** | S | Partial | Integrate with the IntelliJ Coverage engine API to display file coverage statistics (percentages) in the project tree and colored gutter indicators (green/red line overlays) in the editor. |
+| RUN-08-13 | **Standard Coverage UI Rendering** | S | Full | Integrate with the IntelliJ Coverage engine API to display file coverage statistics (percentages) in the project tree and colored gutter indicators (green/red line overlays) in the editor. |
 | RUN-08-14 | **Luacov Tool Discovery** | S | Full | Register `luacov` command in the Tool Inventory Management (`TOOL`) registry, allowing auto-discovery in local/system paths and custom overrides. |
 | RUN-08-15 | **LuaRocks Coverage Installation** | S | Partial | Surface a balloon notification with a quick link to execute `luarocks install luacov` if `luacov` cannot be located when starting a Coverage run. |
 | RUN-08-16 | **Import Luacov Report File** | S | Full | Provide a user action to import/select an existing `luacov.report.out` file, parsing its contents to render coverage highlights directly onto the project's source files in the editor. |
-| RUN-08-17 | **Report Editor Syntax Highlighting** | C | Partial | Provide custom syntax highlighting for opened `luacov.report.out` files, showing execution count prefixes in distinct colors (red/green) and syntax-highlighting the code portion as Lua. |
+| RUN-08-17 | **Report Editor Syntax Highlighting** | C | Full | Provide custom syntax highlighting for opened `luacov.report.out` files, showing execution count prefixes in distinct colors (red/green) and syntax-highlighting the code portion as Lua. |
 | RUN-08-18 | **Coverage Editor Banner Action** | C | Partial | Display an action banner at the top of the editor when opening `luacov.report.out` files, offering a one-click action to load/import the coverage overlays onto project source files. |
 
 ## Detailed Specifications

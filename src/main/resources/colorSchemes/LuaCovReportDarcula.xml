@@ -1,0 +1,13 @@
+<?xml version='1.0'?>
+<list>
+  <option name="LUACOV_COVERED">
+    <value>
+      <option name="FOREGROUND" value="6A8759" />
+    </value>
+  </option>
+  <option name="LUACOV_UNCOVERED">
+    <value>
+      <option name="FOREGROUND" value="FF6B68" />
+    </value>
+  </option>
+</list>

@@ -88,7 +88,7 @@ object LuaCovReportParser {
             val maxLine = coverage.lineHits.keys.maxOrNull() ?: 0
             val lineDataArray = arrayOfNulls<LineData>(maxLine + 1)
             for ((line, hits) in coverage.lineHits) {
-                val lineData = LineData(line - 1, null)
+                val lineData = LineData(line, null)
                 lineData.hits = hits
                 lineDataArray[line] = lineData
             }
