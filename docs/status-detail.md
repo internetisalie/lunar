@@ -47,11 +47,11 @@ folders:
 | [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       5 |      0 |      10 | █████░░░░░ 50%  |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       6 |      0 |      11 | ████░░░░░░ 45%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **111** |       **3** |   **7** | **10** | **131** | **85%**         |
+| **Total**                                                   | **111** |       **3** |   **8** | **10** | **132** | **84%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -250,6 +250,7 @@ folders:
 | ROCKS-09 | Multi-Rock Workspace Discovery | planned | Recursive rockspec discovery (`FilenameIndex`), replaces single-root `projectRockspec`; foundational for multi-rock resolution |
 | ROCKS-10 | Workspace Build Orchestration | planned | Topo-sort discovered rocks via dependency graph; `luarocks make` in dependency order |
 | ROCKS-11 | Makefile Task Integration | planned | Enrich scaffolded Makefile (lint/format/coverage targets); optional Makefile-plugin integration |
+| ROCKS-12 | Project-View Roots & Marking | planned | `lua_modules` installed-rock tree as External Libraries (SyntheticLibrary) + first-party source-root marking (ProjectViewNodeDecorator) |
 
 ---
 
