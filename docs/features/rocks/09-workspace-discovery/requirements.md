@@ -2,7 +2,7 @@
 id: "ROCKS-09"
 title: "09: Multi-Rock Workspace Discovery"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "ROCKS"
 folders:

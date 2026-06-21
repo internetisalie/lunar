@@ -51,6 +51,16 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
         var suppressUnderscorePrefixedGlobals: Boolean = true
         var additionalGlobals: MutableList<String> = mutableListOf()
+
+        /**
+         * Per-project rockspec membership override globs (ROCKS-09-07). When both lists are empty,
+         * discovery uses the default recursive-minus-built-in-excludes behaviour. When non-empty,
+         * [rockspecIncludeGlobs] acts as an allow-list and [rockspecExcludeGlobs] removes matches;
+         * both AND with the built-in exclusions. Persisted in the existing `lunar.xml` storage.
+         */
+        var rockspecIncludeGlobs: MutableList<String> = mutableListOf()
+        var rockspecExcludeGlobs: MutableList<String> = mutableListOf()
+
         var showAutoImportHints: Boolean = true
         var autoImportStyle: AutoImportStyle = AutoImportStyle.AUTO_DETECT
 

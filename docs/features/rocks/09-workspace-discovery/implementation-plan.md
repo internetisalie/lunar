@@ -15,22 +15,22 @@ folders:
 ### Phase 0: De-risking [Must]
 - **Goal**: retire the redefinition + index-API unknowns before code (see risks-and-gaps.md).
 - **Tasks**:
-  - [ ] ROCKS-09-00-01: confirm `FilenameIndex.getAllFilesByExt(project,"rockspec",scope)` returns
+  - [x] ROCKS-09-00-01: confirm `FilenameIndex.getAllFilesByExt(project,"rockspec",scope)` returns
         a `Kernel/v0`-shaped fixture's 10 rockspecs in a `BasePlatformTestCase` (spike) — resolves Risk 1.2.
-  - [ ] ROCKS-09-00-02: file the ROCKS-01 / ROCKS-03 / ROCKS-05 redefinition deltas as tracked
+  - [x] ROCKS-09-00-02: file the ROCKS-01 / ROCKS-03 / ROCKS-05 redefinition deltas as tracked
         items per risks-and-gaps.md (DO NOT edit those docs here).
 - **Exit criteria**: spike test green; redefinition items recorded.
 
 ### Phase 1: Exclusion filter [Must]
 - **Goal**: pure, fully-tested inclusion predicate.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.RockspecExclusionFilter` — realizes design §2.2, §3.2, §3.3.
+  - [x] Create `net.internetisalie.lunar.rocks.RockspecExclusionFilter` — realizes design §2.2, §3.2, §3.3.
 - **Exit criteria**: unit tests for TC #2, #3, #4, #10, #11 inputs (string-level, no platform) pass.
 
 ### Phase 2: Discovery service [Must]
 - **Goal**: cached, exclusion-aware recursive discovery.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.LuaRockspecDiscoveryService` + `DiscoveredRockspec`
+  - [x] Create `net.internetisalie.lunar.rocks.LuaRockspecDiscoveryService` + `DiscoveredRockspec`
         — realizes design §2.1, §3.1 (CachedValue + `PsiModificationTracker`, `runReadAction`,
         `DumbService` guard).
 - **Exit criteria**: TC #1, #5, #6 pass (`BasePlatformTestCase` with a `Kernel/v0`-shaped fixture
@@ -96,9 +96,9 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: De-risking | todo | Must |
-| Phase 1: Exclusion filter | todo | Must |
-| Phase 2: Discovery service | todo | Must |
+| Phase 0: De-risking | done | Must |
+| Phase 1: Exclusion filter | done | Must |
+| Phase 2: Discovery service | done | Must |
 | Phase 3: Locator + ROCKS-05 delegate | todo | Must |
 | Phase 4: Multi-root resolution + panel | todo | Must |
 | Phase 5: Remove `workspace.lua` scaffolding | todo | Must |
