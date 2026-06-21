@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaTableConstructorImpl extends LuaExprImpl implements LuaTableConstructor {
 
-  public LuaTableConstructorImpl(@NotNull ASTNode node) {
+  public LuaTableConstructorImpl(ASTNode node) {
     super(node);
   }
 

@@ -13,6 +13,7 @@ public interface LuaRepeatStatement extends LuaStatement, LuaBlockParent {
   @NotNull
   LuaExpr getExpr();
 
-  @NotNull List<@NotNull LuaBlock> getBlockList();
+  @NotNull
+  List<LuaBlock> getBlockList();
 
 }

@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaGotoStatementImpl extends LuaStatementImpl implements LuaGotoStatement {
 
-  public LuaGotoStatementImpl(@NotNull ASTNode node) {
+  public LuaGotoStatementImpl(ASTNode node) {
     super(node);
   }
 

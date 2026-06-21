@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaDoStatementImpl extends LuaStatementImpl implements LuaDoStatement {
 
-  public LuaDoStatementImpl(@NotNull ASTNode node) {
+  public LuaDoStatementImpl(ASTNode node) {
     super(node);
   }
 
@@ -34,7 +34,8 @@ public class LuaDoStatementImpl extends LuaStatementImpl implements LuaDoStateme
   }
 
   @Override
-  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+  @NotNull
+  public List<LuaBlock> getBlockList() {
     return LuaPsiImplUtil.getBlockList(this);
   }
 

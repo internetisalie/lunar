@@ -7,6 +7,8 @@ import com.intellij.psi.scope.PsiScopeProcessor
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameList
@@ -44,6 +46,24 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
             }
 
             is LuaLocalFuncDecl -> {
+                if (element.nameRef.identifier.text == name) {
+                    result = element.nameRef.identifier
+                    found = true
+                    return false
+                }
+            }
+
+            is LuaGlobalVarDecl -> {
+                element.attNameList.forEach { attName ->
+                    if (attName.nameRef.identifier.text == name) {
+                        result = attName.nameRef.identifier
+                        found = true
+                        return@execute false
+                    }
+                }
+            }
+
+            is LuaGlobalFuncDecl -> {
                 if (element.nameRef.identifier.text == name) {
                     result = element.nameRef.identifier
                     found = true
@@ -145,6 +165,18 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
             is LuaLocalFuncDecl -> {
                 val name = element.nameRef.identifier.text
                 results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.LOCAL))
+            }
+
+            is LuaGlobalVarDecl -> {
+                element.attNameList.forEach { attName ->
+                    val name = attName.nameRef.identifier.text
+                    results.putIfAbsent(name, SymbolInfo(name, attName, SymbolType.GLOBAL))
+                }
+            }
+
+            is LuaGlobalFuncDecl -> {
+                val name = element.nameRef.identifier.text
+                results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.GLOBAL))
             }
 
             is LuaFuncDecl -> {

@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaEmptyStatementImpl extends LuaStatementImpl implements LuaEmptyStatement {
 
-  public LuaEmptyStatementImpl(@NotNull ASTNode node) {
+  public LuaEmptyStatementImpl(ASTNode node) {
     super(node);
   }
 

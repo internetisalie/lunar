@@ -7,6 +7,8 @@ import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameList
@@ -44,6 +46,18 @@ fun LuaBlock.processDeclarations(
                 // Process the local function declaration itself
                 if (!processor.execute(statement, state)) {
                     return false  // Processor found match, stop walk
+                }
+            }
+
+            is LuaGlobalVarDecl -> {
+                if (!processor.execute(statement, state)) {
+                    return false
+                }
+            }
+
+            is LuaGlobalFuncDecl -> {
+                if (!processor.execute(statement, state)) {
+                    return false
                 }
             }
 

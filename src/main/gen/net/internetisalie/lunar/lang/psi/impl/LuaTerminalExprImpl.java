@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaTerminalExprImpl extends LuaExprImpl implements LuaTerminalExpr {
 
-  public LuaTerminalExprImpl(@NotNull ASTNode node) {
+  public LuaTerminalExprImpl(ASTNode node) {
     super(node);
   }
 

@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaIfStatementImpl extends LuaStatementImpl implements LuaIfStatement {
 
-  public LuaIfStatementImpl(@NotNull ASTNode node) {
+  public LuaIfStatementImpl(ASTNode node) {
     super(node);
   }
 

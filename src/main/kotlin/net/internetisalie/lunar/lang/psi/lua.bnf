@@ -17,6 +17,7 @@
         IF     = 'if'
         IN     = 'in'
         GOTO   = 'goto'
+        GLOBAL = 'global'
         LOCAL  = 'local'
         NIL    = 'nil'
         NOT    = 'not'
@@ -111,6 +112,9 @@ statement ::= emptyStatement
     | funcDecl
     | localFuncDecl
     | localVarDecl
+    | globalVarDecl
+    | globalFuncDecl
+    | globalModeDecl
     { extends=statement }
 
 emptyStatement ::= ';'
@@ -185,6 +189,30 @@ localVarDecl ::= LOCAL attNameList ['=' exprList] {
     ]
     methods=[
         getComment getDocComment getCatsComment
+    ]
+    extends=statement
+}
+
+globalVarDecl ::= GLOBAL attNameList ['=' exprList] {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaCommentOwner"]
+    methods=[getComment getDocComment getCatsComment]
+    extends=statement
+}
+
+globalModeDecl ::= GLOBAL [attrib] '*' {
+    implements = ["net.internetisalie.lunar.lang.psi.LuaCommentOwner"]
+    methods=[getComment getDocComment getCatsComment]
+    extends=statement
+}
+
+globalFuncDecl ::= GLOBAL FUNCTION nameRef funcBody {
+    implements = [
+        "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
+        "net.internetisalie.lunar.lang.psi.LuaBlockParent"
+    ]
+    methods=[
+        getComment getDocComment getCatsComment
+        getBlockList
     ]
     extends=statement
 }

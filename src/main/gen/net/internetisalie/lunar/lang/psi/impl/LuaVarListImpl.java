@@ -13,7 +13,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaVarListImpl extends LuaBaseElement implements LuaVarList {
 
-  public LuaVarListImpl(@NotNull ASTNode node) {
+  public LuaVarListImpl(ASTNode node) {
     super(node);
   }
 

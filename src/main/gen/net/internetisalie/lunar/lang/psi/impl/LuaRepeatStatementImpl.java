@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaRepeatStatementImpl extends LuaStatementImpl implements LuaRepeatStatement {
 
-  public LuaRepeatStatementImpl(@NotNull ASTNode node) {
+  public LuaRepeatStatementImpl(ASTNode node) {
     super(node);
   }
 
@@ -40,7 +40,8 @@ public class LuaRepeatStatementImpl extends LuaStatementImpl implements LuaRepea
   }
 
   @Override
-  public @NotNull List<@NotNull LuaBlock> getBlockList() {
+  @NotNull
+  public List<LuaBlock> getBlockList() {
     return LuaPsiImplUtil.getBlockList(this);
   }
 

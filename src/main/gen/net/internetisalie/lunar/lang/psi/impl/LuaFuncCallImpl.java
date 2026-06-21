@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaFuncCallImpl extends LuaExprImpl implements LuaFuncCall {
 
-  public LuaFuncCallImpl(@NotNull ASTNode node) {
+  public LuaFuncCallImpl(ASTNode node) {
     super(node);
   }
 

@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaBinOpExprImpl extends LuaExprImpl implements LuaBinOpExpr {
 
-  public LuaBinOpExprImpl(@NotNull ASTNode node) {
+  public LuaBinOpExprImpl(ASTNode node) {
     super(node);
   }
 

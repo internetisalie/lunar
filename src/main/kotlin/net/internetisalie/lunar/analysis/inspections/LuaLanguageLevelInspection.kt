@@ -11,6 +11,9 @@ import com.intellij.psi.PsiElementVisitor
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.psi.LuaAttrib
 import net.internetisalie.lunar.lang.psi.LuaBinOp
+import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalModeDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaGotoStatement
 import net.internetisalie.lunar.lang.psi.LuaLabel
 import net.internetisalie.lunar.lang.psi.LuaUnOp
@@ -93,6 +96,39 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
                         holder, o,
                         "Variable attributes are a Lua 5.4 feature (project configured for ${level(o)})",
                         UpgradeLanguageLevelFix(LuaLanguageLevel.LUA54),
+                    )
+                }
+            }
+
+            override fun visitGlobalVarDecl(o: LuaGlobalVarDecl) {
+                super.visitGlobalVarDecl(o)
+                if (level(o) < LuaLanguageLevel.LUA55) {
+                    register(
+                        holder, o.firstChild,
+                        "Global variable declarations are only available in Lua 5.5+",
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
+                    )
+                }
+            }
+
+            override fun visitGlobalFuncDecl(o: LuaGlobalFuncDecl) {
+                super.visitGlobalFuncDecl(o)
+                if (level(o) < LuaLanguageLevel.LUA55) {
+                    register(
+                        holder, o.firstChild,
+                        "Global function declarations are only available in Lua 5.5+",
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
+                    )
+                }
+            }
+
+            override fun visitGlobalModeDecl(o: LuaGlobalModeDecl) {
+                super.visitGlobalModeDecl(o)
+                if (level(o) < LuaLanguageLevel.LUA55) {
+                    register(
+                        holder, o.firstChild,
+                        "Global mode declarations are only available in Lua 5.5+",
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
                     )
                 }
             }

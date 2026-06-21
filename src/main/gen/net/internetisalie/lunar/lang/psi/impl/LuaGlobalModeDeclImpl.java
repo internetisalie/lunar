@@ -9,16 +9,18 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
+import com.intellij.psi.PsiComment;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 
-public class LuaFinalStatementImpl extends LuaStatementImpl implements LuaFinalStatement {
+public class LuaGlobalModeDeclImpl extends LuaStatementImpl implements LuaGlobalModeDecl {
 
-  public LuaFinalStatementImpl(ASTNode node) {
+  public LuaGlobalModeDeclImpl(ASTNode node) {
     super(node);
   }
 
   @Override
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitFinalStatement(this);
+    visitor.visitGlobalModeDecl(this);
   }
 
   @Override
@@ -29,8 +31,20 @@ public class LuaFinalStatementImpl extends LuaStatementImpl implements LuaFinalS
 
   @Override
   @Nullable
-  public LuaExprList getExprList() {
-    return findChildByClass(LuaExprList.class);
+  public LuaAttrib getAttrib() {
+    return findChildByClass(LuaAttrib.class);
+  }
+
+  @Override
+  @Nullable
+  public PsiComment getComment() {
+    return LuaPsiImplUtil.getComment(this);
+  }
+
+  @Override
+  @Nullable
+  public LuaCatsComment getCatsComment() {
+    return LuaPsiImplUtil.getCatsComment(this);
   }
 
 }

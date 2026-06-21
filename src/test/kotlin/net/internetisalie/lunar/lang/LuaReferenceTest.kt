@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -57,5 +58,24 @@ class LuaReferenceTest : BasePlatformTestCase() {
         val resolved = reference!!.resolve()
         assertNotNull("Generic for variable 'v' should be resolved", resolved)
         assertEquals("v", resolved!!.text)
+    }
+
+    @Test
+    fun testGlobalVariableReference() {
+        myFixture.configureByText("test.lua", """
+            global data = 42
+            print(<caret>data)
+        """.trimIndent())
+
+        val element = myFixture.file.findElementAt(myFixture.caretOffset)!!.parent
+        val reference = element.reference
+        assertNotNull("Reference should not be null", reference)
+
+        val resolved = reference!!.resolve()
+        assertNotNull("Reference should be resolved", resolved)
+        assertEquals("data", resolved!!.text)
+
+        val globalVarDecl = com.intellij.psi.util.PsiTreeUtil.getParentOfType(resolved, LuaGlobalVarDecl::class.java)
+        assertNotNull("Resolved element's parent should be a LuaGlobalVarDecl", globalVarDecl)
     }
 }

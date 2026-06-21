@@ -9,16 +9,18 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
 import net.internetisalie.lunar.lang.psi.*;
+import com.intellij.psi.PsiComment;
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 
-public class LuaWhileStatementImpl extends LuaStatementImpl implements LuaWhileStatement {
+public class LuaGlobalFuncDeclImpl extends LuaStatementImpl implements LuaGlobalFuncDecl {
 
-  public LuaWhileStatementImpl(ASTNode node) {
+  public LuaGlobalFuncDeclImpl(ASTNode node) {
     super(node);
   }
 
   @Override
   public void accept(@NotNull LuaVisitor visitor) {
-    visitor.visitWhileStatement(this);
+    visitor.visitGlobalFuncDecl(this);
   }
 
   @Override
@@ -35,8 +37,26 @@ public class LuaWhileStatementImpl extends LuaStatementImpl implements LuaWhileS
 
   @Override
   @NotNull
-  public LuaExpr getExpr() {
-    return findNotNullChildByClass(LuaExpr.class);
+  public LuaNameRef getNameRef() {
+    return findNotNullChildByClass(LuaNameRef.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaParList getParList() {
+    return findChildByClass(LuaParList.class);
+  }
+
+  @Override
+  @Nullable
+  public PsiComment getComment() {
+    return LuaPsiImplUtil.getComment(this);
+  }
+
+  @Override
+  @Nullable
+  public LuaCatsComment getCatsComment() {
+    return LuaPsiImplUtil.getCatsComment(this);
   }
 
   @Override

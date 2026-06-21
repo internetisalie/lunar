@@ -46,29 +46,16 @@ open class LuaFile(viewProvider: FileViewProvider) :
     ): Boolean {
         // File scope = root block + global function declarations + global variable assignments
         
-        // First, process global function declarations (they're at file level, not in blocks)
         for (child in children) {
             // Visibility filtering: stop if we reached the place of completion
             if (lastParent != null && child.textOffset >= lastParent.textOffset) {
                 break
             }
-            if (child is LuaFuncDecl) {
-                if (!processor.execute(child, state)) {
-                    return false  // Processor found match, stop walk
-                }
-            }
-        }
-
-        // Then process global variable assignments (assignments at file level create globals)
-        for (child in children) {
-            // Visibility filtering: stop if we reached the place of completion
-            if (lastParent != null && child.textOffset >= lastParent.textOffset) {
-                break
-            }
-            if (child is LuaAssignmentStatement) {
-                if (!processor.execute(child, state)) {
-                    return false  // Processor found match, stop walk
-                }
+            when (child) {
+                is LuaFuncDecl -> if (!processor.execute(child, state)) return false
+                is LuaGlobalFuncDecl -> if (!processor.execute(child, state)) return false
+                is LuaGlobalVarDecl -> if (!processor.execute(child, state)) return false
+                is LuaAssignmentStatement -> if (!processor.execute(child, state)) return false
             }
         }
 

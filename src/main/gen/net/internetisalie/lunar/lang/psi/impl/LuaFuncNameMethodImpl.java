@@ -13,7 +13,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaFuncNameMethodImpl extends LuaBaseElement implements LuaFuncNameMethod {
 
-  public LuaFuncNameMethodImpl(@NotNull ASTNode node) {
+  public LuaFuncNameMethodImpl(ASTNode node) {
     super(node);
   }
 

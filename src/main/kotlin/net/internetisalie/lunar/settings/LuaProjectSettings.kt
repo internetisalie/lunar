@@ -73,6 +73,7 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
                 LuaLanguageLevel.LUA52 -> "5.2"
                 LuaLanguageLevel.LUA53 -> "5.3"
                 LuaLanguageLevel.LUA54 -> "5.4"
+                LuaLanguageLevel.LUA55 -> "5.5"
             }
             val version = PlatformVersionRegistry.findVersion(platform, versionLabel)
                 ?: PlatformVersionRegistry.defaultVersion(platform)

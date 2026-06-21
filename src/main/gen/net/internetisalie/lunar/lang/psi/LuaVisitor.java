@@ -112,6 +112,22 @@ public class LuaVisitor extends PsiElementVisitor {
     // visitBlockParent(o);
   }
 
+  public void visitGlobalFuncDecl(@NotNull LuaGlobalFuncDecl o) {
+    visitStatement(o);
+    // visitCommentOwner(o);
+    // visitBlockParent(o);
+  }
+
+  public void visitGlobalModeDecl(@NotNull LuaGlobalModeDecl o) {
+    visitStatement(o);
+    // visitCommentOwner(o);
+  }
+
+  public void visitGlobalVarDecl(@NotNull LuaGlobalVarDecl o) {
+    visitStatement(o);
+    // visitCommentOwner(o);
+  }
+
   public void visitGotoStatement(@NotNull LuaGotoStatement o) {
     visitStatement(o);
   }

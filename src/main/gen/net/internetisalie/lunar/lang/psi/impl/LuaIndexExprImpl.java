@@ -13,7 +13,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaIndexExprImpl extends LuaBaseElement implements LuaIndexExpr {
 
-  public LuaIndexExprImpl(@NotNull ASTNode node) {
+  public LuaIndexExprImpl(ASTNode node) {
     super(node);
   }
 

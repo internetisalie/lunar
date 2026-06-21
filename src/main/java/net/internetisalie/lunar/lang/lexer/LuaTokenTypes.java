@@ -149,4 +149,5 @@ public interface LuaTokenTypes {
     IElementType END = new LuaElementType("end");
 
     IElementType GOTO = new LuaElementType("goto");
+    IElementType GLOBAL = new LuaElementType("global");
 }

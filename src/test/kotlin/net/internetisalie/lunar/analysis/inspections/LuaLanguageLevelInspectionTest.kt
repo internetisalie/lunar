@@ -643,6 +643,54 @@ class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
         Assertions.assertFalse(myFixture.file.text.contains("goto"), "Remove fix should delete the goto statement")
     }
 
+    // ==================== Lua 5.5+ Features (global declarations) ====================
+
+    @Test
+    fun globalVarDeclNotAllowedInLua54() {
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(LuaFileType, "global x = 10")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.any { it.contains("Global variable declarations") }, "Expected global var error")
+    }
+
+    @Test
+    fun globalFuncDeclNotAllowedInLua54() {
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(LuaFileType, "global function f() end")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.any { it.contains("Global function declarations") }, "Expected global func error")
+    }
+
+    @Test
+    fun globalModeDeclNotAllowedInLua54() {
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(LuaFileType, "global *")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.any { it.contains("Global mode declarations") }, "Expected global mode error")
+    }
+
+    @Test
+    fun globalDeclarationsAllowedInLua55() {
+        setLanguageLevel(LuaLanguageLevel.LUA55)
+        myFixture.configureByText(LuaFileType, "global x = 10\nglobal function f() end\nglobal *")
+        val errors = getLanguageLevelErrors()
+        Assertions.assertTrue(errors.isEmpty(), "No errors expected in Lua 5.5 for global declarations")
+    }
+
+    @Test
+    fun upgradeToLua55QuickFix() {
+        setLanguageLevel(LuaLanguageLevel.LUA54)
+        myFixture.configureByText(LuaFileType, "glo<caret>bal x = 10")
+        myFixture.doHighlighting(HighlightSeverity.ERROR)
+        val fix = myFixture.findSingleIntention("Upgrade project to Lua 5.5")
+        myFixture.launchAction(fix)
+        Assertions.assertEquals(
+            LuaLanguageLevel.LUA55,
+            LuaProjectSettings.getInstance(myFixture.project).state.languageLevel,
+            "Upgrade fix should raise the project language level to 5.5",
+        )
+    }
+
     // ==================== Helper methods ====================
 
     private fun setLanguageLevel(level: LuaLanguageLevel) {

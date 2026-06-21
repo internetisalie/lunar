@@ -21,7 +21,8 @@ enum class LuaLanguageLevel(val major: Int, val minor: Int) {
     LUA51(5, 1),
     LUA52(5, 2),
     LUA53(5, 3),
-    LUA54(5, 4);
+    LUA54(5, 4),
+    LUA55(5, 5);
 
     override fun toString(): String {
         return "Lua ${major}.${minor}"

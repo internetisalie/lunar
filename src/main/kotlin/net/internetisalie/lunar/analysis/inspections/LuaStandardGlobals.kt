@@ -36,6 +36,7 @@ object LuaStandardGlobals {
         LuaLanguageLevel.LUA52 -> DELTA_52
         LuaLanguageLevel.LUA53 -> DELTA_53
         LuaLanguageLevel.LUA54 -> DELTA_54
+        LuaLanguageLevel.LUA55 -> DELTA_54
     }
 
     fun forLevel(level: LuaLanguageLevel): Set<String> = BASE + deltaFor(level)

@@ -10,6 +10,7 @@ public interface LuaDoStatement extends LuaStatement, LuaBlockParent {
   @NotNull
   LuaBlock getBlock();
 
-  @NotNull List<@NotNull LuaBlock> getBlockList();
+  @NotNull
+  List<LuaBlock> getBlockList();
 
 }

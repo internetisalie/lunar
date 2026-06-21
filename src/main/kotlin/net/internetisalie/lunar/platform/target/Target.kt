@@ -25,7 +25,7 @@ data class Target(
      * - Standard 5.2 -> LUA52
      * - Standard 5.3 -> LUA53
      * - Standard 5.4 -> LUA54
-     * - Standard 5.5 -> LUA54 (Lua 5.5 is future work; maps to 5.4 for now)
+     * - Standard 5.5 -> LUA55
      * - LuaJIT (all versions) -> LUA51 (LuaJIT is based on Lua 5.1)
      * - Redis (all versions) -> LUA51
      * - Tarantool (all versions) -> LUA51
@@ -40,7 +40,7 @@ data class Target(
             platform == LuaPlatform.STANDARD && version.label == "5.2" -> LuaLanguageLevel.LUA52
             platform == LuaPlatform.STANDARD && version.label == "5.3" -> LuaLanguageLevel.LUA53
             platform == LuaPlatform.STANDARD && version.label == "5.4" -> LuaLanguageLevel.LUA54
-            platform == LuaPlatform.STANDARD && version.label == "5.5" -> LuaLanguageLevel.LUA54  // Future work
+            platform == LuaPlatform.STANDARD && version.label == "5.5" -> LuaLanguageLevel.LUA55
             platform == LuaPlatform.LUAJIT -> LuaLanguageLevel.LUA51
             platform == LuaPlatform.REDIS -> LuaLanguageLevel.LUA51
             platform == LuaPlatform.TARANTOOL -> LuaLanguageLevel.LUA51

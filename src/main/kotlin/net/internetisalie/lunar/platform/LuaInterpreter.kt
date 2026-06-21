@@ -112,6 +112,7 @@ class LuaInterpreterFamily(
                         version.startsWith("5.2") -> LuaLanguageLevel.LUA52
                         version.startsWith("5.3") -> LuaLanguageLevel.LUA53
                         version.startsWith("5.4") -> LuaLanguageLevel.LUA54
+                        version.startsWith("5.5") -> LuaLanguageLevel.LUA55
                         else -> LuaLanguageLevel.LUA50
                     }
                 }

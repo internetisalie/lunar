@@ -49,6 +49,7 @@ class LuaLexer : MergingLexerAdapter(
         LuaTokenTypes.FUNCTION to LuaElementTypes.FUNCTION,
         LuaTokenTypes.GE to LuaElementTypes.GE,
         LuaTokenTypes.GETN to LuaElementTypes.GETN,
+        LuaTokenTypes.GLOBAL to LuaElementTypes.GLOBAL,
         LuaTokenTypes.GOTO to LuaElementTypes.GOTO,
         LuaTokenTypes.GT to LuaElementTypes.GT,
         LuaTokenTypes.IDENTIFIER to LuaElementTypes.IDENTIFIER,

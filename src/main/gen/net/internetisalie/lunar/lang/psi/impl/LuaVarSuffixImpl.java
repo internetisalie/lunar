@@ -13,7 +13,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaVarSuffixImpl extends LuaBaseElement implements LuaVarSuffix {
 
-  public LuaVarSuffixImpl(@NotNull ASTNode node) {
+  public LuaVarSuffixImpl(ASTNode node) {
     super(node);
   }
 
