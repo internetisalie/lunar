@@ -47,11 +47,11 @@ folders:
 | [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      1 |       6 | ████████░░ 83%  |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       2 |      0 |       7 | ███████░░░ 71%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **111** |       **3** |   **2** | **11** | **127** | **87%**         |
+| **Total**                                                   | **111** |       **3** |   **4** | **10** | **128** | **87%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -244,8 +244,9 @@ folders:
 | ROCKS-02 | Package Browser | done | `rocks/browser/*` tool window "LuaRocks Packages"; porcelain search/list/show parse + TTL cache |
 | ROCKS-03 | Dependency Resolution | done | `rocks/LuaRocksDependencyResolver` + `deps/*`; bridge Lua scripts packaged as resources via `LuaRocksBridgeFiles` |
 | ROCKS-04 | Task Execution & Run Configs | done | `rocks/run/*` — `LuaRocksSettings` (shared) + `LuaRocksRunConfiguration` |
-| ROCKS-05 | Rockspec Module Resolution | todo | No code — derive `require` source-path patterns from rockspec `build.modules`; front-matter `status: todo` |
+| ROCKS-05 | Rockspec Module Resolution | planned | Full plan: `build.modules`→source roots for require-resolution/indexing + run/debug `LUA_PATH` union; consumes ROCKS-09 discovery |
 | ROCKS-08 | Publishing & Lifecycle | done | `rocks/publish/*` — `PublishRockAction` (`Lua.Rocks.Publish`), `luarocks upload --api-key=`, key in PasswordSafe |
+| ROCKS-09 | Multi-Rock Workspace Discovery | planned | Recursive rockspec discovery (`FilenameIndex`), replaces single-root `projectRockspec`; foundational for multi-rock resolution |
 
 ---
 

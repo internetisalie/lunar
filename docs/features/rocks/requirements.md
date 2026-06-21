@@ -2,7 +2,7 @@
 id: "ROCKS"
 title: "ROCKS: LuaRocks Integration"
 type: "epic"
-status: "done"
+status: "in_progress"
 priority: "high"
 folders:
   - "[[features]]"
@@ -14,12 +14,13 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| [`ROCKS-01`](01-project-initialization/requirements.md) | **Project Initialization & Setup** | **M** | **Not Implemented** | Scaffolding, Rockspec generation, and module resolution. |
-| [`ROCKS-02`](02-package-browser/requirements.md) | **Package Browser** | **S** | **Not Implemented** | Remote search and repository exploration (split-view). |
-| [`ROCKS-03`](03-dependency-resolution/requirements.md) | **Dependency Resolution** | **M** | **Not Implemented** | Hierarchical tree view and conflict detection. |
-| [`ROCKS-04`](04-task-execution/requirements.md) | **Task Execution & Run Configurations** | **M** | **Not Implemented** | Target-based command execution (similar to Maven/Makefile). |
+| [`ROCKS-01`](01-project-initialization/requirements.md) | **Project Initialization & Setup** | **M** | **Full** | Scaffolding, Rockspec generation, and module resolution. |
+| [`ROCKS-02`](02-package-browser/requirements.md) | **Package Browser** | **S** | **Full** | Remote search and repository exploration (split-view). |
+| [`ROCKS-03`](03-dependency-resolution/requirements.md) | **Dependency Resolution** | **M** | **Full** | Hierarchical tree view and conflict detection. |
+| [`ROCKS-04`](04-task-execution/requirements.md) | **Task Execution & Run Configurations** | **M** | **Full** | Target-based command execution (similar to Maven/Makefile). |
 | [`ROCKS-05`](05-module-resolution/requirements.md) | **Rockspec Module Resolution** | **S** | **Not Implemented** | Derive source-path patterns from rockspec `build.modules` for require resolution, completion, and indexing. |
-| `ROCKS-08` | **Publishing & Lifecycle** | **C** | **Not Implemented** | Wizard for versioning and remote uploads. |
+| `ROCKS-08` | **Publishing & Lifecycle** | **C** | **Full** | Wizard for versioning and remote uploads. |
+| [`ROCKS-09`](09-workspace-discovery/requirements.md) | **Multi-Rock Workspace Discovery** | **M** | **Not Implemented** | Recursively discover all project rockspecs (replaces single-root `projectRockspec`); foundational for multi-rock resolution. |
 
 ---
 
