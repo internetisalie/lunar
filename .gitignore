@@ -78,3 +78,5 @@ docker/ide-staging/
 docs/.obsidian/
 
 docs/plan.md
+.opencode
+.ocx/
