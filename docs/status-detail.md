@@ -160,6 +160,7 @@ folders:
 | RUN-02 | Run Configurations | done | `LuaRunConfiguration` + `LuaRunConfigurationType` |
 | RUN-03 | Interactive Console (REPL) | done | `run/console/` pkg: `LuaConsoleRunner`/`View`/`ExecuteHandler` |
 | RUN-04 | Run Configuration Validation | done | Interpreter + script validation in `getState()` |
+| RUN-05 | Test Runner Integration | done | `run/test/` pkg + `coverage/` pkg, Test runner and Coverage rendering |
 
 ---
 

@@ -217,7 +217,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | COMP-05 | Parameter Name Hints | done | S | — | — | ✓ |
-| RUN-05 | Test Runner Integration | planned | S | RUN-02 *(Run Configs)* | — | ✓ |
+| RUN-05 | Test Runner Integration | done | S | RUN-02 *(Run Configs)* | — | ✓ |
 | FORMAT-07 | Stylua Compatibility | done | S | FORMAT-03..06 *(Formatter)* | — | Serial: formatter |
 | TYPE-08 | Flow-Sensitive Analysis | done | C | TYPE-01 *(Type engine)* | — | ✓ |
 | DOC-06-04 | Full-Text Documentation Search | done | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
