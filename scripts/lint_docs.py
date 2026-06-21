@@ -21,7 +21,7 @@ except ImportError:
 
 # Canonical vocabularies (manage-docs standard + project conventions).
 TYPES = {"epic", "feature", "user-story", "task", "design", "risk",
-         "qa", "guide", "plan", "spec"}
+         "qa", "guide", "plan", "spec", "bug"}
 STATUSES = {"todo", "planned", "in_progress", "done", "blocked", "cancelled"}
 PRIORITIES = {"critical", "high", "medium", "low"}
 
