@@ -3,26 +3,40 @@ package net.internetisalie.lunar.rocks
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.rocks.deps.DependencyNode
 import net.internetisalie.lunar.rocks.deps.DependencySpec
+import java.nio.file.Path
 
 /**
- * Builds the project's dependency graph from its rockspec plus the installed rock tree.
+ * Builds the project's dependency forest from every discovered rockspec plus the installed tree.
  *
+ * One resolved root per discovered rock (ROCKS-09-05), each with a fresh [ResolutionContext] so the
+ * `seen`/`visiting` state is per-root; the installed-rock index is computed once and shared.
  * Transitive dependencies are expanded recursively against each installed rock's own rockspec, with
  * a `visiting` set breaking cycles and a `seen` map sharing a single node per package. Background
  * only — every [RockspecBridge.read] call blocks.
  */
 object LuaRocksDependencyResolver {
-    fun resolve(project: Project): DependencyNode? {
-        val rockspecPath = LuaRocksTreeLocator.projectRockspec(project) ?: return null
-        val rootData = RockspecBridge.read(project, rockspecPath) ?: return null
-
+    /** Resolves one [DependencyNode] root per discovered rockspec (ROCKS-09-05). */
+    fun resolveAll(project: Project): List<DependencyNode> {
         val installed = LuaRocksTreeLocator.installedRocks(project)
             .groupBy { it.packageName.lowercase() }
-        val context = ResolutionContext(project, installed)
+        return LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
+            .mapNotNull { resolveOne(project, it.rockspec, installed) }
+    }
 
+    /** Back-compat shim for the existing single-root callers and TC parity. */
+    fun resolve(project: Project): DependencyNode? = resolveAll(project).firstOrNull()
+
+    private fun resolveOne(
+        project: Project,
+        rockspec: Path,
+        installed: Map<String, List<InstalledRock>>,
+    ): DependencyNode? {
+        val rootData = RockspecBridge.read(project, rockspec) ?: return null
+        val context = ResolutionContext(project, installed)
+        val rootKey = rootData.packageName.lowercase()
         val root = DependencyNode(rootData.packageName, isTransitive = false)
-        context.seen[rootData.packageName.lowercase()] = root
-        expand(root, rootData.dependencies, context, visiting = setOf(rootData.packageName.lowercase()), parentIsRoot = true)
+        context.seen[rootKey] = root
+        expand(root, rootData.dependencies, context, visiting = setOf(rootKey), parentIsRoot = true)
         return root
     }
 

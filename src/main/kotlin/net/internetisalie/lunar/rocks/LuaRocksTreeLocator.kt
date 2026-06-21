@@ -3,11 +3,8 @@ package net.internetisalie.lunar.rocks
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.rocks.deps.LuaRocksVersion
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
-import kotlin.io.path.extension
-import kotlin.io.path.getLastModifiedTime
 import kotlin.io.path.isDirectory
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
@@ -37,13 +34,14 @@ object LuaRocksTreeLocator {
             .firstOrNull { it.isDirectory() }
     }
 
-    fun projectRockspec(project: Project): Path? {
-        val base = project.basePath?.let { Path.of(it) } ?: return null
-        if (!base.isDirectory()) return null
-        return base.listDirectoryEntries()
-            .filter { Files.isRegularFile(it) && it.extension == "rockspec" }
-            .maxByOrNull { it.getLastModifiedTime() }
-    }
+    /**
+     * Every source rockspec in the project (ROCKS-09-08; also ROCKS-05's discovery hook).
+     *
+     * Delegates to the single [LuaRockspecDiscoveryService] scanner so the recursion/exclusion logic
+     * lives in exactly one place; replaces the former single-root `projectRockspec`.
+     */
+    fun allProjectRockspecs(project: Project): List<Path> =
+        LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths().map { it.rockspec }
 
     fun installedRocks(project: Project): List<InstalledRock> {
         val tree = treeRoot(project) ?: return emptyList()

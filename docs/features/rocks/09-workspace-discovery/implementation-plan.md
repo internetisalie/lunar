@@ -39,16 +39,16 @@ folders:
 ### Phase 3: Locator + ROCKS-05 delegate [Must]
 - **Goal**: route the existing locator through the service; provide the ROCKS-05 hook.
 - **Tasks**:
-  - [ ] Edit `net.internetisalie.lunar.rocks.LuaRocksTreeLocator`: delete `projectRockspec`, add
+  - [x] Edit `net.internetisalie.lunar.rocks.LuaRocksTreeLocator`: delete `projectRockspec`, add
         `allProjectRockspecs(project)` delegating to the service — realizes design §2.3.
 - **Exit criteria**: TC #12 passes; no remaining references to `projectRockspec` compile-fail.
 
 ### Phase 4: Multi-root resolution + panel [Must]
 - **Goal**: resolve and render a forest.
 - **Tasks**:
-  - [ ] Edit `net.internetisalie.lunar.rocks.LuaRocksDependencyResolver`: add `resolveAll`,
+  - [x] Edit `net.internetisalie.lunar.rocks.LuaRocksDependencyResolver`: add `resolveAll`,
         `resolveOne`; make `resolve` a `resolveAll().firstOrNull()` shim — realizes design §2.4, §3.4.
-  - [ ] Edit `net.internetisalie.lunar.rocks.ui.DependencyTreePanel`: render `resolveAll` roots —
+  - [x] Edit `net.internetisalie.lunar.rocks.ui.DependencyTreePanel`: render `resolveAll` roots —
         realizes design §2.5.
 - **Exit criteria**: TC #7, #8 pass; dependency panel shows one root per rock.
 
@@ -99,7 +99,7 @@ folders:
 | Phase 0: De-risking | done | Must |
 | Phase 1: Exclusion filter | done | Must |
 | Phase 2: Discovery service | done | Must |
-| Phase 3: Locator + ROCKS-05 delegate | todo | Must |
-| Phase 4: Multi-root resolution + panel | todo | Must |
+| Phase 3: Locator + ROCKS-05 delegate | done | Must |
+| Phase 4: Multi-root resolution + panel | done | Must |
 | Phase 5: Remove `workspace.lua` scaffolding | todo | Must |
 | Phase 6: Membership override | todo | Should |

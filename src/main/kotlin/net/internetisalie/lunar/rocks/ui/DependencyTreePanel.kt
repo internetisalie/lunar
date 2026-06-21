@@ -38,7 +38,7 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
     private val inspector = DependencyInspectorPanel()
     private val filterField = JBTextField()
     private val statusLabel = JBLabel("")
-    private var resolvedRoot: DependencyNode? = null
+    private var resolvedRoots: List<DependencyNode> = emptyList()
 
     init {
         add(buildToolbar(), BorderLayout.NORTH)
@@ -74,10 +74,11 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
     fun refresh() {
         statusLabel.text = "Resolving dependencies…"
         ApplicationManager.getApplication().executeOnPooledThread {
-            val root = LuaRocksDependencyResolver.resolve(project)?.also { VersionConflictEngine.annotate(it) }
+            val roots = LuaRocksDependencyResolver.resolveAll(project)
+                .onEach { VersionConflictEngine.annotate(it) }
             ApplicationManager.getApplication().invokeLater {
-                resolvedRoot = root
-                statusLabel.text = if (root == null) {
+                resolvedRoots = roots
+                statusLabel.text = if (roots.isEmpty()) {
                     "No project rockspec found, or no Lua interpreter is configured."
                 } else {
                     ""
@@ -88,11 +89,13 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
     }
 
     private fun rebuildTree() {
-        val root = resolvedRoot
-        val swingRoot = DefaultMutableTreeNode(root ?: "Lua dependencies")
-        if (root != null) {
-            val filter = filterField.text.trim().lowercase()
-            addChildren(swingRoot, root, filter, mutableSetOf())
+        val swingRoot = DefaultMutableTreeNode("Lua dependencies")
+        val filter = filterField.text.trim().lowercase()
+        for (root in resolvedRoots) {
+            if (!matches(root, filter)) continue
+            val swingChild = DefaultMutableTreeNode(root)
+            swingRoot.add(swingChild)
+            addChildren(swingChild, root, filter, mutableSetOf())
         }
         treeModel.setRoot(swingRoot)
         expandAll()
