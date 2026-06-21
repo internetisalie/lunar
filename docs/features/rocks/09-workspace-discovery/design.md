@@ -90,11 +90,9 @@ ROCKS-05 allProjectRockspecs (delegate) ┘            │  (CachedValue, PsiMod
   ```kotlin
   @Service(Service.Level.PROJECT)
   class LuaRockspecDiscoveryService(private val project: Project) {
-      /** Cached, sorted; one entry per discovered source rockspec. */
-      fun discoverRockspecs(): List<DiscoveredRockspec>
-
-      /** Paths only — the ROCKS-05 delegation hook (ROCKS-09-08). */
-      fun discoverRockspecPaths(): List<Path>
+      /** Cached, sorted; one entry per discovered source rockspec (path + parsed identity).
+       *  The SOLE project-rockspec scanner — ROCKS-05 and ROCKS-10 consume this. */
+      fun discoverRockspecPaths(): List<DiscoveredRockspec>
 
       companion object {
           fun getInstance(project: Project): LuaRockspecDiscoveryService =
@@ -112,15 +110,17 @@ ROCKS-05 allProjectRockspecs (delegate) ┘            │  (CachedValue, PsiMod
   **sole** project-rockspec scanner (`FilenameIndex`-backed, no depth cap). Its public consumer
   contract is exactly:
   ```kotlin
-  fun discoverRockspecPaths(project: Project): List<DiscoveredRockspec>
+  // instance method on the @Service(PROJECT); obtain via getInstance(project)
+  fun discoverRockspecPaths(): List<DiscoveredRockspec>
   // DiscoveredRockspec(rockspec: java.nio.file.Path, packageName: String?)
   ```
-  This returns **PATHS ONLY**. ROCKS-09 does **not** parse `build.modules`, and
-  `DiscoveredRockspec` must **NOT** carry a `buildModules` field. Consumers (ROCKS-05) take these
-  paths and call `RockspecBridge.read` themselves to obtain `build.modules`. ROCKS-05 must not
-  define its own scanner — it consumes this one. (The `discoverRockspecPaths(): List<Path>`
-  overload in the `Key API` block above is the same paths-only scan; consumers use the
-  `DiscoveredRockspec` form so they get `packageName` without a second bridge read for identity.)
+  This is the **single** discovery method (no `List<Path>` overload — that would be a same-name
+  return-type clash). It returns one `DiscoveredRockspec` per rockspec, carrying the rockspec
+  `Path` plus its `packageName`. ROCKS-09 does **not** parse `build.modules`, and
+  `DiscoveredRockspec` must **NOT** carry a `buildModules` field. Consumers take the `.rockspec`
+  paths and call `RockspecBridge.read` themselves for `build.modules` (ROCKS-05) or dependencies
+  (ROCKS-10), and read `.packageName` for identity. ROCKS-05/10 must not define their own scanner —
+  they consume this one.
 - **Caching field** (mirrors `LuaTypeManagerImpl`):
   ```kotlin
   private val pathCache: CachedValue<List<Path>> =
@@ -131,7 +131,7 @@ ROCKS-05 allProjectRockspecs (delegate) ┘            │  (CachedValue, PsiMod
           )
       }, /* trackValue = */ false)
   ```
-  `discoverRockspecs()` maps `pathCache.value` through `RockspecBridge.read` for the
+  `discoverRockspecPaths()` maps `pathCache.value` through `RockspecBridge.read` for the
   `packageName` (also memoised behind the same tracker via a second `CachedValue<List<DiscoveredRockspec>>`).
 
 ### 2.2 `net.internetisalie.lunar.rocks.RockspecExclusionFilter`

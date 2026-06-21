@@ -90,7 +90,7 @@ Exclusion is by **directory segment**, not substring (so a rockspec literally na
 ### ROCKS-09-03 / ROCKS-09-04: Discovered Rock Set API + Caching
 
 `LuaRockspecDiscoveryService` (project-level `@Service`) exposes
-`discoverRockspecs(): List<DiscoveredRockspec>` where `DiscoveredRockspec` carries the rockspec
+`discoverRockspecPaths(): List<DiscoveredRockspec>` where `DiscoveredRockspec` carries the rockspec
 `Path` and the parsed `packageName`. The result is wrapped in a `CachedValuesManager`
 project-level cached value keyed on `PsiModificationTracker.getInstance(project)` (the same
 invalidation contract `LuaTypeManagerImpl` uses), so repeated calls in a single edit-cycle do
@@ -148,8 +148,8 @@ this method, so the recursion/exclusion logic lives in exactly one place.
 | 2 | ROCKS-09-02 | Fixture with `foo-1.0-1.rockspec` at root **and** `lua_modules/share/lua/5.4/bar/bar-2.0-1.rockspec` | `discoverRockspecPaths()` | Returns only the root `foo` rockspec; the `lua_modules/` one is **not** present |
 | 3 | ROCKS-09-02 | Fixture with rockspecs under `build/`, `build-5.4/`, `output/`, `thirdparty/vendored/`, and `.luarocks/` | `discoverRockspecPaths()` | All five excluded; result empty |
 | 4 | ROCKS-09-02 | Fixture with `src/build-tools-1.0-1.rockspec` (a file named `build-…`, not in a `build/` dir) | `discoverRockspecPaths()` | The file **is** discovered (exclusion is by directory segment, not filename) |
-| 5 | ROCKS-09-03 | `Kernel/v0`-shaped fixture, bridge stubbed to echo `package` per file | `discoverRockspecs()` | Returns 10 `DiscoveredRockspec`, each with the matching `packageName` (`adt`, `channels`, …) |
-| 6 | ROCKS-09-04 | Any fixture; call `discoverRockspecs()` twice with no edits in between | second call | Returns the same instance / does not re-enumerate (assert via a counting bridge or cached-value identity) |
+| 5 | ROCKS-09-03 | `Kernel/v0`-shaped fixture, bridge stubbed to echo `package` per file | `discoverRockspecPaths()` | Returns 10 `DiscoveredRockspec`, each with the matching `packageName` (`adt`, `channels`, …) |
+| 6 | ROCKS-09-04 | Any fixture; call `discoverRockspecPaths()` twice with no edits in between | second call | Returns the same instance / does not re-enumerate (assert via a counting bridge or cached-value identity) |
 | 7 | ROCKS-09-05 | `Kernel/v0`-shaped fixture | `LuaRocksDependencyResolver.resolveAll(project)` | Returns 10 `DependencyNode` roots, one per discovered rock (each `isTransitive == false`) |
 | 8 | ROCKS-09-05 | Single-rock fixture: one root `foo-scm-1.rockspec` depending on `ghost` (not installed) | `resolveAll(project)` | One root `foo` whose child `ghost` is flagged `MISSING_DEPENDENCY` (parity with TC-ROCKS-03-05) |
 | 9 | ROCKS-09-06 | n/a (compile-time) | Build the plugin after removing the workspace path | `LuaRocksTemplates.workspaceLua`, `scaffoldWorkspace`, `RockKind.WORKSPACE` no longer exist; build is green; generator scaffolds a single rock |
