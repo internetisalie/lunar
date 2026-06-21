@@ -45,13 +45,13 @@ folders:
 | [**INSP**](#insp--inspections--diagnostics)                 |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
 | [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
 | [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
-| [**DOC**](#doc--documentation--luacats)                     |      7 |           1 |       0 |      0 |       8 | █████████░ 88%  |
+| [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
 | [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       0 |      1 |       6 | ████████░░ 83%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **110** |       **4** |   **2** | **11** | **127** | **87%**         |
+| **Total**                                                   | **111** |       **3** |   **2** | **11** | **127** | **87%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -219,7 +219,7 @@ folders:
 | DOC-03 | External URL Links | done | GFM autolinks, `@see` tag, stdlib URL linking |
 | DOC-04 | Documentation Generation | done | `LuaDocGenerator` + `LuaGenerateDocIntention` + enter-handler auto-gen |
 | DOC-05 | Markdown Support | done | `org.intellij.markdown` rendering + Lua code highlighting |
-| DOC-06 | Documentation Indexing | in progress | 6 indexes implemented; full-text search done; platform symbol doc missing |
+| DOC-06 | Documentation Indexing | done | 6 indexes + type map + platform symbol documentation implemented |
 | DOC-07 | Parameter Info | done | `LuaParameterInfoHandler` — signature help during function calls |
 | DOC-08 | Comprehensive LuaCATS Parsing | done | 19 tag types, complex type system, multi-line enum |
 
