@@ -2,7 +2,7 @@
 id: "ROCKS-09-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "todo"
+status: "done"
 parent_id: "ROCKS-09"
 folders:
   - "[[features/rocks/09-workspace-discovery/requirements|requirements]]"

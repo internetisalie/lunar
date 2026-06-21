@@ -2,7 +2,7 @@
 id: "ROCKS-09-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "todo"
+status: "done"
 parent_id: "ROCKS-09"
 folders:
   - "[[features/rocks/09-workspace-discovery/requirements|requirements]]"
@@ -65,9 +65,9 @@ folders:
 ### Phase 6: Membership override [Should]
 - **Goal**: per-project include/exclude globs.
 - **Tasks**:
-  - [ ] Edit `net.internetisalie.lunar.settings.LuaProjectSettings.State`: add
+  - [x] Edit `net.internetisalie.lunar.settings.LuaProjectSettings.State`: add
         `rockspecIncludeGlobs` / `rockspecExcludeGlobs` — realizes design §2.7.
-  - [ ] Wire the service to read them (already in §3.1 step 3) — realizes design §3.3.
+  - [x] Wire the service to read them (already in §3.1 step 3) — realizes design §3.3.
 - **Exit criteria**: TC #10, #11 pass.
 
 ## Requirement → Phase Coverage
@@ -84,11 +84,11 @@ folders:
 | ROCKS-09-08 | S | Phase 3 |
 
 ## Verification Tasks
-- [ ] Unit: `RockspecExclusionFilter` truth table — covers TC #2, #3, #4, #10, #11.
-- [ ] Unit/light: `LuaRockspecDiscoveryService` over a `Kernel/v0`-shaped fixture — covers TC #1, #5, #6.
-- [ ] Unit/light: `resolveAll` forest + missing-dep flag — covers TC #7, #8.
-- [ ] Unit/light: `LuaRocksTreeLocator.allProjectRockspecs` delegation — covers TC #12.
-- [ ] Build/compile: workspace removal — covers TC #9.
+- [x] Unit: `RockspecExclusionFilter` truth table — covers TC #2, #3, #4, #10, #11.
+- [x] Unit/light: `LuaRockspecDiscoveryService` over a `Kernel/v0`-shaped fixture — covers TC #1, #5, #6.
+- [x] Unit/light: `resolveAll` forest + missing-dep flag — covers TC #7, #8.
+- [x] Unit/light: `LuaRocksTreeLocator.allProjectRockspecs` delegation — covers TC #12.
+- [x] Build/compile: workspace removal — covers TC #9.
 - [ ] Run `human-verification-checklists.md` (dependency tool window over `Kernel/v0`).
 - [ ] `./gradlew test`, `ktlintFormat`, `ktlintCheck` (match surrounding style).
 
@@ -102,4 +102,4 @@ folders:
 | Phase 3: Locator + ROCKS-05 delegate | done | Must |
 | Phase 4: Multi-root resolution + panel | done | Must |
 | Phase 5: Remove `workspace.lua` scaffolding | done | Must |
-| Phase 6: Membership override | todo | Should |
+| Phase 6: Membership override | done | Should |

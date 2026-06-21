@@ -104,7 +104,19 @@ class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
         assertSame("Repeated discovery with no edits must reuse the cached list", first, second)
     }
 
-    // --------------------------------------------------- exclusion override (sanity)
+    // --------------------------------------------------- TC #10 (exclude glob override)
+
+    @Test
+    fun testExcludeGlobOverride() {
+        myFixture.addFileToProject("a/a-1.0-1.rockspec", "package = \"a\"\n")
+        myFixture.addFileToProject("vendor/v-1.0-1.rockspec", "package = \"v\"\n")
+        LuaProjectSettings.getInstance(project).state.rockspecExcludeGlobs = mutableListOf("vendor/**")
+        val discovered = discover()
+        assertEquals(1, discovered.size)
+        assertTrue(discovered.single().rockspec.toString().replace('\\', '/').endsWith("a/a-1.0-1.rockspec"))
+    }
+
+    // --------------------------------------------------- TC #11 (include allow-list override)
 
     @Test
     fun testIncludeGlobAllowList() {

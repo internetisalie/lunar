@@ -2,7 +2,7 @@
 id: "ROCKS-09"
 title: "09: Multi-Rock Workspace Discovery"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "ROCKS"
 folders:
@@ -159,12 +159,12 @@ this method, so the recursion/exclusion logic lives in exactly one place.
 
 ## Acceptance Criteria
 
-- [ ] ROCKS-09-01/02: recursive discovery with directory-segment exclusion (TC 1–4).
-- [ ] ROCKS-09-03/04: project service returns a cached, invalidated discovered set (TC 5–6).
-- [ ] ROCKS-09-05: `resolveAll` produces one root per discovered rock; missing deps flagged (TC 7–8).
-- [ ] ROCKS-09-06: `workspace.lua` scaffolding fully removed; build green; single-rock generator (TC 9).
-- [ ] ROCKS-09-07: include/exclude glob overrides honoured (TC 10–11).
-- [ ] ROCKS-09-08: ROCKS-05's `allProjectRockspecs` delegates to this service (TC 12).
+- [x] ROCKS-09-01/02: recursive discovery with directory-segment exclusion (TC 1–4).
+- [x] ROCKS-09-03/04: project service returns a cached, invalidated discovered set (TC 5–6).
+- [x] ROCKS-09-05: `resolveAll` produces one root per discovered rock; missing deps flagged (TC 7–8).
+- [x] ROCKS-09-06: `workspace.lua` scaffolding fully removed; build green; single-rock generator (TC 9).
+- [x] ROCKS-09-07: include/exclude glob overrides honoured (TC 10–11).
+- [x] ROCKS-09-08: ROCKS-05's `allProjectRockspecs` delegates to this service (TC 12).
 
 ## Non-Functional Requirements
 
