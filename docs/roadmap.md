@@ -241,6 +241,28 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-08| LuaCheck UI Grouping | todo | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | todo | L | — | — | ✓ |
 
+## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
+
+> The **Wave-10 ROCKS epic was reopened (2026-06-21)** — it had been marked done, but ROCKS-05 was
+> unbuilt and a gap review found real holes: Lunar is blind to multi-rock projects (rockspecs under
+> `rocks/*/` are invisible to the single-root `LuaRocksTreeLocator.projectRockspec`), there is no
+> project-scoped registry/server config (blocks custom-registry / `rockserver` testing), no
+> dependency-ordered build, and module folders aren't marked in the Project view. The six features
+> below are **planned and reviewer-PASS**; shipped ROCKS-01/02/03/04/08 stay `done`. Build the
+> discovery foundation (ROCKS-09) first; the rest consume it.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| ROCKS-09 | Multi-Rock Workspace Discovery | planned | M | — *(extends 01/03; removes orphan `workspace.lua`)* | ROCKS-05, ROCKS-10, ROCKS-12 | foundation — build first |
+| ROCKS-05 | Rockspec Module Resolution (+ run/debug `LUA_PATH`) | planned | S | ROCKS-09 | ROCKS-12 | ✓ |
+| ROCKS-06 | Project LuaRocks Environment | planned | M | TOOL-02 *(executable binding)* | — *(redefines 02/03/08 server-awareness)* | ✓ |
+| ROCKS-10 | Workspace Build Orchestration (dep order) | planned | M | ROCKS-09, ROCKS-03, ROCKS-04 | — | ✓ |
+| ROCKS-11 | Makefile Task Integration | planned | C | ROCKS-01; opt. `com.jetbrains.lang.makefile` *(spike)* | — | ✓ |
+| ROCKS-12 | Project-View Roots & Marking | planned | M | ROCKS-05, ROCKS-09 | — | ✓ |
+
+> Dropped: **ROCKS-07** (custom luarocks task panel) — redundant against Make + Lunar's native
+> format/lint/coverage/test integrations; the Makefile (ROCKS-11) is the task aggregator.
+
 ---
 
 ## Dependency summary (the hard edges)
