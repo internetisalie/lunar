@@ -57,7 +57,7 @@
             implementationClass="net.internetisalie.lunar.lang.LuaFileType"
             fieldName="INSTANCE"
             language="Lua"
-            extensions="lua"/>
+            extensions="lua;rockspec"/>
 
     <fileType
             name="Lua Workspace"
