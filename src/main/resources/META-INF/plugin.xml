@@ -127,9 +127,6 @@
             implementationClass="net.internetisalie.lunar.luacats.lang.syntax.LuaCatsAnnotator"/>
     <annotator
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaTypesAnnotator"/>
-    <annotator
-            language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaInferredTypeAnnotator"/>
 
     <localInspection

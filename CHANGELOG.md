@@ -58,6 +58,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Luacheck Integration**: Static analysis integration
 - **Type Checking**: Constraint-based type validation with error reporting
 - **Inspections**: Type assignability and return type mismatch detection
+- **Duplicate Diagnostic Fix**: Type errors are no longer reported twice (doubled Problems-panel rows and hover tooltips). The engine surfaced each error through both a redundant whole-file annotator and the inspections; the stale annotator was removed so every diagnostic is surfaced exactly once. The return-vs-assignability split now classifies an error anchored anywhere inside a `return` statement as return-related (previously only its direct child), so the two inspections fully partition all errors without the annotator.
 - **Undeclared-Variable Inspection**: Flags reads of names that resolve to nothing — respecting locals, parameters, loop variables, file/project globals, the per-version standard library, an "Additional Globals" allowlist, and `---@diagnostic`/`-- luacheck: ignore` suppression comments
 - **For-loop Variable Resolution**: `for` loop variables now resolve correctly within the loop body (navigation, completion, and inspections no longer treat them as undeclared)
 

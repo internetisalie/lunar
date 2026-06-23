@@ -18,15 +18,11 @@ class LuaTypeAssignabilityInspection : LocalInspectionTool() {
         val types = LuaTypesSnapshot.forFile(file)
         val errors = types.getErrors()
 
-        // Report all non-return errors found in the graph
+        // Report all non-return errors found in the graph (return-related errors are surfaced by
+        // LuaReturnTypeMismatchInspection; the two partitions are exact complements so each error is
+        // reported exactly once — see isReturnRelated).
         for (error in errors) {
-            val isReturnRelated = error.element is net.internetisalie.lunar.lang.psi.LuaFinalStatement || 
-                                 error.element.parent is net.internetisalie.lunar.lang.psi.LuaFinalStatement ||
-                                 error.element is net.internetisalie.lunar.lang.psi.LuaFuncDef || 
-                                 error.element is net.internetisalie.lunar.lang.psi.LuaFuncDecl || 
-                                 error.element is net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
-            
-            if (!isReturnRelated) {
+            if (!error.isReturnRelated()) {
                 val severity = when (error.severity) {
                     ErrorSeverity.ERROR -> com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR
                     ErrorSeverity.WARNING -> com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING
