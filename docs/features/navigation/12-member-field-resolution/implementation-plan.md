@@ -39,9 +39,10 @@ Sequential phases; each ends green (`./gradlew test` for the named tests + no re
 - [x] Test (`MemberFieldQuickDocTest`): quick-doc on `package.path` resolves to the documented declaration
       (not the re-assignment), and renders documentation (no longer "No documentation found").
 
-## Phase 4 — Verify & document
+## Phase 4 — Verify & document — DONE
 - [x] CHANGELOG entry; requirement statuses set to **Full**.
-- [ ] `verify-in-ide`: Go-to + quick-doc on `package.path` in a `.luawork` (live reverification).
+- [x] `verify-in-ide`: quick-doc on `package.path` in a `.luawork` renders `package.path : string` + the
+      field description (was "No documentation found"). Confirmed live (hot-swapped jar, clean relaunch).
 
 ## De-risking
 - Confirm the index key form for chains (`a.b.c`) before Phase 2; start with depth-2 (`a.b`) which covers
