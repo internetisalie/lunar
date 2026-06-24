@@ -2,7 +2,7 @@
 id: "BUG-353"
 title: "package.path member resolution and hover bugs"
 type: "bug"
-status: "partial"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"
@@ -10,8 +10,8 @@ folders:
 
 # BUG-353: package.path member resolution and hover bugs
 
-> **Resolution status (2026-06-24):** Problems 3 & 4 (member `path` hover + Go-to) are **fixed**;
-> Problems 1 & 2 (assignment type warning + base `package` hover) remain **open**. See §4 Resolution.
+> **Resolution status (2026-06-24):** Problems 2, 3, & 4 are **fixed**;
+> Problem 1 (assignment type warning) remains **open** (requires reproduction). See §4 Resolution.
 
 ## 1. Reproduction
 
@@ -35,7 +35,7 @@ package.path = package.path ..
   - **Expected**: `package.path` is inferred as a `string` (since it is declared as `package.path = ""` with type `string` in `package.lua`). The concatenation expression `package.path .. ...` returns a `string`, which is assignable to `package.path`. No errors should be shown.
   - **Actual**: The second `package.path` shows an error: `"nil value is not assignable to string"`.
 
-- **Problem 2 (Base hover documentation)** — ⏳ **OPEN**:
+- **Problem 2 (Base hover documentation)** — ✅ **FIXED**:
   - **Expected**: Hovering over `package` should show the documentation for the `package` library/table class (as annotated by `---PACKAGE LIBRARY` / `@class package` in `package.lua`).
   - **Actual**: `package` hover shows the documentation for the function `package.loadlib`.
   - **Note**: The member-segment fix below does *not* cover this — the base `package` is not a dotted
@@ -77,11 +77,9 @@ This was scoped and built as feature **NAV-12 Member Field Resolution**
 (`docs/features/navigation/12-member-field-resolution/`), elevating `NAV-01-03` (Table Fields) to **Full**.
 Verified live in the containerized GoLand.
 
+- **Problem 2 — base `package` hover** (`f5c5bb1b`): base identifiers that are not member segments now resolve to their matching class/type declarations using `LuaCatsTypeNameIndex` lookup.
+
 ### Still open
-- **Problem 2 — base `package` hover** shows `package.loadlib`. The member-segment gating does not apply to a
-  base name; the doc provider's bare-name lookup (`getElements(LuaGlobalDeclarationIndex.KEY, "package")`)
-  returns `package`'s member functions and picks the first. Fix needs base-receiver resolution to the
-  `@class package` declaration (the same receiver-type-aware resolution noted in §3, applied to the base).
 - **Problem 1 — `nil value is not assignable to string`** false positive. Untouched here (a separate fix
   removed its *duplicate* reporting; the inference itself is unchanged). Did not reproduce in the
   containerized GoLand, where the bundled stub types `package.path` as `string` — likely environment- or
