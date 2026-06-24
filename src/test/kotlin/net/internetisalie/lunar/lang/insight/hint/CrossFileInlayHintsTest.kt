@@ -3,7 +3,6 @@ package net.internetisalie.lunar.lang.insight.hint
 import com.intellij.openapi.application.WriteAction
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.testFramework.EdtTestUtil
-import com.intellij.testFramework.utils.inlays.declarative.DeclarativeInlayHintsProviderTestCase
 
 class CrossFileInlayHintsTest : IndexedDeclarativeInlayHintsTest() {
     fun testCrossFileParameterHints() {

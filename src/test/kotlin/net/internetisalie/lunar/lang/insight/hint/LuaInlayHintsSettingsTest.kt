@@ -2,7 +2,6 @@ package net.internetisalie.lunar.lang.insight.hint
 
 import com.intellij.codeInsight.hints.declarative.DeclarativeInlayHintsSettings
 import com.intellij.openapi.application.WriteAction
-import com.intellij.testFramework.utils.inlays.declarative.DeclarativeInlayHintsProviderTestCase
 
 /**
  * Tests for Lua inlay hints settings functionality.
