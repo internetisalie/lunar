@@ -2,7 +2,7 @@
 id: "BUG-134"
 title: "@return Comma Parsing"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "BUG"
 folders:
@@ -46,10 +46,10 @@ Given a function annotated with `---@return string, number`, the parser should i
 | 2 | BUG-134-03 | `local a, b = myFunc()` where `myFunc` has `---@return number, string` | User checks inferred types of `a` and `b` | `a` is inferred as `number`, `b` is inferred as `string` |
 
 ## Acceptance Criteria
-- [ ] `luacats.bnf` parses comma-separated return tags successfully.
-- [ ] No `PsiErrorElement` is generated when typing a comma inside a `@return` tag.
-- [ ] Inferred types respect the positional return values parsed from the comma-separated list.
-- [ ] Existing functionality relying on `@return` (like MethodChain inlay hints and stub indexing) continues to work.
+- [x] `luacats.bnf` parses comma-separated return tags successfully.
+- [x] No `PsiErrorElement` is generated when typing a comma inside a `@return` tag.
+- [x] Inferred types respect the positional return values parsed from the comma-separated list.
+- [x] Existing functionality relying on `@return` (like MethodChain inlay hints and stub indexing) continues to work.
 
 ## See Also
 - Design: [design.md](design.md)

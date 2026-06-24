@@ -222,4 +222,14 @@ class LuaCatsParserTest : BaseDocumentTest() {
             function getNextTimerExpires() end
         """.trimIndent())
     }
+
+    @Test
+    fun testReturnMultipleCommaSeparated() {
+        doTest("""
+            ---@return string id, boolean status
+            ---@return string id # The user id, boolean status
+            ---@return number, string
+            function myFunc() end
+        """.trimIndent())
+    }
 }

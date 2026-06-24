@@ -147,7 +147,7 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
         val cats = funcDecl.catsComment ?: return null
         val tags = cats.getReturnTagList()
         if (tags.isEmpty()) return null
-        return tags.map { it.argType.text.trim() }
+        return tags.flatMap { it.returnTypeDescriptorList }.map { it.argType.text.trim() }
     }
 
     /** Fallback: read the method's inferred graph return type when no annotation is present. */

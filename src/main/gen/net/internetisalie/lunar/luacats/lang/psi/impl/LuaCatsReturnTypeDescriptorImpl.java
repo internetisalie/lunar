@@ -11,14 +11,14 @@ import static net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes.*;
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsBaseElement;
 import net.internetisalie.lunar.luacats.lang.psi.*;
 
-public class LuaCatsReturnTagImpl extends LuaCatsBaseElement implements LuaCatsReturnTag {
+public class LuaCatsReturnTypeDescriptorImpl extends LuaCatsBaseElement implements LuaCatsReturnTypeDescriptor {
 
-  public LuaCatsReturnTagImpl(ASTNode node) {
+  public LuaCatsReturnTypeDescriptorImpl(ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaCatsVisitor visitor) {
-    visitor.visitReturnTag(this);
+    visitor.visitReturnTypeDescriptor(this);
   }
 
   @Override
@@ -28,9 +28,21 @@ public class LuaCatsReturnTagImpl extends LuaCatsBaseElement implements LuaCatsR
   }
 
   @Override
+  @Nullable
+  public LuaCatsArgName getArgName() {
+    return findChildByClass(LuaCatsArgName.class);
+  }
+
+  @Override
   @NotNull
-  public List<LuaCatsReturnTypeDescriptor> getReturnTypeDescriptorList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsReturnTypeDescriptor.class);
+  public LuaCatsArgType getArgType() {
+    return findNotNullChildByClass(LuaCatsArgType.class);
+  }
+
+  @Override
+  @Nullable
+  public LuaCatsReturnDescription getReturnDescription() {
+    return findChildByClass(LuaCatsReturnDescription.class);
   }
 
 }

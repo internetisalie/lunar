@@ -5,9 +5,15 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LuaCatsReturnTag extends PsiElement {
+public interface LuaCatsReturnTypeDescriptor extends PsiElement {
+
+  @Nullable
+  LuaCatsArgName getArgName();
 
   @NotNull
-  List<LuaCatsReturnTypeDescriptor> getReturnTypeDescriptorList();
+  LuaCatsArgType getArgType();
+
+  @Nullable
+  LuaCatsReturnDescription getReturnDescription();
 
 }

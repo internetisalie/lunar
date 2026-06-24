@@ -245,7 +245,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         val paramTypes: Map<String, String> = stub?.luacatsParamTypes
             ?: cats?.getParamTagList()?.associate { (it.argName?.text ?: "") to it.argType.text }
             ?: emptyMap()
-        val rawReturn = stub?.luacatsReturnType ?: cats?.getReturnTagList()?.firstOrNull()?.argType?.text
+        val rawReturn = stub?.luacatsReturnType ?: cats?.getReturnTagList()?.flatMap { it.returnTypeDescriptorList }?.firstOrNull()?.argType?.text
 
         val params = paramTypes.map { (pName, pType) -> LuaParameter(pName, LuaTypeReference(pType, decl)) }
         // `---@return self` parses to a type literally named "self"; substitute the receiver class.

@@ -18,7 +18,7 @@ class LuaFuncStubElementType(debugName: String) :
     override fun createStub(psi: LuaFuncDecl, parentStub: StubElement<out com.intellij.psi.PsiElement>?): LuaFuncStub {
         val name = psi.funcName.text
         val catsComment = LuaPsiImplUtil.getCatsComment(psi)
-        val returnType = catsComment?.getReturnTagList()?.firstOrNull()?.argType?.text
+        val returnType = catsComment?.getReturnTagList()?.flatMap { it.returnTypeDescriptorList }?.firstOrNull()?.argType?.text
         val paramTypes = catsComment?.getParamTagList()?.associate {
             val pName = it.argName?.text ?: ""
             val pType = it.argType.text

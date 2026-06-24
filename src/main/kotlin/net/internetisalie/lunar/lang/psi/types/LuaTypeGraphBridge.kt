@@ -161,9 +161,10 @@ object LuaTypeGraphBridge {
             .map { it.argName.text }
             .toSet()
 
-        cats.getReturnTagList().forEachIndexed { i, returnTag ->
+        val descriptors = cats.getReturnTagList().flatMap { it.returnTypeDescriptorList }
+        descriptors.forEachIndexed { i, desc ->
             val retNode = returnNodes.getOrNull(i) ?: return@forEachIndexed
-            val typeName = returnTag.argType.text.trim()
+            val typeName = desc.argType.text.trim()
             val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: return@forEachIndexed
 
             val graphType = LuaGraphType.fromLuaType(resolvedType, graph)

@@ -1534,78 +1534,174 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '@return' <<ArgType type>> [(<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? ) | description]
+  // (NAME | NUMBER | STRING | (!(',' returnTypeDescriptor) SYMBOL) | TEXT)+
+  public static boolean returnDescription(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, RETURN_DESCRIPTION, "<return description>");
+    result_ = returnDescription_0(builder_, level_ + 1);
+    while (result_) {
+      int pos_ = current_position_(builder_);
+      if (!returnDescription_0(builder_, level_ + 1)) break;
+      if (!empty_element_parsed_guard_(builder_, "returnDescription", pos_)) break;
+    }
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // NAME | NUMBER | STRING | (!(',' returnTypeDescriptor) SYMBOL) | TEXT
+  private static boolean returnDescription_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = consumeToken(builder_, NAME);
+    if (!result_) result_ = consumeToken(builder_, NUMBER);
+    if (!result_) result_ = consumeToken(builder_, STRING);
+    if (!result_) result_ = returnDescription_0_3(builder_, level_ + 1);
+    if (!result_) result_ = consumeToken(builder_, TEXT);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // !(',' returnTypeDescriptor) SYMBOL
+  private static boolean returnDescription_0_3(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription_0_3")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = returnDescription_0_3_0(builder_, level_ + 1);
+    result_ = result_ && consumeToken(builder_, SYMBOL);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // !(',' returnTypeDescriptor)
+  private static boolean returnDescription_0_3_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription_0_3_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NOT_);
+    result_ = !returnDescription_0_3_0_0(builder_, level_ + 1);
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // ',' returnTypeDescriptor
+  private static boolean returnDescription_0_3_0_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription_0_3_0_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = consumeToken(builder_, ",");
+    result_ = result_ && returnTypeDescriptor(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  /* ********************************************************** */
+  // '@return' returnTypeDescriptor { ',' returnTypeDescriptor }*
   public static boolean returnTag(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "returnTag")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, RETURN_TAG, "<return tag>");
     result_ = consumeToken(builder_, "@return");
-    result_ = result_ && ArgType(builder_, level_ + 1, LuaCatsParser::type);
+    result_ = result_ && returnTypeDescriptor(builder_, level_ + 1);
     result_ = result_ && returnTag_2(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
 
-  // [(<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? ) | description]
+  // { ',' returnTypeDescriptor }*
   private static boolean returnTag_2(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "returnTag_2")) return false;
-    returnTag_2_0(builder_, level_ + 1);
+    while (true) {
+      int pos_ = current_position_(builder_);
+      if (!returnTag_2_0(builder_, level_ + 1)) break;
+      if (!empty_element_parsed_guard_(builder_, "returnTag_2", pos_)) break;
+    }
     return true;
   }
 
-  // (<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? ) | description
+  // ',' returnTypeDescriptor
   private static boolean returnTag_2_0(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "returnTag_2_0")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
-    result_ = returnTag_2_0_0(builder_, level_ + 1);
-    if (!result_) result_ = returnTag_2_0_1(builder_, level_ + 1);
-    if (!result_) result_ = description(builder_, level_ + 1);
+    result_ = consumeToken(builder_, ",");
+    result_ = result_ && returnTypeDescriptor(builder_, level_ + 1);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
 
-  // <<ArgName NAME>>? '#' description?
-  private static boolean returnTag_2_0_0(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnTag_2_0_0")) return false;
+  /* ********************************************************** */
+  // <<ArgType type>> [(<<ArgName NAME>>? '#' returnDescription? ) | ( <<ArgName NAME>> returnDescription ? ) | returnDescription]
+  public static boolean returnTypeDescriptor(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, RETURN_TYPE_DESCRIPTOR, "<return type descriptor>");
+    result_ = ArgType(builder_, level_ + 1, LuaCatsParser::type);
+    result_ = result_ && returnTypeDescriptor_1(builder_, level_ + 1);
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // [(<<ArgName NAME>>? '#' returnDescription? ) | ( <<ArgName NAME>> returnDescription ? ) | returnDescription]
+  private static boolean returnTypeDescriptor_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor_1")) return false;
+    returnTypeDescriptor_1_0(builder_, level_ + 1);
+    return true;
+  }
+
+  // (<<ArgName NAME>>? '#' returnDescription? ) | ( <<ArgName NAME>> returnDescription ? ) | returnDescription
+  private static boolean returnTypeDescriptor_1_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor_1_0")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
-    result_ = returnTag_2_0_0_0(builder_, level_ + 1);
+    result_ = returnTypeDescriptor_1_0_0(builder_, level_ + 1);
+    if (!result_) result_ = returnTypeDescriptor_1_0_1(builder_, level_ + 1);
+    if (!result_) result_ = returnDescription(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // <<ArgName NAME>>? '#' returnDescription?
+  private static boolean returnTypeDescriptor_1_0_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor_1_0_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = returnTypeDescriptor_1_0_0_0(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, "#");
-    result_ = result_ && returnTag_2_0_0_2(builder_, level_ + 1);
+    result_ = result_ && returnTypeDescriptor_1_0_0_2(builder_, level_ + 1);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
 
   // <<ArgName NAME>>?
-  private static boolean returnTag_2_0_0_0(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnTag_2_0_0_0")) return false;
+  private static boolean returnTypeDescriptor_1_0_0_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor_1_0_0_0")) return false;
     ArgName(builder_, level_ + 1, NAME_parser_);
     return true;
   }
 
-  // description?
-  private static boolean returnTag_2_0_0_2(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnTag_2_0_0_2")) return false;
-    description(builder_, level_ + 1);
+  // returnDescription?
+  private static boolean returnTypeDescriptor_1_0_0_2(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor_1_0_0_2")) return false;
+    returnDescription(builder_, level_ + 1);
     return true;
   }
 
-  // <<ArgName NAME>> description ?
-  private static boolean returnTag_2_0_1(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnTag_2_0_1")) return false;
+  // <<ArgName NAME>> returnDescription ?
+  private static boolean returnTypeDescriptor_1_0_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor_1_0_1")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
     result_ = ArgName(builder_, level_ + 1, NAME_parser_);
-    result_ = result_ && returnTag_2_0_1_1(builder_, level_ + 1);
+    result_ = result_ && returnTypeDescriptor_1_0_1_1(builder_, level_ + 1);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
 
-  // description ?
-  private static boolean returnTag_2_0_1_1(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnTag_2_0_1_1")) return false;
-    description(builder_, level_ + 1);
+  // returnDescription ?
+  private static boolean returnTypeDescriptor_1_0_1_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnTypeDescriptor_1_0_1_1")) return false;
+    returnDescription(builder_, level_ + 1);
     return true;
   }
 

@@ -61,10 +61,10 @@ class TestLuaStubIndexing : BasePlatformTestCase() {
             val first = returnTags.first()
             println("FIRST RETURN TAG: " + first.text)
             println("FIRST RETURN TAG CLASS: " + first.javaClass.simpleName)
-            println("FIRST RETURN TAG ARG TYPE: " + first.argType)
+            println("FIRST RETURN TAG ARG TYPE: " + first.returnTypeDescriptorList.firstOrNull()?.argType)
         }
 
-        assertEquals("string", catsComment!!.getReturnTagList().firstOrNull()?.argType?.text)
+        assertEquals("string", catsComment!!.getReturnTagList().flatMap { it.returnTypeDescriptorList }.firstOrNull()?.argType?.text)
         val paramTag = catsComment.getParamTagList().firstOrNull { it?.argName?.text == "x" }
         assertEquals("number", paramTag?.argType?.text)
     }

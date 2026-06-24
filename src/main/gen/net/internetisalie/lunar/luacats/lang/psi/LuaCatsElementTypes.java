@@ -60,7 +60,9 @@ public interface LuaCatsElementTypes {
   IElementType PARENT_TYPES = new LuaCatsElementType("PARENT_TYPES");
   IElementType PRIVATE_TAG = new LuaCatsElementType("PRIVATE_TAG");
   IElementType PROTECTED_TAG = new LuaCatsElementType("PROTECTED_TAG");
+  IElementType RETURN_DESCRIPTION = new LuaCatsElementType("RETURN_DESCRIPTION");
   IElementType RETURN_TAG = new LuaCatsElementType("RETURN_TAG");
+  IElementType RETURN_TYPE_DESCRIPTOR = new LuaCatsElementType("RETURN_TYPE_DESCRIPTOR");
   IElementType SEE_TAG = new LuaCatsElementType("SEE_TAG");
   IElementType SOURCE_TAG = new LuaCatsElementType("SOURCE_TAG");
   IElementType TABLE_LITERAL_ENTRY = new LuaCatsElementType("TABLE_LITERAL_ENTRY");
@@ -244,8 +246,14 @@ public interface LuaCatsElementTypes {
       else if (type == PROTECTED_TAG) {
         return new LuaCatsProtectedTagImpl(node);
       }
+      else if (type == RETURN_DESCRIPTION) {
+        return new LuaCatsReturnDescriptionImpl(node);
+      }
       else if (type == RETURN_TAG) {
         return new LuaCatsReturnTagImpl(node);
+      }
+      else if (type == RETURN_TYPE_DESCRIPTOR) {
+        return new LuaCatsReturnTypeDescriptorImpl(node);
       }
       else if (type == SEE_TAG) {
         return new LuaCatsSeeTagImpl(node);

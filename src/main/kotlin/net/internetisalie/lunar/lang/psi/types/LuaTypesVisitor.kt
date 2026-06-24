@@ -688,8 +688,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         funcNode: VariableNode? = null,
     ) {
         val allCats = (element as? LuaCommentOwner)?.catsComment?.let { listOf(it) } ?: getAllCatsComments(element)
-        val returnTags = allCats.flatMap { it.getReturnTagList() }
-        val returnCount = returnTags.size
+        val returnDescriptors = allCats.flatMap { it.getReturnTagList() }.flatMap { it.returnTypeDescriptorList }
+        val returnCount = returnDescriptors.size
         val returnNodes: MutableList<VariableNode> = MutableList(maxOf(1, returnCount)) { graph.variable(element) }.toMutableList()
 
         val paramNodesMap: MutableMap<String, VariableNode> = mutableMapOf()

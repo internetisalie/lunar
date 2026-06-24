@@ -124,7 +124,7 @@ private fun collectCoreTagsDescription(comment: LuaCatsComment, sb: StringBuilde
     comment.classTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.aliasTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.paramTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
-    comment.returnTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
+    comment.returnTagList.forEach { it.returnTypeDescriptorList.forEach { desc -> desc.returnDescription?.text?.let { text -> sb.append(text).append(' ') } } }
     comment.fieldTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.typeTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
 }

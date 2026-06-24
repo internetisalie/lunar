@@ -211,7 +211,15 @@ public class LuaCatsVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitReturnDescription(@NotNull LuaCatsReturnDescription o) {
+    visitPsiElement(o);
+  }
+
   public void visitReturnTag(@NotNull LuaCatsReturnTag o) {
+    visitPsiElement(o);
+  }
+
+  public void visitReturnTypeDescriptor(@NotNull LuaCatsReturnTypeDescriptor o) {
     visitPsiElement(o);
   }
 

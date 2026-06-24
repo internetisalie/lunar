@@ -144,7 +144,8 @@ paramTag ::= '@param' ((<<ArgName NAME>> <<ArgSymbol ('?')>>?) | <<ArgSymbol ('.
 privateTag ::= '@private' description?
 protectedTag ::= '@protected' description?
 
-returnTag ::= '@return' <<ArgType type>> [(<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? ) | description]
+returnTag ::= '@return' returnTypeDescriptor { ',' returnTypeDescriptor }*
+returnTypeDescriptor ::= <<ArgType type>> [(<<ArgName NAME>>? '#' returnDescription? ) | ( <<ArgName NAME>> returnDescription ? ) | returnDescription]
 
 seeTag ::= '@see' <<ArgName NAME>> description?
 
@@ -197,3 +198,4 @@ namedType ::= NAME
 /// Explanatory Text
 
 description ::= (NAME | NUMBER | STRING | SYMBOL | TEXT)+
+returnDescription ::= (NAME | NUMBER | STRING | (!(',' returnTypeDescriptor) SYMBOL) | TEXT)+

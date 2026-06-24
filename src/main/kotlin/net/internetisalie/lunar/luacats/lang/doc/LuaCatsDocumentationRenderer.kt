@@ -268,12 +268,13 @@ object LuaCatsDocumentationRenderer {
     }
 
     private fun buildFunctionSignatureReturns(comment: LuaCatsComment, sb: StringBuilder) {
-        if (comment.returnTagList.isEmpty()) {
+        val descriptors = comment.returnTagList.flatMap { it.returnTypeDescriptorList }
+        if (descriptors.isEmpty()) {
             sb.append("any")
             return
         }
         var returnCount = 0
-        comment.returnTagList.forEach {
+        descriptors.forEach {
             if (returnCount > 0) {
                 sb.append(codeFragment(LuaHighlight.OPERATORS, ", "))
             }
@@ -373,14 +374,14 @@ object LuaCatsDocumentationRenderer {
     }
 
     private fun buildReturnSection(comment: LuaCatsComment, sb: StringBuilder) {
-        val tags = comment.returnTagList
-        if (tags.isEmpty()) return
+        val descriptors = comment.returnTagList.flatMap { it.returnTypeDescriptorList }
+        if (descriptors.isEmpty()) return
 
         buildSectionHeader("Returns:", sb)
-        tags.forEach { tag ->
+        descriptors.forEach { tag ->
             val type = tag.argType.text
             val name = tag.argName?.text
-            val desc = tag.description?.text ?: ""
+            val desc = tag.returnDescription?.text ?: ""
 
             sb.append("<p><span style='color: #808080;'>").append(buildTypeLink(type)).append("</span>")
             if (name != null) {

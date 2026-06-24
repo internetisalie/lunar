@@ -1,7 +1,9 @@
 package net.internetisalie.lunar.analysis
 
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.BaseDocumentTest
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
@@ -69,6 +71,32 @@ class LuaTypeAssignabilityTest : BaseDocumentTest() {
 
             val funError = errors.any { it.message.contains("not assignable to fun()") }
             assertTrue(!funError, "Should not report that table constructor is not assignable to fun()")
+        }
+    }
+
+    @Test
+    fun testReturnMultipleCommaSeparatedPropagation() {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            configureByText("""
+                ---@return number, string
+                local function myFunc()
+                end
+
+                local a, b = myFunc()
+            """.trimIndent())
+
+            val file = myFixture.file
+            val types = LuaTypesSnapshot.forFile(file)
+            val varDecls = PsiTreeUtil.findChildrenOfType(file, LuaLocalVarDecl::class.java)
+            val decl = varDecls.first { it.text.contains("local a, b") }
+            val aVar = decl.attNameList[0].nameRef
+            val bVar = decl.attNameList[1].nameRef
+
+            val typeA = types.getValueType(aVar)
+            val typeB = types.getValueType(bVar)
+
+            assertTrue(typeA.displayName().contains("number"), "Expected 'a' to be number but got ${typeA.displayName()}")
+            assertTrue(typeB.displayName().contains("string"), "Expected 'b' to be string but got ${typeB.displayName()}")
         }
     }
 }
