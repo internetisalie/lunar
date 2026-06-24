@@ -10,6 +10,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.util.PsiTreeUtil
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
@@ -149,7 +150,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         val firstArg = args.exprList?.exprList?.firstOrNull() ?: return null
         val token = firstArg.firstChild ?: return null
         val tokenType = token.node.elementType
-        if (tokenType.toString() == "STRING") {
+        if (tokenType == LuaElementTypes.STRING) {
             val text = token.text
             if (text.length >= 2) {
                 return text.substring(1, text.length - 1)

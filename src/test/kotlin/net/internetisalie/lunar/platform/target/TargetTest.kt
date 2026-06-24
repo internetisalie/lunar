@@ -31,8 +31,14 @@ class TargetTest {
     }
 
     @Test
-    fun testStandardLua55FallsBackToLua54() {
+    fun testStandardLua55ResolvesToLua55() {
         val target = Target(LuaPlatform.STANDARD, VersionEntry("5.5", "lua-5.5"))
+        assertEquals(LuaLanguageLevel.LUA55, target.getImplicitLanguageLevel())
+    }
+
+    @Test
+    fun testStandardLua56FallsBackToLua54() {
+        val target = Target(LuaPlatform.STANDARD, VersionEntry("5.6", "lua-5.6"))
         assertEquals(LuaLanguageLevel.LUA54, target.getImplicitLanguageLevel())
     }
 

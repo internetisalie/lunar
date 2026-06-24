@@ -2,7 +2,7 @@
 id: "BUG-BASELINE-TESTS"
 title: "Pre-existing baseline test failures (3, non-ROCKS)"
 type: "bug"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

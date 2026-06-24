@@ -4,6 +4,7 @@ import com.intellij.codeInsight.highlighting.BraceMatchingUtil
 import com.intellij.openapi.application.runReadAction
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.BaseDocumentTest
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -27,16 +28,16 @@ class LuaBraceMatchingTest : BaseDocumentTest() {
         val pairs = matcher.pairs
 
         val expected = setOf(
-            Pair("(", ")"),
-            Pair("[", "]"),
-            Pair("{", "}"),
-            Pair("repeat", "until"),
-            Pair("do", "end"),
-            Pair("function", "end"),
-            Pair("if", "end")
+            Pair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN),
+            Pair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK),
+            Pair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY),
+            Pair(LuaElementTypes.REPEAT, LuaElementTypes.UNTIL),
+            Pair(LuaElementTypes.DO, LuaElementTypes.END),
+            Pair(LuaElementTypes.FUNCTION, LuaElementTypes.END),
+            Pair(LuaElementTypes.IF, LuaElementTypes.END)
         )
 
-        val actual = pairs.map { Pair(it.leftBraceType.toString(), it.rightBraceType.toString()) }.toSet()
+        val actual = pairs.map { Pair(it.leftBraceType, it.rightBraceType) }.toSet()
         Assertions.assertEquals(expected, actual)
     }
 
