@@ -263,6 +263,21 @@ bug and gave the type inspections false confidence until this session's coverage
 > Dropped: **ROCKS-07** (custom luarocks task panel) — redundant against Make + Lunar's native
 > format/lint/coverage/test integrations; the Makefile (ROCKS-11) is the task aggregator.
 
+## Wave 14 — Schema-Driven Data Files  *(SCHEMA epic; engine is serial, providers are parallel)*
+
+> The **SCHEMA epic was planned (2026-06-24)** to deliver JSON-Schema-driven validation, completion,
+> and documentation by adapting the platform's JSON Schema engine to the Lua PSI. This avoids
+> duplicate hand-rolled validators. SCHEMA-01 delivers the engine, while SCHEMA-02..04 are the
+> declarative schema providers mapping specific file patterns. SCHEMA-02 supersedes the standalone
+> ROCKS-13.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| SCHEMA-01 | Lua JSON-Schema Engine | planned | M | — | SCHEMA-02, SCHEMA-03, SCHEMA-04 | Serial: schema-engine |
+| SCHEMA-02 | Rockspec Schema Provider | todo | S | SCHEMA-01 | — | ✓ |
+| SCHEMA-03 | Luacheckrc Schema Provider | todo | S | SCHEMA-01 | — | ✓ |
+| SCHEMA-04 | Busted Config Schema Provider | todo | C | SCHEMA-01 | — | ✓ |
+
 ---
 
 ## Dependency summary (the hard edges)
@@ -280,6 +295,7 @@ COMP-03 ── cross-file completion incl. recursive resolution (done) — Wave 
 FORMAT-03 ─(files)─▶ FORMAT-04 ─▶ FORMAT-05 ─▶ FORMAT-06   (serial cluster)
 ROCKS-04 (LuaRocksSettings) ──▶ ROCKS-02, ROCKS-03
 TOOL-00 ──▶ TOOL-01, TOOL-02 ──▶ TOOL-03
+SCHEMA-01 ──▶ SCHEMA-02, SCHEMA-03, SCHEMA-04
 ```
 Everything else is independent and can start as soon as its wave is reached.
 
@@ -289,11 +305,12 @@ Everything else is independent and can start as soon as its wave is reached.
   done — e.g. all of Wave 4's inspections are independent new `<localInspection>`s; Wave 10's TOOL
   Track A and ROCKS Track B are fully independent.
 - **Keep one agent per "Serial" cluster** at a time: the **type engine** (Wave 5, TYPE-07/TYPE-09 —
-  shared `LuaTypeGraph`/`LuaTypesVisitor`/`LuaTypeManagerImpl`) and the **formatter** (Wave 7,
-  FORMAT-03..06, shared `LuaFormatBlock`). Concurrent edits in either will conflict.
+  shared `LuaTypeGraph`/`LuaTypesVisitor`/`LuaTypeManagerImpl`), the **formatter** (Wave 7,
+  FORMAT-03..06, shared `LuaFormatBlock`), and the **schema engine** (Wave 14, SCHEMA-01, shared
+  `LuaJsonLikePsiWalker` and adapters). Concurrent edits in any of these will conflict.
 - A reasonable concurrent split for Waves 4+: Agent 1 = Wave 4 inspections, Agent 2 = Wave 5 type
   engine (serial within itself), Agent 3 = Wave 6 completion polish; the Wave 7 formatter is its own
-  serial cluster. Waves 8–12 slot in as capacity frees; TOOL and ROCKS (Wave 10) are independent.
+  serial cluster. Waves 8–12 slot in as capacity frees; TOOL, ROCKS (Wave 10), and SCHEMA (Wave 14) are independent.
 
 ## Maintenance
 
