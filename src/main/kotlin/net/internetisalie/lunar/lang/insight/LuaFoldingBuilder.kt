@@ -254,13 +254,13 @@ class LuaFoldingVisitor(
         
         val rParen = children.find { it.elementType == LuaElementTypes.RPAREN }
         if (rParen != null) {
-            val range = TextRange(rParen.textRange.endOffset, endKeyword.textRange.endOffset)
+            val range = TextRange(rParen.textRange.endOffset, endKeyword.textRange.startOffset)
             val bodyText = node.text.substring(
                 rParen.textRange.endOffset - node.startOffset,
                 endKeyword.textRange.startOffset - node.startOffset
             )
             if (bodyText.contains('\n')) {
-                descriptors.add(FoldingDescriptor(node, range, null, "...end"))
+                descriptors.add(FoldingDescriptor(node, range, null, PLACEHOLDER_TEXT))
             }
         } else {
             val funcKeyword = children.find { it.elementType == LuaElementTypes.FUNCTION }

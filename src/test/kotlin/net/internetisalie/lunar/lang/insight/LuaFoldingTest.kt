@@ -71,27 +71,36 @@ class LuaFoldingTest : BaseDocumentTest() {
     @Test
     fun testFunctionFolding() {
         testFolding("""
-            function f()<fold text='...end'>
+            function f()<fold text='...'>
                 print(1)
-            end</fold>
+            </fold>end
         """)
     }
 
     @Test
     fun testLocalFunctionFolding() {
         testFolding("""
-            local function f()<fold text='...end'>
+            local function f()<fold text='...'>
                 print(1)
-            end</fold>
+            </fold>end
         """)
     }
 
     @Test
     fun testAnonymousFunctionFolding() {
         testFolding("""
-            local f = function()<fold text='...end'>
+            local f = function()<fold text='...'>
                 print(1)
-            end</fold>
+            </fold>end
+        """)
+    }
+
+    @Test
+    fun testGlobalFunctionFolding() {
+        testFolding("""
+            global function f()<fold text='...'>
+                print(1)
+            </fold>end
         """)
     }
 
