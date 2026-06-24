@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.doc.LuaDocumentationRenderer
 import net.internetisalie.lunar.lang.doc.buildTypeLink
 import net.internetisalie.lunar.lang.doc.codeFragment
@@ -42,8 +43,11 @@ object LuaCatsDocumentationRenderer {
      * @return HTML string for documentation popup, or null if element is not supported
      */
     fun renderDoc(element: PsiElement): String? {
-        val commentOwner = element as? LuaCommentOwner ?: return null
-        val comment = commentOwner.catsComment ?: return null
+        val comment = when (element) {
+            is LuaCommentOwner -> element.catsComment
+            is LuaCatsClassTag, is LuaCatsAliasTag -> PsiTreeUtil.getParentOfType(element, LuaCatsComment::class.java)
+            else -> null
+        } ?: return null
 
         val definitionBlock = buildDefinitionBlock(element, comment) ?: return null
         val contentBlock = buildContentBlock(comment)
@@ -81,7 +85,58 @@ object LuaCatsDocumentationRenderer {
             is LuaFuncDecl -> buildFunctionSignature(element, comment)
             is LuaLocalFuncDecl -> buildLocalFunctionSignature(element, comment)
             is LuaLocalVarDecl -> buildVariableSignature(element, comment)
+            is LuaCatsClassTag -> buildClassTagSignature(element)
+            is LuaCatsAliasTag -> buildAliasTagSignature(element)
             else -> null
+        }
+    }
+
+    private fun buildClassTagSignature(tag: LuaCatsClassTag): String {
+        return buildString {
+            append("<pre>")
+            val comment = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java)
+            val isDeprecated = comment?.deprecatedTagList?.isNotEmpty() == true
+            if (isDeprecated) append("<s>")
+
+            append(codeFragment(LuaHighlight.KEYWORD, "class"))
+            append(" ")
+            val className = tag.argType.text.trim()
+            append(buildTypeLink(className))
+
+            // Check for parent types
+            val parentTypes = tag.parentTypes
+            if (parentTypes != null) {
+                append(" ")
+                append(codeFragment(LuaHighlight.OPERATORS, ":"))
+                append(" ")
+                append(buildTypeLink(parentTypes.text))
+            }
+
+            if (isDeprecated) append("</s>")
+            append("</pre>")
+        }
+    }
+
+    private fun buildAliasTagSignature(tag: LuaCatsAliasTag): String {
+        return buildString {
+            append("<pre>")
+            val comment = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java)
+            val isDeprecated = comment?.deprecatedTagList?.isNotEmpty() == true
+            if (isDeprecated) append("<s>")
+
+            append(codeFragment(LuaHighlight.KEYWORD, "alias"))
+            append(" ")
+            val aliasName = tag.argName.text.trim()
+            append(buildTypeLink(aliasName))
+
+            val argType = tag.argType
+            if (argType != null) {
+                append(" : ")
+                append(buildTypeLink(argType.text))
+            }
+
+            if (isDeprecated) append("</s>")
+            append("</pre>")
         }
     }
 
@@ -251,6 +306,14 @@ object LuaCatsDocumentationRenderer {
                     buildFieldsSection(element, comment, sb)
                 }
             }
+            is LuaCatsClassTag -> {
+                buildFieldsSection(element, comment, sb)
+            }
+            is LuaCatsAliasTag -> {
+                if (comment.enumTagList.isNotEmpty()) {
+                    buildEnumValuesSection(comment, sb)
+                }
+            }
         }
 
         buildSeeSection(comment, sb)
@@ -331,9 +394,13 @@ object LuaCatsDocumentationRenderer {
         sb.append(SECTION_END)
     }
 
-    private fun buildFieldsSection(element: LuaLocalVarDecl, comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildFieldsSection(element: PsiElement, comment: LuaCatsComment, sb: StringBuilder) {
         val hasDirectFields = comment.fieldTagList.isNotEmpty()
-        val classTag = comment.classTagList.firstOrNull()
+        val classTag = when (element) {
+            is LuaLocalVarDecl -> comment.classTagList.firstOrNull()
+            is LuaCatsClassTag -> element
+            else -> null
+        }
         val parentTypeName = classTag?.parentTypes?.text
         val parentComment = parentTypeName?.let { lookupParentComment(element.project, it) }
         val hasInheritedFields = parentComment != null && parentComment.fieldTagList.isNotEmpty()
@@ -350,7 +417,7 @@ object LuaCatsDocumentationRenderer {
 
         if (hasInheritedFields) {
             buildSectionHeader("Inherited Fields:", sb)
-            parentComment!!.fieldTagList.forEach { tag ->
+            parentComment.fieldTagList.forEach { tag ->
                 buildFieldTag(tag, sb)
             }
             sb.append(SECTION_END)

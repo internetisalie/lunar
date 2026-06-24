@@ -17,6 +17,8 @@ import net.internetisalie.lunar.lang.psi.types.LuaPrimitiveType
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 import net.internetisalie.lunar.lang.syntax.extractLuaComment
 import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDocumentationRenderer
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsHighlight
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
@@ -55,6 +57,11 @@ object LuaDocumentationRenderer {
         val sbContent = StringBuilder()
         if (element is LuaCommentOwner) {
             renderCommentOwnerDocumentation(sbContent, element)
+        } else if (element is LuaCatsClassTag || element is LuaCatsAliasTag) {
+            val doc = LuaCatsDocumentationRenderer.renderDoc(element)
+            if (doc != null) {
+                sbContent.append(doc)
+            }
         }
 
         if (sbContent.isEmpty()) return null

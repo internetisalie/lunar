@@ -2,6 +2,7 @@ package net.internetisalie.lunar.lang.doc
 
 import com.intellij.codeInsight.navigation.targetPresentation
 import com.intellij.model.Pointer
+import com.intellij.openapi.project.Project
 import com.intellij.platform.backend.documentation.DocumentationResult
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
@@ -10,19 +11,25 @@ import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiReference
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.createSmartPointer
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
+import net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.indexing.dottedMemberName
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.psi.*
-import com.intellij.psi.PsiWhiteSpace
 import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgName
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
@@ -34,10 +41,30 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         if (et == LuaElementTypes.IDENTIFIER || et == LuaCatsElementTypes.NAME || et == LuaCatsElementTypes.BUILTIN_TYPE) {
             // NAV-12-03: a dotted member field documents its `receiver.field = value` declaration.
             memberFieldDocumentationTarget(element)?.let { return listOf(it) }
+
+            val isMemberSegment = element.parent?.parent is LuaIndexExpr
+            if (!isMemberSegment) {
+                val name = element.text
+                if (name != null) {
+                    val typeElement = findTypeElement(name, element.project, GlobalSearchScope.allScope(element.project))
+                    if (typeElement != null) {
+                        return listOf(LuaCatsTypeDocumentationTarget(typeElement, name))
+                    }
+                }
+            }
+
             element = resolveDocumentationTarget(element) ?: return emptyList()
         }
         if (element is LuaCatsCommentOwner) {
             return arrayListOf(LuaCatsDocumentationTarget(element))
+        }
+        if (element is LuaCatsClassTag || element is LuaCatsAliasTag) {
+            val name = when (element) {
+                is LuaCatsClassTag -> element.argType.text.trim()
+                is LuaCatsAliasTag -> element.argName.text.trim()
+                else -> ""
+            }
+            return arrayListOf(LuaCatsTypeDocumentationTarget(element, name))
         }
         return emptyList()
     }
@@ -168,6 +195,23 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             else -> null
         }
     }
+
+    private fun findTypeElement(name: String, project: Project, scope: GlobalSearchScope): PsiElement? {
+        val index = FileBasedIndex.getInstance()
+        val psiManager = com.intellij.psi.PsiManager.getInstance(project)
+        for (virtualFile in index.getContainingFiles(LuaCatsTypeNameIndex.KEY, name, scope)) {
+            val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
+            for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsClassTag::class.java)) {
+                val id = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java) ?: continue
+                if (id.text.trim() == name) return tag
+            }
+            for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsAliasTag::class.java)) {
+                val id = PsiTreeUtil.getChildOfType(tag, LuaCatsArgName::class.java) ?: continue
+                if (id.text.trim() == name) return tag
+            }
+        }
+        return null
+    }
 }
 
 
@@ -244,6 +288,36 @@ internal class LuaFieldDocumentationTarget(
         }
         return DocumentationResult.documentation(
             LuaDocumentationRenderer.DOC_COMMENT_HEADER + body + LuaDocumentationRenderer.DOC_COMMENT_FOOTER,
+        )
+    }
+}
+
+internal class LuaCatsTypeDocumentationTarget(
+    val element: PsiElement,
+    private val typeName: String,
+) : DocumentationTarget {
+    override fun createPointer(): Pointer<out DocumentationTarget> {
+        val elementPtr = element.createSmartPointer()
+        val name = typeName
+        return Pointer {
+            val element = elementPtr.dereference() ?: return@Pointer null
+            LuaCatsTypeDocumentationTarget(element, name)
+        }
+    }
+
+    override fun computePresentation(): TargetPresentation {
+        val icon = if (element is LuaCatsClassTag) com.intellij.icons.AllIcons.Nodes.Class else com.intellij.icons.AllIcons.Nodes.Type
+        return TargetPresentation.builder(typeName)
+            .icon(icon)
+            .presentation()
+    }
+
+    override val navigatable: Navigatable?
+        get() = element as? Navigatable
+
+    override fun computeDocumentation(): DocumentationResult? {
+        return DocumentationResult.documentation(
+            LuaDocumentationRenderer.renderFullDocumentation(element) ?: return null
         )
     }
 }

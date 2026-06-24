@@ -2,12 +2,12 @@ package net.internetisalie.lunar.lang.doc
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.platform.backend.documentation.DocumentationResult
-import net.internetisalie.lunar.BaseDocumentTest
+import net.internetisalie.lunar.IndexedDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-class LuaDocumentationTargetProviderTest : BaseDocumentTest() {
+class LuaDocumentationTargetProviderTest : IndexedDocumentTest() {
 
     @Test
     fun `test documentationTargets finds function with LuaCATS comment`() {
@@ -108,6 +108,45 @@ class LuaDocumentationTargetProviderTest : BaseDocumentTest() {
             val targets = provider.documentationTargets(file, offset)
             
             assertTrue(targets.isNotEmpty(), "Should find documentation targets for 'my_print'")
+        }
+    }
+
+    @Test
+    fun `test documentationTargets resolves base package to class instead of member function`() {
+        val code = """
+            -- Add source trees
+            package.path = package.path .. ";./?.lua"
+        """.trimIndent()
+
+        val packageCode = """
+            ---PACKAGE LIBRARY
+            ---@class package
+            package = {}
+            
+            ---@return function
+            function package.loadlib(libname, funcname) end
+        """.trimIndent()
+
+        myFixture.addFileToProject("package.lua", packageCode)
+        myFixture.configureByText(LuaFileType, code)
+
+        runReadAction {
+            val file = myFixture.file
+            val offset = file.text.indexOf("package.path")
+
+            val provider = LuaDocumentationTargetProvider()
+            val targets = provider.documentationTargets(file, offset)
+
+            assertTrue(targets.isNotEmpty(), "Should find documentation targets for 'package'")
+            val docTarget = targets.first()
+            val docResult = docTarget.computeDocumentation()
+            val docData = docResult as? com.intellij.platform.backend.documentation.DocumentationData
+            val doc = docData?.html
+            assertNotNull(doc, "Documentation should not be null")
+
+            assertFalse(doc!!.contains("loadlib"), "Should not resolve to package.loadlib")
+            assertTrue(doc.contains("PACKAGE LIBRARY") || doc.contains("class package"),
+                "Should resolve to package class documentation: $doc")
         }
     }
 }
