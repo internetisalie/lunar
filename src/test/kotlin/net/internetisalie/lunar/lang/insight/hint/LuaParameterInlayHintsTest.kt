@@ -93,4 +93,23 @@ class LuaParameterInlayHintsTest : LuaInlayHintsTestCase() {
             myAssert(/*<# valToCheck: #>*/true, /*<# message: #>*/"error message")
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
+
+    // BUG-357 regression guard: parameter names from a plain fun(...) @type signature drive call-site hints.
+    fun testPlainFunctionTypeParameterHints() {
+        doLuaTestProvider("test.lua", """
+            ---@type fun(myParam1: number, myParam2: string)
+            local plain_func
+            plain_func(/*<# myParam1: #>*/456, /*<# myParam2: #>*/"world")
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    // BUG-357 regression guard: a union with a non-nil member (| string) still surfaces the hints
+    // (BUG-133 only covered the `| nil` case).
+    fun testUnionStringFunctionTypeParameterHints() {
+        doLuaTestProvider("test.lua", """
+            ---@type fun(paramA: number, paramB: string) | string
+            local union_var
+            union_var(/*<# paramA: #>*/123, /*<# paramB: #>*/"hello")
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
 }

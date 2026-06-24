@@ -80,9 +80,11 @@ class TestTypeParser : BasePlatformTestCase() {
         assertEquals("boolean", func.returnType.name)
         assertEquals(2, func.params.size)
 
-        // Note: Currently the param name extraction might be loose because it just substrings text.
-        // Let's just check the types for now.
         assertEquals("string", func.params[0].type.name)
         assertEquals("number", func.params[1].type.name)
+
+        // BUG-357: parameter NAMES must survive parsing of a fun(...) signature, not collapse to "p".
+        assertEquals("name", func.params[0].name)
+        assertEquals("age", func.params[1].name)
     }
 }
