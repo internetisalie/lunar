@@ -317,3 +317,8 @@ folders:
 | BUG-135 | Stdlib Inlay Hints | todo | No stdlib return-type resolution for inlay hints |
 | BUG-272 | Local Var Navigation | done | Fixed via PsiScopeProcessor lazy resolution |
 | BUG-349 | Flaky Inlay Hint Tests | todo | No cache/state isolation fix in test infra |
+| BUG-357 | LuaCATS `fun()` Param Names | cancelled | Non-reproducible — names extracted correctly at parser, graph round-trip, and call-site hints (resolved by BUG-133). Regression guards added; no production change |
+
+> [!NOTE]
+> BUG-357 was cancelled (cannot-reproduce / already resolved by BUG-133) and is excluded
+> from the BUG epic counts above, following the same convention as NAV-11.

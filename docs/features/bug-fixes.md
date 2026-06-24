@@ -21,6 +21,7 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-349` | **Flaky Inlay Hint Tests** | **M** | **Todo** | Fix intermittent failures in inlay hint tests caused by state pollution and cache staling. |
 | `BUG-355` | **EmmyLua @-description Parse** | **H** | **Done** | Fix hard parse error on `@`-prefixed descriptions after `@return`/`@param` types (`@return number @desc`). |
 | `BUG-356` | **Boolean Concat Not Flagged** | **L** | **Done** | Concatenating a non-concatenable value (e.g. `boolean`) raises no diagnostic. |
+| `BUG-357` | **LuaCATS `fun()` Param Names** | **M** | **Cancelled** | Cannot reproduce — parameter names from `fun(...)` `@type` signatures are already extracted correctly (resolved by BUG-133). Regression guards added for the plain and `\| string` union cases. |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).
