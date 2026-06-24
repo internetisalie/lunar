@@ -2,7 +2,7 @@
 id: "ROCKS-13"
 title: "13: Rockspec Editor Support"
 type: "feature"
-status: "planned"
+status: "todo"
 priority: "medium"
 parent_id: "ROCKS"
 folders:
@@ -10,6 +10,13 @@ folders:
 ---
 
 # ROCKS-13: Rockspec Editor Support
+
+> **⚠️ Superseded.** This standalone, hand-rolled design is **replaced by the [SCHEMA epic](../../schema/requirements.md)**:
+> the [SCHEMA-01 engine](../../schema/01-engine/requirements.md) adapts the platform JSON-Schema engine
+> to Lua, and [SCHEMA-02](../../schema/02-rockspec-provider/requirements.md) delivers rockspec support
+> as a thin provider that **reuses this doc's bundled schemas, `rockspec_format` selection, and test
+> cases**. Reset to `todo` and retained for context. The §10 premise that the platform engine "only
+> validates JSON/YAML PSI" was incomplete — it is walker-extensible (YAML proves it).
 
 ## Overview
 

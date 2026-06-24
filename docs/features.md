@@ -27,6 +27,7 @@ This document serves as the index for the functional and technical requirements 
 - [[DOC] Documentation Requirements](features/documentation/requirements.md)
 - [[TOOL] Tool Inventory Management](features/tool/requirements.md)
 - [[ROCKS] LuaRocks Integration](features/rocks/requirements.md)
+- [[SCHEMA] Schema-Driven Data Files](features/schema/requirements.md)
 - [[REFACT/INTENT] Refactoring & Intentions Requirements](features/refactoring/requirements.md)
 - [[MAINT] Maintenance & Refactoring](features/maint/requirements.md)
 - [[TARGET] Target Configuration](features/target/requirements.md)

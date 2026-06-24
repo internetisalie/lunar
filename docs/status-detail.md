@@ -20,9 +20,11 @@ folders:
 > Resolution) has no code, and a gap review flagged unbuilt work (server/registry config in
 > settings, broader run-config/task-panel scope, the empty ROCKS-06/07 slots). Shipped ROCKS
 > features (01–04, 08) remain source-verified `done`.
-> **Updated 2026-06-23:** added **ROCKS-13** (Rockspec Editor Support), `planned`. Only highlighting
-> ships today (`.rockspec` added to the `Lua` `fileType` `extensions` in `plugin.xml`); the
-> schema-aware code insight (`rocks/editor/*`) is planned, not yet implemented.
+> **Updated 2026-06-23:** added **ROCKS-13** (Rockspec Editor Support). Only highlighting ships today
+> (`.rockspec` added to the `Lua` `fileType` `extensions` in `plugin.xml`).
+> **Updated 2026-06-24:** added the **SCHEMA** epic (Lua JSON-Schema engine + rockspec/luacheckrc/busted
+> providers). **ROCKS-13 is superseded by SCHEMA-02** and reset to `todo`; its standalone hand-rolled
+> design is replaced by the platform-engine route (a Lua `JsonLikePsiWalker`).
 
 **Status vocabulary:**
 
@@ -50,11 +52,12 @@ folders:
 | [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       7 |      0 |      12 | ████░░░░░░ 42%  |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       6 |      1 |      12 | ████░░░░░░ 42%  |
+| [**SCHEMA**](#schema--schema-driven-data-files)             |      0 |           0 |       1 |      3 |       4 | ░░░░░░░░░░  0%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **111** |       **3** |   **9** | **10** | **133** | **83%**         |
+| **Total**                                                   | **111** |       **3** |   **9** | **14** | **137** | **81%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -254,7 +257,21 @@ folders:
 | ROCKS-10 | Workspace Build Orchestration | planned | Topo-sort discovered rocks via dependency graph; `luarocks make` in dependency order |
 | ROCKS-11 | Makefile Task Integration | planned | Enrich scaffolded Makefile (lint/format/coverage targets); optional Makefile-plugin integration |
 | ROCKS-12 | Project-View Roots & Marking | planned | `lua_modules` installed-rock tree as External Libraries (SyntheticLibrary) + first-party source-root marking (ProjectViewNodeDecorator) |
-| ROCKS-13 | Rockspec Editor Support | planned | Schema-aware code insight for `.rockspec` (validation/completion/hover from bundled JSON schema, `rocks/editor/*`). **Shipped:** highlighting only (`.rockspec` in `plugin.xml` `fileType extensions`); code insight not yet implemented |
+| ROCKS-13 | Rockspec Editor Support | todo | **Superseded by [SCHEMA-02](#schema--schema-driven-data-files).** Standalone hand-rolled design retired in favour of the platform-engine route. **Shipped:** highlighting only (`.rockspec` in `plugin.xml` `fileType extensions`) |
+
+---
+
+## SCHEMA — Schema-Driven Data Files
+
+> No code yet — epic planned 2026-06-24. The engine adapts the platform JSON-Schema engine to Lua
+> (`JsonLikePsiWalker`) so Lua *data* files get validation/completion/docs; providers are declarative.
+
+| ID | Feature | Status | Notes |
+|:---|:--------|:-------|:------|
+| SCHEMA-01 | Lua JSON-Schema Engine | planned | `lang/schema/*`: Lua `JsonLikePsiWalker` + adapters + walker-factory/enabler + `language="Lua"` compliance inspection; depends on `com.intellij.modules.json` |
+| SCHEMA-02 | Rockspec Schema Provider | todo | `.rockspec` → bundled rockspec v3.0/v3.1 schema; supersedes ROCKS-13 |
+| SCHEMA-03 | Luacheckrc Schema Provider | todo | `.luacheckrc` → new bundled luacheck-config schema (second consumer; proves generality) |
+| SCHEMA-04 | Busted Config Schema Provider | todo | `.busted` (shape-B `return {table}`) → bundled busted-config schema |
 
 ---
 

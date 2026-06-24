@@ -455,8 +455,12 @@ Add to [plugin.xml](../../../../src/main/resources/META-INF/plugin.xml) `<extens
   complicating member resolution. The schema-driven path reuses existing extension points and is fully
   specified here. (The meta-file indexing route remains an optional follow-up — risks-and-gaps Technical
   Debt.)
-- **IntelliJ JSON Schema engine** (`JsonSchemaProviderFactory`): rejected — it validates the JSON/YAML
-  PSI, not Lua PSI; a `.rockspec` never maps to a JSON tree, so the engine cannot see it.
+- **IntelliJ JSON Schema engine** (`JsonSchemaProviderFactory`): rejected here — *but this rejection
+  was incomplete and is the reason this whole feature is superseded.* The premise "it validates JSON/
+  YAML PSI, not Lua PSI" is wrong: the engine dispatches through a `JsonLikePsiWalker`, and YAML (a
+  non-JSON language) reuses it whole. Implementing a Lua walker (the **[SCHEMA epic](../../schema/requirements.md)**)
+  gets arbitrary-schema validation/completion/docs across rockspec **and** `.luacheckrc`/`.busted`.
+  ROCKS-13 is therefore replaced by [SCHEMA-02](../../schema/02-rockspec-provider/requirements.md).
 - **Annotator instead of inspection**: rejected for the main validation — an inspection is toggleable,
   groups under Settings, and carries quick fixes (ROCKS-13-08) more naturally; the repo uses both, but
   `LuaGlobalCreationInspection` is the closest precedent.

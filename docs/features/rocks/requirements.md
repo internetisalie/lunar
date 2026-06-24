@@ -25,7 +25,7 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 | [`ROCKS-10`](10-workspace-build/requirements.md) | **Workspace Build Orchestration** | **M** | **Not Implemented** | Build discovered rocks with `luarocks make` in topological dependency order. |
 | [`ROCKS-11`](11-makefile-tasks/requirements.md) | **Makefile Task Integration** | **C** | **Not Implemented** | Enrich scaffolded Makefile targets; optional Makefile-plugin integration. |
 | [`ROCKS-12`](12-project-view-roots/requirements.md) | **Project-View Roots & Marking** | **M** | **Not Implemented** | Mark the installed-rock tree (`lua_modules`) as External Libraries and first-party `build.modules` source roots in the Project view. |
-| [`ROCKS-13`](13-rockspec-editor-support/requirements.md) | **Rockspec Editor Support** | **C** | **Not Implemented** | Schema-aware code insight for `.rockspec` files: validate, complete, and document top-level keys against the bundled rockspec JSON schema. |
+| [`ROCKS-13`](13-rockspec-editor-support/requirements.md) | **Rockspec Editor Support** | **C** | **Not Implemented** | Schema-aware code insight for `.rockspec`. **Superseded by [SCHEMA-02](../schema/02-rockspec-provider/requirements.md)** — delivered as a provider on the SCHEMA-01 engine, not standalone. |
 
 ---
 
