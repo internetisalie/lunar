@@ -198,6 +198,7 @@ class LuaFoldingVisitor(
                     is LuaFuncDecl -> foldFunctionDecl(element, element.node)
                     is LuaLocalFuncDecl -> foldFunctionDecl(element, element.node)
                     is LuaFuncDef -> foldFunctionDecl(element, element.node)
+                    is LuaGlobalFuncDecl -> foldFunctionDecl(element, element.node)
                     else -> foldBlocks(element.getBlockList())
                 }
             }
@@ -249,13 +250,25 @@ class LuaFoldingVisitor(
     
     private fun foldFunctionDecl(element: LuaBlockParent, node: ASTNode) {
         val children = node.getChildren(null)
-        val funcKeyword = children.find { it.elementType == LuaElementTypes.FUNCTION }
-        val endKeyword = children.findLast { it.elementType == LuaElementTypes.END }
+        val endKeyword = children.findLast { it.elementType == LuaElementTypes.END } ?: return
         
-        if (funcKeyword != null && endKeyword != null) {
-            val range = TextRange(funcKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
-            if (node.text.substring(0, endKeyword.startOffset - node.startOffset).contains('\n')) {
-                descriptors.add(FoldingDescriptor(node, range))
+        val rParen = children.find { it.elementType == LuaElementTypes.RPAREN }
+        if (rParen != null) {
+            val range = TextRange(rParen.textRange.endOffset, endKeyword.textRange.endOffset)
+            val bodyText = node.text.substring(
+                rParen.textRange.endOffset - node.startOffset,
+                endKeyword.textRange.startOffset - node.startOffset
+            )
+            if (bodyText.contains('\n')) {
+                descriptors.add(FoldingDescriptor(node, range, null, "...end"))
+            }
+        } else {
+            val funcKeyword = children.find { it.elementType == LuaElementTypes.FUNCTION }
+            if (funcKeyword != null) {
+                val range = TextRange(funcKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
+                if (node.text.substring(0, endKeyword.startOffset - node.startOffset).contains('\n')) {
+                    descriptors.add(FoldingDescriptor(node, range))
+                }
             }
         }
     }
