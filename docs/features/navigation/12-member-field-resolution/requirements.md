@@ -3,7 +3,7 @@ id: NAVIGATION-12
 title: "12: Member Field Resolution"
 type: feature
 parent_id: NAV
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
@@ -22,7 +22,7 @@ so `resolve()` returns nothing and quick-doc shows "No documentation found".
 | :--- | :--- | :--- | :---: | :--- |
 | `NAV-12-01` | **Field Declaration Index** | Index every `receiver.field = value` declaration (and the `---@type`/`---@field`/doc comment riding it) by its qualified name `receiver.field`, across files. | **M** | Full |
 | `NAV-12-02` | **Go to Field Declaration** | `Go to Declaration` on `a.b` navigates to the `a.b = …` declaration (e.g. `package.path` → the stdlib stub's `package.path = ""`). Elevates `NAV-01-03` to **Full**. | **M** | Full |
-| `NAV-12-03` | **Field Quick Documentation** | Quick documentation on `a.b` renders the field's doc comment and inferred/declared type, instead of "No documentation found" or an unrelated symbol. | **S** | Not Implemented |
+| `NAV-12-03` | **Field Quick Documentation** | Quick documentation on `a.b` renders the field's doc comment and inferred/declared type, instead of "No documentation found" or an unrelated symbol. | **S** | Full |
 | `NAV-12-04` | **No Cross-Namespace Collisions** | A field lookup is keyed by the full `receiver.field`, never the bare member name, so `package.path` never resolves to an unrelated `path.*` module symbol (regression guard for the member-reference fix). | **M** | Full |
 
 ## 2. Non-Goals

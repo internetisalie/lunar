@@ -18,7 +18,12 @@ import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
+import net.internetisalie.lunar.lang.indexing.dottedMemberName
+import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.psi.*
+import com.intellij.psi.PsiWhiteSpace
+import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
@@ -27,12 +32,41 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         var element = file.findElementAt(offset) ?: return emptyList()
         val et = element.elementType
         if (et == LuaElementTypes.IDENTIFIER || et == LuaCatsElementTypes.NAME || et == LuaCatsElementTypes.BUILTIN_TYPE) {
+            // NAV-12-03: a dotted member field documents its `receiver.field = value` declaration.
+            memberFieldDocumentationTarget(element)?.let { return listOf(it) }
             element = resolveDocumentationTarget(element) ?: return emptyList()
         }
         if (element is LuaCatsCommentOwner) {
             return arrayListOf(LuaCatsDocumentationTarget(element))
         }
         return emptyList()
+    }
+
+    /**
+     * For a dotted member segment (`path` in `package.path`), find the documented field declaration via
+     * the member-field index and render its riding `---@type`/doc comment. A field can be re-assigned in
+     * several files (e.g. `package.path = package.path .. ...`); the comment rides the assignment
+     * statement, which is not a [LuaCommentOwner], so the preceding cats comment is read directly and the
+     * first declaration that carries one is chosen over a bare re-assignment.
+     */
+    private fun memberFieldDocumentationTarget(element: PsiElement): DocumentationTarget? {
+        if (element.parent?.parent !is LuaIndexExpr) return null
+        val container = PsiTreeUtil.getParentOfType(element, LuaVar::class.java) ?: return null
+        val qualifiedName = dottedMemberName(container) ?: return null
+        val project = element.project
+        val scope = GlobalSearchScope.allScope(project)
+        for (field in LuaMemberFieldNavigation.find(project, qualifiedName, scope)) {
+            val statement = PsiTreeUtil.getParentOfType(field, LuaStatement::class.java) ?: continue
+            val comment = precedingCatsComment(statement) ?: continue
+            return LuaFieldDocumentationTarget(field, comment, qualifiedName)
+        }
+        return null
+    }
+
+    private fun precedingCatsComment(statement: PsiElement): LuaCatsComment? {
+        var prev = statement.prevSibling
+        while (prev is PsiWhiteSpace) prev = prev.prevSibling
+        return prev as? LuaCatsComment ?: (prev?.firstChild as? LuaCatsComment)
     }
 
     private fun resolveDocumentationTarget(element: PsiElement): PsiElement? {
@@ -159,6 +193,57 @@ internal class LuaCatsDocumentationTarget(
     override fun computeDocumentation(): DocumentationResult? {
         return DocumentationResult.documentation(
             LuaDocumentationRenderer.renderFullDocumentation(element) ?: return null
+        )
+    }
+}
+
+/**
+ * Documentation for a member field (`receiver.field`, NAV-12-03). The field's `---@type`/doc comment
+ * rides its assignment statement (not a [LuaCommentOwner]), so it is rendered directly from the
+ * preceding [LuaCatsComment] and anchored on the field identifier for presentation/navigation.
+ */
+internal class LuaFieldDocumentationTarget(
+    val anchor: PsiElement,
+    val comment: LuaCatsComment,
+    private val qualifiedName: String,
+) : DocumentationTarget {
+    override fun createPointer(): Pointer<out DocumentationTarget> {
+        val anchorPtr = anchor.createSmartPointer()
+        val commentPtr = comment.createSmartPointer()
+        val name = qualifiedName
+        return Pointer {
+            val anchor = anchorPtr.dereference() ?: return@Pointer null
+            val comment = commentPtr.dereference() ?: return@Pointer null
+            LuaFieldDocumentationTarget(anchor, comment, name)
+        }
+    }
+
+    override fun computePresentation(): TargetPresentation = targetPresentation(anchor)
+
+    override val navigatable: Navigatable?
+        get() = anchor as? Navigatable
+
+    override fun computeDocumentation(): DocumentationResult? {
+        val typeText = comment.typeTagList.firstOrNull()?.argType?.text?.trim()
+        val summary = LuaCatsSummary.getText(comment)
+        if (typeText.isNullOrEmpty() && summary.isNullOrEmpty()) return null
+
+        val body = buildString {
+            append("<div class='definition'><pre>")
+            append(qualifiedName)
+            if (!typeText.isNullOrEmpty()) {
+                append(" : ")
+                append(typeText)
+            }
+            append("</pre></div>")
+            if (!summary.isNullOrEmpty()) {
+                append("<div class='content'>")
+                append(LuaDocumentationRenderer.markdownDescription(summary))
+                append("</div>")
+            }
+        }
+        return DocumentationResult.documentation(
+            LuaDocumentationRenderer.DOC_COMMENT_HEADER + body + LuaDocumentationRenderer.DOC_COMMENT_FOOTER,
         )
     }
 }

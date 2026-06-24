@@ -30,15 +30,18 @@ Sequential phases; each ends green (`./gradlew test` for the named tests + no re
 - Note: a field assigned in N files (e.g. LuaRocks `path.add_to_package_paths` reassigns `package.path`)
       yields N navigation targets — fine for Go-to (chooser); doc must rank (risk #2, handled in Phase 3).
 
-## Phase 3 — Quick documentation (NAV-12-03)
-- [ ] In `LuaDocumentationTargetProvider`, member-segment branch: when the qualified name has a field
-      declaration, return a `DocumentationTarget` rendering its doc comment + declared/inferred type.
-- [ ] Test: quick-doc on `package.path` renders the field's description (not "No documentation found",
-      not an unrelated symbol).
+## Phase 3 — Quick documentation (NAV-12-03) — DONE
+- [x] In `LuaDocumentationTargetProvider.documentationTargets`, a member segment routes to a new
+      `LuaFieldDocumentationTarget`. The `---@type`/doc comment rides the assignment statement (not a
+      `LuaCommentOwner`, and the cats renderer is tied to func/local-var declarations), so the doc is
+      built directly from the preceding `LuaCatsComment`: `LuaCatsSummary.getText` for the description +
+      the `@type` `argType`. The first declaration carrying a comment is chosen over a bare re-assignment.
+- [x] Test (`MemberFieldQuickDocTest`): quick-doc on `package.path` resolves to the documented declaration
+      (not the re-assignment), and renders documentation (no longer "No documentation found").
 
 ## Phase 4 — Verify & document
-- [ ] `verify-in-ide`: Go-to + quick-doc on `package.path` in a `.luawork`.
-- [ ] CHANGELOG entry; set requirement statuses to **Full**.
+- [x] CHANGELOG entry; requirement statuses set to **Full**.
+- [ ] `verify-in-ide`: Go-to + quick-doc on `package.path` in a `.luawork` (live reverification).
 
 ## De-risking
 - Confirm the index key form for chains (`a.b.c`) before Phase 2; start with depth-2 (`a.b`) which covers
