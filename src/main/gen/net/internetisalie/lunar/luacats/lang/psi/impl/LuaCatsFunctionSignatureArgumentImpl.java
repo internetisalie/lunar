@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsFunctionSignatureArgumentImpl extends LuaCatsBaseElement implements LuaCatsFunctionSignatureArgument {
 
-  public LuaCatsFunctionSignatureArgumentImpl(@NotNull ASTNode node) {
+  public LuaCatsFunctionSignatureArgumentImpl(ASTNode node) {
     super(node);
   }
 

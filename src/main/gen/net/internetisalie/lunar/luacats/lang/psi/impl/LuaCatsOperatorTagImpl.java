@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsOperatorTagImpl extends LuaCatsBaseElement implements LuaCatsOperatorTag {
 
-  public LuaCatsOperatorTagImpl(@NotNull ASTNode node) {
+  public LuaCatsOperatorTagImpl(ASTNode node) {
     super(node);
   }
 

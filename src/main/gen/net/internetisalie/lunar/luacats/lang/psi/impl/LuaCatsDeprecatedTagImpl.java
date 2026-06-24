@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsDeprecatedTagImpl extends LuaCatsBaseElement implements LuaCatsDeprecatedTag {
 
-  public LuaCatsDeprecatedTagImpl(@NotNull ASTNode node) {
+  public LuaCatsDeprecatedTagImpl(ASTNode node) {
     super(node);
   }
 

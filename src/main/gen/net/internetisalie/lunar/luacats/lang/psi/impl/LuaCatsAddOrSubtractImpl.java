@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsAddOrSubtractImpl extends LuaCatsBaseElement implements LuaCatsAddOrSubtract {
 
-  public LuaCatsAddOrSubtractImpl(@NotNull ASTNode node) {
+  public LuaCatsAddOrSubtractImpl(ASTNode node) {
     super(node);
   }
 

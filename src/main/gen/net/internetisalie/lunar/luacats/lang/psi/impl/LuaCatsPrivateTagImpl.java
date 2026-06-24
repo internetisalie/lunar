@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsPrivateTagImpl extends LuaCatsBaseElement implements LuaCatsPrivateTag {
 
-  public LuaCatsPrivateTagImpl(@NotNull ASTNode node) {
+  public LuaCatsPrivateTagImpl(ASTNode node) {
     super(node);
   }
 

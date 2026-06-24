@@ -144,7 +144,7 @@ paramTag ::= '@param' ((<<ArgName NAME>> <<ArgSymbol ('?')>>?) | <<ArgSymbol ('.
 privateTag ::= '@private' description?
 protectedTag ::= '@protected' description?
 
-returnTag ::= '@return' <<ArgType type>> [(<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? )]
+returnTag ::= '@return' <<ArgType type>> [(<<ArgName NAME>>? '#' description? ) | ( <<ArgName NAME>> description ? ) | description]
 
 seeTag ::= '@see' <<ArgName NAME>> description?
 

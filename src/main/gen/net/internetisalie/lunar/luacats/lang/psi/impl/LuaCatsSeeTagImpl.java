@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsSeeTagImpl extends LuaCatsBaseElement implements LuaCatsSeeTag {
 
-  public LuaCatsSeeTagImpl(@NotNull ASTNode node) {
+  public LuaCatsSeeTagImpl(ASTNode node) {
     super(node);
   }
 

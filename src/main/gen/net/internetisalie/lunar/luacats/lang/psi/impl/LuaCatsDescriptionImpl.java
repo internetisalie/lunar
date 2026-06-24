@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsDescriptionImpl extends LuaCatsBaseElement implements LuaCatsDescription {
 
-  public LuaCatsDescriptionImpl(@NotNull ASTNode node) {
+  public LuaCatsDescriptionImpl(ASTNode node) {
     super(node);
   }
 

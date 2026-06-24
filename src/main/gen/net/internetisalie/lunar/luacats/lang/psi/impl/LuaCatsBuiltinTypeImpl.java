@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsBuiltinTypeImpl extends LuaCatsBaseElement implements LuaCatsBuiltinType {
 
-  public LuaCatsBuiltinTypeImpl(@NotNull ASTNode node) {
+  public LuaCatsBuiltinTypeImpl(ASTNode node) {
     super(node);
   }
 

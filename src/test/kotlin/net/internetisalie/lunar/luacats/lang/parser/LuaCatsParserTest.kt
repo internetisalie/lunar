@@ -211,4 +211,15 @@ class LuaCatsParserTest : BaseDocumentTest() {
         """.trimIndent())
         // TODO: Add structural validation when/if nested generics are added to LuaCATS spec
     }
+
+    @Test
+    fun testReturnTagDescriptions() {
+        // BUG-355: EmmyLua @-description after @return type is a hard parse error
+        doTest("""
+            ---@return number|nil @The earliest expiry time.
+            ---@return number|nil The earliest expiry time.
+            ---@return number|nil # The earliest expiry time.
+            function getNextTimerExpires() end
+        """.trimIndent())
+    }
 }

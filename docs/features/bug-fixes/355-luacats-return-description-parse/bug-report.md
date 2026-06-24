@@ -2,7 +2,7 @@
 id: "BUG-355"
 title: "EmmyLua @-description after @return/@param type is a hard parse error"
 type: "bug"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features]]"

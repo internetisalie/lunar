@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsArgSymbolImpl extends LuaCatsBaseElement implements LuaCatsArgSymbol {
 
-  public LuaCatsArgSymbolImpl(@NotNull ASTNode node) {
+  public LuaCatsArgSymbolImpl(ASTNode node) {
     super(node);
   }
 

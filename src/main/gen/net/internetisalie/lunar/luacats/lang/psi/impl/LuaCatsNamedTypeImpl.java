@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsNamedTypeImpl extends LuaCatsBaseElement implements LuaCatsNamedType {
 
-  public LuaCatsNamedTypeImpl(@NotNull ASTNode node) {
+  public LuaCatsNamedTypeImpl(ASTNode node) {
     super(node);
   }
 

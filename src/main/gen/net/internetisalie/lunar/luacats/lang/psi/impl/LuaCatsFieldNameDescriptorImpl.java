@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsFieldNameDescriptorImpl extends LuaCatsBaseElement implements LuaCatsFieldNameDescriptor {
 
-  public LuaCatsFieldNameDescriptorImpl(@NotNull ASTNode node) {
+  public LuaCatsFieldNameDescriptorImpl(ASTNode node) {
     super(node);
   }
 

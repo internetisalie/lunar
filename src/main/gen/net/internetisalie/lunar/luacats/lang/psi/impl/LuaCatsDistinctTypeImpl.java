@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsDistinctTypeImpl extends LuaCatsBaseElement implements LuaCatsDistinctType {
 
-  public LuaCatsDistinctTypeImpl(@NotNull ASTNode node) {
+  public LuaCatsDistinctTypeImpl(ASTNode node) {
     super(node);
   }
 

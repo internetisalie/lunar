@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsNodiscardTagImpl extends LuaCatsBaseElement implements LuaCatsNodiscardTag {
 
-  public LuaCatsNodiscardTagImpl(@NotNull ASTNode node) {
+  public LuaCatsNodiscardTagImpl(ASTNode node) {
     super(node);
   }
 

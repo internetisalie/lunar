@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsArgKeywordImpl extends LuaCatsBaseElement implements LuaCatsArgKeyword {
 
-  public LuaCatsArgKeywordImpl(@NotNull ASTNode node) {
+  public LuaCatsArgKeywordImpl(ASTNode node) {
     super(node);
   }
 

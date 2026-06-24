@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsVersionComparisonImpl extends LuaCatsBaseElement implements LuaCatsVersionComparison {
 
-  public LuaCatsVersionComparisonImpl(@NotNull ASTNode node) {
+  public LuaCatsVersionComparisonImpl(ASTNode node) {
     super(node);
   }
 

@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsAsyncTagImpl extends LuaCatsBaseElement implements LuaCatsAsyncTag {
 
-  public LuaCatsAsyncTagImpl(@NotNull ASTNode node) {
+  public LuaCatsAsyncTagImpl(ASTNode node) {
     super(node);
   }
 
