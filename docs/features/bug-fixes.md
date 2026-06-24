@@ -19,8 +19,8 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-135` | **Stdlib Inlay Hints** | **M** | **Todo** | Fix missing inlay hints for values returned from standard library functions. |
 | `BUG-272` | **Local Var Navigation** | **H** | **Done** | Fix Go to Definition failures for local variables with table initializers. |
 | `BUG-349` | **Flaky Inlay Hint Tests** | **M** | **Todo** | Fix intermittent failures in inlay hint tests caused by state pollution and cache staling. |
-| `BUG-355` | **EmmyLua @-description Parse** | **H** | **Todo** | Fix hard parse error on `@`-prefixed descriptions after `@return`/`@param` types (`@return number @desc`). |
-| `BUG-356` | **Boolean Concat Not Flagged** | **L** | **Todo** | Concatenating a non-concatenable value (e.g. `boolean`) raises no diagnostic. |
+| `BUG-355` | **EmmyLua @-description Parse** | **H** | **Done** | Fix hard parse error on `@`-prefixed descriptions after `@return`/`@param` types (`@return number @desc`). |
+| `BUG-356` | **Boolean Concat Not Flagged** | **L** | **Done** | Concatenating a non-concatenable value (e.g. `boolean`) raises no diagnostic. |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).
