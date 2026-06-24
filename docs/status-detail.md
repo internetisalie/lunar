@@ -20,6 +20,9 @@ folders:
 > Resolution) has no code, and a gap review flagged unbuilt work (server/registry config in
 > settings, broader run-config/task-panel scope, the empty ROCKS-06/07 slots). Shipped ROCKS
 > features (01–04, 08) remain source-verified `done`.
+> **Updated 2026-06-23:** added **ROCKS-13** (Rockspec Editor Support), `planned`. Only highlighting
+> ships today (`.rockspec` added to the `Lua` `fileType` `extensions` in `plugin.xml`); the
+> schema-aware code insight (`rocks/editor/*`) is planned, not yet implemented.
 
 **Status vocabulary:**
 
@@ -47,11 +50,11 @@ folders:
 | [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       6 |      0 |      11 | ████░░░░░░ 45%  |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       7 |      0 |      12 | ████░░░░░░ 42%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |      2 |           0 |       1 |      4 |       7 | ███░░░░░░░ 29%  |
-| **Total**                                                   | **111** |       **3** |   **8** | **10** | **132** | **84%**         |
+| **Total**                                                   | **111** |       **3** |   **9** | **10** | **133** | **83%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -251,6 +254,7 @@ folders:
 | ROCKS-10 | Workspace Build Orchestration | planned | Topo-sort discovered rocks via dependency graph; `luarocks make` in dependency order |
 | ROCKS-11 | Makefile Task Integration | planned | Enrich scaffolded Makefile (lint/format/coverage targets); optional Makefile-plugin integration |
 | ROCKS-12 | Project-View Roots & Marking | planned | `lua_modules` installed-rock tree as External Libraries (SyntheticLibrary) + first-party source-root marking (ProjectViewNodeDecorator) |
+| ROCKS-13 | Rockspec Editor Support | planned | Schema-aware code insight for `.rockspec` (validation/completion/hover from bundled JSON schema, `rocks/editor/*`). **Shipped:** highlighting only (`.rockspec` in `plugin.xml` `fileType extensions`); code insight not yet implemented |
 
 ---
 
