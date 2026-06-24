@@ -4,6 +4,8 @@ title: Name Suggestion Requirements
 type: feature
 parent_id: REFACT/INTENT
 status: done
+folders:
+  - "[[features/refactoring/requirements|requirements]]"
 ---
 
 # Name Suggestion Requirements

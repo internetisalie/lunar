@@ -4,6 +4,8 @@ title: Invert If Requirements
 type: feature
 parent_id: REFACT/INTENT
 status: done
+folders:
+  - "[[features/refactoring/requirements|requirements]]"
 ---
 
 # Invert If Requirements

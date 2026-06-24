@@ -4,6 +4,8 @@ title: Lexer Optimization Requirements
 type: feature
 parent_id: SYNTAX
 status: done
+folders:
+  - "[[features/syntax/requirements|requirements]]"
 ---
 
 # Lexer Optimization Requirements

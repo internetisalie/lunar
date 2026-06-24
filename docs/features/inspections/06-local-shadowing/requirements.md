@@ -4,6 +4,8 @@ title: Local Shadowing Requirements
 type: feature
 parent_id: INSP
 status: done
+folders:
+  - "[[features/inspections/requirements|requirements]]"
 ---
 
 # Local Shadowing Requirements

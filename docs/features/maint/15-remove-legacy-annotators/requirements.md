@@ -4,6 +4,8 @@ title: Remove Legacy Annotators Requirements
 type: feature
 parent_id: MAINT
 status: planned
+folders:
+  - "[[features/maint/requirements|requirements]]"
 ---
 
 # Remove Legacy Annotators Requirements

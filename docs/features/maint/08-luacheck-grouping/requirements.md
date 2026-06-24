@@ -4,6 +4,8 @@ title: Luacheck Grouping Requirements
 type: feature
 parent_id: MAINT
 status: planned
+folders:
+  - "[[features/maint/requirements|requirements]]"
 ---
 
 # Luacheck Grouping Requirements

@@ -4,6 +4,8 @@ title: Publishing Requirements
 type: feature
 parent_id: ROCKS
 status: done
+folders:
+  - "[[features/rocks/requirements|requirements]]"
 ---
 
 # Publishing Requirements

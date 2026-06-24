@@ -4,6 +4,8 @@ title: LuaCATS Literal Highlighting Requirements
 type: feature
 parent_id: MAINT
 status: planned
+folders:
+  - "[[features/maint/requirements|requirements]]"
 ---
 
 # LuaCATS Literal Highlighting Requirements

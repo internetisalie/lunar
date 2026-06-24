@@ -4,6 +4,8 @@ title: Unused Local Variable Requirements
 type: feature
 parent_id: INSP
 status: done
+folders:
+  - "[[features/inspections/requirements|requirements]]"
 ---
 
 # Unused Local Variable Requirements

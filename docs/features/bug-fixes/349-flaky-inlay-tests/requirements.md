@@ -4,6 +4,8 @@ title: Flaky Inlay Tests Requirements
 type: feature
 parent_id: BUG
 status: done
+folders:
+  - "[[features/bug-fixes/requirements|requirements]]"
 ---
 
 # Flaky Inlay Tests Requirements

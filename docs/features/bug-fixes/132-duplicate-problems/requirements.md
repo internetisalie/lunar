@@ -4,6 +4,8 @@ title: Duplicate Problems Requirements
 type: feature
 parent_id: BUG
 status: done
+folders:
+  - "[[features/bug-fixes/requirements|requirements]]"
 ---
 
 # Duplicate Problems Requirements

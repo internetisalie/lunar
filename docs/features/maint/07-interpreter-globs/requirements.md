@@ -4,6 +4,8 @@ title: Interpreter Globs Requirements
 type: feature
 parent_id: MAINT
 status: planned
+folders:
+  - "[[features/maint/requirements|requirements]]"
 ---
 
 # Interpreter Globs Requirements

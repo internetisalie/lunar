@@ -4,6 +4,8 @@ title: Label Refactoring Requirements
 type: feature
 parent_id: MAINT
 status: planned
+folders:
+  - "[[features/maint/requirements|requirements]]"
 ---
 
 # Label Refactoring Requirements

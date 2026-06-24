@@ -4,6 +4,8 @@ title: Deprecated API Requirements
 type: feature
 parent_id: INSP
 status: done
+folders:
+  - "[[features/inspections/requirements|requirements]]"
 ---
 
 # Deprecated API Requirements
