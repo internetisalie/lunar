@@ -104,9 +104,14 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         val qualifiedName = getQualifiedName(element)
 
         if (qualifiedName != null) {
+            // A dotted member access `a.b`: resolve `b` only through the receiver-qualified name.
+            // The bare-name lookups below treat the short name as a *receiver* (the declaration index
+            // is keyed by receiver), so a bare "path" lookup for `package.path` would pull in every
+            // `path.*` function of an unrelated module. Restrict member segments to the qualified name.
             StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, qualifiedName, project, scope, LuaFuncDecl::class.java).forEach { decl ->
                 results.add(PsiElementResolveResult(decl))
             }
+            return results.distinctBy { it.element }.toTypedArray()
         }
 
         StubIndex.getElements(LuaClassNameIndex.KEY, referenceName, project, scope, LuaLocalVarDecl::class.java).forEach { decl ->
