@@ -25,6 +25,7 @@ Lunar provides powerful tools to explore and navigate the Lua codebase.
 | [`NAV-09`](09-return-highlighter/requirements.md) | **Return Highlighter** | **C** | Highlight `return` statements and their corresponding function definitions for visual clarity. |
 | [`NAV-10`](10-access-detector/requirements.md) | **Access Detector** | **S** | Detect and highlight variable access patterns (read vs. write) for semantic analysis. |
 | [`NAV-11`](11-bindings-caching/requirements.md) | ~~**Bindings Caching**~~ (Retired) | **—** | **Retired** — premise removed by MAINT-04 (lazy `PsiScopeProcessor`/`PsiReference` resolution replaced the cached `LuaBindingsVisitor`). See [`11-bindings-caching.md`](11-bindings-caching/requirements.md). |
+| [`NAV-12`](12-member-field-resolution/requirements.md) | **Member Field Resolution** | **M** | Resolve dotted member-field accesses (`receiver.field`) to their declaration and quick documentation via a qualified-name field index. Completes `NAV-01-03`. |
 
 ---
 
