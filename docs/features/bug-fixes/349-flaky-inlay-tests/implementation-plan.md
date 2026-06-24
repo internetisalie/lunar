@@ -3,7 +3,7 @@ id: BUG-349-PLAN
 title: Flaky Inlay Tests Plan
 type: plan
 parent_id: BUG-349
-status: planned
+status: done
 ---
 
 # Implementation Plan

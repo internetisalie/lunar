@@ -12,13 +12,18 @@ import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.progress.EmptyProgressIndicator
-import com.intellij.testFramework.utils.inlays.declarative.DeclarativeInlayHintsProviderTestCase
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.io.File
+
+enum class ProviderTestMode {
+    SIMPLE,
+    DETAILED
+}
 
 /**
  * Base class for inlay hints tests that require specific settings to be enabled.
  */
-abstract class LuaInlayHintsTestCase : DeclarativeInlayHintsProviderTestCase() {
+abstract class LuaInlayHintsTestCase : BasePlatformTestCase() {
     
     @JvmOverloads
     fun doLuaTestProvider(
