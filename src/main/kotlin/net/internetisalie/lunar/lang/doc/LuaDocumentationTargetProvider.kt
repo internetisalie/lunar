@@ -82,14 +82,22 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         val project = element.project
         val scope = GlobalSearchScope.allScope(project)
 
-        val classDecl = StubIndex.getElements(LuaClassNameIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
-        if (classDecl != null) return classDecl
+        // A dotted member segment (e.g. `path` in `package.path`) must NOT match an unrelated
+        // top-level symbol that merely shares the short name: LuaGlobalDeclarationIndex is keyed by
+        // receiver, so a bare "path" lookup returns every `path.*` function of an unrelated module.
+        // For member segments resolve only through the qualified name below — showing nothing when
+        // it has no documented declaration is correct; an arbitrary same-named symbol is not.
+        val isMemberSegment = element.parent?.parent is LuaIndexExpr
+        if (!isMemberSegment) {
+            val classDecl = StubIndex.getElements(LuaClassNameIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+            if (classDecl != null) return classDecl
 
-        val aliasDecl = StubIndex.getElements(LuaAliasIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
-        if (aliasDecl != null) return aliasDecl
+            val aliasDecl = StubIndex.getElements(LuaAliasIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+            if (aliasDecl != null) return aliasDecl
 
-        val funcDecl = StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, elementText, project, scope, LuaFuncDecl::class.java).firstOrNull()
-        if (funcDecl != null) return funcDecl
+            val funcDecl = StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, elementText, project, scope, LuaFuncDecl::class.java).firstOrNull()
+            if (funcDecl != null) return funcDecl
+        }
 
         // Fallback for member functions like math.abs
         if (parent is LuaNameRefElement) {
