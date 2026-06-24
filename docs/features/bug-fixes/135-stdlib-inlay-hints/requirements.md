@@ -3,7 +3,7 @@ id: BUG-135
 title: Stdlib Inlay Hints Requirements
 type: feature
 parent_id: BUG
-status: planned
+status: done
 ---
 
 # Stdlib Inlay Hints Requirements
@@ -11,4 +11,4 @@ status: planned
 ## Requirements Table
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| BUG-135-01 | Suppress Stdlib Hints | Must | planned | Do not show parameter inlay hints for core standard library functions (like `print`, `type`, `assert`). |
+| BUG-135-01 | Suppress Stdlib Hints | Must | done | Do not show parameter inlay hints for core standard library functions (like `print`, `type`, `assert`). |

@@ -74,4 +74,23 @@ class LuaParameterInlayHintsTest : LuaInlayHintsTestCase() {
             end
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
+
+    fun testStdlibAssertDoesNotShowHints() {
+        doLuaTestProvider("test.lua", """
+            assert(true, "error message")
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testStdlibTableInsertDoesNotShowHints() {
+        doLuaTestProvider("test.lua", """
+            table.insert({}, 1, "value")
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testCustomFunctionShowsHints() {
+        doLuaTestProvider("test.lua", """
+            local function myAssert(valToCheck/*<# : boolean #>*/, message/*<# : string #>*/) end
+            myAssert(/*<# valToCheck: #>*/true, /*<# message: #>*/"error message")
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
 }

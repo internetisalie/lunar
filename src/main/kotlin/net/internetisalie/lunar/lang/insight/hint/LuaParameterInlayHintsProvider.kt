@@ -12,6 +12,7 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypes
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 import net.internetisalie.lunar.lang.psi.types.LuaUnionType
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaParameterInlayHintsProvider : InlayHintsProvider {
     companion object {
@@ -37,10 +38,12 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
             }
 
             private fun collectParameterHints(element: LuaFuncCall, sink: InlayTreeSink) {
+                val nameAndArgs = element.nameAndArgsList.firstOrNull() ?: return
+                if (isStdlibCall(element, nameAndArgs)) return
+
                 val types = LuaTypesVisitor.getTypes(element)
                 val functionType = resolveFunctionType(element, types) ?: return
 
-                val nameAndArgs = element.nameAndArgsList.firstOrNull() ?: return
                 val args = nameAndArgs.args
                 val argExprs = when {
                     args.string != null -> listOf(args.string!!)
@@ -150,6 +153,46 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                     }
                 }
                 return null
+            }
+
+            private fun isStdlibCall(element: LuaFuncCall, nameAndArgs: LuaNameAndArgs): Boolean {
+                val methodExpr = nameAndArgs.methodExpr
+                val callee = LuaTypeInlayHintProvider.unwrapExpression(element.varOrExp) ?: element.varOrExp
+                val decl = if (methodExpr != null) {
+                    methodExpr.nameRef.reference?.resolve()
+                } else {
+                    getDeclaration(callee)
+                }
+                return decl != null && isStdlibElement(decl)
+            }
+
+            private fun getDeclaration(callee: PsiElement): PsiElement? {
+                if (callee is LuaNameRefElement) {
+                    return callee.reference?.resolve()
+                }
+                if (callee is LuaVar) {
+                    val suffixes = callee.varSuffixList
+                    if (suffixes.isNotEmpty()) {
+                        val lastSuffix = suffixes.last()
+                        val nameRef = lastSuffix.indexExpr.nameRef
+                        if (nameRef != null) {
+                            return nameRef.reference?.resolve()
+                        }
+                    } else {
+                        val nameRef = callee.nameRef
+                        if (nameRef != null) {
+                            return nameRef.reference?.resolve()
+                        }
+                    }
+                }
+                return null
+            }
+
+            private fun isStdlibElement(decl: PsiElement): Boolean {
+                val file = decl.containingFile ?: return false
+                val virtualFile = file.virtualFile ?: return false
+                val platformLibraryFolder = PlatformLibraryIndex.getPlatformLibraryFolder(decl.project) ?: return false
+                return com.intellij.openapi.vfs.VfsUtil.isAncestor(platformLibraryFolder, virtualFile, false)
             }
         }
     }

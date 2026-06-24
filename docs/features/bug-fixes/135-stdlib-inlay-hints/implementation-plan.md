@@ -3,7 +3,7 @@ id: BUG-135-PLAN
 title: Stdlib Inlay Hints Plan
 type: plan
 parent_id: BUG-135
-status: planned
+status: done
 ---
 
 # Implementation Plan
