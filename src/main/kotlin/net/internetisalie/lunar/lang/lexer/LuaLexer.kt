@@ -97,7 +97,12 @@ class LuaLexer : MergingLexerAdapter(
             if (sourceType == LuaTokenTypes.SHORTCOMMENT) {
                 val text = super.tokenText
                 if (text.startsWith("---")) {
-                    return LuaLazyElementTypes.LUACATS_COMMENT
+                    val isLuaCats = text.lineSequence().all { line ->
+                        line.startsWith("---") || line.isBlank()
+                    }
+                    if (isLuaCats) {
+                        return LuaLazyElementTypes.LUACATS_COMMENT
+                    }
                 }
             }
             

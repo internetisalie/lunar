@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.lexer
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -170,6 +171,28 @@ class TestLuaLexer {
                     Token(0, "const", LuaElementTypes.IDENTIFIER),
                     Token(5, " ", TokenType.WHITE_SPACE),
                     Token(6, "close", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `luacats comments`() {
+        execute(
+            TestCase(
+                "merged all cats",
+                "--- line 1\n--- line 2\n--- line 3\n",
+                listOf(
+                    Token(0, "--- line 1\n--- line 2\n--- line 3", LuaLazyElementTypes.LUACATS_COMMENT),
+                    Token(32, "\n", TokenType.WHITE_SPACE),
+                ),
+            ),
+            TestCase(
+                "merged mixed comments",
+                "----------------------------------------------------------------------------\n-- Scheduling\n--\n-- Tasks ready to be run are placed on a stack and it's possible to\n-- starve a coroutine.\n----------------------------------------------------------------------------\n",
+                listOf(
+                    Token(0, "----------------------------------------------------------------------------\n-- Scheduling\n--\n-- Tasks ready to be run are placed on a stack and it's possible to\n-- starve a coroutine.\n----------------------------------------------------------------------------", LuaElementTypes.SHORTCOMMENT),
+                    Token(261, "\n", TokenType.WHITE_SPACE),
                 ),
             ),
         )
