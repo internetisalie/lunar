@@ -1,7 +1,7 @@
 ---
 id: NAVIGATION-12-RISKS
 title: "12: Member Field Resolution — Risks & Gaps"
-type: risks
+type: risk
 parent_id: NAVIGATION-12
 status: "planned"
 folders:

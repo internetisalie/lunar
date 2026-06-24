@@ -1,7 +1,7 @@
 ---
 id: NAVIGATION-12-PLAN
 title: "12: Member Field Resolution — Implementation Plan"
-type: implementation-plan
+type: plan
 parent_id: NAVIGATION-12
 status: "planned"
 folders:

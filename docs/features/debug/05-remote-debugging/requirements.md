@@ -1,5 +1,5 @@
 ---
-id: RUN-05
+id: DEBUG-05
 title: "05: Remote Debugging"
 type: feature
 status: "done"
