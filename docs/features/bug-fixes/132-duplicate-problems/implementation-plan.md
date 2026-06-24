@@ -3,7 +3,7 @@ id: BUG-132-PLAN
 title: Duplicate Problems Plan
 type: plan
 parent_id: BUG-132
-status: planned
+status: done
 ---
 
 # Implementation Plan

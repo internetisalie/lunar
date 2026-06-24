@@ -28,11 +28,13 @@ class LuaCheckAnnotator : ExternalAnnotator<LuaCheckAnnotator.Info, LuaCheckAnno
     override fun doAnnotate(collectedInfo: Info?): Results? {
         if (collectedInfo == null) return null
         val problems = LuaCheckInvoker.invoke(collectedInfo.virtualFile, collectedInfo.psiFile)
-        return Results(problems)
+        val deduplicated = problems.distinctBy { it.lineStart to it.message }
+        return Results(deduplicated)
     }
 
     override fun apply(file: PsiFile, annotationResult: Results, holder: AnnotationHolder) {
-        annotationResult.problems.forEach { problem -> applyProblem(file, problem, holder) }
+        val uniqueProblems = annotationResult.problems.distinctBy { it.lineStart to it.message }
+        uniqueProblems.forEach { problem -> applyProblem(file, problem, holder) }
     }
 
     private fun applyProblem(file: PsiFile, problem: Problem, holder: AnnotationHolder) {
