@@ -9,6 +9,7 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.LuaIcons.FILE
 import net.internetisalie.lunar.lang.indexing.*
+import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
@@ -110,6 +111,12 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
             // `path.*` function of an unrelated module. Restrict member segments to the qualified name.
             StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, qualifiedName, project, scope, LuaFuncDecl::class.java).forEach { decl ->
                 results.add(PsiElementResolveResult(decl))
+            }
+            // NAV-12: a dotted field assignment `receiver.field = value` (not stubbed) is reachable by
+            // its qualified name through the member-field index — keyed by the full name, so it never
+            // collides with an unrelated `path.*` module.
+            LuaMemberFieldNavigation.find(project, qualifiedName, scope).forEach { field ->
+                if (field != element) results.add(PsiElementResolveResult(field))
             }
             return results.distinctBy { it.element }.toTypedArray()
         }

@@ -18,7 +18,7 @@ This document outlines the requirements for Go to Definition.
 | :--- | :--- | :--- | :---: | :--- |
 | `NAV-01-01` | **Local Symbols** | Navigate to the declaration of local variables and functions. | **M** | Full |
 | `NAV-01-02` | **Global Symbols** | Navigate to the declaration of global functions and variables, resolving across files. | **M** | Full |
-| `NAV-01-03` | **Table Fields** | Navigate to the definition of a specific table field. | **S** | Partial |
+| `NAV-01-03` | **Table Fields** | Navigate to the definition of a specific table field. | **S** | Full |
 
 ## 2. Technical Details
 - Uses `PsiReference.resolve()` returning the target element.

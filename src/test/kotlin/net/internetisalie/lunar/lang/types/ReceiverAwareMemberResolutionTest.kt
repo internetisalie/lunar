@@ -46,14 +46,21 @@ class ReceiverAwareMemberResolutionTest : IndexedBasePlatformTestCase() {
         val ref = myFixture.getReferenceAtCaretPosition()
         val results = (ref as? PsiPolyVariantReference)?.multiResolve(false)?.toList().orEmpty()
 
-        // (2) navigation: a dotted member must not resolve to unrelated same-short-name module
-        // functions (the index is keyed by receiver, so a bare "path" lookup pulled in every
-        // `path.*` function of an unrelated module).
-        val unrelated = results.mapNotNull { it.element?.containingFile?.name }
-            .filter { it == "path.lua" }
+        // (2) / NAV-12-04: a dotted member must not resolve to unrelated same-short-name module
+        // *functions* (the index is keyed by receiver, so a bare "path" lookup used to pull in every
+        // `path.*` function). Every result must now be the `path` field identifier itself.
+        assertTrue("package.path must resolve to something", results.isNotEmpty())
         assertTrue(
-            "package.path must not resolve to unrelated path.lua module functions; got ${results.map { it.element?.text?.take(40) }}",
-            unrelated.isEmpty(),
+            "every result must be the `path` field identifier, never a `path.*` function; got " +
+                "${results.map { it.element?.text?.take(40) }}",
+            results.all { it.element?.text == "path" },
+        )
+
+        // NAV-12-02: it DOES resolve to the receiver's own `path` field declaration in the stub.
+        assertTrue(
+            "package.path should resolve to its `path` field declaration in package.lua; got " +
+                "${results.map { "${it.element?.text?.take(20)}@${it.element?.containingFile?.name}" }}",
+            results.any { it.element?.text == "path" && it.element?.containingFile?.name == "package.lua" },
         )
     }
 }
