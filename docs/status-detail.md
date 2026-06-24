@@ -56,8 +56,8 @@ folders:
 | [**SCHEMA**](#schema--schema-driven-data-files)             |      0 |           0 |       1 |      3 |       4 | ░░░░░░░░░░  0%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
-| [**BUG**](#bug--bug-fixes--stability)                       |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
-| **Total**                                                   | **119** |       **1** |   **7** | **10** | **137** | **87%**         |
+| [**BUG**](#bug--bug-fixes--stability)                       |     12 |           0 |       0 |      3 |      15 | ████████░░ 80%  |
+| **Total**                                                   | **124** |       **1** |   **7** | **13** | **145** | **86%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -317,8 +317,15 @@ folders:
 | BUG-135 | Stdlib Inlay Hints | done | Suppress parameter inlay hints for core standard library functions |
 | BUG-272 | Local Var Navigation | done | Fixed via PsiScopeProcessor lazy resolution |
 | BUG-349 | Flaky Inlay Hint Tests | done | Fix intermittent failures in inlay hint tests caused by state pollution and cache staling |
+| BUG-353 | package.path Member Resolution | done | Resolves package.path and package.cpath base/member segments correctly |
+| BUG-354 | Multiline Comment Collision | done | Regular comments starting with dashes do not trigger LuaCATS parser errors |
+| BUG-355 | EmmyLua @-description Parse | done | Supports description after @return/@param types |
+| BUG-356 | Boolean Concat flag | done | Concatenating a boolean is flagged as suspicious concatenation |
 | BUG-357 | LuaCATS `fun()` Param Names | cancelled | Non-reproducible — names extracted correctly at parser, graph round-trip, and call-site hints (resolved by BUG-133). Regression guards added; no production change |
 | BUG-358 | Reformat Read-Only Exception | todo | TransactionGuard write-unsafe context exception when reformating a read-only file |
+| BUG-359 | package.path Nil Assignment | todo | False positive 'nil value is not assignable to string' on package.path concat |
+| BUG-360 | Container Writable Status | todo | Fix file writable status due to container/host UID GID mismatch |
+| BUG-BASELINE-TESTS | Pre-existing Baseline Failures | done | Stale-assertion / logic regressions in TargetTest, BraceMatchingTest, RunConfigTest |
 
 > [!NOTE]
 > BUG-357 was cancelled (cannot-reproduce / already resolved by BUG-133) and is excluded
