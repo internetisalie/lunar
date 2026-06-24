@@ -47,4 +47,31 @@ class LuaParameterInlayHintsTest : LuaInlayHintsTestCase() {
             apply(/*<# speed: #>*/10, /*<# force: #>*/20)
         """.trimIndent(), LuaTypeInlayHintProvider())
     }
+
+    fun testUnionFunctionParameterHints() {
+        doLuaTestProvider("test.lua", """
+            ---@type fun(posX: number, posY: number) | nil
+            local callback
+            if callback then
+                callback(/*<# posX: #>*/10, /*<# posY: #>*/20)
+            end
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
+
+    fun testUnionMethodParameterHints() {
+        doLuaTestProvider("test.lua", """
+            ---@class Handler
+            local Handler = {}
+            
+            ---@param posX number
+            ---@param posY number
+            function Handler:move(posX, posY) end
+            
+            ---@type Handler | nil
+            local obj
+            if obj then
+                obj:move(/*<# posX: #>*/10, /*<# posY: #>*/20)
+            end
+        """.trimIndent(), LuaTypeInlayHintProvider())
+    }
 }

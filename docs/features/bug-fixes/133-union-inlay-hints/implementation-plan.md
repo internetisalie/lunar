@@ -3,7 +3,7 @@ id: BUG-133-PLAN
 title: Union Inlay Hints Plan
 type: plan
 parent_id: BUG-133
-status: planned
+status: done
 ---
 
 # Implementation Plan
