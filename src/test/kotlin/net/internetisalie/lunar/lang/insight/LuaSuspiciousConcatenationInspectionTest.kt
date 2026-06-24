@@ -103,4 +103,28 @@ class LuaSuspiciousConcatenationInspectionTest : BasePlatformTestCase() {
             "Suspicious concatenation: operand of type 'nil | boolean' cannot be concatenated",
         )
     }
+
+    /** TC-7: function operand — warns (INSP-07-01) */
+    @Test
+    fun testFunctionOperandWarns() {
+        assertOneWarning(
+            """
+            local f = function() end
+            local s = "hello" .. f
+            """.trimIndent(),
+            "Suspicious concatenation: operand of type 'fun()' cannot be concatenated",
+        )
+    }
+
+    /** TC-8: nil operand — warns (INSP-07-01) */
+    @Test
+    fun testNilOperandWarns() {
+        assertOneWarning(
+            """
+            local n = nil
+            local s = "hello" .. n
+            """.trimIndent(),
+            "Suspicious concatenation: operand of type 'nil' cannot be concatenated",
+        )
+    }
 }

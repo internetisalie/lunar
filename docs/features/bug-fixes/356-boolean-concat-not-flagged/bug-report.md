@@ -2,7 +2,7 @@
 id: "BUG-356"
 title: "Concatenation of a non-concatenable value (boolean) is not flagged"
 type: "bug"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features]]"

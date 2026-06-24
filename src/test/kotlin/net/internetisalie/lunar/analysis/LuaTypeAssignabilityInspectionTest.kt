@@ -100,6 +100,23 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
+    fun testBooleanConcatMismatchReported() {
+        myFixture.configureByText(
+            "test.lua",
+            """
+            local x = true
+            local y = x .. "a"
+            """.trimIndent(),
+        )
+        val highlights = myFixture.doHighlighting()
+        val assignabilityErrors = highlights.filter { it.description?.contains("not assignable") == true }
+        assertEquals("Expected exactly one assignability error", 1, assignabilityErrors.size)
+        val err = assignabilityErrors[0]
+        assertEquals("x .. \"a\"", err.text)
+        assertTrue(err.description.contains("boolean") && err.description.contains("string"))
+    }
+
     /**
      * A value whose type is a member of the declared union (`number` into `string|number`) must
      * NOT be reported (TC2).

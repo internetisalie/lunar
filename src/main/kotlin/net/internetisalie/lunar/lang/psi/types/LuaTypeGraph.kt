@@ -290,7 +290,7 @@ class LuaTypeGraph {
         if (valueType is LuaGraphType.Union) {
             // Value(Union(A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
             if (!isCompatible(valueType, useType, CompatContext())) {
-                addError(ElementError(valueElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
+                addError(ElementError(useElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
                 return
             }
             // If compatible, still propagate structural constraints to the use
@@ -327,7 +327,7 @@ class LuaTypeGraph {
             } else {
                 "${valueType.displayName()} is not assignable to union ${useType.displayName()}"
             }
-            addError(ElementError(valueElement, message, ErrorSeverity.ERROR))
+            addError(ElementError(useElement, message, ErrorSeverity.ERROR))
             return
         }
 
@@ -354,11 +354,11 @@ class LuaTypeGraph {
         }
 
         if (valueType == LuaGraphType.Nil && useType != LuaGraphType.Nil) {
-            addError(ElementError(valueElement, "nil value is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
+            addError(ElementError(useElement, "nil value is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
             return
         }
 
-        addError(ElementError(valueElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
+        addError(ElementError(useElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
     }
 
     private fun isCompatible(
