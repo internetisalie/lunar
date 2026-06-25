@@ -2,7 +2,7 @@
 id: "ROCKS-06-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
+status: "done"
 parent_id: "ROCKS-06"
 folders:
   - "[[features/rocks/06-project-environment/requirements|requirements]]"
@@ -51,11 +51,11 @@ folders:
 ### Phase 4: Configurables [Should]
 - **Goal**: UI for the executable + default server (app) and the project override.
 - **Tasks**:
-  - [ ] Create `LuaRocksSettingsConfigurable` (`BoundConfigurable`, panel DSL) binding
+  - [x] Create `LuaRocksSettingsConfigurable` (`BoundConfigurable`, panel DSL) binding
         `executablePath` + `serverUrl` — realizes design §2.6.
-  - [ ] Register it in `plugin.xml` as `<applicationConfigurable groupId="tools" …>` — realizes
+  - [x] Register it in `plugin.xml` as `<applicationConfigurable groupId="tools" …>` — realizes
         design §7.
-  - [ ] Add a "LuaRocks server URL (project override)" row to `LuaProjectSettingsPanel`, wired
+  - [x] Add a "LuaRocks server URL (project override)" row to `LuaProjectSettingsPanel`, wired
         through the existing `LuaProjectSettingsConfigurable.reset()/apply(state)` — realizes design
         §2.7.
 - **Exit criteria**: Settings pages render and round-trip values (human-verification checklist).
@@ -85,7 +85,7 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Environment state + resolver | todo | Must |
-| Phase 2: Server-aware consumers | todo | Must |
-| Phase 3: Per-server credentials + upload server | todo | Must |
-| Phase 4: Configurables | todo | Should |
+| Phase 1: Environment state + resolver | done | Must |
+| Phase 2: Server-aware consumers | done | Must |
+| Phase 3: Per-server credentials + upload server | done | Must |
+| Phase 4: Configurables | done | Should |

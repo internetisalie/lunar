@@ -3,6 +3,7 @@ package net.internetisalie.lunar.settings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.path.PathConfiguration
@@ -25,6 +26,7 @@ class LuaProjectSettingsPanel(val project: Project) {
     private val interpreter: ComboBox<LuaInterpreter>
     private val sourcePath: ExpandableTextField
     private val suppressUnderscorePrefixedCheckBox: JCheckBox
+    private val rocksServerUrl: JBTextField
 
     init {
         platformComboBox = ComboBox(PlatformVersionRegistry.platforms().sortedBy { it.label }.toTypedArray())
@@ -50,6 +52,10 @@ class LuaProjectSettingsPanel(val project: Project) {
             "Suppress symbols with underscore prefix (_) from completion suggestions"
         )
 
+        rocksServerUrl = JBTextField()
+        rocksServerUrl.columns = 60
+        rocksServerUrl.emptyText.text = "Empty = use app default or luarocks.org"
+
         platformComboBox.addItemListener {
             onPlatformChanged(platformComboBox.selectedItem as? LuaPlatform)
         }
@@ -67,6 +73,7 @@ class LuaProjectSettingsPanel(val project: Project) {
             .addLabeledComponent("Interpreter", interpreter, 2)
             .addLabeledComponent("Source path patterns", sourcePath, 2)
             .addComponent(suppressUnderscorePrefixedCheckBox, 2)
+            .addLabeledComponent("LuaRocks server URL (project override)", rocksServerUrl, 2)
             .addComponentFillVertically(JPanel(), 2)
             .panel
     }
@@ -98,6 +105,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         state.interpreter = interpreter.selectedItem as? LuaInterpreter
         state.sourcePath = sourcePath.text
         state.suppressUnderscorePrefixedGlobals = suppressUnderscorePrefixedCheckBox.isSelected
+        state.rocksServerUrl = rocksServerUrl.text.trim()
         if (newTarget.getImplicitLanguageLevel() != previousTarget.getImplicitLanguageLevel()) {
             PlatformLibraryIndex.reload()
         }
@@ -116,6 +124,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         interpreter.selectedItem = data.interpreter
         sourcePath.text = data.sourcePath
         suppressUnderscorePrefixedCheckBox.isSelected = data.suppressUnderscorePrefixedGlobals
+        rocksServerUrl.text = data.rocksServerUrl
     }
 
     fun isModified(data: LuaProjectSettings.State): Boolean {
@@ -127,6 +136,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         if (interpreter.selectedItem != data.interpreter) return true
         if (sourcePath.text != data.sourcePath) return true
         if (suppressUnderscorePrefixedCheckBox.isSelected != data.suppressUnderscorePrefixedGlobals) return true
+        if (rocksServerUrl.text.trim() != data.rocksServerUrl) return true
         return false
     }
 }
