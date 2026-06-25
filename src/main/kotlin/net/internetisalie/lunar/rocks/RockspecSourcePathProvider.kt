@@ -16,10 +16,12 @@ import net.internetisalie.lunar.lang.path.SourcePathPattern
 class RockspecSourcePathProvider(private val project: Project) {
 
     private val forceRefreshTracker = SimpleModificationTracker()
+    private val isComputing = ThreadLocal.withInitial { false }
 
     private val cache: CachedValue<Pair<List<SourcePathPattern>, List<CModuleRock>>> =
         CachedValuesManager.getManager(project).createCachedValue({
-            if (ApplicationManager.getApplication().isDispatchThread) {
+            val app = ApplicationManager.getApplication()
+            if (app.isDispatchThread && !app.isUnitTestMode) {
                 // Return empty and prime in background
                 ReadAction.nonBlocking<Unit> {
                     forceRefreshTracker.incModificationCount()
@@ -47,26 +49,41 @@ class RockspecSourcePathProvider(private val project: Project) {
     fun cModuleRockspecs(): List<CModuleRock> = cache.value.second
 
     private fun compute(): Pair<List<SourcePathPattern>, List<CModuleRock>> {
-        val discovered = LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
-        val allPatterns = mutableListOf<SourcePathPattern>()
-        val cRocks = mutableListOf<CModuleRock>()
+        if (isComputing.get()) return emptyList<SourcePathPattern>() to emptyList<CModuleRock>()
+        isComputing.set(true)
+        try {
+            val discovered = testDiscoverySeam?.invoke(project)
+                ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
+            val allPatterns = mutableListOf<SourcePathPattern>()
+            val cRocks = mutableListOf<CModuleRock>()
 
-        for (disco in discovered) {
-            val data = RockspecBridge.read(project, disco.rockspec) ?: continue
-            val dir = disco.rockspec.parent?.toString()?.replace('\\', '/') ?: continue
-            
-            val patterns = RockspecModuleDerivation.derive(dir, data.luaModules)
-            allPatterns.addAll(patterns)
-            
-            val hasCModules = data.buildType == "builtin" && data.cModules.isNotEmpty()
-            cRocks.add(CModuleRock(dir, hasCModules))
+            for (disco in discovered) {
+                val data = RockspecBridge.read(project, disco.rockspec) ?: continue
+                val dir = disco.rockspec.parent?.toString()?.replace('\\', '/') ?: continue
+                
+                val patterns = RockspecModuleDerivation.derive(dir, data.luaModules)
+                allPatterns.addAll(patterns)
+                
+                val hasCModules = data.buildType == "builtin" && data.cModules.isNotEmpty()
+                cRocks.add(CModuleRock(dir, hasCModules))
+            }
+
+            val distinctPatterns = allPatterns.distinctBy { it.spec }
+            return distinctPatterns to cRocks
+        } finally {
+            isComputing.set(false)
         }
-
-        val distinctPatterns = allPatterns.distinctBy { it.spec }
-        return distinctPatterns to cRocks
     }
 
     companion object {
+        @org.jetbrains.annotations.TestOnly
+        var testDiscoverySeam: ((Project) -> List<DiscoveredRockspec>)? = null
+
+        @org.jetbrains.annotations.TestOnly
+        fun invalidateCache(project: Project) {
+            getInstance(project).forceRefreshTracker.incModificationCount()
+        }
+
         fun getInstance(project: Project): RockspecSourcePathProvider =
             project.getService(RockspecSourcePathProvider::class.java)
     }

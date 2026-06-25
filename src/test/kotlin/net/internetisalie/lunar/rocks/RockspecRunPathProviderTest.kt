@@ -34,16 +34,14 @@ class RockspecRunPathProviderTest : BasePlatformTestCase() {
             build = { type = "builtin", modules = { ["cjson"] = { "src/cjson.c" } } }
         """.trimIndent())
 
-        val stubDiscovery = object : LuaRockspecDiscoveryService(project) {
-            override fun discoverRockspecPaths(): List<DiscoveredRockspec> {
-                return listOf(
-                    DiscoveredRockspec(rockspecA, "a"),
-                    DiscoveredRockspec(rockspecB, "b"),
-                    DiscoveredRockspec(rockspecC, "c")
-                )
-            }
+        RockspecSourcePathProvider.testDiscoverySeam = { _ ->
+            listOf(
+                DiscoveredRockspec(rockspecA, "a"),
+                DiscoveredRockspec(rockspecB, "b"),
+                DiscoveredRockspec(rockspecC, "c")
+            )
         }
-        project.replaceService(LuaRockspecDiscoveryService::class.java, stubDiscovery, testRootDisposable)
+        RockspecSourcePathProvider.invalidateCache(project)
         
         val projPathNio = Path.of(project.basePath!!)
         val luaModulesPath = projPathNio.resolve("lua_modules")
@@ -74,5 +72,13 @@ class RockspecRunPathProviderTest : BasePlatformTestCase() {
         val cPath = RockspecRunPathProvider.luaCPath(project)
         val projPath = project.basePath?.replace('\\', '/')
         assertEquals("$projPath/lua_modules/lib/lua/5.4/?.so;;", cPath)
+    }
+
+    override fun tearDown() {
+        try {
+            RockspecSourcePathProvider.testDiscoverySeam = null
+        } finally {
+            super.tearDown()
+        }
     }
 }

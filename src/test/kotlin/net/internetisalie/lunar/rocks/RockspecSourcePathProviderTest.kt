@@ -24,12 +24,10 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
         """.trimIndent())
 
         // Create a TEST-ONLY discovery stub
-        val stubDiscovery = object : LuaRockspecDiscoveryService(project) {
-            override fun discoverRockspecPaths(): List<DiscoveredRockspec> {
-                return listOf(DiscoveredRockspec(rockspecFile, "foo"))
-            }
+        RockspecSourcePathProvider.testDiscoverySeam = { _ ->
+            listOf(DiscoveredRockspec(rockspecFile, "foo"))
         }
-        project.replaceService(LuaRockspecDiscoveryService::class.java, stubDiscovery, testRootDisposable)
+        RockspecSourcePathProvider.invalidateCache(project)
 
         // Must run off-EDT to compute
         val patterns = com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread<List<SourcePathPattern>> {
@@ -73,5 +71,13 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
             "New patterns should include \$newExpectedPatternSpec. Actual: \${newPatterns.map { it.spec }}",
             newPatterns.any { it.spec == newExpectedPatternSpec }
         )
+    }
+
+    override fun tearDown() {
+        try {
+            RockspecSourcePathProvider.testDiscoverySeam = null
+        } finally {
+            super.tearDown()
+        }
     }
 }
