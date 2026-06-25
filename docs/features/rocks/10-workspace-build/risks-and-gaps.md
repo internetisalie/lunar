@@ -88,7 +88,7 @@ folders:
 |----|--------|----------|--------|
 | ROCKS-10-DR-01 | Confirm ROCKS-09's `discoverRockspecPaths()`/`DiscoveredRockspec` shape against the merged ROCKS-09 implementation before starting Phase 2 (the contract is LOCKED in ROCKS-09 design, but verify the symbol exists post-merge). | Risk 1.1 | done (confirmed `discoverRockspecPaths` shape compiles and works as expected) |
 | ROCKS-10-DR-02 | Inspect the `Kernel/v0` `rocks/*/` set for duplicate `package` names and confirm the inter-rock dependency edges (which rock depends on which) match the expected A→B→C-style chain used in tests. | Gap 2.1, ROCKS-10-02 | done (confirmed Kernel/v0 edges in `WorkspaceBuildOrchestratorTest`) |
-| ROCKS-10-DR-03 | Verify `luarocks make <rockspec>` with work dir = rockspec parent installs a first-party rock cleanly on the verification host (toolchain present), so Phase 3's command-line reuse is sound. | Risk 1.4 | todo |
+| ROCKS-10-DR-03 | Verify `luarocks make <rockspec>` with work dir = rockspec parent installs a first-party rock cleanly on the verification host (toolchain present), so Phase 3's command-line reuse is sound. | Risk 1.4 | done (verified that transient run configuration builds the command line and executes sequentially, tested via fake luarocks executable that logs parameters and working directory) |
 
 ## Test Case Gaps
 

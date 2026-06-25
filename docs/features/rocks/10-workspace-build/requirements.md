@@ -158,7 +158,7 @@ the failing rock and its exit code.
 - [x] ROCKS-10-01: build set sourced from `LuaRockspecDiscoveryService`; deps via `RockspecBridge.read` (TC 1, 7).
 - [x] ROCKS-10-02/03: DAG over discovered set, edges between first-party siblings only, Kahn topo-sort (TC 1, 3, 4).
 - [x] ROCKS-10-04: cycle reported, nothing built (TC 2).
-- [ ] ROCKS-10-05: sequential `luarocks make` via ROCKS-04 command line; stop on first failure (TC 5, 6).
+- [x] ROCKS-10-05: sequential `luarocks make` via ROCKS-04 command line; stop on first failure (TC 5, 6).
 - [ ] ROCKS-10-06: single Run-tool-window console with per-rock headers and a summary.
 - [ ] ROCKS-10-07: orchestration runs off-EDT on a cancellable `Task.Backgroundable`.
 - [ ] ROCKS-10-08: `Lua.Rocks.BuildWorkspace` registered; enabled only with ≥2 discovered rocks (TC 8, 9).

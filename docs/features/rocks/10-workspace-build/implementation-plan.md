@@ -39,11 +39,11 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 ### Phase 3: Sequential runner (ROCKS-04 reuse) [Must]
 - **Goal**: run `luarocks make` per rock in order, streaming to a console, stopping on first failure.
 - **Tasks**:
-  - [ ] Create `WorkspaceBuildRunner.run(project, order, console, indicator)` building each rock's
+  - [x] Create `WorkspaceBuildRunner.run(project, order, console, indicator)` building each rock's
         command via a transient `LuaRocksRunConfiguration` (`command="make"`, `rockspecPath=<path>`)
         + `buildCommandLine(LuaRocksSettings.getInstance().executablePath)`, attaching the
         `OSProcessHandler` to the console and awaiting `waitFor()` — realizes design §2.3, §3.3.
-  - [ ] Stop and return `BuildOutcome` on the first non-zero exit; catch `ExecutionException`
+  - [x] Stop and return `BuildOutcome` on the first non-zero exit; catch `ExecutionException`
         (missing `luarocks`) as a failure.
 - **Exit criteria**: TC #5 (each rock built once, correct work dir/order) and TC #6 (failure at B
   stops C) pass against a stubbed/fake `luarocks` on PATH.
@@ -77,7 +77,7 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 - [x] Unit-test `WorkspaceBuildGraph.topoSort` — covers TC #1, #2, #3, #4.
 - [x] Unit-test `WorkspaceBuildOrchestrator.loadRocks`/`normalizeDepName` with a stubbed discovery
       + bridge — covers TC #7 and the dep-string parse format (§3.0 step 4).
-- [ ] Light-fixture test (`BasePlatformTestCase`) for `WorkspaceBuildRunner` with a fake `luarocks`
+- [x] Light-fixture test (`BasePlatformTestCase`) for `WorkspaceBuildRunner` with a fake `luarocks`
       script on PATH — covers TC #5, #6.
 - [ ] Action-gate test (`BasePlatformTestCase`) for `BuildWorkspaceAction.update` — covers TC #8, #9.
 - [ ] Run `human-verification-checklists.md` (build `Kernel/v0`-shaped workspace, confirm order).
@@ -89,5 +89,5 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 |-------|--------|----------|
 | Phase 1: Graph + topo-sort core | done | Must |
 | Phase 2: Orchestrator | done | Must |
-| Phase 3: Sequential runner | todo | Must |
+| Phase 3: Sequential runner | done | Must |
 | Phase 4: Action + UI + registration | todo | Must |
