@@ -2,7 +2,7 @@
 id: "ROCKS-10-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "ROCKS-10"
 folders:

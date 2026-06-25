@@ -2,7 +2,7 @@
 id: "ROCKS-10-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "ROCKS-10"
 folders:
@@ -20,8 +20,8 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 ### Phase 1: Graph + topo-sort core [Must]
 - **Goal**: pure, fully unit-testable ordering logic with no platform dependency.
 - **Tasks**:
-  - [ ] Create `WorkspaceRock` + `BuildPlan` (`Ordered`/`Cycle`/`Empty`) data types — realizes design §2.1.
-  - [ ] Create `WorkspaceBuildGraph.topoSort(rocks)` implementing the §3.1 DAG build and the §3.2
+  - [x] Create `WorkspaceRock` + `BuildPlan` (`Ordered`/`Cycle`/`Empty`) data types — realizes design §2.1.
+  - [x] Create `WorkspaceBuildGraph.topoSort(rocks)` implementing the §3.1 DAG build and the §3.2
         Kahn sort with name tie-break and cycle detection — realizes design §2.2, §3.1, §3.2.
 - **Exit criteria**: unit tests for TC #1 (A→B→C ⇒ `["A","B","C"]`), TC #2 (A↔B ⇒ `Cycle({a,b})`),
   TC #3 (independent pair ⇒ name-sorted), TC #4 (external dep ⇒ no edge) pass. Build green.
@@ -74,7 +74,7 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 
 ## Verification Tasks
 
-- [ ] Unit-test `WorkspaceBuildGraph.topoSort` — covers TC #1, #2, #3, #4.
+- [x] Unit-test `WorkspaceBuildGraph.topoSort` — covers TC #1, #2, #3, #4.
 - [ ] Unit-test `WorkspaceBuildOrchestrator.loadRocks`/`normalizeDepName` with a stubbed discovery
       + bridge — covers TC #7 and the dep-string parse format (§3.0 step 4).
 - [ ] Light-fixture test (`BasePlatformTestCase`) for `WorkspaceBuildRunner` with a fake `luarocks`
@@ -87,7 +87,7 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Graph + topo-sort core | todo | Must |
+| Phase 1: Graph + topo-sort core | done | Must |
 | Phase 2: Orchestrator | todo | Must |
 | Phase 3: Sequential runner | todo | Must |
 | Phase 4: Action + UI + registration | todo | Must |

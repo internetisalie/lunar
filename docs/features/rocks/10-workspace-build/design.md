@@ -2,7 +2,7 @@
 id: "ROCKS-10-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "ROCKS-10"
 folders:
