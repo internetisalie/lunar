@@ -28,11 +28,11 @@ folders:
 ### Phase 2: Server-aware consumers [Must]
 - **Goal**: Search/list and the run-config builder emit the resolved `--server`.
 - **Tasks**:
-  - [ ] Update `LuaRocksSearchService.search` / `installed` to take a `Project?` and build the
+  - [x] Update `LuaRocksSearchService.search` / `installed` to take a `Project?` and build the
         command via `LuaRocksEnvironment.resolveExecutable` + `withServer(..., resolveServer(project))`
         — realizes design §2 consumers, §5 Ex.1. (Thread callers through; callers in the ROCKS-02
         browser pass their project.)
-  - [ ] (Optional alignment) leave `LuaRocksRunConfiguration.buildCommandLine` `--server`-via-
+  - [x] (Optional alignment) leave `LuaRocksRunConfiguration.buildCommandLine` `--server`-via-
         `globalFlags` as-is; document that per-run flags still win (no code change required).
 - **Exit criteria**: TC 1, 2 pass (search emits `--server` iff resolved; omitted when unset).
 
@@ -77,7 +77,7 @@ folders:
 - [x] Add `LuaRocksEnvironmentTest` — covers TC 1–4, 9, 10 (resolution + `withServer` append).
 - [ ] Extend `RockUploadCommandTest` for the `server` param — covers TC 5, 6.
 - [ ] Add `LuaRocksApiKeyStoreTest` for per-server keying + legacy fall-through — covers TC 7, 8.
-- [ ] Add/extend a `LuaRocksSearchService` command-shape test (capture/build the command line) —
+- [x] Add/extend a `LuaRocksSearchService` command-shape test (capture/build the command line) —
       covers TC 1, 2.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) in a sandbox IDE.
 

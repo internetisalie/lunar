@@ -2,7 +2,8 @@ package net.internetisalie.lunar.rocks.browser
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.Logger
-import net.internetisalie.lunar.rocks.run.LuaRocksSettings
+import com.intellij.openapi.project.Project
+import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.util.LuaProcessUtil
 
 /**
@@ -21,6 +22,11 @@ import net.internetisalie.lunar.util.LuaProcessUtil
  * A non-zero exit code or a timeout (exit code [LuaProcessUtil.PROCESS_TIMEOUT_EXCEPTION_CODE])
  * produces an empty list so callers degrade gracefully. Cached results (if fresh) are served by
  * the caller before reaching here.
+ *
+ * ## Server resolution (ROCKS-06)
+ * The effective registry is resolved via [LuaRocksEnvironment.resolveServer]: project override
+ * beats app default; `null` means no `--server` is emitted (preserves pre-ROCKS-06 behavior).
+ * `--server` is a luarocks global flag and is prepended before the subcommand.
  */
 object LuaRocksSearchService {
     private val log = Logger.getInstance(LuaRocksSearchService::class.java)
@@ -30,15 +36,20 @@ object LuaRocksSearchService {
     /**
      * Returns packages matching [query], annotated with [LuaRockPackage.isInstalled].
      * Returns an empty list if [query] is blank, or if the CLI is unavailable / offline.
+     *
+     * @param project used to resolve the effective executable and registry server (ROCKS-06).
+     *   Pass `null` to use the application defaults.
      */
-    fun search(query: String): List<LuaRockPackage> {
+    fun search(query: String, project: Project? = null): List<LuaRockPackage> {
         if (query.isBlank()) return emptyList()
         val cached = LuaRocksSearchCache.get(query, System.currentTimeMillis())
         if (cached != null) return cached
 
-        val exe = LuaRocksSettings.getInstance().executablePath
+        val exe = LuaRocksEnvironment.resolveExecutable(project)
+        val server = LuaRocksEnvironment.resolveServer(project)
+        val subArgs = LuaRocksEnvironment.withServer(listOf("search", "--porcelain", query), server)
         val output = LuaProcessUtil.capture(
-            GeneralCommandLine(exe, "search", "--porcelain", query),
+            GeneralCommandLine(exe, *subArgs.toTypedArray()),
             SEARCH_TIMEOUT_MS,
         )
         if (output.exitCode != 0) {
@@ -46,7 +57,7 @@ object LuaRocksSearchService {
             return emptyList()
         }
 
-        val installedNames = installed()
+        val installedNames = installed(project)
         val packages = parseSearchOutput(output.stdout, installedNames)
         LuaRocksSearchCache.put(query, packages, System.currentTimeMillis())
         return packages
@@ -55,11 +66,16 @@ object LuaRocksSearchService {
     /**
      * Returns the set of installed package names (lower-case keys).
      * Uses `luarocks list --porcelain` (same field format as search).
+     *
+     * @param project used to resolve the effective executable and registry server (ROCKS-06).
+     *   Pass `null` to use the application defaults.
      */
-    fun installed(): Set<String> {
-        val exe = LuaRocksSettings.getInstance().executablePath
+    fun installed(project: Project? = null): Set<String> {
+        val exe = LuaRocksEnvironment.resolveExecutable(project)
+        val server = LuaRocksEnvironment.resolveServer(project)
+        val subArgs = LuaRocksEnvironment.withServer(listOf("list", "--porcelain"), server)
         val output = LuaProcessUtil.capture(
-            GeneralCommandLine(exe, "list", "--porcelain"),
+            GeneralCommandLine(exe, *subArgs.toTypedArray()),
             SEARCH_TIMEOUT_MS,
         )
         if (output.exitCode != 0) {
