@@ -12,7 +12,7 @@ folders:
 # ROCKS-01: Project Initialization & Setup
 
 ## Scope
-The Project Initialization feature enables users to scaffold a new Lua project with a LuaRocks-compatible structure. Users can create either a single rock project (with a standard src/ directory, optional application-specific setup, testing framework, and build automation) or a workspace that contains multiple rock projects. The IDE ensures that the selected components are correctly configured.
+The Project Initialization feature enables users to scaffold a new Lua project with a LuaRocks-compatible structure. Users can create a rock project (with a standard src/ directory, optional application-specific setup, testing framework, and build automation). The IDE ensures that the selected components are correctly configured. (Note: prior to ROCKS-09 this supported a bespoke 'workspace.lua' scaffold; multi-rock workspaces are now created by scaffolding multiple rocks side-by-side or adding them to an existing directory.)
 
 ### In Scope
 - Running `luarocks init` for single rock projects with configurable Lua versions.
@@ -23,8 +23,7 @@ The Project Initialization feature enables users to scaffold a new Lua project w
 - Optional creation of `spec/` directory for Busted testing configuration (for single rock projects).
 - Optional creation of a `Makefile` for build automation (for single rock projects).
 - Automatic injection of `LUA_INIT` logic for Run Configurations when loader setup is selected (for single rock projects).
-- Creating a workspace configuration file for workspace projects.
-- Initializing Git and appending standard exclusions to `.gitignore` for both project types.
+- Initializing Git and appending standard exclusions to `.gitignore`.
 
 ### Out of Scope
 - Managing multiple versions of the `luarocks` binary (handled by `TOOL-01`).
@@ -95,11 +94,8 @@ When a user initializes a LuaRocks project:
 - **Expected Output**: Directory contains `my-app-scm-1.rockspec`, `src/main.lua`,
   `src/setup.lua`, `spec/my-app_spec.lua`, `Makefile`, `lua_modules/`, `.gitignore`.
 
-### TC-ROCKS-01-05: Workspace Project Init
-- **Input**: workspace name "my-workspace", kind Workspace, initial rocks "rock1", "rock2".
-- **Action**: `scaffold` (workspace path) runs.
-- **Expected Output**: Directory contains `workspace.lua` (with `workspace = "my-workspace"`
-  and `rocks = {"rock1","rock2"}`), directories `rock1/` and `rock2/`, and `.gitignore`.
+### TC-ROCKS-01-05: Workspace Project Init (Obsolete)
+- **Status**: OBSOLETE. As of ROCKS-09, the `workspace.lua` scaffolding path has been removed. Multi-rock workspaces are now discovered purely by the presence of multiple rockspecs in subdirectories, without requiring a root `workspace.lua`.
 
 ### TC-ROCKS-01-06: Run Configuration Environment (with Loader Setup)
 - **Input**: A single-rock project initialized with Loader Setup (TC-ROCKS-01-02).

@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.rocks
 
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
@@ -57,14 +58,24 @@ class LuaRockspecDiscoveryService(private val project: Project) {
         val settingsState = LuaProjectSettings.getInstance(project).state
         val includeGlobs = settingsState.rockspecIncludeGlobs.toList()
         val excludeGlobs = settingsState.rockspecExcludeGlobs.toList()
+
+        val includedRockspecs = ReadAction.nonBlocking<List<IncludedRockspec>> {
+            enumerateIncluded(includeGlobs, excludeGlobs)
+        }.expireWith(project).executeSynchronously()
+
+        return includedRockspecs
+            .map { DiscoveredRockspec(it.path, RockspecBridge.read(project, it.path)?.packageName) }
+    }
+
+    private fun enumerateIncluded(
+        includeGlobs: List<String>,
+        excludeGlobs: List<String>,
+    ): List<IncludedRockspec> {
         val fileIndex = ProjectFileIndex.getInstance(project)
         val scope = GlobalSearchScope.projectScope(project)
-        val candidates = FilenameIndex.getAllFilesByExt(project, ROCKSPEC_EXT, scope)
-
-        return candidates
+        return FilenameIndex.getAllFilesByExt(project, ROCKSPEC_EXT, scope)
             .mapNotNull { vf -> includedEntry(vf, fileIndex, includeGlobs, excludeGlobs) }
             .sortedBy { it.relativePath.lowercase() }
-            .map { DiscoveredRockspec(it.path, RockspecBridge.read(project, it.path)?.packageName) }
     }
 
     private fun includedEntry(

@@ -40,8 +40,8 @@ The Dependency Resolution feature provides a visual, hierarchical view of the pr
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **ROCKS-03-01** | **Dependency Tree View** | **Must** | **Full** | Provide a tool window displaying the hierarchical tree of all dependencies. |
-| **ROCKS-03-02** | **Transitive Resolution** | **Must** | **Full** | Correctly resolve and display dependencies of dependencies. |
+| **ROCKS-03-01** | **Dependency Tree View** | **Must** | **Full** | Provide a tool window displaying the hierarchical tree of all dependencies. (Note: As of ROCKS-09, this renders a forest of all discovered project rockspecs, rather than a single root.) |
+| **ROCKS-03-02** | **Transitive Resolution** | **Must** | **Full** | Correctly resolve and display dependencies of dependencies. (Note: As of ROCKS-09, this uses `resolveAll` across multiple roots.) |
 | **ROCKS-03-03** | **Conflict Detection** | **Must** | **Full** | Identify and visually flag version conflicts within the graph. |
 | **ROCKS-03-04** | **Package Metadata** | **Should** | **Partial** | Inspector shows resolved version, scope, constraints, and conflicts; license/homepage display deferred (bridge exports them but the resolver consumes only package/version/dependencies). |
 | **ROCKS-03-05** | **Reverse Dependency View** | **Could** | **Full** | Inspector "Required by" lists reverse dependencies (`DependencyNode.requiredBy`). |
@@ -80,4 +80,4 @@ The Dependency Resolution feature provides a visual, hierarchical view of the pr
 ### TC-ROCKS-03-05: Missing Dependency
 - **Input**: project rockspec depends on `ghost`, no `ghost` rock installed.
 - **Action**: Open the tool window.
-- **Expected Output**: a `ghost` node flagged `MISSING_DEPENDENCY` ("required but not installed").
+- **Expected Output**: a `ghost` node flagged `MISSING_DEPENDENCY` ("required but not installed"). (Note: As of ROCKS-09, this is flagged per-root across the forest.)

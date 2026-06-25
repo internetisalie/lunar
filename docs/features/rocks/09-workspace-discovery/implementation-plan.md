@@ -89,8 +89,8 @@ folders:
 - [x] Unit/light: `resolveAll` forest + missing-dep flag — covers TC #7, #8.
 - [x] Unit/light: `LuaRocksTreeLocator.allProjectRockspecs` delegation — covers TC #12.
 - [x] Build/compile: workspace removal — covers TC #9.
-- [ ] Run `human-verification-checklists.md` (dependency tool window over `Kernel/v0`).
-- [ ] `./gradlew test`, `ktlintFormat`, `ktlintCheck` (match surrounding style).
+- [x] Run `human-verification-checklists.md` (dependency tool window over `Kernel/v0`).
+- [x] `./gradlew test`, `ktlintFormat`, `ktlintCheck` (match surrounding style).
 
 ## Task Summary
 
