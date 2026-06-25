@@ -28,7 +28,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 ### Phase 2: Source-root derivation [Must]
 - **Goal**: pure transform from `build.modules` to source-root `SourcePathPattern`s.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.RockspecModuleDerivation` (design section 2.1)
+  - [x] Create `net.internetisalie.lunar.rocks.RockspecModuleDerivation` (design section 2.1)
     implementing the section 3.1 common-prefix algorithm, emitting `?.lua` + `?/init.lua` per root.
 - **Exit criteria**: TC #4, #5 pass (`RockspecModuleDerivationTest`, pure unit, no fixture).
 
@@ -80,7 +80,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 
 ## Verification Tasks
 - [x] `RockspecBridgeTest` over the section 4.1 JSON shapes — covers TC #1-#3.
-- [ ] `RockspecModuleDerivationTest` (pure) — covers TC #4-#5.
+- [x] `RockspecModuleDerivationTest` (pure) — covers TC #4-#5.
 - [ ] `RockspecSourcePathProviderTest` with a TEST-ONLY discovery stub + light fixture — covers TC #6, #9.
 - [ ] `RockspecRunPathProviderTest` (union + CPATH) with a TEST-ONLY discovery stub — covers TC #7, #8.
 - [ ] Run human-verification-checklists.md.
@@ -90,7 +90,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Bridge build data | done | Must |
-| Phase 2: Source-root derivation | todo | Must |
+| Phase 2: Source-root derivation | done | Must |
 | Phase 3: IDE side (A) | todo | Must |
 | Phase 4: Runtime LUA_PATH side (B) | todo | Must |
 | Phase 5: End-to-end | todo | Should |
