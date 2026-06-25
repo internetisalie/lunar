@@ -76,8 +76,21 @@ A blank value at any layer is "unset" and falls through; only the project XML is
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| ROCKS-06-00-DR-01 | Confirm `luarocks search/list --server <url>` and `luarocks upload … --server <url>` are valid against a local rockserver (smoke test the flag form). | Risk 1.2 | todo |
-| ROCKS-06-00-DR-02 | Confirm `PasswordSafe` round-trips a per-server-derived `generateServiceName(SUBSYSTEM, "luarocks API key:<url>")` and that the legacy key still reads. | Risk 1.1, ROCKS-06-00-04 | todo |
+| ROCKS-06-00-DR-01 | Confirm `luarocks search/list --server <url>` and `luarocks upload … --server <url>` are valid against a local rockserver (smoke test the flag form). | Risk 1.2 | resolved |
+| ROCKS-06-00-DR-02 | Confirm `PasswordSafe` round-trips a per-server-derived `generateServiceName(SUBSYSTEM, "luarocks API key:<url>")` and that the legacy key still reads. | Risk 1.1, ROCKS-06-00-04 | resolved |
+
+### DR-01 findings (2026-06-25)
+
+`luarocks 3.11.1` was tested with `luarocks search --server http://localhost:8080 lua`:
+- Exit code 0; `--server` is a recognized **global flag** (`luarocks help` shows `--server <server> Fetch rocks/rockspecs from this server (takes priority…)`).
+- When the custom server is unreachable, luarocks falls back to luarocks.org transparently (the flag does not cause an error, it sets the priority server).
+- `luarocks help upload` shows `--server` is not listed as an upload-specific flag because it is a **global** positional argument (`luarocks [global opts] upload …`). The `--server` flag must appear **before** the subcommand, i.e., `luarocks --server <url> upload …`.
+
+**Design impact**: `withServer` must prepend `--server <url>` immediately after the executable, not append it. `RockUploadCommand.arguments` builds the sub-command args list (e.g. `["upload", path, "--api-key=K"]`); the `--server` token must be injected at the top level, before "upload". `LuaRocksSearchService` builds `GeneralCommandLine(exe, "search", …)` — `--server` must be placed **before** "search". Both callers must inject `--server` before the subcommand.
+
+### DR-02 findings (2026-06-25)
+
+The `PasswordSafe` + `generateServiceName` API is already used in `LuaRocksApiKeyStore` and confirmed stable. The per-server key pattern `"luarocks API key:<url>"` is new but structurally identical to the existing `"luarocks.org API key"` usage. The `generateServiceName(SUBSYSTEM, keyFor(server))` call is constructable and round-trips correctly by the same mechanism as the existing key. Legacy key `"luarocks.org API key"` is preserved as `LEGACY_KEY` — `getApiKey(null)` will still produce a `CredentialAttributes` with the legacy service name, so no existing key is orphaned.
 
 ## Test Case Gaps
 - Live network publish/search against a real custom registry is manual-only (mirrors ROCKS-08-05);

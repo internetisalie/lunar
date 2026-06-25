@@ -16,12 +16,12 @@ folders:
 - **Goal**: Both settings layers hold a server URL, and a single resolver returns the effective
   server + executable.
 - **Tasks**:
-  - [ ] Extend `net.internetisalie.lunar.rocks.run.LuaRocksSettings.State` with
+  - [x] Extend `net.internetisalie.lunar.rocks.run.LuaRocksSettings.State` with
         `var serverUrl by string("")` and the `serverUrl` accessor — realizes design §2.2.
-  - [ ] Add `var rocksServerUrl: String = ""` to
+  - [x] Add `var rocksServerUrl: String = ""` to
         `net.internetisalie.lunar.settings.LuaProjectSettings.State` (beside `projectToolBindings`)
         — realizes design §2.3.
-  - [ ] Create `net.internetisalie.lunar.rocks.LuaRocksEnvironment` with `resolveServer`,
+  - [x] Create `net.internetisalie.lunar.rocks.LuaRocksEnvironment` with `resolveServer`,
         `resolveExecutable`, `withServer` — realizes design §2.1, §3.1, §3.2, §3.3.
 - **Exit criteria**: Unit tests for precedence and append logic pass (TC 1–4, 9, 10); build green.
 
@@ -74,7 +74,7 @@ folders:
 | ROCKS-06-08 | S | Phase 4 |
 
 ## Verification Tasks
-- [ ] Add `LuaRocksEnvironmentTest` — covers TC 1–4, 9, 10 (resolution + `withServer` append).
+- [x] Add `LuaRocksEnvironmentTest` — covers TC 1–4, 9, 10 (resolution + `withServer` append).
 - [ ] Extend `RockUploadCommandTest` for the `server` param — covers TC 5, 6.
 - [ ] Add `LuaRocksApiKeyStoreTest` for per-server keying + legacy fall-through — covers TC 7, 8.
 - [ ] Add/extend a `LuaRocksSearchService` command-shape test (capture/build the command line) —

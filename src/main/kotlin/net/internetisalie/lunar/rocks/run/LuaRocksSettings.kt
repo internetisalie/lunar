@@ -28,11 +28,16 @@ import com.intellij.openapi.util.text.StringUtil
 class LuaRocksSettings : SimplePersistentStateComponent<LuaRocksSettings.State>(State()) {
     class State : BaseState() {
         var executablePath by string(DEFAULT_EXECUTABLE)
+        var serverUrl by string("")
     }
 
     var executablePath: String
         get() = StringUtil.notNullize(state.executablePath, DEFAULT_EXECUTABLE)
         set(value) { state.executablePath = value }
+
+    var serverUrl: String
+        get() = StringUtil.notNullize(state.serverUrl, "")
+        set(value) { state.serverUrl = value }
 
     companion object {
         const val DEFAULT_EXECUTABLE: String = "luarocks"

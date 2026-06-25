@@ -72,6 +72,14 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
          */
         var projectToolBindings: MutableMap<String, String> = HashMap()
 
+        /**
+         * Per-project LuaRocks registry server override (ROCKS-06-02). When non-blank, takes
+         * precedence over the application-level [net.internetisalie.lunar.rocks.run.LuaRocksSettings.serverUrl].
+         * Stored in `.idea/lunar.xml` so teams share the registry target via VCS.
+         * An empty string means "use the app default (or none)".
+         */
+        var rocksServerUrl: String = ""
+
         fun expandSourcePath(project : Project) : String {
             return sourcePath.trim(' ').expandMacros(project)
         }
