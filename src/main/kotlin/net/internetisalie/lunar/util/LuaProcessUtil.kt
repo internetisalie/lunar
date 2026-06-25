@@ -15,6 +15,16 @@ object LuaProcessUtil {
 
     // Execute and return the captured process output
     fun capture(cmd: GeneralCommandLine, timeout: Int = STANDARD_TIMEOUT): ProcessOutput {
+        val app = com.intellij.openapi.application.ApplicationManager.getApplication()
+        if (app != null && app.isReadAccessAllowed && !app.isDispatchThread) {
+            return app.executeOnPooledThread(java.util.concurrent.Callable {
+                doCapture(cmd, timeout)
+            }).get()
+        }
+        return doCapture(cmd, timeout)
+    }
+
+    private fun doCapture(cmd: GeneralCommandLine, timeout: Int): ProcessOutput {
         val processHandler = CapturingProcessHandler(cmd)
 
         return try {
