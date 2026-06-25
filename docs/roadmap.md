@@ -254,12 +254,14 @@ bug and gave the type inspections false confidence until this session's coverage
 > **ROCKS-09 shipped (2026-06-25).** Discovery foundation is done; ROCKS-05, ROCKS-10, and ROCKS-12
 > are now unblocked. A threading contract violation (read-action missing in `LuaRockspecDiscoveryService`)
 > was caught by VNC live verification and fixed before the feature was closed.
+>
+> **ROCKS-06 shipped (2026-06-25).** Project LuaRocks Environment done; Settings UI, server resolution, TOOL-02 binding, per-server credentials all verified.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | ROCKS-09 | Multi-Rock Workspace Discovery | done | M | — | ROCKS-05, ROCKS-10, ROCKS-12 | ✓ 2026-06-25: `LuaRockspecDiscoveryService` (index-backed, cached, exclusion-aware), `resolveAll` forest, `workspace.lua` removal, glob-override globs. Threading bug (read-action split) found+fixed via VNC. Deferred: bridge cache, settings UI, forest grouping. |
 | ROCKS-05 | Rockspec Module Resolution (+ run/debug `LUA_PATH`) | planned | S | ROCKS-09 | ROCKS-12 | ✓ |
-| ROCKS-06 | Project LuaRocks Environment | planned | M | TOOL-02 *(executable binding)* | — *(redefines 02/03/08 server-awareness)* | ✓ |
+| ROCKS-06 | Project LuaRocks Environment | done | M | TOOL-02 *(executable binding)* | — *(redefines 02/03/08 server-awareness)* | ✓ 2026-06-25: `LuaRocksEnvironment` (resolver, `withServer` global-flag prepend), per-server `LuaRocksApiKeyStore`, `LuaRocksSettingsConfigurable`, project `rocksServerUrl` override. VNC verified: settings UI, server resolution precedence, TOOL-02 binding, fallback. Deferred: publish/credential VNC (headless TC 7/8 green). |
 | ROCKS-10 | Workspace Build Orchestration (dep order) | planned | M | ROCKS-09, ROCKS-03, ROCKS-04 | — | ✓ |
 | ROCKS-11 | Makefile Task Integration | planned | C | ROCKS-01; opt. `com.jetbrains.lang.makefile` *(spike)* | — | ✓ |
 | ROCKS-12 | Project-View Roots & Marking | planned | M | ROCKS-05, ROCKS-09 | — | ✓ |

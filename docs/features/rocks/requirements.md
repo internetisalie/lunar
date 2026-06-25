@@ -19,7 +19,7 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 | [`ROCKS-03`](03-dependency-resolution/requirements.md) | **Dependency Resolution** | **M** | **Full** | Hierarchical tree view and conflict detection. |
 | [`ROCKS-04`](04-task-execution/requirements.md) | **Task Execution & Run Configurations** | **M** | **Full** | Target-based command execution (similar to Maven/Makefile). |
 | [`ROCKS-05`](05-module-resolution/requirements.md) | **Rockspec Module Resolution** | **S** | **Not Implemented** | Derive source-path patterns from rockspec `build.modules` for require resolution, completion, and indexing. |
-| [`ROCKS-06`](06-project-environment/requirements.md) | **Project LuaRocks Environment** | **M** | **Not Implemented** | Project-scoped server/registry + executable (TOOL-02) config; per-server credentials. |
+| [`ROCKS-06`](06-project-environment/requirements.md) | **Project LuaRocks Environment** | **M** | **Full** | Project-scoped server/registry + executable (TOOL-02) config; per-server credentials. |
 | `ROCKS-08` | **Publishing & Lifecycle** | **C** | **Full** | Wizard for versioning and remote uploads. |
 | [`ROCKS-09`](09-workspace-discovery/requirements.md) | **Multi-Rock Workspace Discovery** | **M** | **Full** | Recursively discover all project rockspecs (replaces single-root `projectRockspec`); foundational for multi-rock resolution. |
 | [`ROCKS-10`](10-workspace-build/requirements.md) | **Workspace Build Orchestration** | **M** | **Not Implemented** | Build discovered rocks with `luarocks make` in topological dependency order. |
