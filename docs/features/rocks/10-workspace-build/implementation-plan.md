@@ -29,10 +29,10 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 ### Phase 2: Orchestrator (discovery + bridge + normalize) [Must]
 - **Goal**: turn the discovered set into a `BuildPlan` using ROCKS-09 + ROCKS-03.
 - **Tasks**:
-  - [ ] Create `WorkspaceBuildOrchestrator.computeBuildOrder(project)` and private `loadRocks`
+  - [x] Create `WorkspaceBuildOrchestrator.computeBuildOrder(project)` and private `loadRocks`
         consuming `LuaRockspecDiscoveryService.discoverRockspecPaths()` and `RockspecBridge.read`,
         with `normalizeDepName` (§3.0 step 4 regex) — realizes design §2.1, §3.0.
-  - [ ] Drop unparseable rockspecs (null bridge read) with a logged warning.
+  - [x] Drop unparseable rockspecs (null bridge read) with a logged warning.
 - **Exit criteria**: TC #7 (unparseable rockspec dropped) passes; a `Kernel/v0`-shaped fixture with
   a stubbed bridge yields a correct `Ordered` plan. Background-only (no EDT calls).
 
@@ -75,7 +75,7 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 ## Verification Tasks
 
 - [x] Unit-test `WorkspaceBuildGraph.topoSort` — covers TC #1, #2, #3, #4.
-- [ ] Unit-test `WorkspaceBuildOrchestrator.loadRocks`/`normalizeDepName` with a stubbed discovery
+- [x] Unit-test `WorkspaceBuildOrchestrator.loadRocks`/`normalizeDepName` with a stubbed discovery
       + bridge — covers TC #7 and the dep-string parse format (§3.0 step 4).
 - [ ] Light-fixture test (`BasePlatformTestCase`) for `WorkspaceBuildRunner` with a fake `luarocks`
       script on PATH — covers TC #5, #6.
@@ -88,6 +88,6 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Graph + topo-sort core | done | Must |
-| Phase 2: Orchestrator | todo | Must |
+| Phase 2: Orchestrator | done | Must |
 | Phase 3: Sequential runner | todo | Must |
 | Phase 4: Action + UI + registration | todo | Must |
