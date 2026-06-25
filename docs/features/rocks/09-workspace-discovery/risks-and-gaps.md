@@ -75,9 +75,9 @@ folders:
 | ROCKS-09-00-04 | Spike: `BasePlatformTestCase` proving `FilenameIndex.getAllFilesByExt(project,"rockspec",projectScope)` enumerates a `Kernel/v0`-shaped fixture's 10 rockspecs (and behaves in dumb mode). | Risk 1.2 | resolved |
 | ROCKS-09-00-05 | Measure `resolveAll` wall-time over a 10-rock fixture to confirm the pooled-thread + status-label UX is acceptable before adding a bridge cache. | Risk 1.3 | resolved |
 
-## Spike Outcomes (ROCKS-09-00-01 / -00-04)
+## Spike Outcomes (ROCKS-09-00-04 / -00-05)
 
-- **`FilenameIndex` spike (ROCKS-09-00-01 / Risk 1.2) — PASS.** A `BasePlatformTestCase`
+- **`FilenameIndex` spike (ROCKS-09-00-04 / Risk 1.2) — PASS.** A `BasePlatformTestCase`
   (`LuaRockspecDiscoveryServiceTest.testFilenameIndexEnumeratesKernelRockspecs`) builds a
   `Kernel/v0`-shaped fixture (10 rockspecs at `rocks/<name>/<name>-1.0-1.rockspec`, **no root
   rockspec**) via `myFixture.addFileToProject` and asserts

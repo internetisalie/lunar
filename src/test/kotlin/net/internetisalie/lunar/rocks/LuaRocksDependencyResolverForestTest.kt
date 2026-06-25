@@ -66,10 +66,7 @@ class LuaRocksDependencyResolverForestTest : BasePlatformTestCase() {
         assertEquals("Discovery must find all 10 rockspecs", 10, discoveredCount)
 
         if (!luaAvailable()) return
-        val start = System.currentTimeMillis()
         val roots = LuaRocksDependencyResolver.resolveAll(project)
-        val elapsed = System.currentTimeMillis() - start
-        println("resolveAll for 10 rocks took $elapsed ms")
         assertEquals("One resolved root per discovered rock", 10, roots.size)
         assertTrue("Every root is a source root (non-transitive)", roots.all { !it.isTransitive })
         assertEquals(names.toSet(), roots.map { it.packageName }.toSet())
