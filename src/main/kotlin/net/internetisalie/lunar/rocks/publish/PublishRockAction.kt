@@ -12,19 +12,20 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VirtualFile
 import net.internetisalie.lunar.lang.LuaIcons
-import net.internetisalie.lunar.rocks.run.LuaRocksSettings
+import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.util.LuaProcessUtil
 
 /**
- * Publishes the selected `.rockspec` to luarocks.org via `luarocks upload` (ROCKS-08).
+ * Publishes the selected `.rockspec` to a LuaRocks registry via `luarocks upload` (ROCKS-08,
+ * ROCKS-06).
  *
- * Gated to `.rockspec` files; resolves the API key from [LuaRocksApiKeyStore] (prompting on first
- * use), then runs the upload on a [Task.Backgroundable] off the EDT, reusing the ROCKS-04 binary
- * path and the shared `notification.group.lunar.luarocks` group for the result.
+ * Gated to `.rockspec` files; resolves the effective registry server and executable via
+ * [LuaRocksEnvironment], retrieves (or prompts for) the per-server API key from
+ * [LuaRocksApiKeyStore], then runs the upload on a [Task.Backgroundable] off the EDT.
  */
 class PublishRockAction : DumbAwareAction(
     "Publish Rock to LuaRocks…",
-    "Upload this rockspec to luarocks.org",
+    "Upload this rockspec to LuaRocks",
     LuaIcons.ROCKET,
 ) {
     override fun update(event: AnActionEvent) {
@@ -37,28 +38,30 @@ class PublishRockAction : DumbAwareAction(
         val project = event.project ?: return
         val rockspec = event.getData(CommonDataKeys.VIRTUAL_FILE)?.takeIf { isRockspec(it) } ?: return
 
-        val apiKey = ensureApiKey(project) ?: return
-        upload(project, rockspec.path, apiKey)
+        val server = LuaRocksEnvironment.resolveServer(project)
+        val apiKey = ensureApiKey(project, server) ?: return
+        upload(project, rockspec.path, apiKey, server)
     }
 
-    private fun ensureApiKey(project: Project): String? {
-        LuaRocksApiKeyStore.getApiKey()?.let { return it }
+    private fun ensureApiKey(project: Project, server: String?): String? {
+        LuaRocksApiKeyStore.getApiKey(server)?.let { return it }
+        val prompt = if (server != null) "Enter your API key for $server:" else "Enter your luarocks.org upload API key:"
         val entered = Messages.showPasswordDialog(
             project,
-            "Enter your luarocks.org upload API key:",
+            prompt,
             "Publish Rock to LuaRocks",
             LuaIcons.ROCKET,
         )?.takeIf { it.isNotBlank() } ?: return null
-        LuaRocksApiKeyStore.setApiKey(entered)
+        LuaRocksApiKeyStore.setApiKey(server, entered)
         return entered
     }
 
-    private fun upload(project: Project, rockspecPath: String, apiKey: String) {
+    private fun upload(project: Project, rockspecPath: String, apiKey: String, server: String?) {
         ProgressManager.getInstance().run(
             object : Task.Backgroundable(project, "Publishing rock to LuaRocks", true) {
                 override fun run(indicator: ProgressIndicator) {
-                    val exe = LuaRocksSettings.getInstance().executablePath
-                    val command = RockUploadCommand.build(exe, rockspecPath, apiKey)
+                    val exe = LuaRocksEnvironment.resolveExecutable(project)
+                    val command = RockUploadCommand.build(exe, rockspecPath, apiKey, server = server)
                     val output = LuaProcessUtil.capture(command, UPLOAD_TIMEOUT_MS)
                     if (output.exitCode == 0) {
                         notify(project, "LuaRocks: published $rockspecPath", NotificationType.INFORMATION)

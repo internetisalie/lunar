@@ -39,11 +39,11 @@ folders:
 ### Phase 3: Per-server credentials + upload server [Must]
 - **Goal**: Upload targets the resolved server and uses per-server credentials.
 - **Tasks**:
-  - [ ] Generalize `LuaRocksApiKeyStore` to `keyFor(server)` with `getApiKey(server)` /
+  - [x] Generalize `LuaRocksApiKeyStore` to `keyFor(server)` with `getApiKey(server)` /
         `setApiKey(server, key)` and a `LEGACY_KEY` fall-through — realizes design §2.4, §3 (§4.x rules).
-  - [ ] Extend `RockUploadCommand.arguments`/`build` with `server: String? = null` appending
+  - [x] Extend `RockUploadCommand.arguments`/`build` with `server: String? = null` appending
         `--server <url>` — realizes design §2.5.
-  - [ ] Update `PublishRockAction` to compute `server = resolveServer(project)`,
+  - [x] Update `PublishRockAction` to compute `server = resolveServer(project)`,
         `exe = resolveExecutable(project)`, key via `getApiKey(server)` / `setApiKey(server, …)`,
         and `RockUploadCommand.build(..., server = server)` — realizes design §5 Ex.2.
 - **Exit criteria**: TC 5–8 pass; legacy key still resolves; build green.
@@ -75,8 +75,8 @@ folders:
 
 ## Verification Tasks
 - [x] Add `LuaRocksEnvironmentTest` — covers TC 1–4, 9, 10 (resolution + `withServer` append).
-- [ ] Extend `RockUploadCommandTest` for the `server` param — covers TC 5, 6.
-- [ ] Add `LuaRocksApiKeyStoreTest` for per-server keying + legacy fall-through — covers TC 7, 8.
+- [x] Extend `RockUploadCommandTest` for the `server` param — covers TC 5, 6.
+- [x] Add `LuaRocksApiKeyStoreTest` for per-server keying + legacy fall-through — covers TC 7, 8.
 - [x] Add/extend a `LuaRocksSearchService` command-shape test (capture/build the command line) —
       covers TC 1, 2.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) in a sandbox IDE.
