@@ -52,7 +52,7 @@ folders:
 | [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      5 |           0 |       6 |      1 |      12 | ████░░░░░░ 42%  |
+| [**ROCKS**](#rocks--luarocks-integration)                   |      8 |           0 |       3 |      1 |      12 | ███████░░░ 66%  |
 | [**SCHEMA**](#schema--schema-driven-data-files)             |      0 |           0 |       1 |      3 |       4 | ░░░░░░░░░░  0%  |
 | [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
@@ -250,10 +250,10 @@ folders:
 | ROCKS-02 | Package Browser | done | `rocks/browser/*` tool window "LuaRocks Packages"; porcelain search/list/show parse + TTL cache |
 | ROCKS-03 | Dependency Resolution | done | `rocks/LuaRocksDependencyResolver` + `deps/*`; bridge Lua scripts packaged as resources via `LuaRocksBridgeFiles` |
 | ROCKS-04 | Task Execution & Run Configs | done | `rocks/run/*` — `LuaRocksSettings` (shared) + `LuaRocksRunConfiguration` |
-| ROCKS-05 | Rockspec Module Resolution | planned | Full plan: `build.modules`→source roots for require-resolution/indexing + run/debug `LUA_PATH` union; consumes ROCKS-09 discovery |
-| ROCKS-06 | Project LuaRocks Environment | planned | Server/registry config (project override over app default) via TOOL-02; per-server credentials; emits `--server` to search/publish |
+| ROCKS-05 | Rockspec Module Resolution | done | `RockspecModuleDerivation` + `RockspecSourcePathProvider` (caches paths to `PathConfiguration`) + `RockspecRunPathProvider` (LUA_PATH/CPATH unions) |
+| ROCKS-06 | Project LuaRocks Environment | done | `LuaRocksEnvironment` (server resolution, `withServer`), `LuaRocksApiKeyStore`, UI project overrides |
 | ROCKS-08 | Publishing & Lifecycle | done | `rocks/publish/*` — `PublishRockAction` (`Lua.Rocks.Publish`), `luarocks upload --api-key=`, key in PasswordSafe |
-| ROCKS-09 | Multi-Rock Workspace Discovery | planned | Recursive rockspec discovery (`FilenameIndex`), replaces single-root `projectRockspec`; foundational for multi-rock resolution |
+| ROCKS-09 | Multi-Rock Workspace Discovery | done | `LuaRockspecDiscoveryService` (index-backed, cached scanner), `LuaRocksDependencyResolver` forest traversal |
 | ROCKS-10 | Workspace Build Orchestration | planned | Topo-sort discovered rocks via dependency graph; `luarocks make` in dependency order |
 | ROCKS-11 | Makefile Task Integration | planned | Enrich scaffolded Makefile (lint/format/coverage targets); optional Makefile-plugin integration |
 | ROCKS-12 | Project-View Roots & Marking | planned | `lua_modules` installed-rock tree as External Libraries (SyntheticLibrary) + first-party source-root marking (ProjectViewNodeDecorator) |
