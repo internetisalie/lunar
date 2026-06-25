@@ -2,7 +2,7 @@
 id: ROCKS-06
 title: "06: Project LuaRocks Environment"
 type: feature
-status: "in_progress"
+status: "done"
 priority: high
 parent_id: ROCKS
 folders:
@@ -120,11 +120,11 @@ generalizes the current direct `LuaRocksSettings.getInstance().executablePath` r
 
 | # | Requirement | Given (input) | When (action) | Then (expected) |
 |---|-------------|---------------|---------------|-----------------|
-| 1 | ROCKS-06-04 | Project A: `rocksServerUrl = "http://localhost:8080"` | `LuaRocksSearchService.search("x")` builds its command | The argument list contains `--server` immediately followed by `http://localhost:8080` (e.g. `[exe, "search", "--porcelain", "x", "--server", "http://localhost:8080"]`). |
+| 1 | ROCKS-06-04 | Project A: `rocksServerUrl = "http://localhost:8080"` | `LuaRocksSearchService.search("x")` builds its command | The argument list contains `--server` immediately followed by `http://localhost:8080` in global-flag position (e.g. `[exe, "--server", "http://localhost:8080", "search", "--porcelain", "x"]`). Note: `--server` is a luarocks global flag and must precede the subcommand. |
 | 2 | ROCKS-06-04 | Project B: `rocksServerUrl` blank, app `serverUrl` blank | `LuaRocksSearchService.search("x")` builds its command | The argument list contains **no** `--server` token (`[exe, "search", "--porcelain", "x"]`). |
 | 3 | ROCKS-06-03 | Project C: `rocksServerUrl` blank, app `serverUrl = "https://reg.example"` | `LuaRocksEnvironment.resolveServer(projectC)` | Returns `"https://reg.example"`. |
 | 4 | ROCKS-06-03 | Project D: `rocksServerUrl = "http://localhost:8080"`, app `serverUrl = "https://reg.example"` | `LuaRocksEnvironment.resolveServer(projectD)` | Returns `"http://localhost:8080"` (project override wins). |
-| 5 | ROCKS-06-05 | Resolved server `http://localhost:8080`, rockspec `foo-1.0.rockspec`, key `K` | `RockUploadCommand.arguments("foo-1.0.rockspec", "K", server = "http://localhost:8080")` | List contains `--api-key=K` and `--server http://localhost:8080` (server token + value present). |
+| 5 | ROCKS-06-05 | Resolved server `http://localhost:8080`, rockspec `foo-1.0.rockspec`, key `K` | `RockUploadCommand.arguments("foo-1.0.rockspec", "K", server = "http://localhost:8080")` | List contains `--api-key=K` and `["--server", "http://localhost:8080"]` in global-flag position before `upload` (e.g. `[exe, "--server", "http://localhost:8080", "upload", …, "--api-key=K"]`). |
 | 6 | ROCKS-06-05 | Resolved server `null`, rockspec `foo-1.0.rockspec`, key `K` | `RockUploadCommand.arguments("foo-1.0.rockspec", "K", server = null)` | List contains `--api-key=K` and **no** `--server` token (matches today's output). |
 | 7 | ROCKS-06-07 | Server `http://localhost:8080`, stored credential set for that server | `LuaRocksApiKeyStore.getApiKey("http://localhost:8080")` | Returns the credential stored under key `"luarocks API key:http://localhost:8080"`. |
 | 8 | ROCKS-06-07 | Server `null` (unset), legacy key `"luarocks.org API key"` present | `LuaRocksApiKeyStore.getApiKey(null)` | Returns the legacy-keyed credential (back-compat path). |
@@ -133,14 +133,14 @@ generalizes the current direct `LuaRocksSettings.getInstance().executablePath` r
 
 ## Acceptance Criteria
 
-- [ ] ROCKS-06-01..03: server state exists at both layers and resolves with project-over-app
+- [x] ROCKS-06-01..03: server state exists at both layers and resolves with project-over-app
       precedence (TC 3, 4).
-- [ ] ROCKS-06-04: search/list append `--server` iff resolved server is non-null (TC 1, 2).
-- [ ] ROCKS-06-05: upload appends `--server` iff resolved server is non-null (TC 5, 6).
-- [ ] ROCKS-06-06: executable resolves via TOOL-02 with app fallback (TC 9, 10).
-- [ ] ROCKS-06-07: credentials are keyed per-server with a legacy fall-through, in PasswordSafe
+- [x] ROCKS-06-04: search/list emit `--server` (global-flag position) iff resolved server is non-null (TC 1, 2).
+- [x] ROCKS-06-05: upload emits `--server` (global-flag position) iff resolved server is non-null (TC 5, 6).
+- [x] ROCKS-06-06: executable resolves via TOOL-02 with app fallback (TC 9, 10).
+- [x] ROCKS-06-07: credentials are keyed per-server with a legacy fall-through, in PasswordSafe
       only (TC 7, 8).
-- [ ] ROCKS-06-08: a LuaRocks application Configurable surfaces executable + default server; the
+- [x] ROCKS-06-08: a LuaRocks application Configurable surfaces executable + default server; the
       project Configurable surfaces the project server override.
 
 ## Non-Functional Requirements
