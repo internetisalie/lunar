@@ -250,10 +250,14 @@ bug and gave the type inspections false confidence until this session's coverage
 > dependency-ordered build, and module folders aren't marked in the Project view. The six features
 > below are **planned and reviewer-PASS**; shipped ROCKS-01/02/03/04/08 stay `done`. Build the
 > discovery foundation (ROCKS-09) first; the rest consume it.
+>
+> **ROCKS-09 shipped (2026-06-25).** Discovery foundation is done; ROCKS-05, ROCKS-10, and ROCKS-12
+> are now unblocked. A threading contract violation (read-action missing in `LuaRockspecDiscoveryService`)
+> was caught by VNC live verification and fixed before the feature was closed.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ROCKS-09 | Multi-Rock Workspace Discovery | planned | M | — *(extends 01/03; removes orphan `workspace.lua`)* | ROCKS-05, ROCKS-10, ROCKS-12 | foundation — build first |
+| ROCKS-09 | Multi-Rock Workspace Discovery | done | M | — | ROCKS-05, ROCKS-10, ROCKS-12 | ✓ 2026-06-25: `LuaRockspecDiscoveryService` (index-backed, cached, exclusion-aware), `resolveAll` forest, `workspace.lua` removal, glob-override globs. Threading bug (read-action split) found+fixed via VNC. Deferred: bridge cache, settings UI, forest grouping. |
 | ROCKS-05 | Rockspec Module Resolution (+ run/debug `LUA_PATH`) | planned | S | ROCKS-09 | ROCKS-12 | ✓ |
 | ROCKS-06 | Project LuaRocks Environment | planned | M | TOOL-02 *(executable binding)* | — *(redefines 02/03/08 server-awareness)* | ✓ |
 | ROCKS-10 | Workspace Build Orchestration (dep order) | planned | M | ROCKS-09, ROCKS-03, ROCKS-04 | — | ✓ |
@@ -294,6 +298,7 @@ INSP-02 ──depends──▶ NAV-02 (done, so INSP-02 is ready)
 COMP-03 ── cross-file completion incl. recursive resolution (done) — Wave 6 complete
 FORMAT-03 ─(files)─▶ FORMAT-04 ─▶ FORMAT-05 ─▶ FORMAT-06   (serial cluster)
 ROCKS-04 (LuaRocksSettings) ──▶ ROCKS-02, ROCKS-03
+ROCKS-09 (done 2026-06-25) ──▶ ROCKS-05, ROCKS-10, ROCKS-12  (Wave 13 — unblocked)
 TOOL-00 ──▶ TOOL-01, TOOL-02 ──▶ TOOL-03
 SCHEMA-01 ──▶ SCHEMA-02, SCHEMA-03, SCHEMA-04
 ```
