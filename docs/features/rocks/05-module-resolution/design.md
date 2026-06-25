@@ -2,7 +2,7 @@
 id: "ROCKS-05-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
+status: "done"
 parent_id: "ROCKS-05"
 folders:
   - "[[features/rocks/05-module-resolution/requirements|requirements]]"

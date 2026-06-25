@@ -2,7 +2,7 @@
 id: "ROCKS-05-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "planned"
+status: "done"
 parent_id: "ROCKS-05"
 folders:
   - "[[features/rocks/05-module-resolution/requirements|requirements]]"

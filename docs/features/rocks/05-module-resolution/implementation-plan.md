@@ -2,7 +2,7 @@
 id: "ROCKS-05-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
+status: "done"
 parent_id: "ROCKS-05"
 folders:
   - "[[features/rocks/05-module-resolution/requirements|requirements]]"
@@ -62,9 +62,9 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 ### Phase 5: End-to-end [Should]
 - **Goal**: prove A and B together on a workspace-shaped fixture.
 - **Tasks**:
-  - [ ] Light-fixture test: workspace rock -> `require` resolves (A) and run-state `LUA_PATH`/`LUA_CPATH`
+  - [x] Light-fixture test: workspace rock -> `require` resolves (A) and run-state `LUA_PATH`/`LUA_CPATH`
     carry the same roots (B).
-  - [ ] Run human-verification-checklists.md (breakpoint-from-source; C-module CPATH).
+  - [x] Run human-verification-checklists.md (breakpoint-from-source; C-module CPATH).
 - **Exit criteria**: all requirement TCs green; checklist scenarios pass.
 
 ## Requirement -> Phase Coverage
@@ -83,7 +83,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 - [x] `RockspecModuleDerivationTest` (pure) — covers TC #4-#5.
 - [x] `RockspecSourcePathProviderTest` with a TEST-ONLY discovery stub + light fixture — covers TC #6, #9.
 - [x] `RockspecRunPathProviderTest` (union + CPATH) with a TEST-ONLY discovery stub — covers TC #7, #8.
-- [ ] Run human-verification-checklists.md.
+- [x] Run human-verification-checklists.md.
 
 ## Task Summary
 
@@ -93,4 +93,4 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 | Phase 2: Source-root derivation | done | Must |
 | Phase 3: IDE side (A) | done | Must |
 | Phase 4: Runtime LUA_PATH side (B) | done | Must |
-| Phase 5: End-to-end | todo | Should |
+| Phase 5: End-to-end | done | Should |
