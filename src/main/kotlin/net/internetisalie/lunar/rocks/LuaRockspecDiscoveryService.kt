@@ -34,7 +34,7 @@ data class DiscoveredRockspec(
  * ROCKS-05 / ROCKS-10 consume this service; they must not define their own scanner.
  */
 @Service(Service.Level.PROJECT)
-class LuaRockspecDiscoveryService(private val project: Project) {
+open class LuaRockspecDiscoveryService(private val project: Project) {
 
     private val discoveryCache: CachedValue<List<DiscoveredRockspec>> =
         CachedValuesManager.getManager(project).createCachedValue(
@@ -51,7 +51,7 @@ class LuaRockspecDiscoveryService(private val project: Project) {
      * Cached, sorted (by project-relative path, case-insensitive); one entry per discovered source
      * rockspec (path + parsed identity). The single discovery method consumers call.
      */
-    fun discoverRockspecPaths(): List<DiscoveredRockspec> = discoveryCache.value
+    open fun discoverRockspecPaths(): List<DiscoveredRockspec> = discoveryCache.value
 
     private fun compute(): List<DiscoveredRockspec> {
         if (DumbService.isDumb(project)) return emptyList()

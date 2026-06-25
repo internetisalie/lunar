@@ -20,7 +20,9 @@ data object PathConfiguration {
         val state = LuaProjectSettings.getInstance(project).state
         val luaPath = state.expandSourcePath(project)
             .ifEmpty { DEFAULT_SOURCE_PATH.expandMacros(project) }
-        return SourcePathPattern.patternsFromLuaPath(luaPath)
+        val userPatterns = SourcePathPattern.patternsFromLuaPath(luaPath)
+        val rockspecPatterns = net.internetisalie.lunar.rocks.RockspecSourcePathProvider.getInstance(project).derivedPatterns()
+        return (userPatterns + rockspecPatterns).distinctBy { it.spec }
     }
 }
 

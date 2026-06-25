@@ -35,12 +35,12 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 ### Phase 3: IDE side — consumer A [Must]
 - **Goal**: derived patterns appear at the single chokepoint and feed require-resolution/indexing.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.RockspecSourcePathProvider`
+  - [x] Create `net.internetisalie.lunar.rocks.RockspecSourcePathProvider`
     (`@Service(Service.Level.PROJECT)`, design section 2.3): consume
     `LuaRockspecDiscoveryService.discoverRockspecPaths`, call `RockspecBridge.read` per path,
     derive via `RockspecModuleDerivation`, cache via `CachedValuesManager` +
     `PsiModificationTracker` (mirror `LuaTypeManagerImpl`); add `cModuleRockspecs()`.
-  - [ ] Edit `PathConfiguration.getProjectSourcePathPatterns`
+  - [x] Edit `PathConfiguration.getProjectSourcePathPatterns`
     ([SourcePathPattern.kt:19](../../../../src/main/kotlin/net/internetisalie/lunar/lang/path/SourcePathPattern.kt))
     to append derived patterns, user-first, `distinctBy { spec }` — realizes design section 2.2.
 - **Exit criteria**: TC #6 (require resolves to rockspec-mapped source); TC #9 (edit invalidates).
@@ -81,7 +81,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 ## Verification Tasks
 - [x] `RockspecBridgeTest` over the section 4.1 JSON shapes — covers TC #1-#3.
 - [x] `RockspecModuleDerivationTest` (pure) — covers TC #4-#5.
-- [ ] `RockspecSourcePathProviderTest` with a TEST-ONLY discovery stub + light fixture — covers TC #6, #9.
+- [x] `RockspecSourcePathProviderTest` with a TEST-ONLY discovery stub + light fixture — covers TC #6, #9.
 - [ ] `RockspecRunPathProviderTest` (union + CPATH) with a TEST-ONLY discovery stub — covers TC #7, #8.
 - [ ] Run human-verification-checklists.md.
 
@@ -91,6 +91,6 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 |-------|--------|----------|
 | Phase 1: Bridge build data | done | Must |
 | Phase 2: Source-root derivation | done | Must |
-| Phase 3: IDE side (A) | todo | Must |
+| Phase 3: IDE side (A) | done | Must |
 | Phase 4: Runtime LUA_PATH side (B) | todo | Must |
 | Phase 5: End-to-end | todo | Should |
