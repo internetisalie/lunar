@@ -2,7 +2,7 @@
 id: "ROCKS-10"
 title: "10: Workspace Build Orchestration"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "ROCKS"
 folders:
@@ -159,9 +159,9 @@ the failing rock and its exit code.
 - [x] ROCKS-10-02/03: DAG over discovered set, edges between first-party siblings only, Kahn topo-sort (TC 1, 3, 4).
 - [x] ROCKS-10-04: cycle reported, nothing built (TC 2).
 - [x] ROCKS-10-05: sequential `luarocks make` via ROCKS-04 command line; stop on first failure (TC 5, 6).
-- [ ] ROCKS-10-06: single Run-tool-window console with per-rock headers and a summary.
-- [ ] ROCKS-10-07: orchestration runs off-EDT on a cancellable `Task.Backgroundable`.
-- [ ] ROCKS-10-08: `Lua.Rocks.BuildWorkspace` registered; enabled only with ≥2 discovered rocks (TC 8, 9).
+- [x] ROCKS-10-06: single Run-tool-window console with per-rock headers and a summary.
+- [x] ROCKS-10-07: orchestration runs off-EDT on a cancellable `Task.Backgroundable`.
+- [x] ROCKS-10-08: `Lua.Rocks.BuildWorkspace` registered; enabled only with ≥2 discovered rocks (TC 8, 9).
 
 ## Non-Functional Requirements
 

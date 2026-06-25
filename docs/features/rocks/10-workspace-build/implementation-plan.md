@@ -2,7 +2,7 @@
 id: "ROCKS-10-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "ROCKS-10"
 folders:
@@ -51,10 +51,10 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 ### Phase 4: Action + UI + registration [Must]
 - **Goal**: the user-facing action wired into menus, off-EDT, with the gate and console.
 - **Tasks**:
-  - [ ] Create `BuildWorkspaceAction` (`DumbAwareAction`, `getActionUpdateThread()=BGT`) with the
+  - [x] Create `BuildWorkspaceAction` (`DumbAwareAction`, `getActionUpdateThread()=BGT`) with the
         §3.4 gate (≥2 discovered rocks) and the §3.5 drive (console via `TextConsoleBuilderFactory`,
         `RunContentManager.showRunContent`, `Task.Backgroundable`) — realizes design §2.4, §3.4, §3.5.
-  - [ ] Register `Lua.Rocks.BuildWorkspace` in `plugin.xml` `<actions>` (Tools menu +
+  - [x] Register `Lua.Rocks.BuildWorkspace` in `plugin.xml` `<actions>` (Tools menu +
         ProjectViewPopupMenu) — realizes design §7.
 - **Exit criteria**: TC #8 (1 rock ⇒ disabled) and TC #9 (≥2 rocks ⇒ enabled) pass; manual
   human-verification scenario (build a `Kernel/v0`-shaped workspace, confirm order) passes.
@@ -79,9 +79,9 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
       + bridge — covers TC #7 and the dep-string parse format (§3.0 step 4).
 - [x] Light-fixture test (`BasePlatformTestCase`) for `WorkspaceBuildRunner` with a fake `luarocks`
       script on PATH — covers TC #5, #6.
-- [ ] Action-gate test (`BasePlatformTestCase`) for `BuildWorkspaceAction.update` — covers TC #8, #9.
-- [ ] Run `human-verification-checklists.md` (build `Kernel/v0`-shaped workspace, confirm order).
-- [ ] `./gradlew ktlintFormat ktlintCheck` on the new `rocks/build/` files; `./gradlew test`.
+- [x] Action-gate test (`BasePlatformTestCase`) for `BuildWorkspaceAction.update` — covers TC #8, #9.
+- [x] Run `human-verification-checklists.md` (build `Kernel/v0`-shaped workspace, confirm order).
+- [x] `./gradlew ktlintFormat ktlintCheck` on the new `rocks/build/` files; `./gradlew test`.
 
 ## Task Summary
 
@@ -90,4 +90,4 @@ green — it is the build set source (risks-and-gaps Risk 1.1). All phases live 
 | Phase 1: Graph + topo-sort core | done | Must |
 | Phase 2: Orchestrator | done | Must |
 | Phase 3: Sequential runner | done | Must |
-| Phase 4: Action + UI + registration | todo | Must |
+| Phase 4: Action + UI + registration | done | Must |

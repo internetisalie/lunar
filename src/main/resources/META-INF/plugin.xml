@@ -561,6 +561,16 @@
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
 
+    <!-- Build workspace rocks in topological order (ROCKS-10) -->
+    <action id="Lua.Rocks.BuildWorkspace"
+            class="net.internetisalie.lunar.rocks.build.BuildWorkspaceAction"
+            text="Build Workspace (dependency order)"
+            description="Build all first-party rocks with luarocks make in topological dependency order"
+            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+    </action>
+
     <action id="Lunar.ImportLuaCovReport"
             class="net.internetisalie.lunar.coverage.LuaCovReportImportAction"
             text="Import LuaCov Report..."
