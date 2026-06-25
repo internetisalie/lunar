@@ -265,10 +265,11 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
                 } else {
                     // Fallback to project source path
                     val settingsState = LuaProjectSettings.getInstance(project).state
-                    val luaPath = settingsState.expandSourcePath(project)
-                    if (luaPath.isNotEmpty()) {
-                        commandLine.withEnvironment("LUA_PATH", luaPath)
-                    }
+                    val projectPath = settingsState.expandSourcePath(project)
+                    val prefix = net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaPathPrefix(project)
+                    val union = (prefix + projectPath).trimEnd(';') + ";;"
+                    if (union != ";;") commandLine.withEnvironment("LUA_PATH", union)
+                    net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaCPath(project)?.let { commandLine.withEnvironment("LUA_CPATH", it) }
                 }
 
                 val processHandler = ProcessHandlerFactory.getInstance()

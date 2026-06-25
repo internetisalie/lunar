@@ -80,7 +80,7 @@ discovery seam substitutes in unit tests (never the production path); production
 |----|--------|----------|--------|
 | ROCKS-05-00-DR-01 | Run the bridge over a fixture rockspec with `build.modules` (Lua + C entries); confirm the JSON nesting matches design section 4.1. | Risk 1.1 | done |
 | ROCKS-05-00-DR-02 | Spike: confirm `derivedPatterns()` computes off-EDT and the EDT cold-cache prime (background `ReadAction.nonBlocking`) returns warm on the next access without `SlowOperationsException`. | Risk 1.2 | done |
-| ROCKS-05-00-DR-03 | On a C-module rock, confirm the built tree exposes `<treeRoot>/lib/lua/<X.Y>/<name>.so` so `LUA_CPATH = "<treeRoot>/lib/lua/<X.Y>/?.so;;"` binds at runtime. | Gap 2.2 | todo |
+| ROCKS-05-00-DR-03 | On a C-module rock, confirm the built tree exposes `<treeRoot>/lib/lua/<X.Y>/<name>.so` so `LUA_CPATH = "<treeRoot>/lib/lua/<X.Y>/?.so;;"` binds at runtime. | Gap 2.2 | done |
 
 ## Test Case Gaps
 - Mixed Lua+C rock in one rockspec (Lua -> LUA_PATH, C -> LUA_CPATH simultaneously): covered in

@@ -136,10 +136,11 @@ class LuaTestCommandLineState(
             commandLine.withEnvironment("LUA_PATH", sourcePath)
         } else {
             val settingsState = LuaProjectSettings.getInstance(targetProject).state
-            val luaPath = settingsState.expandSourcePath(targetProject)
-            if (luaPath.isNotEmpty()) {
-                commandLine.withEnvironment("LUA_PATH", luaPath)
-            }
+            val projectPath = settingsState.expandSourcePath(targetProject)
+            val prefix = net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaPathPrefix(targetProject)
+            val union = (prefix + projectPath).trimEnd(';') + ";;"
+            if (union != ";;") commandLine.withEnvironment("LUA_PATH", union)
+            net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaCPath(targetProject)?.let { commandLine.withEnvironment("LUA_CPATH", it) }
         }
     }
 }

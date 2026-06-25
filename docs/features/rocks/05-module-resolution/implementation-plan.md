@@ -49,12 +49,12 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 ### Phase 4: Runtime LUA_PATH side — consumer B [Must / Should]
 - **Goal**: run/debug `LUA_PATH` unions local roots before installed; C modules -> `LUA_CPATH`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.RockspecRunPathProvider` (design section 2.4)
+  - [x] Create `net.internetisalie.lunar.rocks.RockspecRunPathProvider` (design section 2.4)
     with `luaPathPrefix` (section 3.2) and `luaCPath` (section 3.3).
-  - [ ] Splice `luaPathPrefix` + `luaCPath` into the `else` branch of `LuaRunConfiguration`
+  - [x] Splice `luaPathPrefix` + `luaCPath` into the `else` branch of `LuaRunConfiguration`
     ([LuaRunConfiguration.kt:265-272](../../../../src/main/kotlin/net/internetisalie/lunar/run/LuaRunConfiguration.kt))
     — do NOT touch the `if`/per-config branch or the debug preloader (`:256-260`).
-  - [ ] Apply the same splice to `LuaTestCommandLineState.configureLuaPath`'s `else` branch
+  - [x] Apply the same splice to `LuaTestCommandLineState.configureLuaPath`'s `else` branch
     ([LuaTestCommandLineState.kt:137-143](../../../../src/main/kotlin/net/internetisalie/lunar/run/test/LuaTestCommandLineState.kt)).
 - **Exit criteria**: TC #7 (2-rock union, local-before-installed, TEST-ONLY discovery stub);
   TC #8 (C-module `LUA_CPATH` from built tree, `5.4` from `languageLevel`).
@@ -82,7 +82,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 - [x] `RockspecBridgeTest` over the section 4.1 JSON shapes — covers TC #1-#3.
 - [x] `RockspecModuleDerivationTest` (pure) — covers TC #4-#5.
 - [x] `RockspecSourcePathProviderTest` with a TEST-ONLY discovery stub + light fixture — covers TC #6, #9.
-- [ ] `RockspecRunPathProviderTest` (union + CPATH) with a TEST-ONLY discovery stub — covers TC #7, #8.
+- [x] `RockspecRunPathProviderTest` (union + CPATH) with a TEST-ONLY discovery stub — covers TC #7, #8.
 - [ ] Run human-verification-checklists.md.
 
 ## Task Summary
@@ -92,5 +92,5 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 | Phase 1: Bridge build data | done | Must |
 | Phase 2: Source-root derivation | done | Must |
 | Phase 3: IDE side (A) | done | Must |
-| Phase 4: Runtime LUA_PATH side (B) | todo | Must |
+| Phase 4: Runtime LUA_PATH side (B) | done | Must |
 | Phase 5: End-to-end | todo | Should |
