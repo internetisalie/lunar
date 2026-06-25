@@ -14,6 +14,9 @@ data class RockspecData(
     val packageName: String,
     val version: String?,
     val dependencies: List<String>,
+    val buildType: String?,
+    val luaModules: Map<String, String>,
+    val cModules: Map<String, List<String>>,
 )
 
 /**
@@ -64,7 +67,29 @@ object RockspecBridge {
             return null
         }
         val version = obj.get("version")?.takeIf { it.isJsonPrimitive }?.asString
-        return RockspecData(packageName, version, readDependencies(obj.get("dependencies")))
+        
+        val buildObj = obj.get("build")?.takeIf { it.isJsonObject }?.asJsonObject
+        val buildType = buildObj?.get("type")?.takeIf { it.isJsonPrimitive }?.asString
+        val modulesObj = buildObj?.get("modules")?.takeIf { it.isJsonObject }?.asJsonObject
+        val luaModules = LinkedHashMap<String, String>()
+        val cModules = LinkedHashMap<String, List<String>>()
+        modulesObj?.entrySet()?.forEach { (name, value) ->
+            when {
+                value.isJsonPrimitive -> luaModules[name] = value.asString
+                value.isJsonArray -> cModules[name] =
+                    value.asJsonArray.filter { it.isJsonPrimitive }.map { it.asString }
+                else -> Unit
+            }
+        }
+        
+        return RockspecData(
+            packageName,
+            version,
+            readDependencies(obj.get("dependencies")),
+            buildType,
+            luaModules,
+            cModules,
+        )
     }
 
     /**

@@ -19,9 +19,9 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 ### Phase 1: Bridge build data [Must]
 - **Goal**: `RockspecBridge` surfaces `build.type` / `build.modules` (Lua vs C entries).
 - **Tasks**:
-  - [ ] Add `buildType: String?`, `luaModules: Map<String,String>`, `cModules: Map<String,List<String>>`
+  - [x] Add `buildType: String?`, `luaModules: Map<String,String>`, `cModules: Map<String,List<String>>`
     to `RockspecData` ([RockspecBridge.kt:13](../../../../src/main/kotlin/net/internetisalie/lunar/rocks/RockspecBridge.kt)) — realizes design section 2.3.
-  - [ ] Extend `RockspecBridge.parse()` ([RockspecBridge.kt:49](../../../../src/main/kotlin/net/internetisalie/lunar/rocks/RockspecBridge.kt))
+  - [x] Extend `RockspecBridge.parse()` ([RockspecBridge.kt:49](../../../../src/main/kotlin/net/internetisalie/lunar/rocks/RockspecBridge.kt))
     to read the `build` JSON object per design section 4.1 (string -> luaModules, array -> cModules).
 - **Exit criteria**: TC #1, #2, #3 pass (`RockspecBridgeTest` over the section 4.1 JSON shapes).
 
@@ -79,7 +79,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 | ROCKS-05-06 Invalidation | S | Phase 3 |
 
 ## Verification Tasks
-- [ ] `RockspecBridgeTest` over the section 4.1 JSON shapes — covers TC #1-#3.
+- [x] `RockspecBridgeTest` over the section 4.1 JSON shapes — covers TC #1-#3.
 - [ ] `RockspecModuleDerivationTest` (pure) — covers TC #4-#5.
 - [ ] `RockspecSourcePathProviderTest` with a TEST-ONLY discovery stub + light fixture — covers TC #6, #9.
 - [ ] `RockspecRunPathProviderTest` (union + CPATH) with a TEST-ONLY discovery stub — covers TC #7, #8.
@@ -89,7 +89,7 @@ that seam may stand in for unit tests until ROCKS-09 lands.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Bridge build data | todo | Must |
+| Phase 1: Bridge build data | done | Must |
 | Phase 2: Source-root derivation | todo | Must |
 | Phase 3: IDE side (A) | todo | Must |
 | Phase 4: Runtime LUA_PATH side (B) | todo | Must |

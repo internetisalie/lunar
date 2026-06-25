@@ -32,6 +32,39 @@ class RockspecBridgeParseTest {
             listOf("lua >= 5.1", "say >= 1.4-3", "luassert >= 1.9.0", "lua_cliargs = 3.0", "penlight >= 1.13.1"),
             data.dependencies,
         )
+        assertEquals("builtin", data.buildType)
+        assertTrue(data.luaModules.isEmpty())
+        assertTrue(data.cModules.isEmpty())
+    }
+
+    @Test
+    fun parseBuildModulesTC1() {
+        // TC #1: Bridge JSON {"package":"foo","build":{"type":"builtin","modules":{"foo.bar":"src/foo/bar.lua"}}}
+        val stdout = """{"package":"foo","build":{"type":"builtin","modules":{"foo.bar":"src/foo/bar.lua"}}}"""
+        val data = assertNotNull(RockspecBridge.parse(stdout, path))
+        assertEquals("builtin", data.buildType)
+        assertEquals(mapOf("foo.bar" to "src/foo/bar.lua"), data.luaModules)
+        assertTrue(data.cModules.isEmpty())
+    }
+
+    @Test
+    fun parseBuildModulesTC2() {
+        // TC #2: Bridge JSON with no build field
+        val stdout = """{"package":"foo"}"""
+        val data = assertNotNull(RockspecBridge.parse(stdout, path))
+        assertNull(data.buildType)
+        assertTrue(data.luaModules.isEmpty())
+        assertTrue(data.cModules.isEmpty())
+    }
+
+    @Test
+    fun parseBuildModulesTC3() {
+        // TC #3: Bridge JSON build.modules = {"cjson": ["src/cjson.c"]}
+        val stdout = """{"package":"foo","build":{"type":"builtin","modules":{"cjson":["src/cjson.c"]}}}"""
+        val data = assertNotNull(RockspecBridge.parse(stdout, path))
+        assertEquals("builtin", data.buildType)
+        assertTrue(data.luaModules.isEmpty())
+        assertEquals(mapOf("cjson" to listOf("src/cjson.c")), data.cModules)
     }
 
     @Test
