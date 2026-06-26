@@ -120,7 +120,17 @@ cmd_status() {
   disk_exists && log "Cache disk $CACHE_DISK: present (persists across VM delete)."
 }
 
-cmd_shell()  { instance_exists || die "No instance."; ssh_exec; }
+cmd_shell() {
+  instance_exists || die "No instance."
+  if [ $# -eq 0 ]; then
+    ssh_exec
+  else
+    # Check if they used -- explicitly
+    if [ "$1" = "--" ]; then shift; fi
+    # Touch the marker so transient commands keep the VM alive, then execute
+    ssh_exec --command "touch /var/run/lunar-last-activity 2>/dev/null; $*"
+  fi
+}
 cmd_stop()   { instance_exists || die "No instance."; log "Stopping $INSTANCE…"; gc compute instances stop "$INSTANCE" --zone "$ZONE"; }
 cmd_start()  { instance_exists || die "No instance."; log "Starting $INSTANCE…"; gc compute instances start "$INSTANCE" --zone "$ZONE"; }
 
