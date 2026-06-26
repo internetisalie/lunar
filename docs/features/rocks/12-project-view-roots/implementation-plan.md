@@ -16,15 +16,15 @@ folders:
 - **Goal**: surface the project-local installed LuaRocks tree under External Libraries and exclude
   it from first-party indexing.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.library.LuaRocksLibraryProvider` extending
+  - [x] Create `net.internetisalie.lunar.rocks.library.LuaRocksLibraryProvider` extending
     `AdditionalLibraryRootsProvider` — realizes design §2.1.
-  - [ ] Implement `installedRoots(project): List<VirtualFile>` using `LuaRocksTreeLocator.treeRoot`,
+  - [x] Implement `installedRoots(project): List<VirtualFile>` using `LuaRocksTreeLocator.treeRoot`,
     `LuaProjectSettings...getImplicitLanguageLevel().version`, and `VfsUtil.findFile` for
     `share/lua/<X.Y>` + `lib/lua/<X.Y>` — realizes design §3.1.
-  - [ ] Add the nested `InstalledRocksLibrary : SyntheticLibrary, ItemPresentation` (source roots =
+  - [x] Add the nested `InstalledRocksLibrary : SyntheticLibrary, ItemPresentation` (source roots =
     resolved dirs; presentable text "Installed Rocks") — realizes design §2.1.
-  - [ ] Override `getRootsToWatch` to return `installedRoots(project)` — realizes ROCKS-12-05.
-  - [ ] Register a third `<additionalLibraryRootsProvider>` in `plugin.xml` next to lines 366-367 —
+  - [x] Override `getRootsToWatch` to return `installedRoots(project)` — realizes ROCKS-12-05.
+  - [x] Register a third `<additionalLibraryRootsProvider>` in `plugin.xml` next to lines 366-367 —
     realizes design §7 / ROCKS-12-06.
 - **Exit criteria**: TC #1, #2, #3, #4, #5, #6 pass; build green; "Installed Rocks" node appears for
   a project with a populated `lua_modules` tree.
@@ -59,11 +59,11 @@ folders:
 
 ## Verification Tasks
 
-- [ ] Add `LuaRocksLibraryProviderTest` (`BasePlatformTestCase`): build a fixture tree with
+- [x] Add `LuaRocksLibraryProviderTest` (`BasePlatformTestCase`): build a fixture tree with
   `lua_modules/share/lua/5.4/...` and assert the returned `SyntheticLibrary` source roots — covers
   TC #1, #5, #6.
-- [ ] Test the empty/missing-tree paths return an empty contribution — covers TC #3, #4.
-- [ ] Test `ProjectFileIndex.isInLibrary` is `true` for a file under the installed tree — covers
+- [x] Test the empty/missing-tree paths return an empty contribution — covers TC #3, #4.
+- [x] Test `ProjectFileIndex.isInLibrary` is `true` for a file under the installed tree — covers
   TC #2.
 - [ ] Add `LuaRockSourceRootDecoratorTest`: stub `getProjectSourcePathPatterns` to an in-project
   root and assert `decorate` appends the suffix for that folder but not for `thirdparty/` —
@@ -74,5 +74,5 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Installed-rock library provider | todo | Must |
+| Phase 1: Installed-rock library provider | done | Must |
 | Phase 2: First-party source-root marking | todo | Should |
