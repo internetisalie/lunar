@@ -221,7 +221,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | FORMAT-07 | Stylua Compatibility | done | S | FORMAT-03..06 *(Formatter)* | — | Serial: formatter |
 | TYPE-08 | Flow-Sensitive Analysis | done | C | TYPE-01 *(Type engine)* | — | ✓ |
 | DOC-06-04 | Full-Text Documentation Search | done | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
-| SYNTAX-09 | Lua 5.5 Support | planned | C | — | — | ✓ |
+| SYNTAX-09 | Lua 5.5 Support | done | C | — | — | ✓ |
 
 ## Wave 12 — Internal & maintenance  *(invisible to users; address opportunistically)*
 
