@@ -255,6 +255,8 @@ bug and gave the type inspections false confidence until this session's coverage
 > are now unblocked. A threading contract violation (read-action missing in `LuaRockspecDiscoveryService`)
 > was caught by VNC live verification and fixed before the feature was closed.
 >
+> **ROCKS-10 shipped (2026-06-25).** Workspace Build Orchestration is done; added topological sorting, sequential runner reusing ROCKS-04, and UI action.
+>
 > **ROCKS-06 shipped (2026-06-25).** Project LuaRocks Environment done; Settings UI, server resolution, TOOL-02 binding, per-server credentials all verified.
 
 > **ROCKS-12 shipped (2026-06-26).** Project-View Roots & Marking is done; installed rocks surfaced as External Libraries (`SyntheticLibrary`) and first-party `build.modules` roots badged in the UI.
@@ -266,7 +268,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | ROCKS-09 | Multi-Rock Workspace Discovery | done | M | — | ROCKS-05, ROCKS-10, ROCKS-12 | ✓ 2026-06-25: `LuaRockspecDiscoveryService` (index-backed, cached, exclusion-aware), `resolveAll` forest, `workspace.lua` removal, glob-override globs. Threading bug (read-action split) found+fixed via VNC. Deferred: bridge cache, settings UI, forest grouping. |
 | ROCKS-05 | Rockspec Module Resolution (+ run/debug `LUA_PATH`) | done | S | ROCKS-09 | ROCKS-12 | ✓ 2026-06-25: `RockspecSourcePathProvider` feeds `PathConfiguration`; `LUA_PATH` and `LUA_CPATH` built from derived roots directly without blocking EDT. Fixed an infinite recursion cycle with file-index during implementation. |
 | ROCKS-06 | Project LuaRocks Environment | done | M | TOOL-02 *(executable binding)* | — *(redefines 02/03/08 server-awareness)* | ✓ 2026-06-25: `LuaRocksEnvironment` (resolver, `withServer` global-flag prepend), per-server `LuaRocksApiKeyStore`, `LuaRocksSettingsConfigurable`, project `rocksServerUrl` override. VNC verified: settings UI, server resolution precedence, TOOL-02 binding, fallback. Deferred: publish/credential VNC (headless TC 7/8 green). |
-| ROCKS-10 | Workspace Build Orchestration (dep order) | planned | M | ROCKS-09, ROCKS-03, ROCKS-04 | — | ✓ |
+| ROCKS-10 | Workspace Build Orchestration (dep order) | done | M | ROCKS-09, ROCKS-03, ROCKS-04 | — | ✓ 2026-06-25: Graph/topo-sort, orchestrator, sequential runner reusing ROCKS-04, and UI registration. |
 | ROCKS-11 | Makefile Task Integration | planned | C | ROCKS-01; opt. `com.jetbrains.lang.makefile` *(spike)* | — | ✓ |
 | ROCKS-12 | Project-View Roots & Marking | done | M | ROCKS-05, ROCKS-09 | — | ✓ 2026-06-26: `LuaRocksLibraryProvider` (Piece A) and `LuaRockSourceRootDecorator` (Piece B). Handled Platform index recursion bug without crashes. |
 
