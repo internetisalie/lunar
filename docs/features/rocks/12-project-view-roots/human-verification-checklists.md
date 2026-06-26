@@ -2,7 +2,7 @@
 id: "ROCKS-12-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "planned"
+status: "done"
 parent_id: "ROCKS-12"
 folders:
   - "[[features/rocks/12-project-view-roots/requirements|requirements]]"
