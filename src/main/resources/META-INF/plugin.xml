@@ -363,6 +363,7 @@
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.lang.library.LuaLibraryProvider"/>
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.rocks.library.LuaRocksLibraryProvider"/>
+    <projectViewNodeDecorator implementation="net.internetisalie.lunar.rocks.view.LuaRockSourceRootDecorator"/>
 
     <!-- Options -->
     <applicationService

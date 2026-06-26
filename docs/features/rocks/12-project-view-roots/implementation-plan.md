@@ -2,7 +2,7 @@
 id: "ROCKS-12-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
+status: "done"
 parent_id: "ROCKS-12"
 folders:
   - "[[features/rocks/12-project-view-roots/requirements|requirements]]"
@@ -33,14 +33,14 @@ folders:
 - **Goal**: badge in-project first-party `build.modules`-derived source-root folders in the Project
   view without mutating the model.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.view.LuaRockSourceRootDecorator` implementing
+  - [x] Create `net.internetisalie.lunar.rocks.view.LuaRockSourceRootDecorator` implementing
     `com.intellij.ide.projectView.ProjectViewNodeDecorator` — realizes design §2.2.
-  - [ ] Implement `sourceRootDirs(project, base): Set<String>` filtering
+  - [x] Implement `sourceRootDirs(project, base): Set<String>` filtering
     `PathConfiguration.getProjectSourcePathPatterns` to the absolute in-project leading paths —
     realizes design §3.2.
-  - [ ] In `decorate`, append a grayed " rock source root" suffix via `data.addText` when the node's
+  - [x] In `decorate`, append a grayed " rock source root" suffix via `data.addText` when the node's
     directory path is in the set — realizes design §2.2 / ROCKS-12-07.
-  - [ ] Register `<projectViewNodeDecorator>` in `plugin.xml` — realizes design §7 / ROCKS-12-08.
+  - [x] Register `<projectViewNodeDecorator>` in `plugin.xml` — realizes design §7 / ROCKS-12-08.
 - **Exit criteria**: TC #7, #8 pass; `thirdparty/` and `lua_modules` remain unmarked; build green.
 
 ## Requirement → Phase Coverage
@@ -65,14 +65,14 @@ folders:
 - [x] Test the empty/missing-tree paths return an empty contribution — covers TC #3, #4.
 - [x] Test `ProjectFileIndex.isInLibrary` is `true` for a file under the installed tree — covers
   TC #2.
-- [ ] Add `LuaRockSourceRootDecoratorTest`: stub `getProjectSourcePathPatterns` to an in-project
+- [x] Add `LuaRockSourceRootDecoratorTest`: stub `getProjectSourcePathPatterns` to an in-project
   root and assert `decorate` appends the suffix for that folder but not for `thirdparty/` —
   covers TC #7, #8.
-- [ ] Run `human-verification-checklists.md` in the containerized IDE.
+- [x] Run `human-verification-checklists.md` in the containerized IDE.
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Installed-rock library provider | done | Must |
-| Phase 2: First-party source-root marking | todo | Should |
+| Phase 2: First-party source-root marking | done | Should |

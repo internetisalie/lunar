@@ -2,7 +2,7 @@
 id: "ROCKS-12"
 title: "12: Project-View Roots & Marking"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: "ROCKS"
 folders:
