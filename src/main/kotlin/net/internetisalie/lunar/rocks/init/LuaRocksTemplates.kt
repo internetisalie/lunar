@@ -62,15 +62,29 @@ main(...)
     }
 
     fun makefile(name: String): String = """
-.PHONY: build test install clean
+.PHONY: build test lint format coverage rocks clean
+
 build:
 	luarocks make
+
 test:
 	busted
-install:
+
+lint:
+	luacheck src spec
+
+format:
+	stylua src spec
+
+coverage:
+	busted --coverage
+	luacov
+
+rocks:
 	luarocks install --local $name-scm-1.rockspec
+
 clean:
-	rm -rf lua_modules .luarocks
+	rm -rf lua_modules .luarocks luacov.stats.out luacov.report.out
 """.trimStart()
 
     fun bustedSpec(name: String): String = """

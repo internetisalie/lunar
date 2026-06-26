@@ -71,11 +71,14 @@ class LuaRocksTemplatesTest {
     @Test
     fun `makefile contains standard targets`() {
         val mk = LuaRocksTemplates.makefile("my-lib")
-        assertContains(mk, ".PHONY: build test install clean")
-        assertContains(mk, "luarocks make")
-        assertContains(mk, "busted")
-        assertContains(mk, "my-lib-scm-1.rockspec")
-        assertContains(mk, "rm -rf lua_modules .luarocks")
+        assertContains(mk, ".PHONY: build test lint format coverage rocks clean")
+        assertContains(mk, "build:\n\tluarocks make")
+        assertContains(mk, "test:\n\tbusted")
+        assertContains(mk, "lint:\n\tluacheck src spec")
+        assertContains(mk, "format:\n\tstylua src spec")
+        assertContains(mk, "coverage:\n\tbusted --coverage\n\tluacov")
+        assertContains(mk, "rocks:\n\tluarocks install --local my-lib-scm-1.rockspec")
+        assertContains(mk, "clean:\n\trm -rf lua_modules .luarocks luacov.stats.out luacov.report.out")
     }
 
     // ------------------------------------------------------------------ bustedSpec
