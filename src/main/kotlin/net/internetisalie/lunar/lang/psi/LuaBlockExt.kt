@@ -9,6 +9,7 @@ import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
 import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaLabel
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameList
@@ -77,4 +78,16 @@ fun LuaBlock.processDeclarations(
     }
 
     return true  // Continue walk to parent scope
+}
+
+fun LuaBlock.processLabelDeclarations(
+    processor: PsiScopeProcessor,
+    state: ResolveState,
+): Boolean {
+    for (statement in statementList) {
+        if (statement is LuaLabel && !processor.execute(statement, state)) {
+            return false // processor matched → stop walk
+        }
+    }
+    return true
 }

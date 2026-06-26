@@ -31,16 +31,16 @@ folders:
 ### Phase 2: Lazy scope-aware resolution [Must]
 - **Goal**: replace the eager file-wide label walk with a scope-correct `PsiScopeProcessor`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.LuaLabelScopeProcessor` and
+  - [x] Create `net.internetisalie.lunar.lang.LuaLabelScopeProcessor` and
         `LuaLabelCompletionScopeProcessor` (new file `lang/LuaLabelScopeProcessor.kt`) —
         realizes design §2.1, §2.2.
-  - [ ] Add `LuaBlock.processLabelDeclarations(processor, state)` to
+  - [x] Add `LuaBlock.processLabelDeclarations(processor, state)` to
         `lang/psi/LuaBlockExt.kt` — realizes design §2.3.
-  - [ ] Rewrite `net.internetisalie.lunar.lang.LuaLabelReference`: add the private
+  - [x] Rewrite `net.internetisalie.lunar.lang.LuaLabelReference`: add the private
         `walkLabelScopes(start, visit)` up-walk (design §3.1) and reimplement
         `multiResolve`/`resolve` to return the matched `LuaLabelName`; delete the old
         `findLabels` (`PsiTreeUtil.findChildrenOfType`) path — realizes design §2.4, §3.1.
-  - [ ] Update `isReferenceTo` to compare against the resolved `LuaLabelName`
+  - [x] Update `isReferenceTo` to compare against the resolved `LuaLabelName`
         (design §2.4).
 - **Exit criteria**: TC 1–5 pass (`LuaLabelResolutionTest`); `LuaLabelReference` no longer
   references `PsiTreeUtil.findChildrenOfType`.
@@ -87,6 +87,6 @@ folders:
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: `PsiNameIdentifierOwner` for labels | done | Must |
-| Phase 2: Lazy scope-aware resolution | todo | Must |
+| Phase 2: Lazy scope-aware resolution | done | Must |
 | Phase 3: Rename binding for references | todo | Must |
 | Phase 4: Lazy goto completion | todo | Should |
