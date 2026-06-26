@@ -2,10 +2,11 @@
 id: "BUG-360"
 title: "Failed to make file writable due to container/host user UID mismatch"
 type: "bug"
+parent_id: "BUG"
 status: "todo"
 priority: "medium"
 folders:
-  - "[[features]]"
+  - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-360: Failed to make file writable due to container/host user UID mismatch

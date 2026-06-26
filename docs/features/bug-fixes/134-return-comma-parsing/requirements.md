@@ -6,7 +6,7 @@ status: "done"
 priority: "high"
 parent_id: "BUG"
 folders:
-  - "[[features/bug-fixes/requirements|requirements]]"
+  - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-134: @return Comma Parsing

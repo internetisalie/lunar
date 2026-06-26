@@ -6,7 +6,7 @@ parent_id: "BUG-357"
 status: "done"
 priority: "medium"
 folders:
-  - "[[features]]"
+  - "[[features/bug-fixes/357-luacats-function-signature-parameter-names/bug-report|bug-report]]"
 ---
 
 # BUG-357 — Cannot Reproduce / Abort & Replan

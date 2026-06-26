@@ -5,7 +5,7 @@ type: feature
 parent_id: BUG
 status: done
 folders:
-  - "[[features/bug-fixes/requirements|requirements]]"
+  - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # Stdlib Inlay Hints Requirements

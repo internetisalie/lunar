@@ -2,10 +2,11 @@
 id: "BUG-356"
 title: "Concatenation of a non-concatenable value (boolean) is not flagged"
 type: "bug"
+parent_id: "BUG"
 status: "done"
 priority: "low"
 folders:
-  - "[[features]]"
+  - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-356: Concatenation of a non-concatenable value (boolean) is not flagged

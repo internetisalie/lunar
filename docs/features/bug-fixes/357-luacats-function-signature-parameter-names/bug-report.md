@@ -2,10 +2,11 @@
 id: "BUG-357"
 title: "Loose parameter name extraction from LuaCATS fun(...) signatures causes missing parameter inlay hints"
 type: "bug"
+parent_id: "BUG"
 status: "cancelled"
 priority: "medium"
 folders:
-  - "[[features]]"
+  - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 > **Resolution (2026-06-24): Cannot reproduce.** On `main` (HEAD `a75d9c7f`) parameter

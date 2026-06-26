@@ -2,10 +2,11 @@
 id: "BUG-355"
 title: "EmmyLua @-description after @return/@param type is a hard parse error"
 type: "bug"
+parent_id: "BUG"
 status: "done"
 priority: "high"
 folders:
-  - "[[features]]"
+  - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-355: EmmyLua `@`-description after `@return`/`@param` type is a hard parse error
