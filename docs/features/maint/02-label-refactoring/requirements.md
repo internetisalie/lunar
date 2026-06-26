@@ -51,12 +51,12 @@ references to the rename. Parent epic: [[features/maint/requirements|MAINT]].
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| MAINT-02-01 | **Lazy scope-aware label resolution** | M | `goto X` resolves to the nearest enclosing in-scope `::X::` `LuaLabelName` using a `PsiScopeProcessor` block-walk that stops at the first match and at the enclosing function boundary; no whole-file traversal. |
-| MAINT-02-02 | **`LuaLabelName` is `PsiNameIdentifierOwner`** | M | `LuaLabelName` reports its IDENTIFIER leaf as the name identifier and supports `setName`, so the platform treats `::X::` as a first-class renameable named element. |
-| MAINT-02-03 | **Native label rename** | M | The platform `RenameProcessor` renames a label declaration and all in-scope `goto` references together; same-named labels outside the renamed label's scope are not affected. |
-| MAINT-02-04 | **Lazy goto completion** | S | Completing after `goto ` offers exactly the labels visible at that position, collected lazily via a completion scope processor. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| MAINT-02-01 | **Lazy scope-aware label resolution** | M | Full | `goto X` resolves to the nearest enclosing in-scope `::X::` `LuaLabelName` using a `PsiScopeProcessor` block-walk that stops at the first match and at the enclosing function boundary; no whole-file traversal. |
+| MAINT-02-02 | **`LuaLabelName` is `PsiNameIdentifierOwner`** | M | Full | `LuaLabelName` reports its IDENTIFIER leaf as the name identifier and supports `setName`, so the platform treats `::X::` as a first-class renameable named element. |
+| MAINT-02-03 | **Native label rename** | M | Full | The platform `RenameProcessor` renames a label declaration and all in-scope `goto` references together; same-named labels outside the renamed label's scope are not affected. |
+| MAINT-02-04 | **Lazy goto completion** | S | Full | Completing after `goto ` offers exactly the labels visible at that position, collected lazily via a completion scope processor. |
 
 ## Detailed Specifications
 
@@ -123,12 +123,12 @@ one `LookupElement` per distinct visible label name.
 | 10 | MAINT-02-04 | `::alpha::\n::beta::\ngoto <caret>` | `myFixture.completeBasic()` and read lookup strings | Lookup contains `alpha` and `beta`. |
 
 ## Acceptance Criteria
-- [ ] MAINT-02-01: TC 1–5 pass; `LuaLabelReference` no longer calls
+- [x] MAINT-02-01: TC 1–5 pass; `LuaLabelReference` no longer calls
       `PsiTreeUtil.findChildrenOfType(containingFile, LuaLabel)`.
-- [ ] MAINT-02-02: TC 6 passes; `LuaLabelName` is assignable to `PsiNameIdentifierOwner`.
-- [ ] MAINT-02-03: TC 7–9 pass via real `renameElementAtCaret` (no engine-only stub).
-- [ ] MAINT-02-04: TC 10 passes via real `completeBasic`.
-- [ ] Full unit suite remains green (`gce-builder run test`).
+- [x] MAINT-02-02: TC 6 passes; `LuaLabelName` is assignable to `PsiNameIdentifierOwner`.
+- [x] MAINT-02-03: TC 7–9 pass via real `renameElementAtCaret` (no engine-only stub).
+- [x] MAINT-02-04: TC 10 passes via real `completeBasic`.
+- [x] Full unit suite remains green (`gce-builder run test`).
 
 ## Non-Functional Requirements
 - **Threading**: resolution and completion run under the platform read action that already

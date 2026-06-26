@@ -3,7 +3,7 @@ id: MAINT-02-DESIGN
 title: "Technical Design"
 type: design
 parent_id: MAINT-02
-status: planned
+status: done
 folders:
   - "[[features/maint/02-label-refactoring/requirements|requirements]]"
 ---
