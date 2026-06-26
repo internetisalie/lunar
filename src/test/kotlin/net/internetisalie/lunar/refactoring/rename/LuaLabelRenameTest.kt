@@ -38,4 +38,61 @@ class LuaLabelRenameTest : BasePlatformTestCase() {
         assertNotNull("Parent of labelName should not be null", parent)
         assertEquals("::renamed::", parent?.text)
     }
+
+    @Test
+    fun testRenameFromDeclaration() {
+        myFixture.configureByText("test.lua", """
+            ::<caret>myLabel::
+            goto myLabel
+        """.trimIndent())
+
+        myFixture.renameElementAtCaret("newLabel")
+
+        myFixture.checkResult("""
+            ::newLabel::
+            goto newLabel
+        """.trimIndent())
+    }
+
+    @Test
+    fun testRenameFromReference() {
+        myFixture.configureByText("test.lua", """
+            ::myLabel::
+            goto my<caret>Label
+        """.trimIndent())
+
+        myFixture.renameElementAtCaret("newLabel")
+
+        myFixture.checkResult("""
+            ::newLabel::
+            goto newLabel
+        """.trimIndent())
+    }
+
+    @Test
+    fun testScopeIsolatedRename() {
+        myFixture.configureByText("test.lua", """
+            function a()
+                ::<caret>L::
+                goto L
+            end
+            function b()
+                ::L::
+                goto L
+            end
+        """.trimIndent())
+
+        myFixture.renameElementAtCaret("L2")
+
+        myFixture.checkResult("""
+            function a()
+                ::L2::
+                goto L2
+            end
+            function b()
+                ::L::
+                goto L
+            end
+        """.trimIndent())
+    }
 }

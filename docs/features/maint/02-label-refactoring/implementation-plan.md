@@ -48,7 +48,7 @@ folders:
 ### Phase 3: Rename binding for references [Must]
 - **Goal**: a label rename rewrites every in-scope `goto`.
 - **Tasks**:
-  - [ ] Override `LuaLabelReference.handleElementRename(newElementName)` to call the
+  - [x] Override `LuaLabelReference.handleElementRename(newElementName)` to call the
         inherited `setName` on the `LuaLabelRef` (design §2.4, §3.3).
 - **Exit criteria**: TC 7–9 pass (`LuaLabelRenameTest`) via real `renameElementAtCaret`;
   out-of-scope same-named labels are untouched.
@@ -73,7 +73,7 @@ folders:
 - [ ] `LuaLabelResolutionTest` (`BasePlatformTestCase`, `configureByText` + `<caret>`):
       backward (TC 1), forward (TC 2), enclosing block (TC 3), function-boundary negative
       (TC 4), sibling-block negative (TC 5).
-- [ ] `LuaLabelRenameTest`: `getNameIdentifier`/`setName` (TC 6), rename-from-declaration
+- [x] `LuaLabelRenameTest`: `getNameIdentifier`/`setName` (TC 6), rename-from-declaration
       (TC 7), rename-from-goto (TC 8), scope-isolated rename across two functions (TC 9) —
       all via `myFixture.renameElementAtCaret(...)`.
 - [ ] `LuaLabelCompletionTest`: visible-label completion (TC 10) via `myFixture.completeBasic()`.
@@ -88,5 +88,5 @@ folders:
 |-------|--------|----------|
 | Phase 1: `PsiNameIdentifierOwner` for labels | done | Must |
 | Phase 2: Lazy scope-aware resolution | done | Must |
-| Phase 3: Rename binding for references | todo | Must |
+| Phase 3: Rename binding for references | done | Must |
 | Phase 4: Lazy goto completion | todo | Should |
