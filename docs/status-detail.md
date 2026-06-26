@@ -256,7 +256,7 @@ folders:
 | ROCKS-09 | Multi-Rock Workspace Discovery | done | `LuaRockspecDiscoveryService` (index-backed, cached scanner), `LuaRocksDependencyResolver` forest traversal |
 | ROCKS-10 | Workspace Build Orchestration | planned | Topo-sort discovered rocks via dependency graph; `luarocks make` in dependency order |
 | ROCKS-11 | Makefile Task Integration | planned | Enrich scaffolded Makefile (lint/format/coverage targets); optional Makefile-plugin integration |
-| ROCKS-12 | Project-View Roots & Marking | planned | `lua_modules` installed-rock tree as External Libraries (SyntheticLibrary) + first-party source-root marking (ProjectViewNodeDecorator) |
+| ROCKS-12 | Project-View Roots & Marking | done | `lua_modules` installed-rock tree as External Libraries (SyntheticLibrary) + first-party source-root marking (ProjectViewNodeDecorator) |
 
 ---
 

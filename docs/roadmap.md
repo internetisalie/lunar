@@ -257,6 +257,8 @@ bug and gave the type inspections false confidence until this session's coverage
 >
 > **ROCKS-06 shipped (2026-06-25).** Project LuaRocks Environment done; Settings UI, server resolution, TOOL-02 binding, per-server credentials all verified.
 
+> **ROCKS-12 shipped (2026-06-26).** Project-View Roots & Marking is done; installed rocks surfaced as External Libraries (`SyntheticLibrary`) and first-party `build.modules` roots badged in the UI.
+>
 > **ROCKS-05 shipped (2026-06-25).** Rockspec Module Resolution is done; `build.modules` mapping into `PathConfiguration` and `LUA_PATH`/`LUA_CPATH` injection is active. Addressed an infinite recursion bug between discovery and resolution during review.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
@@ -266,7 +268,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | ROCKS-06 | Project LuaRocks Environment | done | M | TOOL-02 *(executable binding)* | — *(redefines 02/03/08 server-awareness)* | ✓ 2026-06-25: `LuaRocksEnvironment` (resolver, `withServer` global-flag prepend), per-server `LuaRocksApiKeyStore`, `LuaRocksSettingsConfigurable`, project `rocksServerUrl` override. VNC verified: settings UI, server resolution precedence, TOOL-02 binding, fallback. Deferred: publish/credential VNC (headless TC 7/8 green). |
 | ROCKS-10 | Workspace Build Orchestration (dep order) | planned | M | ROCKS-09, ROCKS-03, ROCKS-04 | — | ✓ |
 | ROCKS-11 | Makefile Task Integration | planned | C | ROCKS-01; opt. `com.jetbrains.lang.makefile` *(spike)* | — | ✓ |
-| ROCKS-12 | Project-View Roots & Marking | planned | M | ROCKS-05, ROCKS-09 | — | ✓ |
+| ROCKS-12 | Project-View Roots & Marking | done | M | ROCKS-05, ROCKS-09 | — | ✓ 2026-06-26: `LuaRocksLibraryProvider` (Piece A) and `LuaRockSourceRootDecorator` (Piece B). Handled Platform index recursion bug without crashes. |
 
 > Dropped: **ROCKS-07** (custom luarocks task panel) — redundant against Make + Lunar's native
 > format/lint/coverage/test integrations; the Makefile (ROCKS-11) is the task aggregator.
