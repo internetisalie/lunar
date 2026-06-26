@@ -234,7 +234,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | BUG-349 | Flaky Inlay Hint Tests | done | M | — | — | ✓ |
 | MAINT-XX| Test Coverage Improvement | todo | H | — | — | ✓ |
 | MAINT-01| Kotlin Conversion | in_progress | M | — | — | ✓ |
-| MAINT-02| Label Refactoring | planned | M | — | — | ✓ |
+| MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | todo | M | — | — | ✓ |
 | MAINT-07| Interpreter Search Path Globs | todo | M | — | — | ✓ |
 | MAINT-03| Deprecation Cleanup | todo | L | — | — | ✓ |
