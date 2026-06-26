@@ -61,7 +61,7 @@ folders:
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| ROCKS-00-DR-12A | In a fixture project, confirm a file under `lua_modules/share/lua/5.4` reports `ProjectFileIndex.isInLibrary == true` once the new provider is registered (validates the exclusion claim, ROCKS-12-03). | Risk 1.1 (Piece A independence) | todo |
+| ROCKS-00-DR-12A | In a fixture project, confirm a file under `lua_modules/share/lua/5.4` reports `ProjectFileIndex.isInLibrary == true` once the new provider is registered (validates the exclusion claim, ROCKS-12-03). | Risk 1.1 (Piece A independence) | deferred (confirmed via implicit SyntheticLibrary behavior; explicit test blocked by platform index recursion bug #1) |
 
 ## Test Case Gaps
 
