@@ -56,7 +56,7 @@ folders:
 ### Phase 4: Lazy goto completion [Should]
 - **Goal**: `goto ` completion offers only visible labels.
 - **Tasks**:
-  - [ ] Reimplement `LuaLabelReference.getVariants` with
+  - [x] Reimplement `LuaLabelReference.getVariants` with
         `LuaLabelCompletionScopeProcessor` + `walkLabelScopes` (design §2.4, §3.2).
 - **Exit criteria**: TC 10 passes (`LuaLabelCompletionTest`) via real `completeBasic`.
 
@@ -70,14 +70,14 @@ folders:
 | MAINT-02-04 | S | Phase 4 |
 
 ## Verification Tasks
-- [ ] `LuaLabelResolutionTest` (`BasePlatformTestCase`, `configureByText` + `<caret>`):
+- [x] `LuaLabelResolutionTest` (`BasePlatformTestCase`, `configureByText` + `<caret>`):
       backward (TC 1), forward (TC 2), enclosing block (TC 3), function-boundary negative
       (TC 4), sibling-block negative (TC 5).
 - [x] `LuaLabelRenameTest`: `getNameIdentifier`/`setName` (TC 6), rename-from-declaration
       (TC 7), rename-from-goto (TC 8), scope-isolated rename across two functions (TC 9) —
       all via `myFixture.renameElementAtCaret(...)`.
-- [ ] `LuaLabelCompletionTest`: visible-label completion (TC 10) via `myFixture.completeBasic()`.
-- [ ] `gce-builder run "ktlintFormat ktlintCheck"` on the touched files; `gce-builder run test`
+- [x] `LuaLabelCompletionTest`: visible-label completion (TC 10) via `myFixture.completeBasic()`.
+- [x] `gce-builder run "ktlintFormat ktlintCheck"` on the touched files; `gce-builder run test`
       stays green.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) if present
       (live Rename + goto completion in GoLand).
@@ -89,4 +89,4 @@ folders:
 | Phase 1: `PsiNameIdentifierOwner` for labels | done | Must |
 | Phase 2: Lazy scope-aware resolution | done | Must |
 | Phase 3: Rename binding for references | done | Must |
-| Phase 4: Lazy goto completion | todo | Should |
+| Phase 4: Lazy goto completion | done | Should |

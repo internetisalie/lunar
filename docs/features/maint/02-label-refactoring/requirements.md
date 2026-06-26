@@ -3,7 +3,7 @@ id: MAINT-02
 title: "MAINT-02: Label Refactoring"
 type: feature
 parent_id: MAINT
-status: planned
+status: done
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
