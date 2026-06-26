@@ -1,0 +1,8 @@
+<!-- ROCKS-11: optional config-file, loaded only when name.kropp.intellij.makefile is present
+     (see <depends optional=.../> in plugin.xml). Per DR ROCKS-11-00-01 this contributes NOTHING
+     today: target gutter-run markers and the Makefile run-config are provided by the Makefile
+     plugin itself for the scaffolded file. This file exists solely to satisfy the optional
+     config-file contract and as a hook for any future Makefile-plugin extension confirmed by the
+     spike. -->
+<idea-plugin>
+</idea-plugin>

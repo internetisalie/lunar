@@ -75,4 +75,4 @@ spike (Phase 0). Each phase leaves the build green.
 |-------|--------|----------|
 | Phase 0: Makefile-plugin spike | done | Should |
 | Phase 1: Template enrichment | done | Must |
-| Phase 2: Optional plugin dependency | todo | Should |
+| Phase 2: Optional plugin dependency | done | Should |

@@ -27,6 +27,11 @@
        Keeps the terminal a soft dependency rather than bloating the base plugin. -->
   <depends optional="true" config-file="lunar-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
+  <!-- ROCKS-11: optional dependency on the marketplace JetBrains "Makefile Language" plugin so the
+       scaffolded Makefile's targets are one-click runnable when present. Soft dependency: Lunar
+       loads normally when the plugin is absent. -->
+  <depends optional="true" config-file="lunar-makefile.xml">name.kropp.intellij.makefile</depends>
+
   <!-- Extension points defined by the plugin.
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">

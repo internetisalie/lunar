@@ -3,7 +3,7 @@ id: ROCKS-11
 title: "11: Makefile Task Integration"
 type: feature
 parent_id: ROCKS
-status: "planned"
+status: "done"
 priority: "low"
 folders:
   - "[[features/rocks/requirements|requirements]]"
@@ -92,11 +92,11 @@ confirms a usable extension point.
 | 6 | ROCKS-11-04 | a built plugin distribution **without** the Makefile plugin installed | load Lunar in GoLand 2026.1.3 | the plugin loads with no error; `lunar-makefile.xml` is silently skipped (verified manually, gated on DR ROCKS-11-00-01) |
 
 ## Acceptance Criteria
-- [ ] ROCKS-11-01: scaffolding with the Makefile option produces a Makefile with all seven canonical targets.
-- [ ] ROCKS-11-02: `lint`/`format`/`coverage` recipes invoke `luacheck`/`stylua`/`luacov` respectively.
-- [ ] ROCKS-11-03: `.PHONY` lists exactly the emitted targets.
-- [ ] ROCKS-11-04: optional `<depends>` added; plugin loads with the Makefile plugin absent (DR-gated).
-- [ ] ROCKS-11-05: fallback behavior documented; no custom Makefile markers added.
+- [x] ROCKS-11-01: scaffolding with the Makefile option produces a Makefile with all seven canonical targets.
+- [x] ROCKS-11-02: `lint`/`format`/`coverage` recipes invoke `luacheck`/`stylua`/`luacov` respectively.
+- [x] ROCKS-11-03: `.PHONY` lists exactly the emitted targets.
+- [x] ROCKS-11-04: optional `<depends>` added; plugin loads with the Makefile plugin absent (DR-gated).
+- [x] ROCKS-11-05: fallback behavior documented; no custom Makefile markers added.
 
 ## Non-Functional Requirements
 - **Threading**: none beyond the existing scaffolding write. `LuaRocksScaffolder.scaffold` already
