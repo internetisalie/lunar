@@ -57,7 +57,7 @@ fully specified.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| ROCKS-11-00-01 | In GoLand 2026.1.3: install the JetBrains "Makefile Language" plugin from the marketplace. Confirm its exact `pluginId` (expected `com.jetbrains.lang.makefile`) from the installed plugin descriptor. Confirm it provides native target gutter-run markers + a Makefile run-config for a scaffolded `Makefile`. Verify optional-`<depends>` + empty `config-file` behavior: (a) plugin present → `lunar-makefile.xml` loads without error; (b) plugin absent → it is skipped and Lunar loads normally. Record findings inline. | Risk 1.1; gates ROCKS-11-04 (design §7, Phase 2) | todo |
+| ROCKS-11-00-01 | In GoLand 2026.1.3: install the JetBrains "Makefile Language" plugin from the marketplace. Confirm its exact `pluginId` (expected `com.jetbrains.lang.makefile`) from the installed plugin descriptor. Confirm it provides native target gutter-run markers + a Makefile run-config for a scaffolded `Makefile`. Verify optional-`<depends>` + empty `config-file` behavior: (a) plugin present → `lunar-makefile.xml` loads without error; (b) plugin absent → it is skipped and Lunar loads normally. Record findings inline. | Risk 1.1; gates ROCKS-11-04 (design §7, Phase 2) | done (Confirmed: pluginId is `name.kropp.intellij.makefile`. Native gutter run markers and run config are provided. Gated loading behaves correctly with/without the plugin.) |
 
 ## Test Case Gaps
 - Automated tests cannot cover ROCKS-11-04/-05 (plugin presence/absence) — these are manual
