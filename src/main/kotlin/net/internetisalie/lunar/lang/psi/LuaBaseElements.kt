@@ -10,6 +10,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.stubs.IStubElementType
@@ -43,12 +44,12 @@ open class LuaBaseElement(node: ASTNode) : ASTWrapperPsiElement(node) {
 
 // Name Declaration
 
-interface LuaNameDeclElement : PsiNamedElement
+interface LuaNameDeclElement : PsiNameIdentifierOwner
 
 abstract class LuaNameDeclElementImpl(node: ASTNode) : LuaBaseElement(node), LuaNameDeclElement {
-    override fun getName(): String? {
-        return findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)!!.getText()
-    }
+    override fun getName(): String? = getNameIdentifier()?.text
+
+    override fun getNameIdentifier(): PsiElement? = findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)
 
     override fun setName(newName: String): PsiElement {
         val identifierNode = node.findChildByType(LuaElementTypes.IDENTIFIER)

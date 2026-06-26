@@ -227,14 +227,14 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| BUG-134 | `@return` Comma Parsing | planned | H | — | — | ✓ |
-| BUG-132 | Duplicate Problems Reporting | todo | M | — | — | ✓ |
-| BUG-133 | Union Inlay Hints (OR) | todo | M | — | — | ✓ |
-| BUG-135 | Stdlib Inlay Hints | todo | M | — | — | ✓ |
-| BUG-349 | Flaky Inlay Hint Tests | todo | M | — | — | ✓ |
+| BUG-134 | `@return` Comma Parsing | done | H | — | — | ✓ |
+| BUG-132 | Duplicate Problems Reporting | done | M | — | — | ✓ |
+| BUG-133 | Union Inlay Hints (OR) | done | M | — | — | ✓ |
+| BUG-135 | Stdlib Inlay Hints | done | M | — | — | ✓ |
+| BUG-349 | Flaky Inlay Hint Tests | done | M | — | — | ✓ |
 | MAINT-XX| Test Coverage Improvement | todo | H | — | — | ✓ |
-| MAINT-01| Kotlin Conversion | todo | M | — | — | ✓ |
-| MAINT-02| Label Refactoring | todo | M | — | — | ✓ |
+| MAINT-01| Kotlin Conversion | in_progress | M | — | — | ✓ |
+| MAINT-02| Label Refactoring | planned | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | todo | M | — | — | ✓ |
 | MAINT-07| Interpreter Search Path Globs | todo | M | — | — | ✓ |
 | MAINT-03| Deprecation Cleanup | todo | L | — | — | ✓ |
@@ -243,28 +243,10 @@ bug and gave the type inspections false confidence until this session's coverage
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 
-> The **Wave-10 ROCKS epic was reopened (2026-06-21)** — it had been marked done, but ROCKS-05 was
-> unbuilt and a gap review found real holes: Lunar is blind to multi-rock projects (rockspecs under
-> `rocks/*/` are invisible to the single-root `LuaRocksTreeLocator.projectRockspec`), there is no
-> project-scoped registry/server config (blocks custom-registry / `rockserver` testing), no
-> dependency-ordered build, and module folders aren't marked in the Project view. The six features
-> below are **planned and reviewer-PASS**; shipped ROCKS-01/02/03/04/08 stay `done`. Build the
-> discovery foundation (ROCKS-09) first; the rest consume it.
->
-> **ROCKS-09 shipped (2026-06-25).** Discovery foundation is done; ROCKS-05, ROCKS-10, and ROCKS-12
-> are now unblocked. A threading contract violation (read-action missing in `LuaRockspecDiscoveryService`)
-> was caught by VNC live verification and fixed before the feature was closed.
->
-> **ROCKS-10 shipped (2026-06-25).** Workspace Build Orchestration is done; added topological sorting, sequential runner reusing ROCKS-04, and UI action.
->
-> **ROCKS-06 shipped (2026-06-25).** Project LuaRocks Environment done; Settings UI, server resolution, TOOL-02 binding, per-server credentials all verified.
-
-> **ROCKS-12 shipped (2026-06-26).** Project-View Roots & Marking is done; installed rocks surfaced as External Libraries (`SyntheticLibrary`) and first-party `build.modules` roots badged in the UI.
->
-> **ROCKS-05 shipped (2026-06-25).** Rockspec Module Resolution is done; `build.modules` mapping into `PathConfiguration` and `LUA_PATH`/`LUA_CPATH` injection is active. Addressed an infinite recursion bug between discovery and resolution during review.
->
-> **ROCKS-11 shipped (2026-06-26).** Makefile Task Integration is done; template enriched with canonical targets. Optional `name.kropp.intellij.makefile` dependency added and verified live over VNC.
-> **Wave 13 is complete (2026-06-26).**
+> **✅ COMPLETE (2026-06-26).** All 6 features shipped and merged to `main` (ROCKS-05, ROCKS-06, ROCKS-09,
+> ROCKS-10, ROCKS-11, ROCKS-12). Multi-rock workspace discovery and environment integration is complete,
+> including topo-sorted build orchestration, source-root and external-library marking, module resolution,
+> and Makefile task integration. All features verified green in the automated suite and live-tested.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
