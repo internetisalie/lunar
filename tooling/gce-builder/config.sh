@@ -27,7 +27,7 @@ MAX_RUN_DURATION="${GCE_BUILDER_MAX_RUN_DURATION:-2h}"
 IDLE_MINUTES="${GCE_BUILDER_IDLE_MINUTES:-10}"
 # 1-min loadavg at/above which a connection-less VM still counts as "busy building" (covers a
 # build whose SSH link dropped; an idle Gradle daemon sits well below this on an 8-vCPU box).
-IDLE_LOAD_THRESHOLD="${GCE_BUILDER_IDLE_LOAD_THRESHOLD:-1.0}"
+IDLE_LOAD_THRESHOLD="${GCE_BUILDER_IDLE_LOAD_THRESHOLD:-0.0}"
 TERMINATION_ACTION="${GCE_BUILDER_TERMINATION_ACTION:-STOP}"
 
 # Boot disk (ephemeral — re-created with the VM).

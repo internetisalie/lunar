@@ -232,7 +232,14 @@ bug and gave the type inspections false confidence until this session's coverage
 | BUG-133 | Union Inlay Hints (OR) | done | M | — | — | ✓ |
 | BUG-135 | Stdlib Inlay Hints | done | M | — | — | ✓ |
 | BUG-349 | Flaky Inlay Hint Tests | done | M | — | — | ✓ |
-| MAINT-XX| Test Coverage Improvement | todo | H | — | — | ✓ |
+| MAINT-09| Test Coverage: PSI & Stubs | todo | M | — | — | ✓ |
+| MAINT-10| Test Coverage: Stub Indexes | todo | M | — | — | ✓ |
+| MAINT-11| Test Coverage: Structure View | todo | M | — | — | ✓ |
+| MAINT-12| Test Coverage: Settings & UI | todo | M | — | — | ✓ |
+| MAINT-13| Test Coverage: Run & Debugger | todo | M | — | — | ✓ |
+| MAINT-16| Test Coverage: LuaCATS Syntax | todo | M | — | — | ✓ |
+| MAINT-17| Test Coverage: Utilities | todo | M | — | — | ✓ |
+| MAINT-18| Test Coverage: LuaCov Reports | todo | M | — | — | ✓ |
 | MAINT-01| Kotlin Conversion | in_progress | M | — | — | ✓ |
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | todo | M | — | — | ✓ |
