@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.rocks
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressManager
@@ -59,9 +60,19 @@ class LuaRockspecDiscoveryService(private val project: Project) {
         val includeGlobs = settingsState.rockspecIncludeGlobs.toList()
         val excludeGlobs = settingsState.rockspecExcludeGlobs.toList()
 
-        val includedRockspecs = ReadAction.nonBlocking<List<IncludedRockspec>> {
-            enumerateIncluded(includeGlobs, excludeGlobs)
-        }.expireWith(project).executeSynchronously()
+        // enumerateIncluded queries FilenameIndex, which requires a read lock. When the caller
+        // already holds one (e.g. resolution running under runReadAction), call directly — a
+        // synchronous non-blocking read action is illegal inside an existing read action. Otherwise
+        // use a non-blocking read action: it pumps pending VFS/index events so freshly-added files
+        // are visible, matching the pre-refactor discovery behavior relied on by action-gate tests.
+        val includedRockspecs =
+            if (ApplicationManager.getApplication().isReadAccessAllowed) {
+                enumerateIncluded(includeGlobs, excludeGlobs)
+            } else {
+                ReadAction.nonBlocking<List<IncludedRockspec>> {
+                    enumerateIncluded(includeGlobs, excludeGlobs)
+                }.expireWith(project).executeSynchronously()
+            }
 
         return includedRockspecs
             .map { DiscoveredRockspec(it.path, RockspecBridge.read(project, it.path)?.packageName) }

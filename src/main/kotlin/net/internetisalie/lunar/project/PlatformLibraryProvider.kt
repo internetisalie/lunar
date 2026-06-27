@@ -54,7 +54,7 @@ class PlatformLibraryProvider : AdditionalLibraryRootsProvider() {
     fun getExternalLibraries(project: Project): Collection<SyntheticLibrary> {
         val projectBasePath = project.basePath ?: return emptyList()
 
-        val virtualFiles = PathConfiguration.getProjectSourcePathPatterns(project)
+        val virtualFiles = PathConfiguration.getStaticSourcePathPatterns(project)
             .map { it.leadingPath }
             .distinct()
             .map { it -> Paths.get(it) }
@@ -130,13 +130,16 @@ object PlatformLibraryIndex {
             .toList()
     }
 
+    /** Reloads platform libraries and forces a stub-index rebuild. Must run on the EDT with no read lock held. */
     fun reload() {
         WriteAction.run<RuntimeException> {
             val projects = ProjectManagerEx.getInstanceEx().openProjects
             for (project in projects) {
-                ProjectRootManagerEx.getInstanceEx(project).makeRootsChange(EmptyRunnable.getInstance(), RootsChangeRescanningInfo.RESCAN_DEPENDENCIES_IF_NEEDED)
+                ProjectRootManagerEx.getInstanceEx(project).makeRootsChange(
+                    EmptyRunnable.getInstance(),
+                    RootsChangeRescanningInfo.RESCAN_DEPENDENCIES_IF_NEEDED,
+                )
             }
-
             StubIndex.getInstance().forceRebuild(Throwable("Lua language level changed."))
         }
     }

@@ -17,12 +17,23 @@ data object PathConfiguration {
     const val SUBSTITUTION_MARK = "?"
 
     fun getProjectSourcePathPatterns(project: Project): List<SourcePathPattern> {
+        val userPatterns = getStaticSourcePathPatterns(project)
+        val rockspecPatterns = net.internetisalie.lunar.rocks.RockspecSourcePathProvider.getInstance(project).derivedPatterns()
+        return (userPatterns + rockspecPatterns).distinctBy { it.spec }
+    }
+
+    /**
+     * User/settings-derived patterns only (the configured `package.path`); performs NO index-backed
+     * rockspec discovery. Callers that run as an [com.intellij.openapi.roots.AdditionalLibraryRootsProvider]
+     * MUST use this rather than [getProjectSourcePathPatterns]: the platform invokes that provider while
+     * building the very index that rockspec discovery queries, so routing through the rockspec-aware
+     * variant forms a CachedValue dependency cycle (RecursionManager StackOverflowPreventedException).
+     */
+    fun getStaticSourcePathPatterns(project: Project): List<SourcePathPattern> {
         val state = LuaProjectSettings.getInstance(project).state
         val luaPath = state.expandSourcePath(project)
             .ifEmpty { DEFAULT_SOURCE_PATH.expandMacros(project) }
-        val userPatterns = SourcePathPattern.patternsFromLuaPath(luaPath)
-        val rockspecPatterns = net.internetisalie.lunar.rocks.RockspecSourcePathProvider.getInstance(project).derivedPatterns()
-        return (userPatterns + rockspecPatterns).distinctBy { it.spec }
+        return SourcePathPattern.patternsFromLuaPath(luaPath)
     }
 }
 

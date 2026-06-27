@@ -90,12 +90,12 @@ cmd_sync() {
     --filter=':- .gitignore' --exclude='/.git/' --exclude='/test' \
     -e "$ssh_t" \
     "$REPO_ROOT/" "$REMOTE_USER@$ip:$REMOTE_DIR/"
-  # Vendored test data (e.g. test/luacheck) needed by integration tests: follow the symlink (-L)
-  # and push the real files so they survive --delete and aren't a dangling link on the VM.
-  if [ -d "$REPO_ROOT/test/luacheck" ]; then
-    ssh_exec --command "rm -f '$REMOTE_DIR/test' 2>/dev/null; mkdir -p '$REMOTE_DIR/test/luacheck'" >/dev/null 2>&1 || true
+  # Vendored test data (e.g. test/luacheck and test/*.lua) needed by integration/unit tests:
+  # follow the symlink (-L) and push the real files so they survive --delete and aren't a dangling link on the VM.
+  if [ -d "$REPO_ROOT/test" ]; then
+    ssh_exec --command "rm -f '$REMOTE_DIR/test' 2>/dev/null; mkdir -p '$REMOTE_DIR/test'" >/dev/null 2>&1 || true
     rsync -aLz --delete -e "$ssh_t" \
-      "$REPO_ROOT/test/luacheck/" "$REMOTE_USER@$ip:$REMOTE_DIR/test/luacheck/"
+      "$REPO_ROOT/test/" "$REMOTE_USER@$ip:$REMOTE_DIR/test/"
   fi
   # The debug-harness test execs ~/bin/lua; ensure it points at the bootstrap-installed lua5.4.
   ssh_exec --command "command -v lua5.4 >/dev/null && { mkdir -p ~/bin; ln -sf \$(command -v lua5.4) ~/bin/lua; }" >/dev/null 2>&1 || true

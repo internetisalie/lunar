@@ -124,8 +124,8 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
     @Test
     fun testIndexRealWorldProjectAndMeasureSize() {
-        val testProjectDir = java.io.File("/home/mini/Documents/src/lua/test")
-        assertTrue(testProjectDir.exists())
+        val testProjectDir = java.io.File(System.getProperty("user.dir"), "test")
+        assertTrue("Test project directory does not exist: ${testProjectDir.absolutePath}", testProjectDir.exists())
 
         var totalLoc = 0
         var fileCount = 0
@@ -159,9 +159,14 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
             }
         }
 
-        // Limit of 500 KB per 10k LOC
+        // Regression guardrail: the description index must stay under 500 KB per 10k LOC. The
+        // vendored test project measures ~6 bytes/LOC, so this leaves ~9x headroom and trips only
+        // on a genuine index-size blowup.
         val limitBytes = (totalLoc / 10000.0) * 500 * 1024
-        assertTrue("Estimated size of index ($estimatedSizeBytes bytes) exceeds limit ($limitBytes bytes) for $totalLoc LOC",
-            estimatedSizeBytes < limitBytes)
+        assertTrue(
+            "Estimated size of index ($estimatedSizeBytes bytes) exceeds limit ($limitBytes bytes) " +
+                "for $totalLoc LOC across $fileCount files ($totalEntries entries)",
+            estimatedSizeBytes < limitBytes,
+        )
     }
 }

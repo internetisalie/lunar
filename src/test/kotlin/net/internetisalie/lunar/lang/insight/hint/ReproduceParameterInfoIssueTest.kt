@@ -18,15 +18,15 @@ class ReproduceParameterInfoIssueTest : IndexedDocumentTest() {
     @Test
     fun testDottedPlatformGlobal() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            // 1. Setup target platform and reload platform library index on EDT.
+            // reload() runs WriteAction internally, which requires EDT and no active read lock.
+            val settings = LuaProjectSettings.getInstance(myFixture.project)
+            val redisVersion = PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, "7+")!!
+            settings.state.setTarget(Target(LuaPlatform.REDIS, redisVersion))
+            net.internetisalie.lunar.project.PlatformLibraryIndex.reload()
+
+            // 2. Perform file configuration and parameter info lookup under a read action.
             runReadAction {
-                // Set target to Redis 7+ so cjson is available
-                val settings = LuaProjectSettings.getInstance(myFixture.project)
-                val redisVersion = PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, "7+")!!
-                settings.state.setTarget(Target(LuaPlatform.REDIS, redisVersion))
-
-                // Notify that platform libraries changed and force rebuild if necessary
-                net.internetisalie.lunar.project.PlatformLibraryIndex.reload()
-
                 val file = configureByText("""
                     cjson.decode(<caret>)
                 """.trimIndent())

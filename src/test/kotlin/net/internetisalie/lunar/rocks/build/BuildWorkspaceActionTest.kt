@@ -1,7 +1,10 @@
 package net.internetisalie.lunar.rocks.build
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.application.runReadAction
+import com.intellij.testFramework.EdtTestUtil
 import com.intellij.testFramework.TestActionEvent
 import net.internetisalie.lunar.lang.types.IndexedBasePlatformTestCase
 import org.junit.Test
@@ -19,11 +22,7 @@ class BuildWorkspaceActionTest : IndexedBasePlatformTestCase() {
             "package = \"a\"\nversion = \"1.0-1\"\n"
         )
 
-        val action = BuildWorkspaceAction()
-        val dataContext = SimpleDataContext.getProjectContext(project)
-        val event = TestActionEvent.createTestEvent(action, dataContext)
-
-        action.update(event)
+        val event = updateOnEdt(BuildWorkspaceAction())
 
         assertTrue(event.presentation.isVisible)
         assertFalse(event.presentation.isEnabled)
@@ -41,14 +40,23 @@ class BuildWorkspaceActionTest : IndexedBasePlatformTestCase() {
             "package = \"b\"\nversion = \"1.0-1\"\n"
         )
 
-        val action = BuildWorkspaceAction()
-        val dataContext = SimpleDataContext.getProjectContext(project)
-        val event = TestActionEvent.createTestEvent(action, dataContext)
-
-        action.update(event)
+        val event = updateOnEdt(BuildWorkspaceAction())
 
         assertTrue(event.presentation.isVisible)
         assertTrue(event.presentation.isEnabled)
+    }
+
+    // Runs the action's update on the EDT under a read action, matching the reliable pattern in
+    // LuaRockspecDiscoveryServiceTest: entering the EDT flushes pending VFS/index events from
+    // myFixture.addFileToProject so the freshly-added rockspecs are visible to FilenameIndex before
+    // the gate counts them. Calling update() raw on the test-worker thread races that indexing.
+    private fun updateOnEdt(action: BuildWorkspaceAction): AnActionEvent {
+        val dataContext = SimpleDataContext.getProjectContext(project)
+        val event = TestActionEvent.createTestEvent(action, dataContext)
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction { action.update(event) }
+        }
+        return event
     }
 
     @Test
