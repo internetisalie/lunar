@@ -2,7 +2,7 @@
 id: "MAINT-09-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "MAINT-09"
 folders:
@@ -24,7 +24,7 @@ then `ktlintFormat ktlintCheck` before committing.
 ### Phase 1: PSI factory tests [Must]
 - **Goal**: Cover `LuaElementFactory` construction (MAINT-09-01).
 - **Tasks**:
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/lang/psi/LuaElementFactoryTest.kt`
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/lang/psi/LuaElementFactoryTest.kt`
         (`net.internetisalie.lunar.lang.psi.LuaElementFactoryTest`) — realizes design §2.1.
         Methods `testCreateIdentifierProducesNamedElement`, `testCreateLabelRefProducesLuaLabelRef`,
         `testCreateLabelProducesLuaLabel`, `testCreateGotoStatementProducesLuaGotoStatement`,
@@ -91,7 +91,7 @@ then `ktlintFormat ktlintCheck` before committing.
 | MAINT-09-05 | M | Phase 5 |
 
 ## Verification Tasks
-- [ ] `LuaElementFactoryTest` — covers TC-09-01-a/b/c (AC-09-01).
+- [x] `LuaElementFactoryTest` — covers TC-09-01-a/b/c (AC-09-01).
 - [ ] `LuaCatsCommentResolutionTest` — covers TC-09-02-a/b/c (AC-09-02).
 - [ ] `LuaScopeResolveTest` — covers TC-09-03-a/b (AC-09-03).
 - [ ] `LuaFunctionScopeTest` — covers TC-09-04-a/b/c (AC-09-04).
@@ -103,7 +103,7 @@ then `ktlintFormat ktlintCheck` before committing.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: PSI factory tests | planned | Must |
+| Phase 1: PSI factory tests | done | Must |
 | Phase 2: LuaCATS comment resolution tests | planned | Must |
 | Phase 3: Scope-crawl & sequencing tests | planned | Must |
 | Phase 4: Function scope & implicit-self tests | planned | Must |

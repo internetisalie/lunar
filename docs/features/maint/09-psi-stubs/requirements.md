@@ -3,7 +3,7 @@ id: MAINT-09
 title: "MAINT-09: Test Coverage - PSI & Stubs"
 type: feature
 parent_id: MAINT
-status: planned
+status: in_progress
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
