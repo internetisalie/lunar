@@ -47,7 +47,7 @@ then `ktlintFormat ktlintCheck` before committing.
 - **Goal**: Cover forward-reference rejection and nested-scope climb via
   `scopeCrawlUp`/`LuaBlockExt` (MAINT-09-03).
 - **Tasks**:
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/lang/resolve/LuaScopeResolveTest.kt`
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/lang/resolve/LuaScopeResolveTest.kt`
         (`net.internetisalie.lunar.lang.resolve.LuaScopeResolveTest`) — realizes design §2.3.
         Add the private `resolveAtCaret(text): PsiElement?` helper (design §3.1). Methods
         `testForwardReferenceDoesNotResolveToLaterLocal`, `testNestedBlockResolvesOuterLocal`,
@@ -93,7 +93,7 @@ then `ktlintFormat ktlintCheck` before committing.
 ## Verification Tasks
 - [x] `LuaElementFactoryTest` — covers TC-09-01-a/b/c (AC-09-01).
 - [x] `LuaCatsCommentResolutionTest` — covers TC-09-02-a/b/c (AC-09-02).
-- [ ] `LuaScopeResolveTest` — covers TC-09-03-a/b (AC-09-03).
+- [x] `LuaScopeResolveTest` — covers TC-09-03-a/b (AC-09-03).
 - [ ] `LuaFunctionScopeTest` — covers TC-09-04-a/b/c (AC-09-04).
 - [ ] `LuaStubSerializationTest` — covers TC-09-05-a/b/c (AC-09-05).
 - [ ] Full suite green: `tooling/gce-builder/gce-builder.sh run test` (no regressions).
@@ -105,6 +105,6 @@ then `ktlintFormat ktlintCheck` before committing.
 |-------|--------|----------|
 | Phase 1: PSI factory tests | done | Must |
 | Phase 2: LuaCATS comment resolution tests | done | Must |
-| Phase 3: Scope-crawl & sequencing tests | planned | Must |
+| Phase 3: Scope-crawl & sequencing tests | done | Must |
 | Phase 4: Function scope & implicit-self tests | planned | Must |
 | Phase 5: Stub serialization round-trip tests | planned | Must |
