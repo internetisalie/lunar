@@ -26,7 +26,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | `MAINT-08` | **LuaCheck UI Grouping** | **L** | **Todo** | Implement hierarchical grouping for LuaCheck inspection results. |
 | `MAINT-14` | **Scope Reduction (Luau)** | **L** | **Done** | Remove Luau support references to focus on standard Lua (5.1-5.4). |
 | `MAINT-15` | **Remove Legacy Annotators** | **L** | **Todo** | Remove `LuaLocalBindingsAnnotator` and related legacy components. |
-| [`MAINT-09`](09-psi-stubs/requirements.md) | **Test Coverage: PSI & Stubs** | **M** | **Todo** | Increase unit test coverage for PSI walking, scopes, and stub serialization. |
+| [`MAINT-09`](09-psi-stubs/requirements.md) | **Test Coverage: PSI & Stubs** | **M** | **Done** | Increase unit test coverage for PSI walking, scopes, and stub serialization. |
 | [`MAINT-10`](10-stub-indexes/requirements.md) | **Test Coverage: Stub Indexes** | **M** | **Todo** | Increase unit test coverage for stub and file-based indexes. |
 | [`MAINT-11`](11-structure-view/requirements.md) | **Test Coverage: Structure View** | **M** | **Todo** | Increase unit test coverage for outline structure view tree nodes. |
 | [`MAINT-12`](12-settings-ui/requirements.md) | **Test Coverage: Settings & UI** | **M** | **Todo** | Increase unit test coverage for configuration persistence and change listeners. |
