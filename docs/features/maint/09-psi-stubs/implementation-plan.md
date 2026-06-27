@@ -2,7 +2,7 @@
 id: "MAINT-09-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "MAINT-09"
 folders:
@@ -71,7 +71,7 @@ then `ktlintFormat ktlintCheck` before committing.
 - **Goal**: Cover stub hoisting and serialize/deserialize round-trip for all three stub
   element types (MAINT-09-05).
 - **Tasks**:
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/lang/psi/stubs/LuaStubSerializationTest.kt`
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/lang/psi/stubs/LuaStubSerializationTest.kt`
         (`net.internetisalie.lunar.lang.psi.stubs.LuaStubSerializationTest`) — realizes design
         §2.5. Add the private helpers `buildStubTree`, `roundTrip`, and the `inline reified`
         `Stub.collect<T>()` DFS (design §3.2). Methods `testLocalVarStubHoistsClassAndExtends`,
@@ -95,9 +95,9 @@ then `ktlintFormat ktlintCheck` before committing.
 - [x] `LuaCatsCommentResolutionTest` — covers TC-09-02-a/b/c (AC-09-02).
 - [x] `LuaScopeResolveTest` — covers TC-09-03-a/b (AC-09-03).
 - [x] `LuaFunctionScopeTest` — covers TC-09-04-a/b/c (AC-09-04).
-- [ ] `LuaStubSerializationTest` — covers TC-09-05-a/b/c (AC-09-05).
-- [ ] Full suite green: `tooling/gce-builder/gce-builder.sh run test` (no regressions).
-- [ ] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` on new files.
+- [x] `LuaStubSerializationTest` — covers TC-09-05-a/b/c (AC-09-05).
+- [x] Full suite green: `tooling/gce-builder/gce-builder.sh run test` (no regressions).
+- [x] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` on new files.
 
 ## Task Summary
 
@@ -107,4 +107,4 @@ then `ktlintFormat ktlintCheck` before committing.
 | Phase 2: LuaCATS comment resolution tests | done | Must |
 | Phase 3: Scope-crawl & sequencing tests | done | Must |
 | Phase 4: Function scope & implicit-self tests | done | Must |
-| Phase 5: Stub serialization round-trip tests | planned | Must |
+| Phase 5: Stub serialization round-trip tests | done | Must |

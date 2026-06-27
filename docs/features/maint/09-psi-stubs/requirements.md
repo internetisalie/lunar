@@ -3,7 +3,7 @@ id: MAINT-09
 title: "MAINT-09: Test Coverage - PSI & Stubs"
 type: feature
 parent_id: MAINT
-status: in_progress
+status: done
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -27,11 +27,11 @@ Increase test coverage for the core Lua Program Structure Interface (PSI) tree w
 ## Functional Requirements
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| MAINT-09-01 | **PSI Factory Node Creation** | Must | planned | Verify that `LuaElementFactory` correctly constructs valid AST/PSI nodes (identifiers, labels, expressions) without syntax errors. |
-| MAINT-09-02 | **LuaCATS Lazy Comment Resolution** | Must | planned | Verify that `LuaPsiImplUtil.getCatsComment()` resolves the nearest preceding comment block for local variables and function declarations. |
-| MAINT-09-03 | **Scope Crawling and Sequence Checks** | Must | planned | Verify that `LuaResolveUtil.scopeCrawlUp()` climbs the PSI tree correctly and `LuaBlockExt` rejects forward variable resolution. |
-| MAINT-09-04 | **Implicit Self and Loop Variables** | Must | planned | Verify that `LuaFunctionExt` injects implicit `self` for method calls and `LuaForStatementExt` scopes loop control variables to loop blocks. |
-| MAINT-09-05 | **Stub Type Annotation Serialization** | Must | planned | Verify that stub element types successfully serialize and deserialize hoisted type annotations (`@class`, `@alias`, etc.). |
+| MAINT-09-01 | **PSI Factory Node Creation** | Must | done | Verify that `LuaElementFactory` correctly constructs valid AST/PSI nodes (identifiers, labels, expressions) without syntax errors. |
+| MAINT-09-02 | **LuaCATS Lazy Comment Resolution** | Must | done | Verify that `LuaPsiImplUtil.getCatsComment()` resolves the nearest preceding comment block for local variables and function declarations. |
+| MAINT-09-03 | **Scope Crawling and Sequence Checks** | Must | done | Verify that `LuaResolveUtil.scopeCrawlUp()` climbs the PSI tree correctly and `LuaBlockExt` rejects forward variable resolution. |
+| MAINT-09-04 | **Implicit Self and Loop Variables** | Must | done | Verify that `LuaFunctionExt` injects implicit `self` for method calls and `LuaForStatementExt` scopes loop control variables to loop blocks. |
+| MAINT-09-05 | **Stub Type Annotation Serialization** | Must | done | Verify that stub element types successfully serialize and deserialize hoisted type annotations (`@class`, `@alias`, etc.). |
 
 ## Acceptance Criteria
 * **AC-09-01**: A test case asserts that calling `LuaElementFactory.createIdentifier` produces a valid named PSI element (and `createLabelRef` a `LuaLabelRef`). See `design.md` Gap 2.1 — the factory returns the identifier leaf, not a `LuaNameRef`.
