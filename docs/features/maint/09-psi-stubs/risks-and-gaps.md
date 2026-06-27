@@ -65,6 +65,15 @@ baked into `design.md`, so the feature still clears the planning bar.
 - **Resolved by**: DR-02. **Decision: option (a)** — baked into design §2.4 / §3 Example 3 /
   §6. No production change.
 
+### Gap 2.3: `LuaElementFactory.createLabel` uses invalid Lua label syntax `%%name%%` — RESOLVED
+- **Question**: `createLabel` (`LuaElementFactory.kt:28`) builds `"%%" + name + "%%"` — not valid Lua label
+  syntax (`::name::`). The Lua parser fails to parse this, leaving `PsiTreeUtil.findChildOfType(…, LuaLabel::class.java)`
+  returning `null`. Design §2.1 method `testCreateLabelProducesLuaLabel` cannot pass without a fix.
+- **Options / leaning**: (a) fix the production code (change `%%` to `::` — a 2-character bugfix in an existing method,
+  not "adding production code"); (b) skip the test and document the bug.
+- **Resolved by**: DR-04. **Decision: option (a)** — production code fixed to `"::" + name + "::"` before
+  implementation.
+
 ## Technical Debt & Future Work
 - **TBD: stub round-trip via public `StubOutputStream`/`StubInputStream`** — would avoid the
   internal `SerializationManagerEx`, but needs an in-memory `AbstractStringEnumerator`
@@ -80,6 +89,7 @@ baked into `design.md`, so the feature still clears the planning bar.
 | MAINT-00-DR-01 | Confirm `LuaElementFactory.createIdentifier` return type and assert against the real leaf (text == name); confirm `createLabelRef` → `LuaLabelRef`. | Gap 2.1 | done |
 | MAINT-00-DR-02 | Confirm implicit-`self` resolves to the receiver identifier via `LuaScopeProcessor.kt:82-83`; no `isMethod` API. | Gap 2.2 | done |
 | MAINT-00-DR-03 | Confirm `(LuaFile as PsiFileImpl).calcStubTree()` + `SerializationManagerEx` round-trip is viable under `BasePlatformTestCase` (no index forceRebuild). | Risk 1.1 | done |
+| MAINT-00-DR-04 | Fix `LuaElementFactory.createLabel` production bug: `%%name%%` → `::name::` (Lua label syntax). | Gap 2.3 | done |
 
 ## Test Case Gaps
 - No coverage planned for `LuaFuncDef` (anonymous function-expression) parameter scoping

@@ -25,7 +25,7 @@ object LuaElementFactory {
     }
 
     fun createLabel(project: Project, name: String?): LuaLabel? {
-        val luaFile = createFile(project, "%%" + name + "%%")
+        val luaFile = createFile(project, "::" + name + "::")
         return PsiTreeUtil.findChildOfType(luaFile, LuaLabel::class.java)
     }
 
