@@ -58,7 +58,7 @@ then `ktlintFormat ktlintCheck` before committing.
 - **Goal**: Cover numeric-`for` loop variables, loop-variable confinement, function
   parameters, and implicit `self` (MAINT-09-04).
 - **Tasks**:
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/lang/resolve/LuaFunctionScopeTest.kt`
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/lang/resolve/LuaFunctionScopeTest.kt`
         (`net.internetisalie.lunar.lang.resolve.LuaFunctionScopeTest`) — realizes design §2.4
         (reuses the §3.1 `resolveAtCaret` helper). Methods
         `testNumericForVariableResolvesInBody`, `testLoopVariableNotVisibleAfterLoop`,
@@ -94,7 +94,7 @@ then `ktlintFormat ktlintCheck` before committing.
 - [x] `LuaElementFactoryTest` — covers TC-09-01-a/b/c (AC-09-01).
 - [x] `LuaCatsCommentResolutionTest` — covers TC-09-02-a/b/c (AC-09-02).
 - [x] `LuaScopeResolveTest` — covers TC-09-03-a/b (AC-09-03).
-- [ ] `LuaFunctionScopeTest` — covers TC-09-04-a/b/c (AC-09-04).
+- [x] `LuaFunctionScopeTest` — covers TC-09-04-a/b/c (AC-09-04).
 - [ ] `LuaStubSerializationTest` — covers TC-09-05-a/b/c (AC-09-05).
 - [ ] Full suite green: `tooling/gce-builder/gce-builder.sh run test` (no regressions).
 - [ ] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` on new files.
@@ -106,5 +106,5 @@ then `ktlintFormat ktlintCheck` before committing.
 | Phase 1: PSI factory tests | done | Must |
 | Phase 2: LuaCATS comment resolution tests | done | Must |
 | Phase 3: Scope-crawl & sequencing tests | done | Must |
-| Phase 4: Function scope & implicit-self tests | planned | Must |
+| Phase 4: Function scope & implicit-self tests | done | Must |
 | Phase 5: Stub serialization round-trip tests | planned | Must |
