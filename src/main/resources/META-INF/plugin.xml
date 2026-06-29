@@ -21,6 +21,7 @@
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
   <depends>com.intellij.modules.platform</depends>
   <depends>com.intellij.modules.coverage</depends>
+  <depends>com.intellij.modules.json</depends>
 
   <!-- TOOL-00 de-risking spike: optional dependency on the bundled built-in terminal so the
        terminal PATH-injection customizer only loads when the terminal plugin is present.
@@ -56,6 +57,9 @@
             factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksPackageBrowserToolWindowFactory"/>
 
     <!-- Language -->
+
+    <jsonLikePsiWalkerFactory implementation="net.internetisalie.lunar.lang.schema.LuaJsonLikePsiWalkerFactory"/>
+    <jsonSchemaEnabler implementation="net.internetisalie.lunar.lang.schema.LuaJsonSchemaEnabler"/>
 
     <fileType
             name="Lua"
