@@ -2,7 +2,7 @@
 id: "SCHEMA-04"
 title: "04: Busted Config Schema Provider"
 type: "feature"
-status: "todo"
+status: "planned"
 priority: "low"
 parent_id: "SCHEMA"
 folders:
@@ -41,3 +41,12 @@ exercises [SCHEMA-01](../01-engine/requirements.md)'s returned-table root handli
 
 ## See Also
 - Engine: [../01-engine/requirements.md](../01-engine/requirements.md)
+
+## Test Cases
+
+| # | Requirement | Given | When | Then |
+|---|-------------|-------|------|------|
+| 1 | 04-02 | `.busted` with `return { default = { verbose = true } }` | highlight | No warnings |
+| 2 | 04-02 | `.busted` with `return { default = { bogus = true } }` | highlight | WARNING "Property 'bogus' is not allowed" |
+| 3 | 04-02 | `.busted` with `return { default = { verbose = "yes" } }` | highlight | WARNING type mismatch (expected boolean) |
+| 4 | 04-02 (completion) | Caret inside `return { default = { <caret> } }` | completeBasic | Suggests `output`, `verbose`, `coverage`, `pattern`, `ROOT`, `lpath`, `cpath`, `helper`, `tags` |
