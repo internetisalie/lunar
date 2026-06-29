@@ -51,3 +51,16 @@ ROCKS-13 reduced interpreter had to collapse).
 ## See Also
 - Engine: [../01-engine/requirements.md](../01-engine/requirements.md)
 - Superseded standalone: [ROCKS-13](../../rocks/13-rockspec-editor-support/requirements.md)
+
+## Test Cases
+
+Since ROCKS-13 was superseded, these test cases are ported directly to validate rockspecs against the engine.
+
+| # | Requirement | Given | When | Then |
+|---|-------------|-------|------|------|
+| 1 | 02-01, 02-03 | Rockspec with missing `package` or `version` | highlight | WARNING "missing required property 'package'" |
+| 2 | 02-01, 02-03 | Rockspec with `version = 1.0` (number) | highlight | WARNING type mismatch (expected string) |
+| 3 | 02-02, 02-03 | Rockspec (no format, defaults v3.0) with `test_dependencies = {}` | highlight | WARNING "Property 'test_dependencies' is not allowed" (only allowed in v3.1) |
+| 4 | 02-02, 02-03 | Rockspec with `rockspec_format = "3.1"` and `test_dependencies = {}` | highlight | No warning (allowed in v3.1) |
+| 5 | 02-02, 02-03 | Rockspec with `rockspec_format = "3.1"` and unknown key `invalid_key = 1` | highlight | WARNING "Property 'invalid_key' is not allowed" |
+| 6 | 02-01 (completion) | Caret at top level in rockspec | completeBasic | Suggests `package`, `version`, `source`, `description`, etc. |
