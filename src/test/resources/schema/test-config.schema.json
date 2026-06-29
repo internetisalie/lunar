@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": { "type": "string" },
+    "opts": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "string", "enum": ["low", "high"] }
+      }
+    },
+    "tags": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

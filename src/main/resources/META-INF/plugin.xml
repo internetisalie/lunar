@@ -33,6 +33,19 @@
        loads normally when the plugin is absent. -->
   <depends optional="true" config-file="lunar-makefile.xml">name.kropp.intellij.makefile</depends>
 
+  <extensionPoints>
+      <extensionPoint name="schemaFileProvider" interface="net.internetisalie.lunar.lang.schema.LuaSchemaFileProvider" dynamic="true"/>
+  </extensionPoints>
+
+  <extensions defaultExtensionNs="com.intellij.json">
+      <jsonLikePsiWalkerFactory implementation="net.internetisalie.lunar.lang.schema.LuaJsonLikePsiWalkerFactory"/>
+      <jsonSchemaEnabler implementation="net.internetisalie.lunar.lang.schema.LuaJsonSchemaEnabler"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="">
+      <JavaScript.JsonSchema.ProviderFactory implementation="net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory"/>
+  </extensions>
+
   <!-- Extension points defined by the plugin.
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
@@ -56,14 +69,7 @@
             icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
             factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksPackageBrowserToolWindowFactory"/>
 
-    <extensions defaultExtensionNs="com.intellij.json">
-        <jsonSchemaEnabler implementation="net.internetisalie.lunar.lang.schema.LuaJsonSchemaEnabler"/>
-        <jsonLikePsiWalkerFactory implementation="net.internetisalie.lunar.lang.schema.LuaJsonLikePsiWalkerFactory"/>
-    </extensions>
 
-    <extensions defaultExtensionNs="">
-        <JavaScript.JsonSchema.ProviderFactory implementation="net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory"/>
-    </extensions>
 
     <!-- Language -->
 
