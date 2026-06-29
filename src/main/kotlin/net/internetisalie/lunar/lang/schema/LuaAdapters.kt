@@ -13,7 +13,11 @@ import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 
 class LuaObjectAdapter(private val table: LuaTableConstructor) : LuaValueAdapter(table), JsonObjectValueAdapter {
-    override fun isNull(): Boolean = super<LuaValueAdapter>.isNull()
+    override fun isNull(): Boolean = false
+    override fun isObject(): Boolean = true
+    override fun isArray(): Boolean = false
+    override fun getAsObject(): JsonObjectValueAdapter? = this
+    override fun getAsArray(): JsonArrayValueAdapter? = null
 
     override fun getPropertyList(): List<JsonPropertyAdapter> {
         return table.fieldList?.fieldList?.mapNotNull { field ->
@@ -27,7 +31,11 @@ class LuaObjectAdapter(private val table: LuaTableConstructor) : LuaValueAdapter
 }
 
 class LuaArrayAdapter(private val table: LuaTableConstructor) : LuaValueAdapter(table), JsonArrayValueAdapter {
-    override fun isNull(): Boolean = super<LuaValueAdapter>.isNull()
+    override fun isNull(): Boolean = false
+    override fun isObject(): Boolean = false
+    override fun isArray(): Boolean = true
+    override fun getAsObject(): JsonObjectValueAdapter? = null
+    override fun getAsArray(): JsonArrayValueAdapter? = this
 
     override fun getElements(): List<JsonValueAdapter> {
         return table.fieldList?.fieldList?.mapNotNull { field ->
@@ -89,7 +97,9 @@ class LuaPropertyAdapter(private val field: LuaField) : JsonPropertyAdapter {
 }
 
 class LuaFileObjectAdapter(private val file: LuaFile) : LuaValueAdapter(file), JsonObjectValueAdapter {
-    override fun isNull(): Boolean = super<LuaValueAdapter>.isNull()
+    override fun isNull(): Boolean = false
+    override fun isObject(): Boolean = true
+    override fun getAsObject(): JsonObjectValueAdapter? = this
 
     override fun getPropertyList(): List<JsonPropertyAdapter> {
         return com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(file, LuaAssignmentStatement::class.java).mapNotNull { stmt ->

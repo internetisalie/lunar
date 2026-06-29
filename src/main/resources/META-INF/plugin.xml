@@ -56,10 +56,16 @@
             icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
             factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksPackageBrowserToolWindowFactory"/>
 
-    <!-- Language -->
+    <extensions defaultExtensionNs="com.intellij.json">
+        <jsonSchemaEnabler implementation="net.internetisalie.lunar.lang.schema.LuaJsonSchemaEnabler"/>
+        <jsonLikePsiWalkerFactory implementation="net.internetisalie.lunar.lang.schema.LuaJsonLikePsiWalkerFactory"/>
+    </extensions>
 
-    <jsonLikePsiWalkerFactory implementation="net.internetisalie.lunar.lang.schema.LuaJsonLikePsiWalkerFactory"/>
-    <jsonSchemaEnabler implementation="net.internetisalie.lunar.lang.schema.LuaJsonSchemaEnabler"/>
+    <extensions defaultExtensionNs="">
+        <JavaScript.JsonSchema.ProviderFactory implementation="net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory"/>
+    </extensions>
+
+    <!-- Language -->
 
     <fileType
             name="Lua"
@@ -220,6 +226,15 @@
             enabledByDefault="true"
             level="ERROR"
             implementationClass="net.internetisalie.lunar.analysis.inspections.LuaLanguageLevelInspection"/>
+
+    <localInspection
+            language="Lua"
+            shortName="LuaJsonSchemaCompliance"
+            displayName="JSON Schema compliance"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.lang.schema.LuaJsonSchemaComplianceInspection"/>
 
     <externalAnnotator
             language="Lua"
