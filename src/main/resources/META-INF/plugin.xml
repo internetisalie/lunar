@@ -233,14 +233,16 @@
             level="ERROR"
             implementationClass="net.internetisalie.lunar.analysis.inspections.LuaLanguageLevelInspection"/>
 
-    <localInspection
-            language="Lua"
-            shortName="LuaJsonSchemaCompliance"
-            displayName="JSON Schema compliance"
-            groupName="Lua"
-            enabledByDefault="true"
-            level="WARNING"
-            implementationClass="net.internetisalie.lunar.lang.schema.LuaJsonSchemaComplianceInspection"/>
+    <localInspection language="Lua"
+                     shortName="LuaJsonSchemaCompliance"
+                     displayName="Lua JSON Schema compliance"
+                     groupName="Lua"
+                     enabledByDefault="true"
+                     level="WARNING"
+                     implementationClass="net.internetisalie.lunar.lang.schema.LuaJsonSchemaComplianceInspection"/>
+
+    <completion.contributor language="Lua" implementationClass="com.jetbrains.jsonSchema.impl.JsonSchemaCompletionContributor"/>
+    <lang.documentationProvider language="Lua" implementationClass="com.jetbrains.jsonSchema.impl.JsonSchemaDocumentationProvider" order="first"/>
 
     <externalAnnotator
             language="Lua"

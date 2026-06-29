@@ -14,6 +14,9 @@ import net.internetisalie.lunar.lang.psi.LuaExprList
 import net.internetisalie.lunar.lang.psi.LuaField
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFinalStatement
+import net.internetisalie.lunar.lang.psi.LuaBlock
+import net.internetisalie.lunar.lang.psi.LuaExprStatement
+import net.internetisalie.lunar.lang.psi.LuaStatement
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 
@@ -30,6 +33,29 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
                 if (LuaValueAdapter.isStringKey(element as LuaExpr)) return ThreeState.YES
             }
         }
+        
+        // Handle incomplete typing cases
+        if (element is LuaExpr) {
+            val stat = PsiTreeUtil.getParentOfType(element, LuaStatement::class.java)
+            if (stat != null && stat.parent is LuaBlock && stat.parent?.parent is LuaFile) {
+                if (stat is LuaAssignmentStatement) {
+                    if (stat.varList.varList.firstOrNull()?.let { PsiTreeUtil.isAncestor(it, element, false) } == true) {
+                        return ThreeState.YES
+                    }
+                }
+                if (stat is LuaExprStatement) {
+                    return ThreeState.YES
+                }
+            }
+            
+            val field = PsiTreeUtil.getParentOfType(element, LuaField::class.java)
+            if (field != null && field.identifier == null && field.exprList.size == 1) {
+                if (PsiTreeUtil.isAncestor(field.exprList.first(), element, false)) {
+                    return ThreeState.YES
+                }
+            }
+        }
+
         return ThreeState.NO
     }
 
@@ -127,11 +153,14 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
                 if (propName != null) {
                     position.addPrecedingStep(propName)
                 } else if (parent.identifier == null && parent.exprList.size == 1) {
-                    val table = parent.parent as? LuaTableConstructor
-                    if (table != null) {
-                        val index = table.fieldList?.fieldList?.indexOf(parent)
-                        if (index != null && index != -1) {
-                            position.addPrecedingStep(index)
+                    // Do not add index step if the element is being typed as a key
+                    if (isName(element) != ThreeState.YES) {
+                        val table = parent.parent as? LuaTableConstructor
+                        if (table != null) {
+                            val index = table.fieldList?.fieldList?.indexOf(parent)
+                            if (index != null && index != -1) {
+                                position.addPrecedingStep(index)
+                            }
                         }
                     }
                 }
@@ -164,10 +193,6 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
     
     override fun getRoots(file: PsiFile): Collection<PsiElement> {
         if (file !is LuaFile) return emptyList()
-        val hasAssignments = PsiTreeUtil.findChildrenOfType(file, LuaAssignmentStatement::class.java).isNotEmpty()
-        if (hasAssignments) {
-            return listOf(file)
-        }
         
         val finalStmt = PsiTreeUtil.findChildrenOfType(file, LuaFinalStatement::class.java).lastOrNull()
         if (finalStmt != null) {
@@ -178,6 +203,6 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
             }
         }
         
-        return emptyList()
+        return listOf(file)
     }
 }
