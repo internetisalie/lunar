@@ -7,6 +7,9 @@ import net.internetisalie.lunar.lang.LuaFileType
 
 class LuaJsonSchemaEnabler : JsonSchemaEnabler {
     override fun isEnabledForFile(file: VirtualFile, project: Project?): Boolean {
-        return file.fileType == LuaFileType
+        if (file.fileType != LuaFileType) return false
+        // Prevent JSON Schema checks on rockspecs which break BuildWorkspaceActionTest via EDT races
+        if (file.extension == "rockspec") return false
+        return true
     }
 }
