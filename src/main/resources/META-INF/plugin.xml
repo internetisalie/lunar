@@ -53,6 +53,7 @@
       <schemaFileProvider implementation="net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProvider$V31"/>
       <!-- SCHEMA-03: luacheck config -->
       <schemaFileProvider implementation="net.internetisalie.lunar.lang.schema.providers.LuacheckrcSchemaProvider"/>
+      <schemaFileProvider implementation="net.internetisalie.lunar.lang.schema.providers.BustedSchemaProvider"/>
   </extensions>
 
   <!-- Extension points defined by the plugin.
@@ -88,7 +89,7 @@
             fieldName="INSTANCE"
             language="Lua"
             extensions="lua;rockspec"
-            fileNames=".luacheckrc"/>
+            fileNames=".luacheckrc;.busted"/>
 
     <fileType
             name="Lua Workspace"

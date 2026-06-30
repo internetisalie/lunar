@@ -2,7 +2,7 @@
 id: "SCHEMA-04"
 title: "04: Busted Config Schema Provider"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "low"
 parent_id: "SCHEMA"
 folders:

@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Busted Configuration",
+  "description": "JSON Schema for busted .busted configuration files (shape-B: return { <profile> = { ... } }). Each top-level key is a run profile (e.g. 'default') mapping to a profile options object.",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/definitions/profile"
+  },
+  "definitions": {
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "output": {
+          "type": "string",
+          "description": "Output handler / formatter to use (e.g. 'utfTerminal', 'plainTerminal', 'TAP', 'junit', 'json', 'gtest')."
+        },
+        "verbose": {
+          "type": "boolean",
+          "description": "Enable verbose output."
+        },
+        "coverage": {
+          "type": "boolean",
+          "description": "Enable code coverage analysis (requires luacov)."
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Lua pattern matching test files to run (default '_spec')."
+        },
+        "ROOT": {
+          "type": "string",
+          "description": "Root path(s) under which to search for test files."
+        },
+        "lpath": {
+          "type": "string",
+          "description": "Optional path prepended to package.path for locating Lua modules."
+        },
+        "cpath": {
+          "type": "string",
+          "description": "Optional path prepended to package.cpath for locating C modules."
+        },
+        "helper": {
+          "type": "string",
+          "description": "Path to a helper script run before all tests."
+        },
+        "tags": {
+          "$ref": "#/definitions/stringArray",
+          "description": "Only run tests with these tags (#tag annotations)."
+        },
+        "defer-print": {
+          "type": "boolean",
+          "description": "Defer printing of test results until all tests have completed."
+        },
+        "lua": {
+          "type": "string",
+          "description": "Path to the Lua interpreter to use when running tests."
+        },
+        "exclude-tags": {
+          "$ref": "#/definitions/stringArray",
+          "description": "Do not run tests with these tags (#tag annotations)."
+        },
+        "filter": {
+          "$ref": "#/definitions/stringArray",
+          "description": "Only run tests whose full names match these Lua patterns."
+        },
+        "filter-out": {
+          "$ref": "#/definitions/stringArray",
+          "description": "Do not run tests whose full names match these Lua patterns."
+        },
+        "loaders": {
+          "$ref": "#/definitions/stringArray",
+          "description": "Test file loaders to use (e.g. 'lua', 'moonscript')."
+        }
+      }
+    }
+  }
+}
