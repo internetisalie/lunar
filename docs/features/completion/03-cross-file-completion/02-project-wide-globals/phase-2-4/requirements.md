@@ -3,6 +3,7 @@ id: "COMP-03-02-PHASE-2.4"
 title: "Phase 2.4: Performance Tuning"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "COMP-03-02"
 folders:

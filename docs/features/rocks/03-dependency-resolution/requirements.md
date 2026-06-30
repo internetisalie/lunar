@@ -4,6 +4,7 @@ title: "03: Dependency Resolution"
 type: feature
 parent_id: ROCKS
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"

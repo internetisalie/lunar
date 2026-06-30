@@ -4,6 +4,7 @@ title: "03: Interactive Console (REPL)"
 type: feature
 parent_id: DEBUG/RUN
 status: done
+vf_icon: ✅
 priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"

@@ -5,6 +5,7 @@ parent_id: "COMP-02"
 title: "User Story: Global Symbol Completion"
 folders: ["[[features/completion/02-symbol-completion/requirements|requirements]]"]
 status: "done"
+vf_icon: ✅
 priority: "high"
 ---
 

@@ -3,6 +3,7 @@ id: "DEBUG/RUN"
 title: "DEBUG: Debugging & Execution"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "low"
 folders:
   - "[[features]]"

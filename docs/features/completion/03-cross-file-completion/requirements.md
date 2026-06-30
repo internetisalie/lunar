@@ -4,6 +4,7 @@ title: "03: Cross-file Completion"
 type: feature
 parent_id: COMP
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"

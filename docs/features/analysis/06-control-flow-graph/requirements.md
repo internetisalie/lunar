@@ -4,6 +4,7 @@ title: Control Flow Graph (CFG) Requirements
 type: feature
 parent_id: ANALYSIS
 status: done
+vf_icon: ✅
 folders:
   - "[[features/analysis/requirements|requirements]]"
 ---

@@ -4,6 +4,7 @@ title: Postfix Templates Requirements
 type: feature
 parent_id: COMP
 status: done
+vf_icon: ✅
 folders:
   - "[[features/completion/requirements|requirements]]"
 ---

@@ -3,6 +3,7 @@ id: "FORMAT-07"
 title: "FORMAT-07: Stylua Compatibility"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "FORMAT"
 folders:

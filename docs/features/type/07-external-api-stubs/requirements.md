@@ -4,6 +4,7 @@ title: "07: External API Stubs"
 type: feature
 parent_id: TYPE
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/type/requirements|requirements]]"

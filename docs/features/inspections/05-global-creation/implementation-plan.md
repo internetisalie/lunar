@@ -3,7 +3,6 @@ id: INSPECTIONS-05-PLAN
 title: Global Creation Implementation Plan
 type: plan
 parent_id: INSPECTIONS-05
-vf_icon: ✅
 folders:
   - "[[features/inspections/05-global-creation/requirements|requirements]]"
 ---

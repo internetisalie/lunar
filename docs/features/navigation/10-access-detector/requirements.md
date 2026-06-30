@@ -4,6 +4,7 @@ title: "10: Access Detector"
 type: feature
 parent_id: NAV
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"

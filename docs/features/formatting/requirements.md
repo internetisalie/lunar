@@ -3,6 +3,7 @@ id: "FORMAT"
 title: "FORMAT: Formatting"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features]]"

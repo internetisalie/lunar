@@ -4,6 +4,7 @@ title: "01: Go to Definition"
 type: feature
 parent_id: NAV
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"

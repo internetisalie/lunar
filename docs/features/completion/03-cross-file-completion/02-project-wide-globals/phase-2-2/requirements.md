@@ -3,6 +3,7 @@ id: "COMP-03-02-PHASE-2.2"
 title: "Phase 2.2: Ranking Enhancement"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "COMP-03-02"
 folders:

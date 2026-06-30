@@ -3,6 +3,7 @@ id: "TYPE-08"
 title: "08: Flow-Sensitive Types"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "low"
 parent_id: TYPE
 folders:

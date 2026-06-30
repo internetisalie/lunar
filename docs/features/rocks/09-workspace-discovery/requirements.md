@@ -3,6 +3,7 @@ id: "ROCKS-09"
 title: "09: Multi-Rock Workspace Discovery"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "ROCKS"
 folders:

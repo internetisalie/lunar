@@ -3,6 +3,7 @@ id: "COMP-05"
 title: "05: Parameter Name Hints"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "COMP"
 folders:

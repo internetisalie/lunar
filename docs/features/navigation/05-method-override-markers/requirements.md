@@ -4,6 +4,7 @@ title: "05: Method Override Markers"
 type: feature
 parent_id: NAV
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"

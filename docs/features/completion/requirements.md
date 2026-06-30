@@ -3,6 +3,7 @@ id: "COMP"
 title: "COMP: Code Completion"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features]]"

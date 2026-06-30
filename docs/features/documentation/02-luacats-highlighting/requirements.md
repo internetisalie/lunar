@@ -4,6 +4,7 @@ title: "02: LuaCATS Syntax Highlighting"
 type: feature
 parent_id: DOC
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/documentation/requirements|requirements]]"

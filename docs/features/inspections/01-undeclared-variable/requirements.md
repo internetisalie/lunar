@@ -4,6 +4,7 @@ title: "01: Undeclared Variable"
 type: feature
 parent_id: INSP
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/inspections/requirements|requirements]]"

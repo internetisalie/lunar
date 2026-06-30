@@ -4,6 +4,7 @@ title: "11: Large File Threshold"
 type: "feature"
 parent_id: "SYNTAX-07"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"

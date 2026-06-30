@@ -3,6 +3,7 @@ id: "ROCKS-12"
 title: "12: Project-View Roots & Marking"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "ROCKS"
 folders:

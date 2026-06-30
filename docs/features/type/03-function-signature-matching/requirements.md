@@ -4,6 +4,7 @@ title: "03: Function Signature Matching"
 type: feature
 parent_id: TYPE
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/type/requirements|requirements]]"

@@ -3,6 +3,7 @@ id: "SYNTAX"
 title: "SYNTAX: Syntax & Editor"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features]]"

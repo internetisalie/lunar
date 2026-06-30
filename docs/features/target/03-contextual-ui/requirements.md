@@ -6,6 +6,7 @@ folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-03: UI Contextual Versions"
 status: "done"
+vf_icon: ✅
 ---
 
 # TARGET-03: UI Contextual Versions

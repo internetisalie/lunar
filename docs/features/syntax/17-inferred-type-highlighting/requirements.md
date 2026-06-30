@@ -4,6 +4,7 @@ title: "17: Inferred-Type Highlighting"
 type: feature
 parent_id: SYNTAX
 status: "done"
+vf_icon: ✅
 priority: "low"
 folders:
   - "[[features/syntax/requirements|requirements]]"

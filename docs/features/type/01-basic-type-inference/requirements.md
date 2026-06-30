@@ -4,6 +4,7 @@ title: "01: Basic Type Inference"
 type: feature
 parent_id: TYPE
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/type/requirements|requirements]]"

@@ -3,6 +3,7 @@ id: ROCKS-06
 title: "06: Project LuaRocks Environment"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: high
 parent_id: ROCKS
 folders:

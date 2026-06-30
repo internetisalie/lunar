@@ -3,6 +3,7 @@ id: "SCHEMA-01"
 title: "01: Lua JSON-Schema Engine"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "SCHEMA"
 folders:

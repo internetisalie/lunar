@@ -3,6 +3,7 @@ id: "INSP"
 title: "INSP: Inspections & Diagnostics"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features]]"

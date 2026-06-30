@@ -4,6 +4,7 @@ title: "02: Class/Table Definitions"
 type: feature
 parent_id: TYPE
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"

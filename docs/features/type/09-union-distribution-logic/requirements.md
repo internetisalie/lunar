@@ -4,6 +4,7 @@ title: "09: Union Distribution Logic"
 type: feature
 parent_id: TYPE
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"

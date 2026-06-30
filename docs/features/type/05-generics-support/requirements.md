@@ -4,6 +4,7 @@ title: "05: Generics Support"
 type: feature
 parent_id: TYPE
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/type/requirements|requirements]]"

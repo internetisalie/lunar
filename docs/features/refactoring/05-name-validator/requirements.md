@@ -4,6 +4,7 @@ title: "05: Rename Names Validator"
 type: feature
 parent_id: REFACT/INTENT
 status: done
+vf_icon: ✅
 priority: "medium"
 folders: ["[[features/refactoring/05-name-validator/requirements|requirements]]"]
 ---

@@ -4,6 +4,7 @@ title: "03: External URL Links"
 type: feature
 parent_id: DOC
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/documentation/requirements|requirements]]"

@@ -4,6 +4,7 @@ title: "12: Refactor Variable Resolution"
 type: feature
 parent_id: DEBUG/RUN
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/debug/requirements|requirements]]"

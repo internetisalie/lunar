@@ -4,6 +4,7 @@ title: "00: De-risking & Technical Spikes"
 type: feature
 parent_id: TOOL
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/tool/requirements|TOOL]]"

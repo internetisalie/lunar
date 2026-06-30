@@ -4,6 +4,7 @@ title: "01: Quick Documentation"
 type: feature
 parent_id: DOC
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/documentation/requirements|requirements]]"

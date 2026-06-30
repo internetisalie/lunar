@@ -4,6 +4,7 @@ title: Method Separators Requirements
 type: feature
 parent_id: SYNTAX
 status: done
+vf_icon: ✅
 folders:
   - "[[features/syntax/requirements|requirements]]"
 ---

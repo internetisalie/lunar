@@ -6,6 +6,7 @@ folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-02: Implicit Language Level"
 status: "done"
+vf_icon: ✅
 ---
 
 # TARGET-02: Implicit Language Level

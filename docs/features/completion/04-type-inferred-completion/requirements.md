@@ -4,6 +4,7 @@ title: "04: Type-Inferred Completion"
 type: feature
 parent_id: COMP
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"

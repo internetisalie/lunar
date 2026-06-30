@@ -3,6 +3,7 @@ id: ANALYSIS-02
 title: "02: Settings Panel Integration"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: ANALYSIS
 folders: ["[[features/analysis/requirements|requirements]]"]

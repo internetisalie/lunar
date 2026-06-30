@@ -3,7 +3,6 @@ id: INSPECTIONS-05-DESIGN
 title: Global Creation Design
 type: design
 parent_id: INSPECTIONS-05
-vf_icon: ✅
 folders:
   - "[[features/inspections/05-global-creation/requirements|requirements]]"
 ---

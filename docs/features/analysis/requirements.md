@@ -3,6 +3,7 @@ id: "ANALYSIS"
 title: "ANALYSIS: Static Analysis"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features]]"

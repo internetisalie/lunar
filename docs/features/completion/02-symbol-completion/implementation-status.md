@@ -6,6 +6,7 @@ folders:
 title: "Implementation Status"
 type: "task"
 status: "done"
+vf_icon: ✅
 ---
 
 # COMP-02: Basic Symbol Completion - Implementation Complete

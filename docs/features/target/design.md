@@ -5,7 +5,6 @@ type: design
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "Detailed Design"
-vf_icon: ✅
 ---
 # Target Configuration Design Document
 

@@ -4,6 +4,7 @@ title: "14: Vararg Context Annotator"
 type: feature
 parent_id: SYNTAX
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"

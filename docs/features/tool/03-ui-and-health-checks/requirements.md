@@ -4,6 +4,7 @@ title: "03: UI/UX & Health Monitoring"
 type: feature
 parent_id: TOOL
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"

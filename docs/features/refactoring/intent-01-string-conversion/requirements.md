@@ -4,6 +4,7 @@ title: String Conversion Requirements
 type: feature
 parent_id: REFACT/INTENT
 status: done
+vf_icon: ✅
 folders:
   - "[[features]]"
 ---

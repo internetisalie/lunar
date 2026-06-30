@@ -3,6 +3,7 @@ id: "NAV"
 title: "NAV: Code Navigation"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features]]"

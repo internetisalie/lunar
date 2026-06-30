@@ -4,6 +4,7 @@ title: "MAINT-09: Test Coverage - PSI & Stubs"
 type: feature
 parent_id: MAINT
 status: done
+vf_icon: ✅
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"

@@ -4,6 +4,7 @@ title: "01: Lua 5.4 Support"
 type: feature
 parent_id: SYNTAX
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/syntax/requirements|requirements]]"

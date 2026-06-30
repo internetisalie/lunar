@@ -4,6 +4,7 @@ title: "11: Makefile Task Integration"
 type: feature
 parent_id: ROCKS
 status: "done"
+vf_icon: ✅
 priority: "low"
 folders:
   - "[[features/rocks/requirements|requirements]]"

@@ -6,6 +6,7 @@ folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-04: Library Root Resolution"
 status: "done"
+vf_icon: ✅
 ---
 
 # TARGET-04: Library Root Resolution

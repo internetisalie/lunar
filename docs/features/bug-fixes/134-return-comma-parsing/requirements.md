@@ -3,6 +3,7 @@ id: "BUG-134"
 title: "@return Comma Parsing"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "BUG"
 folders:

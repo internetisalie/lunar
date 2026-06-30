@@ -3,6 +3,7 @@ id: REFACT-01
 title: "01: Rename Refactoring"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: REFACT/INTENT
 folders: ["[[features/refactoring/requirements|requirements]]"]

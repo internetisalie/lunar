@@ -3,6 +3,7 @@ id: "RUN-01"
 title: "RUN-01: Lua Interpreter SDK"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "DEBUG/RUN"
 folders: ["[[features/debug/requirements|requirements]]"]

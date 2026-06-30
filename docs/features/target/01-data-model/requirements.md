@@ -6,6 +6,7 @@ folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-01: Target Data Model"
 status: "done"
+vf_icon: ✅
 ---
 
 # TARGET-01: Target Data Model

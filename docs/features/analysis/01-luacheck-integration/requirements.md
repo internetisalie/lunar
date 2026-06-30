@@ -3,6 +3,7 @@ id: ANALYSIS-01
 title: "01: Luacheck Integration"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: ANALYSIS
 folders: ["[[features/analysis/requirements|requirements]]"]

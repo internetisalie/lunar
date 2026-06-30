@@ -3,6 +3,7 @@ id: "ROCKS-05"
 title: "05: Rockspec Module Resolution"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "ROCKS"
 folders:

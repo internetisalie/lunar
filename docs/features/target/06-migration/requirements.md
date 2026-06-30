@@ -6,6 +6,7 @@ folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-06: Target Migration"
 status: "done"
+vf_icon: ✅
 ---
 
 # TARGET-06: Target Migration

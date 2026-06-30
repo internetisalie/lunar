@@ -6,6 +6,7 @@ folders:
 title: "COMP-03-02: Global Symbol Suggestions"
 type: "feature"
 status: "done"
+vf_icon: ✅
 ---
 
 # COMP-03-02: Global Symbol Suggestions

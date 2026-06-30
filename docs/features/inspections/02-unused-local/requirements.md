@@ -4,6 +4,7 @@ title: Unused Local Variable Requirements
 type: feature
 parent_id: INSP
 status: done
+vf_icon: ✅
 folders:
   - "[[features/inspections/requirements|requirements]]"
 ---

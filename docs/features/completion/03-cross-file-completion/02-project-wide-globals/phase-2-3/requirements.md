@@ -3,6 +3,7 @@ id: "COMP-03-02-PHASE-2.3"
 title: "Phase 2.3: Visibility & Settings Enhancement"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "COMP-03-02"
 folders:

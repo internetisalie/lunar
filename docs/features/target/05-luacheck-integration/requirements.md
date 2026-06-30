@@ -6,6 +6,7 @@ folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-05: Luacheck Integration"
 status: "done"
+vf_icon: ✅
 ---
 
 # TARGET-05: Luacheck Integration

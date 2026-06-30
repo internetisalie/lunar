@@ -4,6 +4,7 @@ title: Publishing Requirements
 type: feature
 parent_id: ROCKS
 status: done
+vf_icon: ✅
 folders:
   - "[[features/rocks/requirements|requirements]]"
 ---

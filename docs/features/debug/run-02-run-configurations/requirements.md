@@ -3,6 +3,7 @@ id: "RUN-02"
 title: "RUN-02: Run Configurations"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "DEBUG/RUN"
 folders: ["[[features/debug/requirements|requirements]]"]

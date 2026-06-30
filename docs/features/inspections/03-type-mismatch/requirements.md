@@ -4,6 +4,7 @@ title: "03: Type Mismatch"
 type: feature
 parent_id: INSP
 status: "done"
+vf_icon: ✅
 priority: medium
 folders:
   - "[[features/inspections/requirements|requirements]]"

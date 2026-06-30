@@ -3,6 +3,7 @@ id: "DOC"
 title: "DOC: Documentation & LuaCATS"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features]]"

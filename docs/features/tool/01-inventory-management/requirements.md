@@ -4,6 +4,7 @@ title: "01: Tool Registry & Discovery"
 type: feature
 parent_id: TOOL
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"

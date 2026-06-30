@@ -4,6 +4,7 @@ title: "COMP-03-03: Auto-import Completion"
 type: "feature"
 parent_id: "COMP-03"
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|parent]]"

@@ -3,6 +3,7 @@ id: FORMAT-03
 title: "03: Blank Line Management"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: FORMAT
 folders: ["[[features/formatting/requirements|requirements]]"]

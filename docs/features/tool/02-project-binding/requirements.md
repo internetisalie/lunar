@@ -4,6 +4,7 @@ title: "02: Project Binding & Environment Integration"
 type: feature
 parent_id: TOOL
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/tool/requirements|requirements]]"

@@ -4,6 +4,7 @@ title: "REFACT: Refactoring & Intentions"
 type: "epic"
 priority: low
 status: done
+vf_icon: ✅
 folders:
   - "[[features]]"
 ---

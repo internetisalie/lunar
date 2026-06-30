@@ -4,6 +4,7 @@ title: "02: Package Browser"
 type: feature
 parent_id: ROCKS
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/rocks/requirements|requirements]]"

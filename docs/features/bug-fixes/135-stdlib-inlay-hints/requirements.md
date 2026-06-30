@@ -4,6 +4,7 @@ title: Stdlib Inlay Hints Requirements
 type: feature
 parent_id: BUG
 status: done
+vf_icon: ✅
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---

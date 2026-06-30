@@ -3,6 +3,7 @@ id: "TYPE-09-P2"
 title: "Phase 2: Compatibility Logic"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "TYPE-09"
 folders: ["[[features/type/09-union-distribution-logic/requirements|requirements]]"]

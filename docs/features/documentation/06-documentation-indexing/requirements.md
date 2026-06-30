@@ -6,6 +6,7 @@ title: "06: Documentation Indexing"
 type: feature
 parent_id: DOC
 status: "done"
+vf_icon: ✅
 ---
 
 # Specification: DOC-06 Documentation Indexing

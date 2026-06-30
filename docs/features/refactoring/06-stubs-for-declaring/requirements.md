@@ -4,6 +4,7 @@ title: Create from Usage Requirements
 type: feature
 parent_id: REFACT/INTENT
 status: done
+vf_icon: ✅
 folders:
   - "[[features/refactoring/requirements|requirements]]"
 ---

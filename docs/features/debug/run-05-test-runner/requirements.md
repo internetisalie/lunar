@@ -3,6 +3,7 @@ id: "RUN-05"
 title: "RUN-05: Lua Test Runner Integration"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "DEBUG/RUN"
 folders:

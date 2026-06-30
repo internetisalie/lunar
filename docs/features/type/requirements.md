@@ -3,6 +3,7 @@ id: "TYPE"
 title: "TYPE: Type System"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features]]"

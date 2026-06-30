@@ -3,6 +3,7 @@ id: "TOOL"
 title: "TOOL: Tool Inventory Management"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features]]"

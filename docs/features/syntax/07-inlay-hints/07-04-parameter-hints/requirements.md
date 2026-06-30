@@ -4,6 +4,7 @@ title: "04: Parameter Name Hints"
 type: "feature"
 parent_id: "SYNTAX-07"
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"

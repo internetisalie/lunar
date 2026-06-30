@@ -3,6 +3,7 @@ id: REFACT-03
 title: "03: Safe Delete Refactoring"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: REFACT/INTENT
 folders: ["[[features/refactoring/requirements|requirements]]"]

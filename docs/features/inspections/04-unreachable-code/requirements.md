@@ -4,6 +4,7 @@ title: Unreachable Code Requirements
 type: feature
 parent_id: INSP
 status: "done"
+vf_icon: ✅
 folders:
   - "[[features/inspections/requirements|requirements]]"
   - "[[features/inspections/04-unreachable-code/design|design]]"

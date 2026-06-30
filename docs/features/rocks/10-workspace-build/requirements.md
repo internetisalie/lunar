@@ -3,6 +3,7 @@ id: "ROCKS-10"
 title: "10: Workspace Build Orchestration"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "ROCKS"
 folders:

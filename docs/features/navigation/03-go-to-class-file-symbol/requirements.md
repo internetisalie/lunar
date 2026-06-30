@@ -4,6 +4,7 @@ title: "03: Go to Class/File/Symbol"
 type: feature
 parent_id: NAV
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features/navigation/requirements|requirements]]"
