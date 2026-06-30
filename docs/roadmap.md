@@ -277,9 +277,9 @@ bug and gave the type inspections false confidence until this session's coverage
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | SCHEMA-01 | Lua JSON-Schema Engine | done | M | — | SCHEMA-02, SCHEMA-03, SCHEMA-04 | Serial: schema-engine |
-| SCHEMA-02 | Rockspec Schema Provider | todo | S | SCHEMA-01 | — | ✓ |
-| SCHEMA-03 | Luacheckrc Schema Provider | todo | S | SCHEMA-01 | — | ✓ |
-| SCHEMA-04 | Busted Config Schema Provider | todo | C | SCHEMA-01 | — | ✓ |
+| SCHEMA-02 | Rockspec Schema Provider | done | S | SCHEMA-01 | — | ✓ |
+| SCHEMA-03 | Luacheckrc Schema Provider | done | S | SCHEMA-01 | — | ✓ |
+| SCHEMA-04 | Busted Config Schema Provider | done | C | SCHEMA-01 | — | ✓ |
 
 ---
 
