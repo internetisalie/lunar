@@ -2,7 +2,7 @@
 id: "SCHEMA"
 title: "SCHEMA: Schema-Driven Data Files"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"
