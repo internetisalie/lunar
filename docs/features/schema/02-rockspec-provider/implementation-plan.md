@@ -43,14 +43,15 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Rockspec Schema Provider | in_progress | Must |
+| Phase 1: Rockspec Schema Provider | done | Must |
 | Phase 2: Test Case Parity | done | Must |
-| Phase 3: Live IDE binding (VNC gate) | todo | Must |
+| Phase 3: Live IDE binding (VNC gate) | done | Must |
 
-> **VNC gate FAILED (2026-06-30).** Unit tests pass, but in live GoLand the JSON-Schema engine
-> does not bind the rockspec schema to a `.rockspec` file (status bar "No JSON schema"; no
-> schema warnings — only Lunar's own "Global creation" inspection; top-level completion offers
-> only Lua keywords, no schema keys). Deployment verified correct (jar contains the providers +
-> `jsonschema/rockspec-schema-v3*.json`; enabler guard removed). Root cause is a runtime
-> registration/wiring issue masked by tests that manually `registerExtension` the factory. See
-> [risks-and-gaps.md](risks-and-gaps.md).
+> **VNC gate PASSED (2026-06-30, after fix).** Initial gate failed — the JSON-Schema engine did not
+> bind in live GoLand. Root cause: a SCHEMA-01 wiring bug — the provider factory was registered
+> under `defaultExtensionNs=""` with a fully-dotted tag, yielding the bogus EP `.JavaScript…` and
+> being dropped. Fixed by registering canonically (`defaultExtensionNs="JavaScript"` +
+> `<JsonSchema.ProviderFactory>`). Re-verified live: `.rockspec` binds Rockspec v3.0/v3.1 with
+> required/unknown-key/pattern/type validation and schema-driven completion. Minor SCHEMA-01 walker
+> follow-ups (boolean-valued unknown key; empty-table value) noted in
+> [risks-and-gaps.md](risks-and-gaps.md) — non-blocking.

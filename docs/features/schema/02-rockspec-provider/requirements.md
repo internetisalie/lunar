@@ -2,7 +2,7 @@
 id: "SCHEMA-02"
 title: "02: Rockspec Schema Provider"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "SCHEMA"
 folders:
