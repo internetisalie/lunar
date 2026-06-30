@@ -26,7 +26,7 @@ validation, completion, quick-fixes, and hover docs for free.
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
 | [`SCHEMA-01`](01-engine/requirements.md) | **Lua JSON-Schema Engine** | **M** | **Full** | A Lua `JsonLikePsiWalker` + adapters + walker-factory/enabler that plug Lua data files into the platform JSON Schema engine; handles the two Lua-data document shapes (bare top-level globals; `return {table}`). |
-| [`SCHEMA-02`](02-rockspec-provider/requirements.md) | **Rockspec Schema Provider** | **S** | **Not Implemented** | A `JsonSchemaFileProvider` mapping `.rockspec` → the bundled rockspec v3.0/v3.1 schema. **Supersedes the standalone [ROCKS-13](../rocks/13-rockspec-editor-support/requirements.md) design.** |
+| [`SCHEMA-02`](02-rockspec-provider/requirements.md) | **Rockspec Schema Provider** | **S** | **Full** | A `JsonSchemaFileProvider` mapping `.rockspec` → the bundled rockspec v3.0/v3.1 schema. **Supersedes the standalone [ROCKS-13](../rocks/13-rockspec-editor-support/requirements.md) design.** |
 | [`SCHEMA-03`](03-luacheckrc-provider/requirements.md) | **Luacheckrc Schema Provider** | **S** | **Not Implemented** | A provider mapping `.luacheckrc` → a new bundled luacheck-config schema (the second consumer that proves the engine generalises). |
 | [`SCHEMA-04`](04-busted-provider/requirements.md) | **Busted Config Schema Provider** | **C** | **Not Implemented** | A provider mapping `.busted` (the `return {table}` document shape) → a bundled busted-config schema. |
 
