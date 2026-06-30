@@ -43,5 +43,14 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Rockspec Schema Provider | done | Must |
+| Phase 1: Rockspec Schema Provider | in_progress | Must |
 | Phase 2: Test Case Parity | done | Must |
+| Phase 3: Live IDE binding (VNC gate) | todo | Must |
+
+> **VNC gate FAILED (2026-06-30).** Unit tests pass, but in live GoLand the JSON-Schema engine
+> does not bind the rockspec schema to a `.rockspec` file (status bar "No JSON schema"; no
+> schema warnings — only Lunar's own "Global creation" inspection; top-level completion offers
+> only Lua keywords, no schema keys). Deployment verified correct (jar contains the providers +
+> `jsonschema/rockspec-schema-v3*.json`; enabler guard removed). Root cause is a runtime
+> registration/wiring issue masked by tests that manually `registerExtension` the factory. See
+> [risks-and-gaps.md](risks-and-gaps.md).
