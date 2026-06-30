@@ -29,34 +29,33 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
         val parent = element.parent
         if (parent is LuaField) {
             if (parent.identifier == element) return ThreeState.YES
-            if (parent.exprList.size > 1 && parent.exprList.first() == element) {
-                if (LuaValueAdapter.isStringKey(element as LuaExpr)) return ThreeState.YES
-            }
-        }
-        
-        // Handle incomplete typing cases
-        if (element is LuaExpr) {
-            val stat = PsiTreeUtil.getParentOfType(element, LuaStatement::class.java)
-            if (stat != null && stat.parent is LuaBlock && stat.parent?.parent is LuaFile) {
-                if (stat is LuaAssignmentStatement) {
-                    if (stat.varList.varList.firstOrNull()?.let { PsiTreeUtil.isAncestor(it, element, false) } == true) {
-                        return ThreeState.YES
-                    }
-                }
-                if (stat is LuaExprStatement) {
-                    return ThreeState.YES
-                }
-            }
-            
-            val field = PsiTreeUtil.getParentOfType(element, LuaField::class.java)
-            if (field != null && field.identifier == null && field.exprList.size == 1) {
-                if (PsiTreeUtil.isAncestor(field.exprList.first(), element, false)) {
-                    return ThreeState.YES
-                }
+            if (element is LuaExpr && parent.exprList.size > 1 &&
+                parent.exprList.first() == element && LuaValueAdapter.isStringKey(element)
+            ) {
+                return ThreeState.YES
             }
         }
 
+        if (element is LuaExpr && isIncompleteKeyPosition(element)) return ThreeState.YES
+
         return ThreeState.NO
+    }
+
+    /** A still-being-typed bare identifier that occupies a key position (shape A top level or an array slot). */
+    private fun isIncompleteKeyPosition(element: LuaExpr): Boolean {
+        val stat = PsiTreeUtil.getParentOfType(element, LuaStatement::class.java)
+        if (stat != null && stat.parent is LuaBlock && stat.parent?.parent is LuaFile) {
+            if (stat is LuaAssignmentStatement &&
+                stat.varList.varList.firstOrNull()?.let { PsiTreeUtil.isAncestor(it, element, false) } == true
+            ) {
+                return true
+            }
+            if (stat is LuaExprStatement) return true
+        }
+
+        val field = PsiTreeUtil.getParentOfType(element, LuaField::class.java)
+        return field != null && field.identifier == null && field.exprList.size == 1 &&
+            PsiTreeUtil.isAncestor(field.exprList.first(), element, false)
     }
 
     override fun isPropertyWithValue(element: PsiElement): Boolean {
@@ -72,8 +71,9 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
     override fun isTopJsonElement(element: PsiElement): Boolean {
         if (element is LuaFile) return true
         if (element is LuaTableConstructor) {
-            val parent = element.parent
-            if (parent is LuaExprList && parent.parent is LuaFinalStatement) return true
+            val exprList = element.parent as? LuaExprList ?: return false
+            val finalStmt = exprList.parent as? LuaFinalStatement ?: return false
+            return isTopLevelFinalStatement(finalStmt)
         }
         return false
     }
@@ -193,16 +193,22 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
     
     override fun getRoots(file: PsiFile): Collection<PsiElement> {
         if (file !is LuaFile) return emptyList()
-        
-        val finalStmt = PsiTreeUtil.findChildrenOfType(file, LuaFinalStatement::class.java).lastOrNull()
-        if (finalStmt != null) {
-            val exprList = finalStmt.exprList
-            if (exprList != null) {
-                val table = exprList.exprList.firstOrNull() as? LuaTableConstructor
-                if (table != null) return listOf(table)
-            }
-        }
-        
+
+        val table = topLevelReturnTable(file)
+        if (table != null) return listOf(table)
+
         return listOf(file)
+    }
+
+    /** Shape B root: the table of a top-level `return { … }`, ignoring `return`s nested inside functions. */
+    private fun topLevelReturnTable(file: LuaFile): LuaTableConstructor? {
+        val finalStmt = PsiTreeUtil.findChildrenOfType(file, LuaFinalStatement::class.java)
+            .lastOrNull { isTopLevelFinalStatement(it) } ?: return null
+        return finalStmt.exprList?.exprList?.firstOrNull() as? LuaTableConstructor
+    }
+
+    private fun isTopLevelFinalStatement(stmt: LuaFinalStatement): Boolean {
+        val parent = stmt.parent
+        return parent is LuaBlock && parent.parent is LuaFile
     }
 }

@@ -241,6 +241,10 @@
                      level="WARNING"
                      implementationClass="net.internetisalie.lunar.lang.schema.LuaJsonSchemaComplianceInspection"/>
 
+    <!-- Schema-driven completion/docs flow from the JSON engine via the registered walker. These
+         reference platform `…jsonSchema.impl` classes (the DR-03 fallback, since the engine does not
+         auto-bind a host-language contributor); they are impl (not API) and may need revisiting on
+         IDE platform upgrades. Both no-op on Lua files no provider claims (engine resolves no schema). -->
     <completion.contributor language="Lua" implementationClass="com.jetbrains.jsonSchema.impl.JsonSchemaCompletionContributor"/>
     <lang.documentationProvider language="Lua" implementationClass="com.jetbrains.jsonSchema.impl.JsonSchemaDocumentationProvider" order="first"/>
 

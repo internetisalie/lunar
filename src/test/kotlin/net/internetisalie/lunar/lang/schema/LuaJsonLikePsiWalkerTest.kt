@@ -1,5 +1,7 @@
 package net.internetisalie.lunar.lang.schema
 
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
@@ -7,6 +9,20 @@ import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import com.intellij.psi.util.PsiTreeUtil
 
 class LuaJsonLikePsiWalkerTest : BasePlatformTestCase() {
+
+    fun testProviderFactorySurfacesLunarEpProviders() {
+        // The SCHEMA-02..04 seam: providers registered on the lunar EP must flow through
+        // LuaSchemaProviderFactory to the platform.
+        val provider = object : LuaSchemaFileProvider() {
+            override fun isAvailable(file: VirtualFile): Boolean = false
+            override fun getName(): String = "seam-test"
+            override fun getSchemaFile(): VirtualFile? = null
+        }
+        ExtensionTestUtil.maskExtensions(LuaSchemaProviderFactory.EP_NAME, listOf(provider), testRootDisposable)
+
+        val providers = LuaSchemaProviderFactory().getProviders(project)
+        assertTrue("LuaSchemaProviderFactory should surface lunar-EP providers", providers.contains(provider))
+    }
 
     fun testIsObjectTable() {
         val file = requireNotNull(myFixture.configureByText("test.lua", "return { a = 1, ['b'] = 2, 3 }") as? LuaFile)
@@ -32,6 +48,19 @@ class LuaJsonLikePsiWalkerTest : BasePlatformTestCase() {
         val roots = LuaJsonLikePsiWalker.INSTANCE.getRoots(file)
         assertSize(1, roots)
         assertTrue(roots.first() is LuaTableConstructor)
+    }
+
+    fun testGetRootsIgnoresNestedReturn() {
+        // A `return` inside a helper function must not be mistaken for the document root (shape A wins).
+        val file = requireNotNull(
+            myFixture.configureByText(
+                "test.lua",
+                "local function helper() return { x = 1 } end\nname = \"y\""
+            ) as? LuaFile
+        )
+        val roots = LuaJsonLikePsiWalker.INSTANCE.getRoots(file)
+        assertSize(1, roots)
+        assertEquals(file, roots.first())
     }
 
     fun testFindPositionInTable() {

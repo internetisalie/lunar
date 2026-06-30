@@ -8,12 +8,10 @@ import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
 import com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory
-import com.jetbrains.jsonSchema.ide.JsonSchemaService
 import net.internetisalie.lunar.lang.LuaFileType
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import com.intellij.openapi.extensions.LoadingOrder
 
 @RunWith(JUnit4::class)
 class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
@@ -47,12 +45,14 @@ class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
             fileTypeManager.associateExtension(LuaFileType, "testret")
         }
 
+        // Mask the platform provider-factory EP: JsonSchemaService discovers providers (and invalidates
+        // its caches) through this EP, so a test schema must be registered here to resolve.
         ExtensionTestUtil.maskExtensions(
             JsonSchemaProviderFactory.EP_NAME,
             listOf(TestSchemaProviderFactory()),
             testRootDisposable
         )
-        
+
         myFixture.enableInspections(LuaJsonSchemaComplianceInspection())
     }
 

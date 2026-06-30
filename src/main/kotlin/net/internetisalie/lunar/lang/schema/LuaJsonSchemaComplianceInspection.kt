@@ -3,12 +3,10 @@ package net.internetisalie.lunar.lang.schema
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElementVisitor
-import com.jetbrains.jsonSchema.extension.JsonSchemaEnabler
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
 import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.jetbrains.jsonSchema.impl.JsonComplianceCheckerOptions
-import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.lang.psi.LuaVisitor
 import net.internetisalie.lunar.lang.psi.LuaFile
 

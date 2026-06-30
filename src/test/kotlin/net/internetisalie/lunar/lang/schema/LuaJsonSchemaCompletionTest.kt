@@ -40,6 +40,7 @@ class LuaJsonSchemaCompletionTest : BasePlatformTestCase() {
             fileTypeManager.associateExtension(LuaFileType, "testcfg")
         }
 
+        // Mask the platform provider-factory EP (the one JsonSchemaService discovers + caches against).
         ExtensionTestUtil.maskExtensions(
             JsonSchemaProviderFactory.EP_NAME,
             listOf(TestSchemaProviderFactory()),
