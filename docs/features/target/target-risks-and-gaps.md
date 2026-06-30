@@ -5,7 +5,6 @@ type: risk
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "Design Gaps & De-risking"
-status: in_progress
 ---
 
 # TARGET Risk Register

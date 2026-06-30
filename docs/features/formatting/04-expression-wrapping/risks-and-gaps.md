@@ -3,7 +3,6 @@ id: "FORMAT-04-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "FORMAT-04"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/formatting/04-expression-wrapping/requirements|requirements]]"

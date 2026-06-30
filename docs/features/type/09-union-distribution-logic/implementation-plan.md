@@ -3,7 +3,6 @@ id: TYPE-09-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: TYPE-09
-status: "in_progress"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/requirements|requirements]]"

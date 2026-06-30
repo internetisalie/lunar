@@ -2,7 +2,6 @@
 id: "RUN-02-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "todo"
 parent_id: "RUN-02"
 folders:
   - "[[features/debug/run-02-run-configurations/requirements|requirements]]"

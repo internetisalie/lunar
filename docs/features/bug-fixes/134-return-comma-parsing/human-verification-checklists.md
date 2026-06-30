@@ -2,7 +2,6 @@
 id: "BUG-134-QA"
 title: "Verification Checklist"
 type: "qa"
-status: "planned"
 parent_id: "BUG-134"
 folders:
   - "[[features/bug-fixes/134-return-comma-parsing/requirements|requirements]]"

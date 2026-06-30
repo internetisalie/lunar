@@ -3,7 +3,6 @@ id: "BUG-359"
 title: "False positive 'nil value is not assignable to string' on package.path concat assignment (reported twice)"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

@@ -2,7 +2,6 @@
 id: "RUN-05-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "done"
 parent_id: "RUN-05"
 folders:
   - "[[features/debug/run-05-test-runner/requirements|requirements]]"

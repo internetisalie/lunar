@@ -5,7 +5,6 @@ folders:
 title: "01: Refactor Symbol Resolution"
 type: "spec"
 parent_id: "MAINT-04"
-status: "done"
 ---
 
 # Specification: MAINT-04 Refactor Symbol Resolution

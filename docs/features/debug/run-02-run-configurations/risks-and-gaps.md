@@ -2,7 +2,6 @@
 id: "RUN-02-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "in_progress"
 parent_id: "RUN-02"
 folders:
   - "[[features/debug/run-02-run-configurations/requirements|requirements]]"

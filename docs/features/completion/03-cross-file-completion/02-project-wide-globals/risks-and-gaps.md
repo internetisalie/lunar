@@ -5,7 +5,6 @@ folders:
   - "[[features/completion/03-cross-file-completion/02-project-wide-globals/requirements|requirements]]"
 title: "COMP-03-02: Risks & Gaps"
 type: "risk"
-status: "done"
 ---
 
 # COMP-03-02: Risks & Gaps

@@ -2,7 +2,6 @@
 id: "INSP-03-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "done"
 parent_id: "INSP-03"
 folders:
   - "[[features/inspections/03-type-mismatch/requirements|requirements]]"

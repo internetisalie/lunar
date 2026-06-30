@@ -5,7 +5,6 @@ type: design
 folders:
   - "[[features/target/06-migration/requirements|requirements]]"
 title: "Technical Design"
-status: "done"
 ---
 
 # Technical Design: Target Migration

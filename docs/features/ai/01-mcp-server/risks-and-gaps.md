@@ -2,7 +2,6 @@
 id: "AI-01-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "todo"
 parent_id: "AI-01"
 folders:
   - "[[features/ai/01-mcp-server/requirements|requirements]]"

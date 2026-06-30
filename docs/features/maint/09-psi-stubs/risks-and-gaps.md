@@ -2,7 +2,6 @@
 id: "MAINT-09-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "planned"
 priority: "medium"
 parent_id: "MAINT-09"
 folders:

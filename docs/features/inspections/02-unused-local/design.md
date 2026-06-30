@@ -3,7 +3,6 @@ id: INSPECTIONS-02-DESIGN
 title: Unused Local Variable Design
 type: design
 parent_id: INSPECTIONS-02
-status: planned
 ---
 
 # Technical Design: Unused Local Variable

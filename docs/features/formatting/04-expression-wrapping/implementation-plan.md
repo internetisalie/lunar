@@ -3,7 +3,6 @@ id: FORMAT-04-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: FORMAT-04
-status: "done"
 priority: "medium"
 folders:
   - "[[features/formatting/04-expression-wrapping/requirements|requirements]]"

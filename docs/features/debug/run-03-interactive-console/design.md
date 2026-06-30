@@ -3,7 +3,6 @@ id: RUN-03-DESIGN
 title: "Technical Design"
 type: design
 parent_id: RUN-03
-status: done
 priority: "low"
 folders:
   - "[[features/debug/03-interactive-console/requirements|requirements]]"

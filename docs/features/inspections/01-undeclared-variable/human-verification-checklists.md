@@ -3,7 +3,6 @@ id: "INSP-01-CHECKLIST"
 title: "Human Verification Checklist"
 type: "qa"
 parent_id: "INSP-01"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/inspections/01-undeclared-variable/requirements|requirements]]"

@@ -2,7 +2,6 @@
 id: "ROCKS-06-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "planned"
 parent_id: "ROCKS-06"
 folders:
   - "[[features/rocks/06-project-environment/requirements|requirements]]"

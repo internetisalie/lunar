@@ -2,7 +2,6 @@
 id: "SCHEMA-03-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
 parent_id: "SCHEMA-03"
 folders:
   - "[[features/schema/03-luacheckrc-provider/requirements|requirements]]"

@@ -2,7 +2,6 @@
 id: "FORMAT-07-RISKS"
 title: "Risks & Gaps — Stylua Compatibility"
 type: "risk"
-status: "todo"
 parent_id: "FORMAT-07"
 folders:
   - "[[features/formatting/07-stylua-compatibility/requirements|requirements]]"

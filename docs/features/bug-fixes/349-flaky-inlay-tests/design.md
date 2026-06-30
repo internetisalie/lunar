@@ -3,7 +3,6 @@ id: BUG-349-DESIGN
 title: Flaky Inlay Tests Design
 type: design
 parent_id: BUG-349
-status: done
 ---
 
 # Technical Design: Flaky Inlay Tests

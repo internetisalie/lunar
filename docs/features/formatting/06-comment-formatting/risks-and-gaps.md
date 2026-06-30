@@ -3,7 +3,6 @@ id: "FORMAT-06-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "FORMAT-06"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/formatting/06-comment-formatting/requirements|requirements]]"

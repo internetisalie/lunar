@@ -3,7 +3,6 @@ id: MAINT-06-PLAN
 title: LuaCATS Literal Highlighting Plan
 type: plan
 parent_id: MAINT-06
-status: planned
 ---
 
 # Implementation Plan

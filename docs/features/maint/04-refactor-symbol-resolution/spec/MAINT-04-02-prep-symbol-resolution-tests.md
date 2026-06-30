@@ -5,7 +5,6 @@ folders:
 title: "02: Prep Symbol Resolution Tests"
 type: "spec"
 parent_id: "MAINT-04"
-status: "done"
 ---
 
 # Specification: MAINT-04-Prep — Symbol Resolution Test Suite

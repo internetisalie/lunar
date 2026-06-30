@@ -2,7 +2,6 @@
 id: "SCHEMA-03-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
 parent_id: "SCHEMA-03"
 folders:
   - "[[features/schema/03-luacheckrc-provider/requirements|requirements]]"

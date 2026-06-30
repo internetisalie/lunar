@@ -3,7 +3,6 @@ id: MAINT-01-PLAN
 title: Kotlin Conversion Plan
 type: plan
 parent_id: MAINT-01
-status: planned
 ---
 
 # Implementation Plan

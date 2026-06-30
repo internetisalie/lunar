@@ -3,7 +3,6 @@ id: FORMAT-06-DESIGN
 title: "Technical Design"
 type: design
 parent_id: FORMAT-06
-status: "done"
 priority: "medium"
 folders:
   - "[[features/formatting/06-comment-formatting/requirements|requirements]]"

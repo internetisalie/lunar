@@ -2,7 +2,6 @@
 id: "ENG-CONTRACT"
 title: "Engineering Contract"
 type: "guide"
-status: "done"
 priority: "high"
 folders:
   - "[[features]]"

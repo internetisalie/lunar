@@ -3,7 +3,6 @@ id: "TYPE-09-P4-PLAN"
 title: "Implementation Plan"
 type: "plan"
 parent_id: "TYPE-09-P4"
-status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-4-verification-performance/requirements|requirements]]"

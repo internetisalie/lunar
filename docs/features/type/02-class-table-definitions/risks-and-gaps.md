@@ -3,7 +3,6 @@ id: "TYPE-02-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "TYPE-02"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/type/02-class-table-definitions/requirements|requirements]]"

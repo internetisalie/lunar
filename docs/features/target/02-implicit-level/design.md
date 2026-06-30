@@ -5,7 +5,6 @@ type: design
 folders:
   - "[[features/target/02-implicit-level/requirements|requirements]]"
 title: "Technical Design"
-status: "done"
 ---
 
 # Technical Design: Implicit Language Level

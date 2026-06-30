@@ -2,7 +2,6 @@
 id: "PLANNING-GAPS"
 title: "Planning Gaps Audit"
 type: "spec"
-status: "done"
 priority: "high"
 folders:
   - "[[features]]"

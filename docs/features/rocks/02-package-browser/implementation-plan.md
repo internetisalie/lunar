@@ -3,7 +3,6 @@ id: ROCKS-02-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: ROCKS-02
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/rocks/02-package-browser/requirements|requirements]]"

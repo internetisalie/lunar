@@ -2,7 +2,6 @@
 id: "DOC-06-04-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 parent_id: "DOC-06-04"
 folders:
   - "[[features/documentation/06-04-full-text-documentation-search/requirements|requirements]]"

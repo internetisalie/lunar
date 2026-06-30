@@ -2,7 +2,6 @@
 id: "AGENT-DEBUG"
 title: "Agent Debugging Requirements"
 type: "guide"
-status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

@@ -25,8 +25,10 @@ TYPES = {"epic", "feature", "user-story", "task", "design", "risk",
 STATUSES = {"todo", "planned", "in_progress", "done", "blocked", "cancelled"}
 PRIORITIES = {"critical", "high", "medium", "low"}
 
-# Types that must carry a lifecycle status (and a parent for features).
-STATUS_REQUIRED = {"epic", "feature", "spec"}
+# Only work items carry a lifecycle status; artifact docs (design/plan/risk/qa/
+# spec/bug/guide) do not — their status is no longer aggregated.
+WORK_ITEM_TYPES = {"epic", "feature", "user-story", "task"}
+STATUS_REQUIRED = WORK_ITEM_TYPES
 WIKILINK = re.compile(r"^\[\[.+\]\]$")
 
 errors = []
@@ -80,6 +82,8 @@ def check(path):
         errors.append((rel, f"status '{status}' not in {sorted(STATUSES)}"))
     elif status is None and doc_type in STATUS_REQUIRED:
         errors.append((rel, f"type '{doc_type}' requires a 'status'"))
+    if status is not None and doc_type is not None and doc_type not in WORK_ITEM_TYPES:
+        warnings.append((rel, f"type '{doc_type}' should not carry a 'status' (only work items do)"))
 
     priority = fm.get("priority")
     if priority is not None and priority not in PRIORITIES:

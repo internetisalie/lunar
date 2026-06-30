@@ -3,7 +3,6 @@ id: TOOL-01-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: TOOL-01
-status: "done"
 priority: "high"
 folders:
   - "[[features/tool/01-inventory-management/requirements|requirements]]"

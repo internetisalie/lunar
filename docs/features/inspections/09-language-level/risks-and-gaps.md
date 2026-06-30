@@ -2,7 +2,6 @@
 id: "INSP-09-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "done"
 parent_id: "INSP-09"
 folders:
   - "[[features/inspections/09-language-level/requirements|requirements]]"

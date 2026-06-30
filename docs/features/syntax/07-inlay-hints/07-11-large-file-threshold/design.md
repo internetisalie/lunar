@@ -3,7 +3,6 @@ id: "SYNTAX-07-11-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "SYNTAX-07-11"
-status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints/07-11-large-file-threshold/requirements|requirements]]"

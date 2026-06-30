@@ -3,7 +3,6 @@ id: MAINT-01-DESIGN
 title: Kotlin Conversion Design
 type: design
 parent_id: MAINT-01
-status: planned
 ---
 
 # Technical Design: Kotlin Conversion

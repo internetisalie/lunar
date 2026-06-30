@@ -5,7 +5,6 @@ folders:
 title: "Technical Design"
 type: design
 parent_id: MAINT-04
-status: "done"
 ---
 
 # Technical Design: MAINT-04 — Refactor Symbol Resolution (PsiScopeProcessor)

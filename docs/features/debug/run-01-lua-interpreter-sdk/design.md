@@ -2,7 +2,6 @@
 id: "RUN-01-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 parent_id: "RUN-01"
 folders:
   - "[[features/debug/run-01-lua-interpreter-sdk/requirements|requirements]]"

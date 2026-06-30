@@ -3,7 +3,6 @@ id: MAINT-15-DESIGN
 title: Remove Legacy Annotators Design
 type: design
 parent_id: MAINT-15
-status: planned
 ---
 
 # Technical Design: Remove Legacy Annotators

@@ -2,7 +2,6 @@
 id: "SCHEMA-02-QA"
 title: "Human Verification"
 type: "qa"
-status: "todo"
 parent_id: "SCHEMA-02"
 folders:
   - "[[features/schema/02-rockspec-provider/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: NAV-02-DESIGN
 title: "Technical Design"
 type: design
 parent_id: NAV-02
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/02-find-usages/requirements|requirements]]"

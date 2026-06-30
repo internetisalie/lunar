@@ -3,7 +3,6 @@ id: FORMAT-03-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: FORMAT-03
-status: "done"
 priority: "medium"
 folders:
   - "[[features/formatting/03-blank-line-management/requirements|requirements]]"

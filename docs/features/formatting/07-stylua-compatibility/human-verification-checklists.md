@@ -2,7 +2,6 @@
 id: "FORMAT-07-CHECKLIST"
 title: "Verification Checklists — Stylua Compatibility"
 type: "qa"
-status: "todo"
 parent_id: "FORMAT-07"
 folders:
   - "[[features/formatting/07-stylua-compatibility/requirements|requirements]]"

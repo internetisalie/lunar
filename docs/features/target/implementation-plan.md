@@ -5,7 +5,6 @@ type: plan
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "Implementation Plan"
-status: done
 vf_icon: ✅
 ---
 # TARGET Implementation Plan

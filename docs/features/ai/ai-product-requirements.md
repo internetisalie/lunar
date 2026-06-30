@@ -2,7 +2,6 @@
 id: "AI-PRD"
 title: "Product Requirements: AI-Assisted Development"
 type: "spec"
-status: "todo"
 parent_id: "AI"
 folders:
   - "[[features/ai/requirements|requirements]]"

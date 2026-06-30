@@ -3,7 +3,6 @@ id: ROCKS-01-DESIGN
 title: "Technical Design"
 type: design
 parent_id: ROCKS-01
-status: "done"
 priority: "high"
 folders:
   - "[[features/rocks/01-project-initialization/requirements|requirements]]"

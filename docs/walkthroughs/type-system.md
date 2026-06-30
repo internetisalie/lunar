@@ -3,7 +3,6 @@ id: "TYPE-WALKTHROUGH"
 title: "Verification Walkthroughs"
 type: "spec"
 parent_id: "TYPE"
-status: "in_progress"
 priority: "high"
 folders:
   - "[[features/type/requirements|TYPE]]"

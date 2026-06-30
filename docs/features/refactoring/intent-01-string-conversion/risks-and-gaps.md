@@ -2,7 +2,6 @@
 id: INTENT-01-RISKS
 title: "Risks & Gaps"
 type: risk
-status: done
 parent_id: INTENT-01
 folders:
   - "[[features/refactoring/intent-01-string-conversion/requirements|requirements]]"

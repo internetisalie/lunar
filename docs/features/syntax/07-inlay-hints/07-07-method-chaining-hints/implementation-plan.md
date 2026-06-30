@@ -3,7 +3,6 @@ id: "SYNTAX-07-07-PLAN"
 title: "Implementation Plan"
 type: "plan"
 parent_id: "SYNTAX-07-07"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints/07-07-method-chaining-hints/requirements|requirements]]"

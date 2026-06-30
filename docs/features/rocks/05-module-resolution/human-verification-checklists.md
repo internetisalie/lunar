@@ -2,7 +2,6 @@
 id: "ROCKS-05-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "done"
 parent_id: "ROCKS-05"
 folders:
   - "[[features/rocks/05-module-resolution/requirements|requirements]]"

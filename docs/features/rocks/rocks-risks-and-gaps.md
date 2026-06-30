@@ -3,7 +3,6 @@ id: "ROCKS-RISKS"
 title: "Design Gaps & De-risking"
 type: "spec"
 parent_id: "ROCKS"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"

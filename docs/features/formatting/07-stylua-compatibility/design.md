@@ -2,7 +2,6 @@
 id: "FORMAT-07-DESIGN"
 title: "Technical Design: Stylua Compatibility"
 type: "design"
-status: "planned"
 parent_id: "FORMAT-07"
 folders:
   - "[[features/formatting/07-stylua-compatibility/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: "FORMAT-05-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "FORMAT-05"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/formatting/05-alignment-logic/requirements|requirements]]"

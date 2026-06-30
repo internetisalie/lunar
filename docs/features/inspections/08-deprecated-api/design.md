@@ -3,7 +3,6 @@ id: INSPECTIONS-08-DESIGN
 title: Deprecated API Design
 type: design
 parent_id: INSPECTIONS-08
-status: done
 ---
 
 # Technical Design: Deprecated API

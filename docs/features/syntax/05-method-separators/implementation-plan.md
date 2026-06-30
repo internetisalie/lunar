@@ -3,7 +3,6 @@ id: SYNTAX-05-PLAN
 title: Method Separators Plan
 type: plan
 parent_id: SYNTAX-05
-status: done
 ---
 
 # Implementation Plan

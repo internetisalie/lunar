@@ -5,7 +5,6 @@ folders:
 title: "Verification Guide"
 type: "qa"
 parent_id: "MAINT-04"
-status: "done"
 ---
 
 # MAINT-04: Verification Guide

@@ -3,7 +3,6 @@ id: "REFACT-03-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "REFACT-03"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/refactoring/03-safe-delete-refactoring/requirements|requirements]]"

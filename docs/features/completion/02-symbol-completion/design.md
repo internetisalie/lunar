@@ -3,7 +3,6 @@ id: COMP-02-DESIGN
 title: "Technical Design"
 type: design
 parent_id: COMP-02
-status: "done"
 priority: "high"
 folders:
   - "[[features/completion/02-symbol-completion/requirements|requirements]]"

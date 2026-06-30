@@ -2,7 +2,6 @@
 id: "DOC-06-04-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 parent_id: "DOC-06-04"
 folders:
   - "[[features/documentation/06-04-full-text-documentation-search/requirements|requirements]]"

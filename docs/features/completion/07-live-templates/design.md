@@ -3,7 +3,6 @@ id: COMP-07-DESIGN
 title: Live Templates Design
 type: design
 parent_id: COMP-07
-status: done
 folders:
   - "[[features/completion/07-live-templates/requirements|requirements]]"
 ---

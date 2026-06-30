@@ -3,7 +3,6 @@ id: NAV-09-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: NAV-09
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/09-return-highlighter/requirements|requirements]]"

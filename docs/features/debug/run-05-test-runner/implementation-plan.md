@@ -2,7 +2,6 @@
 id: "RUN-05-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 parent_id: "RUN-05"
 folders:
   - "[[features/debug/run-05-test-runner/requirements|requirements]]"

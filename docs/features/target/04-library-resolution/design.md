@@ -5,7 +5,6 @@ type: design
 folders:
   - "[[features/target/04-library-resolution/requirements|requirements]]"
 title: "Technical Design"
-status: "done"
 ---
 
 # Technical Design: Library Root Resolution

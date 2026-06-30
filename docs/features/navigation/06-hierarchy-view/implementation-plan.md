@@ -3,7 +3,6 @@ id: NAV-06-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: NAV-06
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/06-hierarchy-view/requirements|requirements]]"

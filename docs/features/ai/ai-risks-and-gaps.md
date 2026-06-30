@@ -2,7 +2,6 @@
 id: "AI-RISKS"
 title: "AI Epic: Risks & Gaps"
 type: "risk"
-status: "todo"
 parent_id: "AI"
 folders:
   - "[[features/ai/requirements|requirements]]"

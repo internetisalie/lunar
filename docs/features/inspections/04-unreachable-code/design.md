@@ -3,7 +3,6 @@ id: INSP-04-DESIGN
 title: Unreachable Code Design
 type: design
 parent_id: INSP-04
-status: "done"
 folders:
   - "[[features/inspections/04-unreachable-code/requirements|requirements]]"
 ---

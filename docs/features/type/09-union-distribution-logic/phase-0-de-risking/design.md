@@ -3,7 +3,6 @@ id: "TYPE-09-P0-DESIGN"
 title: "Spike Methodology & Acceptance"
 type: "design"
 parent_id: "TYPE-09-P0"
-status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-0-de-risking/requirements|requirements]]"

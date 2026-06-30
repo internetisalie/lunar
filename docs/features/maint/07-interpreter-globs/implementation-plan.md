@@ -3,7 +3,6 @@ id: MAINT-07-PLAN
 title: Interpreter Globs Plan
 type: plan
 parent_id: MAINT-07
-status: planned
 ---
 
 # Implementation Plan

@@ -2,7 +2,6 @@
 id: COMP-07-PLAN
 title: Live Templates Plan
 type: plan
-status: done
 parent_id: COMP-07
 folders:
   - "[[features/completion/07-live-templates/requirements|requirements]]"

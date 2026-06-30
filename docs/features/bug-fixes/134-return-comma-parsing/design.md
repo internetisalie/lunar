@@ -2,7 +2,6 @@
 id: "BUG-134-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 parent_id: "BUG-134"
 folders:
   - "[[features/bug-fixes/134-return-comma-parsing/requirements|requirements]]"

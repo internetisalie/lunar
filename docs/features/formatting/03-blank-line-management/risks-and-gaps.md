@@ -3,7 +3,6 @@ id: "FORMAT-03-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "FORMAT-03"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/formatting/03-blank-line-management/requirements|requirements]]"

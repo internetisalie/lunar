@@ -3,7 +3,6 @@ id: "ROCKS-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
 parent_id: "ROCKS"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"

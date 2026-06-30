@@ -3,7 +3,6 @@ id: INSP-04-PLAN
 title: Unreachable Code Implementation Plan
 type: plan
 parent_id: INSP-04
-status: "done"
 folders:
   - "[[features/inspections/04-unreachable-code/requirements|requirements]]"
 ---

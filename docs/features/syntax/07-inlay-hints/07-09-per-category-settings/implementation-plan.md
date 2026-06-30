@@ -3,7 +3,6 @@ id: "SYNTAX-07-09-PLAN"
 title: "Implementation Plan"
 type: "plan"
 parent_id: "SYNTAX-07-09"
-status: "done"
 priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints/07-09-per-category-settings/requirements|requirements]]"

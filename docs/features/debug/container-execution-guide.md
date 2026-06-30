@@ -3,7 +3,6 @@ id: "DEBUG-CONTAINER-GUIDE"
 title: "Container Execution Guide"
 type: "spec"
 parent_id: "DEBUG/RUN"
-status: "done"
 priority: "low"
 folders:
   - "[[features/debug/requirements|requirements]]"

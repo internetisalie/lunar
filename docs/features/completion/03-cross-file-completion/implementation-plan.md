@@ -3,7 +3,6 @@ id: COMP-03-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: COMP-03
-status: "done"
 priority: "high"
 folders:
   - "[[features/completion/03-cross-file-completion/requirements|requirements]]"

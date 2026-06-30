@@ -2,7 +2,6 @@
 id: "RUN-01-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 parent_id: "RUN-01"
 folders:
   - "[[features/debug/run-01-lua-interpreter-sdk/requirements|requirements]]"

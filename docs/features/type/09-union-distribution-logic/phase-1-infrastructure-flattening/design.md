@@ -3,7 +3,6 @@ id: "TYPE-09-P1-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "TYPE-09-P1"
-status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-1-infrastructure-flattening/requirements|requirements]]"

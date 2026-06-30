@@ -3,7 +3,6 @@ id: ANALYSIS-06-PLAN
 title: Control Flow Graph (CFG) Implementation Plan
 type: plan
 parent_id: ANALYSIS-06
-status: planned
 ---
 
 # Implementation Plan

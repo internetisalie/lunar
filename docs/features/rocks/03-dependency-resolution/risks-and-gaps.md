@@ -3,7 +3,6 @@ id: "ROCKS-03-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "ROCKS-03"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/03-dependency-resolution/requirements|requirements]]"

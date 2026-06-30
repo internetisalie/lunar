@@ -2,7 +2,6 @@
 id: "SCHEMA-01-HVC"
 title: "Human Verification Checklists"
 type: "qa"
-status: "planned"
 parent_id: "SCHEMA-01"
 folders:
   - "[[features/schema/01-engine/requirements|requirements]]"

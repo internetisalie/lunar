@@ -3,7 +3,6 @@ id: "ROCKS-04-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "ROCKS-04"
-status: "done"
 priority: "high"
 folders:
   - "[[features/rocks/04-task-execution/requirements|requirements]]"

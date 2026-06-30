@@ -3,7 +3,6 @@ id: NAV-02-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: NAV-02
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/02-find-usages/requirements|requirements]]"

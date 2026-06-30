@@ -3,7 +3,6 @@ id: FORMAT-05-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: FORMAT-05
-status: "done"
 priority: "medium"
 folders:
   - "[[features/formatting/05-alignment-logic/requirements|requirements]]"

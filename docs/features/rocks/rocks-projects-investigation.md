@@ -3,7 +3,6 @@ id: "ROCKS-INVESTIGATION-PROJECTS"
 title: "Project Layout Investigation"
 type: "spec"
 parent_id: "ROCKS"
-status: "done"
 priority: "low"
 folders:
   - "[[features/rocks/requirements|requirements]]"

@@ -2,7 +2,6 @@
 id: "ROCKS-10-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "done"
 priority: "medium"
 parent_id: "ROCKS-10"
 folders:

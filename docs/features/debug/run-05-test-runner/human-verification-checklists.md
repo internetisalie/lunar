@@ -2,7 +2,6 @@
 id: "RUN-05-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "done"
 parent_id: "RUN-05"
 folders:
   - "[[features/debug/run-05-test-runner/requirements|requirements]]"

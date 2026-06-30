@@ -2,7 +2,6 @@
 id: "ROCKS-10-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 priority: "medium"
 parent_id: "ROCKS-10"
 folders:

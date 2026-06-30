@@ -3,7 +3,6 @@ id: NAVIGATION-12-PLAN
 title: "12: Member Field Resolution — Implementation Plan"
 type: plan
 parent_id: NAVIGATION-12
-status: "planned"
 folders:
   - "[[features/navigation/12-member-field-resolution/requirements|requirements]]"
 ---

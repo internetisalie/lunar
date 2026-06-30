@@ -3,7 +3,6 @@ id: TOOL-03-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: TOOL-03
-status: "done"
 priority: "high"
 folders:
   - "[[features/tool/03-ui-and-health-checks/requirements|requirements]]"

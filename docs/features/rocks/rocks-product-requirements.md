@@ -3,7 +3,6 @@ id: "ROCKS-PRD"
 title: "Product Requirements"
 type: "spec"
 parent_id: "ROCKS"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|ROCKS]]"

@@ -3,7 +3,6 @@ id: NAV-03-DESIGN
 title: "Technical Design"
 type: design
 parent_id: NAV-03
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/03-go-to-class-file-symbol/requirements|requirements]]"

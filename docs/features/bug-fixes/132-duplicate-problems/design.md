@@ -3,7 +3,6 @@ id: BUG-132-DESIGN
 title: Duplicate Problems Design
 type: design
 parent_id: BUG-132
-status: done
 ---
 
 # Technical Design: Duplicate Problems

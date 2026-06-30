@@ -3,7 +3,6 @@ id: SYNTAX-15-DESIGN
 title: Lexer Optimization Design
 type: design
 parent_id: SYNTAX-15
-status: done
 ---
 
 # Technical Design: Lexer Optimization

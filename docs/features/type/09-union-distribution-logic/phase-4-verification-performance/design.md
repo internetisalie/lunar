@@ -3,7 +3,6 @@ id: "TYPE-09-P4-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "TYPE-09-P4"
-status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-4-verification-performance/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: NAV-05-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: NAV-05
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/05-method-override-markers/requirements|requirements]]"

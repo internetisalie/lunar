@@ -3,7 +3,6 @@ id: COMP-04-DESIGN
 title: "Technical Design"
 type: design
 parent_id: COMP-04
-status: "done"
 priority: "high"
 folders:
   - "[[features/completion/04-type-inferred-completion/requirements|requirements]]"

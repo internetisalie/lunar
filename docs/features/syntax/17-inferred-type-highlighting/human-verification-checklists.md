@@ -3,7 +3,6 @@ id: "SYNTAX-17-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
 parent_id: "SYNTAX-17"
-status: "planned"
 priority: "low"
 folders: ["[[features/syntax/17-inferred-type-highlighting/requirements]]"]
 ---

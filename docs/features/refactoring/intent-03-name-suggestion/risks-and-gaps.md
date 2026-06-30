@@ -3,7 +3,6 @@ id: INTENT-03-RISKS
 title: Name Suggestion Risks & Gaps
 type: risk
 parent_id: INTENT-03
-status: done
 ---
 
 # INTENT-03: Risks & Gaps

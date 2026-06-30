@@ -3,7 +3,6 @@ id: NAV-09-DESIGN
 title: "Technical Design"
 type: design
 parent_id: NAV-09
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/09-return-highlighter/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: "NAV-05-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "NAV-05"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/05-method-override-markers/requirements|requirements]]"

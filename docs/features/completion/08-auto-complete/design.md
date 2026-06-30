@@ -3,7 +3,6 @@ id: COMP-08-DESIGN
 title: Auto Complete Design
 type: design
 parent_id: COMP-08
-status: done
 folders:
   - "[[features/completion/08-auto-complete/requirements|requirements]]"
 ---

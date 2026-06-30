@@ -2,7 +2,6 @@
 id: "SCHEMA-04-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
 parent_id: "SCHEMA-04"
 folders:
   - "[[features/schema/04-busted-provider/requirements|requirements]]"

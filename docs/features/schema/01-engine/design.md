@@ -2,7 +2,6 @@
 id: "SCHEMA-01-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 parent_id: "SCHEMA-01"
 folders:
   - "[[features/schema/01-engine/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: "COMP-01-QA"
 title: "Human Verification Checklist"
 type: "qa"
 parent_id: "COMP-01"
-status: "done"
 priority: "high"
 folders:
   - "[[features/completion/01-keyword-completion/requirements|requirements]]"

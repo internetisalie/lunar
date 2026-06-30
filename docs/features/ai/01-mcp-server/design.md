@@ -2,7 +2,6 @@
 id: "AI-01-DESIGN"
 title: "Technical Design: AI-01"
 type: "design"
-status: "todo"
 parent_id: "AI-01"
 folders:
   - "[[features/ai/01-mcp-server/requirements|requirements]]"

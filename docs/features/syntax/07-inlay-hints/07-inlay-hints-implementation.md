@@ -3,7 +3,6 @@ id: "SYNTAX-07-STATUS"
 title: "Implementation Status"
 type: "spec"
 parent_id: "SYNTAX-07"
-status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints|hints]]"

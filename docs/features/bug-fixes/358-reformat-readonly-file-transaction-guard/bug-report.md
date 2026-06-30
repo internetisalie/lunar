@@ -3,7 +3,6 @@ id: "BUG-358"
 title: "TransactionGuard write-unsafe context exception when reformating a read-only file"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

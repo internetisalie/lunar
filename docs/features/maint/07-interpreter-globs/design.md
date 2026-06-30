@@ -3,7 +3,6 @@ id: MAINT-07-DESIGN
 title: Interpreter Globs Design
 type: design
 parent_id: MAINT-07
-status: planned
 ---
 
 # Technical Design: Interpreter Globs

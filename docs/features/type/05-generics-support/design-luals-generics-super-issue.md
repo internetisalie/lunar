@@ -2,7 +2,6 @@
 id: "TYPE-05-GENERICS-ANALYSIS"
 title: "LuaLS Generics Super-Issue Analysis"
 type: "design"
-status: "done"
 parent_id: "TYPE-05"
 folders:
   - "[[features/type/05-generics-support/requirements|requirements]]"

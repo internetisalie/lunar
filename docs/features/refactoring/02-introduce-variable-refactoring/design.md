@@ -3,7 +3,6 @@ id: REFACT-02-DESIGN
 title: "Technical Design"
 type: design
 parent_id: REFACT-02
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/refactoring/02-introduce-variable-refactoring/requirements|requirements]]"

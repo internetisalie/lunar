@@ -3,7 +3,6 @@ id: "TYPE-09-P0-PLAN"
 title: "Implementation Plan"
 type: "plan"
 parent_id: "TYPE-09-P0"
-status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-0-de-risking/requirements|requirements]]"

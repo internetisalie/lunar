@@ -2,7 +2,6 @@
 id: "SCHEMA-01-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
 parent_id: "SCHEMA-01"
 folders:
   - "[[features/schema/01-engine/requirements|requirements]]"

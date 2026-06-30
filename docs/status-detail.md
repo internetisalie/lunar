@@ -2,7 +2,6 @@
 id: STATUS-DETAIL
 title: Feature Implementation Status (Source-Verified)
 type: spec
-status: done
 priority: high
 folders:
   - "[[features]]"

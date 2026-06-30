@@ -3,7 +3,6 @@ id: BUG-133-DESIGN
 title: Union Inlay Hints Design
 type: design
 parent_id: BUG-133
-status: done
 ---
 
 # Technical Design: Union Inlay Hints

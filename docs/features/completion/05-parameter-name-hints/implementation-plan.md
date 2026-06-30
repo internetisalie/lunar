@@ -2,7 +2,6 @@
 id: "COMP-05-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 parent_id: "COMP-05"
 folders:
   - "[[features/completion/05-parameter-name-hints/requirements|requirements]]"

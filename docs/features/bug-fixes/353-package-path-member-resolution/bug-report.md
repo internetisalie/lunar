@@ -3,7 +3,6 @@ id: "BUG-353"
 title: "package.path member resolution and hover bugs"
 type: "bug"
 parent_id: "BUG"
-status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

@@ -2,7 +2,6 @@
 id: "INSP-09-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "done"
 parent_id: "INSP-09"
 folders:
   - "[[features/inspections/09-language-level/requirements|requirements]]"

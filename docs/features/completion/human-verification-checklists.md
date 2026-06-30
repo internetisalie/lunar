@@ -3,7 +3,6 @@ id: "COMP-QA"
 title: "Verification Checklists"
 type: "qa"
 parent_id: "COMP"
-status: "in_progress"
 priority: "high"
 folders:
   - "[[features/completion/requirements|requirements]]"

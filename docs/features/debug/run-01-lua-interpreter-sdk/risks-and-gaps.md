@@ -2,7 +2,6 @@
 id: "RUN-01-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "todo"
 parent_id: "RUN-01"
 folders:
   - "[[features/debug/run-01-lua-interpreter-sdk/requirements|requirements]]"

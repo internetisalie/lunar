@@ -3,7 +3,6 @@ id: INTENT-02-RISKS
 title: Invert If Risks & Gaps
 type: risk
 parent_id: INTENT-02
-status: done
 ---
 
 # INTENT-02: Risks & Gaps

@@ -5,7 +5,6 @@ folders:
 title: "Technical Design"
 type: "design"
 parent_id: "DOC-06-PLAT"
-status: "done"
 ---
 
 # Technical Design: DOC-06-06 Platform Symbol Documentation

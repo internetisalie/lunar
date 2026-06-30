@@ -3,7 +3,6 @@ id: "COMP-04-QA"
 title: "Verification Checklists"
 type: "qa"
 parent_id: "COMP-04"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/completion/04-type-inferred-completion/requirements|requirements]]"

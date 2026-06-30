@@ -2,7 +2,6 @@
 id: "MAINT-09-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 priority: "medium"
 parent_id: "MAINT-09"
 folders:

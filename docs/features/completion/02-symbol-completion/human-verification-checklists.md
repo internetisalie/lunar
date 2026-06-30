@@ -3,7 +3,6 @@ id: "COMP-02-QA"
 title: "Verification Checklists"
 type: "qa"
 parent_id: "COMP-02"
-status: "done"
 priority: "high"
 folders:
   - "[[features/completion/02-symbol-completion/requirements|requirements]]"

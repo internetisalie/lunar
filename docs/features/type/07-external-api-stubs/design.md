@@ -3,7 +3,6 @@ id: TYPE-07-DESIGN
 title: External API Stubs Design
 type: design
 parent_id: TYPE-07
-status: planned
 ---
 
 # Technical Design: External API Stubs

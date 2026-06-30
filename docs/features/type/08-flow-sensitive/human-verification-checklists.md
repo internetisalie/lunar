@@ -2,7 +2,6 @@
 id: "TYPE-08-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "todo"
 parent_id: "TYPE-08"
 folders:
   - "[[features/type/08-flow-sensitive/requirements|requirements]]"

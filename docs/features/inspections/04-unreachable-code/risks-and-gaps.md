@@ -3,7 +3,6 @@ id: INSP-04-RISKS
 title: Unreachable Code Risks
 type: risk
 parent_id: INSP-04
-status: "done"
 folders:
   - "[[features/inspections/04-unreachable-code/requirements|requirements]]"
 ---

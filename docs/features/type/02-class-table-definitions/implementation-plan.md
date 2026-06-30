@@ -3,7 +3,6 @@ id: TYPE-02-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: TYPE-02
-status: "planned"
 priority: "high"
 folders:
   - "[[features/type/02-class-table-definitions/requirements|requirements]]"

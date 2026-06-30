@@ -5,7 +5,6 @@ folders:
 title: "Technical Design: Type Map Construction"
 type: "design"
 parent_id: "DOC-06"
-status: "done"
 ---
 
 # Design: DOC-06-02 Type Map Construction

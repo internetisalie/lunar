@@ -3,7 +3,6 @@ id: "ROCKS-02-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "ROCKS-02"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/rocks/02-package-browser/requirements|requirements]]"

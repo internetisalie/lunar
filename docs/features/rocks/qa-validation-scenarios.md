@@ -3,7 +3,6 @@ id: "ROCKS-QA"
 title: "QA Verification Scenarios"
 type: "spec"
 parent_id: "ROCKS"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"

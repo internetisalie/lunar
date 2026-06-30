@@ -2,7 +2,6 @@
 id: COMP-07-RISKS
 title: Live Templates Risks & Gaps
 type: risk
-status: done
 parent_id: COMP-07
 folders:
   - "[[features/completion/07-live-templates/requirements|requirements]]"

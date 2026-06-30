@@ -3,7 +3,6 @@ id: "BUG-357-risks"
 title: "BUG-357 — Cannot reproduce: claimed root cause contradicted by current code"
 type: "risk"
 parent_id: "BUG-357"
-status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes/357-luacats-function-signature-parameter-names/bug-report|bug-report]]"

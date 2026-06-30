@@ -3,7 +3,6 @@ id: "BUG-354"
 title: "Multi-line regular comments starting with dashes cause LuaCATS syntax errors"
 type: "bug"
 parent_id: "BUG"
-status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

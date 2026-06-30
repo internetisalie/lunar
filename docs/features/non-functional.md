@@ -2,7 +2,6 @@
 id: "NFR"
 title: "Non-Functional Requirements"
 type: "spec"
-status: "in_progress"
 priority: "medium"
 folders:
   - "[[features]]"

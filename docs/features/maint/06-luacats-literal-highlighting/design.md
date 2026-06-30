@@ -3,7 +3,6 @@ id: MAINT-06-DESIGN
 title: LuaCATS Literal Highlighting Design
 type: design
 parent_id: MAINT-06
-status: planned
 ---
 
 # Technical Design: LuaCATS Literal Highlighting

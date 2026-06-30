@@ -2,7 +2,6 @@
 id: "COMP-05-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 parent_id: "COMP-05"
 folders:
   - "[[features/completion/05-parameter-name-hints/requirements|requirements]]"

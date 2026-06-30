@@ -2,7 +2,6 @@
 id: "ROADMAP"
 title: "Project Roadmap"
 type: "guide"
-status: "done"
 priority: "high"
 folders:
   - "[[features]]"

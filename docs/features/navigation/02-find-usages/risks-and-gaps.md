@@ -3,7 +3,6 @@ id: "NAV-02-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "NAV-02"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/02-find-usages/requirements|requirements]]"

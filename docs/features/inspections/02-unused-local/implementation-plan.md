@@ -3,7 +3,6 @@ id: INSPECTIONS-02-PLAN
 title: Unused Local Variable Implementation Plan
 type: plan
 parent_id: INSPECTIONS-02
-status: planned
 ---
 
 # Implementation Plan

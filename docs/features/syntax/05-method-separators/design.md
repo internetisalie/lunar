@@ -3,7 +3,6 @@ id: SYNTAX-05-DESIGN
 title: Method Separators Design
 type: design
 parent_id: SYNTAX-05
-status: done
 ---
 
 # Technical Design: Method Separators

@@ -2,7 +2,6 @@
 id: "STATUS"
 title: "Project Status"
 type: "spec"
-status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

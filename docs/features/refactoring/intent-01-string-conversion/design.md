@@ -3,7 +3,6 @@ id: INTENT-01-DESIGN
 title: String Conversion Design
 type: design
 parent_id: INTENT-01
-status: done
 folders:
   - "[[features/refactoring/intent-01-string-conversion/requirements|requirements]]"
 ---

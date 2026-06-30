@@ -2,7 +2,6 @@
 id: "SYNTAX-09-RESEARCH"
 title: "Research: Lua 5.5 Language Changes"
 type: "spec"
-status: "done"
 parent_id: "SYNTAX-09"
 folders:
   - "[[features/syntax/09-lua-55/requirements|requirements]]"

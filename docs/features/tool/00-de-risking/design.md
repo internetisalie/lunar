@@ -3,7 +3,6 @@ id: TOOL-00-DESIGN
 title: "Spike Methodology & Acceptance"
 type: design
 parent_id: TOOL-00
-status: "done"
 priority: "high"
 folders:
   - "[[features/tool/00-de-risking/requirements|requirements]]"

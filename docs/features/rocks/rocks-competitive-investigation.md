@@ -3,7 +3,6 @@ id: "ROCKS-COMPETITIVE"
 title: "Competitive Investigation"
 type: "spec"
 parent_id: "ROCKS"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/requirements|requirements]]"

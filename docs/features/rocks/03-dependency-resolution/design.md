@@ -3,7 +3,6 @@ id: ROCKS-03-DESIGN
 title: "Technical Design"
 type: design
 parent_id: ROCKS-03
-status: "done"
 priority: "high"
 folders:
   - "[[features/rocks/03-dependency-resolution/requirements|requirements]]"

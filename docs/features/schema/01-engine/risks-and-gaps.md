@@ -2,7 +2,6 @@
 id: "SCHEMA-01-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "planned"
 parent_id: "SCHEMA-01"
 folders:
   - "[[features/schema/01-engine/requirements|requirements]]"

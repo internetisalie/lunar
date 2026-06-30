@@ -2,7 +2,6 @@
 id: COMP-06-RISKS
 title: Postfix Templates Risks & Gaps
 type: risk
-status: done
 parent_id: COMP-06
 folders:
   - "[[features/completion/06-postfix-templates/requirements|requirements]]"

@@ -2,7 +2,6 @@
 id: "ROCKS-06-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
 parent_id: "ROCKS-06"
 folders:
   - "[[features/rocks/06-project-environment/requirements|requirements]]"

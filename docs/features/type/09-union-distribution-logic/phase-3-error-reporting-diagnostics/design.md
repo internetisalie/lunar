@@ -3,7 +3,6 @@ id: "TYPE-09-P3-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "TYPE-09-P3"
-status: "done"
 priority: "high"
 folders:
   - "[[features/type/09-union-distribution-logic/phase-3-error-reporting-diagnostics/requirements|requirements]]"

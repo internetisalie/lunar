@@ -2,7 +2,6 @@
 id: COMP-08-PLAN
 title: Auto Complete Plan
 type: plan
-status: done
 parent_id: COMP-08
 folders:
   - "[[features/completion/08-auto-complete/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: "TOOL-03-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "TOOL-03"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/tool/03-ui-and-health-checks/requirements|requirements]]"

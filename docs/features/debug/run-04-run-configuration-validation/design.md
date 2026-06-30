@@ -2,7 +2,6 @@
 id: "RUN-04-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 parent_id: "RUN-04"
 folders:
   - "[[features/debug/run-04-run-configuration-validation/requirements|requirements]]"

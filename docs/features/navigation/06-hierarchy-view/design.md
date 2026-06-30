@@ -3,7 +3,6 @@ id: NAV-06-DESIGN
 title: "Technical Design"
 type: design
 parent_id: NAV-06
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/06-hierarchy-view/requirements|requirements]]"

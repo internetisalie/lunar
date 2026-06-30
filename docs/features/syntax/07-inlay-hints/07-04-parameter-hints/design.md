@@ -3,7 +3,6 @@ id: "SYNTAX-07-04-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "SYNTAX-07-04"
-status: "done"
 priority: "high"
 folders:
   - "[[features/syntax/07-inlay-hints/07-04-parameter-hints/requirements|requirements]]"

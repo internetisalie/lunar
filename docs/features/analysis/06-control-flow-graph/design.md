@@ -3,7 +3,6 @@ id: ANALYSIS-06-DESIGN
 title: Control Flow Graph (CFG) Design
 type: design
 parent_id: ANALYSIS-06
-status: planned
 ---
 
 # Technical Design: Control Flow Graph (CFG)

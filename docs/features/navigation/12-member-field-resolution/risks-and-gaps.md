@@ -3,7 +3,6 @@ id: NAVIGATION-12-RISKS
 title: "12: Member Field Resolution — Risks & Gaps"
 type: risk
 parent_id: NAVIGATION-12
-status: "planned"
 folders:
   - "[[features/navigation/12-member-field-resolution/requirements|requirements]]"
 ---

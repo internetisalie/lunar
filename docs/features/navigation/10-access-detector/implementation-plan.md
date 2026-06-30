@@ -3,7 +3,6 @@ id: NAV-10-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: NAV-10
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/navigation/10-access-detector/requirements|requirements]]"

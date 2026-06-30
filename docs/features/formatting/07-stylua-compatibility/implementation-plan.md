@@ -2,7 +2,6 @@
 id: "FORMAT-07-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 parent_id: "FORMAT-07"
 folders:
   - "[[features/formatting/07-stylua-compatibility/requirements|requirements]]"

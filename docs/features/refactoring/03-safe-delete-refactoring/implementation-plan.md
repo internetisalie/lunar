@@ -3,7 +3,6 @@ id: REFACT-03-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: REFACT-03
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/refactoring/03-safe-delete-refactoring/requirements|requirements]]"

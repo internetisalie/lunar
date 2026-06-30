@@ -2,7 +2,6 @@
 id: "ROCKS-09-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "done"
 parent_id: "ROCKS-09"
 folders:
   - "[[features/rocks/09-workspace-discovery/requirements|requirements]]"

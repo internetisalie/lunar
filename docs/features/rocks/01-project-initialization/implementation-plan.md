@@ -3,7 +3,6 @@ id: ROCKS-01-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: ROCKS-01
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/01-project-initialization/requirements|requirements]]"

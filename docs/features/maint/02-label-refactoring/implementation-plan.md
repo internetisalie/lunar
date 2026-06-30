@@ -3,7 +3,6 @@ id: MAINT-02-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: MAINT-02
-status: done
 folders:
   - "[[features/maint/02-label-refactoring/requirements|requirements]]"
 ---

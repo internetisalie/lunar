@@ -3,7 +3,6 @@ id: COMP-04-PLAN
 title: "Implementation Plan"
 type: plan
 parent_id: COMP-04
-status: "planned"
 priority: "high"
 folders:
   - "[[features/completion/04-type-inferred-completion/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: FORMAT-03-DESIGN
 title: "Technical Design"
 type: design
 parent_id: FORMAT-03
-status: "done"
 priority: "medium"
 folders:
   - "[[features/formatting/03-blank-line-management/requirements|requirements]]"

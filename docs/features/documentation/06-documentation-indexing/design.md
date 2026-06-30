@@ -3,7 +3,6 @@ id: DOC-06-DESIGN
 title: Documentation Indexing Design
 type: design
 parent_id: DOC-06
-status: planned
 ---
 
 # Technical Design: Documentation Indexing

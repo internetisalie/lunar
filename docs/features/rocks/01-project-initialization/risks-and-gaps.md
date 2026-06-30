@@ -3,7 +3,6 @@ id: "ROCKS-01-RISKS"
 title: "Risks & Gaps"
 type: "risk"
 parent_id: "ROCKS-01"
-status: "planned"
 priority: "high"
 folders:
   - "[[features/rocks/01-project-initialization/requirements|requirements]]"

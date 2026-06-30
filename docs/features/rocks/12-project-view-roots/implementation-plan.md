@@ -2,7 +2,6 @@
 id: "ROCKS-12-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 parent_id: "ROCKS-12"
 folders:
   - "[[features/rocks/12-project-view-roots/requirements|requirements]]"

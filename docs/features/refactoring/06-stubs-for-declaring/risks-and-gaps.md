@@ -2,7 +2,6 @@
 id: REFACT-06-RISKS
 title: "Risks & Gaps"
 type: risk
-status: done
 parent_id: REFACT-06
 priority: medium
 folders:

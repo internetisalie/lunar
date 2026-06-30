@@ -3,7 +3,6 @@ id: "BUG-BASELINE-TESTS"
 title: "Pre-existing baseline test failures (3, non-ROCKS)"
 type: "bug"
 parent_id: "BUG"
-status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

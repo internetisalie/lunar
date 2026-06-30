@@ -2,7 +2,6 @@
 id: "MAINT-09-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
 priority: "medium"
 parent_id: "MAINT-09"
 folders:

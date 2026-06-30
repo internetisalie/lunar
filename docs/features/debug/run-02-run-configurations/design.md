@@ -2,7 +2,6 @@
 id: "RUN-02-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "done"
 parent_id: "RUN-02"
 folders:
   - "[[features/debug/run-02-run-configurations/requirements|requirements]]"

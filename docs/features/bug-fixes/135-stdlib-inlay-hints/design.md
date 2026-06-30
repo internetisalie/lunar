@@ -3,7 +3,6 @@ id: BUG-135-DESIGN
 title: Stdlib Inlay Hints Design
 type: design
 parent_id: BUG-135
-status: done
 ---
 
 # Technical Design: Stdlib Inlay Hints

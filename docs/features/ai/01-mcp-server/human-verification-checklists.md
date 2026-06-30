@@ -2,7 +2,6 @@
 id: "AI-01-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "todo"
 parent_id: "AI-01"
 folders:
   - "[[features/ai/01-mcp-server/requirements|requirements]]"

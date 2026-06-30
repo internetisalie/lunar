@@ -2,7 +2,6 @@
 id: "TYPE-08-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "todo"
 parent_id: "TYPE-08"
 folders:
   - "[[features/type/08-flow-sensitive/requirements|requirements]]"

@@ -3,7 +3,6 @@ id: FORMAT-04-DESIGN
 title: "Technical Design"
 type: design
 parent_id: FORMAT-04
-status: "done"
 priority: "medium"
 folders:
   - "[[features/formatting/04-expression-wrapping/requirements|requirements]]"

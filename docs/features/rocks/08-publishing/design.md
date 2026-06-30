@@ -3,7 +3,6 @@ id: ROCKS-08-DESIGN
 title: Publishing Design
 type: design
 parent_id: ROCKS-08
-status: done
 ---
 
 # Technical Design: Publishing

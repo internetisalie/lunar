@@ -2,7 +2,6 @@
 id: "ROCKS-06-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 parent_id: "ROCKS-06"
 folders:
   - "[[features/rocks/06-project-environment/requirements|requirements]]"

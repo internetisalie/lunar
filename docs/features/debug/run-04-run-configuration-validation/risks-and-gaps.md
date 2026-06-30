@@ -2,7 +2,6 @@
 id: "RUN-04-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "todo"
 parent_id: "RUN-04"
 folders:
   - "[[features/debug/run-04-run-configuration-validation/requirements|requirements]]"

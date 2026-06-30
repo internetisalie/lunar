@@ -3,7 +3,6 @@ id: "SYNTAX-TESTS"
 title: "Parsing Test Cases"
 type: "spec"
 parent_id: "SYNTAX"
-status: "done"
 priority: "low"
 folders:
   - "[[features/syntax/requirements|requirements]]"

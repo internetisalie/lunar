@@ -2,7 +2,6 @@
 id: "SCHEMA-04-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "planned"
 parent_id: "SCHEMA-04"
 folders:
   - "[[features/schema/04-busted-provider/requirements|requirements]]"

@@ -2,7 +2,6 @@
 id: "ROCKS-10-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "done"
 priority: "medium"
 parent_id: "ROCKS-10"
 folders:

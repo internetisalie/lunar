@@ -2,7 +2,6 @@
 id: "TYPE-08-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "done"
 parent_id: "TYPE-08"
 folders:
   - "[[features/type/08-flow-sensitive/requirements|requirements]]"

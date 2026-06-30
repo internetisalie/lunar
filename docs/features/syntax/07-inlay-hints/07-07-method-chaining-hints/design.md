@@ -3,7 +3,6 @@ id: "SYNTAX-07-07-DESIGN"
 title: "Technical Design"
 type: "design"
 parent_id: "SYNTAX-07-07"
-status: "planned"
 priority: "medium"
 folders:
   - "[[features/syntax/07-inlay-hints/07-07-method-chaining-hints/requirements|requirements]]"

@@ -2,7 +2,6 @@
 id: "ROCKS-12-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "done"
 parent_id: "ROCKS-12"
 folders:
   - "[[features/rocks/12-project-view-roots/requirements|requirements]]"
