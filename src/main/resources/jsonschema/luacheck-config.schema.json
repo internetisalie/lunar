@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Luacheck Configuration",
+  "description": "JSON Schema for luacheck .luacheckrc configuration files (top-level option globals).",
+  "type": "object",
+  "additionalProperties": true,
+  "definitions": {
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "intOrBool": {
+      "type": [
+        "integer",
+        "boolean"
+      ]
+    }
+  },
+  "properties": {
+    "std": {
+      "type": "string",
+      "description": "The base standard library globals set (e.g. 'lua54', 'min', 'max', 'love'). Standard sets can be combined with '+' and '-'."
+    },
+    "globals": {
+      "$ref": "#/definitions/stringArray",
+      "description": "Defined globals that may be set and accessed. An array of global names."
+    },
+    "read_globals": {
+      "$ref": "#/definitions/stringArray",
+      "description": "Globals that may be accessed but not set. An array of global names."
+    },
+    "ignore": {
+      "$ref": "#/definitions/stringArray",
+      "description": "Warning codes or patterns to ignore."
+    },
+    "enable": {
+      "$ref": "#/definitions/stringArray",
+      "description": "Warning codes or patterns to enable even if disabled by default."
+    },
+    "exclude_files": {
+      "$ref": "#/definitions/stringArray",
+      "description": "Glob patterns of files to exclude from checking."
+    },
+    "include_files": {
+      "$ref": "#/definitions/stringArray",
+      "description": "Glob patterns of files to include in checking."
+    },
+    "files": {
+      "type": "object",
+      "description": "Per-file or per-glob configuration overrides, keyed by file path or glob pattern.",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "max_line_length": {
+      "$ref": "#/definitions/intOrBool",
+      "description": "Maximum allowed line length, or false to disable the line-length check."
+    },
+    "max_code_line_length": {
+      "$ref": "#/definitions/intOrBool",
+      "description": "Maximum allowed length of lines ending with code, or false to disable."
+    },
+    "max_string_line_length": {
+      "$ref": "#/definitions/intOrBool",
+      "description": "Maximum allowed length of lines within a string, or false to disable."
+    },
+    "max_comment_line_length": {
+      "$ref": "#/definitions/intOrBool",
+      "description": "Maximum allowed length of lines within a comment, or false to disable."
+    },
+    "max_cyclomatic_complexity": {
+      "$ref": "#/definitions/intOrBool",
+      "description": "Maximum allowed cyclomatic complexity of functions, or false to disable the check."
+    },
+    "allow_defined": {
+      "type": "boolean",
+      "description": "Allow implicitly defining globals by setting them."
+    },
+    "allow_defined_top": {
+      "type": "boolean",
+      "description": "Allow implicitly defining globals by setting them in the top-level scope."
+    },
+    "module": {
+      "type": "boolean",
+      "description": "Limit visibility of implicitly defined globals to their files."
+    },
+    "compat": {
+      "type": "boolean",
+      "description": "Adjust the std set for compatibility across Lua versions and LuaJIT."
+    },
+    "unused": {
+      "type": "boolean",
+      "description": "Detect unused variables, arguments, and loop variables."
+    },
+    "unused_args": {
+      "type": "boolean",
+      "description": "Detect unused arguments and loop variables."
+    },
+    "unused_secondaries": {
+      "type": "boolean",
+      "description": "Detect unused variables set together with used ones."
+    },
+    "self": {
+      "type": "boolean",
+      "description": "Detect unused implicit 'self' arguments of methods."
+    },
+    "redefined": {
+      "type": "boolean",
+      "description": "Detect redefined local variables and arguments."
+    },
+    "global": {
+      "type": "boolean",
+      "description": "Detect accessing or setting undefined globals."
+    },
+    "unset": {
+      "type": "boolean",
+      "description": "Detect accessing uninitialized variables."
+    },
+    "cache": {
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "description": "Use a cache, optionally at the given path, to speed up subsequent checks."
+    }
+  }
+}

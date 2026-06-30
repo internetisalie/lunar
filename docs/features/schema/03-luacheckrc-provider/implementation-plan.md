@@ -9,12 +9,13 @@ folders:
 
 # Implementation Plan: SCHEMA-03 — Luacheckrc Schema Provider
 
-## Phase 1: Schema Asset [Must]
+## Phase 1: Schema Asset [Must] — Done
+
 **Goal**: Bundle the luacheck configuration JSON schema.
 
-- Create `src/main/resources/jsonschema/luacheck-config.schema.json`.
-- Populate with draft-07 JSON schema covering all documented luacheck options (`std`, `globals`, `ignore`, etc.).
-- Ensure `additionalProperties` handling is relaxed to support undocumented or future luacheck keys gracefully.
+- [x] Create `src/main/resources/jsonschema/luacheck-config.schema.json`.
+- [x] Populate with draft-07 JSON schema covering all documented luacheck options (`std`, `globals`, `ignore`, etc.).
+- [x] Ensure `additionalProperties` handling is relaxed (root `additionalProperties: true`) to support undocumented or future luacheck keys gracefully.
 
 ## Phase 2: Schema Provider and Factory [Must]
 **Goal**: Implement the provider and register it to map `.luacheckrc` files.
