@@ -2,7 +2,7 @@
 id: "SCHEMA-03"
 title: "03: Luacheckrc Schema Provider"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: "SCHEMA"
 folders:

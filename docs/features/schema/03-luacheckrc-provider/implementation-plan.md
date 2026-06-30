@@ -34,10 +34,15 @@ folders:
 - [x] Register the provider in `plugin.xml` as a `<schemaFileProvider>` under `net.internetisalie.lunar`.
 - [x] Associate bare `.luacheckrc` (extensionless dotfile) with the Lua file type via `fileNames=".luacheckrc"` on the existing Lua `<fileType>` — required so the SCHEMA-01 engine (gated on `LuaFileType`) engages. `.luacheckrc.lua` already maps via the `lua` extension.
 
-## Phase 3: Tests and Verification [Must]
+## Phase 3: Tests and Verification [Must] — Done
+
 **Goal**: Prove the provider maps correctly and triggers the SCHEMA-01 engine.
 
-- Create `LuacheckrcSchemaTest` extending `BasePlatformTestCase`.
-- Create a dummy `.luacheckrc` file in the test fixture.
-- Verify that inserting an invalid value (e.g. `globals = true`) produces a schema warning.
-- Verify basic completion lookup keys (`globals`, `std`).
+- [x] Create `LuacheckrcSchemaTest` extending `BasePlatformTestCase` (mirrors `RockspecSchemaValidationTest`: registers `LuaSchemaProviderFactory` on the platform provider-factory EP and enables `LuaJsonSchemaComplianceInspection`).
+- [x] TC #1 `globals = true` → type-mismatch (expected array) warning. **Passes** — the SCHEMA-01 boolean-value walker gap (flagged in SCHEMA-02 risks) did NOT manifest for a bare top-level boolean assignment; the engine surfaces it and validation fires. An integer-mismatch control (`globals = 1`) is also asserted.
+- [x] TC #2 `max_line_length = 120` → no warning (integer allowed).
+- [x] TC #3 `max_line_length = false` → no warning (boolean false disables; intOrBool union).
+- [x] TC #4 top-level completion suggests `std`/`globals`/`ignore`/`max_line_length`.
+- [x] TC #5 isolation: plain `main.lua` with `globals = true` → no schema warning.
+
+All 6 tests green; full suite 1326 tests / 0 failures / 1 skip; `ktlintCheck` clean.
