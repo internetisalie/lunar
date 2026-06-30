@@ -5,6 +5,7 @@
     "name": { "type": "string" },
     "opts": {
       "type": "object",
+      "description": "Optional settings table",
       "properties": {
         "level": { "type": "string", "enum": ["low", "high"] }
       }

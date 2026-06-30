@@ -1,9 +1,11 @@
 package net.internetisalie.lunar.lang.schema
 
+import com.intellij.codeInsight.documentation.DocumentationManager
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.util.PsiUtilBase
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
@@ -129,7 +131,26 @@ class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
             name = 1
             bogus = 2
         """.trimIndent())
-        
+
         myFixture.checkHighlighting(true, false, true)
+    }
+
+    @Test
+    fun testQuickDoc_SchemaDescription() {
+        // TC #8 — Quick-Doc on the 'opts' key shows the schema 'description', flowing from the engine
+        // through the registered Lua documentation provider.
+        myFixture.configureByText(
+            "test.testcfg",
+            """
+            name = "x"
+            op<caret>ts = { level = "low" }
+            """.trimIndent()
+        )
+
+        val element = requireNotNull(PsiUtilBase.getElementAtCaret(myFixture.editor))
+        val provider = DocumentationManager.getProviderFromElement(element)
+        val doc = provider.generateDoc(element, element)
+        assertNotNull("Quick-doc should be generated for the 'opts' key", doc)
+        assertTrue("Quick-doc should contain the schema description, was: $doc", doc!!.contains("Optional settings table"))
     }
 }

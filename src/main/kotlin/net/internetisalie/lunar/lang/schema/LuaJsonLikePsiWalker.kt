@@ -143,6 +143,17 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
 
     override fun findPosition(element: PsiElement, forceLastTransition: Boolean): JsonPointerPosition? {
         val position = JsonPointerPosition()
+
+        // When asked to include the last transition (quick-doc / completion on a key itself), add the
+        // element's own property step — the loop below only contributes ancestor steps. Mirrors the
+        // `position == element && forceLastTransition` branch of YamlJsonPsiWalker.findPosition.
+        if (forceLastTransition) {
+            when (element) {
+                is LuaAssignmentStatement -> LuaAssignmentPropertyAdapter(element).name?.let { position.addPrecedingStep(it) }
+                is LuaField -> LuaPropertyAdapter(element).name?.let { position.addPrecedingStep(it) }
+            }
+        }
+
         var current: PsiElement? = element
 
         while (current != null && current !is LuaFile) {
