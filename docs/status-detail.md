@@ -267,7 +267,7 @@ folders:
 
 | ID | Feature | Status | Notes |
 |:---|:--------|:-------|:------|
-| SCHEMA-01 | Lua JSON-Schema Engine | planned | `lang/schema/*`: Lua `JsonLikePsiWalker` + adapters + walker-factory/enabler + `language="Lua"` compliance inspection; depends on `com.intellij.modules.json` |
+| SCHEMA-01 | Lua JSON-Schema Engine | done | `lang/schema/*`: Lua `JsonLikePsiWalker` + adapters + walker-factory/enabler + `language="Lua"` compliance inspection; depends on `com.intellij.modules.json` |
 | SCHEMA-02 | Rockspec Schema Provider | todo | `.rockspec` → bundled rockspec v3.0/v3.1 schema; supersedes ROCKS-13 |
 | SCHEMA-03 | Luacheckrc Schema Provider | todo | `.luacheckrc` → new bundled luacheck-config schema (second consumer; proves generality) |
 | SCHEMA-04 | Busted Config Schema Provider | todo | `.busted` (shape-B `return {table}`) → bundled busted-config schema |

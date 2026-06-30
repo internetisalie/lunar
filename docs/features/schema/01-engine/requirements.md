@@ -50,14 +50,14 @@ declarative providers that map specific files to schemas.
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| SCHEMA-01-01 | **JSON plugin dependency** | M | Not Implemented | Add `com.intellij.modules.json` to `platformBundledPlugins` (`gradle.properties`) and `<depends>com.intellij.modules.json</depends>` (`plugin.xml`) so the JSON Schema engine + extension points are available. |
-| SCHEMA-01-02 | **Lua walker** | M | Not Implemented | `LuaJsonLikePsiWalker : JsonLikePsiWalker` maps Lua data PSI to the engine's JSON-like model: identifiers/field keys → names, `LuaTableConstructor` → object/array, literals → scalars; implements position/parent/value-adapter lookups. |
-| SCHEMA-01-03 | **Lua adapters** | M | Not Implemented | `LuaObjectAdapter` (`JsonObjectValueAdapter`), `LuaArrayAdapter` (`JsonArrayValueAdapter`), `LuaPropertyAdapter` (`JsonPropertyAdapter`), `LuaValueAdapter` (`JsonValueAdapter`) wrap Lua PSI into the adapter contract. |
-| SCHEMA-01-04 | **Two document shapes** | M | Not Implemented | `getRoots(file)` / root-object adapter handles shape A (file chunk of top-level `LuaAssignmentStatement`s as the root object) and shape B (the `LuaTableConstructor` returned by a `LuaFinalStatement`). |
-| SCHEMA-01-05 | **Object vs array mapping** | M | Not Implemented | A `LuaTableConstructor` is an **object** if any `LuaField` has a non-null identifier (or a string `[ "k" ] =` key); an **array** if its fields are positional (null identifier, single expr). Mixed tables are treated as objects; positional entries are ignored for object property checks. |
-| SCHEMA-01-06 | **Walker factory + enabler** | M | Not Implemented | `LuaJsonLikePsiWalkerFactory` (`handles` = element in a Lua file) returns the walker; `LuaJsonSchemaEnabler.isEnabledForFile` gates the engine to Lua files that a registered provider can claim. Registered via `<jsonLikePsiWalkerFactory>` / `<jsonSchemaEnabler>` (ns `com.intellij.json`). |
-| SCHEMA-01-07 | **Compliance inspection** | M | Not Implemented | `LuaJsonSchemaComplianceInspection` (`language="Lua"`) obtains the walker via `JsonLikePsiWalker.getWalker(...)` and runs `JsonSchemaComplianceChecker`, mirroring `YamlJsonSchemaHighlightingInspection`. Completion + docs are supplied by the engine through the registered walker (no extra Lua code). |
-| SCHEMA-01-08 | **Provider seam + plain-`.lua` safety** | M | Partial | A base `LuaSchemaFileProvider`/`LuaSchemaProviderFactory` (registered `<JsonSchema.ProviderFactory>`) that SCHEMA-02..04 subclass to map a file → bundled schema. With no matching provider, schema resolution yields nothing and no engine feature engages, so ordinary `.lua` editing is unaffected. |
+| SCHEMA-01-01 | **JSON plugin dependency** | M | Full | Add `com.intellij.modules.json` to `platformBundledPlugins` (`gradle.properties`) and `<depends>com.intellij.modules.json</depends>` (`plugin.xml`) so the JSON Schema engine + extension points are available. |
+| SCHEMA-01-02 | **Lua walker** | M | Full | `LuaJsonLikePsiWalker : JsonLikePsiWalker` maps Lua data PSI to the engine's JSON-like model: identifiers/field keys → names, `LuaTableConstructor` → object/array, literals → scalars; implements position/parent/value-adapter lookups. |
+| SCHEMA-01-03 | **Lua adapters** | M | Full | `LuaObjectAdapter` (`JsonObjectValueAdapter`), `LuaArrayAdapter` (`JsonArrayValueAdapter`), `LuaPropertyAdapter` (`JsonPropertyAdapter`), `LuaValueAdapter` (`JsonValueAdapter`) wrap Lua PSI into the adapter contract. |
+| SCHEMA-01-04 | **Two document shapes** | M | Full | `getRoots(file)` / root-object adapter handles shape A (file chunk of top-level `LuaAssignmentStatement`s as the root object) and shape B (the `LuaTableConstructor` returned by a `LuaFinalStatement`). |
+| SCHEMA-01-05 | **Object vs array mapping** | M | Full | A `LuaTableConstructor` is an **object** if any `LuaField` has a non-null identifier (or a string `[ "k" ] =` key); an **array** if its fields are positional (null identifier, single expr). Mixed tables are treated as objects; positional entries are ignored for object property checks. |
+| SCHEMA-01-06 | **Walker factory + enabler** | M | Full | `LuaJsonLikePsiWalkerFactory` (`handles` = element in a Lua file) returns the walker; `LuaJsonSchemaEnabler.isEnabledForFile` gates the engine to Lua files that a registered provider can claim. Registered via `<jsonLikePsiWalkerFactory>` / `<jsonSchemaEnabler>` (ns `com.intellij.json`). |
+| SCHEMA-01-07 | **Compliance inspection** | M | Full | `LuaJsonSchemaComplianceInspection` (`language="Lua"`) obtains the walker via `JsonLikePsiWalker.getWalker(...)` and runs `JsonSchemaComplianceChecker`, mirroring `YamlJsonSchemaHighlightingInspection`. Completion + docs are supplied by the engine through the registered walker (no extra Lua code). |
+| SCHEMA-01-08 | **Provider seam + plain-`.lua` safety** | M | Full | A base `LuaSchemaFileProvider`/`LuaSchemaProviderFactory` (registered `<JsonSchema.ProviderFactory>`) that SCHEMA-02..04 subclass to map a file → bundled schema. With no matching provider, schema resolution yields nothing and no engine feature engages, so ordinary `.lua` editing is unaffected. |
 
 ## Detailed Specifications
 All mechanics — the per-method walker mapping, the two-shape `getRoots` logic, the JSON-pointer
@@ -97,11 +97,11 @@ opts:{type:object, properties:{level:{type:string, enum:[low,high]}}}, tags:{typ
 | 8 | 01-07(docs) | Quick-Doc on `opts` key | quick-doc | shows the schema `description` for `opts` |
 
 ## Acceptance Criteria
-- [ ] An enum/array/required check the depth-1 hand-rolled checker could NOT do now works via the
+- [x] An enum/array/required check the depth-1 hand-rolled checker could NOT do now works via the
       engine (TC #2, #3) — confirming real JSON-Schema semantics.
-- [ ] Both document shapes validate against the same schema (TC #1 vs #5).
-- [ ] A plain unmapped `.lua` file is completely unaffected (TC #6).
-- [ ] Completion and hover docs flow from the engine through the walker (TC #7, #8).
+- [x] Both document shapes validate against the same schema (TC #1 vs #5).
+- [x] A plain unmapped `.lua` file is completely unaffected (TC #6).
+- [x] Completion and hover docs flow from the engine through the walker (TC #7, #8).
 
 ## Non-Functional Requirements
 - The walker/adapters retain no hard refs to `Project`/`PsiFile`/`VirtualFile`; adapters hold their
