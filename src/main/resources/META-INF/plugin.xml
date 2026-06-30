@@ -42,8 +42,8 @@
       <jsonSchemaEnabler implementation="net.internetisalie.lunar.lang.schema.LuaJsonSchemaEnabler"/>
   </extensions>
 
-  <extensions defaultExtensionNs="">
-      <JavaScript.JsonSchema.ProviderFactory implementation="net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory"/>
+  <extensions defaultExtensionNs="JavaScript">
+      <JsonSchema.ProviderFactory implementation="net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory"/>
   </extensions>
 
   <!-- SCHEMA-02: rockspec schema providers, contributed to the SCHEMA-01 engine's own EP. The
