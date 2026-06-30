@@ -31,6 +31,7 @@ class LuaCatsAnnotator : Annotator {
             }
             is LuaCatsTypeParam -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsBuiltinType -> highlight(holder, element, LuaCatsHighlight.TYPE)
+            is LuaCatsLiteralType -> highlight(holder, element, LuaCatsHighlight.KEYWORD)
             is LuaCatsGenericType -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsArgName -> highlight(holder, element, LuaCatsHighlight.NAME)
             is LuaCatsParameterName -> highlight(holder, element, LuaCatsHighlight.NAME)

@@ -69,6 +69,28 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
     }
 
     @Test
+    fun testLuaCatsStringLiteralType() {
+        myFixture.configureByText("test.lua", """
+            ---@alias Mode "read"|"write"
+            local m
+        """.trimIndent())
+
+        assertHighlighted("\"read\"", LuaCatsHighlight.KEYWORD)
+        assertHighlighted("\"write\"", LuaCatsHighlight.KEYWORD)
+    }
+
+    @Test
+    fun testLuaCatsNumberLiteralType() {
+        myFixture.configureByText("test.lua", """
+            ---@type 1|2
+            local n
+        """.trimIndent())
+
+        assertHighlighted("1", LuaCatsHighlight.KEYWORD)
+        assertHighlighted("2", LuaCatsHighlight.KEYWORD)
+    }
+
+    @Test
     fun testLuaCatsDeprecated() {
         myFixture.configureByText("test.lua", """
             ---@deprecated Use something else
