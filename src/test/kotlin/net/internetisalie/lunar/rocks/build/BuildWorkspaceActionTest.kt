@@ -3,9 +3,10 @@ package net.internetisalie.lunar.rocks.build
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
-import com.intellij.openapi.application.runReadAction
-import com.intellij.testFramework.EdtTestUtil
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.TestActionEvent
+import com.intellij.testFramework.runInEdtAndWait
 import net.internetisalie.lunar.lang.types.IndexedBasePlatformTestCase
 import org.junit.Test
 
@@ -49,12 +50,15 @@ class BuildWorkspaceActionTest : IndexedBasePlatformTestCase() {
     // Runs the action's update on the EDT under a read action, matching the reliable pattern in
     // LuaRockspecDiscoveryServiceTest: entering the EDT flushes pending VFS/index events from
     // myFixture.addFileToProject so the freshly-added rockspecs are visible to FilenameIndex before
-    // the gate counts them. Calling update() raw on the test-worker thread races that indexing.
+    // the gate counts them. SCHEMA-02 enables the JSON-Schema engine on .rockspec files, letting
+    // JsonSchemaService schedule reindexing off the freshly-added rockspecs; waitUntilIndexesAreReady
+    // settles that scanning first so the gate's index-backed count is not racing it.
     private fun updateOnEdt(action: BuildWorkspaceAction): AnActionEvent {
+        IndexingTestUtil.waitUntilIndexesAreReady(project)
         val dataContext = SimpleDataContext.getProjectContext(project)
         val event = TestActionEvent.createTestEvent(action, dataContext)
-        EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            runReadAction { action.update(event) }
+        runInEdtAndWait {
+            ApplicationManager.getApplication().runReadAction { action.update(event) }
         }
         return event
     }

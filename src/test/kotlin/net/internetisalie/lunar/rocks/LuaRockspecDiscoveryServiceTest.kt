@@ -16,6 +16,21 @@ import org.junit.Test
  */
 class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
 
+    // The include/exclude-glob tests mutate the PROJECT-level LuaProjectSettings. The light test
+    // project (and its persistent settings) is shared across tests in a JVM run, so a leaked allow-list
+    // (e.g. `a/**`) would silently filter out unrelated rockspecs in later tests such as
+    // BuildWorkspaceActionTest. Reset the globs to their (empty) defaults after each test to keep the
+    // shared project clean.
+    override fun tearDown() {
+        try {
+            val settingsState = LuaProjectSettings.getInstance(project).state
+            settingsState.rockspecIncludeGlobs = mutableListOf()
+            settingsState.rockspecExcludeGlobs = mutableListOf()
+        } finally {
+            super.tearDown()
+        }
+    }
+
     private val kernelRockNames = listOf(
         "adt", "channels", "cmd", "meteor", "pipe",
         "platform", "ramdisk", "runtime", "ssdpd", "utils",

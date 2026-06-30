@@ -16,33 +16,47 @@ folders:
 - `SCHEMA-01` provides the `LuaSchemaFileProvider` and `LuaSchemaProviderFactory` bases. **Note: SCHEMA-01 is currently planned but not implemented. SCHEMA-02 cannot be implemented or marked as 'planned' until SCHEMA-01 exists in the codebase.**
 
 ### Target State
-A `JsonSchemaProviderFactory` that registers two providers: one for v3.1 rockspecs and one for v3.0 (and below) rockspecs. They rely on the bundled rockspec schemas and the `SCHEMA-01` Lua JSON-Schema Engine.
+Two `LuaSchemaFileProvider` extensions (one for v3.1 rockspecs, one for v3.0-and-below) contributed
+to SCHEMA-01's own `net.internetisalie.lunar.schemaFileProvider` extension point. SCHEMA-01's already-registered
+`LuaSchemaProviderFactory` returns every such extension to the platform JSON-Schema engine, so SCHEMA-02
+adds **no** new `JsonSchemaProviderFactory` — it only contributes providers. They rely on the bundled
+rockspec schemas and the `SCHEMA-01` Lua JSON-Schema Engine.
+
+> **Architecture note (reconciled with the landed SCHEMA-01 code):** an earlier draft of this design
+> assumed SCHEMA-02 would subclass a `LuaSchemaProviderFactory(project, …)` and that
+> `LuaSchemaFileProvider` took a `(project, name, schemaResourcePath)` constructor. The shipped SCHEMA-01
+> engine instead exposes a custom EP (`schemaFileProvider`) aggregated by a single concrete
+> `LuaSchemaProviderFactory`, and `LuaSchemaFileProvider` is a **no-arg** abstract class. SCHEMA-02
+> therefore registers EP extensions (no factory subclass) and obtains the `Project` at call time via
+> `ProjectLocator`, since EP extensions are application-level singletons with no injected project.
 
 ## 2. Core Components
 
-### 2.1 `net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProviderFactory`
-- **Responsibility**: Returns the list of rockspec schema providers (v3.0 and v3.1) to the platform engine.
-- **Threading**: Called by the platform on background threads.
-- **Collaborators**: Extends `net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory`.
-- **Key API**:
-  ```kotlin
-  class RockspecSchemaProviderFactory : LuaSchemaProviderFactory() {
-      override fun getProviders(project: Project): List<JsonSchemaFileProvider>
-  }
-  ```
+### 2.1 Registration (no new factory)
+- **Responsibility**: SCHEMA-01's existing `LuaSchemaProviderFactory.getProviders(project)` already returns
+  `EP_NAME.extensionList`. SCHEMA-02 contributes its providers to that EP — there is **no**
+  `RockspecSchemaProviderFactory`.
+- **Mechanism**: declarative `<schemaFileProvider>` extensions in `plugin.xml` (see §7).
 
 ### 2.2 `net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProvider`
 - **Responsibility**: Maps a `.rockspec` VirtualFile to the appropriate bundled JSON schema based on the `rockspec_format` variable.
-- **Threading**: `isAvailable(VirtualFile)` may be called on pooled threads; requires a read action to safely inspect PSI.
-- **Collaborators**: Extends `net.internetisalie.lunar.lang.schema.LuaSchemaFileProvider`, reads `LuaAssignmentStatement` via `PsiManager`.
+- **Threading**: `isAvailable(VirtualFile)` may be called on pooled threads; PSI inspection is wrapped in a read action. The provider is an application-level singleton (no injected `Project`); it resolves the project via `ProjectLocator.guessProjectForFile(file)`.
+- **Collaborators**: Extends `net.internetisalie.lunar.lang.schema.LuaSchemaFileProvider` (no-arg), reads `LuaAssignmentStatement` via `PsiManager`; loads the bundled schema via `JsonSchemaProviderFactory.getResourceFile`.
 - **Key API**:
   ```kotlin
-  sealed class RockspecSchemaProvider(project: Project, name: String, schemaResourcePath: String) : 
-      LuaSchemaFileProvider(project, name, schemaResourcePath) {
-      class V30(project: Project) : RockspecSchemaProvider(project, "Rockspec v3.0", "/jsonschema/rockspec-schema-v30.json")
-      class V31(project: Project) : RockspecSchemaProvider(project, "Rockspec v3.1", "/jsonschema/rockspec-schema-v31.json")
-      
-      abstract override fun isAvailable(file: VirtualFile): Boolean
+  sealed class RockspecSchemaProvider(
+      private val displayName: String,
+      private val schemaResourcePath: String,
+  ) : LuaSchemaFileProvider() {
+      class V30 : RockspecSchemaProvider("Rockspec v3.0", "/jsonschema/rockspec-schema-v30.json") {
+          override fun isAvailable(file: VirtualFile): Boolean = isRockspec(file) && !isFormat31(file)
+      }
+      class V31 : RockspecSchemaProvider("Rockspec v3.1", "/jsonschema/rockspec-schema-v31.json") {
+          override fun isAvailable(file: VirtualFile): Boolean = isRockspec(file) && isFormat31(file)
+      }
+      override fun getName(): String = displayName
+      override fun getSchemaFile(): VirtualFile? =
+          JsonSchemaProviderFactory.getResourceFile(this::class.java, schemaResourcePath)
   }
   ```
 
@@ -87,11 +101,20 @@ A `JsonSchemaProviderFactory` that registers two providers: one for v3.1 rockspe
 ## 7. Integration Points
 
 ```xml
-<!-- plugin.xml -->
-<extensions defaultExtensionNs="com.intellij">
-    <jsonSchema.providerFactory implementation="net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProviderFactory"/>
+<!-- plugin.xml: contribute the providers to SCHEMA-01's own EP (NOT a new jsonSchema.providerFactory) -->
+<extensions defaultExtensionNs="net.internetisalie.lunar">
+    <schemaFileProvider implementation="net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProvider$V30"/>
+    <schemaFileProvider implementation="net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProvider$V31"/>
 </extensions>
 ```
+
+### 7.1 Enabler exclusion removal
+SCHEMA-01 shipped `LuaJsonSchemaEnabler` with a temporary guard `if (file.extension == "rockspec") return false`,
+deferring engine activation on rockspecs to SCHEMA-02. SCHEMA-02 removes that line so the engine engages
+on `.rockspec`. Removing it re-introduces a `JsonSchemaService` reindexing pass that races the EDT-side
+`FilenameIndex` count in `BuildWorkspaceActionTest`; that test is hardened with
+`IndexingTestUtil.waitUntilIndexesAreReady(project)`. A separate, pre-existing flake — `LuaRockspecDiscoveryServiceTest`
+leaking project-level rockspec globs into later tests — is fixed by resetting the globs in its `tearDown`.
 
 ## 8. Requirement Coverage
 

@@ -46,6 +46,13 @@
       <JavaScript.JsonSchema.ProviderFactory implementation="net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory"/>
   </extensions>
 
+  <!-- SCHEMA-02: rockspec schema providers, contributed to the SCHEMA-01 engine's own EP. The
+       LuaSchemaProviderFactory above returns these to the platform JSON-Schema engine. -->
+  <extensions defaultExtensionNs="net.internetisalie.lunar">
+      <schemaFileProvider implementation="net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProvider$V30"/>
+      <schemaFileProvider implementation="net.internetisalie.lunar.lang.schema.providers.RockspecSchemaProvider$V31"/>
+  </extensions>
+
   <!-- Extension points defined by the plugin.
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
