@@ -9,6 +9,16 @@ folders:
 
 # Verification Checklist: SCHEMA-03 — Luacheckrc Schema Provider
 
+> **VNC-verified live 2026-06-30** (GoLand 2026.1.3 sandbox, schema03 fixture project). All four
+> checks PASS:
+> - **V-01** — typing `max_` offers `max_line_length`/`max_code_line_length`/`max_cyclomatic_complexity`/…
+>   each with its schema description (Quick-Doc text flows from the schema); status bar reads
+>   **"Schema: Luacheckrc"**.
+> - **V-02** — `.luacheckrc.lua` also binds **"Schema: Luacheckrc"** and fires the same validation.
+> - **V-03** — `globals = true` flagged **"Incompatible types. Required: array. Actual: boolean."**
+> - **V-04** — plain `main.lua` status bar reads **"No JSON schema"**; no schema warning on
+>   `globals = true` (only Lunar's unrelated global-creation lint).
+
 ### V-01: `.luacheckrc` file recognition
 1. Open a project in the sandbox IDE.
 2. Create a file named `.luacheckrc`.
