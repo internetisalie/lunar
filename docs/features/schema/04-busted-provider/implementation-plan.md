@@ -35,7 +35,7 @@ folders:
 
 ## Verification Tasks
 - [x] Add `BustedSchemaTest` covering a valid `.busted` file and catching invalid fields (TC #1-#4, all green).
-- [ ] Run `human-verification-checklists.md` for manual UI checks.
+- [x] Run `human-verification-checklists.md` for manual UI checks (VNC-verified live in GoLand 2026.1.3: status bar binds "Schema: Busted Config"; TC #1 valid → no warnings; TC #2 → "Property 'bogus' is not allowed"; TC #3 → "Incompatible types. Required: boolean. Actual: string."; TC #4 completion suggests `output`/`verbose`/`coverage`/`pattern`/`ROOT`/`tags` with schema docs; isolation: plain `main.lua` → "No JSON schema").
 
 ## Task Summary
 
