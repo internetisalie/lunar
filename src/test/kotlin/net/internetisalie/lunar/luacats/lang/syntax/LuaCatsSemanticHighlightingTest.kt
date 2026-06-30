@@ -91,6 +91,28 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
     }
 
     @Test
+    fun testLuaCatsBooleanLiteralType() {
+        myFixture.configureByText("test.lua", """
+            ---@type true|false
+            local b
+        """.trimIndent())
+
+        assertHighlighted("true", LuaCatsHighlight.KEYWORD)
+        assertHighlighted("false", LuaCatsHighlight.KEYWORD)
+    }
+
+    @Test
+    fun testLuaCatsNilStaysType() {
+        // `nil` has a single inhabitant, so it remains the nil TYPE (not a literal), unlike true/false.
+        myFixture.configureByText("test.lua", """
+            ---@type nil
+            local x
+        """.trimIndent())
+
+        assertHighlighted("nil", LuaCatsHighlight.TYPE)
+    }
+
+    @Test
     fun testLuaCatsDeprecated() {
         myFixture.configureByText("test.lua", """
             ---@deprecated Use something else

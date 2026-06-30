@@ -176,7 +176,7 @@ distinctType ::=
     | literalType
     | simpleType
 
-literalType ::= STRING | NUMBER
+literalType ::= STRING | NUMBER | 'true' | 'false'
 tupleType ::= '[' type { ',' type }* ']'
 dictionaryType ::= '{' '[' type ']' ':' type '}'
 literalTableType ::= '{' tableLiteralEntries? '}'

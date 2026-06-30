@@ -1012,14 +1012,15 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // STRING | NUMBER
+  // STRING | NUMBER | 'true' | 'false'
   public static boolean literalType(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "literalType")) return false;
-    if (!nextTokenIs(builder_, "<literal type>", NUMBER, STRING)) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, LITERAL_TYPE, "<literal type>");
     result_ = consumeToken(builder_, STRING);
     if (!result_) result_ = consumeToken(builder_, NUMBER);
+    if (!result_) result_ = consumeToken(builder_, "true");
+    if (!result_) result_ = consumeToken(builder_, "false");
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }

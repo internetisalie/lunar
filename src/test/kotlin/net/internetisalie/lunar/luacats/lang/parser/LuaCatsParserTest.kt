@@ -92,6 +92,15 @@ class LuaCatsParserTest : BaseDocumentTest() {
     }
 
     @Test
+    fun testBooleanLiteralTypes() {
+        // Tests boolean literal types (true/false); nil remains the nil type.
+        doTest("""
+            ---@type true | false | nil
+            local flag
+        """.trimIndent())
+    }
+
+    @Test
     fun testOperators() {
         // Tests operator overload syntax per LuaCATS spec.
         doTest("""
