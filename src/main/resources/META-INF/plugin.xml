@@ -263,6 +263,17 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.analysis.luacheck.LuaCheckAnnotator"/>
 
+    <localInspection
+            language="Lua"
+            shortName="LuaCheck"
+            displayName="LuaCheck"
+            groupPath="Lua"
+            groupName="Luacheck"
+            enabledByDefault="true"
+            level="WARNING"
+            unfair="true"
+            implementationClass="net.internetisalie.lunar.analysis.luacheck.LuaCheckInspection"/>
+
     <editorHighlighterProvider
             filetype="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaEditorHighlighterProvider"/>
