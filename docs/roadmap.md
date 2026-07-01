@@ -243,7 +243,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
 | MAINT-07| Interpreter Search Path Globs | planned | M | — | — | ✓ |
-| MAINT-03| Deprecation Cleanup | todo | L | — | — | ✓ |
+| MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
 | MAINT-08| LuaCheck UI Grouping | planned | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | todo | L | — | — | ✓ |
 | MAINT-19| platform.syntax Migration (Kotlin lexer/parser) | todo | C | — *(independent; absorbs MAINT-01's deferred `LuaTokenTypes`/`LuaCatsTokenTypes`)* | — | Serial: lexer/parser + `.flex`/`.bnf` regen |
