@@ -13,17 +13,8 @@ folders:
 > Generated **2026-06-14** by auditing `src/main/kotlin/`, `src/main/resources/META-INF/plugin.xml`,
 > and `src/main/resources/`. Requirements docs were used only as a feature *inventory*;
 > all status assessments are based on whether working code exists.
-> **Updated 2026-06-16** for Wave 10: the TOOL and ROCKS epics are now fully implemented
-> (`src/main/kotlin/.../tool/` and `.../rocks/`, registered in `plugin.xml`).
-> **Reopened 2026-06-21:** ROCKS is **in_progress**, not done — ROCKS-05 (Rockspec Module
-> Resolution) has no code, and a gap review flagged unbuilt work (server/registry config in
-> settings, broader run-config/task-panel scope, the empty ROCKS-06/07 slots). Shipped ROCKS
-> features (01–04, 08) remain source-verified `done`.
-> **Updated 2026-06-23:** added **ROCKS-13** (Rockspec Editor Support). Only highlighting ships today
-> (`.rockspec` added to the `Lua` `fileType` `extensions` in `plugin.xml`).
-> **Updated 2026-06-24:** added the **SCHEMA** epic (Lua JSON-Schema engine + rockspec/luacheckrc/busted
-> providers). **ROCKS-13 is superseded by SCHEMA-02** and reset to `todo`; its standalone hand-rolled
-> design is replaced by the platform-engine route (a Lua `JsonLikePsiWalker`).
+> **Updated 2026-06-30:** ROCKS (11/11 features) and SCHEMA (4/4 features) now fully implemented.
+> MAINT-06 (LuaCATS Literal Highlighting) completed.
 
 **Status vocabulary:**
 
@@ -51,12 +42,12 @@ folders:
 | [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
 | [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                   |      8 |           0 |       3 |      1 |      12 | ███████░░░ 66%  |
-| [**SCHEMA**](#schema--schema-driven-data-files)             |      0 |           0 |       1 |      3 |       4 | ░░░░░░░░░░  0%  |
-| [**MAINT**](#maint--maintenance--internal-refactoring)      |      3 |           1 |       0 |      6 |      10 | ███░░░░░░░ 30%  |
+| [**ROCKS**](#rocks--luarocks-integration)                       |     11 |           0 |       0 |      0 |      11 | ██████████ 100% |
+| [**SCHEMA**](#schema--schema-driven-data-files)             |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
+| [**MAINT**](#maint--maintenance--internal-refactoring)      |      5 |           1 |       0 |      4 |      10 | █████░░░░░ 50%  |
 | [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
 | [**BUG**](#bug--bug-fixes--stability)                       |     12 |           0 |       0 |      3 |      15 | ████████░░ 80%  |
-| **Total**                                                   | **124** |       **1** |   **7** | **13** | **145** | **86%**         |
+| **Total**                                                   | **136** |       **1** |   **0** |  **7** | **144** | **94%**         |
 
 > [!NOTE]
 > NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
@@ -261,15 +252,15 @@ folders:
 
 ## SCHEMA — Schema-Driven Data Files
 
-> No code yet — epic planned 2026-06-24. The engine adapts the platform JSON-Schema engine to Lua
-> (`JsonLikePsiWalker`) so Lua *data* files get validation/completion/docs; providers are declarative.
+> All 4 features implemented 2026-06-30. The platform JSON-Schema engine is adapted to Lua
+> (`JsonLikePsiWalker`) so Lua *data* files get validation/completion/docs.
 
 | ID | Feature | Status | Notes |
 |:---|:--------|:-------|:------|
 | SCHEMA-01 | Lua JSON-Schema Engine | done | `lang/schema/*`: Lua `JsonLikePsiWalker` + adapters + walker-factory/enabler + `language="Lua"` compliance inspection; depends on `com.intellij.modules.json` |
-| SCHEMA-02 | Rockspec Schema Provider | todo | `.rockspec` → bundled rockspec v3.0/v3.1 schema; supersedes ROCKS-13 |
-| SCHEMA-03 | Luacheckrc Schema Provider | todo | `.luacheckrc` → new bundled luacheck-config schema (second consumer; proves generality) |
-| SCHEMA-04 | Busted Config Schema Provider | todo | `.busted` (shape-B `return {table}`) → bundled busted-config schema |
+| SCHEMA-02 | Rockspec Schema Provider | done | `.rockspec` → bundled rockspec v3.0/v3.1 schema; supersedes ROCKS-13 |
+| SCHEMA-03 | Luacheckrc Schema Provider | done | `.luacheckrc` → new bundled luacheck-config schema (second consumer; proves generality) |
+| SCHEMA-04 | Busted Config Schema Provider | done | `.busted` (shape-B `return {table}`) → bundled busted-config schema |
 
 ---
 
@@ -282,7 +273,7 @@ folders:
 | MAINT-03 | Deprecation Cleanup | todo | Deprecated APIs still used (DataContext, FileChooserDescriptorFactory) |
 | MAINT-04 | Refactor Symbol Resolution | done | `LuaScopeProcessor` + `processDeclarations` across block/file/function/for |
 | MAINT-05 | Type Engine Cleanup | done | `LuaTypesVisitor` simplified, used across hints/annotators |
-| MAINT-06 | LuaCATS Literal Highlighting | todo | No literal type color formatting |
+| MAINT-06 | LuaCATS Literal Highlighting | done | `LuaCatsAnnotator` — keyword colors for literal string/number/boolean types (`"read"`, `1`, `true`) |
 | MAINT-07 | Interpreter Search Path Globs | todo | No glob expansion in `PathConfiguration` |
 | MAINT-08 | LuaCheck UI Grouping | todo | Flat problem reporting, no hierarchical grouping |
 | MAINT-14 | Scope Reduction (Luau) | done | No Luau references in codebase, no `LuaPlatform.LUAU` |
