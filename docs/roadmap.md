@@ -239,13 +239,14 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-16| Test Coverage: LuaCATS Syntax | todo | M | — | — | ✓ |
 | MAINT-17| Test Coverage: Utilities | todo | M | — | — | ✓ |
 | MAINT-18| Test Coverage: LuaCov Reports | todo | M | — | — | ✓ |
-| MAINT-01| Kotlin Conversion | in_progress | M | — | — | ✓ |
+| MAINT-01| Kotlin Conversion (4 files; 2 interfaces carved out → MAINT-19) | planned | M | — | — | ✓ |
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
-| MAINT-06| LuaCATS Literal Highlighting | todo | M | — | — | ✓ |
+| MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
 | MAINT-07| Interpreter Search Path Globs | todo | M | — | — | ✓ |
 | MAINT-03| Deprecation Cleanup | todo | L | — | — | ✓ |
 | MAINT-08| LuaCheck UI Grouping | todo | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | todo | L | — | — | ✓ |
+| MAINT-19| platform.syntax Migration (Kotlin lexer/parser) | todo | C | — *(independent; absorbs MAINT-01's deferred `LuaTokenTypes`/`LuaCatsTokenTypes`)* | — | Serial: lexer/parser + `.flex`/`.bnf` regen |
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 
