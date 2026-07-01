@@ -3,7 +3,7 @@ id: MAINT-06
 title: LuaCATS Literal Highlighting Requirements
 type: feature
 parent_id: MAINT
-status: Full
+status: done
 folders:
   - "[[features/maint/requirements|requirements]]"
 ---
