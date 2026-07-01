@@ -239,7 +239,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-16| Test Coverage: LuaCATS Syntax | todo | M | — | — | ✓ |
 | MAINT-17| Test Coverage: Utilities | todo | M | — | — | ✓ |
 | MAINT-18| Test Coverage: LuaCov Reports | todo | M | — | — | ✓ |
-| MAINT-01| Kotlin Conversion (4 files; 2 interfaces carved out → MAINT-19) | planned | M | — | — | ✓ |
+| MAINT-01| Kotlin Conversion (4 files; 2 interfaces carved out → MAINT-19) | done | M | — | — | ✓ |
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
 | MAINT-07| Interpreter Search Path Globs | todo | M | — | — | ✓ |
