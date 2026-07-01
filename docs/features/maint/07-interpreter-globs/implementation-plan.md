@@ -73,5 +73,5 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Glob path expander | todo | Must |
-| Phase 2: Wire expansion into discovery | todo | Must |
+| Phase 1: Glob path expander | done | Must |
+| Phase 2: Wire expansion into discovery | done | Must |

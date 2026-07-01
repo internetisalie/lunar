@@ -242,7 +242,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-01| Kotlin Conversion (4 files; 2 interfaces carved out → MAINT-19) | done | M | — | — | ✓ |
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
-| MAINT-07| Interpreter Search Path Globs | planned | M | — | — | ✓ |
+| MAINT-07| Interpreter Search Path Globs | done | M | — | — | ✓ |
 | MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
 | MAINT-08| LuaCheck UI Grouping | planned | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | todo | L | — | — | ✓ |

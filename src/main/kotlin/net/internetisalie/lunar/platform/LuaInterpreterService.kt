@@ -22,8 +22,10 @@ class LuaInterpreterService() {
         val interpreters =
             (if (SystemInfo.isWindows) PATHS_WINDOWS else PATHS_UNIX)
                 // Inject environment variables
-                .map { it -> pathFromEnvVarString(it) }
-                // Search each search path after env var substitution
+                .map { substituteEnvVars(it) }
+                // Expand any directory glob segments to concrete directories
+                .flatMap { expandSearchPath(it) }
+                // Search each expanded directory for interpreters
                 .flatMap { searchPath -> find(searchPath) }
 
         interpreters.forEach { identify(it) }
@@ -112,10 +114,6 @@ class LuaInterpreterService() {
         LOG.debug("Identified ${interpreter.path}: product=${interpreter.product} version=${interpreter.version}")
     }
 
-    private fun pathFromEnvVarString(from: String): Path {
-        return Path.of(substituteEnvVars(from))
-    }
-
     private fun substituteEnvVars(from: String): String {
         var into = from
         var m = envVarPattern.matcher(into)
@@ -148,16 +146,9 @@ class LuaInterpreterService() {
 //            "\${HOME}/torch/install/bin",
         )
 
-        // TODO: Search Path Globs
         val PATHS_WINDOWS: Array<String> = arrayOf(
-            "C:\\Program Files\\Lua 5.1",
-            "C:\\Program Files\\Lua 5.2",
-            "C:\\Program Files\\Lua 5.3",
-            "C:\\Program Files\\Lua 5.4",
-            "C:\\Program Files (x86)\\Lua 5.1",
-            "C:\\Program Files (x86)\\Lua 5.2",
-            "C:\\Program Files (x86)\\Lua 5.3",
-            "C:\\Program Files (x86)\\Lua 5.4",
+            "C:\\Program Files\\Lua 5.*",
+            "C:\\Program Files (x86)\\Lua 5.*",
         )
 
         val envVarPattern: Pattern = Pattern.compile(".*\\$\\{([^\\}]+)\\}.*")

@@ -2,7 +2,7 @@
 id: "MAINT-07"
 title: "MAINT-07: Interpreter Search Path Globs"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "MAINT"
 folders:
