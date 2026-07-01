@@ -4,11 +4,14 @@ import com.intellij.execution.process.ProcessOutput
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
 import net.internetisalie.lunar.util.LuaProcessUtil
+import java.io.IOException
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Pattern
 
@@ -203,6 +206,48 @@ data class Banner(
 
             return create(outputText)
         }
+    }
+}
+
+private val EXPANSION_LOG = logger<LuaInterpreterService>()
+
+fun expandSearchPath(spec: String): List<Path> {
+    if (!isGlob(spec)) return listOf(Path.of(spec))
+
+    val rawSegments = spec.split('/', '\\')
+    var frontier =
+        when {
+            spec.startsWith("/") -> listOf(Path.of("/"))
+            rawSegments[0].matches(Regex("^[A-Za-z]:$")) -> listOf(Path.of(rawSegments[0] + "\\"))
+            else -> listOf(Path.of(rawSegments[0]))
+        }
+
+    for (index in 1..rawSegments.lastIndex) {
+        val segment = rawSegments[index]
+        if (segment.isEmpty()) continue
+        ProgressManager.checkCanceled()
+        frontier = frontier.flatMap { expandSegment(it, segment) }
+        if (frontier.isEmpty()) return emptyList()
+    }
+    return frontier
+}
+
+private fun expandSegment(base: Path, segment: String): List<Path> {
+    if (!isGlob(segment)) {
+        val child = base.resolve(segment)
+        return if (Files.isDirectory(child)) listOf(child) else emptyList()
+    }
+
+    val pattern = patternFromGlob(segment)
+    return try {
+        Files.newDirectoryStream(base).use { stream ->
+            stream
+                .filter { Files.isDirectory(it) && pattern.matcher(it.fileName.toString()).matches() }
+                .sortedBy { it.fileName.toString() }
+        }
+    } catch (e: IOException) {
+        EXPANSION_LOG.debug("Cannot list $base: ${e.message}")
+        emptyList()
     }
 }
 
