@@ -19,6 +19,8 @@ class LuaCheckAnnotator : ExternalAnnotator<LuaCheckAnnotator.Info, LuaCheckAnno
         val problems: List<Problem>
     )
 
+    override fun getPairedBatchInspectionShortName(): String = LuaCheckInspection.SHORT_NAME
+
     override fun collectInformation(psiFile: PsiFile): Info? {
         val virtualFile = psiFile.virtualFile ?: return null
         if (!FileTypeRegistry.getInstance().isFileOfType(virtualFile, LuaFileType)) return null
