@@ -14,25 +14,11 @@
  *   limitations under the License.
  */
 
-package net.internetisalie.lunar.luacats.lang.lexer;
+package net.internetisalie.lunar.luacats.lang.lexer
 
-import com.intellij.psi.tree.IElementType;
-import net.internetisalie.lunar.lang.LuaLanguage;
-import org.jetbrains.annotations.NonNls;
+import com.intellij.psi.tree.IElementType
+import net.internetisalie.lunar.lang.LuaLanguage
 
-/**
- * @author ilyas
- */
-public class LuaCatsElementType extends IElementType {
-
-  private String debugName = null;
-
-  public LuaCatsElementType(@NonNls String debugName) {
-    super(debugName, LuaLanguage.INSTANCE);
-    this.debugName = debugName;
-  }
-
-  public String toString() {
-    return debugName;
-  }
+class LuaCatsElementType(private val debugName: String) : IElementType(debugName, LuaLanguage) {
+    override fun toString(): String = debugName
 }

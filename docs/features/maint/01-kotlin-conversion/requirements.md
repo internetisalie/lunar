@@ -3,7 +3,7 @@ id: MAINT-01
 title: "MAINT-01: Kotlin Conversion"
 type: feature
 parent_id: MAINT
-status: planned
+status: in-progress
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
