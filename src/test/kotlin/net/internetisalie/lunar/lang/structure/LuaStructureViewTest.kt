@@ -190,4 +190,44 @@ class LuaStructureViewTest : BasePlatformTestCase() {
             .first()
         assertFalse(structureModel.isAlwaysLeaf(functionNode))
     }
+
+    // Phase 5: Routing utilities — MAINT-11-05
+
+    @Test
+    fun testUnsupportedTopLevelStatementsRouteToEmpty() {
+        val luaSource = luaFile(
+            """
+            if true then end
+            while true do end
+            x = 1
+            """,
+        )
+        assertEmpty(TreeElementUtils.getRootChildren(luaSource))
+    }
+
+    @Test
+    fun testGetFuncBodyChildrenParamsThenBlock() {
+        val luaSource = luaFile("function foo(p) local q = 1 end")
+        val functionDecl = rootChildren(luaSource)
+            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+            .first()
+            .value as LuaFuncDecl
+        val bodyChildren = TreeElementUtils.getFuncBodyChildren(functionDecl.parList, functionDecl.block)
+        assertEquals(2, bodyChildren.size)
+        assertInstanceOf(bodyChildren[0], LuaFunctionParameterStructureViewTreeElement::class.java)
+        assertEquals("p", bodyChildren[0].presentation.presentableText)
+        assertInstanceOf(bodyChildren[1], LuaLocalVariableStructureViewTreeElement::class.java)
+        assertEquals("q", bodyChildren[1].presentation.presentableText)
+    }
+
+    @Test
+    fun testGetFuncBodyChildrenHandlesEmptyBody() {
+        val luaSource = luaFile("function foo() end")
+        val functionDecl = rootChildren(luaSource)
+            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+            .first()
+            .value as LuaFuncDecl
+        val bodyChildren = TreeElementUtils.getFuncBodyChildren(functionDecl.parList, functionDecl.block)
+        assertEmpty(bodyChildren)
+    }
 }

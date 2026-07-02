@@ -28,7 +28,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | `MAINT-15` | **Remove Legacy Annotators** | **L** | **Planned** | Remove the three dead no-op annotators (`LuaLocalBindingsAnnotator`, `LuaGotoAnnotator`, `LuaGlobalBindingsAnnotator`) and their `plugin.xml` registrations. |
 | [`MAINT-09`](09-psi-stubs/requirements.md) | **Test Coverage: PSI & Stubs** | **M** | **Done** | Increase unit test coverage for PSI walking, scopes, and stub serialization. |
 | [`MAINT-10`](10-stub-indexes/requirements.md) | **Test Coverage: Stub Indexes** | **M** | **Done** | Increase unit test coverage for stub and file-based indexes. |
-| [`MAINT-11`](11-structure-view/requirements.md) | **Test Coverage: Structure View** | **M** | **Planned** | Increase unit test coverage for outline structure view tree nodes. |
+| [`MAINT-11`](11-structure-view/requirements.md) | **Test Coverage: Structure View** | **M** | **Done** | Increase unit test coverage for outline structure view tree nodes. |
 | [`MAINT-12`](12-settings-ui/requirements.md) | **Test Coverage: Settings & UI** | **M** | **Planned** | Increase unit test coverage for configuration persistence and change listeners. |
 | [`MAINT-13`](13-run-debugger/requirements.md) | **Test Coverage: Run & Debugger** | **M** | **Planned** | Increase unit test coverage for debugger controllers and interactive REPL. |
 | [`MAINT-16`](16-luacats-syntax/requirements.md) | **Test Coverage: LuaCATS Syntax** | **M** | **Planned** | Increase unit test coverage for LuaCATS type comments, highlights, and docs. |
