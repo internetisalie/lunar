@@ -34,7 +34,8 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-16`](16-luacats-syntax/requirements.md) | **Test Coverage: LuaCATS Syntax** | **M** | **Done** | Increase unit test coverage for LuaCATS type comments, highlights, and docs. |
 | [`MAINT-17`](17-utilities-commandline/requirements.md) | **Test Coverage: Utilities** | **M** | **Done** | Increase unit test coverage for process runner, file, and thread utilities. |
 | [`MAINT-18`](18-luacov-reports/requirements.md) | **Test Coverage: LuaCov Reports** | **M** | **Done** | Increase unit test coverage for LuaCov report parsing and layered highlighting. |
-| [`MAINT-19`](19-platform-syntax-migration/requirements.md) | **platform.syntax Migration (Kotlin lexer/parser)** | **C** | **Done** | Carve-out from MAINT-01. Migrate the lexer/parser to `com.intellij.platform.syntax` so the token-constant holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) and the JFlex/Grammar-Kit output become Kotlin-native. Large architectural epic; deferred. |
+| [`MAINT-19`](19-platform-syntax-migration/requirements.md) | **Kotlin-native token holders** | **C** | **Done** | Carve-out from MAINT-01. Convert `LuaTokenTypes`/`LuaCatsTokenTypes` to Kotlin `@JvmField object`s and rewire the `.flex` sources to `import static`, so the JFlex-generated lexers consume Kotlin constants. Full `com.intellij.platform.syntax` migration deferred to MAINT-20. |
+| `MAINT-20` | **Full platform.syntax Migration** | **C** | **Todo** | Follow-up to MAINT-19. Migrate the lexer/parser to `com.intellij.platform.syntax` (`%type SyntaxElementType`, a `SyntaxGeneratedParserRuntime` parser, a `LanguageSyntaxDefinition` extension) so the generated lexer/parser output becomes Kotlin-native. Requires vendoring the JetBrains syntax-emitting JFlex skeleton + Grammar-Kit generator and re-wiring the grammar-kit Gradle plugin. Large architectural epic. |
 
 ---
 
@@ -73,7 +74,8 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
   "platform.syntax" framing (migrate to `SyntaxElementType` holders, a
   `SyntaxGeneratedParserRuntime` parser via Grammar-Kit `parser-api="syntax"`, JFlex Kotlin emission,
   a `LanguageSyntaxDefinition` extension, and re-enabling the grammar-kit Gradle plugin) is **out of
-  scope** and tracked as DR `MAINT-19-00-1` in `19-platform-syntax-migration/risks-and-gaps.md`.
+  scope** and tracked as follow-up feature `MAINT-20` (see
+  `19-platform-syntax-migration/risks-and-gaps.md`).
   Grounding (in `intellij-community`): only JetBrains core languages (JSON `json/syntax`, Java, XML)
   have adopted it, requiring a JetBrains-internal syntax-emitting JFlex skeleton + Grammar-Kit
   generator that Lunar's classic build (`org.intellij.grammar.Main`, `%type IElementType`) does not

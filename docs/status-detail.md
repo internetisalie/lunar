@@ -255,7 +255,7 @@ folders:
 | MAINT-16 | Test Coverage: LuaCATS Syntax | done | Unit-test coverage for LuaCATS type comments, highlights, docs |
 | MAINT-17 | Test Coverage: Utilities | done | Unit-test coverage for process runner, file, and thread utilities |
 | MAINT-18 | Test Coverage: LuaCov Reports | done | Unit-test coverage for LuaCov report/stats parsers and the layered report editor |
-| MAINT-19 | platform.syntax Migration (Kotlin lexer/parser) | done | Kotlin-native `@JvmField object` token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) replacing MAINT-01's deferred Java interfaces; `.flex` rewired to `import static` + JFlex-only regen. Full `platform.syntax` port deferred (DR MAINT-19-00-1) |
+| MAINT-19 | platform.syntax Migration (Kotlin lexer/parser) | done | Kotlin-native `@JvmField object` token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) replacing MAINT-01's deferred Java interfaces; `.flex` rewired to `import static` + JFlex-only regen. Full `platform.syntax` port deferred to follow-up feature MAINT-20 |
 
 ---
 

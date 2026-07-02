@@ -19,11 +19,16 @@ folders:
 | R-3 | Debug-name string drift changes `IElementType.toString()`, breaking string-asserting tests. | Low | High | Port strings byte-for-byte (design rule); Phase 3 runs the exhaustive lexer suites unmodified — any drift fails TC-05/06/07. |
 | R-4 | Manual JFlex handoff produces a lexer with an unintended body diff. | Low | Med | Phase 2 verification requires the generated-file diff be limited to the class declaration + `import static` line; reject any transition-table change. |
 
-## De-risking Tasks
+## Deferred Follow-up Work
 
-| ID | Task | Priority | Notes |
-|----|------|----------|-------|
-| MAINT-19-00-1 | **Assess full `com.intellij.platform.syntax` migration for a future wave.** Determine whether a `SyntaxElementType`-emitting JFlex skeleton and a `SyntaxGeneratedParserRuntime`-emitting Grammar-Kit generator can be vendored into Lunar's build (the tooling JetBrains uses for `json/syntax`, `java/java-syntax`). If yes, scope a follow-up feature to introduce `LanguageSyntaxDefinition` (cf. `intellij-community/json/syntax/.../JsonLanguageDefinition.kt`), migrate `lua.flex`/`luacats.flex` to `%type SyntaxElementType`, and port the parser. **Deferred**: the required generators are not present in this checkout's Grammar-Kit (`org.intellij.grammar.Main`, classic options) and the gradle plugin is unwired (CLAUDE.md). | Should | Grounds the roadmap's "platform.syntax" title; this is the real migration, out of MAINT-19's achievable scope. |
+> Not a pre-implementation de-risking task — MAINT-19's own risks (R-1…R-4) were the de-risking
+> surface and were all resolved by the compile/test gates. The full `platform.syntax` migration is
+> **follow-up work** that is out of MAINT-19's achievable scope; it is tracked as its own roadmap
+> feature **MAINT-20**, not as a prerequisite of MAINT-19.
+
+| ID | Follow-up feature | Notes |
+|----|-------------------|-------|
+| **MAINT-20** | **Full `com.intellij.platform.syntax` migration.** Determine whether a `SyntaxElementType`-emitting JFlex skeleton and a `SyntaxGeneratedParserRuntime`-emitting Grammar-Kit generator can be vendored into Lunar's build (the tooling JetBrains uses for `json/syntax`, `java/java-syntax`); if so, introduce `LanguageSyntaxDefinition` (cf. `intellij-community/json/syntax/.../JsonLanguageDefinition.kt`), migrate `lua.flex`/`luacats.flex` to `%type SyntaxElementType`, port the parser, and re-wire the grammar-kit Gradle plugin. | **Deferred**: the required generators are not present in this checkout's Grammar-Kit (`org.intellij.grammar.Main`, classic options) and the gradle plugin is unwired (CLAUDE.md). Grounds the roadmap's original "platform.syntax" title; this is the real migration. See roadmap Wave 12 `MAINT-20`. |
 
 ## Grounding gaps / could-not-verify
 

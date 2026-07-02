@@ -58,7 +58,7 @@ Therefore MAINT-19 delivers the **achievable Kotlin-native goal**: make the two 
 Kotlin-native (`.kt`) while preserving the exact `IElementType` constants and their bare consumption
 from the generated lexers, by editing the two `.flex` files to import a Kotlin holder statically and
 regenerating the lexers via the documented manual handoff. The full `platform.syntax` port is
-recorded as **future work** in `risks-and-gaps.md` (DR task `MAINT-19-00-1`), not attempted here.
+recorded as **future work** — follow-up feature `MAINT-20` (see `risks-and-gaps.md`) — not attempted here.
 
 ## Scope
 
@@ -75,7 +75,7 @@ recorded as **future work** in `risks-and-gaps.md` (DR task `MAINT-19-00-1`), no
 ### Out of Scope
 - **Full `com.intellij.platform.syntax` migration** — no `%type SyntaxElementType`, no
   `SyntaxGeneratedParserRuntime` parser, no `LanguageSyntaxDefinition` extension. Deferred to future
-  work (`risks-and-gaps.md` DR `MAINT-19-00-1`) because the required generator tooling is unavailable.
+  work (follow-up feature `MAINT-20`, see `risks-and-gaps.md`) because the required generator tooling is unavailable.
 - Any change to `lua.bnf` / `luacats.bnf` or the Grammar-Kit parser output.
 - Any change to `LuaParserDefinition.kt`, PSI classes, or `plugin.xml`.
 - Any token-set / grammar behavior change (this is a pure representation change).

@@ -246,7 +246,8 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
 | MAINT-08| LuaCheck UI Grouping | planned | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
-| MAINT-19| platform.syntax Migration (Kotlin lexer/parser) | done | C | — *(independent; absorbs MAINT-01's deferred `LuaTokenTypes`/`LuaCatsTokenTypes`)* | — | Serial: lexer/parser + `.flex`/`.bnf` regen |
+| MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |
+| MAINT-20| Full platform.syntax Migration (`SyntaxElementType` lexer/parser) | todo | C | MAINT-19 *(done)* | — | Serial: lexer/parser + `.flex`/`.bnf` regen; needs syntax-emitting JFlex/Grammar-Kit tooling |
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 

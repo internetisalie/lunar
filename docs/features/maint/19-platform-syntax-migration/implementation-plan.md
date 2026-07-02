@@ -93,4 +93,4 @@ Goal: prove the whole module compiles and behavior is unchanged.
 
 ## Deferred (NOT this feature)
 
-Full `com.intellij.platform.syntax` migration — tracked as DR `MAINT-19-00-1` in `risks-and-gaps.md`.
+Full `com.intellij.platform.syntax` migration — tracked as follow-up feature `MAINT-20` (see `risks-and-gaps.md`).

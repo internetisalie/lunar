@@ -15,7 +15,7 @@ folders:
 Make `LuaTokenTypes` and `LuaCatsTokenTypes` Kotlin-native without changing a single token
 `IElementType` instance, the generated lexers' *bare* constant usage, or any Kotlin call site.
 Full `com.intellij.platform.syntax` adoption is **out of scope** (see `requirements.md` §Scoping
-and `risks-and-gaps.md` DR `MAINT-19-00-1`).
+and `risks-and-gaps.md`; follow-up feature `MAINT-20`).
 
 ## The binding constraint (why this is not a trivial rename)
 
