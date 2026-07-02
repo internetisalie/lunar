@@ -17,7 +17,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
 | [`MAINT-01`](01-kotlin-conversion/requirements.md) | **Kotlin Conversion** | **M** | **Done** | Convert 4 hand-written legacy Java files (`LuaPsiUtils`, `LuaTokenType`, `LuaCatsElementType`, `LuaPluginDisposable`) to idiomatic Kotlin. The 2 token-constant interfaces are deferred to MAINT-19. |
-| `MAINT-02` | **Label Refactoring** | **M** | **Todo** | Refactor Lua `goto` and label handling to use lazy resolution. |
+| [`MAINT-02`](02-label-refactoring/requirements.md) | **Label Refactoring** | **M** | **Done** | Refactor Lua `goto` and label handling to use lazy resolution. |
 | `MAINT-03` | **Deprecation Cleanup** | **L** | **Todo** | Remove usage of deprecated IntelliJ APIs (e.g. `DataContext`, `FileChooserDescriptorFactory`) and modernize platform integration. |
 | [`MAINT-04`](04-refactor-symbol-resolution/requirements.md) | **Refactor Symbol Resolution** | **M** | **Done** | Replace eager `LuaBindingsVisitor` with lazy `PsiScopeProcessor`. |
 | `MAINT-05` | **Type Engine Cleanup** | **M** | **Done** | Remove redundant type checks and unused parameters in the type engine. |
