@@ -83,10 +83,43 @@ MAINT-19 scoped the full port out with evidence).
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| MAINT-20-00-DR-01 | **Spike: JFlex Kotlin lexer emission.** Run `jflex-1.9.2.jar --skel ~/Documents/src/lua/intellij-community/tools/lexer/idea-flex-kotlin.skeleton` on a minimal `%type SyntaxElementType` flex derived from `lua.flex` into a scratch dir. **Success criterion**: a Kotlin `_LuaLexer.kt` is produced that compiles against `com.intellij.platform.syntax.util.lexer.FlexLexer` and returns `SyntaxElementType`. If 1.9.2 fails, identify and pin the JFlex build that succeeds. | Risk 1.1, Gap 2.1 | todo |
-| MAINT-20-00-DR-02 | **Spike: Grammar-Kit syntax parser emission.** On a *copy* of `lua.bnf` with `generate=[parser-api="syntax"]` + `syntaxElementTypeHolderClass` + `elementTypeConverterFactoryClass`, run `org.intellij.grammar.Main` using the grammar-kit jar resolved by `generate.sh`. **Success criterion**: it emits `LuaSyntaxParser` (`fun parse(SyntaxElementType, SyntaxGeneratedParserRuntime)`), `LuaSyntaxElementTypes`, and `LuaElementTypeConverterFactory` that compile; the generated node/token names byte-match the classic debug names (diff-gate). If the resolved version lacks `parser-api`, pin the version that supports it. | Risk 1.1/1.3, Gap 2.2 | todo |
-| MAINT-20-00-DR-03 | **Spike: merging-lexer bridge equivalence.** Prototype `LuaLexer` with the syntax `FlexAdapter` + `ElementTypeConverter` boundary (design §3.2 option A). **Success criterion**: lexing the exhaustive corpus (`TestLuaLexerExhaustive` inputs) yields a token stream byte-identical to the current Java `FlexAdapter` path, including merged `STRING`/`LONGSTRING`/`LONGCOMMENT`/`SHORTCOMMENT`. | Risk 1.3, MAINT-20-10 | todo |
-| MAINT-20-00-DR-04 | **Spike: platform.syntax EP availability at runtime.** In a `runIde` sandbox on GoLand 2026.1, confirm `syntax.syntaxDefinition` and `syntax.elementTypeConverter` are contributed (register a trivial `LuaLanguageDefinition` + no-op converter and verify `LanguageSyntaxDefinitions.INSTANCE.forLanguage(LuaLanguage)` resolves it with no "unknown extension point"/load error). **Success criterion**: EPs resolve and the plugin loads clean. | Risk 1.2, Gap 2.3 | todo |
+| MAINT-20-00-DR-01 | **Spike: JFlex Kotlin lexer emission.** Run `jflex-1.9.2.jar --skel ~/Documents/src/lua/intellij-community/tools/lexer/idea-flex-kotlin.skeleton` on a minimal `%type SyntaxElementType` flex derived from `lua.flex` into a scratch dir. **Success criterion**: a Kotlin `_LuaLexer.kt` is produced that compiles against `com.intellij.platform.syntax.util.lexer.FlexLexer` and returns `SyntaxElementType`. If 1.9.2 fails, identify and pin the JFlex build that succeeds. | Risk 1.1, Gap 2.1 | **FAIL** |
+| MAINT-20-00-DR-02 | **Spike: Grammar-Kit syntax parser emission.** On a *copy* of `lua.bnf` with `generate=[parser-api="syntax"]` + `syntaxElementTypeHolderClass` + `elementTypeConverterFactoryClass`, run `org.intellij.grammar.Main` using the grammar-kit jar resolved by `generate.sh`. **Success criterion**: it emits `LuaSyntaxParser` (`fun parse(SyntaxElementType, SyntaxGeneratedParserRuntime)`), `LuaSyntaxElementTypes`, and `LuaElementTypeConverterFactory` that compile; the generated node/token names byte-match the classic debug names (diff-gate). If the resolved version lacks `parser-api`, pin the version that supports it. | Risk 1.1/1.3, Gap 2.2 | **BLOCKED** |
+| MAINT-20-00-DR-03 | **Spike: merging-lexer bridge equivalence.** Prototype `LuaLexer` with the syntax `FlexAdapter` + `ElementTypeConverter` boundary (design §3.2 option A). **Success criterion**: lexing the exhaustive corpus (`TestLuaLexerExhaustive` inputs) yields a token stream byte-identical to the current Java `FlexAdapter` path, including merged `STRING`/`LONGSTRING`/`LONGCOMMENT`/`SHORTCOMMENT`. | Risk 1.3, MAINT-20-10 | **NOT RUN** (gated on DR-01) |
+| MAINT-20-00-DR-04 | **Spike: platform.syntax EP availability at runtime.** In a `runIde` sandbox on GoLand 2026.1, confirm `syntax.syntaxDefinition` and `syntax.elementTypeConverter` are contributed (register a trivial `LuaLanguageDefinition` + no-op converter and verify `LanguageSyntaxDefinitions.INSTANCE.forLanguage(LuaLanguage)` resolves it with no "unknown extension point"/load error). **Success criterion**: EPs resolve and the plugin loads clean. | Risk 1.2, Gap 2.3 | **NOT RUN** (gated on DR-01/02) |
+
+### Phase 0 Outcome (executed 2026-07-02) — GATE FAILED, feature held at `todo`
+
+The hard gate (DR-01 **or** DR-02 failing → STOP, keep `todo`) tripped on **both** toolchain
+spikes. The full `com.intellij.platform.syntax` port is **not executable in this checkout**; the
+finding mirrors how MAINT-19 scoped the full port out with evidence.
+
+- **DR-01 — FAIL (dispositive).** `jflex-1.9.2.jar --skel …/idea-flex-kotlin.skeleton` on a minimal
+  self-contained `%type SyntaxElementType` scratch flex *does* accept `--skel` and *does* apply the
+  Kotlin skeleton frame (emits `package`, `private const val`, `override fun getTokenStart()`,
+  `var zzBuffer: CharSequence`). **But the generated body is a broken Java/Kotlin hybrid that does
+  not compile.** At the skeleton's `--- actions` injection point (skeleton line 302) stock JFlex
+  1.9.2 emits the action dispatch as a **Java `switch (…) { case 1: … case 4: break; }`**, plus
+  inline Java statements (`int zzNext = …;`, `Character.codePointAt(…)`). These collide with the
+  Kotlin skeleton's `else ->` arm, so `kotlinc` (2.0.21, `-cp` = `syntax-261` +
+  `syntax-util-261`/`FlexLexer`) fails with `unresolved reference 'case'` / `Expecting '}'`. Stock
+  JFlex 1.9.2 does **not** know how to emit the Kotlin `when` the skeleton expects — JetBrains emits
+  it with an **internal JFlex fork** that is *not* present in the reference monorepo (only the
+  `.skeleton` is), *not* in any local Gradle/Maven cache, and no pinnable public coordinate was
+  found. DR-01's fallback ("pin the JFlex build that succeeds") therefore cannot be satisfied here.
+- **DR-02 — BLOCKED (independently dispositive).** `generate.sh:48` resolves the grammar-kit jar
+  ad-hoc from `~/.gradle/caches/modules-2` — but **grammar-kit is not a declared Lunar dependency**
+  (`build.gradle.kts` / `gradle.properties` / `libs.versions.toml` reference none) and **no
+  `grammar-kit-*.jar` exists anywhere in the caches**. `org.intellij.grammar.Main` cannot even be
+  invoked, so `parser-api="syntax"` support is untestable in this checkout.
+- **DR-03 / DR-04 — NOT RUN.** Both presuppose a working syntax lexer/parser (DR-01/DR-02); with the
+  emitter unavailable there is nothing to bridge (DR-03) or register (DR-04). Not run — avoids
+  burning a gce-builder / `runIde` sandbox on a gate already decided.
+
+**Decision:** MAINT-20 stays `todo` (reverted from `planned`). The classic `%type IElementType`
+Grammar-Kit + Java-JFlex toolchain MAINT-19 delivered on remains the supported path. Re-open MAINT-20
+only if the JetBrains Kotlin-emitting JFlex fork **and** a `parser-api="syntax"`-capable grammar-kit
+jar become resolvable (e.g. published to a reachable repository, or vendored into the repo).
 
 ## Test Case Gaps
 - **PSI-tree snapshot baseline** — requirements TC-6 needs a captured pre-migration tree snapshot to

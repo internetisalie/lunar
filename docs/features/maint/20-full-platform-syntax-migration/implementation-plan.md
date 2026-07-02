@@ -32,12 +32,19 @@ Gradle plugin stays unwired, per CLAUDE.md). Paths verified in `~/Documents/src/
 
 ## Phases
 
-### Phase 0: De-risking spikes [Must] — GATE
+### Phase 0: De-risking spikes [Must] — GATE → **FAILED 2026-07-02** (feature held `todo`)
 - **Goal**: prove the syntax-emitting toolchain works in *this* checkout and the platform.syntax EPs
   are available at Lunar's 261 runtime.
 - **Tasks**:
-  - [ ] Execute DR-01, DR-02, DR-03, DR-04 (risks-and-gaps.md) and record outcomes inline.
+  - [x] Execute DR-01, DR-02, DR-03, DR-04 (risks-and-gaps.md) and record outcomes inline.
 - **Exit criteria**: all four DR success criteria met; otherwise STOP and keep feature `todo`.
+- **Outcome**: **GATE FAILED.** DR-01 **FAIL** (stock JFlex 1.9.2 emits a Java `switch/case` action
+  dispatch that does not compile under the Kotlin skeleton; the Kotlin-emitting JFlex fork is
+  JetBrains-internal and unresolvable here) and DR-02 **BLOCKED** (grammar-kit is not a declared
+  dependency and no `grammar-kit-*.jar` is in any local cache, so `org.intellij.grammar.Main` cannot
+  run). DR-03/DR-04 not run (gated on DR-01/02). Per the hard-gate precondition, **Phases 1–5 do NOT
+  begin**; feature reverts to `todo`. Full outcome + evidence in
+  [risks-and-gaps.md](risks-and-gaps.md) §"Phase 0 Outcome".
 
 ### Phase 1: Generated element-type holders + converter [Must]
 - **Goal**: syntax holders and the converter exist and round-trip to the classic singletons.
@@ -118,7 +125,7 @@ Gradle plugin stays unwired, per CLAUDE.md). Paths verified in `~/Documents/src/
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: De-risking spikes (GATE) | todo | Must |
+| Phase 0: De-risking spikes (GATE) | **failed — toolchain unavailable** | Must |
 | Phase 1: Holders + converter | todo | Must |
 | Phase 2: Syntax lexers | todo | Must |
 | Phase 3: Parser + language definition | todo | Must |

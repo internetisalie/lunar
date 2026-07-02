@@ -247,7 +247,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-08| LuaCheck UI Grouping | done | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
 | MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |
-| MAINT-20| Full platform.syntax Migration (`SyntaxElementType` lexer/parser) | planned | C | MAINT-19 *(done)* | — | Serial; Phase 0 DR spikes (DR-01…04) gate execution — syntax-emitting JFlex/Grammar-Kit tooling unproven |
+| MAINT-20| Full platform.syntax Migration (`SyntaxElementType` lexer/parser) | todo | C | MAINT-19 *(done)* | — | **Blocked: Phase 0 DR gate FAILED (2026-07-02)** — stock JFlex 1.9.2 can't emit compiling Kotlin (DR-01), no `parser-api="syntax"` grammar-kit jar resolvable (DR-02). Deferred until JetBrains Kotlin-emitting JFlex + syntax grammar-kit are obtainable |
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 

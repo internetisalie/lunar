@@ -2,7 +2,7 @@
 id: "MAINT-20"
 title: "MAINT-20: Full platform.syntax Migration (SyntaxElementType lexer/parser)"
 type: "feature"
-status: "planned"
+status: "todo"
 priority: "low"
 parent_id: "MAINT"
 folders:
@@ -10,6 +10,13 @@ folders:
 ---
 
 # MAINT-20: Full platform.syntax Migration (SyntaxElementType lexer/parser)
+
+> **Status: `todo` — Phase 0 de-risking GATE FAILED (2026-07-02).** The pre-implementation spikes
+> proved the syntax-emitting toolchain is not available in this checkout: stock JFlex 1.9.2 cannot
+> emit compiling Kotlin under the JetBrains Kotlin skeleton (DR-01 FAIL), and no
+> `parser-api="syntax"`-capable grammar-kit jar is resolvable (DR-02 BLOCKED). Migration is deferred
+> until that tooling becomes obtainable. Full evidence:
+> [risks-and-gaps.md](risks-and-gaps.md) §"Phase 0 Outcome".
 
 ## Overview
 
