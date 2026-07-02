@@ -235,7 +235,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-10| Test Coverage: Stub Indexes | done | M | — | — | ✓ |
 | MAINT-11| Test Coverage: Structure View | done | M | — | — | ✓ |
 | MAINT-12| Test Coverage: Settings & UI | done | M | — | — | ✓ |
-| MAINT-13| Test Coverage: Run & Debugger | planned | M | — | — | ✓ |
+| MAINT-13| Test Coverage: Run & Debugger | done | M | — | — | ✓ |
 | MAINT-16| Test Coverage: LuaCATS Syntax | planned | M | — | — | ✓ |
 | MAINT-17| Test Coverage: Utilities | planned | M | — | — | ✓ |
 | MAINT-18| Test Coverage: LuaCov Reports | planned | M | — | — | ✓ |

@@ -2,7 +2,7 @@
 id: "MAINT-13"
 title: "MAINT-13: Test Coverage - Run & Debugger"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: "MAINT"
 folders:
@@ -70,12 +70,12 @@ Parent epic: [MAINT](../requirements.md).
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-13-01 | **DBGp pause-data parsing** | M | planned | `LuaDebugConnection.breakpointDataPattern` extracts `(file, line)` from `"<file> <line>"` and `watchpointDataPattern` extracts `(file, line, index)` from `"<file> <line> <index>"`; malformed data does not match. |
-| MAINT-13-02 | **Command model & framing** | M | planned | `DebugCommand.toString()` serializes `KIND arg1 arg2 …` (kind upper-cased, space-joined); `DebugCommandKind` exposes the correct `group`, `minArgs`/`maxArgs`, and `responses` map for representative commands. |
-| MAINT-13-03 | **Breakpoint position mapping** | M | planned | `LuaPosition` converts between IDE (0-based) and remote (1-based) line numbers and emits `args()`. |
-| MAINT-13-04 | **Expression-range selection** | M | planned | `LuaDebuggerEvaluator.getExpressionRangeAtOffset` returns the `TextRange` of the widest enclosing `LuaExpr` at the offset (full index chain, not a leaf), and `null` when the cursor is not inside an expression. |
-| MAINT-13-05 | **REPL chunk-completion** | M | planned | `LuaChunkCompletion.isComplete` returns `false` for chunks whose only parse error is at EOF (open `function`/`if`/`do`/`repeat`/`{`/`(`/`[[`) and `true` for complete chunks and mid-chunk errors. |
-| MAINT-13-06 | **REPL execute dispatch predicate** | S | planned | The predicate `LuaConsoleExecuteHandler.runExecuteAction` branches on — `text.isBlank() \|\| LuaChunkCompletion.isComplete(project, text)` — is `true` (submit) for blank / complete input and `false` (continuation newline) for incomplete input. |
+| MAINT-13-01 | **DBGp pause-data parsing** | M | Full | `LuaDebugConnection.breakpointDataPattern` extracts `(file, line)` from `"<file> <line>"` and `watchpointDataPattern` extracts `(file, line, index)` from `"<file> <line> <index>"`; malformed data does not match. |
+| MAINT-13-02 | **Command model & framing** | M | Full | `DebugCommand.toString()` serializes `KIND arg1 arg2 …` (kind upper-cased, space-joined); `DebugCommandKind` exposes the correct `group`, `minArgs`/`maxArgs`, and `responses` map for representative commands. |
+| MAINT-13-03 | **Breakpoint position mapping** | M | Full | `LuaPosition` converts between IDE (0-based) and remote (1-based) line numbers and emits `args()`. |
+| MAINT-13-04 | **Expression-range selection** | M | Full | `LuaDebuggerEvaluator.getExpressionRangeAtOffset` returns the `TextRange` of the widest enclosing `LuaExpr` at the offset (full index chain, not a leaf), and `null` when the cursor is not inside an expression. |
+| MAINT-13-05 | **REPL chunk-completion** | M | Full | `LuaChunkCompletion.isComplete` returns `false` for chunks whose only parse error is at EOF (open `function`/`if`/`do`/`repeat`/`{`/`(`/`[[`) and `true` for complete chunks and mid-chunk errors. |
+| MAINT-13-06 | **REPL execute dispatch predicate** | S | Full | The predicate `LuaConsoleExecuteHandler.runExecuteAction` branches on — `text.isBlank() \|\| LuaChunkCompletion.isComplete(project, text)` — is `true` (submit) for blank / complete input and `false` (continuation newline) for incomplete input. |
 
 ## Detailed Specifications
 

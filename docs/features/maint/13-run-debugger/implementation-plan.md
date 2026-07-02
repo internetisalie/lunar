@@ -101,7 +101,7 @@ Coverage-only: every phase adds or extends a test file under
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: DBGp parsing & command model | todo | Must |
-| Phase 2: Position mapping | todo | Must |
-| Phase 3: Expression range | todo | Must |
-| Phase 4: REPL completion & dispatch | todo | Must/Should |
+| Phase 1: DBGp parsing & command model | done | Must |
+| Phase 2: Position mapping | done | Must |
+| Phase 3: Expression range | done | Must |
+| Phase 4: REPL completion & dispatch | done | Must/Should |
