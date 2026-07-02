@@ -123,6 +123,98 @@ class LuaCoverageTest : BasePlatformTestCase() {
     }
 
     @Test
+    fun testReportParserMultipleFileSections() {
+        val reportContent = """
+            ==============================================================================
+            src/a.lua
+            ==============================================================================
+               1 local a = 1
+            ***0 local b = 2
+            ==============================================================================
+            src/b.lua
+            ==============================================================================
+               7 local c = 3
+        """.trimIndent()
+
+        val tempFile = File.createTempFile("luacov.report", "out")
+        try {
+            tempFile.writeText(reportContent)
+            val results = LuaCovReportParser.parse(tempFile)
+
+            assertEquals(2, results.size)
+            val fileA = results.find { it.filePath == "src/a.lua" } ?: throw AssertionError("src/a.lua not found")
+            assertEquals(1, fileA.lineHits[1])
+            assertEquals(0, fileA.lineHits[2])
+            val fileB = results.find { it.filePath == "src/b.lua" } ?: throw AssertionError("src/b.lua not found")
+            assertEquals(7, fileB.lineHits[1])
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun testReportParserMalformedSectionResets() {
+        // A path line NOT followed by a second boundary must reset the state machine to
+        // SEARCH_HEADER, so no spurious FileCoverage is emitted for the malformed section.
+        val reportContent = """
+            ==============================================================================
+            src/malformed.lua
+               1 local orphaned = 1
+            ==============================================================================
+            src/good.lua
+            ==============================================================================
+               5 local ok = 2
+        """.trimIndent()
+
+        val tempFile = File.createTempFile("luacov.report", "out")
+        try {
+            tempFile.writeText(reportContent)
+            val results = LuaCovReportParser.parse(tempFile)
+
+            assertEquals(1, results.size)
+            assertEquals("src/good.lua", results[0].filePath)
+            assertEquals(5, results[0].lineHits[1])
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun testStatsParserWrappedCountsAndBlankLines() {
+        // Hit counts for one file may wrap across multiple lines with an intervening blank
+        // line; all totalLines counts must land in 1-indexed lineHits and the next header
+        // must still parse.
+        val statsContent = """
+            5:src/wrapped.lua
+            0 1
+
+            0 2 3
+            2:src/next.lua
+            7 8
+        """.trimIndent()
+
+        val tempFile = File.createTempFile("luacov.stats", "out")
+        try {
+            tempFile.writeText(statsContent)
+            val results = LuaCovStatsParser.parse(tempFile)
+
+            assertEquals(2, results.size)
+            val wrapped = results.find { it.filePath == "src/wrapped.lua" } ?: throw AssertionError("wrapped not found")
+            assertEquals(5, wrapped.lineHits.size)
+            assertEquals(0, wrapped.lineHits[1])
+            assertEquals(1, wrapped.lineHits[2])
+            assertEquals(0, wrapped.lineHits[3])
+            assertEquals(2, wrapped.lineHits[4])
+            assertEquals(3, wrapped.lineHits[5])
+            val next = results.find { it.filePath == "src/next.lua" } ?: throw AssertionError("next not found")
+            assertEquals(7, next.lineHits[1])
+            assertEquals(8, next.lineHits[2])
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
     fun testToProjectData() {
         val coverages = listOf(
             FileCoverage(
