@@ -2,12 +2,18 @@ package net.internetisalie.lunar.coverage
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.TextAttributesKey
+import com.intellij.openapi.editor.ex.util.LayeredLexerEditorHighlighter
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.util.Key
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.EditorNotificationPanel
+import net.internetisalie.lunar.coverage.report.LuaCovReportEditorHighlighter
+import net.internetisalie.lunar.coverage.report.LuaCovReportEditorHighlighterProvider
 import net.internetisalie.lunar.coverage.report.LuaCovReportFileType
 import net.internetisalie.lunar.coverage.report.LuaCovReportHighlight
+import net.internetisalie.lunar.coverage.report.LuaCovReportLanguage
 import net.internetisalie.lunar.coverage.report.LuaCovReportLexer
 import net.internetisalie.lunar.coverage.report.LuaCovReportNotificationProvider
 import net.internetisalie.lunar.coverage.report.LuaCovReportSyntaxHighlighter
@@ -246,4 +252,36 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
         assertEquals(TextAttributesKey.EMPTY_ARRAY, highlighter.getTokenHighlights(LuaCovReportLexer.LUA_CODE))
     }
 
+    @Test
+    fun testFileTypeIdentity() {
+        assertEquals(LuaCovReportLanguage, LuaCovReportFileType.language)
+        assertEquals("LuaCov Report", LuaCovReportFileType.name)
+        assertTrue(LuaCovReportFileType.description.isNotEmpty())
+    }
+
+    @Test
+    fun testLayeredEditorHighlighter() {
+        val scheme = EditorColorsManager.getInstance().globalScheme
+        val highlighter = LuaCovReportEditorHighlighterProvider()
+            .getEditorHighlighter(project, LuaCovReportFileType, null, scheme)
+
+        assertTrue(highlighter is LayeredLexerEditorHighlighter)
+        assertTrue(highlighter is LuaCovReportEditorHighlighter)
+    }
+
+    @Test
+    fun testNotificationNullWhenDismissed() {
+        val provider = LuaCovReportNotificationProvider()
+        val reportFile = myFixture.configureByText("luacov.report.out", "=======\ntests.lua\n=======\n")
+        assertNotNull(provider.collectNotificationData(project, reportFile.virtualFile))
+
+        val dismissedField = LuaCovReportNotificationProvider::class.java
+            .getDeclaredField("DISMISSED_KEY")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val dismissedKey = dismissedField.get(null) as Key<Boolean>
+        reportFile.virtualFile.putUserData(dismissedKey, true)
+
+        assertNull(provider.collectNotificationData(project, reportFile.virtualFile))
+    }
 }
