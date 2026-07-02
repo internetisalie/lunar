@@ -24,6 +24,10 @@ The **AI-Assisted Development (AI)** Epic provides specialized integration layer
   - Implementing a standalone MCP server runtime (we rely on JetBrains' built-in MCP server).
   - Supporting global LuaRocks environment modifications (restricted to project-bound environments).
   - Automating full Git operations via MCP (delegated to JetBrains' built-in VCS toolsets).
+  - Building a chat UI, a completion model, or bundling an LLM vendor (full-line completion
+    is closed to third-party languages; human-facing AI is delegated to JetBrains AI
+    Assistant or user-configured BYOK providers).
+  - Hosting agent loops inside Lunar (Lunar is the instrument panel, not the pilot).
 
 ## Key Use Cases
 
@@ -38,7 +42,9 @@ As an agent writing a Lua script, I want to verify that the script compiles and 
 | Feature | Capability | Priority |
 |---|---|---|
 | AI-01 | **MCP Server Integration** | M |
-| AI-02 | **Type & Symbol Expositions** | S |
+| AI-02 | **Semantic Context Toolset** (Type & Symbol Expositions, diagnostics delta) | S |
+| AI-03 | **Debugger Toolset** (agentic debugging) | C |
+| AI-04 | **LuaCATS Annotation Generator** (type-migration assistant) | S |
 
 ## Benefits
 - **Frictionless Development**: AI agents can inspect, compile, and run code without user intervention.

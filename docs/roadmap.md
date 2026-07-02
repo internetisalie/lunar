@@ -299,6 +299,22 @@ bug and gave the type inspections false confidence until this session's coverage
 | REDIS-04 | Language-Engine Integration | todo | S | TARGET-04 *(done)* | REDIS-05 *(ambient-global suppression)* | ✓ (engine-only) |
 | REDIS-05 | Redis Functions Workflow | todo | C | REDIS-01; REDIS-03, REDIS-04 *(soft)* | — | after 01 |
 
+## Wave 16 — AI integration  *(AI epic; requirements written 2026-07-02, AI-01 fully specced)*
+
+> Strategy: expose Lunar's semantic engines to external agents (MCP) and ship one
+> deterministic human-facing migration assistant — no chat, no completion models, no
+> bundled vendor (see the epic's Direction section). AI-01's detailed spec predates this
+> wave and is implementation-ready; AI-02 is the highest-leverage follow-on; AI-03 is
+> hard-gated on the MobDebug hardening from docs/review.md; AI-04 is engine-only and
+> fully parallel.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
+| AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
+| AI-03 | Debugger Toolset | todo | C | AI-01; **MobDebug hardening (docs/review.md, unscheduled MAINT)**; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
+| AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
+
 ---
 
 ## Dependency summary (the hard edges)
