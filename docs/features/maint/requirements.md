@@ -33,7 +33,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-13`](13-run-debugger/requirements.md) | **Test Coverage: Run & Debugger** | **M** | **Done** | Increase unit test coverage for debugger controllers and interactive REPL. |
 | [`MAINT-16`](16-luacats-syntax/requirements.md) | **Test Coverage: LuaCATS Syntax** | **M** | **Done** | Increase unit test coverage for LuaCATS type comments, highlights, and docs. |
 | [`MAINT-17`](17-utilities-commandline/requirements.md) | **Test Coverage: Utilities** | **M** | **Done** | Increase unit test coverage for process runner, file, and thread utilities. |
-| [`MAINT-18`](18-luacov-reports/requirements.md) | **Test Coverage: LuaCov Reports** | **M** | **Planned** | Increase unit test coverage for LuaCov report parsing and layered highlighting. |
+| [`MAINT-18`](18-luacov-reports/requirements.md) | **Test Coverage: LuaCov Reports** | **M** | **Done** | Increase unit test coverage for LuaCov report parsing and layered highlighting. |
 | `MAINT-19` | **platform.syntax Migration (Kotlin lexer/parser)** | **C** | **Todo** | Carve-out from MAINT-01. Migrate the lexer/parser to `com.intellij.platform.syntax` so the token-constant holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) and the JFlex/Grammar-Kit output become Kotlin-native. Large architectural epic; deferred. |
 
 ---

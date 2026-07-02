@@ -238,7 +238,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-13| Test Coverage: Run & Debugger | done | M | — | — | ✓ |
 | MAINT-16| Test Coverage: LuaCATS Syntax | done | M | — | — | ✓ |
 | MAINT-17| Test Coverage: Utilities | done | M | — | — | ✓ |
-| MAINT-18| Test Coverage: LuaCov Reports | planned | M | — | — | ✓ |
+| MAINT-18| Test Coverage: LuaCov Reports | done | M | — | — | ✓ |
 | MAINT-01| Kotlin Conversion (4 files; 2 interfaces carved out → MAINT-19) | done | M | — | — | ✓ |
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
