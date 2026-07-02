@@ -24,10 +24,10 @@ Coverage-only. Each phase adds one net-new test class under
         `/bin/sh -c "printf lunar-ok"`).
   - [x] `testCaptureTimeoutMapsToTimeoutExitCode` — TC-02 (`sh -c "sleep 5"`, timeout 200 →
         `PROCESS_TIMEOUT_EXCEPTION_CODE`, `isTimeout`).
-  - [x] `testCaptureUnresolvableCommandThrowsExecutionException` — TC-03 (non-existent binary →
-        the `ExecutionException` is thrown at handler construction, *outside* `doCapture`'s try,
-        so it propagates rather than mapping to `PROCESS_EXECUTION_EXCEPTION_CODE`; test asserts
-        the real propagated behaviour — see design deviation).
+  - [x] `testCaptureUnresolvableCommandMapsToExecutionExitCode` — TC-03 (non-existent binary →
+        the launch-failure `ExecutionException` is caught inside `doCapture`'s try and mapped to
+        `PROCESS_EXECUTION_EXCEPTION_CODE`, `!isTimeout`). The follow-up chore moved the
+        `CapturingProcessHandler` construction inside the try so the mapping applies as intended.
 - **Verify**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaProcessUtilTest*"`
 
 ### Phase 2: File-util tests [Must] — MAINT-17-02

@@ -70,8 +70,9 @@ at `LuaProcessUtil.kt:18`), so it must be a `BasePlatformTestCase`.
   - timeout (TC-02): `GeneralCommandLine("/bin/sh", "-c", "sleep 5")` with
     `capture(cmd, timeout = 200)`. The runner raises `TimeoutException` → mapped at
     `LuaProcessUtil.kt:32-33`. Assert `exitCode == PROCESS_TIMEOUT_EXCEPTION_CODE` and `isTimeout`.
-  - execution failure (TC-03): `GeneralCommandLine("this-binary-does-not-exist-xyz")`. Handler
-    construction / start throws `ExecutionException` → mapped at `LuaProcessUtil.kt:34-35`. Assert
+  - execution failure (TC-03): `GeneralCommandLine("this-binary-does-not-exist-xyz")`. The
+    `CapturingProcessHandler` construction (inside `doCapture`'s try) launches the process and throws
+    `ExecutionException` → mapped at `LuaProcessUtil.kt:34-35`. Assert
     `exitCode == PROCESS_EXECUTION_EXCEPTION_CODE` and `!isTimeout`.
 - `listen` is not directly tested (needs a live streaming process + `ProcessListener`), kept out of
   scope to stay hermetic; `capture` exercises the same `runProcess` core.

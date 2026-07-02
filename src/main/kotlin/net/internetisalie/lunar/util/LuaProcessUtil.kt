@@ -25,9 +25,10 @@ object LuaProcessUtil {
     }
 
     private fun doCapture(cmd: GeneralCommandLine, timeout: Int): ProcessOutput {
-        val processHandler = CapturingProcessHandler(cmd)
-
         return try {
+            // Construct inside the try: CapturingProcessHandler launches the process at
+            // construction, so an unresolvable command throws ExecutionException here.
+            val processHandler = CapturingProcessHandler(cmd)
             if (timeout < 0) processHandler.runProcess() else processHandler.runProcess(timeout)
         } catch (_: TimeoutException) {
             ProcessOutput("", "", PROCESS_TIMEOUT_EXCEPTION_CODE, true, false)

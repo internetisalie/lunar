@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.util
 
-import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -27,19 +26,15 @@ class LuaProcessUtilTest : BasePlatformTestCase() {
         assertTrue(output.isTimeout)
     }
 
-    // TC-03: An unresolvable command fails while the CapturingProcessHandler is being constructed
-    // (LuaProcessUtil.kt:28), which is outside doCapture's try block, so the ExecutionException
-    // (a ProcessNotCreatedException) propagates rather than being mapped to
-    // PROCESS_EXECUTION_EXCEPTION_CODE. Asserting the real, observable behaviour keeps the test
-    // truthful without modifying production. See handoff report deviation note.
-    fun testCaptureUnresolvableCommandThrowsExecutionException() {
+    // TC-03: An unresolvable command's launch failure (ExecutionException, thrown by the
+    // CapturingProcessHandler construction inside doCapture's try block) maps to
+    // PROCESS_EXECUTION_EXCEPTION_CODE with isTimeout == false.
+    fun testCaptureUnresolvableCommandMapsToExecutionExitCode() {
         val cmd = GeneralCommandLine("this-binary-does-not-exist-xyz")
 
-        try {
-            LuaProcessUtil.capture(cmd)
-            fail("Expected ExecutionException for an unresolvable command")
-        } catch (expected: ExecutionException) {
-            assertNotNull(expected)
-        }
+        val output = LuaProcessUtil.capture(cmd)
+
+        assertEquals(LuaProcessUtil.PROCESS_EXECUTION_EXCEPTION_CODE, output.exitCode)
+        assertFalse(output.isTimeout)
     }
 }
