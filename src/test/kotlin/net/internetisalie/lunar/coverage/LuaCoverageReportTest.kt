@@ -2,12 +2,15 @@ package net.internetisalie.lunar.coverage
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.EditorNotificationPanel
 import net.internetisalie.lunar.coverage.report.LuaCovReportFileType
+import net.internetisalie.lunar.coverage.report.LuaCovReportHighlight
 import net.internetisalie.lunar.coverage.report.LuaCovReportLexer
 import net.internetisalie.lunar.coverage.report.LuaCovReportNotificationProvider
+import net.internetisalie.lunar.coverage.report.LuaCovReportSyntaxHighlighter
 import org.junit.Test
 import java.io.File
 
@@ -168,4 +171,79 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
         val children = analyzeGroup?.getChildren(null) ?: emptyArray()
         assertTrue(children.contains(action))
     }
+
+    @Test
+    fun testLexerCoveredVsUncoveredPrefixes() {
+        val reportText = """
+            ==============================================================================
+            src/prefixes.lua
+            ==============================================================================
+            ***0 local uncovered = 1
+              10 local covered = 2
+        """.trimIndent()
+
+        val lexer = LuaCovReportLexer()
+        lexer.start(reportText, 0, reportText.length)
+
+        val sequence = mutableListOf<Pair<Any?, String>>()
+        while (lexer.tokenType != null) {
+            sequence.add(lexer.tokenType to reportText.substring(lexer.tokenStart, lexer.tokenEnd))
+            lexer.advance()
+        }
+
+        val uncoveredIdx = sequence.indexOfFirst { it.first == LuaCovReportLexer.HIT_UNCOVERED }
+        assertTrue("expected a HIT_UNCOVERED token", uncoveredIdx >= 0)
+        assertTrue(sequence[uncoveredIdx].second.startsWith("***0"))
+        assertEquals(LuaCovReportLexer.LUA_CODE, sequence[uncoveredIdx + 1].first)
+
+        val coveredIdx = sequence.indexOfFirst { it.first == LuaCovReportLexer.HIT_COVERED }
+        assertTrue("expected a HIT_COVERED token", coveredIdx >= 0)
+        assertEquals(LuaCovReportLexer.LUA_CODE, sequence[coveredIdx + 1].first)
+    }
+
+    @Test
+    fun testLexerStateRoundTrip() {
+        val reportText = """
+            ==============================================================================
+            src/state.lua
+            ==============================================================================
+        """.trimIndent()
+
+        val lexer = LuaCovReportLexer()
+        lexer.start(reportText, 0, reportText.length)
+        // Advance to the offset just before the FILE_PATH line (after boundary + newline).
+        while (lexer.tokenType != null && lexer.tokenType != LuaCovReportLexer.FILE_PATH) {
+            lexer.advance()
+        }
+        assertEquals(LuaCovReportLexer.FILE_PATH, lexer.tokenType)
+        val pathOffset = lexer.tokenStart
+
+        // Re-derive the state as of pathOffset by capturing it one token earlier.
+        val capture = LuaCovReportLexer()
+        capture.start(reportText, 0, reportText.length)
+        while (capture.tokenEnd < pathOffset && capture.tokenType != null) {
+            capture.advance()
+        }
+        val capturedState = capture.state
+
+        val resumed = LuaCovReportLexer()
+        resumed.start(reportText, pathOffset, reportText.length, capturedState)
+        assertEquals(LuaCovReportLexer.FILE_PATH, resumed.tokenType)
+        assertEquals("src/state.lua", reportText.substring(resumed.tokenStart, resumed.tokenEnd))
+    }
+
+    @Test
+    fun testSyntaxHighlighterTokenMap() {
+        val highlighter = LuaCovReportSyntaxHighlighter()
+
+        assertEquals(LuaCovReportHighlight.HEADER, highlighter.getTokenHighlights(LuaCovReportLexer.HEADER_BOUNDARY)[0])
+        assertEquals(LuaCovReportHighlight.FILE_PATH, highlighter.getTokenHighlights(LuaCovReportLexer.FILE_PATH)[0])
+        assertEquals(LuaCovReportHighlight.COVERED, highlighter.getTokenHighlights(LuaCovReportLexer.HIT_COVERED)[0])
+        assertEquals(LuaCovReportHighlight.UNCOVERED, highlighter.getTokenHighlights(LuaCovReportLexer.HIT_UNCOVERED)[0])
+
+        assertEquals(0, highlighter.getTokenHighlights(LuaCovReportLexer.LUA_CODE).size)
+        assertEquals(0, highlighter.getTokenHighlights(LuaCovReportLexer.NEWLINE).size)
+        assertEquals(TextAttributesKey.EMPTY_ARRAY, highlighter.getTokenHighlights(LuaCovReportLexer.LUA_CODE))
+    }
+
 }
