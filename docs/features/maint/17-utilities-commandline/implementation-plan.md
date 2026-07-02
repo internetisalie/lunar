@@ -56,13 +56,13 @@ Coverage-only. Each phase adds one net-new test class under
 - **File**: `src/test/kotlin/net/internetisalie/lunar/command/LuaCommandLineTest.kt`
 - **Class**: `class LuaCommandLineTest : BasePlatformTestCase()` (temp `lua` + `foo.jar` fixtures).
 - **Test methods**:
-  - [ ] `testSystemBinaryBuildsPlainCommandLine` — TC-09 (`exePath` ends `lua`, no `-cp`).
-  - [ ] `testJarInterpreterBuildsJavaClasspathCommand` — TC-10
+  - [x] `testSystemBinaryBuildsPlainCommandLine` — TC-09 (`exePath` ends `lua`, no `-cp`).
+  - [x] `testJarInterpreterBuildsJavaClasspathCommand` — TC-10
         (`exePath == "java"`, params `["-cp", <jar>, "lua"]`).
-  - [ ] `testNullExecutableReturnsNull` — TC-11.
-  - [ ] `testProjectCommandLineInjectsLuaPath` — TC-12 (set `LuaProjectSettings` interpreter +
+  - [x] `testNullExecutableReturnsNull` — TC-11.
+  - [x] `testProjectCommandLineInjectsLuaPath` — TC-12 (set `LuaProjectSettings` interpreter +
         macro-free `sourcePath`; assert `environment["LUA_PATH"]`).
-  - [ ] `testProjectCommandLineNullInterpreterReturnsNull` — TC-13.
+  - [x] `testProjectCommandLineNullInterpreterReturnsNull` — TC-13.
 - **Verify**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaCommandLineTest*"`
 
 ### Phase 5: Run-profile tests [Should] — MAINT-17-05
