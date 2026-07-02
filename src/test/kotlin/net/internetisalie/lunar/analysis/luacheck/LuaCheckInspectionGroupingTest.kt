@@ -42,6 +42,16 @@ class LuaCheckInspectionGroupingTest : BasePlatformTestCase() {
         assertEquals("LuaCheck", LuaCheckInspection().shortName)
     }
 
+    fun testDescriptionLoads() {
+        val description =
+            resolveWrapper().loadDescription()
+                ?: error("LuaCheck must ship an inspectionDescriptions/LuaCheck.html resource")
+        assertTrue(
+            "LuaCheck description must mention the linter",
+            description.contains("LuaCheck", ignoreCase = true),
+        )
+    }
+
     fun testDefaultLevelWarningAndEnabled() {
         val wrapper = resolveWrapper()
         assertEquals("WARNING", wrapper.defaultLevel.severity.name)
