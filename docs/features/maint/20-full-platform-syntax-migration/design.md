@@ -54,26 +54,49 @@ unwired (the plugin cannot express the mid-generation revert).
 
 ### 3.1 Deterministic Grammar-Kit jar resolution (MAINT-20-02)
 
-Replace `generate.sh:48`'s single `find … modules-2` with an ordered resolver:
+**CI reality (why the IDE install is NOT the primary source).** Generation is a *dev-time* step;
+the build/test gate only compiles the committed `src/main/gen/`, so `gce-builder run build`/`test`
+needs no Grammar-Kit jar. The jar is needed only to *regenerate* — and the environments that do
+that (a cold CI box, or the **gce-builder VM** an agent might regenerate on) have **no IDE**:
+GoLand does **not** bundle the Grammar-Kit plugin (verified — `goland-*/plugins` has no
+`grammar-kit`), and it is not resolvable from the Gradle cache. So resolution must not depend on an
+installed IDE.
+
+**Primary mechanism: vendor a pinned jar in-repo.** Commit `tools/grammar-kit/grammar-kit-<ver>.jar`
+(~948 KB, Apache-2.0, from JetBrains/Grammar-Kit releases). This makes regeneration reproducible on
+**any** machine (dev, gce-builder VM, cold CI) with zero IDE dependency, and — because the jar *is*
+the version — simultaneously **pins the Grammar-Kit version, resolving the `var_$` drift** (§3.2).
+
+Resolver order (vendored first; IDE only as a dev convenience fallback):
 
 ```bash
 resolve_grammar_kit_jar() {
-  # 1. explicit override
+  # 1. vendored, version-pinned jar (the reproducible/CI source)
+  local v
+  v=$(ls "$PROJECT_ROOT"/tools/grammar-kit/grammar-kit-*.jar 2>/dev/null | sort -V | tail -1)
+  [ -n "$v" ] && { echo "$v"; return; }
+  # 2. explicit override
   [ -n "$GRAMMAR_KIT_JAR" ] && { echo "$GRAMMAR_KIT_JAR"; return; }
-  # 2. installed JetBrains IDE bundled plugin (contains org.intellij.grammar.Main)
+  # 3. installed JetBrains IDE bundled plugin (dev convenience only)
   local j
   j=$(find "$HOME/.local/share/JetBrains" -path '*grammar-kit/lib/grammar-kit-*.jar' 2>/dev/null | sort -V | tail -1)
   [ -n "$j" ] && { echo "$j"; return; }
-  # 3. legacy: gradle cache
+  # 4. legacy: gradle cache
   find "$HOME/.gradle/caches/modules-2" -name 'grammar-kit-*.jar' 2>/dev/null | head -1
 }
 ```
 
-Then **verify** the jar actually contains `org/intellij/grammar/Main.class`
+Then **verify** the jar contains `org/intellij/grammar/Main.class`
 (`unzip -l "$jar" | grep -q 'org/intellij/grammar/Main.class'`) and **abort with a clear error**
 otherwise — no soft "Skipping" for the parser step (MAINT-20 behavior rule).
 
-Confirmed locally: `~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`.
+Local dev source that works today (used to seed the vendored jar):
+`~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`. Vendor the
+official release jar of the version that reproduces the committed `gen/` (see §3.2) rather than the
+IDE-extracted copy, for clean provenance.
+
+> **gce-builder note.** The `sync` step must push `tools/grammar-kit/` to the VM (as it already does
+> for `jflex-1.9.2.jar` and the vendored test data) so headless regen works there.
 
 ### 3.2 Version parity / the `var_$` drift (MAINT-20-05)
 

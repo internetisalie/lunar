@@ -40,12 +40,14 @@ Parent epic: [[features/maint/requirements|MAINT]]. Predecessor:
 ## Scope
 
 ### In Scope
-- Make `.claude/skills/generate-parser/scripts/generate.sh` locate a working Grammar-Kit jar
-  **without relying on an ad-hoc Gradle-cache hit**. A usable jar ships with any installed
-  JetBrains IDE's bundled Grammar-Kit plugin
-  (`~/.local/share/JetBrains/<IDE>/grammar-kit/lib/grammar-kit-*.jar`, containing
-  `org.intellij.grammar.Main`); the script must resolve it deterministically (explicit path /
-  env override / documented fallback order) and fail loudly if none is found.
+- **Vendor a pinned Grammar-Kit jar in-repo** (`tools/grammar-kit/grammar-kit-<ver>.jar`, ~948 KB,
+  Apache-2.0) as the primary, IDE-independent generator source, and make
+  `.claude/skills/generate-parser/scripts/generate.sh` resolve it deterministically
+  (vendored → `$GRAMMAR_KIT_JAR` → installed-IDE → Gradle cache) and fail loudly if none contains
+  `org.intellij.grammar.Main`. **Rationale:** neither the gce-builder VM nor a cold CI box has an
+  IDE — GoLand does not bundle Grammar-Kit — so regeneration must not depend on an IDE install.
+  (The build/test gate itself needs no jar; it compiles the committed `gen/`.) `gce-builder sync`
+  must push `tools/grammar-kit/` to the VM.
 - Run `org.intellij.grammar.Main` **headless** to regenerate the classic **Java** parser + PSI
   (`LuaParser.java`, `Lua*` PSI/impl) for both `lua.bnf` and `luacats.bnf`, keeping the existing
   circular-dependency workaround (compile Kotlin → stage classes on the generator classpath →
@@ -74,7 +76,7 @@ Parent epic: [[features/maint/requirements|MAINT]]. Predecessor:
 | ID | Requirement | Priority | Description |
 |----|-------------|----------|-------------|
 | MAINT-20-01 | **Headless parser generation** | M | `generate.sh` runs `org.intellij.grammar.Main <gen-dir> lua.bnf` (and `luacats.bnf`) to completion with **no IDE and no human interaction**, emitting the Java parser + PSI into `src/main/gen`. Mechanism proven 2026-07-02 **with compiled classes staged** (the run reused `build/classes/kotlin/main`); the classes are load-bearing (without them 66/111 PSI files lose their accessors), so the compile-first step is required and the clean-checkout end-to-end run is Phase 4's gate. |
-| MAINT-20-02 | **Deterministic Grammar-Kit jar resolution** | M | The script resolves a Grammar-Kit jar via a documented order (explicit `$GRAMMAR_KIT_JAR` env → installed-IDE `grammar-kit/lib/grammar-kit-*.jar` → Gradle cache) and **exits with a clear error** if none contains `org.intellij.grammar.Main`. No silent skip. |
+| MAINT-20-02 | **Vendored jar + deterministic resolution** | M | A pinned `tools/grammar-kit/grammar-kit-<ver>.jar` is committed and is the **primary** source (works with no IDE, on the gce-builder VM / cold CI); `generate.sh` resolves vendored → `$GRAMMAR_KIT_JAR` → installed-IDE → Gradle cache and **exits with a clear error** if none contains `org.intellij.grammar.Main`. No silent skip. `gce-builder sync` pushes `tools/grammar-kit/`. |
 | MAINT-20-03 | **Headless lexer generation** | M | `generate.sh` regenerates `_LuaLexer.java` / `_LuaCatsLexer.java` via the JFlex CLI (already headless per MAINT-19), returning `IElementType` through the MAINT-19 `import static` holders. |
 | MAINT-20-04 | **Circular-dependency staging preserved** | M | The script compiles Kotlin first, stages `build/classes/kotlin/main` onto the generator classpath, and reverts the 14 hand-stubbed generated files (`LuaBlock`, `LuaFuncDecl`, … + `*Impl`) so custom inheritance survives — matching current `generate.sh` behavior. |
 | MAINT-20-05 | **Output parity with committed gen** | M | A headless run over unchanged `.bnf`/`.flex` produces `src/main/gen/` **byte-identical** to what is committed — OR any diff is a documented, version-attributable, wholesale-regenerated change (the known `var`→`var_$` escaping) committed atomically, never a silent mismatch. |

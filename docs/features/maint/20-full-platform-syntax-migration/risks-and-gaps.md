@@ -26,13 +26,18 @@ and bounded.
   (route B). Either way the tree is left in a state where a regen over unchanged sources is a
   no-op (MAINT-20-05 / TC-5).
 
-### Risk 1.2: Grammar-Kit jar not present on a given machine
-- **Impact**: `org.intellij.grammar.Main` can't run.
-- **Likelihood**: low on dev machines (any installed JetBrains IDE bundles the Grammar-Kit plugin);
-  higher in a bare CI container.
-- **Mitigation**: ordered resolver with an explicit `$GRAMMAR_KIT_JAR` override and a **loud abort**
-  if none is found (MAINT-20-02). Document the override in the skill. The gce-builder VM has the
-  GoLand SDK; sourcing the Grammar-Kit jar there (or vendoring one) is the CI story if needed.
+### Risk 1.2: Grammar-Kit jar not present on a given machine (esp. CI)
+- **Impact**: `org.intellij.grammar.Main` can't run, so regeneration is impossible there.
+- **Likelihood / correction**: the earlier "any IDE bundles Grammar-Kit" assumption was **wrong for
+  CI**. GoLand — what the gce-builder VM downloads — does **not** bundle the Grammar-Kit plugin
+  (verified: no `grammar-kit` under `goland-*/plugins`), and grammar-kit isn't in the Gradle cache.
+  Only a full IntelliJ IDEA with the Grammar-Kit *plugin manually installed* has it. So a cold CI
+  box / the gce-builder VM would have **no** jar.
+- **Mitigation**: **vendor a pinned `tools/grammar-kit/grammar-kit-<ver>.jar`** in-repo (~948 KB,
+  Apache-2.0) as the primary source — IDE-independent, reproducible, and it pins the version (also
+  fixing Risk 1.1). Resolver falls back to `$GRAMMAR_KIT_JAR`/IDE/cache. `gce-builder sync` pushes
+  `tools/grammar-kit/` to the VM (as it already does for `jflex-1.9.2.jar`). **Note:** the *build*
+  gate never needs the jar — it compiles the committed `gen/`; only regeneration does.
 
 ### Risk 1.3: Circular-dependency staging regression
 - **Impact**: if the compile-first / revert-14-stubbed-files staging is broken, generation emits
@@ -86,8 +91,8 @@ JetBrains-internal JFlex skeleton and Grammar-Kit `parser-api="syntax"`. Finding
 - **Grammar-Kit Gradle plugin** stays unwired (can't express the mid-generation stub revert). If the
   circular dependency is ever refactored away (e.g. `LuaPsiImplUtil` split so generated code needs
   no back-reference), the plugin's `generateParser`/`generateLexer` tasks could replace the script.
-- **CI without an IDE**: vendor a known-good Grammar-Kit jar (or add a resolvable dependency) so the
-  gce-builder / CI can regenerate without a full IDE install.
+- **CI without an IDE**: resolved by vendoring `tools/grammar-kit/grammar-kit-<ver>.jar` (Risk 1.2 /
+  MAINT-20-02) — no longer future work; it is the primary Phase 1 mechanism.
 
 ## See Also
 - Requirements: [requirements.md](requirements.md)

@@ -38,18 +38,20 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 
 ## Phases
 
-### Phase 1: Deterministic jar resolution + version decision [Must]
-- **Goal**: `generate.sh` finds a valid Grammar-Kit jar deterministically and the `var_$` drift is
-  resolved to a single committed state.
+### Phase 1: Vendor the jar + deterministic resolution + version decision [Must]
+- **Goal**: an IDE-independent, version-pinned generator; `generate.sh` resolves it deterministically;
+  the `var_$` drift is resolved to a single committed state.
 - **Tasks**:
-  - [ ] Add `resolve_grammar_kit_jar()` (design §3.1): `$GRAMMAR_KIT_JAR` → IDE-bundled → gradle
-        cache; verify `org/intellij/grammar/Main.class` in the jar; **abort with a clear error** if
-        none — realizes MAINT-20-02.
-  - [ ] Decide `var_$` route (design §3.2): check whether GoLand's own bundled Grammar-Kit
-        reproduces the committed `var(...)`; if a version reproduces it, pin it (route A); else adopt
-        2023.3.2 and regenerate **all** of `src/main/gen` in one commit (route B) — realizes MAINT-20-05.
-- **Exit criteria**: `generate.sh` resolves a jar or fails loudly; a regen over unchanged sources is
-  byte-identical to the (possibly route-B-updated) committed tree.
+  - [ ] **Vendor** `tools/grammar-kit/grammar-kit-<ver>.jar` (official JetBrains/Grammar-Kit release
+        jar of the chosen version). Ensure `gce-builder sync` pushes `tools/grammar-kit/` — realizes MAINT-20-02.
+  - [ ] Add `resolve_grammar_kit_jar()` (design §3.1): vendored → `$GRAMMAR_KIT_JAR` → IDE-bundled →
+        gradle cache; verify `org/intellij/grammar/Main.class`; **abort with a clear error** if none.
+  - [ ] Decide the pinned version / `var_$` route (design §3.2): pick the Grammar-Kit version to
+        vendor — either the one that reproduces the committed `var(...)` (route A), or adopt a newer
+        one (e.g. 2023.3.2) and regenerate **all** of `src/main/gen` in one commit (route B) —
+        realizes MAINT-20-05. The vendored jar *is* the pin, so this choice is baked in once.
+- **Exit criteria**: vendored jar present + synced; `generate.sh` resolves it or fails loudly; a
+  regen over unchanged sources is byte-identical to the (possibly route-B-updated) committed tree.
 
 ### Phase 2: Headless end-to-end script [Must]
 - **Goal**: one command regenerates both lexers + both parsers with the staging workaround, no IDE.
