@@ -3,7 +3,7 @@ id: MAINT-16
 title: "MAINT-16: Test Coverage - LuaCATS Syntax & Highlighting"
 type: feature
 parent_id: MAINT
-status: planned
+status: done
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -60,10 +60,10 @@ Parent epic: [MAINT](../requirements.md).
 ## Functional Requirements
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| MAINT-16-01 | **Lazy-comment tag queries** | Must | planned | For a Lua file whose leading `---@` block declares multiple tag kinds, `LuaCatsLazyCommentImpl`'s `get*TagList()` accessors return the expected non-empty lists, and the inner tag PSI exposes the expected identifier/type text. |
-| MAINT-16-02 | **Syntax-highlighter token mapping** | Must | planned | `LuaCatsSyntaxHighlighter.getTokenHighlights` maps each token type in a `LuaCatsSyntax` TokenSet to the matching `LuaCatsHighlight` key, an unmapped token type yields an empty array, and `getHighlightingLexer` returns a `LuaCatsLexer`. |
-| MAINT-16-03 | **Annotator uncovered branches** | Must | planned | `LuaCatsAnnotator` applies `SYMBOL` to `@cast` operator symbols, `VALUE` to enum option values, `NAME` to overload parameter names and field-key names, and `BRACKETS` to `(` `[` `{` grouping punctuation. |
-| MAINT-16-04 | **Documentation renderer sections** | Must | planned | `LuaCatsDocumentationRenderer.renderDoc` emits a See-Also section (URL becomes an `<a href>`, a plain reference becomes `<code>`), a Deprecated section with the `⚠ Deprecated:` header, a named-return row, a generic `<T>` type-param block, a local-function signature, and returns `null` for an unsupported element. |
+| MAINT-16-01 | **Lazy-comment tag queries** | Must | done | For a Lua file whose leading `---@` block declares multiple tag kinds, `LuaCatsLazyCommentImpl`'s `get*TagList()` accessors return the expected non-empty lists, and the inner tag PSI exposes the expected identifier/type text. |
+| MAINT-16-02 | **Syntax-highlighter token mapping** | Must | done | `LuaCatsSyntaxHighlighter.getTokenHighlights` maps each token type in a `LuaCatsSyntax` TokenSet to the matching `LuaCatsHighlight` key, an unmapped token type yields an empty array, and `getHighlightingLexer` returns a `LuaCatsLexer`. |
+| MAINT-16-03 | **Annotator uncovered branches** | Must | done | `LuaCatsAnnotator` applies `SYMBOL` to `@cast` operator symbols, `VALUE` to enum option values, `NAME` to overload parameter names and field-key names, and `BRACKETS` to `(` `[` `{` grouping punctuation. |
+| MAINT-16-04 | **Documentation renderer sections** | Must | done | `LuaCatsDocumentationRenderer.renderDoc` emits a See-Also section (URL becomes an `<a href>`, a plain reference becomes `<code>`), a Deprecated section with the `⚠ Deprecated:` header, a named-return row, a generic `<T>` type-param block, a local-function signature, and returns `null` for an unsupported element. |
 
 ## Detailed Test Approach
 

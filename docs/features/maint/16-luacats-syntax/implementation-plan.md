@@ -76,7 +76,7 @@ new file, independently runnable and verifiable.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Lazy-comment tag-query tests | planned | Must |
-| Phase 2: Syntax-highlighter mapping tests | planned | Must |
-| Phase 3: Annotator branch tests | planned | Must |
-| Phase 4: Documentation-renderer section tests | planned | Must |
+| Phase 1: Lazy-comment tag-query tests | done | Must |
+| Phase 2: Syntax-highlighter mapping tests | done | Must |
+| Phase 3: Annotator branch tests | done | Must |
+| Phase 4: Documentation-renderer section tests | done | Must |
