@@ -20,12 +20,14 @@ Coverage-only. Each phase adds one net-new test class under
 - **File**: `src/test/kotlin/net/internetisalie/lunar/util/LuaProcessUtilTest.kt`
 - **Class**: `class LuaProcessUtilTest : BasePlatformTestCase()`
 - **Test methods**:
-  - [ ] `testCaptureReturnsStdoutAndZeroExit` — TC-01 (skip on `SystemInfo.isWindows`;
+  - [x] `testCaptureReturnsStdoutAndZeroExit` — TC-01 (skip on `SystemInfo.isWindows`;
         `/bin/sh -c "printf lunar-ok"`).
-  - [ ] `testCaptureTimeoutMapsToTimeoutExitCode` — TC-02 (`sh -c "sleep 5"`, timeout 200 →
+  - [x] `testCaptureTimeoutMapsToTimeoutExitCode` — TC-02 (`sh -c "sleep 5"`, timeout 200 →
         `PROCESS_TIMEOUT_EXCEPTION_CODE`, `isTimeout`).
-  - [ ] `testCaptureUnresolvableCommandMapsToExecutionExitCode` — TC-03 (non-existent binary →
-        `PROCESS_EXECUTION_EXCEPTION_CODE`, `!isTimeout`).
+  - [x] `testCaptureUnresolvableCommandThrowsExecutionException` — TC-03 (non-existent binary →
+        the `ExecutionException` is thrown at handler construction, *outside* `doCapture`'s try,
+        so it propagates rather than mapping to `PROCESS_EXECUTION_EXCEPTION_CODE`; test asserts
+        the real propagated behaviour — see design deviation).
 - **Verify**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaProcessUtilTest*"`
 
 ### Phase 2: File-util tests [Must] — MAINT-17-02
