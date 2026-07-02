@@ -27,34 +27,6 @@ folders:
 
 ---
 
-## Progress by Epic
-
-| Epic                                                        |   Done | In Progress | Planned |   Todo |   Total | Completion      |
-| :---------------------------------------------------------- | -----: | ----------: | ------: | -----: | ------: | :-------------- |
-| [**SYNTAX**](#syntax--syntax--editor)                       |     17 |           0 |       0 |      0 |      17 | ██████████ 100% |
-| [**COMP**](#comp--code-completion)                          |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
-| [**TYPE**](#type--type-system)                              |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
-| [**NAV**](#nav--code-navigation)                            |     10 |           0 |       0 |      0 |      10 | ██████████ 100% |
-| [**REFACT/INTENT**](#refactintent--refactoring--intentions) |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
-| [**DEBUG/RUN**](#debugrun--debugging--execution)            |     11 |           0 |       0 |      0 |      11 | ██████████ 100% |
-| [**INSP**](#insp--inspections--diagnostics)                 |      9 |           0 |       0 |      0 |       9 | ██████████ 100% |
-| [**ANALYSIS**](#analysis--static-analysis-luacheck)         |      5 |           0 |       0 |      0 |       5 | ██████████ 100% |
-| [**FORMAT**](#format--formatting)                           |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
-| [**DOC**](#doc--documentation--luacats)                     |      8 |           0 |       0 |      0 |       8 | ██████████ 100% |
-| [**TOOL**](#tool--tool-inventory-management)                |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**ROCKS**](#rocks--luarocks-integration)                       |     11 |           0 |       0 |      0 |      11 | ██████████ 100% |
-| [**SCHEMA**](#schema--schema-driven-data-files)             |      4 |           0 |       0 |      0 |       4 | ██████████ 100% |
-| [**MAINT**](#maint--maintenance--internal-refactoring)      |      5 |           1 |       0 |      4 |      10 | █████░░░░░ 50%  |
-| [**TARGET**](#target--runtime-environment-configuration)    |      7 |           0 |       0 |      0 |       7 | ██████████ 100% |
-| [**BUG**](#bug--bug-fixes--stability)                       |     12 |           0 |       0 |      3 |      15 | ████████░░ 80%  |
-| **Total**                                                   | **136** |       **1** |   **0** |  **7** | **144** | **94%**         |
-
-> [!NOTE]
-> NAV-11 (Bindings Caching) was cancelled/retired as part of MAINT-04 and is excluded from
-> the NAV count. The NAV epic has 11 tracked features but only 10 active ones.
-
----
-
 ## SYNTAX — Syntax & Editor
 
 | ID | Feature | Status | Notes |
@@ -252,9 +224,6 @@ folders:
 
 ## SCHEMA — Schema-Driven Data Files
 
-> All 4 features implemented 2026-06-30. The platform JSON-Schema engine is adapted to Lua
-> (`JsonLikePsiWalker`) so Lua *data* files get validation/completion/docs.
-
 | ID | Feature | Status | Notes |
 |:---|:--------|:-------|:------|
 | SCHEMA-01 | Lua JSON-Schema Engine | done | `lang/schema/*`: Lua `JsonLikePsiWalker` + adapters + walker-factory/enabler + `language="Lua"` compliance inspection; depends on `com.intellij.modules.json` |
@@ -274,10 +243,19 @@ folders:
 | MAINT-04 | Refactor Symbol Resolution | done | `LuaScopeProcessor` + `processDeclarations` across block/file/function/for |
 | MAINT-05 | Type Engine Cleanup | done | `LuaTypesVisitor` simplified, used across hints/annotators |
 | MAINT-06 | LuaCATS Literal Highlighting | done | `LuaCatsAnnotator` — keyword colors for literal string/number/boolean types (`"read"`, `1`, `true`) |
-| MAINT-07 | Interpreter Search Path Globs | todo | No glob expansion in `PathConfiguration` |
+| MAINT-07 | Interpreter Search Path Globs | done | Glob expansion implemented in `PathConfiguration` |
 | MAINT-08 | LuaCheck UI Grouping | todo | Flat problem reporting, no hierarchical grouping |
+| MAINT-09 | Test Coverage: PSI & Stubs | done | Unit-test coverage for PSI elements and stub serialization |
+| MAINT-10 | Test Coverage: Stub Indexes | done | Unit-test coverage for stub-index population and lookup |
+| MAINT-11 | Test Coverage: Structure View | done | Unit-test coverage for the structure-view tree model |
+| MAINT-12 | Test Coverage: Settings & UI | done | Unit-test coverage for settings persistence and UI wiring |
+| MAINT-13 | Test Coverage: Run & Debugger | done | Unit-test coverage for run configs and the DBGp debugger |
 | MAINT-14 | Scope Reduction (Luau) | done | No Luau references in codebase, no `LuaPlatform.LUAU` |
 | MAINT-15 | Remove Legacy Annotators | todo | `LuaLocalBindingsAnnotator` still exists and is registered (empty body) |
+| MAINT-16 | Test Coverage: LuaCATS Syntax | done | Unit-test coverage for LuaCATS type comments, highlights, docs |
+| MAINT-17 | Test Coverage: Utilities | done | Unit-test coverage for process runner, file, and thread utilities |
+| MAINT-18 | Test Coverage: LuaCov Reports | done | Unit-test coverage for LuaCov report/stats parsers and the layered report editor |
+| MAINT-19 | platform.syntax Migration (Kotlin lexer/parser) | todo | Absorbs MAINT-01's deferred `LuaTokenTypes`/`LuaCatsTokenTypes`; serial `.flex`/`.bnf` regen |
 
 ---
 
