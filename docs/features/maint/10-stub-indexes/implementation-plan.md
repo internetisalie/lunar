@@ -49,11 +49,12 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
   `FileBasedIndex`. (Distinct from the existing navigation-level
   `net.internetisalie.lunar.lang.types.MemberFieldIndexTest`.)
 - **Test methods**:
-  - [ ] `testQualifiedFieldKeysPresent` — TC-06. `self.width = 1\nself.height = 2`; assert
+  - [x] `testQualifiedFieldKeysPresent` — TC-06. `self.width = 1\nself.height = 2`; assert
         `getAllKeys(LuaMemberFieldIndex.KEY, project)` contains `self.width` and `self.height`.
-  - [ ] `testDeepQualifiedKeyPresent` — TC-07. `a.b.c = 1`; assert keys contain `a.b.c`.
-  - [ ] `testBareAndBracketTargetsExcluded` — TC-08. `x = 1\nt[i] = 1`; assert keys contain neither
-        `x` nor any key starting with `t` (no `t`/`t[i]` key produced).
+  - [x] `testDeepQualifiedKeyPresent` — TC-07. `a.b.c = 1`; assert keys contain `a.b.c`.
+  - [x] `testBareAndBracketTargetsExcluded` — TC-08. `x = 1\nt[i] = 1`; assert keys contain neither
+        `x` nor the bracket-target keys `t` / `t[i]` / `t.i` (`getAllKeys` is project-wide, so assert
+        the exact forbidden keys are absent rather than a broad `t`-prefix, which stdlib keys share).
 - **Exit criteria**: `tooling/gce-builder/gce-builder.sh run "test --tests *lang.indexing.LuaMemberFieldIndexTest*"` green.
 
 ### Phase 4: LuaFileBindingsIndex require coverage [Must]
@@ -91,5 +92,5 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
 |-------|--------|----------|
 | Phase 1: LuaCatsTypeNameIndex coverage | done | Must |
 | Phase 2: Dotted global base-key coverage | done | Must |
-| Phase 3: LuaMemberFieldIndex direct-query coverage | todo | Must |
+| Phase 3: LuaMemberFieldIndex direct-query coverage | done | Must |
 | Phase 4: LuaFileBindingsIndex require coverage | todo | Must |
