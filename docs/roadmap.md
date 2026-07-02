@@ -246,7 +246,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
 | MAINT-08| LuaCheck UI Grouping | planned | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
-| MAINT-19| platform.syntax Migration (Kotlin lexer/parser) | todo | C | — *(independent; absorbs MAINT-01's deferred `LuaTokenTypes`/`LuaCatsTokenTypes`)* | — | Serial: lexer/parser + `.flex`/`.bnf` regen |
+| MAINT-19| platform.syntax Migration (Kotlin lexer/parser) | planned | C | — *(independent; absorbs MAINT-01's deferred `LuaTokenTypes`/`LuaCatsTokenTypes`)* | — | Serial: lexer/parser + `.flex`/`.bnf` regen |
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 
