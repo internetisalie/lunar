@@ -30,6 +30,7 @@ This document serves as the index for the functional and technical requirements 
 - [[REFACT/INTENT] Refactoring & Intentions Requirements](features/refactoring/requirements.md)
 - [[MAINT] Maintenance & Refactoring](features/maint/requirements.md)
 - [[TARGET] Target Configuration](features/target/requirements.md)
+- [[REDIS] Redis & Valkey Integration](features/redis/requirements.md)
 - [[AI] AI-Assisted Development](features/ai/ai-product-requirements.md)
 - [[BUG] Bugfixes & Stability](features/bug-fixes.md)
 - [Technical Non-Functional Requirements](features/non-functional.md)
