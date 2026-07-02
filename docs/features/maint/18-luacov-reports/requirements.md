@@ -3,7 +3,7 @@ id: MAINT-18
 title: "MAINT-18: Test Coverage - LuaCov Reports"
 type: feature
 parent_id: MAINT
-status: planned
+status: done
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -38,15 +38,15 @@ production behavior changes — only new/expanded tests against existing classes
 ## Functional (Coverage-Goal) Requirements
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| MAINT-18-01 | **Report File Types** | Must | planned | Verify a `luacov.report.out` virtual file resolves to `LuaCovReportFileType` and that `LuaCovReportFileType.language` is `LuaCovReportLanguage`. |
-| MAINT-18-02 | **Report Parser States** | Must | planned | Verify `LuaCovReportParser.parse` extracts file paths and 1-indexed line hits across multiple file sections, skips non-executable lines, and handles variable-width `*+0` uncovered markers. |
-| MAINT-18-03 | **Report → ProjectData** | Must | planned | Verify `toProjectData` resolves relative paths against `project.basePath`, sets 1-based `LineData.lineNumber`, and assigns `LineCoverage.FULL`/`NONE` status by hit count. |
-| MAINT-18-04 | **Stats Parser** | Must | planned | Verify `LuaCovStatsParser.parse` reads `N:path` headers, maps hit counts to 1-indexed lines, and handles counts wrapped across multiple lines and blank lines. |
-| MAINT-18-05 | **Coverage Lexing States** | Must | planned | Verify `LuaCovReportLexer` emits `HEADER_BOUNDARY`, `FILE_PATH`, `HIT_COVERED`, `HIT_UNCOVERED`, `HIT_NONE`, `LUA_CODE`, `NEWLINE` tokens in the correct sequence and that lexer state round-trips via `getState`/`start`. |
-| MAINT-18-06 | **Highlighter Mapping** | Must | planned | Verify `LuaCovReportSyntaxHighlighter.getTokenHighlights` maps each token type to its `LuaCovReportHighlight` key and returns empty for `LUA_CODE`/`NEWLINE`. |
-| MAINT-18-07 | **Layered Highlighting** | Should | planned | Verify `LuaCovReportEditorHighlighterProvider` returns a `LayeredLexerEditorHighlighter` that registers `LuaSyntaxHighlighter` for the `LUA_CODE` token. |
-| MAINT-18-08 | **Editor Banner Notifications** | Must | planned | Verify `LuaCovReportNotificationProvider.collectNotificationData` returns a non-null panel factory (text `"This is a LuaCov coverage report."`) for report files and `null` for non-report / dismissed files. |
-| MAINT-18-09 | **Import Action Registration** | Should | planned | Verify the `Lunar.ImportLuaCovReport` action exists and is a child of the `AnalyzePlatformMenu` group. |
+| MAINT-18-01 | **Report File Types** | Must | Full | Verify a `luacov.report.out` virtual file resolves to `LuaCovReportFileType` and that `LuaCovReportFileType.language` is `LuaCovReportLanguage`. |
+| MAINT-18-02 | **Report Parser States** | Must | Full | Verify `LuaCovReportParser.parse` extracts file paths and 1-indexed line hits across multiple file sections, skips non-executable lines, and handles variable-width `*+0` uncovered markers. |
+| MAINT-18-03 | **Report → ProjectData** | Must | Full | Verify `toProjectData` resolves relative paths against `project.basePath`, sets 1-based `LineData.lineNumber`, and assigns `LineCoverage.FULL`/`NONE` status by hit count. |
+| MAINT-18-04 | **Stats Parser** | Must | Full | Verify `LuaCovStatsParser.parse` reads `N:path` headers, maps hit counts to 1-indexed lines, and handles counts wrapped across multiple lines and blank lines. |
+| MAINT-18-05 | **Coverage Lexing States** | Must | Full | Verify `LuaCovReportLexer` emits `HEADER_BOUNDARY`, `FILE_PATH`, `HIT_COVERED`, `HIT_UNCOVERED`, `HIT_NONE`, `LUA_CODE`, `NEWLINE` tokens in the correct sequence and that lexer state round-trips via `getState`/`start`. |
+| MAINT-18-06 | **Highlighter Mapping** | Must | Full | Verify `LuaCovReportSyntaxHighlighter.getTokenHighlights` maps each token type to its `LuaCovReportHighlight` key and returns empty for `LUA_CODE`/`NEWLINE`. |
+| MAINT-18-07 | **Layered Highlighting** | Should | Full | Verify `LuaCovReportEditorHighlighterProvider` returns a `LayeredLexerEditorHighlighter` that registers `LuaSyntaxHighlighter` for the `LUA_CODE` token. |
+| MAINT-18-08 | **Editor Banner Notifications** | Must | Full | Verify `LuaCovReportNotificationProvider.collectNotificationData` returns a non-null panel factory (text `"This is a LuaCov coverage report."`) for report files and `null` for non-report / dismissed files. |
+| MAINT-18-09 | **Import Action Registration** | Should | Full | Verify the `Lunar.ImportLuaCovReport` action exists and is a child of the `AnalyzePlatformMenu` group. |
 
 ## Test Cases (Given / When / Then)
 | TC | Req | Given | When | Then |
