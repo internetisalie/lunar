@@ -46,9 +46,9 @@ Coverage-only. Each phase adds one net-new test class under
 - **File**: `src/test/kotlin/net/internetisalie/lunar/util/LuaTaskUtilTest.kt`
 - **Class**: `class LuaTaskUtilTest : BasePlatformTestCase()`
 - **Test methods**:
-  - [ ] `testNewProjectBackgroundTaskCarriesFieldsAndRunsAction` — TC-07 (`AtomicInteger` action;
+  - [x] `testNewProjectBackgroundTaskCarriesFieldsAndRunsAction` — TC-07 (`AtomicInteger` action;
         assert `title`, `project` identity, action count == 1 with passed `EmptyProgressIndicator`).
-  - [ ] `testNewAppBackgroundTaskRunsAction` — TC-08 (assert action invoked once; task is
+  - [x] `testNewAppBackgroundTaskRunsAction` — TC-08 (assert action invoked once; task is
         `Task.Backgroundable`).
 - **Verify**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaTaskUtilTest*"`
 
