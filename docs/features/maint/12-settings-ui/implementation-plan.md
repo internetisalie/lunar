@@ -100,5 +100,5 @@ source changes, no `plugin.xml` changes. Each phase = one test file.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Settings state round-trip | planned | Must |
-| Phase 2: Notification + provider | planned | Must |
+| Phase 1: Settings state round-trip | done | Must |
+| Phase 2: Notification + provider | done | Must |

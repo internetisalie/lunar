@@ -3,7 +3,7 @@ id: MAINT-12
 title: "MAINT-12: Test Coverage - Settings & UI Configuration"
 type: feature
 parent_id: MAINT
-status: planned
+status: done
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -83,11 +83,11 @@ Parent epic: [MAINT](../requirements.md).
 
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| MAINT-12-01 | **Project state round-trip** | Must | planned | `LuaProjectSettings.getState`/`loadState` and `XmlSerializer` preserve `rocksServerUrl`, `projectToolBindings`, `sourcePath`, `suppressUnderscorePrefixedGlobals`, `additionalGlobals`. |
-| MAINT-12-02 | **Application state round-trip** | Must | planned | `LuaApplicationSettings.getState`/`loadState` preserve `interpreters`, `globalToolBindings`, `includeAllFieldsInCompletions`, `enableTypeInference` (`toolInventory` already covered by `LuaToolManagerTest`); `XmlSerializer` preserves the whole `State` (incidentally including `toolInventory`). |
-| MAINT-12-03 | **Simple settings defaults & normalisation** | Must | planned | `LuaCheckSettings` / `LuaRocksSettings` expose correct `BaseState` defaults and their getters notnull-normalise; setters persist to `state`. |
-| MAINT-12-04 | **Change notification fires** | Must | planned | `setTargetAndNotify` and `setProjectToolBindingAndNotify` publish `onSettingsChanged()` on a `LuaSettingsChangedListener.TOPIC` subscriber. |
-| MAINT-12-05 | **Library provider registration** | Should | planned | `PlatformLibraryProvider.getSupportLibraries` returns a `PlatformLibrary` with non-empty `getSourceRoots()` for a resolvable target, and empty when no library resolves. |
+| MAINT-12-01 | **Project state round-trip** | Must | done | `LuaProjectSettings.getState`/`loadState` and `XmlSerializer` preserve `rocksServerUrl`, `projectToolBindings`, `sourcePath`, `suppressUnderscorePrefixedGlobals`, `additionalGlobals`. |
+| MAINT-12-02 | **Application state round-trip** | Must | done | `LuaApplicationSettings.getState`/`loadState` preserve `interpreters`, `globalToolBindings`, `includeAllFieldsInCompletions`, `enableTypeInference` (`toolInventory` already covered by `LuaToolManagerTest`); `XmlSerializer` preserves the whole `State` (incidentally including `toolInventory`). |
+| MAINT-12-03 | **Simple settings defaults & normalisation** | Must | done | `LuaCheckSettings` / `LuaRocksSettings` expose correct `BaseState` defaults and their getters notnull-normalise; setters persist to `state`. |
+| MAINT-12-04 | **Change notification fires** | Must | done | `setTargetAndNotify` and `setProjectToolBindingAndNotify` publish `onSettingsChanged()` on a `LuaSettingsChangedListener.TOPIC` subscriber. |
+| MAINT-12-05 | **Library provider registration** | Should | done | `PlatformLibraryProvider.getSupportLibraries` returns a `PlatformLibrary` with non-empty `getSourceRoots()` for a resolvable target, and empty when no library resolves. |
 
 ## Test Cases (Given / When / Then)
 
