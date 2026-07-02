@@ -88,4 +88,46 @@ class LuaStructureViewTest : BasePlatformTestCase() {
         assertEquals("a", variableNodes[0].presentation.presentableText)
         assertEquals("b", variableNodes[1].presentation.presentableText)
     }
+
+    // Phase 3: Nested function trees — MAINT-11-03
+
+    @Test
+    fun testGlobalFunctionParamsBeforeBlockChildren() {
+        val luaSource = luaFile("function foo(p, q) local z = 1 end")
+        val functionNode = rootChildren(luaSource)
+            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+            .first()
+        val functionChildren = functionNode.children.toList()
+        assertEquals(3, functionChildren.size)
+        assertInstanceOf(functionChildren[0], LuaFunctionParameterStructureViewTreeElement::class.java)
+        assertEquals("p", functionChildren[0].presentation.presentableText)
+        assertInstanceOf(functionChildren[1], LuaFunctionParameterStructureViewTreeElement::class.java)
+        assertEquals("q", functionChildren[1].presentation.presentableText)
+        assertInstanceOf(functionChildren[2], LuaLocalVariableStructureViewTreeElement::class.java)
+        assertEquals("z", functionChildren[2].presentation.presentableText)
+    }
+
+    @Test
+    fun testGlobalFunctionPresentableTextAndIcon() {
+        val luaSource = luaFile("function foo() end")
+        val functionNode = rootChildren(luaSource)
+            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+            .first()
+        assertEquals("foo", functionNode.presentation.presentableText)
+        assertSame(AllIcons.Nodes.Function, functionNode.presentation.getIcon(false))
+    }
+
+    @Test
+    fun testLocalFunctionChildrenAndName() {
+        val luaSource = luaFile("local function bar(n) return n end")
+        val localFunctionNode = rootChildren(luaSource)
+            .filterIsInstance<LuaLocalFunctionStructureViewTreeElement>()
+            .first()
+        assertEquals("bar", localFunctionNode.presentation.presentableText)
+        val functionChildren = localFunctionNode.children.toList()
+        assertEquals(2, functionChildren.size)
+        assertInstanceOf(functionChildren[0], LuaFunctionParameterStructureViewTreeElement::class.java)
+        assertEquals("n", functionChildren[0].presentation.presentableText)
+        assertInstanceOf(functionChildren[1], LuaReturnStructureViewTreeElement::class.java)
+    }
 }
