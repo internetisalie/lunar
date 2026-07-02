@@ -2,7 +2,7 @@
 id: "MAINT-19"
 title: "MAINT-19: platform.syntax Migration (Kotlin lexer/parser)"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "low"
 parent_id: "MAINT"
 folders:
@@ -84,13 +84,13 @@ recorded as **future work** in `risks-and-gaps.md` (DR task `MAINT-19-00-1`), no
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-19-01 | `LuaTokenTypes` is a Kotlin file | Must | Not Implemented | `src/main/java/.../lang/lexer/LuaTokenTypes.java` replaced by `src/main/kotlin/.../lang/lexer/LuaTokenTypes.kt`; same package, all constants preserved with identical names, `IElementType` values, and debug names. Old `.java` deleted. |
-| MAINT-19-02 | `LuaCatsTokenTypes` is a Kotlin file | Must | Not Implemented | `src/main/java/.../luacats/lang/lexer/LuaCatsTokenTypes.java` replaced by `src/main/kotlin/.../luacats/lang/lexer/LuaCatsTokenTypes.kt`; same package, all constants + the `LUACATS_TOKENS` `TokenSet` preserved. Old `.java` deleted. |
-| MAINT-19-03 | `.flex` sources import the Kotlin holder | Must | Not Implemented | `lua.flex` and `luacats.flex` no longer `%implements` the token interface; instead they `import static <holder>.*` (or fully-qualify) so generated lexers reference constants. Bare-name usage in the generated body is preserved. |
-| MAINT-19-04 | Generated lexers regenerated & committed | Must | Not Implemented | `_LuaLexer.java` / `_LuaCatsLexer.java` regenerated from the edited `.flex` via the manual IDE JFlex step; committed under `src/main/gen/`. They compile against the Kotlin holders. |
-| MAINT-19-05 | Token behavior is unchanged | Must | Not Implemented | Lexing any Lua/LuaCATS input produces the identical `IElementType` sequence as before (same constant instances). Existing lexer tests pass unmodified. |
-| MAINT-19-06 | Kotlin call sites unchanged | Must | Not Implemented | All Kotlin consumers that reference `LuaTokenTypes.X` / `LuaCatsTokenTypes.X` compile with **zero source edits** (the Kotlin `@JvmField object` holder preserves qualified `LuaTokenTypes.X` member access). The complete consumer set is: `LuaRequireReferenceContributor.kt`, `LuaCompletionContributor.kt`, `LuaParserDefinition.kt`, `LuaSyntaxHighlighter.kt`, `LuaSyntax.kt`, `LuaCodeContextPredicate.kt`, `LuaDocGenerator.kt`, `LuaLexer.kt` (all reference `LuaTokenTypes`), plus `LuaCatsAnnotator.kt`, `LuaCatsLexer.kt`, and again `LuaSyntax.kt` (reference `LuaCatsTokenTypes`). |
-| MAINT-19-07 | Full platform.syntax port assessed & deferred | Should | Not Implemented | `risks-and-gaps.md` records the feasibility finding and the DR task to revisit when a syntax-emitting generator becomes available in Lunar's build. |
+| MAINT-19-01 | `LuaTokenTypes` is a Kotlin file | Must | Full | `src/main/java/.../lang/lexer/LuaTokenTypes.java` replaced by `src/main/kotlin/.../lang/lexer/LuaTokenTypes.kt`; same package, all constants preserved with identical names, `IElementType` values, and debug names. Old `.java` deleted. |
+| MAINT-19-02 | `LuaCatsTokenTypes` is a Kotlin file | Must | Full | `src/main/java/.../luacats/lang/lexer/LuaCatsTokenTypes.java` replaced by `src/main/kotlin/.../luacats/lang/lexer/LuaCatsTokenTypes.kt`; same package, all constants + the `LUACATS_TOKENS` `TokenSet` preserved. Old `.java` deleted. |
+| MAINT-19-03 | `.flex` sources import the Kotlin holder | Must | Full | `lua.flex` and `luacats.flex` no longer `%implements` the token interface; instead they `import static <holder>.*` (or fully-qualify) so generated lexers reference constants. Bare-name usage in the generated body is preserved. |
+| MAINT-19-04 | Generated lexers regenerated & committed | Must | Full | `_LuaLexer.java` / `_LuaCatsLexer.java` regenerated from the edited `.flex` via the manual IDE JFlex step; committed under `src/main/gen/`. They compile against the Kotlin holders. |
+| MAINT-19-05 | Token behavior is unchanged | Must | Full | Lexing any Lua/LuaCATS input produces the identical `IElementType` sequence as before (same constant instances). Existing lexer tests pass unmodified. |
+| MAINT-19-06 | Kotlin call sites unchanged | Must | Full | All Kotlin consumers that reference `LuaTokenTypes.X` / `LuaCatsTokenTypes.X` compile with **zero source edits** (the Kotlin `@JvmField object` holder preserves qualified `LuaTokenTypes.X` member access). The complete consumer set is: `LuaRequireReferenceContributor.kt`, `LuaCompletionContributor.kt`, `LuaParserDefinition.kt`, `LuaSyntaxHighlighter.kt`, `LuaSyntax.kt`, `LuaCodeContextPredicate.kt`, `LuaDocGenerator.kt`, `LuaLexer.kt` (all reference `LuaTokenTypes`), plus `LuaCatsAnnotator.kt`, `LuaCatsLexer.kt`, and again `LuaSyntax.kt` (reference `LuaCatsTokenTypes`). |
+| MAINT-19-07 | Full platform.syntax port assessed & deferred | Should | Full | `risks-and-gaps.md` records the feasibility finding and the DR task to revisit when a syntax-emitting generator becomes available in Lunar's build. |
 
 ## Test Cases
 
