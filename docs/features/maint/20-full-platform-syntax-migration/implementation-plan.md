@@ -10,124 +10,90 @@ folders:
 
 # MAINT-20: Implementation Plan
 
-> **Precondition (hard gate).** Phase 0 (the DR spikes in `risks-and-gaps.md`, DR-01…DR-04)
-> MUST complete with all success criteria met before any of Phases 1–5 begin. If DR-01 or
-> DR-02 fails (the toolchain cannot emit Kotlin syntax lexer/parser in this checkout), the
-> feature stays `todo` and the finding is recorded — do NOT proceed to hand-write generated
-> artifacts.
+> **Feasibility: PROVEN (2026-07-02).** Headless `org.intellij.grammar.Main` generation ran to
+> completion against the local IDE-bundled `grammar-kit-2023.3.2.jar`, producing the Java parser +
+> PSI (`lua.bnf parser generated to …`) with only an 18-line cosmetic `var`→`var_$` diff vs the
+> committed files. The JFlex half is already headless (MAINT-19). No further de-risking gate — this
+> plan executes.
 
-## Toolchain (reference, used by Phases 1–3)
+## Toolchain (reference)
 
-All commands run from the repo root; generation is the manual human-in-the-loop step (grammar-kit
-Gradle plugin stays unwired, per CLAUDE.md). Paths verified in `~/Documents/src/lua/intellij-community`.
+All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 
-- **Syntax lexer (Kotlin)**: JFlex with the Kotlin skeleton —
-  `java -jar jflex-1.9.2.jar --skel ~/Documents/src/lua/intellij-community/tools/lexer/idea-flex-kotlin.skeleton -d <gen-dir> <flex-file>`.
-  (DR-01 confirms 1.9.2 accepts this skeleton; if not, DR-01 pins the JFlex version that does.)
-- **Syntax parser + holders + converter**: Grammar-Kit `org.intellij.grammar.Main` on `lua.bnf`
-  carrying `generate=[parser-api="syntax"]` (as `.claude/skills/generate-parser/scripts/generate.sh`
-  already invokes `org.intellij.grammar.Main`, extended per DR-02).
-  (DR-02 confirms the resolved grammar-kit version supports `parser-api="syntax"`; if not, DR-02
-  pins the version/jar that does.)
+- **Grammar-Kit jar** (contains `org.intellij.grammar.Main`):
+  `~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`
+  (resolver added in Phase 1; overridable via `$GRAMMAR_KIT_JAR`).
+- **GoLand platform libs**: the transforms-cache `goland-*/lib` dir (already used by `generate.sh`).
+- **Parser gen**: `$JH/bin/java -cp "<gk-jar>:<goland-lib>/*:build/classes/kotlin/main"
+  org.intellij.grammar.Main src/main/gen <bnf-file>`.
+- **Lexer gen**: `$JH/bin/java -jar jflex-1.9.2.jar -d <gen-dir> <flex-file>` (MAINT-19, unchanged).
 
 ## Phases
 
-### Phase 0: De-risking spikes [Must] — GATE → **FAILED 2026-07-02** (feature held `todo`)
-- **Goal**: prove the syntax-emitting toolchain works in *this* checkout and the platform.syntax EPs
-  are available at Lunar's 261 runtime.
+### Phase 1: Deterministic jar resolution + version decision [Must]
+- **Goal**: `generate.sh` finds a valid Grammar-Kit jar deterministically and the `var_$` drift is
+  resolved to a single committed state.
 - **Tasks**:
-  - [x] Execute DR-01, DR-02, DR-03, DR-04 (risks-and-gaps.md) and record outcomes inline.
-- **Exit criteria**: all four DR success criteria met; otherwise STOP and keep feature `todo`.
-- **Outcome**: **GATE FAILED.** DR-01 **FAIL** (stock JFlex 1.9.2 emits a Java `switch/case` action
-  dispatch that does not compile under the Kotlin skeleton; the Kotlin-emitting JFlex fork is
-  JetBrains-internal and unresolvable here) and DR-02 **BLOCKED** (grammar-kit is not a declared
-  dependency and no `grammar-kit-*.jar` is in any local cache, so `org.intellij.grammar.Main` cannot
-  run). DR-03/DR-04 not run (gated on DR-01/02). Per the hard-gate precondition, **Phases 1–5 do NOT
-  begin**; feature reverts to `todo`. Full outcome + evidence in
-  [risks-and-gaps.md](risks-and-gaps.md) §"Phase 0 Outcome".
+  - [ ] Add `resolve_grammar_kit_jar()` (design §3.1): `$GRAMMAR_KIT_JAR` → IDE-bundled → gradle
+        cache; verify `org/intellij/grammar/Main.class` in the jar; **abort with a clear error** if
+        none — realizes MAINT-20-02.
+  - [ ] Decide `var_$` route (design §3.2): check whether GoLand's own bundled Grammar-Kit
+        reproduces the committed `var(...)`; if a version reproduces it, pin it (route A); else adopt
+        2023.3.2 and regenerate **all** of `src/main/gen` in one commit (route B) — realizes MAINT-20-05.
+- **Exit criteria**: `generate.sh` resolves a jar or fails loudly; a regen over unchanged sources is
+  byte-identical to the (possibly route-B-updated) committed tree.
 
-### Phase 1: Generated element-type holders + converter [Must]
-- **Goal**: syntax holders and the converter exist and round-trip to the classic singletons.
+### Phase 2: Headless end-to-end script [Must]
+- **Goal**: one command regenerates both lexers + both parsers with the staging workaround, no IDE.
 - **Tasks**:
-  - [ ] Add `generate=[parser-api="syntax"]`, `syntaxElementTypeHolderClass`,
-        `elementTypeConverterFactoryClass` options to `lua.bnf` and `luacats.bnf` — realizes design §7.
-  - [ ] Generate `LuaSyntaxElementTypes` / `LuaCatsSyntaxElementTypes` and
-        `LuaElementTypeConverterFactory` (+ LuaCATS converter) — realizes design §2.1, §2.2, §2.7.
-  - [ ] Verify name-string parity with classic holders — realizes design §3.3.
-- **Exit criteria**: TC-2, TC-5; converter returns the same classic instance for each syntax type.
+  - [ ] Ensure `generate.sh` runs: compileKotlin → stage classes → parser gen (`lua.bnf`,
+        `luacats.bnf`) → JFlex (`lua.flex`, `luacats.flex`) → revert the 14 stubbed files →
+        recompile — realizes MAINT-20-01/03/04. (Most of this already exists; harden error handling
+        and the parser-step soft-skip.)
+  - [ ] Make the parser step **fail loud** (no silent skip) — realizes the MAINT-20 behavior rule.
+- **Exit criteria**: `generate.sh` exits 0 on a clean checkout; `git diff src/main/gen` empty (TC-5).
 
-### Phase 2: Syntax lexers [Must]
-- **Goal**: `_LuaLexer.kt` / `_LuaCatsLexer.kt` generated and wrapped in `LuaLexer`/`LuaCatsLexer`.
+### Phase 3: De-manualize docs + skill [Must/Should]
+- **Goal**: the shared guide and skill describe the headless path; the human handoff is gone.
 - **Tasks**:
-  - [ ] Edit `lua.flex` / `luacats.flex` to `%type SyntaxElementType`, Kotlin header/imports
-        (package + `com.intellij.platform.syntax.*`), returning `LuaSyntaxElementTypes` members —
-        realizes design §2.3.
-  - [ ] Regenerate `_LuaLexer.kt` / `_LuaCatsLexer.kt` (Kotlin skeleton); delete the `.java` lexers —
-        realizes design §2.3.
-  - [ ] Rewire `LuaLexer` innermost adapter to the syntax `FlexAdapter` + converter boundary
-        (design §3.2 option A), preserving the merging chain — realizes design §2.4.
-- **Exit criteria**: TC-1, TC-7, TC-8 (merged tokens identical to baseline).
+  - [ ] Edit `.agents/AGENTS.md` "Add a language feature" + "Note on Lexer/Parser Generation" to the
+        headless command; drop the "pause and hand off to the human" step — realizes MAINT-20-07.
+  - [ ] [Should] Document jar resolution + staging + version pin in
+        `.claude/skills/generate-parser/` — realizes MAINT-20-08.
+  - [ ] Mirror the corrected workflow into this `docs/` feature set (tracked destination), since the
+        AGENTS.md/skill edits are gitignored.
+- **Exit criteria**: TC-7; guidance no longer references a manual IDE step.
 
-### Phase 3: Syntax parser + language definition [Must]
-- **Goal**: platform.syntax parser drives PSI construction.
+### Phase 4: Verify [Must]
+- **Goal**: prove the regenerated tree builds and tests clean.
 - **Tasks**:
-  - [ ] Generate `LuaSyntaxParser` (and any `LuaSyntaxParserUtil` if `parserUtilClass` is set);
-        remove classic `LuaParser` — realizes design §2.5.
-  - [ ] Hand-write `LuaLanguageDefinition` — realizes design §2.6.
-- **Exit criteria**: TC-3; `LuaLanguageDefinition` compiles and overrides all four members.
-
-### Phase 4: File-element-type + parser-definition re-wire [Must]
-- **Goal**: parsing runs through platform.syntax while stubs stay intact.
-- **Tasks**:
-  - [ ] Edit `LuaFileElementType.doParseContents` to the §3.1 bridge; bump `getStubVersion` 2→3;
-        keep `getBuilder`/`serialize`/`deserialize` — realizes design §2.8, §3.1.
-  - [ ] Edit `LuaParserDefinition`: `createLexer`→`LuaLexer()`, `createParser`→throw, `FILE` unchanged —
-        realizes design §2.9.
-  - [ ] Register `<syntax.syntaxDefinition>` and `<syntax.elementTypeConverter>` in `plugin.xml` —
-        realizes design §7.
-- **Exit criteria**: TC-4, TC-9, TC-11; plugin loads in `runIde`.
-
-### Phase 5: Equivalence verification + docs [Must/Should]
-- **Goal**: prove byte-for-byte equivalence and document the toolchain.
-- **Tasks**:
-  - [ ] Add a PSI-tree snapshot test asserting the parsed tree for a representative corpus is
-        identical to a pre-migration baseline (TC-6) — realizes MAINT-20-09.
-  - [ ] Run full suite `gce-builder run test`; confirm 0 new failures, no test source edited (TC-10).
-  - [ ] [Should] Update `.claude/skills/generate-parser/` to document the syntax-emitting path
-        (Kotlin skeleton flag + `parser-api="syntax"`) — realizes MAINT-20-12.
-- **Exit criteria**: TC-6, TC-10 green; skill updated.
+  - [ ] `gce-builder run build` (compile + checkStatus + lintDocs) and `gce-builder run test` —
+        realizes MAINT-20-06.
+- **Exit criteria**: BUILD SUCCESSFUL; suite green, no test source edited.
 
 ## Requirement → Phase Coverage
 
 | Requirement | Priority | Delivered in |
 |-------------|----------|--------------|
 | MAINT-20-01 | M | Phase 2 |
-| MAINT-20-02 | M | Phase 2 |
-| MAINT-20-03 | M | Phase 1 |
-| MAINT-20-04 | M | Phase 3 |
-| MAINT-20-05 | M | Phase 3 |
-| MAINT-20-06 | M | Phase 1 |
-| MAINT-20-07 | M | Phase 4 |
-| MAINT-20-08 | M | Phase 4 |
-| MAINT-20-09 | M | Phase 5 |
-| MAINT-20-10 | M | Phase 2 |
-| MAINT-20-11 | S | Phase 1 |
-| MAINT-20-12 | S | Phase 5 |
+| MAINT-20-02 | M | Phase 1 |
+| MAINT-20-03 | M | Phase 2 |
+| MAINT-20-04 | M | Phase 2 |
+| MAINT-20-05 | M | Phase 1 |
+| MAINT-20-06 | M | Phase 4 |
+| MAINT-20-07 | M | Phase 3 |
+| MAINT-20-08 | S | Phase 3 |
 
 ## Verification Tasks
-- [ ] PSI-tree snapshot + token-stream tests — cover TC-6, TC-7.
-- [ ] Stub/index regression (class-name index hit on a `return M` module) — covers TC-9.
-- [ ] Full suite unmodified — covers TC-10.
-- [ ] Sandbox load + parse smoke via `runIde` — covers TC-4, TC-11.
-- [ ] Run [human-verification-checklists](../../../features/maint/20-full-platform-syntax-migration/requirements.md) items where applicable.
+- [ ] Headless regen over unchanged sources → empty `src/main/gen` diff (TC-5) or documented route-B commit.
+- [ ] `gce-builder run build` + `run test` green (TC-6).
+- [ ] Fresh-shell run with no gradle-cache grammar-kit jar resolves the IDE jar (TC-2).
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: De-risking spikes (GATE) | **failed — toolchain unavailable** | Must |
-| Phase 1: Holders + converter | todo | Must |
-| Phase 2: Syntax lexers | todo | Must |
-| Phase 3: Parser + language definition | todo | Must |
-| Phase 4: File-element-type + parser-def re-wire | todo | Must |
-| Phase 5: Equivalence verification + docs | todo | Must |
+| Phase 1: Jar resolution + version decision | todo | Must |
+| Phase 2: Headless end-to-end script | todo | Must |
+| Phase 3: De-manualize docs + skill | todo | Must |
+| Phase 4: Verify | todo | Must |

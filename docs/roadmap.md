@@ -247,7 +247,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-08| LuaCheck UI Grouping | done | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
 | MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |
-| MAINT-20| Full platform.syntax Migration (`SyntaxElementType` lexer/parser) | todo | C | MAINT-19 *(done)* | — | **Blocked: Phase 0 DR gate FAILED (2026-07-02)** — stock JFlex 1.9.2 can't emit compiling Kotlin (DR-01), no `parser-api="syntax"` grammar-kit jar resolvable (DR-02). Deferred until JetBrains Kotlin-emitting JFlex + syntax grammar-kit are obtainable |
+| MAINT-20| Headless Parser & Lexer Generation (no IDE handoff) | planned | C | MAINT-19 *(done)* | — | **Scope pivoted 2026-07-02** from platform.syntax (abandoned) to headless generation. Feasibility proven: `org.intellij.grammar.Main` runs headless vs the IDE-bundled grammar-kit jar (only a cosmetic `var`→`var_$` version diff). Wire jar resolution into `generate.sh`, remove the manual IDE step from the guide |
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 
@@ -282,6 +282,22 @@ bug and gave the type inspections false confidence until this session's coverage
 | SCHEMA-02 | Rockspec Schema Provider | done | S | SCHEMA-01 | — | ✓ |
 | SCHEMA-03 | Luacheckrc Schema Provider | done | S | SCHEMA-01 | — | ✓ |
 | SCHEMA-04 | Busted Config Schema Provider | done | C | SCHEMA-01 | — | ✓ |
+
+## Wave 15 — Redis & Valkey integration  *(REDIS epic; requirements written 2026-07-02, not yet designed)*
+
+> Extends the TARGET epic's Redis runtime target into an end-to-end Redis/Valkey Lua loop:
+> connections + script run configs, the server-side LDB debugger, Valkey as a first-class
+> target, command-aware editing, and Redis Functions. Rationale and competitive whitespace:
+> see [plugin-feature-comparison.md](plugin-feature-comparison.md). REDIS-01 (RESP client +
+> connections) is the serial foundation; REDIS-04 is engine-only and fully parallel.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| REDIS-01 | Connections & Script Run Configuration | todo | M | TOOL-02 *(binary resolution, done)* | REDIS-02, REDIS-03, REDIS-05 | Serial: foundation |
+| REDIS-02 | LDB Debug Adapter | todo | M | REDIS-01 | — | after 01 |
+| REDIS-03 | Valkey Runtime Target | todo | S | TARGET-01 *(done)*; REDIS-01 *(flavor detection only)* | REDIS-04 *(Valkey specs)*, REDIS-05 | ✓ (stub/registry work independent of 01) |
+| REDIS-04 | Language-Engine Integration | todo | S | TARGET-04 *(done)* | REDIS-05 *(ambient-global suppression)* | ✓ (engine-only) |
+| REDIS-05 | Redis Functions Workflow | todo | C | REDIS-01; REDIS-03, REDIS-04 *(soft)* | — | after 01 |
 
 ---
 

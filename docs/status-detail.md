@@ -256,7 +256,7 @@ folders:
 | MAINT-17 | Test Coverage: Utilities | done | Unit-test coverage for process runner, file, and thread utilities |
 | MAINT-18 | Test Coverage: LuaCov Reports | done | Unit-test coverage for LuaCov report/stats parsers and the layered report editor |
 | MAINT-19 | platform.syntax Migration (Kotlin lexer/parser) | done | Kotlin-native `@JvmField object` token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) replacing MAINT-01's deferred Java interfaces; `.flex` rewired to `import static` + JFlex-only regen. Full `platform.syntax` port deferred to follow-up feature MAINT-20 |
-| MAINT-20 | Full platform.syntax Migration (`SyntaxElementType` lexer/parser) | todo | Phase 0 de-risking gate FAILED (2026-07-02): stock JFlex 1.9.2 can't emit compiling Kotlin under the JetBrains skeleton (DR-01), and no `parser-api="syntax"` grammar-kit jar is resolvable (DR-02). Toolchain unavailable in this checkout; migration deferred |
+| MAINT-20 | Headless Parser & Lexer Generation (no IDE handoff) | planned | Scope pivoted 2026-07-02 from platform.syntax (abandoned — JFlex/Grammar-Kit emit Java natively, the standard practice) to making lexer+parser generation fully headless. Proven: `org.intellij.grammar.Main` runs headless against the IDE-bundled `grammar-kit-2023.3.2.jar` (only a cosmetic `var`→`var_$` version diff). Work: deterministic jar resolution in `generate.sh` + remove the manual IDE handoff from the agent guide |
 
 ---
 

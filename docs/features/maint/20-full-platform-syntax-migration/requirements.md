@@ -1,34 +1,38 @@
 ---
 id: "MAINT-20"
-title: "MAINT-20: Full platform.syntax Migration (SyntaxElementType lexer/parser)"
+title: "MAINT-20: Headless Parser & Lexer Generation (no IDE handoff)"
 type: "feature"
-status: "todo"
+status: "planned"
 priority: "low"
 parent_id: "MAINT"
 folders:
   - "[[features/maint/requirements|requirements]]"
 ---
 
-# MAINT-20: Full platform.syntax Migration (SyntaxElementType lexer/parser)
+# MAINT-20: Headless Parser & Lexer Generation (no IDE handoff)
 
-> **Status: `todo` — Phase 0 de-risking GATE FAILED (2026-07-02).** The pre-implementation spikes
-> proved the syntax-emitting toolchain is not available in this checkout: stock JFlex 1.9.2 cannot
-> emit compiling Kotlin under the JetBrains Kotlin skeleton (DR-01 FAIL), and no
-> `parser-api="syntax"`-capable grammar-kit jar is resolvable (DR-02 BLOCKED). Migration is deferred
-> until that tooling becomes obtainable. Full evidence:
-> [risks-and-gaps.md](risks-and-gaps.md) §"Phase 0 Outcome".
+> **Scope pivot (2026-07-02).** This feature was originally "Full platform.syntax Migration"
+> (emit `SyntaxElementType` Kotlin lexers/parser). That premise was abandoned: JFlex/Grammar-Kit
+> natively emit **Java**, and the standard practice — including JetBrains' own IDEA-plugin work —
+> is to let them generate Java into `src/main/gen` and call it from Kotlin. Forcing Kotlin emission
+> (JetBrains-internal skeleton, `parser-api="syntax"`) buys nothing here. The genuinely valuable,
+> now-**proven** goal is to make generation **fully automatic and headless** — eliminating the
+> manual "human right-clicks `lua.bnf` → Generate Parser Code in the IDE" handoff documented in
+> CLAUDE.md. See [risks-and-gaps.md](risks-and-gaps.md) §"Superseded" for the abandoned
+> platform.syntax findings and §"Headless proof" for the evidence.
 
 ## Overview
 
-This feature is the **deferred follow-up to MAINT-19** (done). MAINT-19 made the two token
-holders Kotlin-native while keeping the *classic* `IElementType` representation, and explicitly
-scoped out the full port to `com.intellij.platform.syntax` because the generator tooling could
-not be shown to work in Lunar's build. MAINT-20's job is to **close that tooling gap and then
-execute the migration**: emit `SyntaxElementType`-based lexers (`%type SyntaxElementType`),
-generate a `SyntaxGeneratedParserRuntime`-based parser, introduce a `LanguageSyntaxDefinition`
-plus an `ElementTypeConverter`, and re-wire `LuaParserDefinition` to the platform.syntax parse
-path — mirroring JetBrains' own JSON adopter (`intellij-community/json/syntax/`), verified
-against the reference repo throughout.
+Follow-up to MAINT-19 (done). Today, adding or changing a language feature requires a manual IDE
+step: the agent edits `lua.bnf` / `lua.flex`, then **pauses and hands off to a human** who
+right-clicks the grammar in IntelliJ to run *Generate Parser Code* / *Run JFlex Generator*, commits
+`src/main/gen/`, and hands back (CLAUDE.md → "Note on Lexer/Parser Generation"). That handoff is the
+only step in the whole lexer/parser workflow an agent cannot perform, and it blocks autonomous
+grammar work.
+
+MAINT-19 already proved the **JFlex** half runs headless (the JFlex CLI regenerated `_LuaLexer.java`
+byte-identically). This feature closes the remaining gap — **headless Grammar-Kit parser
+generation** — and wires both into a single reproducible command, so grammar changes need no IDE.
 
 Parent epic: [[features/maint/requirements|MAINT]]. Predecessor:
 [[features/maint/19-platform-syntax-migration/requirements|MAINT-19]].
@@ -36,130 +40,90 @@ Parent epic: [[features/maint/requirements|MAINT]]. Predecessor:
 ## Scope
 
 ### In Scope
-- Introduce a **syntax-emitting generation toolchain** into Lunar: a JFlex run using the
-  Kotlin skeleton (`tools/lexer/idea-flex-kotlin.skeleton`, sourced from
-  `~/Documents/src/lua/intellij-community`) and a Grammar-Kit run with `generate=[parser-api="syntax"]`.
-- Migrate `lua.flex` and `luacats.flex` to `%type SyntaxElementType` Kotlin flex files that
-  emit `_LuaLexer.kt` / `_LuaCatsLexer.kt` (Kotlin, not Java) referencing a new
-  `LuaSyntaxElementTypes` / `LuaCatsSyntaxElementTypes` holder.
-- Add `generate=[parser-api="syntax"]` and `syntaxElementTypeHolderClass` /
-  `elementTypeConverterFactoryClass` options to `lua.bnf` (and `luacats.bnf`) and generate a
-  `LuaSyntaxParser` built on `SyntaxGeneratedParserRuntime`.
-- Create `LuaLanguageDefinition : LanguageSyntaxDefinition, GrammarKitLanguageDefinition`
-  (mirroring `JsonLanguageDefinition`), an `ElementTypeConverterFactory`
-  (`SyntaxElementType`↔`IElementType`), and register both in `plugin.xml` under the
-  `com.intellij.syntax.*` extension points.
-- Re-wire `LuaFileElementType` to drive the platform.syntax parse path and `LuaParserDefinition`
-  to supply the syntax lexer, while preserving Lunar's **stub-indexing** subsystem
-  (`IStubFileElementType`).
-- Prove byte-for-byte behavioral equivalence: identical PSI tree, identical token stream (via
-  the converter), all existing lexer/parser/PSI/stub/index tests green **unmodified**.
+- Make `.claude/skills/generate-parser/scripts/generate.sh` locate a working Grammar-Kit jar
+  **without relying on an ad-hoc Gradle-cache hit**. A usable jar ships with any installed
+  JetBrains IDE's bundled Grammar-Kit plugin
+  (`~/.local/share/JetBrains/<IDE>/grammar-kit/lib/grammar-kit-*.jar`, containing
+  `org.intellij.grammar.Main`); the script must resolve it deterministically (explicit path /
+  env override / documented fallback order) and fail loudly if none is found.
+- Run `org.intellij.grammar.Main` **headless** to regenerate the classic **Java** parser + PSI
+  (`LuaParser.java`, `Lua*` PSI/impl) for both `lua.bnf` and `luacats.bnf`, keeping the existing
+  circular-dependency workaround (compile Kotlin → stage classes on the generator classpath →
+  revert the 14 hand-stubbed generated files → recompile).
+- Keep the JFlex lexer generation headless (already working) for `lua.flex` / `luacats.flex`.
+- **Resolve generator-version output drift**: the bundled Grammar-Kit version must produce output
+  matching (or an accepted, documented, wholesale-regenerated superset of) the committed
+  `src/main/gen/`. The one known drift is a cosmetic `var` → `var_$` internal method-name escaping
+  from a Grammar-Kit version difference (see risks). Either pin the version that reproduces the
+  committed files, or adopt the new version and regenerate/commit **all** affected files in one go.
+- Update CLAUDE.md / `.agents/AGENTS.md` ("Add a language feature" + "Note on Lexer/Parser
+  Generation") to replace the human right-click handoff with the headless command.
 
 ### Out of Scope
-- Any change to Lua grammar rules, token sets, or the shape of the produced PSI tree (this is a
-  pure representation/plumbing change; behavior must be identical).
-- Changing the merging-lexer chain semantics (`LuaLexer`'s `MergingLexerAdapter` stack) — it is
-  ported, not redesigned.
-- Migrating any *other* IntelliJ subsystem (highlighting lexer factory, brace matcher, etc.)
-  beyond what the parse path strictly requires.
-- Vendoring the toolchain permanently into the Gradle build (the grammar-kit Gradle plugin stays
-  unwired per CLAUDE.md); generation remains the manual human-in-the-loop IDE/CLI step. Wiring
-  the Gradle plugin is future work (see risks-and-gaps.md).
+- **Any `com.intellij.platform.syntax` / `SyntaxElementType` migration** — abandoned (superseded
+  premise; see the pivot note above). The classic `%type IElementType` + `JavaParserGenerator`
+  path MAINT-19 delivered on stays the supported representation.
+- Wiring the Grammar-Kit **Gradle plugin** as a build task — it stays unwired due to the Kotlin
+  circular-dependency issue (`LuaPsiImplUtil` resolution) documented in CLAUDE.md; the staged
+  script *is* the supported mechanism. (Revisiting the Gradle plugin is future work.)
+- Any change to Lua/LuaCATS grammar rules, tokens, or the produced PSI tree — this is a tooling /
+  developer-workflow change; generated output must stay functionally identical.
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Description |
 |----|-------------|----------|-------------|
-| MAINT-20-01 | **Syntax lexer for Lua** | M | `lua.flex` uses `%type SyntaxElementType`; a Kotlin `_LuaLexer.kt` is generated (via the Kotlin JFlex skeleton) returning `LuaSyntaxElementTypes` members. Old Java `_LuaLexer.java` removed. |
-| MAINT-20-02 | **Syntax lexer for LuaCATS** | M | `luacats.flex` uses `%type SyntaxElementType`; Kotlin `_LuaCatsLexer.kt` generated returning `LuaCatsSyntaxElementTypes` members. Old Java `_LuaCatsLexer.java` removed. |
-| MAINT-20-03 | **Syntax element-type holders** | M | New generated `LuaSyntaxElementTypes` / `LuaCatsSyntaxElementTypes` Kotlin objects hold one `SyntaxElementType(name)` per token and node, names identical to the classic `LuaTokenTypes` / `LuaElementTypes` debug names. |
-| MAINT-20-04 | **Syntax parser** | M | `lua.bnf` carries `generate=[parser-api="syntax"]`; a generated `LuaSyntaxParser` object with `fun parse(t: SyntaxElementType, s: SyntaxGeneratedParserRuntime)` is produced, replacing the classic `LuaParser`. |
-| MAINT-20-05 | **LanguageSyntaxDefinition** | M | New `LuaLanguageDefinition : LanguageSyntaxDefinition, GrammarKitLanguageDefinition` overrides `createLexer()`, `parse(elementType, runtime)`, `getPairedBraces()`, `comments`; registered via `<syntax.syntaxDefinition language="Lua" …>`. |
-| MAINT-20-06 | **ElementTypeConverter** | M | New generated `LuaElementTypeConverterFactory` maps every `SyntaxElementType`→`IElementType` (token + node) so the classic PSI tree is built unchanged; registered via `<syntax.elementTypeConverter language="Lua" …>`. |
-| MAINT-20-07 | **File-element-type re-wire preserves stubs** | M | `LuaFileElementType` continues to extend `IStubFileElementType<LuaFileStub>` (stub indexing intact) while its `doParseContents` drives the platform.syntax parse (lexer→`PsiSyntaxBuilder`→converter→`LuaSyntaxParser`). `getStubVersion` bumped. |
-| MAINT-20-08 | **ParserDefinition re-wire** | M | `LuaParserDefinition.createLexer` returns a syntax-backed lexer; `createParser` throws the "should not be called directly" `UnsupportedOperationException` (per JSON), since parsing is driven by the file element type. `createElement` unchanged. |
-| MAINT-20-09 | **Behavioral equivalence** | M | For every input, the resulting classic PSI tree and `IElementType` token stream are byte-for-byte identical to pre-migration. All existing lexer, parser, PSI, stub, and index test suites pass **unmodified**. |
-| MAINT-20-10 | **Merging-lexer chain preserved** | M | The `MergingLexerAdapter`/`LongStringMergingLexerAdapter`/… stack in `LuaLexer` is preserved (adapted to wrap the new syntax `FlexAdapter`), so `STRING`/`LONGSTRING`/`LONGCOMMENT`/`SHORTCOMMENT` merged tokens are identical to baseline. |
-| MAINT-20-11 | **Consumers of classic holders unbroken** | S | The 10 Kotlin consumers of `LuaTokenTypes`/`LuaCatsTokenTypes` (enumerated in MAINT-19-06) still compile: either the classic `IElementType` holders are retained as the converter target, or each consumer is migrated with the converter. No behavior change. |
-| MAINT-20-12 | **Toolchain documented & reproducible** | S | The generate-parser skill (`.claude/skills/generate-parser/`) documents the syntax-emitting path (Kotlin skeleton flag + `parser-api="syntax"` option), enabling reproducible regeneration. |
-
-## Detailed Specifications
-
-### MAINT-20-03 / MAINT-20-06: Holder + converter naming parity
-
-The classic representation must survive as the converter's target so the PSI tree, stub keys,
-and all downstream `IElementType`-keyed logic are unchanged. Concretely:
-
-- Classic holders **retained**: `net.internetisalie.lunar.lang.psi.LuaElementTypes` (node types),
-  `net.internetisalie.lunar.lang.lexer.LuaTokenTypes` (token types), and the LuaCATS equivalents.
-- New syntax holders **added**: `LuaSyntaxElementTypes` / `LuaCatsSyntaxElementTypes` under the
-  syntax package (mirroring `com.intellij.json.syntax.JsonSyntaxElementTypes`), one
-  `SyntaxElementType("NAME")` per classic constant, **`"NAME"` equal to the classic debug name**
-  (so `IElementType.toString()` on the converted type is byte-identical — see MAINT-19 R-3).
-- The generated `LuaElementTypeConverterFactory` produces an `ElementTypeConverter` via
-  `ElementTypeConverterKt.elementTypeConverterOf(Pair(syntax, classic), …)` — one pair per
-  constant (token **and** node), exactly as `JsonElementTypeConverterFactory` does.
-
-### MAINT-20-07: File-element-type parse bridge (stub-preserving)
-
-JSON uses `SyntaxGrammarKitFileElementType` (a plain `IFileElementType`). Lunar cannot: its
-`LuaFileElementType` is an `IStubFileElementType<LuaFileStub>` and the whole stub-index
-subsystem depends on it. Therefore Lunar keeps its own `IStubFileElementType` subclass and
-**inlines the JSON bridge's `doParseContents` body** (verified in
-`platform/syntax/syntax-psi/src/com/intellij/platform/syntax/psi/SyntaxGrammarKitFileElementType.kt`):
-obtain `PsiSyntaxBuilderFactory.getInstance()`, `createBuilder(chameleon, lexer, lang, text)`,
-`ElementTypeConverters`-convert the chameleon's element type, `createSyntaxGeneratedParserRuntime`,
-`registerParse { LuaLanguageDefinition.parse(convertedElement, runtime); builder.getTreeBuilt() }`,
-return `root.firstChildNode`. Stub building (`getBuilder`/`serialize`/`deserialize`) is unchanged.
+| MAINT-20-01 | **Headless parser generation** | M | `generate.sh` runs `org.intellij.grammar.Main <gen-dir> lua.bnf` (and `luacats.bnf`) to completion with **no IDE and no human interaction**, emitting the Java parser + PSI into `src/main/gen`. Proven working 2026-07-02 (`lua.bnf parser generated to …`). |
+| MAINT-20-02 | **Deterministic Grammar-Kit jar resolution** | M | The script resolves a Grammar-Kit jar via a documented order (explicit `$GRAMMAR_KIT_JAR` env → installed-IDE `grammar-kit/lib/grammar-kit-*.jar` → Gradle cache) and **exits with a clear error** if none contains `org.intellij.grammar.Main`. No silent skip. |
+| MAINT-20-03 | **Headless lexer generation** | M | `generate.sh` regenerates `_LuaLexer.java` / `_LuaCatsLexer.java` via the JFlex CLI (already headless per MAINT-19), returning `IElementType` through the MAINT-19 `import static` holders. |
+| MAINT-20-04 | **Circular-dependency staging preserved** | M | The script compiles Kotlin first, stages `build/classes/kotlin/main` onto the generator classpath, and reverts the 14 hand-stubbed generated files (`LuaBlock`, `LuaFuncDecl`, … + `*Impl`) so custom inheritance survives — matching current `generate.sh` behavior. |
+| MAINT-20-05 | **Output parity with committed gen** | M | A headless run over unchanged `.bnf`/`.flex` produces `src/main/gen/` **byte-identical** to what is committed — OR any diff is a documented, version-attributable, wholesale-regenerated change (the known `var`→`var_$` escaping) committed atomically, never a silent mismatch. |
+| MAINT-20-06 | **Verified clean compile after generation** | M | After generation the project compiles green via `gce-builder run build` (or `compileKotlin`), proving the regenerated Java + Kotlin call sites still align. No test source edited. |
+| MAINT-20-07 | **Docs de-manualized** | M | CLAUDE.md / `.agents/AGENTS.md` "Add a language feature" no longer instruct the agent to pause for a human IDE step; they point to the headless command. The stale "grammar-kit plugin not used → generate manually via the IDE" note is corrected to describe the headless path. |
+| MAINT-20-08 | **Skill documents the toolchain** | S | `.claude/skills/generate-parser/` documents jar resolution, the staging workaround, and the version-pinning requirement, so regeneration is reproducible on a fresh checkout. |
 
 ## Behavior Rules
-
-- **No grammar/token-set change.** Any diff to the produced PSI tree, token stream, or stub keys
-  is a defect, not an accepted outcome.
-- **Debug-name strings are frozen.** Every `SyntaxElementType` name equals the classic constant's
-  debug name; the converter maps back to the *same* classic `IElementType` singleton instance.
-- **Static singletons only.** `SyntaxElementType`/`IElementType` constants live in generated
-  `object` holders (never per-parse instances) — the platform registry has a hard size limit
-  (CLAUDE.md, Lessons Learned).
-- **Threading.** Parsing runs where the platform invokes `doParseContents` (parser thread / under
-  the platform's parse machinery); no EDT work is added. Stub building is unchanged.
+- **No grammar/PSI change.** Any diff to the produced PSI tree, token stream, or stub keys from a
+  generation run over unchanged sources is a defect. Method-name escaping internal to the parser
+  (`var_$`) is acceptable only if version-attributed, documented, and applied wholesale.
+- **Fail loud, never silent.** Missing generator jar, missing skeleton, or a non-clean post-gen
+  compile must abort with a clear message — the old `generate.sh` "Warning: … Skipping lexer
+  generation" soft-skip is not acceptable for the parser step.
+- **Local `./gradlew` stays inside the script only.** The script's own `compileKotlin` staging is
+  the documented exception; agents still use `gce-builder` for the final build/test gate.
 
 ## Test Cases
 
-All existing suites must pass **unmodified**. Named suites verified present:
-`src/test/kotlin/net/internetisalie/lunar/lang/lexer/TestLuaLexerExhaustive.kt`,
-`.../lang/lexer/TestLuaLexer.kt`,
-`.../luacats/lang/lexer/TestLuaCatsLexer.kt` (grep-confirmed on disk).
-
-| # | Requirement | Given (input) | When (action) | Then (expected) |
-|---|-------------|---------------|---------------|-----------------|
-| 1 | MAINT-20-01 | edited `lua.flex` (`%type SyntaxElementType`) | run JFlex with `--skel idea-flex-kotlin.skeleton` | `_LuaLexer.kt` generated (Kotlin), no `_LuaLexer.java`; `grep '%type' lua.flex` → `SyntaxElementType` |
-| 2 | MAINT-20-03 | generated holders | `grep 'SyntaxElementType("WHILE")' LuaSyntaxElementTypes.kt` | present; name string equals classic `LuaTokenTypes.WHILE.toString()` (`"while"` per current holder) |
-| 3 | MAINT-20-04 | `lua.bnf` with `generate=[parser-api="syntax"]` | run Grammar-Kit `org.intellij.grammar.Main` | `LuaSyntaxParser` object generated with `fun parse(t: SyntaxElementType, s: SyntaxGeneratedParserRuntime)` |
-| 4 | MAINT-20-05 | plugin.xml | plugin loads in sandbox IDE (`runIde`) | `LanguageSyntaxDefinitions.INSTANCE.forLanguage(LuaLanguage)` resolves `LuaLanguageDefinition`; no load error |
-| 5 | MAINT-20-06 | `LuaElementTypeConverterFactory` | convert `LuaSyntaxElementTypes.WHILE` | returns the *same instance* as classic `LuaTokenTypes.WHILE` |
-| 6 | MAINT-20-09 | `"local x = 1 + 2 while true do end"` | parse via `LuaParserDefinition` | PSI tree structure + node/token `IElementType`s identical to pre-migration baseline (`TestLuaLexerExhaustive` + a PSI-tree snapshot test) |
-| 7 | MAINT-20-09 | `[[ multi\nline ]]`, `--[[ long ]]`, `-- short` | lex via `LuaLexer` | merged `STRING`/`LONGSTRING`/`LONGCOMMENT`/`SHORTCOMMENT` tokens identical to baseline (MAINT-20-10) |
-| 8 | MAINT-20-02 | `---@class Foo` / `---@field x number` | lex via `LuaCatsLexer` | `LCATS_*` token sequence identical to baseline |
-| 9 | MAINT-20-07 | a Lua file declaring a root `return M` with `---@class M` | build stubs / query `LuaClassNameIndex` | stub `exportedTypeString` and class-name index hit identical to baseline; `getExternalId` still `"lunar.file"` |
-| 10 | MAINT-20-09 | full unit suite | `gce-builder run test` | 0 new failures vs. baseline; no test source edited |
-| 11 | MAINT-20-08 | `LuaParserDefinition.createParser` | call it | throws `UnsupportedOperationException` (JSON contract); parsing still works end-to-end via the file element type |
+| # | Requirement | Given | When | Then |
+|---|-------------|-------|------|------|
+| 1 | MAINT-20-01 | unchanged `lua.bnf` + compiled Kotlin classes | run `org.intellij.grammar.Main` headless | exits 0, prints `lua.bnf parser generated`, emits `LuaParser.java` + PSI (verified 2026-07-02) |
+| 2 | MAINT-20-02 | no `grammar-kit-*.jar` in the Gradle cache | run `generate.sh` | resolves the IDE-bundled jar and proceeds; if none anywhere, aborts with a clear "no Grammar-Kit jar found" error |
+| 3 | MAINT-20-03 | edited `lua.flex` | run `generate.sh` | `_LuaLexer.java` regenerated via JFlex CLI, no `.java~` left behind |
+| 4 | MAINT-20-04 | full `generate.sh` run | after generation | the 14 stubbed files match HEAD (reverted); custom `LuaBlockImpl` etc. inheritance intact |
+| 5 | MAINT-20-05 | unchanged sources | `generate.sh` then `git diff src/main/gen` | empty diff (or only the documented `var_$` version delta, committed wholesale) |
+| 6 | MAINT-20-06 | post-generation tree | `gce-builder run build` | BUILD SUCCESSFUL; suite unmodified and green |
+| 7 | MAINT-20-07 | CLAUDE.md / AGENTS.md | read the "Add a language feature" / lexer-parser note | describe the headless command; no "pause and hand off to the human" step |
 
 ## Acceptance Criteria
-- [ ] MAINT-20-01…06: syntax lexers, holders, parser, definition, converter all generated and present; Java `_Lua*Lexer.java` / classic `LuaParser` removed.
-- [ ] MAINT-20-07/08: file element type + parser definition re-wired; stubs and indexes intact.
-- [ ] MAINT-20-09/10: full existing suite green **unmodified**; PSI tree + token stream byte-identical.
-- [ ] All four pre-implementation de-risking spikes (risks-and-gaps.md DR-01…DR-04) resolved with their success criteria met **before** this feature moves to `in_progress`.
+- [ ] MAINT-20-01…04: one headless command regenerates both lexers and both parsers with the
+      staging workaround, no IDE, no human step.
+- [ ] MAINT-20-05/06: regeneration over unchanged sources is byte-identical (or a documented,
+      wholesale, version-attributed diff) and the project builds + tests green.
+- [ ] MAINT-20-07/08: the shared agent guide and generate-parser skill describe the headless path;
+      the manual-IDE handoff is removed.
 
 ## Non-Functional Requirements
-- **Performance**: parse/lex throughput within noise of baseline (platform.syntax is JetBrains' own hot path). No new EDT work.
-- **Memory**: no new hard refs to `Project`/`Editor`/`PsiFile`; holders are static singletons.
-- **Contract**: honors `docs/engineering-contract.md` (≤30-line methods, no `!!`, no wildcard imports in hand-written code; generated files are exempt from style but must compile).
+- **Reproducibility**: works on a fresh checkout given an installed JetBrains IDE (or an explicit
+  `$GRAMMAR_KIT_JAR`); no reliance on a pre-warmed Gradle cache.
+- **Contract**: hand-written script/docs follow `docs/engineering-contract.md`; generated Java is
+  exempt from style but must compile.
 
 ## Dependencies
-- **MAINT-19** (done) — Kotlin token holders and the `.flex` `import static` rewiring this builds on.
-- Platform runtime `com.intellij.platform.syntax` — present in Lunar's 2026.1 (261) dependency set (`syntax-psi-261`, `syntax-util-261` in the Gradle cache; verified).
-- Reference toolchain in `~/Documents/src/lua/intellij-community` (`tools/lexer/idea-flex-kotlin.skeleton`; grammar-kit `parser-api="syntax"`).
+- **MAINT-19** (done) — headless JFlex regen + `import static` token holders this builds on.
+- A resolvable Grammar-Kit jar. Confirmed present locally:
+  `~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`
+  (contains `org.intellij.grammar.Main` + `JavaParserGenerator`).
+- GoLand platform libs (already resolved in the Gradle transforms cache) for the generator classpath.
 
 ## See Also
 - Design: [design.md](design.md)
