@@ -2,7 +2,7 @@
 id: "MAINT-08"
 title: "MAINT-08: LuaCheck UI Grouping"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "low"
 parent_id: "MAINT"
 folders:
@@ -95,11 +95,11 @@ LuaCheck** stops on-the-fly LuaCheck highlighting without any additional code.
 | 5 | MAINT-08-05 | The wrapper resolved in TC1 | Read `wrapper.defaultLevel.severity` and `currentProfile.isToolEnabled(HighlightDisplayKey.find("LuaCheck"))` | Severity name is `WARNING`; enabled is `true`. |
 
 ## Acceptance Criteria
-- [ ] MAINT-08-01: `getInspectionTool("LuaCheck", project)` is non-null (TC1, TC4).
-- [ ] MAINT-08-02: group path equals `["Lua", "Luacheck"]` (TC2).
-- [ ] MAINT-08-03: annotator returns paired short name `"LuaCheck"` (TC3).
-- [ ] MAINT-08-04: LuaCheck problems appear in an "Inspect Code…" run (manual — see implementation-plan verification tasks / VNC).
-- [ ] MAINT-08-05: enabled by default at WARNING (TC5).
+- [x] MAINT-08-01: `getInspectionTool("LuaCheck", project)` is non-null (TC1, TC4).
+- [x] MAINT-08-02: group path equals `["Lua", "Luacheck"]` (TC2).
+- [x] MAINT-08-03: annotator returns paired short name `"LuaCheck"` (TC3).
+- [x] MAINT-08-04: LuaCheck problems appear in an "Inspect Code…" run (manual — see implementation-plan verification tasks / VNC).
+- [x] MAINT-08-05: enabled by default at WARNING (TC5).
 
 ## Non-Functional Requirements
 - **Threading**: no new runtime work. Registration is declarative in `plugin.xml`. The

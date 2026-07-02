@@ -14,12 +14,12 @@ folders:
 ### Phase 1: Paired batch inspection [Must]
 - **Goal**: introduce the LuaCheck inspection tool and pair the annotator to it.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.analysis.luacheck.LuaCheckInspection`
+  - [x] Create `net.internetisalie.lunar.analysis.luacheck.LuaCheckInspection`
         (`src/main/kotlin/net/internetisalie/lunar/analysis/luacheck/LuaCheckInspection.kt`):
         `class LuaCheckInspection : LocalInspectionTool(), ExternalAnnotatorBatchInspection`
         with `override fun getShortName() = SHORT_NAME` and
         `companion object { const val SHORT_NAME = "LuaCheck" }` — realizes design §2.1.
-  - [ ] Add `override fun getPairedBatchInspectionShortName(): String = LuaCheckInspection.SHORT_NAME`
+  - [x] Add `override fun getPairedBatchInspectionShortName(): String = LuaCheckInspection.SHORT_NAME`
         to `LuaCheckAnnotator` (`analysis/luacheck/LuaCheckAnnotator.kt`) — realizes design §2.2.
 - **Exit criteria**: project compiles; `LuaCheckAnnotator().getPairedBatchInspectionShortName()`
   and `LuaCheckInspection().shortName` both equal `"LuaCheck"` (TC3, TC4).
@@ -27,7 +27,7 @@ folders:
 ### Phase 2: Registration & grouping [Must]
 - **Goal**: register the inspection so it renders under **Lua → Luacheck → LuaCheck**.
 - **Tasks**:
-  - [ ] Add the `<localInspection … shortName="LuaCheck" groupPath="Lua" groupName="Luacheck"
+  - [x] Add the `<localInspection … shortName="LuaCheck" groupPath="Lua" groupName="Luacheck"
         displayName="LuaCheck" enabledByDefault="true" level="WARNING" unfair="true"
         implementationClass="…LuaCheckInspection"/>` element after `plugin.xml:262-264`
         — realizes design §7 and the §3.1 group-path resolution.
@@ -37,7 +37,7 @@ folders:
 ### Phase 3: Tests [Must]
 - **Goal**: lock the behavior with an automated test.
 - **Tasks**:
-  - [ ] Create `LuaCheckInspectionGroupingTest`
+  - [x] Create `LuaCheckInspectionGroupingTest`
         (`src/test/kotlin/net/internetisalie/lunar/analysis/luacheck/LuaCheckInspectionGroupingTest.kt`),
         `BasePlatformTestCase`, implementing TC1–TC5 via
         `InspectionProjectProfileManager.getInstance(project).currentProfile
@@ -57,19 +57,19 @@ folders:
 | MAINT-08-05 | S | Phase 2 |
 
 ## Verification Tasks
-- [ ] Add `LuaCheckInspectionGroupingTest` covering TC1–TC5 (Phase 3).
-- [ ] Manual: open **Settings → Editor → Inspections**, confirm the node appears at
+- [x] Add `LuaCheckInspectionGroupingTest` covering TC1–TC5 (Phase 3).
+- [x] Manual: open **Settings → Editor → Inspections**, confirm the node appears at
       **Lua ▸ Luacheck ▸ LuaCheck**, enabled, WARNING — covers TC1, TC2, TC5, MAINT-08-04.
-- [ ] Manual: uncheck the node, reopen a `.lua` file with a LuaCheck warning, confirm no
+- [x] Manual: uncheck the node, reopen a `.lua` file with a LuaCheck warning, confirm no
       LuaCheck squiggle; re-check and confirm it returns — covers MAINT-08-03.
-- [ ] Manual: **Analyze → Inspect Code…** lists LuaCheck problems under the node — covers
+- [x] Manual: **Analyze → Inspect Code…** lists LuaCheck problems under the node — covers
       MAINT-08-04.
-- [ ] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` on the two new/edited files.
+- [x] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` on the two new/edited files.
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Paired batch inspection | todo | Must |
-| Phase 2: Registration & grouping | todo | Must |
-| Phase 3: Tests | todo | Must |
+| Phase 1: Paired batch inspection | done | Must |
+| Phase 2: Registration & grouping | done | Must |
+| Phase 3: Tests | done | Must |

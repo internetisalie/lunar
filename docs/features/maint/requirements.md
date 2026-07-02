@@ -23,7 +23,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | `MAINT-05` | **Type Engine Cleanup** | **M** | **Done** | Remove redundant type checks and unused parameters in the type engine. |
 | [`MAINT-06`](06-luacats-literal-highlighting/requirements.md) | **LuaCATS Literal Highlighting** | **M** | **Done** | Add color formatting for literal types in LuaCATS tags. |
 | [`MAINT-07`](07-interpreter-globs/requirements.md) | **Interpreter Search Path Globs** | **M** | **Done** | Add globbing support for interpreter search paths to improve module resolution. |
-| `MAINT-08` | **LuaCheck UI Grouping** | **L** | **Todo** | Implement hierarchical grouping for LuaCheck inspection results. |
+| `MAINT-08` | **LuaCheck UI Grouping** | **L** | **Done** | Implement hierarchical grouping for LuaCheck inspection results. |
 | `MAINT-14` | **Scope Reduction (Luau)** | **L** | **Done** | Remove Luau support references to focus on standard Lua (5.1-5.4). |
 | `MAINT-15` | **Remove Legacy Annotators** | **L** | **Todo** | Remove `LuaLocalBindingsAnnotator` and related legacy components. |
 | [`MAINT-09`](09-psi-stubs/requirements.md) | **Test Coverage: PSI & Stubs** | **M** | **Done** | Increase unit test coverage for PSI walking, scopes, and stub serialization. |
