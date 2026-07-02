@@ -3,7 +3,7 @@ id: MAINT-10
 title: "MAINT-10: Test Coverage - Stub Indexes"
 type: feature
 parent_id: MAINT
-status: planned
+status: partial
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -53,12 +53,12 @@ The following already exists and must **not** be duplicated (only extended where
 ## Functional Requirements
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| MAINT-10-01 | **Bare Type Indexing** | Must | planned | `LuaCatsTypeNameIndex` indexes a bare `--- @class Name` and a bare `--- @alias Name type` (no host `local`), reachable via `FileBasedIndex.getContainingFiles`. |
-| MAINT-10-02 | **Type Name Key Set** | Must | planned | `LuaCatsTypeNameIndex.getAllKeys` contains both a `@class` name and an `@alias` name from the same file; an un-annotated identifier is absent. |
-| MAINT-10-03 | **Dotted Global Splitting** | Must | planned | `LuaGlobalDeclarationIndex` maps `function cjson.decode() end` to both the full key `cjson.decode` and the base key `cjson`. |
-| MAINT-10-04 | **Member Field Keys** | Must | planned | `LuaMemberFieldIndex.getAllKeys` contains the qualified key `self.width` for `self.width = 1`, and the deep key `a.b.c` for `a.b.c = 1`. |
-| MAINT-10-05 | **Member Field Exclusions** | Must | planned | `LuaMemberFieldIndex` does NOT index a bare assignment (`x = 1`), a bracket access (`t[i] = 1`), or a method-style target — `dottedMemberName` returns null for these. |
-| MAINT-10-06 | **Require Dependency Tracking** | Must | planned | `LuaFileBindingsIndex` records `mymodule` in the file's `LuaFileBindingsRecord.requires` for `require("mymodule")`, and records nothing for a non-`require` call. |
+| MAINT-10-01 | **Bare Type Indexing** | Must | Full | `LuaCatsTypeNameIndex` indexes a bare `--- @class Name` and a bare `--- @alias Name type` (no host `local`), reachable via `FileBasedIndex.getContainingFiles`. |
+| MAINT-10-02 | **Type Name Key Set** | Must | Full | `LuaCatsTypeNameIndex.getAllKeys` contains both a `@class` name and an `@alias` name from the same file; an un-annotated identifier is absent. |
+| MAINT-10-03 | **Dotted Global Splitting** | Must | Full | `LuaGlobalDeclarationIndex` maps `function cjson.decode() end` to both the full key `cjson.decode` and the base key `cjson`. |
+| MAINT-10-04 | **Member Field Keys** | Must | Full | `LuaMemberFieldIndex.getAllKeys` contains the qualified key `self.width` for `self.width = 1`, and the deep key `a.b.c` for `a.b.c = 1`. |
+| MAINT-10-05 | **Member Field Exclusions** | Must | Full | `LuaMemberFieldIndex` does NOT index a bare assignment (`x = 1`), a bracket access (`t[i] = 1`), or a method-style target — `dottedMemberName` returns null for these. |
+| MAINT-10-06 | **Require Dependency Tracking** | Must | Not Implemented | `LuaFileBindingsIndex` records `mymodule` in the file's `LuaFileBindingsRecord.requires` for `require("mymodule")`, and records nothing for a non-`require` call. **Blocked:** the index's `LuaFileInputFilter` requires a `file:`-scheme URL, so it rejects all `BasePlatformTestCase` fixtures (`temp://` URLs) — untestable without a heavier on-disk harness. No production change was made. See implementation-plan Phase 4 deviation. |
 
 ## Test Cases
 | TC | Requirement | Given | When | Then |
