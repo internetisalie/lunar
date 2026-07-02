@@ -69,7 +69,7 @@ Coverage-only. Each phase adds one net-new test class under
 - **File**: `src/test/kotlin/net/internetisalie/lunar/command/LuaRunProfileTest.kt`
 - **Class**: `class LuaRunProfileTest : BasePlatformTestCase()`
 - **Test methods**:
-  - [ ] `testRunProfileExposesCommandLineNameAndIcon` — TC-14 (`commandLine` identity, non-blank
+  - [x] `testRunProfileExposesCommandLineNameAndIcon` — TC-14 (`commandLine` identity, non-blank
         `getName()`, non-null `getIcon()`; `getState` type check best-effort per design §2.5).
 - **Verify**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaRunProfileTest*"`
 
@@ -79,8 +79,8 @@ After all phases:
 then `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` before committing.
 
 ## Definition of Done
-- [ ] All five test classes exist and pass on gce-builder (0 failures).
-- [ ] Every TC-01..TC-14 has a corresponding test method.
-- [ ] No production source modified (coverage-only feature).
-- [ ] ktlint clean on the new files (match surrounding IntelliJ-formatter style).
+- [x] All five test classes exist and pass on gce-builder (0 failures).
+- [x] Every TC-01..TC-14 has a corresponding test method.
+- [x] No production source modified (coverage-only feature).
+- [x] ktlint clean on the new files (match surrounding IntelliJ-formatter style).
 </content>

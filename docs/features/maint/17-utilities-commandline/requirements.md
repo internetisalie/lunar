@@ -3,7 +3,7 @@ id: MAINT-17
 title: "MAINT-17: Test Coverage - Utilities & Command Line"
 type: feature
 parent_id: MAINT
-status: planned
+status: done
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -40,11 +40,11 @@ The targets are the pure/near-pure helpers in `util/` (`LuaProcessUtil`, `LuaFil
 ## Functional Requirements
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| MAINT-17-01 | **Process capture & exit-code mapping** | Must | planned | Verify `LuaProcessUtil.capture()` runs a `GeneralCommandLine`, returns captured stdout, and maps `TimeoutException` → exit code `PROCESS_TIMEOUT_EXCEPTION_CODE` (-1, `isTimeout`), and an unresolvable command → `PROCESS_EXECUTION_EXCEPTION_CODE` (-2). |
-| MAINT-17-02 | **Plugin directory & Lua-file discovery** | Must | planned | Verify `LuaFileUtil.getPluginVirtualDirectoryChild(...)` returns null when a child is absent, `findLuaFilesInDir` returns only `.lua` files recursively, and `findPsiFiles` maps `VirtualFile`s to `PsiFile`s (skipping unmappable ones). |
-| MAINT-17-03 | **Background-task factories** | Must | planned | Verify `newProjectBackgroundTask` / `newAppBackgroundTask` build `Task.Backgroundable` instances carrying the given title/project and that invoking `run(indicator)` calls the supplied action exactly once with the indicator. |
-| MAINT-17-04 | **Interpreter command-line builders** | Must | planned | Verify `newLuaInterpreterCommandLine` builds `java -cp <jar> lua` for a `.jar` interpreter and `<exe>` for a system binary, returns null when `executable` is null, and that `newProjectLuaInterpreterCommandLine` injects `LUA_PATH` when the project source path expands non-empty. |
-| MAINT-17-05 | **Run-profile accessors** | Should | planned | Verify `LuaRunProfile` exposes the stored command line, a non-blank localized name, a non-null icon, and returns a `LuaRunProfileState` from `getState`. |
+| MAINT-17-01 | **Process capture & exit-code mapping** | Must | Full | Verify `LuaProcessUtil.capture()` runs a `GeneralCommandLine`, returns captured stdout, and maps `TimeoutException` → exit code `PROCESS_TIMEOUT_EXCEPTION_CODE` (-1, `isTimeout`), and an unresolvable command → `PROCESS_EXECUTION_EXCEPTION_CODE` (-2). |
+| MAINT-17-02 | **Plugin directory & Lua-file discovery** | Must | Full | Verify `LuaFileUtil.getPluginVirtualDirectoryChild(...)` returns null when a child is absent, `findLuaFilesInDir` returns only `.lua` files recursively, and `findPsiFiles` maps `VirtualFile`s to `PsiFile`s (skipping unmappable ones). |
+| MAINT-17-03 | **Background-task factories** | Must | Full | Verify `newProjectBackgroundTask` / `newAppBackgroundTask` build `Task.Backgroundable` instances carrying the given title/project and that invoking `run(indicator)` calls the supplied action exactly once with the indicator. |
+| MAINT-17-04 | **Interpreter command-line builders** | Must | Full | Verify `newLuaInterpreterCommandLine` builds `java -cp <jar> lua` for a `.jar` interpreter and `<exe>` for a system binary, returns null when `executable` is null, and that `newProjectLuaInterpreterCommandLine` injects `LUA_PATH` when the project source path expands non-empty. |
+| MAINT-17-05 | **Run-profile accessors** | Should | Full | Verify `LuaRunProfile` exposes the stored command line, a non-blank localized name, a non-null icon, and returns a `LuaRunProfileState` from `getState`. |
 
 ## Test Cases
 | TC | Given | When | Then |
