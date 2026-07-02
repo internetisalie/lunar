@@ -5,6 +5,7 @@ import com.intellij.psi.tree.IElementType;
 import java.util.*;
 import java.lang.reflect.Field;
 import org.jetbrains.annotations.NotNull;
+import static net.internetisalie.lunar.lang.lexer.LuaTokenTypes.*;
 
 %%
 
@@ -15,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 */
 
 %class _LuaLexer
-%implements FlexLexer, LuaTokenTypes
+%implements FlexLexer
 
 %unicode
 

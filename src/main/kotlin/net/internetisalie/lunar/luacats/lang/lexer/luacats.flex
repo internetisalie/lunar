@@ -17,11 +17,12 @@ package net.internetisalie.lunar.luacats.lang.lexer;
 
 import com.intellij.lexer.FlexLexer;
 import com.intellij.psi.tree.IElementType;
+import static net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes.*;
 
 %%
 
 %class _LuaCatsLexer
-%implements FlexLexer, LuaCatsTokenTypes
+%implements FlexLexer
 
 %unicode
 %public

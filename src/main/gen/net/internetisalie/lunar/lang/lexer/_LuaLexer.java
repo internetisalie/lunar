@@ -8,9 +8,10 @@ import com.intellij.psi.tree.IElementType;
 import java.util.*;
 import java.lang.reflect.Field;
 import org.jetbrains.annotations.NotNull;
+import static net.internetisalie.lunar.lang.lexer.LuaTokenTypes.*;
 
 
-class _LuaLexer implements FlexLexer, LuaTokenTypes {
+class _LuaLexer implements FlexLexer {
 
   /** This character denotes the end of file */
   public static final int YYEOF = -1;

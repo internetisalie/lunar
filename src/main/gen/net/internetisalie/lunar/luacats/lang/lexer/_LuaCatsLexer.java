@@ -20,9 +20,10 @@ package net.internetisalie.lunar.luacats.lang.lexer;
 
 import com.intellij.lexer.FlexLexer;
 import com.intellij.psi.tree.IElementType;
+import static net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes.*;
 
 
-public class _LuaCatsLexer implements FlexLexer, LuaCatsTokenTypes {
+public class _LuaCatsLexer implements FlexLexer {
 
   /** This character denotes the end of file */
   public static final int YYEOF = -1;
