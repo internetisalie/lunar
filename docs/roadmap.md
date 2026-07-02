@@ -232,13 +232,13 @@ bug and gave the type inspections false confidence until this session's coverage
 | BUG-135 | Stdlib Inlay Hints | done | M | — | — | ✓ |
 | BUG-349 | Flaky Inlay Hint Tests | done | M | — | — | ✓ |
 | MAINT-09| Test Coverage: PSI & Stubs | done | M | — | — | ✓ |
-| MAINT-10| Test Coverage: Stub Indexes | todo | M | — | — | ✓ |
-| MAINT-11| Test Coverage: Structure View | todo | M | — | — | ✓ |
-| MAINT-12| Test Coverage: Settings & UI | todo | M | — | — | ✓ |
-| MAINT-13| Test Coverage: Run & Debugger | todo | M | — | — | ✓ |
-| MAINT-16| Test Coverage: LuaCATS Syntax | todo | M | — | — | ✓ |
-| MAINT-17| Test Coverage: Utilities | todo | M | — | — | ✓ |
-| MAINT-18| Test Coverage: LuaCov Reports | todo | M | — | — | ✓ |
+| MAINT-10| Test Coverage: Stub Indexes | planned | M | — | — | ✓ |
+| MAINT-11| Test Coverage: Structure View | planned | M | — | — | ✓ |
+| MAINT-12| Test Coverage: Settings & UI | planned | M | — | — | ✓ |
+| MAINT-13| Test Coverage: Run & Debugger | planned | M | — | — | ✓ |
+| MAINT-16| Test Coverage: LuaCATS Syntax | planned | M | — | — | ✓ |
+| MAINT-17| Test Coverage: Utilities | planned | M | — | — | ✓ |
+| MAINT-18| Test Coverage: LuaCov Reports | planned | M | — | — | ✓ |
 | MAINT-01| Kotlin Conversion (4 files; 2 interfaces carved out → MAINT-19) | done | M | — | — | ✓ |
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
