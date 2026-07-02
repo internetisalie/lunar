@@ -3,7 +3,7 @@ id: MAINT-10
 title: "MAINT-10: Test Coverage - Stub Indexes"
 type: feature
 parent_id: MAINT
-status: partial
+status: done
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -58,7 +58,7 @@ The following already exists and must **not** be duplicated (only extended where
 | MAINT-10-03 | **Dotted Global Splitting** | Must | Full | `LuaGlobalDeclarationIndex` maps `function cjson.decode() end` to both the full key `cjson.decode` and the base key `cjson`. |
 | MAINT-10-04 | **Member Field Keys** | Must | Full | `LuaMemberFieldIndex.getAllKeys` contains the qualified key `self.width` for `self.width = 1`, and the deep key `a.b.c` for `a.b.c = 1`. |
 | MAINT-10-05 | **Member Field Exclusions** | Must | Full | `LuaMemberFieldIndex` does NOT index a bare assignment (`x = 1`), a bracket access (`t[i] = 1`), or a method-style target — `dottedMemberName` returns null for these. |
-| MAINT-10-06 | **Require Dependency Tracking** | Must | Not Implemented | `LuaFileBindingsIndex` records `mymodule` in the file's `LuaFileBindingsRecord.requires` for `require("mymodule")`, and records nothing for a non-`require` call. **Blocked:** the index's `LuaFileInputFilter` requires a `file:`-scheme URL, so it rejects all `BasePlatformTestCase` fixtures (`temp://` URLs) — untestable without a heavier on-disk harness. No production change was made. See implementation-plan Phase 4 deviation. |
+| MAINT-10-06 | **Require Dependency Tracking** | Must | Full | `LuaFileBindingsIndex` records `mymodule` in the file's `LuaFileBindingsRecord.requires` for `require("mymodule")`, and records nothing for a non-`require` call. Verified via a heavy real-disk fixture (`TempDirTestFixtureImpl`, `file:`-scheme URLs) because the index's `LuaFileInputFilter` rejects `temp://` light fixtures. No production change. |
 
 ## Test Cases
 | TC | Requirement | Given | When | Then |

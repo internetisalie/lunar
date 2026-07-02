@@ -57,29 +57,26 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
         the exact forbidden keys are absent rather than a broad `t`-prefix, which stdlib keys share).
 - **Exit criteria**: `tooling/gce-builder/gce-builder.sh run "test --tests *lang.indexing.LuaMemberFieldIndexTest*"` green.
 
-### Phase 4: LuaFileBindingsIndex require coverage [Must] — BLOCKED (see deviation)
-> **Deviation (test-only, no production change):** `LuaFileBindingsIndex` composes
+### Phase 4: LuaFileBindingsIndex require coverage [Must]
+> **Note (test-only, no production change):** `LuaFileBindingsIndex` composes
 > `LuaFileInputFilter` (`LuaIndex.kt:13-15`), whose `acceptInput` requires
-> `file.url.startsWith("file:")`. Every fixture reachable from `BasePlatformTestCase` — including
-> `configureByText` **and** `tempDirFixture.createFile` — is served from the in-memory temp
-> filesystem with a `temp://` URL (empirically `temp:///src/m.lua`), so the index's input filter
-> rejects it and `getValues(...)` returns an empty list. The design (§1.4/§2) assumed a light
-> `configureByText` fixture would be indexed; it is not, because of the `file:`-scheme guard (contrast
-> `LuaDescriptionIndex`, whose filter is `file.extension == "lua"` with no URL guard, which is why it
-> IS testable at this level). Per the task's tracked-behavior rule, production was **not** modified to
-> make the test pass. Covering MAINT-10-06 requires a heavier on-disk project harness
-> (`HeavyPlatformTestCase`/real `file:` VFS) than this test-only feature's light-fixture scope, so the
-> phase is left unimplemented and flagged for follow-up.
+> `file.url.startsWith("file:")`. Light `BasePlatformTestCase` fixtures (`configureByText`,
+> `tempDirFixture.createFile`) are served from the in-memory temp filesystem with a `temp://` URL and
+> are rejected. This phase therefore uses the proven **heavy, real-disk** fixture pattern from
+> `LuaCrossFileCompletionHeavyTest` — an `IdeaTestFixtureFactory` project fixture backed by
+> `TempDirTestFixtureImpl` (files on the real `LocalFileSystem`, `file:`-scheme URLs) with the temp
+> dir registered as a source content root — so the index accepts and indexes the file. No production
+> source was modified.
 
 - **Goal**: Cover `require()` dependency extraction (MAINT-10-06).
 - **File**: `src/test/kotlin/net/internetisalie/lunar/lang/indexing/LuaFileBindingsIndexTest.kt`
   (`class LuaFileBindingsIndexTest : BasePlatformTestCase()`), imports `LuaFileBindingsIndexName`,
   `ForwardIndexer`, `LuaFileBindingsRecord`, `FileBasedIndex`, `GlobalSearchScope`.
 - **Test methods**:
-  - [ ] `testRequireIsTracked` — TC-09. `configureByText("m.lua", "require(\"mymodule\")")`;
-        `getValues(LuaFileBindingsIndexName, ForwardIndexer.KEY, GlobalSearchScope.fileScope(file))`;
+  - [x] `testRequireIsTracked` — TC-09. Heavy real-disk fixture file `m.lua` = `require("mymodule")`;
+        `getValues(LuaFileBindingsIndexName, ForwardIndexer.KEY, GlobalSearchScope.fileScope(project, file))`;
         assert the single `LuaFileBindingsRecord.requires` contains `mymodule`.
-  - [ ] `testNonRequireCallIgnored` — TC-10. `notrequire("mymodule")`; assert the record's
+  - [x] `testNonRequireCallIgnored` — TC-10. `notrequire("mymodule")`; assert the record's
         `requires` is empty.
 - **Exit criteria**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaFileBindingsIndexTest*"` green.
 
@@ -106,4 +103,4 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
 | Phase 1: LuaCatsTypeNameIndex coverage | done | Must |
 | Phase 2: Dotted global base-key coverage | done | Must |
 | Phase 3: LuaMemberFieldIndex direct-query coverage | done | Must |
-| Phase 4: LuaFileBindingsIndex require coverage | blocked | Must |
+| Phase 4: LuaFileBindingsIndex require coverage | done | Must |
