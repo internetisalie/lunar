@@ -10,14 +10,22 @@ import java.nio.file.Path
 class LuaCommandLineTest : BasePlatformTestCase() {
 
     private lateinit var base: Path
+    private var originalInterpreter: LuaInterpreter? = null
+    private lateinit var originalSourcePath: String
 
     override fun setUp() {
         super.setUp()
         base = Files.createTempDirectory("lunar-cmdline-test")
+        val settingsState = LuaProjectSettings.getInstance(project).state
+        originalInterpreter = settingsState.interpreter
+        originalSourcePath = settingsState.sourcePath
     }
 
     override fun tearDown() {
         try {
+            val settingsState = LuaProjectSettings.getInstance(project).state
+            settingsState.interpreter = originalInterpreter
+            settingsState.sourcePath = originalSourcePath
             base.toFile().deleteRecursively()
         } finally {
             super.tearDown()
