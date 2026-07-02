@@ -54,24 +54,27 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 - **Changes**: Simplified `getValueType` logic and removed dead code in `LuaTypesVisitor`.
 
 ### MAINT-19: platform.syntax Migration (Kotlin lexer/parser)
-- **Status**: **Todo** (backlog — carved out of MAINT-01)
-- **Why it exists**: MAINT-01 cannot convert `LuaTokenTypes.java` / `LuaCatsTokenTypes.java` to
-  Kotlin, because the JFlex-generated lexers inherit their token constants by *implementing* the
-  interface:
-  - `lua.flex:17-18` → `%implements FlexLexer, LuaTokenTypes`; `_LuaLexer.java:13` →
-    `class _LuaLexer implements FlexLexer, LuaTokenTypes` (uses constants bare: `return WS;`, …)
-  - `luacats.flex:24` → `%implements FlexLexer, LuaCatsTokenTypes`; `_LuaCatsLexer.java:25` likewise.
-
-  A Kotlin `object` is a final class Java cannot `implements`; a Kotlin `interface` cannot hold
-  initialized `val` constants. So a Kotlin-native lexer/parser requires adopting JetBrains' new
-  multiplatform framework.
-- **Scope (when planned)**: migrate to `com.intellij.platform.syntax` — `SyntaxElementType` token
-  holders + an `IElementType ↔ SyntaxElementType` converter factory; regenerate the lexer with
-  JFlex ≥ 1.10.x (Kotlin emission, e.g. `_JsonLexer.kt` in `intellij-community`) and the parser with
-  Grammar-Kit `generate=[parser-api="syntax"]` (e.g. `JsonSyntaxParser.kt`); re-enable the
-  grammar-kit Gradle plugin (currently disabled); bridge to the existing classic PSI.
-- **Grounding**: verified against `intellij-community/json/syntax` (`json.bnf:3`
-  `generate=[parser-api="syntax"]`, generated `JsonSyntaxParser.kt`, `_JsonLexer.kt`). None of the
-  three Lua reference plugins (Luanalysis, EmmyLua, EmmyLua2) have migrated — all still ship Java
-  lexers/parsers — so this is genuinely a large, optional, future epic, not a prerequisite for
-  MAINT-01.
+- **Status**: **✅ Done** (carved out of MAINT-01; delivered the Kotlin-native token holders).
+- **Why it existed**: MAINT-01 could not convert `LuaTokenTypes.java` / `LuaCatsTokenTypes.java` to
+  Kotlin, because the JFlex-generated lexers inherited their token constants by *implementing* the
+  interface and referencing them *bare*:
+  - `lua.flex:18` → `%implements FlexLexer, LuaTokenTypes`; `_LuaLexer.java` →
+    `class _LuaLexer implements FlexLexer, LuaTokenTypes` (uses constants bare: `return NUMBER;`, …)
+  - `luacats.flex:24` → `%implements FlexLexer, LuaCatsTokenTypes`; `_LuaCatsLexer.java` likewise.
+- **What shipped**: the two holders are now Kotlin `object`s
+  (`src/main/kotlin/.../lang/lexer/LuaTokenTypes.kt`, `.../luacats/lang/lexer/LuaCatsTokenTypes.kt`)
+  with `@JvmField val` constants (idiom already used in `LuaIcons.kt` / `LuaCodeStyleSettings.kt`).
+  A Kotlin `object`'s `@JvmField` members compile to `public static final` fields, so the `.flex`
+  headers were rewired from interface-inheritance to a Java `import static <holder>.*` (dropping the
+  token interface from `%implements`), and the two lexers were regenerated via headless JFlex 1.9.2.
+  Result: zero `IElementType` instance changes, byte-identical debug names and transition tables, and
+  all 10 qualified Kotlin consumers compile unchanged. The `.java` interfaces were deleted.
+- **Full `com.intellij.platform.syntax` port — deferred (future work).** The roadmap's original
+  "platform.syntax" framing (migrate to `SyntaxElementType` holders, a
+  `SyntaxGeneratedParserRuntime` parser via Grammar-Kit `parser-api="syntax"`, JFlex Kotlin emission,
+  a `LanguageSyntaxDefinition` extension, and re-enabling the grammar-kit Gradle plugin) is **out of
+  scope** and tracked as DR `MAINT-19-00-1` in `19-platform-syntax-migration/risks-and-gaps.md`.
+  Grounding (in `intellij-community`): only JetBrains core languages (JSON `json/syntax`, Java, XML)
+  have adopted it, requiring a JetBrains-internal syntax-emitting JFlex skeleton + Grammar-Kit
+  generator that Lunar's classic build (`org.intellij.grammar.Main`, `%type IElementType`) does not
+  have. None of the Lua reference plugins (Luanalysis, EmmyLua, EmmyLua2) have migrated either.
