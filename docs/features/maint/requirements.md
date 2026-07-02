@@ -25,7 +25,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-07`](07-interpreter-globs/requirements.md) | **Interpreter Search Path Globs** | **M** | **Done** | Add globbing support for interpreter search paths to improve module resolution. |
 | `MAINT-08` | **LuaCheck UI Grouping** | **L** | **Done** | Implement hierarchical grouping for LuaCheck inspection results. |
 | `MAINT-14` | **Scope Reduction (Luau)** | **L** | **Done** | Remove Luau support references to focus on standard Lua (5.1-5.4). |
-| `MAINT-15` | **Remove Legacy Annotators** | **L** | **Todo** | Remove `LuaLocalBindingsAnnotator` and related legacy components. |
+| `MAINT-15` | **Remove Legacy Annotators** | **L** | **Planned** | Remove the three dead no-op annotators (`LuaLocalBindingsAnnotator`, `LuaGotoAnnotator`, `LuaGlobalBindingsAnnotator`) and their `plugin.xml` registrations. |
 | [`MAINT-09`](09-psi-stubs/requirements.md) | **Test Coverage: PSI & Stubs** | **M** | **Done** | Increase unit test coverage for PSI walking, scopes, and stub serialization. |
 | [`MAINT-10`](10-stub-indexes/requirements.md) | **Test Coverage: Stub Indexes** | **M** | **Planned** | Increase unit test coverage for stub and file-based indexes. |
 | [`MAINT-11`](11-structure-view/requirements.md) | **Test Coverage: Structure View** | **M** | **Planned** | Increase unit test coverage for outline structure view tree nodes. |
