@@ -45,4 +45,29 @@ class TestLuaPosition : BaseDocumentTest() {
         assertEquals(virtualFile, localPos.file)
         assertEquals(10, localPos.line) // 0-indexed in IDE
     }
+
+    /** TC 12: args() emits [path, line-as-string]. */
+    @Test
+    fun testArgs() {
+        assertEquals(listOf("main.lua", "5"), LuaPosition("main.lua", 5).args())
+    }
+
+    /** TC 11, 13: IDE (0-based) ↔ remote (1-based) line conversions round-trip. */
+    @Test
+    fun testRoundTripLineConversion() {
+        val psiFile = myFixture.configureByText(LuaFileType, "-- test file")
+        val virtualFile = psiFile.virtualFile
+
+        val ideLine = 10
+        val xSourcePosition = XDebuggerUtil.getInstance().createPosition(virtualFile, ideLine)
+        assertNotNull(xSourcePosition)
+
+        val workingDir = File(myFixture.project.basePath!!)
+        val remotePos = LuaPosition.createRemotePosition(xSourcePosition, workingDir)
+        assertEquals(ideLine + 1, remotePos.line) // 1-based on the wire
+
+        val localPos = LuaPosition.createLocalPosition(virtualFile, remotePos.line)
+        assertNotNull(localPos)
+        assertEquals(ideLine, localPos.line) // back to the original 0-based IDE line
+    }
 }
