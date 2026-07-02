@@ -30,7 +30,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-10`](10-stub-indexes/requirements.md) | **Test Coverage: Stub Indexes** | **M** | **Done** | Increase unit test coverage for stub and file-based indexes. |
 | [`MAINT-11`](11-structure-view/requirements.md) | **Test Coverage: Structure View** | **M** | **Done** | Increase unit test coverage for outline structure view tree nodes. |
 | [`MAINT-12`](12-settings-ui/requirements.md) | **Test Coverage: Settings & UI** | **M** | **Done** | Increase unit test coverage for configuration persistence and change listeners. |
-| [`MAINT-13`](13-run-debugger/requirements.md) | **Test Coverage: Run & Debugger** | **M** | **Planned** | Increase unit test coverage for debugger controllers and interactive REPL. |
+| [`MAINT-13`](13-run-debugger/requirements.md) | **Test Coverage: Run & Debugger** | **M** | **Done** | Increase unit test coverage for debugger controllers and interactive REPL. |
 | [`MAINT-16`](16-luacats-syntax/requirements.md) | **Test Coverage: LuaCATS Syntax** | **M** | **Done** | Increase unit test coverage for LuaCATS type comments, highlights, and docs. |
 | [`MAINT-17`](17-utilities-commandline/requirements.md) | **Test Coverage: Utilities** | **M** | **Planned** | Increase unit test coverage for process runner, file, and thread utilities. |
 | [`MAINT-18`](18-luacov-reports/requirements.md) | **Test Coverage: LuaCov Reports** | **M** | **Planned** | Increase unit test coverage for LuaCov report parsing and layered highlighting. |
