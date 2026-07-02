@@ -60,13 +60,27 @@ JetBrains-internal JFlex skeleton and Grammar-Kit `parser-api="syntax"`. Finding
   `grammar-kit-2023.3.2.jar` *does* carry `syntaxElementTypeHolderClass` support. So platform.syntax
   was feasible — just not worth it. The pivot is a value decision, not a feasibility wall.
 
-## Headless proof (evidence)
+## Headless proof (evidence) — and its limit
 
 - `org.intellij.grammar.Main src/main/gen lua.bnf` with
   `grammar-kit-2023.3.2.jar:<goland-lib>/*:build/classes/kotlin/main` → `lua.bnf parser generated to
-  /tmp/gktest`, 111 Java files emitted; `getDocComment … method not found` = expected stub-strip.
-- Diff vs committed `LuaParser.java`: 18 lines, all `var` ↔ `var_$` (Grammar-Kit soft-keyword escaping).
+  /tmp/gktest`, 111 Java files emitted; only 6 `getDocComment … method not found` warnings (the
+  intentionally-stubbed methods). Diff vs committed `LuaParser.java`: 18 lines, all `var` ↔ `var_$`.
 - JFlex headless lexer regen: already proven byte-identical in MAINT-19.
+
+### Limit of the proof (Risk 1.4 — clean checkout NOT verified)
+- The run above **reused pre-existing `build/classes/kotlin/main`** (762 staged `.class` files). It
+  did **not** verify the clean-checkout path.
+- Control run with **no project classes** on the classpath: `Main` still prints `parser generated`
+  but reports `LuaPsiImplUtil class not found (PSI method signatures will not be detected)` and
+  **66 of 111 files degrade** — PSI interfaces emit `//WARNING: getBlockList(...) is skipped …
+  not found in LuaPsiImplUtil` in place of the real accessors, which would not compile against the
+  Kotlin call sites.
+- **Therefore the compiled classes are load-bearing** and `generate.sh` step 1
+  (`./gradlew compileKotlin`) is essential. The full clean sequence (compile-from-clean → stage →
+  generate → recompile green) requires `gce-builder` and is **not yet run** — it is Phase 4's gate,
+  not a completed proof. (Bootstrap note: the initial compile relies on the *committed* `gen/`
+  files, so a clean checkout must compile the existing generated code before regenerating it.)
 
 ## Technical Debt & Future Work
 - **Grammar-Kit Gradle plugin** stays unwired (can't express the mid-generation stub revert). If the

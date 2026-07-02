@@ -10,11 +10,19 @@ folders:
 
 # MAINT-20: Implementation Plan
 
-> **Feasibility: PROVEN (2026-07-02).** Headless `org.intellij.grammar.Main` generation ran to
-> completion against the local IDE-bundled `grammar-kit-2023.3.2.jar`, producing the Java parser +
-> PSI (`lua.bnf parser generated to …`) with only an 18-line cosmetic `var`→`var_$` diff vs the
-> committed files. The JFlex half is already headless (MAINT-19). No further de-risking gate — this
-> plan executes.
+> **Feasibility: mechanism proven, clean-checkout sequence NOT yet verified (2026-07-02).**
+> Headless `org.intellij.grammar.Main` ran to completion against the local IDE-bundled
+> `grammar-kit-2023.3.2.jar`, producing a correct Java parser + PSI **when the compiled Kotlin
+> classes were already staged** on the classpath (the run reused pre-existing
+> `build/classes/kotlin/main`). Diff vs committed = 18 cosmetic `var`→`var_$` lines.
+>
+> **Caveat (load-bearing):** the compiled classes are *required*. Re-running `Main` with **no**
+> project classes on the classpath still prints `parser generated` but silently degrades — 66/111
+> PSI files lose their `psiImplUtil` accessors (`//WARNING: getBlockList(...) is skipped … not found
+> in LuaPsiImplUtil`) and would not compile. So `generate.sh` step 1 (`./gradlew compileKotlin`) is
+> essential, and the **full clean-checkout sequence (compile-from-clean → stage → generate →
+> recompile green) has NOT been run** — it needs `gce-builder`, not a local `./gradlew`. Phase 4
+> is the gate that closes this. JFlex half is already headless (MAINT-19).
 
 ## Toolchain (reference)
 
@@ -65,11 +73,18 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 - **Exit criteria**: TC-7; guidance no longer references a manual IDE step.
 
 ### Phase 4: Verify [Must]
-- **Goal**: prove the regenerated tree builds and tests clean.
+- **Goal**: prove the regenerated tree builds and tests clean **from a clean checkout**.
 - **Tasks**:
+  - [ ] **Clean-checkout sequence** (the currently-unverified gap): from a tree with no
+        `build/`/`out/` classes, run `generate.sh` end-to-end (its step-1 `./gradlew compileKotlin`
+        bootstraps from the committed `gen/`, then it stages → regenerates → reverts stubs →
+        recompiles). Confirm the compile-first staging actually resolves `LuaPsiImplUtil` — i.e. the
+        regenerated PSI has the accessors, NOT the `//WARNING … skipped` degraded form.
   - [ ] `gce-builder run build` (compile + checkStatus + lintDocs) and `gce-builder run test` —
         realizes MAINT-20-06.
-- **Exit criteria**: BUILD SUCCESSFUL; suite green, no test source edited.
+- **Exit criteria**: BUILD SUCCESSFUL from clean; regenerated PSI files carry their `psiImplUtil`
+  accessors (no `skipped` warnings beyond the 14 intentionally-stubbed files); suite green, no test
+  source edited.
 
 ## Requirement → Phase Coverage
 
