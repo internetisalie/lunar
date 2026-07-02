@@ -35,10 +35,10 @@ Coverage-only. Each phase adds one net-new test class under
 - **Class**: `class LuaFileUtilTest : BasePlatformTestCase()` (temp dir in `setUp`, cleaned in
   `tearDown`).
 - **Test methods**:
-  - [ ] `testFindLuaFilesInDirReturnsOnlyLuaRecursively` — TC-04 (tree `a.lua`, `sub/b.lua`,
+  - [x] `testFindLuaFilesInDirReturnsOnlyLuaRecursively` — TC-04 (tree `a.lua`, `sub/b.lua`,
         `c.txt`; refresh into VFS; assert names `{a.lua, b.lua}`).
-  - [ ] `testGetPluginVirtualDirectoryChildMissingReturnsNull` — TC-05.
-  - [ ] `testFindPsiFilesMapsAndSkipsUnmappable` — TC-06 (configured `.lua` fixture + temp-dir
+  - [x] `testGetPluginVirtualDirectoryChildMissingReturnsNull` — TC-05.
+  - [x] `testFindPsiFilesMapsAndSkipsUnmappable` — TC-06 (configured `.lua` fixture + temp-dir
         `VirtualFile`; assert size 1 and contains the real `PsiFile`).
 - **Verify**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaFileUtilTest*"`
 
