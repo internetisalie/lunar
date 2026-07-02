@@ -232,7 +232,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | BUG-135 | Stdlib Inlay Hints | done | M | — | — | ✓ |
 | BUG-349 | Flaky Inlay Hint Tests | done | M | — | — | ✓ |
 | MAINT-09| Test Coverage: PSI & Stubs | done | M | — | — | ✓ |
-| MAINT-10| Test Coverage: Stub Indexes | planned | M | — | — | ✓ |
+| MAINT-10| Test Coverage: Stub Indexes | done | M | — | — | ✓ |
 | MAINT-11| Test Coverage: Structure View | planned | M | — | — | ✓ |
 | MAINT-12| Test Coverage: Settings & UI | planned | M | — | — | ✓ |
 | MAINT-13| Test Coverage: Run & Debugger | planned | M | — | — | ✓ |
