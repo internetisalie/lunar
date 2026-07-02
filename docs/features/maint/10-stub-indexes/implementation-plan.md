@@ -36,9 +36,9 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
   (`class LuaGlobalDottedIndexTest : BasePlatformTestCase()`), imports `LuaGlobalDeclarationIndex`,
   `StubIndex`, `LuaFuncDecl`, `GlobalSearchScope`.
 - **Test methods**:
-  - [ ] `testDottedFunctionIndexesFullKey` — TC-04. `configureByText("t.lua", "function cjson.decode() end")`;
+  - [x] `testDottedFunctionIndexesFullKey` — TC-04. `configureByText("t.lua", "function cjson.decode() end")`;
         assert `StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, "cjson.decode", project, scope, LuaFuncDecl::class.java).size == 1`.
-  - [ ] `testDottedFunctionIndexesBaseKey` — TC-05. Same fixture; assert the query for key `cjson`
+  - [x] `testDottedFunctionIndexesBaseKey` — TC-05. Same fixture; assert the query for key `cjson`
         also returns exactly one `LuaFuncDecl`.
 - **Exit criteria**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaGlobalDottedIndexTest*"` green.
 
@@ -90,6 +90,6 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: LuaCatsTypeNameIndex coverage | done | Must |
-| Phase 2: Dotted global base-key coverage | todo | Must |
+| Phase 2: Dotted global base-key coverage | done | Must |
 | Phase 3: LuaMemberFieldIndex direct-query coverage | todo | Must |
 | Phase 4: LuaFileBindingsIndex require coverage | todo | Must |
