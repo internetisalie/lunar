@@ -130,4 +130,64 @@ class LuaStructureViewTest : BasePlatformTestCase() {
         assertEquals("n", functionChildren[0].presentation.presentableText)
         assertInstanceOf(functionChildren[1], LuaReturnStructureViewTreeElement::class.java)
     }
+
+    // Phase 4: Leaf nodes & presentation — MAINT-11-04
+
+    @Test
+    fun testLabelNodeLeafPresentation() {
+        val luaSource = luaFile("::top::")
+        val labelNode = rootChildren(luaSource)
+            .filterIsInstance<LuaLabelStructureViewTreeElement>()
+            .first()
+        assertEquals("top", labelNode.presentation.presentableText)
+        assertSame(AllIcons.Nodes.Bookmark, labelNode.presentation.getIcon(false))
+        assertEmpty(labelNode.children)
+    }
+
+    @Test
+    fun testReturnNodeLeafPresentation() {
+        val luaSource = luaFile("return true")
+        val returnNode = rootChildren(luaSource)
+            .filterIsInstance<LuaReturnStructureViewTreeElement>()
+            .first()
+        assertEquals("return", returnNode.presentation.presentableText)
+        assertSame(AllIcons.Debugger.EvaluationResult, returnNode.presentation.getIcon(false))
+        assertEmpty(returnNode.children)
+    }
+
+    @Test
+    fun testLocalVariableNodeLeafPresentation() {
+        val luaSource = luaFile("local v = 1")
+        val variableNode = rootChildren(luaSource)
+            .filterIsInstance<LuaLocalVariableStructureViewTreeElement>()
+            .first()
+        assertEquals("v", variableNode.presentation.presentableText)
+        assertSame(AllIcons.Nodes.Variable, variableNode.presentation.getIcon(false))
+        assertEmpty(variableNode.children)
+    }
+
+    @Test
+    fun testIsAlwaysLeafClassification() {
+        val luaSource = luaFile(
+            """
+            local v = 1
+            ::top::
+            return 1
+            """,
+        )
+        val structureModel = LuaStructureViewModel(luaSource)
+        val children = rootChildren(luaSource)
+        val variableNode = children.filterIsInstance<LuaLocalVariableStructureViewTreeElement>().first()
+        val labelNode = children.filterIsInstance<LuaLabelStructureViewTreeElement>().first()
+        val returnNode = children.filterIsInstance<LuaReturnStructureViewTreeElement>().first()
+        assertTrue(structureModel.isAlwaysLeaf(variableNode))
+        assertTrue(structureModel.isAlwaysLeaf(labelNode))
+        assertTrue(structureModel.isAlwaysLeaf(returnNode))
+
+        val functionSource = luaFile("function foo() end")
+        val functionNode = rootChildren(functionSource)
+            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+            .first()
+        assertFalse(structureModel.isAlwaysLeaf(functionNode))
+    }
 }
