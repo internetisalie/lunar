@@ -49,4 +49,43 @@ class LuaStructureViewTest : BasePlatformTestCase() {
             LuaFinalStatement::class.java,
         )
     }
+
+    // Phase 2: File-level outline mapping — MAINT-11-02
+
+    @Test
+    fun testFilePresentableTextIsFileName() {
+        val luaSource = luaFile("x = 1")
+        val fileElement = LuaFileStructureViewTreeElement(luaSource)
+        assertEquals("test.lua", fileElement.presentation.presentableText)
+    }
+
+    @Test
+    fun testTopLevelStatementsMapToNodeTypesInOrder() {
+        val luaSource = luaFile(
+            """
+            function foo() end
+            local function bar() end
+            local v = 1
+            ::done::
+            return 1
+            """,
+        )
+        val children = rootChildren(luaSource)
+        assertEquals(5, children.size)
+        assertInstanceOf(children[0], LuaFunctionStructureViewTreeElement::class.java)
+        assertInstanceOf(children[1], LuaLocalFunctionStructureViewTreeElement::class.java)
+        assertInstanceOf(children[2], LuaLocalVariableStructureViewTreeElement::class.java)
+        assertInstanceOf(children[3], LuaLabelStructureViewTreeElement::class.java)
+        assertInstanceOf(children[4], LuaReturnStructureViewTreeElement::class.java)
+    }
+
+    @Test
+    fun testMultipleLocalVarsBecomeSeparateNodes() {
+        val luaSource = luaFile("local a, b = 1, 2")
+        val variableNodes = rootChildren(luaSource)
+            .filterIsInstance<LuaLocalVariableStructureViewTreeElement>()
+        assertEquals(2, variableNodes.size)
+        assertEquals("a", variableNodes[0].presentation.presentableText)
+        assertEquals("b", variableNodes[1].presentation.presentableText)
+    }
 }
