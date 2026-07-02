@@ -21,12 +21,12 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
   (`class LuaCatsTypeNameIndexTest : BasePlatformTestCase()`), imports `LuaCatsTypeNameIndex`,
   `FileBasedIndex`, `GlobalSearchScope`.
 - **Test methods**:
-  - [ ] `testBareClassTagIsIndexed` — TC-01. `configureByText("t.lua", "--- @class MyType")`;
+  - [x] `testBareClassTagIsIndexed` — TC-01. `configureByText("t.lua", "--- @class MyType")`;
         assert `FileBasedIndex.getInstance().getContainingFiles(LuaCatsTypeNameIndex.KEY, "MyType", scope)`
         contains `file.virtualFile`.
-  - [ ] `testBareAliasTagIsIndexed` — TC-02. `--- @alias MyAlias string`; assert containing files
+  - [x] `testBareAliasTagIsIndexed` — TC-02. `--- @alias MyAlias string`; assert containing files
         contain the file for key `MyAlias`.
-  - [ ] `testKeySetHasAnnotatedNamesOnly` — TC-03. File with `--- @class Foo`, `--- @alias Bar number`,
+  - [x] `testKeySetHasAnnotatedNamesOnly` — TC-03. File with `--- @class Foo`, `--- @alias Bar number`,
         and `local baz = 1`; assert `getAllKeys(...)` contains `Foo` and `Bar` and does NOT contain `baz`.
 - **Exit criteria**: `tooling/gce-builder/gce-builder.sh run "test --tests *LuaCatsTypeNameIndexTest*"` green.
 
@@ -89,7 +89,7 @@ using `myFixture.configureByText` and the query patterns in design §3. No produ
 ## Task Summary
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: LuaCatsTypeNameIndex coverage | todo | Must |
+| Phase 1: LuaCatsTypeNameIndex coverage | done | Must |
 | Phase 2: Dotted global base-key coverage | todo | Must |
 | Phase 3: LuaMemberFieldIndex direct-query coverage | todo | Must |
 | Phase 4: LuaFileBindingsIndex require coverage | todo | Must |
