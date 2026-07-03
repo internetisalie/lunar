@@ -141,15 +141,6 @@
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaAttribNameAnnotator"/>
     <annotator
             language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaLocalBindingsAnnotator"/>
-    <annotator
-            language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaGlobalBindingsAnnotator"/>
-    <annotator
-            language="Lua"
-            implementationClass="net.internetisalie.lunar.lang.syntax.LuaGotoAnnotator"/>
-    <annotator
-            language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaStandaloneExpressionAnnotator"/>
     <annotator
             language="Lua"
