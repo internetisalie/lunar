@@ -16,7 +16,7 @@ folders:
 | :--- | :--- | :--- | :--- |
 | `SYNTAX-17-R-01` | **Highlight latency** | Medium | Annotator runs on the platform's viewport-incremental background pass and reads the cached snapshot; no per-keystroke re-inference. Profile large files. |
 | `SYNTAX-17-R-02` | **Color noise** | Low | Defaults inherit neutral platform colors; users can recolor/disable per key in the Color Scheme. Low-priority feature. |
-| `SYNTAX-17-R-03` | **Overlap with scope annotators** | Low | `newSilentAnnotation` layers attributes; ensure the inferred keys are visually compatible with `LuaLocalBindingsAnnotator`/`LuaGlobalBindingsAnnotator` (verify in the color page). |
+| `SYNTAX-17-R-03` | **Overlap with scope annotators** | Low | `newSilentAnnotation` layers attributes; the scope annotators (local/global bindings) that this risk referenced were removed in MAINT-15, so overlap is no longer a concern, but still verify inferred keys in the color page. |
 
 ## Design Gaps
 

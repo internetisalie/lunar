@@ -251,7 +251,7 @@ folders:
 | MAINT-12 | Test Coverage: Settings & UI | done | Unit-test coverage for settings persistence and UI wiring |
 | MAINT-13 | Test Coverage: Run & Debugger | done | Unit-test coverage for run configs and the DBGp debugger |
 | MAINT-14 | Scope Reduction (Luau) | done | No Luau references in codebase, no `LuaPlatform.LUAU` |
-| MAINT-15 | Remove Legacy Annotators | todo | `LuaLocalBindingsAnnotator` still exists and is registered (empty body) |
+| MAINT-15 | Remove Legacy Annotators | done | Three dead no-op annotators (local/goto/global bindings) removed in MAINT-15 |
 | MAINT-16 | Test Coverage: LuaCATS Syntax | done | Unit-test coverage for LuaCATS type comments, highlights, docs |
 | MAINT-17 | Test Coverage: Utilities | done | Unit-test coverage for process runner, file, and thread utilities |
 | MAINT-18 | Test Coverage: LuaCov Reports | done | Unit-test coverage for LuaCov report/stats parsers and the layered report editor |

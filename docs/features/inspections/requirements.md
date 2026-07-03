@@ -35,7 +35,7 @@ Lunar leverages its type engine and PSI tree to provide real-time feedback and c
 - **Detailed Specification**: [`01-undeclared-variable/requirements.md`](01-undeclared-variable/requirements.md)
 
 ### INSP-05: Global Creation Warning
-- **Status**: **Partial** (Implemented in `LuaGlobalBindingsAnnotator`)
+- **Status**: **Partial** (the global-binding annotator that once implemented this was removed in MAINT-15)
 
 ### INSP-09: Language Level Compliance
 - **Status**: **Implemented** (`LuaAttribNameAnnotator` checks for 5.4 attributes)

@@ -2,7 +2,7 @@
 id: MAINT-15
 title: "MAINT-15: Remove Legacy Annotators"
 type: feature
-status: planned
+status: done
 priority: medium
 parent_id: MAINT
 folders:
@@ -59,11 +59,11 @@ semantic analysis (per the in-code comments), so the empty shells are safe to de
 ## Requirements Table
 | ID | Requirement | Priority | Status | Description |
 |---|---|---|---|---|
-| MAINT-15-01 | Remove dead classes | Must | planned | Delete `LuaLocalBindingsAnnotator`, `LuaGotoAnnotator`, `LuaGlobalBindingsAnnotator` (and only these) from `lang/syntax/LuaAnnotators.kt`. |
-| MAINT-15-02 | Remove registrations | Must | planned | Delete the three `<annotator>` blocks registering those classes in `META-INF/plugin.xml` (`:142–:150`); leave the four live-annotator registrations (`:130–:141`) intact. |
-| MAINT-15-03 | Preserve live annotators | Must | planned | The four live annotators keep their classes and registrations and still emit annotations. |
-| MAINT-15-04 | Green build & tests | Must | planned | Full `run build` (compile + verify) and `run test` pass after removal. |
-| MAINT-15-05 | No dangling doc references | Should | planned | After removal, no doc under `docs/` names the three deleted classes as live/existing. The four live-doc references (`docs/features/inspections/requirements.md:38`, `docs/features/syntax/17-inferred-type-highlighting/design.md:17–18`, `docs/features/syntax/17-inferred-type-highlighting/risks-and-gaps.md:19`, `docs/status-detail.md:280`) are removed or reworded to past-tense ("removed in MAINT-15"). Excludes `.obsidian/` session logs, `docs/roadmap.md`, `docs/status.md`, and `docs/features/maint/requirements.md`. |
+| MAINT-15-01 | Remove dead classes | Must | done | Delete `LuaLocalBindingsAnnotator`, `LuaGotoAnnotator`, `LuaGlobalBindingsAnnotator` (and only these) from `lang/syntax/LuaAnnotators.kt`. |
+| MAINT-15-02 | Remove registrations | Must | done | Delete the three `<annotator>` blocks registering those classes in `META-INF/plugin.xml` (`:142–:150`); leave the four live-annotator registrations (`:130–:141`) intact. |
+| MAINT-15-03 | Preserve live annotators | Must | done | The four live annotators keep their classes and registrations and still emit annotations. |
+| MAINT-15-04 | Green build & tests | Must | done | Full `run build` (compile + verify) and `run test` pass after removal. |
+| MAINT-15-05 | No dangling doc references | Should | done | After removal, no doc under `docs/` names the three deleted classes as live/existing. The four live-doc references (`docs/features/inspections/requirements.md:38`, `docs/features/syntax/17-inferred-type-highlighting/design.md:17–18`, `docs/features/syntax/17-inferred-type-highlighting/risks-and-gaps.md:19`, `docs/status-detail.md:280`) are removed or reworded to past-tense ("removed in MAINT-15"). Excludes `.obsidian/` session logs, `docs/roadmap.md`, `docs/status.md`, and `docs/features/maint/requirements.md`. |
 
 ## Verification / Test Cases
 Because this is dead-code removal, verification is by grep + build, not new tests.

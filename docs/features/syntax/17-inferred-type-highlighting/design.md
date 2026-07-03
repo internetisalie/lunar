@@ -14,8 +14,8 @@ folders:
 
 ### Current State
 Token coloring is done by `LuaSyntaxHighlighter` + scope annotators in
-`net.internetisalie.lunar.lang.syntax` (e.g. `LuaLocalBindingsAnnotator`,
-`LuaGlobalBindingsAnnotator`). Inferred types are already available via
+`net.internetisalie.lunar.lang.syntax` (e.g. `LuaNumeralAnnotator`; the dead scope
+annotators were removed in MAINT-15). Inferred types are already available via
 `net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor.getTypes(element).getValueType(element):
 LuaGraphType` (snapshot cached per document hash through `FileUserData.cacheFileUserData`) and
 displayed as inlay hints by `LuaTypeInlayHintProvider`. Color keys live in
