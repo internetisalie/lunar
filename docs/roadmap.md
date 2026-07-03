@@ -243,7 +243,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
 | MAINT-07| Interpreter Search Path Globs | done | M | — | — | ✓ |
-| MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
+| MAINT-03| Deprecation Cleanup | done (MAINT-03-04 IJPGP bump deferred — Gradle-9 blocker) | L | — | — | ✓ |
 | MAINT-08| LuaCheck UI Grouping | done | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | done | L | — | — | ✓ |
 | MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |

@@ -2,7 +2,7 @@
 id: "MAINT-03"
 title: "MAINT-03: Deprecation Cleanup"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "low"
 parent_id: "MAINT"
 folders:

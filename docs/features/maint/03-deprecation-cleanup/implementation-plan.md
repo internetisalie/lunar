@@ -132,11 +132,11 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: Pre-flight API verification (DR gate) | todo | Must |
-| Phase 1: Remove deprecated `DataManager` usage | todo | Must |
-| Phase 2: Replace file-chooser factories | todo | Must |
-| Phase 3: Modernize build configuration | todo | Must |
-| Phase 5: Group II — `runReadActionBlocking` swap | todo | Must |
+| Phase 0: Pre-flight API verification (DR gate) | done | Must |
+| Phase 1: Remove deprecated `DataManager` usage | done | Must |
+| Phase 2: Replace file-chooser factories | done | Must |
+| Phase 3: Modernize build configuration | done (MAINT-03-05; MAINT-03-04 deferred — Gradle-9 blocker) | Must |
+| Phase 5: Group II — `runReadActionBlocking` swap | done | Must |
 | Phase 6: Group III — retire `platform` prop | done | Must |
 | Phase 7: Group IV — misc singleton replacements | done | Must |
-| Phase 4: Regression verification (FINAL) | todo | Must |
+| Phase 4: Regression verification (FINAL) | done — suite green, 0 main-code deprecations (documented `@Suppress` aside) | Must |
