@@ -124,10 +124,22 @@ The imports (`import com.intellij.openapi.fileChooser.FileChooserDescriptorFacto
 same `FileChooserDescriptorFactory` class.
 
 ### 2.5 Build configuration (`gradle/libs.versions.toml`, `gradle.properties`)
-- `gradle/libs.versions.toml:10`: `intelliJPlatform = "2.5.0"` → `intelliJPlatform = "2.17.0"`.
-- `gradle.properties:36`: `gradleVersion = 8.13` → `gradleVersion = 8.14.4`.
+- `gradle.properties:36`: `gradleVersion = 8.13` → `gradleVersion = 8.14.4` (MAINT-03-05).
   No change to `gradle/wrapper/gradle-wrapper.properties` (already `gradle-8.14.4-bin.zip`);
-  the property is brought up to match the wrapper, not vice-versa (never downgrade).
+  the property is brought up to match the wrapper, not vice-versa (never downgrade). **Done.**
+- `gradle/libs.versions.toml:10`: `intelliJPlatform` bump (MAINT-03-04) — **BLOCKED / deferred.**
+  The originally-specified `2.17.0` requires **Gradle 9.0.0+** (verified at build time:
+  *"IntelliJ Platform Gradle Plugin requires Gradle 9.0.0 and higher"*), which the repo's pinned
+  `8.14.4` wrapper does not satisfy. The highest 2.x that still supports Gradle 8.14.4 is `2.6.0`,
+  but bumping to `2.6.0` **regresses the entire test suite** (1082/1459 tests fail with
+  `RuntimeException at PathManager.getHomeDir` during `BasePlatformTestCase.setUp` — an IJPGP-2.6.0
+  test-framework home-provisioning change incompatible with this harness). The design's original
+  premise ("IJPGP 2.x requires Gradle ≥ 8.5; satisfied") was factually wrong for 2.17.0. Meeting
+  MAINT-03-04 therefore requires a **Gradle-9 wrapper upgrade** that cascades into upgrading the
+  `qodana` (2024.3.4), `kover` (0.9.1) and `changelog` (2.2.1) plugins — a build-modernization
+  effort well outside this behavior-preserving deprecation-cleanup feature and its risk budget.
+  **Resolution:** keep `intelliJPlatform = "2.5.0"` (suite stays green, 0 regressions) and carve
+  the plugin bump + Gradle-9 migration into a separate MAINT feature. See requirements MAINT-03-04.
 
 ## 3. Algorithms
 
