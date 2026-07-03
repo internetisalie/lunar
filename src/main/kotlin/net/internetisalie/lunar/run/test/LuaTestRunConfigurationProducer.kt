@@ -3,7 +3,7 @@ package net.internetisalie.lunar.run.test
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.LazyRunConfigurationProducer
 import com.intellij.execution.configurations.ConfigurationFactory
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
@@ -77,7 +77,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         }
         configuration.workingDirectory = targetVirtualFile.parent?.path ?: targetProject.basePath
 
-        val targetCall = runReadAction {
+        val targetCall = runReadActionBlocking {
             PsiTreeUtil.getParentOfType(targetPsiElement, LuaFuncCall::class.java, false)
         }
         val targetTestName = targetCall?.let { getFirstStringArgument(it) }
@@ -118,7 +118,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         }
 
         if (configuration.testTargetType == "PATTERN") {
-            val targetCall = runReadAction {
+            val targetCall = runReadActionBlocking {
                 PsiTreeUtil.getParentOfType(targetPsiElement, LuaFuncCall::class.java, false)
             }
             val targetTestName = targetCall?.let { getFirstStringArgument(it) }
@@ -129,7 +129,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
     }
 
     private fun detectFramework(file: PsiFile): LuaTestFramework {
-        val text = runReadAction { file.text }
+        val text = runReadActionBlocking { file.text }
         if (text.contains("busted") || text.contains("describe") || text.contains("it(")) {
             return LuaTestFramework.BUSTED
         }
@@ -141,7 +141,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         if (name.endsWith("_spec.lua") || name.endsWith("_test.lua") || name.contains("spec") || name.contains("test")) {
             return true
         }
-        val text = runReadAction { file.text }
+        val text = runReadActionBlocking { file.text }
         return text.contains("lunity") || text.contains("busted")
     }
 

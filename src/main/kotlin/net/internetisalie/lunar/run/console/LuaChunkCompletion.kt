@@ -1,6 +1,6 @@
 package net.internetisalie.lunar.run.console
 
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFileFactory
@@ -14,7 +14,7 @@ import net.internetisalie.lunar.lang.LuaFileType
  * real syntax error and is treated as complete so the interpreter can report it.
  */
 object LuaChunkCompletion {
-    fun isComplete(project: Project, text: String): Boolean = runReadAction {
+    fun isComplete(project: Project, text: String): Boolean = runReadActionBlocking {
         val file = PsiFileFactory.getInstance(project)
             .createFileFromText("repl.lua", LuaFileType, text)
         val errors = PsiTreeUtil.findChildrenOfType(file, PsiErrorElement::class.java)

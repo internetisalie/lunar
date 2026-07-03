@@ -6,7 +6,7 @@ import com.intellij.ide.actions.searcheverywhere.SearchEverywhereManager
 import com.intellij.ide.util.NavigationItemListCellRenderer
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
@@ -105,7 +105,7 @@ class LuaDocSearchEverywhereContributor(
 
         val app = ApplicationManager.getApplication()
         if (app.isUnitTestMode) {
-            runReadAction { task.run() }
+            runReadActionBlocking { task.run() }
         } else {
             app.assertIsNonDispatchThread()
             ProgressIndicatorUtils.yieldToPendingWriteActions()
@@ -119,14 +119,14 @@ class LuaDocSearchEverywhereContributor(
         tokens: List<String>
     ): Boolean {
         val vFile = VirtualFileManager.getInstance().findFileByUrl(fileUrl) ?: return false
-        return runReadAction {
-            val psiFile = PsiManager.getInstance(project).findFile(vFile) as? LuaFile ?: return@runReadAction false
-            val element = psiFile.findElementAt(declOffset) ?: return@runReadAction false
+        return runReadActionBlocking {
+            val psiFile = PsiManager.getInstance(project).findFile(vFile) as? LuaFile ?: return@runReadActionBlocking false
+            val element = psiFile.findElementAt(declOffset) ?: return@runReadActionBlocking false
             val owner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
-                ?: return@runReadAction false
-            val comment = owner.catsComment ?: return@runReadAction false
+                ?: return@runReadActionBlocking false
+            val comment = owner.catsComment ?: return@runReadActionBlocking false
             val fullText = collectDescriptionText(comment)
-            if (fullText.isBlank()) return@runReadAction false
+            if (fullText.isBlank()) return@runReadActionBlocking false
             val lowerText = fullText.lowercase()
             tokens.all { token -> lowerText.contains(token) }
         }

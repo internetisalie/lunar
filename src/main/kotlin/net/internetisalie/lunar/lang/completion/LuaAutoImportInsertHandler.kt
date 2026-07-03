@@ -3,7 +3,7 @@ package net.internetisalie.lunar.lang.completion
 import com.intellij.codeInsight.completion.InsertHandler
 import com.intellij.codeInsight.completion.InsertionContext
 import com.intellij.codeInsight.lookup.LookupElement
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
@@ -17,7 +17,7 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * On acceptance of a non-imported cross-file symbol, inserts the appropriate `require`
  * statement (COMP-03-03). Attached only to lookup elements with `isImported = false`.
  *
- * Threading: [handleInsert] runs on the EDT. All PSI/VFS reads happen in [runReadAction];
+ * Threading: [handleInsert] runs on the EDT. All PSI/VFS reads happen in [runReadActionBlocking];
  * the single document mutation runs in one [WriteCommandAction] (one undoable command).
  */
 class LuaAutoImportInsertHandler(
@@ -34,15 +34,15 @@ class LuaAutoImportInsertHandler(
 
         ProgressManager.checkCanceled()
 
-        val modulePath = runReadAction { modulePathResolver.resolve(targetFile, project) } ?: return
+        val modulePath = runReadActionBlocking { modulePathResolver.resolve(targetFile, project) } ?: return
 
-        val alreadyRequired = runReadAction {
+        val alreadyRequired = runReadActionBlocking {
             LuaDeduplicationChecker.isAlreadyRequired(currentFile, modulePath)
         }
         if (alreadyRequired) return
 
         val exportStyle = resolveExportStyle(project)
-        val localName = runReadAction {
+        val localName = runReadActionBlocking {
             importNameResolver.resolve(targetFile, exportStyle, currentFile, project)
         }
         val importStatement = buildImportStatement(modulePath, exportStyle, localName)
@@ -60,7 +60,7 @@ class LuaAutoImportInsertHandler(
         return when (override) {
             AutoImportStyle.FORCE_LOCAL_ASSIGN -> LuaExportStyle.RETURN_STYLE
             AutoImportStyle.FORCE_GLOBAL -> LuaExportStyle.GLOBAL_STYLE
-            AutoImportStyle.AUTO_DETECT -> runReadAction { exportStyleDetector.detect(targetFile, project) }
+            AutoImportStyle.AUTO_DETECT -> runReadActionBlocking { exportStyleDetector.detect(targetFile, project) }
         }
     }
 

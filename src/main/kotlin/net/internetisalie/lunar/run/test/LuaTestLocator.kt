@@ -3,7 +3,7 @@ package net.internetisalie.lunar.run.test
 import com.intellij.execution.Location
 import com.intellij.execution.PsiLocation
 import com.intellij.execution.testframework.sm.runner.SMTestLocator
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
@@ -40,9 +40,9 @@ object LuaTestLocator : SMTestLocator {
 
         val targetVirtualFile = findVirtualFile(filePath, project) ?: return emptyList()
 
-        return runReadAction {
-            val targetPsiFile = PsiManager.getInstance(project).findFile(targetVirtualFile) ?: return@runReadAction emptyList()
-            val document = PsiDocumentManager.getInstance(project).getDocument(targetPsiFile) ?: return@runReadAction emptyList()
+        return runReadActionBlocking {
+            val targetPsiFile = PsiManager.getInstance(project).findFile(targetVirtualFile) ?: return@runReadActionBlocking emptyList()
+            val document = PsiDocumentManager.getInstance(project).getDocument(targetPsiFile) ?: return@runReadActionBlocking emptyList()
             val lineIndex = (line - 1).coerceIn(0, document.lineCount - 1)
             val offset = document.getLineStartOffset(lineIndex)
             val targetElement = targetPsiFile.findElementAt(offset) ?: targetPsiFile
