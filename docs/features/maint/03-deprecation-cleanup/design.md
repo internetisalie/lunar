@@ -138,8 +138,23 @@ same `FileChooserDescriptorFactory` class.
   MAINT-03-04 therefore requires a **Gradle-9 wrapper upgrade** that cascades into upgrading the
   `qodana` (2024.3.4), `kover` (0.9.1) and `changelog` (2.2.1) plugins — a build-modernization
   effort well outside this behavior-preserving deprecation-cleanup feature and its risk budget.
-  **Resolution:** keep `intelliJPlatform = "2.5.0"` (suite stays green, 0 regressions) and carve
-  the plugin bump + Gradle-9 migration into a separate MAINT feature. See requirements MAINT-03-04.
+  **Update (2026-07-03 spike):** the Gradle-9 migration is *not* actually the wall. An isolated
+  spike bumped the wrapper to **Gradle 9.1.0** and `intelliJPlatform` to **2.17.0** with
+  `qodana 2025.1.1` / `kover 0.9.2` / `changelog 2.4.0` — the build configured, compiled, and ran
+  every task up to `:test` with **zero `build.gradle.kts` changes and no removed-API breakage**;
+  Gradle 9 and IJPGP 2.17.0 are mutually compatible and the plugin cascade resolves cleanly.
+  `:test` then failed **1080/1459**, with **1075** fanning out from a single
+  `TestLoggerFactory.reconfigure` →
+  `NoSuchMethodError: JulLogger.configureLogFileAndConsole(Path, boolean×5, Runnable, Filter, Path)`
+  thrown in `BasePlatformTestCase.setUp` *before any test body runs* (the same class of regression as
+  2.6.0's `PathManager.getHomeDir`, merely relocated). Root cause: **IJPGP 2.17.0 provisions a test
+  framework built against a platform newer than the pinned GoLand build 261**, so it invokes a
+  `JulLogger` overload the 261 platform jars do not export. The IJPGP-managed `testFramework(...)`
+  artifact version is coupled to the IJPGP version, so this cannot be neutralized without either
+  changing test behavior or pinning an unsupported framework build.
+  **Resolution:** keep `intelliJPlatform = "2.5.0"` (suite stays green, 0 regressions). MAINT-03-04
+  is **coupled to a compiled-SDK bump past build 261** and cannot land independently; it stays open,
+  in scope for MAINT-03, until the SDK is bumped. See requirements MAINT-03-04.
 
 ## 3. Algorithms
 
