@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsVarargTagImpl extends LuaCatsBaseElement implements LuaCatsVarargTag {
 
-  public LuaCatsVarargTagImpl(ASTNode node) {
+  public LuaCatsVarargTagImpl(@NotNull ASTNode node) {
     super(node);
   }
 

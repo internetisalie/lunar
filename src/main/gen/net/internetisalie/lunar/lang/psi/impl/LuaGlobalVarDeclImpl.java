@@ -14,7 +14,7 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 
 public class LuaGlobalVarDeclImpl extends LuaStatementImpl implements LuaGlobalVarDecl {
 
-  public LuaGlobalVarDeclImpl(ASTNode node) {
+  public LuaGlobalVarDeclImpl(@NotNull ASTNode node) {
     super(node);
   }
 

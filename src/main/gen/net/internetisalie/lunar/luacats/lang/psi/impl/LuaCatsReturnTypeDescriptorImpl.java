@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsReturnTypeDescriptorImpl extends LuaCatsBaseElement implements LuaCatsReturnTypeDescriptor {
 
-  public LuaCatsReturnTypeDescriptorImpl(ASTNode node) {
+  public LuaCatsReturnTypeDescriptorImpl(@NotNull ASTNode node) {
     super(node);
   }
 

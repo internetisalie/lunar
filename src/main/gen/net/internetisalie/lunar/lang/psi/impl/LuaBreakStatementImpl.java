@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaBreakStatementImpl extends LuaStatementImpl implements LuaBreakStatement {
 
-  public LuaBreakStatementImpl(ASTNode node) {
+  public LuaBreakStatementImpl(@NotNull ASTNode node) {
     super(node);
   }
 

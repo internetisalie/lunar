@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsLiteralTableTypeImpl extends LuaCatsBaseElement implements LuaCatsLiteralTableType {
 
-  public LuaCatsLiteralTableTypeImpl(ASTNode node) {
+  public LuaCatsLiteralTableTypeImpl(@NotNull ASTNode node) {
     super(node);
   }
 

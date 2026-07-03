@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsParameterizedNameImpl extends LuaCatsBaseElement implements LuaCatsParameterizedName {
 
-  public LuaCatsParameterizedNameImpl(ASTNode node) {
+  public LuaCatsParameterizedNameImpl(@NotNull ASTNode node) {
     super(node);
   }
 

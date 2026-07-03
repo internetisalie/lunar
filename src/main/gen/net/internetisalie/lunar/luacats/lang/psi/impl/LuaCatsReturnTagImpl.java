@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsReturnTagImpl extends LuaCatsBaseElement implements LuaCatsReturnTag {
 
-  public LuaCatsReturnTagImpl(ASTNode node) {
+  public LuaCatsReturnTagImpl(@NotNull ASTNode node) {
     super(node);
   }
 

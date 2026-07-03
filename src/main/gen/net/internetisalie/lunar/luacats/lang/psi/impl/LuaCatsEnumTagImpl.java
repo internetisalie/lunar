@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsEnumTagImpl extends LuaCatsBaseElement implements LuaCatsEnumTag {
 
-  public LuaCatsEnumTagImpl(ASTNode node) {
+  public LuaCatsEnumTagImpl(@NotNull ASTNode node) {
     super(node);
   }
 

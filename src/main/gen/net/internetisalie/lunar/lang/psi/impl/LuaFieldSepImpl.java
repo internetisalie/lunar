@@ -13,7 +13,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaFieldSepImpl extends LuaBaseElement implements LuaFieldSep {
 
-  public LuaFieldSepImpl(ASTNode node) {
+  public LuaFieldSepImpl(@NotNull ASTNode node) {
     super(node);
   }
 

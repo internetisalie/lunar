@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsOverloadFunctionSignatureImpl extends LuaCatsBaseElement implements LuaCatsOverloadFunctionSignature {
 
-  public LuaCatsOverloadFunctionSignatureImpl(ASTNode node) {
+  public LuaCatsOverloadFunctionSignatureImpl(@NotNull ASTNode node) {
     super(node);
   }
 

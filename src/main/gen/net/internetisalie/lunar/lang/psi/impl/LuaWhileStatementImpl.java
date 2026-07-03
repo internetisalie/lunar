@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaWhileStatementImpl extends LuaStatementImpl implements LuaWhileStatement {
 
-  public LuaWhileStatementImpl(ASTNode node) {
+  public LuaWhileStatementImpl(@NotNull ASTNode node) {
     super(node);
   }
 

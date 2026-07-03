@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaFinalStatementImpl extends LuaStatementImpl implements LuaFinalStatement {
 
-  public LuaFinalStatementImpl(ASTNode node) {
+  public LuaFinalStatementImpl(@NotNull ASTNode node) {
     super(node);
   }
 

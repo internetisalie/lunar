@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsTypeParamImpl extends LuaCatsBaseElement implements LuaCatsTypeParam {
 
-  public LuaCatsTypeParamImpl(ASTNode node) {
+  public LuaCatsTypeParamImpl(@NotNull ASTNode node) {
     super(node);
   }
 

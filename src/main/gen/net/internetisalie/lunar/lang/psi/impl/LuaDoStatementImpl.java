@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaDoStatementImpl extends LuaStatementImpl implements LuaDoStatement {
 
-  public LuaDoStatementImpl(ASTNode node) {
+  public LuaDoStatementImpl(@NotNull ASTNode node) {
     super(node);
   }
 

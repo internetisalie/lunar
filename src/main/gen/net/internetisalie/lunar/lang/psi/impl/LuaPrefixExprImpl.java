@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaPrefixExprImpl extends LuaExprImpl implements LuaPrefixExpr {
 
-  public LuaPrefixExprImpl(ASTNode node) {
+  public LuaPrefixExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 

@@ -1099,8 +1099,8 @@ public class LuaParser implements PsiParser, LightPsiParser {
   /* ********************************************************** */
   // nameRef varSuffix*
   //     | '(' expr ')' varSuffix+
-  public static boolean var(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "var")) return false;
+  public static boolean var_$(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "var_$")) return false;
     if (!nextTokenIs(builder_, "<var>", IDENTIFIER, LPAREN)) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, VAR, "<var>");
@@ -1167,7 +1167,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!nextTokenIs(builder_, "<var list>", IDENTIFIER, LPAREN)) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, VAR_LIST, "<var list>");
-    result_ = var(builder_, level_ + 1);
+    result_ = var_$(builder_, level_ + 1);
     result_ = result_ && varList_1(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
@@ -1190,7 +1190,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     boolean result_;
     Marker marker_ = enter_section_(builder_);
     result_ = consumeToken(builder_, COMMA);
-    result_ = result_ && var(builder_, level_ + 1);
+    result_ = result_ && var_$(builder_, level_ + 1);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
@@ -1202,7 +1202,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!nextTokenIs(builder_, "<var or exp>", IDENTIFIER, LPAREN)) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, VAR_OR_EXP, "<var or exp>");
-    result_ = var(builder_, level_ + 1);
+    result_ = var_$(builder_, level_ + 1);
     if (!result_) result_ = varOrExp_1(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;

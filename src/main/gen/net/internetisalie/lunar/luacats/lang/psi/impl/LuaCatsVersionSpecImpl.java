@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsVersionSpecImpl extends LuaCatsBaseElement implements LuaCatsVersionSpec {
 
-  public LuaCatsVersionSpecImpl(ASTNode node) {
+  public LuaCatsVersionSpecImpl(@NotNull ASTNode node) {
     super(node);
   }
 

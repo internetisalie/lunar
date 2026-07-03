@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsCastModifierImpl extends LuaCatsBaseElement implements LuaCatsCastModifier {
 
-  public LuaCatsCastModifierImpl(ASTNode node) {
+  public LuaCatsCastModifierImpl(@NotNull ASTNode node) {
     super(node);
   }
 

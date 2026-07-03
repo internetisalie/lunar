@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsFunctionSignatureReturnTypeImpl extends LuaCatsBaseElement implements LuaCatsFunctionSignatureReturnType {
 
-  public LuaCatsFunctionSignatureReturnTypeImpl(ASTNode node) {
+  public LuaCatsFunctionSignatureReturnTypeImpl(@NotNull ASTNode node) {
     super(node);
   }
 

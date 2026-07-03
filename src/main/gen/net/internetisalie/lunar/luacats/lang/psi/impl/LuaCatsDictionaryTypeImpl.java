@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsDictionaryTypeImpl extends LuaCatsBaseElement implements LuaCatsDictionaryType {
 
-  public LuaCatsDictionaryTypeImpl(ASTNode node) {
+  public LuaCatsDictionaryTypeImpl(@NotNull ASTNode node) {
     super(node);
   }
 

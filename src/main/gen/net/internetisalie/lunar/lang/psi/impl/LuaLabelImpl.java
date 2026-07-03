@@ -12,7 +12,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaLabelImpl extends LuaStatementImpl implements LuaLabel {
 
-  public LuaLabelImpl(ASTNode node) {
+  public LuaLabelImpl(@NotNull ASTNode node) {
     super(node);
   }
 

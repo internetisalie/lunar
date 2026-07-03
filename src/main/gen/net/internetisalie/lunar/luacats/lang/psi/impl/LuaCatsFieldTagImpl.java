@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsFieldTagImpl extends LuaCatsBaseElement implements LuaCatsFieldTag {
 
-  public LuaCatsFieldTagImpl(ASTNode node) {
+  public LuaCatsFieldTagImpl(@NotNull ASTNode node) {
     super(node);
   }
 

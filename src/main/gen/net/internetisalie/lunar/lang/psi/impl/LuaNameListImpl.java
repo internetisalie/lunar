@@ -13,7 +13,7 @@ import net.internetisalie.lunar.lang.psi.*;
 
 public class LuaNameListImpl extends LuaBaseElement implements LuaNameList {
 
-  public LuaNameListImpl(ASTNode node) {
+  public LuaNameListImpl(@NotNull ASTNode node) {
     super(node);
   }
 

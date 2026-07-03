@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsFieldScopeImpl extends LuaCatsBaseElement implements LuaCatsFieldScope {
 
-  public LuaCatsFieldScopeImpl(ASTNode node) {
+  public LuaCatsFieldScopeImpl(@NotNull ASTNode node) {
     super(node);
   }
 

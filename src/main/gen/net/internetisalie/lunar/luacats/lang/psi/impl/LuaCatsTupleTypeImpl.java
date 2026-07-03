@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsTupleTypeImpl extends LuaCatsBaseElement implements LuaCatsTupleType {
 
-  public LuaCatsTupleTypeImpl(ASTNode node) {
+  public LuaCatsTupleTypeImpl(@NotNull ASTNode node) {
     super(node);
   }
 

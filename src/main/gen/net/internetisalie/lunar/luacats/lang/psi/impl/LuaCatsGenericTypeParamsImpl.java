@@ -13,7 +13,7 @@ import net.internetisalie.lunar.luacats.lang.psi.*;
 
 public class LuaCatsGenericTypeParamsImpl extends LuaCatsBaseElement implements LuaCatsGenericTypeParams {
 
-  public LuaCatsGenericTypeParamsImpl(ASTNode node) {
+  public LuaCatsGenericTypeParamsImpl(@NotNull ASTNode node) {
     super(node);
   }
 
