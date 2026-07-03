@@ -40,14 +40,16 @@ Parent epic: [[features/maint/requirements|MAINT]]. Predecessor:
 ## Scope
 
 ### In Scope
-- **Vendor a pinned Grammar-Kit jar in-repo** as a git-tracked root jar (`./grammar-kit-<ver>.jar`,
-  ~948 KB, Apache-2.0) — mirroring the existing `./jflex-1.9.2.jar` precedent, which is tracked at
-  the repo root and reaches the gce-builder VM via the ordinary rsync (no special handling, no
-  `tools/` dir today). Make `.claude/skills/generate-parser/scripts/generate.sh` resolve it
-  deterministically (vendored → `$GRAMMAR_KIT_JAR` → installed-IDE → Gradle cache) and fail loudly
-  if none contains `org.intellij.grammar.Main`. **Rationale:** neither the gce-builder VM nor a cold
-  CI box has an IDE — GoLand does not bundle Grammar-Kit — so regeneration must not depend on an IDE
-  install. (The build/test gate itself needs no jar; it compiles the committed `gen/`.)
+- **Consolidate both generator jars in a single local-only tooling dir** — `tooling/parser-gen/`
+  holds `jflex-1.9.2.jar` (moved from the repo root) and `grammar-kit-<ver>.jar` (~948 KB,
+  Apache-2.0), with `.gitignore: tooling/parser-gen/*.jar` (jars not committed) and a **tracked
+  `README.md`** documenting how to obtain each. Make
+  `.claude/skills/generate-parser/scripts/generate.sh` resolve grammar-kit deterministically
+  (`tooling/parser-gen/` → `$GRAMMAR_KIT_JAR` → installed-IDE → Gradle cache) and fail loudly if none
+  contains `org.intellij.grammar.Main`. **Rationale:** regeneration is a local dev step that never
+  runs in CI (the build/test gate compiles the committed `gen/`), so the jars need not be in version
+  control or reach the gce-builder VM — a fresh checkout populates the dir from the README when it
+  needs to regenerate.
 - Run `org.intellij.grammar.Main` **headless** to regenerate the classic **Java** parser + PSI
   (`LuaParser.java`, `Lua*` PSI/impl) for both `lua.bnf` and `luacats.bnf`, keeping the existing
   circular-dependency workaround (compile Kotlin → stage classes on the generator classpath →
@@ -76,8 +78,8 @@ Parent epic: [[features/maint/requirements|MAINT]]. Predecessor:
 | ID | Requirement | Priority | Description |
 |----|-------------|----------|-------------|
 | MAINT-20-01 | **Headless parser generation** | M | `generate.sh` runs `org.intellij.grammar.Main <gen-dir> lua.bnf` (and `luacats.bnf`) to completion with **no IDE and no human interaction**, emitting the Java parser + PSI into `src/main/gen`. Mechanism proven 2026-07-02 **with compiled classes staged** (the run reused `build/classes/kotlin/main`); the classes are load-bearing (without them 66/111 PSI files lose their accessors), so the compile-first step is required and the clean-checkout end-to-end run is Phase 4's gate. |
-| MAINT-20-02 | **Vendored jar + deterministic resolution** | M | A pinned `./grammar-kit-<ver>.jar` is committed at the repo root (mirroring the tracked `./jflex-1.9.2.jar`) as the **primary** source (works with no IDE, on the gce-builder VM / cold CI, synced via the ordinary rsync); `generate.sh` resolves vendored → `$GRAMMAR_KIT_JAR` → installed-IDE → Gradle cache and **exits with a clear error** if none contains `org.intellij.grammar.Main`. No silent skip. |
-| MAINT-20-03 | **Headless lexer generation** | M | `generate.sh` regenerates `_LuaLexer.java` / `_LuaCatsLexer.java` via the JFlex CLI (already headless per MAINT-19), returning `IElementType` through the MAINT-19 `import static` holders. |
+| MAINT-20-02 | **Single tooling dir + deterministic resolution** | M | Both jars live in gitignored `tooling/parser-gen/` (jflex moved from root + grammar-kit-`<ver>`), with a tracked `README.md` on how to obtain them; `generate.sh` resolves `tooling/parser-gen/` → `$GRAMMAR_KIT_JAR` → installed-IDE → Gradle cache and **exits with a clear error** if none contains `org.intellij.grammar.Main`. No silent skip. Local-only is fine: regen never runs in CI. |
+| MAINT-20-03 | **Headless lexer generation** | M | `generate.sh` regenerates `_LuaLexer.java` / `_LuaCatsLexer.java` via the JFlex CLI (already headless per MAINT-19), from `tooling/parser-gen/jflex-1.9.2.jar`, returning `IElementType` through the MAINT-19 `import static` holders. |
 | MAINT-20-04 | **Circular-dependency staging preserved** | M | The script compiles Kotlin first, stages `build/classes/kotlin/main` onto the generator classpath, and reverts the 14 hand-stubbed generated files (`LuaBlock`, `LuaFuncDecl`, … + `*Impl`) so custom inheritance survives — matching current `generate.sh` behavior. |
 | MAINT-20-05 | **Output parity with committed gen** | M | A headless run over unchanged `.bnf`/`.flex` produces `src/main/gen/` **byte-identical** to what is committed — OR any diff is a documented, version-attributable, wholesale-regenerated change (the known `var`→`var_$` escaping) committed atomically, never a silent mismatch. |
 | MAINT-20-06 | **Verified clean compile after generation** | M | After generation the project compiles green via `gce-builder run build` (or `compileKotlin`), proving the regenerated Java + Kotlin call sites still align. No test source edited. |
@@ -115,15 +117,16 @@ Parent epic: [[features/maint/requirements|MAINT]]. Predecessor:
       the manual-IDE handoff is removed.
 
 ## Non-Functional Requirements
-- **Reproducibility**: works on a fresh checkout given an installed JetBrains IDE (or an explicit
-  `$GRAMMAR_KIT_JAR`); no reliance on a pre-warmed Gradle cache.
+- **Reproducibility**: *building* works on any fresh checkout (no jars needed). *Regenerating*
+  requires populating `tooling/parser-gen/` per its README (from an installed IDE or `$GRAMMAR_KIT_JAR`);
+  documented and self-serviceable, no reliance on a pre-warmed Gradle cache.
 - **Contract**: hand-written script/docs follow `docs/engineering-contract.md`; generated Java is
   exempt from style but must compile.
 
 ## Dependencies
 - **MAINT-19** (done) — headless JFlex regen + `import static` token holders this builds on.
-- A resolvable Grammar-Kit jar. Confirmed present locally:
-  `~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`
+- A Grammar-Kit jar placed in `tooling/parser-gen/` (or resolvable via the fallbacks). Confirmed
+  obtainable locally from `~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`
   (contains `org.intellij.grammar.Main` + `JavaParserGenerator`).
 - GoLand platform libs (already resolved in the Gradle transforms cache) for the generator classpath.
 

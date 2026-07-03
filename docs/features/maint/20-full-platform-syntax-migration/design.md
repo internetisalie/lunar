@@ -62,29 +62,31 @@ GoLand does **not** bundle the Grammar-Kit plugin (verified — `goland-*/plugin
 `grammar-kit`), and it is not resolvable from the Gradle cache. So resolution must not depend on an
 installed IDE.
 
-**Primary mechanism: vendor a pinned jar in-repo, mirroring the existing JFlex precedent.** JFlex is
-already vendored as a **git-tracked jar at the repo root** (`./jflex-1.9.2.jar`), which `generate.sh`
-references directly and which reaches the gce-builder VM via the ordinary tracked-file rsync (there
-is **no** special-casing and **no** `tools/` directory today). Vendor Grammar-Kit the same way:
-commit `./grammar-kit-<ver>.jar` at the repo root (~948 KB, Apache-2.0, from JetBrains/Grammar-Kit
-releases). Because it's tracked, it syncs to the VM with no gce-builder change; because the jar *is*
-the version, it **pins Grammar-Kit and resolves the `var_$` drift** (§3.2).
+**Primary mechanism: both generator jars in a single local-only tooling dir.** Regeneration is a
+**local dev step that never runs in CI** (the build/test gate compiles the committed `gen/`), so the
+generator jars need not be in version control or reach the gce-builder VM. Consolidate them under the
+**existing `tooling/`** directory (avoiding a confusing second `tools/` dir next to it):
 
-(A tidier `tools/` dir holding *both* jars is possible but is extra churn — it means moving
-`jflex-1.9.2.jar` and updating `generate.sh`'s root reference. Deferred; root-level matches today's
-convention.)
+- `tooling/parser-gen/jflex-1.9.2.jar` — **moved** from the repo root (`git rm --cached` the root
+  copy; `generate.sh`'s `jflex-1.9.2.jar` reference is repointed here).
+- `tooling/parser-gen/grammar-kit-<ver>.jar` — the Grammar-Kit jar (~948 KB, Apache-2.0), version
+  chosen per §3.2 (the jar *is* the version pin, resolving `var_$`).
+- **`.gitignore`: `tooling/parser-gen/*.jar`** — jars are local-only, not committed.
+- `tooling/parser-gen/README.md` — **tracked**, documents how to obtain each jar (grammar-kit: an
+  installed IntelliJ IDEA's `grammar-kit/lib/`, or JetBrains/Grammar-Kit releases; jflex: its
+  release page) so a fresh checkout is self-serviceable.
 
-Resolver order (vendored first; IDE only as a dev-convenience fallback):
+Resolver (single canonical location, with fallbacks for convenience):
 
 ```bash
 resolve_grammar_kit_jar() {
-  # 1. vendored, version-pinned jar at repo root (mirrors ./jflex-1.9.2.jar; the reproducible/CI source)
+  # 1. canonical local-only tooling dir
   local v
-  v=$(ls "$PROJECT_ROOT"/grammar-kit-*.jar 2>/dev/null | sort -V | tail -1)
+  v=$(ls "$PROJECT_ROOT"/tooling/parser-gen/grammar-kit-*.jar 2>/dev/null | sort -V | tail -1)
   [ -n "$v" ] && { echo "$v"; return; }
   # 2. explicit override
   [ -n "$GRAMMAR_KIT_JAR" ] && { echo "$GRAMMAR_KIT_JAR"; return; }
-  # 3. installed JetBrains IDE bundled plugin (dev convenience only)
+  # 3. installed JetBrains IDE bundled plugin (dev convenience)
   local j
   j=$(find "$HOME/.local/share/JetBrains" -path '*grammar-kit/lib/grammar-kit-*.jar' 2>/dev/null | sort -V | tail -1)
   [ -n "$j" ] && { echo "$j"; return; }
@@ -97,14 +99,12 @@ Then **verify** the jar contains `org/intellij/grammar/Main.class`
 (`unzip -l "$jar" | grep -q 'org/intellij/grammar/Main.class'`) and **abort with a clear error**
 otherwise — no soft "Skipping" for the parser step (MAINT-20 behavior rule).
 
-Local dev source that works today (used to seed the vendored jar):
-`~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`. Prefer the
-official release jar of the version that reproduces the committed `gen/` (see §3.2) over the
-IDE-extracted copy, for clean provenance.
+Local dev source that works today: `~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`.
 
-> **gce-builder note.** No sync change needed: a git-tracked root jar is rsynced like
-> `jflex-1.9.2.jar`. (Confirm the jar isn't caught by a `.gitignore` `*.jar` rule — `jflex-1.9.2.jar`
-> is tracked, so root jars are evidently allowed.)
+> **Consequence of gitignoring:** the repo is no longer self-contained for *regeneration* — a fresh
+> checkout must populate `tooling/parser-gen/` from the README before running `generate.sh`. This is
+> acceptable because regeneration is infrequent and local; **building** (the common path, incl. CI)
+> needs nothing. No gce-builder/rsync involvement — the VM never regenerates.
 
 ### 3.2 Version parity / the `var_$` drift (MAINT-20-05)
 

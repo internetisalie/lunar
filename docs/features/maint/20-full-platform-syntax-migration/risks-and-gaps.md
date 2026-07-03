@@ -33,12 +33,13 @@ and bounded.
   (verified: no `grammar-kit` under `goland-*/plugins`), and grammar-kit isn't in the Gradle cache.
   Only a full IntelliJ IDEA with the Grammar-Kit *plugin manually installed* has it. So a cold CI
   box / the gce-builder VM would have **no** jar.
-- **Mitigation**: **vendor a pinned `./grammar-kit-<ver>.jar`** at the repo root (~948 KB,
-  Apache-2.0), mirroring the already-tracked `./jflex-1.9.2.jar` — IDE-independent, reproducible, and
-  it pins the version (also fixing Risk 1.1). It reaches the VM via the ordinary tracked-file rsync,
-  so **no gce-builder change is needed** (jflex works the same way). Resolver falls back to
-  `$GRAMMAR_KIT_JAR`/IDE/cache. **Note:** the *build* gate never needs the jar — it compiles the
-  committed `gen/`; only regeneration does.
+- **Mitigation**: consolidate both jars in gitignored **`tooling/parser-gen/`** (jflex moved from
+  root + `grammar-kit-<ver>.jar`) with a **tracked README** documenting acquisition. The jar pins the
+  version (also fixing Risk 1.1). Resolver falls back to `$GRAMMAR_KIT_JAR`/IDE/cache. Since
+  regeneration never runs in CI, jars being local-only (not committed, never synced to the VM) is
+  fine — the *build* gate compiles the committed `gen/` and needs no jar. **New minor gap:** a fresh
+  checkout must populate `tooling/parser-gen/` before it can regenerate; mitigated by the README and
+  the resolver's IDE fallback.
 
 ### Risk 1.3: Circular-dependency staging regression
 - **Impact**: if the compile-first / revert-14-stubbed-files staging is broken, generation emits
@@ -92,8 +93,8 @@ JetBrains-internal JFlex skeleton and Grammar-Kit `parser-api="syntax"`. Finding
 - **Grammar-Kit Gradle plugin** stays unwired (can't express the mid-generation stub revert). If the
   circular dependency is ever refactored away (e.g. `LuaPsiImplUtil` split so generated code needs
   no back-reference), the plugin's `generateParser`/`generateLexer` tasks could replace the script.
-- **CI without an IDE**: resolved by vendoring `./grammar-kit-<ver>.jar` at the repo root (Risk 1.2 /
-  MAINT-20-02) — no longer future work; it is the primary Phase 1 mechanism.
+- **CI without an IDE**: not applicable — regeneration is local-only, never CI (Risk 1.2 /
+  MAINT-20-02). Jars live in gitignored `tooling/parser-gen/`; CI only builds the committed `gen/`.
 
 ## See Also
 - Requirements: [requirements.md](requirements.md)
