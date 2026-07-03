@@ -12,7 +12,6 @@ class LuaProjectSettingsTest {
     @Test
     fun `getTarget returns migrated target from languageLevel and platform`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA52
 
         val target = state.getTarget()
@@ -44,7 +43,6 @@ class LuaProjectSettingsTest {
 
         state.setTarget(target)
 
-        assertEquals(LuaPlatform.LUAJIT, state.platform)
         assertEquals(LuaLanguageLevel.LUA51, state.languageLevel)
         assertEquals(target, state.getTarget())
     }
@@ -69,7 +67,6 @@ class LuaProjectSettingsTest {
     @Test
     fun `migration from legacy languageLevel LUA51 with STANDARD platform`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA51
 
         val target = state.getTarget()
@@ -82,7 +79,6 @@ class LuaProjectSettingsTest {
     @Test
     fun `migration from legacy languageLevel LUA53 with STANDARD platform`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA53
 
         val target = state.getTarget()
@@ -95,7 +91,6 @@ class LuaProjectSettingsTest {
     @Test
     fun `migration from legacy languageLevel LUA54 with STANDARD platform`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA54
 
         val target = state.getTarget()
@@ -109,7 +104,6 @@ class LuaProjectSettingsTest {
     @Test
     fun `getTarget idempotent - multiple calls return same migrated target`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA52
 
         val target1 = state.getTarget()
@@ -132,7 +126,7 @@ class LuaProjectSettingsTest {
 
                 state.setTarget(target)
 
-                assertEquals(platform, state.platform)
+                assertEquals(platform, state.getTarget().platform)
                 val restored = state.getTarget()
                 assertEquals(target, restored)
             }
@@ -256,7 +250,6 @@ class LuaProjectSettingsEdgeCasesTest {
     @Test
     fun `state persists across multiple getTarget calls`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA51
 
         val target1 = state.getTarget()
@@ -270,7 +263,6 @@ class LuaProjectSettingsEdgeCasesTest {
     @Test
     fun `setTarget after getTarget replaces cached state`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA51
 
         val original = state.getTarget()
@@ -298,7 +290,7 @@ class LuaProjectSettingsEdgeCasesTest {
 
         // Language level should be updated to match Redis (LUA51)
         assertEquals(LuaLanguageLevel.LUA51, state.languageLevel)
-        assertEquals(LuaPlatform.REDIS, state.platform)
+        assertEquals(LuaPlatform.REDIS, state.getTarget().platform)
     }
 
     @Test
@@ -306,7 +298,6 @@ class LuaProjectSettingsEdgeCasesTest {
         val state = LuaProjectSettings.State()
 
         assertEquals(LuaLanguageLevel.LUA54, state.languageLevel)
-        assertEquals(LuaPlatform.STANDARD, state.platform)
         assertNull(state.target)
         assertNull(state.interpreter)
         assertEquals(PathConfiguration.DEFAULT_SOURCE_PATH, state.sourcePath)
@@ -324,7 +315,6 @@ class LuaProjectSettingsEdgeCasesTest {
 
         for ((langLevel, expectedLabel) in conversions) {
             val state = LuaProjectSettings.State()
-            state.platform = LuaPlatform.STANDARD
             state.languageLevel = langLevel
 
             val target = state.getTarget()
@@ -342,7 +332,6 @@ class LuaProjectSettingsEdgeCasesTest {
     @Test
     fun `target becomes non-null after first getTarget call`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA52
 
         assertNull(state.target)
@@ -444,7 +433,6 @@ class LuaProjectSettingsBackwardCompatibilityTest {
     @Test
     fun `old settings with only platform field can be migrated`() {
         val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA54
         // No target set (simulates old settings file)
 
@@ -459,7 +447,6 @@ class LuaProjectSettingsBackwardCompatibilityTest {
         val state = LuaProjectSettings.State()
 
         // Old fields
-        state.platform = LuaPlatform.STANDARD
         state.languageLevel = LuaLanguageLevel.LUA51
 
         // New field (set explicitly)
@@ -476,32 +463,6 @@ class LuaProjectSettingsBackwardCompatibilityTest {
     }
 
     @Test
-    fun `deprecated platform field can still be read`() {
-        val state = LuaProjectSettings.State()
-        state.platform = LuaPlatform.LUAJIT
-
-        @Suppress("DEPRECATION")
-        val platform = state.platform
-
-        assertEquals(LuaPlatform.LUAJIT, platform)
-    }
-
-    @Test
-    fun `deprecated platform field is updated by setTarget`() {
-        val state = LuaProjectSettings.State()
-
-        val registry = PlatformVersionRegistry
-        val version = registry.getVersions(LuaPlatform.PANDOC)[0]
-        val target = Target(LuaPlatform.PANDOC, version)
-        state.setTarget(target)
-
-        @Suppress("DEPRECATION")
-        val platform = state.platform
-
-        assertEquals(LuaPlatform.PANDOC, platform)
-    }
-
-    @Test
     fun `all migration scenarios from phase 1 spec are covered`() {
         // TARGET-06 spec migration scenarios
         val scenarios = listOf(
@@ -515,8 +476,9 @@ class LuaProjectSettingsBackwardCompatibilityTest {
 
         for ((platform, langLevel, _) in scenarios) {
             val state = LuaProjectSettings.State()
-            state.platform = platform
-            state.languageLevel = langLevel
+            val version = PlatformVersionRegistry.findVersion(platform, langLevel.version)
+                ?: PlatformVersionRegistry.defaultVersion(platform)!!
+            state.setTarget(Target(platform, version))
 
             val target = state.getTarget()
             assertEquals(platform, target.platform)

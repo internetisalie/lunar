@@ -43,8 +43,6 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
     }
     class State {
         var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA54
-        @Deprecated("Use target.platform instead", replaceWith = ReplaceWith("target?.platform"))
-        var platform : LuaPlatform = LuaPlatform.STANDARD
         @Property(surroundWithTag = false)
         var target: TargetState? = null
         var interpreter: LuaInterpreter? = null
@@ -84,7 +82,8 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
             return sourcePath.trim(' ').expandMacros(project)
         }
 
-        private fun migrateFromLegacySettings(): Target {
+        private fun buildDefaultTarget(): Target {
+            val defaultPlatform = LuaPlatform.STANDARD
             val versionLabel = when (languageLevel) {
                 LuaLanguageLevel.LUA50 -> "5.0"  // Lua 5.0 - not in standard registry, use default
                 LuaLanguageLevel.LUA51 -> "5.1"
@@ -93,15 +92,15 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
                 LuaLanguageLevel.LUA54 -> "5.4"
                 LuaLanguageLevel.LUA55 -> "5.5"
             }
-            val version = PlatformVersionRegistry.findVersion(platform, versionLabel)
-                ?: PlatformVersionRegistry.defaultVersion(platform)
-                ?: throw IllegalStateException("No version found for platform $platform")
-            return Target(platform, version)
+            val version = PlatformVersionRegistry.findVersion(defaultPlatform, versionLabel)
+                ?: PlatformVersionRegistry.defaultVersion(defaultPlatform)
+                ?: throw IllegalStateException("No version found for platform $defaultPlatform")
+            return Target(defaultPlatform, version)
         }
 
         fun getTarget(): Target {
             if (target == null) {
-                val t = migrateFromLegacySettings()
+                val t = buildDefaultTarget()
                 setTarget(t)
             }
             return target!!.toTarget() ?: Target.default()
@@ -109,7 +108,6 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
 
         fun setTarget(newTarget: Target) {
             target = TargetState.from(newTarget)
-            platform = newTarget.platform
             languageLevel = newTarget.getImplicitLanguageLevel()
         }
     }

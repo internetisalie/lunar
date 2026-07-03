@@ -3,6 +3,8 @@ package net.internetisalie.lunar.settings
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
+import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
+import net.internetisalie.lunar.platform.target.Target
 
 class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
 
@@ -10,8 +12,6 @@ class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
         val settings = LuaProjectSettings.getInstance(project)
         val state = LuaProjectSettings.State()
         state.languageLevel = LuaLanguageLevel.LUA51
-        @Suppress("DEPRECATION")
-        state.platform = LuaPlatform.STANDARD
 
         settings.loadState(state)
 
@@ -24,10 +24,11 @@ class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
     fun testScenario2RedisNoLang() {
         val settings = LuaProjectSettings.getInstance(project)
         val state = LuaProjectSettings.State()
-        @Suppress("DEPRECATION")
-        state.platform = LuaPlatform.REDIS
         state.languageLevel = LuaLanguageLevel.LUA51
-        
+        val redisVersion = PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, LuaLanguageLevel.LUA51.version)
+            ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.REDIS)!!
+        state.setTarget(Target(LuaPlatform.REDIS, redisVersion))
+
         settings.loadState(state)
         
         val target = settings.state.getTarget()
@@ -57,9 +58,10 @@ class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
     fun testScenario4Tarantool() {
         val settings = LuaProjectSettings.getInstance(project)
         val state = LuaProjectSettings.State()
-        @Suppress("DEPRECATION")
-        state.platform = LuaPlatform.TARANTOOL
         state.languageLevel = LuaLanguageLevel.LUA51
+        val tarantoolVersion = PlatformVersionRegistry.findVersion(LuaPlatform.TARANTOOL, LuaLanguageLevel.LUA51.version)
+            ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.TARANTOOL)!!
+        state.setTarget(Target(LuaPlatform.TARANTOOL, tarantoolVersion))
 
         settings.loadState(state)
 
