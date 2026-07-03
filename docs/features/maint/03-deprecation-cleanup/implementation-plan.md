@@ -135,7 +135,7 @@ folders:
 | Phase 0: Pre-flight API verification (DR gate) | done | Must |
 | Phase 1: Remove deprecated `DataManager` usage | done | Must |
 | Phase 2: Replace file-chooser factories | done | Must |
-| Phase 3: Modernize build configuration | done (MAINT-03-05; MAINT-03-04 deferred — Gradle-9 blocker) | Must |
+| Phase 3: Modernize build configuration | partial (MAINT-03-05 done; MAINT-03-04 blocked in-scope — Gradle-9 blocker) | Must |
 | Phase 5: Group II — `runReadActionBlocking` swap | done | Must |
 | Phase 6: Group III — retire `platform` prop | done | Must |
 | Phase 7: Group IV — misc singleton replacements | done | Must |
