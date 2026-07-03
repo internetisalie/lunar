@@ -309,13 +309,12 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
 
         scriptPathField.addBrowseFolderListener(
             project,
-            // TODO: Clean up deprecation: 'createSingleLocalFileDescriptor()' is deprecated.
-            FileChooserDescriptorFactory.createSingleLocalFileDescriptor()
+            FileChooserDescriptorFactory.singleFileOrDir()
         )
 
         workingDirectoryField.addBrowseFolderListener(
             project,
-            FileChooserDescriptorFactory.createSingleFolderDescriptor()
+            FileChooserDescriptorFactory.singleDir()
         )
 
         myPanel = FormBuilder.createFormBuilder()

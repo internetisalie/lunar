@@ -269,12 +269,12 @@ class LuaTestSettingsEditor(private val project: Project) : SettingsEditor<LuaTe
 
         testTargetField.addBrowseFolderListener(
             project,
-            FileChooserDescriptorFactory.createSingleLocalFileDescriptor()
+            FileChooserDescriptorFactory.singleFileOrDir()
         )
 
         workingDirectoryField.addBrowseFolderListener(
             project,
-            FileChooserDescriptorFactory.createSingleFolderDescriptor()
+            FileChooserDescriptorFactory.singleDir()
         )
 
         myPanel = FormBuilder.createFormBuilder()

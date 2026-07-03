@@ -229,8 +229,7 @@ class LuaRocksRunSettingsEditor(project: Project) : SettingsEditor<LuaRocksRunCo
     init {
         rockspecField.addBrowseFolderListener(
             project,
-            // TODO: Clean up deprecation: 'createSingleLocalFileDescriptor()' is deprecated.
-            FileChooserDescriptorFactory.createSingleLocalFileDescriptor()
+            FileChooserDescriptorFactory.singleFileOrDir()
         )
 
         myPanel = FormBuilder.createFormBuilder()

@@ -87,7 +87,7 @@ class LuaToolsConfigurable : Configurable {
     }
 
     private fun addToolViaChooser() {
-        val descriptor = FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
+        val descriptor = FileChooserDescriptorFactory.singleFile()
             .withTitle("Select Lua Tool Binary")
         val chosen = FileChooser.chooseFile(descriptor, rootPanel, null, null) ?: return
         LuaToolManager.getInstance().registerTool(chosen.path)
