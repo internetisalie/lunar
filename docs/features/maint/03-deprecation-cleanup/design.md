@@ -152,9 +152,18 @@ same `FileChooserDescriptorFactory` class.
   `JulLogger` overload the 261 platform jars do not export. The IJPGP-managed `testFramework(...)`
   artifact version is coupled to the IJPGP version, so this cannot be neutralized without either
   changing test behavior or pinning an unsupported framework build.
+  **The blocker is the platform release calendar, not just our SDK pin.** As of 2026-07-03,
+  2026.1.3 (build 261) is the current *stable* platform and **2026.2 (build 262) is not yet
+  released** — so there is no stable SDK past 261 to move to. The absent `JulLogger` overload is a
+  2026.2-era API change, i.e. IJPGP 2.17.0 is built *ahead* of the current stable platform. Moving
+  forward today would mean pinning a **2026.2 EAP/pre-release** build (a moving target) and setting
+  `pluginSinceBuild` to an unreleased build the plugin would publish against while no user runs it —
+  not acceptable for a behavior-preserving cleanup.
   **Resolution:** keep `intelliJPlatform = "2.5.0"` (suite stays green, 0 regressions). MAINT-03-04
-  is **coupled to a compiled-SDK bump past build 261** and cannot land independently; it stays open,
-  in scope for MAINT-03, until the SDK is bumped. See requirements MAINT-03-04.
+  is **parked, gated on 2026.2 shipping** (then bump the compiled SDK → 2.17.0 + Gradle 9.1 +
+  qodana/kover/changelog can all land together); it stays open, in scope for MAINT-03. Not tried:
+  the intermediate IJPGP range (≈2.7–2.16) for a build-261-compatible Gradle-9 upgrade off 2.5.0.
+  See requirements MAINT-03-04.
 
 ## 3. Algorithms
 
