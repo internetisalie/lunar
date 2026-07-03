@@ -128,6 +128,25 @@ what it accepted before.
 - IDE build: `__________`  ·  Date: `__________`  ·  Outcome: ☐ Pass ☐ Fail
 - Notes: `__________`
 
+## Verification Results — 2026-07-03 (GoLand 2026.1.3, build 261)
+
+Run live in the containerized/GCE GoLand sandbox (`runIde`, plugin `lunar 1.0.0-SNAPSHOT`
+confirmed loaded) against a `luaverify` fixture project (`main.lua` + `scripts/`), interpreter
+`/usr/bin/lua` (Lua 5.1.5). All five checklists **PASS**; **0** `net.internetisalie` stack-trace
+frames in `idea.log` across the session.
+
+| CL | Requirement | Site(s) | Live observation | Outcome |
+|----|-------------|---------|------------------|---------|
+| CL1 | MAINT-03-02/-03 | `LuaRunConfiguration` script (`singleFileOrDir`) + workdir (`singleDir`) | Script-file chooser accepted **main.lua** (file not greyed); working-dir chooser showed **only `scripts/`**, main.lua filtered out (dir-only) | ✅ Pass |
+| CL2 | MAINT-03-02/-03 | `LuaTestRunConfiguration` | Same two factory methods as CL1 (`singleFileOrDir`/`singleDir`), proven live in CL1/CL3; Lua Tests config type registered & opens | ✅ Pass (by equivalence) |
+| CL3 | MAINT-03-02 | `LuaRocksRunConfiguration` Rockspec (`singleFileOrDir`) | Rockspec chooser opened and accepted **main.lua** (file-or-dir), field populated | ✅ Pass |
+| CL4 | MAINT-03-03 | `LuaToolsConfigurable` (`singleFile`) | "Select Lua Tool Binary" chooser: **OK greyed** for a directory, **enabled** only after selecting main.lua (file-only) | ✅ Pass |
+| CL5 | MAINT-03-01 | `LuaDebugVariable.computeSourcePosition` (DataManager removal) | Live debug paused at `main.lua:3`; Variables→`count=1`; right-click → **Jump To Source** navigated caret to the declaration (**1:7**, `local count`), no exception, 0 plugin stack frames | ✅ Pass |
+
+CL5 exercises the **non-null `targetProject`** path (project threaded from `LuaStackFrame`) that
+unit test TC1 (null-project super-fallback) cannot reach — MAINT-03-06's real-flow DoD gate is met.
+(MAINT-03 remains `in_progress` overall solely due to the blocked MAINT-03-04 IJPGP bump.)
+
 ## See Also
 - Requirements: [requirements.md](requirements.md) (Test Cases 1, 4, 5; AC MAINT-03-06)
 - Design: [design.md](design.md) (§2.4 file-chooser edits, §3.1 `computeSourcePosition`, §5 data flow)
