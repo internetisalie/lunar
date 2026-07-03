@@ -26,7 +26,7 @@ validation, completion, quick-fixes, and hover docs for free.
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
 | [`SCHEMA-01`](01-engine/requirements.md) | **Lua JSON-Schema Engine** | **M** | **Full** | A Lua `JsonLikePsiWalker` + adapters + walker-factory/enabler that plug Lua data files into the platform JSON Schema engine; handles the two Lua-data document shapes (bare top-level globals; `return {table}`). |
-| [`SCHEMA-02`](02-rockspec-provider/requirements.md) | **Rockspec Schema Provider** | **S** | **Full** | A `JsonSchemaFileProvider` mapping `.rockspec` → the bundled rockspec v3.0/v3.1 schema; VNC-verified live (fixed a SCHEMA-01 EP-namespace bug — see [risks-and-gaps](02-rockspec-provider/risks-and-gaps.md)). **Supersedes the standalone [ROCKS-13](../rocks/13-rockspec-editor-support/requirements.md) design.** |
+| [`SCHEMA-02`](02-rockspec-provider/requirements.md) | **Rockspec Schema Provider** | **S** | **Full** | A `JsonSchemaFileProvider` mapping `.rockspec` → the bundled rockspec v3.0/v3.1 schema; VNC-verified live (fixed a SCHEMA-01 EP-namespace bug — see [risks-and-gaps](02-rockspec-provider/risks-and-gaps.md)). **Supersedes the standalone ROCKS-13 (retired) design.** |
 | [`SCHEMA-03`](03-luacheckrc-provider/requirements.md) | **Luacheckrc Schema Provider** | **S** | **Full** | A `LuaSchemaFileProvider` mapping `.luacheckrc`/`.luacheckrc.lua` → the bundled `luacheck-config.schema.json`, contributed to the SCHEMA-01 engine's `schemaFileProvider` EP (the second consumer that proves the engine generalises). Unit-verified (TC #1-#5 green) **and VNC-verified live** (V-01..V-04 pass: status bar binds "Schema: Luacheckrc", `globals = true` → "Incompatible types. Required: array. Actual: boolean.", `max_*` key completion with schema docs, `.luacheckrc.lua` parity, and plain `main.lua` shows "No JSON schema"). |
 | [`SCHEMA-04`](04-busted-provider/requirements.md) | **Busted Config Schema Provider** | **C** | **Full** | A provider mapping `.busted` (the `return {table}` document shape) → a bundled busted-config schema. Unit-verified (TC #1-#4 green) **and VNC-verified live** (status bar binds "Schema: Busted Config"; `bogus` → "Property 'bogus' is not allowed"; `verbose = "yes"` → "Incompatible types. Required: boolean. Actual: string."; profile-key completion with schema docs; plain `main.lua` → "No JSON schema"). |
 
@@ -43,7 +43,7 @@ file type and drifts from the JSON schemas we already ship. Adapting the platfor
   all flow through the engine.
 
 ## Relationship to ROCKS-13
-[ROCKS-13](../rocks/13-rockspec-editor-support/requirements.md) was planned as a **standalone**,
+ROCKS-13 (retired) was planned as a **standalone**,
 hand-rolled rockspec validator (its design §10 rejected the platform engine on the incomplete premise
 that it only validates JSON/YAML PSI — it is in fact walker-extensible). With the engine approach
 chosen, ROCKS-13's standalone design is **superseded** by **SCHEMA-02**, which reuses ROCKS-13's
@@ -60,4 +60,4 @@ into SCHEMA-02.
 ## See Also
 - Engine design: [01-engine/design.md](01-engine/design.md)
 - Epic risks: [01-engine/risks-and-gaps.md](01-engine/risks-and-gaps.md)
-- Superseded standalone: [ROCKS-13](../rocks/13-rockspec-editor-support/requirements.md)
+- Superseded standalone: ROCKS-13 (retired)

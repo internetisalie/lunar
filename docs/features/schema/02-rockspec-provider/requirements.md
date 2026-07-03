@@ -11,7 +11,7 @@ folders:
 
 # SCHEMA-02: Rockspec Schema Provider
 
-> **Supersedes the standalone [ROCKS-13](../../rocks/13-rockspec-editor-support/requirements.md)
+> **Supersedes the standalone ROCKS-13 (retired)
 > design.** ROCKS-13's hand-rolled validator is replaced by this thin provider on top of the
 > [SCHEMA-01](../01-engine/requirements.md) engine. ROCKS-13's bundled schemas, `rockspec_format`
 > version selection, and test cases are **reused**.
@@ -50,7 +50,7 @@ ROCKS-13 reduced interpreter had to collapse).
 
 ## See Also
 - Engine: [../01-engine/requirements.md](../01-engine/requirements.md)
-- Superseded standalone: [ROCKS-13](../../rocks/13-rockspec-editor-support/requirements.md)
+- Superseded standalone: ROCKS-13 (retired)
 
 ## Test Cases
 

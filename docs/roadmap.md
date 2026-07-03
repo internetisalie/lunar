@@ -268,6 +268,18 @@ bug and gave the type inspections false confidence until this session's coverage
 > Dropped: **ROCKS-07** (custom luarocks task panel) — redundant against Make + Lunar's native
 > format/lint/coverage/test integrations; the Makefile (ROCKS-11) is the task aggregator.
 
+> **Follow-on (planned 2026-07-03): hererocks environments.** [ROCKS-14](features/rocks/14-hererocks-environment/requirements.md)
+> adds isolated-environment lifecycle (detect / create / upgrade / recreate / remove via
+> [luarocks/hererocks](https://github.com/luarocks/hererocks)), binding the produced `lua`/`luarocks`
+> through the existing interpreter + TOOL-02 machinery — no resolver changes.
+> [ROCKS-15](features/rocks/15-multi-version-development/requirements.md) (Future Work) generalizes
+> it to a multi-env set + version switcher + cross-version test matrix.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| ROCKS-14 | Hererocks Environment Lifecycle | todo | S | TOOL-02 *(done)*, ROCKS-06 *(done)* | ROCKS-15 | Standalone (new `rocks.env` package) |
+| ROCKS-15 | Multi-Version Rocks Development | todo | C | **ROCKS-14** | — | after 14 (superset of its descriptor) |
+
 ## Wave 14 — Schema-Driven Data Files  *(SCHEMA epic; engine is serial, providers are parallel)*
 
 > The **SCHEMA epic was planned (2026-06-24)** to deliver JSON-Schema-driven validation, completion,
