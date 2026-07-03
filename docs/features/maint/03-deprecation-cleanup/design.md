@@ -208,6 +208,10 @@ registrations are untouched. No new extension points, IDs, groups, indexes, or s
 | MAINT-03-03 | S | §2.4 (`singleDir()` ×2, `singleFile()` ×1) |
 | MAINT-03-04 | M | §2.5 (`libs.versions.toml`) |
 | MAINT-03-05 | M | §2.5 (`gradle.properties`) |
+| MAINT-03-07 | M | §11 §8-II (`runReadActionBlocking`) |
+| MAINT-03-08 | M | §11 §8-III (retire `platform` prop) |
+| MAINT-03-09 | M | §11 §9 (Group IV per-site table) |
+| MAINT-03-10 | M | §11 (0 main-code warnings) |
 | MAINT-03-06 | M | §3.1 (behavior-identical control flow) + §1 (proven-equivalent swaps) |
 
 ## 9. Alternatives Considered
@@ -222,6 +226,44 @@ registrations are untouched. No new extension points, IDs, groups, indexes, or s
 - **Change E by editing the wrapper down to 8.13**: rejected — never downgrade a working wrapper;
   bring the stale property up to the wrapper's 8.14.4 instead.
 
+## 11. Expanded scope: Groups II–IV (full main-code deprecation cleanup)
+
+### §8-II — Group II: `runReadAction {}` → `runReadActionBlocking {}` (MAINT-03-07)
+Replace the deprecated free fn `com.intellij.openapi.application.runReadAction(() -> T)` with
+`runReadActionBlocking(() -> T)` — the **non-cancellable blocking** equivalent (identical semantics,
+non-deprecated name). **Not** `ReadAction.nonBlocking` (async/cancellable — a behaviour change). 14
+sites (requirements §MAINT-03-07): swap the call + import, keep the lambda body verbatim.
+`LuaChunkCompletion.kt:17` is a cluster — its `else` branch also calls deprecated
+`ProgressIndicatorUtils.yieldToPendingWriteActions()` / `runInReadActionWithWriteActionPriority(...)`
+(handled in Group IV / DR-02, or `@Suppress`-ed if no clean replacement). DR-01 pins the exact import.
+
+### §8-III — Group III: retire internal `platform` property (MAINT-03-08)
+`LuaProjectSettings.State.platform` (`:46`, `@Deprecated(..., ReplaceWith("target?.platform"))`) is the
+**deserialization anchor** for pre-`target` settings — `migrateFromLegacySettings()` reads it (`:96–99`)
+to upgrade old state; `setTarget()` writes it (`:112`) to keep the old format persistable. It **must not
+be deleted** (would break loading existing `.idea/lunar` settings). Retirement:
+1. Migrate the 17 **test** callers (which set `state.platform = …` directly) to
+   `setTarget(Target(platform, version))` / `getTarget()`.
+2. Extract the two legitimate migration touch-points into one private `@Suppress("DEPRECATION")`
+   helper, so the field persists but **no un-suppressed code references it** — the 5 warnings → 0.
+The field keeps its `@Property` persistence unchanged.
+
+### §9-IV — Group IV: misc "Deprecated in Java" singleton replacements (MAINT-03-09)
+
+| Site | Deprecated API | Replacement | Status |
+|---|---|---|---|
+| `lang/format/LuaCodeStyleSettings.kt:112,120` | `CodeStyleSettingsCustomizable.WRAP_OPTIONS`/`WRAP_VALUES` | `CodeStyleSettingsCustomizableOptions.getInstance().WRAP_OPTIONS`/`.WRAP_VALUES` (verified `CodeStyleSettingsCustomizable.java:328`) | **grounded** |
+| `project/LuaSettingsChangeListener.kt:28` | `DaemonCodeAnalyzer.restart()` | `restart(reason: Any)` (non-deprecated, `DaemonCodeAnalyzer.java:64`), reason `"MAINT-03: settings changed"` | **grounded** |
+| `lang/completion/templates/LuaTemplateContextType.kt:7` | `TemplateContextType(String id, String name)` | single-arg `TemplateContextType(name)` (`TemplateContextType.java:27`); confirm `"LUA"` contextId comes from the `templateContextType` EP in `plugin.xml` | grounded pending **DR-04** |
+| `lang/LuaCompletionContributor.kt:44` | `TailType.SPACE` | likely `com.intellij.codeInsight.TailTypes.spaceType()` | **DR-02** |
+| `lang/psi/LuaBaseElements.kt:160` | `StubBasedPsiElementBase.getElementType()` | likely `elementType` / `getIElementType()` | **DR-02** |
+| `run/LuaDebugVariable.kt:83` | `DataManager.dataContext` (no-arg) | superseded by MAINT-03-01 (Project threaded from `LuaStackFrame`); the site is deleted, not replaced | grounded (via §2.1) |
+| `lang/doc/LuaDocSearchEverywhereContributor.kt:111,112` | (two "Deprecated in Java" — API TBD) | determine from the exact call | **DR-03** |
+| `coverage/report/LuaCovReportHighlight.kt:24,27` | `createTextAttributesKey(String, TextAttributes)` | non-deprecated overload, or `@Suppress` — sites deliberately hard-code colors for non-inheriting themes (in-code comment) | **DR-03** |
+
+DR-gated rows resolve in Phase 0 (risks-and-gaps.md DR-02/03/04); where 261 offers no clean
+replacement, the site is `@Suppress("DEPRECATION")`-ed with a one-line rationale (per MAINT-03-09).
+
 ## 10. Open Questions
 
-_None — feature has cleared the planning bar._
+None — deferred replacement verifications are tracked as de-risking tasks DR-01…DR-04 in risks-and-gaps.md and gate Phases 2/5/7 via Phase 0.

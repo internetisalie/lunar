@@ -239,7 +239,7 @@ folders:
 |:---|:--------|:-------|:------|
 | MAINT-01 | Kotlin Conversion | done | 4 files converted to Kotlin (LuaPsiUtils, LuaTokenType, LuaCatsElementType, LuaPluginDisposable); 2 token-constant interfaces (LuaTokenTypes, LuaCatsTokenTypes) deferred to MAINT-19 |
 | MAINT-02 | Label Refactoring | done | Lazy PsiScopeProcessor-based resolution, PsiNameIdentifierOwner implementation, and rename binding |
-| MAINT-03 | Deprecation Cleanup | todo | Deprecated APIs still used (DataContext, FileChooserDescriptorFactory) |
+| MAINT-03 | Deprecation Cleanup | planned | Full plan (expanded 2026-07-03) covering all 33 src/main deprecations — DataManager, FileChooserDescriptorFactory, `runReadAction`→`runReadActionBlocking` ×14, `platform`-prop retirement, misc singletons — + Gradle-plugin 2.5→2.17. Phase 0 DR gate for unverified replacements. Not yet implemented |
 | MAINT-04 | Refactor Symbol Resolution | done | `LuaScopeProcessor` + `processDeclarations` across block/file/function/for |
 | MAINT-05 | Type Engine Cleanup | done | `LuaTypesVisitor` simplified, used across hints/annotators |
 | MAINT-06 | LuaCATS Literal Highlighting | done | `LuaCatsAnnotator` — keyword colors for literal string/number/boolean types (`"read"`, `1`, `true`) |

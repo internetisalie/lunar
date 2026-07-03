@@ -11,18 +11,24 @@ folders:
 
 ## Phases
 
-### Phase 0: Pre-flight API verification [Must]
-- **Goal**: Confirm the terse `FileChooserDescriptorFactory` methods exist in the resolved
-  2026.1.3 SDK before editing call sites; pin the fallback if not.
+### Phase 0: Pre-flight API verification [Must] — GATE for Phases 2, 5, 7
+- **Goal**: Confirm every replacement API exists in the resolved 2026.1.3 SDK before editing call
+  sites; pin fallbacks / `@Suppress` where none exists. Executes the DR tasks in risks-and-gaps.md.
 - **Tasks**:
-  - [ ] Verify `singleFileOrDir()`, `singleDir()`, `singleFile()` resolve against the
-        `platformVersion = 2026.1.3` SDK (grep the resolved `app.jar`/sources for
-        `FileChooserDescriptorFactory`, or attempt a scratch compile). Realizes design §1, §6.
-  - [ ] If any is absent, record that the constructor fallback
-        (`FileChooserDescriptor(true, true, false, false)` / `(false, true, false, false)` /
-        `(true, false, false, false)`) is used instead — per requirements "Behavior Rules".
-- **Exit criteria**: The three replacement methods (or their documented constructor fallbacks)
-  are confirmed available at 2026.1.3.
+  - [ ] **DR-00 (Group I):** Verify `singleFileOrDir()`, `singleDir()`, `singleFile()` resolve at
+        2026.1.3 (grep the resolved SDK jars/sources, or scratch-compile). Realizes design §1, §6.
+        If absent, use the ctor fallback `FileChooserDescriptor(true, true, false, false)` /
+        `(false, true, false, false)` / `(true, false, false, false)` (requirements Behavior Rules).
+  - [ ] **DR-01 (Group II):** Verify the exact `runReadActionBlocking` import
+        (`com.intellij.openapi.application.runReadActionBlocking`) exists and is non-deprecated at 261.
+  - [ ] **DR-02/DR-03 (Group IV):** Determine + verify the non-deprecated replacement for
+        `TailType.SPACE`, `StubBasedPsiElementBase.getElementType()`, `DataManager.dataContext`,
+        `createTextAttributesKey(String, TextAttributes)`, and the `LuaDocSearchEverywhereContributor:111,112`
+        pair (design §9). Where none exists, record an `@Suppress` + rationale.
+  - [ ] **DR-04 (Group IV):** Confirm the single-arg `TemplateContextType(name)` ctor + that the
+        `templateContextType` EP registration in `plugin.xml` still supplies the `"LUA"` contextId.
+- **Exit criteria**: every Group-I/II/IV replacement is confirmed available (or a documented
+  fallback/`@Suppress` is chosen); risks-and-gaps.md DR rows all marked resolved.
 
 ### Phase 1: Remove deprecated `DataManager` usage [Must]
 - **Goal**: `LuaDebugVariable` obtains its `Project` from `LuaStackFrame`; no `DataManager`.
@@ -57,14 +63,38 @@ folders:
 - **Exit criteria**: `gce-builder run build` prints `BUILD SUCCESSFUL` (TC 6); `gradleVersion`
   and the wrapper `distributionUrl` agree, and the `wrapper` task is idempotent (TC 7).
 
-### Phase 4: Regression verification [Must]
-- **Goal**: Prove behavior preservation and a clean build.
+### Phase 5: Group II — `runReadActionBlocking` swap [Must] (gated by DR-01)
+- **Goal**: 14 `runReadAction {}` → `runReadActionBlocking {}`, imports updated, semantics unchanged.
 - **Tasks**:
-  - [ ] `tooling/gce-builder/gce-builder.sh run test` — full unit suite green (TC 8).
-  - [ ] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` on the edited files
-        (match surrounding style; do not mass-reformat).
-  - [ ] Confirm `src/main` compiles with no *new* deprecation warnings for the three API families.
-- **Exit criteria**: build + tests green; no new deprecation warnings.
+  - [ ] Swap the 14 sites (requirements §MAINT-03-07 list); update the import; keep the lambda body
+        verbatim. Handle the `LuaChunkCompletion.kt:17` cluster (adjacent deprecated
+        `yieldToPendingWriteActions`/`runInReadActionWithWriteActionPriority`) per design §9.
+- **Exit criteria**: TC 9 (0 deprecated `runReadAction` imports in `src/main`); compiles.
+
+### Phase 6: Group III — retire internal `platform` prop [Must]
+- **Goal**: no external caller of the deprecated field; migration shim suppressed.
+- **Tasks**:
+  - [ ] Migrate the 17 test callers to `setTarget(...)`/`getTarget()` (design §8).
+  - [ ] Confine `migrateFromLegacySettings` read + `setTarget` write to one
+        `@Suppress("DEPRECATION")` private helper; keep the field for deserialization.
+- **Exit criteria**: TC 10 (no test reference; only the suppressed shim touches the field).
+
+### Phase 7: Group IV — misc singleton replacements [Must] (gated by DR-02/03/04)
+- **Goal**: each Group-IV site on its non-deprecated equivalent or documented `@Suppress`.
+- **Tasks**:
+  - [ ] Apply the design §9 per-site replacements: `WRAP_OPTIONS/WRAP_VALUES` →
+        `CodeStyleSettingsCustomizableOptions.getInstance()`; `restart()` → `restart(reason)`;
+        `TemplateContextType` single-arg; plus the DR-02/03/04 outcomes.
+- **Exit criteria**: TC 11; compiles.
+
+### Phase 4: Regression verification [Must] — FINAL
+- **Goal**: Prove behavior preservation, a clean build, and zero main-code deprecations.
+- **Tasks**:
+  - [ ] `tooling/gce-builder/gce-builder.sh run "clean build"` and `run test` — green (TC 6, TC 8).
+  - [ ] `run "compileKotlin --no-build-cache --rerun-tasks"` → **0** `is deprecated` in `src/main`
+        (excluding documented `@Suppress`) — TC 12 / MAINT-03-10.
+  - [ ] `run "ktlintFormat ktlintCheck"` on edited files (match surrounding style; no mass reformat).
+- **Exit criteria**: build + tests green; 0 main-code deprecation warnings (or `@Suppress`-documented).
 
 ## Requirement → Phase Coverage
 
@@ -75,7 +105,11 @@ folders:
 | MAINT-03-03 | S | Phase 2 |
 | MAINT-03-04 | M | Phase 3 |
 | MAINT-03-05 | M | Phase 3 |
-| MAINT-03-06 | M | Phase 4 |
+| MAINT-03-07 | M | Phase 5 |
+| MAINT-03-08 | M | Phase 6 |
+| MAINT-03-09 | M | Phase 7 |
+| MAINT-03-10 | M | Phase 4 (final) |
+| MAINT-03-06 | M | Phase 4 (final) |
 
 ## Verification Tasks
 - [ ] Add a unit test to `TestLuaDebugVariable` constructing `LuaDebugVariable("x", value, true)`
@@ -97,8 +131,11 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: Pre-flight API verification | todo | Must |
+| Phase 0: Pre-flight API verification (DR gate) | todo | Must |
 | Phase 1: Remove deprecated `DataManager` usage | todo | Must |
 | Phase 2: Replace file-chooser factories | todo | Must |
 | Phase 3: Modernize build configuration | todo | Must |
-| Phase 4: Regression verification | todo | Must |
+| Phase 5: Group II — `runReadActionBlocking` swap | todo | Must |
+| Phase 6: Group III — retire `platform` prop | todo | Must |
+| Phase 7: Group IV — misc singleton replacements | todo | Must |
+| Phase 4: Regression verification (FINAL) | todo | Must |
