@@ -243,7 +243,8 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-02| Label Refactoring | done | M | — | — | ✓ |
 | MAINT-06| LuaCATS Literal Highlighting | done | M | — | — | ✓ |
 | MAINT-07| Interpreter Search Path Globs | done | M | — | — | ✓ |
-| MAINT-03| Deprecation Cleanup | in_progress (blocked on MAINT-03-04 IJPGP bump — Gradle-9 blocker) | L | — | — | — |
+| MAINT-03| Deprecation Cleanup (MAINT-03-04 IJPGP bump carved out → MAINT-21) | done | L | — | — | ✓ |
+| MAINT-21| IJPGP 2.17 + Gradle 9 bump (deferred from MAINT-03-04) | deferred | L | **2026.2 platform release** *(build 262; not yet shipped as of 2026-07-03)* | — | Spike proved Gradle 9.1 + IJPGP 2.17 build clean but 2.17's test framework needs a platform newer than 261; land with the SDK bump. Untried: intermediate IJPGP ~2.7–2.16 for a 261-compatible Gradle-9 upgrade |
 | MAINT-08| LuaCheck UI Grouping | done | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | done | L | — | — | ✓ |
 | MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |

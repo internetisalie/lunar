@@ -2,7 +2,7 @@
 id: "MAINT-03"
 title: "MAINT-03: Deprecation Cleanup"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "low"
 parent_id: "MAINT"
 folders:
@@ -55,11 +55,17 @@ The 33 main sites group as (file:line grounded against a fresh `--rerun-tasks` c
 ## Scope
 
 ### In Scope
-- All 33 `src/main` deprecation sites (Groups I–IV) + the Gradle-plugin bump and wrapper reconcile.
+- All 33 `src/main` deprecation sites (Groups I–IV) + the Gradle **wrapper** reconcile (MAINT-03-05).
 - Migrating the 17 **test** callers of `LuaProjectSettings.State.platform` to the `target` API
   (Group III completion) so the deprecated field has no external readers/writers.
 
 ### Out of Scope
+- **The IntelliJ Platform Gradle Plugin bump (MAINT-03-04, IJPGP 2.5→2.17) — deferred.** A
+  2026-07-03 spike proved it is gated on the **unreleased 2026.2 platform** (build 262): IJPGP 2.17's
+  test framework targets a platform newer than the pinned build 261. It cannot land against a stable
+  SDK today, so it is carved out of this feature and parked in the **roadmap backlog**, to be picked
+  up when 2026.2 ships (see the MAINT-03-04 row and design §2.5). MAINT-03 is marked **done** on its
+  remaining, fully-delivered scope.
 - The 246 test-code idiom deprecations **other than** the `platform` callers — the 105
   `runInEdtAndWait(ThrowableRunnable)` and 118 test `runReadAction {}` sites. Deferred (possible
   follow-up feature).
@@ -77,7 +83,7 @@ The 33 main sites group as (file:line grounded against a fresh `--rerun-tasks` c
 | MAINT-03-01 | **Remove deprecated `DataManager.getDataContext()`** | M | `LuaDebugVariable.computeSourcePosition` obtains the `Project` from the owning `LuaStackFrame` instead of the deprecated no-arg `DataManager.getInstance().dataContext`; the `DataManager`/`DataContext`/`PlatformDataKeys` imports are removed. |
 | MAINT-03-02 | **Replace `@Deprecated` file-chooser factory** | M | The three `FileChooserDescriptorFactory.createSingleLocalFileDescriptor()` calls become the behavior-identical `singleFileOrDir()` (or the ctor fallback per Phase 0). |
 | MAINT-03-03 | **Modernize obsolete file-chooser factory** | S | `createSingleFolderDescriptor()` (×2) and `createSingleFileNoJarsDescriptor()` (×1) become `singleDir()` / `singleFile()`. |
-| MAINT-03-04 | **Update IntelliJ Platform Gradle Plugin** | M | **Deferred (blocked).** `intelliJPlatform = "2.17.0"` needs Gradle 9.0.0+ (repo wrapper is 8.14.4); the highest Gradle-8.14-compatible 2.x (`2.6.0`) regresses the whole test suite (`PathManager.getHomeDir` at `BasePlatformTestCase.setUp`). A **2026-07-03 spike** (Gradle 9.1.0 wrapper + IJPGP 2.17.0 + qodana 2025.1.1 / kover 0.9.2 / changelog 2.4.0) proved the tooling upgrade itself is clean — the build configures and compiles with **zero** `build.gradle.kts` changes — but `:test` fails **1080/1459** (1075 fan-out from one `TestLoggerFactory.reconfigure` → `NoSuchMethodError: JulLogger.configureLogFileAndConsole(...)` in `BasePlatformTestCase.setUp`). Root cause: **IJPGP 2.17.0's test framework is built against a platform newer than the pinned GoLand build 261**, so it calls a `JulLogger` overload absent from the 261 platform jars. **MAINT-03-04 therefore cannot land independently — it is coupled to a compiled-SDK bump past 261.** And as of 2026-07-03 **there is no stable platform past build 261**: 2026.1.3 is current and **2026.2 (build 262) is not yet released**, so IJPGP 2.17.0 is built *ahead* of the current stable platform (it targets the unreleased 2026.2 line). Landing it now would require pinning a **2026.2 EAP/pre-release** SDK — a moving target — and setting `pluginSinceBuild` to an unreleased build the plugin would ship against while **no user is on it**. So this is **not "deferred pending an SDK bump" but gated on 2026.2 actually shipping** (and the plugin choosing to adopt it). Kept at `2.5.0` (suite green, 0 regressions). **Remains in scope for MAINT-03 — parked/blocked**; MAINT-03 stays `in_progress` until 2026.2 ships and the SDK is bumped, at which point 2.17.0 (+ Gradle 9.1, qodana/kover/changelog) should land. See design §2.5. |
+| MAINT-03-04 | **Update IntelliJ Platform Gradle Plugin** | M | **Deferred (blocked).** `intelliJPlatform = "2.17.0"` needs Gradle 9.0.0+ (repo wrapper is 8.14.4); the highest Gradle-8.14-compatible 2.x (`2.6.0`) regresses the whole test suite (`PathManager.getHomeDir` at `BasePlatformTestCase.setUp`). A **2026-07-03 spike** (Gradle 9.1.0 wrapper + IJPGP 2.17.0 + qodana 2025.1.1 / kover 0.9.2 / changelog 2.4.0) proved the tooling upgrade itself is clean — the build configures and compiles with **zero** `build.gradle.kts` changes — but `:test` fails **1080/1459** (1075 fan-out from one `TestLoggerFactory.reconfigure` → `NoSuchMethodError: JulLogger.configureLogFileAndConsole(...)` in `BasePlatformTestCase.setUp`). Root cause: **IJPGP 2.17.0's test framework is built against a platform newer than the pinned GoLand build 261**, so it calls a `JulLogger` overload absent from the 261 platform jars. **MAINT-03-04 therefore cannot land independently — it is coupled to a compiled-SDK bump past 261.** And as of 2026-07-03 **there is no stable platform past build 261**: 2026.1.3 is current and **2026.2 (build 262) is not yet released**, so IJPGP 2.17.0 is built *ahead* of the current stable platform (it targets the unreleased 2026.2 line). Landing it now would require pinning a **2026.2 EAP/pre-release** SDK — a moving target — and setting `pluginSinceBuild` to an unreleased build the plugin would ship against while **no user is on it**. So this is **not "deferred pending an SDK bump" but gated on 2026.2 actually shipping** (and the plugin choosing to adopt it). Kept at `2.5.0` (suite green, 0 regressions). **Carved OUT of MAINT-03 scope and deferred** to the roadmap backlog (gated on 2026.2 shipping; then 2.17.0 + Gradle 9.1 + qodana/kover/changelog land together). MAINT-03 is **done** on its remaining scope. See design §2.5. |
 | MAINT-03-05 | **Reconcile Gradle wrapper version** | M | `gradle.properties gradleVersion` matches the wrapper `distributionUrl` so the `wrapper` task no longer downgrades. |
 | MAINT-03-07 | **Group II: `runReadActionBlocking` swap** | M | All 14 main `runReadAction {}` calls become `runReadActionBlocking {}` (behavior-preserving); the deprecated `runReadAction` import is dropped. No `ReadAction.nonBlocking`. |
 | MAINT-03-08 | **Group III: delete `platform` prop** | M | Delete the `@Deprecated` `LuaProjectSettings.State.platform` field entirely; rework `migrateFromLegacySettings()` to build the default `Target` from `LuaPlatform.STANDARD` + `languageLevel` (no field read); drop the `setTarget()` writeback; migrate the 17 test callers to `setTarget(...)`/`getTarget()`. No user base ⇒ no deserialization concern. |
@@ -128,13 +134,15 @@ DR-04). DR-gated: `TailType.SPACE`, `getElementType()`, `DataManager.dataContext
 | 12 | MAINT-03-10 | full compile | `run "compileKotlin --no-build-cache --rerun-tasks"` → `grep "is deprecated" | grep /src/main/ | wc -l` | 0 (excluding documented `@Suppress`). |
 
 ## Acceptance Criteria
-- [ ] MAINT-03-01…05: original Group-I criteria (TC 1–7) pass.
-- [ ] MAINT-03-07: TC 9 passes; 14 sites on `runReadActionBlocking`, no semantics change.
-- [ ] MAINT-03-08: TC 10 passes; deprecated `platform` field has no external caller.
-- [ ] MAINT-03-09: TC 11 passes; every Group-IV site replaced or documented.
-- [ ] MAINT-03-10: TC 12 passes; 0 main-code deprecation warnings (or `@Suppress`-documented).
-- [ ] MAINT-03-06: full `run build` + `run test` green; human-verification checklists CL1–CL5 pass.
-- [ ] All Phase 0 DR tasks (risks-and-gaps.md DR-01…DR-04) resolved before their dependent phases run.
+- [x] MAINT-03-01…03 + MAINT-03-05: Group-I criteria (TC 1–7) pass. **MAINT-03-04 deferred** (carved
+      out of scope — gated on the unreleased 2026.2 platform; tracked in the roadmap backlog).
+- [x] MAINT-03-07: TC 9 passes; 14 sites on `runReadActionBlocking`, no semantics change.
+- [x] MAINT-03-08: TC 10 passes; deprecated `platform` field has no external caller.
+- [x] MAINT-03-09: TC 11 passes; every Group-IV site replaced or documented (4 `@Suppress`).
+- [x] MAINT-03-10: TC 12 passes; 0 main-code deprecation warnings (4 `@Suppress`-documented).
+- [x] MAINT-03-06: full `run build` + `run test` green; human-verification checklists CL1–CL5 pass
+      (verified live in GoLand 2026.1.3, 2026-07-03).
+- [x] All Phase 0 DR tasks (risks-and-gaps.md DR-01…DR-04) resolved before their dependent phases ran.
 
 ## Non-Functional Requirements
 - **Threading**: Group II preserves blocking read-action semantics (no EDT/cancellability change).
