@@ -2,7 +2,7 @@
 id: "MAINT-20"
 title: "MAINT-20: Headless Parser & Lexer Generation (no IDE handoff)"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "low"
 parent_id: "MAINT"
 folders:

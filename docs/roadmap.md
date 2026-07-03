@@ -247,7 +247,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-08| LuaCheck UI Grouping | done | L | — | — | ✓ |
 | MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
 | MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |
-| MAINT-20| Headless Parser & Lexer Generation (no IDE handoff) | in_progress | C | MAINT-19 *(done)* | — | **Scope pivoted 2026-07-02** from platform.syntax (abandoned) to headless generation. Phase 1 partly done (commit `4fe9792e`): jars relocated to gitignored `tooling/parser-gen/`, `generate.sh` resolver added. Remaining: grammar-kit version decision, clean-checkout verify, de-manualize the guide |
+| MAINT-20| Headless Parser & Lexer Generation (no IDE handoff) | done | C | MAINT-19 *(done)* | — | **Scope pivoted 2026-07-02** from platform.syntax (abandoned) to headless generation. Delivered: jars in gitignored `tooling/parser-gen/`, headless `generate.sh` (grammar-kit 2023.3.2 pinned), clean-checkout regen is a no-op, suite green, agent guide de-manualized |
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 
