@@ -256,7 +256,7 @@ folders:
 | MAINT-17 | Test Coverage: Utilities | done | Unit-test coverage for process runner, file, and thread utilities |
 | MAINT-18 | Test Coverage: LuaCov Reports | done | Unit-test coverage for LuaCov report/stats parsers and the layered report editor |
 | MAINT-19 | platform.syntax Migration (Kotlin lexer/parser) | done | Kotlin-native `@JvmField object` token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) replacing MAINT-01's deferred Java interfaces; `.flex` rewired to `import static` + JFlex-only regen. Full `platform.syntax` port deferred to follow-up feature MAINT-20 |
-| MAINT-20 | Headless Parser & Lexer Generation (no IDE handoff) | planned | Scope pivoted 2026-07-02 from platform.syntax (abandoned — JFlex/Grammar-Kit emit Java natively, the standard practice) to making lexer+parser generation fully headless. Proven: `org.intellij.grammar.Main` runs headless against the IDE-bundled `grammar-kit-2023.3.2.jar` (only a cosmetic `var`→`var_$` version diff). Work: deterministic jar resolution in `generate.sh` + remove the manual IDE handoff from the agent guide |
+| MAINT-20 | Headless Parser & Lexer Generation (no IDE handoff) | in_progress | Scope pivoted 2026-07-02 from platform.syntax (abandoned) to fully headless lexer+parser generation. Phase 1 partly landed (commit `4fe9792e`): both jars relocated to gitignored `tooling/parser-gen/`, `generate.sh` resolver added, verified behavior-neutral. Remaining: grammar-kit version decision (`var_$`), clean-checkout end-to-end verification, and removing the manual IDE handoff from the agent guide |
 
 ---
 

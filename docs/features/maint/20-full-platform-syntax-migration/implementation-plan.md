@@ -42,12 +42,14 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 - **Goal**: an IDE-independent, version-pinned generator; `generate.sh` resolves it deterministically;
   the `var_$` drift is resolved to a single committed state.
 - **Tasks**:
-  - [ ] **Create `tooling/parser-gen/`**: `git mv`/move `jflex-1.9.2.jar` from root into it
-        (`git rm --cached` the root copy), add `grammar-kit-<ver>.jar`, add `.gitignore:
-        tooling/parser-gen/*.jar`, and write a tracked `tooling/parser-gen/README.md` documenting how
-        to obtain both jars. Repoint `generate.sh`'s `jflex-1.9.2.jar` reference — realizes MAINT-20-02.
-  - [ ] Add `resolve_grammar_kit_jar()` (design §3.1): vendored → `$GRAMMAR_KIT_JAR` → IDE-bundled →
-        gradle cache; verify `org/intellij/grammar/Main.class`; **abort with a clear error** if none.
+  - [x] **Create `tooling/parser-gen/`** (done, commit `4fe9792e`): moved `jflex-1.9.2.jar` from root
+        (`git rm --cached`), colocated `grammar-kit-2023.3.2.jar`, added `.gitignore:
+        /tooling/parser-gen/*.jar`, wrote tracked `tooling/parser-gen/README.md`. Repointed
+        `generate.sh`'s jflex reference — realizes MAINT-20-02.
+  - [x] Added `resolve_grammar_kit_jar()` in `generate.sh` (design §3.1): `tooling/parser-gen/` →
+        `$GRAMMAR_KIT_JAR` → IDE-bundled → gradle cache; verifies `org/intellij/grammar/Main.class`
+        and **aborts** if none. (generate.sh is gitignored agent-config; the durable record is these
+        docs.) Verified behavior-neutral: relocated jar regenerates a byte-identical `LuaParser.java`.
   - [ ] Decide the pinned version / `var_$` route (design §3.2): pick the Grammar-Kit version to
         vendor — either the one that reproduces the committed `var(...)` (route A), or adopt a newer
         one (e.g. 2023.3.2) and regenerate **all** of `src/main/gen` in one commit (route B) —
@@ -112,7 +114,7 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Jar resolution + version decision | todo | Must |
+| Phase 1: Vendor + jar resolution + version decision | in_progress (relocation + resolver done; version decision pending) | Must |
 | Phase 2: Headless end-to-end script | todo | Must |
 | Phase 3: De-manualize docs + skill | todo | Must |
 | Phase 4: Verify | todo | Must |
