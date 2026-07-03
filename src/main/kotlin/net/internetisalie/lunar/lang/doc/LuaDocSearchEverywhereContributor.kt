@@ -38,6 +38,11 @@ class LuaDocSearchEverywhereContributor(
 
     override fun isShownInSeparateTab(): Boolean = true
 
+    // MAINT-03: ProgressIndicatorUtils.yieldToPendingWriteActions() /
+    // runInReadActionWithWriteActionPriority() are deprecated, but the only modern replacement
+    // is coroutine readAction/smartReadAction — a threading-semantics change out of scope for
+    // this behavior-preserving cleanup. Suppress rather than force-migrate.
+    @Suppress("DEPRECATION")
     override fun fetchElements(
         pattern: String,
         progressIndicator: ProgressIndicator,

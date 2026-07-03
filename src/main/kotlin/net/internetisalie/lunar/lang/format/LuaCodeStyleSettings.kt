@@ -61,6 +61,10 @@ class LuaCodeStyleSettingsProvider : CodeStyleSettingsProvider() {
 }
 
 class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider() {
+    // MAINT-03: CodeStyleSettingsCustomizable.WRAP_VALUES (int[]) has no equivalent on the
+    // modern CodeStyleSettingsCustomizableOptions (only WRAP_OPTIONS moved there), so the
+    // WRAP_VALUES read stays on the deprecated holder — suppress its deprecation warning.
+    @Suppress("DEPRECATION")
     override fun customizeSettings(consumer: CodeStyleSettingsCustomizable, settingsType: SettingsType) {
         when (settingsType) {
             SettingsType.INDENT_SETTINGS -> consumer.showStandardOptions(
@@ -109,7 +113,7 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
                     "WRAP_ARGUMENTS",
                     LuaBundle.message("codeStyle.wrapping.callArguments"),
                     null,
-                    CodeStyleSettingsCustomizable.WRAP_OPTIONS,
+                    CodeStyleSettingsCustomizableOptions.getInstance().WRAP_OPTIONS,
                     CodeStyleSettingsCustomizable.WRAP_VALUES,
                 )
                 consumer.showCustomOption(
@@ -117,7 +121,7 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
                     "WRAP_TABLE_CONSTRUCTOR",
                     LuaBundle.message("codeStyle.wrapping.tableConstructor"),
                     null,
-                    CodeStyleSettingsCustomizable.WRAP_OPTIONS,
+                    CodeStyleSettingsCustomizableOptions.getInstance().WRAP_OPTIONS,
                     CodeStyleSettingsCustomizable.WRAP_VALUES,
                 )
                 // FORMAT-05 Alignment logic

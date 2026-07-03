@@ -138,5 +138,5 @@ folders:
 | Phase 3: Modernize build configuration | todo | Must |
 | Phase 5: Group II — `runReadActionBlocking` swap | todo | Must |
 | Phase 6: Group III — retire `platform` prop | done | Must |
-| Phase 7: Group IV — misc singleton replacements | todo | Must |
+| Phase 7: Group IV — misc singleton replacements | done | Must |
 | Phase 4: Regression verification (FINAL) | todo | Must |

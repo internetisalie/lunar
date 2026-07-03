@@ -25,6 +25,6 @@ class LuaSettingsChangeListener(private val project: Project) : LuaSettingsChang
         PlatformLibraryIndex.reload()
 
         // Restart code analysis for open files (TARGET-05)
-        DaemonCodeAnalyzer.getInstance(project).restart()
+        DaemonCodeAnalyzer.getInstance(project).restart("MAINT-03: settings changed")
     }
 }

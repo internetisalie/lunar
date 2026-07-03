@@ -1,6 +1,6 @@
 package net.internetisalie.lunar.lang
 
-import com.intellij.codeInsight.TailType
+import com.intellij.codeInsight.TailTypes
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.codeInsight.lookup.TailTypeDecorator
@@ -41,7 +41,7 @@ class LuaCompletionContributor : CompletionContributor() {
 
                 val element = if (SPACE_KEYWORDS.contains(keyword)) {
                     PrioritizedLookupElement.withPriority(
-                        TailTypeDecorator.withTail(builder, TailType.SPACE),
+                        TailTypeDecorator.withTail(builder, TailTypes.spaceType()),
                         KEYWORD_PRIORITY
                     )
                 } else {

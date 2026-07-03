@@ -21,9 +21,15 @@ object LuaCovReportHighlight {
     // TextAttributes on the key itself so they render correctly under ANY active editor
     // scheme (including modern themes such as "Islands Dark" that do not inherit the
     // Default/Darcula <additionalTextAttributes> deltas registered in plugin.xml).
+    // MAINT-03: createTextAttributesKey(String, TextAttributes) is deprecated but has no
+    // non-deprecated overload taking raw TextAttributes (only (String) / (String, Key)); the
+    // hard-coded colors above are intentional, so suppress rather than force-migrate.
+    @Suppress("DEPRECATION")
     val COVERED: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
         "LUACOV_COVERED", TextAttributes().apply { foregroundColor = COVERED_GREEN }
     )
+
+    @Suppress("DEPRECATION")
     val UNCOVERED: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
         "LUACOV_UNCOVERED", TextAttributes().apply { foregroundColor = UNCOVERED_RED }
     )

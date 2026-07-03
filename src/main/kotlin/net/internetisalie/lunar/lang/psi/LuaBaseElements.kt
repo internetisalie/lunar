@@ -157,7 +157,7 @@ abstract class LuaStubbedStatementImpl<T : StubElement<*>> : StubBasedPsiElement
     constructor(node: ASTNode) : super(node)
 
     override fun getElementType(): IStubElementType<out T, *> {
-        return super.getElementType() as IStubElementType<out T, *>
+        return getElementTypeImpl() as IStubElementType<out T, *>
     }
 
     override fun toString(): String {
