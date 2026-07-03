@@ -113,13 +113,12 @@ all one change: the committed file names the `var` rule method `var(...)`, the 2
 it `var_$(...)` (Grammar-Kit escaping the Java 10+ `var` soft keyword). It is a purely internal
 method name — behavior and the produced PSI are identical, and both compile.
 
-Two acceptable resolutions (the plan picks one after checking which the IDE actually uses):
-- **(A) Pin the reproducing version.** Identify the Grammar-Kit version that regenerates the
-  committed files unchanged and resolve *that* jar (e.g. from a specific IDE build, or `$GRAMMAR_KIT_JAR`).
-- **(B) Adopt 2023.3.2.** Accept the `var_$` naming, regenerate **all** affected files, and commit
-  them atomically as a one-time version bump — documented in the skill. Simpler and forward-looking.
-
-Not acceptable: leaving the tree in a state where a routine regen silently rewrites `var`→`var_$`.
+**Decision: route B, adopted 2026-07-03 (commit `d53adcbb`).** Grammar-Kit 2023.3.2 (the newest
+release) is the pinned version; all of `src/main/gen` was regenerated wholesale. The full change is
+117 files / 121 lines: `@NotNull` on generated `ASTNode` ctor params + `var`→`var_$` in
+`LuaParser.java`. gce-builder compile + unit `:test` green. The tree is now pinned, so a regen over
+unchanged sources is a no-op. (Route A — hunting a version that reproduced the *old* output — was
+rejected: 2023.3.2 is already newest, and its output is strictly a benign improvement.)
 
 ### 3.3 De-manualize the docs (MAINT-20-07)
 

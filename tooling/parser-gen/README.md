@@ -34,8 +34,10 @@ Verify the jar is usable: `unzip -l grammar-kit-*.jar | grep org/intellij/gramma
 
 ## Version pinning
 
-The Grammar-Kit **version is the pin** for generated output. Different versions can differ in
-cosmetic details (e.g. 2023.3.2 escapes the `var` rule method to `var_$`). Use the version agreed in
-`docs/features/maint/20-full-platform-syntax-migration/` so a regen over unchanged sources produces
-no diff. `generate.sh` resolves the jar from here first, then `$GRAMMAR_KIT_JAR`, then an installed
-IDE, then the Gradle cache — and aborts if none contains `org.intellij.grammar.Main`.
+The Grammar-Kit **version is the pin** for generated output. **Pinned version: 2023.3.2** (the
+newest release; the committed `src/main/gen/` was generated with it — commit `d53adcbb`). A regen
+with 2023.3.2 over unchanged sources is a no-op; other versions will produce a diff (e.g. an older
+one un-escapes `var_$` back to `var`). `generate.sh` resolves the jar from here first, then
+`$GRAMMAR_KIT_JAR`, then an installed IDE, then the Gradle cache — and aborts if none contains
+`org.intellij.grammar.Main`. Obtain 2023.3.2 from an installed IntelliJ IDEA's `grammar-kit/lib/`
+or the JetBrains/Grammar-Kit `v2023.3.2` release.

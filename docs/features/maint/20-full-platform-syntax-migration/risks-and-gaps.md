@@ -16,15 +16,15 @@ and bounded.
 
 ## Current Risks
 
-### Risk 1.1: Grammar-Kit version drift rewrites generated code
-- **Impact**: a regen with a different Grammar-Kit version rewrites internal method names
-  (observed: `var` → `var_$`, 18 lines in `LuaParser.java`), so a routine regen produces a noisy,
-  confusing diff — or, worse, a silent partial rewrite committed by accident.
-- **Likelihood**: certain (already observed) — but harmless behaviorally.
-- **Mitigation**: Phase 1 decides one canonical version — pin the version that reproduces the
-  committed files (route A), or adopt 2023.3.2 and regenerate **all** of `src/main/gen` atomically
-  (route B). Either way the tree is left in a state where a regen over unchanged sources is a
-  no-op (MAINT-20-05 / TC-5).
+### Risk 1.1: Grammar-Kit version drift rewrites generated code — RESOLVED (route B)
+- **Impact**: a regen with a different Grammar-Kit version rewrites generated code, producing a
+  noisy diff or an accidental silent partial rewrite.
+- **Resolution (2026-07-03, commit `d53adcbb`)**: adopted **Grammar-Kit 2023.3.2** (the newest
+  release) as the pinned version and regenerated all of `src/main/gen` wholesale. Residual change =
+  117 files, 121/121 lines, entirely benign: `@NotNull` on generated `ASTNode` ctor params + the
+  `var` → `var_$` soft-keyword escaping in `LuaParser.java`. Verified on gce-builder: compile + full
+  unit `:test` green. The tree is now pinned so a regen over unchanged sources is a no-op
+  (MAINT-20-05 / TC-5).
 
 ### Risk 1.2: Grammar-Kit jar not present on a given machine (esp. CI)
 - **Impact**: `org.intellij.grammar.Main` can't run, so regeneration is impossible there.

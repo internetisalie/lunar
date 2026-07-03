@@ -50,12 +50,11 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
         `$GRAMMAR_KIT_JAR` → IDE-bundled → gradle cache; verifies `org/intellij/grammar/Main.class`
         and **aborts** if none. (generate.sh is gitignored agent-config; the durable record is these
         docs.) Verified behavior-neutral: relocated jar regenerates a byte-identical `LuaParser.java`.
-  - [ ] Decide the pinned version / `var_$` route (design §3.2): pick the Grammar-Kit version to
-        vendor — either the one that reproduces the committed `var(...)` (route A), or adopt a newer
-        one (e.g. 2023.3.2) and regenerate **all** of `src/main/gen` in one commit (route B) —
-        realizes MAINT-20-05. The vendored jar *is* the pin, so this choice is baked in once.
-- **Exit criteria**: vendored jar present + synced; `generate.sh` resolves it or fails loudly; a
-  regen over unchanged sources is byte-identical to the (possibly route-B-updated) committed tree.
+  - [x] Version decision (design §3.2): **route B — pinned Grammar-Kit 2023.3.2 (newest)** and
+        regenerated all of `src/main/gen` (commit `d53adcbb`; 117 files, `@NotNull` ctor + `var_$`,
+        gce-builder unit `:test` green) — realizes MAINT-20-05.
+- **Exit criteria**: MET — jar in `tooling/parser-gen/`, `generate.sh` resolves it or fails loudly,
+  and the committed tree now matches 2023.3.2 output (a regen over unchanged sources is a no-op).
 
 ### Phase 2: Headless end-to-end script [Must]
 - **Goal**: one command regenerates both lexers + both parsers with the staging workaround, no IDE.
@@ -114,7 +113,7 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Vendor + jar resolution + version decision | in_progress (relocation + resolver done; version decision pending) | Must |
+| Phase 1: Vendor + jar resolution + version decision | done (commits 4fe9792e, d53adcbb) | Must |
 | Phase 2: Headless end-to-end script | todo | Must |
 | Phase 3: De-manualize docs + skill | todo | Must |
 | Phase 4: Verify | todo | Must |
