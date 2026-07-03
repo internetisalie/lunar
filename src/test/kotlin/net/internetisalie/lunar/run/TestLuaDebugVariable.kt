@@ -2,12 +2,15 @@ package net.internetisalie.lunar.run
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.xdebugger.XSourcePosition
+import com.intellij.xdebugger.frame.XNavigatable
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class TestLuaDebugVariable : BaseDocumentTest() {
 
@@ -18,6 +21,30 @@ class TestLuaDebugVariable : BaseDocumentTest() {
 
         assertNotNull(variable)
         assertEquals("myVar", variable.name)
+    }
+
+    @Test
+    fun testDebugVariableWithProject() {
+        val value = LuaDebugValue("number", "42", null)
+        val variable = LuaDebugVariable("x", value, true, myFixture.project)
+
+        assertNotNull(variable)
+        assertEquals("x", variable.name)
+    }
+
+    @Test
+    fun testComputeSourcePositionNullProjectFallsBackToSuper() {
+        val value = LuaDebugValue("number", "42", null)
+        val variable = LuaDebugVariable("x", value, true)
+
+        val recorded = mutableListOf<XSourcePosition?>()
+        val navigatable = XNavigatable { position -> recorded.add(position) }
+
+        variable.computeSourcePosition(navigatable)
+
+        // super (XValue.computeSourcePosition) records exactly one call with a null position.
+        assertEquals(1, recorded.size)
+        assertNull(recorded.single())
     }
 
     @Test

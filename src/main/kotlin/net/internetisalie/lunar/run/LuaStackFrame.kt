@@ -65,7 +65,8 @@ class LuaStackFrame(
                         it.displayValue ?: "",
                         AllIcons.Nodes.Variable,
                     ),
-                    true
+                    true,
+                    project
                 )
             })
 
@@ -77,7 +78,8 @@ class LuaStackFrame(
                         it.displayValue ?: "",
                         AllIcons.Nodes.Variable,
                     ),
-                    false
+                    false,
+                    project
                 )
             })
         }

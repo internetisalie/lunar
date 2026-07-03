@@ -16,9 +16,6 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.DataManager
-import com.intellij.openapi.actionSystem.DataContext
-import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -43,8 +40,14 @@ class LuaDebugVariable private constructor(
     private val value: LuaDebugValue,
     private val isIndex: Boolean,
     private val isLocal: Boolean,
+    private val targetProject: Project?,
 ) : XNamedValue(name) {
-    internal constructor(name: String, value: LuaDebugValue, isLocal: Boolean) : this(name, null, value, false, isLocal)
+    internal constructor(
+        name: String,
+        value: LuaDebugValue,
+        isLocal: Boolean,
+        targetProject: Project? = null,
+    ) : this(name, null, value, false, isLocal, targetProject)
 
     override fun computeChildren(node: XCompositeNode) {
         if (value.isTable) {
@@ -64,6 +67,7 @@ class LuaDebugVariable private constructor(
                         value = debugValue,
                         isIndex = false,
                         isLocal = true,
+                        targetProject = targetProject,
                     ),
                 )
             }
@@ -78,16 +82,11 @@ class LuaDebugVariable private constructor(
     }
 
     override fun computeSourcePosition(navigatable: XNavigatable) {
-        val dataManager: DataManager? = DataManager.getInstance()
-        // TODO: Clean up deprecation: 'val dataContext: DataContext' is deprecated.
-        val dataContext: DataContext? = dataManager?.dataContext
-
-        if (dataContext == null) {
+        val project: Project = targetProject ?: run {
             super.computeSourcePosition(navigatable)
             return
         }
 
-        val project: Project = PlatformDataKeys.PROJECT.getData(dataContext) ?: return
         val debugSession: XDebugSession = XDebuggerManager.getInstance(project).currentSession ?: return
         val currentPosition: XSourcePosition = debugSession.currentPosition ?: return
 
