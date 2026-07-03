@@ -69,6 +69,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Platform Libraries**: Lua standard library definitions and type information
 - **Project Settings**: Language level configuration (Lua 5.1-5.4)
 - **Application Settings**: Interpreter detection and workspace configuration
+- **Isolated Lua Environments (hererocks)**: Detect, create, upgrade, recreate, and remove a self-contained hererocks Lua+LuaRocks environment from Tools ▸ Lua Environment. On project open, an existing environment is detected with a one-click **Bind**; provisioning runs on a background task and binds the produced `bin/lua` as the project interpreter and `bin/luarocks` as the LuaRocks tool, so every downstream LuaRocks feature transparently targets the isolated env.
 
 ### Architecture
 - **Bipartite Type Graph**: O(n³) incremental reachability for type constraints

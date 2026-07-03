@@ -2,7 +2,7 @@
 id: ROCKS-14
 title: "14: Hererocks Environment Lifecycle"
 type: feature
-status: "planned"
+status: "done"
 priority: medium
 parent_id: ROCKS
 folders:
