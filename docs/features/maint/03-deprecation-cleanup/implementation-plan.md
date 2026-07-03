@@ -71,13 +71,14 @@ folders:
         `yieldToPendingWriteActions`/`runInReadActionWithWriteActionPriority`) per design §9.
 - **Exit criteria**: TC 9 (0 deprecated `runReadAction` imports in `src/main`); compiles.
 
-### Phase 6: Group III — retire internal `platform` prop [Must]
-- **Goal**: no external caller of the deprecated field; migration shim suppressed.
+### Phase 6: Group III — delete internal `platform` prop [Must]
+- **Goal**: the deprecated field and all 22 references are gone (no user base ⇒ no migration).
 - **Tasks**:
-  - [ ] Migrate the 17 test callers to `setTarget(...)`/`getTarget()` (design §8).
-  - [ ] Confine `migrateFromLegacySettings` read + `setTarget` write to one
-        `@Suppress("DEPRECATION")` private helper; keep the field for deserialization.
-- **Exit criteria**: TC 10 (no test reference; only the suppressed shim touches the field).
+  - [ ] Delete the `@Deprecated var platform` field (`LuaProjectSettings.kt:46`); rework
+        `migrateFromLegacySettings()` → `buildDefaultTarget()` using `LuaPlatform.STANDARD` +
+        `languageLevel` (no field read); delete the `setTarget()` writeback (`:112`). Design §8-III.
+  - [ ] Migrate the 17 test callers (`state.platform = …`) to `setTarget(...)`/`getTarget()`.
+- **Exit criteria**: TC 10 (field deleted; 0 references in `src/main`/`src/test`; compiles).
 
 ### Phase 7: Group IV — misc singleton replacements [Must] (gated by DR-02/03/04)
 - **Goal**: each Group-IV site on its non-deprecated equivalent or documented `@Suppress`.

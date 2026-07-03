@@ -15,12 +15,13 @@ dependent phases (Phase 0).
 
 ## Risks
 
-### R-1: Deleting the `platform` field breaks settings deserialization
-- **Impact**: `LuaProjectSettings.State.platform` anchors backward-compat loading of pre-`target`
-  `.idea/lunar` settings (`migrateFromLegacySettings`). A naive "delete the deprecated field" would
-  silently drop old users' platform selection on upgrade.
-- **Mitigation**: MAINT-03-08 **keeps** the field (with its `@Property` persistence) and only removes
-  *external* callers, confining the migration read/write to one `@Suppress("DEPRECATION")` helper.
+### R-1: Deleting the `platform` field breaks settings deserialization — MOOT (no user base)
+- **Original concern**: the field anchored backward-compat loading of pre-`target` `.idea/lunar`
+  settings, so deleting it could drop old users' platform selection on upgrade.
+- **Resolution (2026-07-03)**: **there is no installed user base**, so no legacy settings exist. The
+  migration is ditched — MAINT-03-08 **deletes** the field outright and reworks
+  `migrateFromLegacySettings()` into a plain default-target builder. No `@Suppress` shim, no
+  persistence-compat handling. This risk no longer applies.
 
 ### R-2: `runReadAction` → wrong replacement changes threading semantics
 - **Impact**: `ReadAction.nonBlocking` is async/cancellable; swapping the 14 blocking sites to it

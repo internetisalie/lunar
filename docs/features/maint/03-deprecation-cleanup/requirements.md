@@ -33,13 +33,16 @@ The 33 main sites group as (file:line grounded against a fresh `--rerun-tasks` c
   `run/console/LuaChunkCompletion.kt:17`, `lang/doc/LuaDocSearchItem.kt:33,45`,
   `lang/doc/LuaDocSearchEverywhereContributor.kt:108,122`,
   `lang/completion/LuaAutoImportInsertHandler.kt:37,39,45,63`.
-- **Group III — retire internal `platform` prop (5 main + 17 test):** declared
+- **Group III — DELETE internal `platform` prop (5 main + 17 test):** declared
   `@Deprecated("Use target.platform instead", ReplaceWith("target?.platform"))` at
-  `LuaProjectSettings.kt:46`. The 5 main warnings are its own legacy-settings **migration shim**
-  (`migrateFromLegacySettings()` reads `:96–99`; `setTarget()` writes `:112`). The field anchors
-  backward-compat deserialization and **must not be deleted** — retirement means removing all
-  *external* callers (17 test) and confining the field to a single `@Suppress("DEPRECATION")` shim
-  (see design §8, risks R-1).
+  `LuaProjectSettings.kt:46`. The 5 main warnings are its own settings shim
+  (`migrateFromLegacySettings()` reads it `:96–99`; `setTarget()` writes it back `:112`). **There is
+  no installed user base**, so there is no legacy `.idea/lunar.xml` to deserialize — the field's only
+  reason to exist is gone. Retirement is therefore a **straight delete**: remove the `@Deprecated`
+  `platform` field, rework `migrateFromLegacySettings()` to build the default `Target` from
+  `LuaPlatform.STANDARD` (its former default) + `languageLevel` without reading the field (rename it
+  e.g. `buildDefaultTarget()`), drop the `setTarget()` writeback, and migrate the 17 test callers to
+  `setTarget(...)`/`getTarget()`. No `@Suppress` shim needed (see design §8-III; former risk R-1 is moot).
 - **Group IV — misc "Deprecated in Java" singletons (~8):** each replaced with its verified
   non-deprecated equivalent (design §9 table): `createTextAttributesKey(String, TextAttributes)` ×2
   (`coverage/report/LuaCovReportHighlight.kt:24,27`), `CodeStyleSettingsCustomizable.WRAP_OPTIONS/WRAP_VALUES`
@@ -77,7 +80,7 @@ The 33 main sites group as (file:line grounded against a fresh `--rerun-tasks` c
 | MAINT-03-04 | **Update IntelliJ Platform Gradle Plugin** | M | `intelliJPlatform` in `gradle/libs.versions.toml` is `2.17.0`; `run build` succeeds. |
 | MAINT-03-05 | **Reconcile Gradle wrapper version** | M | `gradle.properties gradleVersion` matches the wrapper `distributionUrl` so the `wrapper` task no longer downgrades. |
 | MAINT-03-07 | **Group II: `runReadActionBlocking` swap** | M | All 14 main `runReadAction {}` calls become `runReadActionBlocking {}` (behavior-preserving); the deprecated `runReadAction` import is dropped. No `ReadAction.nonBlocking`. |
-| MAINT-03-08 | **Group III: retire `platform` prop external use** | M | The 17 test callers (and any non-migration main caller) of `LuaProjectSettings.State.platform` move to `target`/`setTarget`; the remaining legitimate legacy reads/writes are confined to one `@Suppress("DEPRECATION")` migration shim so the field survives only for backward-compat deserialization. |
+| MAINT-03-08 | **Group III: delete `platform` prop** | M | Delete the `@Deprecated` `LuaProjectSettings.State.platform` field entirely; rework `migrateFromLegacySettings()` to build the default `Target` from `LuaPlatform.STANDARD` + `languageLevel` (no field read); drop the `setTarget()` writeback; migrate the 17 test callers to `setTarget(...)`/`getTarget()`. No user base ⇒ no deserialization concern. |
 | MAINT-03-09 | **Group IV: misc singleton replacements** | M | Each Group-IV site uses its verified non-deprecated equivalent (design §9), or `@Suppress` + rationale where DR finds no replacement. |
 | MAINT-03-10 | **Main-code deprecation count → 0 (or documented)** | M | After the change, a `--rerun-tasks` compile emits **0** `is deprecated` warnings from `src/main`, except any explicitly `@Suppress`-ed with a rationale. |
 | MAINT-03-06 | **No behavior regression** | M | Full `run build` + `run test` green; run-config editors, debug navigation, doc search, completion, coverage highlighting, and settings persistence behave exactly as before. |
@@ -98,11 +101,13 @@ additionally sits next to deprecated `ProgressIndicatorUtils.yieldToPendingWrite
 exact `runReadActionBlocking` import.
 
 ### MAINT-03-08 (Group III)
-The `platform` field is the deserialization anchor for pre-`target` settings. Retirement = (a)
-migrate all 17 test callers to `setTarget(...)`/`getTarget()`; (b) confine the two legitimate
-migration touch-points (`migrateFromLegacySettings` read, `setTarget` write) to a single
-`@Suppress("DEPRECATION")`-annotated private helper so the field persists but no un-suppressed code
-references it. Do **not** delete the field (would break loading old `.idea` settings). See risks R-1.
+**No installed user base ⇒ no legacy settings to preserve**, so the field is simply deleted:
+(a) remove the `@Deprecated var platform` field (`:46`); (b) rework `migrateFromLegacySettings()` —
+which today reads `platform` to pick a version — to build the default `Target` from
+`LuaPlatform.STANDARD` (the field's former default) + `languageLevel`, and rename it to reflect that
+it now only constructs a fresh-state default (e.g. `buildDefaultTarget()`); (c) delete the
+`platform = newTarget.platform` writeback in `setTarget()` (`:112`); (d) migrate the 17 test callers
+(which set `state.platform = …`) to `setTarget(Target(platform, version))`/`getTarget()`. See design §8-III.
 
 ### MAINT-03-09 (Group IV)
 Per-site replacements — the grounded ones and the DR-gated ones are tabulated in design §9. Grounded
@@ -118,7 +123,7 @@ DR-04). DR-gated: `TailType.SPACE`, `getElementType()`, `DataManager.dataContext
 |---|-------------|-------|------|------|
 | 1–8 | MAINT-03-01…06 | (unchanged) | (unchanged) | Per the original design (DataManager removal TCs, file-chooser greps, build/wrapper, regression). |
 | 9 | MAINT-03-07 | `src/main` tree | `grep -rn "import com.intellij.openapi.application.runReadAction$" src/main` | 0 matches; `runReadActionBlocking` used at all 14 sites. |
-| 10 | MAINT-03-08 | `src/test` + `src/main` | `grep -rn "\.platform\b" src/test`; `grep -n "\.platform\b" LuaProjectSettings.kt` | No test references; only the single suppressed migration shim reads/writes the legacy field. |
+| 10 | MAINT-03-08 | `src/test` + `src/main` | `grep -rn "State.*\.platform\b\|state.platform\b" src/test src/main`; `grep -n "var platform" LuaProjectSettings.kt` | 0 matches — the `platform` field is gone; no caller references it; `LuaProjectSettings` compiles using `target`/`languageLevel` only. |
 | 11 | MAINT-03-09 | Each Group-IV site | manual vs design §9 table | Each calls its non-deprecated replacement or carries `@Suppress` + rationale. |
 | 12 | MAINT-03-10 | full compile | `run "compileKotlin --no-build-cache --rerun-tasks"` → `grep "is deprecated" | grep /src/main/ | wc -l` | 0 (excluding documented `@Suppress`). |
 

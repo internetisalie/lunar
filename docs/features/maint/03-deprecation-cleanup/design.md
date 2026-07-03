@@ -237,16 +237,23 @@ sites (requirements §MAINT-03-07): swap the call + import, keep the lambda body
 `ProgressIndicatorUtils.yieldToPendingWriteActions()` / `runInReadActionWithWriteActionPriority(...)`
 (handled in Group IV / DR-02, or `@Suppress`-ed if no clean replacement). DR-01 pins the exact import.
 
-### §8-III — Group III: retire internal `platform` property (MAINT-03-08)
-`LuaProjectSettings.State.platform` (`:46`, `@Deprecated(..., ReplaceWith("target?.platform"))`) is the
-**deserialization anchor** for pre-`target` settings — `migrateFromLegacySettings()` reads it (`:96–99`)
-to upgrade old state; `setTarget()` writes it (`:112`) to keep the old format persistable. It **must not
-be deleted** (would break loading existing `.idea/lunar` settings). Retirement:
-1. Migrate the 17 **test** callers (which set `state.platform = …` directly) to
+### §8-III — Group III: DELETE internal `platform` property (MAINT-03-08)
+`LuaProjectSettings.State.platform` (`:46`, `@Deprecated(..., ReplaceWith("target?.platform"))`) exists
+only as the deserialization anchor for pre-`target` settings. **There is no installed user base**, so
+no such legacy `.idea/lunar.xml` exists — the field is simply **deleted**:
+1. Remove the `@Deprecated var platform: LuaPlatform` field (`:46`).
+2. Rework `migrateFromLegacySettings()` (`:87–101`), which reads `platform` to look up a version, to
+   build the default `Target` from `LuaPlatform.STANDARD` (the field's former default) + `languageLevel`;
+   rename it to reflect that it now only constructs a fresh-state default (e.g. `buildDefaultTarget()`).
+   `getTarget()`'s `target == null → build default → setTarget` path is otherwise unchanged.
+3. Delete the `platform = newTarget.platform` writeback in `setTarget()` (`:112`); keep the
+   `target`/`languageLevel` writes.
+4. Migrate the 17 **test** callers (which set `state.platform = …` directly) to
    `setTarget(Target(platform, version))` / `getTarget()`.
-2. Extract the two legitimate migration touch-points into one private `@Suppress("DEPRECATION")`
-   helper, so the field persists but **no un-suppressed code references it** — the 5 warnings → 0.
-The field keeps its `@Property` persistence unchanged.
+
+Result: the field and all 22 references (5 main + 17 test) are gone; 0 warnings; no `@Suppress`
+needed. `target` remains the single source of truth (with `languageLevel` derived via
+`getImplicitLanguageLevel()`).
 
 ### §9-IV — Group IV: misc "Deprecated in Java" singleton replacements (MAINT-03-09)
 
