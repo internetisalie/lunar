@@ -147,26 +147,3 @@ class LuaAttribNameAnnotator : Annotator {
         }
     }
 }
-
-class LuaLocalBindingsAnnotator : Annotator {
-    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        // Note: Bindings annotation disabled after removing LuaBindingsVisitor
-        // Modern syntax highlighting uses CompletionContributor and semantic analysis
-        // This class retained for future enhancement
-    }
-}
-
-class LuaGotoAnnotator : Annotator {
-    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        // Note: Goto annotation disabled after removing LuaBindingsVisitor
-        // Label resolution now uses simple file search via LuaLabelReference
-        // This class retained for future enhancement
-    }
-}
-
-class LuaGlobalBindingsAnnotator: Annotator {
-    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        // Note: Global bindings annotation disabled after removing LuaBindingsVisitor
-        // This class retained for future enhancement using semantic analysis
-    }
-}
