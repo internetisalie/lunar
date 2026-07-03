@@ -72,16 +72,18 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
   `rm -rf build out` variant is the only residual (low-risk — it's a normal Gradle compile of
   committed sources producing the same classes).
 
-### Phase 3: De-manualize docs + skill [Must/Should]
+### Phase 3: De-manualize docs + skill [Must/Should] — DONE (2026-07-03)
 - **Goal**: the shared guide and skill describe the headless path; the human handoff is gone.
 - **Tasks**:
-  - [ ] Edit `.agents/AGENTS.md` "Add a language feature" + "Note on Lexer/Parser Generation" to the
-        headless command; drop the "pause and hand off to the human" step — realizes MAINT-20-07.
-  - [ ] [Should] Document jar resolution + staging + version pin in
-        `.claude/skills/generate-parser/` — realizes MAINT-20-08.
-  - [ ] Mirror the corrected workflow into this `docs/` feature set (tracked destination), since the
-        AGENTS.md/skill edits are gitignored.
-- **Exit criteria**: TC-7; guidance no longer references a manual IDE step.
+  - [x] Rewrote `.agents/AGENTS.md` "Note on Lexer/Parser Generation": dropped the "pause and hand
+        off to a human to right-click *Generate Parser Code*" step; now points to headless
+        `generate.sh` with jar location (`tooling/parser-gen/`), pinned version (2023.3.2), the
+        local-gradle-staging exception, and the no-op-regen safety check — realizes MAINT-20-07.
+  - [x] [Should] Updated `.agents/skills/generate-parser/SKILL.md`: jar-resolution order + fail-loud,
+        `tooling/parser-gen/` location, both grammars/lexers, version pin — realizes MAINT-20-08.
+  - Tracked destination: AGENTS.md/skill are git-ignored; the durable, tracked description lives in
+    the **tracked** `tooling/parser-gen/README.md` + this feature's docs (design §3.1/§3.3).
+- **Exit criteria**: MET (TC-7) — guidance no longer references a manual IDE step.
 
 ### Phase 4: Verify [Must]
 - **Goal**: prove the regenerated tree builds and tests clean **from a clean checkout**.
@@ -121,5 +123,5 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 |-------|--------|----------|
 | Phase 1: Vendor + jar resolution + version decision | done (commits 4fe9792e, d53adcbb) | Must |
 | Phase 2: Headless end-to-end script | done (empty-diff regen, exit 0) | Must |
-| Phase 3: De-manualize docs + skill | todo | Must |
+| Phase 3: De-manualize docs + skill | done | Must |
 | Phase 4: Verify | todo | Must |
