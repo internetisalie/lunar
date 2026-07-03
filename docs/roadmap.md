@@ -278,7 +278,7 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ROCKS-14 | Hererocks Environment Lifecycle | todo | S | TOOL-02 *(done)*, ROCKS-06 *(done)* | ROCKS-15 | Standalone (new `rocks.env` package) |
+| ROCKS-14 | Hererocks Environment Lifecycle | planned | S | TOOL-02 *(done)*, ROCKS-06 *(done)* | ROCKS-15 | Standalone (new `rocks.env` package); planned 2026-07-03 (design+plan reviewed, PASS) |
 | ROCKS-15 | Multi-Version Rocks Development | todo | C | **ROCKS-14** | — | after 14 (superset of its descriptor) |
 
 ## Wave 14 — Schema-Driven Data Files  *(SCHEMA epic; engine is serial, providers are parallel)*
