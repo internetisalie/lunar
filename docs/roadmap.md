@@ -245,7 +245,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-07| Interpreter Search Path Globs | done | M | — | — | ✓ |
 | MAINT-03| Deprecation Cleanup | planned | L | — | — | ✓ |
 | MAINT-08| LuaCheck UI Grouping | done | L | — | — | ✓ |
-| MAINT-15| Remove Legacy Annotators | planned | L | — | — | ✓ |
+| MAINT-15| Remove Legacy Annotators | done | L | — | — | ✓ |
 | MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |
 | MAINT-20| Headless Parser & Lexer Generation (no IDE handoff) | done | C | MAINT-19 *(done)* | — | **Scope pivoted 2026-07-02** from platform.syntax (abandoned) to headless generation. Delivered: jars in gitignored `tooling/parser-gen/`, headless `generate.sh` (grammar-kit 2023.3.2 pinned), clean-checkout regen is a no-op, suite green, agent guide de-manualized |
 
