@@ -2,15 +2,15 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.util.xmlb.annotations.Property
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaPlatform
-import net.internetisalie.lunar.rocks.env.HererocksEnvState
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
-import com.intellij.openapi.project.ProjectManager
+import net.internetisalie.lunar.rocks.env.HererocksEnvState
 
 @Service(Service.Level.PROJECT)
 @State(

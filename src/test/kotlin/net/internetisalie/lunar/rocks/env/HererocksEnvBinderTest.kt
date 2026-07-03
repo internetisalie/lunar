@@ -4,6 +4,7 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.settings.LuaSettingsChangedListener
 import net.internetisalie.lunar.tool.LuaToolType
 import java.io.File
 import java.nio.file.Files
@@ -39,9 +40,21 @@ class HererocksEnvBinderTest : BasePlatformTestCase() {
         if (SystemInfo.isWindows) return
         val spec = HererocksEnvState(directory = envDir.absolutePath, flavor = HererocksFlavor.PUC, luaVersion = "5.4")
 
+        var changeCount = 0
+        val connection = project.messageBus.connect(testRootDisposable)
+        connection.subscribe(
+            LuaSettingsChangedListener.TOPIC,
+            object : LuaSettingsChangedListener {
+                override fun onSettingsChanged() {
+                    changeCount++
+                }
+            },
+        )
+
         HererocksEnvBinder.bind(project, spec)
         PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
 
+        assertTrue("bind must fire LuaSettingsChangedListener.TOPIC", changeCount >= 1)
         val settings = LuaProjectSettings.getInstance(project)
         val boundId = settings.state.projectToolBindings[LuaToolType.LUAROCKS.name]
         assertNotNull("LUAROCKS binding must be set", boundId)

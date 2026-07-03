@@ -32,11 +32,6 @@ class HererocksProvisioner(private val project: Project) {
      * directory already provisioning is refused with a balloon and no process is spawned.
      */
     fun provision(spec: HererocksEnvState, mode: Mode) {
-        val prefix = HererocksLocator.resolvePrefix()
-        if (prefix == null) {
-            notify(HererocksLocator.REMEDIATION, NotificationType.ERROR)
-            return
-        }
         if (!active.add(spec.directory)) {
             notify("Provisioning already in progress for ${spec.directory}", NotificationType.WARNING)
             return
@@ -45,7 +40,7 @@ class HererocksProvisioner(private val project: Project) {
             object : Task.Backgroundable(project, "Provisioning Lua environment", true) {
                 override fun run(indicator: ProgressIndicator) {
                     try {
-                        runProvision(spec, mode, prefix, indicator)
+                        runProvision(ProvisionRequest(spec, mode), indicator)
                     } finally {
                         active.remove(spec.directory)
                     }
@@ -54,14 +49,19 @@ class HererocksProvisioner(private val project: Project) {
         )
     }
 
-    private fun runProvision(
-        spec: HererocksEnvState,
-        mode: Mode,
-        prefix: List<String>,
-        indicator: ProgressIndicator,
-    ) {
+    /** Bundles the per-directory provisioning inputs to keep helper arities within the tripwire. */
+    private data class ProvisionRequest(val spec: HererocksEnvState, val mode: Mode)
+
+    private fun runProvision(request: ProvisionRequest, indicator: ProgressIndicator) {
         indicator.checkCanceled()
-        if (mode == Mode.RECREATE) FileUtil.delete(File(spec.directory))
+        val prefix = HererocksLocator.resolvePrefix()
+        if (prefix == null) {
+            notify(HererocksLocator.REMEDIATION, NotificationType.ERROR)
+            return
+        }
+        val spec = request.spec
+        indicator.checkCanceled()
+        if (request.mode == Mode.RECREATE) FileUtil.delete(File(spec.directory))
         val output = LuaProcessUtil.capture(GeneralCommandLine(argsFor(prefix, spec)), PROVISION_TIMEOUT_MS)
         if (output.exitCode == 0) {
             val bound = spec.copy(id = spec.id.ifBlank { UUID.randomUUID().toString() })
