@@ -7,6 +7,7 @@ import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaPlatform
+import net.internetisalie.lunar.rocks.env.HererocksEnvState
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
 import com.intellij.openapi.project.ProjectManager
@@ -78,6 +79,13 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
          */
         var rocksServerUrl: String = ""
 
+        /**
+         * The hererocks-provisioned Lua environment descriptor for this project (ROCKS-14-01), or
+         * `null` when none has been bound. Stored in `.idea/lunar.xml` so the env spec is
+         * VCS-shared and upgrade/recreate stay reproducible across a team.
+         */
+        var hererocksEnv: HererocksEnvState? = null
+
         fun expandSourcePath(project : Project) : String {
             return sourcePath.trim(' ').expandMacros(project)
         }
@@ -145,6 +153,16 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         } else {
             state.projectToolBindings[typeName] = toolId
         }
+        project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
+    }
+
+    /**
+     * Sets (or clears when [interpreter] is `null`) the project interpreter and notifies listeners
+     * via [LuaSettingsChangedListener.TOPIC] (ROCKS-14-04). Mirrors [setProjectToolBindingAndNotify]
+     * so downstream caches invalidate immediately after a hererocks bind.
+     */
+    fun setInterpreterAndNotify(interpreter: LuaInterpreter?) {
+        state.interpreter = interpreter
         project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
     }
 
