@@ -56,15 +56,21 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 - **Exit criteria**: MET — jar in `tooling/parser-gen/`, `generate.sh` resolves it or fails loudly,
   and the committed tree now matches 2023.3.2 output (a regen over unchanged sources is a no-op).
 
-### Phase 2: Headless end-to-end script [Must]
+### Phase 2: Headless end-to-end script [Must] — DONE (2026-07-03)
 - **Goal**: one command regenerates both lexers + both parsers with the staging workaround, no IDE.
 - **Tasks**:
-  - [ ] Ensure `generate.sh` runs: compileKotlin → stage classes → parser gen (`lua.bnf`,
+  - [x] `generate.sh` runs end-to-end: compileKotlin → stage classes → parser gen (`lua.bnf`,
         `luacats.bnf`) → JFlex (`lua.flex`, `luacats.flex`) → revert the 14 stubbed files →
-        recompile — realizes MAINT-20-01/03/04. (Most of this already exists; harden error handling
-        and the parser-step soft-skip.)
-  - [ ] Make the parser step **fail loud** (no silent skip) — realizes the MAINT-20 behavior rule.
-- **Exit criteria**: `generate.sh` exits 0 on a clean checkout; `git diff src/main/gen` empty (TC-5).
+        recompile — realizes MAINT-20-01/03/04.
+  - [x] Parser/jar step now **fails loud** (resolver verifies `org.intellij.grammar.Main`, aborts
+        otherwise); JFlex soft-skip removed — realizes the MAINT-20 behavior rule.
+- **Exit criteria**: MET. A full local `generate.sh` run exited 0 (`BUILD SUCCESSFUL`) and left
+  **`git diff src/main/gen` empty** — the pinned 2023.3.2 + JFlex reproduce the committed tree
+  byte-for-byte (TC-5). The empty diff also confirms the compile-first staging resolves
+  `LuaPsiImplUtil` (no degraded `//WARNING skipped` accessors), closing the Phase 1/4 staging concern.
+  Note: run reused an existing `build/`, so `compileKotlin` was fast (46s); a from-absolute-scratch
+  `rm -rf build out` variant is the only residual (low-risk — it's a normal Gradle compile of
+  committed sources producing the same classes).
 
 ### Phase 3: De-manualize docs + skill [Must/Should]
 - **Goal**: the shared guide and skill describe the headless path; the human handoff is gone.
@@ -114,6 +120,6 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Vendor + jar resolution + version decision | done (commits 4fe9792e, d53adcbb) | Must |
-| Phase 2: Headless end-to-end script | todo | Must |
+| Phase 2: Headless end-to-end script | done (empty-diff regen, exit 0) | Must |
 | Phase 3: De-manualize docs + skill | todo | Must |
 | Phase 4: Verify | todo | Must |
