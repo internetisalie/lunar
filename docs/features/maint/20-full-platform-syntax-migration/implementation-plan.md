@@ -42,8 +42,10 @@ All from repo root. `$JH=/home/mini/.jdks/corretto-21.0.10`.
 - **Goal**: an IDE-independent, version-pinned generator; `generate.sh` resolves it deterministically;
   the `var_$` drift is resolved to a single committed state.
 - **Tasks**:
-  - [ ] **Vendor** `tools/grammar-kit/grammar-kit-<ver>.jar` (official JetBrains/Grammar-Kit release
-        jar of the chosen version). Ensure `gce-builder sync` pushes `tools/grammar-kit/` — realizes MAINT-20-02.
+  - [ ] **Vendor** `./grammar-kit-<ver>.jar` at the repo root, git-tracked, mirroring the existing
+        `./jflex-1.9.2.jar` (official JetBrains/Grammar-Kit release jar of the chosen version). It
+        syncs to the VM via the ordinary rsync — no gce-builder change. Confirm it isn't caught by a
+        `.gitignore *.jar` rule — realizes MAINT-20-02.
   - [ ] Add `resolve_grammar_kit_jar()` (design §3.1): vendored → `$GRAMMAR_KIT_JAR` → IDE-bundled →
         gradle cache; verify `org/intellij/grammar/Main.class`; **abort with a clear error** if none.
   - [ ] Decide the pinned version / `var_$` route (design §3.2): pick the Grammar-Kit version to

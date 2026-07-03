@@ -33,11 +33,12 @@ and bounded.
   (verified: no `grammar-kit` under `goland-*/plugins`), and grammar-kit isn't in the Gradle cache.
   Only a full IntelliJ IDEA with the Grammar-Kit *plugin manually installed* has it. So a cold CI
   box / the gce-builder VM would have **no** jar.
-- **Mitigation**: **vendor a pinned `tools/grammar-kit/grammar-kit-<ver>.jar`** in-repo (~948 KB,
-  Apache-2.0) as the primary source — IDE-independent, reproducible, and it pins the version (also
-  fixing Risk 1.1). Resolver falls back to `$GRAMMAR_KIT_JAR`/IDE/cache. `gce-builder sync` pushes
-  `tools/grammar-kit/` to the VM (as it already does for `jflex-1.9.2.jar`). **Note:** the *build*
-  gate never needs the jar — it compiles the committed `gen/`; only regeneration does.
+- **Mitigation**: **vendor a pinned `./grammar-kit-<ver>.jar`** at the repo root (~948 KB,
+  Apache-2.0), mirroring the already-tracked `./jflex-1.9.2.jar` — IDE-independent, reproducible, and
+  it pins the version (also fixing Risk 1.1). It reaches the VM via the ordinary tracked-file rsync,
+  so **no gce-builder change is needed** (jflex works the same way). Resolver falls back to
+  `$GRAMMAR_KIT_JAR`/IDE/cache. **Note:** the *build* gate never needs the jar — it compiles the
+  committed `gen/`; only regeneration does.
 
 ### Risk 1.3: Circular-dependency staging regression
 - **Impact**: if the compile-first / revert-14-stubbed-files staging is broken, generation emits
@@ -91,7 +92,7 @@ JetBrains-internal JFlex skeleton and Grammar-Kit `parser-api="syntax"`. Finding
 - **Grammar-Kit Gradle plugin** stays unwired (can't express the mid-generation stub revert). If the
   circular dependency is ever refactored away (e.g. `LuaPsiImplUtil` split so generated code needs
   no back-reference), the plugin's `generateParser`/`generateLexer` tasks could replace the script.
-- **CI without an IDE**: resolved by vendoring `tools/grammar-kit/grammar-kit-<ver>.jar` (Risk 1.2 /
+- **CI without an IDE**: resolved by vendoring `./grammar-kit-<ver>.jar` at the repo root (Risk 1.2 /
   MAINT-20-02) — no longer future work; it is the primary Phase 1 mechanism.
 
 ## See Also

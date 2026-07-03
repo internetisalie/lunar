@@ -62,18 +62,25 @@ GoLand does **not** bundle the Grammar-Kit plugin (verified — `goland-*/plugin
 `grammar-kit`), and it is not resolvable from the Gradle cache. So resolution must not depend on an
 installed IDE.
 
-**Primary mechanism: vendor a pinned jar in-repo.** Commit `tools/grammar-kit/grammar-kit-<ver>.jar`
-(~948 KB, Apache-2.0, from JetBrains/Grammar-Kit releases). This makes regeneration reproducible on
-**any** machine (dev, gce-builder VM, cold CI) with zero IDE dependency, and — because the jar *is*
-the version — simultaneously **pins the Grammar-Kit version, resolving the `var_$` drift** (§3.2).
+**Primary mechanism: vendor a pinned jar in-repo, mirroring the existing JFlex precedent.** JFlex is
+already vendored as a **git-tracked jar at the repo root** (`./jflex-1.9.2.jar`), which `generate.sh`
+references directly and which reaches the gce-builder VM via the ordinary tracked-file rsync (there
+is **no** special-casing and **no** `tools/` directory today). Vendor Grammar-Kit the same way:
+commit `./grammar-kit-<ver>.jar` at the repo root (~948 KB, Apache-2.0, from JetBrains/Grammar-Kit
+releases). Because it's tracked, it syncs to the VM with no gce-builder change; because the jar *is*
+the version, it **pins Grammar-Kit and resolves the `var_$` drift** (§3.2).
 
-Resolver order (vendored first; IDE only as a dev convenience fallback):
+(A tidier `tools/` dir holding *both* jars is possible but is extra churn — it means moving
+`jflex-1.9.2.jar` and updating `generate.sh`'s root reference. Deferred; root-level matches today's
+convention.)
+
+Resolver order (vendored first; IDE only as a dev-convenience fallback):
 
 ```bash
 resolve_grammar_kit_jar() {
-  # 1. vendored, version-pinned jar (the reproducible/CI source)
+  # 1. vendored, version-pinned jar at repo root (mirrors ./jflex-1.9.2.jar; the reproducible/CI source)
   local v
-  v=$(ls "$PROJECT_ROOT"/tools/grammar-kit/grammar-kit-*.jar 2>/dev/null | sort -V | tail -1)
+  v=$(ls "$PROJECT_ROOT"/grammar-kit-*.jar 2>/dev/null | sort -V | tail -1)
   [ -n "$v" ] && { echo "$v"; return; }
   # 2. explicit override
   [ -n "$GRAMMAR_KIT_JAR" ] && { echo "$GRAMMAR_KIT_JAR"; return; }
@@ -91,12 +98,13 @@ Then **verify** the jar contains `org/intellij/grammar/Main.class`
 otherwise — no soft "Skipping" for the parser step (MAINT-20 behavior rule).
 
 Local dev source that works today (used to seed the vendored jar):
-`~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`. Vendor the
-official release jar of the version that reproduces the committed `gen/` (see §3.2) rather than the
+`~/.local/share/JetBrains/IntelliJIdea2026.1/grammar-kit/lib/grammar-kit-2023.3.2.jar`. Prefer the
+official release jar of the version that reproduces the committed `gen/` (see §3.2) over the
 IDE-extracted copy, for clean provenance.
 
-> **gce-builder note.** The `sync` step must push `tools/grammar-kit/` to the VM (as it already does
-> for `jflex-1.9.2.jar` and the vendored test data) so headless regen works there.
+> **gce-builder note.** No sync change needed: a git-tracked root jar is rsynced like
+> `jflex-1.9.2.jar`. (Confirm the jar isn't caught by a `.gitignore` `*.jar` rule — `jflex-1.9.2.jar`
+> is tracked, so root jars are evidently allowed.)
 
 ### 3.2 Version parity / the `var_$` drift (MAINT-20-05)
 
