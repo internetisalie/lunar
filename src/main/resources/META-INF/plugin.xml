@@ -662,6 +662,10 @@
               class="net.internetisalie.lunar.rocks.env.matrix.RunMatrixAction"
               text="Run Test Matrix…"
               description="Run the rockspec build/test command against every provisioned environment"/>
+      <action id="Lunar.Hererocks.BatchProvision"
+              class="net.internetisalie.lunar.rocks.env.matrix.BatchProvisionAction"
+              text="Provision Version Matrix…"
+              description="Provision a whole matrix of Lua versions in one action"/>
     </group>
   </actions>
 </idea-plugin>
