@@ -15,6 +15,7 @@ import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.util.Consumer
 import net.internetisalie.lunar.settings.LuaSettingsChangedListener
+import net.internetisalie.lunar.util.newProjectBackgroundTask
 import java.awt.event.MouseEvent
 import javax.swing.Icon
 
@@ -85,7 +86,11 @@ class LuaEnvStatusBarWidget(private val project: Project) :
 
         override fun onChosen(selectedValue: Any, finalChoice: Boolean): PopupStep<*>? {
             if (selectedValue is HererocksEnvState) {
-                HererocksEnvSet.switch(project, selectedValue.id)
+                // Switch off the EDT: setActiveEnvAndNotify → bind() runs `luarocks --version` / `lua -v`
+                // probes, which must not run on the EDT. bind() marshals its UI mutation back internally.
+                newProjectBackgroundTask("Switching Lua environment", project) {
+                    HererocksEnvSet.switch(project, selectedValue.id)
+                }.queue()
             } else {
                 invokeCreateAction()
             }

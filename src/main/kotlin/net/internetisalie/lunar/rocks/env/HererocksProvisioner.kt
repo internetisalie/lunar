@@ -2,7 +2,6 @@ package net.internetisalie.lunar.rocks.env
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.notification.NotificationGroupManager
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
@@ -67,9 +66,10 @@ class HererocksProvisioner(private val project: Project) {
         val output = LuaProcessUtil.capture(GeneralCommandLine(argsFor(prefix, spec)), PROVISION_TIMEOUT_MS)
         if (output.exitCode == 0) {
             val bound = spec.copy(id = spec.id.ifBlank { UUID.randomUUID().toString() })
-            ApplicationManager.getApplication().invokeLater {
-                LuaProjectSettings.getInstance(project).upsertAndActivate(project, bound)
-            }
+            // Bind on THIS background task thread — not invokeLater. bind() runs `luarocks --version`
+            // and `lua -v` probes, which must never execute on the EDT (they trip
+            // OSProcessHandler.checkEdtAndReadAction). bind() marshals its own settings mutation to the EDT.
+            LuaProjectSettings.getInstance(project).upsertAndActivate(project, bound)
         } else {
             val tail = output.stderr.trim().lines().takeLast(STDERR_TAIL).joinToString("\n").ifBlank { "(no output)" }
             LOG.warn("hererocks provisioning failed (exit ${output.exitCode}): $tail")

@@ -4,11 +4,11 @@ import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.util.newProjectBackgroundTask
 
 /**
  * On project open, detects an unbound hererocks environment and offers a one-click **Bind**
@@ -34,10 +34,12 @@ class HererocksDetectStartup : ProjectActivity {
             )
         notification.addAction(object : NotificationAction("Bind") {
             override fun actionPerformed(event: AnActionEvent, ignored: com.intellij.notification.Notification) {
-                ApplicationManager.getApplication().invokeLater {
+                // Bind off the EDT: upsertAndActivate → bind() runs `luarocks --version` / `lua -v`
+                // probes, which must not execute on the EDT. bind() marshals its UI mutation back internally.
+                newProjectBackgroundTask("Binding Lua environment", project) {
                     LuaProjectSettings.getInstance(project)
                         .upsertAndActivate(project, HererocksEnvDetector.descriptorFromDir(directory))
-                }
+                }.queue()
                 notification.expire()
             }
         })
