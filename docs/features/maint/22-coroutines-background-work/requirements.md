@@ -2,7 +2,7 @@
 id: "MAINT-22"
 title: "MAINT-22: Adopt Kotlin Coroutines for Background Work (debugger pilot)"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "MAINT"
 folders:
