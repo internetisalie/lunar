@@ -37,7 +37,7 @@ Fixture: `~/luadebug/main.lua` (add function + top-level call), PUC 5.1 env (+lu
 
 ## Regression guard
 - [x] `gce-builder run test` green (full suite, incl. real-mobdebug `TestLuaDebugHarness`).
-- [ ] `gce-builder run build` green (incl. `:checkStatus`, `:lintDocs`) after `gen_status.py` regen — run at close-out.
+- [x] `gce-builder run build` green (incl. `:checkStatus`, `:lintDocs`, `:koverVerify`, `:integrationTest`) — BUILD SUCCESSFUL, 2026-07-04.
 - [x] `ktlintCheck` clean on all touched files.
 
 ## Sign-off
