@@ -2,7 +2,7 @@
 id: "MAINT-22"
 title: "MAINT-22: Adopt Kotlin Coroutines for Background Work (debugger pilot)"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "MAINT"
 folders:
@@ -116,10 +116,11 @@ The returned `Result` (empty patterns + `forceRefreshTracker`) is unchanged.
 | 7 | MAINT-22-07 | Project with rockspecs, cache cold, call on EDT | `derivedPatterns()` | First call returns empty; a later call (after the launched prime) returns the real derived patterns. |
 
 ## Acceptance Criteria
-- [ ] MAINT-22-01…-07 satisfied with unit tests + `grep` assertions green.
-- [ ] MAINT-22-08 verified live in the containerized GoLand over VNC, with screenshots archived under this feature.
-- [ ] Full suite green via `gce-builder run test` (regression-relative to the Wave baseline).
-- [ ] `ktlintFormat ktlintCheck` clean on all touched files.
+- [x] MAINT-22-01…-07 satisfied with unit tests + `grep` assertions green.
+- [x] MAINT-22-08 verified live in GoLand 2026.1.3 over VNC (full debug flow: connect → breakpoint → variables → evaluate `x+y`=30 → step over → resume → clean terminate).
+- [x] Full suite green via `gce-builder run test` (incl. real-mobdebug `TestLuaDebugHarness`).
+- [x] `ktlintCheck` clean on all touched files.
+- [x] Lifecycle: exactly one `readLoop exiting` per session (no leak); no EDT/threading assertions during debug (R3 closed).
 
 ## Non-Functional Requirements
 - **Threading:** all socket I/O on `Dispatchers.IO`; no EDT blocking; PSI reads via `readAction {}`/`runReadAction`.

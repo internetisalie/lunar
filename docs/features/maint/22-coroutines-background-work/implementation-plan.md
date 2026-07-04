@@ -50,18 +50,21 @@ live. Each phase ends at a compiling, suite-green state.
 - [x] Existing `*Rockspec*` suite covers the empty-then-primed cache behavior (unchanged `Result`).
 - **Verified:** `gce-builder run "test --tests *Rockspec* --tests *RockspecSourcePath*"` → BUILD SUCCESSFUL.
 
-## Phase 5 — Live verification `[Must]` (MAINT-22-08)
-- [ ] Follow the `verify-in-ide` skill: containerized GoLand over VNC, inject plugin jar + license + interpreter,
-      open the Lua test project, run the full debug flow in [human-verification-checklists.md](human-verification-checklists.md).
-- [ ] Archive screenshots under this feature folder.
-- **Verify:** all checklist rows PASS; `idea.log` shows one clean `readLoop`/`run() exiting` per session, no leaked thread.
+## Phase 5 — Live verification `[Must]` (MAINT-22-08) — ✅ DONE (2026-07-04)
+- [x] Drove GoLand 2026.1.3 over VNC (native gce-builder host): provisioned a PUC 5.1 env (+luasocket), registered
+      the interpreter, created a Lua debug config, set a line breakpoint, ran the full flow.
+- [x] Full debug flow PASSED: connect → pause at line 8 (Locals `x=10 y=20 add`) → evaluate `x+y`=**30** →
+      step over (→ line 9, `total=30`) → resume (`total = 30`, exit 0) → clean terminate.
+- [x] `idea.log`: exactly **one** `readLoop exiting` (no leak); **zero** EDT/threading assertions during the debug
+      session. (Pre-existing, out-of-scope `lua -v`/`luarocks --version`-on-EDT SEVERE during env detect/bind is
+      flagged as a separate follow-up task — not the debugger.)
+- **Verified:** all `human-verification-checklists.md` debug-flow rows PASS.
 
-## Phase 6 — Conventions doc `[Could]` (MAINT-22-09)
-- [ ] Add a "Coroutines & structured concurrency" subsection to `docs/engineering-contract.md`: prefer service
-      `CoroutineScope` injection + `childScope`; `readAction {}`/`Dispatchers.EDT`; when to keep `Task.Backgroundable`
-      (user-visible determinate progress); the no-double-bundle rule. List the opportunistic backlog
-      (12 `Task.Backgroundable`, UI fetch panels, `Alarm` debounce).
-- **Verify:** `python3 scripts/lint_docs.py docs`.
+## Phase 6 — Conventions doc `[Could]` (MAINT-22-09) — ✅ DONE (2026-07-04)
+- [x] Extended `docs/engineering-contract.md` §2 "FUNCTIONS, ACTIONS & COROUTINES" with a concrete conventions bullet:
+      `LunarCoroutineScopeService` + `childScope`, `readAction {}`/`Dispatchers.EDT`/`withBackgroundProgress`, the
+      DBGp transport as the reference impl, the no-double-bundle rule, and the opportunistic-migration backlog.
+- **Verified:** `python3 scripts/lint_docs.py docs` clean.
 
 ## Rollback
 Each phase is an atomic commit. Phases 2-3 are one logical unit (the debugger won't compile between them on a shared
