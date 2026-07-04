@@ -1,5 +1,8 @@
 package net.internetisalie.lunar.run
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import java.io.File
 import java.net.ServerSocket
 import java.net.Socket
@@ -15,7 +18,7 @@ private val MOBDEBUG_DIR = File(PROJECT_ROOT, "src/main/lua")
  * Starts a Lua subprocess with mobdebug injected and accepts its debug connection.
  *
  * The returned [LuaHarness] holds the started [Process] and the accepted [LuaDebugConnection]
- * running on a background thread. Call [LuaHarness.close] when done.
+ * whose reader coroutine runs on the harness's own [CoroutineScope]. Call [LuaHarness.close] when done.
  *
  * @param script    Path to the Lua script to run.
  * @param observer  Observer to receive debug events.
@@ -41,24 +44,21 @@ fun startLuaDebugHarness(script: File, observer: LuaDebugObserver): LuaHarness {
         serverSocket.close()
     }
 
-    val connection = LuaDebugConnection(clientSocket, observer)
-    val connectionThread = Thread(connection::run, "lua-debug-connection").apply {
-        isDaemon = true
-        start()
-    }
+    val scope = CoroutineScope(SupervisorJob())
+    val connection = LuaDebugConnection(clientSocket, observer, scope).also { it.start() }
 
-    return LuaHarness(process, clientSocket, connection, connectionThread)
+    return LuaHarness(process, clientSocket, connection, scope)
 }
 
 class LuaHarness(
     val process: Process,
     private val socket: Socket,
     val connection: LuaDebugConnection,
-    private val connectionThread: Thread,
+    private val scope: CoroutineScope,
 ) : AutoCloseable {
     override fun close() {
         connection.close()
-        connectionThread.join(2_000)
+        scope.cancel()
         process.destroyForcibly()
     }
 }

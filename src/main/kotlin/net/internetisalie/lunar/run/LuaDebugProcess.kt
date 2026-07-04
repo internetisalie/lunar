@@ -21,11 +21,11 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ExecutionConsole
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.ui.Messages
+import com.intellij.platform.ide.progress.withBackgroundProgress
+import com.intellij.platform.util.coroutines.childScope
 import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XSourcePosition
@@ -34,13 +34,18 @@ import com.intellij.xdebugger.breakpoints.XBreakpointHandler
 import com.intellij.xdebugger.evaluation.XDebuggerEditorsProvider
 import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 import com.intellij.xdebugger.frame.XSuspendContext
-import javax.swing.SwingUtilities
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import net.internetisalie.lunar.util.LunarCoroutineScopeService
 
 class LuaDebugProcess(
     session: XDebugSession,
     val executionResult: ExecutionResult,
 ) : XDebugProcess(session) {
-    private val controller: LuaDebuggerController = LuaDebuggerController(session)
+    private val sessionScope =
+        LunarCoroutineScopeService.getInstance(session.project).scope.childScope("LuaDebugSession")
+    private val controller: LuaDebuggerController = LuaDebuggerController(session, sessionScope)
     private val lineBreakpointHandler: LuaLineBreakpointHandler? = LuaLineBreakpointHandler(this)
     private var myClosing = false
     private lateinit var myExecutionConsole: ConsoleView
@@ -50,15 +55,15 @@ class LuaDebugProcess(
     }
 
     override fun startStepOver(context: XSuspendContext?) {
-        controller.stepOver()
+        sessionScope.launch { controller.stepOver() }
     }
 
     override fun startStepInto(context: XSuspendContext?) {
-        controller.stepInto()
+        sessionScope.launch { controller.stepInto() }
     }
 
     override fun startStepOut(context: XSuspendContext?) {
-        controller.stepOut()
+        sessionScope.launch { controller.stepOut() }
     }
 
     override fun stop() {
@@ -68,7 +73,7 @@ class LuaDebugProcess(
     }
 
     override fun resume(context: XSuspendContext?) {
-        controller.resume()
+        sessionScope.launch { controller.resume() }
     }
 
     override fun runToPosition(position: XSourcePosition, context: XSuspendContext?) {
@@ -101,79 +106,60 @@ class LuaDebugProcess(
             }
         })
 
-        ProgressManager.getInstance().run(object : Backgroundable(null, "Connecting to debugger", false) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.setText("Connecting to debugger...")
-                log.info("connecting")
-                try {
-                    controller.waitForConnect()
-
+        sessionScope.launch {
+            try {
+                withBackgroundProgress(session.project, "Connecting to debugger") {
+                    log.info("connecting")
+                    controller.connect()
                     log.info("connected")
-                    indicator.setText("... Debugger connected")
-
                     session.rebuildViews()
-
-                    registerBreakpoints()
-
+                    drainInstalledBreakpoints()
                     controller.resume()
-
                     log.info("connection running")
-                } catch (e: Exception) {
-                    log.error("Failed to connect to debugger", e)
-
-                    if (executionResult.processHandler != null)
-                        executionResult.processHandler.destroyProcess()
-
-                    if (!myClosing) SwingUtilities.invokeLater {
+                }
+            } catch (e: Exception) {
+                log.error("Failed to connect to debugger", e)
+                executionResult.processHandler?.destroyProcess()
+                if (!myClosing) {
+                    withContext(Dispatchers.EDT) {
                         Messages.showErrorDialog(
-                            (StringBuilder()).append("Unable to establish connection with debugger:\n")
-                                .append(e.message).toString(), "Connecting to Debugger"
+                            "Unable to establish connection with debugger:\n${e.message}",
+                            "Connecting to Debugger",
                         )
                     }
                 }
             }
-        })
+        }
     }
 
-
-    var installedBreaks: MutableList<XBreakpoint<*>> = ArrayList()
+    private val installedBreaks: MutableList<XBreakpoint<*>> = ArrayList()
 
     override fun getEvaluator(): XDebuggerEvaluator? {
         return session.currentStackFrame?.evaluator
     }
 
-    @Synchronized
-    private fun registerBreakpoints() {
-        log.info("registering pending breakpoints")
-
-        for (b in installedBreaks) {
-            while (!controller.isReady) {
-                try {
-                    Thread.sleep(100)
-                } catch (e: InterruptedException) {
-                    e.printStackTrace() //To change body of catch statement use File | Settings | File Templates.
-                    return
-                }
-            }
-
-            controller.addBreakPoint(b)
+    /** Drain breakpoints registered before the connection was ready; called inside the connect coroutine. */
+    private suspend fun drainInstalledBreakpoints() {
+        val pending: List<XBreakpoint<*>>
+        synchronized(installedBreaks) {
+            pending = installedBreaks.toList()
+            installedBreaks.clear()
         }
-
-        installedBreaks.clear()
+        for (b in pending) controller.addBreakPoint(b)
     }
 
-    @Synchronized
     fun addBreakPoint(pos: XBreakpoint<*>) {
         log.info("add breakpoint $pos")
-        if (controller.isReady) controller.addBreakPoint(pos)
-        else installedBreaks.add(pos)
+        if (controller.isReady) {
+            sessionScope.launch { controller.addBreakPoint(pos) }
+        } else {
+            synchronized(installedBreaks) { installedBreaks.add(pos) }
+        }
     }
 
-    @Synchronized
     fun removeBreakPoint(pos: XBreakpoint<*>) {
         log.info("remove breakpoint $pos")
-        // if (controller.isReady())
-        controller.removeBreakPoint(pos)
+        sessionScope.launch { controller.removeBreakPoint(pos) }
     }
 
     companion object {

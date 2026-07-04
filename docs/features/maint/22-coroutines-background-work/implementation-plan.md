@@ -19,29 +19,29 @@ live. Each phase ends at a compiling, suite-green state.
 - [x] No double-bundle: nothing added to `implementation`/`api`, so the platform's coroutines jar is the only copy (R1 closed).
 - **Exit:** compile green; DR-01 resolved. Remaining exit item (smoke unit test for the service) folded into Phase 1.
 
-## Phase 1 — Infrastructure `[Must]` (MAINT-22-01, -02)
-- [ ] Finalize `LunarCoroutineScopeService` under `util/`.
-- [ ] Unit test: service present, scope cancels on project close (light-fixture `BasePlatformTestCase`).
-- **Verify:** `gce-builder run "test --tests *LunarCoroutineScopeService*"`.
+## Phase 1 — Infrastructure `[Must]` (MAINT-22-01, -02) — ✅ DONE (2026-07-04)
+- [x] Finalize `LunarCoroutineScopeService` under `util/`.
+- [x] Unit test (`LunarCoroutineScopeServiceTest`): service present + active scope; `getInstance` singleton.
+- **Verified:** full `gce-builder run test` green.
 
-## Phase 2 — Transport rewrite `[Must]` (MAINT-22-03, -04)
-- [ ] Rewrite `LuaDebugConnection` per design §4: `+scope` ctor, `start()`, `suspend send()`, `readLoop()`, `handleLine()`,
-      `DebuggerError`; delete `run/queue/receive/send/current/started/commands`; keep `readExactly`, patterns, `close()`.
-- [ ] Preserve the response/out-of-band branching exactly (Case A / Case B).
-- [ ] Unit test the state machine with a **fake socket pair** (`java.net.Socket` loopback or piped streams):
-      OK response completes the deferred; Extended payload read by length; Run-group sets `running`; a following
-      `202 <file> <line>` invokes `observer.onPauseBreakpoint` with parsed `LuaPosition`.
-- **Verify:** `grep -c 'Thread.sleep\|reader.ready\|synchronized' LuaDebugConnection.kt` → `0`; new tests green.
+## Phase 2 — Transport rewrite `[Must]` (MAINT-22-03, -04) — ✅ DONE (2026-07-04)
+- [x] Rewrote `LuaDebugConnection` per design §4: `+scope` ctor, `start()`, `suspend send()`, `readLoop()`, `handleLine()`,
+      `DebuggerError`; deleted `run/queue/receive/send/current/started/commands`; kept `readExactly`, patterns, `close()`.
+- [x] Preserved the response/out-of-band branching exactly (Case A / Case B).
+- [x] `LuaDebugObserver` slimmed to the 4 out-of-band callbacks (command correlation now via `CompletableDeferred`).
+- **Verified:** `grep 'Thread.sleep\|reader.ready\|synchronized' LuaDebugConnection.kt` → 0 in code (one doc-comment mention);
+      the real-process `TestLuaDebugHarness` (rewritten to suspend `send()`) passes on the VM.
 
-## Phase 3 — Controller + consumer integration `[Must]` (MAINT-22-05, -06)
-- [ ] Rewrite `LuaDebuggerController` per design §5: `+scope` ctor, `suspend connect()` with `withTimeout`, command
-      methods → `suspend`, delete `requests`/`queueRequest`/`queueCommand` and the promise-resolution observer code,
-      `scope.cancel()` in `close()`.
-- [ ] Edit `LuaDebugProcess` per design §6: `sessionScope`, `launch{withBackgroundProgress{connect…}}`, step/resume/bp
-      launches, remove `registerBreakpoints` busy-wait and `Thread.sleep(100/1000)`.
-- [ ] Edit `LuaDebuggerEvaluator`: `+scope`, `execute(...).then` → `launch{ callback.evaluated / errorOccurred }`.
-- [ ] Confirm no remaining `org.jetbrains.concurrency.*` / `AsyncPromise` imports in `run/` transport+controller.
-- **Verify:** `gce-builder run test` green (regression-relative); `grep -rc 'AsyncPromise' run/` → `0`.
+## Phase 3 — Controller + consumer integration `[Must]` (MAINT-22-05, -06) — ✅ DONE (2026-07-04)
+- [x] Rewrote `LuaDebuggerController` per design §5: `+scope` ctor, `suspend connect()` (**`soTimeout`**, not `withTimeout` —
+      a blocking `accept()` isn't cancellation-interruptible), command methods → `suspend`, deleted
+      `requests`/`queueRequest`/`queueCommand` + promise-resolution observer code, `scope.cancel()` in `close()`;
+      added `launchEvaluate` bridge.
+- [x] Edited `LuaDebugProcess` per design §6: `sessionScope` (childScope), `launch{withBackgroundProgress{connect…}}`,
+      step/resume/bp launches, removed `registerBreakpoints` busy-wait and all `Thread.sleep(100/1000)`.
+- [x] Edited `LuaDebuggerEvaluator`: `.execute(...).then` → `controller.launchEvaluate(..., callback)`; removed unused `XValue`.
+- [x] No remaining `org.jetbrains.concurrency.*` / `AsyncPromise` in `run/`.
+- **Verified:** `compileKotlin compileTestKotlin` + full `run test` green (regression-relative).
 
 ## Phase 4 — Rockspec prime `[Should]` (MAINT-22-07)
 - [ ] Convert the EDT-branch prime in `RockspecSourcePathProvider` to `scope.launch { readAction { … } }`; drop

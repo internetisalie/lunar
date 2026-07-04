@@ -20,6 +20,8 @@ import com.intellij.xdebugger.frame.XStackFrame
 import com.intellij.xdebugger.frame.XSuspendContext
 import com.intellij.xdebugger.stepping.XSmartStepIntoHandler
 import com.intellij.xdebugger.stepping.XSmartStepIntoVariant
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import javax.swing.Icon
@@ -41,7 +43,8 @@ class TestLuaDebuggerEvaluator : BaseDocumentTest() {
         val psiFile = myFixture.configureByText(LuaFileType, text)
         val project = myFixture.project
         val offset = text.indexOf(marker)
-        val evaluator = LuaDebuggerEvaluator(LuaDebuggerController(fakeSession(project)))
+        // getExpressionRangeAtOffset never touches the controller/scope, so a throwaway scope suffices.
+        val evaluator = LuaDebuggerEvaluator(LuaDebuggerController(fakeSession(project), CoroutineScope(SupervisorJob())))
         return runInEdtAndGet {
             val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
             val range = evaluator.getExpressionRangeAtOffset(project, document, offset, false)

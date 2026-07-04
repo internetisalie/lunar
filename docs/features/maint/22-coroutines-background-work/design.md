@@ -177,9 +177,12 @@ private fun handleLine(line: String) {
 - `waitForConnect()` → **`suspend fun connect()`** (MAINT-22-06):
   ```kotlin
   suspend fun connect() {
-      val server = withContext(Dispatchers.IO) { ServerSocket(serverPort) }
+      // NOTE (impl deviation): withTimeout cannot interrupt a blocking ServerSocket.accept() — the JVM
+      // call is not responsive to coroutine cancellation. Use soTimeout, which makes accept() itself
+      // throw SocketTimeoutException after the bound. This is the correct, actually-interruptible form.
+      val server = withContext(Dispatchers.IO) { ServerSocket(serverPort).apply { soTimeout = CONNECT_TIMEOUT_MS } }
       serverSocket = server
-      val client = withTimeout(CONNECT_TIMEOUT_MS) { withContext(Dispatchers.IO) { server.accept() } }
+      val client = withContext(Dispatchers.IO) { server.accept() }
       clientAddress = client.inetAddress
       val conn = LuaDebugConnection(client, DebugObserver(), scope).also { it.start() }
       connection = conn

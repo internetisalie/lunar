@@ -24,9 +24,12 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.breakpoints.XBreakpoint
-import org.jetbrains.concurrency.AsyncPromise
-import org.jetbrains.concurrency.Promise
-import org.jetbrains.concurrency.rejectedPromise
+import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.net.InetAddress
@@ -36,21 +39,20 @@ import java.util.*
 /**
  * Responsible for interacting with the remote debugger client.
  *
- * Listens for and accepts connections on the standard Lua
- * debug port (8172).  After accepting a connection, sends a
- * list of breakpoints and begins execution.
- *
- * Remote client is responsible for stopping at any set breakpoints,
- * and returning a call stack upon doing so.
+ * Listens for and accepts connections on the standard Lua debug port (8172). After accepting a
+ * connection, sends breakpoints and begins execution. Structured-concurrency rewrite (MAINT-22):
+ * request/response correlation now lives in [LuaDebugConnection] via `CompletableDeferred`; this
+ * controller owns a session-scoped [scope] (cancelled in [close]) and drives the connection through
+ * suspend commands.
  */
 class LuaDebuggerController(
     private val session: XDebugSession,
+    private val scope: CoroutineScope,
 ) {
     private var serverSocket: ServerSocket? = null
     private var clientAddress: InetAddress? = null
     private var connection: LuaDebugConnection? = null
     private var serverPort: Int = 8172
-    private var requests: MutableMap<DebugCommand, AsyncPromise<String>> = IdentityHashMap()
     private var console: ConsoleView? = null
     var isReady: Boolean = false
         private set
@@ -86,61 +88,41 @@ class LuaDebuggerController(
         console.print(text + '\n', contentType)
     }
 
+    /**
+     * Bind the server socket, accept a client (bounded by [CONNECT_TIMEOUT_MS] via `soTimeout` — a blocking
+     * `accept()` is not interruptible by coroutine cancellation, so the socket timeout is the real bound),
+     * start the reader coroutine, and send the base dir. Suspends until the client is connected and ready.
+     */
     @Throws(IOException::class)
-    fun waitForConnect() {
-        try {
-            log.info("Starting Debug Controller")
-            this.serverSocket = ServerSocket(serverPort)
-        } catch (e: IOException) {
-            log.error("Failed to bind server socket on port $serverPort", e)
-            throw e
+    suspend fun connect() {
+        log.info("Starting Debug Controller")
+        val server = withContext(Dispatchers.IO) {
+            ServerSocket(serverPort).apply { soTimeout = CONNECT_TIMEOUT_MS }
         }
+        serverSocket = server
 
-        var count = 0
+        val clientSocket = withContext(Dispatchers.IO) { server.accept() }
+        clientAddress = clientSocket.inetAddress
+        log.info("Client Connected $clientAddress")
 
-        // Accept a connection
-        while (connection == null) {
-            try {
-                log.info("Accepting Connection")
-                val clientSocket = serverSocket!!.accept()
-                clientAddress = clientSocket.inetAddress
-
-                log.info("Client Connected $clientAddress")
-                connection = LuaDebugConnection(clientSocket, DebugObserver())
-                break
-            } catch (e: InterruptedException) {
-                log.warn("Interrupted while waiting for client connection", e)
-            } catch (e: IOException) {
-                log.error("Failed to accept client connection.", e)
-                return
-            }
-
-            Thread.sleep(100)
-            if (++count > 50) throw RuntimeException("timeout")
-        }
+        val conn = LuaDebugConnection(clientSocket, DebugObserver(), scope).also { it.start() }
+        connection = conn
 
         printToConsole("Debugger connected at $clientAddress", ConsoleViewContentType.SYSTEM_OUTPUT)
 
-        // Run the connection in the background
-        ApplicationManager.getApplication().executeOnPooledThread {
-            connection?.run()
-            log.info("Debug Controller terminated")
-        }
-
-        try {
-            Thread.sleep(1000)
-        } catch (e: InterruptedException) {
-            log.warn("Interrupted during post-connect wait", e)
-        }
-
-        this.isReady = true
-
+        isReady = true
         setBaseDir()
     }
 
     fun terminate() {
         log.info("terminate")
-        queueRequest(DebugCommand(DebugCommandKind.EXIT)).then { close() }.onError { close() }
+        scope.launch {
+            try {
+                connection?.send(DebugCommand(DebugCommandKind.EXIT))
+            } catch (e: Exception) {
+                log.info("EXIT send failed: ${e.message}")
+            }
+        }.invokeOnCompletion { close() }
     }
 
     fun terminated() {
@@ -152,183 +134,134 @@ class LuaDebuggerController(
     fun close() {
         log.info("close()")
         isReady = false
-        if (serverSocket != null) {
+        serverSocket?.let {
             try {
-                serverSocket!!.close()
+                it.close()
             } catch (_: IOException) {
             }
-
             serverSocket = null
         }
-        if (connection != null) {
+        connection?.let {
             try {
-                connection!!.close()
+                it.close()
             } catch (_: IOException) {
             }
-
             connection = null
         }
-        val remaining: List<AsyncPromise<String>>
-        synchronized(requests) {
-            remaining = requests.values.toList()
-            requests.clear()
-        }
-        remaining.forEach { it.setError("debugger connection closed") }
+        // Cancel the session scope last: the reader coroutine unblocks via the socket close above,
+        // then cancellation fails any outstanding CompletableDeferred (replacing the old promise sweep).
+        scope.cancel()
     }
 
     fun setConsole(console: ConsoleView) {
         this.console = console
     }
 
-    private fun queueRequest(command: DebugCommand): Promise<String> {
-        log.info("Queuing command ${command.kind.name}")
-        val connection = this.connection ?: return rejectedPromise("debugger connection closed")
-
-        val promise = AsyncPromise<String>()
-        synchronized(requests) {
-            requests.put(command, promise)
-        }
-
-        connection.queue(command)
-
-        return promise
+    private suspend fun sendCommand(command: DebugCommand): String {
+        val connection = this.connection ?: throw IOException("debugger connection closed")
+        return connection.send(command)
     }
 
-    private fun queueCommand(command: DebugCommand): Promise<Unit> {
-        return queueRequest(command).then {}
+    // /////////////////////////// Remote Requests
+    suspend fun stepInto() {
+        sendCommand(DebugCommand(DebugCommandKind.STEP))
     }
 
-    /**/////////////////////////// */ // Remote Requests
-    fun stepInto(): Promise<String> {
-        return queueRequest(DebugCommand(DebugCommandKind.STEP))
+    suspend fun stepOver() {
+        sendCommand(DebugCommand(DebugCommandKind.OVER))
     }
 
-    fun stepOver(): Promise<String> {
-        return queueRequest(DebugCommand(DebugCommandKind.OVER))
+    suspend fun stepOut() {
+        sendCommand(DebugCommand(DebugCommandKind.OUT))
     }
 
-    fun stepOut(): Promise<String> {
-        return queueRequest(DebugCommand(DebugCommandKind.OUT))
+    suspend fun resume() {
+        sendCommand(DebugCommand(DebugCommandKind.RUN))
     }
 
-    fun resume(): Promise<String> {
-        return queueRequest(DebugCommand(DebugCommandKind.RUN))
+    suspend fun setBaseDir() {
+        sendCommand(DebugCommand(DebugCommandKind.BASEDIR, listOf(baseDir)))
     }
 
-    fun setBaseDir(): Promise<Unit> {
-        return queueCommand(
-            DebugCommand(
-                DebugCommandKind.BASEDIR,
-                listOf(baseDir),
-            ),
-        )
-    }
-
-    fun addBreakPoint(breakpoint: XBreakpoint<*>): Promise<Unit> {
-        val sourcePosition = breakpoint.sourcePosition ?: return rejectedPromise("debugger connection closed")
+    suspend fun addBreakPoint(breakpoint: XBreakpoint<*>) {
+        val sourcePosition = breakpoint.sourcePosition ?: return
         val pos = LuaPosition.createRemotePosition(sourcePosition, workingDir)
 
         myBreakpoints2Pos.put(breakpoint, pos)
         myPos2Breakpoints.put(pos, breakpoint)
 
-        return queueCommand(DebugCommand(DebugCommandKind.SETB, pos.args()))
+        sendCommand(DebugCommand(DebugCommandKind.SETB, pos.args()))
     }
 
-    fun removeBreakPoint(breakpoint: XBreakpoint<*>): Promise<Unit> {
-        val sourcePosition = breakpoint.sourcePosition ?: return rejectedPromise("debugger connection closed")
+    suspend fun removeBreakPoint(breakpoint: XBreakpoint<*>) {
+        val sourcePosition = breakpoint.sourcePosition ?: return
         val pos = LuaPosition.createRemotePosition(sourcePosition, workingDir)
 
         myBreakpoints2Pos.remove(breakpoint)
         myPos2Breakpoints.remove(pos)
 
-        return queueCommand(DebugCommand(DebugCommandKind.DELB, pos.args()))
+        sendCommand(DebugCommand(DebugCommandKind.DELB, pos.args()))
     }
 
-    fun execute(statement: String): Promise<LuaDebugValue> {
-        val command = DebugCommand(DebugCommandKind.EXEC, listOf(statement))
-        return queueRequest(command)
-            .then { text ->
-                var luaDebugValue: LuaDebugValue? = null
-                ApplicationManager.getApplication().runReadAction {
-                    val table = LuaDebugValueParser.parseChunk(session.project, text)
+    suspend fun execute(statement: String): LuaDebugValue {
+        val text = sendCommand(DebugCommand(DebugCommandKind.EXEC, listOf(statement)))
+        var luaDebugValue: LuaDebugValue? = null
+        ApplicationManager.getApplication().runReadAction {
+            val table = LuaDebugValueParser.parseChunk(session.project, text)
 
-                    // Re-parse each string value in the result to recover types from stringification
-                    val reparsedTable = LuaTable()
-                    for ((idx, value) in table.indexed.withIndex()) {
-                        val reparsed = if (value.kind == LuaValueKind.String) {
-                            LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
-                        } else {
-                            value
-                        }
-                        reparsedTable.indexed.add(reparsed)
-                    }
-                    for ((key, value) in table.named) {
-                        val reparsed = if (value.kind == LuaValueKind.String) {
-                            LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
-                        } else {
-                            value
-                        }
-                        reparsedTable.named[key] = reparsed
-                    }
-
-                    // If the result is a single scalar value, return it directly instead of wrapping in table
-                    val value = if (reparsedTable.indexed.size == 1 && reparsedTable.named.isEmpty()) {
-                        reparsedTable.indexed[0]
-                    } else {
-                        LuaValue.newTable(reparsedTable)
-                    }
-                    luaDebugValue = LuaDebugValue(value, null, AllIcons.Nodes.Lambda)
+            // Re-parse each string value in the result to recover types from stringification
+            val reparsedTable = LuaTable()
+            for (value in table.indexed) {
+                val reparsed = if (value.kind == LuaValueKind.String) {
+                    LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
+                } else {
+                    value
                 }
-                luaDebugValue!!
-            }.onError { e -> log.error(e) }
-    }
-
-    fun variables(): Promise<LuaRemoteStack> {
-        val command = DebugCommand(DebugCommandKind.STACK)
-        return queueRequest(command)
-            .then {
-                var luaRemoteStack: LuaRemoteStack? = null
-                ApplicationManager.getApplication().runReadAction {
-                    luaRemoteStack = LuaRemoteStack.create(session.project, it)
-                }
-                luaRemoteStack!!
+                reparsedTable.indexed.add(reparsed)
             }
-            .onError { e -> log.error(e) }
+            for ((key, value) in table.named) {
+                val reparsed = if (value.kind == LuaValueKind.String) {
+                    LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
+                } else {
+                    value
+                }
+                reparsedTable.named[key] = reparsed
+            }
+
+            // If the result is a single scalar value, return it directly instead of wrapping in table
+            val value = if (reparsedTable.indexed.size == 1 && reparsedTable.named.isEmpty()) {
+                reparsedTable.indexed[0]
+            } else {
+                LuaValue.newTable(reparsedTable)
+            }
+            luaDebugValue = LuaDebugValue(value, null, AllIcons.Nodes.Lambda)
+        }
+        return luaDebugValue!!
     }
 
+    /** Bridge for [LuaDebuggerEvaluator] (XDebugger callback API): evaluate on [scope], report via [callback]. */
+    fun launchEvaluate(statement: String, callback: XDebuggerEvaluator.XEvaluationCallback) {
+        scope.launch {
+            try {
+                callback.evaluated(execute(statement))
+            } catch (e: Exception) {
+                log.info("evaluate failed: ${e.message}")
+                callback.errorOccurred(e.message ?: "Evaluation error")
+            }
+        }
+    }
+
+    suspend fun variables(): LuaRemoteStack {
+        val text = sendCommand(DebugCommand(DebugCommandKind.STACK))
+        var luaRemoteStack: LuaRemoteStack? = null
+        ApplicationManager.getApplication().runReadAction {
+            luaRemoteStack = LuaRemoteStack.create(session.project, text)
+        }
+        return luaRemoteStack!!
+    }
 
     inner class DebugObserver : LuaDebugObserver {
-        override fun onCommandComplete(
-            command: DebugCommand,
-            status: DebuggerStatus,
-            data: String,
-        ) {
-            log.info("Received response to $command: $data")
-
-            val promise: AsyncPromise<String>
-            synchronized(requests) {
-                promise = requests.remove(command) ?: return
-            }
-
-            if (status.isError) {
-                promise.setError(data)
-            } else {
-                promise.setResult(data)
-            }
-        }
-
-        override fun onCommandCancelled(command: DebugCommand) {
-            val promise: AsyncPromise<String>
-            synchronized(requests) {
-                promise = requests.remove(command) ?: return
-            }
-            promise.setError("command cancelled: ${command.kind.name}")
-        }
-
-        override fun onPauseWatchpoint(
-            pos: LuaPosition,
-            watchIndex: Int,
-        ) {
+        override fun onPauseWatchpoint(pos: LuaPosition, watchIndex: Int) {
             log.info("watch $watchIndex at ${pos.path} line ${pos.line}")
             onPause(pos)
         }
@@ -338,10 +271,11 @@ class LuaDebuggerController(
             onPause(pos)
         }
 
-        fun onPause(pos: LuaPosition) {
-            val bp: XBreakpoint<*>? = myPos2Breakpoints.get(pos)
+        private fun onPause(pos: LuaPosition) {
+            val bp: XBreakpoint<*>? = myPos2Breakpoints[pos]
 
-            variables().then { stack ->
+            scope.launch {
+                val stack = variables()
                 if (bp != null) {
                     // Breakpoint fired
                     val ctx = LuaSuspendContext(session.project, this@LuaDebuggerController, bp, stack)
@@ -370,6 +304,8 @@ class LuaDebuggerController(
     }
 
     companion object {
+        const val CONNECT_TIMEOUT_MS: Int = 5_000
+
         val log = logger<LuaDebuggerController>()
     }
 }

@@ -1,12 +1,22 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.openapi.diagnostic.logger
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.Socket
 import java.util.regex.Pattern
+import kotlin.coroutines.coroutineContext
 
 enum class DebuggerStatus(val code: Int, val message: String) {
     OK(200, "200 OK"),
@@ -146,158 +156,128 @@ data class DebugCommand(
     }
 }
 
-interface LuaDebugObserver {
-    fun onCommandComplete(command: DebugCommand, status: DebuggerStatus, data: String)
-    fun onCommandCancelled(command: DebugCommand)
+/** Raised when the debuggee returns an error status ([DebuggerStatus.isError]) for a command. */
+class DebuggerError(val status: DebuggerStatus, val data: String) :
+    IOException("${status.message}: $data")
 
-    // Out-of-band events when running
+interface LuaDebugObserver {
+    // Out-of-band events emitted while the debuggee is running.
     fun onPauseWatchpoint(pos: LuaPosition, watchIndex: Int)
     fun onPauseBreakpoint(pos: LuaPosition)
     fun onRunExecutionError(file: String)
     fun onDisconnected()
 }
 
+/**
+ * DBGp transport over a single socket (MAINT-22).
+ *
+ * Structured-concurrency rewrite of the former `Thread.sleep(50)` poll loop + promise-map correlation:
+ * a single **reader coroutine** ([readLoop]) owns the [BufferedReader]; [send] publishes one
+ * [CompletableDeferred] at a time under [writeMutex], which the reader completes. The protocol keeps at
+ * most one command in flight and has a distinct **running** phase (after a [DebugCommandGroup.Run] command
+ * the debuggee runs, then emits an out-of-band pause/error line) — that state machine is preserved exactly
+ * in [handleLine], mirroring the branches of the old `receive()`.
+ */
 class LuaDebugConnection(
     private val socket: Socket,
     private val observer: LuaDebugObserver,
+    private val scope: CoroutineScope,
 ) {
     private val reader: BufferedReader = InputStreamReader(socket.inputStream).buffered(100 * 1024)
     private val writer: OutputStream = socket.outputStream
-
-    private var current: DebugCommand? = null
-    private var running: Boolean = false
-    private var started: Boolean = false
-    private val commands: ArrayDeque<DebugCommand> = ArrayDeque()
-
     private val charset = charset("UTF8")
 
-    fun queue(command: DebugCommand) {
-        log.info("Queueing command ${command.kind.name}")
+    private val writeMutex = Mutex()
 
-        // Immediately cancel if we are done
-        if (socket.isClosed) {
-            observer.onCommandCancelled(command)
-            return
-        }
+    @Volatile
+    private var pending: CompletableDeferred<String>? = null
 
-        // exclusive access to commands
-        synchronized(this) {
-            commands.add(command)
-        }
-        send()
+    @Volatile
+    private var pendingKind: DebugCommandKind? = null
+
+    @Volatile
+    private var running: Boolean = false
+
+    private var readerJob: Job? = null
+
+    /** Launch the reader coroutine on the (session-scoped) [scope]. */
+    fun start() {
+        readerJob = scope.launch(Dispatchers.IO) { readLoop() }
     }
 
-    fun run() {
-        // exclusive access to started
-        synchronized(this) {
-            if (started) return
-            started = true
+    /**
+     * Send [command] and suspend until the reader coroutine completes its response.
+     * Only one command is in flight at a time (guarded by [writeMutex]).
+     */
+    suspend fun send(command: DebugCommand): String = writeMutex.withLock {
+        if (socket.isClosed) throw IOException("debugger connection closed")
+        log.info("Sending command ${command.kind.name}")
+
+        val deferred = CompletableDeferred<String>()
+        pending = deferred
+        pendingKind = command.kind
+        withContext(Dispatchers.IO) {
+            writer.write("$command\n".toByteArray(charset))
+            writer.flush()
         }
+        deferred.await()
+    }
 
+    private suspend fun readLoop() {
         try {
-            while (true) {
-                // Quit if we are done
-                if (socket.isClosed) {
-                    log.info("run() loop exit: socket closed")
-                    break
-                }
-
-                val hasCurrent = current != null
-                val isRunning = running
-                val readerReady = reader.ready()
-
-                // Send a queued command if we are open
-                if (!hasCurrent && !isRunning) {
-                    send()
-                }
-
-                // Receive a response if we are expecting one and it is available
-                if ((current != null || running) && readerReady) {
-                    receive()
-                } else if (!readerReady && (current != null || running)) {
-                    try {
-                        Thread.sleep(50)
-                    } catch (_: InterruptedException) {
-                        // ignore
-                    }
-                } else {
-                    // snooze
-                    try {
-                        Thread.sleep(50)
-                    } catch (_: InterruptedException) {
-                        // ignore
-                    }
-                }
+            while (coroutineContext.isActive && !socket.isClosed) {
+                val line = reader.readLine() ?: break
+                handleLine(line)
             }
         } catch (e: IOException) {
-            log.warn("run() IO exception: ${e.message}", e)
+            log.info("readLoop closed: ${e.message}")
         } catch (e: Exception) {
-            log.warn("run() unexpected exception: ${e.message}", e)
+            log.warn("readLoop unexpected exception: ${e.message}", e)
         } finally {
-            log.info("run() exiting, connection closed")
-            synchronized(this) {
-                started = false
-            }
-        }
-
-        synchronized(this) {
-            while (commands.isNotEmpty()) {
-                observer.onCommandCancelled(commands.removeFirst())
-            }
-        }
-
-        observer.onDisconnected()
-    }
-
-    private fun send() {
-        // Pre-check conditions out of synchronization
-        if (socket.isClosed) return
-        if (current != null || running) return
-
-        // exclusive access to commands, writer
-        synchronized(this) {
-            if (current != null || running) return
-            val command = commands.removeFirstOrNull() ?: return
-            current = command
-            writer.write("$command\n".toByteArray(charset))
+            log.info("readLoop exiting, connection closed")
+            pending?.completeExceptionally(IOException("connection closed"))
+            pending = null
+            observer.onDisconnected()
         }
     }
 
-    private fun receive() {
-        // Parse the base response
-        val result = reader.readLine() ?: throw IOException("connection closed — readLine() returned null")
-        val status = DebuggerStatus.entries.firstOrNull { result.startsWith(it.message) }
-            ?: throw IOException("receive() unknown status in response: ${result.take(80)}")
-        val data: String = result.removePrefix(status.message).removePrefix(" ").trimEnd('\n')
+    /** Parses one incoming line — reproduces the old `receive()` branching exactly. */
+    private fun handleLine(line: String) {
+        val status = DebuggerStatus.entries.firstOrNull { line.startsWith(it.message) }
+            ?: throw IOException("unknown status in response: ${line.take(80)}")
+        val data: String = line.removePrefix(status.message).removePrefix(" ").trimEnd('\n')
 
-        // Parse the extended response if required
-        val currentResponses = current?.kind?.responses ?: emptyMap()
-        if (currentResponses.containsKey(status)) {
-            if (currentResponses[status] == DebuggerResponseDataKind.Extended) {
-                val length = data.toInt()
-                val extData = reader.readExactly(length)
-                observer.onCommandComplete(current!!, status, extData)
+        val deferred = pending
+        val kind = pendingKind
+        val declared = kind?.responses ?: emptyMap()
+
+        // Case A: response to the in-flight command.
+        if (deferred != null && declared.containsKey(status)) {
+            val payload = if (declared[status] == DebuggerResponseDataKind.Extended) {
+                reader.readExactly(data.toInt())
             } else {
-                observer.onCommandComplete(current!!, status, data)
+                data
             }
-            if (current?.kind?.group == DebugCommandGroup.Run) {
-                running = true
+            if (kind?.group == DebugCommandGroup.Run) running = true
+            pending = null
+            pendingKind = null
+            if (status.isError) {
+                deferred.completeExceptionally(DebuggerError(status, payload))
+            } else {
+                deferred.complete(payload)
             }
-            current = null
             return
         }
 
+        // Case B: out-of-band event while the debuggee is running.
         if (running) {
             when (status) {
                 DebuggerStatus.PausedBreakpoint -> {
                     running = false
-
                     val m = breakpointDataPattern.matcher(data)
                     if (m.matches()) {
-                        val file = m.group(1)
-                        val line = m.group(2).toInt()
-                        val pos = LuaPosition(file, line)
-                        log.info("breakpoint pause at $file:$line")
+                        val pos = LuaPosition(m.group(1), m.group(2).toInt())
+                        log.info("breakpoint pause at ${pos.path}:${pos.line}")
                         observer.onPauseBreakpoint(pos)
                     } else {
                         log.warn("PausedBreakpoint data did not match pattern: '$data'")
@@ -306,14 +286,11 @@ class LuaDebugConnection(
 
                 DebuggerStatus.PausedWatchpoint -> {
                     running = false
-
                     val m = watchpointDataPattern.matcher(data)
                     if (m.matches()) {
-                        val file = m.group(1)
-                        val line = m.group(2).toInt()
-                        val pos = LuaPosition(file, line)
+                        val pos = LuaPosition(m.group(1), m.group(2).toInt())
                         val index = m.group(3).toInt()
-                        log.info("watchpoint pause at $file:$line index=$index")
+                        log.info("watchpoint pause at ${pos.path}:${pos.line} index=$index")
                         observer.onPauseWatchpoint(pos, index)
                     } else {
                         log.warn("PausedWatchpoint data did not match pattern: '$data'")
@@ -322,19 +299,19 @@ class LuaDebugConnection(
 
                 DebuggerStatus.ErrorInExecution -> {
                     running = false
-
                     val extData = reader.readExactly(data.toInt())
                     log.info("execution error: $extData")
                     observer.onRunExecutionError(extData)
                 }
 
                 else -> {
-                    log.error("receive() unexpected status while running: ${status.message}")
+                    log.error("handleLine() unexpected status while running: ${status.message}")
                 }
             }
-        } else {
-            log.error("receive() unhandled response: status=$status data='${data.take(80)}' (current=${current?.kind}, running=$running)")
+            return
         }
+
+        log.error("handleLine() unhandled response: status=$status data='${data.take(80)}' (running=$running)")
     }
 
     fun close() {
@@ -372,5 +349,4 @@ class LuaDebugConnection(
 
         val log = logger<LuaDebugConnection>()
     }
-
 }

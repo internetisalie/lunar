@@ -29,7 +29,6 @@ import com.intellij.xdebugger.XExpression
 import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.evaluation.EvaluationMode
 import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
-import com.intellij.xdebugger.frame.XValue
 import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaStatement
 
@@ -39,11 +38,7 @@ class LuaDebuggerEvaluator(private val myController: LuaDebuggerController) : XD
         callback: XEvaluationCallback,
         expressionPosition: XSourcePosition?
     ) {
-        myController.execute("return $expression")
-            .then { xValue: XValue? ->
-                if (xValue != null) callback.evaluated(xValue)
-                else callback.invalidExpression("Evaluation returned no value")
-            }
+        myController.launchEvaluate("return $expression", callback)
     }
 
     override fun evaluate(
@@ -52,17 +47,9 @@ class LuaDebuggerEvaluator(private val myController: LuaDebuggerController) : XD
         expressionPosition: XSourcePosition?
     ) {
         if (expression.mode == EvaluationMode.EXPRESSION) {
-            myController.execute("return " + expression.expression)
-                .then { xValue: XValue? ->
-                    if (xValue != null) callback.evaluated(xValue)
-                    else callback.invalidExpression("Evaluation returned no value")
-                }
+            myController.launchEvaluate("return " + expression.expression, callback)
         } else {
-            myController.execute(expression.expression)
-                .then { xValue: XValue? ->
-                    if (xValue != null) callback.evaluated(xValue)
-                    else callback.invalidExpression("Evaluation returned no value")
-                }
+            myController.launchEvaluate(expression.expression, callback)
         }
     }
 

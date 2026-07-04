@@ -36,7 +36,7 @@ suspend `send()` deterministically.
 | R3 | **XDebugSession thread-affinity** — `breakpointReached`/`positionReached`/`rebuildViews` called from a coroutine thread | Med | Med | Wrap UI-affine calls in `withContext(Dispatchers.EDT)` if the platform asserts EDT; verify live + check `idea.log` for TWA/EDT assertions. |
 | R4 | **Lost breakpoints** — removing the `registerBreakpoints` busy-wait could reorder SETB vs connect | Low | High | Drain pending breakpoints *inside* the connect launch, after `isReady`, before `resume()`; test-case #6 sets a breakpoint pre-launch. |
 | R5 | **Scope leak** — session scope not cancelled → reader coroutine survives | Low | Med | `scope.cancel()` in `close()`; MAINT-22-05 test asserts single `readLoop exiting`; check for lingering thread live. |
-| R6 | **`withTimeout` too tight/loose** vs the old `100ms×50` (5s) accept budget | Low | Low | Set `CONNECT_TIMEOUT_MS = 5_000` to match the prior ~5s ceiling; surface timeout via the existing error dialog. |
+| R6 | **Accept timeout** vs the old `100ms×50` (5s) budget | Low | Low | `CONNECT_TIMEOUT_MS = 5_000` via `ServerSocket.soTimeout` (a blocking `accept()` is NOT cancellable by `withTimeout`, so soTimeout is the real bound); `SocketTimeoutException` surfaces via the existing error dialog. |
 | R7 | **Preemption during long `run build`** on gce-builder spot VM | Med | Low | Per CLAUDE.md/AGENTS.md: re-create VM or `PROVISIONING_MODEL=ON_DEMAND`; don't run two `run`s concurrently. |
 
 ## Investigated & dismissed (not work items)

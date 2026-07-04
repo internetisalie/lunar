@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.run
 
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -24,24 +25,11 @@ class TestLuaDebugHarness {
         }
 
         val pausedLatch = CountDownLatch(1)
-        val execLatch = CountDownLatch(1)
-        val resumedLatch = CountDownLatch(1)
-
         var pausedPos: LuaPosition? = null
-        var execResult: String? = null
 
+        // Command results now come back directly from suspend send(); the observer carries only
+        // the out-of-band pause/error/disconnect events (MAINT-22).
         val observer = object : LuaDebugObserver {
-            override fun onCommandComplete(command: DebugCommand, status: DebuggerStatus, data: String) {
-                when (command.kind) {
-                    DebugCommandKind.EXEC -> {
-                        execResult = data
-                        execLatch.countDown()
-                    }
-                    DebugCommandKind.RUN -> resumedLatch.countDown()
-                    else -> {}
-                }
-            }
-            override fun onCommandCancelled(command: DebugCommand) {}
             override fun onPauseBreakpoint(pos: LuaPosition) {
                 pausedPos = pos
                 pausedLatch.countDown()
@@ -56,21 +44,28 @@ class TestLuaDebugHarness {
         val baseDir = "${script.parent}/"
 
         startLuaDebugHarness(script, observer).use { harness ->
-            harness.connection.queue(DebugCommand(DebugCommandKind.BASEDIR, listOf(baseDir)))
-            harness.connection.queue(DebugCommand(DebugCommandKind.SETB, listOf(script.name, "2")))
-            harness.connection.queue(DebugCommand(DebugCommandKind.RUN))
+            val connection = harness.connection
 
+            // Configure breakpoints and start running; each send() returns when the debuggee acks.
+            runBlocking {
+                connection.send(DebugCommand(DebugCommandKind.BASEDIR, listOf(baseDir)))
+                connection.send(DebugCommand(DebugCommandKind.SETB, listOf(script.name, "2")))
+                connection.send(DebugCommand(DebugCommandKind.RUN))
+            }
+
+            // RUN is acked immediately; the pause arrives out-of-band via the observer.
             assertTrue(pausedLatch.await(4, TimeUnit.SECONDS), "Expected pause at breakpoint")
-            assertNotNull(pausedPos)
-            assertEquals(2, pausedPos.line)
+            val pos = assertNotNull(pausedPos)
+            assertEquals(2, pos.line)
 
-            harness.connection.queue(DebugCommand(DebugCommandKind.EXEC, listOf("return x")))
-            assertTrue(execLatch.await(4, TimeUnit.SECONDS), "Expected EXEC result")
+            // EXEC returns its result directly.
+            val execResult = runBlocking {
+                connection.send(DebugCommand(DebugCommandKind.EXEC, listOf("return x")))
+            }
             assertNotNull(execResult)
 
-            // Resume execution after the inspect; RUN continues from the breakpoint
-            harness.connection.queue(DebugCommand(DebugCommandKind.RUN))
-            assertTrue(resumedLatch.await(4, TimeUnit.SECONDS), "Expected RUN acknowledgement after EXEC")
+            // Resume execution after the inspect; RUN returning without error is the acknowledgement.
+            runBlocking { connection.send(DebugCommand(DebugCommandKind.RUN)) }
         }
     }
 }
