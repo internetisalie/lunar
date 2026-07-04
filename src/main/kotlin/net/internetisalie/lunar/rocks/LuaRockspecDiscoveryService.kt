@@ -65,6 +65,9 @@ class LuaRockspecDiscoveryService(private val project: Project) {
         // synchronous non-blocking read action is illegal inside an existing read action. Otherwise
         // use a non-blocking read action: it pumps pending VFS/index events so freshly-added files
         // are visible, matching the pre-refactor discovery behavior relied on by action-gate tests.
+        // MAINT-22: intentionally retained as a synchronous read — it returns a value into the
+        // non-suspend compute()/CachedValueProvider, so it is NOT the fire-and-forget prime that
+        // RockspecSourcePathProvider converts to a launched readAction {}.
         val includedRockspecs =
             if (ApplicationManager.getApplication().isReadAccessAllowed) {
                 enumerateIncluded(includeGlobs, excludeGlobs)

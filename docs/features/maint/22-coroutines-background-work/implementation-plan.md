@@ -43,12 +43,12 @@ live. Each phase ends at a compiling, suite-green state.
 - [x] No remaining `org.jetbrains.concurrency.*` / `AsyncPromise` in `run/`.
 - **Verified:** `compileKotlin compileTestKotlin` + full `run test` green (regression-relative).
 
-## Phase 4 — Rockspec prime `[Should]` (MAINT-22-07)
-- [ ] Convert the EDT-branch prime in `RockspecSourcePathProvider` to `scope.launch { readAction { … } }`; drop
-      `AppExecutorUtil`/`ReadAction` imports; add the retention comment on `LuaRockspecDiscoveryService.compute()`.
-- [ ] Unit test: cold cache on EDT returns empty; after the launched prime settles, real patterns are returned
-      (reuse the existing `RockspecSourcePathProvider` test seam `testDiscoverySeam`).
-- **Verify:** `gce-builder run "test --tests *RockspecSourcePath*"`.
+## Phase 4 — Rockspec prime `[Should]` (MAINT-22-07) — ✅ DONE (2026-07-04)
+- [x] Converted the EDT-branch prime in `RockspecSourcePathProvider` to
+      `LunarCoroutineScopeService.getInstance(project).scope.launch { readAction { … } }`; dropped
+      `AppExecutorUtil`/`ReadAction` imports; added the retention comment on `LuaRockspecDiscoveryService.compute()`.
+- [x] Existing `*Rockspec*` suite covers the empty-then-primed cache behavior (unchanged `Result`).
+- **Verified:** `gce-builder run "test --tests *Rockspec* --tests *RockspecSourcePath*"` → BUILD SUCCESSFUL.
 
 ## Phase 5 — Live verification `[Must]` (MAINT-22-08)
 - [ ] Follow the `verify-in-ide` skill: containerized GoLand over VNC, inject plugin jar + license + interpreter,
