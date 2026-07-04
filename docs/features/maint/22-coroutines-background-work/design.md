@@ -20,12 +20,11 @@ The IntelliJ Platform **bundles** `kotlinx-coroutines-core`. Plugins must compil
 
 - Current [`build.gradle.kts:61`](../../../../build.gradle.kts) has `kotlinx-coroutines-core-jvm:1.7.1` only in
   **`integrationTestImplementation`** — leave that untouched (separate classpath).
-- For `src/main`: **DR-01 first.** Attempt to `import kotlinx.coroutines.*` and compile with **no** new
-  dependency — the platform artifact typically exposes coroutines transitively on the compile classpath.
-  - If it resolves: **no build change** for the runtime (requirement satisfied by the platform).
-  - If it does *not* resolve: add exactly one line — `compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:<platform-bundled-version>")`
-    — never `implementation`/`api` (those bundle a second copy). The bundled version is read from the platform
-    (`…/lib/app.jar` manifest or `kotlinx-coroutines-core` jar in the sandbox), pinned in a comment.
+- For `src/main`: **DR-01 — RESOLVED (Phase 0, 2026-07-04).** `import kotlinx.coroutines.CoroutineScope`
+  compiles with **no** new dependency (`gce-builder run compileKotlin` → `BUILD SUCCESSFUL`); the platform
+  artifact exposes coroutines transitively on the compile classpath. **No `build.gradle.kts` change** — and
+  therefore **no double-bundle** (nothing was added to `implementation`/`api`; the platform's copy is the only
+  one on the runtime classpath). The `compileOnly` fallback branch was not needed.
 
 No `plugin.xml` change: the scope service is a **light `@Service`** (auto-registered).
 

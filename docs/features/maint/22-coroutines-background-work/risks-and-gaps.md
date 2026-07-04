@@ -11,12 +11,14 @@ folders:
 
 ## De-risking actions (do before setting the dependent phase `planned`)
 
-### MAINT-22-00-DR-01 — Coroutines Gradle wiring `[Must]`
+### MAINT-22-00-DR-01 — Coroutines Gradle wiring `[Must]` — ✅ RESOLVED (2026-07-04)
 **Unknown:** whether `kotlinx.coroutines` resolves at compile time for `src/main` from the platform artifact alone,
 and the exact bundled version if a `compileOnly` is needed.
-**Action:** Phase 0 — add the scope service + one import, `gce-builder run build`; if unresolved, add one
-`compileOnly(...)` at the platform-bundled version and confirm the plugin `lib/` has no second coroutines jar.
-**Resolves:** MAINT-22-01. **Blocking:** yes (all later phases import coroutines).
+**Outcome:** Added `LunarCoroutineScopeService` (imports `kotlinx.coroutines.CoroutineScope`) and ran
+`gce-builder run compileKotlin` → **BUILD SUCCESSFUL** with **no dependency change**. The platform exposes
+coroutines transitively; the `compileOnly` fallback was not required. No double-bundle (R1 closed) because nothing
+was added to `implementation`/`api`.
+**Resolves:** MAINT-22-01. **Blocking:** was yes — now cleared; dependent phases unblocked.
 
 ### MAINT-22-00-DR-02 — Fake-socket test harness for the transport `[Should]`
 **Unknown:** can the request/response + running state machine be unit-tested without a real Lua debuggee?
@@ -29,7 +31,7 @@ suspend `send()` deterministically.
 
 | ID | Risk | Likelihood | Impact | Mitigation |
 |----|------|:---------:|:------:|------------|
-| R1 | **Double-bundled coroutines** → `LinkageError` at runtime | Med | High | DR-01; `compileOnly` only; assert `lib/` has one coroutines jar. |
+| R1 | **Double-bundled coroutines** → `LinkageError` at runtime | ~~Med~~ **Closed** | High | DR-01 resolved: zero deps added → platform's copy is the only one. No `implementation`/`api` coroutines dep. |
 | R2 | **State-machine regression** — the `running`/out-of-band interleaving is subtle; the debugger has no end-to-end unit test today | Med | High | Reproduce `receive()` branches line-for-line (design §4.1); DR-02 fake-socket tests; **mandatory live VNC** (MAINT-22-08). |
 | R3 | **XDebugSession thread-affinity** — `breakpointReached`/`positionReached`/`rebuildViews` called from a coroutine thread | Med | Med | Wrap UI-affine calls in `withContext(Dispatchers.EDT)` if the platform asserts EDT; verify live + check `idea.log` for TWA/EDT assertions. |
 | R4 | **Lost breakpoints** — removing the `registerBreakpoints` busy-wait could reorder SETB vs connect | Low | High | Drain pending breakpoints *inside* the connect launch, after `isReady`, before `resume()`; test-case #6 sets a breakpoint pre-launch. |

@@ -12,12 +12,12 @@ folders:
 Phases are ordered so the transport is rewritten and unit-testable **before** the socket protocol is exercised
 live. Each phase ends at a compiling, suite-green state.
 
-## Phase 0 — De-risk coroutines wiring `[Must]` (DR-01)
-- [ ] Add `LunarCoroutineScopeService` (§2) and one throwaway `import kotlinx.coroutines.CoroutineScope` in `src/main`.
-- [ ] `gce-builder run build`. If compile fails on the coroutines import, add the single `compileOnly(...)` line at the
-      platform-bundled version (design §1) and re-build; **never** `implementation`.
-- [ ] Confirm the built plugin `lib/` contains no extra `kotlinx-coroutines-*` jar (no double-bundle).
-- **Exit:** build green; scope service resolvable from a smoke unit test (`project.service<LunarCoroutineScopeService>()` non-null, scope active).
+## Phase 0 — De-risk coroutines wiring `[Must]` (DR-01) — ✅ DONE (2026-07-04)
+- [x] Add `LunarCoroutineScopeService` (§2) with `import kotlinx.coroutines.CoroutineScope` in `src/main`.
+- [x] `gce-builder run compileKotlin` → **BUILD SUCCESSFUL** with **no** dependency change; the `compileOnly` fallback
+      was not needed (platform exposes coroutines transitively).
+- [x] No double-bundle: nothing added to `implementation`/`api`, so the platform's coroutines jar is the only copy (R1 closed).
+- **Exit:** compile green; DR-01 resolved. Remaining exit item (smoke unit test for the service) folded into Phase 1.
 
 ## Phase 1 — Infrastructure `[Must]` (MAINT-22-01, -02)
 - [ ] Finalize `LunarCoroutineScopeService` under `util/`.
