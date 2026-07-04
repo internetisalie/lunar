@@ -596,6 +596,10 @@
     <!-- Interactive Console (REPL) history root -->
     <scratch.rootType implementation="net.internetisalie.lunar.run.console.LuaConsoleRootType"/>
 
+    <!-- Multi-version hererocks environments (ROCKS-15) -->
+    <statusBarWidgetFactory id="Lunar.LuaEnvWidget"
+        implementation="net.internetisalie.lunar.rocks.env.LuaEnvStatusBarWidgetFactory"/>
+
   </extensions>
 
   <actions>
