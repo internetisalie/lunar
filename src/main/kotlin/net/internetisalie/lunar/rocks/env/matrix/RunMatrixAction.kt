@@ -14,11 +14,14 @@ import com.intellij.openapi.wm.ToolWindowManager
 import net.internetisalie.lunar.rocks.LuaRockspecDiscoveryService
 import net.internetisalie.lunar.rocks.env.HererocksEnvSet
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Runs the rockspec `test` command against every provisioned environment (ROCKS-15-04, design §2.7,
- * §3.3). Disabled when no env is provisioned or no rockspec is discovered. Aggregation runs on a
- * background task; the results table update marshals to the EDT.
+ * §3.3). Disabled when no env is provisioned or no rockspec is discovered. Each env runs in its own
+ * [Task.Backgroundable] so rows execute concurrently — one slow env does not block the rest. Each
+ * row marshals its results-table update to the EDT as it finishes; the last row to complete emits
+ * the aggregate notification.
  */
 class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
 
@@ -35,40 +38,59 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
                 notify(project, "No Lua environments to run the matrix against", NotificationType.WARNING)
                 return
             }
-            ProgressManager.getInstance().run(matrixTask(project, envs))
+            val rockspec = firstRockspec(project) ?: run {
+                notify(project, "No rockspec discovered for the matrix", NotificationType.WARNING)
+                return
+            }
+            launchMatrix(MatrixRun(project, MatrixRunner.Request("test", rockspec, envs)))
         } catch (throwable: Throwable) {
             LOG.warn("Failed to launch test matrix", throwable)
             notify(project, "Failed to launch test matrix: ${throwable.message}", NotificationType.ERROR)
         }
     }
 
-    private fun matrixTask(project: Project, envs: List<net.internetisalie.lunar.rocks.env.HererocksEnvState>) =
-        object : Task.Backgroundable(project, "Running Lua test matrix", true) {
+    /** Shared per-run context: the request, the mutable rows, and a completion counter. */
+    private class MatrixRun(val project: Project, val request: MatrixRunner.Request) {
+        val rows: List<MatrixRow> = request.envs.map { MatrixRow(it) }
+        val remaining = AtomicInteger(rows.size)
+    }
+
+    private fun launchMatrix(run: MatrixRun) {
+        run.rows.forEach { row -> ProgressManager.getInstance().run(rowTask(run, row)) }
+    }
+
+    private fun rowTask(run: MatrixRun, row: MatrixRow) =
+        object : Task.Backgroundable(run.project, "Running Lua matrix: ${row.env.displayLabel()}", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.checkCanceled()
-                val rockspec = firstRockspec(project) ?: run {
-                    notify(project, "No rockspec discovered for the matrix", NotificationType.WARNING)
-                    return
-                }
-                val request = MatrixRunner.Request("test", rockspec, envs)
-                val result = MatrixRunner.execute(request, MatrixRunner.processRunner)
-                publish(project, result)
+                MatrixRunner.runRow(run.request, MatrixRunner.processRunner, row)
+                onRowFinished(run)
             }
         }
 
-    private fun firstRockspec(project: Project): Path? =
-        LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths().firstOrNull()?.rockspec
-
-    private fun publish(project: Project, result: MatrixResult) {
+    private fun onRowFinished(run: MatrixRun) {
+        val result = MatrixResult(run.rows)
+        val last = run.remaining.decrementAndGet() == 0
         ApplicationManager.getApplication().invokeLater {
-            MatrixResultsToolWindow.getOrCreatePanel(project).setResult(result)
-            ToolWindowManager.getInstance(project)
-                .getToolWindow(MatrixResultsToolWindow.TOOL_WINDOW_ID)?.show(null)
-            val summary = if (result.allPassed) "Test matrix passed" else "Test matrix had failures"
-            val type = if (result.allPassed) NotificationType.INFORMATION else NotificationType.WARNING
-            notify(project, summary, type)
+            publishTable(run.project, result)
+            if (last) notifyAggregate(run.project, result)
         }
     }
+
+    private fun publishTable(project: Project, result: MatrixResult) {
+        MatrixResultsToolWindow.MatrixResultsPanel.getInstance(project).setResult(result)
+        ToolWindowManager.getInstance(project)
+            .getToolWindow(MatrixResultsToolWindow.TOOL_WINDOW_ID)?.show(null)
+    }
+
+    private fun notifyAggregate(project: Project, result: MatrixResult) {
+        val summary = if (result.allPassed) "Test matrix passed" else "Test matrix had failures"
+        val type = if (result.allPassed) NotificationType.INFORMATION else NotificationType.WARNING
+        notify(project, summary, type)
+    }
+
+    private fun firstRockspec(project: Project): Path? =
+        LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths().firstOrNull()?.rockspec
 
     private fun notify(project: Project, message: String, type: NotificationType) {
         NotificationGroupManager.getInstance()

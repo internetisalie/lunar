@@ -1,10 +1,9 @@
 package net.internetisalie.lunar.rocks.env
 
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /** Phase 3: widget label + popup model (TC-6). */
-class LuaEnvStatusBarWidgetTest : BasePlatformTestCase() {
+class LuaEnvStatusBarWidgetTest : EnvSettingsTestCase() {
 
     fun testTextForActiveEnv() {
         val settings = LuaProjectSettings.getInstance(project)

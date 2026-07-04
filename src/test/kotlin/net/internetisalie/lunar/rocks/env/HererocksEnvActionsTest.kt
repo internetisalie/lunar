@@ -4,11 +4,11 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.testFramework.TestActionEvent
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /** Phase 6: Upgrade/Recreate/Remove are disabled without a bound env, enabled with one. */
-class HererocksEnvActionsTest : BasePlatformTestCase() {
+@Suppress("DEPRECATION")
+class HererocksEnvActionsTest : EnvSettingsTestCase() {
 
     private fun update(action: AnAction): AnActionEvent {
         val dataContext = SimpleDataContext.getProjectContext(project)

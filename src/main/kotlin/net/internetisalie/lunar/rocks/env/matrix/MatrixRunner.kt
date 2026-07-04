@@ -3,6 +3,7 @@ package net.internetisalie.lunar.rocks.env.matrix
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessHandlerFactory
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.ProgressManager
 import net.internetisalie.lunar.rocks.env.HererocksEnvState
 import java.nio.file.Path
 
@@ -27,7 +28,9 @@ data class RowOutcome(val exitCode: Int, val output: String)
 /**
  * Builds per-env `luarocks` command lines and aggregates their outcomes into a [MatrixResult]
  * (ROCKS-15-04, design §2.6, §3.3). The per-row process invocation is injected as [RowRunner] so
- * command construction and aggregation are unit-testable without spawning real processes.
+ * command construction and aggregation are unit-testable without spawning real processes. Rows are
+ * intended to run concurrently — one background task per env (see [RunMatrixAction]); [runRow]
+ * executes a single row so one slow env cannot block the rest.
  */
 object MatrixRunner {
     private val LOG = Logger.getInstance(MatrixRunner::class.java)
@@ -45,18 +48,28 @@ object MatrixRunner {
         GeneralCommandLine(env.luarocksExe(), command, rockspec.toString())
 
     /**
+     * Executes a single [row] via [runner], mutating it in place with its outcome and status, and
+     * returns the outcome. Honors cancellation via [ProgressManager.checkCanceled] before spawning.
+     */
+    fun runRow(request: Request, runner: RowRunner, row: MatrixRow): RowOutcome {
+        ProgressManager.checkCanceled()
+        row.status = Status.RUNNING
+        val outcome = safeRun(request, runner, row)
+        row.exitCode = outcome.exitCode
+        row.output = outcome.output
+        row.status = if (outcome.exitCode == 0) Status.PASS else Status.FAIL
+        return outcome
+    }
+
+    /**
      * Runs [request] row-by-row via [runner], mutating each [MatrixRow] with its outcome, and
      * returns the aggregate. An empty env set yields `MatrixResult(emptyList())` with no runner call.
+     * Production callers run one [runRow] per env concurrently; this helper keeps aggregation
+     * unit-testable in a single call.
      */
     fun execute(request: Request, runner: RowRunner): MatrixResult {
         val rows = request.envs.map { MatrixRow(it) }
-        for (row in rows) {
-            row.status = Status.RUNNING
-            val outcome = safeRun(request, runner, row)
-            row.exitCode = outcome.exitCode
-            row.output = outcome.output
-            row.status = if (outcome.exitCode == 0) Status.PASS else Status.FAIL
-        }
+        rows.forEach { runRow(request, runner, it) }
         return MatrixResult(rows)
     }
 

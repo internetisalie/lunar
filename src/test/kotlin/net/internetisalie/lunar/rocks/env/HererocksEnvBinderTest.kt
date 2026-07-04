@@ -2,7 +2,6 @@ package net.internetisalie.lunar.rocks.env
 
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.settings.LuaSettingsChangedListener
 import net.internetisalie.lunar.tool.LuaToolType
@@ -10,7 +9,7 @@ import java.io.File
 import java.nio.file.Files
 
 /** Phase 4: bind/unbind against a fixture env dir (TC-6). */
-class HererocksEnvBinderTest : BasePlatformTestCase() {
+class HererocksEnvBinderTest : EnvSettingsTestCase() {
 
     private lateinit var envDir: File
 

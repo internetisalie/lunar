@@ -1,11 +1,10 @@
 package net.internetisalie.lunar.rocks.env
 
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /** Phase 1: descriptor round-trip + path helpers (design §2.1, §2.2). */
-class HererocksEnvStateTest : BasePlatformTestCase() {
+class HererocksEnvStateTest : EnvSettingsTestCase() {
 
     fun testPosixPathHelpers() {
         if (SystemInfo.isWindows) return

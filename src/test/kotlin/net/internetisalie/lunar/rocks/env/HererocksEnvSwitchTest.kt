@@ -2,7 +2,6 @@ package net.internetisalie.lunar.rocks.env
 
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.settings.LuaSettingsChangedListener
@@ -10,7 +9,7 @@ import java.io.File
 import java.nio.file.Files
 
 /** Phase 2: active-env switch rebinds + resolves (TC-3, TC-4, TC-5). */
-class HererocksEnvSwitchTest : BasePlatformTestCase() {
+class HererocksEnvSwitchTest : EnvSettingsTestCase() {
 
     private lateinit var root: File
 

@@ -1,11 +1,10 @@
 package net.internetisalie.lunar.rocks.env
 
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /** Phase 1: env-set state + legacy migration (TC-1, TC-2). */
 @Suppress("DEPRECATION")
-class HererocksEnvSetStateTest : BasePlatformTestCase() {
+class HererocksEnvSetStateTest : EnvSettingsTestCase() {
 
     fun testLegacyEnvMigratesIntoListOnLoad() {
         val settings = LuaProjectSettings.getInstance(project)
