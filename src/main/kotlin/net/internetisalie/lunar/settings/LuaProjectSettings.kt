@@ -10,7 +10,9 @@ import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
+import net.internetisalie.lunar.rocks.env.HererocksEnvBinder
 import net.internetisalie.lunar.rocks.env.HererocksEnvState
+import java.util.UUID
 
 @Service(Service.Level.PROJECT)
 @State(
@@ -84,7 +86,21 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
          * `null` when none has been bound. Stored in `.idea/lunar.xml` so the env spec is
          * VCS-shared and upgrade/recreate stay reproducible across a team.
          */
+        @Deprecated("ROCKS-15: migrated into hererocksEnvs on load; kept for back-compat read")
         var hererocksEnv: HererocksEnvState? = null
+
+        /**
+         * The set of hererocks-provisioned Lua environments for this project (ROCKS-15-01). The
+         * ROCKS-14 single [hererocksEnv] is migrated into this list on [loadState]. Defaulted for
+         * the XML serializer, so `var`/[MutableList] per the sanctioned serialization exception.
+         */
+        var hererocksEnvs: MutableList<HererocksEnvState> = mutableListOf()
+
+        /**
+         * Id of the active environment within [hererocksEnvs] (ROCKS-15-01). `""` or an id absent
+         * from the list means "no active env" (app-fallback resolution, unchanged from ROCKS-14).
+         */
+        var activeEnvId: String = ""
 
         fun expandSourcePath(project : Project) : String {
             return sourcePath.trim(' ').expandMacros(project)
@@ -127,7 +143,48 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
     }
 
     override fun loadState(state: State) {
+        migrateLegacyEnv(state)
         myState = state
+    }
+
+    /**
+     * One-time migration of the ROCKS-14 single [State.hererocksEnv] into the ROCKS-15
+     * [State.hererocksEnvs] list (ROCKS-15-01, design §3.1). Idempotent: guarded by an id-absent
+     * check; assigns a UUID when the legacy id is blank; only auto-selects the active env when
+     * none is set; nulls out the consumed legacy field.
+     */
+    @Suppress("DEPRECATION")
+    private fun migrateLegacyEnv(state: State) {
+        val legacy = state.hererocksEnv ?: return
+        if (state.hererocksEnvs.any { it.id == legacy.id }) return
+        if (legacy.id.isBlank()) legacy.id = UUID.randomUUID().toString()
+        state.hererocksEnvs.add(legacy)
+        if (state.activeEnvId.isBlank()) state.activeEnvId = legacy.id
+        state.hererocksEnv = null
+    }
+
+    /** Returns the full environment set (ROCKS-15-01, design §2.2). */
+    fun resolveAllEnvs(): List<HererocksEnvState> = state.hererocksEnvs.toList()
+
+    /** Returns the active environment, or `null` when none is selected (ROCKS-15-01). */
+    fun activeEnv(): HererocksEnvState? =
+        state.hererocksEnvs.firstOrNull { it.id == state.activeEnvId }
+
+    /** Appends [spec] to the set when its id is not already present (ROCKS-15-05, design §2.2). */
+    fun addEnv(spec: HererocksEnvState) {
+        if (state.hererocksEnvs.none { it.id == spec.id }) state.hererocksEnvs.add(spec)
+    }
+
+    /**
+     * Binds [envId]'s environment via [net.internetisalie.lunar.rocks.env.HererocksEnvBinder.bind]
+     * (which repoints the interpreter + `LUAROCKS` binding and fires
+     * [LuaSettingsChangedListener.TOPIC]) and marks it active (ROCKS-15-02, design §3.2). Unknown
+     * ids are a no-op; switching never re-provisions.
+     */
+    fun setActiveEnvAndNotify(project: Project, envId: String) {
+        val target = state.hererocksEnvs.firstOrNull { it.id == envId } ?: return
+        HererocksEnvBinder.bind(project, target)
+        state.activeEnvId = envId
     }
 
     /**

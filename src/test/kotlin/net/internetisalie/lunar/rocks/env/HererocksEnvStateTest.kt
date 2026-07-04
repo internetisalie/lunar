@@ -37,10 +37,13 @@ class HererocksEnvStateTest : BasePlatformTestCase() {
             luarocksVersion = "3.11.1",
             label = "matrix",
         )
-        settings.state.hererocksEnv = spec
+        settings.state.hererocksEnvs.add(spec)
+        settings.state.activeEnvId = spec.id
 
         val serialized = settings.state
         settings.loadState(serialized)
-        assertEquals(spec, LuaProjectSettings.getInstance(project).state.hererocksEnv)
+        val reloaded = LuaProjectSettings.getInstance(project).state
+        assertEquals(listOf(spec), reloaded.hererocksEnvs)
+        assertEquals(spec.id, reloaded.activeEnvId)
     }
 }
