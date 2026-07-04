@@ -2,6 +2,7 @@ package net.internetisalie.lunar.rocks.env
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.notification.NotificationGroupManager
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
@@ -10,6 +11,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.util.LuaProcessUtil
 import java.io.File
 import java.util.UUID
@@ -65,7 +67,9 @@ class HererocksProvisioner(private val project: Project) {
         val output = LuaProcessUtil.capture(GeneralCommandLine(argsFor(prefix, spec)), PROVISION_TIMEOUT_MS)
         if (output.exitCode == 0) {
             val bound = spec.copy(id = spec.id.ifBlank { UUID.randomUUID().toString() })
-            HererocksEnvBinder.bind(project, bound)
+            ApplicationManager.getApplication().invokeLater {
+                LuaProjectSettings.getInstance(project).upsertAndActivate(project, bound)
+            }
         } else {
             val tail = output.stderr.trim().lines().takeLast(STDERR_TAIL).joinToString("\n").ifBlank { "(no output)" }
             LOG.warn("hererocks provisioning failed (exit ${output.exitCode}): $tail")

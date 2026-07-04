@@ -4,7 +4,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFile
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
+import java.util.UUID
 
 /**
  * Detects an existing hererocks-shaped directory in a project (ROCKS-14-05).
@@ -30,7 +32,25 @@ object HererocksEnvDetector {
         } else {
             HererocksFlavor.PUC
         }
-        return HererocksEnvState(directory = dir, flavor = flavor, luaVersion = "", luarocksVersion = "latest")
+        return HererocksEnvState(
+            id = UUID.randomUUID().toString(),
+            directory = dir,
+            flavor = flavor,
+            luaVersion = "",
+            luarocksVersion = "latest",
+        )
+    }
+
+    /**
+     * Whether [directory] matches any env already in [LuaProjectSettings.resolveAllEnvs] by
+     * normalized absolute path (ROCKS-15 remediation, defect B). Used by detect-startup so a
+     * project whose env is already in the set — active *or* not — is never re-offered a Bind on
+     * reopen, replacing the old legacy-single-field check that the migration nulls out.
+     */
+    fun isKnownDirectory(project: Project, directory: String): Boolean {
+        val target = HererocksEnvBinder.normalizeDir(directory)
+        return LuaProjectSettings.getInstance(project).resolveAllEnvs()
+            .any { HererocksEnvBinder.normalizeDir(it.directory) == target }
     }
 
     private fun HererocksEnvState.luaExeExists(): Boolean = File(luaExe()).exists()

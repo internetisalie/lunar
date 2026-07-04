@@ -18,7 +18,7 @@ class HererocksDetectStartup : ProjectActivity {
     override suspend fun execute(project: Project) {
         try {
             val detected = HererocksEnvDetector.detect(project) ?: return
-            if (LuaProjectSettings.getInstance(project).state.hererocksEnv?.directory == detected) return
+            if (HererocksEnvDetector.isKnownDirectory(project, detected)) return
             offerBind(project, detected)
         } catch (throwable: Throwable) {
             LOG.warn("hererocks detection failed", throwable)
@@ -34,8 +34,9 @@ class HererocksDetectStartup : ProjectActivity {
             )
         notification.addAction(object : NotificationAction("Bind") {
             override fun actionPerformed(event: AnActionEvent, ignored: com.intellij.notification.Notification) {
-                ApplicationManager.getApplication().executeOnPooledThread {
-                    HererocksEnvBinder.bind(project, HererocksEnvDetector.descriptorFromDir(directory))
+                ApplicationManager.getApplication().invokeLater {
+                    LuaProjectSettings.getInstance(project)
+                        .upsertAndActivate(project, HererocksEnvDetector.descriptorFromDir(directory))
                 }
                 notification.expire()
             }

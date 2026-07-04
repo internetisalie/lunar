@@ -3,7 +3,7 @@ package net.internetisalie.lunar.rocks.env.matrix
 import junit.framework.TestCase
 import net.internetisalie.lunar.rocks.env.HererocksFlavor
 
-/** Phase 5: batch spec derivation (TC-9). */
+/** Phase 5: batch spec derivation (TC-9) + batch success set-membership (ROCKS-15 remediation). */
 class BatchProvisionTest : TestCase() {
 
     fun testDeriveSpecsForVersionMatrix() {

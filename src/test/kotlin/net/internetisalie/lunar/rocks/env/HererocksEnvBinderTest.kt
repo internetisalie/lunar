@@ -58,22 +58,20 @@ class HererocksEnvBinderTest : EnvSettingsTestCase() {
         val boundId = settings.state.projectToolBindings[LuaToolType.LUAROCKS.name]
         assertNotNull("LUAROCKS binding must be set", boundId)
         assertEquals(File(envDir, "bin/lua").absolutePath, settings.state.interpreter?.path)
-        assertNotNull("descriptor must be stored", settings.state.hererocksEnv)
-        assertEquals(envDir.absolutePath, settings.state.hererocksEnv?.directory)
     }
 
     fun testUnbindClearsAll() {
         if (SystemInfo.isWindows) return
-        val spec = HererocksEnvState(directory = envDir.absolutePath, flavor = HererocksFlavor.PUC, luaVersion = "5.4")
-        HererocksEnvBinder.bind(project, spec)
+        val settings = LuaProjectSettings.getInstance(project)
+        val spec = HererocksEnvState(id = "A", directory = envDir.absolutePath, flavor = HererocksFlavor.PUC, luaVersion = "5.4")
+        settings.upsertAndActivate(project, spec)
         PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
 
         HererocksEnvBinder.unbind(project, deleteDir = false)
         PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
 
-        val settings = LuaProjectSettings.getInstance(project)
         assertNull(settings.state.projectToolBindings[LuaToolType.LUAROCKS.name])
         assertNull(settings.state.interpreter)
-        assertNull(settings.state.hererocksEnv)
+        assertTrue("env removed from set on unbind", settings.resolveAllEnvs().isEmpty())
     }
 }

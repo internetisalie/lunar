@@ -7,7 +7,6 @@ import com.intellij.testFramework.TestActionEvent
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /** Phase 6: Upgrade/Recreate/Remove are disabled without a bound env, enabled with one. */
-@Suppress("DEPRECATION")
 class HererocksEnvActionsTest : EnvSettingsTestCase() {
 
     private fun update(action: AnAction): AnActionEvent {
@@ -16,15 +15,20 @@ class HererocksEnvActionsTest : EnvSettingsTestCase() {
     }
 
     fun testDisabledWithoutBoundEnv() {
-        LuaProjectSettings.getInstance(project).state.hererocksEnv = null
+        val state = LuaProjectSettings.getInstance(project).state
+        state.hererocksEnvs.clear()
+        state.activeEnvId = ""
         for (action in listOf(UpgradeHererocksEnvAction(), RecreateHererocksEnvAction(), RemoveHererocksEnvAction())) {
             assertFalse(action.javaClass.simpleName, update(action).presentation.isEnabled)
         }
     }
 
     fun testEnabledWithBoundEnv() {
-        LuaProjectSettings.getInstance(project).state.hererocksEnv =
-            HererocksEnvState(directory = "/p/.lua", flavor = HererocksFlavor.PUC, luaVersion = "5.4")
+        val state = LuaProjectSettings.getInstance(project).state
+        state.hererocksEnvs = mutableListOf(
+            HererocksEnvState(id = "A", directory = "/p/.lua", flavor = HererocksFlavor.PUC, luaVersion = "5.4"),
+        )
+        state.activeEnvId = "A"
         for (action in listOf(UpgradeHererocksEnvAction(), RecreateHererocksEnvAction(), RemoveHererocksEnvAction())) {
             assertTrue(action.javaClass.simpleName, update(action).presentation.isEnabled)
         }

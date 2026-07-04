@@ -39,7 +39,6 @@ object HererocksEnvBinder {
                 val settings = LuaProjectSettings.getInstance(project)
                 settings.setProjectToolBindingAndNotify(LuaToolType.LUAROCKS.name, tool.id)
                 settings.setInterpreterAndNotify(interpreter)
-                settings.state.hererocksEnv = spec
                 notify(project, "Bound Lua environment ${spec.displayLabel()}", NotificationType.INFORMATION)
             }
         } catch (throwable: Throwable) {
@@ -50,11 +49,12 @@ object HererocksEnvBinder {
 
     fun unbind(project: Project, deleteDir: Boolean) {
         val settings = LuaProjectSettings.getInstance(project)
-        val directory = settings.state.hererocksEnv?.directory
+        val active = settings.activeEnv()
+        val directory = active?.directory
         ApplicationManager.getApplication().invokeLater {
             settings.setProjectToolBindingAndNotify(LuaToolType.LUAROCKS.name, null)
             settings.setInterpreterAndNotify(null)
-            settings.state.hererocksEnv = null
+            if (active != null) settings.removeEnv(active.id)
         }
         if (deleteDir && directory != null) {
             ApplicationManager.getApplication().executeOnPooledThread {
@@ -62,6 +62,10 @@ object HererocksEnvBinder {
             }
         }
     }
+
+    /** Normalized absolute-path key for directory-based env dedup (ROCKS-15 remediation). */
+    fun normalizeDir(directory: String): String =
+        FileUtil.toCanonicalPath(File(directory).absolutePath)
 
     private fun notify(project: Project, message: String, type: NotificationType) {
         NotificationGroupManager.getInstance()

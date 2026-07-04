@@ -69,6 +69,37 @@ class HererocksEnvSwitchTest : EnvSettingsTestCase() {
         assertEquals(File(root, "B/bin/luarocks").absolutePath, LuaRocksEnvironment.resolveExecutable(project))
     }
 
+    /**
+     * ROCKS-15 remediation defect A: a live [LuaProjectSettings.upsertAndActivate] (the create/
+     * detect success path) must surface the env in the set + activate it WITHOUT loadState/migration.
+     * Would have caught the "batch/create env missing from switcher until reload" live defect.
+     */
+    fun testLiveActivateAddsToSetWithoutMigration() {
+        if (SystemInfo.isWindows) return
+        val a = fakeEnv("A")
+        val settings = LuaProjectSettings.getInstance(project)
+
+        settings.upsertAndActivate(project, a)
+        PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+
+        assertEquals(listOf(a), settings.resolveAllEnvs())
+        assertEquals("A", settings.state.activeEnvId)
+        assertEquals(a, settings.activeEnv())
+    }
+
+    /** ROCKS-15 remediation: re-activating the same directory upserts (no duplicate row). */
+    fun testLiveActivateDedupsByDirectory() {
+        if (SystemInfo.isWindows) return
+        val a = fakeEnv("A")
+        val settings = LuaProjectSettings.getInstance(project)
+
+        settings.upsertAndActivate(project, a)
+        settings.upsertAndActivate(project, a.copy(id = "A2"))
+        PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+
+        assertEquals("same directory must not append a twin", 1, settings.resolveAllEnvs().size)
+    }
+
     fun testUnknownIdIsNoOp() {
         if (SystemInfo.isWindows) return
         val a = fakeEnv("A")

@@ -82,4 +82,4 @@ class RemoveHererocksEnvAction : DumbAwareAction("Remove Environment") {
 }
 
 private fun boundEnv(project: Project): HererocksEnvState? =
-    LuaProjectSettings.getInstance(project).state.hererocksEnv
+    LuaProjectSettings.getInstance(project).activeEnv()

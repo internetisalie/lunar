@@ -175,6 +175,39 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         if (state.hererocksEnvs.none { it.id == spec.id }) state.hererocksEnvs.add(spec)
     }
 
+    /** Removes [envId] from the set and clears [State.activeEnvId] if it was active (ROCKS-15). */
+    fun removeEnv(envId: String) {
+        state.hererocksEnvs.removeAll { it.id == envId }
+        if (state.activeEnvId == envId) state.activeEnvId = ""
+    }
+
+    /**
+     * Set-aware activation and the single live source of truth for env create/detect/switch/batch
+     * (ROCKS-15 remediation, defect A). Upserts [spec] into [State.hererocksEnvs] — deduping by `id`
+     * *and* by normalized [HererocksEnvState.directory] so a re-provision/detect of the same directory
+     * never appends a twin — marks it active, then binds it via
+     * [net.internetisalie.lunar.rocks.env.HererocksEnvBinder.bind] (interpreter + `LUAROCKS` tool +
+     * the `LuaSettingsChangedListener.TOPIC` fire). Unlike the legacy path this surfaces the env in
+     * the status-bar switcher immediately, without a project reload.
+     */
+    fun upsertAndActivate(project: Project, spec: HererocksEnvState) {
+        val incomingDir = HererocksEnvBinder.normalizeDir(spec.directory)
+        val existing = state.hererocksEnvs.firstOrNull {
+            it.id == spec.id || HererocksEnvBinder.normalizeDir(it.directory) == incomingDir
+        }
+        val resolved = if (existing == null) {
+            state.hererocksEnvs.add(spec)
+            spec
+        } else {
+            val index = state.hererocksEnvs.indexOf(existing)
+            val merged = spec.copy(id = existing.id.ifBlank { spec.id })
+            state.hererocksEnvs[index] = merged
+            merged
+        }
+        state.activeEnvId = resolved.id
+        HererocksEnvBinder.bind(project, resolved)
+    }
+
     /**
      * Binds [envId]'s environment via [net.internetisalie.lunar.rocks.env.HererocksEnvBinder.bind]
      * (which repoints the interpreter + `LUAROCKS` binding and fires
