@@ -599,6 +599,8 @@
     <!-- Multi-version hererocks environments (ROCKS-15) -->
     <statusBarWidgetFactory id="Lunar.LuaEnvWidget"
         implementation="net.internetisalie.lunar.rocks.env.LuaEnvStatusBarWidgetFactory"/>
+    <toolWindow id="Lunar.LuaMatrix" anchor="bottom" secondary="true" canCloseContents="true"
+        factoryClass="net.internetisalie.lunar.rocks.env.matrix.MatrixResultsToolWindow"/>
 
   </extensions>
 
@@ -656,6 +658,10 @@
               class="net.internetisalie.lunar.rocks.env.RemoveHererocksEnvAction"
               text="Remove Environment"
               description="Clear the environment binding and optionally delete the directory"/>
+      <action id="Lunar.Hererocks.RunMatrix"
+              class="net.internetisalie.lunar.rocks.env.matrix.RunMatrixAction"
+              text="Run Test Matrix…"
+              description="Run the rockspec build/test command against every provisioned environment"/>
     </group>
   </actions>
 </idea-plugin>
