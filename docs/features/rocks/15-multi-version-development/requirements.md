@@ -2,7 +2,8 @@
 id: ROCKS-15
 title: "15: Multi-Version Rocks Development"
 type: feature
-status: "planned"
+status: "done"
+vf_icon: ✅
 priority: low
 parent_id: ROCKS
 folders:

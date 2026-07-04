@@ -70,6 +70,7 @@ All notable changes to the Lunar Lua IDE plugin are documented in this file.
 - **Project Settings**: Language level configuration (Lua 5.1-5.4)
 - **Application Settings**: Interpreter detection and workspace configuration
 - **Isolated Lua Environments (hererocks)**: Detect, create, upgrade, recreate, and remove a self-contained hererocks Lua+LuaRocks environment from Tools ▸ Lua Environment. On project open, an existing environment is detected with a one-click **Bind**; provisioning runs on a background task and binds the produced `bin/lua` as the project interpreter and `bin/luarocks` as the LuaRocks tool, so every downstream LuaRocks feature transparently targets the isolated env.
+- **Multi-Version Rocks Development (ROCKS-15)**: Maintain a *set* of hererocks environments per project with an active-version switcher in the status bar — pick the active Lua/LuaRocks env from the popup (or add a new one), and the interpreter + LuaRocks binding repoint to it instantly. Existing ROCKS-14 single-environment settings migrate automatically into the new set on load. Adds a **Run Test Matrix** action that runs the rockspec build/test command against every provisioned environment and reports per-version results in a tool window, plus a **Provision Version Matrix** action to provision a whole matrix of Lua versions in one step.
 
 ### Architecture
 - **Bipartite Type Graph**: O(n³) incremental reachability for type constraints

@@ -3,6 +3,7 @@ id: "ROCKS"
 title: "ROCKS: LuaRocks Integration"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features]]"
@@ -26,7 +27,7 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 | [`ROCKS-11`](11-makefile-tasks/requirements.md) | **Makefile Task Integration** | **C** | **Full** | Enrich scaffolded Makefile targets; optional Makefile-plugin integration. |
 | [`ROCKS-12`](12-project-view-roots/requirements.md) | **Project-View Roots & Marking** | **M** | **Not Implemented** | Mark the installed-rock tree (`lua_modules`) as External Libraries and first-party `build.modules` source roots in the Project view. |
 | [`ROCKS-14`](14-hererocks-environment/requirements.md) | **Hererocks Environment Lifecycle** | **S** | **Full** | Detect / create / upgrade / recreate / remove an isolated hererocks Lua+LuaRocks env; bind its `lua`/`luarocks` via the interpreter + TOOL-02 machinery. Live provisioning/recreate (TC-9) pending human VNC verification. |
-| [`ROCKS-15`](15-multi-version-development/requirements.md) | **Multi-Version Rocks Development** | **C** | **Future Work** | Multiple envs + active-version switcher + cross-version test matrix. Depends on ROCKS-14. |
+| [`ROCKS-15`](15-multi-version-development/requirements.md) | **Multi-Version Rocks Development** | **C** | **Full** | Multiple envs + active-version switcher + cross-version test matrix. Depends on ROCKS-14. |
 
 ---
 
