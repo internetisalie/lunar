@@ -5,7 +5,9 @@
 local function extract(source, names, include_nils)
     local data = {}
     for _, key in ipairs(names) do
-        local value = source[key]
+        -- rawget so a sandboxed source's `__index = _G` fallback cannot leak
+        -- stdlib globals (e.g. the `package` table) for fields the rockspec omits.
+        local value = rawget(source, key)
         if (value ~= nil) or include_nils then
             data[key] = value
         end

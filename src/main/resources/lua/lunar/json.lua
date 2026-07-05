@@ -60,7 +60,9 @@ local function encode(value)
              return "{" .. table.concat(kv_pairs, ",") .. "}"
          end
     else
-        error("Unsupported type for JSON encoding: " .. t)
+        -- function / userdata / thread have no JSON representation; degrade to
+        -- null rather than aborting the whole manifest for one stray field.
+        return "null"
     end
 end
 
