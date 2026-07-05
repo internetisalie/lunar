@@ -449,7 +449,7 @@
             displayName="Lua"/>
 
     <projectConfigurable
-            parentId="language"
+            parentId="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
             instance="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
             id="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
             displayName="Lua Project"

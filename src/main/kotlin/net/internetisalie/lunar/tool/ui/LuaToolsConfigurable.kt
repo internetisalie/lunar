@@ -47,8 +47,13 @@ class LuaToolsConfigurable : Configurable {
                     com.intellij.icons.AllIcons.Actions.Refresh,
                 ) {
                     override fun actionPerformed(e: com.intellij.openapi.actionSystem.AnActionEvent) {
-                        LuaToolManager.getInstance().autoDiscover()
-                        reset()
+                        // Discovery probes each tool with `--version`; that process I/O must not run
+                        // on the EDT (trips OSProcessHandler#checkEdtAndReadAction, and fails the
+                        // headless buildSearchableOptions indexing). Mirror recheckAll().
+                        ApplicationManager.getApplication().executeOnPooledThread {
+                            LuaToolManager.getInstance().autoDiscover()
+                            ApplicationManager.getApplication().invokeLater { reset() }
+                        }
                     }
                 },
             )

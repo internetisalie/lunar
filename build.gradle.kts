@@ -79,6 +79,12 @@ dependencies {
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-gradle-plugin-extension.html
 intellijPlatform {
+    // Don't pre-build the settings-search index: buildSearchableOptions launches a full headless IDE
+    // and is flaky in CI/headless environments (it fails here for platform reasons even with a clean
+    // plugin). It only pre-populates Settings search — the IDE builds that lazily at runtime — so it's
+    // not worth gating the build on. Keep it off; the real gates are test/checkStatus/kover/integrationTest.
+    buildSearchableOptions = false
+
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
