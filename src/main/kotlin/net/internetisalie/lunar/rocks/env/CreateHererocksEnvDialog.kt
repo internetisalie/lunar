@@ -8,6 +8,9 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
+import net.internetisalie.lunar.platform.LuaPlatform
+import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
+import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
 import javax.swing.JComboBox
 
@@ -22,7 +25,8 @@ class CreateHererocksEnvDialog(
 
     private val directoryField = TextFieldWithBrowseButton()
     private val flavorCombo = JComboBox(HererocksFlavor.entries.toTypedArray())
-    private val luaVersionCombo = JComboBox(arrayOf("5.1", "5.2", "5.3", "5.4", "5.5", "2.1")).apply { isEditable = true }
+    // Editable so a custom version / git ref can still be typed; the option list is gated by flavor.
+    private val luaVersionCombo = JComboBox<String>().apply { isEditable = true }
     private val luarocksVersionField = JBTextField("latest")
 
     init {
@@ -35,12 +39,24 @@ class CreateHererocksEnvDialog(
                 .withTitle("Environment Directory")
                 .withDescription("Select the hererocks environment directory"),
         )
+        // The Lua-version options follow the selected flavor (PUC → 5.x, LuaJIT → 2.x).
+        flavorCombo.addActionListener { repopulateVersions() }
+        repopulateVersions()
         initial?.let {
             flavorCombo.selectedItem = it.flavor
+            repopulateVersions()
             luaVersionCombo.selectedItem = it.luaVersion
             luarocksVersionField.text = it.luarocksVersion
         }
         init()
+    }
+
+    private fun repopulateVersions() {
+        val flavor = flavorCombo.selectedItem as? HererocksFlavor ?: HererocksFlavor.PUC
+        val platform = if (flavor == HererocksFlavor.LUAJIT) LuaPlatform.LUAJIT else LuaPlatform.STANDARD
+        val versions = PlatformVersionRegistry.getVersions(platform).map { it.label }
+        luaVersionCombo.model = DefaultComboBoxModel(versions.toTypedArray())
+        luaVersionCombo.selectedItem = versions.firstOrNull { it == "5.4" } ?: versions.lastOrNull()
     }
 
     override fun createCenterPanel(): JComponent =

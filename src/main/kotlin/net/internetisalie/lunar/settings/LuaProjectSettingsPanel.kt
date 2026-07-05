@@ -3,6 +3,7 @@ package net.internetisalie.lunar.settings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.TitledSeparator
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.ui.FormBuilder
@@ -39,7 +40,7 @@ class LuaProjectSettingsPanel(val project: Project) {
 
         languageLevelLabel = JLabel()
 
-        hererocksManagedCheckBox = JCheckBox("Hererocks managed (active environment drives interpreter, platform & version)")
+        hererocksManagedCheckBox = JCheckBox("Active environment drives interpreter, platform & version")
         hererocksManagedCheckBox.toolTipText =
             "When enabled, binding or switching a hererocks environment sets the project interpreter, " +
             "platform, and version. Disable to keep an explicitly chosen interpreter across bind/unbind."
@@ -55,7 +56,7 @@ class LuaProjectSettingsPanel(val project: Project) {
         sourcePath.text = PathConfiguration.DEFAULT_SOURCE_PATH
 
         suppressUnderscorePrefixedCheckBox = JCheckBox(
-            "Suppress symbols with underscore prefix (_) from completion suggestions"
+            "Hide symbols with an underscore prefix (_) from suggestions"
         )
 
         rocksServerUrl = JBTextField()
@@ -76,14 +77,17 @@ class LuaProjectSettingsPanel(val project: Project) {
         onPlatformChanged(platformComboBox.selectedItem as? LuaPlatform)
 
         mainPanel = FormBuilder.createFormBuilder()
+            .addComponent(TitledSeparator("Interpreter & Target"))
             .addLabeledComponent("Platform", platformComboBox, 0)
             .addLabeledComponent("Version", versionComboBox, 2)
-            .addLabeledComponent("Language Level", languageLevelLabel, 2)
-            .addComponent(hererocksManagedCheckBox, 2)
+            .addLabeledComponent("Language level", languageLevelLabel, 2)
+            .addLabeledComponent("Hererocks managed", hererocksManagedCheckBox, 2)
             .addLabeledComponent("Interpreter", interpreter, 2)
+            .addComponent(TitledSeparator("Source & Completion"))
             .addLabeledComponent("Source path patterns", sourcePath, 2)
-            .addComponent(suppressUnderscorePrefixedCheckBox, 2)
-            .addLabeledComponent("LuaRocks server URL (project override)", rocksServerUrl, 2)
+            .addLabeledComponent("Completion", suppressUnderscorePrefixedCheckBox, 2)
+            .addComponent(TitledSeparator("LuaRocks"))
+            .addLabeledComponent("Server URL (project override)", rocksServerUrl, 2)
             .addComponentFillVertically(JPanel(), 2)
             .panel
     }
