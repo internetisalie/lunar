@@ -27,11 +27,18 @@ reproducible from a clean state with an explicit observable result.
   read via `vnc_ocr_region` OCR). Precondition for every Windows scenario: revert the clean
   snapshot and boot — `virsh snapshot-revert win11 "Fresh Install" && virsh start win11`
   (guest `TESTING\tester`, empty password). **No ISO install** — the VM already exists
-  (TOOLING-00 design §2.2). Note it is a **bare command-line Windows box with no IDE/plugin
-  installed**: scenarios needing the running plugin (in-IDE provisioning, integrated-terminal
-  PATH injection on Windows) are **not** runnable on it as-is and stay
-  manual-on-a-real-Windows-IDE items; the VM covers running provisioned binaries from
-  CMD/PowerShell.
+  (TOOLING-00 design §2.2). The `Fresh Install` snapshot is a **bare command-line Windows box
+  with no IDE/plugin installed** — it covers running provisioned binaries from CMD/PowerShell
+  (and is the *preferred* baseline for TOOLING-00-02's SmartScreen/MOTW observation, where a
+  pristine box shows true first-run behavior).
+- **Windows two-snapshot model (planned):** scenarios needing the *running plugin* — in-IDE
+  provisioning (TOOLING-04, scenario 04.5) and integrated-terminal PATH injection on Windows
+  (TOOLING-03-12) — are **not** runnable on the bare box. They become agent-drivable once a
+  second snapshot, **`IDE + Lunar`** (GoLand + a JetBrains license + the plugin jar), is
+  created — the verify-in-ide plugin-jar hot-swap works the same over VNC on Windows. Building
+  that snapshot is deferred to when TOOLING-03/-04 reach verification (plan M2/M3); until then
+  these are marked *manual / pending the `IDE + Lunar` snapshot*. Keep both snapshots: `Fresh
+  Install` (clean box, binary + SmartScreen tests) and `IDE + Lunar` (in-IDE checks).
 - **Builder (Linux)** — the gce-builder VM for shell-spike runs
   (`tooling/gce-builder/gce-builder.sh`).
 
@@ -282,7 +289,8 @@ the CI loop) — the plan flags this path **for manual QA before release**.
   the provisioner against a Windows target on a dev machine, or assemble the tree per the
   TOOLING-00-02 acquisition — and copy it to `C:\lunar-env\` on the VM. (The true in-IDE
   Windows provisioning flow, invoking *Provision…* from GoLand on Windows, needs a
-  plugin-loaded IDE on the guest and is out of scope for this bare VM.)
+  plugin-loaded IDE on the guest — run it against the planned **`IDE + Lunar`** snapshot
+  once that exists; on the bare `Fresh Install` box this scenario is tree-copy + execute only.)
 - **Steps**:
   1. Place the provisioned `{lua 5.4, luarocks latest}` Windows tree at `C:\lunar-env\`.
   2. Inspect the rootDir tree.

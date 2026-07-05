@@ -218,10 +218,12 @@ design-time mitigation owned by a named feature.
 - **TBD: Windows CI automation** — Windows execution checks are agent-drivable on the
   existing `win11` KVM/virt-manager VM over VNC (TOOLING-00-02 uses this: revert the
   `Fresh Install` snapshot, run the provisioned `lua.exe`/`luarocks.exe` from CMD/PowerShell).
-  The VM is a **bare box with no IDE installed**, so it verifies *binary execution* only —
-  the IDE-side Windows checks (integrated-terminal PATH injection, in-IDE provisioning) would
-  need a plugin-loaded GoLand on the guest and remain manual-on-a-real-Windows-IDE items.
-  These are interactive VM sessions, not CI jobs; a CI-integrated Windows E2E pipeline remains
+  The `Fresh Install` snapshot is a **bare box with no IDE installed**, so it verifies *binary
+  execution* only. The IDE-side Windows checks (integrated-terminal PATH injection, in-IDE
+  provisioning) need a plugin-loaded GoLand on the guest; they become agent-drivable once a
+  second **`IDE + Lunar`** snapshot (GoLand + license + plugin jar) is created — deferred to
+  TOOLING-03/-04 verification (plan M2/M3), keeping `Fresh Install` alongside it. Even then
+  these are interactive VM sessions, not CI jobs; a CI-integrated Windows E2E pipeline remains
   future work.
 
 ## Pre-Implementation De-risking Tasks
