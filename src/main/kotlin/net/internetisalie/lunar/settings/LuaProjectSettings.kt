@@ -10,8 +10,10 @@ import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 import net.internetisalie.lunar.rocks.env.HererocksEnvBinder
 import net.internetisalie.lunar.rocks.env.HererocksEnvState
+import net.internetisalie.lunar.util.newProjectBackgroundTask
 import java.util.UUID
 
 @Service(Service.Level.PROJECT)
@@ -49,6 +51,31 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         @Property(surroundWithTag = false)
         var target: TargetState? = null
         var interpreter: LuaInterpreter? = null
+
+        /**
+         * Who owns the project interpreter + target (ROCKS-16). [InterpreterMode.EXPLICIT]: the user's
+         * combo selections are authoritative and a hererocks bind/switch/unbind must not touch
+         * [interpreter] or [target]. [InterpreterMode.HEREROCKS_MANAGED]: the active env drives both,
+         * re-derived on every bind/switch; the user's manual choice is stashed in
+         * [explicitInterpreter]/[explicitTarget] so it can be restored on unbind or mode-off.
+         */
+        var interpreterMode: InterpreterMode = InterpreterMode.EXPLICIT
+
+        /**
+         * One-shot guard for the [interpreterMode] migration (see [migrateInterpreterMode]). Existing
+         * projects predate the field; `false` means "never chosen", so load-time can seed the mode from
+         * whether an env is already bound. Set `true` once seeded so a later Explicit choice sticks.
+         */
+        var interpreterModeMigrated: Boolean = false
+
+        /**
+         * Non-destructive overlay of the user's explicit interpreter/target while
+         * [interpreterMode] is [InterpreterMode.HEREROCKS_MANAGED]. Captured on entering Managed mode
+         * and restored on unbind or on switching back to [InterpreterMode.EXPLICIT].
+         */
+        var explicitInterpreter: LuaInterpreter? = null
+        @Property(surroundWithTag = false)
+        var explicitTarget: TargetState? = null
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
         var suppressUnderscorePrefixedGlobals: Boolean = true
         var additionalGlobals: MutableList<String> = mutableListOf()
@@ -144,7 +171,23 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
 
     override fun loadState(state: State) {
         migrateLegacyEnv(state)
+        migrateInterpreterMode(state)
         myState = state
+    }
+
+    /**
+     * Seeds [State.interpreterMode] for projects that predate the field (ROCKS-16). Runs after
+     * [migrateLegacyEnv] so [State.activeEnvId] reflects any migrated ROCKS-14 env. A project that
+     * already has a bound env defaults to [InterpreterMode.HEREROCKS_MANAGED] so today's implicit
+     * "the env drives the interpreter" behaviour is retained; otherwise it defaults to
+     * [InterpreterMode.EXPLICIT]. Idempotent via [State.interpreterModeMigrated].
+     */
+    private fun migrateInterpreterMode(state: State) {
+        if (state.interpreterModeMigrated) return
+        state.interpreterMode =
+            if (state.activeEnvId.isNotBlank()) InterpreterMode.HEREROCKS_MANAGED
+            else InterpreterMode.EXPLICIT
+        state.interpreterModeMigrated = true
     }
 
     /**
@@ -256,6 +299,65 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
     }
 
+    private fun notifyChanged() {
+        project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
+    }
+
+    val interpreterMode: InterpreterMode
+        get() = state.interpreterMode
+
+    /**
+     * Switches the project [InterpreterMode] and reconciles the interpreter/target overlay (ROCKS-16).
+     *
+     * → [InterpreterMode.HEREROCKS_MANAGED]: stashes the current explicit interpreter/target into the
+     * overlay and, when an env is active, re-derives them from it by kicking a background
+     * [HererocksEnvBinder.bind] (the `lua -v` probe must stay off the EDT; bind marshals its UI
+     * mutation back internally).
+     *
+     * → [InterpreterMode.EXPLICIT]: restores the stashed interpreter/target (or project defaults when
+     * none was stashed) and rebuilds platform libraries if the language level moved.
+     *
+     * No-op when [mode] already matches. Callers on the EDT (settings panel, unbind) are safe: the
+     * only off-EDT work is delegated to the background bind.
+     */
+    fun setInterpreterModeAndNotify(project: Project, mode: InterpreterMode) {
+        if (state.interpreterMode == mode) return
+        when (mode) {
+            InterpreterMode.HEREROCKS_MANAGED -> {
+                state.explicitInterpreter = state.interpreter
+                state.explicitTarget = state.target
+                state.interpreterMode = mode
+                val active = activeEnv()
+                if (active != null) {
+                    newProjectBackgroundTask("Applying Lua environment", project) {
+                        HererocksEnvBinder.bind(project, active)
+                    }.queue()
+                } else {
+                    notifyChanged()
+                }
+            }
+
+            InterpreterMode.EXPLICIT -> {
+                state.interpreterMode = mode
+                restoreExplicitOverlay()
+                notifyChanged()
+            }
+        }
+    }
+
+    /**
+     * Restores [State.interpreter]/[State.target] from the explicit overlay (or project defaults when
+     * none was stashed) and rebuilds platform libraries if the language level changed (ROCKS-16). Must
+     * run on the EDT (see [PlatformLibraryIndex.reload]); does not fire a change event itself.
+     */
+    fun restoreExplicitOverlay() {
+        val previousLevel = state.languageLevel
+        state.interpreter = state.explicitInterpreter
+        state.target = state.explicitTarget
+        state.languageLevel = state.getTarget().getImplicitLanguageLevel()
+        if (state.languageLevel != previousLevel) PlatformLibraryIndex.reload()
+    }
+
     val suppressUnderscorePrefixedGlobals: Boolean
         get() = state.suppressUnderscorePrefixedGlobals
 
@@ -292,4 +394,19 @@ enum class AutoImportStyle {
     AUTO_DETECT,
     FORCE_LOCAL_ASSIGN,
     FORCE_GLOBAL,
+}
+
+/**
+ * Who owns the project interpreter + target (ROCKS-16).
+ *
+ * - [EXPLICIT]: the user's Interpreter/Platform/Version selections are authoritative; a hererocks
+ *   bind/switch/unbind binds the `LUAROCKS` tool and tracks the active env but never touches the
+ *   interpreter or target.
+ * - [HEREROCKS_MANAGED]: the active hererocks env drives the interpreter and target (and thus the
+ *   language level + platform libraries), re-derived on every bind/switch; the panel's Interpreter/
+ *   Platform/Version controls become read-only derived views.
+ */
+enum class InterpreterMode {
+    EXPLICIT,
+    HEREROCKS_MANAGED,
 }

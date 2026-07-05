@@ -22,7 +22,7 @@ class CreateHererocksEnvDialog(
 
     private val directoryField = TextFieldWithBrowseButton()
     private val flavorCombo = JComboBox(HererocksFlavor.entries.toTypedArray())
-    private val luaVersionCombo = JComboBox(arrayOf("5.1", "5.2", "5.3", "5.4", "2.1")).apply { isEditable = true }
+    private val luaVersionCombo = JComboBox(arrayOf("5.1", "5.2", "5.3", "5.4", "5.5", "2.1")).apply { isEditable = true }
     private val luarocksVersionField = JBTextField("latest")
 
     init {

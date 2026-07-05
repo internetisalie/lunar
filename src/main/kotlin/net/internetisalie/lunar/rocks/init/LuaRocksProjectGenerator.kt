@@ -41,5 +41,9 @@ class LuaRocksProjectGenerator : DirectoryProjectGeneratorBase<LuaRocksProjectSe
         WriteAction.run<Throwable> {
             LuaRocksScaffolder.scaffold(project, baseDir, settings)
         }
+        // Apply the wizard's interpreter choice (target + Explicit/Managed), then — if requested —
+        // provision the isolated env once the project has opened (ROCKS-17).
+        LuaRocksInterpreterInitializer.applySettings(project, settings)
+        LuaRocksInterpreterInitializer.scheduleProvision(project, baseDir.path, settings)
     }
 }

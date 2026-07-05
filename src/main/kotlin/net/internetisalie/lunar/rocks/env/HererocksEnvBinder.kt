@@ -9,6 +9,8 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaInterpreterService
+import net.internetisalie.lunar.project.PlatformLibraryIndex
+import net.internetisalie.lunar.settings.InterpreterMode
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.tool.LuaToolManager
 import net.internetisalie.lunar.tool.LuaToolType
@@ -25,6 +27,15 @@ object HererocksEnvBinder {
     private val LOG = Logger.getInstance(HererocksEnvBinder::class.java)
     private const val NOTIFICATION_GROUP = "notification.group.lunar.luarocks"
 
+    /**
+     * Binds the products of [spec] into the project. The `LUAROCKS` tool is always bound (so build /
+     * matrix / rockspec features target the env regardless of mode). The interpreter + target are only
+     * repointed when the project is in [InterpreterMode.HEREROCKS_MANAGED] (ROCKS-16) — in
+     * [InterpreterMode.EXPLICIT] the user's manual interpreter/target are left untouched.
+     *
+     * Must be invoked off the EDT: the `lua -v` probe runs on the calling thread and only the settings
+     * mutations are marshalled back via `invokeLater`.
+     */
     fun bind(project: Project, spec: HererocksEnvState) {
         try {
             LocalFileSystem.getInstance().refreshAndFindFileByPath(spec.directory)
@@ -33,12 +44,20 @@ object HererocksEnvBinder {
                 notify(project, "luarocks not found in provisioned env: ${spec.luarocksExe()}", NotificationType.ERROR)
                 return
             }
-            val interpreter = LuaInterpreter(Path.of(spec.luaExe()))
-                .also { LuaInterpreterService.getInstance().identify(it) }
+            val settings = LuaProjectSettings.getInstance(project)
+            val managed = settings.interpreterMode == InterpreterMode.HEREROCKS_MANAGED
+            val interpreter = if (managed) {
+                LuaInterpreter(Path.of(spec.luaExe())).also { LuaInterpreterService.getInstance().identify(it) }
+            } else null
+            val target = if (managed) spec.toTarget() else null
             ApplicationManager.getApplication().invokeLater {
-                val settings = LuaProjectSettings.getInstance(project)
                 settings.setProjectToolBindingAndNotify(LuaToolType.LUAROCKS.name, tool.id)
-                settings.setInterpreterAndNotify(interpreter)
+                if (managed) {
+                    val previousLevel = settings.state.languageLevel
+                    settings.setInterpreterAndNotify(interpreter)
+                    target?.let { settings.setTargetAndNotify(it) }
+                    if (settings.state.languageLevel != previousLevel) PlatformLibraryIndex.reload()
+                }
                 notify(project, "Bound Lua environment ${spec.displayLabel()}", NotificationType.INFORMATION)
             }
         } catch (throwable: Throwable) {
@@ -47,13 +66,21 @@ object HererocksEnvBinder {
         }
     }
 
+    /**
+     * Unbinds the active env: always clears the `LUAROCKS` tool binding and removes the env from the
+     * set. In [InterpreterMode.HEREROCKS_MANAGED] it also hands interpreter/target ownership back to
+     * the user via [LuaProjectSettings.setInterpreterModeAndNotify] — restoring the stashed explicit
+     * choice (or project defaults) and flipping to [InterpreterMode.EXPLICIT]. In
+     * [InterpreterMode.EXPLICIT] the interpreter/target are never touched (ROCKS-16).
+     */
     fun unbind(project: Project, deleteDir: Boolean) {
         val settings = LuaProjectSettings.getInstance(project)
         val active = settings.activeEnv()
         val directory = active?.directory
+        val managed = settings.interpreterMode == InterpreterMode.HEREROCKS_MANAGED
         ApplicationManager.getApplication().invokeLater {
             settings.setProjectToolBindingAndNotify(LuaToolType.LUAROCKS.name, null)
-            settings.setInterpreterAndNotify(null)
+            if (managed) settings.setInterpreterModeAndNotify(project, InterpreterMode.EXPLICIT)
             if (active != null) settings.removeEnv(active.id)
         }
         if (deleteDir && directory != null) {

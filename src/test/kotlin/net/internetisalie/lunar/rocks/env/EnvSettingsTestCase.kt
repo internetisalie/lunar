@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.rocks.env
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.settings.InterpreterMode
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
@@ -30,5 +31,11 @@ abstract class EnvSettingsTestCase : BasePlatformTestCase() {
         state.hererocksEnvs.clear()
         state.activeEnvId = ""
         state.hererocksEnv = null
+        // ROCKS-16: the interpreter mode + its overlay also live on the shared project state.
+        state.interpreterMode = InterpreterMode.EXPLICIT
+        state.interpreter = null
+        state.target = null
+        state.explicitInterpreter = null
+        state.explicitTarget = null
     }
 }

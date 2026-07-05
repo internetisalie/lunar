@@ -69,6 +69,23 @@ object PlatformVersionRegistry {
         registry[platform]?.find { it.label == versionLabel }
 
     /**
+     * Resolves a concrete [Target] for a platform + version label, falling back gracefully
+     * (ROCKS-16). Tries an exact [findVersion] match, then the platform's [defaultVersion], then the
+     * global [Target.default]. This is the authoritative platform/label → Target mapping used by the
+     * hererocks "managed" cascade so an env whose exact version isn't registered still resolves.
+     *
+     * @param platform The platform to resolve against
+     * @param versionLabel The version label to find (e.g., "5.1", "2.1")
+     * @return A non-null Target
+     */
+    fun resolveTarget(platform: LuaPlatform, versionLabel: String): Target {
+        val version = findVersion(platform, versionLabel)
+            ?: defaultVersion(platform)
+            ?: return Target.default()
+        return Target(platform, version)
+    }
+
+    /**
      * Returns all registered platforms.
      *
      * @return Set of all LuaPlatform values
