@@ -25,6 +25,7 @@ This document serves as the index for the functional and technical requirements 
 - [[FORMAT] Formatting Requirements](features/formatting/requirements.md)
 - [[DOC] Documentation Requirements](features/documentation/requirements.md)
 - [[TOOL] Tool Inventory Management](features/tool/requirements.md)
+- [[TOOLING] Unified Lua Toolchain Management](features/tooling/requirements.md)
 - [[ROCKS] LuaRocks Integration](features/rocks/requirements.md)
 - [[SCHEMA] Schema-Driven Data Files](features/schema/requirements.md)
 - [[REFACT/INTENT] Refactoring & Intentions Requirements](features/refactoring/requirements.md)
