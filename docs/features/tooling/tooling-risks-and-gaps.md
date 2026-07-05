@@ -61,6 +61,23 @@ design-time mitigation owned by a named feature.
 - **Mitigation**: The native engine defaults to **no-readline** semantics (dossier
   recommendation). **TOOLING-00-01**'s recipe omits `-DLUA_USE_READLINE`/`-lreadline` and
   its success criterion includes "no readline linkage".
+- **UX impact (bounded corner case)**: The no-readline build loses the standalone `lua`
+  REPL's interactive line-editing extras — command history (up/down recall), intra-line
+  cursor movement (left/right arrows), tab completion, and emacs/vi keybindings — which
+  readline only provides when stdin is a TTY. The **only** place a user can observe this is
+  running a *provisioned* (source-built) `lua` **interactively in a real terminal** (the
+  IntelliJ integrated terminal — a pty4j PTY — or an external shell). It does **not** affect:
+  - **the hosted IDE REPL** (`run/console/LuaConsoleRunner`): input is fed to `lua -i` over a
+    plain pipe (`GeneralCommandLine.createProcess()` + `OSProcessHandler`, no PTY), so readline
+    is inert regardless of how the binary was built; history/editing/completion are supplied by
+    the IDE layer (`ConsoleHistoryController`, `LanguageConsoleImpl`, `LuaChunkCompletion`);
+  - **script execution** (`lua foo.lua`), `luac`, embedding, or any tool (luarocks/luacheck/
+    stylua/busted) — readline is never on their path;
+  - **BYO/registered system interpreters** (distro/Homebrew builds keep their readline) or
+    **Windows** (PUC Lua uses the console API; we ship prebuilt binaries there).
+  - *Workarounds if it matters:* `rlwrap lua`, or bind a system interpreter. Opportunistic
+    re-enablement (probe `libreadline` and link only when present, never a hard failure) or
+    bundling **linenoise** (single-file, dependency-free) are possible future scope, not v1.
 
 ### Risk 1.5: C rocks need a host C toolchain even with a prebuilt interpreter
 - **Impact**: `luarocks install busted` pulls C rocks (luasystem, lua-term, luafilesystem
