@@ -220,11 +220,11 @@ design-time mitigation owned by a named feature.
   `Fresh Install` snapshot, run the provisioned `lua.exe`/`luarocks.exe` from CMD/PowerShell).
   The `Fresh Install` snapshot is a **bare box with no IDE installed**, so it verifies *binary
   execution* only. The IDE-side Windows checks (integrated-terminal PATH injection, in-IDE
-  provisioning) need a plugin-loaded GoLand on the guest; they become agent-drivable once a
-  second **`IDE + Lunar`** snapshot (GoLand + license + plugin jar) is created — deferred to
-  TOOLING-03/-04 verification (plan M2/M3), keeping `Fresh Install` alongside it. Even then
-  these are interactive VM sessions, not CI jobs; a CI-integrated Windows E2E pipeline remains
-  future work.
+  provisioning) need a plugin-loaded GoLand on the guest; they run against the second
+  **`IDE Installed`** snapshot (GoLand + JetBrains Toolbox, already created — revert it, license
+  via Toolbox, hot-swap the Lunar jar per run). Executing those checks is TOOLING-03/-04
+  verification (plan M2/M3), keeping `Fresh Install` alongside. Even then these are interactive
+  VM sessions, not CI jobs; a CI-integrated Windows E2E pipeline remains future work.
 
 ## Pre-Implementation De-risking Tasks
 
