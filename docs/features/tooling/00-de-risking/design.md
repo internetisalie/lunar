@@ -130,12 +130,14 @@ one acquisition script — each emitting a results doc under
   5. Assert layout: a `lua*.exe` + matching `lua*.dll` (record exact asset names — LuaBinaries
      names the exe `lua54.exe`) and `luarocks.exe` exist and are non-empty.
 - **Method — stage 2, live VM execution (over VNC)**:
-  1. **Prerequisite — ensure the Windows 11 VM exists**: `virsh list --all` on the
-     workstation. If absent, first-time setup is required (create the VM in
-     virt-manager from a Windows 11 ISO — TPM/secure-boot per Win11 requirements) and is
-     part of this spike's recorded work; the spike must **not** silently assume the VM
-     exists. Record the VM name and any setup performed in the results doc.
-  2. Start the VM and connect with the VNC tooling used for the containerized GoLand
+  1. **Prerequisite — the `win11` VM already exists** (KVM/libvirt; clean snapshot
+     `Fresh Install`; visible under `qemu:///session` and `qemu:///system`). No ISO
+     install: revert to the clean snapshot and boot —
+     `virsh snapshot-revert win11 "Fresh Install" && virsh start win11`. Guest login is
+     `TESTING\tester` with an **empty** password; it is a **bare command-line Windows box
+     with no IDE installed** — this spike runs only `lua.exe`/`luarocks.exe` from a shell,
+     so none is needed.
+  2. Connect with the VNC tooling used for the containerized GoLand
      (`vnc_connect` → `vnc_screenshot`/`vnc_type_string`/`vnc_key_tap`, per the
      `verify-in-ide` driving conventions: screenshot before/after every action).
   3. Assemble the provisioned tree **inside the VM**: open PowerShell and re-run the
@@ -154,10 +156,10 @@ one acquisition script — each emitting a results doc under
      not prompt; note this contrast against the observed in-VM behavior.
 - **Pass threshold** (= TC 2): stage-1 downloads + layout assertions hold; stage-2 VNC
   OCR shows a `Lua 5.4` banner for `lua54.exe -v` and a `3.13.0` version line for
-  `luarocks.exe --version`; results doc contains the pins, the VM name/setup record,
-  and the observed SmartScreen/AV section (with screenshots).
-- **Deliverable**: script + `results/windows-prebuilt.md` (incl. VM name/setup record
-  and VNC evidence screenshots). → TOOLING-04 `ReleaseBinaryStrategy` (Windows story).
+  `luarocks.exe --version`; results doc contains the pins and the observed SmartScreen/AV
+  section (with screenshots).
+- **Deliverable**: script + `results/windows-prebuilt.md` (SmartScreen/AV observations +
+  VNC evidence screenshots). → TOOLING-04 `ReleaseBinaryStrategy` (Windows story).
 
 ### 2.3 TOOLING-00-03 — LuaJIT git+make
 - **Question**: Is git+make LuaJIT provisioning reliable enough to ship POSIX-only in v1?
@@ -447,9 +449,9 @@ TOOLING-01/-04.
 - **`lua -v` on stderr**: spikes always capture combined output (§3.3).
 - **Legacy `toolInventory` tag vs new `tools` field** (§2.6 step 3): no name collision by
   contract-§7 design; the spike asserts the old tag is ignored and dropped.
-- **Windows 11 VM absent or unbootable** (§2.2 stage 2): the prerequisite `virsh list
-  --all` check surfaces it; first-time ISO provisioning is in-scope, recorded work — the
-  spike never fails silently on a missing VM.
+- **`win11` VM unbootable / snapshot missing** (§2.2 stage 2): `virsh list --all` /
+  `virsh snapshot-list win11` surface it; the spike records the failure and does not
+  proceed on a broken VM (the VM itself already exists — no ISO provisioning in scope).
 
 ## 7. Integration Points
 **No `plugin.xml` registration, extension point, or production service ships from

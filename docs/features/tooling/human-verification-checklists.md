@@ -22,12 +22,16 @@ reproducible from a clean state with an explicit observable result.
   hot-swap, `scrot` + `xdotool` driving, VNC on `localhost:5900`. The sandbox IDE
   (`tooling/gce-builder/gce-builder.sh run runIde`) is an acceptable substitute where a
   scenario says "sandbox".
-- **Windows** — the Windows 11 VM under KVM/virt-manager on the workstation, driven over
-  VNC with the same conventions (screenshot before/after every action; banners read via
-  `vnc_ocr_region` OCR). Precondition for every Windows scenario: `virsh list --all`
-  shows the VM; if absent, first-time provisioning (Windows 11 ISO via virt-manager,
-  TPM/secure boot) is in-scope, recorded work — never silently assumed
-  (TOOLING-00 design §2.2).
+- **Windows** — the existing **`win11`** VM under KVM/virt-manager on the workstation,
+  driven over VNC with the same conventions (screenshot before/after every action; banners
+  read via `vnc_ocr_region` OCR). Precondition for every Windows scenario: revert the clean
+  snapshot and boot — `virsh snapshot-revert win11 "Fresh Install" && virsh start win11`
+  (guest `TESTING\tester`, empty password). **No ISO install** — the VM already exists
+  (TOOLING-00 design §2.2). Note it is a **bare command-line Windows box with no IDE/plugin
+  installed**: scenarios needing the running plugin (in-IDE provisioning, integrated-terminal
+  PATH injection on Windows) are **not** runnable on it as-is and stay
+  manual-on-a-real-Windows-IDE items; the VM covers running provisioned binaries from
+  CMD/PowerShell.
 - **Builder (Linux)** — the gce-builder VM for shell-spike runs
   (`tooling/gce-builder/gce-builder.sh`).
 
@@ -60,8 +64,9 @@ land under `docs/features/tooling/00-de-risking/results/`.
 ### Scenario 00.2: Windows prebuilt provisioning — live VM execution (TOOLING-00-02, TC 2)
 - **Preconditions**: stage-1 Linux acquisition done
   (`tooling/spikes/tooling-00/fetch-windows-prebuilt.sh` ran; layout assertions and
-  SHA-256 pins recorded). Windows 11 KVM VM exists (`virsh list --all`); VM started and
-  reachable over VNC.
+  SHA-256 pins recorded). The `win11` VM booted from its clean snapshot
+  (`virsh snapshot-revert win11 "Fresh Install" && virsh start win11`) and reachable over
+  VNC — no IDE needed (command-line only).
 - **Steps**:
   1. Connect to the VM over VNC (verify-in-ide driving conventions: screenshot
      before/after every action).
@@ -77,8 +82,8 @@ land under `docs/features/tooling/00-de-risking/results/`.
      plugin-downloaded files (JVM `HttpRequests` writes no `Zone.Identifier`).
 - **Expected**: OCR shows a `Lua 5.4` banner for `lua54.exe -v` and a `3.13.0` version
   line for `luarocks.exe --version` in both shells. `results/windows-prebuilt.md` records
-  the VM name, any first-time setup performed, the SmartScreen/AV observations, and the
-  VNC evidence screenshots.
+  the SmartScreen/AV observations and the VNC evidence screenshots (the VM is the known
+  `win11`/`Fresh Install` baseline — no per-run setup to record).
 - **Result**: ⬜ Pass / ⬜ Fail
 
 ### Scenario 00.3: LuaJIT git+make decision spike (TOOLING-00-03, TC 3)
@@ -271,11 +276,15 @@ the detection notification, once its startup activity is registered by TOOLING-0
 ### Scenario 04.5: Windows prebuilt provisioning — manual QA before release (TOOLING-04-07, TC 6)
 The Linux-side automated coverage is an asset-download dry-run only (no Windows host in
 the CI loop) — the plan flags this path **for manual QA before release**.
-- **Preconditions**: Windows 11 KVM VM over VNC; an IDE with the plugin installed inside
-  the VM (or, minimally, the provisioned tree produced by running the provisioner
-  against a Windows target) with network access.
+- **Preconditions**: the `win11` VM over VNC (booted from `Fresh Install`). The VM is a
+  **bare command-line box with no IDE/plugin**, so the in-IDE *Provision…* flow can't run
+  there. Instead, obtain the tree the provisioner would produce for a Windows target — run
+  the provisioner against a Windows target on a dev machine, or assemble the tree per the
+  TOOLING-00-02 acquisition — and copy it to `C:\lunar-env\` on the VM. (The true in-IDE
+  Windows provisioning flow, invoking *Provision…* from GoLand on Windows, needs a
+  plugin-loaded IDE on the guest and is out of scope for this bare VM.)
 - **Steps**:
-  1. Provision `{lua 5.4, luarocks latest}` on Windows.
+  1. Place the provisioned `{lua 5.4, luarocks latest}` Windows tree at `C:\lunar-env\`.
   2. Inspect the rootDir tree.
   3. Run `<rootDir>\bin\lua.exe -v` and `<rootDir>\bin\luarocks.exe --version` (CMD and
      PowerShell), reading banners via VNC/OCR.

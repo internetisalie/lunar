@@ -216,10 +216,13 @@ design-time mitigation owned by a named feature.
 - **TBD: remote/WSL/SSH provisioning** — PRD non-goal; the platform seam (`EelApi`) is
   noted in the platform research §6.
 - **TBD: Windows CI automation** — Windows execution checks are agent-drivable on the
-  workstation's Windows 11 KVM/virt-manager VM over VNC (TOOLING-00-02 uses this; the
-  same route covers CMD/PowerShell terminal checks such as TOOLING-03's PATH-injection
-  verification), but they are interactive VM sessions, not CI jobs; a CI-integrated
-  Windows E2E pipeline remains future work.
+  existing `win11` KVM/virt-manager VM over VNC (TOOLING-00-02 uses this: revert the
+  `Fresh Install` snapshot, run the provisioned `lua.exe`/`luarocks.exe` from CMD/PowerShell).
+  The VM is a **bare box with no IDE installed**, so it verifies *binary execution* only —
+  the IDE-side Windows checks (integrated-terminal PATH injection, in-IDE provisioning) would
+  need a plugin-loaded GoLand on the guest and remain manual-on-a-real-Windows-IDE items.
+  These are interactive VM sessions, not CI jobs; a CI-integrated Windows E2E pipeline remains
+  future work.
 
 ## Pre-Implementation De-risking Tasks
 

@@ -56,9 +56,10 @@ Gradle source sets; the two test classes join the normal suite.
         redirect + luarocks standalone; magic-bytes check per design §4) — realizes design §2.2 stage 1
   - [ ] Run it; assert layout (TC 2, Linux assertions); record pins into the feed
         sample — realizes design §2.2 stage 1
-  - [ ] **Ensure/provision the Windows 11 VM** (KVM/virt-manager): `virsh list --all`;
-        if absent, perform first-time setup (Windows 11 ISO install) and record the VM
-        name + setup steps — realizes design §2.2 stage 2 prerequisite
+  - [ ] **Prepare the `win11` VM** (KVM/virt-manager — already installed, no ISO): revert
+        its clean snapshot and boot —
+        `virsh snapshot-revert win11 "Fresh Install" && virsh start win11` (guest
+        `TESTING\tester`, empty password; bare box, no IDE) — design §2.2 stage 2 prerequisite
   - [ ] Drive the VM over VNC (verify-in-ide conventions): assemble the tree in-VM via
         PowerShell `Invoke-WebRequest`/`Expand-Archive`, run `lua54.exe -v` and
         `luarocks.exe --version` in CMD and PowerShell, capture banners via
