@@ -177,6 +177,16 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
             options.interpreter = interpreter?.path
         }
 
+    /**
+     * The interpreter to actually run with (ROCKS-16 follow-up): the config's own [interpreter] when
+     * one is set, else the project interpreter (which may be a hererocks-managed env). Kept as an
+     * execution-time fallback — deliberately NOT folded into [interpreter] — so an unset config keeps
+     * an empty stored value and tracks the project interpreter dynamically instead of freezing a
+     * snapshot of it into the run configuration.
+     */
+    fun resolveInterpreter(): LuaInterpreter? =
+        interpreter ?: LuaProjectSettings.getInstance(project).state.interpreter
+
     var workingDirectory: String?
         get() = options.workingDirectory
         set(workingDirectory) {
@@ -226,7 +236,7 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
         return object : CommandLineState(environment) {
             override fun startProcess(): ProcessHandler {
-                val interpreter = interpreter
+                val interpreter = resolveInterpreter()
                     ?: throw ExecutionException("Interpreter is not defined")
                 val commandLine = newLuaInterpreterCommandLine(interpreter)
                     ?: throw ExecutionException("Interpreter is not found")

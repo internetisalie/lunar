@@ -30,6 +30,7 @@ import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaInterpreterFamily
 import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
 import net.internetisalie.lunar.settings.LuaApplicationSettings
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -171,6 +172,15 @@ class LuaTestRunConfiguration(project: Project, factory: ConfigurationFactory?, 
         set(interpreter) {
             options.interpreter = interpreter?.path
         }
+
+    /**
+     * The interpreter to actually run tests with (ROCKS-16 follow-up): the config's own
+     * [interpreter] when set, else the project interpreter (which may be a hererocks-managed env).
+     * Execution-time fallback, kept out of [interpreter] so an unset config tracks the project
+     * interpreter dynamically rather than freezing a snapshot into the run configuration.
+     */
+    fun resolveInterpreter(): LuaInterpreter? =
+        interpreter ?: LuaProjectSettings.getInstance(project).state.interpreter
 
     var workingDirectory: String?
         get() = options.workingDirectory

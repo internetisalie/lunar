@@ -16,10 +16,18 @@ import javax.swing.JTextField
 import javax.swing.event.DocumentEvent
 
 fun customizeLuaInterpreterComboBox(project : Project, interpreterField : ComboBox<LuaInterpreter>) {
-    interpreterField.model = DefaultComboBoxModel(
-        LuaApplicationSettings.validInterpreters().toTypedArray()
-    )
-    interpreterField.item = LuaProjectSettings.getInstance(project).state.interpreter
+    // Offer the project interpreter (which may be a project-scoped hererocks-managed env whose path
+    // isn't in the global list) as a selectable option, not just the globally-registered ones
+    // (ROCKS-16 follow-up) — otherwise a managed interpreter can't be picked in a run/debug config.
+    val projectInterpreter = LuaProjectSettings.getInstance(project).state.interpreter
+    val globalInterpreters = LuaApplicationSettings.validInterpreters()
+    val listed = if (projectInterpreter != null && globalInterpreters.none { it.path == projectInterpreter.path }) {
+        listOf(projectInterpreter) + globalInterpreters
+    } else {
+        globalInterpreters
+    }
+    interpreterField.model = DefaultComboBoxModel(listed.toTypedArray())
+    interpreterField.item = projectInterpreter
     interpreterField.renderer = LuaInterpreterListCellRenderer()
     interpreterField.isEditable = true
     val component = interpreterField.editor.editorComponent

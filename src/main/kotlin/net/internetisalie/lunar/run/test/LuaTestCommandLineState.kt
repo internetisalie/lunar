@@ -106,7 +106,7 @@ class LuaTestCommandLineState(
     }
 
     private fun buildLunityCommandLine(targetProject: Project): GeneralCommandLine {
-        val interpreter = config.interpreter ?: throw ExecutionException("Interpreter is not defined")
+        val interpreter = config.resolveInterpreter() ?: throw ExecutionException("Interpreter is not defined")
         val commandLine = newLuaInterpreterCommandLine(interpreter) ?: throw ExecutionException("Interpreter is not found")
 
         val workDir = if (!config.workingDirectory.isNullOrEmpty()) config.workingDirectory else targetProject.basePath
