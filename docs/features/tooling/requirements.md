@@ -27,6 +27,12 @@ hererocks environment lifecycle (ROCKS-14/15/16) with **one coherent model**.
 | [`TOOLING-06`](06-settings-ui/requirements.md) | **Settings UI Consolidation** | **M** | planned | One Lua settings tree; per-tool pages fold in. |
 | [`TOOLING-07`](07-health-and-diagnostics/requirements.md) | **Health Monitoring & Diagnostics** | **S** | planned | Unified health model with separated file-exists / probe-passed states; banners, notifications, diagnostics. |
 
+**Delivery:** [Implementation Plan](tooling-implementation-plan.md) (dependency order,
+milestones, effort ~60–95 eng-days, two-engineer parallelization) ·
+[Product Requirements](tooling-product-requirements.md) ·
+[Architecture Contract](tooling-architecture.md) ·
+[Risks & Gaps](tooling-risks-and-gaps.md).
+
 ---
 
 ## Motivation
