@@ -20,13 +20,25 @@ fun customizeLuaInterpreterComboBox(project : Project, interpreterField : ComboB
     // isn't in the global list) as a selectable option, not just the globally-registered ones
     // (ROCKS-16 follow-up) — otherwise a managed interpreter can't be picked in a run/debug config.
     val projectInterpreter = LuaProjectSettings.getInstance(project).state.interpreter
-    val globalInterpreters = LuaApplicationSettings.validInterpreters()
-    val listed = if (projectInterpreter != null && globalInterpreters.none { it.path == projectInterpreter.path }) {
-        listOf(projectInterpreter) + globalInterpreters
-    } else {
-        globalInterpreters
+
+    // Build the combo model as: [typed] + [project interpreter] + [valid globals], de-duplicated by
+    // path. Used both for the initial model AND the DocumentListener rebuild below — the rebuild is
+    // the subtle bit: when the editor's text is a path not in the global list (e.g. the run config
+    // already stores a non-registered interpreter), the listener rebuilds the model, and it MUST keep
+    // the project interpreter or a managed env would silently disappear from the dropdown.
+    fun buildModel(typed: LuaInterpreter? = null): DefaultComboBoxModel<LuaInterpreter> {
+        val byPath = LinkedHashMap<String, LuaInterpreter>()
+        fun add(interpreter: LuaInterpreter?) {
+            val path = interpreter?.path ?: return
+            byPath.putIfAbsent(path, interpreter)
+        }
+        add(typed)
+        add(projectInterpreter)
+        LuaApplicationSettings.validInterpreters().forEach(::add)
+        return DefaultComboBoxModel(byPath.values.toTypedArray())
     }
-    interpreterField.model = DefaultComboBoxModel(listed.toTypedArray())
+
+    interpreterField.model = buildModel()
     interpreterField.item = projectInterpreter
     interpreterField.renderer = LuaInterpreterListCellRenderer()
     interpreterField.isEditable = true
@@ -38,9 +50,10 @@ fun customizeLuaInterpreterComboBox(project : Project, interpreterField : ComboB
                 return
             }
 
-            val validInterpreters = LuaApplicationSettings.validInterpreters()
-
-            val existingInterpreter = validInterpreters.firstOrNull { it.path == component.text }
+            // Match against the globals AND the project interpreter — selecting the managed env by
+            // path must not fall through to the rebuild-with-Unknown branch.
+            val existingInterpreter = LuaApplicationSettings.validInterpreters().firstOrNull { it.path == component.text }
+                ?: projectInterpreter?.takeIf { it.path == component.text }
             if (existingInterpreter != null) {
                 interpreterField.selectedItem = existingInterpreter
                 return
@@ -50,11 +63,7 @@ fun customizeLuaInterpreterComboBox(project : Project, interpreterField : ComboB
                 path = component.text,
                 product = LuaInterpreterFamily.UNKNOWN_PRODUCT,
             )
-            interpreterField.model = DefaultComboBoxModel(
-                listOf(listOf(interpreter), validInterpreters)
-                    .flatten()
-                    .toTypedArray()
-            )
+            interpreterField.model = buildModel(interpreter)
             interpreterField.selectedItem = interpreter
 
             newAppBackgroundTask(LuaBundle.message("action.inspect.interpreter")) {
