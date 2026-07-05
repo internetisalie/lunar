@@ -1,11 +1,14 @@
 package net.internetisalie.lunar.run
 
+import com.intellij.openapi.ui.ComboBox
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.platform.LuaInterpreter
+import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TestLuaRunConfiguration : BaseDocumentTest() {
 
@@ -42,6 +45,26 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
             // An explicit config interpreter takes precedence over the project one.
             config.interpreter = LuaInterpreter(path = "/usr/bin/lua")
             assertEquals("/usr/bin/lua", config.resolveInterpreter()?.path)
+        } finally {
+            settings.state.interpreter = original
+        }
+    }
+
+    /** ROCKS-16 follow-up: the interpreter dropdown must list the project interpreter as an option. */
+    @Test
+    fun testInterpreterComboOffersProjectInterpreter() {
+        val project = myFixture.project
+        val settings = LuaProjectSettings.getInstance(project)
+        val original = settings.state.interpreter
+        try {
+            settings.state.interpreter = LuaInterpreter(path = "/env/.lua/bin/lua")
+            val combo = ComboBox<LuaInterpreter>()
+            customizeLuaInterpreterComboBox(project, combo)
+            val paths = (0 until combo.model.size).mapNotNull { combo.model.getElementAt(it)?.path }
+            assertTrue(
+                paths.contains("/env/.lua/bin/lua"),
+                "dropdown must offer the project interpreter; model had: $paths",
+            )
         } finally {
             settings.state.interpreter = original
         }
