@@ -52,6 +52,30 @@ REMOTE_DIR="${GCE_BUILDER_REMOTE_DIR:-lunar}"
 REMOTE_JAVA_HOME="${GCE_BUILDER_REMOTE_JAVA_HOME:-/opt/jdk}"
 GRADLE_USER_HOME="${CACHE_MOUNT}/gradle"
 
+# ── Backend selection ────────────────────────────────────────────────────────
+# libvirt = DEFAULT. A self-hosted, always-on VM on a KVM host (compute5), reached by plain
+#           SSH. Provisioned once by hand (builder-bootstrap.sh); this wrapper only
+#           sync/run/shell/start/stop/status against it — no cloud lifecycle, no idle-TTL
+#           (self-hosted = no per-hour cost), no separate cache disk (the VM's own persistent
+#           disk holds GRADLE_USER_HOME). See compute5-builder-setup.md.
+# gce     = FALLBACK/alternative — the original GCE spot VM (all the gcloud/idle/TTL machinery
+#           above). Opt in with: GCE_BUILDER_BACKEND=gce ./gce-builder.sh …
+BACKEND="${GCE_BUILDER_BACKEND:-libvirt}"
+
+# libvirt-backend settings (compute5 builder). REMOTE_JAVA_HOME=/opt/jdk and
+# GRADLE_USER_HOME=/opt/cache/gradle above already match the bootstrapped VM.
+LV_SSH_HOST="${LUNAR_BUILDER_HOST:-192.168.3.10}"
+LV_SSH_USER="${LUNAR_BUILDER_USER:-builder}"
+LV_SSH_KEY="${LUNAR_BUILDER_KEY:-$HOME/.ssh/pi.key}"
+LV_LIBVIRT_URI="${LUNAR_BUILDER_LIBVIRT_URI:-qemu+ssh://ubuntu@compute5/system}"
+LV_DOMAIN="${LUNAR_BUILDER_DOMAIN:-debian13}"
+# On the libvirt backend the builder identity comes from LUNAR_BUILDER_USER/_KEY (via LV_SSH_*);
+# this override intentionally wins over any GCE_BUILDER_REMOTE_USER/_SSH_KEY (those are gce-only).
+if [ "$BACKEND" = "libvirt" ]; then
+  REMOTE_USER="$LV_SSH_USER"
+  SSH_KEY="$LV_SSH_KEY"
+fi
+
 # Repo root = two levels up from this script.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 

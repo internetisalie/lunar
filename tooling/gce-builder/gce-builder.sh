@@ -18,10 +18,18 @@ source "$DIR/config.sh"
 log() { printf '\033[1;36m[gce-builder]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[gce-builder] %s\033[0m\n' "$*" >&2; exit 1; }
 
-instance_exists() { gc compute instances describe "$INSTANCE" --zone "$ZONE" >/dev/null 2>&1; }
+instance_exists() {
+  if [ "$BACKEND" = "libvirt" ]; then
+    virsh -c "$LV_LIBVIRT_URI" domstate "$LV_DOMAIN" 2>/dev/null | grep -q running; return
+  fi
+  gc compute instances describe "$INSTANCE" --zone "$ZONE" >/dev/null 2>&1
+}
 disk_exists()     { gc compute disks describe "$CACHE_DISK" --zone "$ZONE" >/dev/null 2>&1; }
-external_ip()     { gc compute instances describe "$INSTANCE" --zone "$ZONE" \
-                      --format='value(networkInterfaces[0].accessConfigs[0].natIP)'; }
+external_ip()     {
+  if [ "$BACKEND" = "libvirt" ]; then echo "$LV_SSH_HOST"; return; fi
+  gc compute instances describe "$INSTANCE" --zone "$ZONE" \
+    --format='value(networkInterfaces[0].accessConfigs[0].natIP)'
+}
 # --quiet makes SSH-key generation non-interactive (empty passphrase) so scripted runs never hang.
 # Direct SSH by default: it's fast and, unlike IAP, doesn't throttle large piped uploads (the tar
 # `sync` stream). Set GCE_BUILDER_TUNNEL_IAP=1 to route over IAP (no external IP) — note IAP
@@ -33,9 +41,28 @@ SSH_FLAGS=(--quiet)
 # and tears the session down (paired with sshd ClientAlive* on the VM) instead of leaving a
 # half-open tunnel that the VM might mistake for activity. Extra args after `--` go to ssh(1).
 SSH_KEEPALIVE=(-o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=30)
-ssh_exec() { gc compute ssh "$INSTANCE" --zone "$ZONE" "${SSH_FLAGS[@]}" "$@" -- "${SSH_KEEPALIVE[@]}"; }
+# ssh_exec: gce → `gcloud compute ssh`; libvirt → plain ssh to the builder VM. Both accept the
+# gcloud-style `--command "…"` (single remote command) or no args (interactive shell).
+ssh_exec() {
+  if [ "$BACKEND" = "libvirt" ]; then
+    local cmd=""
+    if [ "${1:-}" = "--command" ]; then shift; cmd="${1:-}"; [ $# -gt 0 ] && shift; fi
+    ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes -o LogLevel=ERROR "${SSH_KEEPALIVE[@]}" "$REMOTE_USER@$LV_SSH_HOST" ${cmd:+"$cmd"}
+    return
+  fi
+  gc compute ssh "$INSTANCE" --zone "$ZONE" "${SSH_FLAGS[@]}" "$@" -- "${SSH_KEEPALIVE[@]}"
+}
 
 cmd_create() {
+  if [ "$BACKEND" = "libvirt" ]; then
+    instance_exists || die "Domain $LV_DOMAIN not running on $LV_LIBVIRT_URI — start it: ./gce-builder.sh start"
+    log "libvirt backend: $LV_DOMAIN reachable as $REMOTE_USER@$LV_SSH_HOST"
+    ssh_exec --command "test -x $REMOTE_JAVA_HOME/bin/java" \
+      || die "JDK missing on the VM — run tooling/gce-builder/builder-bootstrap.sh as root first."
+    log "Bootstrap OK: $(ssh_exec --command "$REMOTE_JAVA_HOME/bin/java -version" 2>&1 | head -1)"
+    return 0
+  fi
   if ! disk_exists; then
     log "Creating persistent cache disk $CACHE_DISK ($CACHE_DISK_SIZE)…"
     gc compute disks create "$CACHE_DISK" --zone "$ZONE" --size "$CACHE_DISK_SIZE" --type pd-balanced
@@ -79,7 +106,7 @@ cmd_sync() {
   local ip; ip="$(external_ip)"
   [ -n "$ip" ] || die "Instance has no external IP (rsync transport needs one)."
   [ -f "$SSH_KEY" ] || die "SSH key $SSH_KEY missing — run './gce-builder.sh shell' once to generate it."
-  local ssh_t="ssh -i '$SSH_KEY' -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes"
+  local ssh_t="ssh -i '$SSH_KEY' -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o LogLevel=ERROR"
   log "Syncing working tree → $REMOTE_USER@$ip:$REMOTE_DIR via rsync (honoring .gitignore)…"
   # Honor the project's .gitignore (per-directory merge) so generated trees are skipped — out/
   # (IDE output, ~10GB), build/, .gradle/, idea-sandbox, etc. — without hand-maintaining a list.
@@ -105,13 +132,21 @@ cmd_sync() {
 cmd_run() {
   local args="${*:-test}"
   cmd_sync
-  log "Running on $INSTANCE: ./gradlew $args"
+  local target; [ "$BACKEND" = "libvirt" ] && target="$LV_DOMAIN" || target="$INSTANCE"
+  log "Running on $target: ./gradlew $args"
   # Stamp the activity marker at start so the load-based idle check never trips during a build's
   # brief low-CPU startup window; the build's own CPU load keeps it alive thereafter.
   ssh_exec --command "touch /var/run/lunar-last-activity 2>/dev/null; cd '$REMOTE_DIR' && JAVA_HOME='$REMOTE_JAVA_HOME' GRADLE_USER_HOME='$GRADLE_USER_HOME' ./gradlew $args"
 }
 
 cmd_status() {
+  if [ "$BACKEND" = "libvirt" ]; then
+    local st; st="$(virsh -c "$LV_LIBVIRT_URI" domstate "$LV_DOMAIN" 2>/dev/null || echo unreachable)"
+    log "libvirt backend: domain $LV_DOMAIN on $LV_LIBVIRT_URI = $st  (ssh $REMOTE_USER@$LV_SSH_HOST)"
+    ssh_exec --command "echo \"online: \$(hostname) — \$(nproc) cores, \$(free -h|awk '/Mem:/{print \$2}') ram, \$(df -h / | awk 'NR==2{print \$4}') free\"" 2>/dev/null \
+      || log "(VM not reachable over SSH)"
+    return 0
+  fi
   instance_exists || { log "Instance $INSTANCE: NOT CREATED"; disk_exists && log "Cache disk $CACHE_DISK: exists"; return 0; }
   gc compute instances describe "$INSTANCE" --zone "$ZONE" \
      --format='table(name,status,machineType.basename(),scheduling.provisioningModel,scheduling.instanceTerminationAction,scheduling.maxRunDuration.seconds)'
@@ -131,10 +166,19 @@ cmd_shell() {
     ssh_exec --command "touch /var/run/lunar-last-activity 2>/dev/null; $*"
   fi
 }
-cmd_stop()   { instance_exists || die "No instance."; log "Stopping $INSTANCE…"; gc compute instances stop "$INSTANCE" --zone "$ZONE"; }
-cmd_start()  { instance_exists || die "No instance."; log "Starting $INSTANCE…"; gc compute instances start "$INSTANCE" --zone "$ZONE"; }
+cmd_stop()   {
+  if [ "$BACKEND" = "libvirt" ]; then log "Shutting down $LV_DOMAIN…"; virsh -c "$LV_LIBVIRT_URI" shutdown "$LV_DOMAIN"; return; fi
+  instance_exists || die "No instance."; log "Stopping $INSTANCE…"; gc compute instances stop "$INSTANCE" --zone "$ZONE";
+}
+cmd_start()  {
+  if [ "$BACKEND" = "libvirt" ]; then log "Starting $LV_DOMAIN…"; virsh -c "$LV_LIBVIRT_URI" start "$LV_DOMAIN" 2>/dev/null || log "(already running)"; return; fi
+  instance_exists || die "No instance."; log "Starting $INSTANCE…"; gc compute instances start "$INSTANCE" --zone "$ZONE";
+}
 
 cmd_delete() {
+  if [ "$BACKEND" = "libvirt" ]; then
+    die "delete is not supported for the libvirt backend (persistent hand-provisioned VM); manage it on the KVM host with virsh."
+  fi
   if instance_exists; then
     log "Deleting VM $INSTANCE (cache disk kept unless --with-cache)…"
     gc compute instances delete "$INSTANCE" --zone "$ZONE" --quiet
