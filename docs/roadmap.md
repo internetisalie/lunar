@@ -51,6 +51,24 @@ A dependency-aware sequencing of every **executable** feature (status `planned` 
 
 ---
 
+## ⚠️ Unmerged feature branches to recover (flagged 2026-07-06)
+
+Status/`status.md` reports every epic **done except TOOLING**, but three git branches carry
+**unmerged commits** for supposedly-complete features. They were **kept** (not deleted) during a
+branch cleanup. Before trusting "all done except TOOLING," reconcile each against `main`/`status.md`
+and either integrate it (verify with the real-flow DoD gate above) or consciously discard it:
+
+| Branch (local; ✎ = also on gitea) | Tip | What it is | Action |
+| :--- | :--- | :--- | :--- |
+| `feature/COMP-03-02-global-symbol-suggestions` | `dac5fb83` | **Completed feature** — "Implement Global Symbol Suggestions" (not WIP; not on `main`) | Verify vs COMP-03-02 status; likely integrate |
+| `feature/syntax-inlay-hints-method-chaining` ✎ | `105e87b3` | WIP — method-chaining inlay hints (relates to SYNTAX-07/-17) | Finish or discard |
+| `wip/lua-types-visitor` | `c820bf63` | WIP — `LuaTypesVisitor`, rescued from a stash (type engine) | Finish or discard |
+
+Each is 1 commit ahead of `main`. Recover a branch's work with `git cherry-pick <tip>` (or merge)
+onto a fresh feature branch; the SHAs above are stable references even if a branch is later pruned.
+
+---
+
 ## Wave 0 — Finish the in-flight type engine  *(serial — shared `LuaTypeGraph`/`LuaTypesVisitor`/`LuaTypeManagerImpl`)*
 
 These are partly built and unblock the entire lead theme. Do them first, in this order.
