@@ -23,12 +23,25 @@ design-time mitigation owned by a named feature.
   recursive re-invocation, ~300 lines; dossier §4) would dominate TOOLING-04's cost.
   Shipping it half-working breaks the flagship "zero-to-toolchain" use case on Windows.
 - **Likelihood**: high (if source builds are attempted on Windows).
-- **Mitigation**: Windows is **prebuilt-first, source-build not offered in v1** (dossier
-  recommendation): LuaBinaries Win64 zips for PUC Lua + the standalone
-  `luarocks-{ver}-windows-64.zip` (self-contained `luarocks.exe`). Spike **TOOLING-00-02**
-  proves the acquisition path **and verifies execution live on the Windows 11
-  KVM/virt-manager VM over VNC** (SmartScreen/AV behavior observed, not just researched)
-  before TOOLING-04 commits to it.
+- **Mitigation**: Windows is **prebuilt-first, source-build not offered on the user's
+  machine in v1** (dossier recommendation) + the standalone
+  `luarocks-{ver}-windows-64.zip` (self-contained `luarocks.exe`) from `luarocks.github.io`.
+  Spike **TOOLING-00-02** proved the compile-free path **live on the Windows 11
+  KVM/virt-manager VM over VNC** (banners + SmartScreen/AV observed).
+- **Prebuilt *source* decision (2026-07-06)**: the Windows Lua binary is **no longer sourced
+  from SourceForge/LuaBinaries** (untrusted host + Cloudflare block — see Gap 2.2). Note the
+  MSVC bootstrap this risk warns about is **user-machine, provision-time** compilation; building
+  the Windows binary in **our own CI via MinGW cross-compile from Linux** is trivial (PUC Lua is
+  dependency-free C with a `mingw` target — the same way LuaBinaries and dyne build theirs) and
+  does **not** trigger this risk. **Target**: self-build from official lua.org source in CI,
+  self-hosted (our GitHub release) or bundled in the plugin. **Interim**: consume
+  [dyne/luabinaries](https://github.com/dyne/luabinaries) (GitHub-hosted, MinGW-from-source,
+  MIT, publishes `SHA256SUMS`). Both keep the user's machine compiler-free on Windows.
+- **Provisioning policy (2026-07-06)**: because trustworthy prebuilt binaries now exist for
+  **both** Windows and macOS (dyne interim / self-built target), **user-side source-build
+  auto-installs are limited to Linux**; macOS and Windows auto-install a prebuilt (fetch, not
+  compile). Source-build stays available on POSIX as the primary Linux path and an advanced
+  opt-in elsewhere. See Gap 2.1, Gap 2.2.
 
 ### Risk 1.2: Non-relocatable provisioned prefixes
 - **Impact**: Source builds bake `LUA_PATH_DEFAULT`/`LUA_CPATH_DEFAULT` into the binary via
@@ -52,6 +65,11 @@ design-time mitigation owned by a named feature.
   ship/descope decision for TOOLING-04: either "LuaJIT provisioning ships POSIX-only in
   v1" or "LuaJIT is register-existing-binary only" (discovery still finds installed
   `luajit` binaries either way — the `luajit` kind stays in the registry).
+- **Status (2026-07-06)**: **Resolved — PASS.** Linux x86_64 build confirmed green (LuaJIT
+  2.1.1782726002, git HEAD `a2bde60`). darwin-arm64: no blocking finding (arm64 supported
+  in v2.1 HEAD; `MACOSX_DEPLOYMENT_TARGET` is a configuration pre-condition, not a
+  blocker). Windows: excluded (Risk 1.1). **Decision: `provisioning = [SourceBuildStrategy(git+make)]`,
+  POSIX-only in v1.** See [results/luajit-git-make.md](00-de-risking/results/luajit-git-make.md).
 
 ### Risk 1.4: readline is a default-on POSIX link dependency
 - **Impact**: hererocks links `-DLUA_USE_READLINE` + `-lreadline` by default with **no
@@ -169,6 +187,13 @@ design-time mitigation owned by a named feature.
   binaries (rejected for v1: infra we don't have).
 - **Resolved by**: **TOOLING-00-01** — the recipe is specified per-OS including `macosx`
   defines; passing on Linux with the macOS flag-set documented answers (a) for TOOLING-04.
+- **Update (2026-07-06)**: option (b) is **no longer infra we lack** — the Gap 2.2 decision
+  gives us a CI cross-build pipeline (or the dyne interim, which ships **macOS arm64 + x64**
+  prebuilts). So macOS can go **prebuilt-first** like Windows, not source-build-only.
+  **Caveat**: unsigned/unnotarized macOS binaries hit **Gatekeeper quarantine** (a harder wall
+  than Windows SmartScreen) — running a downloaded `lua` may require de-quarantine
+  (`xattr -d com.apple.quarantine`) or ad-hoc codesign. That is a **new macOS de-risk** to
+  verify before committing macOS to prebuilt-first (no macOS hardware in the current harness).
 
 ### Gap 2.2: LuaBinaries download reliability & checksum acquisition
 - **Question**: Are SourceForge redirect URLs scriptable and stable, and where do the
@@ -180,6 +205,42 @@ design-time mitigation owned by a named feature.
 - **Resolved by**: **TOOLING-00-02** (proves the URL pattern end-to-end and executes the
   binaries live on the Windows 11 KVM VM) + **TOOLING-00-05** (feed format carries the
   self-pinned `sha256`).
+- **Finding (2026-07-06, TOOLING-00-02 Stage 2) — new production risk for TOOLING-04**:
+  the `downloads.sourceforge.net` direct-CDN pattern is **no longer reliably scriptable**.
+  From the Windows VM, PowerShell `Invoke-WebRequest` (even with a browser `User-Agent`) hit a
+  **Cloudflare managed JavaScript challenge** and received the HTML challenge page instead of the
+  ZIP; only a real (JS-executing) browser got through. The same URL had fetched fine via `curl`
+  from the Linux workstation earlier the same day, so the block is **heuristic/intermittent**
+  (IP reputation / TLS fingerprint / UA), not a stable gate — which is precisely the reliability
+  risk. Lunar's JVM/HTTP downloader is the challenged client class. **Mitigations to weigh in
+  TOOLING-04**: a non-SourceForge mirror for the LuaBinaries zips, bundling the Windows binaries,
+  or a retry-with-clear-error path. The existing `PK\x03\x04` magic-bytes guard (design §4) already
+  **fails closed** on the challenge HTML (aborts rather than installing garbage) — validated as
+  necessary, not merely defensive. `luarocks` (GitHub Pages) has no such gate. See
+  [results/windows-prebuilt.md](00-de-risking/results/windows-prebuilt.md) Finding A.
+- **Decision (2026-07-06) — SourceForge is dropped**: for reliability (Cloudflare) **and trust**
+  (SourceForge's adware-bundling history), Lua binaries are no longer acquired from SourceForge.
+  - **Target — PROVEN (2026-07-06)**: Lunar builds its **own** Windows (and macOS) Lua binaries
+    from **official lua.org source** via **MinGW/cross-compile in CI**, self-hosted as a Lunar
+    GitHub release asset (or bundled in the plugin). Canonical source → our reproducible build →
+    our artifact; no third-party binary trust, no SourceForge, no user-side compiler. Unifies
+    Windows/macOS on the **same Lua 5.4.8** the POSIX source-build (TOOLING-00-01) already targets.
+    Spike `tooling/spikes/tooling-00/build-lua-windows-mingw.sh` cross-compiled `lua54.exe`/
+    `lua54.dll`/`luac54.exe` from the pinned lua.org 5.4.8 tarball and **ran them on the win11 VM**
+    (`lua54.exe -v` → Lua 5.4.8; executes code; no missing-DLL) — see
+    [results/windows-prebuilt.md](00-de-risking/results/windows-prebuilt.md) Stage 3. The CI
+    wiring + self-hosting is TOOLING-04's to implement.
+  - **Interim**: consume [dyne/luabinaries](https://github.com/dyne/luabinaries) — GitHub-hosted
+    (plain `curl`, no Cloudflare), MinGW-cross-compiled from lua.org source via GitHub Actions,
+    **MIT**, publishes per-platform `SHA256SUMS`. Provides 5.1.5/5.3.6/5.4.8/5.5.0 for
+    win-x64 + linux + macOS (arm64/x64). Verified 2026-07-06: `curl` fetch works and computed
+    SHA-256 matches their published sums; `lua54.exe`/`lua54.dll` are valid PE32+. Caveats: small
+    unofficial repo (pin exact release + self-hash), loose-file packaging (not a zip → feed entry
+    is direct-file, not zip-extract), git-SHA tags (Lua version read from release notes).
+  - `luarocks` unchanged — official standalone from `luarocks.github.io` (GitHub, not SourceForge).
+  - **Feed impact**: the `windows`/`macos` Lua entries switch `packageType` from zip-extract to
+    direct file(s); the `PK\x03\x04` guard generalizes to a per-file magic/size check. Feed
+    self-pins the SHA-256 regardless of source. TOOLING-04/-05 own the implementation.
 
 ### Gap 2.3: Failure UX for tool installs on toolchain-less hosts
 - **Question**: What exactly does `luarocks install busted` emit on a host without `cc`,
@@ -196,6 +257,10 @@ design-time mitigation owned by a named feature.
   register-existing-binary only. Windows LuaJIT builds are out regardless (Risk 1.1).
 - **Resolved by**: **TOOLING-00-03** — its decision matrix is binding on TOOLING-04's
   `ProvisioningSpec` list for the `luajit` kind.
+- **Decision (2026-07-06)**: **POSIX git+make ships in v1.** Spike PASS on Linux x86_64;
+  no blocking darwin-arm64 finding. TOOLING-04 `luajit` kind gets
+  `provisioning = [SourceBuildStrategy(git+make)]`, POSIX-only; Windows excluded.
+  See [results/luajit-git-make.md](00-de-risking/results/luajit-git-make.md).
 
 ### Gap 2.5: Legacy-XML tolerance of the clean break
 - **Question**: Do the new persistence components load a `lunar.xml` written by today's
@@ -233,12 +298,12 @@ deliverables live in [00-de-risking/design.md](00-de-risking/design.md).
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| TOOLING-00-01 | POSIX PUC-Lua source-build spike (per-TU recipe, baked paths, no readline) | Risk 1.2, 1.4; Gap 2.1 | todo |
-| TOOLING-00-02 | Windows prebuilt-provisioning spike (LuaBinaries + standalone luarocks; live execution on the Win11 KVM VM over VNC) | Risk 1.1; Gap 2.2 | todo |
-| TOOLING-00-03 | LuaJIT git+make spike (POSIX; darwin-arm64 assessment) | Risk 1.3; Gap 2.4 | todo |
-| TOOLING-00-04 | C-rock install spike (`luarocks install busted`; no-cc failure UX) | Risk 1.5; Gap 2.3 | todo |
-| TOOLING-00-05 | Platform download-infra classpath check + version-feed JSON format | Risk 1.6; Gap 2.2 | todo |
-| TOOLING-00-06 | Clean-break serialization spike (new state round-trip; legacy XML tolerated & dropped) | Risk 1.7; Gap 2.5 | todo |
+| TOOLING-00-01 | POSIX PUC-Lua source-build spike (per-TU recipe, baked paths, no readline) | Risk 1.2, 1.4; Gap 2.1 | done — PASS; see [results/posix-source-build.md](00-de-risking/results/posix-source-build.md) |
+| TOOLING-00-02 | Windows prebuilt-provisioning spike (LuaBinaries + standalone luarocks; live execution on the Win11 KVM VM over VNC) | Risk 1.1; Gap 2.2 | done — PASS; `lua54.exe -v`→5.4.2 & `luarocks.exe --version`→3.13.0 live in both shells, SHA-256 matches pin, no SmartScreen/AV block. **New risk surfaced**: SourceForge is now Cloudflare-gated against programmatic fetch (see Gap 2.2). See [results/windows-prebuilt.md](00-de-risking/results/windows-prebuilt.md) |
+| TOOLING-00-03 | LuaJIT git+make spike (POSIX; darwin-arm64 assessment) | Risk 1.3; Gap 2.4 | done — PASS; provisioning ships POSIX-only; see [results/luajit-git-make.md](00-de-risking/results/luajit-git-make.md) |
+| TOOLING-00-04 | C-rock install spike (`luarocks install busted`; no-cc failure UX) | Risk 1.5; Gap 2.3 | done — PASS; see [results/c-rock-install.md](00-de-risking/results/c-rock-install.md) |
+| TOOLING-00-05 | Platform download-infra classpath check + version-feed JSON format | Risk 1.6; Gap 2.2 | done — PASS; see [results/download-infra.md](00-de-risking/results/download-infra.md) |
+| TOOLING-00-06 | Clean-break serialization spike (new state round-trip; legacy XML tolerated & dropped) | Risk 1.7; Gap 2.5 | done — PASS; see [results/clean-break-serialization.md](00-de-risking/results/clean-break-serialization.md) |
 
 Risks 1.8 and 1.9 carry design-time mitigations owned by TOOLING-02/-05 (see above); they
 need no spike because the required behavior is already pinned by the contract (§4) and an

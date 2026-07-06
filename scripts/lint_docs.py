@@ -21,12 +21,12 @@ except ImportError:
 
 # Canonical vocabularies (manage-docs standard + project conventions).
 TYPES = {"epic", "feature", "user-story", "task", "design", "risk",
-         "qa", "guide", "plan", "spec", "bug"}
+         "qa", "guide", "plan", "spec", "bug", "results"}
 STATUSES = {"todo", "planned", "in_progress", "done", "blocked", "cancelled"}
 PRIORITIES = {"critical", "high", "medium", "low"}
 
 # Only work items carry a lifecycle status; artifact docs (design/plan/risk/qa/
-# spec/bug/guide) do not — their status is no longer aggregated.
+# spec/bug/guide/results) do not — their status is no longer aggregated.
 WORK_ITEM_TYPES = {"epic", "feature", "user-story", "task"}
 STATUS_REQUIRED = WORK_ITEM_TYPES
 WIKILINK = re.compile(r"^\[\[.+\]\]$")

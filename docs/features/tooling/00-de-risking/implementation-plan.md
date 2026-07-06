@@ -21,13 +21,13 @@ Gradle source sets; the two test classes join the normal suite.
 - **Goal**: Prove the download-infra classpath and the clean-break persistence mechanism
   inside the unit suite; commit the feed format.
 - **Tasks**:
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/toolchain/LuaProvisioningClasspathSpikeTest.kt`
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/toolchain/LuaProvisioningClasspathSpikeTest.kt`
         with fixture archives under `src/test/resources/toolchain/` — realizes design §2.5
-  - [ ] Create the sample feed `src/main/resources/toolchain/toolchain-feed.json`
+  - [x] Create the sample feed `src/main/resources/toolchain/toolchain-feed.json`
         (schema per design §2.5; placeholder pins until Phases 2–3 record them) — realizes design §2.5
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/toolchain/LuaToolchainSerializationSpikeTest.kt`
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/toolchain/LuaToolchainSerializationSpikeTest.kt`
         with the spike state classes and the legacy-XML fixture — realizes design §2.6
-  - [ ] Run `tooling/gce-builder/gce-builder.sh run test`; write
+  - [x] Run `tooling/gce-builder/gce-builder.sh run test`; write
         `results/download-infra.md` and `results/clean-break-serialization.md`
 - **Exit criteria**: TC 6 and TC 7 green in the suite; both results docs committed; any
   §2.6 fallback finding (field rename) recorded.
@@ -36,14 +36,14 @@ Gradle source sets; the two test classes join the normal suite.
 - **Goal**: The source-build recipe and the C-rock install path proven end to end on the
   Linux builder.
 - **Tasks**:
-  - [ ] Create `tooling/spikes/tooling-00/build-lua-posix.sh` (download/verify per design
+  - [x] Create `tooling/spikes/tooling-00/build-lua-posix.sh` (download/verify per design
         §3.1; recipe per design §2.1 incl. the `luaconf.h` patch) — realizes design §2.1
-  - [ ] Run it; verify TC 1 assertions (`lua -v`, baked `package.path`, no readline);
+  - [x] Run it; verify TC 1 assertions (`lua -v`, baked `package.path`, no readline);
         write `results/posix-source-build.md` incl. the macosx flag-set and the recorded
         SHA-256 pin (also fill the pin into the feed sample) — realizes design §2.1
-  - [ ] Create `tooling/spikes/tooling-00/install-crock.sh` (luarocks configure/make,
+  - [x] Create `tooling/spikes/tooling-00/install-crock.sh` (luarocks configure/make,
         Run A + Run B with `CC=/nonexistent/cc`) — realizes design §2.4
-  - [ ] Run both passes; finalize the §3.2 heuristic against the captured output; write
+  - [x] Run both passes; finalize the §3.2 heuristic against the captured output; write
         `results/c-rock-install.md` with the notification copy — realizes design §2.4, §3.2
 - **Exit criteria**: TCs 1, 4, 5 pass on the builder image; heuristic verified to match
   Run B and not Run A.
@@ -52,31 +52,31 @@ Gradle source sets; the two test classes join the normal suite.
 - **Goal**: The compile-free Windows path validated end to end — Linux acquisition plus
   live execution on the Windows 11 KVM VM over VNC.
 - **Tasks**:
-  - [ ] Create `tooling/spikes/tooling-00/fetch-windows-prebuilt.sh` (SourceForge
+  - [x] Create `tooling/spikes/tooling-00/fetch-windows-prebuilt.sh` (SourceForge
         redirect + luarocks standalone; magic-bytes check per design §4) — realizes design §2.2 stage 1
-  - [ ] Run it; assert layout (TC 2, Linux assertions); record pins into the feed
+  - [x] Run it; assert layout (TC 2, Linux assertions); record pins into the feed
         sample — realizes design §2.2 stage 1
-  - [ ] **Prepare the `win11` VM** (KVM/virt-manager — already installed, no ISO): revert
-        its clean snapshot and boot —
-        `virsh snapshot-revert win11 "Fresh Install" && virsh start win11` (guest
-        `TESTING\tester`, empty password; bare box, no IDE) — design §2.2 stage 2 prerequisite
-  - [ ] Drive the VM over VNC (verify-in-ide conventions): assemble the tree in-VM via
-        PowerShell `Invoke-WebRequest`/`Expand-Archive`, run `lua54.exe -v` and
-        `luarocks.exe --version` in CMD and PowerShell, capture banners via
-        screenshot/OCR; observe SmartScreen/AV behavior live — realizes design §2.2 stage 2
-  - [ ] Write `results/windows-prebuilt.md` (pins, VM record, VNC evidence screenshots,
-        observed SmartScreen/AV section) — realizes design §2.2
+  - [x] **Prepare the `win11` VM** (KVM/virt-manager — already installed, no ISO): revert
+        a clean snapshot and boot (used `IDE Installed` per operator direction — a browser
+        was required, see results Finding A; guest `TESTING\tester`, empty password) —
+        design §2.2 stage 2 prerequisite
+  - [x] Drive the VM over VNC (verify-in-ide conventions): assemble the tree in-VM via
+        PowerShell/`Expand-Archive` (browser download for the Cloudflare-gated Lua zip),
+        run `lua54.exe -v` and `luarocks.exe --version` in CMD and PowerShell, capture
+        banners via screenshot; observe SmartScreen/AV behavior live — realizes design §2.2 stage 2
+  - [x] Write `results/windows-prebuilt.md` (pins, VM record, SHA-256 parity, MOTW/Cloudflare
+        findings, observed SmartScreen/AV section) — realizes design §2.2
 - **Exit criteria**: TC 2 passes (Linux assertions + VNC-observed banners); results doc
   contains the VM record and the observed-caveats section.
 
 ### Phase 4: LuaJIT decision spike [Should]
 - **Goal**: A binding ship/descope decision for LuaJIT provisioning in v1.
 - **Tasks**:
-  - [ ] Create `tooling/spikes/tooling-00/build-luajit-posix.sh` (git clone keeping
+  - [x] Create `tooling/spikes/tooling-00/build-luajit-posix.sh` (git clone keeping
         `.git`, make, hand-install) — realizes design §2.3
-  - [ ] Run it on Linux; write the darwin-arm64 paper assessment; apply the design §2.3
+  - [x] Run it on Linux; write the darwin-arm64 paper assessment; apply the design §2.3
         decision matrix and record the outcome in `results/luajit-git-make.md` — realizes design §2.3
-  - [ ] Update [../tooling-risks-and-gaps.md](../tooling-risks-and-gaps.md) (Risk 1.3 /
+  - [x] Update [../tooling-risks-and-gaps.md](../tooling-risks-and-gaps.md) (Risk 1.3 /
         Gap 2.4 status + DR table) with the decision
 - **Exit criteria**: TC 3 executed (either verdict); decision recorded in both the
   results doc and the risks doc.
@@ -93,24 +93,25 @@ Gradle source sets; the two test classes join the normal suite.
 | TOOLING-00-06 | M | Phase 1 |
 
 ## Verification Tasks
-- [ ] `tooling/gce-builder/gce-builder.sh run "test --tests *LuaProvisioningClasspathSpikeTest*"` — covers TC 6
-- [ ] `tooling/gce-builder/gce-builder.sh run "test --tests *LuaToolchainSerializationSpikeTest*"` — covers TC 7
-- [ ] Manual run of the three shell spikes on the gce-builder image (Linux), asserting
+- [x] `tooling/gce-builder/gce-builder.sh run "test --tests *LuaProvisioningClasspathSpikeTest*"` — covers TC 6
+- [x] `tooling/gce-builder/gce-builder.sh run "test --tests *LuaToolchainSerializationSpikeTest*"` — covers TC 7
+- [x] Manual run of the three shell spikes on the gce-builder image (Linux), asserting
       the TC 1/3/4/5 conditions and TC 2's Linux assertions; verdicts recorded in the
-      results docs
-- [ ] VNC-driven execution session on the Windows 11 KVM VM asserting TC 2's banner
-      checks, with screenshot evidence attached to `results/windows-prebuilt.md`
+      results docs (PASS — see results/posix-source-build.md, c-rock-install.md, luajit-git-make.md)
+- [x] VNC-driven execution session on the Windows 11 KVM VM asserting TC 2's banner
+      checks (`lua54.exe -v` → Lua 5.4.2, `luarocks.exe --version` → 3.13.0, both shells);
+      SmartScreen/AV/MOTW observations recorded in `results/windows-prebuilt.md`
 - [ ] Cross-check: every `<pin recorded by …>` placeholder in
       `src/main/resources/toolchain/toolchain-feed.json` replaced with a real digest for
       assets actually downloaded; feed re-parses green (part of TC 6)
-- [ ] Update the DR-table statuses in [../tooling-risks-and-gaps.md](../tooling-risks-and-gaps.md)
+- [x] Update the DR-table statuses in [../tooling-risks-and-gaps.md](../tooling-risks-and-gaps.md)
       and regenerate `docs/status.md` (`python3 scripts/gen_status.py`)
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: In-repo platform checks | todo | Must |
-| Phase 2: POSIX build chain | todo | Must |
-| Phase 3: Windows prebuilt acquisition & live VM verification | todo | Must |
-| Phase 4: LuaJIT decision spike | todo | Should |
+| Phase 1: In-repo platform checks | done | Must |
+| Phase 2: POSIX build chain | done | Must |
+| Phase 3: Windows prebuilt acquisition & live VM verification | done | Must |
+| Phase 4: LuaJIT decision spike | done | Should |
