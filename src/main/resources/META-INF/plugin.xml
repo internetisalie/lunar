@@ -422,6 +422,11 @@
     <applicationService
             serviceImplementation="net.internetisalie.lunar.tool.LuaToolManager" />
 
+    <!-- Unified toolchain probe service (TOOLING-01) -->
+    <applicationService
+            serviceInterface="net.internetisalie.lunar.toolchain.probe.LuaToolProbe"
+            serviceImplementation="net.internetisalie.lunar.toolchain.probe.LuaToolProbeImpl" />
+
     <!-- Tool health monitoring & UI (TOOL-03) -->
     <projectService
             serviceImplementation="net.internetisalie.lunar.tool.health.LuaToolHealthMonitor" />
