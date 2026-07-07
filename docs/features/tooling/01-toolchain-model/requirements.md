@@ -2,7 +2,7 @@
 id: "TOOLING-01"
 title: "01: Unified Toolchain Model & Registry"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "TOOLING"
 folders:
@@ -72,14 +72,14 @@ application-level state alongside — not migrating — the legacy fields.
 | TOOLING-01-03 | **Registered-tool & health model** | M | Partial | `LuaRegisteredTool` (immutable) is the single inventory entry for tools *and* interpreters; `LuaToolHealth` separates fileExists / executable / probeOk(nullable) / probedAtMtime / reason; `isUsable` derives from them. |
 | TOOLING-01-04 | **Runtime info model** | M | Full | RUNTIME-capability kinds carry `LuaRuntimeInfo` (product, version, `LuaLanguageLevel`, `LuaPlatform`, banner line) filled by the probe; mapping rules reproduce today's `LuaInterpreterFamily` levelers. |
 | TOOLING-01-05 | **Semantic version handling** | M | Partial | `SemanticVersion` parses `major[.minor[.patch]][-suffix]` and compares numerically component-by-component (never lexicographically). |
-| TOOLING-01-06 | **Inventory CRUD** | M | Not Implemented | `LuaToolchainRegistry` registers (probe + persist), refreshes in place (dedup by canonical path — same path never creates a twin), unregisters by id, and lists tools; registration of a probe-failing binary still records it with failing health. |
-| TOOLING-01-07 | **Global bindings storage** | M | Not Implemented | The registry stores app-level default bindings `kindId → toolId` (string-keyed map) with get/set/clear API. Precedence/resolution is TOOLING-02. |
-| TOOLING-01-08 | **Change events on every mutation** | M | Not Implemented | Every register / update / unregister / binding change fires `LuaToolchainListener.TOPIC` on the application message bus (fixes the silent `registerTool` → stale `LuaTerminalEnvironmentService` cache defect). |
+| TOOLING-01-06 | **Inventory CRUD** | M | Full | `LuaToolchainRegistry` registers (probe + persist), refreshes in place (dedup by canonical path — same path never creates a twin), unregisters by id, and lists tools; registration of a probe-failing binary still records it with failing health. |
+| TOOLING-01-07 | **Global bindings storage** | M | Full | The registry stores app-level default bindings `kindId → toolId` (string-keyed map) with get/set/clear API. Precedence/resolution is TOOLING-02. |
+| TOOLING-01-08 | **Change events on every mutation** | M | Full | Every register / update / unregister / binding change fires `LuaToolchainListener.TOPIC` on the application message bus (fixes the silent `registerTool` → stale `LuaTerminalEnvironmentService` cache defect). |
 | TOOLING-01-09 | **Unified discovery** | M | Full | One scanner searches PATH then well-known directories for all kinds' binary candidates (with Windows `.bat`/`.exe`/`.cmd` variants, `${ENV}` substitution, directory and filename globs), deduplicates by canonical path, and claims exact-name matches before glob matches. |
 | TOOLING-01-10 | **Unified probe engine** | M | Full | One probe runs `path + probe.args` with the spec's timeout, merges stdout+stderr (stdout first), applies the kind's regexes in defined order, enforces `minVersion`, and returns version + health + (RUNTIME) runtime info. Non-zero exit alone is not a failure; only timeout/exec-failure/regex-miss/product-mismatch/below-min are. |
 | TOOLING-01-11 | **Kind inference from filename** | M | Full | Given a filename, strip a `.exe`/`.bat`/`.cmd` suffix, lowercase, then match kinds' binaryNames exact-first, glob-second, in registry order. |
-| TOOLING-01-12 | **App-level persistence (clean break)** | M | Not Implemented | New top-level state `LuaToolchainAppState` (`tools: List<RegisteredToolState>`, `globalBindings: Map<String,String>`, `kindOptions: Map<String,String>`) persists in `lunar.xml` via a new `PersistentStateComponent<LuaToolchainAppState>`, round-trips through the XML serializer, and does **not** read or migrate the legacy fields (deleted by TOOLING-05). |
-| TOOLING-01-13 | **Pure reads & threading** | M | Not Implemented | `tools()`/`tool(id)`/binding getters never touch the filesystem or mutate state (unlike `LuaToolManager.getTools()`, `tool/LuaToolManager.kt:110-122`); probe/discovery/registration are background-thread-only; mutations are thread-safe. |
+| TOOLING-01-12 | **App-level persistence (clean break)** | M | Full | New top-level state `LuaToolchainAppState` (`tools: List<RegisteredToolState>`, `globalBindings: Map<String,String>`, `kindOptions: Map<String,String>`) persists in `lunar.xml` via a new `PersistentStateComponent<LuaToolchainAppState>`, round-trips through the XML serializer, and does **not** read or migrate the legacy fields (deleted by TOOLING-05). |
+| TOOLING-01-13 | **Pure reads & threading** | M | Full | `tools()`/`tool(id)`/binding getters never touch the filesystem or mutate state (unlike `LuaToolManager.getTools()`, `tool/LuaToolManager.kt:110-122`); probe/discovery/registration are background-thread-only; mutations are thread-safe. |
 | TOOLING-01-14 | **Data-only extensibility** | S | Full | Adding a kind (e.g. `redis-cli`) requires only a new `LuaToolKind` entry in the built-in list — no registry, discovery, probe, or persistence code changes. Documented with a worked example. |
 | TOOLING-01-15 | **LuaRocks Lua-compat capture** | S | Full | The probe captures LuaRocks' "for Lua X.Y" hint when present (today's `detectLuaVersion`, `tool/LuaToolValidator.kt:97-102`) into `LuaRegisteredTool.luaVersion` for later compatibility checks (TOOLING-02/07). |
 

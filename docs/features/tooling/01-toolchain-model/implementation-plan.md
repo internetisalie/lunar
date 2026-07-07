@@ -79,9 +79,9 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 ### Phase 5: Registry service, persistence & events [Must]
 - **Goal**: `LuaToolchainRegistry` + `LuaToolchainListener` + `plugin.xml`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.registry.LuaToolchainListener` +
+  - [x] Create `net.internetisalie.lunar.toolchain.registry.LuaToolchainListener` +
     `LuaToolchainEvent` — design §2.5
-  - [ ] Create `net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry`
+  - [x] Create `net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry`
     (`@Service(APP)` + `PersistentStateComponent<LuaToolchainAppState>`; top-level
     `LuaToolchainAppState` with `tools` + `globalBindings` + `kindOptions`, `RegisteredToolState`
     + `ProbeStatus` beans, §3.7 bean↔model mapping, §3.1 registration; the contract-§10.1 public
@@ -89,9 +89,9 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
     `registerTool`/`registerProvisioned`/`unregisterTool`/`unregisterByEnvironment`/`refreshTool`/
     `updateToolCheck`/`autoDiscover`/`setKindOption`/`kindOption`; `stateLock` +
     `assertIsNonDispatchThread` guards) — design §2.4, §6
-  - [ ] Register in `plugin.xml`: the single `applicationService` entry of design §8, placed
+  - [x] Register in `plugin.xml`: the single `applicationService` entry of design §8, placed
     beside the legacy `LuaToolManager` entry (`plugin.xml:421-423`)
-  - [ ] Tests (`BasePlatformTestCase` for bus/service; plain JUnit for bean mapping):
+  - [x] Tests (`BasePlatformTestCase` for bus/service; plain JUnit for bean mapping):
     TC 15-17 (events on register/update/binding via an app-bus subscriber), TC 16 canonical
     refresh-in-place, TC 18 + TC 24 `XmlSerializer` round-trip (mirroring the persistence
     round-trip tests in `src/test/kotlin/net/internetisalie/lunar/tool/LuaToolManagerTest.kt`),
@@ -149,5 +149,5 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 | Phase 2: Kind registry & inference | todo | Must |
 | Phase 3: Probe engine | done | Must |
 | Phase 4: Discovery | done | Must |
-| Phase 5: Registry service, persistence & events | todo | Must |
+| Phase 5: Registry service, persistence & events | done | Must |
 | Phase 6: Docs & verification | todo | Must |

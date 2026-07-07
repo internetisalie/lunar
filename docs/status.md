@@ -12,7 +12,7 @@ folders:
      The Saga tracker is retired; the docs are the source of truth.
      Do not edit by hand — run `python3 scripts/gen_status.py`. -->
 
-**Completion: 90%** (151 of 167 work items `done`)
+**Completion: 91%** (152 of 167 work items `done`)
 
 ## Progress by Epic
 
@@ -34,7 +34,7 @@ folders:
 | **TARGET** | ✅ done | 7/7 | ██████████ 100% |
 | **TOOL** | ✅ done | 4/4 | ██████████ 100% |
 | **TYPE** | ✅ done | 9/9 | ██████████ 100% |
-| **TOOLING** | ⚪ planned | 1/8 | █░░░░░░░░░ 12% |
+| **TOOLING** | ⚪ planned | 2/8 | ██░░░░░░░░ 25% |
 | **AI** | ⚫ todo | 0/4 | ░░░░░░░░░░ 0% |
 | **REDIS** | ⚫ todo | 0/5 | ░░░░░░░░░░ 0% |
 
