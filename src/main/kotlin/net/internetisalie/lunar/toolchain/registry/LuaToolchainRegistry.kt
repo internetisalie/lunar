@@ -1,12 +1,19 @@
 package net.internetisalie.lunar.toolchain.registry
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.*
+import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SettingsCategory
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
 import com.intellij.openapi.diagnostic.logger
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.toolchain.discovery.LuaToolDiscovery
-import net.internetisalie.lunar.toolchain.model.*
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
+import net.internetisalie.lunar.toolchain.model.LuaToolHealth
+import net.internetisalie.lunar.toolchain.model.Origin
 import net.internetisalie.lunar.toolchain.probe.LuaToolProbe
 import net.internetisalie.lunar.toolchain.probe.LuaToolProbeResult
 
@@ -36,6 +43,56 @@ class RegisteredToolState {
     var probeStatus: ProbeStatus = ProbeStatus.NEVER
     var probedAtMtime: Long = 0L
     var reason: String = ""
+
+    fun copyFrom(other: RegisteredToolState) {
+        this.version = other.version
+        this.luaVersion = other.luaVersion
+        this.product = other.product
+        this.runtimeVersion = other.runtimeVersion
+        this.languageLevel = other.languageLevel
+        this.platform = other.platform
+        this.banner = other.banner
+        this.origin = other.origin
+        this.environmentId = other.environmentId
+        this.fileExists = other.fileExists
+        this.executable = other.executable
+        this.probeStatus = other.probeStatus
+        this.probedAtMtime = other.probedAtMtime
+        this.reason = other.reason
+    }
+
+    fun updateFrom(
+        health: LuaToolHealth,
+        version: String?,
+        luaVersion: String?,
+        runtime: LuaRuntimeInfo?
+    ) {
+        this.version = version ?: ""
+        this.luaVersion = luaVersion ?: ""
+        this.fileExists = health.fileExists
+        this.executable = health.executable
+        this.probeStatus = when (health.probeOk) {
+            null -> ProbeStatus.NEVER
+            true -> ProbeStatus.OK
+            false -> ProbeStatus.FAILED
+        }
+        this.probedAtMtime = health.probedAtMtime ?: 0L
+        this.reason = health.reason ?: ""
+
+        if (runtime != null) {
+            this.product = runtime.product
+            this.runtimeVersion = runtime.version
+            this.languageLevel = runtime.languageLevel.name
+            this.platform = runtime.platform.name
+            this.banner = runtime.banner
+        } else {
+            this.product = ""
+            this.runtimeVersion = ""
+            this.languageLevel = ""
+            this.platform = ""
+            this.banner = ""
+        }
+    }
 }
 
 class LuaToolchainAppState {
@@ -87,13 +144,13 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
 
     fun findByPath(path: String): LuaRegisteredTool? {
         return synchronized(stateLock) {
-            myState.tools.firstOrNull { it.path == path }?.toModel() ?: run {
-                val canonical = try { java.io.File(path).canonicalPath } catch (e: Exception) { path }
-                myState.tools.firstOrNull {
-                    val c = try { java.io.File(it.path).canonicalPath } catch (e: Exception) { it.path }
-                    c == canonical
-                }?.toModel()
-            }
+            val exactMatch = myState.tools.firstOrNull { it.path == path }
+            if (exactMatch != null) return@synchronized exactMatch.toModel()
+
+            val normalizedPath = path.replace('\\', '/').trimEnd('/')
+            myState.tools.firstOrNull {
+                it.path.replace('\\', '/').trimEnd('/') == normalizedPath
+            }?.toModel()
         }
     }
 
@@ -197,32 +254,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
                     existingModel.health != health ||
                     existingModel.runtime != result.runtime
                 ) {
-                    existing.version = result.version ?: ""
-                    existing.luaVersion = result.luaVersion ?: ""
-                    existing.fileExists = health.fileExists
-                    existing.executable = health.executable
-                    existing.probeStatus = when (health.probeOk) {
-                        null -> ProbeStatus.NEVER
-                        true -> ProbeStatus.OK
-                        false -> ProbeStatus.FAILED
-                    }
-                    existing.probedAtMtime = health.probedAtMtime ?: 0L
-                    existing.reason = health.reason ?: ""
-
-                    val rt = result.runtime
-                    if (rt != null) {
-                        existing.product = rt.product
-                        existing.runtimeVersion = rt.version
-                        existing.languageLevel = rt.languageLevel.name
-                        existing.platform = rt.platform.name
-                        existing.banner = rt.banner
-                    } else {
-                        existing.product = ""
-                        existing.runtimeVersion = ""
-                        existing.languageLevel = ""
-                        existing.platform = ""
-                        existing.banner = ""
-                    }
+                    existing.updateFrom(health, result.version, result.luaVersion, result.runtime)
                     change = LuaToolchainChange.TOOL_UPDATED
                 }
                 registeredTool = existing.toModel()
@@ -231,28 +263,9 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
                     id = java.util.UUID.randomUUID().toString()
                     kindId = kind.id
                     this.path = file.absolutePath
-                    version = result.version ?: ""
-                    luaVersion = result.luaVersion ?: ""
                     this.origin = origin
                     this.environmentId = environmentId ?: ""
-                    fileExists = health.fileExists
-                    executable = health.executable
-                    probeStatus = when (health.probeOk) {
-                        null -> ProbeStatus.NEVER
-                        true -> ProbeStatus.OK
-                        false -> ProbeStatus.FAILED
-                    }
-                    probedAtMtime = health.probedAtMtime ?: 0L
-                    reason = health.reason ?: ""
-
-                    val rt = result.runtime
-                    if (rt != null) {
-                        product = rt.product
-                        runtimeVersion = rt.version
-                        languageLevel = rt.languageLevel.name
-                        platform = rt.platform.name
-                        banner = rt.banner
-                    }
+                    updateFrom(health, result.version, result.luaVersion, result.runtime)
                 }
                 myState.tools.add(state)
                 change = LuaToolchainChange.TOOL_REGISTERED
@@ -290,20 +303,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
                 val existingModel = existing.toModel()
                 if (existingModel != tool) {
                     val state = tool.toState()
-                    existing.version = state.version
-                    existing.luaVersion = state.luaVersion
-                    existing.product = state.product
-                    existing.runtimeVersion = state.runtimeVersion
-                    existing.languageLevel = state.languageLevel
-                    existing.platform = state.platform
-                    existing.banner = state.banner
-                    existing.origin = state.origin
-                    existing.environmentId = state.environmentId
-                    existing.fileExists = state.fileExists
-                    existing.executable = state.executable
-                    existing.probeStatus = state.probeStatus
-                    existing.probedAtMtime = state.probedAtMtime
-                    existing.reason = state.reason
+                    existing.copyFrom(state)
                     change = LuaToolchainChange.TOOL_UPDATED
                 }
             } else {
@@ -378,8 +378,8 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
     fun refreshTool(id: String) {
         ApplicationManager.getApplication().assertIsNonDispatchThread()
         val (path, kindId) = synchronized(stateLock) {
-            val tool = myState.tools.firstOrNull { it.id == id } ?: return
-            tool.path to tool.kindId
+            val tool = myState.tools.firstOrNull { it.id == id }
+            tool?.let { it.path to it.kindId }
         } ?: return
 
         val kind = LuaToolKindRegistry.findById(kindId) ?: return
@@ -397,32 +397,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
                     existingModel.health != health ||
                     existingModel.runtime != result.runtime
                 ) {
-                    existing.version = result.version ?: ""
-                    existing.luaVersion = result.luaVersion ?: ""
-                    existing.fileExists = health.fileExists
-                    existing.executable = health.executable
-                    existing.probeStatus = when (health.probeOk) {
-                        null -> ProbeStatus.NEVER
-                        true -> ProbeStatus.OK
-                        false -> ProbeStatus.FAILED
-                    }
-                    existing.probedAtMtime = health.probedAtMtime ?: 0L
-                    existing.reason = health.reason ?: ""
-
-                    val rt = result.runtime
-                    if (rt != null) {
-                        existing.product = rt.product
-                        existing.runtimeVersion = rt.version
-                        existing.languageLevel = rt.languageLevel.name
-                        existing.platform = rt.platform.name
-                        existing.banner = rt.banner
-                    } else {
-                        existing.product = ""
-                        existing.runtimeVersion = ""
-                        existing.languageLevel = ""
-                        existing.platform = ""
-                        existing.banner = ""
-                    }
+                    existing.updateFrom(health, result.version, result.luaVersion, result.runtime)
                     changed = true
                 }
             }
@@ -459,31 +434,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
                     existingModel.health != health ||
                     existingModel.runtime != runtime
                 ) {
-                    existing.version = version ?: ""
-                    existing.luaVersion = luaVersion ?: ""
-                    existing.fileExists = health.fileExists
-                    existing.executable = health.executable
-                    existing.probeStatus = when (health.probeOk) {
-                        null -> ProbeStatus.NEVER
-                        true -> ProbeStatus.OK
-                        false -> ProbeStatus.FAILED
-                    }
-                    existing.probedAtMtime = health.probedAtMtime ?: 0L
-                    existing.reason = health.reason ?: ""
-
-                    if (runtime != null) {
-                        existing.product = runtime.product
-                        existing.runtimeVersion = runtime.version
-                        existing.languageLevel = runtime.languageLevel.name
-                        existing.platform = runtime.platform.name
-                        existing.banner = runtime.banner
-                    } else {
-                        existing.product = ""
-                        existing.runtimeVersion = ""
-                        existing.languageLevel = ""
-                        existing.platform = ""
-                        existing.banner = ""
-                    }
+                    existing.updateFrom(health, version, luaVersion, runtime)
                     changed = true
                 }
             }

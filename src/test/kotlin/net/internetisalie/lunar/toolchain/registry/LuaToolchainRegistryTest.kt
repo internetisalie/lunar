@@ -5,7 +5,12 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
-import net.internetisalie.lunar.toolchain.model.*
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
+import net.internetisalie.lunar.toolchain.model.LuaToolHealth
+import net.internetisalie.lunar.toolchain.model.LuaToolKind
+import net.internetisalie.lunar.toolchain.model.Origin
+import net.internetisalie.lunar.toolchain.model.isUsable
 import net.internetisalie.lunar.toolchain.probe.LuaToolProbe
 import net.internetisalie.lunar.toolchain.probe.LuaToolProbeResult
 import org.junit.Test
@@ -349,6 +354,28 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
     }
 
     @Test
+    fun testFindByPath() {
+        val file = java.nio.file.Files.createTempFile("stylua", "").toFile()
+        file.writeText("#!/bin/sh\n")
+        file.setExecutable(true)
+        file.deleteOnExit()
+        val path = file.absolutePath
+
+        val registry = LuaToolchainRegistry.getInstance()
+        val tool = ApplicationManager.getApplication().executeOnPooledThread<LuaRegisteredTool?> {
+            registry.registerTool(path, "stylua")
+        }.get()
+
+        assertNotNull(tool)
+        assertEquals(tool, registry.findByPath(path))
+
+        val slashPath = path.replace('/', '\\')
+        assertEquals(tool, registry.findByPath(slashPath))
+
+        assertNull(registry.findByPath("/path/does/not/exist/stylua"))
+    }
+
+    @Test
     fun testRuntimeToolModelStateRoundTrip_TC24() {
         val runtimeInfo = LuaRuntimeInfo(
             product = "LuaJIT",
@@ -531,9 +558,10 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
         assertNotNull(luaTool)
         assertEquals("5.4.6", luaTool!!.version)
         assertEquals(Origin.DISCOVERED, luaTool.origin)
-        assertNotNull(luaTool.runtime)
-        assertEquals("Lua", luaTool.runtime!!.product)
-        assertEquals(LuaLanguageLevel.LUA54, luaTool.runtime!!.languageLevel)
+        val runtime = luaTool.runtime
+        assertNotNull(runtime)
+        assertEquals("Lua", runtime!!.product)
+        assertEquals(LuaLanguageLevel.LUA54, runtime.languageLevel)
 
         val tempToolIds = tempTools.map { it.id }.toSet()
         synchronized(events) {
