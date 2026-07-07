@@ -148,6 +148,6 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 | Phase 1: Model types | todo | Must |
 | Phase 2: Kind registry & inference | todo | Must |
 | Phase 3: Probe engine | done | Must |
-| Phase 4: Discovery | todo | Must |
+| Phase 4: Discovery | done | Must |
 | Phase 5: Registry service, persistence & events | todo | Must |
 | Phase 6: Docs & verification | todo | Must |
