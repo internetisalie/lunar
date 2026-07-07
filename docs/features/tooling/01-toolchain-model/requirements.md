@@ -67,11 +67,11 @@ application-level state alongside — not migrating — the legacy fields.
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| TOOLING-01-01 | **Kind descriptor model** | M | Partial | `LuaToolKind` is a data descriptor (id, displayName, binaryNames, ProbeSpec, capabilities, minVersion, provisioning specs) replacing the `LuaToolType` enum and `LuaInterpreterFamily`. |
+| TOOLING-01-01 | **Kind descriptor model** | M | Full | `LuaToolKind` is a data descriptor (id, displayName, binaryNames, ProbeSpec, capabilities, minVersion, provisioning specs) replacing the `LuaToolType` enum and `LuaInterpreterFamily`. |
 | TOOLING-01-02 | **Built-in kind registry** | M | Full | `LuaToolKindRegistry` ships 8 built-in kinds (`lua`, `luajit`, `tarantool`, `luarocks`, `luacheck`, `stylua`, `luacov`, `busted`) with complete probe specs; lookup by id is O(1); the set is a data list. |
-| TOOLING-01-03 | **Registered-tool & health model** | M | Partial | `LuaRegisteredTool` (immutable) is the single inventory entry for tools *and* interpreters; `LuaToolHealth` separates fileExists / executable / probeOk(nullable) / probedAtMtime / reason; `isUsable` derives from them. |
+| TOOLING-01-03 | **Registered-tool & health model** | M | Full | `LuaRegisteredTool` (immutable) is the single inventory entry for tools *and* interpreters; `LuaToolHealth` separates fileExists / executable / probeOk(nullable) / probedAtMtime / reason; `isUsable` derives from them. |
 | TOOLING-01-04 | **Runtime info model** | M | Full | RUNTIME-capability kinds carry `LuaRuntimeInfo` (product, version, `LuaLanguageLevel`, `LuaPlatform`, banner line) filled by the probe; mapping rules reproduce today's `LuaInterpreterFamily` levelers. |
-| TOOLING-01-05 | **Semantic version handling** | M | Partial | `SemanticVersion` parses `major[.minor[.patch]][-suffix]` and compares numerically component-by-component (never lexicographically). |
+| TOOLING-01-05 | **Semantic version handling** | M | Full | `SemanticVersion` parses `major[.minor[.patch]][-suffix]` and compares numerically component-by-component (never lexicographically). |
 | TOOLING-01-06 | **Inventory CRUD** | M | Full | `LuaToolchainRegistry` registers (probe + persist), refreshes in place (dedup by canonical path — same path never creates a twin), unregisters by id, and lists tools; registration of a probe-failing binary still records it with failing health. |
 | TOOLING-01-07 | **Global bindings storage** | M | Full | The registry stores app-level default bindings `kindId → toolId` (string-keyed map) with get/set/clear API. Precedence/resolution is TOOLING-02. |
 | TOOLING-01-08 | **Change events on every mutation** | M | Full | Every register / update / unregister / binding change fires `LuaToolchainListener.TOPIC` on the application message bus (fixes the silent `registerTool` → stale `LuaTerminalEnvironmentService` cache defect). |

@@ -19,14 +19,14 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 ### Phase 1: Model types [Must]
 - **Goal**: the complete `toolchain.model` package — pure data, no services.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.model.LuaToolKind` + `ProbeSpec` +
+  - [x] Create `net.internetisalie.lunar.toolchain.model.LuaToolKind` + `ProbeSpec` +
     `RuntimeProbeSpec` + `LanguageLevelRule` + `Capability` + `ProvisioningSpec` — design §2.1
-  - [ ] Create `net.internetisalie.lunar.toolchain.model.LuaRegisteredTool` + `Origin` +
+  - [x] Create `net.internetisalie.lunar.toolchain.model.LuaRegisteredTool` + `Origin` +
     `LuaToolHealth` + `isUsable` extension + `LuaRuntimeInfo` — design §2.3 (incl. the
     `luaVersion` field, per contract §2.2)
-  - [ ] Create `net.internetisalie.lunar.toolchain.model.SemanticVersion` implementing the
+  - [x] Create `net.internetisalie.lunar.toolchain.model.SemanticVersion` implementing the
     §3.6 parse/compare rules (port of `tool/LuaToolValidator.kt:183-208`; legacy copy untouched)
-  - [ ] Unit tests: `SemanticVersionTest` (TC 11, mirroring the existing coverage in
+  - [x] Unit tests: `SemanticVersionTest` (TC 11, mirroring the existing coverage in
     `src/test/kotlin/net/internetisalie/lunar/tool/LuaToolValidatorTest.kt`), model-default and
     the TC 23 `isUsable` truth-table test
 - **Exit criteria**: `run test` green; TC 11, 23 pass.
@@ -34,12 +34,12 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 ### Phase 2: Kind registry & inference [Must]
 - **Goal**: the 8 built-in kinds as data + filename inference.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry` with
+  - [x] Create `net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry` with
     `BUILT_IN` exactly per the design §4.1 table (ids, displayNames, binaryNames, args,
     timeouts, regexes, runtime specs, luarocks `minVersion`/`luaVersionRegex`) — design §2.2
-  - [ ] Implement `inferKind` (exact-then-glob, §3.5), reusing `patternFromGlob`/`isGlob`
+  - [x] Implement `inferKind` (exact-then-glob, §3.5), reusing `patternFromGlob`/`isGlob`
     moved/copied into `toolchain.discovery` (from `platform/LuaInterpreterService.kt:245-269`)
-  - [ ] Unit tests: TC 21 (`lua` kind descriptor completeness) + TC 22 (`all()`/`findById`
+  - [x] Unit tests: TC 21 (`lua` kind descriptor completeness) + TC 22 (`all()`/`findById`
     over the 8 built-ins); every §4.1 sample output line matches its kind's `versionRegex` with
     the expected capture; `inferKind` TC 14; busted hardened-regex negative test (error prose
     does not match)
@@ -48,17 +48,17 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 ### Phase 3: Probe engine [Must]
 - **Goal**: `LuaToolProbe` — the one probe.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.probe.LuaToolProbe` **interface** (app
+  - [x] Create `net.internetisalie.lunar.toolchain.probe.LuaToolProbe` **interface** (app
     service, `companion object { getInstance() }`, contract §10.3) + `LuaToolProbeImpl` with the
     §3.4 algorithm: file checks → `LuaProcessUtil.capture` (`util/LuaProcessUtil.kt:17`) with
     sentinel-code handling → §3.4-step-4 stream merge → pure interpretation helper; returns
     `LuaToolProbeResult(ok, version, luaVersion, runtime, failure)` with the §3.4 failure
     taxonomy (`"Timeout"` / `"Not executable"` / first non-blank merged line) — design §2.7;
     register `LuaToolProbeImpl` as an `applicationService`
-  - [ ] Unit tests on `interpret` with static strings (no subprocesses): TC 1-8 (incl.
+  - [x] Unit tests on `interpret` with static strings (no subprocesses): TC 1-8 (incl.
     stderr-banner TC 2 via merge-order test, product-mismatch TC 8, minVersion TC 6,
     luaVersion TC 5, `LanguageLevelRule` evaluation for 5.1/5.4/unknown→fallback)
-  - [ ] Process-level tests with `@TempDir` shell-script fakes (POSIX; pattern from existing
+  - [x] Process-level tests with `@TempDir` shell-script fakes (POSIX; pattern from existing
     tool tests): happy path TC 1, missing-file TC 9, timeout TC 10 (script sleeps past a
     short test-spec timeout)
 - **Exit criteria**: TC 1-10 pass; no EDT/read-action use anywhere in the probe.
@@ -66,11 +66,11 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 ### Phase 4: Discovery [Must]
 - **Goal**: `LuaToolDiscovery` — the one scanner.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.discovery.LuaToolDiscovery` implementing
+  - [x] Create `net.internetisalie.lunar.toolchain.discovery.LuaToolDiscovery` implementing
     §3.2 (root construction with env substitution + dir-glob expansion moved from
     `platform/LuaInterpreterService.kt:117-128,205-243`; two-pass exact/glob matching;
     canonical dedup) and §3.3 `platformCandidates` — design §2.6
-  - [ ] Unit tests with `@TempDir` roots injected via `extraRoots`: TC 12 (symlink dedup),
+  - [x] Unit tests with `@TempDir` roots injected via `extraRoots`: TC 12 (symlink dedup),
     TC 13 (glob claim `lua5.4`, exact claim `luajit`), executable-filter test,
     `platformCandidates(windows = true/false)` order test (mirrors
     `tool/LuaToolDescriptor.kt:34-39` expectations), `${VAR}` substitution test
@@ -104,10 +104,10 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 ### Phase 6: Docs & verification [Must]
 - **Goal**: close the loop.
 - **Tasks**:
-  - [ ] `run "ktlintFormat ktlintCheck"` on the new packages; fix new-code violations only
-  - [ ] `python3 scripts/lint_docs.py docs` + `python3 scripts/gen_status.py`; set feature
+  - [x] `run "ktlintFormat ktlintCheck"` on the new packages; fix new-code violations only
+  - [x] `python3 scripts/lint_docs.py docs` + `python3 scripts/gen_status.py`; set feature
     front-matter status per workflow
-  - [ ] Confirm zero references from legacy code into `toolchain.*` (dark-landing grep gate:
+  - [x] Confirm zero references from legacy code into `toolchain.*` (dark-landing grep gate:
     `grep -rn "toolchain\." src/main/kotlin --include="*.kt"` shows only `toolchain.*`-internal
     hits)
 - **Exit criteria**: build gate (`run build`) green incl. `:checkStatus`/`:lintDocs`.
@@ -134,20 +134,20 @@ legacy code path is modified; the only shared file touched is `plugin.xml` (one 
 
 ## Verification Tasks
 
-- [ ] Automate requirements TC 1-25 across Phases 1-5 as listed per phase
-- [ ] Regression gate: existing `tool/` + `platform/` test suites unchanged and green
+- [x] Automate requirements TC 1-25 across Phases 1-5 as listed per phase
+- [x] Regression gate: existing `tool/` + `platform/` test suites unchanged and green
   (`LuaToolValidatorTest`, `LuaToolManagerTest`, `LuaToolDiscoveryServiceTest`,
   `LuaToolBindingResolutionTest`, health tests)
-- [ ] Manual spot-check (optional until TOOLING-06 provides UI): scratch test invoking
+- [x] Manual spot-check (optional until TOOLING-06 provides UI): scratch test invoking
   `autoDiscover()` on the dev machine and inspecting `lunar.xml` output against design §4.3
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Model types | todo | Must |
-| Phase 2: Kind registry & inference | todo | Must |
+| Phase 1: Model types | done | Must |
+| Phase 2: Kind registry & inference | done | Must |
 | Phase 3: Probe engine | done | Must |
 | Phase 4: Discovery | done | Must |
 | Phase 5: Registry service, persistence & events | done | Must |
-| Phase 6: Docs & verification | todo | Must |
+| Phase 6: Docs & verification | done | Must |
