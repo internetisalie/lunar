@@ -193,6 +193,15 @@ folders:
 
 ---
 
+## TOOLING — Unified Lua Toolchain Management
+
+| ID | Feature | Status | Notes |
+|:---|:--------|:-------|:------|
+| TOOLING-00 | De-risking & Technical Spikes | done | Terminal PATH-injection corrected to `ShellExecOptionsCustomizer`, etc. |
+| TOOLING-01 | Unified Toolchain Model & Registry | done | `LuaToolKind`, `LuaRegisteredTool`, `LuaToolchainRegistry`, discovery/probe engines implemented |
+
+---
+
 ## TOOL — Tool Inventory Management
 
 | ID | Feature | Status | Notes |
