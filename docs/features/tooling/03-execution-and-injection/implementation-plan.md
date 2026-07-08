@@ -44,10 +44,10 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 ### Phase 2: Environment model & builder [Must]
 - **Goal**: one environment computation with the project-scoped cache.
 - **Tasks**:
-  - [ ] Create `toolchain/exec/LuaLaunchEnvironment.kt` with `applyTo` (design §2.4,
+  - [x] Create `toolchain/exec/LuaLaunchEnvironment.kt` with `applyTo` (design §2.4,
         §3.5 — port the assertions of the existing `tool/LuaToolEnvironmentTest.kt` to
         the new class).
-  - [ ] Create `toolchain/exec/LuaExecutionEnvironmentBuilder.kt` — `pathPrependDirs`
+  - [x] Create `toolchain/exec/LuaExecutionEnvironmentBuilder.kt` — `pathPrependDirs`
         (§3.3), `build(sourcePathOverride)` (§3.4), `@Volatile` cache +
         `LuaToolchainListener.TOPIC` subscription (§3.7), `forProject` facade (§2.5).
 - **Exit criteria**: TCs 10–16, 20 pass (`LuaExecutionEnvironmentBuilderTest` with a
@@ -107,10 +107,10 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 
 - [x] `LuaToolExecutionServiceTest` — TCs 1–9, 23 (capture, stream, outcomes, timeout via
       `*WithMillis`, cancellation, EDT soft-assert, stdin).
-- [ ] `LuaLaunchEnvironmentTest` — TCs 14–15 + the ported `LuaToolEnvironmentTest`
-      cases (empty dirs no-op, blank existing PATH, separator join).
-- [ ] `LuaExecutionEnvironmentBuilderTest` — TCs 10–13, 16, 20 (stubbed resolver;
-      topic-invalidation round trip).
+- [x] `LuaLaunchEnvironmentTest` — TCs 14–15 + the ported `LuaToolEnvironmentTest`
+      cases (empty dirs no-op, blank existing PATH, separator join) + TCs 21–22 applyTo.
+- [x] `LuaExecutionEnvironmentBuilderTest` — TCs 10–13, 16, 20–22 (real registry seeded
+      + bound; topic-invalidation round trip).
 - [ ] `LuaInterpreterCommandLinesTest` — TCs 18–19.
 - [ ] `LuaShellExecOptionsCustomizerTest` — TC 17 (reverse-prepend order).
 - [ ] Live VNC pass (verify-in-ide skill): terminal PATH injection with a bound tool +
@@ -122,7 +122,7 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 |-------|--------|----------|
 | Phase 0: Dependency check | done | Must |
 | Phase 1: Execution service | done | Must |
-| Phase 2: Environment model & builder | todo | Must |
+| Phase 2: Environment model & builder | done | Must |
 | Phase 3: Interpreter command lines | todo | Must |
 | Phase 4: Terminal customizer move | todo | Must |
 | Phase 5: Docs, lint & status | todo | Must |
