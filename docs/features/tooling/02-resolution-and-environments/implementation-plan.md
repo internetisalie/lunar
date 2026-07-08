@@ -62,9 +62,9 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 - **Goal**: env-shaped directories are detected and adoptable end to end (registration timing
   of the startup activity itself deferred to TOOLING-05 per design §2.8).
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.discovery.LuaEnvironmentDetector` (conventional names, descriptor-driven `isEnvShaped`, `isKnownDirectory`) — realizes design §2.6, §3.6.
-  - [ ] Create `net.internetisalie.lunar.toolchain.discovery.LuaEnvironmentAdopter` (`adopt`: register every found kind binary with `environmentId`, then `upsertEnvironmentAndActivate`) — realizes design §2.7, §3.7.
-  - [ ] Create `net.internetisalie.lunar.toolchain.discovery.LuaEnvironmentDetectionStartup : ProjectActivity` (notification + Adopt action; **no plugin.xml registration in this feature**) — realizes design §2.8.
+  - [x] Create `net.internetisalie.lunar.toolchain.discovery.LuaEnvironmentDetector` (conventional names, descriptor-driven `isEnvShaped`, `isKnownDirectory`) — realizes design §2.6, §3.6.
+  - [x] Create `net.internetisalie.lunar.toolchain.discovery.LuaEnvironmentAdopter` (`adopt`: register every found kind binary with `environmentId`, then `upsertEnvironmentAndActivate`) — realizes design §2.7, §3.7.
+  - [x] Create `net.internetisalie.lunar.toolchain.discovery.LuaEnvironmentDetectionStartup : ProjectActivity` (notification + Adopt action; **no plugin.xml registration in this feature**) — realizes design §2.8.
 - **Exit criteria**: TC 17 green (detector heuristics against temp-dir fixtures; adopter
   against a stub registry); no duplicate-notification regression (legacy
   `HererocksDetectStartup` remains the only registered detector until TOOLING-05).
@@ -105,7 +105,7 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 - [x] `LuaTargetSynchronizerTest` — TC 13–14 via `onEvent` invoked directly with crafted
       events + seeded runtime tools; EDT work via
       `EdtTestUtil.runInEdtAndWait` per the threading lesson in the agent guide.
-- [ ] `LuaEnvironmentDetectorTest` / `LuaEnvironmentAdopterTest` — TC 17 with
+- [x] `LuaEnvironmentDetectorTest` / `LuaEnvironmentAdopterTest` — TC 17 with
       `myFixture.tempDirFixture` file layout (mirrors
       `src/test/kotlin/net/internetisalie/lunar/rocks/env/HererocksEnvDetectorTest.kt`).
 - [ ] Full gate: `tooling/gce-builder/gce-builder.sh run test` then
@@ -123,4 +123,4 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 | Phase 2: Mutators & events | done | Must |
 | Phase 3: Resolver | done | Must |
 | Phase 4: Target synchronization | done | Must |
-| Phase 5: Detection & adoption | todo | Must |
+| Phase 5: Detection & adoption | done | Must |
