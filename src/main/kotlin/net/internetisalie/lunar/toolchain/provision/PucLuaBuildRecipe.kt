@@ -20,6 +20,21 @@ data class LuaBuildRecipeInput(
 )
 
 /**
+ * Resolved build context derived from [LuaBuildRecipeInput]. Bundles all pre-computed values
+ * so private recipe helpers stay under the 3-arg contract without unpacking them individually.
+ */
+private data class RecipeContext(
+    val cc: String,
+    val ar: String,
+    val ranlib: String,
+    val cflags: List<String>,
+    val ldflags: List<String>,
+    val libName: String,
+    val srcDir: Path,
+    val prefix: Path,
+)
+
+/**
  * Pure PUC-Lua POSIX build-plan builder (design §3.5, dossier §2a — copied verbatim, not
  * re-derived). Produces the exact compile/archive/link/install command sequence for a given
  * version + OS; requires no compiler to run. The `luaconf.h` splice is [patchLuaconf].
@@ -28,18 +43,19 @@ data class LuaBuildRecipeInput(
  */
 object PucLuaBuildRecipe {
     fun plan(input: LuaBuildRecipeInput): BuildPlan {
-        val srcDir = input.buildDir.resolve("src")
-        val cc = input.toolchain.cc.toString()
-        val ar = input.toolchain.ar.toString()
-        val ranlib = input.toolchain.ranlib.toString()
-        val libName = "liblua${digits(input.version)}.a"
-        val cflags = cflags(input.version)
-        val ldflags = ldflags(input.os)
-        val sources = sourceFiles(srcDir)
-        val steps = compileSteps(sources, cc, cflags, srcDir) +
-            archiveSteps(sources, ar, ranlib, libName, srcDir) +
-            linkSteps(sources, cc, libName, ldflags, srcDir)
-        return BuildPlan(steps, installCopies(srcDir, input.prefix, libName, sources), executables(input.prefix, sources))
+        val rc = RecipeContext(
+            cc = input.toolchain.cc.toString(),
+            ar = input.toolchain.ar.toString(),
+            ranlib = input.toolchain.ranlib.toString(),
+            cflags = cflags(input.version),
+            ldflags = ldflags(input.os),
+            libName = "liblua${digits(input.version)}.a",
+            srcDir = input.buildDir.resolve("src"),
+            prefix = input.prefix,
+        )
+        val sources = sourceFiles(rc.srcDir)
+        val steps = compileSteps(rc, sources) + archiveSteps(rc, sources) + linkSteps(rc, sources)
+        return BuildPlan(steps, installCopies(rc, sources), executables(rc, sources))
     }
 
     fun patchLuaconf(luaconfText: String, version: String, prefix: Path): String {
@@ -79,41 +95,41 @@ object PucLuaBuildRecipe {
         }
     }
 
-    private fun compileSteps(sources: List<String>, cc: String, cflags: List<String>, srcDir: Path): List<BuildStep> =
+    private fun compileSteps(rc: RecipeContext, sources: List<String>): List<BuildStep> =
         sources.map { source ->
             val obj = source.removeSuffix(".c") + ".o"
-            BuildStep(listOf(cc) + cflags + listOf("-c", "-o", obj, source), srcDir)
+            BuildStep(listOf(rc.cc) + rc.cflags + listOf("-c", "-o", obj, source), rc.srcDir)
         }
 
-    private fun archiveSteps(sources: List<String>, ar: String, ranlib: String, libName: String, srcDir: Path): List<BuildStep> {
+    private fun archiveSteps(rc: RecipeContext, sources: List<String>): List<BuildStep> {
         val libObjs = sources.map { it.removeSuffix(".c") + ".o" }
             .filter { it != "lua.o" && it != "luac.o" && it != "print.o" }
         return listOf(
-            BuildStep(listOf(ar, "rcu", libName) + libObjs, srcDir),
-            BuildStep(listOf(ranlib, libName), srcDir),
+            BuildStep(listOf(rc.ar, "rcu", rc.libName) + libObjs, rc.srcDir),
+            BuildStep(listOf(rc.ranlib, rc.libName), rc.srcDir),
         )
     }
 
-    private fun linkSteps(sources: List<String>, cc: String, libName: String, ldflags: List<String>, srcDir: Path): List<BuildStep> {
+    private fun linkSteps(rc: RecipeContext, sources: List<String>): List<BuildStep> {
         val steps = mutableListOf<BuildStep>()
         if (sources.contains("luac.c")) {
             val printObj = if (sources.contains("print.c")) listOf("print.o") else emptyList()
-            steps += BuildStep(listOf(cc, "-o", "luac", "luac.o") + printObj + listOf(libName) + ldflags, srcDir)
+            steps += BuildStep(listOf(rc.cc, "-o", "luac", "luac.o") + printObj + listOf(rc.libName) + rc.ldflags, rc.srcDir)
         }
-        steps += BuildStep(listOf(cc, "-o", "lua", "lua.o", libName) + ldflags, srcDir)
+        steps += BuildStep(listOf(rc.cc, "-o", "lua", "lua.o", rc.libName) + rc.ldflags, rc.srcDir)
         return steps
     }
 
-    private fun installCopies(srcDir: Path, prefix: Path, libName: String, sources: List<String>): List<Pair<Path, Path>> {
+    private fun installCopies(rc: RecipeContext, sources: List<String>): List<Pair<Path, Path>> {
         val copies = mutableListOf<Pair<Path, Path>>()
-        copies += srcDir.resolve("lua") to prefix.resolve("bin/lua")
-        if (sources.contains("luac.c")) copies += srcDir.resolve("luac") to prefix.resolve("bin/luac")
+        copies += rc.srcDir.resolve("lua") to rc.prefix.resolve("bin/lua")
+        if (sources.contains("luac.c")) copies += rc.srcDir.resolve("luac") to rc.prefix.resolve("bin/luac")
         for (header in listOf("lua.h", "luaconf.h", "lualib.h", "lauxlib.h")) {
-            copies += srcDir.resolve(header) to prefix.resolve("include/$header")
+            copies += rc.srcDir.resolve(header) to rc.prefix.resolve("include/$header")
         }
-        val hpp = if (srcDir.resolve("lua.hpp").exists()) srcDir.resolve("lua.hpp") else srcDir.parent.resolve("etc/lua.hpp")
-        copies += hpp to prefix.resolve("include/lua.hpp")
-        copies += srcDir.resolve(libName) to prefix.resolve("lib/$libName")
+        val hpp = if (rc.srcDir.resolve("lua.hpp").exists()) rc.srcDir.resolve("lua.hpp") else rc.srcDir.parent.resolve("etc/lua.hpp")
+        copies += hpp to rc.prefix.resolve("include/lua.hpp")
+        copies += rc.srcDir.resolve(rc.libName) to rc.prefix.resolve("lib/${rc.libName}")
         return copies
     }
 
@@ -123,9 +139,9 @@ object PucLuaBuildRecipe {
         return listOf(prefix.resolve("share/lua/$label"), prefix.resolve("lib/lua/$label"))
     }
 
-    private fun executables(prefix: Path, sources: List<String>): List<Path> {
-        val execs = mutableListOf<Path>(prefix.resolve("bin/lua"))
-        if (sources.contains("luac.c")) execs.add(prefix.resolve("bin/luac"))
+    private fun executables(rc: RecipeContext, sources: List<String>): List<Path> {
+        val execs = mutableListOf<Path>(rc.prefix.resolve("bin/lua"))
+        if (sources.contains("luac.c")) execs.add(rc.prefix.resolve("bin/luac"))
         return execs
     }
 

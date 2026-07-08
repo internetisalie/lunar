@@ -27,6 +27,26 @@ class DownloaderFetcher(private val downloader: LuaArtifactDownloader = LuaArtif
 }
 
 /**
+ * Bundles a downloaded feed asset with its resolved kind identity for passing to helpers that
+ * need both (keeps those functions under the 3-arg engineering-contract cap).
+ */
+private data class ResolvedAsset(
+    val kindId: String,
+    val resolved: LuaFeedVersion,
+    val asset: LuaFeedAsset,
+)
+
+/**
+ * Bundles a feed asset with its downloaded archive file and kind identity so the materialize
+ * helpers stay at ≤2 args (context is the other parameter).
+ */
+private data class MaterializeInput(
+    val asset: LuaFeedAsset,
+    val file: Path,
+    val kindId: String,
+)
+
+/**
  * Prebuilt-release strategy (design §3.7, §4.6): downloads the platform-matching feed asset,
  * verifies it (via [LuaArtifactDownloader]), then materializes it per the asset's `layout`:
  *  - `single-binary` — one executable copied to `<rootDir>/bin/{name}{.exe on Windows}`.
@@ -49,40 +69,41 @@ class ReleaseBinaryStrategy(
         val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
         val asset = matchAsset(resolved, context.platform)
             ?: throw LuaProvisionException("No prebuilt asset for ${item.kindId} on ${context.platform.os}-${context.platform.arch}")
-        val file = fetcher.fetch(asset, context.indicator)
-        val primary = materialize(asset, file, item.kindId, context)
-        writeWindowsLuaRocksConfig(item.kindId, resolved, context)
-        return component(item.kindId, resolved, asset, primary, context)
+        val ra = ResolvedAsset(item.kindId, resolved, asset)
+        val mi = MaterializeInput(asset, fetcher.fetch(asset, context.indicator), item.kindId)
+        val primary = materialize(mi, context)
+        writeWindowsLuaRocksConfig(ra, context)
+        return component(ra, primary, context)
     }
 
-    private fun materialize(asset: LuaFeedAsset, file: Path, kindId: String, context: LuaProvisionContext): Path =
-        when (asset.layout) {
-            "single-binary" -> materializeSingleBinary(asset, file, context)
-            "tree" -> materializeTree(asset, file, kindId, context)
-            "win-lua-binaries" -> materializeWinLuaBinaries(file, context)
-            else -> throw LuaProvisionException("Unknown asset layout '${asset.layout}' for $kindId")
+    private fun materialize(mi: MaterializeInput, context: LuaProvisionContext): Path =
+        when (mi.asset.layout) {
+            "single-binary" -> materializeSingleBinary(mi, context)
+            "tree" -> materializeTree(mi, context)
+            "win-lua-binaries" -> materializeWinLuaBinaries(mi.file, context)
+            else -> throw LuaProvisionException("Unknown asset layout '${mi.asset.layout}' for ${mi.kindId}")
         }
 
-    private fun materializeSingleBinary(asset: LuaFeedAsset, file: Path, context: LuaProvisionContext): Path {
-        val source = if (asset.packaging == "binary") {
-            file
+    private fun materializeSingleBinary(mi: MaterializeInput, context: LuaProvisionContext): Path {
+        val source = if (mi.asset.packaging == "binary") {
+            mi.file
         } else {
             val temp = createTempDirectory("lunar-release")
-            LuaArchiveExtractor.extract(file, temp, asset.rootPrefix, context.indicator)
-            temp.resolve(asset.binaryPath)
+            LuaArchiveExtractor.extract(mi.file, temp, mi.asset.rootPrefix, context.indicator)
+            temp.resolve(mi.asset.binaryPath)
         }
         val binDir = context.rootDir.resolve("bin").also { it.createDirectories() }
-        val name = Path.of(asset.binaryPath).name + if (context.platform.os == LuaOs.WINDOWS) ".exe" else ""
+        val name = Path.of(mi.asset.binaryPath).name + if (context.platform.os == LuaOs.WINDOWS) ".exe" else ""
         val dest = binDir.resolve(name)
         FileUtil.copy(source.toFile(), dest.toFile())
         LuaArchiveExtractor.restoreExecBit(dest)
         return dest
     }
 
-    private fun materializeTree(asset: LuaFeedAsset, file: Path, kindId: String, context: LuaProvisionContext): Path {
-        val toolsDir = context.rootDir.resolve("tools/$kindId").also { it.createDirectories() }
-        LuaArchiveExtractor.extract(file, toolsDir, asset.rootPrefix, context.indicator)
-        val primary = toolsDir.resolve(asset.binaryPath)
+    private fun materializeTree(mi: MaterializeInput, context: LuaProvisionContext): Path {
+        val toolsDir = context.rootDir.resolve("tools/${mi.kindId}").also { it.createDirectories() }
+        LuaArchiveExtractor.extract(mi.file, toolsDir, mi.asset.rootPrefix, context.indicator)
+        val primary = toolsDir.resolve(mi.asset.binaryPath)
         LuaArchiveExtractor.restoreExecBit(primary)
         return primary
     }
@@ -101,8 +122,8 @@ class ReleaseBinaryStrategy(
             .firstNotNullOfOrNull { WIN_LUA_EXE.matchEntire(it)?.groupValues?.get(1) }
             ?: throw LuaProvisionException("No lua{XY}.exe found in LuaBinaries archive.")
 
-    private fun writeWindowsLuaRocksConfig(kindId: String, resolved: LuaFeedVersion, context: LuaProvisionContext) {
-        if (kindId != "luarocks" || context.platform.os != LuaOs.WINDOWS) return
+    private fun writeWindowsLuaRocksConfig(ra: ResolvedAsset, context: LuaProvisionContext) {
+        if (ra.kindId != "luarocks" || context.platform.os != LuaOs.WINDOWS) return
         val label = runtimeLabel(context)
         val config = context.rootDir.resolve("luarocks-config.lua")
         config.writeText(windowsConfigText(context.rootDir, label))
@@ -123,18 +144,18 @@ class ReleaseBinaryStrategy(
         return resolved.version.split(".").take(2).joinToString(".")
     }
 
-    private fun component(kindId: String, resolved: LuaFeedVersion, asset: LuaFeedAsset, primary: Path, context: LuaProvisionContext): LuaProvisionedComponent {
+    private fun component(ra: ResolvedAsset, primary: Path, context: LuaProvisionContext): LuaProvisionedComponent {
         val input = LuaIdentifiersHashInput(
-            kindId = kindId,
-            resolvedVersion = resolved.version,
+            kindId = ra.kindId,
+            resolvedVersion = ra.resolved.version,
             strategyId = id,
             os = context.platform.os,
             arch = context.platform.arch,
             canonicalRootDir = context.rootDir.toString(),
-            artifact = asset.sha256,
+            artifact = ra.asset.sha256,
             compatDefines = "",
         )
-        return LuaProvisionedComponent(kindId, resolved.version, id, primary, emptyList(), LuaIdentifiersHash.compute(input))
+        return LuaProvisionedComponent(ra.kindId, ra.resolved.version, id, primary, emptyList(), LuaIdentifiersHash.compute(input))
     }
 
     private fun assetFor(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): LuaFeedAsset? {
