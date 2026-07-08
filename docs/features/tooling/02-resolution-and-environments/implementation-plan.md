@@ -30,10 +30,10 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 - **Goal**: every binding/environment/option mutation works and fires exactly the enumerated
   events.
 - **Tasks**:
-  - [ ] Implement `LuaToolchainProjectSettings.setBinding` with no-op suppression + single-runtime invariant — realizes design §3.9, §3.3.
-  - [ ] Implement lifecycle ops `upsertEnvironment` / `upsertEnvironmentAndActivate` / `activateEnvironment` / `deactivateEnvironment` / `removeEnvironment` (incl. env-owned tool unregistration via `registry.unregisterByEnvironment` and pooled-thread dir delete) — realizes design §3.4.
-  - [ ] Implement `setKindOption` / `effectiveKindOption` (project scope) — realizes design §3.8.
-  - [ ] Add `LuaToolchainRegistry.setGlobalBinding` / `globalBindings()` / `setKindOption` / `kindOption` (app scope, same invariant + events) — realizes design §2.9.
+  - [x] Implement `LuaToolchainProjectSettings.setBinding` with no-op suppression + single-runtime invariant — realizes design §3.9, §3.3.
+  - [x] Implement lifecycle ops `upsertEnvironment` / `upsertEnvironmentAndActivate` / `activateEnvironment` / `deactivateEnvironment` / `removeEnvironment` (incl. env-owned tool unregistration via `registry.unregisterByEnvironment` and pooled-thread dir delete) — realizes design §3.4.
+  - [x] Implement `setKindOption` / `effectiveKindOption` (project scope) — realizes design §3.8.
+  - [x] Augment TOOLING-01 `LuaToolchainRegistry`: add §3.3 single-runtime invariant to `setGlobalBinding` and change `kindOption` to return non-null `String` (`""` when absent) — realizes design §2.9. *(`setGlobalBinding`/`globalBindings()`/`setKindOption` already landed in TOOLING-01.)*
 - **Exit criteria**: TC 9, 10, 11, 12 (bindings-untouched part), 15, 16 green; an
   event-recording test subscriber observes exactly the design §3.9 table per mutation.
 
@@ -120,7 +120,7 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Shared event & state plumbing | done | Must |
-| Phase 2: Mutators & events | todo | Must |
+| Phase 2: Mutators & events | done | Must |
 | Phase 3: Resolver | todo | Must |
 | Phase 4: Target synchronization | todo | Must |
 | Phase 5: Detection & adoption | todo | Must |

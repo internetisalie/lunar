@@ -104,6 +104,19 @@ class LuaToolchainAppState {
     var kindOptions: MutableMap<String, String> = HashMap()
 }
 
+internal fun enforceSingleRuntimeInvariant(
+    bindings: MutableMap<String, String>,
+    kindId: String,
+    toolId: String?
+): Boolean {
+    if (toolId == null) return false
+    if (LuaToolKindRegistry.findById(kindId)?.isRuntime != true) return false
+    val runtimeKindIds = LuaToolKindRegistry.all().filter { it.isRuntime }.map { it.id }.toSet()
+    val staleRuntimeKeys = bindings.keys.filter { it != kindId && it in runtimeKindIds }
+    staleRuntimeKeys.forEach { bindings.remove(it) }
+    return staleRuntimeKeys.isNotEmpty()
+}
+
 @Service(Service.Level.APP)
 @State(
     name = "LuaToolchainRegistry",
@@ -163,9 +176,9 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         }
     }
 
-    fun kindOption(key: String): String? {
+    fun kindOption(key: String): String {
         return synchronized(stateLock) {
-            myState.kindOptions[key]
+            myState.kindOptions[key] ?: ""
         }
     }
 
@@ -173,12 +186,16 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         var changed = false
         synchronized(stateLock) {
             val current = myState.globalBindings[kindId]
+            val invariantRemoved = enforceSingleRuntimeInvariant(myState.globalBindings, kindId, toolId)
             if (current != toolId) {
                 if (toolId == null) {
                     myState.globalBindings.remove(kindId)
                 } else {
                     myState.globalBindings[kindId] = toolId
                 }
+                changed = true
+            }
+            if (invariantRemoved) {
                 changed = true
             }
         }
