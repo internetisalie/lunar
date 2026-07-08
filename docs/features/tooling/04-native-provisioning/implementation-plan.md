@@ -97,13 +97,18 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 ### Phase 6: Orchestrator, registration, progress [Must]
 - **Goal**: end-to-end `provision()` with per-dir serialization and result registration.
 - **Tasks**:
-  - [ ] Create `LuaToolProvisioner` (validation, reservation set + `tryReserve`/`release`
+  - [x] Create `LuaToolProvisioner` (validation, reservation set + `tryReserve`/`release`
         seams, `Task.Backgroundable`, item ordering, preflight gating, per-component
         skip/execute/manifest-write loop, fail-fast, notifications) — design §2.2, §3.1.
-  - [ ] Wire strategy selection over `LuaToolKind.provisioning` order data (ship the
-        §3.12 table into the TOOLING-01 built-in kind list) — design §3.12.
-  - [ ] Implement registration on success: `registerProvisioned` per binary +
-        `LuaEnvironmentState` upsert/activate via TOOLING-02 — design §3.1 step 10.
+        The pipeline lives in an injectable `LuaProvisionEngine` (fake strategies / spy
+        sink+notifier), keeping `LuaToolProvisioner` a thin service.
+  - [x] Wire strategy selection over the local `LuaProvisioningPlan` table (the §3.12
+        Phase-0-revised approach: a `kindId → ordered strategy-id` map in the
+        `toolchain.provision` package; `LuaToolKind.provisioning` stays `emptyList()`,
+        untouched) — design §3.12.
+  - [x] Implement registration on success: `registerProvisioned` per component's primary
+        binary (via the `LuaProvisionResultSink` seam) + `LuaEnvironmentState`
+        upsert/activate via TOOLING-02 — design §3.1 step 10.
 - **Exit criteria**: orchestrator unit tests with fake strategies/exec service — TC 2
   (serialization refusal), TC 11/12 (skip vs rebuild), TC 14 (no registration on partial
   failure), TC 19 (cancellation keeps manifest); suite green via
@@ -166,7 +171,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 - [x] Unit: build-plan snapshots (5.1 / 5.2 / 5.4 linux; luaconf splice) — covers TC 1's
       command sequence and TC 5 preflight (Phase 4).
 - [x] Unit: rock-install command + failure classification — covers TC 9/10 (Phase 5).
-- [ ] Unit: orchestrator fakes — covers TC 2/11/12/14/19 (Phase 6).
+- [x] Unit: orchestrator fakes — covers TC 2/11/12/14/19 (Phase 6).
 - [ ] Unit: dialog validation + `toRequest`/batch derivation — covers TC 16/18 (Phase 7).
 - [ ] Full suite + build gate: `tooling/gce-builder/gce-builder.sh run test` and
       `run build` after Phases 6 and 7.
@@ -185,6 +190,6 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 | Phase 3: Manifest & identifiers hash | done | Must |
 | Phase 4: Strategies — release binary & source build | done | Must |
 | Phase 5: Rock installs | done | Must |
-| Phase 6: Orchestrator, registration, progress | todo | Must |
+| Phase 6: Orchestrator, registration, progress | done | Must |
 | Phase 7: Actions & dialogs, plugin.xml swap | todo | Must |
 | Phase 8: Should/Could extensions | todo | Should |

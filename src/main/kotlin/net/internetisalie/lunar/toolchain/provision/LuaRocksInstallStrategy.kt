@@ -46,6 +46,13 @@ class LuaRocksInstallStrategy(
     override fun supports(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): Boolean =
         rockOf(item, platform, feed) != null
 
+    override fun identityHash(context: LuaProvisionContext, item: LuaProvisionItem): String {
+        val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
+        val rock = resolved.rock
+            ?: throw LuaProvisionException("No rock defined for ${item.kindId} ${resolved.version}")
+        return LuaIdentifiersHash.compute(hashInput(RockIdentity(item.kindId, resolved.version, rock), context))
+    }
+
     override fun provision(context: LuaProvisionContext, item: LuaProvisionItem): LuaProvisionedComponent {
         val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
         val rock = resolved.rock
@@ -58,7 +65,7 @@ class LuaRocksInstallStrategy(
         if (!wrapper.exists()) {
             throw LuaProvisionException("install succeeded but no ${rock.binName} wrapper")
         }
-        return component(RockComponent(item.kindId, resolved.version, rock, wrapper), context)
+        return component(RockComponent(RockIdentity(item.kindId, resolved.version, rock), wrapper), context)
     }
 
     private fun commandLine(argv: List<String>, rootDir: Path, platform: LuaHostPlatform): GeneralCommandLine {
@@ -74,20 +81,10 @@ class LuaRocksInstallStrategy(
             .getOrNull()?.rock
 
     private fun component(rock: RockComponent, context: LuaProvisionContext): LuaProvisionedComponent {
-        val pin = rock.rock.pinnedVersion ?: "latest"
-        val input = LuaIdentifiersHashInput(
-            kindId = rock.kindId,
-            resolvedVersion = rock.resolvedVersion,
-            strategyId = id,
-            os = context.platform.os,
-            arch = context.platform.arch,
-            canonicalRootDir = context.rootDir.toString(),
-            artifact = "rock=${rock.rock.rockName}@$pin",
-            compatDefines = "",
-        )
+        val input = hashInput(rock.identity, context)
         return LuaProvisionedComponent(
-            rock.kindId,
-            rock.resolvedVersion,
+            rock.identity.kindId,
+            rock.identity.resolvedVersion,
             id,
             rock.wrapper,
             emptyList(),
@@ -95,13 +92,26 @@ class LuaRocksInstallStrategy(
         )
     }
 
-    /** Bundles the resolved rock identity so [component] stays a two-argument function. */
-    private data class RockComponent(
-        val kindId: String,
-        val resolvedVersion: String,
-        val rock: LuaFeedRock,
-        val wrapper: Path,
-    )
+    /** Builds the shared hash input from the rock identity (design §3.3). */
+    private fun hashInput(identity: RockIdentity, context: LuaProvisionContext): LuaIdentifiersHashInput {
+        val pin = identity.rock.pinnedVersion ?: "latest"
+        return LuaIdentifiersHashInput(
+            kindId = identity.kindId,
+            resolvedVersion = identity.resolvedVersion,
+            strategyId = id,
+            os = context.platform.os,
+            arch = context.platform.arch,
+            canonicalRootDir = context.rootDir.toString(),
+            artifact = "rock=${identity.rock.rockName}@$pin",
+            compatDefines = "",
+        )
+    }
+
+    /** The rock's identity used for both the hash and the record. */
+    private data class RockIdentity(val kindId: String, val resolvedVersion: String, val rock: LuaFeedRock)
+
+    /** Bundles the resolved rock identity + landed wrapper so [component] stays a two-argument function. */
+    private data class RockComponent(val identity: RockIdentity, val wrapper: Path)
 
     companion object {
         private const val OUTPUT_TAIL = 20

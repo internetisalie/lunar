@@ -65,6 +65,13 @@ class ReleaseBinaryStrategy(
     override fun supports(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): Boolean =
         assetFor(item, platform, feed) != null
 
+    override fun identityHash(context: LuaProvisionContext, item: LuaProvisionItem): String {
+        val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
+        val asset = matchAsset(resolved, context.platform)
+            ?: throw LuaProvisionException("No prebuilt asset for ${item.kindId} on ${context.platform.os}-${context.platform.arch}")
+        return LuaIdentifiersHash.compute(hashInput(ResolvedAsset(item.kindId, resolved, asset), context))
+    }
+
     override fun provision(context: LuaProvisionContext, item: LuaProvisionItem): LuaProvisionedComponent {
         val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
         val asset = matchAsset(resolved, context.platform)
@@ -145,7 +152,11 @@ class ReleaseBinaryStrategy(
     }
 
     private fun component(ra: ResolvedAsset, primary: Path, context: LuaProvisionContext): LuaProvisionedComponent {
-        val input = LuaIdentifiersHashInput(
+        return LuaProvisionedComponent(ra.kindId, ra.resolved.version, id, primary, emptyList(), LuaIdentifiersHash.compute(hashInput(ra, context)))
+    }
+
+    private fun hashInput(ra: ResolvedAsset, context: LuaProvisionContext): LuaIdentifiersHashInput =
+        LuaIdentifiersHashInput(
             kindId = ra.kindId,
             resolvedVersion = ra.resolved.version,
             strategyId = id,
@@ -155,8 +166,6 @@ class ReleaseBinaryStrategy(
             artifact = ra.asset.sha256,
             compatDefines = "",
         )
-        return LuaProvisionedComponent(ra.kindId, ra.resolved.version, id, primary, emptyList(), LuaIdentifiersHash.compute(input))
-    }
 
     private fun assetFor(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): LuaFeedAsset? {
         val resolved = runCatching { LuaToolchainFeedLoader.resolveVersion(feed, item.kindId, item.versionSpec, platform) }

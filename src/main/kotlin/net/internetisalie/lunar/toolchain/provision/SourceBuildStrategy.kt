@@ -38,6 +38,11 @@ class SourceBuildStrategy(
         return resolved.source != null
     }
 
+    override fun identityHash(context: LuaProvisionContext, item: LuaProvisionItem): String {
+        val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
+        return hashFor(item.kindId, resolved, context)
+    }
+
     override fun provision(context: LuaProvisionContext, item: LuaProvisionItem): LuaProvisionedComponent {
         val toolchain = context.toolchain
             ?: throw LuaProvisionException(LuaCompilerProbe.REMEDIATION)
