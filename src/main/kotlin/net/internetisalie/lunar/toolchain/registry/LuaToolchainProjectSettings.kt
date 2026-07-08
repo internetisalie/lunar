@@ -60,6 +60,12 @@ class LuaToolchainProjectSettings(private val project: Project) :
         }
     }
 
+    fun binding(kindId: String): String? {
+        return synchronized(stateLock) {
+            myState.bindings[kindId]
+        }
+    }
+
     fun setBinding(kindId: String, toolId: String?) {
         var changed = false
         synchronized(stateLock) {

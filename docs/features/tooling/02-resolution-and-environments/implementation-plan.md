@@ -40,10 +40,10 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 ### Phase 3: Resolver [Must]
 - **Goal**: the one precedence implementation with detailed outcomes.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.resolve.LuaToolResolution` (+ `ResolutionSource`, `SkippedBinding`, `SkipReason`) — realizes design §2.1.
-  - [ ] Create `net.internetisalie.lunar.toolchain.resolve.LuaToolResolver` (`@Service(APP)`): `resolveDetailed` (§3.1 five tiers + skip rules), `resolve`, `resolveAll`, `notConfiguredMessage` — realizes design §3.1.
-  - [ ] Implement `resolveIn` (strict per-environment, no fallback) — realizes design §3.2.
-  - [ ] Implement `resolveRuntime` / `resolveRuntimeDetailed` (capability iteration over runtime kinds) — realizes design §3.3.
+  - [x] Create `net.internetisalie.lunar.toolchain.resolve.LuaToolResolution` (+ `ResolutionSource`, `SkippedBinding`, `SkipReason`) — realizes design §2.1.
+  - [x] Create `net.internetisalie.lunar.toolchain.resolve.LuaToolResolver` (`@Service(APP)`): `resolveDetailed` (§3.1 five tiers + skip rules), `resolve`, `resolveAll`, `notConfiguredMessage` — realizes design §3.1.
+  - [x] Implement `resolveIn` (strict per-environment, no fallback) — realizes design §3.2.
+  - [x] Implement `resolveRuntime` / `resolveRuntimeDetailed` (capability iteration over runtime kinds) — realizes design §3.3.
 - **Exit criteria**: TC 1–7 green, including the prompt-exemplar sequence
   (env C → deactivate → B → unbind → A) and stale-skip cases TC 4–5.
 
@@ -98,7 +98,7 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
       the light fixture shares one project across classes).
 - [ ] `LuaToolchainEventsTest` — recording subscriber asserts the design §3.9
       mutation→event table and no-op suppression (TC 9).
-- [ ] `LuaToolResolverTest` — TC 1–7 (precedence, detailed outcomes, `resolveIn`,
+- [x] `LuaToolResolverTest` — TC 1–7 (precedence, detailed outcomes, `resolveIn`,
       `resolveRuntime` + invariant) and stale skips (TC 4–5); seed tools directly into the
       registry state with explicit `LuaToolHealth` values (no disk probing in resolver
       tests).
@@ -121,6 +121,6 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 |-------|--------|----------|
 | Phase 1: Shared event & state plumbing | done | Must |
 | Phase 2: Mutators & events | done | Must |
-| Phase 3: Resolver | todo | Must |
+| Phase 3: Resolver | done | Must |
 | Phase 4: Target synchronization | todo | Must |
 | Phase 5: Detection & adoption | todo | Must |
