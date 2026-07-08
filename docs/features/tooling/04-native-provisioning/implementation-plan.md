@@ -56,9 +56,9 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 ### Phase 3: Manifest & identifiers hash [Must]
 - **Goal**: idempotency substrate.
 - **Tasks**:
-  - [ ] Create `LuaEnvManifest` (+`LuaManifestComponent`), Gson round-trip, null-on-corrupt
+  - [x] Create `LuaEnvManifest` (+`LuaManifestComponent`), Gson round-trip, null-on-corrupt
         read — design §2.10, §4.5.
-  - [ ] Implement the identifiers-hash function (fixed 9-line input, §3.3) and the skip
+  - [x] Implement the identifiers-hash function (fixed 9-line input, §3.3) and the skip
         rule (hash equal + binaries executable).
 - **Exit criteria**: hash unit tests (rootDir change → new hash; readline/compat lines
   present; stable across runs); manifest round-trip test; corrupt-file → `null`.
@@ -182,7 +182,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 |-------|--------|----------|
 | Phase 1: Feed — model, resource, resolution | done | Must |
 | Phase 2: Download, verify, extract | done | Must |
-| Phase 3: Manifest & identifiers hash | todo | Must |
+| Phase 3: Manifest & identifiers hash | done | Must |
 | Phase 4: Strategies — release binary & source build | todo | Must |
 | Phase 5: Rock installs | todo | Must |
 | Phase 6: Orchestrator, registration, progress | todo | Must |
