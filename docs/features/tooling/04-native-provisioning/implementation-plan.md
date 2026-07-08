@@ -66,18 +66,18 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 ### Phase 4: Strategies — release binary & source build [Must]
 - **Goal**: the two download-driven strategies produce correct trees.
 - **Tasks**:
-  - [ ] Create `LuaProvisioningStrategy` + `LuaProvisionContext` +
+  - [x] Create `LuaProvisioningStrategy` + `LuaProvisionContext` +
         `LuaProvisionedComponent` — design §2.4.
-  - [ ] Create `ReleaseBinaryStrategy` (layouts `single-binary`/`tree`/
+  - [x] Create `ReleaseBinaryStrategy` (layouts `single-binary`/`tree`/
         `win-lua-binaries`, canonical `lua.exe`/`luac.exe` copies, Windows
         `luarocks-config.lua` write) — design §3.7, §4.6.
-  - [ ] Create `LuaCompilerProbe` (cc/gcc+ar+ranlib+make via
+  - [x] Create `LuaCompilerProbe` (cc/gcc+ar+ranlib+make via
         `PathEnvironmentVariableUtil`, `REMEDIATION` text) — design §2.8.
-  - [ ] Create `PucLuaBuildRecipe` (cflags/ldflags tables, per-TU plan, ar/ranlib/link,
+  - [x] Create `PucLuaBuildRecipe` (cflags/ldflags tables, per-TU plan, ar/ranlib/link,
         install copies) and `patchLuaconf` — design §3.5, §3.6.
-  - [ ] Create `LuaRocksBuildRecipe` (configure/make build/make install + CFLAGS config
+  - [x] Create `LuaRocksBuildRecipe` (configure/make build/make install + CFLAGS config
         append) — design §3.5 step L.
-  - [ ] Create `SourceBuildStrategy` (kind dispatch to recipes; `supports()` false on
+  - [x] Create `SourceBuildStrategy` (kind dispatch to recipes; `supports()` false on
         Windows; runs `BuildStep`s through `LuaToolExecutionService` INSTALL class;
         build-dir lifecycle) — design §2.4, §2.9.
 - **Exit criteria**: pure-plan unit tests assert the **exact** command lists of TC 1
@@ -163,7 +163,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 - [x] Unit: feed load/alias/comparator — covers TC 3 (Phase 1).
 - [x] Unit: downloader cache + checksum with injected cacheDir/fixtures — covers TC 4
       (Phase 2).
-- [ ] Unit: build-plan snapshots (5.1 / 5.2 / 5.4 linux; luaconf splice) — covers TC 1's
+- [x] Unit: build-plan snapshots (5.1 / 5.2 / 5.4 linux; luaconf splice) — covers TC 1's
       command sequence and TC 5 preflight (Phase 4).
 - [ ] Unit: rock-install command + failure classification — covers TC 9/10 (Phase 5).
 - [ ] Unit: orchestrator fakes — covers TC 2/11/12/14/19 (Phase 6).
@@ -183,7 +183,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 | Phase 1: Feed — model, resource, resolution | done | Must |
 | Phase 2: Download, verify, extract | done | Must |
 | Phase 3: Manifest & identifiers hash | done | Must |
-| Phase 4: Strategies — release binary & source build | todo | Must |
+| Phase 4: Strategies — release binary & source build | done | Must |
 | Phase 5: Rock installs | todo | Must |
 | Phase 6: Orchestrator, registration, progress | todo | Must |
 | Phase 7: Actions & dialogs, plugin.xml swap | todo | Must |
