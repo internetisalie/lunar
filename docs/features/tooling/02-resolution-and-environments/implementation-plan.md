@@ -19,10 +19,10 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 ### Phase 1: Shared event & state plumbing [Must]
 - **Goal**: the topic, event payload, and persisted project state exist and round-trip.
 - **Tasks**:
-  - [ ] Create (or extend, if TOOLING-01 created it) `net.internetisalie.lunar.toolchain.registry.LuaToolchainListener` + `LuaToolchainEvent` + the `LuaToolchainChange` enum with all ten change values (per contract §4) — realizes design §2.3.
-  - [ ] Create `net.internetisalie.lunar.toolchain.model.LuaEnvironmentState` in serializer-friendly form (skip if TOOLING-01 shipped it; align shape if it did) — realizes design §2.2.
-  - [ ] Create `net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings` (`@Service(PROJECT)` + `@State(name="LuaToolchainProjectSettings", storages=[Storage("lunar.xml")])`) persisting a top-level `LuaToolchainProjectState` with fields `bindings`/`environments`/`activeEnvironmentId`/`kindOptions`, plus `normalizeDir` and read accessors (`environments()`, `activeEnvironment()`) — realizes design §2.2.
-  - [ ] Create `net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys` — realizes design §2.4.
+  - [x] Create (or extend, if TOOLING-01 created it) `net.internetisalie.lunar.toolchain.registry.LuaToolchainListener` + `LuaToolchainEvent` + the `LuaToolchainChange` enum with all ten change values (per contract §4) — realizes design §2.3. *(Reused as-is from TOOLING-01: all ten enum values already present.)*
+  - [x] Create `net.internetisalie.lunar.toolchain.model.LuaEnvironmentState` in serializer-friendly form (skip if TOOLING-01 shipped it; align shape if it did) — realizes design §2.2.
+  - [x] Create `net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings` (`@Service(PROJECT)` + `@State(name="LuaToolchainProjectSettings", storages=[Storage("lunar.xml")])`) persisting a top-level `LuaToolchainProjectState` with fields `bindings`/`environments`/`activeEnvironmentId`/`kindOptions`, plus `normalizeDir` and read accessors (`environments()`, `activeEnvironment()`) — realizes design §2.2. *(Phase 1: state + persistence + read accessors + `normalizeDir` only; mutators are Phase 2.)*
+  - [x] Create `net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys` — realizes design §2.4.
 - **Exit criteria**: `XmlSerializer` round-trip test green (TC 8); suite compiles with no
   behavior change anywhere else.
 
@@ -119,7 +119,7 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Shared event & state plumbing | todo | Must |
+| Phase 1: Shared event & state plumbing | done | Must |
 | Phase 2: Mutators & events | todo | Must |
 | Phase 3: Resolver | todo | Must |
 | Phase 4: Target synchronization | todo | Must |

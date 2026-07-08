@@ -2,7 +2,7 @@
 id: "TOOLING-02"
 title: "02: Resolution, Binding & Environments"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "TOOLING"
 folders:
