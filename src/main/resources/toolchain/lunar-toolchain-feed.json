@@ -1,0 +1,921 @@
+{
+  "feedVersion": 1,
+  "kinds": {
+    "lua": {
+      "aliases": {
+        "latest": "5",
+        "^": "5",
+        "5": "5.5.0",
+        "5.1": "5.1.5",
+        "5.1.0": "5.1",
+        "5.2": "5.2.4",
+        "5.3": "5.3.6",
+        "5.4": "5.4.8",
+        "5.5": "5.5.0"
+      },
+      "versions": [
+        {
+          "version": "5.1",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.1.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.1.1",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.1.1.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.1.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.1.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.1.2",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.1.2.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.1.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.1.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.1.3",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.1.3.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.1.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.1.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.1.4",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.1.4.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.1.4.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.1.4"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.1.5",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.1.5.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.1.5"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.2.0",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.2.0.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.2.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.2.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.2.1",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.2.1.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.2.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.2.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.2.2",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.2.2.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.2.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.2.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.2.3",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.2.3.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.2.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.2.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.2.4",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.2.4.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.2.4.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.2.4"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.3.0",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.3.0.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.3.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.3.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.3.1",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.3.1.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.3.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.3.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.3.2",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.3.2.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.3.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.3.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.3.3",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.3.3.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.3.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.3.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.3.4",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.3.4.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.3.4.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.3.4"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.3.5",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.3.5.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.3.5.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.3.5"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.3.6",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.3.6.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.3.6.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.3.6"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.0",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.0.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.1",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.1.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.2",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.2.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.2"
+          },
+          "assets": [
+            {
+              "os": "windows",
+              "arch": "x86_64",
+              "url": "https://sourceforge.net/projects/luabinaries/files/5.4.2/Tools%20Executables/lua-5.4.2_Win64_bin.zip/download",
+              "sha256": "TODO-PIN",
+              "size": 0,
+              "packaging": "zip",
+              "rootPrefix": null,
+              "layout": "win-lua-binaries",
+              "binaryPath": "lua54.exe"
+            }
+          ]
+        },
+        {
+          "version": "5.4.3",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.3.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.4",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.4.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.4.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.4"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.5",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.5.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.5.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.5"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.6",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.6.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.6.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.6"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.7",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.7.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.7.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.7"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.4.8",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.4.8.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.4.8.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.4.8"
+          },
+          "assets": []
+        },
+        {
+          "version": "5.5.0",
+          "source": {
+            "urls": [
+              "https://www.lua.org/ftp/lua-5.5.0.tar.gz",
+              "https://webserver2.tecgraf.puc-rio.br/lua/mirror/ftp/lua-5.5.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "lua-5.5.0"
+          },
+          "assets": []
+        }
+      ]
+    },
+    "luarocks": {
+      "aliases": {
+        "latest": "3",
+        "^": "3",
+        "3": "3.13.0"
+      },
+      "versions": [
+        {
+          "version": "3.0.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.0.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.0.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.0.1",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.0.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.0.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.0.2",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.0.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.0.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.0.3",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.0.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.0.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.0.4",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.0.4.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.0.4"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.1.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.1.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.1.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.1.1",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.1.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.1.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.1.2",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.1.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.1.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.1.3",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.1.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.1.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.1.4",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.1.4.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.1.4"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.2.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.2.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.2.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.2.1",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.2.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.2.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.2.2",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.2.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.2.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.2.3",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.2.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.2.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.2.4",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.2.4.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.2.4"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.3.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.3.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.3.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.3.1",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.3.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.3.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.3.2",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.3.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.3.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.3.3",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.3.3.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.3.3"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.4.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.4.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.4.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.5.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.5.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.5.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.6.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.6.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.6.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.7.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.7.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.7.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.8.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.8.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.8.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.9.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.9.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.9.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.9.1",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.9.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.9.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.9.2",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.9.2.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.9.2"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.10.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.10.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.10.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.11.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.11.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.11.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.11.1",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.11.1.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.11.1"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.12.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.12.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.12.0"
+          },
+          "assets": []
+        },
+        {
+          "version": "3.13.0",
+          "source": {
+            "urls": [
+              "https://luarocks.github.io/luarocks/releases/luarocks-3.13.0.tar.gz"
+            ],
+            "sha256": "TODO-PIN",
+            "size": 0,
+            "rootPrefix": "luarocks-3.13.0"
+          },
+          "assets": [
+            {
+              "os": "windows",
+              "arch": "x86_64",
+              "url": "https://luarocks.github.io/luarocks/releases/luarocks-3.13.0-windows-64.zip",
+              "sha256": "TODO-PIN",
+              "size": 0,
+              "packaging": "zip",
+              "rootPrefix": "luarocks-3.13.0-windows-64",
+              "layout": "single-binary",
+              "binaryPath": "luarocks.exe"
+            }
+          ]
+        }
+      ]
+    },
+    "stylua": {
+      "aliases": {
+        "latest": "2.5.2"
+      },
+      "versions": [
+        {
+          "version": "2.5.2",
+          "assets": [
+            {
+              "os": "linux",
+              "arch": "x86_64",
+              "url": "https://github.com/JohnnyMorganz/StyLua/releases/download/v2.5.2/stylua-linux-x86_64.zip",
+              "sha256": "TODO-PIN",
+              "size": 0,
+              "packaging": "zip",
+              "rootPrefix": null,
+              "layout": "single-binary",
+              "binaryPath": "stylua"
+            }
+          ]
+        }
+      ]
+    },
+    "lua-language-server": {
+      "aliases": {
+        "latest": "3.18.2"
+      },
+      "versions": [
+        {
+          "version": "3.18.2",
+          "assets": [
+            {
+              "os": "linux",
+              "arch": "x86_64",
+              "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.18.2/lua-language-server-3.18.2-linux-x64.tar.gz",
+              "sha256": "TODO-PIN",
+              "size": 0,
+              "packaging": "tar.gz",
+              "rootPrefix": null,
+              "layout": "tree",
+              "binaryPath": "bin/lua-language-server"
+            }
+          ]
+        }
+      ]
+    },
+    "luacheck": {
+      "aliases": {
+        "latest": "1.2.0"
+      },
+      "versions": [
+        {
+          "version": "1.2.0",
+          "assets": [
+            {
+              "os": "linux",
+              "arch": "x86_64",
+              "url": "https://github.com/lunarmodules/luacheck/releases/download/v1.2.0/luacheck",
+              "sha256": "TODO-PIN",
+              "size": 0,
+              "packaging": "binary",
+              "rootPrefix": null,
+              "layout": "single-binary",
+              "binaryPath": "luacheck"
+            },
+            {
+              "os": "windows",
+              "arch": "x86_64",
+              "url": "https://github.com/lunarmodules/luacheck/releases/download/v1.2.0/luacheck.exe",
+              "sha256": "TODO-PIN",
+              "size": 0,
+              "packaging": "binary",
+              "rootPrefix": null,
+              "layout": "single-binary",
+              "binaryPath": "luacheck.exe"
+            }
+          ],
+          "rock": {
+            "rockName": "luacheck",
+            "pinnedVersion": null,
+            "binName": "luacheck",
+            "needsCToolchain": true
+          }
+        }
+      ]
+    },
+    "busted": {
+      "aliases": {
+        "latest": "2.2.0"
+      },
+      "versions": [
+        {
+          "version": "2.2.0",
+          "assets": [],
+          "rock": {
+            "rockName": "busted",
+            "pinnedVersion": "2.2.0-1",
+            "binName": "busted",
+            "needsCToolchain": true
+          }
+        }
+      ]
+    },
+    "luacov": {
+      "aliases": {
+        "latest": "0.16.0"
+      },
+      "versions": [
+        {
+          "version": "0.16.0",
+          "assets": [],
+          "rock": {
+            "rockName": "luacov",
+            "pinnedVersion": null,
+            "binName": "luacov",
+            "needsCToolchain": false
+          }
+        }
+      ]
+    }
+  }
+}

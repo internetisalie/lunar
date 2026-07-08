@@ -19,19 +19,21 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 ### Phase 1: Feed — model, resource, resolution [Must]
 - **Goal**: the bundled version feed loads, resolves aliases, and is platform-aware.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeed` (+
+  - [x] Create `net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeed` (+
         `LuaFeedKind/Version/Source/Asset/Rock`) and `LuaToolchainFeedLoader` (Gson
         parser, strict null checks) — design §2.5, §4.1.
-  - [ ] Create `src/main/resources/toolchain/lunar-toolchain-feed.json` with the full
+  - [x] Create `src/main/resources/toolchain/lunar-toolchain-feed.json` with the full
         version set (PUC 5.1–5.5.0, LuaRocks 3.0.0–3.13.0, StyLua 2.5.2, LuaLS 3.18.2,
-        luacheck 1.2.0, busted/luacov rocks) and alias tables; compute SHA-256/size pins
-        per the §4.2 procedure (cross-check lua.org checksums; LuaBinaries Win64 asset/group
-        strings per the TOOLING-00-02 outcome; the luacheck linux standalone asset name per
-        the TOOLING-00-05 feed/asset spike).
-  - [ ] Implement `resolveVersion` (single alias application, exact-first, platform-aware
+        luacheck 1.2.0, busted/luacov rocks) and alias tables. **Pins deferred:** every
+        `sha256` ships as the sentinel `"TODO-PIN"` and `size: 0` — real SHA-256/size pins
+        cannot be computed in this network-less environment and must be filled per the §4.2
+        procedure before the live provision / release (see
+        `src/main/resources/toolchain/README-feed-pins.md`; LuaBinaries Win64 asset/group
+        strings per TOOLING-00-02; luacheck linux standalone asset name per TOOLING-00-05).
+  - [x] Implement `resolveVersion` (single alias application, exact-first, platform-aware
         prefix max) —
         design §3.2 — and the version comparator — design §3.11.
-  - [ ] Create `LuaHostPlatform` (`current()` os/arch mapping) — design §2.3.
+  - [x] Create `LuaHostPlatform` (`current()` os/arch mapping) — design §2.3.
 - **Exit criteria**: `LuaToolchainFeedTest` green — loads the real resource, alias
   closure (every chain terminates on a shipped entry, no cycles; incl. the `5.1.0 → 5.1`
   stop-at-shipped case, §3.2), TC 3 resolution cases, comparator ordering
@@ -158,7 +160,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 | TOOLING-04-16 | C | Phase 8 |
 
 ## Verification Tasks
-- [ ] Unit: feed load/alias/comparator — covers TC 3 (Phase 1).
+- [x] Unit: feed load/alias/comparator — covers TC 3 (Phase 1).
 - [ ] Unit: downloader cache + checksum with injected cacheDir/fixtures — covers TC 4
       (Phase 2).
 - [ ] Unit: build-plan snapshots (5.1 / 5.2 / 5.4 linux; luaconf splice) — covers TC 1's
@@ -178,7 +180,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Feed — model, resource, resolution | todo | Must |
+| Phase 1: Feed — model, resource, resolution | done | Must |
 | Phase 2: Download, verify, extract | todo | Must |
 | Phase 3: Manifest & identifiers hash | todo | Must |
 | Phase 4: Strategies — release binary & source build | todo | Must |
