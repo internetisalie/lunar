@@ -5,7 +5,6 @@ import net.internetisalie.lunar.toolchain.provision.LuaHostPlatform
 import net.internetisalie.lunar.toolchain.provision.LuaOs
 import net.internetisalie.lunar.toolchain.provision.LuaProvisionException
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -78,9 +77,9 @@ class LuaToolchainFeedTest {
         val maxHops = kind.aliases.size + 1
         var hops = 0
         while (current !in shipped) {
-            val next = kind.aliases[current]
-            assertNotNull("$kindId alias chain from '$start' dead-ends at '$current' (not shipped, not an alias key)", next)
-            current = next!!
+            current = requireNotNull(kind.aliases[current]) {
+                "$kindId alias chain from '$start' dead-ends at '$current' (not shipped, not an alias key)"
+            }
             assertTrue("$kindId alias chain from '$start' cycles", ++hops <= maxHops)
         }
     }

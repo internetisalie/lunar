@@ -96,8 +96,6 @@ internal class LuaFeedVersionResolver(
             LuaArch.AARCH64 -> "aarch64"
         }
 
-    private fun platformLabel(): String = "${osToken()}-${archToken()}"
-
     private fun unknown(spec: String): LuaProvisionException {
         val known = kind.versions
             .filter { isProvisionable(it) }
