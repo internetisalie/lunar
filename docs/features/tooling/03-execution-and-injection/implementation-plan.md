@@ -31,10 +31,10 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 ### Phase 1: Execution service [Must]
 - **Goal**: the single subprocess entry point.
 - **Tasks**:
-  - [ ] Create `toolchain/exec/LuaExecTimeout.kt` (design §2.1).
-  - [ ] Create `toolchain/exec/LuaExecResult.kt` — `LuaExecOutcome` + `LuaExecResult`
+  - [x] Create `toolchain/exec/LuaExecTimeout.kt` (design §2.1).
+  - [x] Create `toolchain/exec/LuaExecResult.kt` — `LuaExecOutcome` + `LuaExecResult`
         (design §2.2).
-  - [ ] Create `toolchain/exec/LuaToolExecutionService.kt` — `capture`/`stream` +
+  - [x] Create `toolchain/exec/LuaToolExecutionService.kt` — `capture`/`stream` +
         `@TestOnly` `*WithMillis` internals, read-lock escape, soft EDT assert,
         indicator handling (design §2.3, §3.1, §3.2).
 - **Exit criteria**: TCs 1–9 pass (`LuaToolExecutionServiceTest`, plain
@@ -105,8 +105,8 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 
 ## Verification Tasks
 
-- [ ] `LuaToolExecutionServiceTest` — TCs 1–9 (capture, stream, outcomes, timeout via
-      `*WithMillis`, cancellation, EDT soft-assert).
+- [x] `LuaToolExecutionServiceTest` — TCs 1–9, 23 (capture, stream, outcomes, timeout via
+      `*WithMillis`, cancellation, EDT soft-assert, stdin).
 - [ ] `LuaLaunchEnvironmentTest` — TCs 14–15 + the ported `LuaToolEnvironmentTest`
       cases (empty dirs no-op, blank existing PATH, separator join).
 - [ ] `LuaExecutionEnvironmentBuilderTest` — TCs 10–13, 16, 20 (stubbed resolver;
@@ -120,8 +120,8 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: Dependency check | todo | Must |
-| Phase 1: Execution service | todo | Must |
+| Phase 0: Dependency check | done | Must |
+| Phase 1: Execution service | done | Must |
 | Phase 2: Environment model & builder | todo | Must |
 | Phase 3: Interpreter command lines | todo | Must |
 | Phase 4: Terminal customizer move | todo | Must |

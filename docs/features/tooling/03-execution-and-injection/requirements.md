@@ -2,7 +2,7 @@
 id: "TOOLING-03"
 title: "03: Execution & Environment Injection"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "TOOLING"
 folders:
