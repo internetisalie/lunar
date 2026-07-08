@@ -5,6 +5,6 @@
 <idea-plugin>
   <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
     <shellExecOptionsCustomizer
-        implementation="net.internetisalie.lunar.tool.terminal.LuaShellExecOptionsCustomizer"/>
+        implementation="net.internetisalie.lunar.toolchain.terminal.LuaShellExecOptionsCustomizer"/>
   </extensions>
 </idea-plugin>

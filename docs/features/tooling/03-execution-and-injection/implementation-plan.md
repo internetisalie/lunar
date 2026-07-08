@@ -65,8 +65,8 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 ### Phase 4: Terminal customizer move [Must]
 - **Goal**: terminal PATH injection sourced from the builder; single live registration.
 - **Tasks**:
-  - [ ] Create `toolchain/terminal/LuaShellExecOptionsCustomizer.kt` (design §2.7).
-  - [ ] Edit `META-INF/lunar-terminal.xml`: implementation →
+  - [x] Create `toolchain/terminal/LuaShellExecOptionsCustomizer.kt` (design §2.7).
+  - [x] Edit `META-INF/lunar-terminal.xml`: implementation →
         `net.internetisalie.lunar.toolchain.terminal.LuaShellExecOptionsCustomizer`
         (design §7.1). The old `tool/terminal/` class stays on disk (deleted in
         TOOLING-05) but is no longer registered.
@@ -112,7 +112,8 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 - [x] `LuaExecutionEnvironmentBuilderTest` — TCs 10–13, 16, 20–22 (real registry seeded
       + bound; topic-invalidation round trip).
 - [x] `LuaInterpreterCommandLinesTest` — TCs 18–19.
-- [ ] `LuaShellExecOptionsCustomizerTest` — TC 17 (reverse-prepend order).
+- [x] `LuaShellExecOptionsCustomizerTest` — TC 17 (reverse-prepend order via the extracted
+      `prependInReverse` seam, since `MutableShellExecOptions` is a sealed, internal-impl interface).
 - [ ] Live VNC pass (verify-in-ide skill): terminal PATH injection with a bound tool +
       runtime after a fresh registration (exercises the TC-16 staleness fix end to end).
 
@@ -124,5 +125,5 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 | Phase 1: Execution service | done | Must |
 | Phase 2: Environment model & builder | done | Must |
 | Phase 3: Interpreter command lines | done | Must |
-| Phase 4: Terminal customizer move | todo | Must |
+| Phase 4: Terminal customizer move | done | Must |
 | Phase 5: Docs, lint & status | todo | Must |
