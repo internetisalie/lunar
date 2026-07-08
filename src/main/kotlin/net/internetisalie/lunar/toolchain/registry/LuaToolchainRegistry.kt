@@ -16,6 +16,9 @@ import net.internetisalie.lunar.toolchain.model.LuaToolHealth
 import net.internetisalie.lunar.toolchain.model.Origin
 import net.internetisalie.lunar.toolchain.probe.LuaToolProbe
 import net.internetisalie.lunar.toolchain.probe.LuaToolProbeResult
+import java.io.File
+import java.nio.file.Path
+import java.util.UUID
 
 private val LOG = logger<LuaToolchainRegistry>()
 
@@ -225,7 +228,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
     ): LuaRegisteredTool? {
         ApplicationManager.getApplication().assertIsNonDispatchThread()
 
-        val file = java.io.File(path)
+        val file = File(path)
         val kind = kindIdHint?.let { LuaToolKindRegistry.findById(it) }
             ?: LuaToolKindRegistry.inferKind(file.name)
 
@@ -235,7 +238,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         }
 
         val canonical = runCatching { file.canonicalPath }.getOrDefault(file.absolutePath)
-        val result = LuaToolProbe.getInstance().probe(kind, java.nio.file.Path.of(path))
+        val result = LuaToolProbe.getInstance().probe(kind, Path.of(path))
         val health = deriveHealth(file, result)
 
         var change: LuaToolchainChange? = null
@@ -243,7 +246,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
 
         synchronized(stateLock) {
             val existing = myState.tools.firstOrNull {
-                val c = runCatching { java.io.File(it.path).canonicalPath }.getOrDefault(it.path)
+                val c = runCatching { File(it.path).canonicalPath }.getOrDefault(it.path)
                 c == canonical && it.kindId == kind.id
             }
 
@@ -260,7 +263,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
                 registeredTool = existing.toModel()
             } else {
                 val state = RegisteredToolState().apply {
-                    id = java.util.UUID.randomUUID().toString()
+                    id = UUID.randomUUID().toString()
                     kindId = kind.id
                     this.path = file.absolutePath
                     this.origin = origin
@@ -292,11 +295,11 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         var change: LuaToolchainChange? = null
         val toolId = tool.id
         val kindId = tool.kindId
-        val canonical = try { java.io.File(tool.path).canonicalPath } catch (e: Exception) { tool.path }
+        val canonical = runCatching { File(tool.path).canonicalPath }.getOrDefault(tool.path)
         synchronized(stateLock) {
             val existing = myState.tools.firstOrNull { it.id == toolId }
                 ?: myState.tools.firstOrNull {
-                    val c = try { java.io.File(it.path).canonicalPath } catch (e: Exception) { it.path }
+                    val c = runCatching { File(it.path).canonicalPath }.getOrDefault(it.path)
                     c == canonical && it.kindId == kindId
                 }
             if (existing != null) {
@@ -383,8 +386,8 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         } ?: return
 
         val kind = LuaToolKindRegistry.findById(kindId) ?: return
-        val result = LuaToolProbe.getInstance().probe(kind, java.nio.file.Path.of(path))
-        val file = java.io.File(path)
+        val result = LuaToolProbe.getInstance().probe(kind, Path.of(path))
+        val file = File(path)
         val health = deriveHealth(file, result)
 
         var changed = false
@@ -456,7 +459,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         autoDiscover(emptyList())
     }
 
-    fun autoDiscover(extraRoots: List<java.nio.file.Path>) {
+    fun autoDiscover(extraRoots: List<Path>) {
         ApplicationManager.getApplication().assertIsNonDispatchThread()
         val discovered = LuaToolDiscovery.discoverAll(extraRoots = extraRoots)
         for (bin in discovered) {
@@ -468,7 +471,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         }
     }
 
-    private fun deriveHealth(file: java.io.File, result: LuaToolProbeResult): LuaToolHealth {
+    private fun deriveHealth(file: File, result: LuaToolProbeResult): LuaToolHealth {
         val fileExists = file.exists()
         val executable = file.canExecute()
         val probeOk = if (!fileExists || !executable) null else result.ok
