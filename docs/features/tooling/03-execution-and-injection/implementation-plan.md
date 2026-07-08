@@ -77,11 +77,17 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 ### Phase 5: Docs, lint & status [Must]
 - **Goal**: green gates and truthful status.
 - **Tasks**:
-  - [ ] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` and
+  - [x] `tooling/gce-builder/gce-builder.sh run "ktlintFormat ktlintCheck"` and
         `run test` (full suite green, regression-relative).
-  - [ ] Update this feature's front-matter status as phases land; regenerate
+  - [x] Update this feature's front-matter status as phases land; regenerate
         `docs/status.md` (`python3 scripts/gen_status.py`).
 - **Exit criteria**: build gate green; status rollup reflects reality.
+
+> **Live VNC verification (TOOLING-03-12) deferred.** The terminal customizer is registered
+> and its EP load is validated (`run build` reaches `:integrationTest`), and TC 17 proves the
+> reverse-prepend ordering. The live `which stylua` VNC check exercises PATH injection only
+> once a tool is registered in the new `toolchain` registry — which happens at consumer cutover
+> (TOOLING-05) or via a manual registration. Run it via the `verify-in-ide` skill then.
 
 ## Requirement → Phase Coverage
 
@@ -126,4 +132,4 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 | Phase 2: Environment model & builder | done | Must |
 | Phase 3: Interpreter command lines | done | Must |
 | Phase 4: Terminal customizer move | done | Must |
-| Phase 5: Docs, lint & status | todo | Must |
+| Phase 5: Docs, lint & status | done | Must |
