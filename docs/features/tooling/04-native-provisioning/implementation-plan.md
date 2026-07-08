@@ -42,13 +42,13 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 ### Phase 2: Download, verify, extract [Must]
 - **Goal**: verified artifact acquisition with cache.
 - **Tasks**:
-  - [ ] Create `LuaArtifactDownloader` (`HttpRequests` + size + Guava SHA-256, mirror
+  - [x] Create `LuaArtifactDownloader` (`HttpRequests` + size + Guava SHA-256, mirror
         loop, `.part` + atomic move, cache under
         `PathManager.getSystemPath()/lunar/downloads`, SourceForge `/download` key rule)
         — design §2.6, §3.4.
-  - [ ] Create `LuaArchiveExtractor` (`Decompressor.Tar` / `Zip(withZipExtensions)`,
-        `removePrefixPath`, cancellation entry filter, `restoreExecBit`, raw-`binary`
-        copy path) — design §2.7.
+  - [x] Create `LuaArchiveExtractor` (`Decompressor.Tar` / `Zip(withZipExtensions)`,
+        `removePrefixPath`, cancellation entry filter, `restoreExecBit`; the raw-`binary`
+        copy path lives in the release-binary strategy, not the extractor) — design §2.7.
 - **Exit criteria**: unit tests with local fixture archives (zip w/o exec bits, tar.gz
   with prefix dir) — covers TC 4 cache semantics via an injected cacheDir; a compile-time
   import check of `HttpRequests`/`Decompressor`/`Hashing` (TOOLING-00-05).
@@ -161,7 +161,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 
 ## Verification Tasks
 - [x] Unit: feed load/alias/comparator — covers TC 3 (Phase 1).
-- [ ] Unit: downloader cache + checksum with injected cacheDir/fixtures — covers TC 4
+- [x] Unit: downloader cache + checksum with injected cacheDir/fixtures — covers TC 4
       (Phase 2).
 - [ ] Unit: build-plan snapshots (5.1 / 5.2 / 5.4 linux; luaconf splice) — covers TC 1's
       command sequence and TC 5 preflight (Phase 4).
@@ -181,7 +181,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Feed — model, resource, resolution | done | Must |
-| Phase 2: Download, verify, extract | todo | Must |
+| Phase 2: Download, verify, extract | done | Must |
 | Phase 3: Manifest & identifiers hash | todo | Must |
 | Phase 4: Strategies — release binary & source build | todo | Must |
 | Phase 5: Rock installs | todo | Must |
