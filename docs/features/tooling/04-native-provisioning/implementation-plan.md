@@ -88,7 +88,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 ### Phase 5: Rock installs [Must]
 - **Goal**: tools installed into the env via its own luarocks.
 - **Tasks**:
-  - [ ] Create `LuaRocksInstallStrategy` (POSIX/Windows command forms, INSTALL timeout,
+  - [x] Create `LuaRocksInstallStrategy` (POSIX/Windows command forms, INSTALL timeout,
         wrapper-existence success check, failure classification regex + guidance copy per
         TOOLING-00-04) — design §3.8, §4.4.
 - **Exit criteria**: command-construction unit tests (TC 9 POSIX, Windows flag form);
@@ -165,7 +165,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
       (Phase 2).
 - [x] Unit: build-plan snapshots (5.1 / 5.2 / 5.4 linux; luaconf splice) — covers TC 1's
       command sequence and TC 5 preflight (Phase 4).
-- [ ] Unit: rock-install command + failure classification — covers TC 9/10 (Phase 5).
+- [x] Unit: rock-install command + failure classification — covers TC 9/10 (Phase 5).
 - [ ] Unit: orchestrator fakes — covers TC 2/11/12/14/19 (Phase 6).
 - [ ] Unit: dialog validation + `toRequest`/batch derivation — covers TC 16/18 (Phase 7).
 - [ ] Full suite + build gate: `tooling/gce-builder/gce-builder.sh run test` and
@@ -184,7 +184,7 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 | Phase 2: Download, verify, extract | done | Must |
 | Phase 3: Manifest & identifiers hash | done | Must |
 | Phase 4: Strategies — release binary & source build | done | Must |
-| Phase 5: Rock installs | todo | Must |
+| Phase 5: Rock installs | done | Must |
 | Phase 6: Orchestrator, registration, progress | todo | Must |
 | Phase 7: Actions & dialogs, plugin.xml swap | todo | Must |
 | Phase 8: Should/Could extensions | todo | Should |
