@@ -60,6 +60,13 @@ data class LuaToolKind(
 )
 ```
 
+> **TOOLING-04 note (2026-07-08).** `provisioning` is an OS-agnostic ordered list; the per-OS
+> strategy split (design §3.12) is realized by populating it with the ordered **union** of specs
+> and letting each strategy's `supports(platform, feed)` gate by OS/asset availability. The
+> `ProvisioningSpec` URL-template fields are superseded by the TOOLING-04 version feed (feed owns
+> all URLs/SHA/size) and are pruned in TOOLING-05; the specs act as strategy-id markers. This
+> field is compiled-in and never persisted — it has no cross-OS/serialization impact.
+
 Built-in kinds ship as a data list in `LuaToolKindRegistry`; the set is extensible without
 touching registry/UI/resolver code. Interpreters are kinds with `Capability.RUNTIME` whose
 probe fills `LuaRuntimeInfo` (product/version/languageLevel/platform → feeds the existing
