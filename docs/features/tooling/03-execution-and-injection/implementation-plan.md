@@ -57,7 +57,7 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 ### Phase 3: Interpreter command lines [Must]
 - **Goal**: the `command/LuaCommandLine.kt` replacement.
 - **Tasks**:
-  - [ ] Create `toolchain/exec/LuaInterpreterCommandLines.kt` — `forBinary` (jar case
+  - [x] Create `toolchain/exec/LuaInterpreterCommandLines.kt` — `forBinary` (jar case
         kept) + `forProject` (design §2.6, §3.6).
 - **Exit criteria**: TCs 18–19 pass; `forProject` returns null with no resolvable
   runtime and applies the §3.4 environment otherwise (stubbed resolver test).
@@ -111,7 +111,7 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
       cases (empty dirs no-op, blank existing PATH, separator join) + TCs 21–22 applyTo.
 - [x] `LuaExecutionEnvironmentBuilderTest` — TCs 10–13, 16, 20–22 (real registry seeded
       + bound; topic-invalidation round trip).
-- [ ] `LuaInterpreterCommandLinesTest` — TCs 18–19.
+- [x] `LuaInterpreterCommandLinesTest` — TCs 18–19.
 - [ ] `LuaShellExecOptionsCustomizerTest` — TC 17 (reverse-prepend order).
 - [ ] Live VNC pass (verify-in-ide skill): terminal PATH injection with a bound tool +
       runtime after a fresh registration (exercises the TC-16 staleness fix end to end).
@@ -123,6 +123,6 @@ deleted by TOOLING-05; the only legacy touch here is re-pointing
 | Phase 0: Dependency check | done | Must |
 | Phase 1: Execution service | done | Must |
 | Phase 2: Environment model & builder | done | Must |
-| Phase 3: Interpreter command lines | todo | Must |
+| Phase 3: Interpreter command lines | done | Must |
 | Phase 4: Terminal customizer move | todo | Must |
 | Phase 5: Docs, lint & status | todo | Must |
