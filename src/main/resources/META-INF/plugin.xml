@@ -442,6 +442,9 @@
     <!-- Detect an existing hererocks environment on project open (ROCKS-14-05) -->
     <postStartupActivity
             implementation="net.internetisalie.lunar.rocks.env.HererocksDetectStartup" />
+    <!-- Synchronize project target/language level from the effective toolchain runtime (TOOLING-02-09) -->
+    <postStartupActivity
+            implementation="net.internetisalie.lunar.toolchain.resolve.LuaTargetSyncStartup" />
     <applicationConfigurable groupId="tools"
             instance="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"
             id="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"

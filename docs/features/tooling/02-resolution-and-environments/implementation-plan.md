@@ -51,9 +51,9 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 - **Goal**: target/language level follow the effective runtime; mode machine semantics fully
   replaced.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.resolve.LuaTargetSynchronizer` (`@Service(PROJECT)`, `Disposable`, app-bus subscription, `lastAppliedRuntimeId` guard, fallback-tier exclusion, target stickiness, EDT apply + `PlatformLibraryIndex.reload`) — realizes design §2.5, §3.5.
-  - [ ] Create `net.internetisalie.lunar.toolchain.resolve.LuaTargetSyncStartup : ProjectActivity` calling `ensureSynchronized()` — realizes design §2.5.
-  - [ ] Register the startup activity in `plugin.xml` — realizes design §7.
+  - [x] Create `net.internetisalie.lunar.toolchain.resolve.LuaTargetSynchronizer` (`@Service(PROJECT)`, `Disposable`, app-bus subscription, `lastAppliedRuntimeId` guard, fallback-tier exclusion, target stickiness, EDT apply + `PlatformLibraryIndex.reload`) — realizes design §2.5, §3.5.
+  - [x] Create `net.internetisalie.lunar.toolchain.resolve.LuaTargetSyncStartup : ProjectActivity` calling `ensureSynchronized()` — realizes design §2.5.
+  - [x] Register the startup activity in `plugin.xml` — realizes design §7.
 - **Exit criteria**: TC 13, 14 green; full TC 12 green (activate/deactivate never mutates
   bindings; no stash fields exist); existing suite still green (synchronizer is inert while
   no bindings/environments exist in the new state).
@@ -102,7 +102,7 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
       `resolveRuntime` + invariant) and stale skips (TC 4–5); seed tools directly into the
       registry state with explicit `LuaToolHealth` values (no disk probing in resolver
       tests).
-- [ ] `LuaTargetSynchronizerTest` — TC 13–14 via `onEvent` invoked directly with crafted
+- [x] `LuaTargetSynchronizerTest` — TC 13–14 via `onEvent` invoked directly with crafted
       events + seeded runtime tools; EDT work via
       `EdtTestUtil.runInEdtAndWait` per the threading lesson in the agent guide.
 - [ ] `LuaEnvironmentDetectorTest` / `LuaEnvironmentAdopterTest` — TC 17 with
@@ -122,5 +122,5 @@ machine) stays untouched and running — deletion/cutover is TOOLING-05.
 | Phase 1: Shared event & state plumbing | done | Must |
 | Phase 2: Mutators & events | done | Must |
 | Phase 3: Resolver | done | Must |
-| Phase 4: Target synchronization | todo | Must |
+| Phase 4: Target synchronization | done | Must |
 | Phase 5: Detection & adoption | todo | Must |
