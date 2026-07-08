@@ -629,22 +629,26 @@ trailing digits numerically) — so `beta1 < beta2 < beta3 < rc1`. First differe
 - The ordered strategy list is **data on the kind descriptor** (`LuaToolKind.provisioning`,
   contract §2.1). TOOLING-04 defines the shipped order (dossier §Recommendations):
 
-> **Phase-0 reconciliation (2026-07-08).** TOOLING-01 shipped `provisioning:
-> List<ProvisioningSpec>` as an **OS-agnostic** list whose variants carry URL templates
-> (`ReleaseBinary(urlTemplate,…)`, `SourceBuild(sourceUrlTemplate)`, `LuaRocksInstall(rockName)`),
-> and every built-in kind currently ships `provisioning = emptyList()`. The per-OS table
-> below is therefore realized as a **single ordered UNION list per kind** (e.g. `lua =
-> [SourceBuild, ReleaseBinary]`), with the POSIX-vs-Windows split enforced entirely by each
-> strategy's `supports(item, platform, feed)` — exactly the skip-if-unsupported iteration in
-> **Steps** below (`SourceBuildStrategy.supports()==false` on Windows; `ReleaseBinaryStrategy`
-> is false when the feed has no asset for the platform; gated LuaJIT stays out via its closed
-> gate). The `ProvisioningSpec` **URL-template fields are vestigial** — the feed (§4.1) is the
-> single source of URLs/SHA/size; the specs function purely as ordered strategy-id markers here
-> and the URL fields are removed with the rest of the legacy shape in TOOLING-05. This is a
-> code-organization choice only: `provisioning` is compiled-in `BUILT_IN` data, never persisted,
-> so it carries **no** cross-OS/serialization consequence (the persisted `strategyId` in
-> `.lunar-env.json` is an independent plain string). No change to the shipped `ProvisioningSpec`
-> type shape is made in this feature.
+> **Phase-0 reconciliation (2026-07-08, revised at Phase 6).** The strategy order below is
+> held in a **local table in the `toolchain.provision` package** (`LuaProvisioningPlan` /
+> equivalent, keyed by `kindId` → ordered strategy-id list), NOT on `LuaToolKind.provisioning`
+> (which stays `emptyList()`, untouched). Rationale discovered while wiring the orchestrator: the
+> **registry kind set diverges from the provisionable set** — `lua-language-server` is
+> provisionable (feed + §4.1 + TC 8) but has **no** registered `LuaToolKind`, and `tarantool` is
+> a registered kind that is **not** provisionable — so a per-kind-descriptor field cannot
+> represent provisioning order without either adding/removing registry kinds (out of scope;
+> TOOLING-01/-06) or leaving gaps. A local table keyed by `kindId` covers exactly the
+> provisionable set (incl. `lua-language-server` and gated `luajit`) and keeps this feature from
+> touching the shared TOOLING-01 model at all. The POSIX-vs-Windows split in the table is
+> enforced by each strategy's `supports(item, platform, feed)` (the skip-if-unsupported
+> iteration in **Steps** below: `SourceBuildStrategy.supports()==false` on Windows;
+> `ReleaseBinaryStrategy` false when the feed has no asset for the platform; gated LuaJIT stays
+> out via its closed gate). Provisioned results register via
+> `registerProvisioned(LuaRegisteredTool(kindId = <feed kind id>, origin = PROVISIONED, …))`,
+> which stores the `kindId` as a plain string and does **not** require a matching `BUILT_IN`
+> kind (verified). The feed (§4.1) remains the single source of URLs/SHA/size; the shipped
+> `ProvisioningSpec` type is untouched and its URL-template fields are pruned with the rest of
+> the legacy shape in TOOLING-05.
 
 | kindId | POSIX order | Windows order |
 |---|---|---|
