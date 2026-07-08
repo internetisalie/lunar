@@ -25,28 +25,30 @@ import kotlin.io.path.moveTo
  * must never be invoked on the EDT. It touches no PSI/VFS, so no read/write action is needed.
  */
 class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
+    /** Bundles the verification inputs for a single artifact so helpers stay under the 3-arg cap. */
+    private class FetchPlan(
+        val urls: List<String>,
+        val cacheKey: String,
+        val sha256: String,
+        val size: Long,
+    )
+
     fun fetch(urls: List<String>, sha256: String, size: Long, indicator: ProgressIndicator): Path {
-        val key = cacheKey(urls.first())
-        val cached = cacheDir.resolve(key)
+        val plan = FetchPlan(urls, cacheKey(urls.first()), sha256, size)
+        val cached = cacheDir.resolve(plan.cacheKey)
         if (cached.exists()) {
-            if (verifies(cached, sha256, size)) return cached
+            if (verifies(cached, plan.sha256, plan.size)) return cached
             cached.deleteIfExists()
         }
-        return downloadFromMirrors(urls, key, sha256, size, indicator)
+        return downloadFromMirrors(plan, indicator)
     }
 
-    private fun downloadFromMirrors(
-        urls: List<String>,
-        key: String,
-        sha256: String,
-        size: Long,
-        indicator: ProgressIndicator,
-    ): Path {
+    private fun downloadFromMirrors(plan: FetchPlan, indicator: ProgressIndicator): Path {
         cacheDir.createDirectories()
-        val target = cacheDir.resolve(key)
+        val target = cacheDir.resolve(plan.cacheKey)
         val failures = mutableListOf<String>()
-        for (url in urls) {
-            val attempt = attemptDownload(url, target, sha256, size, indicator)
+        for (url in plan.urls) {
+            val attempt = attemptDownload(url, plan, indicator)
             if (attempt == null) return target
             failures += "$url: $attempt"
         }
@@ -54,17 +56,12 @@ class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
     }
 
     /** Returns null on success, or the failure reason for this mirror. */
-    private fun attemptDownload(
-        url: String,
-        target: Path,
-        sha256: String,
-        size: Long,
-        indicator: ProgressIndicator,
-    ): String? {
+    private fun attemptDownload(url: String, plan: FetchPlan, indicator: ProgressIndicator): String? {
+        val target = cacheDir.resolve(plan.cacheKey)
         val tmp = target.resolveSibling(target.fileName.toString() + ".part")
         return try {
             HttpRequests.request(url).productNameAsUserAgent().saveToFile(tmp.toFile(), indicator)
-            verifyOrFail(tmp, sha256, size)
+            verifyOrFail(tmp, plan.sha256, plan.size)
             tmp.moveTo(target, overwrite = true)
             null
         } catch (failure: LuaProvisionException) {
