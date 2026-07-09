@@ -26,11 +26,11 @@ import com.intellij.openapi.util.NotNullLazyValue
 import com.intellij.ui.RawCommandLineEditor
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.LuaIcons
-import net.internetisalie.lunar.platform.LuaInterpreter
-import net.internetisalie.lunar.platform.LuaInterpreterFamily
-import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
-import net.internetisalie.lunar.settings.LuaApplicationSettings
-import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.run.resolveConfiguredRuntime
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import net.internetisalie.lunar.run.adHocRuntime
+import net.internetisalie.lunar.toolchain.ui.LuaRuntimeComboBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -162,25 +162,25 @@ class LuaTestRunConfiguration(project: Project, factory: ConfigurationFactory?, 
     public override fun getOptions(): LuaTestRunConfigurationOptions =
         super.getOptions() as LuaTestRunConfigurationOptions
 
-    var interpreter: LuaInterpreter?
+    var interpreter: LuaRegisteredTool?
         get() {
             val interpreterPath = options.interpreter ?: return null
             if (interpreterPath.isEmpty()) return null
-            return LuaApplicationSettings.findInterpreter(interpreterPath)
-                ?: LuaInterpreter(path = interpreterPath, product = LuaInterpreterFamily.UNKNOWN_PRODUCT)
+            return LuaToolchainRegistry.getInstance().findByPath(interpreterPath)
+                ?: adHocRuntime(interpreterPath)
         }
         set(interpreter) {
             options.interpreter = interpreter?.path
         }
 
     /**
-     * The interpreter to actually run tests with (ROCKS-16 follow-up): the config's own
-     * [interpreter] when set, else the project interpreter (which may be a hererocks-managed env).
-     * Execution-time fallback, kept out of [interpreter] so an unset config tracks the project
-     * interpreter dynamically rather than freezing a snapshot into the run configuration.
+     * The RUNTIME tool to actually run tests with (TOOLING-05 §3.2, ROCKS-16 follow-up): an
+     * explicit stored path always wins, otherwise the project-resolved runtime. Execution-time
+     * resolution, kept out of [interpreter] so an unset config tracks the project default
+     * dynamically rather than freezing a snapshot into the run configuration.
      */
-    fun resolveInterpreter(): LuaInterpreter? =
-        interpreter ?: LuaProjectSettings.getInstance(project).state.interpreter
+    fun resolveInterpreter(): LuaRegisteredTool? =
+        resolveConfiguredRuntime(project, options.interpreter)
 
     var workingDirectory: String?
         get() = options.workingDirectory
@@ -269,13 +269,13 @@ class LuaTestSettingsEditor(private val project: Project) : SettingsEditor<LuaTe
     private val frameworkCombo = ComboBox(LuaTestFramework.entries.toTypedArray())
     private val targetTypeCombo = ComboBox(arrayOf("FILE", "DIRECTORY", "PATTERN"))
     private val testTargetField = TextFieldWithBrowseButton()
-    private val interpreterField = ComboBox<LuaInterpreter>()
+    private val interpreterField = ComboBox<LuaRegisteredTool>()
     private val workingDirectoryField = TextFieldWithBrowseButton()
     private val extraArgsField = RawCommandLineEditor()
     private val environmentVariablesField = EnvironmentVariablesTextFieldWithBrowseButton()
 
     init {
-        customizeLuaInterpreterComboBox(project, interpreterField)
+        LuaRuntimeComboBox.customize(project, interpreterField)
 
         testTargetField.addBrowseFolderListener(
             project,

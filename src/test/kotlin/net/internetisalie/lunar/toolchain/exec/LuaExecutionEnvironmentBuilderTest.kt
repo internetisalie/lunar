@@ -96,6 +96,9 @@ class LuaExecutionEnvironmentBuilderTest : ToolchainSettingsTestCase() {
 
     // TC 13
     fun testLuaCPathFromBuiltinCRockspec() {
+        // TOOLING-05 Phase 3: RockspecBridge.read resolves the runtime via the resolver; bind a real
+        // interpreter so the bridge can launch and parse the C-module rockspec.
+        net.internetisalie.lunar.rocks.RockspecRuntimeTestSupport.registerRealLuaRuntime(project)
         val projectRoot = project.basePath ?: error("no base path")
         Files.createDirectories(Path.of(projectRoot).resolve("lua_modules"))
         val rockspec = writeCModuleRockspec()

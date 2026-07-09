@@ -22,15 +22,15 @@ import com.intellij.ui.RawCommandLineEditor
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.execution.ParametersListUtil
 import com.intellij.util.ui.FormBuilder
-import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.lang.path.PathConfiguration
-import net.internetisalie.lunar.platform.LuaInterpreter
-import net.internetisalie.lunar.platform.LuaInterpreterFamily
-import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
-import net.internetisalie.lunar.settings.LuaApplicationSettings
-import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.toolchain.exec.LuaExecutionEnvironmentBuilder
+import net.internetisalie.lunar.toolchain.exec.LuaInterpreterCommandLines
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import net.internetisalie.lunar.toolchain.ui.LuaRuntimeComboBox
 import net.internetisalie.lunar.util.LuaFileUtil
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -166,26 +166,25 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
             options.scriptName = scriptName
         }
 
-    var interpreter: LuaInterpreter?
+    var interpreter: LuaRegisteredTool?
         get() {
             val interpreterPath = options.interpreter ?: return null
             if (interpreterPath.isEmpty()) return null
-            return LuaApplicationSettings.findInterpreter(interpreterPath)
-                ?: LuaInterpreter(path = interpreterPath, product = LuaInterpreterFamily.UNKNOWN_PRODUCT)
+            return LuaToolchainRegistry.getInstance().findByPath(interpreterPath)
+                ?: adHocRuntime(interpreterPath)
         }
         set(interpreter) {
             options.interpreter = interpreter?.path
         }
 
     /**
-     * The interpreter to actually run with (ROCKS-16 follow-up): the config's own [interpreter] when
-     * one is set, else the project interpreter (which may be a hererocks-managed env). Kept as an
-     * execution-time fallback — deliberately NOT folded into [interpreter] — so an unset config keeps
-     * an empty stored value and tracks the project interpreter dynamically instead of freezing a
-     * snapshot of it into the run configuration.
+     * The RUNTIME tool to actually run with (TOOLING-05 §3.2, ROCKS-16 follow-up): an explicit
+     * stored path always wins, otherwise the project-resolved runtime. Kept as an execution-time
+     * resolution — deliberately NOT folded into [interpreter] — so an unset config tracks the
+     * project default dynamically instead of freezing a snapshot into the run configuration.
      */
-    fun resolveInterpreter(): LuaInterpreter? =
-        interpreter ?: LuaProjectSettings.getInstance(project).state.interpreter
+    fun resolveInterpreter(): LuaRegisteredTool? =
+        resolveConfiguredRuntime(project, options.interpreter)
 
     var workingDirectory: String?
         get() = options.workingDirectory
@@ -237,9 +236,11 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         return object : CommandLineState(environment) {
             override fun startProcess(): ProcessHandler {
                 val interpreter = resolveInterpreter()
-                    ?: throw ExecutionException("Interpreter is not defined")
-                val commandLine = newLuaInterpreterCommandLine(interpreter)
-                    ?: throw ExecutionException("Interpreter is not found")
+                    ?: throw ExecutionException(
+                        "No Lua runtime is configured. Add one under " +
+                            "Settings | Languages & Frameworks | Lua | Toolchain.",
+                    )
+                val commandLine = LuaInterpreterCommandLines.forBinary(Path.of(interpreter.path))
 
                 val interpreterArguments = ParametersListUtil.parse(interpreterArguments.orEmpty())
                 commandLine.withParameters(interpreterArguments)
@@ -269,18 +270,11 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
                     commandLine.withEnvironment(ENV_LUA_INIT, "@${debuggerPreloaderFile.path}")
                 }
 
-                val sourcePath = sourcePath ?: ""
-                if (sourcePath.isNotEmpty()) {
-                    commandLine.withEnvironment("LUA_PATH", sourcePath)
-                } else {
-                    // Fallback to project source path
-                    val settingsState = LuaProjectSettings.getInstance(project).state
-                    val projectPath = settingsState.expandSourcePath(project)
-                    val prefix = net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaPathPrefix(project)
-                    val union = (prefix + projectPath).trimEnd(';') + ";;"
-                    if (union != ";;") commandLine.withEnvironment("LUA_PATH", union)
-                    net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaCPath(project)?.let { commandLine.withEnvironment("LUA_CPATH", it) }
-                }
+                // TOOLING-05 §2.5: PATH prepend + LUA_PATH/LUA_CPATH from the env builder, honoring
+                // the run-config sourcePath override (verbatim LUA_PATH, PATH prepend still applies).
+                LuaExecutionEnvironmentBuilder.getInstance(project)
+                    .build(sourcePath)
+                    .applyTo(commandLine)
 
                 val processHandler = ProcessHandlerFactory.getInstance()
                     .createColoredProcessHandler(commandLine)
@@ -302,7 +296,7 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
 
 class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguration>() {
     private val myPanel: JPanel
-    private val interpreterField = ComboBox<LuaInterpreter>()
+    private val interpreterField = ComboBox<LuaRegisteredTool>()
     private val scriptPathField = TextFieldWithBrowseButton()
     private val workingDirectoryField = TextFieldWithBrowseButton()
     private val sourcePathField = ExpandableTextField(
@@ -315,7 +309,7 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
 
 
     init {
-        customizeLuaInterpreterComboBox(project, interpreterField)
+        LuaRuntimeComboBox.customize(project, interpreterField)
 
         scriptPathField.addBrowseFolderListener(
             project,

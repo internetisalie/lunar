@@ -5,7 +5,7 @@ import com.google.gson.JsonSyntaxException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
-import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import net.internetisalie.lunar.util.LuaProcessUtil
 import java.nio.file.Path
 
@@ -28,12 +28,15 @@ data class RockspecData(
 object RockspecBridge {
     private val log = logger<RockspecBridge>()
     private const val TIMEOUT_MS = 10_000
-    private const val DEFAULT_INTERPRETER = "lua"
     private const val ENV_LUA_PATH_TEMPLATE = "LUNAR_LUA_PATH_TEMPLATE"
 
     fun read(project: Project, rockspecPath: Path): RockspecData? {
-        val interpreter = LuaProjectSettings.getInstance(project).state.interpreter?.path
-            ?.takeIf { it.isNotBlank() } ?: DEFAULT_INTERPRETER
+        val interpreter = LuaToolResolver.getInstance().resolveRuntime(project)?.path
+            ?.takeIf { it.isNotBlank() }
+        if (interpreter == null) {
+            log.warn("Rockspec bridge skipped for $rockspecPath: no Lua runtime is configured")
+            return null
+        }
         val command = GeneralCommandLine(
             interpreter,
             LuaRocksBridgeFiles.rockspecScript().toString(),

@@ -10,6 +10,13 @@ import java.nio.file.Path
 
 class RockspecRunPathProviderTest : BasePlatformTestCase() {
 
+    override fun setUp() {
+        super.setUp()
+        // TOOLING-05 Phase 3: RockspecBridge.read resolves the runtime via the resolver (no more
+        // hardcoded "lua" default), so bind a real interpreter for the bridge to launch.
+        RockspecRuntimeTestSupport.registerRealLuaRuntime(project)
+    }
+
     fun testRockspecRunPathProvider() {
         val physicalDirA = Files.createTempDirectory("lunar_rocks_test_a")
         val rockspecA = physicalDirA.resolve("a-1.0.rockspec")
@@ -77,6 +84,7 @@ class RockspecRunPathProviderTest : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             RockspecSourcePathProvider.testDiscoverySeam = null
+            RockspecRuntimeTestSupport.reset(project)
         } finally {
             super.tearDown()
         }

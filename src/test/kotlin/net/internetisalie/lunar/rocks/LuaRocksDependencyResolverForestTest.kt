@@ -25,10 +25,14 @@ class LuaRocksDependencyResolverForestTest : BasePlatformTestCase() {
         super.setUp()
         tempFixture = TempDirTestFixtureImpl()
         tempFixture.setUp()
+        // TOOLING-05 Phase 3: RockspecBridge.read resolves the runtime via the resolver, so bind a
+        // real interpreter (mirrors TOOLING-01 PATH discovery) for the bridge to launch.
+        RockspecRuntimeTestSupport.registerRealLuaRuntime(project)
     }
 
     override fun tearDown() {
         try {
+            RockspecRuntimeTestSupport.reset(project)
             contentRoot?.let { PsiTestUtil.removeContentEntry(module, it) }
         } catch (e: Throwable) {
             addSuppressedException(e)

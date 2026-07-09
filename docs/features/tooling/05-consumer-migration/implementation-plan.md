@@ -68,21 +68,31 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 - **Goal**: run/debug/console/test/producer/bridge resolve RUNTIME via resolver; combo
   lists RUNTIME tools + project default.
 - **Tasks**:
-  - [ ] Create `toolchain.ui.LuaRuntimeComboBox` implementing the §3.1 model algorithm
+  - [x] Create `toolchain.ui.LuaRuntimeComboBox` implementing the §3.1 model algorithm
         (+ renderer port) — design §2.5, §3.1
-  - [ ] Cut over `LuaRunConfiguration.kt` (interpreter prop, `resolveInterpreter` §3.2,
+  - [x] Cut over `LuaRunConfiguration.kt` (interpreter prop, `resolveInterpreter` §3.2,
         startProcess factory + env builder, editor combo) — design §2.5, §3.2
-  - [ ] Cut over `LuaTestRunConfiguration.kt` (+ lunity branch in
+  - [x] Cut over `LuaTestRunConfiguration.kt` (+ lunity branch in
         `LuaTestCommandLineState.kt:108-131`) and
         `LuaTestRunConfigurationProducer.kt:53-55,74-76` — design §2.5
-  - [ ] Cut over `LuaConsoleRunner.kt:37` and `RockspecBridge.kt:35` — design §2.5
-  - [ ] Delete `command/LuaCommandLine.kt` (jar branch parity in TOOLING-03 verified
-        first — design §9.1-b); split `LuaCommandLineTest.kt` — design §6.1#14, §6.4
-  - [ ] Rewrite `TestLuaRunConfiguration.kt`; move
-        `LuaInterpreterSearchPathGlobTest.kt` coverage to TOOLING-01 discovery tests —
-        design §6.4
-- **Exit criteria**: TC 9–11 pass; debugger smoke (DBGp attach via run config) still
-  works in sandbox; `grep -rn "newLuaInterpreterCommandLine" src/main` = 0; suite green.
+  - [x] Cut over `LuaConsoleRunner.kt:37` and `RockspecBridge.kt:35` — design §2.5
+  - **Deferred to Phase 4** (ordering correction 2026-07-09): `command/LuaCommandLine.kt`
+        cannot be deleted in Phase 3 because `platform/LuaInterpreterService.kt:86` (a
+        Phase-4 deletion) still calls `newLuaInterpreterCommandLine`. Deleting the factory
+        now breaks compilation. The `command/LuaCommandLine.kt` deletion + the
+        `LuaCommandLineTest.kt` split move to Phase 4, bundled with the
+        `LuaInterpreterService` deletion (its last live caller). Phase 3 only stops the
+        *live runtime consumers* from calling the legacy factory.
+  - [x] Rewrite `TestLuaRunConfiguration.kt`; `LuaInterpreterSearchPathGlobTest.kt` tests
+        `expandSearchPath` on the surviving `LuaInterpreterService.kt`, so its coverage is
+        **left in place** and moves to TOOLING-01 discovery tests in Phase 4 — design §6.4
+- **Exit criteria** (corrected): TC 9–11 pass; debugger smoke (DBGp attach via run config)
+  still works in sandbox; the live runtime consumers (LuaRunConfiguration,
+  LuaTestRunConfiguration, LuaConsoleRunner, RockspecBridge, LuaTestRunConfigurationProducer,
+  LuaTestCommandLineState lunity branch) contain zero references to `newLua*CommandLine` or
+  `platform.LuaInterpreter`; the sole residual `newLuaInterpreterCommandLine` reference is
+  the legacy `platform/LuaInterpreterService.kt` (+ `command/LuaCommandLine.kt` itself),
+  both deleted in Phase 4; suite green.
 
 ### Phase 4: Wizard + settings-state deletion [Must] (requires TOOLING-04)
 - **Goal**: rocks/init provisioning + bindings on the new stack; legacy state fields gone.
@@ -97,10 +107,16 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
   - [ ] Delete `platform/LuaInterpreterService.kt`, `platform/LuaInterpreter.kt`,
         `platform/LuaInterpreterComponent.kt` after §3.5 parity check against
         TOOLING-01's kind data — design §6.1#11-13, §3.5
+  - [ ] **(deferred from Phase 3)** Delete `command/LuaCommandLine.kt` (its last caller,
+        `LuaInterpreterService.kt:86`, dies in this phase; jar branch parity in TOOLING-03
+        already verified — design §9.1-b); split `LuaCommandLineTest.kt` — design §6.1#14, §6.4
+  - [ ] **(deferred from Phase 3)** Move `LuaInterpreterSearchPathGlobTest.kt`
+        (`expandSearchPath`) coverage to TOOLING-01 discovery glob-expansion tests, then
+        delete it with the `LuaInterpreterService` deletion — design §6.4
   - [ ] Rewrite `LuaSettingsSerializationTest.kt` + add the stale-XML tolerance test —
         design §3.7, §6.4; rewrite `rocks/init` tests — TC 13
 - **Exit criteria**: TC 13–14 pass; `grep -rnE "LuaInterpreter|InterpreterMode" src/main` = 0;
-  suite green.
+  `grep -rn "newLuaInterpreterCommandLine" src/main` = 0; suite green.
 
 ### Phase 5: Environments — matrix, widget, hererocks removal [Must] (requires TOOLING-04 UI)
 - **Goal**: matrix + status-bar widget on TOOLING-02 environments; hererocks lifecycle gone.
@@ -166,7 +182,7 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 |-------|--------|----------|
 | Phase 1: Simple tool consumers | done | Must |
 | Phase 2: LuaRocks consumers | done | Must |
-| Phase 3: Lua runtime consumers | todo | Must |
+| Phase 3: Lua runtime consumers | done | Must |
 | Phase 4: Wizard + settings-state deletion | todo | Must |
 | Phase 5: Environments (matrix/widget/hererocks) | todo | Must |
 | Phase 6: Final legacy removal + gates | todo | Must |

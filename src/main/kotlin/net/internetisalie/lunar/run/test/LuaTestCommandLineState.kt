@@ -14,9 +14,10 @@ import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.openapi.project.Project
 import com.intellij.util.execution.ParametersListUtil
-import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
 import net.internetisalie.lunar.toolchain.exec.LuaExecutionEnvironmentBuilder
+import net.internetisalie.lunar.toolchain.exec.LuaInterpreterCommandLines
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
+import java.nio.file.Path
 
 class LuaTestCommandLineState(
     private val config: LuaTestRunConfiguration,
@@ -106,8 +107,12 @@ class LuaTestCommandLineState(
     }
 
     private fun buildLunityCommandLine(targetProject: Project): GeneralCommandLine {
-        val interpreter = config.resolveInterpreter() ?: throw ExecutionException("Interpreter is not defined")
-        val commandLine = newLuaInterpreterCommandLine(interpreter) ?: throw ExecutionException("Interpreter is not found")
+        val interpreter = config.resolveInterpreter()
+            ?: throw ExecutionException(
+                "No Lua runtime is configured. Add one under " +
+                    "Settings | Languages & Frameworks | Lua | Toolchain.",
+            )
+        val commandLine = LuaInterpreterCommandLines.forBinary(Path.of(interpreter.path))
 
         val workDir = if (!config.workingDirectory.isNullOrEmpty()) config.workingDirectory else targetProject.basePath
         if (!workDir.isNullOrEmpty()) {

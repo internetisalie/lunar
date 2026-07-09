@@ -7,7 +7,7 @@ import com.intellij.execution.console.ProcessBackedConsoleExecuteActionHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.AbstractConsoleRunnerWithHistory
 import com.intellij.openapi.project.Project
-import net.internetisalie.lunar.command.newProjectLuaInterpreterCommandLine
+import net.internetisalie.lunar.toolchain.exec.LuaInterpreterCommandLines
 
 /**
  * Launches the project Lua interpreter as an interactive REPL inside a [LuaConsoleView]
@@ -34,8 +34,11 @@ class LuaConsoleRunner(project: Project) :
 
     private companion object {
         fun buildCommandLine(project: Project): GeneralCommandLine {
-            val base = newProjectLuaInterpreterCommandLine(project)
-                ?: throw ExecutionException("No project Lua interpreter configured")
+            val base = LuaInterpreterCommandLines.forProject(project)
+                ?: throw ExecutionException(
+                    "No Lua runtime is configured. Add one under " +
+                        "Settings | Languages & Frameworks | Lua | Toolchain.",
+                )
             return base.withParameters(
                 "-e",
                 "io.stdout:setvbuf('no'); io.stderr:setvbuf('no')",

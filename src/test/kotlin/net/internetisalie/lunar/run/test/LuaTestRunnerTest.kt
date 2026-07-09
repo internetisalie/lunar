@@ -17,8 +17,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import net.internetisalie.lunar.BaseDocumentTest
-import net.internetisalie.lunar.platform.LuaInterpreter
-import net.internetisalie.lunar.platform.LuaInterpreterFamily
 import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.model.LuaToolHealth
 import net.internetisalie.lunar.toolchain.model.Origin
@@ -103,7 +101,7 @@ class LuaTestRunnerTest : BaseDocumentTest() {
         val factory = type.configurationFactories[0]
         val config = factory.createTemplateConfiguration(targetProject) as LuaTestRunConfiguration
         config.testFramework = framework
-        config.interpreter = LuaInterpreter("/bin/sh", LuaInterpreterFamily.UNKNOWN_PRODUCT)
+        config.options.interpreter = "/bin/sh"
         config.testTarget = "my_test.lua"
         VfsRootAccess.allowRootAccess(myFixture.testRootDisposable, "/bin/sh")
         return LuaTestConsoleProperties(config, DefaultRunExecutor.getRunExecutorInstance())

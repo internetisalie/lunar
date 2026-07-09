@@ -12,7 +12,7 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncCall
-import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 
 class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunConfiguration>() {
 
@@ -50,7 +50,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         configuration.testTargetType = "DIRECTORY"
         configuration.testTarget = virtualFile.path
         configuration.name = "Lua Tests in ${virtualFile.name}"
-        val defaultInterpreter = LuaProjectSettings.getInstance(directory.project).state.interpreter
+        val defaultInterpreter = LuaToolResolver.getInstance().resolveRuntime(directory.project)
         if (defaultInterpreter != null) {
             configuration.interpreter = defaultInterpreter
         }
@@ -71,7 +71,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         configuration.testFramework = framework
         
         val targetProject = context.project
-        val defaultInterpreter = LuaProjectSettings.getInstance(targetProject).state.interpreter
+        val defaultInterpreter = LuaToolResolver.getInstance().resolveRuntime(targetProject)
         if (defaultInterpreter != null) {
             configuration.interpreter = defaultInterpreter
         }

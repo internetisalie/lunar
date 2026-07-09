@@ -2,8 +2,6 @@ package net.internetisalie.lunar.run.test
 
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import net.internetisalie.lunar.platform.LuaInterpreter
-import net.internetisalie.lunar.platform.LuaInterpreterFamily
 
 class LuaTestRunConfigurationTest : BasePlatformTestCase() {
 
@@ -126,7 +124,7 @@ class LuaTestRunConfigurationTest : BasePlatformTestCase() {
         val factory = type.configurationFactories[0]
         val config = factory.createTemplateConfiguration(targetProject) as LuaTestRunConfiguration
 
-        config.interpreter = LuaInterpreter("/usr/bin/lua5.4", LuaInterpreterFamily.UNKNOWN_PRODUCT)
+        config.options.interpreter = "/usr/bin/lua5.4"
         config.testTarget = "" // Empty target
 
         try {
