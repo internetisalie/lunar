@@ -59,12 +59,13 @@ class LuaToolchainFeedTest {
 
     /**
      * A git source (`urls == ["git"]`) carries no checksum — the git strategy never reads it — so
-     * an empty sha256 is valid there; every download-based source/asset must be 64-hex or `TODO-PIN`.
+     * an empty sha256 is valid there; every download-based source/asset must be a real 64-hex
+     * SHA-256 (pins are populated; PUC-Lua tarballs cross-checked against lua.org — the `TODO-PIN`
+     * sentinel is no longer accepted).
      */
     private fun assertPinValid(sha256: String, gitSource: Boolean = false) {
         if (gitSource && sha256.isEmpty()) return
-        val valid = sha256 == "TODO-PIN" || hexPin.matches(sha256)
-        assertTrue("sha256 must be a 64-hex lowercase string or exactly 'TODO-PIN', was '$sha256'", valid)
+        assertTrue("sha256 must be a real 64-hex lowercase string, was '$sha256'", hexPin.matches(sha256))
     }
 
     @Test
