@@ -2,7 +2,7 @@
 id: "TOOLING-07"
 title: "07: Health Monitoring & Diagnostics"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "TOOLING"
 folders:
@@ -58,7 +58,7 @@ diagnostics snapshot. Parent epic: [TOOLING](../requirements.md); binding contra
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| TOOLING-07-01 | **Three-stage health check** | M | Not Implemented | `LuaToolHealthChecker.check` runs fast file checks, an mtime gate that skips the probe for unchanged previously-probe-OK binaries, and a probe via the TOOLING-03 exec service (PROBE timeout), producing the contract §2.3 `LuaToolHealth`. |
+| TOOLING-07-01 | **Three-stage health check** | M | Full | `LuaToolHealthChecker.check` runs fast file checks, an mtime gate that skips the probe for unchanged previously-probe-OK binaries, and a probe via the TOOLING-03 exec service (PROBE timeout), producing the contract §2.3 `LuaToolHealth`. |
 | TOOLING-07-02 | **Registry-mediated health writes** | M | Not Implemented | Health results are written only through `LuaToolchainRegistry` mutation methods, which fire `LuaToolchainListener.TOPIC`. No read path mutates health (removes the `LuaToolManager.getTools()` anti-pattern). |
 | TOOLING-07-03 | **Reactive VFS monitoring** | M | Not Implemented | A project-scoped `AsyncFileListener` watches inventory binary paths, environment root dirs, and environment `bin/` dirs; matching events schedule a batched background revalidation (500 ms merge window). No polling. |
 | TOOLING-07-04 | **Editor banner for broken engaged tools** | M | Not Implemented | Lua-file editor banner when an *engaged* kind's intended tool is unusable, naming kind + reason with a link to the Toolchain settings page; and "No usable Lua runtime for this project" when no RUNTIME kind resolves. |

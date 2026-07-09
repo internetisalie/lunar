@@ -21,10 +21,10 @@ compile (or a temporary settings-id string, replaced before merge).
 ### Phase 1: Health checker on the new model [Must]
 - **Goal**: pure 3-stage check producing the contract §2.3 `LuaToolHealth`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.health.LuaToolHealthChecker` +
+  - [x] Create `net.internetisalie.lunar.toolchain.health.LuaToolHealthChecker` +
         `LuaToolCheckResult` (design §2.1) implementing the §3.1 algorithm with the
         injectable `LuaToolProbe`.
-  - [ ] Unit tests `toolchain/health/LuaToolHealthCheckerTest` with a recording fake
+  - [x] Unit tests `toolchain/health/LuaToolHealthCheckerTest` with a recording fake
         probe (no IDE fixture; mirrors the hermetic style of the legacy
         `tool/health/LuaToolHealthCheckerTest.kt`).
 - **Exit criteria**: TC-TOOLING-07-01/02/03 pass, including the zero-probe-invocation
@@ -101,7 +101,7 @@ compile (or a temporary settings-id string, replaced before merge).
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Health checker on the new model | todo | Must |
+| Phase 1: Health checker on the new model | done | Must |
 | Phase 2: Monitor — VFS, batching, writes, notifications | todo | Must |
 | Phase 3: Editor banner provider | todo | Must |
 | Phase 4: Diagnostics | todo | Should/Could |
