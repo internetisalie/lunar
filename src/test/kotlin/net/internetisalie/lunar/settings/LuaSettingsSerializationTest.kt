@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.settings
 
 import com.intellij.util.xmlb.XmlSerializer
-import net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.rocks.run.LuaRocksSettings
@@ -14,8 +13,8 @@ import kotlin.test.assertTrue
  * MAINT-12 Phase 1: settings state serialization and defaults (MAINT-12-01/-02/-03).
  *
  * Plain-JUnit coverage of the uncovered [LuaProjectSettings.State] fields, the
- * [LuaApplicationSettings.State] collections/booleans, and the [LuaCheckSettings] /
- * [LuaRocksSettings] `SimplePersistentStateComponent` defaults + notnull-normalisation.
+ * [LuaApplicationSettings.State] collections/booleans, and the [LuaRocksSettings]
+ * `SimplePersistentStateComponent` defaults + notnull-normalisation.
  * Target migration / `TargetState` (already in `LuaProjectSettingsTest.kt`) and
  * `toolInventory` standalone round-trip (already in `LuaToolManagerTest`) are not re-tested.
  */
@@ -117,24 +116,6 @@ class LuaSettingsSerializationTest {
         assertTrue(state.interpreters.isEmpty())
         assertTrue(state.toolInventory.isEmpty())
         assertTrue(state.globalToolBindings.isEmpty())
-    }
-
-    @Test
-    fun luaCheckSettingsDefaults() {
-        val settings = LuaCheckSettings()
-
-        assertEquals("/usr/local/bin/luacheck", settings.executablePath)
-        assertEquals("", settings.arguments)
-    }
-
-    @Test
-    fun luaCheckSettingsSetterPersists() {
-        val settings = LuaCheckSettings()
-
-        settings.executablePath = "/x/luacheck"
-
-        assertEquals("/x/luacheck", settings.executablePath)
-        assertEquals("/x/luacheck", settings.state.executablePath)
     }
 
     @Test

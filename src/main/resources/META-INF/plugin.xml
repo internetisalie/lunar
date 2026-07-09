@@ -527,9 +527,6 @@
             id="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel"
             displayName="LuaCheck"/>
 
-    <!-- Luacheck -->
-    <applicationService serviceImplementation="net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings"/>
-
     <!-- Inlay Hints Settings -->
     <applicationService serviceImplementation="net.internetisalie.lunar.lang.insight.hint.LuaInlayHintsSettings"/>
 

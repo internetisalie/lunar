@@ -3,18 +3,11 @@ package net.internetisalie.lunar.lang.parser
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.BaseDocumentTest
-import net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings
 import net.internetisalie.lunar.lang.LuaFileType
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class TestLuaAttributesParser : BaseDocumentTest() {
-
-    @BeforeEach
-    fun setupSettings() {
-        LuaCheckSettings.getInstance().executablePath = ""
-    }
 
     private fun ensureNoErrors() {
         val errors = PsiTreeUtil.findChildrenOfType(myFixture.file, PsiErrorElement::class.java)

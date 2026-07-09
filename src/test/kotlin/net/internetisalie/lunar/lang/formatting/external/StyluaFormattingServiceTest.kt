@@ -9,15 +9,18 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import com.intellij.util.containers.ContainerUtil
-import net.internetisalie.lunar.settings.LuaApplicationSettings
-import net.internetisalie.lunar.settings.LuaProjectSettings
-import net.internetisalie.lunar.tool.LuaTool
-import net.internetisalie.lunar.tool.LuaToolManager
-import net.internetisalie.lunar.tool.LuaToolType
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.model.LuaToolHealth
+import net.internetisalie.lunar.toolchain.model.Origin
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainAppState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import java.io.File
+import java.util.UUID
 
 @RunWith(JUnit4::class)
 class StyluaFormattingServiceTest : BasePlatformTestCase() {
@@ -29,9 +32,7 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
         super.setUp()
         project.replaceService(FormattingNotificationService::class.java, recordingNotificationService, testRootDisposable)
 
-        LuaApplicationSettings.instance.state.toolInventory.clear()
-        LuaApplicationSettings.instance.state.globalToolBindings.clear()
-        LuaProjectSettings.getInstance(project).state.projectToolBindings.clear()
+        resetToolchain()
 
         mockStyluaBinary = createMockStyluaBinary()
         StyluaFormattingTask.timeoutMs = 30_000
@@ -39,12 +40,15 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            LuaApplicationSettings.instance.state.toolInventory.clear()
-            LuaApplicationSettings.instance.state.globalToolBindings.clear()
-            LuaProjectSettings.getInstance(project).state.projectToolBindings.clear()
+            resetToolchain()
         } finally {
             super.tearDown()
         }
+    }
+
+    private fun resetToolchain() {
+        LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
+        LuaToolchainProjectSettings.getInstance(project).loadState(LuaToolchainProjectState())
     }
 
     private fun createMockStyluaBinary(): File {
@@ -89,16 +93,19 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
     }
 
     private fun registerAndBindStylua(path: String = mockStyluaBinary.absolutePath) {
-        val tool = LuaTool(
-            id = "stylua-test-id",
-            type = LuaToolType.STYLUA,
-            name = "stylua",
+        val tool = LuaRegisteredTool(
+            id = UUID.randomUUID().toString(),
+            kindId = "stylua",
             path = path,
             version = "0.20.0",
-            isValid = true
+            luaVersion = null,
+            runtime = null,
+            origin = Origin.MANUAL,
+            environmentId = null,
+            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
         )
-        LuaApplicationSettings.instance.state.toolInventory.add(tool)
-        LuaApplicationSettings.instance.state.globalToolBindings[LuaToolType.STYLUA.name] = "stylua-test-id"
+        LuaToolchainRegistry.getInstance().registerProvisioned(tool)
+        LuaToolchainRegistry.getInstance().setGlobalBinding("stylua", tool.id)
     }
 
     private fun reformat() {

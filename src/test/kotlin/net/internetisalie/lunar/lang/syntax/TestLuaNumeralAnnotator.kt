@@ -2,18 +2,11 @@ package net.internetisalie.lunar.lang.syntax
 
 import com.intellij.lang.annotation.HighlightSeverity
 import net.internetisalie.lunar.BaseDocumentTest
-import net.internetisalie.lunar.analysis.luacheck.LuaCheckSettings
 import net.internetisalie.lunar.lang.LuaFileType
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class TestLuaNumeralAnnotator : BaseDocumentTest() {
-
-    @BeforeEach
-    fun setupSettings() {
-        LuaCheckSettings.getInstance().executablePath = ""
-    }
 
     // ==================== Valid numerals - no errors expected ====================
 

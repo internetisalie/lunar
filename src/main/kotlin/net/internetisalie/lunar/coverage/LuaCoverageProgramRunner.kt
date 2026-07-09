@@ -13,8 +13,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.notification.NotificationAction
 import com.intellij.execution.runners.RunContentBuilder
 import net.internetisalie.lunar.run.test.LuaTestRunConfiguration
-import net.internetisalie.lunar.tool.LuaToolManager
-import net.internetisalie.lunar.tool.LuaToolType
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import net.internetisalie.lunar.rocks.browser.LuaRocksActionHandler
 import java.io.File
 
@@ -26,8 +25,8 @@ class LuaCoverageProgramRunner : GenericProgramRunner<RunnerSettings>() {
 
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
         val project = environment.project
-        val luacovTool = LuaToolManager.getInstance().getEffectiveTool(project, LuaToolType.LUACOV)
-        if (luacovTool == null || !luacovTool.isValid) {
+        val luacovTool = LuaToolResolver.getInstance().resolve(project, "luacov")
+        if (luacovTool == null) {
             val notificationGroup = NotificationGroupManager.getInstance()
                 .getNotificationGroup("notification.group.lunar.tools")
             val notification = notificationGroup.createNotification(

@@ -24,22 +24,24 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 ### Phase 1: Simple tool consumers → resolver + exec service [Must]
 - **Goal**: luacheck, stylua, busted, luacov resolve/execute through the new stack.
 - **Tasks**:
-  - [ ] Cut over `analysis/luacheck/LuaCheckCommandLine.kt` + `LuaCheckInvoker.kt`
+  - [x] Cut over `analysis/luacheck/LuaCheckCommandLine.kt` + `LuaCheckInvoker.kt`
         (resolver, TOOLING-02 args option, exec-service capture + §3.4 line parse) —
         realizes design §2.1, §3.4
-  - [ ] Slim `LuaCheckSettingsPanel.kt` (drop exe row + download link; rebind args) —
+  - [x] Slim `LuaCheckSettingsPanel.kt` (drop exe row + download link; rebind args) —
         design §2.1
-  - [ ] Delete `analysis/luacheck/LuaCheckSettings.kt` + its `applicationService`
+  - [x] Delete `analysis/luacheck/LuaCheckSettings.kt` + its `applicationService`
         registration (plugin.xml:518); fix `TestLuaAttributesParser.kt:16` /
         `TestLuaNumeralAnnotator.kt:15` (drop the disable line) — design §6.1#19, §6.4
-  - [ ] Cut over `StyluaFormattingService.kt` / `StyluaFormattingTask.kt` (resolver +
+  - [x] Cut over `StyluaFormattingService.kt` / `StyluaFormattingTask.kt` (resolver +
         stdin-capable exec capture); rewrite `StyluaFormattingServiceTest.kt` seeding —
         design §2.2, §6.4
-  - [ ] Cut over busted (`LuaTestCommandLineState.kt:55,61-64,133-145`) and luacov
+  - [x] Cut over busted (`LuaTestCommandLineState.kt:55,61-64,133-145`) and luacov
         (`LuaCoverageProgramRunner.kt:29`) onto resolver + env builder — design §2.3
-  - [ ] Rewrite `LuaTestRunnerTest.kt` / `LuaTestRunConfigurationTest.kt` tool seeding —
-        design §6.4
-- **Exit criteria**: TC 1–5 pass; `grep -rn "LuaCheckSettings" src/main` = 0; suite green.
+  - [x] Rewrite `LuaTestRunnerTest.kt` tool seeding
+        (`LuaTestRunConfigurationTest.kt` has no busted-tool seeding — no-op) — design §6.4
+- **Exit criteria**: TC 1–5 pass; `grep -rn "LuaCheckSettings" src/main` = 0
+        (only the design-mandated `LuaCheckSettingsPanel` survivor matches the substring);
+        suite green.
 
 ### Phase 2: LuaRocks consumers [Must]
 - **Goal**: one nullable, resolver-backed luarocks resolution; PATH prepend fixed.
@@ -156,7 +158,7 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Simple tool consumers | todo | Must |
+| Phase 1: Simple tool consumers | done | Must |
 | Phase 2: LuaRocks consumers | todo | Must |
 | Phase 3: Lua runtime consumers | todo | Must |
 | Phase 4: Wizard + settings-state deletion | todo | Must |

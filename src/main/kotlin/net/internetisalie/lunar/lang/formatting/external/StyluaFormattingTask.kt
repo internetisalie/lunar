@@ -1,20 +1,18 @@
 package net.internetisalie.lunar.lang.formatting.external
 
-import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.CapturingProcessHandler
-import com.intellij.execution.process.ProcessEvent
-import com.intellij.execution.process.ProcessListener
-import com.intellij.execution.process.ProcessOutput
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.AsyncDocumentFormattingService.FormattingTask
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.diagnostic.logger
-import net.internetisalie.lunar.util.LuaProcessUtil
-import java.io.IOException
+import com.intellij.openapi.application.ApplicationManager
+import net.internetisalie.lunar.toolchain.exec.LuaExecOutcome
+import net.internetisalie.lunar.toolchain.exec.LuaExecResult
+import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Callable
 
 data class StyluaExecutionConfig(
     val styluaPath: String,
@@ -27,33 +25,23 @@ class StyluaFormattingTask(
     private val config: StyluaExecutionConfig,
 ) : FormattingTask {
 
-    private val LOG = logger<StyluaFormattingTask>()
-
-    @Volatile
-    private var processHandler: CapturingProcessHandler? = null
-
     override fun run() {
+        handleResult(captureOffEdt())
+    }
+
+    private fun captureOffEdt(): LuaExecResult {
         val cmd = buildCommandLine()
-        val stdin = request.documentText
-        val handler = try {
-            CapturingProcessHandler(cmd)
-        } catch (e: ExecutionException) {
-            LOG.warn("Failed to create process for Stylua: ${e.message}", e)
-            request.onError("Stylua", "Could not execute stylua at ${config.styluaPath}")
-            return
+        val text = request.documentText
+        val service = LuaToolExecutionService.getInstance()
+        val application = ApplicationManager.getApplication()
+        // AsyncDocumentFormattingService normally runs this off the EDT; the light-fixture
+        // formatter path drives it on the EDT, where the exec service (rightly) refuses to
+        // run — offload so process I/O never touches the UI thread (contract §1/§10).
+        return if (application != null && application.isDispatchThread) {
+            application.executeOnPooledThread(Callable { service.captureWithMillis(cmd, timeoutMs, text) }).get()
+        } else {
+            service.captureWithMillis(cmd, timeoutMs, text)
         }
-
-        this.processHandler = handler
-        setupStdinWriter(handler, stdin)
-
-        val output = try {
-            handler.runProcess(timeoutMs, true)
-        } catch (e: Exception) {
-            LOG.warn("Error running Stylua process: ${e.message}", e)
-            ProcessOutput("", "", LuaProcessUtil.PROCESS_EXECUTION_EXCEPTION_CODE, false, false)
-        }
-
-        handleProcessOutput(output)
     }
 
     private fun buildCommandLine(): GeneralCommandLine {
@@ -63,34 +51,21 @@ class StyluaFormattingTask(
             .withCharset(StandardCharsets.UTF_8)
     }
 
-    private fun setupStdinWriter(handler: CapturingProcessHandler, stdin: String) {
-        handler.addProcessListener(object : ProcessListener {
-            override fun startNotified(event: ProcessEvent) {
-                try {
-                    val processInput = event.processHandler.processInput ?: return
-                    processInput.writer(StandardCharsets.UTF_8).use {
-                        it.write(stdin)
-                    }
-                } catch (e: IOException) {
-                    LOG.warn("Failed to write stdin to Stylua process: ${e.message}", e)
-                }
+    private fun handleResult(result: LuaExecResult) {
+        when {
+            result.outcome == LuaExecOutcome.START_FAILED ->
+                request.onError("Stylua", "Could not execute stylua at ${config.styluaPath}")
+            result.outcome == LuaExecOutcome.TIMED_OUT ->
+                request.onError("Stylua Timeout", "Stylua did not respond within 30 seconds")
+            result.exitCode == 0 -> {
+                request.onTextReady(result.stdout)
+                showFirstUseNotificationIfNeeded()
             }
-        })
-    }
-
-    private fun handleProcessOutput(output: ProcessOutput) {
-        val exitCode = output.exitCode
-        if (exitCode == 0) {
-            request.onTextReady(output.stdout)
-            showFirstUseNotificationIfNeeded()
-        } else if (output.isTimeout) {
-            request.onError("Stylua Timeout", "Stylua did not respond within 30 seconds")
-        } else if (exitCode == LuaProcessUtil.PROCESS_EXECUTION_EXCEPTION_CODE) {
-            request.onError("Stylua", "Could not execute stylua at ${config.styluaPath}")
-        } else {
-            val stderr = output.stderr
-            val firstLine = stderr.lineSequence().firstOrNull { it.isNotBlank() } ?: "Stylua exited with code $exitCode"
-            request.onError("Stylua", firstLine)
+            else -> {
+                val firstLine = result.stderr.lineSequence().firstOrNull { it.isNotBlank() }
+                    ?: "Stylua exited with code ${result.exitCode}"
+                request.onError("Stylua", firstLine)
+            }
         }
     }
 
@@ -106,18 +81,11 @@ class StyluaFormattingTask(
         }
     }
 
-    override fun cancel(): Boolean {
-        val handler = processHandler
-        if (handler != null) {
-            handler.destroyProcess()
-            return true
-        }
-        return false
-    }
+    override fun cancel(): Boolean = false
 
     override fun isRunUnderProgress(): Boolean = false
 
     companion object {
-        var timeoutMs: Int = 30_000
+        var timeoutMs: Int = LuaExecTimeout.FORMAT.millis
     }
 }

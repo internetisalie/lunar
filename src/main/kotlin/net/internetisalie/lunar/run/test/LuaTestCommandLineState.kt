@@ -15,10 +15,8 @@ import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.openapi.project.Project
 import com.intellij.util.execution.ParametersListUtil
 import net.internetisalie.lunar.command.newLuaInterpreterCommandLine
-import net.internetisalie.lunar.settings.LuaProjectSettings
-import net.internetisalie.lunar.tool.LuaToolEnvironment
-import net.internetisalie.lunar.tool.LuaToolManager
-import net.internetisalie.lunar.tool.LuaToolType
+import net.internetisalie.lunar.toolchain.exec.LuaExecutionEnvironmentBuilder
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 
 class LuaTestCommandLineState(
     private val config: LuaTestRunConfiguration,
@@ -51,17 +49,19 @@ class LuaTestCommandLineState(
         }
 
         config.environmentVariables?.configureCommandLine(commandLine, true)
-        configureLuaPath(commandLine, targetProject)
-        LuaToolEnvironment.prependToolDirsToPath(commandLine, targetProject)
+        LuaExecutionEnvironmentBuilder.getInstance(targetProject)
+            .build(config.sourcePath)
+            .applyTo(commandLine)
 
         return commandLine
     }
 
     private fun buildBustedCommandLine(targetProject: Project): GeneralCommandLine {
-        val bustedTool = LuaToolManager.getInstance().getEffectiveTool(targetProject, LuaToolType.BUSTED)
-        if (bustedTool == null || !bustedTool.isValid) {
-            throw ExecutionException("Busted not found. Install via LuaRocks: `luarocks install busted`")
-        }
+        val bustedTool = LuaToolResolver.getInstance().resolve(targetProject, "busted")
+            ?: throw ExecutionException(
+                "Busted is not configured. Register or bind it under " +
+                    "Settings | Languages & Frameworks | Lua | Toolchain (or install it via LuaRocks).",
+            )
         val commandLine = GeneralCommandLine(bustedTool.path)
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
         
@@ -128,19 +128,5 @@ class LuaTestCommandLineState(
         val extraArgs = ParametersListUtil.parse(config.extraTestArguments.orEmpty())
         commandLine.addParameters(extraArgs)
         return commandLine
-    }
-
-    private fun configureLuaPath(commandLine: GeneralCommandLine, targetProject: Project) {
-        val sourcePath = config.sourcePath.orEmpty()
-        if (sourcePath.isNotEmpty()) {
-            commandLine.withEnvironment("LUA_PATH", sourcePath)
-        } else {
-            val settingsState = LuaProjectSettings.getInstance(targetProject).state
-            val projectPath = settingsState.expandSourcePath(targetProject)
-            val prefix = net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaPathPrefix(targetProject)
-            val union = (prefix + projectPath).trimEnd(';') + ";;"
-            if (union != ";;") commandLine.withEnvironment("LUA_PATH", union)
-            net.internetisalie.lunar.rocks.RockspecRunPathProvider.luaCPath(targetProject)?.let { commandLine.withEnvironment("LUA_CPATH", it) }
-        }
     }
 }

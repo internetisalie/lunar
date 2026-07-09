@@ -19,10 +19,15 @@ import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaInterpreterFamily
-import net.internetisalie.lunar.settings.LuaApplicationSettings
-import net.internetisalie.lunar.tool.LuaTool
-import net.internetisalie.lunar.tool.LuaToolManager
-import net.internetisalie.lunar.tool.LuaToolType
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.model.LuaToolHealth
+import net.internetisalie.lunar.toolchain.model.Origin
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainAppState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import java.io.File
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -102,6 +107,29 @@ class LuaTestRunnerTest : BaseDocumentTest() {
         config.testTarget = "my_test.lua"
         VfsRootAccess.allowRootAccess(myFixture.testRootDisposable, "/bin/sh")
         return LuaTestConsoleProperties(config, DefaultRunExecutor.getRunExecutorInstance())
+    }
+
+    private fun bindBusted(path: String): LuaRegisteredTool {
+        resetToolchain()
+        val tool = LuaRegisteredTool(
+            id = UUID.randomUUID().toString(),
+            kindId = "busted",
+            path = path,
+            version = "2.1.0",
+            luaVersion = null,
+            runtime = null,
+            origin = Origin.MANUAL,
+            environmentId = null,
+            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
+        )
+        LuaToolchainRegistry.getInstance().registerProvisioned(tool)
+        LuaToolchainRegistry.getInstance().setGlobalBinding("busted", tool.id)
+        return tool
+    }
+
+    private fun resetToolchain() {
+        LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
+        LuaToolchainProjectSettings.getInstance(myFixture.project).loadState(LuaToolchainProjectState())
     }
 
     @Test
@@ -296,17 +324,7 @@ class LuaTestRunnerTest : BaseDocumentTest() {
 
     @Test
     fun testCommandLineStateBusted() {
-        // Register mock busted tool
-        val tool = LuaTool(
-            type = LuaToolType.BUSTED,
-            name = "Busted",
-            path = "/bin/sh", // exists and is executable on Unix
-            version = "2.1.0",
-            isValid = true
-        )
-        LuaApplicationSettings.instance.state.toolInventory.clear()
-        LuaApplicationSettings.instance.state.toolInventory.add(tool)
-        LuaToolManager.getInstance().setGlobalBinding(LuaToolType.BUSTED, tool.id)
+        bindBusted("/bin/sh") // exists and is executable on Unix
 
         try {
             val properties = createProperties(LuaTestFramework.BUSTED)
@@ -327,8 +345,48 @@ class LuaTestRunnerTest : BaseDocumentTest() {
                 commandLine.parametersList.list
             )
         } finally {
-            LuaApplicationSettings.instance.state.toolInventory.clear()
-            LuaApplicationSettings.instance.state.globalToolBindings.clear()
+            resetToolchain()
+        }
+    }
+
+    @Test
+    fun testBustedPathPrependedFromEnvBuilder() {
+        val toolsDir = com.intellij.openapi.util.io.FileUtil.createTempDirectory("lunar-tools", null)
+        val bustedPath = File(toolsDir, "busted").absolutePath
+        bindBusted(bustedPath)
+
+        try {
+            val properties = createProperties(LuaTestFramework.BUSTED)
+            val config = properties.configuration
+            config.testTarget = "spec.lua"
+            config.testTargetType = "FILE"
+
+            val env = ExecutionEnvironmentBuilder.create(DefaultRunExecutor.getRunExecutorInstance(), config).build()
+            val commandLine = LuaTestCommandLineState(config, env).buildCommandLine()
+
+            assertEquals(bustedPath, commandLine.exePath)
+            val pathEnv = commandLine.environment["PATH"]!!
+            assertTrue(pathEnv.startsWith(toolsDir.absolutePath + File.pathSeparator) || pathEnv == toolsDir.absolutePath)
+        } finally {
+            resetToolchain()
+        }
+    }
+
+    @Test
+    fun testBustedUnresolvedThrows() {
+        resetToolchain()
+        val properties = createProperties(LuaTestFramework.BUSTED)
+        val config = properties.configuration
+        config.testTarget = "spec.lua"
+
+        val env = ExecutionEnvironmentBuilder.create(DefaultRunExecutor.getRunExecutorInstance(), config).build()
+        val state = LuaTestCommandLineState(config, env)
+        try {
+            state.buildCommandLine()
+            kotlin.test.fail("Expected ExecutionException for unresolved busted")
+        } catch (e: com.intellij.execution.ExecutionException) {
+            assertTrue(e.message!!.contains("Busted"))
+            assertTrue(e.message!!.contains("Toolchain"))
         }
     }
 
@@ -380,16 +438,7 @@ class LuaTestRunnerTest : BaseDocumentTest() {
         config.testTargetType = "FILE"
         config.workingDirectory = "/project"
 
-        val tool = LuaTool(
-            type = LuaToolType.BUSTED,
-            name = "Busted",
-            path = "/bin/sh",
-            version = "2.1.0",
-            isValid = true
-        )
-        LuaApplicationSettings.instance.state.toolInventory.clear()
-        LuaApplicationSettings.instance.state.toolInventory.add(tool)
-        LuaToolManager.getInstance().setGlobalBinding(LuaToolType.BUSTED, tool.id)
+        bindBusted("/bin/sh")
 
         try {
             val rootProxy = com.intellij.execution.testframework.sm.runner.SMTestProxy.SMRootTestProxy()
@@ -440,8 +489,7 @@ class LuaTestRunnerTest : BaseDocumentTest() {
                 commandLine.parametersList.list
             )
         } finally {
-            LuaApplicationSettings.instance.state.toolInventory.clear()
-            LuaApplicationSettings.instance.state.globalToolBindings.clear()
+            resetToolchain()
         }
     }
 }

@@ -5,19 +5,16 @@ import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.PsiFile
 import net.internetisalie.lunar.lang.LuaLanguage
-import net.internetisalie.lunar.tool.LuaToolManager
-import net.internetisalie.lunar.tool.LuaToolType
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 
 class StyluaFormattingService : AsyncDocumentFormattingService() {
 
     override fun canFormat(psiFile: PsiFile): Boolean {
         if (psiFile.language !is LuaLanguage) return false
         val project = psiFile.project
-        val tool = LuaToolManager.getInstance().getEffectiveTool(project, LuaToolType.STYLUA)
-        return tool != null && tool.isValid
+        return LuaToolResolver.getInstance().resolve(project, "stylua") != null
     }
 
     override fun getFeatures(): Set<FormattingService.Feature> {
@@ -31,8 +28,7 @@ class StyluaFormattingService : AsyncDocumentFormattingService() {
     override fun createFormattingTask(request: AsyncFormattingRequest): FormattingTask? {
         val context = request.context
         val project = context.project
-        val tool = LuaToolManager.getInstance().getEffectiveTool(project, LuaToolType.STYLUA) ?: return null
-        if (!tool.isValid) return null
+        val tool = LuaToolResolver.getInstance().resolve(project, "stylua") ?: return null
 
         val ioFile = request.ioFile ?: return null
         val fileName = ioFile.name

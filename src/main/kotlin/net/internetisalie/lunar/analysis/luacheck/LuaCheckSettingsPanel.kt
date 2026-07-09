@@ -6,29 +6,26 @@ import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
 import net.internetisalie.lunar.LuaBundle
+import net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 
 class LuaCheckSettingsPanel : BoundConfigurable(
     LuaBundle.message("luacheck.name")
 ) {
     override fun createPanel(): DialogPanel {
-        val settings = LuaCheckSettings.getInstance()
+        val registry = LuaToolchainRegistry.getInstance()
+        var arguments = registry.kindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS)
 
         return panel {
             group(LuaBundle.message("luacheck.settings.execution")) {
                 row {
-                    textFieldWithBrowseButton(LuaBundle.message("luacheck.executable")) { chosenFile -> chosenFile.path }
-                        .bindText(settings::executablePath)
-                        .gap(RightGap.SMALL)
-                        .label(LuaBundle.message("luacheck.executable"))
-                }
-                row {
-                    link(LuaBundle.message("luacheck.download")) {}
-                }
-                row {
                     expandableTextField { it.joinToString(" ") }
-                        .bindText(settings::arguments)
+                        .bindText({ arguments }, { arguments = it })
                         .gap(RightGap.SMALL)
                         .label(LuaBundle.message("luacheck.arguments"))
+                        .onApply {
+                            registry.setKindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS, arguments)
+                        }
                 }
             }
         }

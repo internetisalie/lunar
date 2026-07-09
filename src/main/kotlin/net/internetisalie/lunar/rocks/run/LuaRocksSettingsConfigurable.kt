@@ -11,8 +11,7 @@ import com.intellij.ui.dsl.builder.panel
  *
  * Surfaces the `luarocks` executable path and the default server URL from
  * [LuaRocksSettings]. Registered under Settings → Tools in `plugin.xml`.
- * Follows the [net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel] pattern
- * (a [BoundConfigurable] with Kotlin UI DSL `panel { }` + `bindText`).
+ * A [BoundConfigurable] with Kotlin UI DSL `panel { }` + `bindText`.
  */
 class LuaRocksSettingsConfigurable : BoundConfigurable("LuaRocks") {
 
