@@ -3,7 +3,7 @@ id: EDITOR-01
 title: "01: Smart Typing"
 type: feature
 parent_id: EDITOR
-status: "todo"
+status: "planned"
 priority: "high"
 folders:
   - "[[features/editor/requirements|requirements]]"
