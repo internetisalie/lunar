@@ -141,14 +141,21 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 
 ### Phase 8: Should/Could extensions [Should]
 - **Goal**: LuaJIT (gate permitting), batch concurrency polish, re-detection.
+- **Gate decision (2026-07-08)**: TOOLING-00-03 (LuaJIT git+make) **PASSED**
+  (`docs/features/tooling/00-de-risking/results/luajit-git-make.md`), so the **full** LuaJIT
+  path shipped with the feed gate **OPENED** (un-gated `luajit` entry), not the descope.
 - **Tasks**:
-  - [ ] Create `LuaJitBuildRecipe` + git/make gating in `SourceBuildStrategy.supports`;
-        add gated feed entries — design §3.9 (only if TOOLING-00-03 passed; otherwise
-        record the descope: no feed entries, TC 17 fallback assertion only).
-  - [ ] Batch flow test: two rows → two concurrent tasks (TC 18).
-  - [ ] [Could] Manifest re-detection `ProjectActivity` (offer re-registration of a
-        `.lunar-env.json` tree) — design §9 note; drop freely under time pressure.
-- **Exit criteria**: TC 17/18 pass in their gate-dependent form.
+  - [x] Create `LuaJitBuildRecipe` (pure git-clone-FULL/checkout/`make PREFIX=` plan + hand-copy
+        install incl. `src/jit` runtime; macOS deployment-target env) + git/make gating in
+        `SourceBuildStrategy.supports` (injectable `LuaJitToolProbes`); `identityHash` artifact
+        `git={ref}`; add the un-gated `luajit v2.1` git-source feed entry — design §3.9, §3.2/§3.3.
+  - [x] Open the LuaJIT gate in the dialog: `LuaToolCatalog.RUNTIME_KINDS = [lua, luajit]`.
+  - [x] Batch flow test: two rows → distinct rootDirs → concurrent per-rootDir reservations (TC 18).
+  - [x] [Could] Manifest re-detection `ProjectActivity` (`LuaEnvRedetectionStartup` +
+        pure `LuaEnvRedetection` core; scans `<projectBase>/.lua`, off-EDT `Dispatchers.IO`,
+        offers one-click re-registration via `notification.group.lunar.tools`) — **KEPT**
+        (well-scoped, reuses the removed `HererocksDetectStartup` pattern) — design §9 note.
+- **Exit criteria**: TC 17 (LuaJIT plan/gating) + TC 18 (batch) pass in their gate-**open** form.
 
 ## Requirement → Phase Coverage
 
@@ -190,6 +197,12 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
       re-run provision to observe TC 11 idempotency; exercise TC 15 menu and TC 16
       dialog validation. Windows path (TC 6) verified by asset-download dry-run test
       (no Windows host in the loop) — flagged for manual QA before release.
+      **DEFERRED (maintainer/release task):** live-VNC provisioning acceptance is blocked
+      until the feed's real SHA-256/size pins replace the `TODO-PIN` sentinels (§4.2) — the
+      download/verify pipeline refuses `TODO-PIN`, so no download-based provision can succeed
+      in the current network-less build. The LuaJIT git path (no checksum) is the only
+      download-free runtime and is still gated behind live git/make availability. Unit
+      coverage is complete and CI-safe; the live gate opens with the pins.
 
 ## Task Summary
 
@@ -202,4 +215,4 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 | Phase 5: Rock installs | done | Must |
 | Phase 6: Orchestrator, registration, progress | done | Must |
 | Phase 7: Actions & dialogs, plugin.xml swap | done | Must |
-| Phase 8: Should/Could extensions | todo | Should |
+| Phase 8: Should/Could extensions | done | Should |

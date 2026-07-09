@@ -47,6 +47,12 @@ class LuaProvisionDerivationTest {
     }
 
     @Test
+    fun `runtime combo offers lua and luajit with the luajit gate open`() {
+        TestCase.assertEquals(listOf("lua", "luajit"), LuaToolCatalog.RUNTIME_KINDS)
+        TestCase.assertFalse("luajit is a runtime, not a dev tool", LuaToolCatalog.TOOL_KINDS.contains("luajit"))
+    }
+
+    @Test
     fun `rock tools are classified apart from release-binary tools`() {
         TestCase.assertEquals(listOf("busted", "luacov"), LuaToolCatalog.ROCK_TOOL_KINDS)
         TestCase.assertEquals(

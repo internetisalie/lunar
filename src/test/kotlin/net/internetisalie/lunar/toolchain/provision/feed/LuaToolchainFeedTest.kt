@@ -25,7 +25,7 @@ class LuaToolchainFeedTest {
     fun loadsRealResourceWithExpectedKinds() {
         val feed = feed()
         assertEquals(1, feed.feedVersion)
-        val expected = setOf("lua", "luarocks", "stylua", "lua-language-server", "luacheck", "busted", "luacov")
+        val expected = setOf("lua", "luajit", "luarocks", "stylua", "lua-language-server", "luacheck", "busted", "luacov")
         assertEquals(expected, feed.kinds.keys)
     }
 
@@ -51,13 +51,18 @@ class LuaToolchainFeedTest {
     fun everySha256IsRealHexOrTodoSentinel() {
         feed().kinds.values.forEach { kind ->
             kind.versions.forEach { version ->
-                version.source?.let { assertPinValid(it.sha256) }
+                version.source?.let { assertPinValid(it.sha256, gitSource = it.urls == listOf("git")) }
                 version.assets.forEach { assertPinValid(it.sha256) }
             }
         }
     }
 
-    private fun assertPinValid(sha256: String) {
+    /**
+     * A git source (`urls == ["git"]`) carries no checksum — the git strategy never reads it — so
+     * an empty sha256 is valid there; every download-based source/asset must be 64-hex or `TODO-PIN`.
+     */
+    private fun assertPinValid(sha256: String, gitSource: Boolean = false) {
+        if (gitSource && sha256.isEmpty()) return
         val valid = sha256 == "TODO-PIN" || hexPin.matches(sha256)
         assertTrue("sha256 must be a 64-hex lowercase string or exactly 'TODO-PIN', was '$sha256'", valid)
     }
@@ -120,6 +125,18 @@ class LuaToolchainFeedTest {
             assertTrue("lists known versions", message.contains("Known:"))
             assertTrue("known list includes a shipped version", message.contains("5.4.8"))
         }
+    }
+
+    @Test
+    fun luaJitGateIsOpenAndLatestResolvesOnPosix() {
+        // The TOOLING-00-03 gate PASSED: the luajit entry ships un-gated (gatedOn == null) and its
+        // git source is provisionable on POSIX, so `latest`/`^` resolve to the v2.1 ref.
+        val version = feed().kinds.getValue("luajit").versions.single()
+        assertEquals("v2.1", version.version)
+        assertTrue("luajit v2.1 is un-gated (gate open)", version.gatedOn == null)
+        assertEquals(listOf("git"), version.source?.urls)
+        assertEquals("v2.1", LuaToolchainFeedLoader.resolveVersion(feed(), "luajit", "latest", linux).version)
+        assertEquals("v2.1", LuaToolchainFeedLoader.resolveVersion(feed(), "luajit", "^", linux).version)
     }
 
     @Test

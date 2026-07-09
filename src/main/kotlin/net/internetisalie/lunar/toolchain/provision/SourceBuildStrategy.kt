@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.toolchain.provision
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.openapi.util.io.FileUtil
 import net.internetisalie.lunar.toolchain.exec.LuaExecResult
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
@@ -27,15 +28,25 @@ import kotlin.io.path.writeText
 class SourceBuildStrategy(
     private val downloader: LuaArtifactDownloader = LuaArtifactDownloader(),
     private val execService: LuaToolExecutionService = LuaToolExecutionService.getInstance(),
+    private val luaJitProbes: LuaJitToolProbes = LuaJitToolProbes(),
 ) : LuaProvisioningStrategy {
     override val id: String = "source-build"
 
     override fun supports(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): Boolean {
         if (platform.os == LuaOs.WINDOWS) return false
+        if (item.kindId == "luajit") return supportsLuaJit(item, platform, feed)
         if (item.kindId != "lua" && item.kindId != "luarocks") return false
         val resolved = runCatching { LuaToolchainFeedLoader.resolveVersion(feed, item.kindId, item.versionSpec, platform) }
             .getOrNull() ?: return false
         return resolved.source != null
+    }
+
+    /** LuaJIT git+make gating (design §3.9): un-gated feed entry AND `git`+`make` on PATH. */
+    private fun supportsLuaJit(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): Boolean {
+        val resolved = runCatching { LuaToolchainFeedLoader.resolveVersion(feed, item.kindId, item.versionSpec, platform) }
+            .getOrNull() ?: return false
+        if (resolved.source == null) return false
+        return luaJitProbes.gitAvailable() && luaJitProbes.makeAvailable(platform)
     }
 
     override fun identityHash(context: LuaProvisionContext, item: LuaProvisionItem): String {
@@ -52,7 +63,7 @@ class SourceBuildStrategy(
         val recipeInput = LuaBuildRecipeInput(resolved.version, context.platform.os, toolchain, buildDir, context.rootDir)
         val plan = planFor(item.kindId, recipeInput)
         runSteps(plan, context)
-        applyInstall(plan, InstallTarget(item.kindId, resolved.version, context.rootDir))
+        applyInstall(plan, InstallTarget(item.kindId, resolved.version, context.rootDir), buildDir)
         FileUtil.delete(buildDir.toFile())
         return component(item.kindId, resolved, context)
     }
@@ -60,10 +71,13 @@ class SourceBuildStrategy(
     private data class InstallTarget(val kindId: String, val version: String, val rootDir: Path)
 
     private fun prepareBuildDir(item: LuaProvisionItem, resolved: LuaFeedVersion, context: LuaProvisionContext) {
-        val source = sourceOf(item.kindId, resolved)
         val buildDir = context.rootDir.resolve(".build/${item.kindId}-${resolved.version}")
         FileUtil.delete(buildDir.toFile())
+        // LuaJIT is cloned by the plan's first `git clone` step, so leave its buildDir absent;
+        // the tarball-based kinds (lua/luarocks) download + extract into a pre-created dir here.
+        if (item.kindId == "luajit") return
         buildDir.createDirectories()
+        val source = sourceOf(item.kindId, resolved)
         val archive = downloader.fetch(source.urls, source.sha256, source.size, context.indicator)
         LuaArchiveExtractor.extract(archive, buildDir, source.rootPrefix, context.indicator)
         if (item.kindId == "lua") patchLuaconfFile(buildDir, resolved.version, context.rootDir)
@@ -82,11 +96,12 @@ class SourceBuildStrategy(
         when (kindId) {
             "lua" -> PucLuaBuildRecipe.plan(input)
             "luarocks" -> requireMake(input.toolchain).let { LuaRocksBuildRecipe.plan(input) }
+            "luajit" -> requireMake(input.toolchain).let { LuaJitBuildRecipe.plan(input) }
             else -> throw LuaProvisionException("SourceBuildStrategy cannot build kind '$kindId'")
         }
 
     private fun requireMake(toolchain: LuaCompilerProbe.Toolchain) {
-        if (toolchain.make == null) throw LuaProvisionException("GNU make not found on PATH; required to build LuaRocks.")
+        if (toolchain.make == null) throw LuaProvisionException("GNU make not found on PATH; required for this source build.")
     }
 
     private fun runSteps(plan: BuildPlan, context: LuaProvisionContext) {
@@ -107,14 +122,25 @@ class SourceBuildStrategy(
         return LuaProvisionException("Build command failed (exit ${result.exitCode}): $command\n$tail")
     }
 
-    private fun applyInstall(plan: BuildPlan, target: InstallTarget) {
+    private fun applyInstall(plan: BuildPlan, target: InstallTarget, buildDir: Path) {
+        // LuaJIT's `.so` copy is best-effort (skipped when not built); every other copy is required.
+        val optional = target.kindId == "luajit"
         for ((source, dest) in plan.installCopies) {
+            if (optional && !source.exists()) continue
             dest.parent?.createDirectories()
             FileUtil.copy(source.toFile(), dest.toFile())
         }
         plan.executables.forEach(LuaArchiveExtractor::restoreExecBit)
         if (target.kindId == "lua") PucLuaBuildRecipe.installDirs(target.rootDir, target.version).forEach { it.createDirectories() }
         if (target.kindId == "luarocks") appendLuaRocksConfig(target.rootDir, target.version)
+        if (target.kindId == "luajit") copyJitRuntime(buildDir, target.rootDir)
+    }
+
+    private fun copyJitRuntime(buildDir: Path, rootDir: Path) {
+        val source = LuaJitBuildRecipe.jitRuntimeSource(buildDir)
+        val dest = LuaJitBuildRecipe.jitRuntimeDest(rootDir)
+        dest.createDirectories()
+        FileUtil.copyDir(source.toFile(), dest.toFile())
     }
 
     private fun appendLuaRocksConfig(rootDir: Path, version: String) {
@@ -135,6 +161,7 @@ class SourceBuildStrategy(
 
     private fun hashFor(kindId: String, resolved: LuaFeedVersion, context: LuaProvisionContext): String {
         val compat = if (kindId == "lua") PucLuaBuildRecipe.compatDefines(resolved.version).joinToString(" ") else ""
+        val artifact = if (kindId == "luajit") "git=${resolved.version}" else resolved.source?.sha256.orEmpty()
         val input = LuaIdentifiersHashInput(
             kindId = kindId,
             resolvedVersion = resolved.version,
@@ -142,7 +169,7 @@ class SourceBuildStrategy(
             os = context.platform.os,
             arch = context.platform.arch,
             canonicalRootDir = context.rootDir.toString(),
-            artifact = resolved.source?.sha256.orEmpty(),
+            artifact = artifact,
             compatDefines = compat,
         )
         return LuaIdentifiersHash.compute(input)
@@ -151,4 +178,18 @@ class SourceBuildStrategy(
     private companion object {
         private const val OUTPUT_TAIL = 20
     }
+}
+
+/**
+ * Injectable availability probes for the LuaJIT git+make gate (design §3.9). The production
+ * defaults hit `PATH` via [PathEnvironmentVariableUtil] / [LuaCompilerProbe]; tests substitute
+ * fakes so `supports()` gating is asserted without depending on the CI having git/make installed.
+ */
+class LuaJitToolProbes(
+    private val gitOnPath: () -> Boolean = { PathEnvironmentVariableUtil.findInPath("git") != null },
+    private val makeOnPath: (LuaHostPlatform) -> Boolean = { LuaCompilerProbe.probe(it)?.make != null },
+) {
+    fun gitAvailable(): Boolean = gitOnPath()
+
+    fun makeAvailable(platform: LuaHostPlatform): Boolean = makeOnPath(platform)
 }

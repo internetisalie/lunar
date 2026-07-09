@@ -13,8 +13,8 @@ import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeedLoader
  * `luarocks-install`, otherwise a *release-binary tool*.
  */
 object LuaToolCatalog {
-    /** Runtime kinds offered in the Runtime combo (v1: only kinds with a visible version). */
-    val RUNTIME_KINDS: List<String> = listOf("lua")
+    /** Runtime kinds offered in the Runtime combo (v1: `lua` + `luajit` — its feed gate is open). */
+    val RUNTIME_KINDS: List<String> = listOf("lua", "luajit")
 
     /** Dev-tool kinds offered as checkboxes, in display order (design §2.12 field 6). */
     val TOOL_KINDS: List<String> = listOf("luacheck", "stylua", "busted", "luacov", "lua-language-server")

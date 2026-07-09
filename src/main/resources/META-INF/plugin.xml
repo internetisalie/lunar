@@ -442,6 +442,10 @@
     <!-- Synchronize project target/language level from the effective toolchain runtime (TOOLING-02-09) -->
     <postStartupActivity
             implementation="net.internetisalie.lunar.toolchain.resolve.LuaTargetSyncStartup" />
+
+    <!-- Offer re-registration of an orphaned Lunar-provisioned environment tree (TOOLING-04-16) -->
+    <postStartupActivity
+            implementation="net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup" />
     <applicationConfigurable groupId="tools"
             instance="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"
             id="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"

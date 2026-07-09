@@ -117,6 +117,21 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
         assertTrue("a different dir is not blocked by /env/a", provisioner.tryReserve("/env/b"))
     }
 
+    // --- TC 18: batch rows derive distinct rootDirs → concurrent reservations succeed ---
+
+    fun testBatchRowsDeriveDistinctRootDirsThatReserveConcurrently() {
+        val rows = listOf(LuaBatchRow("lua", "5.1.5"), LuaBatchRow("lua", "5.4.8"))
+        val requests = LuaBatchDerivation.toRequests("/envs", rows)
+        assertEquals(listOf("/envs/lua-5.1.5", "/envs/lua-5.4.8"), requests.map { it.rootDir })
+
+        val provisioner = LuaToolProvisioner()
+        // Distinct rootDirs → per-rootDir reservation makes the two rows safely concurrent.
+        assertTrue("first row reserves", provisioner.tryReserve(requests[0].rootDir))
+        assertTrue("second (distinct) row reserves while first is held", provisioner.tryReserve(requests[1].rootDir))
+        // A duplicate rootDir collapses to a single refusal (the second identical row balloons).
+        assertFalse("duplicate rootDir is refused", provisioner.tryReserve(requests[0].rootDir))
+    }
+
     // --- TC 11: identical re-run → all skip, env re-activated ---
 
     fun testIdenticalRerunSkipsAllAndReactivates() {
