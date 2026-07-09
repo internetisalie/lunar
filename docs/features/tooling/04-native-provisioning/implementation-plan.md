@@ -201,8 +201,14 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
       all ran. **TC 15** (Tools ▸ Lua Toolchain group + correct action enablement, before/after an
       active env), the dialog (feed-driven combos, auto-name, §3.11 ordering, forced-LuaRocks), and
       **TC 11** idempotency (re-run via Change Versions → "already up to date (3 tools)", no rebuild)
-      were all confirmed live. Windows path (TC 6) still asset-download dry-run only (no Windows host
-      in the loop) — flagged for manual QA before release.
+      were all confirmed live.
+- [x] Live: **Windows (TC 6)** — **PASSED (2026-07-09)** on the `win11` KVM VM (real GoLand, fresh
+      plugin installed from disk). Provisioned `{lua 5.4.2 (win-lua-binaries → canonical `lua.exe`),
+      luarocks 3.13.0 (standalone zip + `luarocks-config.lua`), luacheck 1.2.0 (`luacheck.exe`)}` →
+      "Provisioned … (3 tools)"; `lua.exe` runs and resolves via the terminal PATH injection. This
+      run **found + fixed a real bug** (`12928b99`): single-binary assets whose `binaryPath` already
+      ends in `.exe` got a doubled extension (`luarocks.exe.exe` / `luacheck.exe.exe`) → not on PATH.
+      Now regression-tested (`ReleaseBinaryStrategyTest.testWindowsExecNameDoesNotDoubleExeExtension`).
       **Unblocked by real pins:** the feed's SHA-256/size pins are now computed and committed
       (`6fd5b7f2`; PUC-Lua cross-checked against lua.org), so the download/verify pipeline no longer
       refuses the (removed) `TODO-PIN` sentinels.

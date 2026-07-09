@@ -166,8 +166,7 @@ unchanged (matrix consumption of new envs is TOOLING-05).
 ## Acceptance Criteria
 - [x] TC 1–16 pass (all Musts): feed resolution, cache verification, preflight, manifest
       idempotency, registration, action/dialog swap — via unit tests across Phases 1–7 plus the
-      live linux pipeline below (TC 1/11/15/16). The **Windows** pipeline (TC 6) is covered by
-      the asset-download dry-run only (no Windows host in the loop) — flagged for manual QA.
+      live linux + windows pipelines below (TC 1/6/11/15/16).
 - [x] `python3 scripts/lint_docs.py docs` green; unit suite green (build-plan, feed, hash, and
       dialog-validation tests are pure and CI-safe — no network, no compiler).
 - [x] Live VNC verification **PASSED (2026-07-09, `verify-in-ide` on the lunar-builder VM)**:
@@ -175,6 +174,13 @@ unchanged (matrix consumption of new envs is TOOLING-05).
       build/install → `.lunar-env.json` → registered+activated, "Provisioned … (3 tools)"), ran a
       script with the provisioned `lua` and `--version` on all three, and confirmed TC 11
       idempotency ("already up to date") + TC 15 menu/enablement live.
+- [x] Live **Windows** VNC verification **PASSED (2026-07-09, GoLand on the `win11` KVM VM)**:
+      installed the fresh plugin, provisioned `{lua 5.4.2 (win-lua-binaries), luarocks 3.13.0
+      (standalone zip + `luarocks-config.lua`), luacheck 1.2.0 (`luacheck.exe`)}` into
+      `C:\Users\tester\Documents\.lua` → "Provisioned … (3 tools)"; the canonical `lua.exe` copy runs
+      and resolves via the TOOLING-03 terminal PATH injection. **Found + fixed a real Windows bug**
+      (`12928b99`): the single-binary layout double-appended `.exe` for assets whose `binaryPath`
+      already carried it (`luarocks.exe.exe` / `luacheck.exe.exe`) — regression-tested.
 - [x] No `hererocks`/Python reference in any new code path (`toolchain.provision`).
 
 ## Non-Functional Requirements
