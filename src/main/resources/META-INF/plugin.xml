@@ -602,6 +602,14 @@
   </extensions>
 
   <actions>
+    <!-- Toolchain diagnostics snapshot (TOOLING-07-07) -->
+    <action id="Lua.ToolchainDiagnostics"
+            class="net.internetisalie.lunar.toolchain.health.LuaToolchainDiagnosticsAction"
+            text="Lua: Toolchain Diagnostics"
+            description="Write a Lua toolchain state snapshot to the IDE log">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+
     <action id="Lua.Console"
             class="net.internetisalie.lunar.run.console.LuaConsoleAction"
             text="Lua Console"

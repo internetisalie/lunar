@@ -2,7 +2,7 @@
 id: "TOOLING-07"
 title: "07: Health Monitoring & Diagnostics"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "TOOLING"
 folders:
@@ -63,8 +63,8 @@ diagnostics snapshot. Parent epic: [TOOLING](../requirements.md); binding contra
 | TOOLING-07-03 | **Reactive VFS monitoring** | M | Full | A project-scoped `AsyncFileListener` watches inventory binary paths, environment root dirs, and environment `bin/` dirs; matching events schedule a batched background revalidation (500 ms merge window). No polling. |
 | TOOLING-07-04 | **Editor banner for broken engaged tools** | M | Full | Lua-file editor banner when an *engaged* kind's intended tool is unusable, naming kind + reason with a link to the Toolchain settings page; and "No usable Lua runtime for this project" when no RUNTIME kind resolves. |
 | TOOLING-07-05 | **State-transition notifications** | M | Full | One WARNING balloon when tools transition usable→unusable (deduped per transition); one balloon when an environment root directory is deleted (deduped per env per session), with member tools' reason set to the env-root cause. |
-| TOOLING-07-06 | **Diagnostics snapshot** | S | Not Implemented | `LuaToolDiagnostics.logSnapshot` writes kinds, full inventory with health, global/project bindings, environments (with active flag), and per-kind resolver outcomes to the IDE log in a fixed line format. |
-| TOOLING-07-07 | **Diagnostics action** | C | Not Implemented | A "Lua: Toolchain Diagnostics" action in the Tools menu triggers `logSnapshot` on demand. |
+| TOOLING-07-06 | **Diagnostics snapshot** | S | Full | `LuaToolDiagnostics.logSnapshot` writes kinds, full inventory with health, global/project bindings, environments (with active flag), and per-kind resolver outcomes to the IDE log in a fixed line format. |
+| TOOLING-07-07 | **Diagnostics action** | C | Full | A "Lua: Toolchain Diagnostics" action in the Tools menu triggers `logSnapshot` on demand. |
 
 ## Detailed Specifications
 

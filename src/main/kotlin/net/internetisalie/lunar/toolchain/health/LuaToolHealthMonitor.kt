@@ -107,7 +107,7 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
         }
         val deadEnvsToNotify = collectDeadEnvNotifications(envs, deadRoots)
         marshalUiUpdates(outcome.newlyBroken, deadEnvsToNotify)
-        // TOOLING-07-06 (Phase 4): LuaToolDiagnostics.logSnapshot(project)
+        LuaToolDiagnostics.logSnapshot(project)
     }
 
     private fun checkAndWriteTool(

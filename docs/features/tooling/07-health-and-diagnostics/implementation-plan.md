@@ -65,11 +65,11 @@ compile (or a temporary settings-id string, replaced before merge).
 ### Phase 4: Diagnostics [Should / Could]
 - **Goal**: full-toolchain snapshot logging (+ optional action).
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.health.LuaToolDiagnostics`
+  - [x] Create `net.internetisalie.lunar.toolchain.health.LuaToolDiagnostics`
         (design §2.5) emitting the §4.1 grammar; call it from the §3.3 pass.
-  - [ ] [Could] Create `LuaToolchainDiagnosticsAction` (design §2.6) + `<action>`
+  - [x] [Could] Create `LuaToolchainDiagnosticsAction` (design §2.6) + `<action>`
         registration (design §7).
-  - [ ] Test: snapshot format assertions (TC-08) by capturing log output or refactoring
+  - [x] Test: snapshot format assertions (TC-08) by capturing log output or refactoring
         emission through a `(String) -> Unit` sink parameter defaulting to `log::info`.
 - **Exit criteria**: TC-TOOLING-07-08 passes; every §4.1 line class appears for a
   populated registry.
@@ -104,4 +104,4 @@ compile (or a temporary settings-id string, replaced before merge).
 | Phase 1: Health checker on the new model | done | Must |
 | Phase 2: Monitor — VFS, batching, writes, notifications | done | Must |
 | Phase 3: Editor banner provider | done | Must |
-| Phase 4: Diagnostics | todo | Should/Could |
+| Phase 4: Diagnostics | done | Should/Could |
