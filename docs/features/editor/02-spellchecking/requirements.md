@@ -3,7 +3,7 @@ id: EDITOR-02
 title: "02: Spellchecking"
 type: feature
 parent_id: EDITOR
-status: "todo"
+status: "planned"
 priority: "high"
 folders:
   - "[[features/editor/requirements|requirements]]"
@@ -29,3 +29,19 @@ the existing lexer, and its absence is something users unconsciously register as
   splitter for declaration names; return `EMPTY_TOKENIZER` for keywords/operators/numbers.
 - Identifier rename quick-fix leverages the existing `refactoringSupport` / `namesValidator`.
 - Reference: `intellij-community` `*SpellcheckingStrategy` (e.g. Properties, JSON, Groovy).
+
+## 3. Test Cases
+
+All cases use `myFixture` + `<TYPO descr="Typo: In word '…'">…</TYPO>` markers and
+`checkHighlighting` (real-flow DoD gate). See design §5 and implementation-plan Verification Tasks.
+
+| TC | Input | Action | Expected Output | Covers |
+| :--- | :--- | :--- | :--- | :--- |
+| TC-1 | `-- helo world` | highlight | `<TYPO>helo</TYPO>` flagged; `world` not | 02-01 |
+| TC-2 | `local s = "helo"` | highlight | `helo` flagged inside the string | 02-02 |
+| TC-3 | `local s = [==[helo]==]` | highlight | `helo` flagged at the inner offset (not on `[==[`) | 02-02 |
+| TC-4 | `local recieveBuffer = 1` | highlight + Alt+Enter | `recieve` flagged; **Rename** fix offered | 02-03, 02-04 |
+| TC-5 | `local pairs = 1` | highlight | no typo (stdlib name suppressed) | 02-05 |
+| TC-6 | `#!/usr/bin/lua\n` | highlight | no typo (shebang skipped) | 02-01 |
+| TC-7 | `---@class Buildr\n---helo` | highlight | prose `helo` flagged; `Buildr` / `class` not | 02-01, 02-05 |
+| TC-8 | `-- helo` | Alt+Enter | **Change to…** and **Save 'helo' to dictionary** fixes offered | 02-04 |
