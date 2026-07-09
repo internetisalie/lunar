@@ -2,7 +2,7 @@
 id: "TOOLING-06"
 title: "06: Settings UI Consolidation"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "TOOLING"
 folders:
@@ -171,14 +171,14 @@ automatable with a stubbed probe; the visual flows (tree placement, toolbar icon
 dialog opening) are human/VNC checks — see the implementation plan's verification tasks.
 
 ## Acceptance Criteria
-- [ ] Settings shows exactly the TOOLING-06-01 tree; nothing Lua-related under Tools (06-01, 06-08).
-- [ ] All registered tools — interpreters included — appear in one table with the six specified columns (06-02, 06-12).
-- [ ] Add/Auto-Discover/Provision…/Remove/Re-check work with all probing off the EDT (06-03).
-- [ ] Luacheck arguments and rocks default server are editable on the Toolchain page and round-trip through isModified/apply/reset (06-04).
-- [ ] Per-kind binding combos and the environment selector edit TOOLING-02 state and fire the toolchain topic on apply (06-05, 06-09).
-- [ ] Interpreter/platform/version combos and the hererocks checkbox are gone; the resolved-runtime display shows the applied resolution (06-06).
-- [ ] Rocks server override, source path, and underscore suppression still work (06-07).
-- [ ] Searchable IDs stable; buildSearchableOptions stays disabled (`build.gradle.kts:82-86`) so no index work (06-10).
+- [x] Settings shows exactly the TOOLING-06-01 tree; nothing Lua-related under Tools (06-01, 06-08).
+- [x] All registered tools — interpreters included — appear in one table with the six specified columns (06-02, 06-12).
+- [x] Add/Auto-Discover/Provision…/Remove/Re-check work with all probing off the EDT (06-03).
+- [x] Luacheck arguments and rocks default server are editable on the Toolchain page and round-trip through isModified/apply/reset (06-04).
+- [x] Per-kind binding combos and the environment selector edit TOOLING-02 state and fire the toolchain topic on apply (06-05, 06-09).
+- [x] Interpreter/platform/version combos and the hererocks checkbox are gone; the resolved-runtime display shows the applied resolution (06-06).
+- [x] Rocks server override, source path, and underscore suppression still work (06-07).
+- [x] Searchable IDs stable; buildSearchableOptions stays disabled (`build.gradle.kts:82-86`) so no index work (06-10).
 
 ## Non-Functional Requirements
 - **EDT discipline** (engineering contract + contract §10): no process I/O on the EDT; UI
