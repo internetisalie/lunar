@@ -1,11 +1,7 @@
 package net.internetisalie.lunar.toolchain.probe
 
-import com.intellij.openapi.util.SystemInfo
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
-import net.internetisalie.lunar.toolchain.model.LuaToolKind
-import net.internetisalie.lunar.toolchain.model.ProbeSpec
-import net.internetisalie.lunar.toolchain.model.SemanticVersion
 import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -199,51 +195,6 @@ class LuaToolProbeTest {
         }
     }
 
-    // TC 10: Fake binary sleeping longer than the spec timeout
-    @Test
-    fun testProcessLevelTimeout_TC10(@TempDir tempDir: Path) {
-        if (SystemInfo.isWindows) return
-        val scriptFile = tempDir.resolve("fake-slow")
-        Files.writeString(scriptFile, "#!/bin/sh\nsleep 2\n")
-        scriptFile.toFile().setExecutable(true)
-
-        val slowKind = LuaToolKind(
-            id = "slow-tool",
-            displayName = "Slow Tool",
-            binaryNames = listOf("slow-tool"),
-            probe = ProbeSpec(
-                args = emptyList(),
-                versionRegex = Regex("""(\d+\.\d+\.\d+)"""),
-                timeoutMs = 100
-            ),
-            capabilities = emptySet()
-        )
-
-        val result = probe.probe(slowKind, scriptFile)
-
-        assertFalse(result.ok)
-        assertEquals("Timeout", result.failure)
-    }
-
-    // Process-level happy path (POSIX only)
-    @Test
-    fun testProcessLevelHappyPath_TC1(@TempDir tempDir: Path) {
-        if (SystemInfo.isWindows) return
-        val scriptFile = tempDir.resolve("fake-lua")
-        Files.writeString(scriptFile, "#!/bin/sh\necho 'Lua 5.4.6  Copyright (C) 1994-2023 Lua.org, PUC-Rio'\n")
-        scriptFile.toFile().setExecutable(true)
-
-        val luaKind = LuaToolKindRegistry.findById("lua")!!
-        val result = probe.probe(luaKind, scriptFile)
-
-        assertTrue(result.ok)
-        assertEquals("5.4.6", result.version)
-        val runtime = result.runtime
-        assertNotNull(runtime)
-        assertEquals("Lua", runtime!!.product)
-        assertEquals("5.4.6", runtime.version)
-        assertEquals(LuaLanguageLevel.LUA54, runtime.languageLevel)
-        assertEquals(LuaPlatform.STANDARD, runtime.platform)
-        assertNull(result.failure)
-    }
+    // TC 10 and process-level happy path (TC 1) require a live Application (LuaToolExecutionService)
+    // and live in LuaToolProbeProcessTest (BasePlatformTestCase).
 }
