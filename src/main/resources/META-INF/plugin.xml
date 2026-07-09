@@ -458,8 +458,8 @@
 
     <projectConfigurable
             parentId="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
-            instance="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
-            id="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
+            instance="net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable"
+            id="net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable"
             displayName="Lua Project"
             nonDefaultProject="true"/>
 

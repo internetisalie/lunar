@@ -55,17 +55,23 @@ there first (contract §1).
 - **Goal**: the project page speaks TOOLING-02 state; interpreter-era controls gone; no
   silent applies.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable` (design §2.3)
+  - [x] Create `net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable` (design §2.3)
         with the §2.3 group layout and the `LuaBindingItem`/`LuaEnvironmentItem` combo model
         (design §2.4).
-  - [ ] Implement combo population / `isModified` diff rules / dangling-id normalization
+  - [x] Implement combo population / `isModified` diff rules / dangling-id normalization
         (design §3.4) and the resolved-runtime display incl. fallback + recompute triggers
         (design §3.5).
-  - [ ] Implement `apply()` per the §3.6 mutator matrix (changed-fields-only; source path &
-        underscore checkbox fire `LuaSettingsChangedListener.TOPIC`).
-  - [ ] Register the new `projectConfigurable` and remove the old one
-        (`plugin.xml:451-456`) — design §7.
-- **Exit criteria**: TC 7, 8, 9, 10, 11, 12, 14 pass.
+  - [x] Implement `apply()` per the §3.6 mutator matrix (changed-fields-only; source path &
+        underscore checkbox fire `LuaSettingsChangedListener.TOPIC`). **Rocks-URL routing drift
+        resolved** — the project rocks-server override writes `LuaProjectSettings.state.rocksServerUrl`
+        (the field the live consumer `LuaRocksEnvironment.resolveServer` reads) rather than the
+        dead `setKindOption(LUAROCKS_SERVER_URL)` of design §2.7; project luacheck-args still route
+        to `setKindOption(LUACHECK_ARGUMENTS)` (its live consumer `LuaCheckCommandLine` reads
+        `effectiveKindOption`). See [risks-and-gaps.md](risks-and-gaps.md).
+  - [x] Register the new `projectConfigurable` and remove the old one
+        (`plugin.xml`) — design §7.
+- **Exit criteria**: TC 7, 8, 9, 10, 11, 12, 14 pass — `LuaProjectConfigurableTest` green
+  (7 tests, 0 failures, isolated + confirmed compiling in the full suite).
 
 ### Phase 3: Legacy page removal [Must]
 - **Goal**: TOOLING-06-08 — one tree, nothing under *Tools*.
@@ -85,7 +91,17 @@ there first (contract §1).
         Confirmed no test imports the deleted panels (the `LuaProjectSettingsPanelLogicTest`
         class in `src/test/.../settings/LuaProjectSettingsTest.kt:497` tests
         registry/Target logic only — keep it, rename to drop the "Panel" misnomer).
-- **Exit criteria**: TC 1, 2 pass; `run build` green (no unresolved references).
+  - [ ] **Pre-existing full-suite failure to clear (surfaced during Phase 2 verification, NOT
+        introduced by it — reproduced on clean Phase-1 HEAD 13d421f9):** the JUnit3 full-suite
+        reflection scanner rejects the Kotlin-synthesized static method
+        `testInventoryTableColumnsAndValues_TC3$lambda$0` in
+        `src/test/.../toolchain/ui/LuaToolchainConfigurableTest.kt` with
+        *"Test method isn't public"*. It passes under isolated `--tests *LuaToolchainConfigurableTest*`
+        (which masked it in Phase 1) but fails `run test`/`run build`. Fix by hoisting the
+        `EdtTestUtil.runInEdtAndWait { … }` body out of `testInventoryTableColumnsAndValues_TC3`
+        into a named private helper so no `test*$lambda$N` synthetic method is emitted.
+- **Exit criteria**: TC 1, 2 pass; `run build` green (no unresolved references; full suite
+  0 failures once the pre-existing `LuaToolchainConfigurableTest` scanner failure above is cleared).
 
 ### Phase 4: Verification & polish [Must]
 - **Goal**: prove the feature end to end.
@@ -137,6 +153,6 @@ there first (contract §1).
 |-------|--------|----------|
 | Phase 0: Consumed-API reconciliation | done | Must |
 | Phase 1: Toolchain application page | done | Must |
-| Phase 2: Lua Project page rewrite | todo | Must |
+| Phase 2: Lua Project page rewrite | done | Must |
 | Phase 3: Legacy page removal | todo | Must |
 | Phase 4: Verification & polish | todo | Must |
