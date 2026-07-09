@@ -3,7 +3,7 @@ id: EDITOR-05
 title: "05: Surround With"
 type: feature
 parent_id: EDITOR
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/editor/requirements|requirements]]"
