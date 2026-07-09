@@ -4,6 +4,7 @@ title: "MAINT-10: Test Coverage - Stub Indexes"
 type: feature
 parent_id: MAINT
 status: done
+vf_icon: ✅
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"

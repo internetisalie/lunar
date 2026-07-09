@@ -3,6 +3,7 @@ id: "SCHEMA-02"
 title: "02: Rockspec Schema Provider"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "SCHEMA"
 folders:

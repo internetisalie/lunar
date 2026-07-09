@@ -4,6 +4,7 @@ title: "MAINT-12: Test Coverage - Settings & UI Configuration"
 type: feature
 parent_id: MAINT
 status: done
+vf_icon: ✅
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"

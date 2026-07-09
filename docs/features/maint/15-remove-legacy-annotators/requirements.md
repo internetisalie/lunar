@@ -3,6 +3,7 @@ id: MAINT-15
 title: "MAINT-15: Remove Legacy Annotators"
 type: feature
 status: done
+vf_icon: ✅
 priority: medium
 parent_id: MAINT
 folders:

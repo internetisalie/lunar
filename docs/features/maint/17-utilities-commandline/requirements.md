@@ -4,6 +4,7 @@ title: "MAINT-17: Test Coverage - Utilities & Command Line"
 type: feature
 parent_id: MAINT
 status: done
+vf_icon: ✅
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"

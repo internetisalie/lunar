@@ -4,6 +4,7 @@ title: "MAINT-11: Test Coverage - Structure View"
 type: feature
 parent_id: MAINT
 status: done
+vf_icon: ✅
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"

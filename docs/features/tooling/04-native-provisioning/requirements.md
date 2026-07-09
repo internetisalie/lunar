@@ -3,6 +3,7 @@ id: "TOOLING-04"
 title: "04: Native Provisioning Engine"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "TOOLING"
 folders:

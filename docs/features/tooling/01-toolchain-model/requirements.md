@@ -3,6 +3,7 @@ id: "TOOLING-01"
 title: "01: Unified Toolchain Model & Registry"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "TOOLING"
 folders:

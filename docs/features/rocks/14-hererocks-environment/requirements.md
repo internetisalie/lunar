@@ -3,6 +3,7 @@ id: ROCKS-14
 title: "14: Hererocks Environment Lifecycle"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: medium
 parent_id: ROCKS
 folders:

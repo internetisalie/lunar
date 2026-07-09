@@ -3,6 +3,7 @@ id: "SCHEMA"
 title: "SCHEMA: Schema-Driven Data Files"
 type: "epic"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 folders:
   - "[[features]]"

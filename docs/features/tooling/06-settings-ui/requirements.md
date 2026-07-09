@@ -3,6 +3,7 @@ id: "TOOLING-06"
 title: "06: Settings UI Consolidation"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "TOOLING"
 folders:

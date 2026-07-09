@@ -3,6 +3,7 @@ id: "TOOLING-00"
 title: "00: De-risking & Technical Spikes"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "TOOLING"
 folders:

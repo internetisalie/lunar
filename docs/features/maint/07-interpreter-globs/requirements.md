@@ -3,6 +3,7 @@ id: "MAINT-07"
 title: "MAINT-07: Interpreter Search Path Globs"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "MAINT"
 folders:

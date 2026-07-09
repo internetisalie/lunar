@@ -3,6 +3,7 @@ id: "MAINT-08"
 title: "MAINT-08: LuaCheck UI Grouping"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "low"
 parent_id: "MAINT"
 folders:

@@ -3,6 +3,7 @@ id: "TOOLING-03"
 title: "03: Execution & Environment Injection"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "TOOLING"
 folders:

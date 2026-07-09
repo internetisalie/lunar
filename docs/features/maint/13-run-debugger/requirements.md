@@ -3,6 +3,7 @@ id: "MAINT-13"
 title: "MAINT-13: Test Coverage - Run & Debugger"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "MAINT"
 folders:

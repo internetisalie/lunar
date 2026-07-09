@@ -3,6 +3,7 @@ id: "TOOLING-02"
 title: "02: Resolution, Binding & Environments"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: "TOOLING"
 folders:

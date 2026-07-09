@@ -4,6 +4,7 @@ title: LuaCATS Literal Highlighting Requirements
 type: feature
 parent_id: MAINT
 status: done
+vf_icon: ✅
 folders:
   - "[[features/maint/requirements|requirements]]"
 ---

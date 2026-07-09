@@ -4,6 +4,7 @@ title: "MAINT-16: Test Coverage - LuaCATS Syntax & Highlighting"
 type: feature
 parent_id: MAINT
 status: done
+vf_icon: ✅
 priority: medium
 folders:
   - "[[features/maint/requirements|requirements]]"

@@ -3,6 +3,7 @@ id: TOOLING-05
 title: "05: Consumer Migration & Legacy Removal"
 type: feature
 status: "done"
+vf_icon: ✅
 priority: "high"
 parent_id: TOOLING
 folders:

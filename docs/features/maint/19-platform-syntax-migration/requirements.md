@@ -3,6 +3,7 @@ id: "MAINT-19"
 title: "MAINT-19: platform.syntax Migration (Kotlin lexer/parser)"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "low"
 parent_id: "MAINT"
 folders:
