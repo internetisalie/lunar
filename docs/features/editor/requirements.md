@@ -53,6 +53,12 @@ Sequence by priority: land the three **Must** items first (`EDITOR-01`/`-02`/`-0
 ergonomics-per-line and each leans entirely on existing lexer/PSI/comment-token infrastructure —
 then the **Should** structural-editing pair, then the two **Could** polish items.
 
+## Planning decisions (confirmed 2026-07-09)
+
+- **Scope:** plan all eight features up front (design + implementation-plan + risks per feature).
+- **EDITOR-01 keyword auto-close:** ships **on by default** behind an Editor > Smart Keys toggle
+  (JetBrains-language convention); bracket/quote auto-close is unconditional. See `EDITOR-01-05`.
+
 ## Definition of Done (per feature)
 
 Per the roadmap DoD gate (precedence #5): a feature that surfaces through a platform EP is "done"
