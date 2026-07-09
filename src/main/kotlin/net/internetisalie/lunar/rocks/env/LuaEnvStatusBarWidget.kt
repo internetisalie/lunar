@@ -92,13 +92,13 @@ class LuaEnvStatusBarWidget(private val project: Project) :
                     HererocksEnvSet.switch(project, selectedValue.id)
                 }.queue()
             } else {
-                invokeCreateAction()
+                invokeProvisionAction()
             }
             return FINAL_CHOICE
         }
 
-        private fun invokeCreateAction() {
-            val action = ActionManager.getInstance().getAction(CREATE_ACTION_ID) ?: return
+        private fun invokeProvisionAction() {
+            val action = ActionManager.getInstance().getAction(PROVISION_ACTION_ID) ?: return
             val dataContext: DataContext = SimpleDataContext.getProjectContext(project)
             val actionEvent = AnActionEvent.createFromDataContext(WIDGET_PLACE, Presentation(), dataContext)
             action.actionPerformed(actionEvent)
@@ -121,7 +121,10 @@ class LuaEnvStatusBarWidget(private val project: Project) :
         internal fun isActive(value: Any, activeId: String?): Boolean =
             value is HererocksEnvState && value.id == activeId
 
-        private const val CREATE_ACTION_ID = "Lunar.Hererocks.Create"
+        // Transitional: the legacy Lunar.Hererocks.Create action was de-registered in TOOLING-04
+        // P7, so "Add environment…" points at the new provisioning dialog. This whole widget is
+        // rewired onto the TOOLING-02 environment model in TOOLING-05 (rocks/env → toolchain.ui).
+        private const val PROVISION_ACTION_ID = "Lunar.Toolchain.Provision"
         private const val WIDGET_PLACE = "LunarEnvStatusBarWidget"
         private val LOG = Logger.getInstance(LuaEnvStatusBarWidget::class.java)
     }
