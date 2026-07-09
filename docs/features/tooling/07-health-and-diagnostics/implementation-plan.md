@@ -51,13 +51,13 @@ compile (or a temporary settings-id string, replaced before merge).
 ### Phase 3: Editor banner provider [Must]
 - **Goal**: engaged-kind + runtime banner rules, linking the Toolchain page.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.health.LuaToolEditorNotificationProvider`
+  - [x] Create `net.internetisalie.lunar.toolchain.health.LuaToolEditorNotificationProvider`
         (design §2.4) implementing §3.4 (`engaged`, `intendedTool`, rule ordering,
         dismiss action wired to the monitor).
-  - [ ] Add the `plugin.xml` replacement block (design §7): `postStartupActivity` +
+  - [x] Add the `plugin.xml` replacement block (design §7): `postStartupActivity` +
         `editorNotificationProvider` (coordinate with TOOLING-05, which deletes the
         legacy `plugin.xml:425-431` block in the same change set).
-  - [ ] Tests: `BasePlatformTestCase` banner data-collection tests (TC-04, TC-05),
+  - [x] Tests: `BasePlatformTestCase` banner data-collection tests (TC-04, TC-05),
         covering the inspection-profile gate for luacheck (toggle `LuaCheck` via
         `myFixture.enableInspections`/profile API) and dismissal.
 - **Exit criteria**: TC-TOOLING-07-04/05 pass; banner opens the TOOLING-06 configurable.
@@ -103,5 +103,5 @@ compile (or a temporary settings-id string, replaced before merge).
 |-------|--------|----------|
 | Phase 1: Health checker on the new model | done | Must |
 | Phase 2: Monitor — VFS, batching, writes, notifications | done | Must |
-| Phase 3: Editor banner provider | todo | Must |
+| Phase 3: Editor banner provider | done | Must |
 | Phase 4: Diagnostics | todo | Should/Could |

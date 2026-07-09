@@ -499,6 +499,10 @@
     <editorNotificationProvider
             implementation="net.internetisalie.lunar.coverage.report.LuaCovReportNotificationProvider"/>
 
+    <!-- Toolchain health & diagnostics (TOOLING-07) -->
+    <postStartupActivity implementation="net.internetisalie.lunar.toolchain.health.LuaToolHealthStartup" />
+    <editorNotificationProvider implementation="net.internetisalie.lunar.toolchain.health.LuaToolEditorNotificationProvider" />
+
     <!-- RUN-08-17: covered=green / uncovered=red foregrounds for luacov.report.out -->
     <additionalTextAttributes scheme="Default" file="colorSchemes/LuaCovReportDefault.xml"/>
     <additionalTextAttributes scheme="Darcula" file="colorSchemes/LuaCovReportDarcula.xml"/>
