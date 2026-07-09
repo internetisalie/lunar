@@ -21,36 +21,35 @@ there first (contract §1).
 - **Goal**: confirm the design's §2.6 table (pinned against the TOOLING-01/02 *designs*)
   matches the *landed* TOOLING-01/02 code so Phases 1–3 are mechanical.
 - **Tasks**:
-  - [ ] Grep the landed `toolchain.*` packages for every §2.6 symbol:
+  - [x] Grep the landed `toolchain.*` packages for every §2.6 symbol:
         `LuaToolchainRegistry.tools/registerTool/unregisterTool/refreshTool/autoDiscover/
         setKindOption/kindOption`, `LuaToolchainListener.toolchainChanged(event)` + `TOPIC`,
         `LuaToolKindRegistry.all/findById`, `LuaToolResolver.resolve/resolveRuntimeDetailed`
         + `LuaToolResolution`/`ResolutionSource`, `LuaToolchainProjectSettings`
         (`setBinding`, `activateEnvironment`, `deactivateEnvironment`, `setKindOption`,
-        `environments`, `activeEnvironment`), `LuaKindOptionKeys`. Record any drifted
-        names/signatures in design §2.6/§2.7 (rename-only edits; semantic gaps go back to
-        the 01/02 owners).
-  - [ ] Verify the app-level kind-options mutators exist on `LuaToolchainRegistry`
-        (TOOLING-02 design §2.9 adds them if TOOLING-01 landed without them).
-  - [ ] Verify all §2.6 mutators fire `LuaToolchainListener.TOPIC` (contract §4;
-        TOOLING-02 design §3.9 event matrix).
+        `environments`, `activeEnvironment`), `LuaKindOptionKeys`. Recorded drift in
+        design §2.6/§2.7 (rename-only: `toolsOfKind`, `Unit`-returning `autoDiscover`/
+        `refreshTool`, `LuaToolKindRegistry` object). No semantic gaps.
+  - [x] Verify the app-level kind-options mutators exist on `LuaToolchainRegistry`
+        (present: `kindOption`/`setKindOption`, fire `KIND_OPTION_CHANGED`).
+  - [x] Verify all §2.6 mutators fire `LuaToolchainListener.TOPIC` (confirmed in source).
 - **Exit criteria**: design §2.6/§2.7 tables match compiling symbols; no TODO markers left
   in the tables.
 
 ### Phase 1: Toolchain application page [Must]
 - **Goal**: the app-level *Toolchain* page under *Lua*, feature-complete.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.ui.LuaToolchainInventoryTable`
+  - [x] Create `net.internetisalie.lunar.toolchain.ui.LuaToolchainInventoryTable`
         (design §2.2): `TableView<LuaRegisteredTool>` + `ListTableModel` + six `ColumnInfo`s
         with the §3.3 value/renderer rules; `ToolbarDecorator` wiring for
         Add / Auto-Discover / Provision… / Remove / Re-check with the §3.2 threading.
-  - [ ] Create `net.internetisalie.lunar.toolchain.ui.LuaToolchainConfigurable`
+  - [x] Create `net.internetisalie.lunar.toolchain.ui.LuaToolchainConfigurable`
         (design §2.1): `BoundSearchableConfigurable`; panel = table (resizable row) +
         *Luacheck* / *LuaRocks* option groups (`bindText` to the app defaults); topic
-        subscription per §3.1; `apply()` override per §3.6 row 1.
-  - [ ] Register the `applicationConfigurable` block (design §7 "Added").
-- **Exit criteria**: TC 3, 4, 5, 6, 13 pass; page renders in `runIde` sandbox with a seeded
-  inventory.
+        subscription per §3.1; option apply via the DSL `.onApply` setters (§3.6 row 1).
+  - [x] Register the `applicationConfigurable` block (design §7 "Added").
+- **Exit criteria**: TC 3, 4, 5, 6, 13 pass (unit); page render in `runIde`/VNC deferred to
+  Phase 4.
 
 ### Phase 2: Lua Project page rewrite [Must]
 - **Goal**: the project page speaks TOOLING-02 state; interpreter-era controls gone; no
@@ -136,8 +135,8 @@ there first (contract §1).
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: Consumed-API reconciliation | todo | Must |
-| Phase 1: Toolchain application page | todo | Must |
+| Phase 0: Consumed-API reconciliation | done | Must |
+| Phase 1: Toolchain application page | done | Must |
 | Phase 2: Lua Project page rewrite | todo | Must |
 | Phase 3: Legacy page removal | todo | Must |
 | Phase 4: Verification & polish | todo | Must |

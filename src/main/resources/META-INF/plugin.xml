@@ -450,6 +450,12 @@
             id="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
             displayName="Lua"/>
 
+    <applicationConfigurable
+            parentId="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
+            instance="net.internetisalie.lunar.toolchain.ui.LuaToolchainConfigurable"
+            id="net.internetisalie.lunar.toolchain.ui.LuaToolchainConfigurable"
+            displayName="Toolchain"/>
+
     <projectConfigurable
             parentId="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
             instance="net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"

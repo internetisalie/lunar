@@ -183,17 +183,32 @@ Signatures below are taken from the sibling feature designs (grounded per-row); 
 the implementation plan re-verifies this table against the landed TOOLING-01/02 code before
 any UI work starts** (rename-only reconciliation; semantics are contract-pinned).
 
+> **Phase 0 reconciliation (landed TOOLING-05 tree, verified against source):** the per-kind
+> read is `toolsOfKind(kindId)` (not `tools(kindId)`); `autoDiscover()` and `refreshTool(id)`
+> both return `Unit` (there is also an `autoDiscover(extraRoots: List<Path>)` overload);
+> `LuaToolKindRegistry` is a Kotlin `object` (static `all()`/`findById()`, no `getInstance()`).
+> `registerTool`/`refreshTool`/`autoDiscover` all `assertIsNonDispatchThread()`. All other §2.6
+> symbols compile as designed (`resolveDetailed`/`resolveRuntimeDetailed`,
+> `LuaToolResolution.Resolved(tool, source)`, `ResolutionSource`, `LuaKindOptionKeys`,
+> `LuaToolKind.displayName`/`.isRuntime`, `LuaToolHealth` fields, `LuaRuntimeInfo`).
+> **TOOLING-04 Provision entry point:** `LuaProvisionDialog(project, initial = null)` +
+> `.showAndGet()` → `LuaToolProvisioner.getInstance().provision(project, dialog.toRequest())`
+> (pattern: `LuaProvisionToolchainAction`). The dialog and provisioner are **project-scoped**
+> (require a non-null `Project`); the app-level Toolchain page has no project, so Provision…
+> guesses an open project and disables the action when none is available (registry topic
+> refreshes the table — no completion callback).
+
 | API | Defined by | Used by |
 |---|---|---|
 | `LuaToolchainRegistry.getInstance(): LuaToolchainRegistry` (APP service) | TOOLING-01 design §2.4; contract §1 | §2.1, §2.2 |
-| `registry.tools(): List<LuaRegisteredTool>` / `tools(kindId: String)` — thread-safe snapshot reads, never probe | TOOLING-01 design §2.4 | table refresh, combo items |
-| `registry.registerTool(path: String, kindIdHint: String? = null, origin: Origin = MANUAL, environmentId: String? = null): LuaRegisteredTool?` — probes; BGT only; fires topic | TOOLING-01 design §2.4 | Add action |
+| `registry.tools(): List<LuaRegisteredTool>` / `toolsOfKind(kindId: String)` — thread-safe snapshot reads, never probe | TOOLING-01 design §2.4 | table refresh, combo items |
+| `registry.registerTool(path: String, kindIdHint: String? = null, origin: Origin = MANUAL, environmentId: String? = null): LuaRegisteredTool?` — probes; BGT only (asserts non-dispatch thread); fires topic | TOOLING-01 design §2.4 | Add action |
 | `registry.unregisterTool(id: String): Boolean` — fires topic | TOOLING-01 design §2.4 | Remove action |
-| `registry.autoDiscover(): List<LuaRegisteredTool>` — BGT only; fires topic | TOOLING-01 design §2.4 | Auto-Discover |
-| `registry.refreshTool(id: String): LuaRegisteredTool?` — explicit re-probe; BGT only; fires topic | TOOLING-01 design §2.4 | Re-check (looped over `tools()`) |
+| `registry.autoDiscover()` (returns `Unit`; also `autoDiscover(extraRoots: List<Path>)`) — BGT only; registers each hit (fires topic per tool) | TOOLING-01 design §2.4 | Auto-Discover |
+| `registry.refreshTool(id: String)` (returns `Unit`) — explicit re-probe; BGT only; fires topic when changed | TOOLING-01 design §2.4 | Re-check (looped over `tools()`) |
 | `registry.setKindOption(key: String, value: String?)` / `kindOption(key: String): String` ("" when absent) — app-level kind-option defaults; mutator fires `KIND_OPTION_CHANGED` | TOOLING-02 design §2.9 (contract §7 one-field addition, flagged there) | §2.1 option fields |
 | `LuaToolchainListener.TOPIC` (app-level `Topic`), member `toolchainChanged(event: LuaToolchainEvent)` | TOOLING-01 design §2.5; contract §4 | table auto-refresh; §3.5 recompute |
-| `LuaToolKindRegistry.all(): List<LuaToolKind>` (ordered data list) / `findById(id: String): LuaToolKind?` | TOOLING-01 design §2.2; contract §2.1 | binding rows, Kind/Name columns |
+| `LuaToolKindRegistry.all(): List<LuaToolKind>` (ordered data list) / `findById(id: String): LuaToolKind?` — Kotlin `object` (call statically, no `getInstance()`) | TOOLING-01 design §2.2; contract §2.1 | binding rows, Kind/Name columns |
 | `LuaToolResolver.getInstance()`; `resolve(project: Project?, kindId: String): LuaRegisteredTool?` (`project = null` ⇒ global tiers only) | TOOLING-02 design §2.1; contract §3 | Inherit labels |
 | `LuaToolResolver.resolveRuntimeDetailed(project: Project?): LuaToolResolution` (`Resolved(tool, source)` / `Unresolved`) | TOOLING-02 design §2.1, §3.3 | §3.5 display |
 | `LuaToolchainProjectSettings.getInstance(project)`; `State.bindings: MutableMap<String,String>`, `State.kindOptions: MutableMap<String,String>`, `environments(): List<LuaEnvironmentState>`, `activeEnvironment(): LuaEnvironmentState?` | TOOLING-02 design §2.2; contract §7 | §2.3 reads |
@@ -290,7 +305,7 @@ is belt-and-braces; the topic subscription (§3.1) already refreshes.
 - **Population** (on `reset()`, EDT):
   1. `kinds = LuaToolKindRegistry.all()`, stably partitioned so RUNTIME-capability kinds
      come first (registry order preserved within each partition).
-  2. For each kind: items = `[Inherit] + registry.tools(kind.id).map(LuaBindingItem::Tool)`.
+  2. For each kind: items = `[Inherit] + registry.toolsOfKind(kind.id).map(LuaBindingItem::Tool)`.
      Selected item: `bindings[kind.id]`'s tool if that id is still in the inventory, else
      `Inherit` (a dangling binding id renders as `Inherit` and is *cleared on next apply* —
      see rules below).
