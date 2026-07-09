@@ -3,29 +3,28 @@ package net.internetisalie.lunar.command
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.platform.LuaInterpreter
-import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.nio.file.Files
 import java.nio.file.Path
 
+/**
+ * Covers the surviving legacy [newLuaInterpreterCommandLine] factory (jar branch + system binary).
+ *
+ * TOOLING-05 Phase 4: the `newProjectLuaInterpreterCommandLine` / `newLuaDefaultInterpreterCommandLine`
+ * tests were dropped — those factories were removed; their resolver-based replacement
+ * (`toolchain.exec.LuaInterpreterCommandLines.forProject`) is covered by
+ * `LuaInterpreterCommandLinesTest`. This file is deleted in Phase 5 with `command/LuaCommandLine.kt`.
+ */
 class LuaCommandLineTest : BasePlatformTestCase() {
 
     private lateinit var base: Path
-    private var originalInterpreter: LuaInterpreter? = null
-    private lateinit var originalSourcePath: String
 
     override fun setUp() {
         super.setUp()
         base = Files.createTempDirectory("lunar-cmdline-test")
-        val settingsState = LuaProjectSettings.getInstance(project).state
-        originalInterpreter = settingsState.interpreter
-        originalSourcePath = settingsState.sourcePath
     }
 
     override fun tearDown() {
         try {
-            val settingsState = LuaProjectSettings.getInstance(project).state
-            settingsState.interpreter = originalInterpreter
-            settingsState.sourcePath = originalSourcePath
             base.toFile().deleteRecursively()
         } finally {
             super.tearDown()
@@ -61,27 +60,6 @@ class LuaCommandLineTest : BasePlatformTestCase() {
 
     fun testNullExecutableReturnsNull() {
         val cmd = newLuaInterpreterCommandLine(LuaInterpreter(path = "/no/such/lua"))
-
-        assertNull(cmd)
-    }
-
-    fun testProjectCommandLineInjectsLuaPath() {
-        val luaPath = createAndRefresh("lua-proj")
-        val sourcePath = "/tmp/lunar-src/?.lua"
-        val settingsState = LuaProjectSettings.getInstance(project).state
-        settingsState.interpreter = LuaInterpreter(path = luaPath.toString())
-        settingsState.sourcePath = sourcePath
-
-        val cmd = newProjectLuaInterpreterCommandLine(project)
-
-        assertNotNull(cmd)
-        assertEquals(sourcePath, cmd!!.environment["LUA_PATH"])
-    }
-
-    fun testProjectCommandLineNullInterpreterReturnsNull() {
-        LuaProjectSettings.getInstance(project).state.interpreter = null
-
-        val cmd = newProjectLuaInterpreterCommandLine(project)
 
         assertNull(cmd)
     }

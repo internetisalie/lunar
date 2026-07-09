@@ -170,24 +170,10 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
     }
 
     override fun loadState(state: State) {
+        // TOOLING-05 Phase 4: `migrateInterpreterMode` removed (clean break — no legacy-field seeding).
+        // `migrateLegacyEnv` + the InterpreterMode/hererocks machinery defer to Phase 5.
         migrateLegacyEnv(state)
-        migrateInterpreterMode(state)
         myState = state
-    }
-
-    /**
-     * Seeds [State.interpreterMode] for projects that predate the field (ROCKS-16). Runs after
-     * [migrateLegacyEnv] so [State.activeEnvId] reflects any migrated ROCKS-14 env. A project that
-     * already has a bound env defaults to [InterpreterMode.HEREROCKS_MANAGED] so today's implicit
-     * "the env drives the interpreter" behaviour is retained; otherwise it defaults to
-     * [InterpreterMode.EXPLICIT]. Idempotent via [State.interpreterModeMigrated].
-     */
-    private fun migrateInterpreterMode(state: State) {
-        if (state.interpreterModeMigrated) return
-        state.interpreterMode =
-            if (state.activeEnvId.isNotBlank()) InterpreterMode.HEREROCKS_MANAGED
-            else InterpreterMode.EXPLICIT
-        state.interpreterModeMigrated = true
     }
 
     /**

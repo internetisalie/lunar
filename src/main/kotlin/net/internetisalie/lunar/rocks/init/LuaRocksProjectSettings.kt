@@ -1,8 +1,12 @@
 package net.internetisalie.lunar.rocks.init
 
-import net.internetisalie.lunar.rocks.env.HererocksFlavor
-
 enum class RockType { LIBRARY, APPLICATION }
+
+/** Runtime kind ids offered by the New Project wizard (TOOLING-05 §2.8). */
+object WizardRuntimeKinds {
+    const val LUA = "lua"
+    const val LUAJIT = "luajit"
+}
 
 data class LuaRocksProjectSettings(
     var name: String = "",
@@ -11,20 +15,20 @@ data class LuaRocksProjectSettings(
     var bustedConfig: Boolean = false,
     var makefile: Boolean = false,
 
-    // --- Interpreter (ROCKS-17: hererocks integration in the New Project wizard) -----------------
+    // --- Interpreter (TOOLING-05 §2.8: toolchain integration in the New Project wizard) --------------
     /**
-     * The Lua flavor + version the new project targets. Always defines the project [Target]
-     * (platform + language level); when [provisionHererocks] is true they also parameterize the
-     * hererocks provision.
+     * The runtime kind id the new project targets (`"lua"` or `"luajit"`, [WizardRuntimeKinds]). With
+     * [luaVersion] this defines the project `Target` (platform + language level); when
+     * [provisionEnvironment] is true they also parameterize the provisioning request.
      */
-    var flavor: HererocksFlavor = HererocksFlavor.PUC,
+    var kindId: String = WizardRuntimeKinds.LUA,
     var luaVersion: String = "5.4",
     /**
-     * When true, provision a project-scoped isolated environment (`<projectDir>/.lua`) with
-     * hererocks and let it drive the interpreter (Managed mode). When false, the project uses
-     * [interpreterPath] (an existing, globally-registered interpreter) in Explicit mode.
+     * When true, provision a project-scoped isolated environment (`<projectDir>/.lua`) via the
+     * TOOLING-04 provisioner and activate it. When false, the project binds [interpreterPath] (an
+     * existing, registered runtime tool).
      */
-    var provisionHererocks: Boolean = false,
-    /** Path of the chosen existing interpreter when [provisionHererocks] is false; blank = none. */
+    var provisionEnvironment: Boolean = false,
+    /** Path of the chosen existing interpreter when [provisionEnvironment] is false; blank = none. */
     var interpreterPath: String = "",
 )

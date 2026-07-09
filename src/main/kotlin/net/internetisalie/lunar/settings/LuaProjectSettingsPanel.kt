@@ -8,9 +8,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.path.PathConfiguration
-import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.platform.LuaPlatform
-import net.internetisalie.lunar.platform.customizeLuaInterpreterComboBox
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.platform.target.VersionEntry
@@ -19,13 +17,18 @@ import javax.swing.JCheckBox
 import javax.swing.JLabel
 import javax.swing.JPanel
 
+/**
+ * Project-level Lua settings page (interim slimming, TOOLING-05 §6.3). The interpreter combo and the
+ * hererocks-managed-mode checkbox were removed — runtime selection is now a toolchain RUNTIME binding
+ * / active environment (TOOLING-02) surfaced by the Toolchain page (TOOLING-06). Platform, version,
+ * language level, source path, and the LuaRocks server override remain here until TOOLING-06 folds
+ * this page.
+ */
 class LuaProjectSettingsPanel(val project: Project) {
     val mainPanel: JPanel
     private val platformComboBox: ComboBox<LuaPlatform>
     private val versionComboBox: ComboBox<VersionEntry>
     private val languageLevelLabel: JLabel
-    private val hererocksManagedCheckBox: JCheckBox
-    private val interpreter: ComboBox<LuaInterpreter>
     private val sourcePath: ExpandableTextField
     private val suppressUnderscorePrefixedCheckBox: JCheckBox
     private val rocksServerUrl: JBTextField
@@ -39,14 +42,6 @@ class LuaProjectSettingsPanel(val project: Project) {
         }
 
         languageLevelLabel = JLabel()
-
-        hererocksManagedCheckBox = JCheckBox("Active environment drives interpreter, platform & version")
-        hererocksManagedCheckBox.toolTipText =
-            "When enabled, binding or switching a hererocks environment sets the project interpreter, " +
-            "platform, and version. Disable to keep an explicitly chosen interpreter across bind/unbind."
-
-        interpreter = ComboBox()
-        customizeLuaInterpreterComboBox(project, interpreter)
 
         sourcePath = ExpandableTextField(
             { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
@@ -69,9 +64,6 @@ class LuaProjectSettingsPanel(val project: Project) {
         versionComboBox.addItemListener {
             updateLanguageLevelDisplay()
         }
-        hererocksManagedCheckBox.addItemListener {
-            updateManagedEnablement()
-        }
 
         // Seed version combo for the initially selected platform
         onPlatformChanged(platformComboBox.selectedItem as? LuaPlatform)
@@ -81,8 +73,6 @@ class LuaProjectSettingsPanel(val project: Project) {
             .addLabeledComponent("Platform", platformComboBox, 0)
             .addLabeledComponent("Version", versionComboBox, 2)
             .addLabeledComponent("Language level", languageLevelLabel, 2)
-            .addLabeledComponent("Hererocks managed", hererocksManagedCheckBox, 2)
-            .addLabeledComponent("Interpreter", interpreter, 2)
             .addComponent(TitledSeparator("Source & Completion"))
             .addLabeledComponent("Source path patterns", sourcePath, 2)
             .addLabeledComponent("Completion", suppressUnderscorePrefixedCheckBox, 2)
@@ -110,46 +100,19 @@ class LuaProjectSettingsPanel(val project: Project) {
         languageLevelLabel.text = level.toString()
     }
 
-    /**
-     * In Hererocks-managed mode the active env owns the interpreter/platform/version, so those
-     * controls become read-only derived views (mirroring the always-derived Language Level label).
-     */
-    private fun updateManagedEnablement() {
-        val managed = hererocksManagedCheckBox.isSelected
-        platformComboBox.isEnabled = !managed
-        versionComboBox.isEnabled = !managed
-        interpreter.isEnabled = !managed
-    }
-
     fun apply(state: LuaProjectSettings.State) {
-        val settings = LuaProjectSettings.getInstance(project)
-        // Mode-independent fields always apply.
         state.sourcePath = sourcePath.text
         state.suppressUnderscorePrefixedGlobals = suppressUnderscorePrefixedCheckBox.isSelected
         state.rocksServerUrl = rocksServerUrl.text.trim()
-
-        val newMode = if (hererocksManagedCheckBox.isSelected) InterpreterMode.HEREROCKS_MANAGED
-                      else InterpreterMode.EXPLICIT
-        when {
-            // Explicit throughout: the combos own the interpreter/target.
-            newMode == InterpreterMode.EXPLICIT && state.interpreterMode == InterpreterMode.EXPLICIT ->
-                applyExplicitSelections(state)
-            // Any mode transition is delegated to the settings layer, which stashes/restores the
-            // explicit overlay and (for Managed) re-derives from the active env off the EDT. The
-            // combos are ignored on transition — Managed derives them; leaving Managed restores them.
-            newMode != state.interpreterMode ->
-                settings.setInterpreterModeAndNotify(project, newMode)
-            // Managed → Managed: the env owns interpreter/target; nothing to apply from the panel.
-        }
+        applyTargetSelection(state)
     }
 
-    private fun applyExplicitSelections(state: LuaProjectSettings.State) {
+    private fun applyTargetSelection(state: LuaProjectSettings.State) {
         val platform = platformComboBox.selectedItem as? LuaPlatform ?: return
         val version = versionComboBox.selectedItem as? VersionEntry ?: return
         val newTarget = Target(platform, version)
         val previousTarget = state.getTarget()
         state.setTarget(newTarget)
-        state.interpreter = interpreter.selectedItem as? LuaInterpreter
         if (newTarget.getImplicitLanguageLevel() != previousTarget.getImplicitLanguageLevel()) {
             PlatformLibraryIndex.reload()
         }
@@ -165,36 +128,20 @@ class LuaProjectSettingsPanel(val project: Project) {
         onPlatformChanged(target.platform)
         versionComboBox.selectedItem = target.version
         updateLanguageLevelDisplay()
-        interpreter.selectedItem = data.interpreter
         sourcePath.text = data.sourcePath
         suppressUnderscorePrefixedCheckBox.isSelected = data.suppressUnderscorePrefixedGlobals
         rocksServerUrl.text = data.rocksServerUrl
-
-        val managed = data.interpreterMode == InterpreterMode.HEREROCKS_MANAGED
-        hererocksManagedCheckBox.isSelected = managed
-        // Managed mode is only meaningful with an env to manage; keep it toggleable once on so the
-        // user can always switch back to Explicit.
-        val hasActiveEnv = LuaProjectSettings.getInstance(project).activeEnv() != null
-        hererocksManagedCheckBox.isEnabled = managed || hasActiveEnv
-        updateManagedEnablement()
     }
 
     fun isModified(data: LuaProjectSettings.State): Boolean {
-        val managedNow = hererocksManagedCheckBox.isSelected
-        if (managedNow != (data.interpreterMode == InterpreterMode.HEREROCKS_MANAGED)) return true
         if (sourcePath.text != data.sourcePath) return true
         if (suppressUnderscorePrefixedCheckBox.isSelected != data.suppressUnderscorePrefixedGlobals) return true
         if (rocksServerUrl.text.trim() != data.rocksServerUrl) return true
-        // Interpreter/platform/version are env-derived (and read-only) in Managed mode; only compare
-        // them when the user is in explicit control.
-        if (!managedNow) {
-            val savedTarget = data.getTarget()
-            val currentPlatform = platformComboBox.selectedItem as? LuaPlatform ?: return false
-            val currentVersion = versionComboBox.selectedItem as? VersionEntry ?: return false
-            if (currentPlatform != savedTarget.platform) return true
-            if (currentVersion != savedTarget.version) return true
-            if (interpreter.selectedItem != data.interpreter) return true
-        }
+        val savedTarget = data.getTarget()
+        val currentPlatform = platformComboBox.selectedItem as? LuaPlatform ?: return false
+        val currentVersion = versionComboBox.selectedItem as? VersionEntry ?: return false
+        if (currentPlatform != savedTarget.platform) return true
+        if (currentVersion != savedTarget.version) return true
         return false
     }
 }

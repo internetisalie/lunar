@@ -17,7 +17,6 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
-import net.internetisalie.lunar.platform.LuaInterpreter
 import net.internetisalie.lunar.tool.LuaTool
 
 /**
@@ -36,11 +35,13 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
     class State {
         var includeAllFieldsInCompletions: Boolean = false
         var enableTypeInference: Boolean = true
-        var interpreters: List<LuaInterpreter> = ArrayList()
 
         /**
          * Global inventory of registered external Lua tool binaries (TOOL-01).
          * Serialised by the IntelliJ XML state serializer; entries must have no-arg constructors.
+         *
+         * TOOLING-05 Phase 4: retained (read by `tool/LuaToolManager`); deleted in Phase 6 once the
+         * `tool` package is removed.
          */
         var toolInventory: MutableList<LuaTool> = ArrayList()
 
@@ -67,17 +68,5 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
         val instance: LuaApplicationSettings
             get() = ApplicationManager.getApplication()
                 .getService(LuaApplicationSettings::class.java)
-
-        fun findInterpreter(interpreterPath : String) : LuaInterpreter? {
-            return instance.state.interpreters.firstOrNull { interpreterPath == it.path }
-        }
-
-        fun validInterpreters() : List<LuaInterpreter> {
-            return instance.state.interpreters.filter { it.valid }
-        }
-
-        /** Look up a registered tool by its UUID. */
-        fun getTool(id: String): LuaTool? =
-            instance.state.toolInventory.firstOrNull { it.id == id }
     }
 }

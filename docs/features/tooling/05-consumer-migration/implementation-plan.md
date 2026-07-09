@@ -95,28 +95,59 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
   both deleted in Phase 4; suite green.
 
 ### Phase 4: Wizard + settings-state deletion [Must] (requires TOOLING-04)
-- **Goal**: rocks/init provisioning + bindings on the new stack; legacy state fields gone.
+- **Goal**: rocks/init provisioning + bindings on the new stack; the Phase-4-deletable legacy
+  state fields gone. **Corrected deletion schedule (2026-07-09, build-arbiter rule):** the plan's
+  original "delete ALL legacy state/classes in Phase 4" is an ordering defect — several symbols are
+  hard-referenced by packages that only die in Phase 5/6. A field/file is deleted here **only** when
+  every surviving-package reader is gone; the rest are deferred and recorded below.
 - **Tasks**:
-  - [ ] Migrate `LuaRocksProjectSettings.kt`, `LuaRocksInterpreterInitializer.kt`,
-        `LuaRocksGeneratorPeer.kt` onto provisioner + RUNTIME binding — design §2.8
-  - [ ] Delete legacy fields/functions from `LuaProjectSettings.kt` (§6.3 list, incl.
-        `InterpreterMode` + both migrations) and `LuaApplicationSettings.kt` (§6.2 list)
-  - [ ] Excise interpreter parts from `LuaApplicationSettingsPanel.kt` /
-        `LuaProjectSettingsPanel.kt`; delete `settings/LuaInterpretersTable.kt` —
-        design §6.3 (pages remain for TOOLING-06)
-  - [ ] Delete `platform/LuaInterpreterService.kt`, `platform/LuaInterpreter.kt`,
-        `platform/LuaInterpreterComponent.kt` after §3.5 parity check against
-        TOOLING-01's kind data — design §6.1#11-13, §3.5
-  - [ ] **(deferred from Phase 3)** Delete `command/LuaCommandLine.kt` (its last caller,
-        `LuaInterpreterService.kt:86`, dies in this phase; jar branch parity in TOOLING-03
-        already verified — design §9.1-b); split `LuaCommandLineTest.kt` — design §6.1#14, §6.4
-  - [ ] **(deferred from Phase 3)** Move `LuaInterpreterSearchPathGlobTest.kt`
-        (`expandSearchPath`) coverage to TOOLING-01 discovery glob-expansion tests, then
-        delete it with the `LuaInterpreterService` deletion — design §6.4
-  - [ ] Rewrite `LuaSettingsSerializationTest.kt` + add the stale-XML tolerance test —
-        design §3.7, §6.4; rewrite `rocks/init` tests — TC 13
-- **Exit criteria**: TC 13–14 pass; `grep -rnE "LuaInterpreter|InterpreterMode" src/main` = 0;
-  `grep -rn "newLuaInterpreterCommandLine" src/main` = 0; suite green.
+  - [x] Migrate `LuaRocksProjectSettings.kt` (`flavor: HererocksFlavor` → `kindId: "lua"|"luajit"`
+        + version; `provisionHererocks`→`provisionEnvironment`), `LuaRocksInterpreterInitializer.kt`
+        (inline the `HererocksEnvState.toTarget` mapping; explicit path → `setBinding("lua", tool.id)`;
+        provision path → `upsertEnvironmentAndActivate` + `LuaToolProvisioner.provision`),
+        `LuaRocksGeneratorPeer.kt` (`ComboBox<LuaRegisteredTool>` via `LuaRuntimeComboBox.customize`)
+        onto provisioner + RUNTIME binding — design §2.8
+  - [x] Delete the **Phase-4-deletable** fields/functions from `LuaApplicationSettings.kt`
+        (`interpreters`, `findInterpreter`, `validInterpreters`, `getTool`, `LuaInterpreter` import —
+        §6.2; `getTool` has zero readers) and the `migrateInterpreterMode` migration fn from
+        `LuaProjectSettings.kt` (clean break). **DEFERRED to Phase 5** (pinned by `rocks/env/*`, esp.
+        `HererocksEnvBinder`): `LuaProjectSettings.State.interpreter`/`explicitInterpreter`/
+        `explicitTarget` (read by the InterpreterMode overlay machinery), `interpreterMode`(+`Migrated`),
+        `hererocksEnv(s)`, `activeEnvId`, the `InterpreterMode` enum, and every env-helper
+        (`resolveAllEnvs`/`activeEnv`/`addEnv`/`removeEnv`/`upsertAndActivate`/`setActiveEnvAndNotify`/
+        `setInterpreterAndNotify`/`setInterpreterModeAndNotify`/`restoreExplicitOverlay`/`interpreterMode`
+        val/`migrateLegacyEnv`). **DEFERRED to Phase 6** (pinned by `tool/LuaToolManager`):
+        `LuaApplicationSettings.State.toolInventory`/`globalToolBindings`,
+        `LuaProjectSettings.State.projectToolBindings`.
+  - [x] Excise the interpreters-table section from `LuaApplicationSettingsPanel.kt` and the
+        interpreter-combo + hererocks-managed-checkbox + mode apply/reset logic from
+        `LuaProjectSettingsPanel.kt` (platform/version/level + source path + rocksServerUrl stay);
+        delete `settings/LuaInterpretersTable.kt` — design §6.3 (pages remain for TOOLING-06)
+  - [x] §3.5 parity check PASSED (datum-by-datum in handoff). Delete
+        `platform/LuaInterpreterComponent.kt` (combo/renderer, replaced by
+        `toolchain.ui.LuaRuntimeComboBox`). **DEFERRED to Phase 5**:
+        `platform/LuaInterpreterService.kt` + `platform/LuaInterpreter.kt` — `rocks/env/HererocksEnvBinder`
+        (a Phase-5 deletion) hard-references `LuaInterpreter`/`LuaInterpreterService.identify`, and
+        `LuaProjectSettings.State.interpreter` (also Phase-5-deferred) is typed `LuaInterpreter?`.
+        Deleting them now breaks compilation — design §6.1#11-13, §3.5
+  - [x] **(deferred from Phase 3)** **`command/LuaCommandLine.kt` re-DEFERRED to Phase 5**: its last
+        live code caller is `LuaInterpreterService.kt:86` (`newLuaInterpreterCommandLine`), and
+        `LuaInterpreterService` itself defers to Phase 5 (above). The `tool/*` references to it are
+        doc-comment only. `LuaCommandLineTest.kt` split defers with it — design §6.1#14, §6.4
+  - [x] **(deferred from Phase 3)** Port `LuaInterpreterSearchPathGlobTest.kt` (`expandSearchPath`)
+        fixtures into the TOOLING-01 `LuaToolDiscoveryTest` (`LuaToolDiscovery.expandSearchPath`,
+        byte-for-byte-equivalent) — coverage now duplicated so no loss. The platform glob test file is
+        **deleted with `LuaInterpreterService` in Phase 5** (it targets that surviving symbol) — design §6.4
+  - [x] Rewrite `LuaSettingsSerializationTest.kt` (drop Phase-4-deleted-field round-trips) + add the
+        stale-XML tolerance test (TC 14) — design §3.7, §6.4; rewrite `rocks/init` tests (TC 13)
+- **Exit criteria (corrected)**: TC 13–14 pass; wizard provisions via `LuaToolProvisioner` + binds via
+  TOOLING-02 (no `HererocksProvisioner`/`InterpreterMode` symbol in `rocks/init`);
+  `grep -rn "newLuaInterpreterCommandLine" src/main` still has ONE residual pair
+  (`LuaInterpreterService.kt` caller + `command/LuaCommandLine.kt` itself — both Phase-5); the
+  Phase-4-deletable app fields + `LuaInterpreterComponent` gone while the Phase-5/6 deferrals (incl.
+  `platform/LuaInterpreterService`/`LuaInterpreter`, `command/LuaCommandLine`, `tool/*`, `rocks/env/*`)
+  still compile; suite green. NOTE: the full `grep -rnE "LuaInterpreter|InterpreterMode" src/main` = 0
+  and `newLuaInterpreterCommandLine` = 0 gates belong to **Phase 5**, not Phase 4.
 
 ### Phase 5: Environments — matrix, widget, hererocks removal [Must] (requires TOOLING-04 UI)
 - **Goal**: matrix + status-bar widget on TOOLING-02 environments; hererocks lifecycle gone.
@@ -183,6 +214,6 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 | Phase 1: Simple tool consumers | done | Must |
 | Phase 2: LuaRocks consumers | done | Must |
 | Phase 3: Lua runtime consumers | done | Must |
-| Phase 4: Wizard + settings-state deletion | todo | Must |
+| Phase 4: Wizard + settings-state deletion | done | Must |
 | Phase 5: Environments (matrix/widget/hererocks) | todo | Must |
 | Phase 6: Final legacy removal + gates | todo | Must |

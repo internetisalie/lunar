@@ -3,88 +3,123 @@ package net.internetisalie.lunar.rocks.init
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
-import net.internetisalie.lunar.rocks.env.HererocksFlavor
-import net.internetisalie.lunar.settings.InterpreterMode
 import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
+import net.internetisalie.lunar.toolchain.model.LuaToolHealth
+import net.internetisalie.lunar.toolchain.model.Origin
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainAppState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import java.util.UUID
 
-/** ROCKS-17: wizard interpreter choice → project settings (Explicit interpreter vs. Managed env). */
+/**
+ * TOOLING-05 §2.8 / TC 13: New Project wizard runtime choice → project [Target] + a TOOLING-02
+ * RUNTIME binding (explicit) or an activated TOOLING-02 environment (provision). No
+ * `HererocksProvisioner`/`InterpreterMode` symbol is referenced.
+ */
 class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            val state = LuaProjectSettings.getInstance(project).state
-            state.interpreterMode = InterpreterMode.EXPLICIT
-            state.interpreter = null
-            state.target = null
-            state.interpreterModeMigrated = false
+            LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
+            LuaToolchainProjectSettings.getInstance(project).loadState(LuaToolchainProjectState())
+            LuaProjectSettings.getInstance(project).state.target = null
         } finally {
             super.tearDown()
         }
     }
 
-    fun testExplicitPathSetsInterpreterAndTarget() {
+    private fun seedRuntime(path: String): LuaRegisteredTool {
+        val tool = LuaRegisteredTool(
+            id = UUID.randomUUID().toString(),
+            kindId = "lua",
+            path = path,
+            version = "5.1.0",
+            luaVersion = "5.1",
+            runtime = LuaRuntimeInfo("Lua", "5.1.0", LuaLanguageLevel.LUA51, LuaPlatform.STANDARD, "Lua 5.1.0"),
+            origin = Origin.MANUAL,
+            environmentId = null,
+            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
+        )
+        LuaToolchainRegistry.getInstance().registerProvisioned(tool)
+        return tool
+    }
+
+    fun testExplicitPathBindsRegisteredRuntimeAndSetsTarget() {
+        val tool = seedRuntime("/usr/bin/lua")
         val settings = LuaRocksProjectSettings(
             name = "lib",
-            flavor = HererocksFlavor.PUC,
+            kindId = WizardRuntimeKinds.LUA,
             luaVersion = "5.1",
-            provisionHererocks = false,
+            provisionEnvironment = false,
             interpreterPath = "/usr/bin/lua",
         )
 
         LuaRocksInterpreterInitializer.applySettings(project, settings)
 
-        val state = LuaProjectSettings.getInstance(project).state
-        assertEquals(InterpreterMode.EXPLICIT, state.interpreterMode)
-        assertEquals("/usr/bin/lua", state.interpreter?.path)
-        assertEquals(LuaPlatform.STANDARD, state.getTarget().platform)
-        assertEquals("5.1", state.getTarget().version.label)
-        assertEquals(LuaLanguageLevel.LUA51, state.languageLevel)
-        assertTrue("wizard pins the migration flag", state.interpreterModeMigrated)
+        val projectState = LuaProjectSettings.getInstance(project).state
+        assertEquals(LuaPlatform.STANDARD, projectState.getTarget().platform)
+        assertEquals("5.1", projectState.getTarget().version.label)
+        assertEquals(LuaLanguageLevel.LUA51, projectState.languageLevel)
+        assertEquals(tool.id, LuaToolchainProjectSettings.getInstance(project).binding("lua"))
     }
 
-    fun testExplicitPathWithNoInterpreterLeavesItNull() {
-        val settings = LuaRocksProjectSettings(name = "lib", provisionHererocks = false, interpreterPath = "")
+    fun testExplicitPathWithNoInterpreterLeavesNoBinding() {
+        val settings = LuaRocksProjectSettings(name = "lib", provisionEnvironment = false, interpreterPath = "")
 
         LuaRocksInterpreterInitializer.applySettings(project, settings)
 
-        val state = LuaProjectSettings.getInstance(project).state
-        assertEquals(InterpreterMode.EXPLICIT, state.interpreterMode)
-        assertNull(state.interpreter)
+        assertNull(LuaToolchainProjectSettings.getInstance(project).binding("lua"))
     }
 
-    fun testProvisionSetsManagedModeAndTargetButNotInterpreter() {
+    fun testProvisionSetsTargetWithoutBinding() {
         val settings = LuaRocksProjectSettings(
             name = "lib",
-            flavor = HererocksFlavor.PUC,
+            kindId = WizardRuntimeKinds.LUA,
             luaVersion = "5.5",
-            provisionHererocks = true,
+            provisionEnvironment = true,
         )
 
         LuaRocksInterpreterInitializer.applySettings(project, settings)
 
-        val state = LuaProjectSettings.getInstance(project).state
-        assertEquals(InterpreterMode.HEREROCKS_MANAGED, state.interpreterMode)
-        // Interpreter is derived later, when the provisioned env binds.
-        assertNull(state.interpreter)
-        assertEquals(LuaPlatform.STANDARD, state.getTarget().platform)
-        assertEquals("5.5", state.getTarget().version.label)
-        assertEquals(LuaLanguageLevel.LUA55, state.languageLevel)
-        assertTrue(state.interpreterModeMigrated)
+        val projectState = LuaProjectSettings.getInstance(project).state
+        assertEquals(LuaPlatform.STANDARD, projectState.getTarget().platform)
+        assertEquals("5.5", projectState.getTarget().version.label)
+        assertEquals(LuaLanguageLevel.LUA55, projectState.languageLevel)
+        // Provisioning binds nothing explicitly; the env drives the runtime once provisioned.
+        assertNull(LuaToolchainProjectSettings.getInstance(project).binding("lua"))
     }
 
-    fun testLuaJitFlavorMapsToLuaJitTarget() {
+    fun testLuaJitKindMapsToLuaJitTarget() {
         val settings = LuaRocksProjectSettings(
             name = "lib",
-            flavor = HererocksFlavor.LUAJIT,
+            kindId = WizardRuntimeKinds.LUAJIT,
             luaVersion = "2.1",
-            provisionHererocks = true,
+            provisionEnvironment = true,
         )
 
         LuaRocksInterpreterInitializer.applySettings(project, settings)
 
-        val state = LuaProjectSettings.getInstance(project).state
-        assertEquals(LuaPlatform.LUAJIT, state.getTarget().platform)
-        assertEquals("2.1", state.getTarget().version.label)
-        assertEquals(LuaLanguageLevel.LUA51, state.languageLevel)
+        val projectState = LuaProjectSettings.getInstance(project).state
+        assertEquals(LuaPlatform.LUAJIT, projectState.getTarget().platform)
+        assertEquals("2.1", projectState.getTarget().version.label)
+        assertEquals(LuaLanguageLevel.LUA51, projectState.languageLevel)
+    }
+
+    fun testScheduleProvisionActivatesEnvironment() {
+        val settings = LuaRocksProjectSettings(
+            name = "lib",
+            kindId = WizardRuntimeKinds.LUA,
+            luaVersion = "5.4",
+            provisionEnvironment = true,
+        )
+
+        LuaRocksInterpreterInitializer.scheduleProvision(project, "/tmp/wizard-proj", settings)
+
+        val active = LuaToolchainProjectSettings.getInstance(project).activeEnvironment()
+        assertNotNull("provisioning activates the wizard environment", active)
+        assertEquals("/tmp/wizard-proj/${LuaRocksInterpreterInitializer.ENV_DIR_NAME}", active?.rootDir)
     }
 }

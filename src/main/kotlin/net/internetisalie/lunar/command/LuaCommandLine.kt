@@ -1,35 +1,18 @@
 package net.internetisalie.lunar.command
 
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.platform.LuaInterpreter
-import net.internetisalie.lunar.settings.LuaApplicationSettings
-import net.internetisalie.lunar.settings.LuaProjectSettings
-import net.internetisalie.lunar.tool.LuaToolEnvironment
 import java.nio.file.Path
 
-fun newLuaDefaultInterpreterCommandLine(): GeneralCommandLine? {
-    val settings = LuaApplicationSettings.instance.state
-    val interpreters = settings.interpreters
-    val defaultInterpreter = interpreters.find { _ -> true } ?: return null
-    return newLuaInterpreterCommandLine(defaultInterpreter)
-}
-
-fun newProjectLuaInterpreterCommandLine(project: Project): GeneralCommandLine? {
-    val settingsState = LuaProjectSettings.getInstance(project).state
-    val interpreter = settingsState.interpreter ?: return null
-    val cmd = newLuaInterpreterCommandLine(interpreter) ?: return null
-    val luaPath = settingsState.expandSourcePath(project)
-    if (luaPath.isNotEmpty()) {
-        cmd.withEnvironment("LUA_PATH", luaPath)
-    }
-    // TOOL-02-03: make project-bound Lua tools (luarocks/luacheck/stylua) visible to the
-    // interpreter subprocess by prepending their directories to PATH.
-    LuaToolEnvironment.prependToolDirsToPath(cmd, project)
-    return cmd
-}
-
-fun newLuaInterpreterCommandLine(interpreter : LuaInterpreter) : GeneralCommandLine? {
+/**
+ * Builds a raw interpreter [GeneralCommandLine] from a legacy [LuaInterpreter] (jar → `java -cp`).
+ *
+ * TOOLING-05 Phase 4: the dead `newLuaDefaultInterpreterCommandLine`/`newProjectLuaInterpreterCommandLine`
+ * factories were removed (replaced by `toolchain.exec.LuaInterpreterCommandLines`). Only the
+ * single live caller `platform.LuaInterpreterService.identify` remains; this whole file is deleted in
+ * Phase 5 with `LuaInterpreterService` (design §6.1#14, §9.1-b).
+ */
+fun newLuaInterpreterCommandLine(interpreter: LuaInterpreter): GeneralCommandLine? {
     val interpreterFile = interpreter.executable ?: return null
 
     val cmd = GeneralCommandLine(interpreterFile.path)

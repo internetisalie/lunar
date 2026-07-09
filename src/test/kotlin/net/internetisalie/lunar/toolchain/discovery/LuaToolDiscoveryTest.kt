@@ -146,4 +146,81 @@ class LuaToolDiscoveryTest {
         val result = LuaToolDiscovery.expandSearchPath("$tempDir/Lua 5.*")
         assertEquals(listOf(dir1, dir2), result)
     }
+
+    // --- glob-expansion parity coverage ported from the deleted platform.LuaInterpreterSearchPathGlobTest
+    //     (TOOLING-05 §6.4 — LuaToolDiscovery.expandSearchPath is byte-for-byte the legacy expander).
+
+    @Test
+    fun testExpandsMidSegmentGlob(@TempDir tempDir: Path) {
+        val a = Files.createDirectories(tempDir.resolve("lua5.1/bin"))
+        val b = Files.createDirectories(tempDir.resolve("lua5.4/bin"))
+        Files.createDirectories(tempDir.resolve("lua5.4/share"))
+
+        val result = LuaToolDiscovery.expandSearchPath("$tempDir/lua5.*/bin")
+
+        assertEquals(listOf(a, b), result)
+    }
+
+    @Test
+    fun testLiteralPathReturnsSingleElement(@TempDir tempDir: Path) {
+        Files.createDirectories(tempDir.resolve("Lua 5.1"))
+
+        val result = LuaToolDiscovery.expandSearchPath("$tempDir/Lua 5.1")
+
+        assertEquals(listOf(Path.of("$tempDir/Lua 5.1")), result)
+    }
+
+    @Test
+    fun testLiteralNonExistentPathReturnsSingleElement() {
+        val result = LuaToolDiscovery.expandSearchPath("/no/such/literal/dir")
+
+        assertEquals(listOf(Path.of("/no/such/literal/dir")), result)
+    }
+
+    @Test
+    fun testDottedGlobRequiresDot(@TempDir tempDir: Path) {
+        val a = Files.createDirectories(tempDir.resolve("Lua 5.1"))
+        val b = Files.createDirectories(tempDir.resolve("Lua 5.4"))
+        Files.createDirectories(tempDir.resolve("Lua 5"))
+
+        val result = LuaToolDiscovery.expandSearchPath("$tempDir/Lua 5.*")
+
+        assertEquals(listOf(a, b), result)
+    }
+
+    @Test
+    fun testMatchesAreSortedAscending(@TempDir tempDir: Path) {
+        val a = Files.createDirectories(tempDir.resolve("lua5.1"))
+        val b = Files.createDirectories(tempDir.resolve("lua5.2"))
+        val c = Files.createDirectories(tempDir.resolve("lua5.4"))
+
+        val result = LuaToolDiscovery.expandSearchPath("$tempDir/lua5.*")
+
+        assertEquals(listOf(a, b, c), result)
+    }
+
+    @Test
+    fun testMissingBaseReturnsEmpty() {
+        val result = LuaToolDiscovery.expandSearchPath("/no/such/base/Lua 5.*")
+
+        assertEquals(emptyList<Path>(), result)
+    }
+
+    @Test
+    fun testNoMatchReturnsEmpty(@TempDir tempDir: Path) {
+        val result = LuaToolDiscovery.expandSearchPath("$tempDir/Ruby *")
+
+        assertEquals(emptyList<Path>(), result)
+    }
+
+    @Test
+    fun testQuestionMarkMatchesSingleChar(@TempDir tempDir: Path) {
+        val a = Files.createDirectories(tempDir.resolve("lua51"))
+        val b = Files.createDirectories(tempDir.resolve("lua54"))
+        Files.createDirectories(tempDir.resolve("luaX"))
+
+        val result = LuaToolDiscovery.expandSearchPath("$tempDir/lua5?")
+
+        assertEquals(listOf(a, b), result)
+    }
 }
