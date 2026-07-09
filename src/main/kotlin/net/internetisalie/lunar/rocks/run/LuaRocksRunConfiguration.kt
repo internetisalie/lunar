@@ -185,8 +185,8 @@ class LuaRocksRunConfiguration(project: Project, factory: ConfigurationFactory?,
     }
 
     /** Builds the `luarocks` command line (design §3.1). Extracted for unit testing. */
-    fun buildCommandLine(executablePath: String): GeneralCommandLine {
-        val commandLine = GeneralCommandLine(executablePath)
+    fun buildCommandLine(luarocksBinary: String): GeneralCommandLine {
+        val commandLine = GeneralCommandLine(luarocksBinary)
 
         commandLine.withParameters(ParametersListUtil.parse(globalFlags.orEmpty()))
 
@@ -215,9 +215,9 @@ class LuaRocksRunConfiguration(project: Project, factory: ConfigurationFactory?,
      * resolution + PATH prepend can be asserted without launching a process.
      */
     fun resolveAndBuildCommandLine(): GeneralCommandLine {
-        val executablePath = LuaRocksEnvironment.resolveExecutable(project)
+        val luarocksBinary = LuaRocksEnvironment.resolveExecutable(project)
             ?: throw ExecutionException(LUAROCKS_NOT_CONFIGURED)
-        val commandLine = buildCommandLine(executablePath)
+        val commandLine = buildCommandLine(luarocksBinary)
         LuaExecutionEnvironmentBuilder.getInstance(project).build().applyTo(commandLine)
         return commandLine
     }

@@ -3,11 +3,15 @@ package net.internetisalie.lunar.rocks
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import net.internetisalie.lunar.toolchain.exec.LuaExecResult
+import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
-import net.internetisalie.lunar.util.LuaProcessUtil
 import java.nio.file.Path
+import java.util.concurrent.Callable
 
 /** The rockspec fields ROCKS-03 consumes; all other exported fields are ignored. */
 data class RockspecData(
@@ -23,11 +27,10 @@ data class RockspecData(
  * Runs the bundled `rockspec.lua` bridge over a `.rockspec` and returns its parsed fields.
  *
  * The bridge `print`s a single JSON object (encoder `lua/lunar/json.lua`); this reads only
- * `package`, `version`, and `dependencies`. Background only — [LuaProcessUtil.capture] blocks.
+ * `package`, `version`, and `dependencies`. Background only — [LuaToolExecutionService.capture] blocks.
  */
 object RockspecBridge {
     private val log = logger<RockspecBridge>()
-    private const val TIMEOUT_MS = 10_000
     private const val ENV_LUA_PATH_TEMPLATE = "LUNAR_LUA_PATH_TEMPLATE"
 
     fun read(project: Project, rockspecPath: Path): RockspecData? {
@@ -43,12 +46,27 @@ object RockspecBridge {
             rockspecPath.toString(),
         ).withEnvironment(ENV_LUA_PATH_TEMPLATE, LuaRocksBridgeFiles.luaPathTemplate())
 
-        val output = LuaProcessUtil.capture(command, TIMEOUT_MS)
+        val output = captureOffEdt(command)
         if (output.exitCode != 0 || output.stdout.isBlank()) {
             log.warn("Rockspec bridge failed for $rockspecPath (exit=${output.exitCode}): ${output.stderr}")
             return null
         }
         return parse(output.stdout, rockspecPath)
+    }
+
+    /**
+     * Runs the bridge capture, offloading to a pooled thread when invoked on the EDT (the exec
+     * service refuses to launch a process on the dispatch thread — contract §1/§10). The light
+     * fixtures drive [read] on the test/EDT thread, so this keeps the capture off the UI thread.
+     */
+    private fun captureOffEdt(command: GeneralCommandLine): LuaExecResult {
+        val service = LuaToolExecutionService.getInstance()
+        val application = ApplicationManager.getApplication()
+        return if (application != null && application.isDispatchThread) {
+            application.executeOnPooledThread(Callable { service.capture(command, LuaExecTimeout.PROBE) }).get()
+        } else {
+            service.capture(command, LuaExecTimeout.PROBE)
+        }
     }
 
     /** Parses one bridge stdout payload. Visible for unit testing the real JSON shape. */

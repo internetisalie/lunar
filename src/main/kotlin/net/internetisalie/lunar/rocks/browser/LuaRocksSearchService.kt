@@ -4,12 +4,13 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
-import net.internetisalie.lunar.util.LuaProcessUtil
+import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
 /**
  * Shells out to `luarocks search --porcelain` / `luarocks list --porcelain` and parses the results.
  *
- * Must be called from a background thread only; [LuaProcessUtil.capture] is blocking.
+ * Must be called from a background thread only; [LuaToolExecutionService.capture] is blocking.
  *
  * ## Porcelain search format (§4.1 of ROCKS-02 design)
  * ```
@@ -19,9 +20,9 @@ import net.internetisalie.lunar.util.LuaProcessUtil
  * are collapsed into one entry in the returned list; the UI version picker reads distinct versions.
  *
  * ## Offline / timeout handling
- * A non-zero exit code or a timeout (exit code [LuaProcessUtil.PROCESS_TIMEOUT_EXCEPTION_CODE])
- * produces an empty list so callers degrade gracefully. Cached results (if fresh) are served by
- * the caller before reaching here.
+ * A non-zero exit code (a timeout or launch failure surfaces as exit code -1) produces an empty
+ * list so callers degrade gracefully. Cached results (if fresh) are served by the caller before
+ * reaching here.
  *
  * ## Server resolution (ROCKS-06)
  * The effective registry is resolved via [LuaRocksEnvironment.resolveServer]: project override
@@ -30,8 +31,6 @@ import net.internetisalie.lunar.util.LuaProcessUtil
  */
 object LuaRocksSearchService {
     private val log = Logger.getInstance(LuaRocksSearchService::class.java)
-
-    private const val SEARCH_TIMEOUT_MS = 15_000
 
     /**
      * Returns packages matching [query], annotated with [LuaRockPackage.isInstalled].
@@ -51,9 +50,9 @@ object LuaRocksSearchService {
         }
         val server = LuaRocksEnvironment.resolveServer(project)
         val subArgs = LuaRocksEnvironment.withServer(listOf("search", "--porcelain", query), server)
-        val output = LuaProcessUtil.capture(
+        val output = LuaToolExecutionService.getInstance().capture(
             GeneralCommandLine(exe, *subArgs.toTypedArray()),
-            SEARCH_TIMEOUT_MS,
+            LuaExecTimeout.COMMAND,
         )
         if (output.exitCode != 0) {
             log.warn("luarocks search --porcelain $query exited ${output.exitCode}: ${output.stderr.trim()}")
@@ -80,9 +79,9 @@ object LuaRocksSearchService {
         }
         val server = LuaRocksEnvironment.resolveServer(project)
         val subArgs = LuaRocksEnvironment.withServer(listOf("list", "--porcelain"), server)
-        val output = LuaProcessUtil.capture(
+        val output = LuaToolExecutionService.getInstance().capture(
             GeneralCommandLine(exe, *subArgs.toTypedArray()),
-            SEARCH_TIMEOUT_MS,
+            LuaExecTimeout.COMMAND,
         )
         if (output.exitCode != 0) {
             log.warn("luarocks list --porcelain exited ${output.exitCode}: ${output.stderr.trim()}")

@@ -97,6 +97,22 @@ class LuaSettingsSerializationTest {
                 addContent(Element("LuaInterpreter").apply { setAttribute("path", "/old/lua") })
             },
         )
+        // TOOLING-05 Phase 6 deleted `projectToolBindings` — its stale tag must also be tolerated.
+        element.addContent(
+            Element("option").apply {
+                setAttribute("name", "projectToolBindings")
+                addContent(
+                    Element("map").apply {
+                        addContent(
+                            Element("entry").apply {
+                                setAttribute("key", "LUACHECK")
+                                setAttribute("value", "uuid-3")
+                            },
+                        )
+                    },
+                )
+            },
+        )
 
         val restored = XmlSerializer.deserialize(element, LuaProjectSettings.State::class.java)
 
@@ -112,20 +128,22 @@ class LuaSettingsSerializationTest {
             optionNames.contains("explicitInterpreter"),
             "stale nested-bean tag dropped on re-serialize",
         )
+        assertFalse(
+            optionNames.contains("projectToolBindings"),
+            "stale projectToolBindings tag dropped on re-serialize",
+        )
     }
 
     @Test
     fun applicationStateRoundTripsThroughLoadState() {
         val settings = LuaApplicationSettings()
         val state = LuaApplicationSettings.State()
-        state.globalToolBindings["LUACHECK"] = "uuid-2"
         state.includeAllFieldsInCompletions = true
         state.enableTypeInference = false
 
         settings.loadState(state)
         val restored = settings.getState()
 
-        assertEquals("uuid-2", restored.globalToolBindings["LUACHECK"])
         assertTrue(restored.includeAllFieldsInCompletions)
         assertFalse(restored.enableTypeInference)
     }
@@ -133,29 +151,50 @@ class LuaSettingsSerializationTest {
     @Test
     fun applicationStateRoundTripsThroughXmlSerializer() {
         val state = LuaApplicationSettings.State()
-        state.globalToolBindings["LUACHECK"] = "uuid-2"
         state.includeAllFieldsInCompletions = true
         state.enableTypeInference = false
-        state.toolInventory.add(net.internetisalie.lunar.tool.LuaTool(id = "tool-1"))
 
         val element = XmlSerializer.serialize(state)
         val restored = XmlSerializer.deserialize(element, LuaApplicationSettings.State::class.java)
 
-        assertEquals(1, restored.globalToolBindings.size)
         assertTrue(restored.includeAllFieldsInCompletions)
         assertFalse(restored.enableTypeInference)
-        assertEquals(1, restored.toolInventory.size)
     }
 
-    /** TC 14 (app scope): the Phase-4-deleted `interpreters` tag no longer binds — tolerated on load. */
+    /**
+     * TC 14 (app scope): the TOOLING-05-deleted `interpreters` / `toolInventory` /
+     * `globalToolBindings` tags no longer bind to any accessor — tolerated on load and dropped
+     * on the next re-serialize (design §3.7).
+     */
     @Test
-    fun applicationStateToleratesStaleInterpretersTag() {
+    fun applicationStateToleratesStaleToolTags() {
         val current = LuaApplicationSettings.State().apply { enableTypeInference = false }
         val element = XmlSerializer.serialize(current)
         element.addContent(
             Element("option").apply {
                 setAttribute("name", "interpreters")
                 addContent(Element("LuaInterpreter").apply { setAttribute("path", "/usr/bin/lua") })
+            },
+        )
+        element.addContent(
+            Element("option").apply {
+                setAttribute("name", "toolInventory")
+                addContent(Element("LuaTool").apply { setAttribute("id", "tool-1") })
+            },
+        )
+        element.addContent(
+            Element("option").apply {
+                setAttribute("name", "globalToolBindings")
+                addContent(
+                    Element("map").apply {
+                        addContent(
+                            Element("entry").apply {
+                                setAttribute("key", "LUACHECK")
+                                setAttribute("value", "uuid-2")
+                            },
+                        )
+                    },
+                )
             },
         )
 
@@ -165,6 +204,8 @@ class LuaSettingsSerializationTest {
         val optionNames = XmlSerializer.serialize(restored)
             .getChildren("option").mapNotNull { it.getAttributeValue("name") }
         assertFalse(optionNames.contains("interpreters"), "stale interpreters tag dropped")
+        assertFalse(optionNames.contains("toolInventory"), "stale toolInventory tag dropped")
+        assertFalse(optionNames.contains("globalToolBindings"), "stale globalToolBindings tag dropped")
     }
 
     @Test
@@ -173,7 +214,5 @@ class LuaSettingsSerializationTest {
 
         assertFalse(state.includeAllFieldsInCompletions)
         assertTrue(state.enableTypeInference)
-        assertTrue(state.toolInventory.isEmpty())
-        assertTrue(state.globalToolBindings.isEmpty())
     }
 }

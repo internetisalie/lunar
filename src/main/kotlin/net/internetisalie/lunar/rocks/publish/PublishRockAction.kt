@@ -13,7 +13,8 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VirtualFile
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
-import net.internetisalie.lunar.util.LuaProcessUtil
+import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
 /**
  * Publishes the selected `.rockspec` to a LuaRocks registry via `luarocks upload` (ROCKS-08,
@@ -66,7 +67,8 @@ class PublishRockAction : DumbAwareAction(
                         return
                     }
                     val command = RockUploadCommand.build(exe, rockspecPath, apiKey, server = server)
-                    val output = LuaProcessUtil.capture(command, UPLOAD_TIMEOUT_MS)
+                    val output = LuaToolExecutionService.getInstance()
+                        .capture(command, LuaExecTimeout.NETWORK, indicator = indicator)
                     if (output.exitCode == 0) {
                         notify(project, "LuaRocks: published $rockspecPath", NotificationType.INFORMATION)
                     } else {
@@ -87,7 +89,6 @@ class PublishRockAction : DumbAwareAction(
 
     companion object {
         private const val NOTIFICATION_GROUP = "notification.group.lunar.luarocks"
-        private const val UPLOAD_TIMEOUT_MS = 120_000
         private const val LUAROCKS_NOT_CONFIGURED =
             "LuaRocks is not configured. Register or bind it under " +
                 "Settings | Languages & Frameworks | Lua | Toolchain."

@@ -418,10 +418,6 @@
     <applicationService
             serviceImplementation="net.internetisalie.lunar.settings.LuaApplicationSettings" />
 
-    <!-- Tool registry (TOOL-01) -->
-    <applicationService
-            serviceImplementation="net.internetisalie.lunar.tool.LuaToolManager" />
-
     <!-- Unified toolchain registry (TOOLING-01) -->
     <applicationService
             serviceImplementation="net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry" />
@@ -431,14 +427,6 @@
             serviceInterface="net.internetisalie.lunar.toolchain.probe.LuaToolProbe"
             serviceImplementation="net.internetisalie.lunar.toolchain.probe.LuaToolProbeImpl" />
 
-    <!-- Tool health monitoring & UI (TOOL-03) -->
-    <projectService
-            serviceImplementation="net.internetisalie.lunar.tool.health.LuaToolHealthMonitor" />
-    <postStartupActivity
-            implementation="net.internetisalie.lunar.tool.health.LuaToolHealthStartup" />
-    <editorNotificationProvider
-            implementation="net.internetisalie.lunar.tool.health.LuaToolEditorNotificationProvider" />
-
     <!-- Synchronize project target/language level from the effective toolchain runtime (TOOLING-02-09) -->
     <postStartupActivity
             implementation="net.internetisalie.lunar.toolchain.resolve.LuaTargetSyncStartup" />
@@ -446,10 +434,6 @@
     <!-- Offer re-registration of an orphaned Lunar-provisioned environment tree (TOOLING-04-16) -->
     <postStartupActivity
             implementation="net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup" />
-    <applicationConfigurable groupId="tools"
-            instance="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"
-            id="net.internetisalie.lunar.tool.ui.LuaToolsConfigurable"
-            displayName="Lua Tools"/>
 
     <projectService
             serviceInterface="net.internetisalie.lunar.lang.psi.types.LuaTypeManager"

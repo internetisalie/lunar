@@ -39,27 +39,6 @@ class LuaSettingsNotificationTest : BasePlatformTestCase() {
         assertEquals("5.4", stored.version.label)
     }
 
-    fun testSetProjectToolBindingAndNotifyFiresTopicAndMutatesState() {
-        var invocations = 0
-        project.messageBus.connect(testRootDisposable).subscribe(
-            LuaSettingsChangedListener.TOPIC,
-            object : LuaSettingsChangedListener {
-                override fun onSettingsChanged() {
-                    invocations++
-                }
-            },
-        )
-
-        val settings = LuaProjectSettings.getInstance(project)
-        settings.setProjectToolBindingAndNotify("LUACHECK", "uuid-3")
-        assertEquals("uuid-3", settings.state.projectToolBindings["LUACHECK"])
-
-        settings.setProjectToolBindingAndNotify("LUACHECK", null)
-        assertFalse(settings.state.projectToolBindings.containsKey("LUACHECK"))
-
-        assertEquals(2, invocations)
-    }
-
     fun testGetSupportLibrariesReturnsPlatformLibraryForValidTarget() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             LuaProjectSettings.getInstance(project)

@@ -18,8 +18,8 @@ import java.nio.file.Path
 /**
  * Computes the [LuaLaunchEnvironment] for a project — the single source of truth for the
  * PATH-prepend directories and the `LUA_PATH` / `LUA_CPATH` / `LUAROCKS_CONFIG` assembly
- * (TOOLING-03-07/08/09/14/16). Replaces `LuaTerminalEnvironmentService` + `LuaToolEnvironment`
- * and the LUA_PATH unions duplicated across the run configs.
+ * (TOOLING-03-07/08/09/14/16). Supersedes the legacy per-tool terminal/env services and the
+ * LUA_PATH unions duplicated across the run configs.
  *
  * **Caching:** only [pathPrependDirs] is cached (resolver-derived; changes exactly when the
  * toolchain changes). It is invalidated by the app-level `LuaToolchainListener.TOPIC` — fixing the

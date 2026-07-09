@@ -187,18 +187,34 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 ### Phase 6: Final legacy removal + gates [Must]
 - **Goal**: the `tool/` package and every residual legacy symbol deleted; grep gates hold.
 - **Tasks**:
-  - [ ] Delete `tool/` entirely (§6.1#1-10) + plugin.xml removals §7.1
+  - [x] **Migrated the 4 residual `LuaProcessUtil` callers** onto `LuaToolExecutionService`
+        *before* deleting the util (the plan wrongly assumed all callers were cut in Phases 1–5):
+        `toolchain/probe/LuaToolProbeImpl` (per-kind `timeoutMs` preserved via `captureWithMillis`;
+        `PROCESS_TIMEOUT_EXCEPTION_CODE`→`TIMED_OUT`/"Timeout",
+        `PROCESS_EXECUTION_EXCEPTION_CODE`→`START_FAILED`/"Not executable"),
+        `rocks/browser/LuaRocksSearchService` (COMMAND, ×2), `rocks/publish/PublishRockAction`
+        (NETWORK, with the task indicator), `rocks/RockspecBridge` (PROBE). No init cycle
+        (probe captures a plain command line — no env-builder).
+  - [x] Delete `tool/` entirely (§6.1#1-10) + plugin.xml removals §7.1
         (LuaToolManager service, health monitor/startup/notification provider,
-        LuaToolsConfigurable) — note the accepted health-surface gap until TOOLING-07
-  - [ ] Delete `util/LuaProcessUtil.kt` (all callers cut in Phases 1–5) — design §6.1#15
-  - [ ] Delete the legacy `tool/` test files (§6.4 rows 1–6)
-  - [ ] Verify no residual consumers: run the TC 15 grep set over `src/main` +
-        `META-INF` (incl. `LuaTerminalEnvironmentService`, design §2.9); verify
-        `lunar-terminal.xml` points at the TOOLING-03 customizer
-  - [ ] Update `CHANGELOG.md` (clean break: tools/interpreters must be re-registered,
+        LuaToolsConfigurable) — accepted health-surface gap until TOOLING-07
+  - [x] Delete `util/LuaProcessUtil.kt` (§6.1#15); delete `platform/Banner.kt` +
+        `settings/TestBanner.kt` (their only readers died with `tool/`)
+  - [x] Delete the Phase-6 legacy state fields: `LuaApplicationSettings.State`
+        `toolInventory`/`globalToolBindings`; `LuaProjectSettings.State.projectToolBindings`
+        + `setProjectToolBindingAndNotify` (sole reader `tool/LuaToolManager` deleted)
+  - [x] Delete the legacy `tool/` test files (§6.4 rows 1–6) + `util/LuaProcessUtilTest.kt`
+        (→ covered by `toolchain/exec/LuaToolExecutionServiceTest`); trim
+        `LuaSettingsNotificationTest`/`LuaSettingsSerializationTest` off the deleted fields
+        (deleted-field round-trips reshaped into stale-XML tolerance assertions, TC 14)
+  - [x] Verify no residual consumers: TC 15 grep set over `src/main` + `META-INF` (incl.
+        `LuaTerminalEnvironmentService`, design §2.9 — reworded the 2 KDoc-only refs);
+        `lunar-terminal.xml` already points at `toolchain.terminal.LuaShellExecOptionsCustomizer`
+  - [x] Update `CHANGELOG.md` (clean break: tools/interpreters must be re-registered,
         env re-provisioned once); `ktlintFormat ktlintCheck` on touched files
 - **Exit criteria**: TC 15–16 pass; `run build` green (incl. :checkStatus/:lintDocs);
-  live VNC verification (requirements → Acceptance Criteria).
+  live VNC bind→lint verification deferred to supervisor/TOOLING-06 (no UI-less bind path
+  in-tree yet — requirements → Acceptance Criteria).
 
 ## Requirement → Phase Coverage
 
@@ -235,4 +251,4 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 | Phase 3: Lua runtime consumers | done | Must |
 | Phase 4: Wizard + settings-state deletion | done | Must |
 | Phase 5: Environments (matrix/widget/hererocks) | done | Must |
-| Phase 6: Final legacy removal + gates | todo | Must |
+| Phase 6: Final legacy removal + gates | done | Must |

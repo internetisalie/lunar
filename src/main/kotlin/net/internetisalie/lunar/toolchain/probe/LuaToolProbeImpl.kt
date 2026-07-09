@@ -2,12 +2,13 @@ package net.internetisalie.lunar.toolchain.probe
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.application.ApplicationManager
+import net.internetisalie.lunar.toolchain.exec.LuaExecOutcome
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 import net.internetisalie.lunar.toolchain.model.LanguageLevelRule
 import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
 import net.internetisalie.lunar.toolchain.model.LuaToolKind
 import net.internetisalie.lunar.toolchain.model.RuntimeProbeSpec
 import net.internetisalie.lunar.toolchain.model.SemanticVersion
-import net.internetisalie.lunar.util.LuaProcessUtil
 import java.nio.file.Path
 
 class LuaToolProbeImpl : LuaToolProbe {
@@ -31,8 +32,11 @@ class LuaToolProbeImpl : LuaToolProbe {
             withWorkDirectory(file.parentFile)
         }
 
-        val output = LuaProcessUtil.capture(cmd, kind.probe.timeoutMs)
-        if (output.exitCode == LuaProcessUtil.PROCESS_TIMEOUT_EXCEPTION_CODE) {
+        // Preserve the exact per-kind probe timeout (kind.probe.timeoutMs), so the millis-based
+        // capture is used here (as StyluaFormattingTask does). The two legacy exit-code sentinels
+        // map onto the exec-service outcome: a timeout → TIMED_OUT, a launch failure → START_FAILED.
+        val result = LuaToolExecutionService.getInstance().captureWithMillis(cmd, kind.probe.timeoutMs)
+        if (result.outcome == LuaExecOutcome.TIMED_OUT) {
             return LuaToolProbeResult(
                 ok = false,
                 version = null,
@@ -41,7 +45,7 @@ class LuaToolProbeImpl : LuaToolProbe {
                 failure = "Timeout"
             )
         }
-        if (output.exitCode == LuaProcessUtil.PROCESS_EXECUTION_EXCEPTION_CODE) {
+        if (result.outcome == LuaExecOutcome.START_FAILED) {
             return LuaToolProbeResult(
                 ok = false,
                 version = null,
@@ -51,8 +55,8 @@ class LuaToolProbeImpl : LuaToolProbe {
             )
         }
 
-        val out = output.stdout.trim()
-        val err = output.stderr.trim()
+        val out = result.stdout.trim()
+        val err = result.stderr.trim()
         val merged = buildString {
             if (out.isNotEmpty()) append(out)
             if (out.isNotEmpty() && err.isNotEmpty()) append('\n')

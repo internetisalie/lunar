@@ -17,7 +17,6 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
-import net.internetisalie.lunar.tool.LuaTool
 
 /**
  * Created by IntelliJ IDEA.
@@ -35,23 +34,6 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
     class State {
         var includeAllFieldsInCompletions: Boolean = false
         var enableTypeInference: Boolean = true
-
-        /**
-         * Global inventory of registered external Lua tool binaries (TOOL-01).
-         * Serialised by the IntelliJ XML state serializer; entries must have no-arg constructors.
-         *
-         * TOOLING-05 Phase 4: retained (read by `tool/LuaToolManager`); deleted in Phase 6 once the
-         * `tool` package is removed.
-         */
-        var toolInventory: MutableList<LuaTool> = ArrayList()
-
-        /**
-         * Global default tool bindings (TOOL-02): maps a [net.internetisalie.lunar.tool.LuaToolType]
-         * name to the bound [LuaTool.id]. Used when no project-level override is present.
-         * Keyed by the enum's `name` (not the enum itself) so the IntelliJ XML serializer
-         * round-trips it reliably.
-         */
-        var globalToolBindings: MutableMap<String, String> = HashMap()
     }
 
     private var myState = State()

@@ -38,14 +38,14 @@ object RockUploadCommand {
             server,
         )
 
-    /** Builds the [GeneralCommandLine] using [executablePath] as the `luarocks` binary. */
+    /** Builds the [GeneralCommandLine] using [luarocksBinary] as the `luarocks` binary. */
     fun build(
-        executablePath: String,
+        luarocksBinary: String,
         rockspecPath: String,
         apiKey: String,
         force: Boolean = false,
         server: String? = null,
     ): GeneralCommandLine =
-        GeneralCommandLine(executablePath)
+        GeneralCommandLine(luarocksBinary)
             .withParameters(arguments(rockspecPath, apiKey, force, server))
 }

@@ -60,14 +60,6 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var autoImportStyle: AutoImportStyle = AutoImportStyle.AUTO_DETECT
 
         /**
-         * Per-project tool bindings (TOOL-02): maps a [net.internetisalie.lunar.tool.LuaToolType]
-         * name to the bound [net.internetisalie.lunar.tool.LuaTool.id]. Overrides the global
-         * default. Stored in `.idea/lunar.xml` so teams can share project tool selections via VCS.
-         * Keyed by the enum's `name` for stable XML serialization.
-         */
-        var projectToolBindings: MutableMap<String, String> = HashMap()
-
-        /**
          * Per-project LuaRocks registry server override (ROCKS-06-02). When non-blank, takes
          * precedence over the application-level TOOLING-02 `luarocks.serverUrl` kind option.
          * Stored in `.idea/lunar.xml` so teams share the registry target via VCS.
@@ -130,20 +122,6 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
      */
     fun setTargetAndNotify(newTarget: Target) {
         state.setTarget(newTarget)
-        project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
-    }
-
-    /**
-     * Binds (or, when [toolId] is `null`, clears) the project-level tool for [typeName] and
-     * notifies listeners via the shared [LuaSettingsChangedListener.TOPIC] so caches
-     * (e.g. [net.internetisalie.lunar.tool.LuaTerminalEnvironmentService]) invalidate immediately.
-     */
-    fun setProjectToolBindingAndNotify(typeName: String, toolId: String?) {
-        if (toolId == null) {
-            state.projectToolBindings.remove(typeName)
-        } else {
-            state.projectToolBindings[typeName] = toolId
-        }
         project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
     }
 
