@@ -34,14 +34,14 @@ compile (or a temporary settings-id string, replaced before merge).
 - **Goal**: reactive revalidation writing health only through the registry, with deduped
   balloons and env-root handling.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.health.LuaToolHealthMonitor`
+  - [x] Create `net.internetisalie.lunar.toolchain.health.LuaToolHealthMonitor`
         (design §2.2): watch sets + match predicate (design §3.2) with the predicate
         extracted as a testable pure function; `MergingUpdateQueue` batching;
         `revalidateAll` pass (design §3.3) incl. env-reason override, transition
         collection, env-deleted dedup set, EDT marshaling.
-  - [ ] Create `net.internetisalie.lunar.toolchain.health.LuaToolHealthStartup`
+  - [x] Create `net.internetisalie.lunar.toolchain.health.LuaToolHealthStartup`
         (design §2.3).
-  - [ ] Tests: predicate unit tests (TC-10); `BasePlatformTestCase` tests for transition
+  - [x] Tests: predicate unit tests (TC-10); `BasePlatformTestCase` tests for transition
         dedup (TC-06), env-root deletion (TC-07), and write-path purity/topic firing
         (TC-09) using temp-dir binaries and a topic-subscribing message-bus connection.
 - **Exit criteria**: TC-TOOLING-07-06/07/09/10 pass; no call site outside
@@ -102,6 +102,6 @@ compile (or a temporary settings-id string, replaced before merge).
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Health checker on the new model | done | Must |
-| Phase 2: Monitor — VFS, batching, writes, notifications | todo | Must |
+| Phase 2: Monitor — VFS, batching, writes, notifications | done | Must |
 | Phase 3: Editor banner provider | todo | Must |
 | Phase 4: Diagnostics | todo | Should/Could |
