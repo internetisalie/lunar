@@ -10,12 +10,12 @@ import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
 
 /**
  * Pure detection of env-shaped directories (TOOLING-02-14, design §2.6/§3.6). Generalizes the
- * legacy `HererocksEnvDetector` lua+luarocks heuristic to kind descriptors: a directory is
- * "env-shaped" when it holds a RUNTIME-capability binary and a PACKAGE_MANAGER-capability binary.
+ * legacy lua+luarocks env heuristic to kind descriptors: a directory is "env-shaped" when it holds
+ * a RUNTIME-capability binary and a PACKAGE_MANAGER-capability binary.
  */
 object LuaEnvironmentDetector {
 
-    val CONVENTIONAL_NAMES: List<String> = listOf(".lua", "lua_env", "hererocks", ".hererocks", "_lua")
+    val CONVENTIONAL_NAMES: List<String> = listOf(".lua", "lua_env", "_lua")
 
     /** Path of the first env-shaped directory, or `null`. VFS reads run inside a read action. */
     fun detect(project: Project): String? = ApplicationManager.getApplication().runReadAction<String?> {

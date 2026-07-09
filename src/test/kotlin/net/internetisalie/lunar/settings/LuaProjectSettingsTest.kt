@@ -299,7 +299,6 @@ class LuaProjectSettingsEdgeCasesTest {
 
         assertEquals(LuaLanguageLevel.LUA54, state.languageLevel)
         assertNull(state.target)
-        assertNull(state.interpreter)
         assertEquals(PathConfiguration.DEFAULT_SOURCE_PATH, state.sourcePath)
     }
 

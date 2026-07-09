@@ -19,7 +19,7 @@ import javax.swing.JPanel
 
 /**
  * Project-level Lua settings page (interim slimming, TOOLING-05 §6.3). The interpreter combo and the
- * hererocks-managed-mode checkbox were removed — runtime selection is now a toolchain RUNTIME binding
+ * env-managed-mode checkbox were removed — runtime selection is now a toolchain RUNTIME binding
  * / active environment (TOOLING-02) surfaced by the Toolchain page (TOOLING-06). Platform, version,
  * language level, source path, and the LuaRocks server override remain here until TOOLING-06 folds
  * this page.

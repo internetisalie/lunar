@@ -17,7 +17,7 @@ import java.nio.file.Path
 
 /**
  * On project open, offers one-click re-registration of an orphaned Lunar-provisioned tree
- * (TOOLING-04-16 — successor to the removed `HererocksDetectStartup`). Scans the likely env root
+ * (TOOLING-04-16 — successor to the removed legacy env-detect startup). Scans the likely env root
  * `<projectBase>/.lua` off the EDT for a `.lunar-env.json` whose `environmentId` has no matching
  * TOOLING-02 record; if found, a notification (group `notification.group.lunar.tools`) offers
  * "Re-register", which registers the recorded tools + environment via [RegistryProvisionResultSink]

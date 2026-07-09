@@ -6,7 +6,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 /**
  * TC 15: the `Lunar.Toolchain.EnvironmentGroup` resolves with its five provisioning actions plus
- * the migrated `Lunar.Hererocks.RunMatrix`, and the old hererocks action ids are unregistered.
+ * the migrated `Lunar.Toolchain.RunMatrix`, and the old hererocks action ids are unregistered.
  */
 class LuaToolchainActionRegistrationTest : BasePlatformTestCase() {
 
@@ -33,7 +33,7 @@ class LuaToolchainActionRegistrationTest : BasePlatformTestCase() {
             "Lunar.Toolchain.Recreate",
             "Lunar.Toolchain.Remove",
             "Lunar.Toolchain.BatchProvision",
-            "Lunar.Hererocks.RunMatrix",
+            "Lunar.Toolchain.RunMatrix",
         ).forEach { id -> assertTrue("group must contain $id", id in childIds) }
     }
 
@@ -45,6 +45,7 @@ class LuaToolchainActionRegistrationTest : BasePlatformTestCase() {
             "Lunar.Hererocks.Recreate",
             "Lunar.Hererocks.Remove",
             "Lunar.Hererocks.BatchProvision",
+            "Lunar.Hererocks.RunMatrix",
         ).forEach { id -> assertNull("action $id must be unregistered", manager.getAction(id)) }
     }
 }

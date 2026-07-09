@@ -604,11 +604,11 @@
     <!-- Interactive Console (REPL) history root -->
     <scratch.rootType implementation="net.internetisalie.lunar.run.console.LuaConsoleRootType"/>
 
-    <!-- Multi-version hererocks environments (ROCKS-15) -->
+    <!-- Active Lua environment widget + test-matrix results (TOOLING-05-06) -->
     <statusBarWidgetFactory id="Lunar.LuaEnvWidget"
-        implementation="net.internetisalie.lunar.rocks.env.LuaEnvStatusBarWidgetFactory"/>
+        implementation="net.internetisalie.lunar.toolchain.ui.LuaEnvStatusBarWidgetFactory"/>
     <toolWindow id="Lunar.LuaMatrix" anchor="bottom" secondary="true" canCloseContents="true"
-        factoryClass="net.internetisalie.lunar.rocks.env.matrix.MatrixResultsToolWindow"/>
+        factoryClass="net.internetisalie.lunar.rocks.matrix.MatrixResultsToolWindow"/>
 
   </extensions>
 
@@ -666,10 +666,10 @@
               class="net.internetisalie.lunar.toolchain.provision.LuaRemoveToolchainAction"
               text="Remove Environment"
               description="Unregister the environment's tools and optionally delete the directory"/>
-      <action id="Lunar.Hererocks.RunMatrix"
-              class="net.internetisalie.lunar.rocks.env.matrix.RunMatrixAction"
+      <action id="Lunar.Toolchain.RunMatrix"
+              class="net.internetisalie.lunar.rocks.matrix.RunMatrixAction"
               text="Run Test Matrix…"
-              description="Run the rockspec build/test command against every provisioned environment"/>
+              description="Run the rockspec test command against every provisioned environment"/>
       <action id="Lunar.Toolchain.BatchProvision"
               class="net.internetisalie.lunar.toolchain.provision.LuaBatchProvisionToolchainsAction"
               text="Provision Version Matrix…"

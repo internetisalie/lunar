@@ -21,7 +21,7 @@ import kotlin.io.path.writeText
  * `luarocks` → LuaRocks) to a pure recipe, then executes every [BuildStep] through the
  * TOOLING-03 execution service (INSTALL timeout). A non-`COMPLETED` outcome or a non-zero exit
  * aborts with a [LuaProvisionException] carrying the failing command and the last 20 output
- * lines (mirrors `HererocksProvisioner`). Not supported on Windows (`supports()` == false).
+ * lines (mirrors the legacy source-build provisioner). Not supported on Windows (`supports()` == false).
  *
  * Runs only on the provisioning orchestrator's background task (blocking I/O + subprocesses).
  */

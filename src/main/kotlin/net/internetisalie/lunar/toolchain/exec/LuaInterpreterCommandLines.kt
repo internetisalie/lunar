@@ -6,8 +6,8 @@ import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import java.nio.file.Path
 
 /**
- * Constructs interpreter [GeneralCommandLine]s (TOOLING-03-13); replaces
- * `command/LuaCommandLine.kt` (`newLuaInterpreterCommandLine` / `newProjectLuaInterpreterCommandLine`).
+ * Constructs interpreter [GeneralCommandLine]s (TOOLING-03-13); the single home for interpreter
+ * command-line construction after the legacy `command/LuaCommandLine.kt` factories were removed.
  * The `.jar → java -cp <jar> lua` special case is kept; the project interpreter comes from the
  * TOOLING-02 resolver's RUNTIME resolution.
  *
@@ -16,7 +16,7 @@ import java.nio.file.Path
  */
 object LuaInterpreterCommandLines {
 
-    /** Replaces `newLuaInterpreterCommandLine` (command/LuaCommandLine.kt:32-45). Never returns null. */
+    /** Builds a command line for a concrete interpreter binary (jar-aware). Never returns null. */
     fun forBinary(executable: Path): GeneralCommandLine {
         val cmd = GeneralCommandLine(executable.toString())
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
@@ -31,8 +31,8 @@ object LuaInterpreterCommandLines {
     }
 
     /**
-     * Replaces `newProjectLuaInterpreterCommandLine` (command/LuaCommandLine.kt:18-30):
-     * resolver(RUNTIME) + full environment applied. Null when no runtime resolves.
+     * Builds the project interpreter command line: resolver(RUNTIME) + full environment applied.
+     * Null when no runtime resolves.
      */
     fun forProject(project: Project): GeneralCommandLine? {
         val tool = LuaToolResolver.getInstance().resolveRuntime(project) ?: return null

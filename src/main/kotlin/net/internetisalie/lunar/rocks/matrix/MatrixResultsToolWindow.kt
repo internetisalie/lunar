@@ -1,4 +1,4 @@
-package net.internetisalie.lunar.rocks.env.matrix
+package net.internetisalie.lunar.rocks.matrix
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
@@ -32,9 +32,9 @@ class MatrixResultsToolWindow : ToolWindowFactory {
         const val TOOL_WINDOW_ID = "Lunar.LuaMatrix"
         private val LOG = Logger.getInstance(MatrixResultsToolWindow::class.java)
 
-        /** Builds the row cells `[label, status, exit]` for a [MatrixResult] (test seam). */
+        /** Builds the row cells `[name, status, exit]` for a [MatrixResult] (test seam). */
         fun tableRows(result: MatrixResult): List<Array<Any>> =
-            result.rows.map { arrayOf<Any>(it.env.displayLabel(), it.status.name, it.exitCode ?: "") }
+            result.rows.map { arrayOf<Any>(it.env.name, it.status.name, it.exitCode ?: "") }
     }
 
     /**

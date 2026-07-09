@@ -1,4 +1,4 @@
-package net.internetisalie.lunar.rocks.env.matrix
+package net.internetisalie.lunar.rocks.matrix
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -12,12 +12,12 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindowManager
 import net.internetisalie.lunar.rocks.LuaRockspecDiscoveryService
-import net.internetisalie.lunar.rocks.env.HererocksEnvSet
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Runs the rockspec `test` command against every provisioned environment (ROCKS-15-04, design §2.7,
+ * Runs the rockspec `test` command against every provisioned environment (ROCKS-15-04, design §2.6,
  * §3.3). Disabled when no env is provisioned or no rockspec is discovered. Each env runs in its own
  * [Task.Backgroundable] so rows execute concurrently — one slow env does not block the rest. Each
  * row marshals its results-table update to the EDT as it finishes; the last row to complete emits
@@ -27,13 +27,13 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
 
     override fun update(event: AnActionEvent) {
         val project = event.project
-        event.presentation.isEnabled = project != null && HererocksEnvSet.all(project).isNotEmpty()
+        event.presentation.isEnabled = project != null && environmentsOf(project).isNotEmpty()
     }
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
         try {
-            val envs = HererocksEnvSet.all(project)
+            val envs = environmentsOf(project)
             if (envs.isEmpty()) {
                 notify(project, "No Lua environments to run the matrix against", NotificationType.WARNING)
                 return
@@ -49,6 +49,9 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
         }
     }
 
+    private fun environmentsOf(project: Project) =
+        LuaToolchainProjectSettings.getInstance(project).environments()
+
     /** Shared per-run context: the request, the mutable rows, and a completion counter. */
     private class MatrixRun(val project: Project, val request: MatrixRunner.Request) {
         val rows: List<MatrixRow> = request.envs.map { MatrixRow(it) }
@@ -60,7 +63,7 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
     }
 
     private fun rowTask(run: MatrixRun, row: MatrixRow) =
-        object : Task.Backgroundable(run.project, "Running Lua matrix: ${row.env.displayLabel()}", true) {
+        object : Task.Backgroundable(run.project, "Running Lua matrix: ${row.env.name}", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.checkCanceled()
                 MatrixRunner.runRow(run.request, MatrixRunner.processRunner, row)

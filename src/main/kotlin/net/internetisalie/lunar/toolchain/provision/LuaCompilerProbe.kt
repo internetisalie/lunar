@@ -8,8 +8,8 @@ import java.nio.file.Path
  * compiler, archiver, ranlib and (optionally) `make` on `PATH` and never parses versions.
  * There is no MSVC bootstrap; Windows builds are prebuilt-only.
  *
- * Locates candidates via [PathEnvironmentVariableUtil.findInPath] (idiom:
- * `rocks/env/HererocksLocator.kt:36`). Runs off the EDT with the rest of provisioning.
+ * Locates candidates via [PathEnvironmentVariableUtil.findInPath]. Runs off the EDT with the
+ * rest of provisioning.
  */
 object LuaCompilerProbe {
     /** The resolved toolchain executables; [make] is null when `make` is absent (required only by LuaRocks/LuaJIT). */

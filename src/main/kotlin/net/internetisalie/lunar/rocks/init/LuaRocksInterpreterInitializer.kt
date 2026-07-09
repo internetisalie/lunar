@@ -66,7 +66,7 @@ object LuaRocksInterpreterInitializer {
         LuaToolchainProjectSettings.getInstance(project).setBinding(WizardRuntimeKinds.LUA, tool.id)
     }
 
-    /** Inlines the former `HererocksEnvState.toTarget` mapping: kind + version → project [Target]. */
+    /** Maps the wizard's chosen kind + version to a project [Target] (design §2.8). */
     private fun targetFor(settings: LuaRocksProjectSettings): Target {
         val platform =
             if (settings.kindId == WizardRuntimeKinds.LUAJIT) LuaPlatform.LUAJIT else LuaPlatform.STANDARD

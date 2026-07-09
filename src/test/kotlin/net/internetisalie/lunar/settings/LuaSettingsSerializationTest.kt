@@ -79,19 +79,21 @@ class LuaSettingsSerializationTest {
             rocksServerUrl = "https://rocks.example"
         }
         val element = XmlSerializer.serialize(current)
-        // Inject tags that no longer bind to any accessor (simulating a stale older-build lunar.xml).
-        // Field names must be genuinely unbound: `interpreterMode`/`hererocksEnvs` still exist on the
-        // State in Phase 4 (deferred to Phase 5), so ghost names are used to exercise §3.7 for real.
-        element.addContent(staleOption("legacyInterpreterMode", "HEREROCKS_MANAGED"))
+        // Inject the REAL legacy tags deleted in TOOLING-05 Phase 5 (TC 14): a `lunar.xml` written by
+        // an older build still carries `interpreterMode`/`hererocksEnvs`/`explicitInterpreter`, which
+        // no longer bind to any accessor. They must load without exception and vanish on re-serialize.
+        element.addContent(staleOption("interpreterMode", "HEREROCKS_MANAGED"))
+        element.addContent(staleOption("interpreterModeMigrated", "true"))
+        element.addContent(staleOption("activeEnvId", "env-1"))
         element.addContent(
             Element("option").apply {
-                setAttribute("name", "legacyHererocksEnvs")
+                setAttribute("name", "hererocksEnvs")
                 addContent(Element("list").apply { addContent(Element("HererocksEnvState").apply { setAttribute("id", "e1") }) })
             },
         )
         element.addContent(
             Element("option").apply {
-                setAttribute("name", "legacyExplicitInterpreter")
+                setAttribute("name", "explicitInterpreter")
                 addContent(Element("LuaInterpreter").apply { setAttribute("path", "/old/lua") })
             },
         )
@@ -104,10 +106,10 @@ class LuaSettingsSerializationTest {
 
         val reserialized = XmlSerializer.serialize(restored)
         val optionNames = reserialized.getChildren("option").mapNotNull { it.getAttributeValue("name") }
-        assertFalse(optionNames.contains("legacyInterpreterMode"), "stale scalar tag dropped on re-serialize")
-        assertFalse(optionNames.contains("legacyHererocksEnvs"), "stale list tag dropped on re-serialize")
+        assertFalse(optionNames.contains("interpreterMode"), "stale scalar tag dropped on re-serialize")
+        assertFalse(optionNames.contains("hererocksEnvs"), "stale list tag dropped on re-serialize")
         assertFalse(
-            optionNames.contains("legacyExplicitInterpreter"),
+            optionNames.contains("explicitInterpreter"),
             "stale nested-bean tag dropped on re-serialize",
         )
     }

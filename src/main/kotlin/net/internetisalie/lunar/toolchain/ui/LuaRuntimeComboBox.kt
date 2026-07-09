@@ -28,7 +28,7 @@ private const val LUA_KIND_ID = "lua"
 
 /**
  * TOOLING-05 §2.5/§3.1. Wires a RUNTIME-tool [ComboBox] for the run/test/wizard editors,
- * replacing `platform.customizeLuaInterpreterComboBox`. The model lists the project-resolved
+ * replacing the legacy interpreter combo customizer. The model lists the project-resolved
  * default plus every usable RUNTIME inventory entry; a typed path not in the registry becomes a
  * background-probed ad-hoc entry while the default stays listed (the load-bearing ROCKS-16
  * subtlety). Ad-hoc entries are never auto-registered.
@@ -42,7 +42,7 @@ object LuaRuntimeComboBox {
         field.model = binder.buildModel(typed = null)
         field.renderer = LuaRuntimeListCellRenderer()
         field.isEditable = true
-        // The editor must stringify a tool to its PATH (as the legacy LuaInterpreter.toString did):
+        // The editor must stringify a tool to its PATH (the tool identity the editor round-trips on):
         // then configureEditor's setText matches the typed text and never re-enters during a
         // document notification (avoids "Attempt to mutate in notification").
         field.editor = PathComboBoxEditor()
@@ -117,7 +117,7 @@ object LuaRuntimeComboBox {
  * Editor that DISPLAYS a [LuaRegisteredTool] as its path (so `configureEditor`'s setText matches
  * the typed text and never re-enters during a document notification), while still returning the
  * tool object from [getItem] when the text is unchanged (mirrors `BasicComboBoxEditor`'s
- * object-round-trip that the legacy `LuaInterpreter.toString()==path` relied on).
+ * object-round-trip, keyed on the tool's path as its stable string form).
  */
 private class PathComboBoxEditor : BasicComboBoxEditor() {
     private var storedTool: LuaRegisteredTool? = null
@@ -161,7 +161,7 @@ private fun adHocTool(path: String): LuaRegisteredTool =
         health = LuaToolHealth(fileExists = true, executable = true, probeOk = null, probedAtMtime = null, reason = null)
     )
 
-/** Port of `LuaInterpreterListCellRenderer` (platform/LuaInterpreterComponent.kt:76-110). */
+/** Renders a RUNTIME tool: path in bold + `product version` in gray (unusable → "Invalid"). */
 private class LuaRuntimeListCellRenderer : ColoredListCellRenderer<Any>() {
     override fun customizeCellRenderer(
         list: javax.swing.JList<out Any?>,

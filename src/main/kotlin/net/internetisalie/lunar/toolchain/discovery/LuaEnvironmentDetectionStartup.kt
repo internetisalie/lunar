@@ -15,8 +15,9 @@ import net.internetisalie.lunar.util.newProjectBackgroundTask
  * (TOOLING-02-14, design §2.8). Detection runs off the EDT; adoption runs on a background task
  * (`registerTool` probes each binary and must not run on the EDT).
  *
- * Ships UNREGISTERED: the `plugin.xml` swap replacing `HererocksDetectStartup` lands in TOOLING-05
- * in one atomic commit, so both detectors never offer duplicate notifications during the transition.
+ * Ships UNREGISTERED: the legacy env-detect startup was removed in TOOLING-05; the registered
+ * successor is [net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup], so this
+ * detector stays off the extension point to avoid duplicate open-project notifications.
  */
 class LuaEnvironmentDetectionStartup : ProjectActivity {
     override suspend fun execute(project: Project) {

@@ -152,18 +152,37 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 ### Phase 5: Environments — matrix, widget, hererocks removal [Must] (requires TOOLING-04 UI)
 - **Goal**: matrix + status-bar widget on TOOLING-02 environments; hererocks lifecycle gone.
 - **Tasks**:
-  - [ ] Move + retype matrix (`rocks/matrix/`): `MatrixRunner` on `LuaEnvironmentState`
+  - [x] Move + retype matrix (`rocks/matrix/`): `MatrixRunner` on `LuaEnvironmentState`
         + `resolveIn`, exec-service stream; `RunMatrixAction` on `environments(project)`;
-        re-register action/toolWindow (§7.2) — design §2.6, §3.6
-  - [ ] Move + rewire `LuaEnvStatusBarWidget(Factory)` → `toolchain.ui` on TOOLING-02
+        re-register action/toolWindow (§7.2). `BatchProvisionAction`/`BatchProvisionDialog`
+        deleted (§6.1#18) — design §2.6, §3.6
+  - [x] Move + rewire `LuaEnvStatusBarWidget(Factory)` → `toolchain.ui` on TOOLING-02
         state + `LuaToolchainListener.TOPIC`; re-register factory (§7.2) — design §2.7
-  - [ ] Delete `rocks/env/` hererocks classes (§6.1#17-18) + their plugin.xml entries:
-        `HererocksDetectStartup` postStartupActivity (:433-435) and the
-        `HererocksEnvGroup` actions block (:643-668)
-  - [ ] Rewrite `MatrixRunnerTest.kt`, `LuaEnvStatusBarWidgetTest.kt`; delete the
-        hererocks test suite (§6.4 rows) with replacement coverage confirmed present
-        in 02/04
-- **Exit criteria**: TC 12 passes; `grep -rin "hererocks" src/main` = 0; suite green.
+  - [x] Delete `rocks/env/` hererocks classes (§6.1#17). (The `HererocksDetectStartup`
+        postStartupActivity + `HererocksEnvGroup` actions block were already de-registered
+        in Phase 4; only the RunMatrix id/class re-point remained.)
+  - [x] **(absorbed Phase-4 deferrals)** Deleted `platform/LuaInterpreterService.kt`,
+        `platform/LuaInterpreter.kt`, `command/LuaCommandLine.kt` (last reader
+        `HererocksEnvBinder` died here); deleted `LuaProjectSettings.State`
+        `interpreter`/`explicitInterpreter`/`explicitTarget`/`interpreterMode`(+`Migrated`)/
+        `hererocksEnv(s)`/`activeEnvId`, the `InterpreterMode` enum, and the env-helper/mode
+        machinery. **KEPT** `projectToolBindings`+`setProjectToolBindingAndNotify`,
+        `rocksServerUrl`, `target`, and `LuaApplicationSettings` `toolInventory`/
+        `globalToolBindings` (Phase-6, read by `tool/LuaToolManager`). Tidied dangling KDoc
+        refs in `LuaRuntimeComboBox.kt` + `LuaInterpreterCommandLines.kt`.
+  - [x] Rewrite `MatrixRunnerTest.kt` (→ `rocks/matrix/`, TC 12), `LuaEnvStatusBarWidgetTest.kt`
+        (→ `toolchain/ui`); deleted the hererocks test suite + batch/glob/command deferred
+        tests (§6.4) — replacement coverage confirmed in TOOLING-02
+        (`LuaToolchainProjectSettingsTest`/`LuaToolResolverTest`/`LuaEnvironmentDetectorTest`) +
+        TOOLING-04 (`LuaToolProvisionerTest`/`LuaToolchainActionRegistrationTest`) + exec
+        (`LuaInterpreterCommandLinesTest`) + discovery (`LuaToolDiscoveryTest` glob parity).
+        Retargeted `LuaToolchainActionRegistrationTest` + strengthened the TC 14 stale-XML
+        test onto the now-real deleted tag names.
+- **Exit criteria**: TC 12 passes; `grep -rin "hererocks" src/main` = 0;
+  `grep -rnE "platform.LuaInterpreter|InterpreterMode|newLuaInterpreterCommandLine" src/main` = 0;
+  matrix/widget re-registered under new packages (same IDs), RunMatrix under
+  `Lunar.Toolchain.EnvironmentGroup`; `tool/*` + tool-state fields still compile (Phase 6);
+  suite green.
 
 ### Phase 6: Final legacy removal + gates [Must]
 - **Goal**: the `tool/` package and every residual legacy symbol deleted; grep gates hold.
@@ -215,5 +234,5 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 | Phase 2: LuaRocks consumers | done | Must |
 | Phase 3: Lua runtime consumers | done | Must |
 | Phase 4: Wizard + settings-state deletion | done | Must |
-| Phase 5: Environments (matrix/widget/hererocks) | todo | Must |
+| Phase 5: Environments (matrix/widget/hererocks) | done | Must |
 | Phase 6: Final legacy removal + gates | todo | Must |
