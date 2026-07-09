@@ -435,6 +435,11 @@
     <postStartupActivity
             implementation="net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup" />
 
+    <!-- Offer one-click Adopt for a detected foreign env directory (TOOLING-02-14); deduped
+         against LuaEnvRedetectionStartup by skipping .lunar-env.json manifest-bearing trees -->
+    <postStartupActivity
+            implementation="net.internetisalie.lunar.toolchain.discovery.LuaEnvironmentDetectionStartup" />
+
     <projectService
             serviceInterface="net.internetisalie.lunar.lang.psi.types.LuaTypeManager"
             serviceImplementation="net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl" />

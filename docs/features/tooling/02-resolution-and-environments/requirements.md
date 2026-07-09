@@ -193,8 +193,13 @@ avoid double notifications during the transition (design §7).
       (TOOLING-02-08).
 - [ ] Target/language-level follow the effective runtime per TC 13–14 (TOOLING-02-09).
 - [ ] Stale bindings skip and surface per TC 4–5 (TOOLING-02-11).
-- [ ] Detection/adoption works per TC 17 (TOOLING-02-14); removal cleanup per TC 16
-      (TOOLING-02-13).
+- [x] Detection/adoption works per TC 17 (TOOLING-02-14); removal cleanup per TC 16
+      (TOOLING-02-13). Note (2026-07-09): the `LuaEnvironmentDetectionStartup` postStartupActivity
+      registration — deferred at TOOLING-02 authoring ("no plugin.xml registration in this
+      feature") and left dangling when TOOLING-05 removed the legacy `HererocksDetectStartup` — was
+      wired up, deduped against the TOOLING-04 `LuaEnvRedetectionStartup` by skipping
+      `.lunar-env.json` manifest-bearing (Lunar-provisioned) trees so a single project-open pass
+      never double-notifies.
 
 ## Non-Functional Requirements
 - **Threading**: resolution and state reads are safe on any thread and perform no disk,

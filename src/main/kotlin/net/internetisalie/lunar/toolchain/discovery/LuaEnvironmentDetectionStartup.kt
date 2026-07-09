@@ -8,26 +8,43 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import net.internetisalie.lunar.toolchain.provision.LuaEnvManifest
 import net.internetisalie.lunar.util.newProjectBackgroundTask
+import java.nio.file.Path
 
 /**
- * On project open, offers a one-click **Adopt** for a detected, unknown env directory
- * (TOOLING-02-14, design §2.8). Detection runs off the EDT; adoption runs on a background task
- * (`registerTool` probes each binary and must not run on the EDT).
+ * On project open, offers a one-click **Adopt** for a detected **foreign** env directory
+ * (TOOLING-02-14, design §2.8). Detection + the offer decision run off the EDT on
+ * [Dispatchers.IO]; adoption runs on a background task (`registerTool` probes each binary and
+ * must not run on the EDT).
  *
- * Ships UNREGISTERED: the legacy env-detect startup was removed in TOOLING-05; the registered
- * successor is [net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup], so this
- * detector stays off the extension point to avoid duplicate open-project notifications.
+ * Deduped against [net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup] (which
+ * owns the re-registration prompt for orphaned **Lunar-provisioned** trees, marked by a
+ * `.lunar-env.json` manifest): this startup skips any manifest-bearing directory so a single
+ * project-open pass never fires two notifications for the same tree.
  */
 class LuaEnvironmentDetectionStartup : ProjectActivity {
     override suspend fun execute(project: Project) {
         try {
-            val detected = LuaEnvironmentDetector.detect(project) ?: return
-            if (LuaEnvironmentDetector.isKnownDirectory(project, detected)) return
+            val detected = withContext(Dispatchers.IO) {
+                LuaEnvironmentDetector.detect(project)?.takeIf { shouldOfferAdopt(project, it) }
+            } ?: return
             offerAdopt(project, detected)
         } catch (throwable: Throwable) {
             LOG.warn("environment detection failed", throwable)
         }
+    }
+
+    /**
+     * Adopt is offered only for a *foreign* env directory: one not already recorded and NOT a
+     * Lunar-provisioned tree (a `.lunar-env.json` marker hands the re-registration prompt to
+     * [net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup]).
+     */
+    internal fun shouldOfferAdopt(project: Project, directory: String): Boolean {
+        if (LuaEnvironmentDetector.isKnownDirectory(project, directory)) return false
+        return LuaEnvManifest.read(Path.of(directory)) == null
     }
 
     private fun offerAdopt(project: Project, directory: String) {
