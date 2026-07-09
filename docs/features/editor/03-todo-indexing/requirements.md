@@ -3,7 +3,7 @@ id: EDITOR-03
 title: "03: TODO / FIXME Indexing"
 type: feature
 parent_id: EDITOR
-status: "todo"
+status: "planned"
 priority: "high"
 folders:
   - "[[features/editor/requirements|requirements]]"
