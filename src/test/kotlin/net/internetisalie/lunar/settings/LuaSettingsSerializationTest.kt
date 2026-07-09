@@ -3,7 +3,6 @@ package net.internetisalie.lunar.settings
 import com.intellij.util.xmlb.XmlSerializer
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.platform.LuaInterpreter
-import net.internetisalie.lunar.rocks.run.LuaRocksSettings
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -12,9 +11,8 @@ import kotlin.test.assertTrue
 /**
  * MAINT-12 Phase 1: settings state serialization and defaults (MAINT-12-01/-02/-03).
  *
- * Plain-JUnit coverage of the uncovered [LuaProjectSettings.State] fields, the
- * [LuaApplicationSettings.State] collections/booleans, and the [LuaRocksSettings]
- * `SimplePersistentStateComponent` defaults + notnull-normalisation.
+ * Plain-JUnit coverage of the uncovered [LuaProjectSettings.State] fields and the
+ * [LuaApplicationSettings.State] collections/booleans.
  * Target migration / `TargetState` (already in `LuaProjectSettingsTest.kt`) and
  * `toolInventory` standalone round-trip (already in `LuaToolManagerTest`) are not re-tested.
  */
@@ -118,19 +116,4 @@ class LuaSettingsSerializationTest {
         assertTrue(state.globalToolBindings.isEmpty())
     }
 
-    @Test
-    fun luaRocksSettingsDefaults() {
-        val settings = LuaRocksSettings()
-
-        assertEquals("", settings.serverUrl)
-    }
-
-    @Test
-    fun luaRocksSettingsNotNullFallback() {
-        val settings = LuaRocksSettings()
-
-        settings.state.executablePath = null
-
-        assertEquals(LuaRocksSettings.DEFAULT_EXECUTABLE, settings.executablePath)
-    }
 }

@@ -102,7 +102,7 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
 
         /**
          * Per-project LuaRocks registry server override (ROCKS-06-02). When non-blank, takes
-         * precedence over the application-level [net.internetisalie.lunar.rocks.run.LuaRocksSettings.serverUrl].
+         * precedence over the application-level TOOLING-02 `luarocks.serverUrl` kind option.
          * Stored in `.idea/lunar.xml` so teams share the registry target via VCS.
          * An empty string means "use the app default (or none)".
          */

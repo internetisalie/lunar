@@ -46,17 +46,23 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 ### Phase 2: LuaRocks consumers [Must]
 - **Goal**: one nullable, resolver-backed luarocks resolution; PATH prepend fixed.
 - **Tasks**:
-  - [ ] Rewrite `rocks/LuaRocksEnvironment.resolveExecutable` (nullable, resolver) and
+  - [x] Rewrite `rocks/LuaRocksEnvironment.resolveExecutable` (nullable, resolver) and
         `resolveServer` app fallback onto the TOOLING-02 option — design §2.4
-  - [ ] Cut over `LuaRocksRunConfiguration.kt:208` (+ env-builder PATH prepend),
+  - [x] Cut over `LuaRocksRunConfiguration.kt:208` (+ env-builder PATH prepend),
         `LuaRocksActionHandler.kt:33,57`, `LuaRocksMetadataService.kt:30`,
         `WorkspaceBuildRunner.kt:29`; add null branches to `LuaRocksSearchService` /
         `PublishRockAction` — design §2.4, §3.3
-  - [ ] Slim `LuaRocksSettingsConfigurable` (drop exe row; rebind server) — design §2.4
-  - [ ] Delete `rocks/run/LuaRocksSettings.kt` + registration (plugin.xml:501-502)
-  - [ ] Rewrite tests: `LuaRocksEnvironmentTest.kt`, `TestLuaRocksRunConfiguration.kt`,
+  - [x] Slim `LuaRocksSettingsConfigurable` (drop exe row; rebind server) — design §2.4
+  - [x] Delete `rocks/run/LuaRocksSettings.kt` + registration (plugin.xml:501-502)
+  - [x] Rewrite tests: `LuaRocksEnvironmentTest.kt`, `TestLuaRocksRunConfiguration.kt`,
         `WorkspaceBuildRunnerTest.kt` — design §6.4
-- **Exit criteria**: TC 6–8 pass; `grep -rn "LuaRocksSettings" src/main` = 0; suite green.
+- **Exit criteria**: TC 6–8 pass; suite green. Grep-gate nuance (as in Phase 1): the literal
+        `grep -rn "LuaRocksSettings" src/main = 0` cannot hold while the interim
+        `LuaRocksSettingsConfigurable` survives until TOOLING-06 (substring match). The real
+        Phase 2 gate is `LuaRocksSettings.kt` (the service) deleted and zero
+        `LuaRocksSettings.getInstance` / `.executablePath` / `.serverUrl` reads remaining —
+        the slimmed `LuaRocksSettingsConfigurable` is the sole allowed residual substring:
+        `grep -rn "LuaRocksSettings" src/main | grep -v LuaRocksSettingsConfigurable` = 0.
 
 ### Phase 3: Lua runtime consumers [Must]
 - **Goal**: run/debug/console/test/producer/bridge resolve RUNTIME via resolver; combo
@@ -159,7 +165,7 @@ legacy symbol. plugin.xml removals ride the commit that deletes the class they r
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Simple tool consumers | done | Must |
-| Phase 2: LuaRocks consumers | todo | Must |
+| Phase 2: LuaRocks consumers | done | Must |
 | Phase 3: Lua runtime consumers | todo | Must |
 | Phase 4: Wizard + settings-state deletion | todo | Must |
 | Phase 5: Environments (matrix/widget/hererocks) | todo | Must |

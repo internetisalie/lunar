@@ -2,7 +2,6 @@ package net.internetisalie.lunar.rocks.env
 
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.testFramework.PlatformTestUtil
-import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.settings.LuaSettingsChangedListener
 import java.io.File
@@ -66,7 +65,11 @@ class HererocksEnvSwitchTest : EnvSettingsTestCase() {
 
         assertEquals("B", settings.state.activeEnvId)
         assertTrue("switch must fire TOPIC at least once", changeCount >= 1)
-        assertEquals(File(root, "B/bin/luarocks").absolutePath, LuaRocksEnvironment.resolveExecutable(project))
+        // Note (TOOLING-05 Phase 2): LuaRocksEnvironment.resolveExecutable now routes through the
+        // TOOLING-01/02 toolchain resolver, not the hererocks env binding. Per-environment luarocks
+        // resolution is covered by TOOLING-02 environment tests + the Phase 5 matrix rewrite; this
+        // legacy suite is deleted in Phase 5. The switch/activate semantics above are the assertion
+        // of record here.
     }
 
     /**

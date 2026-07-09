@@ -3,26 +3,36 @@ package net.internetisalie.lunar.rocks.build
 import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import net.internetisalie.lunar.rocks.run.LuaRocksSettings
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.model.LuaToolHealth
+import net.internetisalie.lunar.toolchain.model.Origin
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainAppState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 import org.junit.Test
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.UUID
 
+/**
+ * TOOLING-05 Phase 2. [WorkspaceBuildRunner] resolves the `luarocks` binary from the toolchain
+ * facade (bound tool) rather than a deleted `LuaRocksSettings` read, and fails fast with an
+ * error outcome when nothing resolves.
+ */
 class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
 
-    private var originalExecutable: String = ""
     private lateinit var fakeExecutable: File
     private lateinit var tempDir: Path
     private lateinit var logFile: File
 
     override fun setUp() {
         super.setUp()
-        originalExecutable = LuaRocksSettings.getInstance().executablePath
+        resetToolchain()
         tempDir = Files.createTempDirectory("lunar-build-test")
         logFile = File(tempDir.toFile(), "build-log.txt")
 
-        // Create fake luarocks executable
         fakeExecutable = File.createTempFile("fake-luarocks", ".sh").apply {
             writeText(
                 """
@@ -40,12 +50,12 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
             )
             setExecutable(true)
         }
-        LuaRocksSettings.getInstance().executablePath = fakeExecutable.absolutePath
+        bindLuaRocks(fakeExecutable.absolutePath)
     }
 
     override fun tearDown() {
         try {
-            LuaRocksSettings.getInstance().executablePath = originalExecutable
+            resetToolchain()
             if (::fakeExecutable.isInitialized) {
                 fakeExecutable.delete()
             }
@@ -55,6 +65,27 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
         } finally {
             super.tearDown()
         }
+    }
+
+    private fun resetToolchain() {
+        LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
+        LuaToolchainProjectSettings.getInstance(project).loadState(LuaToolchainProjectState())
+    }
+
+    private fun bindLuaRocks(path: String) {
+        val tool = LuaRegisteredTool(
+            id = UUID.randomUUID().toString(),
+            kindId = "luarocks",
+            path = path,
+            version = "3.0.0",
+            luaVersion = null,
+            runtime = null,
+            origin = Origin.MANUAL,
+            environmentId = null,
+            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
+        )
+        LuaToolchainRegistry.getInstance().registerProvisioned(tool)
+        LuaToolchainProjectSettings.getInstance(project).setBinding("luarocks", tool.id)
     }
 
     @Test
@@ -130,6 +161,32 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
             assertTrue(logLines.any { it.contains("Working directory: ${dirB.toAbsolutePath()}") })
             assertFalse(logLines.any { it.contains("Running luarocks with args: make $specC") })
             assertTrue(logLines.any { it.contains("Simulating failure for B") })
+        } finally {
+            console.dispose()
+        }
+    }
+
+    /** Null branch: no luarocks resolves → FAIL outcome (exit -1), no launch attempted. */
+    @Test
+    fun testNoLuaRocksResolvedFailsFast() {
+        resetToolchain()
+        val dirA = Files.createDirectories(tempDir.resolve("a"))
+        val specA = Files.createFile(dirA.resolve("a-1.0-1.rockspec"))
+        val rockA = WorkspaceRock("a", specA, emptyList())
+
+        val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
+        try {
+            val outcome = WorkspaceBuildRunner.run(
+                project,
+                listOf(rockA),
+                console,
+                EmptyProgressIndicator()
+            )
+
+            assertEquals(0, outcome.builtCount)
+            assertEquals(rockA, outcome.failedRock)
+            assertEquals(-1, outcome.exitCode)
+            assertFalse(logFile.exists() && logFile.readLines().isNotEmpty())
         } finally {
             console.dispose()
         }

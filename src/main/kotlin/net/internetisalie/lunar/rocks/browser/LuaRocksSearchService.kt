@@ -45,7 +45,10 @@ object LuaRocksSearchService {
         val cached = LuaRocksSearchCache.get(query, System.currentTimeMillis())
         if (cached != null) return cached
 
-        val exe = LuaRocksEnvironment.resolveExecutable(project)
+        val exe = LuaRocksEnvironment.resolveExecutable(project) ?: run {
+            log.warn("luarocks search skipped: no luarocks binary resolved")
+            return emptyList()
+        }
         val server = LuaRocksEnvironment.resolveServer(project)
         val subArgs = LuaRocksEnvironment.withServer(listOf("search", "--porcelain", query), server)
         val output = LuaProcessUtil.capture(
@@ -71,7 +74,10 @@ object LuaRocksSearchService {
      *   Pass `null` to use the application defaults.
      */
     fun installed(project: Project? = null): Set<String> {
-        val exe = LuaRocksEnvironment.resolveExecutable(project)
+        val exe = LuaRocksEnvironment.resolveExecutable(project) ?: run {
+            log.warn("luarocks list skipped: no luarocks binary resolved")
+            return emptySet()
+        }
         val server = LuaRocksEnvironment.resolveServer(project)
         val subArgs = LuaRocksEnvironment.withServer(listOf("list", "--porcelain"), server)
         val output = LuaProcessUtil.capture(

@@ -511,8 +511,6 @@
     <!-- LuaRocks task execution / run configs (ROCKS-04) -->
     <configurationType
             implementation="net.internetisalie.lunar.rocks.run.LuaRocksRunConfigurationType"/>
-    <applicationService
-            serviceImplementation="net.internetisalie.lunar.rocks.run.LuaRocksSettings"/>
 
     <programRunner implementation="net.internetisalie.lunar.run.LuaDebugRunner"/>
     <xdebugger.breakpointType implementation="net.internetisalie.lunar.run.LuaLineBreakpointType"/>

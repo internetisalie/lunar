@@ -61,6 +61,10 @@ class PublishRockAction : DumbAwareAction(
             object : Task.Backgroundable(project, "Publishing rock to LuaRocks", true) {
                 override fun run(indicator: ProgressIndicator) {
                     val exe = LuaRocksEnvironment.resolveExecutable(project)
+                    if (exe == null) {
+                        notify(project, LUAROCKS_NOT_CONFIGURED, NotificationType.ERROR)
+                        return
+                    }
                     val command = RockUploadCommand.build(exe, rockspecPath, apiKey, server = server)
                     val output = LuaProcessUtil.capture(command, UPLOAD_TIMEOUT_MS)
                     if (output.exitCode == 0) {
@@ -84,6 +88,9 @@ class PublishRockAction : DumbAwareAction(
     companion object {
         private const val NOTIFICATION_GROUP = "notification.group.lunar.luarocks"
         private const val UPLOAD_TIMEOUT_MS = 120_000
+        private const val LUAROCKS_NOT_CONFIGURED =
+            "LuaRocks is not configured. Register or bind it under " +
+                "Settings | Languages & Frameworks | Lua | Toolchain."
 
         /** True when [file] is a `.rockspec` (the upload target). */
         fun isRockspec(file: VirtualFile): Boolean =

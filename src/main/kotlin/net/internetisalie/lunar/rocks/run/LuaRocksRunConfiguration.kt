@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.rocks.run
 
+import com.intellij.execution.ExecutionException
 import com.intellij.execution.Executor
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
@@ -27,6 +28,8 @@ import com.intellij.ui.RawCommandLineEditor
 import com.intellij.util.execution.ParametersListUtil
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.LuaIcons
+import net.internetisalie.lunar.rocks.LuaRocksEnvironment
+import net.internetisalie.lunar.toolchain.exec.LuaExecutionEnvironmentBuilder
 import java.io.File
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -43,6 +46,10 @@ val LUAROCKS_COMMANDS: List<String> = listOf(
 private val ROCKSPEC_COMMANDS = setOf("make", "build")
 
 private const val DEFAULT_COMMAND = "make"
+
+private const val LUAROCKS_NOT_CONFIGURED =
+    "LuaRocks is not configured. Register or bind it under " +
+        "Settings | Languages & Frameworks | Lua | Toolchain."
 
 class LuaRocksRunConfigurationType : ConfigurationTypeBase(
     ID, "LuaRocks", "LuaRocks task run configuration",
@@ -202,11 +209,23 @@ class LuaRocksRunConfiguration(project: Project, factory: ConfigurationFactory?,
         return LuaRocksRunSettingsEditor(project)
     }
 
+    /**
+     * Resolves the `luarocks` binary via the toolchain, assembles the command line, and injects
+     * the env-builder PATH / LUA_PATH triple (TOOLING-05 §2.4). Extracted for unit testing so the
+     * resolution + PATH prepend can be asserted without launching a process.
+     */
+    fun resolveAndBuildCommandLine(): GeneralCommandLine {
+        val executablePath = LuaRocksEnvironment.resolveExecutable(project)
+            ?: throw ExecutionException(LUAROCKS_NOT_CONFIGURED)
+        val commandLine = buildCommandLine(executablePath)
+        LuaExecutionEnvironmentBuilder.getInstance(project).build().applyTo(commandLine)
+        return commandLine
+    }
+
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
         return object : CommandLineState(environment) {
             override fun startProcess(): ProcessHandler {
-                val executablePath = LuaRocksSettings.getInstance().executablePath
-                val commandLine = buildCommandLine(executablePath)
+                val commandLine = resolveAndBuildCommandLine()
                 val processHandler = ProcessHandlerFactory.getInstance()
                     .createColoredProcessHandler(commandLine)
                 ProcessTerminatedListener.attach(processHandler)

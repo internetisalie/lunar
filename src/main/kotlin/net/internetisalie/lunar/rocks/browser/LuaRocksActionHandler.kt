@@ -7,8 +7,9 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import net.internetisalie.lunar.rocks.run.LuaRocksSettings
-import net.internetisalie.lunar.util.LuaProcessUtil
+import net.internetisalie.lunar.rocks.LuaRocksEnvironment
+import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
 /**
  * Runs `luarocks install` / `luarocks remove` on a background progress task (ROCKS-02-04).
@@ -20,8 +21,10 @@ import net.internetisalie.lunar.util.LuaProcessUtil
  * right venue for long/interactive installs that need a live console.
  */
 object LuaRocksActionHandler {
-    private const val INSTALL_TIMEOUT_MS = 120_000
     private const val NOTIFICATION_GROUP = "notification.group.lunar.luarocks"
+    private const val LUAROCKS_NOT_CONFIGURED =
+        "LuaRocks is not configured. Register or bind it under " +
+            "Settings | Languages & Frameworks | Lua | Toolchain."
 
     /**
      * Installs [name] (at [version] if specified) in the background.
@@ -30,12 +33,18 @@ object LuaRocksActionHandler {
     fun install(project: Project, name: String, version: String?, onDone: (Boolean) -> Unit) {
         val title = if (version != null) "Installing $name $version" else "Installing $name"
         runInBackground(project, title) {
-            val exe = LuaRocksSettings.getInstance().executablePath
+            val exe = LuaRocksEnvironment.resolveExecutable(project)
+            if (exe == null) {
+                notify(project, LUAROCKS_NOT_CONFIGURED, NotificationType.ERROR)
+                onDone(false)
+                return@runInBackground
+            }
             val args = buildList {
                 add(exe); add("install"); add(name)
                 if (version != null) add(version)
             }
-            val output = LuaProcessUtil.capture(GeneralCommandLine(args), INSTALL_TIMEOUT_MS)
+            val output = LuaToolExecutionService.getInstance()
+                .capture(GeneralCommandLine(args), LuaExecTimeout.INSTALL)
             if (output.exitCode == 0) {
                 LuaRocksSearchCache.invalidateAll()
                 notify(project, "LuaRocks: installed $name${version?.let { " $it" } ?: ""}", NotificationType.INFORMATION)
@@ -54,10 +63,15 @@ object LuaRocksActionHandler {
      */
     fun uninstall(project: Project, name: String, onDone: (Boolean) -> Unit) {
         runInBackground(project, "Removing $name") {
-            val exe = LuaRocksSettings.getInstance().executablePath
-            val output = LuaProcessUtil.capture(
+            val exe = LuaRocksEnvironment.resolveExecutable(project)
+            if (exe == null) {
+                notify(project, LUAROCKS_NOT_CONFIGURED, NotificationType.ERROR)
+                onDone(false)
+                return@runInBackground
+            }
+            val output = LuaToolExecutionService.getInstance().capture(
                 GeneralCommandLine(exe, "remove", name),
-                INSTALL_TIMEOUT_MS,
+                LuaExecTimeout.INSTALL,
             )
             if (output.exitCode == 0) {
                 LuaRocksSearchCache.invalidateAll()

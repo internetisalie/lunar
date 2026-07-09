@@ -129,7 +129,7 @@ class PackageDetailPanel(private val project: Project) : JPanel(BorderLayout()) 
         homepageButton.text = "(loading)"
 
         ApplicationManager.getApplication().executeOnPooledThread {
-            val meta = LuaRocksMetadataService.show(pkg.name, pkg.version)
+            val meta = LuaRocksMetadataService.show(pkg.name, pkg.version, project)
             ApplicationManager.getApplication().invokeLater {
                 if (meta == null) {
                     statusLabel.text = "Could not load metadata."

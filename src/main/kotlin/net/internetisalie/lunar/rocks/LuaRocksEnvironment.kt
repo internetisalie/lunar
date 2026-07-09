@@ -1,22 +1,24 @@
 package net.internetisalie.lunar.rocks
 
 import com.intellij.openapi.project.Project
-import net.internetisalie.lunar.rocks.run.LuaRocksSettings
 import net.internetisalie.lunar.settings.LuaProjectSettings
-import net.internetisalie.lunar.tool.LuaToolManager
-import net.internetisalie.lunar.tool.LuaToolType
+import net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 
 /**
- * Stateless resolver for the effective LuaRocks executable and registry server (ROCKS-06).
+ * Stateless facade for the effective LuaRocks executable and registry server (ROCKS-06;
+ * cut over to the TOOLING-01/02 toolchain stack in TOOLING-05 Phase 2).
  *
- * All methods are pure settings reads — EDT-safe; no I/O, no subprocess invocations.
+ * All methods are pure state reads — EDT-safe; no I/O, no subprocess invocations.
  * Callers are responsible for running any resulting command on a background thread.
  *
  * Precedence for server: project [LuaProjectSettings.State.rocksServerUrl] (non-blank)
- *   > app [LuaRocksSettings.serverUrl] (non-blank) > `null` (no `--server` emitted).
+ *   > app default ([LuaToolchainRegistry.kindOption] for [LuaKindOptionKeys.LUAROCKS_SERVER_URL],
+ *   non-blank) > `null` (no `--server` emitted).
  *
- * Precedence for executable: TOOL-02 project binding ([LuaToolManager.getEffectiveTool])
- *   > [LuaRocksSettings.executablePath] (app fallback, default `"luarocks"`).
+ * Precedence for executable: the resolved `luarocks` tool
+ *   ([LuaToolResolver.resolve]) → `null` (no hardcoded default; contract §3 step 5).
  */
 object LuaRocksEnvironment {
 
@@ -27,7 +29,7 @@ object LuaRocksEnvironment {
      *
      * Resolution order:
      * 1. Project override ([LuaProjectSettings.State.rocksServerUrl]) if non-blank.
-     * 2. App default ([LuaRocksSettings.serverUrl]) if non-blank.
+     * 2. App default (TOOLING-02 [LuaKindOptionKeys.LUAROCKS_SERVER_URL] option) if non-blank.
      * 3. `null`.
      */
     fun resolveServer(project: Project?): String? {
@@ -35,27 +37,19 @@ object LuaRocksEnvironment {
             val projectUrl = LuaProjectSettings.getInstance(project).state.rocksServerUrl.trim()
             if (projectUrl.isNotBlank()) return projectUrl
         }
-        val appUrl = LuaRocksSettings.getInstance().serverUrl.trim()
+        val appUrl = LuaToolchainRegistry.getInstance()
+            .kindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL)
+            .trim()
         return if (appUrl.isNotBlank()) appUrl else null
     }
 
     /**
-     * Returns the effective `luarocks` binary path for [project].
-     *
-     * Resolution order:
-     * 1. TOOL-02 project binding via [LuaToolManager.getEffectiveTool] (non-blank path).
-     * 2. [LuaRocksSettings.executablePath] (app setting, default `"luarocks"`).
+     * Returns the resolved `luarocks` binary path for [project], or `null` when nothing usable
+     * resolves. There is no hardcoded default (contract §3 step 5); a `null` result surfaces a
+     * kind-specific configure hint at each call site (design §3.3).
      */
-    fun resolveExecutable(project: Project?): String {
-        if (project != null) {
-            val bound = LuaToolManager.getInstance()
-                .getEffectiveTool(project, LuaToolType.LUAROCKS)
-                ?.path
-                ?.takeIf { it.isNotBlank() }
-            if (bound != null) return bound
-        }
-        return LuaRocksSettings.getInstance().executablePath
-    }
+    fun resolveExecutable(project: Project?): String? =
+        LuaToolResolver.getInstance().resolve(project, "luarocks")?.path
 
     /**
      * Returns [args] with `["--server", server]` prepended after the executable when [server]

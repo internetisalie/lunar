@@ -2,8 +2,10 @@ package net.internetisalie.lunar.rocks.browser
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.Logger
-import net.internetisalie.lunar.rocks.run.LuaRocksSettings
-import net.internetisalie.lunar.util.LuaProcessUtil
+import com.intellij.openapi.project.Project
+import net.internetisalie.lunar.rocks.LuaRocksEnvironment
+import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
 /**
  * Fetches rich package metadata via `luarocks show --porcelain <name> [version]` (ROCKS-02-02).
@@ -20,19 +22,21 @@ import net.internetisalie.lunar.util.LuaProcessUtil
 object LuaRocksMetadataService {
     private val log = Logger.getInstance(LuaRocksMetadataService::class.java)
 
-    private const val SHOW_TIMEOUT_MS = 15_000
-
     /**
      * Fetches metadata for [name] (and optionally [version]).
-     * Returns null on CLI failure or timeout.
+     * Returns null on CLI failure, timeout, or when no `luarocks` binary resolves
+     * (passive/background path — degrades silently, design §3.3).
+     *
+     * @param project used to resolve the effective executable (pass `null` for app defaults).
      */
-    fun show(name: String, version: String? = null): LuaRockMetadata? {
-        val exe = LuaRocksSettings.getInstance().executablePath
+    fun show(name: String, version: String? = null, project: Project? = null): LuaRockMetadata? {
+        val exe = LuaRocksEnvironment.resolveExecutable(project) ?: return null
         val args = buildList {
             add(exe); add("show"); add("--porcelain"); add(name)
             if (version != null) add(version)
         }
-        val output = LuaProcessUtil.capture(GeneralCommandLine(args), SHOW_TIMEOUT_MS)
+        val output = LuaToolExecutionService.getInstance()
+            .capture(GeneralCommandLine(args), LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
             log.warn("luarocks show --porcelain $name ${version ?: ""} exited ${output.exitCode}: ${output.stderr.trim()}")
             return null

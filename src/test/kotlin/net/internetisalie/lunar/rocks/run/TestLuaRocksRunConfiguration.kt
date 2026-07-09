@@ -1,19 +1,60 @@
 package net.internetisalie.lunar.rocks.run
 
+import com.intellij.execution.ExecutionException
 import com.intellij.execution.configuration.EnvironmentVariablesData
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.xmlb.XmlSerializer
 import net.internetisalie.lunar.BaseDocumentTest
+import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
+import net.internetisalie.lunar.toolchain.model.LuaToolHealth
+import net.internetisalie.lunar.toolchain.model.Origin
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainAppState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectState
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import java.io.File
+import java.util.UUID
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 class TestLuaRocksRunConfiguration : BaseDocumentTest() {
+
+    @AfterTest
+    fun resetToolchainState() {
+        resetToolchain()
+    }
 
     private fun newConfig(name: String = "Test Rocks"): LuaRocksRunConfiguration {
         val project = myFixture.project
         val configType = LuaRocksRunConfigurationType()
         val factory = LuaRocksRunConfigurationFactory(configType)
         return LuaRocksRunConfiguration(project, factory, name)
+    }
+
+    private fun resetToolchain() {
+        LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
+        LuaToolchainProjectSettings.getInstance(myFixture.project).loadState(LuaToolchainProjectState())
+    }
+
+    private fun bindLuaRocks(path: String): LuaRegisteredTool {
+        resetToolchain()
+        val tool = LuaRegisteredTool(
+            id = UUID.randomUUID().toString(),
+            kindId = "luarocks",
+            path = path,
+            version = "3.0.0",
+            luaVersion = null,
+            runtime = null,
+            origin = Origin.MANUAL,
+            environmentId = null,
+            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
+        )
+        LuaToolchainRegistry.getInstance().registerProvisioned(tool)
+        LuaToolchainProjectSettings.getInstance(myFixture.project).setBinding("luarocks", tool.id)
+        return tool
     }
 
     /** TC-ROCKS-04-04: command-line assembly (design §3.1). */
@@ -92,8 +133,44 @@ class TestLuaRocksRunConfiguration : BaseDocumentTest() {
         assertEquals(true, target.environmentVariables?.isPassParentEnvs)
     }
 
+    /**
+     * TC 6: `resolveAndBuildCommandLine` (the `startProcess` path) resolves the bound luarocks
+     * binary via the toolchain and prepends the env-builder PATH dirs.
+     */
     @Test
-    fun testSettingsDefaultExecutable() {
-        assertEquals("luarocks", LuaRocksSettings.getInstance().executablePath)
+    fun testStartProcessResolvesBoundToolAndPrependsPath() {
+        val toolsDir = FileUtil.createTempDirectory("lunar-luarocks", null)
+        val luaRocksPath = File(toolsDir, "luarocks").absolutePath
+        bindLuaRocks(luaRocksPath)
+
+        val config = newConfig()
+        config.command = "install"
+        config.arguments = "penlight"
+
+        val commandLine = config.resolveAndBuildCommandLine()
+
+        assertEquals(luaRocksPath, commandLine.exePath)
+        assertEquals(listOf("install", "penlight"), commandLine.parametersList.list)
+        val pathEnv = commandLine.environment["PATH"]!!
+        assertTrue(
+            pathEnv.startsWith(toolsDir.absolutePath + File.pathSeparator) ||
+                pathEnv == toolsDir.absolutePath,
+            "env-builder must prepend the resolved tool dir to PATH (got: $pathEnv)",
+        )
+    }
+
+    /** TC 6 (null branch): no usable luarocks resolves → `ExecutionException` (no default path). */
+    @Test
+    fun testStartProcessThrowsWhenNothingResolves() {
+        resetToolchain()
+        val config = newConfig()
+        config.command = "install"
+
+        try {
+            config.resolveAndBuildCommandLine()
+            fail("expected ExecutionException when no luarocks is configured")
+        } catch (expected: ExecutionException) {
+            assertTrue(expected.message?.contains("LuaRocks is not configured") == true)
+        }
     }
 }
