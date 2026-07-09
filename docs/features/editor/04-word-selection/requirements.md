@@ -3,7 +3,7 @@ id: EDITOR-04
 title: "04: Smart Word Selection"
 type: feature
 parent_id: EDITOR
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/editor/requirements|requirements]]"
