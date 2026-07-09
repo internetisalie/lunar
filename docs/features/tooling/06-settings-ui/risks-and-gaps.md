@@ -1,7 +1,7 @@
 ---
 id: "TOOLING-06-RISKS"
 title: "Risks & Gaps"
-type: "risks"
+type: "risk"
 parent_id: "TOOLING-06"
 folders:
   - "[[features/tooling/06-settings-ui/requirements|requirements]]"
