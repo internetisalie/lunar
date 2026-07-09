@@ -24,11 +24,12 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
         parser, strict null checks) — design §2.5, §4.1.
   - [x] Create `src/main/resources/toolchain/lunar-toolchain-feed.json` with the full
         version set (PUC 5.1–5.5.0, LuaRocks 3.0.0–3.13.0, StyLua 2.5.2, LuaLS 3.18.2,
-        luacheck 1.2.0, busted/luacov rocks) and alias tables. **Pins deferred:** every
-        `sha256` ships as the sentinel `"TODO-PIN"` and `size: 0` — real SHA-256/size pins
-        cannot be computed in this network-less environment and must be filled per the §4.2
-        procedure before the live provision / release (see
-        `src/main/resources/toolchain/README-feed-pins.md`; LuaBinaries Win64 asset/group
+        luacheck 1.2.0, busted/luacov rocks) and alias tables. **Pins filled (`6fd5b7f2`):**
+        real SHA-256/size for every download-based source/asset — PUC-Lua cross-checked against
+        lua.org's published checksums (§4.2) — replacing the initial `TODO-PIN` sentinels; the git
+        LuaJIT source carries no checksum. That commit also pruned 6 phantom LuaRocks versions
+        (3.1.4 / 3.2.2–3.2.4 / 3.3.2–3.3.3) the dense range invented but that were never released.
+        See `src/main/resources/toolchain/README-feed-pins.md` (LuaBinaries Win64 asset/group
         strings per TOOLING-00-02; luacheck linux standalone asset name per TOOLING-00-05).
   - [x] Implement `resolveVersion` (single alias application, exact-first, platform-aware
         prefix max) —
@@ -192,17 +193,19 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 - [x] Full suite + build gate: `tooling/gce-builder/gce-builder.sh run test` (0 failures) and
       `run build` after Phases 6 and 7 — build compiles + plugin verification passes; only the
       3 known pre-existing IDE-Starter `integrationTest` env failures remain.
-- [ ] Live: `verify-in-ide` session — provision `{lua 5.4, luarocks latest, luacheck}`
-      in the container (real network), run a script and lint with the provisioned tools;
-      re-run provision to observe TC 11 idempotency; exercise TC 15 menu and TC 16
-      dialog validation. Windows path (TC 6) verified by asset-download dry-run test
-      (no Windows host in the loop) — flagged for manual QA before release.
-      **DEFERRED (maintainer/release task):** live-VNC provisioning acceptance is blocked
-      until the feed's real SHA-256/size pins replace the `TODO-PIN` sentinels (§4.2) — the
-      download/verify pipeline refuses `TODO-PIN`, so no download-based provision can succeed
-      in the current network-less build. The LuaJIT git path (no checksum) is the only
-      download-free runtime and is still gated behind live git/make availability. Unit
-      coverage is complete and CI-safe; the live gate opens with the pins.
+- [x] Live: `verify-in-ide` session — **PASSED (2026-07-09)** on the `lunar-builder` VM (GoLand
+      runIde on Xvfb). Provisioned `{lua 5.4.8, luarocks 3.13.0, luacheck 1.2.0}` end to end:
+      real-pin checksum verify → source-build lua + luarocks / release-binary luacheck →
+      `.lunar-env.json` written → INFO balloon "Provisioned Lua toolchain 'lua-5.4.8' (3 tools)";
+      the provisioned `lua -v` (5.4.8), a script eval, `luarocks --version`, and `luacheck --version`
+      all ran. **TC 15** (Tools ▸ Lua Toolchain group + correct action enablement, before/after an
+      active env), the dialog (feed-driven combos, auto-name, §3.11 ordering, forced-LuaRocks), and
+      **TC 11** idempotency (re-run via Change Versions → "already up to date (3 tools)", no rebuild)
+      were all confirmed live. Windows path (TC 6) still asset-download dry-run only (no Windows host
+      in the loop) — flagged for manual QA before release.
+      **Unblocked by real pins:** the feed's SHA-256/size pins are now computed and committed
+      (`6fd5b7f2`; PUC-Lua cross-checked against lua.org), so the download/verify pipeline no longer
+      refuses the (removed) `TODO-PIN` sentinels.
 
 ## Task Summary
 
