@@ -3,7 +3,7 @@ id: EDITOR-08
 title: "08: Smart Enter (Complete Statement)"
 type: feature
 parent_id: EDITOR
-status: "todo"
+status: "planned"
 priority: "low"
 folders:
   - "[[features/editor/requirements|requirements]]"
