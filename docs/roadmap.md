@@ -315,7 +315,48 @@ bug and gave the type inspections false confidence until this session's coverage
 | SCHEMA-03 | Luacheckrc Schema Provider | done | S | SCHEMA-01 | — | ✓ |
 | SCHEMA-04 | Busted Config Schema Provider | done | C | SCHEMA-01 | — | ✓ |
 
-## Wave 15 — Redis & Valkey integration  *(REDIS epic; requirements written 2026-07-02, not yet designed)*
+## Wave 15 — Unified Lua Toolchain Management  *(TOOLING epic; consolidates interpreter/tool/rocks state — nearly complete)*
+
+> Replaces the fragmented per-tool state (interpreters, LuaRocks, luacheck, hererocks) with one
+> descriptor-driven toolchain registry: unified discovery + version-probing, project/global binding
+> precedence with an environment (toolchain-set) concept, one execution/injection service
+> (PATH / LUA_PATH / LUA_CPATH), an in-plugin native provisioning engine (no Python/hererocks
+> dependency), and a single Lua settings tree. A serial epic — each phase builds on the registry
+> foundation. **7/8 done**; only the health/diagnostics layer (`TOOLING-07`) remains.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TOOLING-00 | De-risking & Technical Spikes | done | M | — | TOOLING-01 | ✓ (throwaway spikes) |
+| TOOLING-01 | Unified Toolchain Model & Registry | done | M | TOOLING-00 | 02, 03, 04 | Serial: toolchain-core |
+| TOOLING-02 | Resolution, Binding & Environments | done | M | TOOLING-01 | 05 | Serial: toolchain-core |
+| TOOLING-03 | Execution & Environment Injection | done | M | TOOLING-01 | 05 | Serial: toolchain-core |
+| TOOLING-04 | Native Provisioning Engine | done | M | TOOLING-01 | 05 | ✓ (provisioning is additive) |
+| TOOLING-05 | Consumer Migration & Legacy Removal | done | M | 02, 03, 04 | 06 | Serial: touches every consumer |
+| TOOLING-06 | Settings UI Consolidation | done | M | TOOLING-05 | — | Serial: shared settings tree |
+| TOOLING-07 | Health Monitoring & Diagnostics | todo | S | TOOLING-05 | — | ✓ (new health model + banners) |
+
+## Wave 16 — Editor Ergonomics & Structural Editing  *(EDITOR epic; the long-tail editor EPs — all parallel-safe, greenfield)*
+
+> The remaining "feels-native" editor extension points first-party JetBrains languages ship and Lua
+> users implicitly expect: smart typing (auto-close/keyword-pair), spellchecking, TODO indexing,
+> smart word selection, Surround With / Unwrap, move-statement, and Smart Enter. Each is a distinct
+> declaratively-registered EP over the existing lexer/PSI — new files, nothing shared to serialize on.
+> Land the three **Must** items first (highest ergonomics-per-line; lean entirely on existing infra).
+> Two soft couplings are shared-code only, **not** blocking: 06←05 (block PSI helpers),
+> 08←01 (keyword-pair table). See [features/editor/requirements.md](features/editor/requirements.md).
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| EDITOR-01 | Smart Typing (auto-close + keyword pairs) | todo | M | — | — | ✓ new TypedHandler/QuoteHandler |
+| EDITOR-02 | Spellchecking | todo | M | — | — | ✓ new SpellcheckingStrategy |
+| EDITOR-03 | TODO / FIXME Indexing | todo | M | — | — | ✓ new IndexPatternBuilder |
+| EDITOR-04 | Smart Word Selection | todo | S | — | — | ✓ new selection handlers |
+| EDITOR-05 | Surround With | todo | S | — | EDITOR-06 *(shared PSI helpers, soft)* | ✓ new SurroundDescriptor |
+| EDITOR-06 | Unwrap / Remove | todo | S | EDITOR-05 *(soft — shared code, not blocking)* | — | ✓ new UnwrapDescriptor |
+| EDITOR-07 | Move Statement / Element | todo | C | — | — | ✓ new movers |
+| EDITOR-08 | Smart Enter (Complete Statement) | todo | C | EDITOR-01 *(soft — keyword-pair table)* | — | ✓ new SmartEnterProcessor |
+
+## Wave 17 — Redis & Valkey integration  *(REDIS epic; requirements written 2026-07-02, not yet designed)*
 
 > Extends the TARGET epic's Redis runtime target into an end-to-end Redis/Valkey Lua loop:
 > connections + script run configs, the server-side LDB debugger, Valkey as a first-class
@@ -331,7 +372,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | REDIS-04 | Language-Engine Integration | todo | S | TARGET-04 *(done)* | REDIS-05 *(ambient-global suppression)* | ✓ (engine-only) |
 | REDIS-05 | Redis Functions Workflow | todo | C | REDIS-01; REDIS-03, REDIS-04 *(soft)* | — | after 01 |
 
-## Wave 16 — AI integration  *(AI epic; requirements written 2026-07-02, AI-01 fully specced)*
+## Wave 18 — AI integration  *(AI epic; requirements written 2026-07-02, AI-01 fully specced)*
 
 > Strategy: expose Lunar's semantic engines to external agents (MCP) and ship one
 > deterministic human-facing migration assistant — no chat, no completion models, no

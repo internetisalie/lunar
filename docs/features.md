@@ -22,6 +22,7 @@ This document serves as the index for the functional and technical requirements 
 - [[ANALYSIS] Static Analysis Requirements](features/analysis/requirements.md)
 - [[DEBUG/RUN] Debugging & Execution Requirements](features/debug/requirements.md)
 - [[SYNTAX] Syntax & Editor Requirements](features/syntax/requirements.md)
+- [[EDITOR] Editor Ergonomics & Structural Editing](features/editor/requirements.md)
 - [[FORMAT] Formatting Requirements](features/formatting/requirements.md)
 - [[DOC] Documentation Requirements](features/documentation/requirements.md)
 - [[TOOL] Tool Inventory Management](features/tool/requirements.md)

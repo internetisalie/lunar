@@ -37,7 +37,7 @@ original AI-01 register).
 ### Risk 1.5: Building AI-03 on the Unhardened Debugger Core
 - **Impact**: The current MobDebug adapter has a documented defect cluster ([docs/review.md](../../review.md): framing/charset confusion, EDT-blocking waits, unsynchronized state, silent error swallowing). An agent drives the debugger at machine speed and with none of a human's tolerance for flakiness — it would hit every hang/desync defect immediately, and each hang strands an MCP request.
 - **Likelihood**: High if built today.
-- **Mitigation**: Hard sequencing gate (recorded in AI-03 and roadmap Wave 16): the MobDebug hardening lands **before** AI-03 design starts. Evaluation errors must propagate as structured tool errors (never IDE fatal-error reports, never hangs).
+- **Mitigation**: Hard sequencing gate (recorded in AI-03 and roadmap Wave 18): the MobDebug hardening lands **before** AI-03 design starts. Evaluation errors must propagate as structured tool errors (never IDE fatal-error reports, never hangs).
 
 ### Risk 1.6: Data Egress via the LLM Polish Hook (AI-04)
 - **Impact**: With the polish hook enabled, function signatures and existing comment text are sent to an external LLM provider — a compliance problem in restricted environments if it happens silently or over-broadly.
