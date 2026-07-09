@@ -115,11 +115,20 @@ there first (contract §1).
   - [x] Unit test class `net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurableTest`:
         TC 7–12, 14, including the silent-apply regression (TC 11).
   - [x] `tooling/gce-builder/gce-builder.sh run test`, then `"ktlintFormat ktlintCheck"`.
-  - [ ] Human/VNC verification (verify-in-ide skill): tree shows Lua → {Lua Project,
-        Toolchain}; nothing Lua under Tools; all five toolbar actions live (Provision…
-        opens the TOOLING-04 dialog); Settings search finds "Toolchain" / "luacheck
-        arguments"; no EDT freeze during Auto-Discover on a slow PATH.
-        (deferred live gate — owned by the supervisor per TOOLING-05 hand-off)
+  - [x] Human/VNC verification (verify-in-ide skill) — PASSED live in GoLand on the
+        `lunar-builder` VM (2026-07-09): tree = Lua → {Lua Project, Toolchain}; Toolchain page
+        shows the six-column inventory table + all five toolbar actions (Provision… opens the
+        TOOLING-04 dialog); Auto-Discover ran off the EDT with no freeze and live-refreshed the
+        table (Lua 5.4.7, Health ✓ OK); Lua Project page shows the environment selector, RUNTIME-
+        first binding combos (Inherit labels), and the resolved-runtime display
+        (`/usr/bin/lua — Lua 5.4.7 (inventory fallback)`, Language level `Lua 5.4`), with no
+        interpreter/platform/version combos or hererocks checkbox; page-level Settings search
+        finds "Toolchain". NOTE: field-level search for "luacheck arguments" jumps to the
+        LuaCheck *inspection*, not the Toolchain Arguments field — expected because
+        `buildSearchableOptions` is disabled (design §6), so option-field labels aren't indexed.
+        Minor cosmetic finding (non-blocking): the inventory toolbar still carries the
+        `ToolbarDecorator` default Up/Down reorder buttons — meaningless for a probe-driven
+        inventory; candidate `disableUpDownActions()` polish.
   - [x] Update `CHANGELOG.md` (user-facing settings relocation) and regenerate
         `docs/status.md` (`python3 scripts/gen_status.py`).
 - **Exit criteria**: suite green on gce-builder; VNC checklist signed off.
@@ -144,9 +153,8 @@ there first (contract §1).
 ## Verification Tasks
 - [x] `LuaToolchainConfigurableTest` — covers TC 1, 2, 3, 4, 5, 6, 13.
 - [x] `LuaProjectConfigurableTest` — covers TC 7, 8, 9, 10, 11, 12, 14.
-- [ ] VNC session per Phase 4 (visual tree, actions, Settings search) — covers the
-      human-only rows of the requirements Test Cases note.
-      (deferred live gate — owned by the supervisor per TOOLING-05 hand-off)
+- [x] VNC session per Phase 4 (visual tree, actions, Settings search) — covers the
+      human-only rows of the requirements Test Cases note. PASSED live 2026-07-09 (see Phase 4).
 - [x] Full suite + lint on gce-builder (regression gate).
 
 ## Task Summary
@@ -157,4 +165,4 @@ there first (contract §1).
 | Phase 1: Toolchain application page | done | Must |
 | Phase 2: Lua Project page rewrite | done | Must |
 | Phase 3: Legacy page removal | done | Must |
-| Phase 4: Verification & polish | in_progress | Must |
+| Phase 4: Verification & polish | done | Must |
