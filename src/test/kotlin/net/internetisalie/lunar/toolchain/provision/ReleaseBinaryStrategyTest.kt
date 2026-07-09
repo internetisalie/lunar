@@ -96,4 +96,16 @@ class ReleaseBinaryStrategyTest : BasePlatformTestCase() {
         assertTrue("exec bit restored", Files.isExecutable(binary))
         assertEquals(binary, component.primaryBinary)
     }
+
+    // Regression: Windows single-binary assets already carry `.exe` in binaryPath; appending it
+    // unconditionally produced `luacheck.exe.exe` / `luarocks.exe.exe` (broke PATH lookup — found by
+    // the live Windows verification 2026-07-09).
+    fun testWindowsExecNameDoesNotDoubleExeExtension() {
+        assertEquals("luacheck.exe", ReleaseBinaryStrategy.windowsExecName("luacheck.exe", LuaOs.WINDOWS))
+        assertEquals("luarocks.exe", ReleaseBinaryStrategy.windowsExecName("luarocks.exe", LuaOs.WINDOWS))
+        assertEquals("stylua.exe", ReleaseBinaryStrategy.windowsExecName("stylua", LuaOs.WINDOWS))
+        assertEquals("LUACHECK.EXE", ReleaseBinaryStrategy.windowsExecName("LUACHECK.EXE", LuaOs.WINDOWS))
+        assertEquals("stylua", ReleaseBinaryStrategy.windowsExecName("stylua", LuaOs.LINUX))
+        assertEquals("luacheck.exe", ReleaseBinaryStrategy.windowsExecName("luacheck.exe", LuaOs.LINUX))
+    }
 }

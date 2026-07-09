@@ -6,6 +6,7 @@ import net.internetisalie.lunar.toolchain.provision.feed.LuaFeedAsset
 import net.internetisalie.lunar.toolchain.provision.feed.LuaFeedVersion
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeed
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeedLoader
+import org.jetbrains.annotations.TestOnly
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempDirectory
@@ -100,8 +101,7 @@ class ReleaseBinaryStrategy(
             temp.resolve(mi.asset.binaryPath)
         }
         val binDir = context.rootDir.resolve("bin").also { it.createDirectories() }
-        val name = Path.of(mi.asset.binaryPath).name + if (context.platform.os == LuaOs.WINDOWS) ".exe" else ""
-        val dest = binDir.resolve(name)
+        val dest = binDir.resolve(windowsExecName(Path.of(mi.asset.binaryPath).name, context.platform.os))
         FileUtil.copy(source.toFile(), dest.toFile())
         LuaArchiveExtractor.restoreExecBit(dest)
         return dest
@@ -176,7 +176,17 @@ class ReleaseBinaryStrategy(
     private fun matchAsset(resolved: LuaFeedVersion, platform: LuaHostPlatform): LuaFeedAsset? =
         resolved.assets.firstOrNull { it.os == platform.os.name.lowercase() && it.arch == platform.arch.name.lowercase() }
 
-    private companion object {
+    companion object {
         private val WIN_LUA_EXE = Regex("^lua(\\d{2})\\.exe$")
+
+        /**
+         * Single-binary destination name: append `.exe` on Windows ONLY when [base] doesn't already
+         * carry it. Windows-native feed assets specify the extension in `binaryPath` (e.g.
+         * `luacheck.exe`, `luarocks.exe`); bare cross-platform names (e.g. `stylua`) need it added.
+         * Appending unconditionally produced `luacheck.exe.exe` / `luarocks.exe.exe` (broke PATH lookup).
+         */
+        @TestOnly
+        internal fun windowsExecName(base: String, os: LuaOs): String =
+            if (os == LuaOs.WINDOWS && !base.endsWith(".exe", ignoreCase = true)) "$base.exe" else base
     }
 }
