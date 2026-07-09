@@ -117,17 +117,24 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 ### Phase 7: Actions & dialogs, plugin.xml swap [Must]
 - **Goal**: user-facing surface replaces the hererocks group.
 - **Tasks**:
-  - [ ] Create the five actions in
+  - [x] Create the five actions in
         `net.internetisalie.lunar.toolchain.provision.LuaToolchainActions.kt`
         (Provision / ChangeVersions / Recreate / Remove / BatchProvision, enablement +
-        confirm dialogs) — design §2.11.
-  - [ ] Create `LuaProvisionDialog` (Kotlin UI DSL fields, auto-name, feed-driven combos,
-        forced-LuaRocks rule, `doValidate`, `toRequest`) — design §2.12.
-  - [ ] Create `LuaBatchProvisionDialog` + request derivation — design §2.13, §3.10.
-  - [ ] plugin.xml: add the `Lunar.Toolchain.EnvironmentGroup` block; delete the
-        `HererocksEnvGroup` block (`plugin.xml:643-668`) and the `HererocksDetectStartup`
-        registration (`plugin.xml:433-435`); move `Lunar.Hererocks.RunMatrix` into the
-        new group — design §7.
+        confirm dialogs) — design §2.11. Change/Recreate enablement + prefill use
+        `LuaEnvManifest.read(activeEnv.rootDir).request`; Remove calls the two-arg
+        `LuaToolchainProjectSettings.removeEnvironment(envId, deleteDir)` (which already
+        performs the TOOLING-01 `unregisterByEnvironment` + pooled dir delete). BGT
+        `getActionUpdateThread` on the manifest/env-reading actions; Recreate deletes on a
+        pooled thread before `provision`.
+  - [x] Create `LuaProvisionDialog` (Kotlin UI DSL `panel { }`, auto-name via
+        `DocumentListener`/`userEditedName`, feed-driven combos, forced-LuaRocks rule,
+        `doValidate`, `toRequest`) — design §2.12. Pure derivation/validation factored into
+        Swing-free `LuaProvisionFormState` + `LuaToolCatalog` for testability.
+  - [x] Create `LuaBatchProvisionDialog` (base dir + add/remove `ListTableModel` row table)
+        + pure `LuaBatchDerivation.toRequests` — design §2.13, §3.10.
+  - [x] plugin.xml: added the `Lunar.Toolchain.EnvironmentGroup` block; deleted the
+        `HererocksEnvGroup` block and the `HererocksDetectStartup` `postStartupActivity`;
+        moved `Lunar.Hererocks.RunMatrix` (id/class unchanged) into the new group — design §7.
 - **Exit criteria**: TC 15 (menu contents) and TC 16 (validation) pass; dialog request
   derivation covered by unit tests (`toRequest` item ordering); build green
   (`run build` includes plugin verification).
@@ -172,9 +179,12 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
       command sequence and TC 5 preflight (Phase 4).
 - [x] Unit: rock-install command + failure classification — covers TC 9/10 (Phase 5).
 - [x] Unit: orchestrator fakes — covers TC 2/11/12/14/19 (Phase 6).
-- [ ] Unit: dialog validation + `toRequest`/batch derivation — covers TC 16/18 (Phase 7).
-- [ ] Full suite + build gate: `tooling/gce-builder/gce-builder.sh run test` and
-      `run build` after Phases 6 and 7.
+- [x] Unit: dialog validation + `toRequest`/batch derivation — covers TC 16/18, plus TC 15
+      menu-registration (`LuaProvisionDerivationTest`, `LuaToolchainActionRegistrationTest`)
+      (Phase 7).
+- [x] Full suite + build gate: `tooling/gce-builder/gce-builder.sh run test` (0 failures) and
+      `run build` after Phases 6 and 7 — build compiles + plugin verification passes; only the
+      3 known pre-existing IDE-Starter `integrationTest` env failures remain.
 - [ ] Live: `verify-in-ide` session — provision `{lua 5.4, luarocks latest, luacheck}`
       in the container (real network), run a script and lint with the provisioned tools;
       re-run provision to observe TC 11 idempotency; exercise TC 15 menu and TC 16
@@ -191,5 +201,5 @@ ops), and TOOLING-03 (`LuaToolExecutionService`) have landed; TOOLING-00 spike o
 | Phase 4: Strategies — release binary & source build | done | Must |
 | Phase 5: Rock installs | done | Must |
 | Phase 6: Orchestrator, registration, progress | done | Must |
-| Phase 7: Actions & dialogs, plugin.xml swap | todo | Must |
+| Phase 7: Actions & dialogs, plugin.xml swap | done | Must |
 | Phase 8: Should/Could extensions | todo | Should |

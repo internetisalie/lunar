@@ -439,9 +439,6 @@
     <editorNotificationProvider
             implementation="net.internetisalie.lunar.tool.health.LuaToolEditorNotificationProvider" />
 
-    <!-- Detect an existing hererocks environment on project open (ROCKS-14-05) -->
-    <postStartupActivity
-            implementation="net.internetisalie.lunar.rocks.env.HererocksDetectStartup" />
     <!-- Synchronize project target/language level from the effective toolchain runtime (TOOLING-02-09) -->
     <postStartupActivity
             implementation="net.internetisalie.lunar.toolchain.resolve.LuaTargetSyncStartup" />
@@ -651,31 +648,31 @@
       <add-to-group group-id="AnalyzePlatformMenu" anchor="last"/>
     </action>
 
-    <!-- Hererocks isolated Lua environment lifecycle (ROCKS-14) -->
-    <group id="net.internetisalie.lunar.rocks.env.HererocksEnvGroup" text="Lua Environment" popup="true">
+    <!-- Native toolchain provisioning (TOOLING-04) -->
+    <group id="Lunar.Toolchain.EnvironmentGroup" text="Lua Toolchain" popup="true">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
-      <action id="Lunar.Hererocks.Create"
-              class="net.internetisalie.lunar.rocks.env.CreateHererocksEnvAction"
-              text="Create Isolated Lua Environment…"
-              description="Provision a self-contained Lua + LuaRocks environment via hererocks"/>
-      <action id="Lunar.Hererocks.Upgrade"
-              class="net.internetisalie.lunar.rocks.env.UpgradeHererocksEnvAction"
-              text="Change Lua/LuaRocks Version…"
-              description="Re-provision the environment with a different Lua/LuaRocks version"/>
-      <action id="Lunar.Hererocks.Recreate"
-              class="net.internetisalie.lunar.rocks.env.RecreateHererocksEnvAction"
+      <action id="Lunar.Toolchain.Provision"
+              class="net.internetisalie.lunar.toolchain.provision.LuaProvisionToolchainAction"
+              text="Provision Lua Toolchain…"
+              description="Download or build a Lua runtime, LuaRocks and dev tools into a project environment"/>
+      <action id="Lunar.Toolchain.ChangeVersions"
+              class="net.internetisalie.lunar.toolchain.provision.LuaChangeToolchainVersionsAction"
+              text="Change Toolchain Versions…"
+              description="Re-provision the active environment with different versions"/>
+      <action id="Lunar.Toolchain.Recreate"
+              class="net.internetisalie.lunar.toolchain.provision.LuaRecreateToolchainAction"
               text="Recreate Environment"
-              description="Delete and rebuild the environment directory"/>
-      <action id="Lunar.Hererocks.Remove"
-              class="net.internetisalie.lunar.rocks.env.RemoveHererocksEnvAction"
+              description="Delete and rebuild the active environment directory"/>
+      <action id="Lunar.Toolchain.Remove"
+              class="net.internetisalie.lunar.toolchain.provision.LuaRemoveToolchainAction"
               text="Remove Environment"
-              description="Clear the environment binding and optionally delete the directory"/>
+              description="Unregister the environment's tools and optionally delete the directory"/>
       <action id="Lunar.Hererocks.RunMatrix"
               class="net.internetisalie.lunar.rocks.env.matrix.RunMatrixAction"
               text="Run Test Matrix…"
               description="Run the rockspec build/test command against every provisioned environment"/>
-      <action id="Lunar.Hererocks.BatchProvision"
-              class="net.internetisalie.lunar.rocks.env.matrix.BatchProvisionAction"
+      <action id="Lunar.Toolchain.BatchProvision"
+              class="net.internetisalie.lunar.toolchain.provision.LuaBatchProvisionToolchainsAction"
               text="Provision Version Matrix…"
               description="Provision a whole matrix of Lua versions in one action"/>
     </group>
