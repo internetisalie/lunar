@@ -2,7 +2,7 @@
 id: "EDITOR"
 title: "EDITOR: Editor Ergonomics & Structural Editing"
 type: "epic"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features]]"
@@ -58,6 +58,30 @@ then the **Should** structural-editing pair, then the two **Could** polish items
 - **Scope:** plan all eight features up front (design + implementation-plan + risks per feature).
 - **EDITOR-01 keyword auto-close:** ships **on by default** behind an Editor > Smart Keys toggle
   (JetBrains-language convention); bracket/quote auto-close is unconditional. See `EDITOR-01-05`.
+
+## Cross-feature helper reconciliation (post-planning, 2026-07-09)
+
+The eight features were planned in parallel; the two soft-coupled pairs each independently
+designed the "shared" helper, so the names/APIs diverged. **Before implementing the second feature
+of each pair, converge on one canonical object** (this is a shared-code decision, not a blocking
+dependency — either feature may land first):
+
+- **Block-structure helper (`EDITOR-05` ↔ `EDITOR-06`).** 05 planned `LuaBlockStructureUtil`
+  (`enclosingBlock` / `statementsInRange` / `statementsText` / `replaceStatements` — locate a block
+  and replace a statement span); 06 planned `LuaBlockStructure` (`primaryBody` / `blockParent` /
+  `ifBranches` / `hasElseOrElseIf` — a construct's body and branches). The two method sets barely
+  overlap (surround wraps a statement *range*; unwrap operates on a construct's *body*).
+  **Decision:** one canonical `LuaBlockStructure` object in the shared `lang/editor/` package
+  (introduced by `EDITOR-07`), holding the union of methods; whichever feature implements first
+  creates it there, the second extends it. Do **not** ship two competing block helpers.
+
+- **Keyword-block table (`EDITOR-01` ↔ `EDITOR-08`).** 01 reuses the **existing** `LuaBlockPairs`
+  table and routes insertion through a new `LuaKeywordBlockCloser`; 08 (blind to that) invented a
+  new `LuaKeywordPairs` data class. **Decision:** single source of truth — extend the existing
+  `LuaBlockPairs` rather than adding `LuaKeywordPairs`, and have 08 consume 01's
+  `LuaKeywordBlockCloser` for the balance-check/insert logic. Implementer must verify whether
+  `LuaBlockPairs` already carries the block *separator* (`then`/`do`) that 08's separator fixer
+  needs, or extend it to.
 
 ## Definition of Done (per feature)
 
