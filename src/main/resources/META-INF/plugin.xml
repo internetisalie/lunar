@@ -344,6 +344,13 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaPairedBraceMatcher" />
 
+    <!-- EDITOR-01: Smart Typing — quote pairing + bracket context suppression -->
+    <lang.quoteHandler
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.editor.LuaQuoteHandler"/>
+    <typedHandler
+            implementation="net.internetisalie.lunar.lang.editor.LuaTypedHandler"/>
+
     <codeBlockSupportHandler
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaCodeBlockSupportHandler" />
