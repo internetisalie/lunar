@@ -29,9 +29,17 @@ changes. Risks are narrow and pre-mitigated by the design.
   `LexerBasedTodoIndexer` handled lazy-parseable comment tokens differently than plain ones, doc-comment
   TODOs (`EDITOR-03-04`) might be skipped.
 - **Likelihood**: low
-- **Mitigation**: the indexer operates on the raw lexer stream (not the parsed PSI), so it sees
-  `LUACATS_COMMENT` as an ordinary `IElementType` in the token set exactly like `SHORTCOMMENT`.
-  TC-4 asserts a `--- TODO` doc comment produces a TodoItem. Retire via DR-01.
+- **Mitigation**: ~~the indexer operates on the raw lexer stream, so it sees `LUACATS_COMMENT` as an
+  ordinary `IElementType`~~ — **this premise proved FALSE (2026-07-10).** `findTodoItems` gates on
+  `TodoCacheManager`'s count, which for a light file is fed by `TokenSetTodoIndexer` iterating the
+  **layered editor highlighter** (`LuaEditorHighlighter` registers a `LUACATS_COMMENT` layer), **not**
+  the `IndexPatternBuilder`. The layer re-lexes `---` into inner LuaCats tokens, so the outer
+  `LUACATS_COMMENT` never reaches the counter → count 0 → search short-circuits. Adding
+  `LUACATS_COMMENT` to the builder set does NOT fix it (verified empirically, incl. relabeling to
+  `SHORTCOMMENT`). **Shipped: single-line `--- TODO` is a documented gap (EDITOR-03-04 Partial);
+  block `--[[ ]]` doc comments work.** Tractable follow-up: register a per-file-type
+  `com.intellij.todoIndexer` for Lua using a non-layered `LuaLexer` (token set incl.
+  `LUACATS_COMMENT`) to bypass the layered highlighter for the count gate.
 
 ## Design Gaps
 
@@ -51,8 +59,8 @@ _None. All decisions are pinned in design.md §2–§7; delta algorithm fully sp
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| EDITOR-00-DR-01 | In the Phase 1 test run, assert a `--- TODO: x` LuaCATS doc comment yields exactly one TodoItem (confirms the lazy-parseable comment token is scanned by `LexerBasedTodoIndexer`). | Risk 1.2 | todo |
-| EDITOR-00-DR-02 | In the Phase 2 test run, assert `--[==[ TODO ]==]` (bracket level 2) yields one TodoItem (confirms the text-aware start-delta overload counts the `=` run). | Risk 1.1 | todo |
+| EDITOR-00-DR-01 | Assert a `--- TODO` LuaCATS doc comment yields a TodoItem. | Risk 1.2 | **done — NOT satisfied**: `--- TODO` yields 0 (layered-highlighter count gate, see Risk 1.2). Shipped as EDITOR-03-04 Partial with a tractable `com.intellij.todoIndexer` follow-up; `testLuaCatsLineDocTodoIsKnownGap` pins current behavior. |
+| EDITOR-00-DR-02 | Assert `--[==[ TODO ]==]` (bracket level 2) yields one TodoItem (confirms the text-aware start-delta overload counts the `=` run). | Risk 1.1 | **done — confirmed** by `testLeveledBlockCommentTodo`. |
 
 ## Test Case Gaps
 None beyond TC-1…TC-7 in the implementation plan. The two negative cases (string literal TC-5, bare
