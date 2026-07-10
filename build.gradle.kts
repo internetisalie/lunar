@@ -95,11 +95,15 @@ intellijPlatform {
         }
 
         val changelog = project.changelog // local variable for configuration cache compatibility
-        // Get the latest available change notes from the changelog file
+        // Get the change notes for the built version. Prefer an exact section, then an [Unreleased]
+        // section if present, then fall back to the latest (top) section. The fallback matters when
+        // pluginVersion is overridden to a value with no CHANGELOG section (e.g. a release built from
+        // a git tag via -PpluginVersion): getUnreleased() throws when there's no [Unreleased] header,
+        // so guard it rather than let patchPluginXml fail.
         changeNotes = providers.gradleProperty("pluginVersion").map { pluginVersion ->
             with(changelog) {
                 renderItem(
-                    (getOrNull(pluginVersion) ?: getUnreleased())
+                    (getOrNull(pluginVersion) ?: runCatching { getUnreleased() }.getOrNull() ?: getLatest())
                         .withHeader(false)
                         .withEmptySections(false),
                     Changelog.OutputType.HTML,
