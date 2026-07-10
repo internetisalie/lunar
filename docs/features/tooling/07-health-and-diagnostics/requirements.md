@@ -229,17 +229,23 @@ on demand via TOOLING-07-07.
   match; delete of `/unrelated` → no match.
 
 ## Acceptance Criteria
-- [ ] TOOLING-07-01/02: checker produces the §2.3 health shape; all writes go through the
+- [x] TOOLING-07-01/02: checker produces the §2.3 health shape; all writes go through the
       registry and fire the topic; no mutating reads remain in `toolchain.health`.
-- [ ] TOOLING-07-03: deleting a bound binary or an environment root triggers exactly one
+- [x] TOOLING-07-03: deleting a bound binary or an environment root triggers exactly one
       batched revalidation and the banner/balloon flow (TC-06/07/10).
-- [ ] TOOLING-07-04: banners render per the decided engagement rules, including the
+- [x] TOOLING-07-04: banners render per the decided engagement rules, including the
       runtime banner, and link to the Toolchain page (TC-04/05).
-- [ ] TOOLING-07-05: balloons are deduped per state transition / per env per session
+- [x] TOOLING-07-05: balloons are deduped per state transition / per env per session
       (TC-06/07).
-- [ ] TOOLING-07-06: `logSnapshot` output matches the §4.1 grammar (TC-08).
-- [ ] Full suite green via `tooling/gce-builder/gce-builder.sh run test`; live check per
+- [x] TOOLING-07-06: `logSnapshot` output matches the §4.1 grammar (TC-08).
+- [x] Full suite green via `tooling/gce-builder/gce-builder.sh run test`; live check per
       `human-verification` flow (banner appears/disappears in the sandbox IDE).
+
+> **Live-verified 2026-07-09** (VNC, GoLand sandbox on `lunar-builder`): with `/usr/bin/lua`
+> broken, reopening the project fired the runtime banner *"No usable Lua runtime for this
+> project."* (Configure toolchain → opened Lua ▸ Toolchain; Dismiss → cleared it), one
+> *"Lua tool(s) became unavailable: Lua…"* balloon, the inventory table showed Health 🔴 Missing,
+> and the *Lua: Toolchain Diagnostics* action emitted the §4.1 `[TOOLCHAIN-DIAG]` snapshot.
 
 ## Non-Functional Requirements
 - **Threading**: checks/probes/diagnostics background-only (engineering contract; arch
