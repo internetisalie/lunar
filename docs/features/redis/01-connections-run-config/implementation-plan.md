@@ -32,10 +32,13 @@ the class/file it creates or edits and the design section it realizes. New code 
 ### Phase 2: RESP client + handshake [Must]
 - **Goal**: Live TCP/TLS connection with HELLO/AUTH/SELECT negotiation, timeouts, cancellation.
 - **Tasks**:
-  - [ ] Create `redis/resp/RespClient.kt` (`open`, `command`, `dispose`, `RespProtocol`,
+  - [x] Create `redis/resp/RespClient.kt` (`open`, `command`, `dispose`, `RespProtocol`,
         `RespTimeouts`) — realizes design §2.3, §3.1. Reader on a pooled coroutine; raw
         `InputStream`/`PushbackInputStream` (no `BufferedReader.readLine`); `checkCanceled`/`ensureActive`
-        between commands (contract §2, RISK-R09).
+        between commands (contract §2, RISK-R09). Endpoint/handshake primitives pass through a Phase-2
+        `RespEndpoint`; the `LuaRedisServerConnection` adapter (design §2.4/§2.9) arrives in Phase 3.
+        Handshake extracted to `redis/resp/RespHandshake.kt`; cancellation read decorator in
+        `redis/resp/CancellationAwareInputStream.kt`.
 - **Exit criteria**: unit test `TestRespClient` decodes canned server-byte fixtures through a piped
   socket; integration coverage deferred to Phase 6. No EDT I/O (assert via threading review).
   `TestRespClient` also covers TC-TIMEOUT-1 (`SocketTimeoutException` from the socket →
@@ -119,7 +122,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 
 ## Verification Tasks
 - [ ] `TestRespCodec` — TC-RESP-1..4 (encode, decode-per-type, multi-byte byte-length, partial reads).
-- [ ] `TestRespClient` — TC-TIMEOUT-1 (`SocketTimeoutException` → `RespException.Timeout`),
+- [x] `TestRespClient` — TC-TIMEOUT-1 (`SocketTimeoutException` → `RespException.Timeout`),
       TC-CANCEL-1 (cancelled `ProgressIndicator` aborts the in-flight connect/command).
 - [ ] `TestLuaRedisConnectionSettings` / `TestLuaRedisCredentialStore` — TC-CONN-1/2.
 - [ ] `TestLuaRedisServerLauncher` — TC-LAUNCH-1..3 (binary cmd, docker cmd, neither → error).
@@ -139,7 +142,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: RESP protocol core | done | Must |
-| Phase 2: RESP client + handshake | todo | Must |
+| Phase 2: RESP client + handshake | done | Must |
 | Phase 3: Connection model, storage & credentials | todo | Must |
 | Phase 4: Server launcher (binary + Docker) | todo | Must |
 | Phase 5: Run config, executor, producer & console | todo | Must |
