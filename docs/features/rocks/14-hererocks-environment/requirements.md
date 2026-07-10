@@ -2,8 +2,8 @@
 id: ROCKS-14
 title: "14: Hererocks Environment Lifecycle"
 type: feature
-status: "done"
-vf_icon: ✅
+status: "cancelled"
+vf_icon: 🚫
 priority: medium
 parent_id: ROCKS
 folders:
@@ -11,6 +11,14 @@ folders:
 ---
 
 # ROCKS-14: Hererocks Environment Lifecycle
+
+> **⚠️ Superseded / cancelled (2026-07-09) — never implemented.** The Python/hererocks
+> environment lifecycle is replaced by the TOOLING epic's Python-free native provisioning
+> engine ([TOOLING-04](../../tooling/04-native-provisioning/requirements.md)) and environment
+> model ([TOOLING-02](../../tooling/02-resolution-and-environments/requirements.md)); see
+> TOOLING [Supersedes](../../tooling/requirements.md). Retained for design/history reference
+> only. Marked `cancelled` (not `done`) so `status.md` counts it out of remaining work rather
+> than as a shipped feature.
 
 ## Overview
 
