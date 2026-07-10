@@ -360,7 +360,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | EDITOR-07 | Move Statement / Element | planned | C | — | — | ✓ new movers |
 | EDITOR-08 | Smart Enter (Complete Statement) | planned | C | EDITOR-01 *(soft — keyword-pair table)* | — | ✓ new SmartEnterProcessor |
 
-## Wave 17 — Redis & Valkey integration  *(REDIS epic; requirements written 2026-07-02, not yet designed)*
+## Wave 17 — Redis & Valkey integration  *(REDIS epic; all 5 features planned 2026-07-10 — design/plan/risks/QA artifacts reviewed & PASSED)*
 
 > Extends the TARGET epic's Redis runtime target into an end-to-end Redis/Valkey Lua loop:
 > connections + script run configs, the server-side LDB debugger, Valkey as a first-class
@@ -370,11 +370,11 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| REDIS-01 | Connections & Script Run Configuration | todo | M | TOOL-02 *(binary resolution, done)* | REDIS-02, REDIS-03, REDIS-05 | Serial: foundation |
-| REDIS-02 | LDB Debug Adapter | todo | M | REDIS-01 | — | after 01 |
-| REDIS-03 | Valkey Runtime Target | todo | S | TARGET-01 *(done)*; REDIS-01 *(flavor detection only)* | REDIS-04 *(Valkey specs)*, REDIS-05 | ✓ (stub/registry work independent of 01) |
-| REDIS-04 | Language-Engine Integration | todo | S | TARGET-04 *(done)* | REDIS-05 *(ambient-global suppression)* | ✓ (engine-only) |
-| REDIS-05 | Redis Functions Workflow | todo | C | REDIS-01; REDIS-03, REDIS-04 *(soft)* | — | after 01 |
+| REDIS-01 | Connections & Script Run Configuration | planned | M | TOOL-02 *(binary resolution, done)* | REDIS-02, REDIS-03, REDIS-05 | Serial: foundation |
+| REDIS-02 | LDB Debug Adapter | planned | M | REDIS-01 | — | after 01 |
+| REDIS-03 | Valkey Runtime Target | planned | S | TARGET-01 *(done)*; REDIS-01 *(flavor detection only)* | REDIS-04 *(Valkey specs)*, REDIS-05 | ✓ (stub/registry work independent of 01) |
+| REDIS-04 | Language-Engine Integration | planned | S | TARGET-04 *(done)* | REDIS-05 *(ambient-global suppression)* | ✓ (engine-only) |
+| REDIS-05 | Redis Functions Workflow | planned | C | REDIS-01; REDIS-03, REDIS-04 *(soft)* | — | after 01 |
 
 ## Wave 18 — AI integration  *(AI epic; requirements written 2026-07-02, AI-01 fully specced)*
 
