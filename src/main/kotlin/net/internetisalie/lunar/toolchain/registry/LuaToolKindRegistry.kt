@@ -127,6 +127,28 @@ object LuaToolKindRegistry {
                 versionRegex = Regex("""(?:busted\s+)?(\d[\w.\-]*)""", RegexOption.IGNORE_CASE)
             ),
             capabilities = setOf(Capability.TEST_RUNNER)
+        ),
+        // 9. redis-server (REDIS-01 §2.9, §4.2)
+        LuaToolKind(
+            id = "redis-server",
+            displayName = "Redis Server",
+            binaryNames = listOf("redis-server"),
+            probe = ProbeSpec(
+                args = listOf("--version"),
+                versionRegex = Regex("""v=(\d[\w.]*)""")
+            ),
+            capabilities = emptySet()
+        ),
+        // 10. valkey-server (REDIS-01 §2.9, §4.2; provisioning strategy deferred to REDIS-03)
+        LuaToolKind(
+            id = "valkey-server",
+            displayName = "Valkey Server",
+            binaryNames = listOf("valkey-server"),
+            probe = ProbeSpec(
+                args = listOf("--version"),
+                versionRegex = Regex("""v=(\d[\w.]*)""")
+            ),
+            capabilities = emptySet()
         )
     )
 

@@ -67,15 +67,16 @@ the class/file it creates or edits and the design section it realizes. New code 
 ### Phase 4: Server launcher (binary + Docker) [Must]
 - **Goal**: Session-scoped local/Docker server lifecycle.
 - **Tasks**:
-  - [ ] Edit `toolchain/registry/LuaToolKindRegistry.kt` — add `redis-server` + `valkey-server`
+  - [x] Edit `toolchain/registry/LuaToolKindRegistry.kt` — add `redis-server` + `valkey-server`
         `LuaToolKind`s — design §2.9, §4.2.
-  - [ ] Create `redis/connection/LuaRedisServerLauncher.kt` (`launch`, `LaunchedServer`) — design
+  - [x] Create `redis/connection/LuaRedisServerLauncher.kt` (`launch`, `LaunchedServer`) — design
         §2.12, §3.9. `GeneralCommandLine`/`OSProcessHandler`, `NetUtils.findAvailableSocketPort`,
         `PathEnvironmentVariableUtil.findInPath("docker")` — the same platform process API the
         existing run configs use (`rocks/run/LuaRocksRunConfiguration.kt:188`).
 - **Exit criteria**: `TestLuaRedisServerLauncher` asserts the built command lines (binary + docker)
   and the "neither available" error path (TC-LAUNCH-1..3) without launching processes; real launch
-  covered in Phase 6.
+  covered in Phase 6. **Status: done** — TC-LAUNCH-1..3 green; full suite (--rerun-tasks
+  --no-build-cache) green; ktlintCheck green.
 
 ### Phase 5: Run configuration, executor, producer & console [Must]
 - **Goal**: End-to-end "Redis Script" run with reply tree + error links.
@@ -128,7 +129,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 - [x] `TestRespClient` — TC-TIMEOUT-1 (`SocketTimeoutException` → `RespException.Timeout`),
       TC-CANCEL-1 (cancelled `ProgressIndicator` aborts the in-flight connect/command).
 - [x] `TestLuaRedisConnectionSettings` / `TestLuaRedisCredentialStore` — TC-CONN-1/2.
-- [ ] `TestLuaRedisServerLauncher` — TC-LAUNCH-1..3 (binary cmd, docker cmd, neither → error).
+- [x] `TestLuaRedisServerLauncher` — TC-LAUNCH-1..3 (binary cmd, docker cmd, neither → error).
 - [ ] `TestLuaRedisRunConfiguration` / `TestLuaRedisRunConfigurationProducer` — TC-RC-1, TC-PROD-1.
 - [ ] `TestLuaRedisScriptExecutor` — TC-SHA-1 (NOSCRIPT retry), TC-RO-1 (version gate).
 - [ ] `TestRespReplyTreeModel` / `TestRespReplyTreeConsole` / `TestLuaRedisErrorLinkFilter` —
@@ -147,6 +148,6 @@ the class/file it creates or edits and the design section it realizes. New code 
 | Phase 1: RESP protocol core | done | Must |
 | Phase 2: RESP client + handshake | done | Must |
 | Phase 3: Connection model, storage & credentials | done | Must |
-| Phase 4: Server launcher (binary + Docker) | todo | Must |
+| Phase 4: Server launcher (binary + Docker) | done | Must |
 | Phase 5: Run config, executor, producer & console | todo | Must |
 | Phase 6: Dockerized integration tests | todo | Must |

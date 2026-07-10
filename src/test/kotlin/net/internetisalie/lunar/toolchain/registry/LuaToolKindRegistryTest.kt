@@ -46,10 +46,11 @@ class LuaToolKindRegistryTest {
     @Test
     fun testRegistryCompleteness_TC22() {
         val allKinds = LuaToolKindRegistry.all()
-        assertEquals(8, allKinds.size)
+        assertEquals(10, allKinds.size)
 
         val expectedIds = listOf(
-            "lua", "luajit", "tarantool", "luarocks", "luacheck", "stylua", "luacov", "busted"
+            "lua", "luajit", "tarantool", "luarocks", "luacheck", "stylua", "luacov", "busted",
+            "redis-server", "valkey-server",
         )
         assertEquals(expectedIds, allKinds.map { it.id })
 
@@ -117,6 +118,21 @@ class LuaToolKindRegistryTest {
         assertEquals(listOf("busted"), busted.binaryNames)
         assertEquals(setOf(Capability.TEST_RUNNER), busted.capabilities)
         assertEquals(listOf("--version"), busted.probe.args)
+
+        // REDIS-01 §2.9/§4.2: redis-server and valkey-server tool kinds (non-runtime, no capabilities)
+        val redisServer = LuaToolKindRegistry.findById("redis-server")!!
+        assertEquals("Redis Server", redisServer.displayName)
+        assertEquals(listOf("redis-server"), redisServer.binaryNames)
+        assertEquals(emptySet<Capability>(), redisServer.capabilities)
+        assertFalse(redisServer.isRuntime)
+        assertEquals(listOf("--version"), redisServer.probe.args)
+
+        val valkeyServer = LuaToolKindRegistry.findById("valkey-server")!!
+        assertEquals("Valkey Server", valkeyServer.displayName)
+        assertEquals(listOf("valkey-server"), valkeyServer.binaryNames)
+        assertEquals(emptySet<Capability>(), valkeyServer.capabilities)
+        assertFalse(valkeyServer.isRuntime)
+        assertEquals(listOf("--version"), valkeyServer.probe.args)
     }
 
     @Test
@@ -174,6 +190,17 @@ class LuaToolKindRegistryTest {
         val bustedMatch2 = busted.probe.versionRegex.find("busted 2.2.0")
         assertNotNull(bustedMatch2)
         assertEquals("2.2.0", bustedMatch2!!.groupValues[1])
+
+        // REDIS-01 §4.2: redis-server and valkey-server --version output (v=<version>)
+        val redisServer = LuaToolKindRegistry.findById("redis-server")!!
+        val redisMatch = redisServer.probe.versionRegex.find("Redis server v=7.4.0 sha=00000000:0 malloc=libc bits=64 build=1234")
+        assertNotNull(redisMatch)
+        assertEquals("7.4.0", redisMatch!!.groupValues[1])
+
+        val valkeyServer = LuaToolKindRegistry.findById("valkey-server")!!
+        val valkeyMatch = valkeyServer.probe.versionRegex.find("Valkey server v=8.0.0 sha=00000000:0 malloc=libc bits=64 build=1234")
+        assertNotNull(valkeyMatch)
+        assertEquals("8.0.0", valkeyMatch!!.groupValues[1])
     }
 
     @Test
