@@ -138,7 +138,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: RESP protocol core | todo | Must |
+| Phase 1: RESP protocol core | done | Must |
 | Phase 2: RESP client + handshake | todo | Must |
 | Phase 3: Connection model, storage & credentials | todo | Must |
 | Phase 4: Server launcher (binary + Docker) | todo | Must |
