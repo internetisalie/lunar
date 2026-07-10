@@ -208,6 +208,17 @@ tasks {
                 isFailOnNoMatchingTests = false
             }
         }
+        // CI checkouts lack the out-of-repo `test/` fixture tree (a tracked symlink → ../test that
+        // the gce-builder rsyncs in with -L). When it is absent these two tests fail at setup, so
+        // CI passes -PexcludeExternalFixtureTests to skip them; they stay covered on the local
+        // builder, which has the fixtures.
+        if (project.hasProperty("excludeExternalFixtureTests")) {
+            filter {
+                excludeTestsMatching("*LuaRecursiveReferenceTest")
+                excludeTestsMatching("*LuaDescriptionIndexTest")
+                isFailOnNoMatchingTests = false
+            }
+        }
     }
 
     val integrationTest by intellijPlatformTesting.testIdeUi.registering {
