@@ -27,7 +27,7 @@ Searched `src/main/kotlin` for existing unwrap / block-hoist / if-branch manipul
 - **`net.internetisalie.lunar.lang.insight.LuaInvertIfIntention`** (`src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaInvertIfIntention.kt:15`) — the closest prior art. It resolves a `LuaIfStatement` from the caret via `PsiTreeUtil.getParentOfType`, reads `getExprList()` / `getBlockList()`, detects the `else`/`elseif` branches via `node.findChildByType(LuaElementTypes.ELSE)` / `LuaElementTypes.ELSEIF`, rebuilds text, and `replace()`s inside a `WriteCommandAction`, then `CodeStyleManager.getInstance(project).reformat(replaced)`. This design **reuses those exact idioms** (branch detection, `LuaElementFactory.createFile` + `PsiTreeUtil.findChildOfType`, reformat) but does **not** modify or replace `LuaInvertIfIntention`; the two are distinct actions.
 - **`LuaElementFactory`** (`src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaElementFactory.kt:11`) — the sanctioned PSI-from-text builder (`createFile(project, text): LuaFile`). Reused; **not** extended.
 - **`LuaBlockExt.kt`** (`src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaBlockExt.kt`) — `LuaBlock.processDeclarations` scope-walk. Not a structural-edit helper; not reused here.
-- No `Surrounder`/`SurroundDescriptor` or block-structure helper exists yet: EDITOR-05 has only `requirements.md` (no `design.md`, no source). `grep -rl "Surround" src/main/kotlin` → only live-template context classes (`LuaSurroundContextType`, unrelated). **Consequence: the EDITOR-05 "shared block-structure PSI helpers" do not exist.** This design therefore ships its own self-contained helper (`LuaBlockStructure`, §2.4) and specifies the contract EDITOR-05 should later converge on (see risks-and-gaps §Gap 2.1). This is a soft dependency, not a blocking edge.
+- No `Surrounder`/`SurroundDescriptor` or block-structure helper exists in the codebase yet (`grep -rl "Surround" src/main/kotlin` → only live-template context classes (`LuaSurroundContextType`, unrelated)). **Epic reconciliation (2026-07-09):** the block-structure helper is the single canonical `net.internetisalie.lunar.lang.editor.LuaBlockStructure` object (§2.4), **shared with EDITOR-05**. EDITOR-05 contributes the range/replace API (`enclosingBlock`/`statementsInRange`/`statementsText`/`replaceStatements`); this feature contributes the body/branch API (`primaryBody`/`ifBranches`/`hasElseOrElseIf`/`blockParent`). Whichever feature lands first creates the file; the second extends it. Soft dependency (shared code), not a blocking edge.
 
 ### Target State
 
@@ -120,8 +120,8 @@ UnwrapHandler (platform, Ctrl+Shift+Delete)
   ```
   Applicability: `construct.matches(e)` is an `is`-check against the construct's PSI type(s) (§2.7). For `IF`, applicability additionally requires that `e` has **no** `elseif`/`else` branch (a plain `if…then…end`); a multi-branch `if` is not "unwrappable to one body" — matching Java's `JavaIfUnwrapper` which also refuses `else`-blocks. Multi-branch collapse is EDITOR-06-02 via §2.5. `primaryBody` returns the sole body (`then`-block for `if`, the single block for the others).
 
-### 2.4 `net.internetisalie.lunar.lang.insight.unwrap.LuaBlockStructure`
-- **Responsibility**: Stateless PSI helper — the "block-structure helpers" contract. Locate the primary body of a block construct, enumerate `if` branches, and detect branch keywords. This is the self-contained implementation of the helper EDITOR-05 will later share (see risks §Gap 2.1).
+### 2.4 `net.internetisalie.lunar.lang.editor.LuaBlockStructure`
+- **Responsibility**: Stateless PSI helper — the canonical shared "block-structure helpers" object (see §1 reconciliation). This feature contributes the body/branch API (locate the primary body of a block construct, enumerate `if` branches, detect branch keywords); EDITOR-05 contributes the range/replace API to the **same** object. Not a second helper.
 - **Threading**: pure PSI reads; caller supplies the read context.
 - **Collaborators**: `LuaBlockParent`, `LuaBlock`, `LuaIfStatement`, `LuaElementTypes` (`IF`/`ELSEIF`/`ELSE`/`THEN`/`END`, real — used by `LuaInvertIfIntention.kt:24`).
 - **Key API**:
@@ -259,7 +259,7 @@ Beanclass is `com.intellij.lang.LanguageExtensionPoint` (verified: `LangExtensio
 ## 9. Alternatives Considered
 - **One generic `LuaUnwrapper` switching on type inside `doUnwrap`** — rejected: `isApplicableTo` differs per construct and the platform expects one `Unwrapper` per offered option/description; a single class would collapse the picker into one label.
 - **Manual `WriteCommandAction` + text rebuild for the block hoist (like `LuaInvertIfIntention`)** — rejected for §2.3: the platform `AbstractContext.extract`/`addRangeBefore` path gives correct preview highlighting and undo for free. Text-rebuild is retained only for the `else`-collapse (§3.3) where a structural `replace` is simplest.
-- **Reusing an EDITOR-05 helper** — impossible: EDITOR-05 is unimplemented. We ship `LuaBlockStructure` and define the convergence contract in risks.
+- **A second, unwrap-private block helper** — rejected by the epic reconciliation: 05 and 06 share one `lang.editor.LuaBlockStructure` object (this feature adds the body/branch API to it), so there is exactly one helper regardless of implementation order.
 
 ## 10. Open Questions
 

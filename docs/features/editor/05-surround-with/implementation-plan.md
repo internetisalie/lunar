@@ -18,8 +18,10 @@ new package `net.internetisalie.lunar.lang.surround`. Each phase leaves the buil
 - **Goal**: End-to-end `Surround With → if` works via the real EP; the reusable block helpers
   (for EDITOR-06) and the descriptor/base skeleton exist.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.surround.LuaBlockStructureUtil` — realizes design §2.1,
-        §3.3 (`enclosingBlock`, `statementsInRange`, `statementsText`, `replaceStatements`).
+  - [ ] Create (or extend, if EDITOR-06 landed first) the shared
+        `net.internetisalie.lunar.lang.editor.LuaBlockStructure` with this feature's range/replace
+        half — design §2.1, §3.3 (`enclosingBlock`, `statementsInRange`, `statementsText`,
+        `replaceStatements`).
   - [ ] Create `net.internetisalie.lunar.lang.surround.LuaStatementSurrounder` (abstract) + the
         `WrappedTemplate` data class — realizes design §2.3, §3.1, §3.2.
   - [ ] Create `net.internetisalie.lunar.lang.surround.LuaStatementsSurroundDescriptor` — realizes §2.2.

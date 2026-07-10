@@ -53,14 +53,13 @@ unresolved design.
 | EDITOR-00-DR-02 | Verify caret `TextRange` lands in the condition (`if`) and at body start (`do`) after reformat, using `SurroundWithHandler.invoke` in a `BasePlatformTestCase`. | Risk 1.2 | todo |
 
 ## Cross-feature dependency
-- **EDITOR-06 (Unwrap) reuses `LuaBlockStructureUtil`.** This feature introduces that shared
-  utility (design §2.1) with the block-locating / statement-span / re-indent helpers the epic
-  requirements.md (line 49) calls out as a soft coupling. EDITOR-06's Unwrap will call
-  `enclosingBlock`, `statementsInRange`/`statementsText`, and a hoist-and-reindent counterpart to
-  `replaceStatements`. The utility is designed as a stateless `object` with no `Project`/`Editor`
-  retention specifically so EDITOR-06 can depend on it without a blocking edge. If EDITOR-06 needs an
-  additional helper (e.g. "hoist a block's body into its parent"), it should be added to
-  `LuaBlockStructureUtil`, not duplicated.
+- **Shared with EDITOR-06 (Unwrap): one `net.internetisalie.lunar.lang.editor.LuaBlockStructure`
+  object** (epic reconciliation, 2026-07-09). This feature contributes the range/replace API
+  (design §2.1): `enclosingBlock`, `statementsInRange`/`statementsText`, `replaceStatements`.
+  EDITOR-06 adds the body/branch API (`primaryBody`/`ifBranches`/`hasElseOrElseIf`/`blockParent`)
+  to the **same** object. It is a stateless `object` with no `Project`/`Editor` retention, so either
+  feature can depend on it without a blocking edge; whichever lands first creates the file, the
+  second extends it. Never two competing helpers.
 
 ## Test Case Gaps
 - No test yet for surrounding a selection that spans an inner block boundary (design §6 "spans nested

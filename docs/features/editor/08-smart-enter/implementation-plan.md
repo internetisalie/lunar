@@ -18,24 +18,27 @@ independently testable via `CodeInsightTestFixture`. All new production code lan
 `... run "ktlintFormat ktlintCheck"` (per CLAUDE.md; do not run `./gradlew` locally). PLANNING
 DOC — no code is written here.
 
-## Phase 0 — Keyword-pair table handshake  [Must]
+## Phase 0 — Extend the existing `LuaBlockPairs` table  [Must]
 
-- **P0.1** Check whether `net.internetisalie.lunar.lang.syntax.LuaKeywordPairs` exists (EDITOR-01
-  shipped it). If present, verify it exposes the shape/rows in `design.md` §2.1; if it diverges,
-  reconcile per DR-01.
-- **P0.2** If absent, create `lang/syntax/LuaKeywordPairs.kt` with `LuaBlockKeyword` data class,
-  the six `blocks` rows, and `byOpener`, using `LuaTokenTypes` constants
-  (`lang/lexer/LuaTokenTypes.kt`). This is the shared surface EDITOR-01 also needs.
-- **Verification:** unit test `LuaKeywordPairsTest` asserting `byOpener(LuaTokenTypes.IF)` →
-  `(IF, END, THEN)` and `byOpener(LuaTokenTypes.REPEAT)` → `(REPEAT, UNTIL, null)`; assert
-  `blocks.size == 6`.
+- **P0.1** In the existing `net.internetisalie.lunar.lang.syntax.LuaBlockPairs`
+  (`LuaBlockPairs.kt:15`), add the two opener-keyword-keyed maps from `design.md` §2.1:
+  `separatorByOpenerKeyword` (`IF→THEN`, `WHILE→DO`, `FOR→DO`) and `terminatorByOpenerKeyword`
+  (`IF/WHILE/FOR/FUNCTION/DO→END`, `REPEAT→UNTIL`), keyed on `LuaElementTypes` like the existing
+  maps. Purely additive — do not touch `terminatorByOpener`/`insertTextFor`/`terminatorForOwner`
+  (used by the COMP-08 Enter handler and EDITOR-01).
+- **P0.2** No parallel `LuaKeywordPairs` — retired by the epic reconciliation. If EDITOR-01 has not
+  landed yet, its `LuaKeywordBlockCloser` reuse is optional (design §2.2); the table extension is
+  self-contained.
+- **Verification:** unit test `LuaBlockPairsOpenerTest` asserting
+  `separatorByOpenerKeyword[IF] == THEN`, `[WHILE] == DO`, `[FOR] == DO`, `FUNCTION`/`DO`/`REPEAT`
+  absent; `terminatorByOpenerKeyword[REPEAT] == UNTIL`, `[IF] == END`.
 
 ## Phase 1 — Processor skeleton + registration  [Must]
 
 - **P1.1** Create `LuaSmartEnterProcessor : SmartEnterProcessorWithFixers` with an empty fixer
   list (temporarily) and `getStatementAtCaret` override (design §3.1).
 - **P1.2** Create `LuaSmartEnterUtil` object with the helper signatures (design §3.4); implement
-  `keywordPairFor`, `hasChildToken`, `hasCloser`, `leafTokens`, `separatorText`,
+  `openerKeywordFor`, `hasChildToken`, `hasCloser`, `leafTokens`, `separatorText`,
   `blockBodyEndOffset`, `bodyCaretOffset`.
 - **P1.3** Register `<lang.smartEnterProcessor language="Lua" implementationClass="…LuaSmartEnterProcessor"/>`
   in `plugin.xml` beside the `lang.braceMatcher` entry (design §4).

@@ -62,26 +62,31 @@ then the **Should** structural-editing pair, then the two **Could** polish items
 ## Cross-feature helper reconciliation (post-planning, 2026-07-09)
 
 The eight features were planned in parallel; the two soft-coupled pairs each independently
-designed the "shared" helper, so the names/APIs diverged. **Before implementing the second feature
-of each pair, converge on one canonical object** (this is a shared-code decision, not a blocking
-dependency — either feature may land first):
+designed the "shared" helper, so the names/APIs diverged. **Reconciled 2026-07-09** — each pair now
+converges on one canonical object (a shared-code decision, not a blocking dependency; either feature
+may land first, the second extends). The per-feature `design.md`/`risks-and-gaps.md` are updated to
+match:
 
-- **Block-structure helper (`EDITOR-05` ↔ `EDITOR-06`).** 05 planned `LuaBlockStructureUtil`
+- **Block-structure helper (`EDITOR-05` ↔ `EDITOR-06`) — RESOLVED.** 05 had `LuaBlockStructureUtil`
   (`enclosingBlock` / `statementsInRange` / `statementsText` / `replaceStatements` — locate a block
-  and replace a statement span); 06 planned `LuaBlockStructure` (`primaryBody` / `blockParent` /
-  `ifBranches` / `hasElseOrElseIf` — a construct's body and branches). The two method sets barely
-  overlap (surround wraps a statement *range*; unwrap operates on a construct's *body*).
-  **Decision:** one canonical `LuaBlockStructure` object in the shared `lang/editor/` package
-  (introduced by `EDITOR-07`), holding the union of methods; whichever feature implements first
-  creates it there, the second extends it. Do **not** ship two competing block helpers.
+  and replace a statement span); 06 had `LuaBlockStructure` (`primaryBody` / `blockParent` /
+  `ifBranches` / `hasElseOrElseIf` — a construct's body and branches). The method sets are **disjoint**.
+  **Decision:** one canonical `net.internetisalie.lunar.lang.editor.LuaBlockStructure` object (the
+  `lang/editor/` package `EDITOR-07` introduces), holding the **union**; 05 contributes the
+  range/replace half, 06 the body/branch half. Whichever lands first creates the file, the second
+  adds its methods. Never two competing helpers.
 
-- **Keyword-block table (`EDITOR-01` ↔ `EDITOR-08`).** 01 reuses the **existing** `LuaBlockPairs`
-  table and routes insertion through a new `LuaKeywordBlockCloser`; 08 (blind to that) invented a
-  new `LuaKeywordPairs` data class. **Decision:** single source of truth — extend the existing
-  `LuaBlockPairs` rather than adding `LuaKeywordPairs`, and have 08 consume 01's
-  `LuaKeywordBlockCloser` for the balance-check/insert logic. Implementer must verify whether
-  `LuaBlockPairs` already carries the block *separator* (`then`/`do`) that 08's separator fixer
-  needs, or extend it to.
+- **Keyword-block table (`EDITOR-01` ↔ `EDITOR-08`) — RESOLVED.** 01 reuses the **existing**
+  `net.internetisalie.lunar.lang.syntax.LuaBlockPairs` (`LuaBlockPairs.kt:15`) read-only via a new
+  `LuaKeywordBlockCloser`; 08 (blind to that) invented a parallel `LuaKeywordPairs` data class.
+  **Grounding:** `LuaBlockPairs` today keys **separator→terminator** (`THEN→END`, `DO→END`,
+  `REPEAT→UNTIL`, …) — enough for 01 (fires after `then`/`do` is typed) but **not** for 08's
+  separator fixer, which must supply `then`/`do` for a bare `if x` skeleton. **Decision:** retire
+  `LuaKeywordPairs`; 08 instead **extends `LuaBlockPairs`** with two additive opener-keyword maps —
+  `separatorByOpenerKeyword` (`IF→THEN`, `WHILE→DO`, `FOR→DO`) and `terminatorByOpenerKeyword`
+  (`IF/WHILE/FOR/FUNCTION/DO→END`, `REPEAT→UNTIL`). Reusing 01's `LuaKeywordBlockCloser` for plain
+  `end`/`until` insertion is optional (Smart Enter's fixers may insert off the table directly); the
+  **mandatory** shared artifact is the single `LuaBlockPairs` table.
 
 ## Definition of Done (per feature)
 

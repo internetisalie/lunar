@@ -23,10 +23,15 @@ folders:
 
 ## Design Gaps
 
-### Gap 2.1: Convergence with EDITOR-05 shared block-structure helper
-- **Question**: EDITOR-06's soft dependency is the "block-structure PSI helpers introduced by EDITOR-05". EDITOR-05 is unimplemented (only `requirements.md`), so EDITOR-06 ships its own `LuaBlockStructure` (design §2.4). When EDITOR-05 lands, do the two duplicate?
-- **Options / leaning**: EDITOR-06 defines the contract EDITOR-05 must satisfy: `primaryBody(construct): LuaBlock?`, `blockParent(e): LuaBlockParent?`, `ifBranches(ifStmt): List<LuaIfBranch>`, `hasElseOrElseIf`. Leaning: keep `LuaBlockStructure` owned by EDITOR-06; EDITOR-05 (Surround) consumes `primaryBody`/`blockParent` from it rather than re-introducing helpers. Whichever ships second must extend, not duplicate (per the grounding bar).
-- **Resolved by**: DR-01. Ordering recommendation: implement EDITOR-06 first (or, if EDITOR-05 lands first, EDITOR-06 imports its helper and deletes the overlapping methods).
+### Gap 2.1: Convergence with EDITOR-05 shared block-structure helper — RESOLVED
+- **Resolution (epic reconciliation, 2026-07-09)**: one canonical
+  `net.internetisalie.lunar.lang.editor.LuaBlockStructure` object, shared by both features. EDITOR-06
+  contributes the body/branch API (`primaryBody`/`ifBranches`/`hasElseOrElseIf`/`blockParent`);
+  EDITOR-05 contributes the range/replace API (`enclosingBlock`/`statementsInRange`/`statementsText`/
+  `replaceStatements`). The two method sets are disjoint, so the object is simply their union.
+- **Ordering**: whichever feature lands first creates `lang/editor/LuaBlockStructure.kt` with its
+  half of the API; the second **extends** it (adds its methods) — never a second helper, never a
+  package move. Soft coupling, not a blocking edge.
 
 ### Gap 2.2: Anonymous `funcDef` (expression-position function) hoist can produce invalid Lua
 - **Question**: `LuaConstruct.FUNCTION` matches `LuaFuncDef` (`local f = function() body end`). Hoisting `body` out of an expression-position function yields statements where an expression was expected — syntactically invalid.
@@ -41,7 +46,7 @@ folders:
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| EDITOR-00-DR-01 | Confirm EDITOR-05 implementation order; if EDITOR-05 lands first, adopt its helper and drop `LuaBlockStructure` overlap — else EDITOR-05 consumes `LuaBlockStructure`. Record the ownership decision. | Gap 2.1 | todo |
+| EDITOR-00-DR-01 | RESOLVED (epic reconciliation): shared `lang.editor.LuaBlockStructure`, union of 05+06 APIs; whichever lands first creates the file, the second extends it. At implementation time, just check whether the file already exists and add this feature's body/branch methods. | Gap 2.1 | done |
 | EDITOR-00-DR-02 | Decide `LuaFuncDef` exclusion (leaning: exclude from unwrap applicability). Encode in `LuaConstruct.matches(FUNCTION)`. | Gap 2.2 | todo |
 | EDITOR-00-DR-03 | Spike: in a `BasePlatformTestCase`, invoke `UnwrapHandler().invoke` on a single-option `if` fixture and confirm `myFixture.checkResult` sees the hoisted text (validates the platform `extract`/`addRangeBefore` path works over Lua PSI before building all five unwrappers). | Risk 1.2 | todo |
 

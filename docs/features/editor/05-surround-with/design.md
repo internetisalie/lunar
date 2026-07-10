@@ -60,21 +60,24 @@ com.intellij.lang.surroundDescriptor (language="Lua")
                         ├── LuaFunctionSurrounder
                         ├── LuaDoSurrounder
                         └── LuaPcallSurrounder
-        uses ── LuaBlockStructureUtil   (shared PSI helpers; EDITOR-06 will reuse)
+        uses ── LuaBlockStructure   (shared PSI helpers; EDITOR-06 will reuse)
 ```
 
 ## 2. Core Components
 
-### 2.1 `net.internetisalie.lunar.lang.surround.LuaBlockStructureUtil`
+### 2.1 `net.internetisalie.lunar.lang.editor.LuaBlockStructure`
 - **Responsibility**: Shared block-structure PSI helpers for statement-list surrounds/unwraps.
-  This is the small shared utility EDITOR-06 (Unwrap) reuses (see risks §Cross-feature dependency).
+  **Canonical shared object** (epic reconciliation, 2026-07-09): this feature contributes the
+  range/replace API below; EDITOR-06 (Unwrap) adds `primaryBody`/`ifBranches`/`hasElseOrElseIf`/
+  `blockParent` to the **same** `lang.editor.LuaBlockStructure` object. Whichever feature lands
+  first creates the file; the second extends it — never a second competing helper.
 - **Threading**: pure PSI reads; callers already hold a read action (surround) or a write command.
   Contains no state; a Kotlin `object`. Holds **no** references to `Project`/`Editor`/`PsiFile`.
 - **Collaborators**: `LuaBlock`/`LuaStatement` (gen PSI), `PsiTreeUtil`, `LuaElementFactory`,
   `CodeStyleManager`.
 - **Key API**:
   ```kotlin
-  object LuaBlockStructureUtil {
+  object LuaBlockStructure {
       // The LuaBlock that directly contains the offset range, or null (offset in a comment/whitespace-only file).
       fun enclosingBlock(file: PsiFile, startOffset: Int, endOffset: Int): LuaBlock?
 
@@ -95,7 +98,7 @@ com.intellij.lang.surroundDescriptor (language="Lua")
 - **Responsibility**: Entry point registered on `com.intellij.lang.surroundDescriptor`; finds the
   statement run under the selection and exposes the seven surrounders.
 - **Threading**: `getElementsToSurround` is invoked by the platform under a read action.
-- **Collaborators**: `LuaBlockStructureUtil`, the seven `Surrounder`s.
+- **Collaborators**: `LuaBlockStructure`, the seven `Surrounder`s.
 - **Key API**:
   ```kotlin
   class LuaStatementsSurroundDescriptor : SurroundDescriptor {
@@ -114,7 +117,7 @@ com.intellij.lang.surroundDescriptor (language="Lua")
 - **Threading**: `surroundElements` runs under the platform write command (`startInWriteAction()`
   defaults to `true` via `WriteActionAware`); it wraps the mutation in
   `WriteCommandAction.runWriteCommandAction` defensively per the InvertIf precedent and the contract.
-- **Collaborators**: `LuaBlockStructureUtil`, `LuaElementFactory`, `CodeStyleManager`.
+- **Collaborators**: `LuaBlockStructure`, `LuaElementFactory`, `CodeStyleManager`.
 - **Key API**:
   ```kotlin
   abstract class LuaStatementSurrounder : Surrounder {
@@ -158,14 +161,14 @@ templates) so the caret lands at the body's first character after reformat.
 - **Steps**:
   1. `val statements = elements.map { it as LuaStatement }`; if empty → return `null`.
   2. `val first = statements.first()`, `val last = statements.last()`.
-  3. `val bodyText = LuaBlockStructureUtil.statementsText(statements)`.
+  3. `val bodyText = LuaBlockStructure.statementsText(statements)`.
   4. `val wrapped = buildWrappedText(bodyText)` → `WrappedTemplate(text, caretMarker)`.
   5. Locate the caret marker: `val caretIndexInText = wrapped.text.indexOf(wrapped.caretMarker)`;
      `val cleanText = wrapped.text.removeRange(caretIndexInText, caretIndexInText + wrapped.caretMarker.length)`.
   6. Inside `WriteCommandAction.runWriteCommandAction(project)`:
      a. `val dummy = LuaElementFactory.createFile(project, cleanText)`.
      b. `val newStmt = PsiTreeUtil.findChildOfType(dummy, LuaStatement::class.java) ?: return@… null`.
-     c. `val insertedRange = LuaBlockStructureUtil.replaceStatements(first, last, newStmt)` (reformats).
+     c. `val insertedRange = LuaBlockStructure.replaceStatements(first, last, newStmt)` (reformats).
   7. Return the caret `TextRange`: recompute the marker's document offset — the caret document offset is
      `insertedRange.startOffset + relativeCaretOffset`, where `relativeCaretOffset` is `caretIndexInText`
      mapped through the same leading text of `cleanText` (marker is on a fixed prefix line, so
@@ -187,7 +190,7 @@ templates) so the caret lands at the body's first character after reformat.
   marker lies on the wrapper's fixed leading text (before `§BODY§`), the index is stable across the
   body content.
 
-### 3.3 `LuaBlockStructureUtil.statementsInRange`
+### 3.3 `LuaBlockStructure.statementsInRange`
 - **Input → Output**: `(block, startOffset, endOffset) → List<LuaStatement>`
 - **Steps**:
   1. `val stmts = block.statementList`.
