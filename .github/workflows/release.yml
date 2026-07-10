@@ -1,0 +1,104 @@
+name: Release
+
+# Cuts a versioned release when a `v*` tag is pushed. The tag is the source of truth for the
+# version: `v1.2.3` builds `lunar-1.2.3.zip` (gradle.properties stays on -SNAPSHOT for day-to-day
+# dev). Compile + unit tests already ran via build-plugin.yml on the tagged commit's push, so this
+# workflow only re-packages the distributable and publishes a Gitea Release with the changelog
+# notes + zip attached. Marketplace publishing (publishPlugin) stays dormant — no signing cert /
+# token configured, and there's no external install base yet.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Don't rely on the instance's default token scope: declare release-write explicitly. Releases
+    # (and asset upload) fall under `contents: write` in the GitHub/Gitea permissions model.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: version
+        # refs/tags/v1.2.3 -> 1.2.3
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle + IntelliJ Platform artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Build distributable (version from tag)
+        # -PpluginVersion overrides gradle.properties, so the zip is named lunar-<tag-version>.zip
+        # and the plugin manifest carries the release version (no -SNAPSHOT).
+        run: ./gradlew buildPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
+
+      - name: Locate the distributable zip
+        id: zip
+        run: |
+          ZIP="build/distributions/lunar-${{ steps.version.outputs.version }}.zip"
+          test -f "$ZIP" || { echo "::error::expected $ZIP but it was not produced"; ls -l build/distributions || true; exit 1; }
+          echo "path=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$ZIP")" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        # Grab the body of the top-most "## [..]" section (whatever it's labelled). Tag-agnostic:
+        # avoids depending on the header matching the exact release version.
+        run: |
+          awk '
+            /^## \[/ { if (seen) exit; seen=1; next }
+            seen { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "Release ${{ steps.version.outputs.version }}" > release-notes.md
+          fi
+          echo "---- release notes ----"
+          cat release-notes.md
+
+      - name: Publish Gitea Release
+        env:
+          # Gitea's act_runner injects a repo-scoped token as github.token / GITHUB_TOKEN.
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERVER: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ZIP_PATH: ${{ steps.zip.outputs.path }}
+          ZIP_NAME: ${{ steps.zip.outputs.name }}
+        run: |
+          set -euo pipefail
+          API="$SERVER/api/v1/repos/$REPO"
+
+          # Create the release (body pulled from the extracted notes as a JSON-safe string).
+          BODY_JSON=$(python3 -c 'import json,sys; print(json.dumps(open("release-notes.md").read()))')
+          PAYLOAD=$(cat <<EOF
+          {"tag_name": "$TAG", "name": "Lunar $VERSION", "body": $BODY_JSON, "draft": false, "prerelease": false}
+          EOF
+          )
+          RESP=$(curl -sf -X POST "$API/releases" \
+            -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+          RELEASE_ID=$(echo "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          echo "Created release id=$RELEASE_ID"
+
+          # Attach the plugin zip as a release asset.
+          curl -sf -X POST "$API/releases/$RELEASE_ID/assets?name=$ZIP_NAME" \
+            -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$ZIP_PATH" > /dev/null
+          echo "Attached $ZIP_NAME to release $VERSION"
