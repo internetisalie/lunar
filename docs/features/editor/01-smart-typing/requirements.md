@@ -3,7 +3,7 @@ id: EDITOR-01
 title: "01: Smart Typing"
 type: feature
 parent_id: EDITOR
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/editor/requirements|requirements]]"
@@ -18,11 +18,11 @@ Auto-insertion, auto-skip, and auto-deletion of paired delimiters — the single
 
 | ID | Feature | Expected Behavior | Priority | Status |
 | :--- | :--- | :--- | :---: | :--- |
-| `EDITOR-01-01` | **Auto-close brackets** | Typing `(`, `{`, `[` inserts the matching closer and positions the caret between them (context-aware: not inside strings/comments). | **M** | Not Implemented |
-| `EDITOR-01-02` | **Auto-skip closer** | Typing `)`, `}`, `]` over an existing auto-inserted closer moves past it instead of duplicating. | **M** | Not Implemented |
-| `EDITOR-01-03` | **Quote pairing** | Typing `"` or `'` inserts the matching quote; typing over the closer skips; unbalanced/mid-word cases suppressed. | **M** | Not Implemented |
-| `EDITOR-01-04` | **Backspace unpairing** | Deleting the opener of a freshly auto-inserted empty pair also deletes the closer. | **S** | Not Implemented |
-| `EDITOR-01-05` | **Keyword block auto-close** | Completing/typing `do`/`then`/`function`/`for`/`while` scaffolds the matching `end`; `repeat` scaffolds `until`. **On by default**, behind an Editor > General > Smart Keys toggle (JetBrains-language convention). Fires on both keystroke and completion-accept, coordinated with the Enter handler. | **M** | Not Implemented |
+| `EDITOR-01-01` | **Auto-close brackets** | Typing `(`, `{`, `[` inserts the matching closer and positions the caret between them (context-aware: not inside strings/comments). | **M** | Full |
+| `EDITOR-01-02` | **Auto-skip closer** | Typing `)`, `}`, `]` over an existing auto-inserted closer moves past it instead of duplicating. | **M** | Full |
+| `EDITOR-01-03` | **Quote pairing** | Typing `"` or `'` inserts the matching quote; typing over the closer skips; unbalanced/mid-word cases suppressed. | **M** | Full |
+| `EDITOR-01-04` | **Backspace unpairing** | Deleting the opener of a freshly auto-inserted empty pair also deletes the closer. | **S** | Full |
+| `EDITOR-01-05` | **Keyword block auto-close** | Completing/typing `do`/`then`/`function`/`for`/`while` scaffolds the matching `end`; `repeat` scaffolds `until`. **On by default**, behind an Editor > General > Smart Keys toggle (JetBrains-language convention). Fires on both keystroke and completion-accept, coordinated with the Enter handler. | **M** | Full |
 
 ## 2. Technical Details
 - EPs: `com.intellij.lang.quoteHandler` (`QuoteHandler`/`MultiCharQuoteHandler`),
