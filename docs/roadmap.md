@@ -350,14 +350,14 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| EDITOR-01 | Smart Typing (auto-close + keyword pairs) | todo | M | — | — | ✓ new TypedHandler/QuoteHandler |
-| EDITOR-02 | Spellchecking | todo | M | — | — | ✓ new SpellcheckingStrategy |
-| EDITOR-03 | TODO / FIXME Indexing | todo | M | — | — | ✓ new IndexPatternBuilder |
-| EDITOR-04 | Smart Word Selection | todo | S | — | — | ✓ new selection handlers |
-| EDITOR-05 | Surround With | todo | S | — | EDITOR-06 *(shared PSI helpers, soft)* | ✓ new SurroundDescriptor |
-| EDITOR-06 | Unwrap / Remove | todo | S | EDITOR-05 *(soft — shared code, not blocking)* | — | ✓ new UnwrapDescriptor |
-| EDITOR-07 | Move Statement / Element | todo | C | — | — | ✓ new movers |
-| EDITOR-08 | Smart Enter (Complete Statement) | todo | C | EDITOR-01 *(soft — keyword-pair table)* | — | ✓ new SmartEnterProcessor |
+| EDITOR-01 | Smart Typing (auto-close + keyword pairs) | planned | M | — | — | ✓ new TypedHandler/QuoteHandler |
+| EDITOR-02 | Spellchecking | planned | M | — | — | ✓ new SpellcheckingStrategy |
+| EDITOR-03 | TODO / FIXME Indexing | planned | M | — | — | ✓ new IndexPatternBuilder |
+| EDITOR-04 | Smart Word Selection | planned | S | — | — | ✓ new selection handlers |
+| EDITOR-05 | Surround With | planned | S | — | EDITOR-06 *(shared PSI helpers, soft)* | ✓ new SurroundDescriptor |
+| EDITOR-06 | Unwrap / Remove | planned | S | EDITOR-05 *(soft — shared code, not blocking)* | — | ✓ new UnwrapDescriptor |
+| EDITOR-07 | Move Statement / Element | planned | C | — | — | ✓ new movers |
+| EDITOR-08 | Smart Enter (Complete Statement) | planned | C | EDITOR-01 *(soft — keyword-pair table)* | — | ✓ new SmartEnterProcessor |
 
 ## Wave 17 — Redis & Valkey integration  *(REDIS epic; requirements written 2026-07-02, not yet designed)*
 
