@@ -615,6 +615,11 @@
     <!-- TODO / FIXME indexing in Lua comments (EDITOR-03) -->
     <indexPatternBuilder
         implementation="net.internetisalie.lunar.lang.todo.LuaTodoIndexPatternBuilder"/>
+    <!-- Non-layered TODO count indexer so single-line triple-dash LuaCATS doc comments are counted
+         (the default highlighter-based count path misses the lazy LUACATS_COMMENT token). -->
+    <todoIndexer
+        filetype="Lua"
+        implementationClass="net.internetisalie.lunar.lang.todo.LuaTodoIndexer"/>
 
     <!-- Active Lua environment widget + test-matrix results (TOOLING-05-06) -->
     <statusBarWidgetFactory id="Lunar.LuaEnvWidget"

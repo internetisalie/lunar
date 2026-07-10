@@ -36,10 +36,11 @@ changes. Risks are narrow and pre-mitigated by the design.
   the `IndexPatternBuilder`. The layer re-lexes `---` into inner LuaCats tokens, so the outer
   `LUACATS_COMMENT` never reaches the counter → count 0 → search short-circuits. Adding
   `LUACATS_COMMENT` to the builder set does NOT fix it (verified empirically, incl. relabeling to
-  `SHORTCOMMENT`). **Shipped: single-line `--- TODO` is a documented gap (EDITOR-03-04 Partial);
-  block `--[[ ]]` doc comments work.** Tractable follow-up: register a per-file-type
-  `com.intellij.todoIndexer` for Lua using a non-layered `LuaLexer` (token set incl.
-  `LUACATS_COMMENT`) to bypass the layered highlighter for the count gate.
+  `SHORTCOMMENT`). **RESOLVED (2026-07-10):** registered a per-file-type `com.intellij.todoIndexer`
+  (`LuaTodoIndexer` + `LuaTodoFilterLexer` over a **non-layered** `LuaLexer`, comment set incl.
+  `LUACATS_COMMENT`) that supplies the count and bypasses the layered highlighter; the searcher then
+  finds the range via `LuaTodoIndexPatternBuilder` (delta 3). Single-line `--- TODO` now works
+  (EDITOR-03-04 Full); `testLuaCatsLineDocTodo` asserts it.
 
 ## Design Gaps
 
@@ -59,7 +60,7 @@ _None. All decisions are pinned in design.md §2–§7; delta algorithm fully sp
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| EDITOR-00-DR-01 | Assert a `--- TODO` LuaCATS doc comment yields a TodoItem. | Risk 1.2 | **done — NOT satisfied**: `--- TODO` yields 0 (layered-highlighter count gate, see Risk 1.2). Shipped as EDITOR-03-04 Partial with a tractable `com.intellij.todoIndexer` follow-up; `testLuaCatsLineDocTodoIsKnownGap` pins current behavior. |
+| EDITOR-00-DR-01 | Assert a `--- TODO` LuaCATS doc comment yields a TodoItem. | Risk 1.2 | **done — satisfied** by `testLuaCatsLineDocTodo` after adding the `LuaTodoIndexer` count path (see Risk 1.2). EDITOR-03-04 Full. |
 | EDITOR-00-DR-02 | Assert `--[==[ TODO ]==]` (bracket level 2) yields one TodoItem (confirms the text-aware start-delta overload counts the `=` run). | Risk 1.1 | **done — confirmed** by `testLeveledBlockCommentTodo`. |
 
 ## Test Case Gaps

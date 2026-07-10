@@ -21,16 +21,17 @@ comment tokens.
 | `EDITOR-03-01` | **Comment token set** | The `IndexPatternBuilder` reports Lua line/block comment token types and comment start length so the platform scans only comment text. | **M** | Full |
 | `EDITOR-03-02` | **TODO tool window** | Default and custom TODO patterns match inside Lua comments and appear in the TODO tool window grouped by file. | **M** | Full |
 | `EDITOR-03-03` | **Editor affordances** | Matched TODOs render with the TODO text attribute in-editor and as gutter/error-stripe marks. | **S** | Full |
-| `EDITOR-03-04` | **LuaDoc/LuaCATS comments** | Patterns are also matched inside doc-style comments (`---`, `--[[ ]]`, LuaCATS blocks). | **S** | Partial |
+| `EDITOR-03-04` | **LuaDoc/LuaCATS comments** | Patterns are also matched inside doc-style comments (`---`, `--[[ ]]`, LuaCATS blocks). | **S** | Full |
 
-> **Implementation note (2026-07-10) — EDITOR-03-04 `---` limitation:** block `--[[ … ]]` and
-> `--[==[ … ]==]` doc comments carry TODOs, but **single-line `---` LuaCATS comments do not**. They
-> lex as the lazy-parseable `LUACATS_COMMENT` element type, which the platform TODO searcher
-> (`IndexPatternSearcher` / `findTodoItems`) does not surface — verified empirically that even
-> relabeling the token to a plain `SHORTCOMMENT` in the indexing lexer does not make it scan the
-> body. Deferred as a follow-up (would need to understand which lexer the search path actually
-> consumes for lazy-parseable comment tokens). All `[Must]` behavior (`--` line + `--[[` block
-> comments, tool window, custom patterns, string-literal exclusion) is fully delivered.
+> **Implementation note (2026-07-10) — the two-part TODO wiring:** `findTodoItems` only runs the
+> range searcher when the persisted per-file TODO *count* is non-zero. The platform's default count
+> path iterates the **layered editor highlighter**, which re-lexes `---` into inner LuaCats tokens and
+> so never counts the lazy `LUACATS_COMMENT`. To make single-line `---` doc comments work, EDITOR-03
+> registers **two** extensions: (1) `LuaTodoIndexPatternBuilder` (`indexPatternBuilder`) matches the
+> comment *range* with per-marker deltas (`--`=2, `---`=3, `--[[`=4, `--[==[`=6); and (2)
+> `LuaTodoIndexer` (`todoIndexer`) supplies the *count* using a **non-layered** `LuaLexer` filter
+> lexer that counts all comment kinds including `LUACATS_COMMENT`. Both are needed. `SHEBANG` is
+> excluded from the comment set (design §6).
 
 ## 2. Technical Details
 - EP: `com.intellij.indexPatternBuilder` (`IndexPatternBuilder`) returning the comment

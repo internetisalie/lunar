@@ -39,7 +39,7 @@ Open Questions empty. Two phases keep the build green at each step.
 - **Tasks**:
   - [x] Verify `longBracketStartDelta` against `--[[ FIXME ]]` and `--[==[ TODO ]==]` — realizes
         design §3.1 steps 3–5 (no code beyond Phase 1; this task is the block-comment test).
-  - [~] **KNOWN GAP** — single-line `--- TODO` LuaCATS comments are NOT scanned (see risks DR-01); block `--[[ ]]` doc comments are. Realizes design
+  - [x] Single-line `--- TODO` LuaCATS comments scanned via the `LuaTodoIndexer` count path (risks DR-01); block `--[[ ]]` doc comments too. Realizes design
         §2.1 / §3.1 step 2 (`EDITOR-03-04`).
   - [x] Add a custom-pattern test toggling `TodoConfiguration.getInstance().setTodoPatterns(...)`
         for a `\bHACK\b.*` pattern — realizes design §6 custom-pattern edge case (`EDITOR-03-02`).
@@ -68,7 +68,7 @@ class `net.internetisalie.lunar.lang.todo.LuaTodoIndexPatternBuilderTest` extend
 - [x] **TC-2 (block comment, positive)** — `--[[ FIXME see #12 ]]` → 1 TodoItem. Covers EDITOR-03-04.
 - [x] **TC-3 (leveled block comment)** — `--[==[ TODO leveled ]==]` → 1 TodoItem (validates the
       variable bracket length in §3.1). Covers EDITOR-03-01, -04.
-- [~] **TC-4 (LuaCATS doc comment)** — single-line `--- TODO` yields 0 (KNOWN GAP, DR-01); `testBlockDocCommentTodo` covers the block form. Covers
+- [x] **TC-4 (LuaCATS doc comment)** — single-line `--- TODO` yields 1 (`testLuaCatsLineDocTodo`); `testBlockDocCommentTodo` covers the block form. Covers
       EDITOR-03-04.
 - [x] **TC-5 (string literal, negative)** — `local s = "TODO not a comment"` → 0 TodoItems. Covers
       EDITOR-03-01 (only comment tokens scanned).
@@ -84,4 +84,4 @@ class `net.internetisalie.lunar.lang.todo.LuaTodoIndexPatternBuilderTest` extend
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Builder + registration | done | Must |
-| Phase 2: Block/doc/custom coverage | done (04 Partial — `---` gap) | Should |
+| Phase 2: Block/doc/custom coverage | done | Should |

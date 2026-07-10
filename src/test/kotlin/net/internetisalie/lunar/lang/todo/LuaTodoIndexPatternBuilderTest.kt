@@ -33,14 +33,12 @@ class LuaTodoIndexPatternBuilderTest : BasePlatformTestCase() {
     // TC-3: leveled long-bracket comment TODO is found (text-aware start delta for `--[==[`)
     fun testLeveledBlockCommentTodo() = assertEquals(1, todoCount("--[==[ TODO refactor ]==]"))
 
-    // TC-4 (partial): block `--[[ … ]]` doc comments carry TODOs (see testBlockCommentTodo).
-    // KNOWN LIMITATION: single-line LuaCATS `---` comments lex as the lazy LUACATS_COMMENT element
-    // type, which the platform TODO searcher does not surface (confirmed: even relabeling the token
-    // as a plain comment does not make findTodoItems scan it). Asserting current behavior so a future
-    // platform fix flips this to 1. Tracked in requirements.md → Implementation notes (EDITOR-03-04).
-    fun testLuaCatsLineDocTodoIsKnownGap() = assertEquals(0, todoCount("--- TODO document this"))
+    // TC-4: single-line LuaCATS `---` doc comment TODO is found. The dedicated LuaTodoIndexer
+    // (non-layered LuaLexer) supplies the count that gates the search; LuaTodoIndexPatternBuilder
+    // matches the range at delta 3.
+    fun testLuaCatsLineDocTodo() = assertEquals(1, todoCount("--- TODO document this"))
 
-    // The block form of a doc comment DOES surface TODOs (covers the EDITOR-03-04 block case).
+    // The block form of a doc comment also surfaces TODOs.
     fun testBlockDocCommentTodo() = assertEquals(1, todoCount("--[[ TODO document this ]]"))
 
     // TC-5: TODO inside a string literal is NOT found (string is not a comment token)

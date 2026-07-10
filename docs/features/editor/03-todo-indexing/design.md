@@ -56,14 +56,14 @@ LexerBasedTodoIndexer (platform)
    → TODO tool window / gutter / error stripe / IndexPatternSearch  (all platform-provided)
 ```
 
-> **⚠ Correction (implementation 2026-07-10):** the sections below still describe including
-> `LUACATS_COMMENT` in `COMMENT_TOKENS` (delta 3) and matching `--- TODO` doc comments. **The shipped
-> code does not** — single-line `---` LuaCATS comments are a documented gap (EDITOR-03-04 Partial).
-> `findTodoItems`' count gate is fed by the **layered editor highlighter** (which re-lexes `---` into
-> inner LuaCats tokens), not this `IndexPatternBuilder`, so a `LUACATS_COMMENT` entry never reaches the
-> counter. Shipped `COMMENT_TOKENS = { SHORTCOMMENT, LONGCOMMENT }`; block `--[[ ]]` doc comments work.
-> See `risks-and-gaps.md` Risk 1.2 / DR-01 for the root cause and the `com.intellij.todoIndexer`
-> follow-up.
+> **⚠ Note (implementation 2026-07-10):** §2.1's single-`IndexPatternBuilder` sketch is incomplete.
+> `findTodoItems` only runs the range searcher when the persisted TODO *count* is non-zero, and the
+> default count path (the **layered editor highlighter**) re-lexes `---` into inner LuaCats tokens and
+> never counts the lazy `LUACATS_COMMENT`. Shipped design therefore uses **two** extensions: the
+> `IndexPatternBuilder` (range match, `COMMENT_TOKENS = { SHORTCOMMENT, LONGCOMMENT, LUACATS_COMMENT }`,
+> deltas as §3.1) **plus** a `com.intellij.todoIndexer` (`LuaTodoIndexer` + `LuaTodoFilterLexer` over a
+> **non-layered** `LuaLexer`) that supplies the count including `LUACATS_COMMENT`. With both, single-
+> line `---` doc comments work (EDITOR-03-04 Full). See `risks-and-gaps.md` Risk 1.2 / DR-01.
 
 ## 2. Core Components
 
