@@ -82,7 +82,7 @@ intellijPlatform {
     // Don't pre-build the settings-search index: buildSearchableOptions launches a full headless IDE
     // and is flaky in CI/headless environments (it fails here for platform reasons even with a clean
     // plugin). It only pre-populates Settings search — the IDE builds that lazily at runtime — so it's
-    // not worth gating the build on. Keep it off; the real gates are test/checkStatus/kover/integrationTest.
+    // not worth gating the build on. Keep it off; the real gates are test/lintDocs/kover/integrationTest.
     buildSearchableOptions = false
 
     pluginConfiguration {
@@ -167,22 +167,8 @@ tasks {
         commandLine("python3", "scripts/lint_docs.py", "docs")
     }
 
-    register<Exec>("genStatus") {
-        group = "documentation"
-        description = "Regenerate docs/status.md from documentation front-matter"
-        workingDir = rootDir
-        commandLine("python3", "scripts/gen_status.py")
-    }
-
-    register<Exec>("checkStatus") {
-        group = "verification"
-        description = "Verify docs/status.md matches the generated front-matter rollup"
-        workingDir = rootDir
-        commandLine("python3", "scripts/gen_status.py", "--check")
-    }
-
     named("check") {
-        dependsOn("lintDocs", "checkStatus")
+        dependsOn("lintDocs")
     }
 
     publishPlugin {

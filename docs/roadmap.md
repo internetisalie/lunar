@@ -16,9 +16,10 @@ folders:
 - **Story**: An atomic task within a Feature.
 
 > **This doc's durable value is the ordering and dependency edges — not the `Status` column.**
-> Live per-feature status lives in each feature's `requirements.md` front-matter, aggregated into
-> [status.md](status.md) by `scripts/gen_status.py`; that is canonical, so treat the `Status`
-> columns here as advisory and possibly stale. Wave-level priorities last revised 2026-06-15.
+> Canonical per-feature status lives in each feature's `requirements.md` front-matter (`status:`);
+> treat the `Status` columns here as advisory and possibly stale. There is no generated rollup file
+> — read the front-matter (or `git grep '^status:'`) for the live picture. Wave-level priorities
+> last revised 2026-06-15.
 
 A dependency-aware sequencing of every **executable** feature (status `planned` or
 `in_progress`) so implementation agents can pull work in a safe, high-leverage order. This is
@@ -45,7 +46,7 @@ A dependency-aware sequencing of every **executable** feature (status `planned` 
   hot file (the type engine, `LuaFormatBlock`, …) and must be done one at a time within that
   cluster.
 - **Update `status` to `done`** in the feature's `requirements.md` as you finish; that makes its
-  dependents *ready*. Re-run `scripts/gen_status.py`.
+  dependents *ready*.
 - Some items are partly built (`in_progress`) — read the design's "Current implementation status"
   note first; the remaining work is scoped there.
 
@@ -53,9 +54,9 @@ A dependency-aware sequencing of every **executable** feature (status `planned` 
 
 ## ⚠️ Unmerged feature branches to recover (flagged 2026-07-06)
 
-Status/`status.md` reports **every epic done** (TOOLING completed 2026-07-09), but three git branches
+Front-matter reports **every epic done** (TOOLING completed 2026-07-09), but three git branches
 carry **unmerged commits** for supposedly-complete features. They were **kept** (not deleted) during a
-branch cleanup. Before trusting "all done," reconcile each against `main`/`status.md`
+branch cleanup. Before trusting "all done," reconcile each against `main`/the front-matter
 and either integrate it (verify with the real-flow DoD gate above) or consciously discard it:
 
 | Branch (local; ✎ = also on gitea) | Tip | What it is | Action |
@@ -432,9 +433,8 @@ Everything else is independent and can start as soon as its wave is reached.
   re-prioritized 2026-06-15** from the planning agent's source-verified epic assessment). Note the
   TYPE-07/TYPE-09 front-matter currently reads `done` but is source-verified `in_progress` (Wave 5) —
   that front-matter should be corrected to match. When a feature reaches `done`, mark it in its
-  `requirements.md`, re-run
-  `scripts/gen_status.py`, and its dependents become ready. Treat the status column here as
-  advisory — `status.md` is canonical.
+  `requirements.md` and its dependents become ready. Treat the status column here as
+  advisory — the feature `requirements.md` front-matter is canonical.
 - If cross-epic priorities change, re-order the waves; the **Depends on** column is the
   invariant that must always hold.
 - See [planning-gaps.md](planning-gaps.md) for the original audit and

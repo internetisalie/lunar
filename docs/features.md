@@ -11,8 +11,6 @@ folders:
 
 This document serves as the index for the functional and technical requirements of the Lunar Lua plugin. Requirements are categorized into specialized sub-documents for better maintainability.
 
-## Project Status
-- [**Feature Implementation Summary**](status.md)
 
 ## Core Documentation
 - [[TYPE] Type System Requirements](features/type/requirements.md)

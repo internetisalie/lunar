@@ -2,8 +2,7 @@
 id: ROCKS-15
 title: "15: Multi-Version Rocks Development"
 type: feature
-status: "cancelled"
-vf_icon: 🚫
+status: "superseded"
 priority: low
 parent_id: ROCKS
 folders:
