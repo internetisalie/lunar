@@ -234,9 +234,9 @@ bug and gave the type inspections false confidence until this session's coverage
 > **Extension-point tail:** the un-minted, dependency-free backlog of remaining IntelliJ EPs
 > (refactoring expansion, type-engine leverage, analysis correctness, run/test console, language
 > injection, structural search, editor micro-tail) is catalogued in
-> [features/extension-point-backlog.md](features/extension-point-backlog.md), with a suggested
-> sibling-epic mapping (`REFACT+`, `TYPEINSIGHT`, `ANALYSIS+`, `RUNTEST+`, `INJECT`, `SSR`,
-> `EDITOR-09+`). Promote items from there into real waves as they're prioritized.
+> [features/extension-point-backlog.md](features/extension-point-backlog.md). **Five of the seven
+> clusters extend existing epics** (`REFACT/INTENT`, `NAV`, `INSP`/`ANALYSIS`/`SYNTAX`, `DEBUG/RUN`,
+> `EDITOR`); only `INJECT` and `SSR` would be new epics. Promote items into real waves as prioritized.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |

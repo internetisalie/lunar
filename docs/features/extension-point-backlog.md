@@ -35,21 +35,25 @@ status there. The canonical execution backlog remains [roadmap.md](../roadmap.md
   spellchecking, TODO indexing, smart word selection, Surround With, Unwrap/Remove,
   move-statement/element, Smart Enter.
 
-## Proposed sibling epics — summary
+## Where each cluster lands — mostly existing epics
 
-| Cluster | Suggested epic | Standout items | Rough effort | Priority |
+Cross-checked against the epic set (2026-07-09): **five of seven clusters extend an epic that
+already exists** — only `INJECT` and `SSR` would be new epics. Confirm the exact next feature ID
+against the home epic's `requirements.md` before minting.
+
+| Cluster | Home | New features | Standout items | Priority |
 | :--- | :--- | :--- | :--- | :---: |
-| 1. Refactoring expansion | `REFACT+` | Inline, Extract Function, Change Signature | L | ◆ |
-| 2. Type-engine leverage | `TYPEINSIGHT` | Type Info, Go-To-Type | S | ◆ |
-| 3. Analysis correctness | `ANALYSIS+` | implicit-usage, inspection-suppressor, rainbow | M | ◆ |
-| 4. Run / Test / Console | `RUNTEST+` | clickable tracebacks, busted test tree | M | ◆ |
-| 5. Language injection | `INJECT` | SQL/regex/JSON in strings | M | ◇ |
-| 6. Structural Search | `SSR` | `StructuralSearchProfile` for Lua | L | ◇ |
-| 7. Editor micro-tail | `EDITOR-09+` | join-lines, code-vision, region folding, Copy Reference | S–M | ◇ |
+| 1. Refactoring expansion | extend **`REFACT/INTENT`** (has Rename/Introduce-Var/Safe-Delete only) | `REFACT-07/08/09` | Inline, Extract Function, Change Signature | ◆ |
+| 2. Type-engine leverage | extend **`NAV`** (+ `TYPE`) | new NAV features | Type Info, Go-To-Type | ◆ |
+| 3. Analysis correctness | extend **`INSP`** / **`ANALYSIS`** / **`SYNTAX`** | features across the three | implicit-usage, inspection-suppressor, rainbow | ◆ |
+| 4. Run / Test / Console | extend **`DEBUG/RUN`** — **`RUN-05` test runner already `done`** | one RUN feature | clickable tracebacks (console filter) | ◇ |
+| 5. Language injection | 🆕 **new epic `INJECT`** | — | SQL/regex/JSON in strings | ◇ |
+| 6. Structural Search | 🆕 **new epic `SSR`** | — | `StructuralSearchProfile` for Lua | ◇ |
+| 7. Editor micro-tail | extend **`EDITOR`** | `EDITOR-09+` | join-lines, code-vision, region folding, Copy Reference | ◇ |
 
 ---
 
-## 1. Refactoring expansion (`REFACT+`) — the biggest real gap
+## 1. Refactoring expansion — extend `REFACT/INTENT` (the biggest real gap)
 
 Lunar has only *introduce-variable*, *safe-delete*, and *rename*. The daily-driver refactorings are absent.
 
@@ -63,7 +67,7 @@ Lunar has only *introduce-variable*, *safe-delete*, and *rename*. The daily-driv
 | `com.intellij.suggestedRefactoringSupport` | Floating "apply rename/change-signature everywhere?" hint after hand-edits | ◇ |
 | `automaticRenamerFactory`, `elementDescriptionProvider` | Related-name rename; nicer refactoring-preview labels | · |
 
-## 2. Type-engine leverage (`TYPEINSIGHT`) — cheap wins off the existing engine
+## 2. Type-engine leverage — extend `NAV` (+ `TYPE`); cheap wins off the existing engine
 
 | EP / mechanism | What it gives | Rel. |
 | :--- | :--- | :---: |
@@ -71,7 +75,7 @@ Lunar has only *introduce-variable*, *safe-delete*, and *rename*. The daily-driv
 | `com.intellij.typeDeclarationProvider` | **Go To Type Declaration** — variable → its `@class` | ◆ |
 | completion `weigher` (id `completion`) | Rank completion members by inferred receiver type | ◇ |
 
-## 3. Analysis correctness (`ANALYSIS+`) — Lua idioms
+## 3. Analysis correctness — extend `INSP` / `ANALYSIS` / `SYNTAX` (Lua idioms)
 
 | EP / mechanism | What it gives | Rel. |
 | :--- | :--- | :---: |
@@ -81,28 +85,31 @@ Lunar has only *introduce-variable*, *safe-delete*, and *rename*. The daily-driv
 | `com.intellij.daemon.highlightVisitor` / `lang.rainbowVisitor` | Semantic / rainbow highlighting of locals & params | ◇ |
 | `com.intellij.spellchecker.bundledDictionaryProvider` | Ship a stdlib dictionary so `ipairs`/`tostring` never read as typos (pairs with EDITOR-02) | · |
 
-## 4. Run / Test / Console (`RUNTEST+`)
+## 4. Run / Test / Console — extend `DEBUG/RUN` (`RUN-05` test runner already done)
+
+`RUN-05` (Busted/Lunity test runner + Test Results window) is `done`, so the test-tree converter is
+already delivered. The remaining real gap is the **console traceback filter**.
 
 | EP / mechanism | What it gives | Rel. |
 | :--- | :--- | :---: |
 | `com.intellij.consoleFilterProvider` (`Filter`) | **Clickable stack traces** in the run console (`foo.lua:42` → jump) | ◆ |
-| `outputToGeneralTestEventsConverter` | Parse **busted** output into the native test tree (green/red run UI) | ◆ |
+| ~~`outputToGeneralTestEventsConverter`~~ | ~~busted output → native test tree~~ — **done via `RUN-05`** | ✓ |
 | `com.intellij.testFinder` + `testCreator` | Navigate spec ↔ source; "Create Test" | ◇ |
 | `com.intellij.execution.console.ConsoleFolding` | Fold noisy C-side frames in tracebacks | · |
 
-## 5. Language injection (`INJECT`) — a differentiator
+## 5. Language injection — 🆕 new epic `INJECT` (a differentiator)
 
 | EP / mechanism | What it gives | Rel. |
 | :--- | :--- | :---: |
 | `com.intellij.multiHostInjector` / `languageInjectionContributor` | Inject **SQL / regex / JSON / HTML** into Lua string literals (OpenResty, love, web frameworks); honour `--[[language=SQL]]` IntelliLang hints | ◇ |
 
-## 6. Structural Search & Replace (`SSR`) — advanced, differentiating
+## 6. Structural Search & Replace — 🆕 new epic `SSR` (advanced, differentiating)
 
 | EP / mechanism | What it gives | Rel. |
 | :--- | :--- | :---: |
 | `com.intellij.structuralsearch.profile` (`StructuralSearchProfile`) | SSR templates over Lua PSI. No competitor plugin has it; large effort. | ◇ |
 
-## 7. Editor micro-tail (`EDITOR-09+`) — small, high polish-per-line
+## 7. Editor micro-tail — extend `EDITOR` as `EDITOR-09+` (small, high polish-per-line)
 
 | EP / mechanism | What it gives | Rel. |
 | :--- | :--- | :---: |

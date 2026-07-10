@@ -26,7 +26,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `RUN-02` | **Run Configurations** | **M** | **Full** | Create and save configurations for script execution. |
 | [`RUN-03`](./run-03-interactive-console/requirements.md) | **Interactive Console (REPL) Specification** | **S** | **Full** | Provide a Lua REPL console within the IDE using the selected project SDK. |
 | `RUN-04` | **Run Configuration Validation** | **M** | **Full** | Validate run configurations before execution. |
-| [`RUN-05`](./run-05-test-runner/requirements.md) | **Test Runner Integration** | **S** | **Not Implemented** | Provide a user-facing test runner with Busted and Lunity support displaying results in the Test Results window. |
+| [`RUN-05`](./run-05-test-runner/requirements.md) | **Test Runner Integration** | **S** | **Full** | Provide a user-facing test runner with Busted and Lunity support displaying results in the Test Results window. |
 
 ---
 
