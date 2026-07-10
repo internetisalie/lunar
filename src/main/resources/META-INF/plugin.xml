@@ -612,6 +612,10 @@
         language="Lua"
         implementationClass="net.internetisalie.lunar.lang.spellcheck.LuaSpellcheckingStrategy"/>
 
+    <!-- TODO / FIXME indexing in Lua comments (EDITOR-03) -->
+    <indexPatternBuilder
+        implementation="net.internetisalie.lunar.lang.todo.LuaTodoIndexPatternBuilder"/>
+
     <!-- Active Lua environment widget + test-matrix results (TOOLING-05-06) -->
     <statusBarWidgetFactory id="Lunar.LuaEnvWidget"
         implementation="net.internetisalie.lunar.toolchain.ui.LuaEnvStatusBarWidgetFactory"/>
