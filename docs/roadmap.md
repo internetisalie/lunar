@@ -53,9 +53,9 @@ A dependency-aware sequencing of every **executable** feature (status `planned` 
 
 ## ⚠️ Unmerged feature branches to recover (flagged 2026-07-06)
 
-Status/`status.md` reports every epic **done except TOOLING**, but three git branches carry
-**unmerged commits** for supposedly-complete features. They were **kept** (not deleted) during a
-branch cleanup. Before trusting "all done except TOOLING," reconcile each against `main`/`status.md`
+Status/`status.md` reports **every epic done** (TOOLING completed 2026-07-09), but three git branches
+carry **unmerged commits** for supposedly-complete features. They were **kept** (not deleted) during a
+branch cleanup. Before trusting "all done," reconcile each against `main`/`status.md`
 and either integrate it (verify with the real-flow DoD gate above) or consciously discard it:
 
 | Branch (local; ✎ = also on gitea) | Tip | What it is | Action |
@@ -322,14 +322,14 @@ bug and gave the type inspections false confidence until this session's coverage
 | SCHEMA-03 | Luacheckrc Schema Provider | done | S | SCHEMA-01 | — | ✓ |
 | SCHEMA-04 | Busted Config Schema Provider | done | C | SCHEMA-01 | — | ✓ |
 
-## Wave 15 — Unified Lua Toolchain Management  *(TOOLING epic; consolidates interpreter/tool/rocks state — nearly complete)*
+## Wave 15 — Unified Lua Toolchain Management  *(TOOLING epic; consolidates interpreter/tool/rocks state — complete)*
 
 > Replaces the fragmented per-tool state (interpreters, LuaRocks, luacheck, hererocks) with one
 > descriptor-driven toolchain registry: unified discovery + version-probing, project/global binding
 > precedence with an environment (toolchain-set) concept, one execution/injection service
 > (PATH / LUA_PATH / LUA_CPATH), an in-plugin native provisioning engine (no Python/hererocks
 > dependency), and a single Lua settings tree. A serial epic — each phase builds on the registry
-> foundation. **7/8 done**; only the health/diagnostics layer (`TOOLING-07`) remains.
+> foundation. **8/8 done — epic complete** (TOOLING-07 health/diagnostics landed & live-verified 2026-07-09).
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -340,7 +340,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | TOOLING-04 | Native Provisioning Engine | done | M | TOOLING-01 | 05 | ✓ (provisioning is additive) |
 | TOOLING-05 | Consumer Migration & Legacy Removal | done | M | 02, 03, 04 | 06 | Serial: touches every consumer |
 | TOOLING-06 | Settings UI Consolidation | done | M | TOOLING-05 | — | Serial: shared settings tree |
-| TOOLING-07 | Health Monitoring & Diagnostics | todo | S | TOOLING-05 | — | ✓ (new health model + banners) |
+| TOOLING-07 | Health Monitoring & Diagnostics | done | S | TOOLING-05 | — | ✓ (new health model + banners) |
 
 ## Wave 16 — Editor Ergonomics & Structural Editing  *(EDITOR epic; the long-tail editor EPs — all parallel-safe, greenfield)*
 
