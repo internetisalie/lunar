@@ -132,11 +132,18 @@ LuaRedisRunConfiguration (run config)
       val protocol: RespProtocol
       override fun dispose()                                    // closes socket
       companion object {
-          suspend fun open(connection: LuaRedisServerConnection, timeoutMs: RespTimeouts): RespClient
+          // Phase 2 shipped an endpoint-typed seam (below) rather than taking a LuaRedisServerConnection
+          // directly, so Phase 2 does not forward-depend on the unbuilt Phase-3 connection/credential
+          // types. Phase 3 adds the thin connection→endpoint adapter (LuaRedisServerConnection.toEndpoint,
+          // resolving the secret from LuaRedisCredentialStore), so the caller-side ergonomics are unchanged.
+          suspend fun open(endpoint: RespEndpoint, timeouts: RespTimeouts = RespTimeouts(), indicator: ProgressIndicator? = null): RespClient
       }
   }
   enum class RespProtocol { RESP2, RESP3 }
   data class RespTimeouts(val connectMs: Int = 5_000, val readMs: Int = 30_000)
+  // Phase-2 value object carrying only the handshake primitives; Phase 3's
+  // LuaRedisServerConnection.toEndpoint(password) folds a connection + its PasswordSafe secret into it.
+  data class RespEndpoint(val host: String, val port: Int, val tls: Boolean = false, val database: Int = 0, val username: String? = null, val password: String? = null)
   ```
   `open` performs the handshake in §3.1; `command` writes `encodeCommand(args)` then returns
   `RespCodec.decode(...)`. Socket read timeout = `readMs`; a `SocketTimeoutException` from either the

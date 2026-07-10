@@ -49,17 +49,20 @@ the class/file it creates or edits and the design section it realizes. New code 
 ### Phase 3: Connection model, storage & credentials [Must]
 - **Goal**: Persisted connection list + secret storage + Test Connection.
 - **Tasks**:
-  - [ ] Create `redis/connection/LuaRedisServerConnection.kt` (+ `LuaRedisProvisioning`) — design §2.4.
-  - [ ] Create `redis/connection/LuaRedisConnectionSettings.kt` (`@Service` project, `@State`
+  - [x] Create `redis/connection/LuaRedisServerConnection.kt` (+ `LuaRedisProvisioning`) — design §2.4.
+        Includes the Phase-2-deviation adapter `toEndpoint(password)` → `RespEndpoint` (design §2.3 sync).
+  - [x] Create `redis/connection/LuaRedisConnectionSettings.kt` (`@Service` project, `@State`
         `lunar-redis.xml`) — design §2.5; register `<projectService>` (design §7).
-  - [ ] Create `redis/connection/LuaRedisCredentialStore.kt` (PasswordSafe, subsystem "Lunar Redis")
+  - [x] Create `redis/connection/LuaRedisCredentialStore.kt` (PasswordSafe, subsystem "Lunar Redis")
         — design §2.9 (mirror `rocks/publish/LuaRocksApiKeyStore.kt`).
-  - [ ] Create `redis/connection/LuaRedisConnectionsConfigurable.kt` + connection-editor UI panel
-        (host/port/TLS/auth/db/provisioning; Test Connection button running §4.3 `INFO`/`HELLO`) —
-        design §2.5, §4.3; register `<projectConfigurable>` (design §7).
+  - [x] Create `redis/connection/LuaRedisConnectionsConfigurable.kt` + connection-editor UI panel
+        (host/port/TLS/auth/db; Test Connection button running §4.3 `INFO`/`HELLO` off-EDT via the
+        project coroutine scope + `withBackgroundProgress`) — design §2.5, §4.3; register
+        `<projectConfigurable>` (design §7). `INFO` parse extracted to `LuaRedisConnectionProbe.kt`.
 - **Exit criteria**: `TestLuaRedisConnectionSettings` round-trips a connection through XML (TC-CONN-1);
   `TestLuaRedisCredentialStore` stores/clears a password (TC-CONN-2). Test Connection verified in
-  human checklist.
+  human checklist. **Status: done** — TC-CONN-1 (5 tests) + TC-CONN-2 (6 tests) + `TestRespServerInfo`
+  (4 tests, §4.3 parse) green; full suite (264 test classes) green, ktlintCheck green.
 
 ### Phase 4: Server launcher (binary + Docker) [Must]
 - **Goal**: Session-scoped local/Docker server lifecycle.
@@ -124,7 +127,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 - [ ] `TestRespCodec` — TC-RESP-1..4 (encode, decode-per-type, multi-byte byte-length, partial reads).
 - [x] `TestRespClient` — TC-TIMEOUT-1 (`SocketTimeoutException` → `RespException.Timeout`),
       TC-CANCEL-1 (cancelled `ProgressIndicator` aborts the in-flight connect/command).
-- [ ] `TestLuaRedisConnectionSettings` / `TestLuaRedisCredentialStore` — TC-CONN-1/2.
+- [x] `TestLuaRedisConnectionSettings` / `TestLuaRedisCredentialStore` — TC-CONN-1/2.
 - [ ] `TestLuaRedisServerLauncher` — TC-LAUNCH-1..3 (binary cmd, docker cmd, neither → error).
 - [ ] `TestLuaRedisRunConfiguration` / `TestLuaRedisRunConfigurationProducer` — TC-RC-1, TC-PROD-1.
 - [ ] `TestLuaRedisScriptExecutor` — TC-SHA-1 (NOSCRIPT retry), TC-RO-1 (version gate).
@@ -143,7 +146,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 |-------|--------|----------|
 | Phase 1: RESP protocol core | done | Must |
 | Phase 2: RESP client + handshake | done | Must |
-| Phase 3: Connection model, storage & credentials | todo | Must |
+| Phase 3: Connection model, storage & credentials | done | Must |
 | Phase 4: Server launcher (binary + Docker) | todo | Must |
 | Phase 5: Run config, executor, producer & console | todo | Must |
 | Phase 6: Dockerized integration tests | todo | Must |

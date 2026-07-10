@@ -487,6 +487,16 @@
             displayName="Lua Project"
             nonDefaultProject="true"/>
 
+    <!-- REDIS-01 Phase 3: connection model, storage & credentials -->
+    <projectService
+            serviceImplementation="net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings"/>
+    <projectConfigurable
+            parentId="net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable"
+            instance="net.internetisalie.lunar.redis.connection.LuaRedisConnectionsConfigurable"
+            id="net.internetisalie.lunar.redis.connection.LuaRedisConnectionsConfigurable"
+            displayName="Redis Connections"
+            nonDefaultProject="true"/>
+
     <configurationType
             implementation="net.internetisalie.lunar.run.LuaRunConfigurationType"/>
     <configurationType
