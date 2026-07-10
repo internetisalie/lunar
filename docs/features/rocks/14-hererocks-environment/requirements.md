@@ -12,13 +12,15 @@ folders:
 
 # ROCKS-14: Hererocks Environment Lifecycle
 
-> **⚠️ Superseded / cancelled (2026-07-09) — never implemented.** The Python/hererocks
-> environment lifecycle is replaced by the TOOLING epic's Python-free native provisioning
-> engine ([TOOLING-04](../../tooling/04-native-provisioning/requirements.md)) and environment
-> model ([TOOLING-02](../../tooling/02-resolution-and-environments/requirements.md)); see
-> TOOLING [Supersedes](../../tooling/requirements.md). Retained for design/history reference
-> only. Marked `cancelled` (not `done`) so `status.md` counts it out of remaining work rather
-> than as a shipped feature.
+> **⚠️ Superseded (2026-07-09) — shipped, then removed.** The Python/hererocks environment
+> lifecycle *was* implemented (`HererocksEnvBinder`/`HererocksEnvState`/provisioner + binder)
+> and later deleted by the TOOLING-05 clean-break migration
+> (`b277bc46` — "remove hererocks + interpreter state"), replaced by the TOOLING epic's
+> Python-free native provisioning engine
+> ([TOOLING-04](../../tooling/04-native-provisioning/requirements.md)) and environment model
+> ([TOOLING-02](../../tooling/02-resolution-and-environments/requirements.md)); see TOOLING
+> [Supersedes](../../tooling/requirements.md). Retained for design/history reference only —
+> counted out of remaining work, not as a currently-shipped feature.
 
 ## Overview
 

@@ -12,13 +12,14 @@ folders:
 
 # ROCKS-15: Multi-Version Rocks Development
 
-> **⚠️ Superseded / cancelled (2026-07-09) — never implemented.** Along with its base
-> [ROCKS-14](../14-hererocks-environment/requirements.md), this hererocks-based feature is
-> replaced by the TOOLING epic's native provisioning engine
+> **⚠️ Superseded (2026-07-09) — shipped, then removed.** Along with its base
+> [ROCKS-14](../14-hererocks-environment/requirements.md), this hererocks-based feature *was*
+> implemented (the multi-version batch/matrix provisioning) and later removed by the TOOLING-05
+> clean-break migration (`b277bc46`), replaced by the TOOLING epic's native provisioning engine
 > ([TOOLING-04](../../tooling/04-native-provisioning/requirements.md)) and environment model
 > ([TOOLING-02](../../tooling/02-resolution-and-environments/requirements.md)); see TOOLING
-> [Supersedes](../../tooling/requirements.md). Retained for reference only. Marked `cancelled`
-> (not `done`) so `status.md` counts it out of remaining work rather than as a shipped feature.
+> [Supersedes](../../tooling/requirements.md). Retained for reference only — counted out of
+> remaining work, not as a currently-shipped feature.
 
 > **(Historical) Depends on [ROCKS-14](../14-hererocks-environment/requirements.md).** ROCKS-14's
 > symbols (`HererocksEnvState`, `HererocksProvisioner`, `HererocksEnvBinder`, `HererocksLocator`,
