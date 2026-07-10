@@ -351,6 +351,10 @@
     <typedHandler
             implementation="net.internetisalie.lunar.lang.editor.LuaTypedHandler"/>
 
+    <!-- EDITOR-01: Smart Typing — keyword-block auto-close Smart Keys toggle -->
+    <editorSmartKeysConfigurable
+            instance="net.internetisalie.lunar.lang.editor.LuaEditorOptionsConfigurable"/>
+
     <codeBlockSupportHandler
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaCodeBlockSupportHandler" />
@@ -424,6 +428,9 @@
     <!-- Options -->
     <applicationService
             serviceImplementation="net.internetisalie.lunar.settings.LuaApplicationSettings" />
+    <!-- EDITOR-01: keyword-block Smart Keys toggle state -->
+    <applicationService
+            serviceImplementation="net.internetisalie.lunar.settings.LuaEditorOptions" />
 
     <!-- Unified toolchain registry (TOOLING-01) -->
     <applicationService

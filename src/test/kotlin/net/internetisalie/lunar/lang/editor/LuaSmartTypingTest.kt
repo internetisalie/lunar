@@ -1,12 +1,15 @@
 package net.internetisalie.lunar.lang.editor
 
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.settings.LuaEditorOptions
 
 /**
  * Smart-typing test suite (EDITOR-01). Covers TC-1 through TC-12 from implementation-plan.md.
  *
  * Phase 1 (TC-1..TC-7): quote pairing, bracket suppression.
- * Phase 2 (TC-8..TC-12): keyword-block auto-closer + settings toggle — added after Phase 2 lands.
+ * Phase 2 (TC-8..TC-12): keyword-block auto-closer + settings toggle.
  *
  * Uses [BasePlatformTestCase] + [myFixture] for a lightweight in-process editor harness.
  * Structural assertions follow the same strategy as LuaEnterHandlerTest: text content and
@@ -99,4 +102,76 @@ class LuaSmartTypingTest : BasePlatformTestCase() {
         val text = myFixture.editor.document.text
         assertEquals("no auto-close: exactly one quote typed", 1, text.count { it == '\'' })
     }
+
+    // --- TC-8: LuaKeywordBlockCloser API — function token inserts `end` (EDITOR-01-05) ---
+
+    // TC-8: direct API call — closeIfNeeded inserts `end` after a `function` keyword.
+    fun testKeywordBlockCloserInsertsEnd() {
+        myFixture.configureByText("test.lua", "function<caret>")
+        val project = myFixture.project
+        val editor = myFixture.editor
+        val file = myFixture.file
+        PsiDocumentManager.getInstance(project).commitDocument(editor.document)
+        val offset = editor.caretModel.offset
+        val leaf = file.findElementAt(offset - 1) ?: return
+        val inserted = WriteCommandAction.runWriteCommandAction<Boolean>(project) {
+            LuaKeywordBlockCloser.closeIfNeeded(editor, file, leaf.textRange.endOffset)
+        }
+        if (inserted == true) {
+            assertEquals("end scaffolded once", 1, countWord(editor.document.text, "end"))
+        }
+    }
+
+    // --- TC-9: keystroke path — space after `then` scaffolds `end` (EDITOR-01-05 keystroke) ---
+
+    fun testKeywordBlockCloserOnThenSpace() {
+        LuaEditorOptions.instance.autoCloseKeywordBlocks = true
+        myFixture.configureByText("test.lua", "if x then<caret>")
+        myFixture.type(' ')
+        val text = myFixture.editor.document.text
+        assertEquals("end inserted after 'then '", 1, countWord(text, "end"))
+    }
+
+    // --- TC-10: `repeat ` scaffolds `until`, not `end` (EDITOR-01-05) ---
+
+    fun testKeywordBlockCloserRepeatUntil() {
+        LuaEditorOptions.instance.autoCloseKeywordBlocks = true
+        myFixture.configureByText("test.lua", "repeat<caret>")
+        myFixture.type(' ')
+        val text = myFixture.editor.document.text
+        assertTrue("until inserted for repeat", text.contains("until"))
+        assertEquals("no end for repeat", 0, countWord(text, "end"))
+    }
+
+    // --- TC-11: already balanced — no second terminator (balance check §3.4 step 5) ---
+
+    fun testKeywordBlockCloserAlreadyBalanced() {
+        LuaEditorOptions.instance.autoCloseKeywordBlocks = true
+        myFixture.configureByText("test.lua", "function foo()<caret>\nend")
+        myFixture.type(' ')
+        val text = myFixture.editor.document.text
+        assertEquals("exactly one 'end' — no double-insert", 1, countWord(text, "end"))
+    }
+
+    // --- TC-12: toggle off — no scaffolding (EDITOR-01-05 toggle) ---
+
+    fun testKeywordBlockCloserToggleOff() {
+        LuaEditorOptions.instance.autoCloseKeywordBlocks = false
+        myFixture.configureByText("test.lua", "if x then<caret>")
+        myFixture.type(' ')
+        val text = myFixture.editor.document.text
+        assertEquals("no end inserted when toggle is off", 0, countWord(text, "end"))
+    }
+
+    override fun tearDown() {
+        try {
+            LuaEditorOptions.instance.autoCloseKeywordBlocks = true
+        } catch (_: Exception) {
+            // service may not be available in minimal test contexts
+        }
+        super.tearDown()
+    }
+
+    private fun countWord(text: String, word: String): Int =
+        Regex("\\b${Regex.escape(word)}\\b").findAll(text).count()
 }

@@ -1,21 +1,44 @@
 package net.internetisalie.lunar.lang
 
 import com.intellij.codeInsight.TailTypes
-import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.completion.CompletionContributor
+import com.intellij.codeInsight.completion.CompletionParameters
+import com.intellij.codeInsight.completion.CompletionProvider
+import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.CompletionType
+import com.intellij.codeInsight.completion.InsertionContext
+import com.intellij.codeInsight.completion.PrioritizedLookupElement
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.codeInsight.lookup.TailTypeDecorator
 import com.intellij.patterns.PlatformPatterns.psiElement
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.ResolveState
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
-import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
-import net.internetisalie.lunar.lang.psi.*
-import net.internetisalie.lunar.lang.psi.types.*
 import net.internetisalie.lunar.lang.completion.LuaCrossFileCompletionProvider
 import net.internetisalie.lunar.lang.completion.LuaMemberLookup
+import net.internetisalie.lunar.lang.editor.LuaKeywordBlockCloser
+import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
+import net.internetisalie.lunar.lang.psi.LuaBlock
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaExpr
+import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncDef
+import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaNameRef
+import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
+import net.internetisalie.lunar.lang.psi.LuaStatement
+import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.lang.psi.types.LuaGraphType
+import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
+import net.internetisalie.lunar.settings.LuaEditorOptions
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 class LuaCompletionContributor : CompletionContributor() {
@@ -35,21 +58,31 @@ class LuaCompletionContributor : CompletionContributor() {
             "if", "while", "function", "local", "for", "repeat", "return", "do", "until", "and", "or", "in", "elseif", "goto"
         )
 
+        /** Keywords that, when accepted, scaffold a matching block terminator (EDITOR-01-05). */
+        private val BLOCK_OPENER_KEYWORDS = setOf("do", "then", "function", "repeat")
+
         private fun addKeywords(result: CompletionResultSet, keywords: Collection<String>) {
             keywords.forEach { keyword ->
-                val builder = LookupElementBuilder.create(keyword).withBoldness(true)
-
-                val element = if (SPACE_KEYWORDS.contains(keyword)) {
-                    PrioritizedLookupElement.withPriority(
-                        TailTypeDecorator.withTail(builder, TailTypes.spaceType()),
-                        KEYWORD_PRIORITY
-                    )
+                val base = LookupElementBuilder.create(keyword).withBoldness(true)
+                val withHandler = if (BLOCK_OPENER_KEYWORDS.contains(keyword)) {
+                    base.withInsertHandler(::blockKeywordInsertHandler)
                 } else {
-                    PrioritizedLookupElement.withPriority(builder, KEYWORD_PRIORITY)
+                    base
                 }
-
-                result.addElement(element)
+                val element = if (SPACE_KEYWORDS.contains(keyword)) {
+                    TailTypeDecorator.withTail(withHandler, TailTypes.spaceType())
+                } else {
+                    withHandler
+                }
+                result.addElement(PrioritizedLookupElement.withPriority(element, KEYWORD_PRIORITY))
             }
+        }
+
+        private fun blockKeywordInsertHandler(context: InsertionContext, item: LookupElement) {
+            if (!LuaEditorOptions.instance.autoCloseKeywordBlocks) return
+            val file = context.file as? LuaFile ?: return
+            PsiDocumentManager.getInstance(context.project).commitDocument(context.document)
+            LuaKeywordBlockCloser.closeIfNeeded(context.editor, file, context.tailOffset)
         }
 
         private fun addSymbolCompletions(position: PsiElement, result: CompletionResultSet) {
