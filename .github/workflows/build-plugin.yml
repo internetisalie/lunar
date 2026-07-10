@@ -57,11 +57,12 @@ jobs:
         # skips the two tests that read the out-of-repo test/ fixture tree, which a CI checkout lacks.
         run: ./gradlew test --no-daemon --stacktrace -PexcludeExternalFixtureTests
 
-      # Gitea's act_runner does NOT support the upload-artifact@v4 protocol
-      # ("v4+ not supported on GHES") — v3 is the Gitea-compatible version.
+      # Gitea's act_runner rejects the upload-artifact@v4 protocol ("v4+ not supported on
+      # GHES"), and plain @v3 (v3.2.2) is a Node 16 action that the Node 20 runner image can't
+      # execute. The @v3.2.2-node20 backport tag is the Gitea-compatible, Node 20 build.
       - name: Upload plugin artifact
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.2.2-node20
         with:
           name: lunar-plugin
           path: build/distributions/*.zip
@@ -70,7 +71,7 @@ jobs:
       - name: Upload test reports
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.2.2-node20
         with:
           name: test-reports
           path: build/reports/tests/
