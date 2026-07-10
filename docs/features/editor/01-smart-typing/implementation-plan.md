@@ -73,8 +73,8 @@ verifiable via a real-flow `myFixture` test (epic DoD gate, requirements.md:62).
   - TC-10 `repeat` → scaffolds `until`, not `end` — covers -01-05 repeat.
   - TC-11 accept keyword when block already balanced → no second terminator — covers §3.4 balance.
   - TC-12 with `LuaEditorOptions.autoCloseKeywordBlocks = false` → no scaffolding — covers toggle.
-- [ ] Run `human-verification-checklists.md` in the sandbox IDE (Smart Keys checkbox visible and
-  effective).
+- [x] **VNC-verified 2026-07-10** (verify-in-ide, GoLand on lunar-builder): quote auto-close (`x = ""`),
+  `do`→`end` keyword-block scaffolding, and the **"Lua"** section on the Editor ▸ General ▸ Smart Keys page.
 
 ## Task Summary
 

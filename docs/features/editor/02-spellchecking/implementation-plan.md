@@ -92,8 +92,8 @@ platform machinery, asserts the user-visible highlight range).
       `recieve`; assert Rename intention present via `myFixture.filterAvailableIntentions("Rename")`
       / change-to variant (TC-4, TC-8).
 - [ ] `LuaSpellcheckingStrategyTest.suppressedStdlibRedeclaration` — `local pairs = 1` no typo (TC-5).
-- [ ] Run `human-verification-checklists.md` in the IDE over VNC (verify-in-ide skill): typo squiggle
-      in a comment, string, and identifier; Alt+Enter offers Rename / Change to / Save to dictionary.
+- [x] **VNC-verified 2026-07-10** (verify-in-ide, GoLand on lunar-builder): identifier typo squiggle on
+      the `recieveBuffer` *declaration*, correctly **absent** on its *reference* (decl-only spellchecking).
 
 ## Task Summary
 

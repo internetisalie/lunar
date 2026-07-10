@@ -76,8 +76,8 @@ class `net.internetisalie.lunar.lang.todo.LuaTodoIndexPatternBuilderTest` extend
 - [x] **TC-7 (custom pattern)** — set `TodoPattern("\\bHACK\\b.*", TodoAttributesUtil.createDefault(),
       false)` via `TodoConfiguration`, then `-- HACK: temp` → 1 TodoItem; restore patterns in
       `finally`. Covers EDITOR-03-02.
-- [ ] Run `human-verification-checklists.md` (VNC: open a Lua file with `-- TODO`, confirm TODO tool
-      window entry + gutter mark).
+- [x] **VNC-verified 2026-07-10** (verify-in-ide, GoLand on lunar-builder): TODO tool window "Found 3
+      TODO items" listing `--` line, `--[[ ]]` block, and `---` LuaCATS doc comments; in-editor TODO highlights.
 
 ## Task Summary
 
