@@ -3,6 +3,7 @@ id: "TOOLING-07"
 title: "07: Health Monitoring & Diagnostics"
 type: "feature"
 status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: "TOOLING"
 folders:
