@@ -507,6 +507,12 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.run.test.LuaTestRunLineMarkerProvider"/>
 
+    <!-- REDIS-01 Phase 5: Redis Script run configuration + target-gated producer -->
+    <configurationType
+            implementation="net.internetisalie.lunar.redis.run.LuaRedisRunConfigurationType"/>
+    <runConfigurationProducer
+            implementation="net.internetisalie.lunar.redis.run.LuaRedisRunConfigurationProducer"/>
+
     <!-- Coverage -->
     <coverageEngine
             implementation="net.internetisalie.lunar.coverage.LuaCoverageEngine"/>

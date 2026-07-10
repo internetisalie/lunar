@@ -81,15 +81,15 @@ the class/file it creates or edits and the design section it realizes. New code 
 ### Phase 5: Run configuration, executor, producer & console [Must]
 - **Goal**: End-to-end "Redis Script" run with reply tree + error links.
 - **Tasks**:
-  - [ ] Create `redis/run/LuaRedisRunConfiguration.kt` (Type/Factory/Options/config/Editor,
+  - [x] Create `redis/run/LuaRedisRunConfiguration.kt` (Type/Factory/Options/config/Editor,
         `LuaRedisExecMode`) — design §2.8, §3.7. Register `<configurationType>` (design §7).
-  - [ ] Create `redis/run/LuaRedisRunConfigurationProducer.kt` (target-gated) — design §7; register
+  - [x] Create `redis/run/LuaRedisRunConfigurationProducer.kt` (target-gated) — design §7; register
         `<runConfigurationProducer>`.
-  - [ ] Create `redis/run/LuaRedisScriptExecutor.kt` + `redis/run/LuaRedisScriptShaCache.kt`
+  - [x] Create `redis/run/LuaRedisScriptExecutor.kt` + `redis/run/LuaRedisScriptShaCache.kt`
         (EVAL/EVALSHA/`_RO`, sha1, NOSCRIPT retry, version gate) — design §3.8.
-  - [ ] Create `redis/console/RespReplyTreeConsole.kt` + `RespReplyTreeModel` — design §2.6, §3.5.
-  - [ ] Create `redis/console/LuaRedisErrorLinkFilter.kt` — design §2.7, §3.6.
-  - [ ] Create `redis/run/LuaRedisRunProfileState.kt` (orchestration, session childScope) — design
+  - [x] Create `redis/console/RespReplyTreeConsole.kt` + `RespReplyTreeModel` — design §2.6, §3.5.
+  - [x] Create `redis/console/LuaRedisErrorLinkFilter.kt` — design §2.7, §3.6.
+  - [x] Create `redis/run/LuaRedisRunProfileState.kt` (orchestration, session childScope) — design
         §2.11, §5.
 - **Exit criteria**: `TestLuaRedisRunConfiguration` (checkConfiguration + option round-trip, TC-RC-1),
   `TestLuaRedisRunConfigurationProducer` (target-gated true/false, TC-PROD-1),
@@ -97,7 +97,8 @@ the class/file it creates or edits and the design section it realizes. New code 
   `showError(RespValue.Error("WRONGTYPE", …))` renders the `WRONGTYPE` class tag, TC-CON-2; design
   §3.4), `TestLuaRedisErrorLinkFilter` (link offset + 1→0 line, TC-CON-3),
   `TestLuaRedisScriptExecutor` (command selection table + NOSCRIPT + version gate,
-  TC-SHA-1/TC-RO-1) all green.
+  TC-SHA-1/TC-RO-1) all green. **Status: done** — all TCs green; full suite (19 tasks,
+  --rerun-tasks --no-build-cache) green; ktlintCheck green.
 
 ### Phase 6: Dockerized integration tests [Must]
 - **Goal**: Compatibility contract against real servers, isolated from the default gate (RISK-R10).
@@ -116,12 +117,12 @@ the class/file it creates or edits and the design section it realizes. New code 
 | RESP client (RESP2/RESP3, framing, timeouts, cancellable, no EDT I/O) | M | Phase 1–2 |
 | Connection settings UI + PasswordSafe + Test Connection | M | Phase 3 |
 | Launch-local (binary + Docker, session-bound, error if neither) | M | Phase 4 |
-| `LuaRedisRunConfiguration` (persisted fields + checkConfiguration) | M | Phase 5 |
-| Run-config producer (target-gated) | M | Phase 5 |
-| Console reply tree + error class | M | Phase 5 |
-| Error-link filter (`user_script:N`, 1→0-based) | M | Phase 5 |
-| SCRIPT LOAD sha cache + NOSCRIPT fallback | M | Phase 5 |
-| Read-only `_RO` + Redis < 7 fail-fast | M | Phase 5 |
+| `LuaRedisRunConfiguration` (persisted fields + checkConfiguration) | M | Phase 5 ✓ |
+| Run-config producer (target-gated) | M | Phase 5 ✓ |
+| Console reply tree + error class | M | Phase 5 ✓ |
+| Error-link filter (`user_script:N`, 1→0-based) | M | Phase 5 ✓ |
+| SCRIPT LOAD sha cache + NOSCRIPT fallback | M | Phase 5 ✓ |
+| Read-only `_RO` + Redis < 7 fail-fast | M | Phase 5 ✓ |
 | Unit + Docker integration tests | M | Phase 1–6 |
 
 ## Verification Tasks
@@ -130,9 +131,9 @@ the class/file it creates or edits and the design section it realizes. New code 
       TC-CANCEL-1 (cancelled `ProgressIndicator` aborts the in-flight connect/command).
 - [x] `TestLuaRedisConnectionSettings` / `TestLuaRedisCredentialStore` — TC-CONN-1/2.
 - [x] `TestLuaRedisServerLauncher` — TC-LAUNCH-1..3 (binary cmd, docker cmd, neither → error).
-- [ ] `TestLuaRedisRunConfiguration` / `TestLuaRedisRunConfigurationProducer` — TC-RC-1, TC-PROD-1.
-- [ ] `TestLuaRedisScriptExecutor` — TC-SHA-1 (NOSCRIPT retry), TC-RO-1 (version gate).
-- [ ] `TestRespReplyTreeModel` / `TestRespReplyTreeConsole` / `TestLuaRedisErrorLinkFilter` —
+- [x] `TestLuaRedisRunConfiguration` / `TestLuaRedisRunConfigurationProducer` — TC-RC-1, TC-PROD-1.
+- [x] `TestLuaRedisScriptExecutor` — TC-SHA-1 (NOSCRIPT retry), TC-RO-1 (version gate).
+- [x] `TestRespReplyTreeModel` / `TestRespReplyTreeConsole` / `TestLuaRedisErrorLinkFilter` —
       TC-CON-1 (tree shaping), TC-CON-2 (error-class console display), TC-CON-3 (error-link offset + 1→0 line).
 - [ ] `RedisIntegrationTest` (Phase 6, `redisIntegrationTest` task) — dual-flavor EVAL/EVALSHA/_RO.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md): Test Connection
@@ -149,5 +150,5 @@ the class/file it creates or edits and the design section it realizes. New code 
 | Phase 2: RESP client + handshake | done | Must |
 | Phase 3: Connection model, storage & credentials | done | Must |
 | Phase 4: Server launcher (binary + Docker) | done | Must |
-| Phase 5: Run config, executor, producer & console | todo | Must |
+| Phase 5: Run config, executor, producer & console | done | Must |
 | Phase 6: Dockerized integration tests | todo | Must |
