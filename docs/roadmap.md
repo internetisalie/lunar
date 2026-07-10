@@ -295,17 +295,13 @@ bug and gave the type inspections false confidence until this session's coverage
 > Dropped: **ROCKS-07** (custom luarocks task panel) — redundant against Make + Lunar's native
 > format/lint/coverage/test integrations; the Makefile (ROCKS-11) is the task aggregator.
 
-> **Follow-on (planned 2026-07-03): hererocks environments.** [ROCKS-14](features/rocks/14-hererocks-environment/requirements.md)
-> adds isolated-environment lifecycle (detect / create / upgrade / recreate / remove via
-> [luarocks/hererocks](https://github.com/luarocks/hererocks)), binding the produced `lua`/`luarocks`
-> through the existing interpreter + TOOL-02 machinery — no resolver changes.
-> [ROCKS-15](features/rocks/15-multi-version-development/requirements.md) (Future Work) generalizes
-> it to a multi-env set + version switcher + cross-version test matrix.
-
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ROCKS-14 | Hererocks Environment Lifecycle | planned | S | TOOL-02 *(done)*, ROCKS-06 *(done)* | ROCKS-15 | Standalone (new `rocks.env` package); planned 2026-07-03 (design+plan reviewed, PASS) |
-| ROCKS-15 | Multi-Version Rocks Development | planned | C | **ROCKS-14** | — | after 14 (superset of its descriptor); planned 2026-07-03 (design+plan reviewed, PASS) |
+> **Superseded by the TOOLING epic (Wave 15):** the planned hererocks-based environment features —
+> **ROCKS-14** (Hererocks Environment Lifecycle) and **ROCKS-15** (Multi-Version Rocks Development),
+> along with the never-roadmapped **ROCKS-16** (mode state machine) — are replaced by TOOLING's
+> Python-free **native provisioning engine** ([TOOLING-04](features/tooling/04-native-provisioning/requirements.md))
+> and **environment model** ([TOOLING-02](features/tooling/02-resolution-and-environments/requirements.md)).
+> See TOOLING [Supersedes](features/tooling/requirements.md). Neither ROCKS-14/15 was implemented;
+> their design/plan docs remain under `features/rocks/` for reference only.
 
 ## Wave 14 — Schema-Driven Data Files  *(SCHEMA epic; engine is serial, providers are parallel)*
 
