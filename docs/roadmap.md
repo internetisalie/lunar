@@ -231,6 +231,13 @@ bug and gave the type inspections false confidence until this session's coverage
 
 ## Wave 11 — Backlog & Future Enhancements *(parallel-safe; deferred or unprioritized)*
 
+> **Extension-point tail:** the un-minted, dependency-free backlog of remaining IntelliJ EPs
+> (refactoring expansion, type-engine leverage, analysis correctness, run/test console, language
+> injection, structural search, editor micro-tail) is catalogued in
+> [features/extension-point-backlog.md](features/extension-point-backlog.md), with a suggested
+> sibling-epic mapping (`REFACT+`, `TYPEINSIGHT`, `ANALYSIS+`, `RUNTEST+`, `INJECT`, `SSR`,
+> `EDITOR-09+`). Promote items from there into real waves as they're prioritized.
+
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | COMP-05 | Parameter Name Hints | done | S | — | — | ✓ |
