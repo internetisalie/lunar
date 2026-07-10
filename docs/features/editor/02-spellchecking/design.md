@@ -46,6 +46,11 @@ Searched `src/main` for existing spellcheck/tokenizer components and reusable na
   (`src/main/kotlin/.../lang/psi/LuaBaseElements.kt:47,52`). Declarations are already
   `PsiNameIdentifierOwner`, so the platform's built-in `PsiIdentifierOwnerTokenizer` path
   (§3.3) works with no extra PSI work.
+  > **⚠ Correction (implementation 2026-07-10):** this grounding is **wrong** — `LuaNameDeclElement`
+  > is applied by the grammar to **only `labelName`** (`::labels::`); locals/functions/params are all
+  > plain `LuaNameRef` (identical to references). The tokenizer instead routes `LuaNameRef` and emits
+  > only in declaration-only parents (`LuaAttName`, `LuaLocalFuncDecl`, `LuaNameList`). See
+  > `requirements.md` → *Implementation notes* for the covered/excluded set.
 
 ### Target State
 One new `SpellcheckingStrategy` subclass, `LuaSpellcheckingStrategy`, overrides `getTokenizer`

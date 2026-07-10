@@ -607,6 +607,11 @@
     <!-- Interactive Console (REPL) history root -->
     <scratch.rootType implementation="net.internetisalie.lunar.run.console.LuaConsoleRootType"/>
 
+    <!-- Spellchecking support (EDITOR-02) -->
+    <spellchecker.support
+        language="Lua"
+        implementationClass="net.internetisalie.lunar.lang.spellcheck.LuaSpellcheckingStrategy"/>
+
     <!-- Active Lua environment widget + test-matrix results (TOOLING-05-06) -->
     <statusBarWidgetFactory id="Lunar.LuaEnvWidget"
         implementation="net.internetisalie.lunar.toolchain.ui.LuaEnvStatusBarWidgetFactory"/>

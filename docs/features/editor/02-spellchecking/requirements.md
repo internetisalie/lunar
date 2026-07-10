@@ -3,7 +3,7 @@ id: EDITOR-02
 title: "02: Spellchecking"
 type: feature
 parent_id: EDITOR
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/editor/requirements|requirements]]"
@@ -17,11 +17,24 @@ the existing lexer, and its absence is something users unconsciously register as
 
 | ID | Feature | Expected Behavior | Priority | Status |
 | :--- | :--- | :--- | :---: | :--- |
-| `EDITOR-02-01` | **Comment spellcheck** | Words inside line/block comments (and LuaDoc/LuaCATS prose) are spell-checked as plain text. | **M** | Not Implemented |
-| `EDITOR-02-02` | **String literal spellcheck** | Words inside string literals are spell-checked (escapes and long-bracket strings handled). | **S** | Not Implemented |
-| `EDITOR-02-03` | **Identifier spellcheck** | Declarations are tokenized (camelCase/snake_case split) and spell-checked; typo highlighting on names. | **S** | Not Implemented |
-| `EDITOR-02-04` | **Quick fixes** | "Typo" quick-fixes: change-to suggestions, Save-to-dictionary, and Rename integration for identifiers. | **S** | Not Implemented |
-| `EDITOR-02-05` | **Suppression** | Keywords, known stdlib names, and LuaCATS type tokens are excluded from identifier spellcheck. | **C** | Not Implemented |
+| `EDITOR-02-01` | **Comment spellcheck** | Words inside line/block comments (and LuaDoc/LuaCATS prose) are spell-checked as plain text. | **M** | Full |
+| `EDITOR-02-02` | **String literal spellcheck** | Words inside string literals are spell-checked (escapes and long-bracket strings handled). | **S** | Full |
+| `EDITOR-02-03` | **Identifier spellcheck** | Declarations are tokenized (camelCase/snake_case split) and spell-checked; typo highlighting on names. | **S** | Full |
+| `EDITOR-02-04` | **Quick fixes** | "Typo" quick-fixes: change-to suggestions, Save-to-dictionary, and Rename integration for identifiers. | **S** | Full |
+| `EDITOR-02-05` | **Suppression** | Keywords, known stdlib names, and LuaCATS type tokens are excluded from identifier spellcheck. | **C** | Full |
+
+> **Implementation notes (2026-07-10):**
+> - **Identifier declarations (§3.3 correction):** the design assumed declaration names are a
+>   `PsiNameIdentifierOwner` (`LuaNameDeclElement`), but in this PSI *only `::labels::` are* — every
+>   other name is a plain `LuaNameRef` (identical to a reference). The tokenizer therefore routes
+>   `LuaNameRef` and emits only when the parent is a declaration-only container (`LuaAttName`,
+>   `LuaLocalFuncDecl`, `LuaNameList`), covering local variables, local functions, parameters, and
+>   generic-`for` variables. **Not** covered (documented limitations): the base name of a global
+>   `function tbl.foo()` (leading `tbl` is a table *reference*) and numeric-`for` variables (a bare
+>   `IDENTIFIER`, not a `LuaNameRef`).
+> - **Tests:** platform spellcheck runs through Grazie asynchronously, so `<TYPO>`/`checkHighlighting`
+>   assertions are unreliable in-process. `LuaSpellcheckingStrategyTest` verifies routing + tokenizer
+>   output + suppression deterministically; the live "typo underlined" behaviour is a VNC-gate item.
 
 ## 2. Technical Details
 - EP: `com.intellij.spellchecker.support` (`SpellcheckingStrategy` + `Tokenizer` per PSI element type).

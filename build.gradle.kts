@@ -71,6 +71,7 @@ dependencies {
         )
         bundledModule("intellij.platform.coverage")
         bundledModule("intellij.platform.coverage.agent")
+        bundledModule("intellij.spellchecker")
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Plugin.Go)
         testFramework(TestFrameworkType.Starter, configurationName = "integrationTestImplementation")
