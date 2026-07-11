@@ -47,8 +47,8 @@ folders:
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
 | EDITOR-00-DR-01 | RESOLVED (epic reconciliation): shared `lang.editor.LuaBlockStructure`, union of 05+06 APIs; whichever lands first creates the file, the second extends it. At implementation time, just check whether the file already exists and add this feature's body/branch methods. | Gap 2.1 | done |
-| EDITOR-00-DR-02 | Decide `LuaFuncDef` exclusion (leaning: exclude from unwrap applicability). Encode in `LuaConstruct.matches(FUNCTION)`. | Gap 2.2 | todo |
-| EDITOR-00-DR-03 | Spike: in a `BasePlatformTestCase`, invoke `UnwrapHandler().invoke` on a single-option `if` fixture and confirm `myFixture.checkResult` sees the hoisted text (validates the platform `extract`/`addRangeBefore` path works over Lua PSI before building all five unwrappers). | Risk 1.2 | todo |
+| EDITOR-00-DR-02 | Decide `LuaFuncDef` exclusion (leaning: exclude from unwrap applicability). Encode in `LuaConstruct.matches(FUNCTION)`. | Gap 2.2 | done — **excluded** from `LuaConstruct.matches(FUNCTION)` (only `LuaFuncDecl`/`LuaLocalFuncDecl`/`LuaGlobalFuncDecl`). Also excluded from **remove-construct** (`LuaRemoveConstructUnwrapper` gates on `LuaConstruct.isConstruct`, not a bare `LuaBlockParent`), so we never delete an expression-form function and leave a dangling `local f =`. |
+| EDITOR-00-DR-03 | Spike: in a `BasePlatformTestCase`, invoke `UnwrapHandler().invoke` on a single-option `if` fixture and confirm `myFixture.checkResult` sees the hoisted text (validates the platform `extract`/`addRangeBefore` path works over Lua PSI before building all five unwrappers). | Risk 1.2 | done — `LuaUnwrapTest` drives the framework via `collectUnwrappers` + `Unwrapper.unwrap` under a write command (deterministic, no popup) and `checkResult`s the hoisted text across all constructs. |
 
 ## Test Case Gaps
 - Nested-construct option ordering (caret inside `if` inside `function`) — covered by TC-04; ensure the option list order matches `collectUnwrappers` parent-walk order.

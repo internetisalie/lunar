@@ -111,6 +111,11 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.surround.LuaStatementsSurroundDescriptor"/>
 
+    <!-- Unwrap/Remove (Ctrl+Shift+Delete): unwrap block, collapse else, remove construct (EDITOR-06) -->
+    <lang.unwrapDescriptor
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.unwrap.LuaUnwrapDescriptor"/>
+
     <!-- Navigation: Go to Class / Symbol (NAV-03) -->
     <gotoClassContributor
             implementation="net.internetisalie.lunar.lang.navigation.LuaGotoClassContributor"/>

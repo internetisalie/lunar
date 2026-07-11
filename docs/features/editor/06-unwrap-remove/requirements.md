@@ -3,7 +3,7 @@ id: EDITOR-06
 title: "06: Unwrap / Remove"
 type: feature
 parent_id: EDITOR
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/editor/requirements|requirements]]"
@@ -18,10 +18,10 @@ live preview highlight.
 
 | ID | Feature | Expected Behavior | Priority | Status |
 | :--- | :--- | :--- | :---: | :--- |
-| `EDITOR-06-01` | **Unwrap block** | Remove the enclosing `if`/`while`/`for`/`do`/`function` keyword+`end`, hoisting the body to the parent, re-indented. | **M** | Not Implemented |
-| `EDITOR-06-02` | **Unwrap `else`/`elseif`** | Collapse an `if/else` branch appropriately (remove branch, keep the chosen body). | **S** | Not Implemented |
-| `EDITOR-06-03` | **Remove construct** | Delete the whole construct including its body. | **S** | Not Implemented |
-| `EDITOR-06-04` | **Preview highlight** | Each offered option highlights the affected range in the editor before the user confirms. | **S** | Not Implemented |
+| `EDITOR-06-01` | **Unwrap block** | Remove the enclosing `if`/`while`/`for`/`do`/`function` keyword+`end`, hoisting the body to the parent, re-indented. | **M** | Full |
+| `EDITOR-06-02` | **Unwrap `else`/`elseif`** | Collapse an `if/else` branch appropriately (remove branch, keep the chosen body). | **S** | Full |
+| `EDITOR-06-03` | **Remove construct** | Delete the whole construct including its body. | **S** | Full |
+| `EDITOR-06-04` | **Preview highlight** | Each offered option highlights the affected range in the editor before the user confirms. | **S** | Full |
 
 ## 2. Technical Details
 - EP: `com.intellij.lang.unwrapDescriptor` (`UnwrapDescriptor` + `Unwrapper` per construct).

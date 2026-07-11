@@ -155,13 +155,16 @@ UnwrapHandler (platform, Ctrl+Shift+Delete)
 - **Key API**:
   ```kotlin
   class LuaRemoveConstructUnwrapper : LuaUnwrapper("Remove enclosing block") {
-      override fun isApplicableTo(e: PsiElement): Boolean =
-          LuaBlockStructure.blockParent(e) === e   // e is itself a block construct
+      override fun isApplicableTo(e: PsiElement): Boolean = LuaConstruct.isConstruct(e)
       override fun doUnwrap(element: PsiElement, context: Context) {
-          context.delete(element)   // no body extraction → whole construct removed
+          context.addElementToExtract(element)   // preview highlights the whole construct (§3.4 note)
+          context.delete(element)                // no body extraction → whole construct removed
       }
   }
   ```
+  **As-built:** applicability gates on `LuaConstruct.isConstruct(e)` (any supported construct) rather than a
+  bare `blockParent(e) === e`, so the expression-form `LuaFuncDef` is **excluded** here too (DR-02) — deleting
+  it would leave a dangling `local f =`. Applies to a multi-branch `if` (which block-unwrap refuses).
 
 ### 2.7 `net.internetisalie.lunar.lang.insight.unwrap.LuaConstruct`
 - **Responsibility**: Enum mapping construct kind → applicable PSI type(s), description string, and primary-body accessor.
@@ -200,6 +203,15 @@ UnwrapHandler (platform, Ctrl+Shift+Delete)
 - **Rules**: For an `if` with N conditions and an optional `else`, `blocks.size == exprs.size` (no else) or `exprs.size + 1` (with else) — this invariant is what `LuaInvertIfIntention.kt:22-23` relies on. `hasElseOrElseIf` = `node.findChildByType(ELSE) != null || node.findChildByType(ELSEIF) != null`.
 
 ### 3.3 `LuaElseBranchRemover.doUnwrap` — collapse the else/elseif tail
+**As-built (supersedes the text-rebuild below):** the branch is dropped **structurally**, not via text
+rebuild + `replace` + reformat. In effective mode, `deleteChildRange(from, branch.body)` deletes from the
+whitespace before the last `elseif`/`else` keyword through that branch's body block; the whitespace before
+`end` is retained, so the kept branches keep their **exact original indentation** (no reformat → no
+indent-width drift, which is what made the rebuild+reformat path fail the `checkResult` indent). In preview
+mode (`!isEffective`), only `addElementToExtract(branches.last().body)` runs (highlight the removed branch).
+The original text-rebuild spec is retained below for context.
+
+
 - **Input → Output**: mutate a `LuaIfStatement` so its last branch is dropped; extracted elements = the removed branch (for preview).
 - **Steps** (preview vs effective governed by `context.isEffective`, per `AbstractContext`):
   1. `branches = LuaBlockStructure.ifBranches(ifStmt)`; if `branches.size < 2`, return (nothing to collapse).

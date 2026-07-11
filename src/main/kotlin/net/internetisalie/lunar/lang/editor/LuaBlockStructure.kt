@@ -4,8 +4,13 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaBlock
+import net.internetisalie.lunar.lang.psi.LuaBlockParent
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaExpr
+import net.internetisalie.lunar.lang.psi.LuaIfStatement
 import net.internetisalie.lunar.lang.psi.LuaStatement
 
 /**
@@ -81,4 +86,51 @@ object LuaBlockStructure {
         val body = PsiTreeUtil.findChildOfType(inserted, LuaBlock::class.java)
         return body?.statementList?.firstOrNull()?.textRange?.startOffset ?: inserted.textRange.startOffset
     }
+
+    // ---- EDITOR-06 (Unwrap / Remove) body/branch API — shared per epic reconciliation. Design §2.4 / §3.1–3.2.
+
+    /** The single hoistable body of a block construct (the `then`-block for an `if`), or null. Design §3.1. */
+    fun primaryBody(construct: PsiElement): LuaBlock? =
+        (construct as? LuaBlockParent)?.getBlockList()?.firstOrNull()
+
+    /** The nearest block construct at-or-above [e] (itself if it is one), or null. */
+    fun blockParent(e: PsiElement): LuaBlockParent? =
+        e as? LuaBlockParent ?: PsiTreeUtil.getParentOfType(e, LuaBlockParent::class.java)
+
+    /** True if [ifStmt] has an `else` or `elseif` branch (so it is not a plain unwrappable `if…then…end`). */
+    fun hasElseOrElseIf(ifStmt: LuaIfStatement): Boolean {
+        val node = ifStmt.node
+        return node.findChildByType(LuaElementTypes.ELSE) != null ||
+            node.findChildByType(LuaElementTypes.ELSEIF) != null
+    }
+
+    /** The `if`'s branches in source order (`then`, each `elseif`, optional `else`). Design §3.2. */
+    fun ifBranches(ifStmt: LuaIfStatement): List<LuaIfBranch> {
+        val conditions = ifStmt.exprList
+        val branches = mutableListOf<LuaIfBranch>()
+        var keyword: IElementType? = null
+        var condition: LuaExpr? = null
+        var conditionIndex = 0
+        for (child in ifStmt.node.getChildren(null)) {
+            when (child.elementType) {
+                LuaElementTypes.IF, LuaElementTypes.ELSEIF -> {
+                    keyword = child.elementType
+                    condition = conditions.getOrNull(conditionIndex++)
+                }
+                LuaElementTypes.ELSE -> { keyword = LuaElementTypes.ELSE; condition = null }
+                else -> {
+                    val body = child.psi as? LuaBlock
+                    if (body != null && keyword != null) {
+                        branches.add(LuaIfBranch(condition, body, keyword))
+                        keyword = null
+                        condition = null
+                    }
+                }
+            }
+        }
+        return branches
+    }
 }
+
+/** One branch of an `if`: its condition (null for `else`), body block, and opening keyword type. */
+data class LuaIfBranch(val condition: LuaExpr?, val body: LuaBlock, val keywordType: IElementType)
