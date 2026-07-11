@@ -3,7 +3,7 @@ id: EDITOR-05
 title: "05: Surround With"
 type: feature
 parent_id: EDITOR
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/editor/requirements|requirements]]"
@@ -19,11 +19,11 @@ surrounds shipped in [`COMP-07`](../../completion/07-live-templates/requirements
 
 | ID | Feature | Expected Behavior | Priority | Status |
 | :--- | :--- | :--- | :---: | :--- |
-| `EDITOR-05-01` | **`if … end`** | Wrap the selected statements in `if <caret> then … end`, caret in the condition, body re-indented. | **M** | Not Implemented |
-| `EDITOR-05-02` | **`while` / `for`** | Wrap in `while <caret> do … end` and numeric/generic `for … do … end` variants. | **S** | Not Implemented |
-| `EDITOR-05-03` | **`function`** | Wrap in an anonymous `function() … end` (optionally IIFE-invoked). | **S** | Not Implemented |
-| `EDITOR-05-04` | **`do … end`** | Wrap in a bare `do … end` scope block. | **S** | Not Implemented |
-| `EDITOR-05-05` | **`pcall`** | Wrap in `pcall(function() … end)` capturing the protected body. | **C** | Not Implemented |
+| `EDITOR-05-01` | **`if … end`** | Wrap the selected statements in `if <caret> then … end`, caret in the condition, body re-indented. | **M** | Full |
+| `EDITOR-05-02` | **`while` / `for`** | Wrap in `while <caret> do … end` and numeric/generic `for … do … end` variants. | **S** | Full |
+| `EDITOR-05-03` | **`function`** | Wrap in an anonymous `function() … end` (optionally IIFE-invoked). | **S** | Full |
+| `EDITOR-05-04` | **`do … end`** | Wrap in a bare `do … end` scope block. | **S** | Full |
+| `EDITOR-05-05` | **`pcall`** | Wrap in `pcall(function() … end)` capturing the protected body. | **C** | Full |
 
 ## 2. Technical Details
 - EP: `com.intellij.lang.surroundDescriptor` (`SurroundDescriptor` + one `Surrounder` per template).

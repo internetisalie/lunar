@@ -128,13 +128,13 @@ com.intellij.lang.surroundDescriptor (language="Lua")
 
       // Template contract implemented by each subclass:
       protected abstract fun getTemplateDescription(): String     // Surrounder API
-      protected abstract fun buildWrappedText(bodyText: String): WrappedTemplate
+      protected abstract fun wrap(bodyText: String): String       // replacement source; header templates embed CARET
   }
-
-  // Result of a template build: the full replacement source and the caret marker.
-  data class WrappedTemplate(val text: String, val caretMarker: String)
   ```
-  See §3.1 for `surroundElements` steps and §3.2 for the caret-marker protocol.
+  **As-built:** the abstract hook is a single `wrap(bodyText): String` (no `WrappedTemplate` pair). The
+  caret marker is one shared constant `LuaBlockStructure.CARET` (`"__lunar_surround_caret__"`, a valid
+  identifier) embedded directly in header templates; body templates omit it. See §3.1 for
+  `surroundElements` steps and §3.2 for the caret protocol.
 
 ### 2.4 The seven concrete surrounders
 Each is a `LuaStatementSurrounder` subclass that only implements `getTemplateDescription()` and
@@ -169,11 +169,12 @@ templates) so the caret lands at the body's first character after reformat.
      a. `val dummy = LuaElementFactory.createFile(project, cleanText)`.
      b. `val newStmt = PsiTreeUtil.findChildOfType(dummy, LuaStatement::class.java) ?: return@… null`.
      c. `val insertedRange = LuaBlockStructure.replaceStatements(first, last, newStmt)` (reformats).
-  7. Return the caret `TextRange`: recompute the marker's document offset — the caret document offset is
-     `insertedRange.startOffset + relativeCaretOffset`, where `relativeCaretOffset` is `caretIndexInText`
-     mapped through the same leading text of `cleanText` (marker is on a fixed prefix line, so
-     `relativeCaretOffset == caretIndexInText`). Return `TextRange(caretOffset, caretOffset)`.
-     (Empty range → caret placed, no selection.)
+  7. Return the caret `TextRange` via `LuaBlockStructure.caretAfterWrap(inserted)` (**as-built**, replacing
+     the offset-arithmetic below): read the caret site from the *post-reformat* PSI — for header templates
+     find the `CARET` sentinel node, record its start offset, then delete it; for body templates return the
+     wrapped body's first statement start. Return `TextRange(offset, offset)` (empty range → caret, no
+     selection). This is indentation-safe by construction (no cached pre-reformat index), fully resolving
+     Risk 1.2. *(Original spec: `insertedRange.startOffset + caretIndexInText` — dropped as drift-prone.)*
 - **Rules / edge handling**:
   - Empty `elements` → `null` (no-op; platform shows nothing).
   - Reformat is scoped to the inserted range via `CodeStyleManager.reformatRange` so surrounding code

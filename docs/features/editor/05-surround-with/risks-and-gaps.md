@@ -49,8 +49,8 @@ unresolved design.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| EDITOR-00-DR-01 | Prototype `LuaElementFactory.createFile` + `CodeStyleManager.reformatRange` on a rebuilt `if`-wrapped two-statement body; confirm indentation matches expected `checkResult`. | Risk 1.1 | todo |
-| EDITOR-00-DR-02 | Verify caret `TextRange` lands in the condition (`if`) and at body start (`do`) after reformat, using `SurroundWithHandler.invoke` in a `BasePlatformTestCase`. | Risk 1.2 | todo |
+| EDITOR-00-DR-01 | Prototype `LuaElementFactory.createFile` + `CodeStyleManager.reformatRange` on a rebuilt `if`-wrapped two-statement body; confirm indentation matches expected `checkResult`. | Risk 1.1 | done — `replaceStatements` reformats the inserted node; `LuaSurroundWithTest` confirms bodies re-indent. |
+| EDITOR-00-DR-02 | Verify caret `TextRange` lands in the condition (`if`) and at body start (`do`) after reformat, using `SurroundWithHandler.invoke` in a `BasePlatformTestCase`. | Risk 1.2 | done — resolved structurally (`caretAfterWrap` reads post-reformat PSI); `LuaSurroundWithTest` asserts caret for all seven templates. |
 
 ## Cross-feature dependency
 - **Shared with EDITOR-06 (Unwrap): one `net.internetisalie.lunar.lang.editor.LuaBlockStructure`
