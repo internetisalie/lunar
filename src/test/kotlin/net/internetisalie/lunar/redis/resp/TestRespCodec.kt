@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.redis.resp
 
+import net.internetisalie.lunar.redis.connection.RespServerInfo
 import java.io.InputStream
 import java.io.PushbackInputStream
 import kotlin.test.Test
@@ -121,6 +122,34 @@ class TestRespCodec {
         val decoded = RespCodec.decode(stream)
         assertEquals("café", (decoded as RespValue.Bulk).asString())
         assertEquals(-1, stream.read(), "stream must be fully consumed (no leftover bytes)")
+    }
+
+    /**
+     * DR-05 regression: RESP3 verbatim `=15\r\ntxt:hello world\r\n` (the `INFO` reply shape under
+     * `HELLO 3`) decodes to a `Bulk` whose text has the `txt:` format prefix stripped, and the
+     * stream is fully consumed (no desync leaving subsequent commands mis-framed).
+     */
+    @Test
+    fun testDecodeResp3VerbatimStripsPrefixAndConsumesStream() {
+        val stream = pushbackOfWire("=15\r\ntxt:hello world\r\n")
+        val decoded = RespCodec.decode(stream)
+        assertEquals("hello world", (decoded as RespValue.Bulk).asString())
+        assertEquals(-1, stream.read(), "verbatim decode must leave the stream fully consumed")
+    }
+
+    /**
+     * DR-05 regression: a verbatim `INFO server` body (RESP3) yields a `Bulk` whose `asString()`
+     * lets `RespServerInfo.parse` extract the real version — proving the read-only version gate
+     * sees `8.0.0` for real redis:8 instead of null (the shipped Simple mis-decode returned null).
+     */
+    @Test
+    fun testDecodeResp3VerbatimInfoBodyParsesServerVersion() {
+        val body = "# Server\r\nredis_version:8.0.0\r\nredis_mode:standalone"
+        val inner = "txt:$body"
+        val length = inner.toByteArray(Charsets.UTF_8).size
+        val decoded = RespCodec.decode(pushbackOfWire("=$length\r\n$inner\r\n"))
+        val text = (decoded as RespValue.Bulk).asString().orEmpty()
+        assertEquals("8.0.0", RespServerInfo.parse(text).version)
     }
 
     /** TC-RESP-4: `$6\r\nabcdef\r\n` delivered in fragments reassembles to `Bulk("abcdef")`. */

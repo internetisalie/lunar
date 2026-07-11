@@ -5,11 +5,12 @@ package net.internetisalie.lunar.redis.resp
  *
  * Pure data — thread-agnostic. Produced by [RespCodec.decode]; consumed downstream by the reply-tree
  * console (REDIS-01 Phase 5). RESP3 markers (`%`, `,`, `#`, `_`) are represented alongside the RESP2
- * types so a single model spans both negotiated protocols.
+ * types so a single model spans both negotiated protocols. The RESP3 verbatim string (`=`) is a
+ * length-prefixed payload and decodes to [Bulk] (format prefix stripped), not [Simple].
  */
 sealed interface RespValue {
 
-    /** `+OK\r\n` (RESP2 simple string) and RESP3 verbatim `=…\r\n`. */
+    /** `+OK\r\n` (RESP2 simple string). */
     data class Simple(val text: String) : RespValue
 
     /** `-WRONGTYPE bad\r\n` → `klass` = first token, `message` = remainder (design §3.4). */

@@ -15,6 +15,8 @@ object RespCodec {
 
     private const val CR = '\r'.code
     private const val LF = '\n'.code
+    private const val COLON = ':'.code.toByte()
+    private const val VERBATIM_PREFIX_LENGTH = 4
     private val UTF_8 = Charsets.UTF_8
 
     /**
@@ -37,10 +39,11 @@ object RespCodec {
         val typeByte = input.read()
         if (typeByte < 0) throw RespException.Protocol("unexpected end of stream before a reply")
         return when (typeByte.toChar()) {
-            '+', '=' -> RespValue.Simple(readLine(input))
+            '+' -> RespValue.Simple(readLine(input))
             '-' -> decodeError(input)
             ':' -> RespValue.Integer(readLine(input).toLongOrThrow())
             '$' -> decodeBulk(input)
+            '=' -> decodeVerbatim(input)
             '*' -> decodeArray(input)
             '%' -> decodeMap(input)
             ',' -> RespValue.Double(readLine(input).toDoubleOrThrow())
@@ -63,6 +66,27 @@ object RespCodec {
         val payload = readExactly(input, length)
         consumeTerminator(input)
         return RespValue.Bulk(payload)
+    }
+
+    /**
+     * RESP3 verbatim string `=<len>\r\n<fmt3>:<content>\r\n` (design §3.3). `<len>` counts the bytes
+     * of `<fmt3>:<content>`; the leading 3-char format + ':' prefix is stripped so [RespValue.Bulk.asString]
+     * yields the real content (e.g. an `INFO` body), keeping the version gate and Test Connection working.
+     */
+    private fun decodeVerbatim(input: PushbackInputStream): RespValue.Bulk {
+        val length = readLine(input).toIntOrThrow()
+        if (length < 0) return RespValue.Bulk(null)
+        val payload = readExactly(input, length)
+        consumeTerminator(input)
+        return RespValue.Bulk(stripVerbatimPrefix(payload))
+    }
+
+    /** Drop the mandatory `<fmt3>:` header (4 bytes) when present, else keep the raw payload. */
+    private fun stripVerbatimPrefix(payload: ByteArray): ByteArray {
+        if (payload.size >= VERBATIM_PREFIX_LENGTH && payload[VERBATIM_PREFIX_LENGTH - 1] == COLON) {
+            return payload.copyOfRange(VERBATIM_PREFIX_LENGTH, payload.size)
+        }
+        return payload
     }
 
     private fun decodeArray(input: PushbackInputStream): RespValue.Array {
