@@ -26,10 +26,10 @@ Every task names the class/file it creates and the design section it realizes. P
 - **Goal**: Pure, socket-free encode/parse of the LDB protocol — the highest-risk surface (RISK-R01)
   pinned by unit tests before any session exists (mirrors REDIS-01 Phase 1 sequencing).
 - **Tasks**:
-  - [ ] Create `LdbCommand` (sealed) + `LuaRedisDebugMode` enum + `LdbWire.encode` — realizes design §2.8, §3.2.
-  - [ ] Create `LdbEvent` (sealed), `StopReason`/`LdbErrorKind`/`EndReason` enums, `LdbReplyParser.parse` — realizes §2.9, §3.3.
-  - [ ] Create `LuaLdbLocal`, `LdbValueNode` (sealed), `LdbPrintParser.parseLocals`/`parseValue` — realizes §2.9, §3.4.
-  - [ ] Create `LdbSessionMachine` (states + `onCommandSent`/`onEvent`) — realizes §2.11, §3.5.
+  - [x] Create `LdbCommand` (sealed) + `LuaRedisDebugMode` enum + `LdbWire.encode` — realizes design §2.8, §3.2.
+  - [x] Create `LdbEvent` (sealed), `StopReason`/`LdbErrorKind`/`EndReason` enums, `LdbReplyParser.parse` — realizes §2.9, §3.3.
+  - [x] Create `LuaLdbLocal`, `LdbValueNode` (sealed), `LdbPrintParser.parseLocals`/`parseValue` — realizes §2.9, §3.4.
+  - [x] Create `LdbSessionMachine` (states + `onCommandSent`/`onEvent`) — realizes §2.11, §3.5.
 - **Exit criteria**: unit tests TC-LDB-ENC-1, TC-LDB-ENC-2, TC-LDB-DEC-1..3, TC-LDB-PRINT-1,
   TC-LDB-PRINT-2, TC-LDB-SM-1, TC-LDB-SM-2, TC-LDB-SYNC-2 green; no socket/EDT dependency; no `!!`.
 
@@ -97,10 +97,10 @@ Every task names the class/file it creates and the design section it realizes. P
 | AC-10 Dual-flavor integration tests | M | Phase 5 |
 
 ## Verification Tasks
-- [ ] `TestLdbWire` — TC-LDB-ENC-1, TC-LDB-ENC-2, TC-LDB-SYNC-2 (encode mapping).
-- [ ] `TestLdbReplyParser` — TC-LDB-DEC-1, TC-LDB-DEC-2, TC-LDB-DEC-3.
-- [ ] `TestLdbPrintParser` — TC-LDB-PRINT-1, TC-LDB-PRINT-2 (incl. truncation, no `!!`).
-- [ ] `TestLdbSessionMachine` — TC-LDB-SM-1, TC-LDB-SM-2.
+- [x] `TestLdbWire` — TC-LDB-ENC-1, TC-LDB-ENC-2, TC-LDB-SYNC-2 (encode mapping).
+- [x] `TestLdbReplyParser` — TC-LDB-DEC-1, TC-LDB-DEC-2, TC-LDB-DEC-3.
+- [x] `TestLdbPrintParser` — TC-LDB-PRINT-1, TC-LDB-PRINT-2 (incl. truncation, no `!!`).
+- [x] `TestLdbSessionMachine` — TC-LDB-SM-1, TC-LDB-SM-2.
 - [ ] `TestLuaLdbBreakpointType` — TC-LDB-BP-1 (statement vs comment; extends `BasePlatformTestCase`,
       `myFixture.configureByText` per contract §5).
 - [ ] `TestLuaLdbController` (fake transport) — TC-LDB-COND-1, TC-LDB-ERR-1, TC-LDB-ERR-2, TC-LDB-STEPOUT-1.
@@ -112,7 +112,7 @@ Every task names the class/file it creates and the design section it realizes. P
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: LDB wire + parsers | todo | Must |
+| Phase 1: LDB wire + parsers | done | Must |
 | Phase 2: Breakpoint type / structural XDebugger classes | todo | Must |
 | Phase 3: Transport + controller + session lifecycle | todo | Must |
 | Phase 4: Conditional BPs + sync guard + Redis tab | todo | Must |
