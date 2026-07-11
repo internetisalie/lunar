@@ -383,7 +383,8 @@ LuaRedisRunConfiguration (run config)
 - **Steps**:
   1. Read one type byte. Dispatch:
      `+`→Simple, `-`→Error, `:`→Integer, `$`→Bulk, `*`→Array, `%`→Map, `,`→Double, `#`→Bool,
-     `_`→Null(read trailing `\r\n`), `=`→Simple(verbatim, RESP3).
+     `_`→Null(read trailing `\r\n`), `=`→Bulk(RESP3 verbatim: length-prefixed like `$`; read exactly
+     `L` bytes then trailing `\r\n`, strip the 4-byte `<fmt3>:` prefix — NOT a single-line Simple).
   2. Simple/Error/Integer/Double/Bool: read bytes up to `\r\n`, parse.
   3. Bulk (`$`): read length `L` up to `\r\n`. If `L == -1` → `Bulk(null)`. Else read exactly `L`
      bytes (loop until `L` read or EOF), then consume trailing `\r\n`.
