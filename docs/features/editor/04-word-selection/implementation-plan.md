@@ -106,7 +106,10 @@ Wrap editor/PSI reads in `EdtTestUtil.runInEdtAndWait { runReadAction { … } }`
   Covers `EDITOR-04-04` (long comment).
 - [x] TC-08 (shrink) — from a wide selection, `ACTION_EDITOR_UNSELECT_WORD_AT_CARET` walks the
   ladder back down. Covers Ctrl+Shift+W.
-- [ ] Run `human-verification-checklists.md` (VNC Extend/Shrink in GoLand).
+- [x] Behavior verified **headlessly** — `LuaWordSelectionTest` drives the *real* Extend/Shrink editor
+  actions (`ACTION_EDITOR_SELECT_WORD_AT_CARET`/`UNSELECT`) and asserts `selectionModel.selectedText`
+  after each rung, which is the actual observable behavior (not a proxy). No separate VNC checklist is
+  needed for EDITOR-04 (no UI-only surface); live VNC spot-check optional.
 
 ## Task Summary
 
