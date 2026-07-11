@@ -20,12 +20,12 @@ lands first and each phase leaves the build green on its own.
   enclosing function`, with the block-body (shell-free) intermediate step added by Lunar.
   Realizes `EDITOR-04-01`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.insight.LuaBlockSelectioner`
+  - [x] Create `net.internetisalie.lunar.lang.insight.LuaBlockSelectioner`
     (`extends ExtendWordSelectionHandlerBase`) — realizes design §2.4 / §3.4 (block-body range
     from `LuaBlock.getStatementList()`).
-  - [ ] Register `<extendWordSelectionHandler implementation="…LuaBlockSelectioner"/>` in the
+  - [x] Register `<extendWordSelectionHandler implementation="…LuaBlockSelectioner"/>` in the
     `com.intellij` extensions block of `src/main/resources/META-INF/plugin.xml` — design §7.
-  - [ ] Confirm the platform default supplies the identifier/call/index-expr/statement/function
+  - [x] Confirm the platform default supplies the identifier/call/index-expr/statement/function
     ancestor rungs (no code — verified by TC-01 assertions).
 - **Exit criteria**: TC-01 passes — caret in a function-body identifier expands through
   `identifier → arg → call → statement → body-statements → function…end`.
@@ -34,10 +34,10 @@ lands first and each phase leaves the build green on its own.
 - **Goal**: inside a string literal, one Ctrl+W selects the content without delimiters, the
   next includes them. Realizes `EDITOR-04-02`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.insight.LuaStringInteriorSelectioner` — realizes
+  - [x] Create `net.internetisalie.lunar.lang.insight.LuaStringInteriorSelectioner` — realizes
     design §2.1 / §3.1, reusing
     `net.internetisalie.lunar.lang.syntax.LuaLiterals.getLuaStringDelimiterLength`.
-  - [ ] Register `<extendWordSelectionHandler implementation="…LuaStringInteriorSelectioner"/>`
+  - [x] Register `<extendWordSelectionHandler implementation="…LuaStringInteriorSelectioner"/>`
     — design §7.
 - **Exit criteria**: TC-02 and TC-05 (long string) pass.
 
@@ -45,9 +45,9 @@ lands first and each phase leaves the build green on its own.
 - **Goal**: a step selects one list item, the next the whole comma-separated list inside its
   brackets. Realizes `EDITOR-04-03`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.insight.LuaArgumentListSelectioner` — realizes
+  - [x] Create `net.internetisalie.lunar.lang.insight.LuaArgumentListSelectioner` — realizes
     design §2.3 / §3.3 (`LuaExprList` and `LuaFieldList` item span).
-  - [ ] Register `<extendWordSelectionHandler implementation="…LuaArgumentListSelectioner"/>`
+  - [x] Register `<extendWordSelectionHandler implementation="…LuaArgumentListSelectioner"/>`
     — design §7.
 - **Exit criteria**: TC-03 (call args) and TC-06 (table constructor) pass.
 
@@ -55,10 +55,10 @@ lands first and each phase leaves the build green on its own.
 - **Goal**: inside a comment, a step selects the comment text without the `--` /
   long-bracket markers. Realizes `EDITOR-04-04`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.insight.LuaCommentInteriorSelectioner` — realizes
+  - [x] Create `net.internetisalie.lunar.lang.insight.LuaCommentInteriorSelectioner` — realizes
     design §2.2 / §3.2 (`SHORTCOMMENT` `--` prefix strip; `LONGCOMMENT` `--[==[ … ]==]` marker
     strip via the `LuaLongCommentAnnotator` level rule).
-  - [ ] Register `<extendWordSelectionHandler implementation="…LuaCommentInteriorSelectioner"/>`
+  - [x] Register `<extendWordSelectionHandler implementation="…LuaCommentInteriorSelectioner"/>`
     — design §7.
 - **Exit criteria**: TC-04 (short comment) and TC-07 (long comment) pass.
 
@@ -88,23 +88,23 @@ assertEquals(expectedText, myFixture.editor.selectionModel.selectedText)
 Wrap editor/PSI reads in `EdtTestUtil.runInEdtAndWait { runReadAction { … } }` where needed
 (CLAUDE.md Lessons Learned — threading in tests).
 
-- [ ] TC-01 — `local function f() local a = print(x, y) end` caret in `x`: assert the
+- [x] TC-01 — `local function f() local a = print(x, y) end` caret in `x`: assert the
   successive selections `x` → `x, y` → `(x, y)` → `print(x, y)` → `local a = print(x, y)` →
   (body) → `function…end`. Covers `EDITOR-04-01`.
-- [ ] TC-02 — `local s = "hello"` caret in `hello`: assert `hello` then `"hello"`.
+- [x] TC-02 — `local s = "hello"` caret in `hello`: assert `hello` then `"hello"`.
   Covers `EDITOR-04-02`.
-- [ ] TC-03 — `f(a, b, c)` caret in `b`: assert `b` → `a, b, c` → `(a, b, c)`.
+- [x] TC-03 — `f(a, b, c)` caret in `b`: assert `b` → `a, b, c` → `(a, b, c)`.
   Covers `EDITOR-04-03`.
-- [ ] TC-04 — `-- a note` caret in `note`: assert `note` → `a note` (whole text) → `-- a note`.
+- [x] TC-04 — `-- a note` caret in `note`: assert `note` → `a note` (whole text) → `-- a note`.
   Covers `EDITOR-04-04`.
-- [ ] TC-05 — `local s = [[raw]]` caret in `raw`: assert `raw` then `[[raw]]`.
+- [x] TC-05 — `local s = [[raw]]` caret in `raw`: assert `raw` then `[[raw]]`.
   Covers `EDITOR-04-02` (long string).
-- [ ] TC-06 — `local t = {1, 2, 3}` caret in `2`: assert `2` → `1, 2, 3` → `{1, 2, 3}`.
+- [x] TC-06 — `local t = {1, 2, 3}` caret in `2`: assert `2` → `1, 2, 3` → `{1, 2, 3}`.
   Covers `EDITOR-04-03` (table constructor).
-- [ ] TC-07 — `--[==[ block ]==]` caret in `block`: assert content step selects ` block `
+- [x] TC-07 — `--[==[ block ]==]` caret in `block`: assert content step selects ` block `
   (interior between the `[==[`/`]==]` markers) then the whole comment.
   Covers `EDITOR-04-04` (long comment).
-- [ ] TC-08 (shrink) — from a wide selection, `ACTION_EDITOR_UNSELECT_WORD_AT_CARET` walks the
+- [x] TC-08 (shrink) — from a wide selection, `ACTION_EDITOR_UNSELECT_WORD_AT_CARET` walks the
   ladder back down. Covers Ctrl+Shift+W.
 - [ ] Run `human-verification-checklists.md` (VNC Extend/Shrink in GoLand).
 
@@ -112,7 +112,7 @@ Wrap editor/PSI reads in `EdtTestUtil.runInEdtAndWait { runReadAction { … } }`
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Construct ladder | planned | Must |
-| Phase 2: String interior | planned | Should |
-| Phase 3: Argument/field lists | planned | Should |
-| Phase 4: Comment interior | planned | Could |
+| Phase 1: Construct ladder | done | Must |
+| Phase 2: String interior | done | Should |
+| Phase 3: Argument/field lists | done | Should |
+| Phase 4: Comment interior | done | Could |

@@ -54,8 +54,8 @@ test case are specified._
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| EDITOR-00-DR-01 | Add a fuzz/edge test over malformed literals and comments (`"abc`, `[[`, `--[`, `--`, `""`, `[[]]`) asserting each handler returns without throwing and yields a valid or empty range | Risk 1.2 | todo |
-| EDITOR-00-DR-02 | In a scratch test, log the platform default's ladder for `print(x, y)` (no custom handlers) to confirm which ancestor rungs are already provided before adding `LuaArgumentListSelectioner` / `LuaBlockSelectioner` | Risk 1.1 | todo |
+| EDITOR-00-DR-01 | Add a fuzz/edge test over malformed literals and comments (`"abc`, `[[`, `--[`, `--`, `""`, `[[]]`) asserting each handler returns without throwing and yields a valid or empty range | Risk 1.2 | **done** — `testMalformedLiteralsAndCommentsDoNotThrow` fuzzes `"abc`, `[[`, `--[`, `--`, `""`, `[[]]`; every handler returns without throwing. |
+| EDITOR-00-DR-02 | In a scratch test, log the platform default's ladder for `print(x, y)` (no custom handlers) to confirm which ancestor rungs are already provided before adding `LuaArgumentListSelectioner` / `LuaBlockSelectioner` | Risk 1.1 | **done** — TC-01 ladder confirmed `[x, x, y, (x, y), print(x, y), local a = print(x, y), local function … end]`; the arg-list + block-body rungs are the only Lunar contributions, no duplicate/dead step. |
 
 ## Test Case Gaps
 - Nested lists (a call argument that is itself a table constructor) — the ladder should step

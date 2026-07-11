@@ -344,6 +344,16 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaPairedBraceMatcher" />
 
+    <!-- EDITOR-04: Smart Word Selection — construct-aware Extend/Shrink Selection steps -->
+    <extendWordSelectionHandler
+            implementation="net.internetisalie.lunar.lang.insight.LuaBlockSelectioner"/>
+    <extendWordSelectionHandler
+            implementation="net.internetisalie.lunar.lang.insight.LuaStringInteriorSelectioner"/>
+    <extendWordSelectionHandler
+            implementation="net.internetisalie.lunar.lang.insight.LuaArgumentListSelectioner"/>
+    <extendWordSelectionHandler
+            implementation="net.internetisalie.lunar.lang.insight.LuaCommentInteriorSelectioner"/>
+
     <!-- EDITOR-01: Smart Typing — quote pairing + bracket context suppression -->
     <lang.quoteHandler
             language="Lua"
