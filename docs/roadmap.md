@@ -370,7 +370,7 @@ bug and gave the type inspections false confidence until this session's coverage
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| REDIS-01 | Connections & Script Run Configuration | planned | M | TOOL-02 *(binary resolution, done)* | REDIS-02, REDIS-03, REDIS-05 | Serial: foundation |
+| REDIS-01 | Connections & Script Run Configuration | done | M | TOOL-02 *(binary resolution, done)* | REDIS-02, REDIS-03, REDIS-05 | Serial: foundation |
 | REDIS-02 | LDB Debug Adapter | planned | M | REDIS-01 | — | after 01 |
 | REDIS-03 | Valkey Runtime Target | planned | S | TARGET-01 *(done)*; REDIS-01 *(flavor detection only)* | REDIS-04 *(Valkey specs)*, REDIS-05 | ✓ (stub/registry work independent of 01) |
 | REDIS-04 | Language-Engine Integration | planned | S | TARGET-04 *(done)* | REDIS-05 *(ambient-global suppression)* | ✓ (engine-only) |

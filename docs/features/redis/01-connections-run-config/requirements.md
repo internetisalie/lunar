@@ -2,7 +2,7 @@
 id: "REDIS-01"
 parent_id: "REDIS"
 type: "feature"
-status: "planned"
+status: "done"
 folders:
   - "[[features/redis/requirements|requirements]]"
 title: "REDIS-01: Connections & Script Run Configuration"
