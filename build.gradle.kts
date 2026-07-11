@@ -41,10 +41,19 @@ sourceSets {
         compileClasspath += sourceSets.main.get().output
         runtimeClasspath += sourceSets.main.get().output
     }
+    // Redis Docker integration tests — excluded from the default `build`/`test` gates (RISK-R10).
+    // Run explicitly via `./gradlew redisIntegrationTest`.
+    create("redisIntegrationTest") {
+        compileClasspath += sourceSets.main.get().output + sourceSets.test.get().compileClasspath
+        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().runtimeClasspath
+    }
 }
 
 val ktlintConfig = configurations.create("ktlint")
 val integrationTestImplementation by configurations.getting {
+    extendsFrom(configurations.testImplementation.get())
+}
+val redisIntegrationTestImplementation by configurations.getting {
     extendsFrom(configurations.testImplementation.get())
 }
 
@@ -235,5 +244,17 @@ tasks {
             dependsOn(prepareSandbox)
             systemProperty("path.to.build.plugin", layout.buildDirectory.dir("distributions").map { it.asFile.resolve("lunar-${providers.gradleProperty("pluginVersion").get()}.zip").absolutePath }.get())
         }
+    }
+
+    // Redis Docker integration tests — NOT wired into `build`, `test`, or `check` (RISK-R10 / design §7).
+    // Run explicitly: `./gradlew redisIntegrationTest`.
+    // Fails loudly (not skip) when Docker is unavailable — see RedisIntegrationTest.assertDockerAvailable().
+    register<Test>("redisIntegrationTest") {
+        group = "verification"
+        description = "Run Redis/Valkey Docker integration tests (requires Docker on PATH)"
+        val redisIntegrationTestSourceSet = sourceSets.getByName("redisIntegrationTest")
+        testClassesDirs = redisIntegrationTestSourceSet.output.classesDirs
+        classpath = redisIntegrationTestSourceSet.runtimeClasspath
+        useJUnit()
     }
 }

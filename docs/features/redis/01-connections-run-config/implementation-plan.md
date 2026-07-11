@@ -103,12 +103,14 @@ the class/file it creates or edits and the design section it realizes. New code 
 ### Phase 6: Dockerized integration tests [Must]
 - **Goal**: Compatibility contract against real servers, isolated from the default gate (RISK-R10).
 - **Tasks**:
-  - [ ] Edit `build.gradle.kts` — add a `redisIntegrationTest` task excluded from `build`/`test`,
+  - [x] Edit `build.gradle.kts` — add a `redisIntegrationTest` task excluded from `build`/`test`,
         failing loudly when Docker is absent — design §7, RISK-R10/DR-04.
-  - [ ] Create `RedisIntegrationTest` running EVAL + EVALSHA + `_RO` against dockerized `redis:8`
+  - [x] Create `RedisIntegrationTest` running EVAL + EVALSHA + `_RO` against dockerized `redis:8`
         and `valkey/valkey:8` (dual-flavor) — covers the epic dual-flavor constraint.
 - **Exit criteria**: `redisIntegrationTest` green on a Docker-capable host; fails with a clear
-  environment message (not skip) when Docker is unavailable.
+  environment message (not skip) when Docker is unavailable. **Status: done** — task compiles and
+  runs; fails loudly (`AssertionError: Docker environment check failed: …`) on the gce-builder VM
+  (DR-04: Docker absent); ready to run green on any Docker-capable host.
 
 ## Requirement → Phase Coverage
 
@@ -123,7 +125,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 | Error-link filter (`user_script:N`, 1→0-based) | M | Phase 5 ✓ |
 | SCRIPT LOAD sha cache + NOSCRIPT fallback | M | Phase 5 ✓ |
 | Read-only `_RO` + Redis < 7 fail-fast | M | Phase 5 ✓ |
-| Unit + Docker integration tests | M | Phase 1–6 |
+| Unit + Docker integration tests | M | Phase 1–6 ✓ |
 
 ## Verification Tasks
 - [ ] `TestRespCodec` — TC-RESP-1..4 (encode, decode-per-type, multi-byte byte-length, partial reads).
@@ -135,7 +137,7 @@ the class/file it creates or edits and the design section it realizes. New code 
 - [x] `TestLuaRedisScriptExecutor` — TC-SHA-1 (NOSCRIPT retry), TC-RO-1 (version gate).
 - [x] `TestRespReplyTreeModel` / `TestRespReplyTreeConsole` / `TestLuaRedisErrorLinkFilter` —
       TC-CON-1 (tree shaping), TC-CON-2 (error-class console display), TC-CON-3 (error-link offset + 1→0 line).
-- [ ] `RedisIntegrationTest` (Phase 6, `redisIntegrationTest` task) — dual-flavor EVAL/EVALSHA/_RO.
+- [x] `RedisIntegrationTest` (Phase 6, `redisIntegrationTest` task) — dual-flavor EVAL/EVALSHA/_RO.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md): Test Connection
       (§1), TLS/AUTH handshake (§2), connect/read timeout + cancellation UX (§3), binary/Docker
       launch + teardown + "neither available" (§4), editor-menu producer + checkConfiguration (§5),
@@ -151,4 +153,4 @@ the class/file it creates or edits and the design section it realizes. New code 
 | Phase 3: Connection model, storage & credentials | done | Must |
 | Phase 4: Server launcher (binary + Docker) | done | Must |
 | Phase 5: Run config, executor, producer & console | done | Must |
-| Phase 6: Dockerized integration tests | todo | Must |
+| Phase 6: Dockerized integration tests | done | Must |

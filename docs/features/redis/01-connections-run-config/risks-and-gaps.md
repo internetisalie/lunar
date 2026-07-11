@@ -80,8 +80,8 @@ Any change to them is a cross-feature contract change:
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| REDIS-00-DR-04 | Docker capability on gce-builder + `redisIntegrationTest` isolation (epic DR-04) | Risk 1.x / epic RISK-R10 | todo |
-| REDIS-01-DR-05 | Spike `HELLO 3` handshake + RESP2 fallback against dockerized redis:8 and valkey/valkey:8; confirm §3.1 negotiation and §4.3 `INFO` parsing on both | Risk 1.2 | todo |
+| REDIS-00-DR-04 | Docker capability on gce-builder + `redisIntegrationTest` isolation (epic DR-04) | Risk 1.x / epic RISK-R10 | partial — isolation half DONE (fe2c02a5): `redisIntegrationTest` task is excluded from `build`/`test`/`check` and fails with a clear Docker-unavailable message; Docker-on-builder half OUTSTANDING (infra, outside REDIS-01 code scope) |
+| REDIS-01-DR-05 | Spike `HELLO 3` handshake + RESP2 fallback against dockerized redis:8 and valkey/valkey:8; confirm §3.1 negotiation and §4.3 `INFO` parsing on both | Risk 1.2 | open — vehicle in place (`src/redisIntegrationTest/.../RedisIntegrationTest.kt`, fe2c02a5) but live run BLOCKED on Docker availability (ties to DR-04 Docker-on-builder half); spike not yet run green |
 
 ## NEW Symbols Introduced (grounding ledger)
 All are net-new to this repo (verified absent via grep); none are ports of EmmyLua/other-plugin APIs:
