@@ -78,6 +78,46 @@ jobs:
         # skips the two tests that read the out-of-repo test/ fixture tree, which a CI checkout lacks.
         run: ./gradlew test --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
 
+      # UniTrack test-analytics ingest (glimmer-docs G-014/G-015). Non-fatal — never breaks
+      # the build/release. Reuses the coverage data the test step produced (Kover instruments
+      # the `test` task), so `-x test` avoids a second run. Needs repo secret UNITRACK_TOKEN
+      # (INGEST-scoped) + var UNITRACK_URL (https://unitrack.internetisalie.net).
+      - name: Kover XML coverage report (JaCoCo format)
+        if: always()
+        continue-on-error: true
+        run: >-
+          ./gradlew koverXmlReport -x test -x integrationTest --no-daemon --stacktrace
+          -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
+
+      - name: Ingest into UniTrack
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          UNITRACK_URL: ${{ vars.UNITRACK_URL }}
+          UNITRACK_TOKEN: ${{ secrets.UNITRACK_TOKEN }}
+        run: |
+          # One JUnit XML per test class → `junit` (a list); Kover's JaCoCo-format XML → `jacoco`.
+          # Field names are legacy; UniTrack sniffs content.
+          args=()
+          shopt -s nullglob
+          for f in build/test-results/test/TEST-*.xml; do args+=( -F "junit=@${f}" ); done
+          cov=build/reports/kover/report.xml
+          [ -e "$cov" ] && args+=( -F "jacoco=@${cov}" )
+          if [ ${#args[@]} -eq 0 ]; then echo "no test reports — nothing to ingest"; exit 0; fi
+          git ls-files > sources.txt
+          curl -fsS --retry 3 --retry-connrefused \
+            -X POST "${UNITRACK_URL}/api/v1/ingest" \
+            -H "Authorization: Bearer ${UNITRACK_TOKEN}" \
+            -F "project=lunar" \
+            -F "branch=${GITHUB_REF_NAME}" \
+            -F "commit=${GITHUB_SHA}" \
+            -F "ciProvider=gitea" \
+            -F "buildName=${GITHUB_WORKFLOW} #${GITHUB_RUN_NUMBER}" \
+            -F "buildUrl=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            "${args[@]}" \
+            -F "sourceManifest=@sources.txt"
+
       # Gitea's act_runner rejects the upload-artifact@v4 protocol ("v4+ not supported on
       # GHES"), and plain @v3 (v3.2.2) is a Node 16 action the Node 20 runner image can't execute.
       # The @v3.2.2-node20 backport tag is the Gitea-compatible, Node 20 build.
