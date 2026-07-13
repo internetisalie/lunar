@@ -2,7 +2,7 @@
 id: "REDIS-03"
 parent_id: "REDIS"
 type: "feature"
-status: "planned"
+status: "done"
 folders:
   - "[[features/redis/requirements|requirements]]"
 title: "REDIS-03: Valkey Runtime Target"
@@ -14,7 +14,7 @@ title: "REDIS-03: Valkey Runtime Target"
 stubs including the `server.*` namespace, flavor detection on connect, and a portability
 inspection.
 **Priority**: Should
-**Status**: Not Implemented
+**Status**: Implemented
 
 ---
 
@@ -42,29 +42,29 @@ the Valkey stubs `require`/alias the shared definitions where the stub format al
 
 ## Acceptance Criteria
 
-- [ ] **AC-1** — `PlatformVersionRegistry` gains a `VALKEY` platform with versions `7.2` and
+- [x] **AC-1** — `PlatformVersionRegistry` gains a `VALKEY` platform with versions `7.2` and
       `8`, implicit language level Lua 5.1, and luacheck std mapping (reuse `redis7`-compatible
       std; document that no dedicated `valkey` std exists in luacheck)
-- [ ] **AC-2** — Any platform enumeration (`LuaPlatform.entries`, `PlatformVersionRegistry
+- [x] **AC-2** — Any platform enumeration (`LuaPlatform.entries`, `PlatformVersionRegistry
       .platforms()`, and the env→target sync path) surfaces `VALKEY` with its versions; legacy
       `lunar.xml` settings migration is unaffected (an old file with no `VALKEY` tag still
       deserializes and falls back gracefully)
-- [ ] **AC-3** — Valkey library roots ship `server.*` stubs (call/pcall/error_reply/
+- [x] **AC-3** — Valkey library roots ship `server.*` stubs (call/pcall/error_reply/
       status_reply/sha1hex/log/setresp/breakpoint/debug/set_repl/acl_check_cmd — full mirror
       of the `redis.*` surface) and `SERVER_NAME`/`SERVER_VERSION`/`SERVER_VERSION_NUM`
       globals, with quick documentation; the `server` stub inherits the `redis` field surface
       via `---@class server : redis` (no duplication of shared API docs)
-- [ ] **AC-4** — `redis.*` remains fully resolvable under the Valkey target (compatibility
+- [x] **AC-4** — `redis.*` remains fully resolvable under the Valkey target (compatibility
       namespace); `KEYS`/`ARGV` remain resolvable under the Valkey target
-- [ ] **AC-5** — REDIS-01 connections detect server flavor + version via `HELLO`/`INFO` and
+- [x] **AC-5** — REDIS-01 connections detect server flavor + version via `HELLO`/`INFO` and
       warn (once per session, non-modal) when the connected flavor mismatches the project
       target platform (e.g. Valkey server, Redis target)
-- [ ] **AC-6** — New inspection "Valkey-only API under Redis target": flags `server.*` and
+- [x] **AC-6** — New inspection "Valkey-only API under Redis target": flags `server.*` and
       `SERVER_*` usage when the project target platform is Redis; quick fix rewrites
       `server.<x>` → `redis.<x>` where a 1:1 equivalent exists
-- [ ] **AC-7** — Inspection is target-aware in both directions: no warnings for `server.*` /
+- [x] **AC-7** — Inspection is target-aware in both directions: no warnings for `server.*` /
       `SERVER_*` under the Valkey target
-- [ ] **AC-8** — Unit tests: registry round-trip, stub resolution for both namespaces,
+- [x] **AC-8** — Unit tests: registry round-trip, stub resolution for both namespaces,
       inspection positive/negative cases under both targets
 
 ## Test Cases

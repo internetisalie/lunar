@@ -373,7 +373,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | REDIS-01 | Connections & Script Run Configuration | done | M | TOOL-02 *(binary resolution, done)* | REDIS-02, REDIS-03, REDIS-05 | Serial: foundation |
 | REDIS-02 | LDB Debug Adapter | done | M | REDIS-01 | — | after 01 |
-| REDIS-03 | Valkey Runtime Target | planned | S | TARGET-01 *(done)*; REDIS-01 *(flavor detection only)* | REDIS-04 *(Valkey specs)*, REDIS-05 | ✓ (stub/registry work independent of 01) |
+| REDIS-03 | Valkey Runtime Target | done | S | TARGET-01 *(done)*; REDIS-01 *(flavor detection only)* | REDIS-04 *(Valkey specs)*, REDIS-05 | ✓ (stub/registry work independent of 01) |
 | REDIS-04 | Language-Engine Integration | planned | S | TARGET-04 *(done)* | REDIS-05 *(ambient-global suppression)* | ✓ (engine-only) |
 | REDIS-05 | Redis Functions Workflow | planned | C | REDIS-01; REDIS-03, REDIS-04 *(soft)* | — | after 01 |
 
