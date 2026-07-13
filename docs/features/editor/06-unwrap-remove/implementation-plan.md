@@ -68,8 +68,12 @@ class LuaUnwrapTest : BasePlatformTestCase() {
 - [x] `LuaUnwrapTest.testOptionsAndPreviewRange` — covers TC-04 (assert offered options + `collectAffectedElements` range).
 - [x] `LuaUnwrapTest.testUnwrapWhile/For/Do/Function` — covers TC-05..TC-08.
 - [x] `LuaUnwrapTest.testThreeWayIfDropsElse` — covers TC-09.
-- [ ] Run `human-verification-checklists.md` (VNC: Ctrl+Shift+Delete picker + live preview highlight) —
-      optional live spot-check; `LuaUnwrapTest` drives the real unwrap framework (collect + `unwrap`) headlessly.
+- [x] **VNC-verified 2026-07-13** (GoLand on lunar-builder): with the caret in a plain `if cond then …
+      end` body, Ctrl+Shift+Delete opens the *Choose the statement to unwrap/remove* picker offering
+      **Unwrap 'if'** and **Remove enclosing block** (correctly *no* else-collapse for a plain `if`). The
+      **live preview highlight renders** (EDITOR-06-04): the `if … then` header and `end` show struck in
+      red (to be removed), the body statements in green (to be hoisted). Applying **Unwrap 'if'** removes
+      the header/`end` and hoists the body to the parent scope, de-indented to column 0.
 
 ## Implementation Notes (as-built)
 - **Shared `LuaBlockStructure`**: EDITOR-05 created the file; this feature extended it with the body/branch

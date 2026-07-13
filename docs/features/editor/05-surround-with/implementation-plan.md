@@ -77,8 +77,11 @@ the gate.
   - TC-7 (`pcall`): → `pcall(function()\n    <caret>foo()\nend)`.
 - [x] Negative test: partial (statement-splitting) selection → `getElementsToSurround` returns empty
       (assert `LuaStatementsSurroundDescriptor().getElementsToSurround(...)` is empty).
-- [ ] Run `human-verification-checklists.md` (Ctrl+Alt+T picker in a sandbox IDE / VNC) — optional
-      live spot-check; `LuaSurroundWithTest` already drives the real `SurroundWithHandler` end-to-end.
+- [x] **VNC-verified 2026-07-13** (GoLand on lunar-builder): Ctrl+Alt+T opens the *Surround With* picker
+      listing all seven templates in order (if / while / for (numeric) / for (generic) / function / do /
+      pcall), with the COMP-07 `$SELECTION$` live templates (surr_if/for/do/fn) shown as a *separate* group
+      below — the two EPs coexist. Applying **if** to a two-statement selection wraps them as
+      `if  then / <body> / end`, re-indents the body to 4 spaces, and lands the caret in the condition slot.
 
 ## Implementation Notes (as-built)
 
