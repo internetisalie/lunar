@@ -19,10 +19,12 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.NotNullLazyValue
 import com.intellij.ui.RawCommandLineEditor
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings
 import net.internetisalie.lunar.redis.connection.LuaRedisServerConnection
+import net.internetisalie.lunar.redis.debug.LuaRedisDebugMode
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -74,6 +76,7 @@ class LuaRedisRunConfigurationOptions : RunConfigurationOptions() {
     private val myScriptPath: StoredProperty<String?> = string("").provideDelegate(this, "scriptPath")
     private val myConnectionId: StoredProperty<String?> = string("").provideDelegate(this, "connectionId")
     private val myExecMode: StoredProperty<String?> = string("EVAL").provideDelegate(this, "execMode")
+    private val myDebugMode: StoredProperty<String?> = string("FORKED").provideDelegate(this, "debugMode")
     private val myReadOnly: StoredProperty<String?> = string("false").provideDelegate(this, "readOnly")
     private val myKeysRaw: StoredProperty<String?> = string("").provideDelegate(this, "keysRaw")
     private val myArgvRaw: StoredProperty<String?> = string("").provideDelegate(this, "argvRaw")
@@ -89,6 +92,10 @@ class LuaRedisRunConfigurationOptions : RunConfigurationOptions() {
     var execMode: String?
         get() = myExecMode.getValue(this)
         set(value) = myExecMode.setValue(this, value)
+
+    var debugMode: String?
+        get() = myDebugMode.getValue(this)
+        set(value) = myDebugMode.setValue(this, value)
 
     var readOnly: String?
         get() = myReadOnly.getValue(this)
@@ -127,6 +134,14 @@ class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?,
     var execMode: LuaRedisExecMode
         get() = runCatching { LuaRedisExecMode.valueOf(options.execMode ?: "EVAL") }.getOrDefault(LuaRedisExecMode.EVAL)
         set(value) { options.execMode = value.name }
+
+    /**
+     * LDB debug session mode (design §2.9 / §11 amendment A2). Additive: only the Debug executor
+     * (REDIS-02) reads it; the Run executor ignores it entirely, so Run behavior is unchanged.
+     */
+    var debugMode: LuaRedisDebugMode
+        get() = runCatching { LuaRedisDebugMode.valueOf(options.debugMode ?: "FORKED") }.getOrDefault(LuaRedisDebugMode.FORKED)
+        set(value) { options.debugMode = value.name }
 
     var readOnly: Boolean
         get() = options.readOnly.toBoolean()
@@ -174,18 +189,21 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
     private val scriptPathField = TextFieldWithBrowseButton()
     private val connectionCombo = ComboBox<LuaRedisConnectionItem>()
     private val execModeCombo = ComboBox(arrayOf(LuaRedisExecMode.EVAL, LuaRedisExecMode.EVALSHA))
+    private val debugModeCombo = ComboBox(arrayOf(LuaRedisDebugMode.FORKED, LuaRedisDebugMode.SYNC))
     private val readOnlyCheckbox = com.intellij.ui.components.JBCheckBox("Read-only (EVAL_RO / EVALSHA_RO)")
     private val keysField = RawCommandLineEditor()
     private val argvField = RawCommandLineEditor()
 
     init {
         scriptPathField.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleFile())
+        debugModeCombo.renderer = SimpleListCellRenderer.create("") { debugModeLabel(it) }
         reloadConnections()
 
         myPanel = FormBuilder.createFormBuilder()
             .addLabeledComponent("Script", scriptPathField)
             .addLabeledComponent("Connection", connectionCombo)
             .addLabeledComponent("Execution mode", execModeCombo)
+            .addLabeledComponent("Debug mode", debugModeCombo)
             .addComponent(readOnlyCheckbox)
             .addLabeledComponent("KEYS (space-separated)", keysField)
             .addLabeledComponent("ARGV (space-separated)", argvField)
@@ -203,6 +221,7 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
         reloadConnections()
         connectionCombo.item = selectConnection(config.connectionId)
         execModeCombo.item = if (config.execMode == LuaRedisExecMode.EVALSHA) LuaRedisExecMode.EVALSHA else LuaRedisExecMode.EVAL
+        debugModeCombo.item = config.debugMode
         readOnlyCheckbox.isSelected = config.readOnly
         keysField.text = config.keys.joinToString(" ")
         argvField.text = config.argv.joinToString(" ")
@@ -212,9 +231,15 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
         config.scriptPath = scriptPathField.text
         config.connectionId = connectionCombo.item?.id
         config.execMode = execModeCombo.item ?: LuaRedisExecMode.EVAL
+        config.debugMode = debugModeCombo.item ?: LuaRedisDebugMode.FORKED
         config.readOnly = readOnlyCheckbox.isSelected
         config.keys = keysField.text.split(Regex("\\s+")).filter { it.isNotEmpty() }
         config.argv = argvField.text.split(Regex("\\s+")).filter { it.isNotEmpty() }
+    }
+
+    private fun debugModeLabel(mode: LuaRedisDebugMode): String = when (mode) {
+        LuaRedisDebugMode.FORKED -> "Forked"
+        LuaRedisDebugMode.SYNC -> "Sync (danger)"
     }
 
     private fun selectConnection(connectionId: String?): LuaRedisConnectionItem? {

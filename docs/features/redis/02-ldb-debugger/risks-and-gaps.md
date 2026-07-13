@@ -93,7 +93,7 @@ the feature-design level; it does not restate the epic register.
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
 | REDIS-00-DR-01 | LDB handshake spike vs dockerized redis:8 + valkey:8 (fork + sync); confirm §3.3/§3.4 framing + session-end lines; record divergence in design | Risk 2.1 / epic RISK-R01 | todo |
-| REDIS-02-DR-06 | Land + verify REDIS-01 seam amendments A1 (`RespClient.readReply`) and A2 (`debugMode` option) before Phase 3; or confirm the `whole` fallback (design §11) suffices | design §11 | todo |
+| REDIS-02-DR-06 | Land + verify REDIS-01 seam amendments A1 (`RespClient.readReply`) and A2 (`debugMode` option) before Phase 3; or confirm the `whole` fallback (design §11) suffices | design §11 | resolved |
 | REDIS-02-DR-07 | Decide `redis.debug.allowSyncOnRemote` default (refuse vs confirm) | Gap 2.1 / epic RISK-R03 | todo |
 
 ## Required REDIS-01 Seam Amendments (summary; full detail in design §11)
@@ -101,6 +101,21 @@ the feature-design level; it does not restate the epic register.
   half of `command`). Non-blocking on REDIS-01 if declined — `whole` fallback documented.
 - **A2**: add `debugMode` (`string("FORKED")`) to `LuaRedisRunConfigurationOptions` [REDIS-01 §2.8] +
   a `var debugMode: LuaRedisDebugMode` bridge and a settings-editor control (additive; Run ignores it).
+
+**REDIS-02-DR-06 resolution (Phase 3, resolved):** Both amendments landed as the first slice of Phase 3
+and are unit-verified; the `whole` fallback was not needed.
+- **A1** — `RespClient.readReply(): RespValue` added (`redis/resp/RespClient.kt`): the read half of
+  `command`, guarded by the same `commandMutex`, cancellable (`ensureActive()`/`checkCanceled()`) and
+  timeout-bounded (`SocketTimeoutException → RespException.Timeout` via the shared `decodeGuarded`), no
+  `!!`. Covered by `TestRespClient` (drain-second-block + cancelled-indicator-aborts).
+- **A2** — `LuaRedisRunConfigurationOptions.debugMode` (`string("FORKED")`) + `var debugMode:
+  LuaRedisDebugMode` bridge + a "Debug mode: Forked / Sync (danger)" combo in `LuaRedisSettingsEditor`
+  (`redis/run/LuaRedisRunConfiguration.kt`). Additive: only the Debug executor reads it; the Run
+  executor ignores it (no Run behavior change). Covered by `TestLuaRedisRunConfiguration` (default
+  FORKED, SYNC round-trip, `execMode` untouched).
+- **Gate**: full suite green on gce-builder (`ktlintFormat ktlintCheck test --rerun-tasks
+  --no-build-cache`), including the REDIS-01 `TestRespClient`/`TestLuaRedisRunConfiguration` (no A1/A2
+  regression) and the new fake-transport `TestLuaLdbController` (TC-LDB-ERR-1/ERR-2/STEPOUT-1).
 
 ## Test Case Gaps
 - Interactive UI behaviors (breakpoint-hit gutter/frame visuals, Variables/Watch/Evaluate panels,

@@ -58,6 +58,49 @@ class TestRespClient : BasePlatformTestCase() {
         assertEquals(RespValue.Simple("PONG"), reply)
     }
 
+    /**
+     * REDIS-02 A1: [RespClient.readReply] reads the next reply block **without** sending a command —
+     * the server pushes two blocks after the handshake and the client drains the second via `readReply`.
+     */
+    fun testReadReplyReadsNextBlockWithoutSending() {
+        val pushed = HELLO_MAP_REPLY +
+            "+FIRST\r\n".toByteArray(Charsets.UTF_8) +
+            "+SECOND\r\n".toByteArray(Charsets.UTF_8)
+        val server = cannedServer(reply = pushed)
+        val replies = runBlocking {
+            val client = RespClient.open(server.endpoint())
+            try {
+                val first = client.command("PING")
+                val second = client.readReply()
+                first to second
+            } finally {
+                client.dispose()
+            }
+        }
+        assertEquals(RespValue.Simple("FIRST"), replies.first)
+        assertEquals(RespValue.Simple("SECOND"), replies.second)
+    }
+
+    /** REDIS-02 A1: a cancelled indicator aborts an in-flight [RespClient.readReply] (no `!!`, cancellable). */
+    fun testReadReplyIsCancellable() {
+        val server = replyThenStallServer(handshakeReply = HELLO_MAP_REPLY)
+        val indicator = EmptyProgressIndicator()
+        val failure = runBlocking {
+            val client = RespClient.open(
+                server.endpoint(),
+                timeouts = RespTimeouts(connectMs = 2_000, readMs = 5_000),
+                indicator = indicator,
+            )
+            try {
+                indicator.cancel()
+                runCatching { client.readReply() }.exceptionOrNull()
+            } finally {
+                client.dispose()
+            }
+        }
+        assertTrue("expected ProcessCanceledException, got $failure", failure is ProcessCanceledException)
+    }
+
     /** TC-TIMEOUT-1: a server that never replies makes the read exceed `readMs` → [RespException.Timeout]. */
     fun testReadTimeoutSurfacesAsRespTimeout() {
         val server = stallingServer()

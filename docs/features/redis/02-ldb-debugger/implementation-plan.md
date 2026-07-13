@@ -48,12 +48,12 @@ Every task names the class/file it creates and the design section it realizes. P
 ### Phase 3: Transport + controller + session lifecycle [Must]
 - **Goal**: A live LDB session over the REDIS-01 `RespClient`: handshake, EVAL, pause/step/resume.
 - **Tasks**:
-  - [ ] (Prereq) Land REDIS-01 seam amendments A1/A2 (design §11) — `RespClient.readReply`, options `debugMode`.
-  - [ ] Create `LuaLdbTransport` (wraps `RespClient`; `enterDebug`/`eval`/`send`) — realizes §2.10, §3.1.
-  - [ ] Create `LuaLdbController` (connect flow, command methods, pause raising, error/lifecycle) — realizes §2.3, §3.5, §3.6.
-  - [ ] Create `LuaRedisDebugProcess : XDebugProcess` (step mapping, Step Out no-op, breakpoint delegation) — realizes §2.2.
-  - [ ] Create `LuaRedisDebugRunner : GenericProgramRunner` — realizes §2.1.
-  - [ ] Register `<programRunner>` in `plugin.xml` (design §7).
+  - [x] (Prereq) Land REDIS-01 seam amendments A1/A2 (design §11) — `RespClient.readReply`, options `debugMode`.
+  - [x] Create `LuaLdbTransport` (wraps `RespClient`; `enterDebug`/`eval`/`send`) — realizes §2.10, §3.1.
+  - [x] Create `LuaLdbController` (connect flow, command methods, pause raising, error/lifecycle) — realizes §2.3, §3.5, §3.6.
+  - [x] Create `LuaRedisDebugProcess : XDebugProcess` (step mapping, Step Out no-op, breakpoint delegation) — realizes §2.2.
+  - [x] Create `LuaRedisDebugRunner : GenericProgramRunner` — realizes §2.1.
+  - [x] Register `<programRunner>` in `plugin.xml` (design §7).
 - **Exit criteria**: a debug session against a local `RespClient` fake (scripted reply blocks) drives
   HANDSHAKE→ARMED→PAUSED→RUNNING→TERMINATED; error paths call `reportError`/`errorOccurred`
   (TC-LDB-ERR-1, TC-LDB-ERR-2 with a fake transport). Build green.
@@ -103,7 +103,7 @@ Every task names the class/file it creates and the design section it realizes. P
 - [x] `TestLdbSessionMachine` — TC-LDB-SM-1, TC-LDB-SM-2.
 - [x] `TestLuaLdbBreakpointType` — TC-LDB-BP-1 (statement vs comment; extends `BasePlatformTestCase`,
       `myFixture.configureByText` per contract §5).
-- [ ] `TestLuaLdbController` (fake transport) — TC-LDB-COND-1, TC-LDB-ERR-1, TC-LDB-ERR-2, TC-LDB-STEPOUT-1.
+- [x] `TestLuaLdbController` (fake transport) — TC-LDB-ERR-1, TC-LDB-ERR-2, TC-LDB-STEPOUT-1 (TC-LDB-COND-1 lands in Phase 4 with the condition gate).
 - [ ] `TestLuaLdbSyncGuard` — TC-LDB-SYNC-1.
 - [ ] `RedisDebugIntegrationTest` (`redisIntegrationTest` task) — TC-INT-1, TC-INT-2, TC-INT-3.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) §1–§5.
@@ -114,7 +114,7 @@ Every task names the class/file it creates and the design section it realizes. P
 |-------|--------|----------|
 | Phase 1: LDB wire + parsers | done | Must |
 | Phase 2: Breakpoint type / structural XDebugger classes | done | Must |
-| Phase 3: Transport + controller + session lifecycle | todo | Must |
+| Phase 3: Transport + controller + session lifecycle | done | Must |
 | Phase 4: Conditional BPs + sync guard + Redis tab | todo | Must |
 | Phase 5: Dual-flavor integration tests | todo | Must |
 

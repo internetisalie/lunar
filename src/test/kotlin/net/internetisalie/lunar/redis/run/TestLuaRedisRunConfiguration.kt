@@ -5,6 +5,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings
 import net.internetisalie.lunar.redis.connection.LuaRedisProvisioning
 import net.internetisalie.lunar.redis.connection.LuaRedisServerConnection
+import net.internetisalie.lunar.redis.debug.LuaRedisDebugMode
 
 /**
  * Option round-trip + `checkConfiguration` coverage for [LuaRedisRunConfiguration] (design §2.8, §3.7).
@@ -60,6 +61,22 @@ class TestLuaRedisRunConfiguration : BasePlatformTestCase() {
         // The connection resolves by id from project settings.
         assertNotNull(config.connection)
         assertEquals("u1", config.connection?.id)
+    }
+
+    /** REDIS-02 A2: debugMode defaults to FORKED and round-trips SYNC additively (Run behavior unchanged). */
+    fun testDebugModeDefaultsForkedAndRoundTrips() {
+        seedConnection("u1")
+        val config = newConfig()
+        assertEquals("default must be FORKED", LuaRedisDebugMode.FORKED, config.debugMode)
+
+        config.debugMode = LuaRedisDebugMode.SYNC
+        assertEquals(LuaRedisDebugMode.SYNC, config.debugMode)
+        assertEquals("SYNC", config.options.debugMode)
+
+        // execMode is untouched by the debugMode field (additive, no Run behavior change).
+        config.execMode = LuaRedisExecMode.EVAL
+        assertEquals(LuaRedisExecMode.EVAL, config.execMode)
+        assertEquals(LuaRedisDebugMode.SYNC, config.debugMode)
     }
 
     /** TC-RC-1: a blank script path makes checkConfiguration throw the exact message. */

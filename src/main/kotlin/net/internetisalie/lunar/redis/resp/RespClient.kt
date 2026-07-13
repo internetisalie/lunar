@@ -74,23 +74,47 @@ class RespClient private constructor(
     suspend fun command(vararg args: String): RespValue =
         command(args.map { it.toByteArray(Charsets.UTF_8) })
 
+    /**
+     * Read the next reply block on this connection **without sending a command** (REDIS-02 design §11
+     * amendment A1). This is the read half of [command]: a cancellable, timeout-bounded
+     * [RespCodec.decode] over the same reader, guarded by the same [commandMutex] so it never races an
+     * in-flight [command]. Used by the LDB transport to drain a trailing out-of-band reply block; it
+     * does not disturb [command]'s one-write→one-read contract (no write is performed here).
+     */
+    suspend fun readReply(): RespValue = commandMutex.withLock {
+        readOne(op = "readReply")
+    }
+
     private suspend fun exchange(args: List<ByteArray>, op: String): RespValue {
         coroutineContext.ensureActive()
         indicator?.checkCanceled()
         return withContext(Dispatchers.IO) {
-            try {
+            decodeGuarded(op) {
                 output.write(RespCodec.encodeCommand(args))
                 output.flush()
                 RespCodec.decode(input)
-            } catch (timeout: SocketTimeoutException) {
-                throw RespException.Timeout(op)
-            } catch (cancelled: ProcessCanceledException) {
-                throw cancelled
-            } catch (failure: IOException) {
-                throw RespException.Io(failure)
             }
         }
     }
+
+    private suspend fun readOne(op: String): RespValue {
+        coroutineContext.ensureActive()
+        indicator?.checkCanceled()
+        return withContext(Dispatchers.IO) {
+            decodeGuarded(op) { RespCodec.decode(input) }
+        }
+    }
+
+    private inline fun decodeGuarded(op: String, block: () -> RespValue): RespValue =
+        try {
+            block()
+        } catch (timeout: SocketTimeoutException) {
+            throw RespException.Timeout(op)
+        } catch (cancelled: ProcessCanceledException) {
+            throw cancelled
+        } catch (failure: IOException) {
+            throw RespException.Io(failure)
+        }
 
     override fun dispose() {
         try {
