@@ -580,6 +580,7 @@
 
     <programRunner implementation="net.internetisalie.lunar.run.LuaDebugRunner"/>
     <xdebugger.breakpointType implementation="net.internetisalie.lunar.run.LuaLineBreakpointType"/>
+    <xdebugger.breakpointType implementation="net.internetisalie.lunar.redis.debug.LuaLdbBreakpointType"/>
 
     <!-- Inlay Hints Settings -->
     <applicationService serviceImplementation="net.internetisalie.lunar.lang.insight.hint.LuaInlayHintsSettings"/>

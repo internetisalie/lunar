@@ -36,12 +36,12 @@ Every task names the class/file it creates and the design section it realizes. P
 ### Phase 2: Breakpoint type, editors, evaluator, value/stack scaffolding [Must]
 - **Goal**: The XDebugger-facing structural classes (no live session yet), reusing `run/` shapes.
 - **Tasks**:
-  - [ ] Create `LuaLdbBreakpointType` (id `"redis-lua-line"`, `canPutAt` without `!!`) — realizes §2.5, §3.9.
-  - [ ] Create `LuaLdbBreakpointHandler` — realizes §2.4.
-  - [ ] Create `LuaLdbValue : XNamedValue`, `LuaLdbStackFrame : XStackFrame`,
+  - [x] Create `LuaLdbBreakpointType` (id `"redis-lua-line"`, `canPutAt` without `!!`) — realizes §2.5, §3.9.
+  - [x] Create `LuaLdbBreakpointHandler` — realizes §2.4.
+  - [x] Create `LuaLdbValue : XNamedValue`, `LuaLdbStackFrame : XStackFrame`,
         `LuaLdbExecutionStack : XExecutionStack`, `LuaLdbSuspendContext : XSuspendContext` — realizes §2.12.
-  - [ ] Create `LuaLdbEvaluator : XDebuggerEvaluator` (reuse `run/LuaDebuggerEvaluator` expr-range algo) — realizes §2.6.
-  - [ ] Register `<xdebugger.breakpointType>` in `plugin.xml` (design §7).
+  - [x] Create `LuaLdbEvaluator : XDebuggerEvaluator` (reuse `run/LuaDebuggerEvaluator` expr-range algo) — realizes §2.6.
+  - [x] Register `<xdebugger.breakpointType>` in `plugin.xml` (design §7).
 - **Exit criteria**: TC-LDB-BP-1 green (canPutAt statement vs comment); classes compile against the
   grounded `intellij.platform.debugger.jar` supertypes; `plugin.xml` validates.
 
@@ -101,7 +101,7 @@ Every task names the class/file it creates and the design section it realizes. P
 - [x] `TestLdbReplyParser` — TC-LDB-DEC-1, TC-LDB-DEC-2, TC-LDB-DEC-3.
 - [x] `TestLdbPrintParser` — TC-LDB-PRINT-1, TC-LDB-PRINT-2 (incl. truncation, no `!!`).
 - [x] `TestLdbSessionMachine` — TC-LDB-SM-1, TC-LDB-SM-2.
-- [ ] `TestLuaLdbBreakpointType` — TC-LDB-BP-1 (statement vs comment; extends `BasePlatformTestCase`,
+- [x] `TestLuaLdbBreakpointType` — TC-LDB-BP-1 (statement vs comment; extends `BasePlatformTestCase`,
       `myFixture.configureByText` per contract §5).
 - [ ] `TestLuaLdbController` (fake transport) — TC-LDB-COND-1, TC-LDB-ERR-1, TC-LDB-ERR-2, TC-LDB-STEPOUT-1.
 - [ ] `TestLuaLdbSyncGuard` — TC-LDB-SYNC-1.
@@ -113,7 +113,7 @@ Every task names the class/file it creates and the design section it realizes. P
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: LDB wire + parsers | done | Must |
-| Phase 2: Breakpoint type / structural XDebugger classes | todo | Must |
+| Phase 2: Breakpoint type / structural XDebugger classes | done | Must |
 | Phase 3: Transport + controller + session lifecycle | todo | Must |
 | Phase 4: Conditional BPs + sync guard + Redis tab | todo | Must |
 | Phase 5: Dual-flavor integration tests | todo | Must |
