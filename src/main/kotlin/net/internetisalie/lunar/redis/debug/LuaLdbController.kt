@@ -68,8 +68,9 @@ class LuaLdbController private constructor(
     /** Connect, arm, drain breakpoints, EVAL, and raise the first pause (design §3.5). */
     suspend fun connect() {
         try {
-            val io = openTransport()
+            val io = openTransport() ?: return
             transport = io
+            announceMode()
             armSession(io)
             drainBreakpoints(io)
             runScript(io)
@@ -80,15 +81,32 @@ class LuaLdbController private constructor(
         }
     }
 
-    private suspend fun openTransport(): LdbIo = transportOpener?.invoke() ?: openLiveTransport()
+    private suspend fun openTransport(): LdbIo? = transportOpener?.invoke() ?: openLiveTransport()
 
-    /** The production transport open (design §3.5 steps 1–4): resolve → launch-local → open → wrap. */
-    private suspend fun openLiveTransport(): LdbIo {
+    /**
+     * The production transport open (design §3.5 steps 1–4): resolve → sync-guard → launch-local →
+     * open → wrap. Returns `null` when the sync-on-remote confirmation is declined (session stops).
+     */
+    private suspend fun openLiveTransport(): LdbIo? {
         val connection = config.connection ?: throw ExecutionException("No Redis connection selected")
+        if (!confirmSyncIfNeeded(connection)) return null
         val launched = launchIfNeeded(connection)
         launchedStop = launched?.stop
         val client = openClient(connection, launched)
         return LuaLdbTransport(client)
+    }
+
+    /** Sync-on-remote guard (design §3.8): decline → tear down before any `SCRIPT DEBUG` is sent. */
+    private suspend fun confirmSyncIfNeeded(connection: LuaRedisServerConnection): Boolean {
+        if (!LuaLdbSyncGuard.requiresConfirmation(config, connection)) return true
+        if (LuaLdbSyncGuard.confirm(session.project, connection)) return true
+        teardown()
+        return false
+    }
+
+    /** Emit the fork/sync consequence banner on session start (design §3.6/§2.13). */
+    private fun announceMode() {
+        session.reportMessage(LuaLdbSyncGuard.bannerText(config.debugMode), MessageType.WARNING)
     }
 
     private suspend fun launchIfNeeded(connection: LuaRedisServerConnection): LaunchedServer? {
@@ -221,15 +239,36 @@ class LuaLdbController private constructor(
     }
 
     private suspend fun raisePause(stop: LdbEvent.Stop) {
+        val breakpoint = lineToBreakpoint[stop.serverLine]
+        if (breakpoint != null && !conditionHolds(breakpoint)) {
+            continueRun()
+            return
+        }
         val position = readAction { positionFor(stop.serverLine) }
         val locals = readLocals()
-        val breakpoint = lineToBreakpoint[stop.serverLine]
         val context = LuaLdbSuspendContext(position, this, locals)
         if (breakpoint != null) {
             session.breakpointReached(breakpoint, null, context)
         } else {
             session.positionReached(context)
         }
+    }
+
+    /**
+     * Conditional-breakpoint gate (design §3.7): evaluates the breakpoint condition IDE-side (LDB has
+     * no server-side conditional breakpoints). A blank/absent condition holds. On truthiness, a
+     * `false`/`nil` scalar → does not hold (resume); anything else holds (pause). An eval failure is
+     * treated as holding (pause) so a broken condition never silently skips the breakpoint.
+     */
+    private suspend fun conditionHolds(breakpoint: XBreakpoint<*>): Boolean {
+        val condition = breakpoint.conditionExpression?.expression?.takeIf { it.isNotBlank() } ?: return true
+        val io = transport ?: return true
+        val reply = runCatching { sendGuarded(io, LdbCommand.Eval(condition)) }.getOrNull() ?: return true
+        if (LdbReplyParser.parse(reply) is LdbEvent.Error) return true
+        val node = LdbPrintParser.parseValue(reply)
+        if (node !is LdbValueNode.Scalar) return true
+        val text = node.text.trim()
+        return text != "false" && text != "nil"
     }
 
     private fun endSession(reason: EndReason) {

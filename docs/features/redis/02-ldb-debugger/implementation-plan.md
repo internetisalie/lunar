@@ -61,11 +61,11 @@ Every task names the class/file it creates and the design section it realizes. P
 ### Phase 4: Conditional breakpoints, sync guard, Redis console tab [Must]
 - **Goal**: The remaining Must behaviors on top of a working session.
 - **Tasks**:
-  - [ ] Implement the conditional-breakpoint gate in `LuaLdbController.onPause` — realizes §3.7.
-  - [ ] Create `LuaLdbSyncGuard` (`requiresConfirmation`/`bannerText`/`confirm`) + wire into `connect()` — realizes §2.13, §3.8.
-  - [ ] Create `LuaLdbRedisConsoleTab` (reuses REDIS-01 `RespReplyTreeConsole`) + add the tab in
+  - [x] Implement the conditional-breakpoint gate in `LuaLdbController.onPause` — realizes §3.7.
+  - [x] Create `LuaLdbSyncGuard` (`requiresConfirmation`/`bannerText`/`confirm`) + wire into `connect()` — realizes §2.13, §3.8.
+  - [x] Create `LuaLdbRedisConsoleTab` (reuses REDIS-01 `RespReplyTreeConsole`) + add the tab in
         `LuaRedisDebugProcess.createConsole` via `RunnerLayoutUi` — realizes §2.7.
-  - [ ] Banner text emitted on session start via `session.reportMessage` — realizes §3.6/§2.13.
+  - [x] Banner text emitted on session start via `session.reportMessage` — realizes §3.6/§2.13.
 - **Exit criteria**: TC-LDB-COND-1, TC-LDB-SYNC-1 green (unit-level: condition gate + sync-confirmation
   decision); console-tab and banner behaviors covered by human checklist §3/§4.
 
@@ -103,8 +103,8 @@ Every task names the class/file it creates and the design section it realizes. P
 - [x] `TestLdbSessionMachine` — TC-LDB-SM-1, TC-LDB-SM-2.
 - [x] `TestLuaLdbBreakpointType` — TC-LDB-BP-1 (statement vs comment; extends `BasePlatformTestCase`,
       `myFixture.configureByText` per contract §5).
-- [x] `TestLuaLdbController` (fake transport) — TC-LDB-ERR-1, TC-LDB-ERR-2, TC-LDB-STEPOUT-1 (TC-LDB-COND-1 lands in Phase 4 with the condition gate).
-- [ ] `TestLuaLdbSyncGuard` — TC-LDB-SYNC-1.
+- [x] `TestLuaLdbController` (fake transport) — TC-LDB-ERR-1, TC-LDB-ERR-2, TC-LDB-STEPOUT-1, TC-LDB-COND-1 (condition gate: false-resumes / true-pauses).
+- [x] `TestLuaLdbSyncGuard` — TC-LDB-SYNC-1.
 - [ ] `RedisDebugIntegrationTest` (`redisIntegrationTest` task) — TC-INT-1, TC-INT-2, TC-INT-3.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) §1–§5.
 
@@ -115,7 +115,7 @@ Every task names the class/file it creates and the design section it realizes. P
 | Phase 1: LDB wire + parsers | done | Must |
 | Phase 2: Breakpoint type / structural XDebugger classes | done | Must |
 | Phase 3: Transport + controller + session lifecycle | done | Must |
-| Phase 4: Conditional BPs + sync guard + Redis tab | todo | Must |
+| Phase 4: Conditional BPs + sync guard + Redis tab | done | Must |
 | Phase 5: Dual-flavor integration tests | todo | Must |
 
 ## See Also

@@ -4,6 +4,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.xdebugger.XDebugSession
+import com.intellij.xdebugger.XExpression
+import com.intellij.xdebugger.XSourcePosition
+import com.intellij.xdebugger.breakpoints.XBreakpoint
 import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 import com.intellij.xdebugger.frame.XValue
 import kotlinx.coroutines.CoroutineScope
@@ -104,6 +107,35 @@ class TestLuaLdbController : BasePlatformTestCase() {
         return file
     }
 
+    /** A fake conditional line breakpoint at [line] (0-based) carrying [condition] (or none if null). */
+    private fun fakeBreakpoint(line: Int, condition: String?): XBreakpoint<*> {
+        val position = Proxy.newProxyInstance(
+            XSourcePosition::class.java.classLoader,
+            arrayOf(XSourcePosition::class.java),
+        ) { _, method: Method, _ -> if (method.name == "getLine") line else defaultFor(method) } as XSourcePosition
+        val expression = condition?.let {
+            Proxy.newProxyInstance(
+                XExpression::class.java.classLoader,
+                arrayOf(XExpression::class.java),
+            ) { _, method: Method, _ -> if (method.name == "getExpression") it else defaultFor(method) } as XExpression
+        }
+        return Proxy.newProxyInstance(
+            XBreakpoint::class.java.classLoader,
+            arrayOf(XBreakpoint::class.java),
+        ) { _, method: Method, _ ->
+            when (method.name) {
+                "getSourcePosition" -> position
+                "getConditionExpression" -> expression
+                else -> defaultFor(method)
+            }
+        } as XBreakpoint<*>
+    }
+
+    /** A single-scalar eval reply block (`<value> <text>`) for the condition gate. */
+    private fun evalScalarBlock(text: String): RespValue = RespValue.Array(
+        listOf(RespValue.Simple("<value> $text")),
+    )
+
     private fun stopBlock(line: Int, reason: String): RespValue = RespValue.Array(
         listOf(
             RespValue.Simple("* Stopped at $line, stop reason = $reason"),
@@ -150,6 +182,56 @@ class TestLuaLdbController : BasePlatformTestCase() {
             assertFalse("session should be torn down after continue→end", controller.isArmed)
             assertTrue(transport.sentCommands.any { it is LdbCommand.Step })
             assertTrue(transport.sentCommands.any { it is LdbCommand.Continue })
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    /** TC-LDB-COND-1 (false): a conditional breakpoint whose condition is `false` auto-resumes, no pause. */
+    fun testConditionalBreakpointFalseResumes() {
+        val recorder = SessionRecorder()
+        val replies = ArrayDeque<Any>(
+            listOf(
+                RespValue.Simple("OK"),        // reply to Break(1) during drain
+                evalScalarBlock("false"),      // reply to Eval(condition) → not holds
+                sessionEndedBlock(),           // reply to the auto Continue → session end
+            ),
+        )
+        val transport = FakeTransport(RespValue.Simple("OK"), stopBlock(1, "breakpoint"), replies)
+        val (controller, scope) = controllerWith(transport, recorder)
+        try {
+            runBlocking {
+                controller.addBreakpoint(fakeBreakpoint(0, "x > 5"))
+                controller.connect()
+            }
+            assertEquals("false condition must not surface a pause", 0, recorder.breakpointReached)
+            assertEquals("false condition must not surface a position pause", 0, recorder.positionReached)
+            assertTrue("controller must auto-issue Continue", transport.sentCommands.any { it is LdbCommand.Continue })
+            assertFalse("session ends after the auto-resume", controller.isArmed)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    /** TC-LDB-COND-1 (true): a conditional breakpoint whose condition is truthy raises `breakpointReached`. */
+    fun testConditionalBreakpointTruePauses() {
+        val recorder = SessionRecorder()
+        val replies = ArrayDeque<Any>(
+            listOf(
+                RespValue.Simple("OK"),  // reply to Break(1) during drain
+                evalScalarBlock("6"),    // reply to Eval(condition) → holds
+                printBlock(),            // reply to Print (readLocals) on pause
+            ),
+        )
+        val transport = FakeTransport(RespValue.Simple("OK"), stopBlock(1, "breakpoint"), replies)
+        val (controller, scope) = controllerWith(transport, recorder)
+        try {
+            runBlocking {
+                controller.addBreakpoint(fakeBreakpoint(0, "x > 5"))
+                controller.connect()
+            }
+            assertEquals("truthy condition must surface a breakpoint pause", 1, recorder.breakpointReached)
+            assertFalse("truthy condition must not auto-Continue", transport.sentCommands.any { it is LdbCommand.Continue })
         } finally {
             scope.cancel()
         }

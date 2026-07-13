@@ -3,6 +3,7 @@ package net.internetisalie.lunar.redis.debug
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.ui.ExecutionConsole
+import com.intellij.execution.ui.RunnerLayoutUi
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.ui.MessageType
 import com.intellij.platform.util.coroutines.childScope
@@ -73,7 +74,24 @@ class LuaRedisDebugProcess(
 
     override fun doGetProcessHandler(): ProcessHandler? = executionResult.processHandler
 
-    override fun createConsole(): ExecutionConsole = executionResult.executionConsole
+    /**
+     * Returns the run console and mounts the mid-pause "Redis" tab once the debugger UI is ready
+     * (design §2.7). The tab is a [LuaLdbRedisConsoleTab] (reusing the REDIS-01 reply-tree console),
+     * added via the session's [com.intellij.execution.ui.RunnerLayoutUi] — a programmatic path, so no
+     * plugin.xml EP is needed. The tab disposes with the process.
+     */
+    override fun createConsole(): ExecutionConsole {
+        session.runWhenUiReady { ui -> mountRedisTab(ui) }
+        return executionResult.executionConsole
+    }
+
+    private fun mountRedisTab(ui: RunnerLayoutUi) {
+        val tab = LuaLdbRedisConsoleTab(session.project, controller, sessionScope)
+        val content = ui.createContent(REDIS_TAB_ID, tab.component, REDIS_TAB_TITLE, null, null)
+        content.isCloseable = false
+        content.setDisposer(tab)
+        ui.addContent(content)
+    }
 
     override fun sessionInitialized() {
         super.sessionInitialized()
@@ -88,6 +106,9 @@ class LuaRedisDebugProcess(
 
     companion object {
         const val STEP_OUT_UNSUPPORTED = "Step Out is not supported by the Redis Lua debugger"
+
+        private const val REDIS_TAB_ID = "RedisLdbConsole"
+        private const val REDIS_TAB_TITLE = "Redis"
 
         private val log = logger<LuaRedisDebugProcess>()
     }
