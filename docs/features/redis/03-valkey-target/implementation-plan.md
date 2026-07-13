@@ -76,12 +76,24 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 ### Phase 5: Tests & docs [Must]
 - **Goal**: automated coverage of every AC; user-facing note on the Valkey target.
 - **Tasks**:
-  - [ ] Add `PlatformVersionRegistryTest` cases / a `ValkeyTargetTest` for TC-REG-1..4.
-  - [ ] Add a stub-resolution test (fixture `configureByText`, target = Valkey) for TC-STUB-1..4.
-  - [ ] Add `LuaValkeyPortabilityInspectionTest` (positive/negative under both targets +
+  - [x] Add `PlatformVersionRegistryTest` cases / a `ValkeyTargetTest` for TC-REG-1..4.
+        (TC-REG-1: `PlatformVersionRegistryTest.testGetVersionsForValkey` + `testDefaultVersionForValkey`;
+        TC-REG-2: `TargetTest.testValkeyAllVersionsAreLua51` + `testValkey8LibraryRootAndLuacheckStd`;
+        TC-REG-3/4: `ValkeyTargetTest.testValkeyStateRoundTrip` + `testLegacyRedisStateUnaffectedByValkeyAddition`)
+  - [x] Add a stub-resolution test (fixture `configureByText`, target = Valkey) for TC-STUB-1..4.
+        (TC-STUB-1..5 delivered by Phase 2 in `ValkeyStubResourceTest`; TC-STUB-3 verifies concrete
+        `server.error_reply` resolution, not inheritance-based resolution — see risks-and-gaps §Gap 2.3)
+  - [x] Add `LuaValkeyPortabilityInspectionTest` (positive/negative under both targets +
         STANDARD) and a quick-fix test for TC-INSP-1..6.
-  - [ ] Add `LuaRedisServerFlavorTest` + `LuaRedisFlavorWarningTest` for TC-FLV-1..3.
-  - [ ] Document the Valkey target + `--std redis7` reuse in the epic user guide / release notes.
+        (TC-INSP-1..6 delivered by Phase 3 in `LuaValkeyPortabilityInspectionTest`)
+  - [x] Add `LuaRedisServerFlavorTest` + `LuaRedisFlavorWarningTest` for TC-FLV-1..3.
+        (TC-FLV-1/2 in `LuaRedisServerFlavorTest`; TC-FLV-3 in `LuaRedisFlavorWarningTest`)
+  - [x] Document the Valkey target + `--std redis7` reuse in the epic user guide / release notes.
+        (CHANGELOG.md under Runtime & Platform Support — Valkey Runtime Target (REDIS-03) entry)
+  - [x] Reconcile design §3.2 (and §2.4 server.lua row) to reflect the shipped reality: concrete
+        `function server.<m>(...)` members (not inheritance-only) resolve `server.*` via
+        `LuaGlobalDeclarationIndex`; `---@class server : redis` retained for hover/hierarchy only.
+        Cross-references risks-and-gaps §Gap 2.3.
 - **Exit criteria**: all TC-* automated; `run build` (checkStatus/kover/lint) green.
 
 ## Requirement → Phase Coverage
@@ -102,7 +114,7 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 - [x] Stubs: stub-resolution fixture test — covers TC-STUB-1..4.
 - [x] Inspection: `LuaValkeyPortabilityInspectionTest` + quick-fix test — covers TC-INSP-1..6.
 - [x] Flavor: `LuaRedisServerFlavorTest` + `LuaRedisFlavorWarningTest` — covers TC-FLV-1..3.
-- [ ] Run `human-verification-checklists.md` (§1 stub UX, §2 flavor warning, §3 inspection/quick fix).
+- [ ] Run `human-verification-checklists.md` (§1 stub UX, §2 flavor warning, §3 inspection/quick fix). [Deferred — live IDE verification; not blocking Phase 5 automated gate]
 
 ## Task Summary
 
@@ -112,4 +124,4 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 | Phase 2: Valkey stub resources | done | Must |
 | Phase 3: Portability inspection + quick fix | done | Must |
 | Phase 4: Flavor detection + warning | done | Must |
-| Phase 5: Tests & docs | todo | Must |
+| Phase 5: Tests & docs | done | Must |

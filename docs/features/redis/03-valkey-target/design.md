@@ -2,7 +2,7 @@
 id: "REDIS-03-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "todo"
+status: "done"
 parent_id: "REDIS-03"
 folders:
   - "[[features/redis/03-valkey-target/requirements|requirements]]"
@@ -41,10 +41,14 @@ resolves per-target stdlib stubs from a `runtime/<platform>/<version>/` resource
   declares `---@class redis` + `redis = {}` (`redis.lua:1,12`) with EmmyLua-style
   `---@field`/`function redis.foo(...)` members. `global.lua` declares `KEYS`/`ARGV` as
   `---@type string[]` globals (`global.lua:1-8`).
-- Member resolution follows `---@class X : Y` parent types:
-  `LuaTypeManagerImpl.kt:191-193` reads `classTag.parentTypes.argTypeList` into `superTypes`;
-  `LuaLocalVarStubElementType.kt:26` indexes the extends type. So `---@class server : redis`
-  inherits every `redis` field/method (grounds AC-3's "no duplication").
+- The *class-type* path reads `---@class X : Y` parent types
+  (`LuaTypeManagerImpl.kt:191-193` → `superTypes`; `LuaLocalVarStubElementType.kt:26` indexes the
+  extends type). **However, dotted-member access `server.<m>` does NOT resolve through this
+  inheritance** — the reference resolver `LuaNameReference.multiResolve` keys only on
+  `LuaGlobalDeclarationIndex["receiver.member"]` (concrete `function server.<m>`), never on `@class`
+  parents. So `server.lua` ships **concrete** members mirroring `redis.lua` (AC-3 "no duplication" is
+  honoured by generating them, not by inheritance); `---@class server : redis` is retained only for
+  hover / type-hierarchy. This premise was corrected in Phase 2 — see §3.2 and risks-and-gaps §Gap 2.3.
 - The project target is applied by the environment→target sync path:
   `LuaTargetSynchronizer.targetFor(info)` (`toolchain/resolve/LuaTargetSynchronizer.kt:81-83`)
   calls `PlatformVersionRegistry.resolveTarget(info.platform, label)`; `info.platform` is a
@@ -69,7 +73,7 @@ non-portable Valkey-only API in Redis-targeted scripts.
 | Version registry | `PlatformVersionRegistry` (`platform/target/PlatformVersionRegistry.kt:15`) | **EXTENDS** — adds one map entry |
 | Target derivation | `Target.getImplicitLanguageLevel` (`Target.kt:37`) | **EXTENDS** — adds one `when` branch `VALKEY -> LUA51` |
 | Stub resolution | `RuntimeLibraryProvider` (`RuntimeLibraryProvider.kt:24`), stub `.lua` in `runtime/redis/redis-7/` | **REUSED unchanged** — new `runtime/valkey/valkey-{7.2,8}/` roots consumed by the same code |
-| Class inheritance for stubs | `---@class X : Y` → `LuaTypeManagerImpl.kt:191`, `LuaLocalVarStubElementType.kt:26` | **REUSED** — `---@class server : redis` |
+| `server.*` member resolution | `LuaNameReference.multiResolve` → `LuaGlobalDeclarationIndex` (dotted-member access; `@class` inheritance is NOT consulted here) | **CONCRETE members** — `server.lua` declares `function server.<m>` mirroring `redis.lua`; `---@class server : redis` retained for hover/hierarchy only (Phase 2 correction, §3.2 / Gap 2.3) |
 | Inspection pattern | `LuaDeprecatedApiInspection` (`analysis/inspections/LuaDeprecatedApiInspection.kt:18`), registered `plugin.xml:202-209` | **PATTERN** — new inspection is a sibling `LocalInspectionTool`, not a modification of any existing one (grep for an existing portability/flavor inspection → 0 hits) |
 | Quick fix pattern | `LuaAddToGlobalsQuickFix` (`analysis/inspections/LuaAddToGlobalsQuickFix.kt:13`) implements `LocalQuickFix` | **PATTERN** — new `LocalQuickFix` |
 | Identifier rewrite | `LuaElementFactory.createIdentifier` (`lang/psi/LuaElementFactory.kt:12`), used by rename | **REUSED** — quick fix replaces the `server` identifier leaf |
@@ -149,14 +153,13 @@ LuaValkeyPortabilityInspection  [NEW]  (§2.7)  + LuaValkeyToRedisQuickFix  [NEW
   | `redis.lua` | `---@class redis` + `redis = {}` + all members | byte copy of `runtime/redis/redis-7/redis.lua` (AC-4 compat namespace) |
   | `global.lua` | `KEYS`/`ARGV` `---@type string[]` | byte copy of `runtime/redis/redis-7/global.lua` |
   | `cjson.lua`, `cmsgpack.lua`, `bit.lua`, `struct.lua`, `os.lua` | shared sandbox libs | byte copies of the `redis-7` files |
-  | `server.lua` | `---@class server : redis` + `server = {}` (see §3.2) | **[NEW]** — inherits the full `redis` surface; declares no per-member `---@field` (inheritance provides them) |
+  | `server.lua` | `---@class server : redis` + `server = {}` + concrete `function server.<m>(...)` members mirroring `redis.lua` (see §3.2) | **[NEW]** — concrete members resolve via `LuaGlobalDeclarationIndex`; `---@class server : redis` retained for hover/hierarchy only |
   | `server_global.lua` | `SERVER_NAME`/`SERVER_VERSION`/`SERVER_VERSION_NUM` globals (see §3.2) | **[NEW]** |
 - **Rationale for copies not symlinks**: the resource tree is flat per-target (each other target
   dir is self-contained today, e.g. `runtime/standard/lua-5.*`); `RuntimeLibraryProvider` lists a
   single dir's `children` (`RuntimeLibraryProvider.kt:38-42`) with no cross-dir include. Copying
-  the base keeps that invariant; the *only* hand-authored, non-duplicated surface is `server.lua`
-  (inherits via `---@class server : redis`) and `server_global.lua` (RISK-R06 single-overlay
-  intent is honoured at the `server` layer, which is the part that can drift).
+  the base keeps that invariant; both `server.lua` and `server_global.lua` are hand-authored and
+  tracked in DR-02's drift check (RISK-R06 overlay honoured at the `server` layer).
 
 ### 2.5 `net.internetisalie.lunar.redis.connection.LuaRedisServerFlavor` **[NEW]**
 - **Responsibility**: Parse an `INFO server` reply body into a `(flavor, version)` pair; centralize
@@ -252,17 +255,36 @@ LuaValkeyPortabilityInspection  [NEW]  (§2.7)  + LuaValkeyToRedisQuickFix  [NEW
   `defaultVersion(VALKEY)` → `"7.2"`. Unknown label → `"7.2"` (graceful), never null-throws.
 
 ### 3.2 Stub authoring — `server.lua` and `server_global.lua`
+
+> **Phase 2 deviation (see risks-and-gaps §Gap 2.3):** the original design assumed that
+> `---@class server : redis` inheritance would make `server.*` members resolvable by the
+> reference resolver. Empirical testing under a real `Target(VALKEY, "8")` proved this false:
+> `LuaNameReference.multiResolve` does not consult `@class` inheritance for dotted member access;
+> it resolves `receiver.member` only via `LuaGlobalDeclarationIndex["receiver.member"]` (concrete
+> `function receiver.m` / `receiver.m = …` declarations). A global-assignment `server = {}` is
+> never indexed into `LuaClassNameIndex` (only `local`-declared classes are). The design §9
+> explicit-members fallback was therefore adopted: `server.lua` declares concrete
+> `function server.<m>(...)` members mirroring the full `redis.lua` surface, so `server.*`
+> resolves via `LuaGlobalDeclarationIndex` exactly as `redis.*` does. The `---@class server : redis`
+> tag is retained solely for hover / type-hierarchy fidelity. Cross-reference: risks-and-gaps §Gap 2.3.
+
 - **`server.lua`** (both version dirs, identical):
   ```lua
   ---A Valkey compatibility alias for the `redis` API. All members mirror `redis.*`.
   ---@class server : redis
   server = {}
+
+  -- Concrete member declarations (resolved via LuaGlobalDeclarationIndex):
+  function server.call(...) end
+  function server.pcall(...) end
+  -- ... full mirror of redis.lua member set
   ```
-  Inheriting `: redis` makes every `redis` field/method resolve as a `server` member
-  (`LuaTypeManagerImpl.kt:191-193` superTypes) — no per-member re-declaration (AC-3 no-dup). If a
-  reviewer requires explicit members for hover docs, the fallback is to copy the `function
-  server.<x>(...)` block set from `redis.lua`; the inheritance form is preferred and is the
-  authored default.
+  The concrete `function server.<m>(...)` declarations make each member resolvable via
+  `LuaGlobalDeclarationIndex` (the same path `redis.call` uses). The `---@class server : redis`
+  class tag is retained for hover documentation and type-hierarchy navigation only — it does not
+  drive resolution. AC-3's "no duplication" aspiration was premised on inheritance being consumed
+  by the resolver; since it is not, explicit members are required. DR-02 (drift check) now covers
+  `server.lua`'s member list as well as the copied base files.
 - **`server_global.lua`** (both dirs, identical):
   ```lua
   ---The server software name ("valkey").
@@ -494,10 +516,13 @@ The stub resources are picked up by the existing `AdditionalLibraryRootsProvider
   dir's `children` with no include mechanism; a shared base would need a new resolver seam. Copies
   keep the existing invariant; only `server.lua` is genuinely new (RISK-R06 overlay honoured where
   it matters).
-- **Explicit `---@field` members on `server`** instead of `---@class server : redis` — rejected as
-  the default: duplicates the whole `redis` surface (violates AC-3 no-dup) and doubles RISK-R06
-  drift surface. Inheritance is grounded (`LuaTypeManagerImpl.kt:191`); explicit members remain a
-  documented fallback if hover-doc fidelity requires it.
+- **Inheritance-only `---@class server : redis`** (no concrete members) — originally preferred to
+  avoid duplicating the `redis` surface (AC-3 no-dup) and RISK-R06 drift, but **rejected because it
+  does not work**: dotted-member access `server.<m>` resolves via `LuaGlobalDeclarationIndex`, which
+  is never populated by `@class` inheritance, so `server.*` was unresolvable (Phase 2 production bug,
+  §3.2 / Gap 2.3). The **shipped** approach declares concrete `function server.<m>` members mirroring
+  `redis.lua` (generated from the same source, so the drift surface stays bounded); `---@class server
+  : redis` is kept only for hover / type-hierarchy fidelity.
 - **Detect flavor via a script global (`SERVER_NAME`)** — rejected: requires running a probe script;
   `INFO server` is a plain command available on every server and already read by REDIS-01. (This
   supersedes the literal wording of REDIS-01 §4.3; see §7.3.)
