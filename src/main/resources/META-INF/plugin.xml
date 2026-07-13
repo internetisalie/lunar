@@ -262,6 +262,15 @@
             level="ERROR"
             implementationClass="net.internetisalie.lunar.analysis.inspections.LuaLanguageLevelInspection"/>
 
+    <localInspection
+            language="Lua"
+            shortName="LuaValkeyPortability"
+            displayName="Valkey-only API under Redis target"
+            groupName="Lua"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.analysis.inspections.LuaValkeyPortabilityInspection"/>
+
     <localInspection language="Lua"
                      shortName="LuaJsonSchemaCompliance"
                      displayName="Lua JSON Schema compliance"

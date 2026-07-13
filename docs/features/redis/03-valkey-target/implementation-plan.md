@@ -47,13 +47,14 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 - **Goal**: `server.*`/`SERVER_*` flagged under a Redis target; silent otherwise; `server.<x>` →
   `redis.<x>` quick fix.
 - **Tasks**:
-  - [ ] Create `LuaValkeyPortabilityInspection` (`analysis/inspections/`) with the §3.5 visitor and
+  - [x] Create `LuaValkeyPortabilityInspection` (`analysis/inspections/`) with the §3.5 visitor and
         the Redis-target guard — realizes §2.7.
-  - [ ] Create `LuaValkeyToRedisQuickFix` (`analysis/inspections/`) using
+  - [x] Create `LuaValkeyToRedisQuickFix` (`analysis/inspections/`) using
         `LuaElementFactory.createIdentifier` — realizes §2.8, §3.6.
-  - [ ] Register the `<localInspection shortName="LuaValkeyPortability" …>` in `plugin.xml`
-        (after `plugin.xml:227`) — realizes §7.1.
-- **Exit criteria**: TC-INSP-1..6 pass; human checklist §3 confirms the gutter/quick-fix UX.
+  - [x] Register the `<localInspection shortName="LuaValkeyPortability" …>` in `plugin.xml`
+        (+ `inspectionDescriptions/LuaValkeyPortability.html`) — realizes §7.1.
+- **Exit criteria**: TC-INSP-1..6 pass (real-flow `enableInspections`/`doHighlighting` + quick-fix
+  application in `LuaValkeyPortabilityInspectionTest`); human checklist §3 confirms the gutter UX.
 
 ### Phase 4: Flavor detection + mismatch warning [Must]
 - **Goal**: parse `INFO server` → flavor; warn once per session on target mismatch; wire the
@@ -97,7 +98,7 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 ## Verification Tasks
 - [x] Registry/target: `ValkeyTargetTest` — covers TC-REG-1..4.
 - [x] Stubs: stub-resolution fixture test — covers TC-STUB-1..4.
-- [ ] Inspection: `LuaValkeyPortabilityInspectionTest` + quick-fix test — covers TC-INSP-1..6.
+- [x] Inspection: `LuaValkeyPortabilityInspectionTest` + quick-fix test — covers TC-INSP-1..6.
 - [ ] Flavor: `LuaRedisServerFlavorTest` + `LuaRedisFlavorWarningTest` — covers TC-FLV-1..3.
 - [ ] Run `human-verification-checklists.md` (§1 stub UX, §2 flavor warning, §3 inspection/quick fix).
 
@@ -107,6 +108,6 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 |-------|--------|----------|
 | Phase 1: Platform registry + target | done | Must |
 | Phase 2: Valkey stub resources | done | Must |
-| Phase 3: Portability inspection + quick fix | todo | Must |
+| Phase 3: Portability inspection + quick fix | done | Must |
 | Phase 4: Flavor detection + warning | todo | Must |
 | Phase 5: Tests & docs | todo | Must |

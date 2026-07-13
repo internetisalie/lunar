@@ -1,0 +1,15 @@
+<html>
+<body>
+Reports Valkey-only API used in scripts whose project runtime target is <b>Redis</b>. Valkey adds a
+<code>server.*</code> alias namespace (<code>server.call</code>, <code>server.pcall</code>, …) and the
+<code>SERVER_NAME</code>, <code>SERVER_VERSION</code>, and <code>SERVER_VERSION_NUM</code> globals.
+These are not available on Redis, so a script using them is not portable.
+<p>
+For a <code>server.&lt;member&gt;</code> access a quick fix <b>Replace 'server' with 'redis'</b> rewrites the
+base to the compatible <code>redis.*</code> namespace, which runs on both servers. The
+<code>SERVER_*</code> globals have no 1:1 Redis equivalent, so no quick fix is offered.
+<p>
+The inspection is target-aware: it stays silent under a Valkey target (where this API is legal) and
+under any non-Redis/Valkey target. Switch the project runtime target to Valkey to allow these APIs.
+</body>
+</html>
