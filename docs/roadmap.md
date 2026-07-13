@@ -247,6 +247,7 @@ bug and gave the type inspections false confidence until this session's coverage
 | TYPE-08 | Flow-Sensitive Analysis | done | C | TYPE-01 *(Type engine)* | — | ✓ |
 | DOC-06-04 | Full-Text Documentation Search | done | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
 | SYNTAX-09 | Lua 5.5 Support | done | C | — | — | ✓ |
+| SYNTAX-18 | Parser Error Recovery for Block Constructs | planned | M | — | EDITOR-08 simplification *(soft)* | ✓ new files: grammar `pin`/`recoverWhile` on 9 block rules + regen `src/main/gen`; planned & reviewed 2026-07-13 |
 
 ## Wave 12 — Internal & maintenance  *(invisible to users; address opportunistically)*
 
