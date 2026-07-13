@@ -526,6 +526,9 @@
     <!-- REDIS-01 Phase 3: connection model, storage & credentials -->
     <projectService
             serviceImplementation="net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings"/>
+    <!-- REDIS-03 Phase 4: once-per-session flavor-mismatch warning -->
+    <projectService
+            serviceImplementation="net.internetisalie.lunar.redis.connection.LuaRedisFlavorWarning"/>
     <projectConfigurable
             parentId="net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable"
             instance="net.internetisalie.lunar.redis.connection.LuaRedisConnectionsConfigurable"

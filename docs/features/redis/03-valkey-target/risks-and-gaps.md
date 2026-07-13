@@ -24,6 +24,15 @@ that gate `planned`.
   DR-01 makes the REDIS-01 call site consume it. If REDIS-03 lands first, REDIS-01 wires it at
   its connect site; if REDIS-01 lands first, DR-01 edits the one call site. The two REDIS-03
   classes are independently unit-testable, so REDIS-03 is not blocked on REDIS-01.
+- **RESOLVED (Phase 4)**: REDIS-01 was already merged, so DR-01 was executed in full. The inline
+  `valkey_version`-presence check in `LuaRedisConnectionProbe.RespServerInfo.parse` was replaced by a
+  delegation to `LuaRedisServerFlavor.detect(body).flavor` (the duplicate heuristic is gone — a repo
+  grep for `containsKey("valkey_version")` returns 0 hits). The probe's `successFrom` carries the
+  detected `ServerFlavor` on `TestOutcome.Success`, and the connect site
+  (`LuaRedisConnectionsConfigurable.testConnection` → `warnOnFlavorMismatch`) calls
+  `LuaRedisFlavorWarning.getInstance(project).warnOnceIfMismatch(draft.id, flavor, target)` after a
+  successful probe. Behavior-preserving: `TestRespServerInfo`/`TestRespCodec` remain green (the
+  `flavor` string + `redis_version`-first version display are unchanged).
 
 ### Risk 1.2: Base-stub drift between `runtime/redis/redis-7` and the Valkey `redis.lua` copies
 - **Impact**: The Valkey dirs byte-copy the Redis-7 base; a later edit to the Redis base is not
@@ -110,7 +119,7 @@ that gate `planned`.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| DR-01 | Confirm the REDIS-01 connect-site wiring for `LuaRedisServerFlavor.detect` + `warnOnceIfMismatch`; amend REDIS-01 design §4.3 note. | Risk 1.1 | todo |
+| DR-01 | Confirm the REDIS-01 connect-site wiring for `LuaRedisServerFlavor.detect` + `warnOnceIfMismatch`; amend REDIS-01 design §4.3 note. | Risk 1.1 | done (Phase 4 — REDIS-01 merged; `RespServerInfo.parse` delegates to `LuaRedisServerFlavor.detect`, connect-site `warnOnceIfMismatch` wired, REDIS-01 design §4.3 amended) |
 | DR-02 | Add a base-stub parity check (Valkey copies vs `runtime/redis/redis-7`) + release-checklist item. | Risk 1.2 | todo |
 | DR-03 | Decide Gap 2.1 (accept text-based false positives vs resolve-and-suppress); record in design §3.5. | Gap 2.1 | todo |
 | DR-04 | Confirm AC-2 scope with the toolchain owner (registry/enumeration contract; env-detection out of scope). | Gap 2.2 | todo |

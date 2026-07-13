@@ -60,16 +60,18 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 - **Goal**: parse `INFO server` → flavor; warn once per session on target mismatch; wire the
   REDIS-01 seam.
 - **Tasks**:
-  - [ ] Create `LuaRedisServerFlavor` (`redis/connection/`) with `detect` + `mismatches` — realizes
+  - [x] Create `LuaRedisServerFlavor` (`redis/connection/`) with `detect` + `mismatches` — realizes
         §2.5, §3.3.
-  - [ ] Create the `LuaRedisFlavorWarning` project service + register `<projectService>` — realizes
+  - [x] Create the `LuaRedisFlavorWarning` project service + register `<projectService>` — realizes
         §2.6, §3.4, §7.2.
-  - [ ] REDIS-01 seam wiring (DR-01): replace REDIS-01 design §4.3 inline heuristic with
-        `LuaRedisServerFlavor.detect`; call `warnOnceIfMismatch` at the connect site — realizes §7.3.
-        (Gated on REDIS-01 landing; if REDIS-01 is not yet merged, land the two new classes + their
-        unit tests and defer only the call-site edit — tracked in risks-and-gaps.)
-- **Exit criteria**: TC-FLV-1, TC-FLV-2, TC-FLV-3 pass; if REDIS-01 present, a live/integration
-  check shows exactly one notification per mismatched connection per session (human checklist §2).
+  - [x] REDIS-01 seam wiring (DR-01): replaced REDIS-01 design §4.3 inline heuristic with
+        `LuaRedisServerFlavor.detect` (`RespServerInfo.parse` now delegates its flavor derivation);
+        `warnOnceIfMismatch` called at the connect site — realizes §7.3. **REDIS-01 is merged, so the
+        call-site edit was done in full** (no deferral).
+- **Exit criteria**: TC-FLV-1, TC-FLV-2, TC-FLV-3 pass (`LuaRedisServerFlavorTest`,
+  `LuaRedisFlavorWarningTest`); full unit suite green with no regression to REDIS-01
+  `TestRespServerInfo`/`TestRespCodec`. Live/integration one-notification check remains on human
+  checklist §2.
 
 ### Phase 5: Tests & docs [Must]
 - **Goal**: automated coverage of every AC; user-facing note on the Valkey target.
@@ -99,7 +101,7 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 - [x] Registry/target: `ValkeyTargetTest` — covers TC-REG-1..4.
 - [x] Stubs: stub-resolution fixture test — covers TC-STUB-1..4.
 - [x] Inspection: `LuaValkeyPortabilityInspectionTest` + quick-fix test — covers TC-INSP-1..6.
-- [ ] Flavor: `LuaRedisServerFlavorTest` + `LuaRedisFlavorWarningTest` — covers TC-FLV-1..3.
+- [x] Flavor: `LuaRedisServerFlavorTest` + `LuaRedisFlavorWarningTest` — covers TC-FLV-1..3.
 - [ ] Run `human-verification-checklists.md` (§1 stub UX, §2 flavor warning, §3 inspection/quick fix).
 
 ## Task Summary
@@ -109,5 +111,5 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 | Phase 1: Platform registry + target | done | Must |
 | Phase 2: Valkey stub resources | done | Must |
 | Phase 3: Portability inspection + quick fix | done | Must |
-| Phase 4: Flavor detection + warning | todo | Must |
+| Phase 4: Flavor detection + warning | done | Must |
 | Phase 5: Tests & docs | todo | Must |

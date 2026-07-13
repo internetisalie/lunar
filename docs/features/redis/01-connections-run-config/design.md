@@ -493,8 +493,12 @@ LuaRedisRunConfiguration (run config)
 - **Format**: bulk string of `key:value\r\n` lines, e.g. `redis_version:7.4.0`,
   `redis_mode:standalone` (Valkey adds `valkey_version:…`).
 - **Parse strategy**: split on `\r\n`, then `substringBefore(':')`/`substringAfter(':')`; read
-  `redis_version` (fallback `valkey_version`). Flavor = presence of `valkey_version` → "Valkey"
-  else "Redis" (REDIS-03 replaces this heuristic with `SERVER_NAME`; REDIS-01 uses `INFO`).
+  `redis_version` (fallback `valkey_version`). Flavor derivation is centralized in
+  `net.internetisalie.lunar.redis.connection.LuaRedisServerFlavor.detect` (REDIS-03 §2.5/§7.3 —
+  single source of truth for the `valkey_version` heuristic); `RespServerInfo.parse` delegates its
+  flavor to it and keeps the `redis_version`-first version string for display. (Superseded note: an
+  earlier draft said "REDIS-03 replaces this heuristic with `SERVER_NAME`" — REDIS-03 instead
+  centralizes the `INFO server` heuristic, which is strictly more available than a script global.)
 - **Maps to**: the Test-Connection result string and the §3.8 version gate.
 
 ## 5. Data Flow

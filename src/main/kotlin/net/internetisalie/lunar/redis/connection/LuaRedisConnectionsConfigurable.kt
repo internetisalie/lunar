@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.internetisalie.lunar.redis.resp.RespEndpoint
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.util.LunarCoroutineScopeService
 import java.awt.BorderLayout
 import java.util.UUID
@@ -124,8 +125,18 @@ class LuaRedisConnectionsConfigurable(private val project: Project) : Configurab
             val outcome = withBackgroundProgress(project, "Testing Redis connection") {
                 probe(endpoint)
             }
-            withContext(Dispatchers.EDT) { reportTestOutcome(outcome) }
+            withContext(Dispatchers.EDT) {
+                warnOnFlavorMismatch(draft.id, outcome)
+                reportTestOutcome(outcome)
+            }
         }
+    }
+
+    /** REDIS-03 §7.3: after a successful connect, warn once if the server flavor mismatches the target. */
+    private fun warnOnFlavorMismatch(connectionId: String, outcome: TestOutcome) {
+        val flavor = (outcome as? TestOutcome.Success)?.flavor ?: return
+        val target = LuaProjectSettings.getInstance(project).state.getTarget().platform
+        LuaRedisFlavorWarning.getInstance(project).warnOnceIfMismatch(connectionId, flavor, target)
     }
 
     private fun reportTestOutcome(outcome: TestOutcome) {
