@@ -20,11 +20,11 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 ### Phase 1: Platform registry + target derivation [Must]
 - **Goal**: `LuaPlatform.VALKEY` selectable/derivable with correct level, library path, luacheck std.
 - **Tasks**:
-  - [ ] Add `VALKEY("Valkey", "valkey")` to `net.internetisalie.lunar.platform.LuaPlatform`
+  - [x] Add `VALKEY("Valkey", "valkey")` to `net.internetisalie.lunar.platform.LuaPlatform`
         (after `REDIS`) — realizes design §2.1.
-  - [ ] Add the `LuaPlatform.VALKEY to listOf(VersionEntry("7.2","valkey-7.2","redis7"),
+  - [x] Add the `LuaPlatform.VALKEY to listOf(VersionEntry("7.2","valkey-7.2","redis7"),
         VersionEntry("8","valkey-8","redis7"))` entry to `PlatformVersionRegistry` — realizes §2.2.
-  - [ ] Add `platform == LuaPlatform.VALKEY -> LuaLanguageLevel.LUA51` to
+  - [x] Add `platform == LuaPlatform.VALKEY -> LuaLanguageLevel.LUA51` to
         `Target.getImplicitLanguageLevel()` and update its KDoc — realizes §2.3.
 - **Exit criteria**: TC-REG-1, TC-REG-2, TC-REG-3, TC-REG-4 pass; full suite green (existing
   `PlatformVersionRegistryTest` / `LuaProjectSettingsTest` platform-iterating loops still pass with
@@ -95,7 +95,7 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 | AC-8 unit tests | S | Phase 5 |
 
 ## Verification Tasks
-- [ ] Registry/target: `ValkeyTargetTest` — covers TC-REG-1..4.
+- [x] Registry/target: `ValkeyTargetTest` — covers TC-REG-1..4.
 - [ ] Stubs: stub-resolution fixture test — covers TC-STUB-1..4.
 - [ ] Inspection: `LuaValkeyPortabilityInspectionTest` + quick-fix test — covers TC-INSP-1..6.
 - [ ] Flavor: `LuaRedisServerFlavorTest` + `LuaRedisFlavorWarningTest` — covers TC-FLV-1..3.
@@ -105,7 +105,7 @@ independent of REDIS-01/02 except Phase 4's seam wiring (isolated to the last ph
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Platform registry + target | todo | Must |
+| Phase 1: Platform registry + target | done | Must |
 | Phase 2: Valkey stub resources | todo | Must |
 | Phase 3: Portability inspection + quick fix | todo | Must |
 | Phase 4: Flavor detection + warning | todo | Must |

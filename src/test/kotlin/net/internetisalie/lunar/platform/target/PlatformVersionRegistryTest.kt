@@ -36,6 +36,24 @@ class PlatformVersionRegistryTest {
         assertEquals("7+", versions[2].label)
     }
 
+    // TC-REG-1: VALKEY registry entries (versions, path segments, luacheck std, default).
+    @Test
+    fun testGetVersionsForValkey() {
+        val versions = PlatformVersionRegistry.getVersions(LuaPlatform.VALKEY)
+        assertEquals(2, versions.size)
+        assertEquals(VersionEntry("7.2", "valkey-7.2", "redis7"), versions[0])
+        assertEquals(VersionEntry("8", "valkey-8", "redis7"), versions[1])
+    }
+
+    @Test
+    fun testDefaultVersionForValkey() {
+        val defaultVersion = PlatformVersionRegistry.defaultVersion(LuaPlatform.VALKEY)
+        assertNotNull(defaultVersion)
+        assertEquals("7.2", defaultVersion.label)
+        assertEquals("valkey-7.2", defaultVersion.pathSegment)
+        assertEquals("redis7", defaultVersion.luacheckStd)
+    }
+
     @Test
     fun testGetVersionsForUnsupportedPlatform() {
         // If we add a test platform that's not registered, getVersions should return empty
@@ -86,6 +104,7 @@ class PlatformVersionRegistryTest {
         assertTrue(platforms.contains(LuaPlatform.STANDARD))
         assertTrue(platforms.contains(LuaPlatform.LUAJIT))
         assertTrue(platforms.contains(LuaPlatform.REDIS))
+        assertTrue(platforms.contains(LuaPlatform.VALKEY))
         assertTrue(platforms.contains(LuaPlatform.TARANTOOL))
         assertTrue(platforms.contains(LuaPlatform.NGX))
         assertTrue(platforms.contains(LuaPlatform.PANDOC))

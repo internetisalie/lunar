@@ -60,6 +60,23 @@ class TargetTest {
         assertEquals(LuaLanguageLevel.LUA51, redis7.getImplicitLanguageLevel())
     }
 
+    // TC-REG-2: Valkey target derives LUA51, correct library root, and reused redis7 luacheck std.
+    @Test
+    fun testValkeyAllVersionsAreLua51() {
+        val valkey72 = Target(LuaPlatform.VALKEY, VersionEntry("7.2", "valkey-7.2", luacheckStd = "redis7"))
+        assertEquals(LuaLanguageLevel.LUA51, valkey72.getImplicitLanguageLevel())
+
+        val valkey8 = Target(LuaPlatform.VALKEY, VersionEntry("8", "valkey-8", luacheckStd = "redis7"))
+        assertEquals(LuaLanguageLevel.LUA51, valkey8.getImplicitLanguageLevel())
+    }
+
+    @Test
+    fun testValkey8LibraryRootAndLuacheckStd() {
+        val valkey8 = Target(LuaPlatform.VALKEY, VersionEntry("8", "valkey-8", luacheckStd = "redis7"))
+        assertEquals("runtime/valkey/valkey-8", valkey8.getLibraryRootPath())
+        assertEquals("redis7", valkey8.getLuacheckStd())
+    }
+
     @Test
     fun testTarantoolIsLua51() {
         val target = Target(LuaPlatform.TARANTOOL, VersionEntry("2.10", "tarantool-2.10"))

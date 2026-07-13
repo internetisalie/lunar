@@ -29,6 +29,10 @@ object PlatformVersionRegistry {
             VersionEntry("6", "redis-6", luacheckStd = "redis6"),
             VersionEntry("7+", "redis-7", luacheckStd = "redis7"),
         ),
+        LuaPlatform.VALKEY to listOf(
+            VersionEntry("7.2", "valkey-7.2", luacheckStd = "redis7"),
+            VersionEntry("8", "valkey-8", luacheckStd = "redis7"),
+        ),
         LuaPlatform.TARANTOOL to listOf(
             VersionEntry("2.10", "tarantool-2.10", luacheckStd = null),
         ),

@@ -6,6 +6,7 @@ enum class LuaPlatform(val label: String, val pathSegment: String) {
     NGX("OpenResty", "ngx"),
     PANDOC("Pandoc", "pandoc"),
     REDIS("Redis", "redis"),
+    VALKEY("Valkey", "valkey"),
     TARANTOOL("Tarantool", "tarantool");
 
     override fun toString(): String {
