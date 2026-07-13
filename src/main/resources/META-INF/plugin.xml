@@ -128,6 +128,11 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.editor.LuaMoveLeftRightHandler"/>
 
+    <!-- Smart Enter (Ctrl+Shift+Enter): complete half-written block/call, place caret (EDITOR-08) -->
+    <lang.smartEnterProcessor
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.smartenter.LuaSmartEnterProcessor"/>
+
     <!-- Navigation: Go to Class / Symbol (NAV-03) -->
     <gotoClassContributor
             implementation="net.internetisalie.lunar.lang.navigation.LuaGotoClassContributor"/>

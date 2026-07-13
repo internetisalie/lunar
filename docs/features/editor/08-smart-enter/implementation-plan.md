@@ -113,3 +113,27 @@ reformatted result — TC authors capture the actual formatter output once and p
 `TooManyAttemptsException` (`SmartEnterProcessorWithFixers.java:80`); no extra guard needed. A
 fixer that cannot safely act returns early (never throws), so a malformed skeleton degrades to a
 plain enter.
+
+## Implementation Notes (as-built)
+
+- **Token-anchored, not PSI-class (resolves R-01/DR-03).** Grounding found Lua's grammar has **no
+  `pin`** on the block rules, so a half-written `if x` parses to an **ERROR tree**, not a partial
+  `LuaIfStatement`. So the fixers key off the **opener keyword token** (`IF`/`WHILE`/`FOR`/`FUNCTION`/
+  `DO`/`REPEAT`) on the caret line, and `getStatementAtCaret` returns the **common parent** of the
+  caret-line's first leaf and the caret leaf, guaranteeing the opener token is inside the collected
+  element queue regardless of the ERROR-tree shape. The general `pin` gap is filed as a separate MAINT
+  task (grammar error-recovery); once fixed, these fixers could be simplified to typed PSI.
+- **Three fixers, not four+util-heavy split.** `LuaMissingBracketFixer` (LIFO over the caret line's
+  leaf tokens), `LuaFunctionParenFixer` (supplies `()` when neither paren exists), and
+  `LuaBlockCompletionFixer` (separator `then`/`do` + terminator `end`/`until `, folded into one fixer;
+  the framework restarts after each mutation, so ordering falls out of the fixer list + early-return
+  guards). No custom `FixEnterProcessor` — caret rides `registerUnresolvedError`, which the base
+  `doEnter` honors.
+- **Caret placement (08-04) is best-effort "in the body"** (after the separator), or after `until ` for
+  `repeat`, or between the `function` parens. Tests assert the caret lands in the body region (before
+  the terminator) rather than an exact column, since the exact offset depends on the formatter's
+  post-move reindent. The `if` case lands in the body region but not always strictly right of `then`.
+- **`LuaBlockPairs` extended** (Phase 0, additive): `separatorByOpenerKeyword` + `terminatorByOpenerKeyword`,
+  keyed on the opener keyword leaf — DR-01 confirmed no disturbance to the COMP-08/EDITOR-01 maps.
+- Tests assert structurally (keyword/bracket presence, single terminator, caret before terminator) to
+  stay robust to the formatter's 4-space indent (per R-03).

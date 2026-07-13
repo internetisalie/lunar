@@ -30,6 +30,27 @@ object LuaBlockPairs {
     )
 
     /**
+     * OPENER-keyword leaf -> intermediate separator keyword, for Smart Enter (EDITOR-08) scaffolding a
+     * bare `if x` / `while c` / `for …` skeleton where no separator leaf exists yet. `function`/`do`/
+     * `repeat` have no separator and are absent. Additive; keyed on [LuaElementTypes] like the maps above.
+     */
+    val separatorByOpenerKeyword: Map<IElementType, IElementType> = mapOf(
+        LuaElementTypes.IF to LuaElementTypes.THEN,
+        LuaElementTypes.WHILE to LuaElementTypes.DO,
+        LuaElementTypes.FOR to LuaElementTypes.DO,
+    )
+
+    /** OPENER-keyword leaf -> terminator keyword, for Smart Enter (EDITOR-08). Additive. */
+    val terminatorByOpenerKeyword: Map<IElementType, IElementType> = mapOf(
+        LuaElementTypes.IF to LuaElementTypes.END,
+        LuaElementTypes.WHILE to LuaElementTypes.END,
+        LuaElementTypes.FOR to LuaElementTypes.END,
+        LuaElementTypes.FUNCTION to LuaElementTypes.END,
+        LuaElementTypes.DO to LuaElementTypes.END,
+        LuaElementTypes.REPEAT to LuaElementTypes.UNTIL,
+    )
+
+    /**
      * owner-NODE-kind -> terminator, used by the between-pair indent (§3.4), which starts from the
      * owner node rather than the opener leaf. Distinct from [terminatorByOpener] (keyed by leaf).
      */
