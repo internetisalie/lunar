@@ -2,7 +2,7 @@
 id: "REDIS-02"
 parent_id: "REDIS"
 type: "feature"
-status: "planned"
+status: "done"
 folders:
   - "[[features/redis/requirements|requirements]]"
 title: "REDIS-02: LDB Debug Adapter"
@@ -13,7 +13,7 @@ title: "REDIS-02: LDB Debug Adapter"
 **Requirement**: An XDebugger adapter for the Redis/Valkey server-side Lua debugger (LDB),
 enabling breakpoint debugging of scripts executed via the REDIS-01 run configuration.
 **Priority**: Must
-**Status**: Not Implemented
+**Status**: Implemented
 
 ---
 
