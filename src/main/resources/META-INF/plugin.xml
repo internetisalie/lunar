@@ -116,6 +116,18 @@
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.unwrap.LuaUnwrapDescriptor"/>
 
+    <!-- Move Statement Up/Down (Ctrl+Shift+↑/↓) — structural, block-aware (EDITOR-07-01/-02/-04).
+         Application-level EP: no language attr; self-guards on LuaFile. -->
+    <statementUpDownMover
+            id="LuaStatementMover"
+            implementation="net.internetisalie.lunar.lang.editor.LuaStatementMover"/>
+
+    <!-- Move Element Left/Right (Ctrl+Alt+Shift+←/→) — reorder args/fields/name lists (EDITOR-07-03).
+         EP name is `com.intellij.moveLeftRightHandler` (no `lang.` prefix). -->
+    <moveLeftRightHandler
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.editor.LuaMoveLeftRightHandler"/>
+
     <!-- Navigation: Go to Class / Symbol (NAV-03) -->
     <gotoClassContributor
             implementation="net.internetisalie.lunar.lang.navigation.LuaGotoClassContributor"/>

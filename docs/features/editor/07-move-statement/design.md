@@ -228,10 +228,14 @@ platform runs `LineMover` for a plain line swap.
 <statementUpDownMover
     id="LuaStatementMover"
     implementation="net.internetisalie.lunar.lang.editor.LuaStatementMover"/>
-<lang.moveLeftRightHandler
+<moveLeftRightHandler
     language="Lua"
     implementationClass="net.internetisalie.lunar.lang.editor.LuaMoveLeftRightHandler"/>
 ```
+**As-built correction:** the EP tag is `<moveLeftRightHandler>` (EP name `com.intellij.moveLeftRightHandler`),
+**not** `<lang.moveLeftRightHandler>` as first drafted below — there is no `lang.` prefix on this EP
+(`EditorExtensionPoints.xml`: `<extensionPoint name="moveLeftRightHandler" …>`). Using the wrong tag makes
+the handler silently never register (left/right becomes an inert no-op).
 - `statementUpDownMover` is an application-level EP (`ExtensionPointName.create("com.intellij.statementUpDownMover")`,
   verified `StatementUpDownMover.java:26`) — registered with `implementation=` and an `id` (no
   `language` attribute; the mover self-guards on `file is LuaFile`).
