@@ -45,6 +45,40 @@ that gate `planned`.
   resolve path. **Leaning (a)**, documented as accepted behaviour.
 - **Resolved by**: DR-03 (decide + record) before `planned`. Current design assumes (a).
 
+### Gap 2.3: `---@class server : redis` inheritance is NOT consumed by member resolution — `server.*` needs concrete decls
+
+- **Discovered**: REDIS-03 Phase 2 Step-9 remediation (bundled-stub resolution reproduced under a
+  real `Target(VALKEY, "8")`).
+- **Impact (was a real production gap)**: The design §3.2 premise — "Inheriting `: redis` makes
+  every `redis` field/method resolve as a `server` member" — is **false as authored**. Empirically,
+  under a Valkey target with the bundled stubs, `server.call` resolved to **0** declarations
+  (`multiResolve` size 0) while `redis.call` resolved to **1**. Root cause:
+  - `LuaTypeManagerImpl.resolveType` and `LuaNameReference.multiResolve` follow `---@class X : Y`
+    inheritance **only** via `LuaClassNameIndex` + `materializeClass`
+    (`LuaTypeManagerImpl.kt:151,191`), and `LuaClassNameIndex` is written **only** from
+    `LuaLocalVarDecl` stubs (`LuaLocalVarStubElementType.kt:81`). A global assignment
+    `server = {}` / `redis = {}` (grammar `assignmentStatement`, `lua.bnf:121`, not `localVarDecl`
+    `:186`) is never indexed as a class — so `resolveType("server")` and `resolveType("redis")`
+    both return `null`.
+  - The reference resolver's dotted-member path (`LuaNameReference.kt:107-121`) resolves
+    `receiver.member` **only** through `LuaGlobalDeclarationIndex["receiver.member"]` (concrete
+    `function receiver.m`) and `LuaMemberFieldNavigation` (concrete `receiver.field = …`). Neither
+    consults `@class` inheritance. So `redis.call` resolves because `redis.lua` declares
+    `function redis.call`; `server.call` did **not** because the inheritance-only `server.lua`
+    declared no `function server.call`.
+- **Resolution (design §9 fallback, adopted)**: `server.lua` now declares concrete
+  `function server.<m>(...)` members (and `server.<FIELD>` typed assignments) mirroring the full
+  `redis.lua` surface, so `server.*` resolves via `LuaGlobalDeclarationIndex` exactly like
+  `redis.*`. The `---@class server : redis` tag is retained for hover / type-hierarchy fidelity.
+  This deviates from AC-3's "no per-member re-declaration" aspiration, which was premised on
+  inheritance being consumed by resolution — it is not. TC-STUB-3 no longer asserts "no local
+  member"; it asserts real `server.error_reply` resolution.
+- **Follow-up (deferred, not REDIS-03 scope)**: making the resolver/type-engine consult `@class`
+  inheritance for dotted access and indexing global-assigned classes into `LuaClassNameIndex` is a
+  core-engine change; if pursued, `server.lua` could revert to the pure inheritance form. Tracked
+  as a future type-engine enhancement. RISK-R06 base-stub drift now also covers `server.lua`
+  (its member list must stay in sync with `redis.lua`; see DR-02).
+
 ### Gap 2.2: AC-2 "Settings UI shows Valkey" has no live platform-picker surface in current source
 - **Question**: requirements AC-2 says the "contextual platform→version" UI shows Valkey. The
   TARGET-03 design named a `LuaProjectSettingsPanel` that enumerates `LuaPlatform.entries`, but no
