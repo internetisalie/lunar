@@ -49,6 +49,15 @@ object LdbReplyParser {
     private val USER_SCRIPT_LINE = Regex("""user_script:(\d+)""")
     private const val COMPILE_MESSAGE_SEPARATOR = "): "
 
+    /**
+     * The real redis:8 / valkey:8 LDB session-end sentinel, confirmed live in Phase 5 (TC-INT-1/3):
+     * a normal completion, `abort`, and end-of-script all reply with a `["<endsession>"]` array (the
+     * actual `EVAL` result or the abort `-ERR` arrives as a separate trailing block, drained via
+     * `RespClient.readReply`). The design's assumed `"* Lua debugging session ended"` text is never
+     * emitted by these servers; both markers are recognized (design §3.3, risks Risk 2.1 / DR-06).
+     */
+    private const val END_SESSION_MARKER = "<endsession>"
+
     /** Parse [reply] into an [LdbEvent] (design §3.3). */
     fun parse(reply: RespValue): LdbEvent {
         if (reply is RespValue.Error) return errorReply(reply)
@@ -83,6 +92,7 @@ object LdbReplyParser {
 
     private fun sessionEnd(first: String): LdbEvent? = when {
         first.startsWith("* Forked debugging session") -> LdbEvent.SessionEnded(EndReason.FORK_TIMEOUT)
+        first.contains(END_SESSION_MARKER, ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ENDED)
         first.contains("session ended", ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ENDED)
         first.contains("Aborted", ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ABORTED)
         else -> null

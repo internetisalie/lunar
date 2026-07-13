@@ -22,6 +22,13 @@ interface LdbIo {
 
     /** Send one LDB command; the reply is its single reply block (design §3.1 step 3). */
     suspend fun send(command: LdbCommand): RespValue
+
+    /**
+     * Read the next reply block without sending a command (design §11 amendment A1). After a resuming
+     * command whose reply is the `["<endsession>"]` block, the real `EVAL` result / abort error is a
+     * separate trailing block on the same connection (confirmed live in Phase 5); this drains it.
+     */
+    suspend fun readReply(): RespValue
 }
 
 /**
@@ -42,6 +49,8 @@ class LuaLdbTransport(private val client: RespClient) : LdbIo, Disposable {
 
     override suspend fun send(command: LdbCommand): RespValue =
         client.command(LdbWire.encode(command))
+
+    override suspend fun readReply(): RespValue = client.readReply()
 
     override fun dispose() {
         client.dispose()

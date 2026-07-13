@@ -51,6 +51,8 @@ class TestLuaLdbController : BasePlatformTestCase() {
             if (next is Throwable) throw next
             return next as RespValue
         }
+
+        override suspend fun readReply(): RespValue = RespValue.Simple("OK")
     }
 
     private class SessionRecorder {

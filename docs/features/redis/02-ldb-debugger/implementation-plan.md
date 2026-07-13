@@ -72,14 +72,18 @@ Every task names the class/file it creates and the design section it realizes. P
 ### Phase 5: Dual-flavor integration tests [Must]
 - **Goal**: The compatibility contract against real servers (epic RISK-R01/R10).
 - **Tasks**:
-  - [ ] Create `RedisDebugIntegrationTest` under the REDIS-01 `redisIntegrationTest` Gradle task
+  - [x] Create `RedisDebugIntegrationTest` under the REDIS-01 `redisIntegrationTest` Gradle task
         (REDIS-01 impl-plan Phase 6 / DR-04) — parameterized over `redis:8` and `valkey/valkey:8`.
-  - [ ] Implement TC-INT-1 (break/step/print/continue), TC-INT-2 (mid-pause `redis`), TC-INT-3
+  - [x] Implement TC-INT-1 (break/step/print/continue), TC-INT-2 (mid-pause `redis`), TC-INT-3
         (forked abort rollback + forked-timeout end).
-  - [ ] Confirm observed LDB framing/session-end on both flavors matches §3.3/§3.4; record any
-        divergence back into design §3.3 (DR-06 exit).
+  - [x] Confirm observed LDB framing/session-end on both flavors matches §3.3/§3.4; record any
+        divergence back into design §3.3 (DR-06 exit). **Divergence found + fixed**: both servers end
+        the session with a `["<endsession>"]` block (never the assumed `"* Lua debugging session
+        ended"`) and emit the real `EVAL` result / abort error as a separate trailing block;
+        `LdbReplyParser` was hardened to recognize `<endsession>` (risks Risk 2.1 / DR-01).
 - **Exit criteria**: `redisIntegrationTest` green on a Docker-capable host for both flavors; fails
-  loudly (not skips) when Docker is absent (epic RISK-R10).
+  loudly (not skips) when Docker is absent (epic RISK-R10). **Met**: 6 debug + 2 REDIS-01 tests, 0
+  failures, on `redis:8` and `valkey/valkey:8`.
 
 ## Requirement → Phase Coverage
 
@@ -105,7 +109,7 @@ Every task names the class/file it creates and the design section it realizes. P
       `myFixture.configureByText` per contract §5).
 - [x] `TestLuaLdbController` (fake transport) — TC-LDB-ERR-1, TC-LDB-ERR-2, TC-LDB-STEPOUT-1, TC-LDB-COND-1 (condition gate: false-resumes / true-pauses).
 - [x] `TestLuaLdbSyncGuard` — TC-LDB-SYNC-1.
-- [ ] `RedisDebugIntegrationTest` (`redisIntegrationTest` task) — TC-INT-1, TC-INT-2, TC-INT-3.
+- [x] `RedisDebugIntegrationTest` (`redisIntegrationTest` task) — TC-INT-1, TC-INT-2, TC-INT-3.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) §1–§5.
 
 ## Task Summary
@@ -116,7 +120,7 @@ Every task names the class/file it creates and the design section it realizes. P
 | Phase 2: Breakpoint type / structural XDebugger classes | done | Must |
 | Phase 3: Transport + controller + session lifecycle | done | Must |
 | Phase 4: Conditional BPs + sync guard + Redis tab | done | Must |
-| Phase 5: Dual-flavor integration tests | todo | Must |
+| Phase 5: Dual-flavor integration tests | done | Must |
 
 ## See Also
 - Requirements: [requirements.md](requirements.md)

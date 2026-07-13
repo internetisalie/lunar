@@ -450,8 +450,19 @@ reply (for `redis`). §3.3 specifies the parse.
      singleton list; if `RespValue.Error`, → `LdbEvent.Error(RUNTIME, error.message, scriptLine=extractUserScriptLine(error.message))`.
   2. Let `first = lines.firstOrNull()?.trim() ?: return LdbEvent.Ack`.
   3. **Session-end** (checked first): `first.startsWith("* Forked debugging session")` →
-     `SessionEnded(FORK_TIMEOUT)`; `first.contains("session ended")` (case-insensitive) →
+     `SessionEnded(FORK_TIMEOUT)`; `first.contains("<endsession>")` (case-insensitive) →
+     `SessionEnded(ENDED)`; `first.contains("session ended")` (case-insensitive) →
      `SessionEnded(ENDED)`; `first.contains("Aborted")` → `SessionEnded(ABORTED)`.
+     > **Live-framing confirmation (Phase 5 / DR-01, redis:8 + valkey:8):** the real servers signal
+     > every session end — normal completion, end-of-script, and `abort` — with a `["<endsession>"]`
+     > block; the assumed `"* Lua debugging session ended"` / `"* Forked debugging session was closed"`
+     > text is **never emitted** by these versions. The real `EVAL` result (`:N`) or the abort error
+     > (`-ERR script aborted…`) is a **separate trailing block** on the same connection, drained via
+     > `RespClient.readReply` (§11 A1). `<endsession>` recognition is the production fix that landed in
+     > Phase 5; the older strings are retained for forward/other-version compat. Both `step` and `next`
+     > report `stop reason = step over` and breakpoints `stop reason = break point` — step 5's
+     > `reasonFrom` degrades to STEP/BREAKPOINT respectively (reason is cosmetic; the stop line/advance
+     > are correct). `redis <cmd>` replies render as `<redis> …` / `<reply> …` status lines.
   4. **Compile error**: `first.startsWith("* Error compiling")` → `Error(COMPILE, msgAfterColon, extractUserScriptLine(first))`.
   5. **Stop**: `Regex("""\*\s*Stopped at (\d+)""").find(first)` matches → `Stop(serverLine = group1.toInt(),
      reason = <reasonFromText>, sourceLine = stripGutter(lines.getOrNull(1)))`, where `reason` is

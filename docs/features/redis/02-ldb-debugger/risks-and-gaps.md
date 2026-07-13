@@ -92,9 +92,35 @@ the feature-design level; it does not restate the epic register.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| REDIS-00-DR-01 | LDB handshake spike vs dockerized redis:8 + valkey:8 (fork + sync); confirm §3.3/§3.4 framing + session-end lines; record divergence in design | Risk 2.1 / epic RISK-R01 | todo |
+| REDIS-00-DR-01 | LDB handshake spike vs dockerized redis:8 + valkey:8 (fork + sync); confirm §3.3/§3.4 framing + session-end lines; record divergence in design | Risk 2.1 / epic RISK-R01 | resolved |
 | REDIS-02-DR-06 | Land + verify REDIS-01 seam amendments A1 (`RespClient.readReply`) and A2 (`debugMode` option) before Phase 3; or confirm the `whole` fallback (design §11) suffices | design §11 | resolved |
 | REDIS-02-DR-07 | Decide `redis.debug.allowSyncOnRemote` default (refuse vs confirm) | Gap 2.1 / epic RISK-R03 | todo |
+
+**REDIS-00-DR-01 resolution (Phase 5, resolved):** the dual-flavor `RedisDebugIntegrationTest`
+(`redisIntegrationTest` task) drives a live LDB session over the production `LuaLdbTransport` +
+`RespClient` against `redis:8` and `valkey/valkey:8`; both flavors are byte-identical for LDB and
+diverge from the design's assumed §3.3 session-end text:
+- **Session-end is `["<endsession>"]`**, not `"* Lua debugging session ended"` / `"* Forked debugging
+  session was closed"`. The real `EVAL` result (`:N`) or the `abort` error (`-ERR script aborted…`)
+  arrives as a **separate trailing block** on the same connection, drained via `RespClient.readReply`
+  (design §11 A1). **Production fix landed in this phase**: `LdbReplyParser.sessionEnd` now recognizes
+  the `<endsession>` sentinel → `SessionEnded(ENDED)` (the assumed strings are still accepted for
+  forward-compat). Without this fix the controller never detected session end (parsed `<endsession>`
+  as `Ack`) — the same class of live-framing bug as the REDIS-01 RESP3-verbatim defect.
+- **Stop-reason text**: both `step` and `next` report `stop reason = step over`, and breakpoints
+  report `stop reason = break point`. `LdbReplyParser.reasonFrom` already degrades gracefully
+  (`break point` → BREAKPOINT; `step over` → STEP). The reason field is cosmetic; the stop line and
+  advance are correct on both flavors — no fix required.
+- **`redis <cmd>` reply** renders as `<redis> …` / `<reply> …` status lines (not a raw `RespValue`);
+  the mid-pause command still executes and its reply is asserted (TC-INT-2). Benign — recorded, no
+  production change (`LdbEvent.Redis` is caller-tagged, unaffected).
+- **Forked-timeout leg (TC-INT-3)**: an idle forked session does **not** self-close within a bounded
+  docker window (empirically survives >18 s idle and keeps stepping; `lua-time-limit` governs script
+  CPU, not paused-client idle). TC-INT-3 therefore asserts the deterministic, production-relevant
+  forked contract — `abort` ends the session **and rolls the in-script write back** (`GET` → nil on a
+  fresh client) on both flavors — rather than a flaky ≥60 s idle-timeout sleep. The `FORK_TIMEOUT`
+  parse branch remains unit-pinned (TC-LDB-DEC-2); the live idle-timeout is a server-driven,
+  non-deterministic event out of scope for a bounded integration test.
 
 ## Required REDIS-01 Seam Amendments (summary; full detail in design §11)
 - **A1**: add `suspend fun readReply(): RespValue` to `RespClient` [REDIS-01 §2.3] (additive; the read
