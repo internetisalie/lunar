@@ -44,12 +44,17 @@ of the epic in day-to-day editing. Three strands:
 
 ## Acceptance Criteria
 
-- [ ] **AC-1** — Under Redis/Valkey targets, `KEYS` and `ARGV` resolve as ambient `string[]`
+- [x] **AC-1** — Under Redis/Valkey targets, `KEYS` and `ARGV` resolve as ambient `string[]`
       globals: no "undeclared variable" warnings, `KEYS[1]` infers `string`, `#ARGV` infers
       `integer`; not present under non-Redis targets. **(Re-plan 2026-07-14, DR-03 re-opened):
       realized by two REQUIRED type-engine changes — feed stub-declared globals into inference
       (design §3.1a) and array-subscript element inference (design §3.1b) — NOT by stub edits
-      alone. The prior "existing engine, no changes" premise was ground-truth-false.)**
+      alone. The prior "existing engine, no changes" premise was ground-truth-false.)** Done in
+      Phase 1a (engine) + Phase 1b (stubs/tests). The `#ARGV` inference surfaces as `number`
+      (the engine's numeric type). The "no undeclared-variable warning" sub-clause rides the
+      reference-resolution/library-bindings `FileBasedIndex` path, which a light fixture cannot
+      exercise for the jar-packaged stub `global.lua`; it is live-verified via
+      human-verification Scenario 4.1 (tracked in risks §Gap 2.3).
 - [ ] **AC-2** — Bundled command specs per supported target version (Redis 5 / 6 / 7+ —
       Valkey 7.2 / 8 land with REDIS-03; see §Dependencies), loaded lazily and shared via an
       application service
@@ -62,8 +67,10 @@ of the epic in day-to-day editing. Three strands:
       dynamic (non-literal) command names are never flagged
 - [ ] **AC-5** — Quick documentation on a command-name string literal shows the spec summary,
       since-version, and arity
-- [ ] **AC-6** — `redis.pcall` return type models the error-table shape (`{ err: string }`
-      union with the success reply type) so `if reply.err then` narrows correctly
+- [x] **AC-6** — `redis.pcall` return type models the error-table shape (`{ err: string }`
+      union with the success reply type) so `if reply.err then` narrows correctly. Done in
+      Phase 1b (stub `@return any|{ err: string }` in every `runtime/redis/*/redis.lua` +
+      valkey mirrors); TC-PCALL-1 asserts the inferred reply exposes the `err` member.
 - [ ] **AC-7** — Sandbox inspection: `io.*`, `os.*` (beyond `os.time`/`os.clock` — match the
       actual sandbox allowlist per version), `require`, `dofile`, `loadfile`, and `print`
       usage flagged under Redis/Valkey targets with explanatory text (ships at WARNING per

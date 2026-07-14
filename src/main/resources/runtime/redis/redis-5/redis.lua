@@ -38,20 +38,10 @@ function redis.status_reply(message) end
 ---@return string
 function redis.sha1hex(string) end
 
----Checks if the current user has ACL permissions for the command.
----@param command string
----@param ... any
----@return boolean
-function redis.acl_check_cmd(command, ...) end
-
 ---Writes to the Redis server log.
 ---@param level number
 ---@param message string
 function redis.log(level, message) end
-
----Switches between RESP2 (default) and RESP3 (version 3) for command replies.
----@param version number
-function redis.setresp(version) end
 
 ---Controls how write effects are propagated.
 ---@param mode number

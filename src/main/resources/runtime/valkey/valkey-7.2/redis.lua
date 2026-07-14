@@ -20,7 +20,7 @@ function redis.call(command, ...) end
 ---Executes a Redis command but catches errors. Instead of raising an exception, it returns a table with an err field containing the error message.
 ---@param command string
 ---@param ... any
----@return any
+---@return any|{ err: string }
 function redis.pcall(command, ...) end
 
 ---Returns a table {err = message} to signal an error to the client.
@@ -56,6 +56,10 @@ function redis.setresp(version) end
 ---Controls how write effects are propagated.
 ---@param mode number
 function redis.set_repl(mode) end
+
+---Switches the script to effects replication, returning true on the first call.
+---@return boolean
+function redis.replicate_commands() end
 
 ---Used with the Redis Lua debugger (redis-cli --ldb).
 function redis.breakpoint() end

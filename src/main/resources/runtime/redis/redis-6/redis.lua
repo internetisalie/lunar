@@ -38,12 +38,6 @@ function redis.status_reply(message) end
 ---@return string
 function redis.sha1hex(string) end
 
----Checks if the current user has ACL permissions for the command.
----@param command string
----@param ... any
----@return boolean
-function redis.acl_check_cmd(command, ...) end
-
 ---Writes to the Redis server log.
 ---@param level number
 ---@param message string

@@ -141,6 +141,31 @@ doctored, so the replan sees the true state). No commit was made.
   only and does **not** add the Valkey platform. No rescope.
 - **Resolved by**: tracked as a cross-feature dependency (requirements §Dependencies); no DR.
 
+### Gap 2.3: `KEYS`/`ARGV` "no undeclared-variable" sub-assertion is not unit-testable in a light fixture
+- **Question**: requirements TC-KEYS-1 asserts both `KEYS[1]` infers `string` **and** "no
+  undeclared-variable highlight on `KEYS`/`ARGV`". The first rides the type-inference path
+  (Phase 1a, unit-tested green). The second rides a **different** path: reference resolution
+  (`LuaUndeclaredNames.isUnresolvedNonGlobal` → `multiResolve` → the platform library-bindings
+  `FileBasedIndex` over the stub `global.lua`).
+- **Finding (empirical, Phase 1b)**: in a `BasePlatformTestCase` the bundled stub `global.lua`
+  is served from **inside the plugin jar** (`jar:…lunar-…​.jar!/runtime/redis/redis-7/global.lua`)
+  and is therefore never `FileBasedIndex`-indexed, so bare-global `KEYS` resolves to nothing and
+  the "Undeclared variable 'KEYS'" warning fires regardless of the target. A control probe with a
+  project-file `KEYS = {}` copy (indexable, `file:` scheme) **also** failed to resolve, because
+  bare-global *assignments* are not registered in `LuaGlobalDeclarationIndex` (only
+  `function x.y` `LuaFuncDecl`s are) and the platform-bindings path only fires for *platform*
+  package files. So the sub-assertion genuinely cannot pass in a light fixture.
+- **Verdict**: this is a **fixture/packaging limitation, not a REDIS-04 resolution gap** — a real
+  IDE indexes library roots, so `KEYS`/`ARGV` resolve and no warning fires. No code change is
+  warranted for Phase 1b.
+- **Coverage**: the live "no undeclared on `KEYS`/`ARGV`" behavior is verified by
+  human-verification-checklists **Scenario 4.1**. `RedisAmbientTypingTest` carries a code comment
+  pointing here.
+- **Follow-up (tracked, non-blocking)**: if a future need arises to unit-test the resolution
+  path, either (a) unpack the runtime stubs to a `file:`-scheme root the fixture can index, or
+  (b) add a targeted integration test under `integrationTest` (real-IDE indexing). Neither gates
+  the Phase-1b ship.
+
 ## Technical Debt & Future Work
 - **TBD: runtime `COMMAND DOCS` augmentation** — bundled spec is core-server only; module
   commands (RedisJSON, RediSearch) and live server drift are future work on top of the
