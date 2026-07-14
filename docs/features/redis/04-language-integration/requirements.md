@@ -55,7 +55,7 @@ of the epic in day-to-day editing. Three strands:
       reference-resolution/library-bindings `FileBasedIndex` path, which a light fixture cannot
       exercise for the jar-packaged stub `global.lua`; it is live-verified via
       human-verification Scenario 4.1 (tracked in risks §Gap 2.3).
-- [ ] **AC-2** — Bundled command specs per supported target version (Redis 5 / 6 / 7+ —
+- [x] **AC-2** — Bundled command specs per supported target version (Redis 5 / 6 / 7+ —
       Valkey 7.2 / 8 land with REDIS-03; see §Dependencies), loaded lazily and shared via an
       application service
 - [ ] **AC-3** — Completion inside the first string argument of `redis.call` / `redis.pcall`

@@ -131,16 +131,21 @@ file it creates/edits and the design section it realizes.
   - [x] Register `<applicationService>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: TC-SPEC-1, TC-SPEC-2 green. **Met** (full suite 1917 tests / 0 failed).
 
-### Phase 3: Call-site matcher (shared seam) [Must]
+### Phase 3: Call-site matcher (shared seam) [Must] — done
 - **Goal**: single source of truth for `redis.call`/`pcall` (`server.*`) call-shape parsing.
 - **Tasks**:
-  - [ ] Create `RedisCallSite` data class + `RedisCallSiteMatcher.match(anchor)` walking
+  - [x] Create `RedisCallSite` data class + `RedisCallSiteMatcher.match(anchor)` walking
         `LuaFuncCall.varOrExp.var.nameRef` (namespace) + `varSuffix.indexExpr.nameRef`
         (member) + `nameAndArgsList[0].args` (command literal via `LuaTerminalExpr.string`,
         arg count via `exprList`) — realizes design §2.10 (grounded on
-        `LuaRequireReferenceContributor`, `lua.bnf:270-281`)
-- **Exit criteria**: unit test of the matcher on literal, member (`redis.call`), non-literal,
-  and non-Redis call shapes (feeds TC-COMP-3/TC-UNK-2).
+        `LuaRequireReferenceContributor.kt:24,29`, `lua.bnf:270-281`, and
+        `LuaTypesVisitor.extractModuleName` `LuaTypesVisitor.kt:66-73`). The `member` field is
+        carried **verbatim** (not restricted to `call`/`pcall`) so REDIS-05 reuses the seam for
+        `register_function` unchanged; downstream consumers filter on `member`.
+- **Exit criteria**: unit test of the matcher on literal, member (`redis.pcall`), namespace
+  (`server.call`/`server.pcall`), non-literal (commandName null), and non-Redis call shapes
+  (feeds TC-COMP-3/TC-UNK-2). **Met** — `RedisCallSiteMatcherTest` (11 tests) green; full suite
+  1928 tests / 0 failed.
 
 ### Phase 4: Command completion (AC-3) [Should]
 - **Goal**: version-valid command names inside the first string arg.
@@ -228,7 +233,7 @@ file it creates/edits and the design section it realizes.
 | Phase 1a: Type-engine (stub-global + array-subscript inference) | done | Must |
 | Phase 1b: Redis stub resources + ambient-typing wiring | done | Must |
 | Phase 2: Command-spec service + data | done | Must |
-| Phase 3: Call-site matcher | todo | Must |
+| Phase 3: Call-site matcher | done | Must |
 | Phase 4: Command completion | todo | Should |
 | Phase 5: Command inspection + fix + determinism | todo | Should |
 | Phase 6: Sandbox + escalation + quick doc | todo | Should |
