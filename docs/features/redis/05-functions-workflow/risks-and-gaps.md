@@ -51,8 +51,25 @@ sharpened at the REDIS-05 design level.
 
 ## Design Gaps
 
-_None open._ Every REDIS-05 design decision is pinned in design.md. Decisions that could have been
-left open were resolved:
+### Gap 2.4: no expected-type → lambda-parameter inference (AC-2 callback typing) — **descoped 2026-07-14**
+Design §3.3's original premise (the engine auto-types an un-annotated callback's `keys`/`args` as
+`string[]` from `register_function`'s stub `fun(keys: string[], args: string[])` annotation) was
+**ground-truth-false**. An empirical probe proved the bundled type engine propagates parameter
+types only from a **direct** `---@param` on the function, not from the **expected** function type of
+the argument slot a lambda is passed into (V3 `rf(function(k) k[1] end)` with `rf: fun(cb:
+fun(k: string[]))` → `Undefined`).
+- **Impact:** `redis.register_function('f', function(keys, args) … end)` does not auto-type
+  `keys`/`args`; the user annotates them (`---@param keys string[]`), which works.
+- **Decision:** given REDIS-05 is Priority **Could**, descope callback-param auto-typing rather than
+  take on high-blast-radius shared-engine work. `register_function` still resolves + hover-documents
+  both overloads (the primary editing value). See design §3.3, requirements AC-2 / TC-STUB-1/2.
+- **Deferred enhancement:** general expected-type→lambda-param inference in `LuaTypesVisitor`
+  (`visitFuncCall` unification) — benefits all `fun(...)`-typed callback slots plugin-wide
+  (`table.sort`, `pcall`, etc.). Belongs in the TYPE epic, gated by the REDIS-04 §3.1c-style
+  regression contract. Filed as a follow-up task.
+
+_Otherwise none open._ Every other REDIS-05 design decision is pinned in design.md. Decisions that
+could have been left open were resolved:
 - **Shebang recognition mechanism** — resolved: reuse the existing `SHEBANG`+`SHORTCOMMENT` lexing
   (design §1, §3.1) + a static regex detector; no grammar change (avoids MAINT-20 generation
   fragility).

@@ -14,7 +14,7 @@ title: "REDIS-05: Redis Functions Workflow"
 editing, typed `redis.register_function`, a FUNCTION LOAD deploy mode on the run
 configuration, and a server functions panel.
 **Priority**: Could
-**Status**: Not Implemented
+**Status**: In Progress (Phase 1 done: AC-1 shebang detect, AC-2 register_function stub)
 
 ---
 
@@ -32,14 +32,22 @@ all.
 
 ## Acceptance Criteria
 
-- [ ] Files beginning with `#!lua name=<lib>` are recognized as Redis Function libraries
+- [x] Files beginning with `#!lua name=<lib>` are recognized as Redis Function libraries
       under Redis 7+/Valkey targets: the shebang line lexes/parses cleanly (no error
-      elements) and is rendered distinctly
-- [ ] LuaCATS-typed stubs for the Functions API: `redis.register_function` in both the
+      elements) and is rendered distinctly *(Phase 1; TC-SHB-1/2 green)*
+- [x] LuaCATS-typed stubs for the Functions API: `redis.register_function` in both the
       positional form `(name, callback)` and the table form
       (`function_name`, `callback`, `flags` — `no-writes`, `allow-oom`,
       `allow-stale`, `no-cluster`, `allow-cross-slot-keys` — and `description`), with
       callback signature `fun(keys: string[], args: string[]): any`
+      **(Phase 1; scoped per 2026-07-14 decision — see §3.3 / risks Gap 2.4)**: the stub
+      *declares* both overloads and the callback signature, so completion + hover surface
+      them and the reference resolves live. The bundled type engine does **not** propagate
+      an expected `fun(...)` argument type onto a passed lambda's parameters (ground-truthed:
+      direct `---@param` works, expected-type propagation does not), so `keys`/`args` inside
+      an un-annotated callback are **not** auto-typed as `string[]`; users annotate the
+      callback params themselves. General "expected-type → lambda-param" inference is
+      deferred to a TYPE-epic enhancement.
 - [ ] Inspection: `KEYS`/`ARGV` usage inside a function library file is flagged (they are
       EVAL-only); REDIS-04's ambient globals are suppressed in library files
 - [ ] REDIS-01 run configuration gains the `FUNCTION LOAD` + `FCALL` execution mode:
@@ -78,8 +86,8 @@ least one TC (see the AC → TC coverage matrix after the table). AC-1, AC-4, AC
 |---|-----|---------------|---------------|-----------------|--------|
 | TC-SHB-1 | AC-1* | a `.lua` file whose first line is `#!lua name=mylib` followed by `redis.register_function('f', function(keys, args) return 1 end)` | parse the file; walk the PSI tree for `PsiErrorElement` | zero error elements; the first leaf is a `SHEBANG` (`#!`) followed by a `SHORTCOMMENT` leaf `lua name=mylib`; the shebang range highlights with `LuaHighlight.COMMENT` (distinct from code) | §3.1, §2.1 |
 | TC-SHB-2 | AC-1 | files `#!lua name=lib1`, `#!lua  name=lib_2`, `#! lua name=x`, `-- not a shebang`, and a file with no shebang | `LuaRedisFunctionLibrary.detect(file)` on each | `"lib1"`, `"lib_2"`, `"x"` (leading/interior whitespace tolerated per §3.2 regex); `null` for the comment-only and shebang-less files | §3.2 |
-| TC-STUB-1 | AC-2 | Redis 7+ target; `#!lua name=lib` file with `redis.register_function('f', function(keys, args) return keys[1] end)` | resolve `redis.register_function`; type `keys[1]` inside the callback via `LuaTypesVisitor.getTypes(file).getValueType(...)` | `redis.register_function` resolves (no unresolved ref); the positional overload accepts `(string, fun(keys: string[], args: string[]): any)`; `keys[1]` types as `string` | §2.1, §3.3 |
-| TC-STUB-2 | AC-2 | Redis 7+ target; a `register_function{ function_name='f', callback=function(keys, args) end, flags={'no-writes'}, description='d' }` table-form call | resolve `register_function`; hover the call | the table-form overload resolves with fields `function_name: string`, `callback: fun(keys: string[], args: string[]): any`, `flags: string[]`, `description: string`; no unresolved-reference highlight on the call | §2.1, §3.3 |
+| TC-STUB-1 | AC-2 | Redis 7+ target; `#!lua name=lib` file with `redis.register_function('f', function(keys, args) return keys[1] end)` | run the type engine on the file; separately type a `---@type string[]` local subscript | file produces **no type errors**; the `string[]`-subscript path infers `string` (regression pin, `ArraySubscriptTypeTest`). **Live-only (jar-stub + engine limits, §3.3):** `register_function` reference resolution (no unresolved ref) and callback-param auto-typing are **not** fixture-assertable — resolution rides the jar-stub `FileBasedIndex` path (same constraint as REDIS-04 `RedisAmbientTypingTest`) and callback-param typing needs expected-type→lambda inference the engine lacks (descoped, risks Gap 2.4); both verified via human-verification §1 | §2.1, §3.3 |
+| TC-STUB-2 | AC-2 | Redis 7+ target; a `register_function{ function_name='f', callback=function(keys, args) end, flags={'no-writes'}, description='d' }` table-form call | run the type engine on the file | table-form call produces **no type errors** (the `@overload` parses and the call type-checks). Overload-field resolution + hover fidelity are live-only (human-verification §1), same jar-stub limit as TC-STUB-1 | §2.1, §3.3 |
 | TC-KEYS-1 | AC-3* | Redis 7+ target; `#!lua name=lib` file whose callback body reads `KEYS[1]` and `ARGV[1]` | run `LuaRedisFunctionKeysInspection` (`visitNameRef`) | one WARNING on `KEYS` and one on `ARGV` ("`KEYS`/`ARGV` are not available in a Redis Function library; use the callback's `keys`/`args` parameters"); suppressible via `LuaInspectionSuppression` | §3.4 |
 | TC-KEYS-2 | AC-3 | a plain (non-library, no shebang) Redis 7+ EVAL script reading `KEYS[1]` | run the inspection | no WARNING (the file is not a library — `LuaRedisFunctionLibrary.detect` returns `null`); REDIS-04 typing still resolves `KEYS` | §3.4 |
 | TC-KEYS-3 | AC-3 | a `#!lua name=lib` file under a **non-Redis** (`STANDARD 5.4`) target reading `KEYS[1]` | run the inspection | no WARNING (target guard: inspection inert off Redis/Valkey) | §3.4 |

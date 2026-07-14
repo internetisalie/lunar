@@ -25,14 +25,18 @@ suite (memory: isolated `--tests` masks synthetic-lambda failures).
 - **Goal**: `#!lua name=<lib>` is detected; `redis.register_function` resolves and types the
   callback; static name/flag scan works.
 - **Tasks**:
-  - [ ] Edit `src/main/resources/runtime/redis/redis-7/redis.lua`: add `redis.register_function`
+  - [x] Edit `src/main/resources/runtime/redis/redis-7/redis.lua`: add `redis.register_function`
         with the positional signature + table-form `@overload` and
-        `fun(keys: string[], args: string[]): any` callback — realizes design §2.1
-  - [ ] Create `net.internetisalie.lunar.redis.functions.LuaRedisFunctionLibrary`
+        `fun(keys: string[], args: string[]): any` callback — realizes design §2.1. **Callback
+        auto-typing descoped 2026-07-14** (engine lacks expected-type→lambda inference; risks
+        Gap 2.4) — stub declares/resolves/hovers; users annotate callback params.
+  - [x] Create `net.internetisalie.lunar.redis.functions.LuaRedisFunctionLibrary`
         (`detect(file)` via the shebang walk §3.2; `registeredNames(file)`/`registeredFlags`
         via `RedisCallSiteMatcher` + arg/table PSI walk §3.7; `CachedValuesManager`-cached) —
         realizes design §2.2, §3.2, §3.7
-- **Exit criteria**: TC-SHB-1, TC-SHB-2, TC-STUB-1, TC-STUB-2, TC-SCAN-1 green.
+- **Exit criteria**: TC-SHB-1, TC-SHB-2, TC-SCAN-1 green (real-flow); TC-STUB-1/2 in-fixture
+  smoke (no type errors) + array-subscript regression pin — resolution/callback-typing/hover
+  are live-only (jar-stub + descoped engine limit, §3.3 / risks Gap 2.4).
 
 ### Phase 2: KEYS/ARGV-in-library inspection (AC-3) [Must]
 - **Goal**: `KEYS`/`ARGV` inside a library file WARN under Redis 7+/Valkey; inert elsewhere.

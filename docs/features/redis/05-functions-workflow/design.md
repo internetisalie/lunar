@@ -322,12 +322,27 @@ the deepest-first leaf is `SHEBANG`; its next non-whitespace leaf is a `SHORTCOM
 - **Caching**: `CachedValuesManager.getCachedValue(file) { … PsiModificationTracker … }` (the
   engine caching idiom, contract §4) so the detector is not re-walked per inspection element.
 
-### 3.3 `register_function` typing (AC-2) — no algorithm
-Delegated to the existing type engine (REDIS-04 §3.1 pattern): the §2.1 stub edit makes
-`redis.register_function` resolve with its positional signature and the `@overload` table form.
-`LuaTypesVisitor.getTypes(file).getValueType(exprFor("keys[1]"))` inside the callback returns
-`string` because the callback parameter `keys` is typed `string[]` by the `fun(keys: string[],
-args: string[])` annotation. Verification-only (TC-STUB-1/2).
+### 3.3 `register_function` typing (AC-2) — no algorithm; **scoped (2026-07-14)**
+The §2.1 stub edit declares `redis.register_function` with its positional signature and the
+`@overload` table form, so completion and hover surface both forms and the reference resolves
+in a live IDE.
+
+**Ground-truth correction (2026-07-14):** the original premise here — that
+`getValueType(exprFor("keys[1]"))` inside an un-annotated callback returns `string` because the
+engine types the lambda's `keys` param from the stub's `fun(keys: string[], …)` annotation — is
+**false**. An empirical probe (V1 control `@type string[]` → `String`; V2 direct `@param
+k string[]` on a function → `String`; V3 lambda passed to a `fun(k: string[])` slot → `Undefined`)
+proved the bundled type engine has **no expected-type → lambda-parameter propagation**: a lambda
+passed as an argument does not inherit the callback's declared parameter types. Direct
+`---@param` on the lambda/function works; expected-type propagation does not.
+
+**Decision (descope + defer):** REDIS-05 (Priority: Could) ships `register_function` as a
+*declared/resolvable/hover-documented* stub; un-annotated callback params are **not** auto-typed
+(users add `---@param keys string[]`). General expected-type→lambda-param inference is filed as a
+TYPE-epic enhancement (risks Gap 2.4). In-fixture tests therefore assert stub validity + the
+`string[]`-subscript regression pin only; resolution + hover fidelity are human-verification §1
+(the jar-stub `FileBasedIndex` reference-resolution limit is the same one REDIS-04
+`RedisAmbientTypingTest` documents).
 
 ### 3.4 KEYS/ARGV-in-library inspection (`visitNameRef`, AC-3)
 - **Input → Output**: `LuaNameRef` → 0..1 WARNING.

@@ -67,3 +67,10 @@ function redis.breakpoint() end
 ---Used with the Redis Lua debugger (redis-cli --ldb).
 ---@param x any
 function redis.debug(x) end
+
+---Registers a Redis Function callback. Positional form: (name, callback).
+---The callback receives the keys and args arrays (NOT the KEYS/ARGV globals).
+---@param name string
+---@param callback fun(keys: string[], args: string[]): any
+---@overload fun(spec: { function_name: string, callback: fun(keys: string[], args: string[]): any, flags?: string[], description?: string })
+function redis.register_function(name, callback) end
