@@ -158,12 +158,12 @@ file it creates/edits and the design section it realizes.
 ### Phase 5: Command inspection + quick fix + determinism (AC-4, AC-9) [Should]
 - **Goal**: unknown/arity WARNINGs with did-you-mean fix; Redis 5/6 determinism WARNING.
 - **Tasks**:
-  - [ ] Create `LuaRedisCommandInspection` (`visitFuncCall`; §3.4 unknown+arity; §3.9
+  - [x] Create `LuaRedisCommandInspection` (`visitFuncCall`; §3.4 unknown+arity; §3.9
         determinism, version-gated) with `LuaInspectionSuppression` guards — realizes design
         §2.4, §2.9, §3.4, §3.9
-  - [ ] Create `LuaRedisRenameCommandQuickFix` (`WriteCommandAction`, `LuaElementFactory`) and
+  - [x] Create `LuaRedisRenameCommandQuickFix` (`WriteCommandAction`, `LuaElementFactory`) and
         the §3.5 Levenshtein suggestion helper — realizes design §2.5, §3.5
-  - [ ] Add `inspectionDescriptions/LuaRedisCommand.html`; register `<localInspection
+  - [x] Add `inspectionDescriptions/LuaRedisCommand.html`; register `<localInspection
         shortName="LuaRedisCommand">` — realizes design §7
 - **Exit criteria**: TC-ARITY-1, TC-ARITY-2, TC-UNK-1, TC-UNK-2, TC-DET-1..4 green.
 

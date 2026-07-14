@@ -271,6 +271,16 @@
             level="WARNING"
             implementationClass="net.internetisalie.lunar.analysis.inspections.LuaValkeyPortabilityInspection"/>
 
+    <localInspection
+            language="Lua"
+            shortName="LuaRedisCommand"
+            displayName="Redis command validity"
+            groupPath="Lua"
+            groupName="Redis"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.analysis.redis.LuaRedisCommandInspection"/>
+
     <localInspection language="Lua"
                      shortName="LuaJsonSchemaCompliance"
                      displayName="Lua JSON Schema compliance"

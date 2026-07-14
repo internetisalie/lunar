@@ -61,10 +61,12 @@ of the epic in day-to-day editing. Three strands:
 - [x] **AC-3** — Completion inside the first string argument of `redis.call` / `redis.pcall`
       (and `server.call` / `server.pcall` once the Valkey target exists) offers command names
       valid for the target version, with the command summary as tail text
-- [ ] **AC-4** — Inspection "Unknown or wrong-arity Redis command": string-literal first
+- [x] **AC-4** — Inspection "Unknown or wrong-arity Redis command": string-literal first
       arguments are validated against the spec — unknown command (WARNING, with did-you-mean
       rename quick fix) and argument count below the command's minimum arity (WARNING);
-      dynamic (non-literal) command names are never flagged
+      dynamic (non-literal) command names are never flagged. Done in Phase 5
+      (`LuaRedisCommandInspection` + `LuaRedisRenameCommandQuickFix`); TC-ARITY-1/2,
+      TC-UNK-1/2 green.
 - [ ] **AC-5** — Quick documentation on a command-name string literal shows the spec summary,
       since-version, and arity
 - [x] **AC-6** — `redis.pcall` return type models the error-table shape (`{ err: string }`
@@ -78,12 +80,14 @@ of the epic in day-to-day editing. Three strands:
 - [ ] **AC-8** — The existing Global-creation inspection escalates from WARNING to ERROR under
       Redis/Valkey targets (global writes are runtime errors in the sandbox), suppressible
       per the normal mechanisms
-- [ ] **AC-9** — Determinism inspection under Redis 5/6 targets only: a command whose spec
+- [x] **AC-9** — Determinism inspection under Redis 5/6 targets only: a command whose spec
       flags mark it nondeterministic (e.g. `TIME`, `RANDOMKEY`, `SRANDMEMBER`), invoked via
       `redis.call`/`pcall` before any write command in the same script and without a
       preceding `redis.replicate_commands()` call, is flagged WARNING with an explanation
       of verbatim replication; never raised under Redis 7+/Valkey targets; command
-      classification comes from the bundled command spec, not a hand-maintained list
+      classification comes from the bundled command spec, not a hand-maintained list.
+      Done in Phase 5 (inside `LuaRedisCommandInspection`, §3.9 algorithm);
+      TC-DET-1..4 green.
 - [ ] **AC-10** — Unit tests: ambient typing, completion (per-version filtering),
       arity/unknown-command inspection positive+negative, pcall narrowing, sandbox inspection
       matrix, and no-op behavior under the Standard target

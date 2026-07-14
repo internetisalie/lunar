@@ -1,0 +1,17 @@
+<html>
+<body>
+Reports invalid Redis command usage inside <code>redis.call()</code> and <code>redis.pcall()</code>
+string-literal command arguments under a Redis or Valkey project target. Three categories:
+<ul>
+  <li><b>Unknown command</b> — the command name is not in the bundled spec for the target version.
+      A did-you-mean rename quick fix is offered when a close match (Levenshtein distance ≤ 2) exists.</li>
+  <li><b>Wrong arity</b> — the number of arguments is below the command's required minimum.</li>
+  <li><b>Nondeterministic before write (Redis 5/6 only)</b> — a command marked nondeterministic
+      (e.g. <code>TIME</code>, <code>RANDOMKEY</code>) is called before a write command without a
+      preceding <code>redis.replicate_commands()</code> guard, violating verbatim replication
+      correctness. Not raised under Redis 7+ or Valkey, which use effects replication.</li>
+</ul>
+Dynamic (non-literal) first arguments are never flagged. The inspection is a no-op under
+non-Redis/Valkey targets.
+</body>
+</html>
