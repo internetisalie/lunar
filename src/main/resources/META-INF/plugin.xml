@@ -296,6 +296,17 @@
             level="WARNING"
             implementationClass="net.internetisalie.lunar.analysis.redis.LuaRedisSandboxInspection"/>
 
+    <!-- REDIS-05 AC-3: KEYS/ARGV-in-library inspection -->
+    <localInspection
+            language="Lua"
+            shortName="LuaRedisFunctionKeys"
+            displayName="KEYS/ARGV in a Redis Function library"
+            groupPath="Lua"
+            groupName="Redis"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.analysis.redis.LuaRedisFunctionKeysInspection"/>
+
     <localInspection language="Lua"
                      shortName="LuaJsonSchemaCompliance"
                      displayName="Lua JSON Schema compliance"

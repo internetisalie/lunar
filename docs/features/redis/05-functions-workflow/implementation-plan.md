@@ -41,11 +41,11 @@ suite (memory: isolated `--tests` masks synthetic-lambda failures).
 ### Phase 2: KEYS/ARGV-in-library inspection (AC-3) [Must]
 - **Goal**: `KEYS`/`ARGV` inside a library file WARN under Redis 7+/Valkey; inert elsewhere.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.analysis.redis.LuaRedisFunctionKeysInspection`
+  - [x] Create `net.internetisalie.lunar.analysis.redis.LuaRedisFunctionKeysInspection`
         (`visitNameRef`; target-7+ + `isLibrary` guard; declaration skip mirrors
         `LuaDeprecatedApiInspection.isDeclaration`; `LuaInspectionSuppression` guard) — realizes
         design §2.3, §3.4
-  - [ ] Add `inspectionDescriptions/LuaRedisFunctionKeys.html`; register `<localInspection
+  - [x] Add `inspectionDescriptions/LuaRedisFunctionKeys.html`; register `<localInspection
         shortName="LuaRedisFunctionKeys" level="WARNING">` in `plugin.xml` — realizes design §7
 - **Exit criteria**: TC-KEYS-1, TC-KEYS-2, TC-KEYS-3 green.
 

@@ -1,0 +1,21 @@
+<html>
+<body>
+Reports usage of <code>KEYS</code> and <code>ARGV</code> globals inside a Redis Function library file
+(a file starting with <code>#!lua name=&lt;lib&gt;</code>).
+<p>
+These globals are EVAL-only ambient bindings. Redis Functions receive their keys and arguments via the
+callback parameters <code>(keys, args)</code> passed by the server at invocation time — not via
+<code>KEYS</code>/<code>ARGV</code> globals, which are absent inside Function callbacks.
+</p>
+<p>Replace usages with the corresponding callback parameter:</p>
+<pre><code>redis.register_function('f', function(keys, args)
+    local first_key = keys[1]  -- not KEYS[1]
+    local first_arg = args[1]  -- not ARGV[1]
+end)</code></pre>
+<p>
+The inspection is a no-op under non-Redis/Valkey targets and on files without a
+<code>#!lua name=&lt;lib&gt;</code> shebang (plain EVAL scripts may use <code>KEYS</code>/<code>ARGV</code>
+normally). Only Redis 7+ and Valkey targets are affected, as Functions are a Redis 7+ feature.
+</p>
+</body>
+</html>

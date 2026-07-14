@@ -48,8 +48,9 @@ all.
       an un-annotated callback are **not** auto-typed as `string[]`; users annotate the
       callback params themselves. General "expected-type → lambda-param" inference is
       deferred to a TYPE-epic enhancement.
-- [ ] Inspection: `KEYS`/`ARGV` usage inside a function library file is flagged (they are
+- [x] Inspection: `KEYS`/`ARGV` usage inside a function library file is flagged (they are
       EVAL-only); REDIS-04's ambient globals are suppressed in library files
+      *(Phase 2; TC-KEYS-1/2/3 green)*
 - [ ] REDIS-01 run configuration gains the `FUNCTION LOAD` + `FCALL` execution mode:
       library file, `REPLACE` toggle, function name to call, KEYS/ARGV inputs; loading a
       library without calling is a valid "deploy" run
