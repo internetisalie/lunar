@@ -40,7 +40,7 @@ class LuaRedisScriptExecutor(private val cache: LuaRedisScriptShaCache = LuaRedi
             LuaRedisExecMode.EVAL -> runEval(client, context, scriptBody)
             LuaRedisExecMode.EVALSHA -> runEvalSha(client, context, scriptBody)
             LuaRedisExecMode.FCALL ->
-                throw RespException.Protocol("FCALL mode is not available until REDIS-05")
+                error("FCALL mode is routed via LuaRedisFunctionExecutor before reaching LuaRedisScriptExecutor")
         }
     }
 

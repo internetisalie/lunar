@@ -10,6 +10,7 @@ import com.intellij.execution.configurations.RunConfigurationOptions
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationException
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.StoredProperty
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
@@ -18,13 +19,22 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.NotNullLazyValue
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.ui.RawCommandLineEditor
 import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings
 import net.internetisalie.lunar.redis.connection.LuaRedisServerConnection
 import net.internetisalie.lunar.redis.debug.LuaRedisDebugMode
+import net.internetisalie.lunar.redis.functions.LuaRedisFunctionLibrary
+import net.internetisalie.lunar.redis.functions.RegisteredNames
+import java.io.File
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -32,8 +42,7 @@ import javax.swing.JPanel
  * Script execution mode for a Redis run configuration (design §2.8).
  *
  * [EVAL] sends the script body each run; [EVALSHA] loads once and runs by SHA (design §3.8).
- * [FCALL] is a reserved slot for REDIS-05 (Functions) — rejected in [LuaRedisRunConfiguration.checkConfiguration]
- * until that feature lands (design §3.7), keeping the enum-slot contract for downstream work.
+ * [FCALL] deploys via `FUNCTION LOAD` and invokes via `FCALL`/`FCALL_RO` (REDIS-05 design §2.4).
  */
 enum class LuaRedisExecMode { EVAL, EVALSHA, FCALL }
 
@@ -80,6 +89,9 @@ class LuaRedisRunConfigurationOptions : RunConfigurationOptions() {
     private val myReadOnly: StoredProperty<String?> = string("false").provideDelegate(this, "readOnly")
     private val myKeysRaw: StoredProperty<String?> = string("").provideDelegate(this, "keysRaw")
     private val myArgvRaw: StoredProperty<String?> = string("").provideDelegate(this, "argvRaw")
+    private val myFunctionName: StoredProperty<String?> = string("").provideDelegate(this, "functionName")
+    private val myReplaceOnLoad: StoredProperty<String?> = string("true").provideDelegate(this, "replaceOnLoad")
+    private val myDeployOnly: StoredProperty<String?> = string("false").provideDelegate(this, "deployOnly")
 
     var scriptPath: String?
         get() = myScriptPath.getValue(this)
@@ -108,6 +120,18 @@ class LuaRedisRunConfigurationOptions : RunConfigurationOptions() {
     var argvRaw: String?
         get() = myArgvRaw.getValue(this)
         set(value) = myArgvRaw.setValue(this, value)
+
+    var functionName: String?
+        get() = myFunctionName.getValue(this)
+        set(value) = myFunctionName.setValue(this, value)
+
+    var replaceOnLoad: String?
+        get() = myReplaceOnLoad.getValue(this)
+        set(value) = myReplaceOnLoad.setValue(this, value)
+
+    var deployOnly: String?
+        get() = myDeployOnly.getValue(this)
+        set(value) = myDeployOnly.setValue(this, value)
 }
 
 class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?, name: String?) :
@@ -157,12 +181,32 @@ class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?,
         get() = splitLines(options.argvRaw)
         set(value) { options.argvRaw = joinLines(value) }
 
+    /** Target function name for FCALL mode (REDIS-05 design §2.4). `null`/blank when unset. */
+    var functionName: String?
+        get() = options.functionName?.takeIf { it.isNotBlank() }
+        set(value) { options.functionName = value }
+
+    /** Whether to pass `REPLACE` to `FUNCTION LOAD` (REDIS-05 design §2.4). Defaults to `true`. */
+    var replaceOnLoad: Boolean
+        get() = options.replaceOnLoad?.toBooleanStrictOrNull() ?: true
+        set(value) { options.replaceOnLoad = value.toString() }
+
+    /** When `true`, runs `FUNCTION LOAD` only without `FCALL`; a valid deploy run (REDIS-05 design §2.4). */
+    var deployOnly: Boolean
+        get() = options.deployOnly?.toBooleanStrictOrNull() ?: false
+        set(value) { options.deployOnly = value.toString() }
+
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> = LuaRedisSettingsEditor(project)
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
         LuaRedisRunProfileState(this, environment)
 
-    /** Validates the configuration at edit time (design §3.7). Live-connection checks are deferred to run time (§3.8). */
+    /**
+     * Validates the configuration at edit time (design §3.7 / REDIS-05 §3.6).
+     *
+     * Live-connection checks are deferred to run time. FCALL validation: function-name presence,
+     * then a best-effort static scan against the library file (skipped when unresolvable or dynamic).
+     */
     override fun checkConfiguration() {
         if (options.scriptPath.isNullOrBlank()) {
             throw RuntimeConfigurationException("Script path is not defined")
@@ -171,7 +215,48 @@ class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?,
             throw RuntimeConfigurationException("No Redis connection selected")
         }
         if (execMode == LuaRedisExecMode.FCALL) {
-            throw RuntimeConfigurationException("FCALL mode is not available until REDIS-05")
+            checkFcallConfiguration()
+        }
+    }
+
+    private fun checkFcallConfiguration() {
+        if (!deployOnly && functionName.isNullOrBlank()) {
+            throw RuntimeConfigurationException("Function name is not defined")
+        }
+        if (!deployOnly) {
+            validateFunctionNameAgainstLibrary()
+        }
+    }
+
+    private fun validateFunctionNameAgainstLibrary() {
+        val name = functionName ?: return
+        val path = options.scriptPath?.takeIf { it.isNotBlank() } ?: return
+        val psiFile = resolveScriptPsiFile(path) ?: return
+        checkFunctionRegistered(name, psiFile)
+    }
+
+    private fun resolveScriptPsiFile(path: String): PsiFile? =
+        ApplicationManager.getApplication().runReadAction<PsiFile?> {
+            val vf = VfsUtil.findFileByIoFile(File(path), false) ?: return@runReadAction null
+            PsiManager.getInstance(project).findFile(vf)
+        }
+
+    /**
+     * Validates that [name] appears in the static registration scan of [psiFile].
+     *
+     * Skipped entirely when [RegisteredNames.hasDynamic] is true (best-effort; TC-VALID-2).
+     * Throws [RuntimeConfigurationException] when the name is statically absent (TC-VALID-1).
+     * Package-internal for direct testing without the VFS lookup path.
+     */
+    internal fun checkFunctionRegistered(name: String, psiFile: PsiFile) {
+        val reg = ApplicationManager.getApplication().runReadAction<RegisteredNames> {
+            LuaRedisFunctionLibrary.registeredNames(psiFile)
+        }
+        if (!reg.hasDynamic && name !in reg.names) {
+            val registered = reg.names.sorted().joinToString(", ")
+            throw RuntimeConfigurationException(
+                "Function '$name' is not registered in ${psiFile.name} (registered: $registered)",
+            )
         }
     }
 
@@ -188,11 +273,15 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
     private val myPanel: JPanel
     private val scriptPathField = TextFieldWithBrowseButton()
     private val connectionCombo = ComboBox<LuaRedisConnectionItem>()
-    private val execModeCombo = ComboBox(arrayOf(LuaRedisExecMode.EVAL, LuaRedisExecMode.EVALSHA))
+    private val execModeCombo = ComboBox(arrayOf(LuaRedisExecMode.EVAL, LuaRedisExecMode.EVALSHA, LuaRedisExecMode.FCALL))
     private val debugModeCombo = ComboBox(arrayOf(LuaRedisDebugMode.FORKED, LuaRedisDebugMode.SYNC))
-    private val readOnlyCheckbox = com.intellij.ui.components.JBCheckBox("Read-only (EVAL_RO / EVALSHA_RO)")
+    private val readOnlyCheckbox = JBCheckBox("Read-only (EVAL_RO / EVALSHA_RO / FCALL_RO)")
     private val keysField = RawCommandLineEditor()
     private val argvField = RawCommandLineEditor()
+    private val functionNameField = JBTextField()
+    private val replaceOnLoadCheckbox = JBCheckBox("REPLACE (overwrite existing library)")
+    private val deployOnlyCheckbox = JBCheckBox("Deploy only (FUNCTION LOAD without FCALL)")
+    private val noWritesHintLabel = JBLabel("")
 
     init {
         scriptPathField.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleFile())
@@ -207,6 +296,11 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
             .addComponent(readOnlyCheckbox)
             .addLabeledComponent("KEYS (space-separated)", keysField)
             .addLabeledComponent("ARGV (space-separated)", argvField)
+            .addSeparator()
+            .addLabeledComponent("Function name (FCALL)", functionNameField)
+            .addComponent(replaceOnLoadCheckbox)
+            .addComponent(deployOnlyCheckbox)
+            .addComponent(noWritesHintLabel)
             .panel
     }
 
@@ -220,11 +314,15 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
         scriptPathField.text = config.scriptPath ?: ""
         reloadConnections()
         connectionCombo.item = selectConnection(config.connectionId)
-        execModeCombo.item = if (config.execMode == LuaRedisExecMode.EVALSHA) LuaRedisExecMode.EVALSHA else LuaRedisExecMode.EVAL
+        execModeCombo.item = config.execMode
         debugModeCombo.item = config.debugMode
         readOnlyCheckbox.isSelected = config.readOnly
         keysField.text = config.keys.joinToString(" ")
         argvField.text = config.argv.joinToString(" ")
+        functionNameField.text = config.functionName ?: ""
+        replaceOnLoadCheckbox.isSelected = config.replaceOnLoad
+        deployOnlyCheckbox.isSelected = config.deployOnly
+        noWritesHintLabel.text = ""
     }
 
     override fun applyEditorTo(config: LuaRedisRunConfiguration) {
@@ -235,6 +333,29 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
         config.readOnly = readOnlyCheckbox.isSelected
         config.keys = keysField.text.split(Regex("\\s+")).filter { it.isNotEmpty() }
         config.argv = argvField.text.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        config.functionName = functionNameField.text.trim().takeIf { it.isNotEmpty() }
+        config.replaceOnLoad = replaceOnLoadCheckbox.isSelected
+        config.deployOnly = deployOnlyCheckbox.isSelected
+        updateNoWritesHint(config)
+    }
+
+    private fun updateNoWritesHint(config: LuaRedisRunConfiguration) {
+        val name = config.functionName
+        if (config.execMode != LuaRedisExecMode.FCALL || name.isNullOrBlank() || config.readOnly) {
+            noWritesHintLabel.text = ""
+            return
+        }
+        val path = config.scriptPath?.takeIf { it.isNotBlank() } ?: return
+        val flags = ApplicationManager.getApplication().runReadAction<Set<String>> {
+            val vf = VfsUtil.findFileByIoFile(File(path), false) ?: return@runReadAction emptySet()
+            val psiFile = PsiManager.getInstance(project).findFile(vf) ?: return@runReadAction emptySet()
+            LuaRedisFunctionLibrary.registeredFlags(psiFile, name)
+        }
+        noWritesHintLabel.text = if ("no-writes" in flags) {
+            "'$name' declares no-writes; consider enabling read-only (FCALL_RO)"
+        } else {
+            ""
+        }
     }
 
     private fun debugModeLabel(mode: LuaRedisDebugMode): String = when (mode) {

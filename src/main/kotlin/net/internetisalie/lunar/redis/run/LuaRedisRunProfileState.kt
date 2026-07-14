@@ -151,14 +151,18 @@ class LuaRedisRunProfileState(
 
     private suspend fun executeScript(client: RespClient, connection: LuaRedisServerConnection): RespValue {
         val scriptBody = readScriptBody()
-        val context = LuaRedisExecContext(
-            connectionId = connection.id,
-            execMode = config.execMode,
-            readOnly = config.readOnly,
-            keys = config.keys,
-            argv = config.argv,
-        )
-        return LuaRedisScriptExecutor().execute(client, context, scriptBody)
+        return if (config.execMode == LuaRedisExecMode.FCALL) {
+            LuaRedisFunctionExecutor().execute(client, config, scriptBody)
+        } else {
+            val context = LuaRedisExecContext(
+                connectionId = connection.id,
+                execMode = config.execMode,
+                readOnly = config.readOnly,
+                keys = config.keys,
+                argv = config.argv,
+            )
+            LuaRedisScriptExecutor().execute(client, context, scriptBody)
+        }
     }
 
     private suspend fun readScriptBody(): String {
