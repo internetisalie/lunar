@@ -14,6 +14,11 @@ folders:
 > here is advisory. Only **open** work is listed — completed waves (0–10, 13–17) are done and
 > live in git history.
 
+> **MVP scope (2026-07-14).** The product is **feature-complete for MVP** once Wave 19's four
+> items land — **SYNTAX-18, MAINT-23, TYPE-10, REDIS-06** — barring new issues surfaced by
+> testing. **MAINT-21** is *not* MVP-gating (externally blocked on the unreleased 2026.2 platform).
+> The **AI epic (Wave 18) is post-MVP.**
+
 ## How an agent uses this
 
 - **Pick the lowest-numbered wave with a *ready* item** — ready = every `Depends on` is `done`;
