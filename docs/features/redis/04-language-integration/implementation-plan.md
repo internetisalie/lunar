@@ -116,18 +116,20 @@ file it creates/edits and the design section it realizes.
   deliberate (the Valkey `redis.*` namespace is the redis-compat surface); the three files stay
   in sync.
 
-### Phase 2: Command-spec service + bundled data (AC-2) [Must]
+### Phase 2: Command-spec service + bundled data (AC-2) [Must] — done
 - **Goal**: `RedisCommandSpecService.specFor(target)` returns a cached, parsed spec.
 - **Tasks**:
-  - [ ] Vendor `src/main/resources/commandspec/{redis-5,redis-6,redis-7}.json` from the
-        BSD-Valkey source, reduced to the §4.1 schema (offline vendoring script; not runtime
-        code) — realizes design §4.1
-  - [ ] Create `RedisCommandSpec`/`RedisCommandInfo` data classes — realizes design §2.2
-  - [ ] Create `RedisCommandSpecService` (`@Service(Service.Level.APP)`, Gson, lazy
+  - [x] Vendor `src/main/resources/commandspec/{redis-5,redis-6,redis-7}.json` from the
+        BSD-3-Clause Valkey source (`valkey-io/valkey`, `src/commands/*.json`, pinned tag
+        `8.0.0`), reduced to the §4.1 schema (offline vendoring script
+        `scripts/vendor_redis_commandspec.py`; not runtime code). NO Redis-repo
+        `commands.json` (RSALv2/SSPLv1/AGPLv3) data used — realizes design §4.1
+  - [x] Create `RedisCommandSpec`/`RedisCommandInfo` data classes — realizes design §2.2
+  - [x] Create `RedisCommandSpecService` (`@Service(Service.Level.APP)`, Gson, lazy
         `synchronized` memo keyed on resolved resource path; `specFor` → `EMPTY` when absent)
         — realizes design §2.2, §3.2, §4.1
-  - [ ] Register `<applicationService>` in `plugin.xml` — realizes design §7
-- **Exit criteria**: TC-SPEC-1, TC-SPEC-2 green.
+  - [x] Register `<applicationService>` in `plugin.xml` — realizes design §7
+- **Exit criteria**: TC-SPEC-1, TC-SPEC-2 green. **Met** (full suite 1917 tests / 0 failed).
 
 ### Phase 3: Call-site matcher (shared seam) [Must]
 - **Goal**: single source of truth for `redis.call`/`pcall` (`server.*`) call-shape parsing.
@@ -211,7 +213,7 @@ file it creates/edits and the design section it realizes.
 - [x] Ambient typing tests — covers TC-KEYS-1 (type), TC-KEYS-2, TC-KEYS-3, TC-PCALL-1,
       redis-5 coverage, chained-subscript regression (TC-KEYS-1 resolution sub-assertion →
       human-verification Scenario 4.1, see risks §Gap 2.3)
-- [ ] Command-spec service tests — covers TC-SPEC-1, TC-SPEC-2
+- [x] Command-spec service tests — covers TC-SPEC-1, TC-SPEC-2
 - [ ] Completion tests (per-version filter, non-literal, off-Redis) — covers TC-COMP-1..4
 - [ ] Command inspection + quick fix tests — covers TC-ARITY-1/2, TC-UNK-1/2
 - [ ] Determinism tests — covers TC-DET-1..4
@@ -225,7 +227,7 @@ file it creates/edits and the design section it realizes.
 |-------|--------|----------|
 | Phase 1a: Type-engine (stub-global + array-subscript inference) | done | Must |
 | Phase 1b: Redis stub resources + ambient-typing wiring | done | Must |
-| Phase 2: Command-spec service + data | todo | Must |
+| Phase 2: Command-spec service + data | done | Must |
 | Phase 3: Call-site matcher | todo | Must |
 | Phase 4: Command completion | todo | Should |
 | Phase 5: Command inspection + fix + determinism | todo | Should |

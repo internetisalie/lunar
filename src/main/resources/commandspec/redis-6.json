@@ -1,0 +1,2057 @@
+{
+  "ACL": {
+    "arity": -2,
+    "since": "6.0.0",
+    "summary": "A container for Access List Control commands.",
+    "flags": [
+      "sentinel"
+    ]
+  },
+  "APPEND": {
+    "arity": 3,
+    "since": "2.0.0",
+    "summary": "Appends a string to the value of a key. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "ASKING": {
+    "arity": 1,
+    "since": "3.0.0",
+    "summary": "Signals that a cluster client is following an -ASK redirect.",
+    "flags": [
+      "fast"
+    ]
+  },
+  "AUTH": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Authenticates the connection.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "no_auth",
+      "sentinel",
+      "allow_busy"
+    ]
+  },
+  "BGREWRITEAOF": {
+    "arity": 1,
+    "since": "1.0.0",
+    "summary": "Asynchronously rewrites the append-only file to disk.",
+    "flags": [
+      "no_async_loading",
+      "admin",
+      "noscript"
+    ]
+  },
+  "BGSAVE": {
+    "arity": -1,
+    "since": "1.0.0",
+    "summary": "Asynchronously saves the database(s) to disk.",
+    "flags": [
+      "no_async_loading",
+      "admin",
+      "noscript"
+    ]
+  },
+  "BITCOUNT": {
+    "arity": -2,
+    "since": "2.6.0",
+    "summary": "Counts the number of set bits (population counting) in a string.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "BITFIELD": {
+    "arity": -2,
+    "since": "3.2.0",
+    "summary": "Performs arbitrary bitfield integer operations on strings.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "BITFIELD_RO": {
+    "arity": -2,
+    "since": "6.0.0",
+    "summary": "Performs arbitrary read-only bitfield integer operations on strings.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "BITOP": {
+    "arity": -4,
+    "since": "2.6.0",
+    "summary": "Performs bitwise operations on multiple strings, and stores the result.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "BITPOS": {
+    "arity": -3,
+    "since": "2.8.7",
+    "summary": "Finds the first set (1) or clear (0) bit in a string.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "BLMOVE": {
+    "arity": 6,
+    "since": "6.2.0",
+    "summary": "Pops an element from a list, pushes it to another list and returns it. Blocks until an element is available otherwise. Deletes the list if the last element was moved.",
+    "flags": [
+      "write",
+      "denyoom",
+      "blocking"
+    ]
+  },
+  "BLPOP": {
+    "arity": -3,
+    "since": "2.0.0",
+    "summary": "Removes and returns the first element in a list. Blocks until an element is available otherwise. Deletes the list if the last element was popped.",
+    "flags": [
+      "write",
+      "blocking"
+    ]
+  },
+  "BRPOP": {
+    "arity": -3,
+    "since": "2.0.0",
+    "summary": "Removes and returns the last element in a list. Blocks until an element is available otherwise. Deletes the list if the last element was popped.",
+    "flags": [
+      "write",
+      "blocking"
+    ]
+  },
+  "BRPOPLPUSH": {
+    "arity": 4,
+    "since": "2.2.0",
+    "summary": "Pops an element from a list, pushes it to another list and returns it. Block until an element is available otherwise. Deletes the list if the last element was popped.",
+    "flags": [
+      "write",
+      "denyoom",
+      "blocking"
+    ]
+  },
+  "BZPOPMAX": {
+    "arity": -3,
+    "since": "5.0.0",
+    "summary": "Removes and returns the member with the highest score from one or more sorted sets. Blocks until a member available otherwise.  Deletes the sorted set if the last element was popped.",
+    "flags": [
+      "write",
+      "fast",
+      "blocking"
+    ]
+  },
+  "BZPOPMIN": {
+    "arity": -3,
+    "since": "5.0.0",
+    "summary": "Removes and returns the member with the lowest score from one or more sorted sets. Blocks until a member is available otherwise. Deletes the sorted set if the last element was popped.",
+    "flags": [
+      "write",
+      "fast",
+      "blocking"
+    ]
+  },
+  "CLIENT": {
+    "arity": -2,
+    "since": "2.4.0",
+    "summary": "A container for client connection commands.",
+    "flags": [
+      "sentinel"
+    ]
+  },
+  "CLUSTER": {
+    "arity": -2,
+    "since": "3.0.0",
+    "summary": "A container for Cluster commands.",
+    "flags": []
+  },
+  "COMMAND": {
+    "arity": -1,
+    "since": "2.8.13",
+    "summary": "Returns detailed information about all commands.",
+    "flags": [
+      "loading",
+      "stale",
+      "sentinel"
+    ]
+  },
+  "CONFIG": {
+    "arity": -2,
+    "since": "2.0.0",
+    "summary": "A container for server configuration commands.",
+    "flags": []
+  },
+  "COPY": {
+    "arity": -3,
+    "since": "6.2.0",
+    "summary": "Copies the value of a key to a new key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "DBSIZE": {
+    "arity": 1,
+    "since": "1.0.0",
+    "summary": "Returns the number of keys in the database.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "DEBUG": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "A container for debugging commands.",
+    "flags": [
+      "admin",
+      "noscript",
+      "loading",
+      "stale",
+      "protected"
+    ]
+  },
+  "DECR": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Decrements the integer value of a key by one. Uses 0 as initial value if the key doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "DECRBY": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Decrements a number from the integer value of a key. Uses 0 as initial value if the key doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "DEL": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Deletes one or more keys.",
+    "flags": [
+      "write"
+    ]
+  },
+  "DISCARD": {
+    "arity": 1,
+    "since": "2.0.0",
+    "summary": "Discards a transaction.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "allow_busy"
+    ]
+  },
+  "DUMP": {
+    "arity": 2,
+    "since": "2.6.0",
+    "summary": "Returns a serialized representation of the value stored at a key.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ECHO": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Returns the given string.",
+    "flags": [
+      "loading",
+      "stale",
+      "fast"
+    ]
+  },
+  "EVAL": {
+    "arity": -3,
+    "since": "2.6.0",
+    "summary": "Executes a server-side Lua script.",
+    "flags": [
+      "noscript",
+      "skip_monitor",
+      "may_replicate",
+      "no_mandatory_keys",
+      "stale"
+    ]
+  },
+  "EVALSHA": {
+    "arity": -3,
+    "since": "2.6.0",
+    "summary": "Executes a server-side Lua script by SHA1 digest.",
+    "flags": [
+      "noscript",
+      "skip_monitor",
+      "may_replicate",
+      "no_mandatory_keys",
+      "stale"
+    ]
+  },
+  "EXEC": {
+    "arity": 1,
+    "since": "1.2.0",
+    "summary": "Executes all commands in a transaction.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "skip_slowlog"
+    ]
+  },
+  "EXISTS": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Determines whether one or more keys exist.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "EXPIRE": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Sets the expiration time of a key in seconds.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "EXPIREAT": {
+    "arity": -3,
+    "since": "1.2.0",
+    "summary": "Sets the expiration time of a key to a Unix timestamp.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "FAILOVER": {
+    "arity": -1,
+    "since": "6.2.0",
+    "summary": "Starts a coordinated failover from a server to one of its replicas.",
+    "flags": [
+      "admin",
+      "noscript",
+      "stale"
+    ]
+  },
+  "FLUSHALL": {
+    "arity": -1,
+    "since": "1.0.0",
+    "summary": "Removes all keys from all databases.",
+    "flags": [
+      "write"
+    ]
+  },
+  "FLUSHDB": {
+    "arity": -1,
+    "since": "1.0.0",
+    "summary": "Remove all keys from the current database.",
+    "flags": [
+      "write"
+    ]
+  },
+  "GEOADD": {
+    "arity": -5,
+    "since": "3.2.0",
+    "summary": "Adds one or more members to a geospatial index. The key is created if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "GEODIST": {
+    "arity": -4,
+    "since": "3.2.0",
+    "summary": "Returns the distance between two members of a geospatial index.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "GEOHASH": {
+    "arity": -2,
+    "since": "3.2.0",
+    "summary": "Returns members from a geospatial index as geohash strings.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "GEOPOS": {
+    "arity": -2,
+    "since": "3.2.0",
+    "summary": "Returns the longitude and latitude of members from a geospatial index.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "GEORADIUS": {
+    "arity": -6,
+    "since": "3.2.0",
+    "summary": "Queries a geospatial index for members within a distance from a coordinate, optionally stores the result.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "GEORADIUSBYMEMBER": {
+    "arity": -5,
+    "since": "3.2.0",
+    "summary": "Queries a geospatial index for members within a distance from a member, optionally stores the result.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "GEORADIUSBYMEMBER_RO": {
+    "arity": -5,
+    "since": "3.2.10",
+    "summary": "Returns members from a geospatial index that are within a distance from a member.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "GEORADIUS_RO": {
+    "arity": -6,
+    "since": "3.2.10",
+    "summary": "Returns members from a geospatial index that are within a distance from a coordinate.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "GEOSEARCH": {
+    "arity": -7,
+    "since": "6.2.0",
+    "summary": "Queries a geospatial index for members inside an area of a box or a circle.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "GEOSEARCHSTORE": {
+    "arity": -8,
+    "since": "6.2.0",
+    "summary": "Queries a geospatial index for members inside an area of a box or a circle, optionally stores the result.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "GET": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Returns the string value of a key.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "GETBIT": {
+    "arity": 3,
+    "since": "2.2.0",
+    "summary": "Returns a bit value by offset.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "GETDEL": {
+    "arity": 2,
+    "since": "6.2.0",
+    "summary": "Returns the string value of a key after deleting the key.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "GETEX": {
+    "arity": -2,
+    "since": "6.2.0",
+    "summary": "Returns the string value of a key after setting its expiration time.",
+    "flags": [
+      "write",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "GETRANGE": {
+    "arity": 4,
+    "since": "2.4.0",
+    "summary": "Returns a substring of the string stored at a key.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "GETSET": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Returns the previous string value of a key after setting it to a new value.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "HDEL": {
+    "arity": -3,
+    "since": "2.0.0",
+    "summary": "Deletes one or more fields and their values from a hash. Deletes the hash if no fields remain.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "HELLO": {
+    "arity": -1,
+    "since": "6.0.0",
+    "summary": "Handshakes with the server.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "no_auth",
+      "sentinel",
+      "allow_busy"
+    ]
+  },
+  "HEXISTS": {
+    "arity": 3,
+    "since": "2.0.0",
+    "summary": "Determines whether a field exists in a hash.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "HGET": {
+    "arity": 3,
+    "since": "2.0.0",
+    "summary": "Returns the value of a field in a hash.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "HGETALL": {
+    "arity": 2,
+    "since": "2.0.0",
+    "summary": "Returns all fields and values in a hash.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "HINCRBY": {
+    "arity": 4,
+    "since": "2.0.0",
+    "summary": "Increments the integer value of a field in a hash by a number. Uses 0 as initial value if the field doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "HINCRBYFLOAT": {
+    "arity": 4,
+    "since": "2.6.0",
+    "summary": "Increments the floating point value of a field by a number. Uses 0 as initial value if the field doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "HKEYS": {
+    "arity": 2,
+    "since": "2.0.0",
+    "summary": "Returns all fields in a hash.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "HLEN": {
+    "arity": 2,
+    "since": "2.0.0",
+    "summary": "Returns the number of fields in a hash.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "HMGET": {
+    "arity": -3,
+    "since": "2.0.0",
+    "summary": "Returns the values of all fields in a hash.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "HMSET": {
+    "arity": -4,
+    "since": "2.0.0",
+    "summary": "Sets the values of multiple fields.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "HRANDFIELD": {
+    "arity": -2,
+    "since": "6.2.0",
+    "summary": "Returns one or more random fields from a hash.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "HSCAN": {
+    "arity": -3,
+    "since": "2.8.0",
+    "summary": "Iterates over fields and values of a hash.",
+    "flags": [
+      "readonly",
+      "nondeterministic"
+    ]
+  },
+  "HSET": {
+    "arity": -4,
+    "since": "2.0.0",
+    "summary": "Creates or modifies the value of a field in a hash.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "HSETNX": {
+    "arity": 4,
+    "since": "2.0.0",
+    "summary": "Sets the value of a field in a hash only when the field doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "HSTRLEN": {
+    "arity": 3,
+    "since": "3.2.0",
+    "summary": "Returns the length of the value of a field.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "HVALS": {
+    "arity": 2,
+    "since": "2.0.0",
+    "summary": "Returns all values in a hash.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "INCR": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Increments the integer value of a key by one. Uses 0 as initial value if the key doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "INCRBY": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Increments the integer value of a key by a number. Uses 0 as initial value if the key doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "INCRBYFLOAT": {
+    "arity": 3,
+    "since": "2.6.0",
+    "summary": "Increment the floating point value of a key by a number. Uses 0 as initial value if the key doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "INFO": {
+    "arity": -1,
+    "since": "1.0.0",
+    "summary": "Returns information and statistics about the server.",
+    "flags": [
+      "loading",
+      "stale",
+      "sentinel"
+    ]
+  },
+  "KEYS": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Returns all key names that match a pattern.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "LASTSAVE": {
+    "arity": 1,
+    "since": "1.0.0",
+    "summary": "Returns the Unix timestamp of the last successful save to disk.",
+    "flags": [
+      "loading",
+      "stale",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "LATENCY": {
+    "arity": -2,
+    "since": "2.8.13",
+    "summary": "A container for latency diagnostics commands.",
+    "flags": []
+  },
+  "LINDEX": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Returns an element from a list by its index.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "LINSERT": {
+    "arity": 5,
+    "since": "2.2.0",
+    "summary": "Inserts an element before or after another element in a list.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "LLEN": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Returns the length of a list.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "LMOVE": {
+    "arity": 5,
+    "since": "6.2.0",
+    "summary": "Returns an element after popping it from one list and pushing it to another. Deletes the list if the last element was moved.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "LOLWUT": {
+    "arity": -1,
+    "since": "5.0.0",
+    "summary": "Displays computer art and the server version",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "LPOP": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Returns the first elements in a list after removing it. Deletes the list if the last element was popped.",
+    "flags": [
+      "write",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "LPOS": {
+    "arity": -3,
+    "since": "6.0.6",
+    "summary": "Returns the index of matching elements in a list.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "LPUSH": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Prepends one or more elements to a list. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "LPUSHX": {
+    "arity": -3,
+    "since": "2.2.0",
+    "summary": "Prepends one or more elements to a list only when the list exists.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "LRANGE": {
+    "arity": 4,
+    "since": "1.0.0",
+    "summary": "Returns a range of elements from a list.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "LREM": {
+    "arity": 4,
+    "since": "1.0.0",
+    "summary": "Removes elements from a list. Deletes the list if the last element was removed.",
+    "flags": [
+      "write"
+    ]
+  },
+  "LSET": {
+    "arity": 4,
+    "since": "1.0.0",
+    "summary": "Sets the value of an element in a list by its index.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "LTRIM": {
+    "arity": 4,
+    "since": "1.0.0",
+    "summary": "Removes elements from both ends a list. Deletes the list if all elements were trimmed.",
+    "flags": [
+      "write"
+    ]
+  },
+  "MEMORY": {
+    "arity": -2,
+    "since": "4.0.0",
+    "summary": "A container for memory diagnostics commands.",
+    "flags": []
+  },
+  "MGET": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Atomically returns the string values of one or more keys.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "MIGRATE": {
+    "arity": -6,
+    "since": "2.6.0",
+    "summary": "Atomically transfers a key from one instance to another.",
+    "flags": [
+      "write"
+    ]
+  },
+  "MODULE": {
+    "arity": -2,
+    "since": "4.0.0",
+    "summary": "A container for module commands.",
+    "flags": []
+  },
+  "MONITOR": {
+    "arity": 1,
+    "since": "1.0.0",
+    "summary": "Listens for all requests received by the server in real-time.",
+    "flags": [
+      "admin",
+      "noscript",
+      "loading",
+      "stale"
+    ]
+  },
+  "MOVE": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Moves a key to another database.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "MSET": {
+    "arity": -3,
+    "since": "1.0.1",
+    "summary": "Atomically creates or modifies the string values of one or more keys.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "MSETNX": {
+    "arity": -3,
+    "since": "1.0.1",
+    "summary": "Atomically modifies the string values of one or more keys only when all keys don't exist.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "MULTI": {
+    "arity": 1,
+    "since": "1.2.0",
+    "summary": "Starts a transaction.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "no_multi",
+      "allow_busy"
+    ]
+  },
+  "OBJECT": {
+    "arity": -2,
+    "since": "2.2.3",
+    "summary": "A container for object introspection commands.",
+    "flags": []
+  },
+  "PERSIST": {
+    "arity": 2,
+    "since": "2.2.0",
+    "summary": "Removes the expiration time of a key.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "PEXPIRE": {
+    "arity": -3,
+    "since": "2.6.0",
+    "summary": "Sets the expiration time of a key in milliseconds.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "PEXPIREAT": {
+    "arity": -3,
+    "since": "2.6.0",
+    "summary": "Sets the expiration time of a key to a Unix milliseconds timestamp.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "PFADD": {
+    "arity": -2,
+    "since": "2.8.9",
+    "summary": "Adds elements to a HyperLogLog key. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "PFCOUNT": {
+    "arity": -2,
+    "since": "2.8.9",
+    "summary": "Returns the approximated cardinality of the set(s) observed by the HyperLogLog key(s).",
+    "flags": [
+      "readonly",
+      "may_replicate"
+    ]
+  },
+  "PFDEBUG": {
+    "arity": 3,
+    "since": "2.8.9",
+    "summary": "Internal commands for debugging HyperLogLog values.",
+    "flags": [
+      "write",
+      "denyoom",
+      "admin"
+    ]
+  },
+  "PFMERGE": {
+    "arity": -2,
+    "since": "2.8.9",
+    "summary": "Merges one or more HyperLogLog values into a single key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "PFSELFTEST": {
+    "arity": 1,
+    "since": "2.8.9",
+    "summary": "An internal command for testing HyperLogLog values.",
+    "flags": [
+      "admin"
+    ]
+  },
+  "PING": {
+    "arity": -1,
+    "since": "1.0.0",
+    "summary": "Returns the server's liveliness response.",
+    "flags": [
+      "fast",
+      "sentinel"
+    ]
+  },
+  "PSETEX": {
+    "arity": 4,
+    "since": "2.6.0",
+    "summary": "Sets both string value and expiration time in milliseconds of a key. The key is created if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "PSUBSCRIBE": {
+    "arity": -2,
+    "since": "2.0.0",
+    "summary": "Listens for messages published to channels that match one or more patterns.",
+    "flags": [
+      "pubsub",
+      "noscript",
+      "loading",
+      "stale",
+      "sentinel"
+    ]
+  },
+  "PSYNC": {
+    "arity": -3,
+    "since": "2.8.0",
+    "summary": "An internal command used in replication.",
+    "flags": [
+      "no_async_loading",
+      "admin",
+      "no_multi",
+      "noscript"
+    ]
+  },
+  "PTTL": {
+    "arity": 2,
+    "since": "2.6.0",
+    "summary": "Returns the expiration time in milliseconds of a key.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "PUBLISH": {
+    "arity": 3,
+    "since": "2.0.0",
+    "summary": "Posts a message to a channel.",
+    "flags": [
+      "pubsub",
+      "loading",
+      "stale",
+      "fast",
+      "may_replicate",
+      "sentinel"
+    ]
+  },
+  "PUBSUB": {
+    "arity": -2,
+    "since": "2.8.0",
+    "summary": "A container for Pub/Sub commands.",
+    "flags": []
+  },
+  "PUNSUBSCRIBE": {
+    "arity": -1,
+    "since": "2.0.0",
+    "summary": "Stops listening to messages published to channels that match one or more patterns.",
+    "flags": [
+      "pubsub",
+      "noscript",
+      "loading",
+      "stale",
+      "sentinel"
+    ]
+  },
+  "QUIT": {
+    "arity": -1,
+    "since": "1.0.0",
+    "summary": "Closes the connection.",
+    "flags": [
+      "allow_busy",
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "no_auth"
+    ]
+  },
+  "RANDOMKEY": {
+    "arity": 1,
+    "since": "1.0.0",
+    "summary": "Returns a random key name from the database.",
+    "flags": [
+      "readonly",
+      "touches_arbitrary_keys",
+      "nondeterministic"
+    ]
+  },
+  "READONLY": {
+    "arity": 1,
+    "since": "3.0.0",
+    "summary": "Enables read-only queries for a connection to a Valkey replica node.",
+    "flags": [
+      "fast",
+      "loading",
+      "stale"
+    ]
+  },
+  "READWRITE": {
+    "arity": 1,
+    "since": "3.0.0",
+    "summary": "Enables read-write queries for a connection to a Valkey replica node.",
+    "flags": [
+      "fast",
+      "loading",
+      "stale"
+    ]
+  },
+  "RENAME": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Renames a key and overwrites the destination.",
+    "flags": [
+      "write"
+    ]
+  },
+  "RENAMENX": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Renames a key only when the target key name doesn't exist.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "REPLCONF": {
+    "arity": -1,
+    "since": "3.0.0",
+    "summary": "An internal command for configuring the replication stream.",
+    "flags": [
+      "admin",
+      "noscript",
+      "loading",
+      "stale",
+      "allow_busy"
+    ]
+  },
+  "REPLICAOF": {
+    "arity": 3,
+    "since": "5.0.0",
+    "summary": "Configures a server as replica of another, or promotes it to a primary.",
+    "flags": [
+      "no_async_loading",
+      "admin",
+      "noscript",
+      "stale"
+    ]
+  },
+  "RESET": {
+    "arity": 1,
+    "since": "6.2.0",
+    "summary": "Resets the connection.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "no_auth",
+      "allow_busy"
+    ]
+  },
+  "RESTORE": {
+    "arity": -4,
+    "since": "2.6.0",
+    "summary": "Creates a key from the serialized representation of a value.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "RESTORE-ASKING": {
+    "arity": -4,
+    "since": "3.0.0",
+    "summary": "An internal command for migrating keys in a cluster.",
+    "flags": [
+      "write",
+      "denyoom",
+      "asking"
+    ]
+  },
+  "ROLE": {
+    "arity": 1,
+    "since": "2.8.12",
+    "summary": "Returns the replication role.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "sentinel"
+    ]
+  },
+  "RPOP": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Returns and removes the last elements of a list. Deletes the list if the last element was popped.",
+    "flags": [
+      "write",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "RPOPLPUSH": {
+    "arity": 3,
+    "since": "1.2.0",
+    "summary": "Returns the last element of a list after removing and pushing it to another list. Deletes the list if the last element was popped.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "RPUSH": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Appends one or more elements to a list. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "RPUSHX": {
+    "arity": -3,
+    "since": "2.2.0",
+    "summary": "Appends an element to a list only when the list exists.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "SADD": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Adds one or more members to a set. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "SAVE": {
+    "arity": 1,
+    "since": "1.0.0",
+    "summary": "Synchronously saves the database(s) to disk.",
+    "flags": [
+      "no_async_loading",
+      "admin",
+      "noscript",
+      "no_multi"
+    ]
+  },
+  "SCAN": {
+    "arity": -2,
+    "since": "2.8.0",
+    "summary": "Iterates over the key names in the database.",
+    "flags": [
+      "readonly",
+      "touches_arbitrary_keys",
+      "nondeterministic"
+    ]
+  },
+  "SCARD": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Returns the number of members in a set.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "SCRIPT": {
+    "arity": -2,
+    "since": "2.6.0",
+    "summary": "A container for Lua scripts management commands.",
+    "flags": []
+  },
+  "SDIFF": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Returns the difference of multiple sets.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "SDIFFSTORE": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Stores the difference of multiple sets in a key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SELECT": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Changes the selected database.",
+    "flags": [
+      "loading",
+      "stale",
+      "fast"
+    ]
+  },
+  "SENTINEL": {
+    "arity": -2,
+    "since": "2.8.4",
+    "summary": "A container for Sentinel commands.",
+    "flags": [
+      "admin",
+      "sentinel",
+      "only_sentinel"
+    ]
+  },
+  "SET": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Sets the string value of a key, ignoring its type. The key is created if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SETBIT": {
+    "arity": 4,
+    "since": "2.2.0",
+    "summary": "Sets or clears the bit at offset of the string value. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SETEX": {
+    "arity": 4,
+    "since": "2.0.0",
+    "summary": "Sets the string value and expiration time of a key. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SETNX": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Set the string value of a key only when the key doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "SETRANGE": {
+    "arity": 4,
+    "since": "2.2.0",
+    "summary": "Overwrites a part of a string value with another by an offset. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SHUTDOWN": {
+    "arity": -1,
+    "since": "1.0.0",
+    "summary": "Synchronously saves the database(s) to disk and shuts down the server.",
+    "flags": [
+      "admin",
+      "noscript",
+      "loading",
+      "stale",
+      "no_multi",
+      "sentinel",
+      "allow_busy"
+    ]
+  },
+  "SINTER": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Returns the intersect of multiple sets.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "SINTERSTORE": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Stores the intersect of multiple sets in a key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SISMEMBER": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Determines whether a member belongs to a set.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "SLAVEOF": {
+    "arity": 3,
+    "since": "1.0.0",
+    "summary": "Sets a server as a replica of another, or promotes it to being a primary.",
+    "flags": [
+      "no_async_loading",
+      "admin",
+      "noscript",
+      "stale"
+    ]
+  },
+  "SLOWLOG": {
+    "arity": -2,
+    "since": "2.2.12",
+    "summary": "A container for slow log commands.",
+    "flags": []
+  },
+  "SMEMBERS": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Returns all members of a set.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "SMISMEMBER": {
+    "arity": -3,
+    "since": "6.2.0",
+    "summary": "Determines whether multiple members belong to a set.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "SMOVE": {
+    "arity": 4,
+    "since": "1.0.0",
+    "summary": "Moves a member from one set to another.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "SORT": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Sorts the elements in a list, a set, or a sorted set, optionally storing the result.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SPOP": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Returns one or more random members from a set after removing them. Deletes the set if the last member was popped.",
+    "flags": [
+      "write",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "SRANDMEMBER": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Get one or multiple random members from a set",
+    "flags": [
+      "readonly",
+      "nondeterministic"
+    ]
+  },
+  "SREM": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Removes one or more members from a set. Deletes the set if the last member was removed.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "SSCAN": {
+    "arity": -3,
+    "since": "2.8.0",
+    "summary": "Iterates over members of a set.",
+    "flags": [
+      "readonly",
+      "nondeterministic"
+    ]
+  },
+  "STRLEN": {
+    "arity": 2,
+    "since": "2.2.0",
+    "summary": "Returns the length of a string value.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "SUBSCRIBE": {
+    "arity": -2,
+    "since": "2.0.0",
+    "summary": "Listens for messages published to channels.",
+    "flags": [
+      "pubsub",
+      "noscript",
+      "loading",
+      "stale",
+      "sentinel"
+    ]
+  },
+  "SUBSTR": {
+    "arity": 4,
+    "since": "1.0.0",
+    "summary": "Returns a substring from a string value.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "SUNION": {
+    "arity": -2,
+    "since": "1.0.0",
+    "summary": "Returns the union of multiple sets.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "SUNIONSTORE": {
+    "arity": -3,
+    "since": "1.0.0",
+    "summary": "Stores the union of multiple sets in a key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "SWAPDB": {
+    "arity": 3,
+    "since": "4.0.0",
+    "summary": "Swaps two databases.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "SYNC": {
+    "arity": 1,
+    "since": "1.0.0",
+    "summary": "An internal command used in replication.",
+    "flags": [
+      "no_async_loading",
+      "admin",
+      "no_multi",
+      "noscript"
+    ]
+  },
+  "TIME": {
+    "arity": 1,
+    "since": "2.6.0",
+    "summary": "Returns the server time.",
+    "flags": [
+      "loading",
+      "stale",
+      "fast",
+      "nondeterministic"
+    ]
+  },
+  "TOUCH": {
+    "arity": -2,
+    "since": "3.2.1",
+    "summary": "Returns the number of existing keys out of those specified after updating the time they were last accessed.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "TTL": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Returns the expiration time in seconds of a key.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "TYPE": {
+    "arity": 2,
+    "since": "1.0.0",
+    "summary": "Determines the type of value stored at a key.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "UNLINK": {
+    "arity": -2,
+    "since": "4.0.0",
+    "summary": "Asynchronously deletes one or more keys.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "UNSUBSCRIBE": {
+    "arity": -1,
+    "since": "2.0.0",
+    "summary": "Stops listening to messages posted to channels.",
+    "flags": [
+      "pubsub",
+      "noscript",
+      "loading",
+      "stale",
+      "sentinel"
+    ]
+  },
+  "UNWATCH": {
+    "arity": 1,
+    "since": "2.2.0",
+    "summary": "Forgets about watched keys of a transaction.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "allow_busy"
+    ]
+  },
+  "WAIT": {
+    "arity": 3,
+    "since": "3.0.0",
+    "summary": "Blocks until the asynchronous replication of all preceding write commands sent by the connection is completed.",
+    "flags": [
+      "blocking"
+    ]
+  },
+  "WATCH": {
+    "arity": -2,
+    "since": "2.2.0",
+    "summary": "Monitors changes to keys to determine the execution of a transaction.",
+    "flags": [
+      "noscript",
+      "loading",
+      "stale",
+      "fast",
+      "no_multi",
+      "allow_busy"
+    ]
+  },
+  "XACK": {
+    "arity": -4,
+    "since": "5.0.0",
+    "summary": "Returns the number of messages that were successfully acknowledged by the consumer group member of a stream.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "XADD": {
+    "arity": -5,
+    "since": "5.0.0",
+    "summary": "Appends a new message to a stream. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "XAUTOCLAIM": {
+    "arity": -6,
+    "since": "6.2.0",
+    "summary": "Changes, or acquires, ownership of messages in a consumer group, as if the messages were delivered to as consumer group member.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "XCLAIM": {
+    "arity": -6,
+    "since": "5.0.0",
+    "summary": "Changes, or acquires, ownership of a message in a consumer group, as if the message was delivered a consumer group member.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "XDEL": {
+    "arity": -3,
+    "since": "5.0.0",
+    "summary": "Returns the number of messages after removing them from a stream.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "XGROUP": {
+    "arity": -2,
+    "since": "5.0.0",
+    "summary": "A container for consumer groups commands.",
+    "flags": []
+  },
+  "XINFO": {
+    "arity": -2,
+    "since": "5.0.0",
+    "summary": "A container for stream introspection commands.",
+    "flags": []
+  },
+  "XLEN": {
+    "arity": 2,
+    "since": "5.0.0",
+    "summary": "Return the number of messages in a stream.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "XPENDING": {
+    "arity": -3,
+    "since": "5.0.0",
+    "summary": "Returns the information and entries from a stream consumer group's pending entries list.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "XRANGE": {
+    "arity": -4,
+    "since": "5.0.0",
+    "summary": "Returns the messages from a stream within a range of IDs.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "XREAD": {
+    "arity": -4,
+    "since": "5.0.0",
+    "summary": "Returns messages from multiple streams with IDs greater than the ones requested. Blocks until a message is available otherwise.",
+    "flags": [
+      "blocking",
+      "readonly"
+    ]
+  },
+  "XREADGROUP": {
+    "arity": -7,
+    "since": "5.0.0",
+    "summary": "Returns new or historical messages from a stream for a consumer in a group. Blocks until a message is available otherwise.",
+    "flags": [
+      "blocking",
+      "write"
+    ]
+  },
+  "XREVRANGE": {
+    "arity": -4,
+    "since": "5.0.0",
+    "summary": "Returns the messages from a stream within a range of IDs in reverse order.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "XSETID": {
+    "arity": -3,
+    "since": "5.0.0",
+    "summary": "An internal command for replicating stream values.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "XTRIM": {
+    "arity": -4,
+    "since": "5.0.0",
+    "summary": "Deletes messages from the beginning of a stream.",
+    "flags": [
+      "write"
+    ]
+  },
+  "ZADD": {
+    "arity": -4,
+    "since": "1.2.0",
+    "summary": "Adds one or more members to a sorted set, or updates their scores. Creates the key if it doesn't exist.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "ZCARD": {
+    "arity": 2,
+    "since": "1.2.0",
+    "summary": "Returns the number of members in a sorted set.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "ZCOUNT": {
+    "arity": 4,
+    "since": "2.0.0",
+    "summary": "Returns the count of members in a sorted set that have scores within a range.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "ZDIFF": {
+    "arity": -3,
+    "since": "6.2.0",
+    "summary": "Returns the difference between multiple sorted sets.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZDIFFSTORE": {
+    "arity": -4,
+    "since": "6.2.0",
+    "summary": "Stores the difference of multiple sorted sets in a key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "ZINCRBY": {
+    "arity": 4,
+    "since": "1.2.0",
+    "summary": "Increments the score of a member in a sorted set.",
+    "flags": [
+      "write",
+      "denyoom",
+      "fast"
+    ]
+  },
+  "ZINTER": {
+    "arity": -3,
+    "since": "6.2.0",
+    "summary": "Returns the intersect of multiple sorted sets.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZINTERSTORE": {
+    "arity": -4,
+    "since": "2.0.0",
+    "summary": "Stores the intersect of multiple sorted sets in a key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "ZLEXCOUNT": {
+    "arity": 4,
+    "since": "2.8.9",
+    "summary": "Returns the number of members in a sorted set within a lexicographical range.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "ZMSCORE": {
+    "arity": -3,
+    "since": "6.2.0",
+    "summary": "Returns the score of one or more members in a sorted set.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "ZPOPMAX": {
+    "arity": -2,
+    "since": "5.0.0",
+    "summary": "Returns the highest-scoring members from a sorted set after removing them. Deletes the sorted set if the last member was popped.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "ZPOPMIN": {
+    "arity": -2,
+    "since": "5.0.0",
+    "summary": "Returns the lowest-scoring members from a sorted set after removing them. Deletes the sorted set if the last member was popped.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "ZRANDMEMBER": {
+    "arity": -2,
+    "since": "6.2.0",
+    "summary": "Returns one or more random members from a sorted set.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZRANGE": {
+    "arity": -4,
+    "since": "1.2.0",
+    "summary": "Returns members in a sorted set within a range of indexes.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZRANGEBYLEX": {
+    "arity": -4,
+    "since": "2.8.9",
+    "summary": "Returns members in a sorted set within a lexicographical range.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZRANGEBYSCORE": {
+    "arity": -4,
+    "since": "1.0.5",
+    "summary": "Returns members in a sorted set within a range of scores.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZRANGESTORE": {
+    "arity": -5,
+    "since": "6.2.0",
+    "summary": "Stores a range of members from sorted set in a key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  },
+  "ZRANK": {
+    "arity": -3,
+    "since": "2.0.0",
+    "summary": "Returns the index of a member in a sorted set ordered by ascending scores.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "ZREM": {
+    "arity": -3,
+    "since": "1.2.0",
+    "summary": "Removes one or more members from a sorted set. Deletes the sorted set if all members were removed.",
+    "flags": [
+      "write",
+      "fast"
+    ]
+  },
+  "ZREMRANGEBYLEX": {
+    "arity": 4,
+    "since": "2.8.9",
+    "summary": "Removes members in a sorted set within a lexicographical range. Deletes the sorted set if all members were removed.",
+    "flags": [
+      "write"
+    ]
+  },
+  "ZREMRANGEBYRANK": {
+    "arity": 4,
+    "since": "2.0.0",
+    "summary": "Removes members in a sorted set within a range of indexes. Deletes the sorted set if all members were removed.",
+    "flags": [
+      "write"
+    ]
+  },
+  "ZREMRANGEBYSCORE": {
+    "arity": 4,
+    "since": "1.2.0",
+    "summary": "Removes members in a sorted set within a range of scores. Deletes the sorted set if all members were removed.",
+    "flags": [
+      "write"
+    ]
+  },
+  "ZREVRANGE": {
+    "arity": -4,
+    "since": "1.2.0",
+    "summary": "Returns members in a sorted set within a range of indexes in reverse order.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZREVRANGEBYLEX": {
+    "arity": -4,
+    "since": "2.8.9",
+    "summary": "Returns members in a sorted set within a lexicographical range in reverse order.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZREVRANGEBYSCORE": {
+    "arity": -4,
+    "since": "2.2.0",
+    "summary": "Returns members in a sorted set within a range of scores in reverse order.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZREVRANK": {
+    "arity": -3,
+    "since": "2.0.0",
+    "summary": "Returns the index of a member in a sorted set ordered by descending scores.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "ZSCAN": {
+    "arity": -3,
+    "since": "2.8.0",
+    "summary": "Iterates over members and scores of a sorted set.",
+    "flags": [
+      "readonly",
+      "nondeterministic"
+    ]
+  },
+  "ZSCORE": {
+    "arity": 3,
+    "since": "1.2.0",
+    "summary": "Returns the score of a member in a sorted set.",
+    "flags": [
+      "readonly",
+      "fast"
+    ]
+  },
+  "ZUNION": {
+    "arity": -3,
+    "since": "6.2.0",
+    "summary": "Returns the union of multiple sorted sets.",
+    "flags": [
+      "readonly"
+    ]
+  },
+  "ZUNIONSTORE": {
+    "arity": -4,
+    "since": "2.0.0",
+    "summary": "Stores the union of multiple sorted sets in a key.",
+    "flags": [
+      "write",
+      "denyoom"
+    ]
+  }
+}

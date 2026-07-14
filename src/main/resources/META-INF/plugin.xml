@@ -487,6 +487,10 @@
             serviceInterface="net.internetisalie.lunar.toolchain.probe.LuaToolProbe"
             serviceImplementation="net.internetisalie.lunar.toolchain.probe.LuaToolProbeImpl" />
 
+    <!-- REDIS-04 AC-2: bundled per-version command-spec service (design §2.2, §7) -->
+    <applicationService
+            serviceImplementation="net.internetisalie.lunar.analysis.redis.RedisCommandSpecService" />
+
     <!-- Synchronize project target/language level from the effective toolchain runtime (TOOLING-02-09) -->
     <postStartupActivity
             implementation="net.internetisalie.lunar.toolchain.resolve.LuaTargetSyncStartup" />
