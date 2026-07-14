@@ -248,8 +248,6 @@ bug and gave the type inspections false confidence until this session's coverage
 | DOC-06-04 | Full-Text Documentation Search | done | C | DOC-06-01 *(Stub Indexing)* | — | ✓ |
 | SYNTAX-09 | Lua 5.5 Support | done | C | — | — | ✓ |
 | SYNTAX-18 | Parser Error Recovery for Block Constructs | planned | M | — | EDITOR-08 simplification *(soft)* | ✓ new files: grammar `pin`/`recoverWhile` on 9 block rules + regen `src/main/gen`; planned & reviewed 2026-07-13 |
-| TYPE-10 | Expected-type → lambda-parameter inference | planned | C | TYPE-01 *(Type engine)* | REDIS-05 AC-2 *(full callback typing)* | ✓ new: in `LuaTypesVisitor.visitFuncCall` unification, propagate a parameter's declared `fun(...)` type onto a passed lambda's params. Ground-truthed 2026-07-14: engine types params only from a **direct** `---@param`, not from the expected argument type (probe V3 → `Undefined`), so `redis.register_function('f', function(keys,args)…)` doesn't type `keys` as `string[]`. High-blast-radius shared-engine change → gate with the REDIS-04 §3.1c-style regression contract (`.../lang/types/*` + consumers) + positive tests (table.sort comparator, pcall, register_function). Re-enables REDIS-05 TC-STUB-1 `keys[1]→string` (currently descoped, REDIS-05 risks Gap 2.4) |
-| REDIS-06 | Redis sandbox + quick-doc gating refinements | planned | C | REDIS-04 *(done)* | — | ✓ two REDIS-04 correctness refinements deferred 2026-07-14 (non-blocking, not TC-covered): (1) `LuaRedisSandboxInspection` skips only declaration positions, not full global-resolution (design §3.7 step 2) → a shadowed local `print`/`io` gets a false-positive WARNING; add a side-effect-free resolution check (earlier VFS-based resolve caused TestLogger errors — verify against the full gate). (2) `RedisCommandDocumentationTargetProvider` doesn't gate on caret-on-STRING (design §3.6 step 1) → quick-doc over-triggers when the caret is elsewhere in the call |
 
 ## Wave 12 — Internal & maintenance  *(invisible to users; address opportunistically)*
 
@@ -279,7 +277,6 @@ bug and gave the type inspections false confidence until this session's coverage
 | MAINT-19| Kotlin-native token holders (`LuaTokenTypes`/`LuaCatsTokenTypes`) | done | C | — *(independent; absorbs MAINT-01's deferred interfaces)* | MAINT-20 | Serial: `.flex` + JFlex regen |
 | MAINT-20| Headless Parser & Lexer Generation (no IDE handoff) | done | C | MAINT-19 *(done)* | — | **Scope pivoted 2026-07-02** from platform.syntax (abandoned) to headless generation. Delivered: jars in gitignored `tooling/parser-gen/`, headless `generate.sh` (grammar-kit 2023.3.2 pinned), clean-checkout regen is a no-op, suite green, agent guide de-manualized |
 | MAINT-22| Adopt Kotlin Coroutines for background work (debugger pilot) | done | M | — *(261 has service scope injection, `readAction`, `childScope`; independent of MAINT-21)* | — | Coroutine infra + rewrite of the DBGp transport (`LuaDebugConnection`/`LuaDebuggerController`): kills `Thread.sleep` polling + `AsyncPromise` map → reader coroutine + `CompletableDeferred`/`Mutex`, session `childScope`. Converts 1 rockspec prime. Opportunistic (out of scope): 12 `Task.Backgroundable`, UI fetch panels, `Alarm`. Luacheck confirmed already off-EDT. Live-VNC gated |
-| MAINT-23| Test hygiene: `ValkeyStubResourceTest` tearDown (target leak) | planned | S | — | — | ✓ REDIS-03's `ValkeyStubResourceTest` sets `Target(VALKEY,…)` via `setTargetAndNotify` without restoring — the same latent leak fixed in `RedisAmbientTypingTest`/`LuaRedisCommandInspectionTest`; an un-restored target leaks into alphabetically-later suites. Add a `tearDown` restoring `Target(STANDARD,"5.4")` + `PlatformLibraryIndex.reload()`. Currently masked (later suites happen to re-set their own target); fix before it bites |
 
 ## Wave 13 — LuaRocks: multi-rock workspaces & environment  *(reopened ROCKS epic; parallel-safe except the discovery foundation)*
 
@@ -397,6 +394,20 @@ bug and gave the type inspections false confidence until this session's coverage
 | AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
 
 ---
+
+## Wave 19 — Post-epic backlog & follow-ups  *(newly-surfaced deferred work; parallel-safe unless noted)*
+
+> Roadmap-worthy items surfaced *during/after* completed epics (chiefly REDIS, 2026-07-14) that
+> did not exist when their wave was planned. Kept out of the historical waves (0–15, 17) so those
+> stay an accurate record. Granular per-feature deferrals remain in each feature's
+> `risks-and-gaps.md` "Technical Debt & Future Work" — only promote here when they warrant
+> top-level tracking.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TYPE-10 | Expected-type → lambda-parameter inference | planned | C | TYPE-01 *(Type engine)* | REDIS-05 AC-2 *(full callback typing)* | ✓ new: in `LuaTypesVisitor.visitFuncCall` unification, propagate a parameter's declared `fun(...)` type onto a passed lambda's params. Ground-truthed 2026-07-14: engine types params only from a **direct** `---@param`, not from the expected argument type (probe V3 → `Undefined`), so `redis.register_function('f', function(keys,args)…)` doesn't type `keys` as `string[]`. High-blast-radius shared-engine change → gate with the REDIS-04 §3.1c-style regression contract (`.../lang/types/*` + consumers) + positive tests (table.sort comparator, pcall, register_function). Re-enables REDIS-05 TC-STUB-1 `keys[1]→string` (currently descoped, REDIS-05 risks Gap 2.4) |
+| REDIS-06 | Redis sandbox + quick-doc gating refinements | planned | C | REDIS-04 *(done)* | — | ✓ two REDIS-04 correctness refinements deferred 2026-07-14 (non-blocking, not TC-covered): (1) `LuaRedisSandboxInspection` skips only declaration positions, not full global-resolution (design §3.7 step 2) → a shadowed local `print`/`io` gets a false-positive WARNING; add a side-effect-free resolution check (earlier VFS-based resolve caused TestLogger errors — verify against the full gate). (2) `RedisCommandDocumentationTargetProvider` doesn't gate on caret-on-STRING (design §3.6 step 1) → quick-doc over-triggers when the caret is elsewhere in the call |
+| MAINT-23| Test hygiene: `ValkeyStubResourceTest` tearDown (target leak) | planned | S | — | — | ✓ REDIS-03's `ValkeyStubResourceTest` sets `Target(VALKEY,…)` via `setTargetAndNotify` without restoring — the same latent leak fixed in `RedisAmbientTypingTest`/`LuaRedisCommandInspectionTest`; an un-restored target leaks into alphabetically-later suites. Add a `tearDown` restoring `Target(STANDARD,"5.4")` + `PlatformLibraryIndex.reload()`. Currently masked (later suites happen to re-set their own target); fix before it bites |
 
 ## Dependency summary (the hard edges)
 
