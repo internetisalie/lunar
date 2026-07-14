@@ -45,6 +45,7 @@ object RespCodec {
             '$' -> decodeBulk(input)
             '=' -> decodeVerbatim(input)
             '*' -> decodeArray(input)
+            '~' -> decodeArray(input)
             '%' -> decodeMap(input)
             ',' -> RespValue.Double(readLine(input).toDoubleOrThrow())
             '#' -> RespValue.Bool(readBool(input))
