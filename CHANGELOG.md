@@ -2,7 +2,7 @@
 
 All notable changes to the Lunar Lua IDE plugin are documented in this file.
 
-## [1.0.0-SNAPSHOT] - In Development
+## [0.18.0] - 2026-07-14
 
 ### Runtime & Platform Support
 - **Target Selection**: Introduced comprehensive project environment selection with platform and version granularity.
