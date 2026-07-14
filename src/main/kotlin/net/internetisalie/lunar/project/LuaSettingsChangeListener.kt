@@ -22,6 +22,8 @@ class LuaSettingsChangeListener(private val project: Project) : LuaSettingsChang
     override fun onSettingsChanged() {
         // Reload platform libraries when settings change
         // This invalidates caches and rescans dependencies
+        // (REDIS-04 DR-03b: the type-snapshot cache is target-aware — see LuaTypesSnapshot.forFile —
+        // so a target switch invalidates it automatically without a manual per-file drop here.)
         PlatformLibraryIndex.reload()
 
         // Restart code analysis for open files (TARGET-05)

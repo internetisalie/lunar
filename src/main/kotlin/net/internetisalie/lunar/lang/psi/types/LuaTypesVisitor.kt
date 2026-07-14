@@ -4,12 +4,15 @@ import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
+import net.internetisalie.lunar.platform.target.RuntimeLibraryProvider
+import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
  * Traverses a Lua PSI tree and builds a [LuaTypeGraph] and [LuaTypesSnapshot] for the file.
@@ -392,8 +395,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
         val resType = when (op) {
             "#" -> {
-                // # right implies right is string or table
-                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Union.create(setOf(LuaGraphType.String, LuaGraphType.Table()))))
+                // # right implies right is string, table, or array (REDIS-04 §3.1b: #ARGV over string[])
+                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Union.create(setOf(LuaGraphType.String, LuaGraphType.Table(), LuaGraphType.Array(LuaGraphType.Any)))))
                 LuaGraphType.Number
             }
             "-" -> {
@@ -654,7 +657,34 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 graph.addEdge(receiverNode, graph.use(o, tableConstraint))
                 elementNodes[o] = listOf(memberNode)
             }
+        } else if (o.expr != null) {
+            seedSubscriptElement(o)
         }
+    }
+
+    /**
+     * REDIS-04 §3.1b: bracket-subscript element inference. For a subscript `receiver[index]` whose
+     * receiver's value type resolves to an `Array(T)` (directly, or as a member of a union — e.g.
+     * a `---@type string[]` local infers as `{ ... } | string[]`), record the subscript's element
+     * type as `T`. A non-array receiver records nothing → the subscript stays `Undefined`, exactly
+     * as before (§3.1c regression contract, invariant 2). This is DR-03a seam (b): the element type
+     * is read from the already-wired receiver value node, which is stable at visit time because the
+     * receiver's declaration precedes its use in document order.
+     */
+    private fun seedSubscriptElement(o: LuaIndexExpr) {
+        val varElement = PsiTreeUtil.getParentOfType(o, LuaVar::class.java) ?: return
+        val receiverNode = firstNode(unwrapExpression(varElement.firstChild)) as? ValueNode ?: return
+        val elementType = arrayElementType(receiverNode.write) ?: return
+        elementNodes[o] = listOf(graph.value(o, elementType))
+    }
+
+    private fun arrayElementType(type: LuaGraphType): LuaGraphType? = when (type) {
+        is LuaGraphType.Array -> type.elementType
+        is LuaGraphType.Union -> type.types
+            .filterIsInstance<LuaGraphType.Array>()
+            .firstOrNull()
+            ?.elementType
+        else -> null
     }
 
     override fun visitFinalStatement(o: LuaFinalStatement) {
@@ -677,6 +707,57 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         super.visitNameRef(o)
         val boundNode = scope.lookup(o.text) ?: return
         elementNodes[o] = listOf(boundNode)
+    }
+
+    /**
+     * REDIS-04 §3.1a: seed the active target's ambient stub globals (e.g. `KEYS`/`ARGV` declared
+     * `---@type string[]` in the target's bundled `global.lua`) into the root scope BEFORE the file
+     * is visited, so a bare reference to such a global infers its stub `@type` rather than
+     * `Undefined`. Off a target with no such stub (e.g. STANDARD), this seeds nothing — the
+     * structural no-leak guarantee (TC-KEYS-3).
+     */
+    fun seedAmbientGlobals(file: PsiFile) {
+        val currentProject = file.project
+        val currentTarget = LuaProjectSettings.getInstance(currentProject).state.getTarget()
+        val stubFiles = RuntimeLibraryProvider(currentProject).getLibraryFiles(currentTarget)
+        val psiManager = PsiManager.getInstance(currentProject)
+        stubFiles
+            .filter { it.name == "global.lua" }
+            .mapNotNull { psiManager.findFile(it) as? LuaFile }
+            .forEach { stubFile ->
+                PsiTreeUtil.findChildrenOfType(stubFile, LuaAssignmentStatement::class.java)
+                    .forEach { seedGlobalAssignment(it) }
+            }
+    }
+
+    private fun seedGlobalAssignment(statement: LuaAssignmentStatement) {
+        val cats = ambientCatsComments(statement)
+        statement.varList.varList.forEach { globalVar ->
+            val nameRef = globalVar.nameRef ?: return@forEach
+            if (globalVar.varSuffixList.isNotEmpty()) return@forEach
+            val globalNode = graph.variable(nameRef)
+            scope.declare(nameRef.text, globalNode)
+            cats.forEach { comment ->
+                LuaTypeGraphBridge.injectTypeAnnotation(comment, statement, globalNode, graph, statement)
+            }
+        }
+    }
+
+    /**
+     * Finds the LuaCATS comment attached to a stub global assignment. The bundled `global.lua`
+     * wraps its statements in a `BLOCK`, so the first statement's `---@type` comment is a sibling of
+     * the enclosing block (a file-level leading comment), not of the statement itself. This walks up
+     * through parents (mirroring [LuaPsiImplUtil.getCatsComment]) until a cats comment is found or the
+     * file is reached, so both the block-nested first statement and later siblings resolve their type.
+     */
+    private fun ambientCatsComments(statement: LuaAssignmentStatement): List<LuaCatsComment> {
+        var current: PsiElement? = statement
+        while (current != null && current !is PsiFile) {
+            val found = getAllCatsComments(current)
+            if (found.isNotEmpty()) return found
+            current = current.parent
+        }
+        return emptyList()
     }
 
     fun buildSnapshot(contextFile: PsiFile? = null): LuaTypesSnapshot =
@@ -776,11 +857,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         )
 
         fun getTypes(element: PsiElement): LuaTypes {
-            return KEY.cacheFileUserData(element) { file -> buildSnapshot(file) }
+            // Delegate to the single target-aware cache entry point so both callers share one
+            // KEY/hash scheme (REDIS-04 DR-03b) and never thrash each other's cached snapshot.
+            return LuaTypesSnapshot.forFile(element.containingFile)
         }
 
         internal fun buildSnapshot(file: PsiFile): LuaTypes {
             val visitor = LuaTypesVisitor()
+            visitor.seedAmbientGlobals(file)
             file.accept(visitor)
             visitor.graph.checkTypes()
             return visitor.buildSnapshot(file)

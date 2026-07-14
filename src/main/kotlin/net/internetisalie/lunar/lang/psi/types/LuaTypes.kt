@@ -2,7 +2,8 @@ package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import net.internetisalie.lunar.lang.psi.cacheFileUserData
+import net.internetisalie.lunar.lang.psi.FileUserData
+import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
  * Public interface for querying the inferred type of any PSI element in a file.
@@ -130,11 +131,28 @@ class LuaTypesSnapshot(
     companion object {
         /**
          * Compute (or return a cached) [LuaTypes] snapshot for [file].
-         * The cache is keyed on the document text hash, so it is automatically invalidated
-         * whenever the file content changes.
+         *
+         * The cache key folds the document-text hash with the active target
+         * (REDIS-04 §3.1a / DR-03b): ambient stub-global seeding depends on the target, and a
+         * target switch does not change the file text, so a text-only key would serve a stale,
+         * wrongly-seeded snapshot. Both a text edit and a target switch now invalidate the cache.
          */
-        fun forFile(file: PsiFile): LuaTypes = LuaTypesVisitor.KEY.cacheFileUserData(file) { psiFile: PsiFile ->
-            LuaTypesVisitor.buildSnapshot(psiFile)
+        fun forFile(file: PsiFile): LuaTypes {
+            val psiFile = file.containingFile
+            val cacheKey = snapshotCacheKey(psiFile)
+            val existing = psiFile.getUserData(LuaTypesVisitor.KEY)
+            if (existing != null && existing.hash == cacheKey) {
+                return existing.data
+            }
+            val fresh = LuaTypesVisitor.buildSnapshot(psiFile)
+            psiFile.putUserData(LuaTypesVisitor.KEY, FileUserData(cacheKey, fresh))
+            return fresh
+        }
+
+        private fun snapshotCacheKey(file: PsiFile): Int {
+            val textHash = file.fileDocument.text.hashCode()
+            val target = LuaProjectSettings.getInstance(file.project).state.getTarget()
+            return 31 * textHash + target.hashCode()
         }
     }
 }

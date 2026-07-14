@@ -69,8 +69,13 @@ exists.
 - **Type engine** — `LuaTypesVisitor.getTypes(file): LuaTypes`
   (`.../lang/psi/types/LuaTypesVisitor.kt:778`) → `LuaTypes.getValueType(el): LuaGraphType`
   (`.../lang/psi/types/LuaTypes.kt:21`); `LuaGraphType.getMembers()`
-  (`.../lang/psi/types/LuaGraphType.kt:84`). AC-1/AC-6 need **no** new engine code — they are
-  stub edits consumed by this existing engine.
+  (`.../lang/psi/types/LuaGraphType.kt:84`). **AC-6** (`redis.pcall` union) needs **no** engine
+  code — it is a stub edit consumed by this engine (ground-truth-verified, REDIS-04-phase-1
+  handoff). **AC-1** (`KEYS`/`ARGV` typing) is **NOT** a pure stub edit — see §3.1: the engine
+  is strictly single-file (`buildSnapshot` visits only `file`, scope starts empty —
+  `LuaTypesVisitor.kt:25,782-787`) and has no array-subscript element inference
+  (`visitIndexExpr` handles only dotted access — `LuaTypesVisitor.kt:644-658`). AC-1 therefore
+  requires **two grounded engine changes** (§3.1a, §3.1b) plus a regression contract (§3.1c).
 
 ### Target State
 - Data (`commandspec/*.json` resources) → `RedisCommandSpecService` (app service, lazy, Gson,
@@ -86,7 +91,10 @@ exists.
 
 ### 2.1 (resource edits) `runtime/redis/{redis-5,redis-6,redis-7}/{global,redis}.lua`
 - **Responsibility**: declare `KEYS`/`ARGV` as `string[]` and the `redis`/`server` API per
-  version so the existing engine types them (AC-1) with no engine changes.
+  version. These stubs are **necessary but not sufficient** for AC-1: the `global.lua`
+  `@type string[]` binding is only *consumed* by inference after the §3.1a engine change feeds
+  stub globals into the type graph, and `KEYS[1] → string` additionally needs the §3.1b
+  array-subscript change. `redis.pcall` union (AC-6) IS fully realized by the stub edit alone.
 - **Threading**: n/a (static bundled resources; loaded by `RuntimeLibraryProvider` /
   library-roots mechanism, already read-action-safe).
 - **Collaborators**: `LuaLibraryProvider`, `RuntimeLibraryProvider`, the type engine.
@@ -223,12 +231,157 @@ and the spec lookup.
 
 ## 3. Algorithms
 
-### 3.1 Ambient `KEYS`/`ARGV`/`redis.*` typing (AC-1) — no new algorithm
-Delegated to the existing library-roots + type engine. Verification only: with the Redis
-target set, `LuaTypesVisitor.getTypes(file).getValueType(exprFor("KEYS[1]"))` returns
-`string`. The **only** implementation work is the resource edits in §2.1. Off Redis, the
-stub dir is not on scope (`LuaLibraryProvider.getAdditionalProjectLibraries` returns the
-target's root only), so `KEYS` is undeclared — no leakage (TC-KEYS-3).
+### 3.1 Ambient `KEYS`/`ARGV`/`redis.*` typing (AC-1) — TWO REQUIRED engine changes
+
+> **Re-plan note (2026-07-14, DR-03 re-opened).** The prior "no new algorithm" premise was
+> ground-truth-**false** on the real engine under `Target(REDIS,"7+")` (REDIS-04-phase-1
+> handoff): `getValueType(KEYS)`/`getValueType(ARGV)` → `Undefined`, `KEYS` raises
+> "Undeclared variable", and `getValueType(KEYS[1])` → `Undefined`. Two independent engine
+> gaps cause this; both must be fixed. Root cause is grounded below at `file:line`.
+
+#### 3.1a — Feed stub-declared globals into inference (root cause #1)
+- **Grounded root cause.** The type engine is **strictly single-file**: `buildSnapshot(file)`
+  runs `LuaTypesVisitor()` over `file` only, with an **empty** root scope
+  (`LuaScope.root` — `LuaTypesVisitor.kt:25`, `782-787`). `visitNameRef` types a name purely
+  by `scope.lookup(o.text)` (`LuaTypesVisitor.kt:676-680`); a name not declared *in the current
+  file* returns `null` → no node → `Undefined`. `KEYS` is declared in a *different* file
+  (`runtime/redis/redis-7/global.lua:3` — `KEYS = {}` with `---@type string[]`), so it is never
+  in scope. (Note reference *resolution* is cross-file via `LuaNameReference.multiResolve`
+  Phase-2 library query — `LuaNameReference.kt:82-100`,`176-187` — which is why `redis.call`
+  resolves; but that path never runs for the type visitor. Whether the bare `KEYS = {}` global
+  even resolves is moot for inference — the visitor never consults it.)
+- **Change point.** `LuaTypesVisitor` — seed the **root scope** with the active target's
+  ambient stub globals *before* visiting the file, so `visitNameRef("KEYS")` resolves to a
+  pre-seeded node carrying the `@type string[]` type. Add a private
+  `seedAmbientGlobals(file: PsiFile)` called at the top of `buildSnapshot` (before
+  `file.accept(visitor)`), and thread the seeded bindings into the initial `scope`.
+- **Algorithm (concrete, not narrated).**
+  1. `project = file.project`; `target = LuaProjectSettings.getInstance(project).state.getTarget()`.
+  2. Acquire the target's ambient-global stub file(s): the `global.lua` under the target's
+     library root. Resolve via the existing provider —
+     `RuntimeLibraryProvider(project).getLibraryFiles(target)`
+     (`RuntimeLibraryProvider.kt:38` — returns `List<VirtualFile>`), filtered to VF name
+     `global.lua`; convert to PSI with
+     `PsiManager.getInstance(project).findFile(vf) as? LuaFile`. If none (non-Redis target, or
+     target with no stub) → seed nothing → `KEYS` stays undeclared (this is exactly TC-KEYS-3's
+     no-leak guarantee — **no** extra gating code needed).
+  3. For each top-level global assignment in that stub file
+     (`LuaAssignmentStatement` whose LHS `LuaVar` is a bare `nameRef` with no `varSuffix`, e.g.
+     `KEYS`/`ARGV`), read its attached `---@type` via the **existing** bridge
+     `LuaTypeGraphBridge.injectTypeAnnotation(cats, anchor, node, graph, context)`
+     (`LuaTypeGraphBridge.kt:57-88`) — the identical mechanism `visitLocalVarDecl` uses at
+     `LuaTypesVisitor.kt:444-448`. For `KEYS`: `injectTypeAnnotation` resolves `"string[]"` →
+     `LuaArrayType(String)` → `LuaGraphType.Array(String)` and flows it into a fresh
+     `graph.variable(anchor)` node.
+  4. `rootScope.declare(globalName, seededNode)` for each seeded global.
+- **Grounded reuse (no new type-resolution code).** Steps 3–4 reuse `LuaTypeGraphBridge`
+  verbatim; `string[]` → `LuaArrayType` → `LuaGraphType.Array(String)` is already implemented
+  (`LuaGraphType.kt:152-154`, `fromLuaType`). The only new code is the seed loop + wiring.
+- **Threading / caching.** Runs inside `buildSnapshot`, which is already invoked under the
+  file's cached-value computation (`LuaTypesSnapshot.forFile` → `cacheFileUserData`,
+  `LuaTypes.kt:136-138`) — a read-action context. Reading the stub `global.lua`'s PSI is a PSI
+  read (safe here). The seeded set is small (2 names). **Invalidation:** the snapshot cache is
+  keyed on the *edited file's* text (`cacheFileUserData` on the document hash); a **target
+  switch** must invalidate it. Confirm the existing target-change drop path already clears this
+  file cache (the library-root refresh on `setTargetAndNotify` triggers a PSI/VFS change → cache
+  drop); if it does **not**, this is a residual gap → tracked as DR-03b (§risks-and-gaps). The
+  reference resolver already invalidates correctly on target change (REDIS-03
+  `LibraryLoadingAfterTargetChangeTest`), so the mechanism exists.
+- **Contract.** No hard `Project`/`Editor` field retention; `project` is obtained locally from
+  `file.project` and used transiently. Stub PSI is not stored.
+
+#### 3.1b — Array-subscript element inference (root cause #2)
+- **Grounded root cause.** `visitIndexExpr` (`LuaTypesVisitor.kt:644-658`) records an element
+  node **only** when `o.nameRef != null` — i.e. dotted member access `a.b`
+  (`indexExpr ::= ('[' expr ']') | ('.' nameRef)`, `lua.bnf:279`). A **bracket** subscript
+  `KEYS[1]`/`arr[1]` has `nameRef == null` and a non-null `o.expr` (the `[1]` index expr,
+  `LuaIndexExpr.getExpr()`), so the branch is skipped, `elementNodes[o]` is never set → the
+  subscript reads `Undefined`. `LuaGraphType.Array.elementType` (`LuaGraphType.kt:54-56`) is
+  never propagated on a read. This holds even for a directly-annotated local
+  (`---@type string[] local arr = {}` infers `arr` as the expected union but `arr[1]` →
+  `Undefined`), so it is independent of 3.1a.
+- **Change point.** Extend `visitIndexExpr` with an `else`-branch (`nameRef == null &&
+  o.expr != null`) that models bracket-subscript element extraction. Mirror the existing
+  dotted-branch shape (receiver node + a `graph.use` constraint + `elementNodes[o]`).
+- **Algorithm (concrete).**
+  1. `nameRef != null` → existing dotted logic, unchanged (§3.1b MUST NOT alter it — see
+     regression contract §3.1c).
+  2. Else if `o.expr != null` (bracket subscript):
+     a. `varElement = PsiTreeUtil.getParentOfType(o, LuaVar::class.java) ?: return` and
+        `receiverNode = firstNode(unwrapExpression(varElement.firstChild)) ?: return` — the
+        **same** receiver acquisition the dotted branch uses (`LuaTypesVisitor.kt:648-650`).
+     b. `elementNode = graph.variable(o)`.
+     c. Constrain the receiver to be an array whose element flows to `elementNode`:
+        `arrayConstraint = LuaGraphType.Array(elementType = <the elementNode's read type>)`.
+        Because `LuaGraphType.Array` takes a *type* not a node, drive the flow through the
+        graph instead: register a **use** constraint that, when the receiver's *value* is an
+        `Array(T)`, flows `T` into `elementNode`. Implement as a new
+        `checkCompatibility` case (see §3.1b-graph below) analogous to the Table-member flow
+        in `checkTableCompatibility` (`LuaTypeGraph.kt:491-506`), which does
+        `addEdge(valueNode, useNode)` to flow a member value into the use's member node.
+     d. `elementNodes[o] = listOf(elementNode)`.
+  - **§3.1b-graph (the propagation seam).** Add an `Array`-value case to `checkCompatibility`
+    (`LuaTypeGraph.kt:275-361`): when `valueType is LuaGraphType.Array` and `useType is
+    LuaGraphType.Array`, in addition to the existing element-compat check
+    (`LuaTypeGraph.kt:349-354`) **flow the value's element type into the use's element sink**
+    so a subscript-result node backed by `use(o, Array(elementSink))` receives `T`. Concretely:
+    represent the subscript use as `graph.use(o, LuaGraphType.Array(<sentinel-from-elementNode>))`
+    and, on match, `addEdge(valueArrayElementValueNode, elementNode)`. Because `Array` holds a
+    `LuaGraphType` (not a node), the mechanical implementation is: in `visitIndexExpr`'s bracket
+    branch, after acquiring the receiver's resolved value type via a fixed-point-safe read, if
+    it is `Array(T)` set `elementNodes[o] = listOf(graph.value(o, T))`. **The implementer picks
+    one of these two seams** (a: extend `checkCompatibility` Array-arm to propagate; b: read the
+    receiver's Array element type directly in the visitor and emit a `value` node) — both are
+    grounded; §3.1c's regression contract governs either. Recommended: seam (a), because it
+    composes with unions (`KEYS` seeded as `Array(String)` flows cleanly) and mirrors the
+    already-proven Table-member propagation; seam (b) is simpler but reads a not-yet-fixed-point
+    value and can miss late-resolved receivers. **This choice is the one residual design
+    decision — pinned to seam (a) as the default; DR-03a covers the spike if (a) proves
+    intractable within the fixed-point loop.**
+  3. **Non-array receiver.** If the receiver's value type is not an `Array` (e.g. a `Table`
+     used as a numeric map, or `Undefined`), the bracket branch emits **no** value edge →
+     the subscript stays `Undefined` exactly as today. This bounds the blast radius: only
+     genuine `Array(T)` receivers change behavior.
+- **`#ARGV` note (TC-KEYS-2).** `visitUnOpExpr` hardcodes `#` → `Number`
+  (`LuaTypesVisitor.kt:393-398`) **and** adds a `use(String | Table)` constraint on the
+  operand. Once `ARGV` seeds as `Array(String)` (3.1a), that `String | Table` constraint sees
+  an `Array` value — an `Array` is neither `String` nor `Table`, so `checkCompatibility` would
+  emit a spurious "not assignable" error on every `#ARGV`. **Required sub-fix:** widen the `#`
+  operand constraint to also admit `Array` (add `LuaGraphType.Array(LuaGraphType.Any)` to the
+  union at `LuaTypesVisitor.kt:396`, or special-case `Array` as length-able). Without this,
+  3.1a regresses `#array` length usage. TC-KEYS-2 is re-specified below to assert the operand
+  resolves as `string[]` (not merely that `#` is `number`).
+
+#### 3.1c — Regression contract (blast radius; §2 quantified in the re-plan report)
+`visitIndexExpr` and the single-file inference path are a **shared, serial type-engine hot
+seam** (roadmap: "Serial: type-engine"). Consumers of index/subscript/global types that MUST
+NOT regress: `LuaTypeAssignabilityInspection`, `LuaReturnTypeMismatchInspection`,
+`LuaSuspiciousConcatenationInspection`, `LuaInferredTypeAnnotator`, and the three inlay-hint
+providers (`LuaTypeInlayHintProvider`, `LuaParameterInlayHintsProvider`,
+`LuaMethodChainInlayHintProvider`) — all read `LuaTypes.getValueType`
+(grep: `getValueType` consumers, `src/main/kotlin`). Invariants the change MUST preserve:
+1. **Dotted member access unchanged.** `a.b` still records the Table-member node
+   (`nameRef != null` branch untouched). Regression assertion: the existing
+   `TableTypeTest`, `QualifiedMemberResolutionTest`, `ReceiverAwareMemberResolutionTest`,
+   `MemberFieldIndexTest` stay green.
+2. **Non-array bracket access unchanged.** `t[k]` where `t` is a non-array Table (or
+   `Undefined`) still yields `Undefined` (no new false type). New regression assertion:
+   a subscript-inference unit test asserting `local t = {}; t[1]` → `Undefined` (unchanged).
+3. **Existing global typing unchanged off Redis.** A file with no seeded target (STANDARD)
+   seeds nothing; every current type test that does **not** set a Redis target is unaffected
+   because `seedAmbientGlobals` no-ops when `getLibraryFiles(target)` yields no `global.lua`.
+   Regression: the full `.../lang/types/*` suite (`TestLuaTypeEnginePhase1`,
+   `TestFlowSensitiveType`, `CrossFileInferenceTest`, `UnionAndGenericTest`,
+   `PrimitiveTypeCompatibilityTest`, `LuaUnionDistributionTest`, `FunctionSignatureMatchingTest`,
+   `LuaMethodMembersTest`, `MultiReturnValueTest`, `TableTypeTest`, and the Union benchmark/spike
+   tests) MUST stay green on the FULL suite run (not isolated `--tests`, per the synthetic-lambda
+   masking note).
+4. **`#` over arrays does not error** (the 3.1a/3.1b sub-fix): new regression assertion that
+   `#arr` on a `string[]` produces `number` with **no** assignability error.
+
+**Off-Redis no-leak (TC-KEYS-3) is now structural**, not a separate guard: with no Redis
+target, `seedAmbientGlobals` seeds nothing → `KEYS` is undeclared and `getValueType` →
+`Undefined`, exactly as before this change.
 
 ### 3.2 `Target` → spec resource path (§2.2)
 - **Input → Output**: `Target` → resource path `String?`.
@@ -453,9 +606,13 @@ command replaces the literal text with `"GET"`.
 result includes `SET`, `SETEX`, `SETNX`, … (each with its summary); `SINTERCARD` (`since
 7.0.0`) is absent.
 
-### Example 3: `KEYS[1]` typing
-Type engine (unchanged) resolves `KEYS` against the on-scope `global.lua` stub
-(`@type string[]`) → `getValueType(KEYS[1]) = string`. No REDIS-04 code runs.
+### Example 3: `KEYS[1]` typing (post-§3.1a/§3.1b engine fix)
+`buildSnapshot(file)` → `seedAmbientGlobals` (§3.1a) reads the Redis target's `global.lua`
+stub, injects `KEYS`'s `@type string[]` via `LuaTypeGraphBridge` → root scope binds
+`KEYS → Array(String)`. `visitNameRef("KEYS")` resolves to that node.
+`visitIndexExpr` bracket branch (§3.1b) sees receiver `Array(String)`, flows `String` into the
+subscript node → `getValueType(KEYS[1]) = string`. Off a Redis target `seedAmbientGlobals`
+seeds nothing → `KEYS` undeclared, `getValueType(KEYS[1]) = Undefined` (TC-KEYS-3).
 
 ## 6. Edge Cases
 - **Non-Redis target**: every REDIS-04 consumer reads the target first and returns early;
@@ -542,7 +699,7 @@ Type engine (unchanged) resolves `KEYS` against the on-scope `global.lua` stub
 
 | Requirement | Priority | Implemented by (section) |
 |-------------|----------|--------------------------|
-| AC-1 `KEYS`/`ARGV` typing | S | §2.1, §3.1 |
+| AC-1 `KEYS`/`ARGV` typing | S | §2.1 (stubs) + §3.1a/§3.1b/§3.1c (REQUIRED engine work) |
 | AC-2 command-spec service | S | §2.2, §3.2, §4.1 |
 | AC-3 command completion | S | §2.3, §2.10, §3.3, §3.11 |
 | AC-4 unknown/arity inspection + fix | S | §2.4, §2.5, §3.4, §3.5 |
@@ -554,9 +711,18 @@ Type engine (unchanged) resolves `KEYS` against the on-scope `global.lua` stub
 | AC-10 unit tests | S | impl-plan Phase 7 + all TC-* |
 
 ## 9. Alternatives Considered
-- **Engine scope-injection for `KEYS`/`ARGV`** (vs stub-declared globals): rejected per DR-03 /
-  RISK-R08 — the stub/library-root mechanism already invalidates correctly on target change
-  (TARGET-04) and adds zero engine surface; `global.lua` already ships it.
+- **Engine scope-injection for `KEYS`/`ARGV`** (vs stub-declared globals): the original design
+  rejected scope-injection believing stub-declared globals were consumed for free. Ground-truthing
+  (REDIS-04-phase-1) proved otherwise — the type engine is single-file and never consults stub
+  globals for inference (§3.1a root cause). The chosen approach (§3.1a) **seeds the root scope from
+  the target's stub `global.lua` via the existing `RuntimeLibraryProvider` + `LuaTypeGraphBridge`**,
+  reusing library-root invalidation (TARGET-04) rather than a bespoke ambient-injection service.
+  This keeps the single source of truth in the bundled stub while acknowledging the engine work is
+  real, not zero-surface.
+- **AC-1 contract redesign** (assert only reference-resolution / no-undeclared, defer `string[]`
+  indexing to a separate ticket) — the handoff's Option B: **rejected.** AC-1 is a `Must` that
+  explicitly requires `KEYS[1] == string`; downgrading it silently drops acceptance. The engine
+  work (§3.1a/§3.1b) is bounded and grounded, so Option A is taken.
 - **Runtime `COMMAND DOCS`** (vs bundled spec): a live source would couple REDIS-04 to the
   connection stack (REDIS-01) and break the "fully parallel, engine-only" scope. Bundled
   BSD-Valkey-derived JSON keeps REDIS-04 independent; runtime augmentation is future work
@@ -568,6 +734,4 @@ Type engine (unchanged) resolves `KEYS` against the on-scope `global.lua` stub
 
 ## 10. Open Questions
 
-_None — feature has cleared the planning bar. The DR-02 (spec source) and DR-03 (typing
-approach) epic spikes are resolved and recorded in risks-and-gaps.md; the per-version stub
-member matrix is a bounded, non-blocking DR there._
+None left unresolved for the implementer — the two §3.1 engine sub-decisions are pinned with defaults and tracked as de-risking tasks REDIS-04-DR-03a (array-element propagation seam) and REDIS-04-DR-03b (target-switch cache invalidation) in risks-and-gaps.md, alongside DR-02 (spec source) and the per-version stub matrix (Gap 2.1).

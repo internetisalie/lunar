@@ -46,7 +46,10 @@ of the epic in day-to-day editing. Three strands:
 
 - [ ] **AC-1** — Under Redis/Valkey targets, `KEYS` and `ARGV` resolve as ambient `string[]`
       globals: no "undeclared variable" warnings, `KEYS[1]` infers `string`, `#ARGV` infers
-      `integer`; not present under non-Redis targets
+      `integer`; not present under non-Redis targets. **(Re-plan 2026-07-14, DR-03 re-opened):
+      realized by two REQUIRED type-engine changes — feed stub-declared globals into inference
+      (design §3.1a) and array-subscript element inference (design §3.1b) — NOT by stub edits
+      alone. The prior "existing engine, no changes" premise was ground-truth-false.)**
 - [ ] **AC-2** — Bundled command specs per supported target version (Redis 5 / 6 / 7+ —
       Valkey 7.2 / 8 land with REDIS-03; see §Dependencies), loaded lazily and shared via an
       application service
@@ -98,9 +101,13 @@ of the epic in day-to-day editing. Three strands:
 
 | # | AC | Given (input) | When (action) | Then (expected) | Design |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| TC-KEYS-1 | AC-1 | project target `Target(REDIS,"7+")`; `local x = KEYS[1]` | `LuaTypesVisitor.getTypes(file).getValueType(exprFor("KEYS[1]"))` | resolves to `string` (via bundled `global.lua`); no undeclared-variable highlight on `KEYS` or `ARGV` | §2.1, §3.1 |
-| TC-KEYS-2 | AC-1 | project target `Target(REDIS,"7+")`; `local n = #ARGV` | infer type of `#ARGV` | `integer` (length operator over `string[]`) | §2.1 |
-| TC-KEYS-3 | AC-1 | project target `Target(STANDARD,"5.4")`; `local x = KEYS[1]` | `myFixture.doHighlighting()` | `KEYS` is flagged undeclared (stub not on scope for non-Redis target) — proves no leakage | §2.1, §6 |
+| TC-KEYS-1 | AC-1 | project target `Target(REDIS,"7+")`; `local x = KEYS[1]` | `LuaTypesSnapshot.forFile(file).getValueType(exprFor("KEYS[1]"))` | resolves to `string` — requires §3.1a (seed `KEYS` as `Array(String)` from stub) AND §3.1b (subscript element); AND `getValueType(exprFor("KEYS"))` == `string[]` (Array); no undeclared-variable highlight on `KEYS`/`ARGV` | §2.1, §3.1a, §3.1b |
+| TC-KEYS-2 | AC-1 | project target `Target(REDIS,"7+")`; `local n = #ARGV` | infer type of `#ARGV`, AND infer type of `ARGV` operand | `#ARGV` → `number`; **AND** `getValueType(exprFor("ARGV"))` == `string[]` (proves it is not the always-`number` false-pass — §3.1a); **AND** `doHighlighting()` reports NO "not assignable" error on `#ARGV` (proves the `#`-operand-over-Array sub-fix, §3.1b) | §2.1, §3.1a, §3.1b |
+| TC-KEYS-3 | AC-1 | project target `Target(STANDARD,"5.4")`; `local x = KEYS[1]` | `myFixture.doHighlighting()` + `getValueType(exprFor("KEYS[1]"))` | `KEYS` flagged undeclared AND `getValueType(KEYS[1])` == `Undefined` (`seedAmbientGlobals` seeds nothing off Redis) — structural no-leak | §2.1, §3.1a, §6 |
+| TC-IDX-1 | AC-1 | any target; `---@type string[]`\n`local arr = {}`\n`local x = arr[1]` (no Redis needed — isolates §3.1b) | `getValueType(exprFor("arr[1]"))` | `string` (array-subscript element inference; unit test of §3.1b independent of stub seeding) | §3.1b |
+| TC-IDX-2 | AC-1 | any target; `local t = {}`\n`local y = t[1]` (non-array receiver) | `getValueType(exprFor("t[1]"))` | `Undefined` — **regression**: non-array bracket access is unchanged (§3.1c inv. 2) | §3.1b, §3.1c |
+| TC-IDX-3 | AC-1 | any target; `local a = {}`\n`local m = a.b` (dotted, not bracket) | `getValueType`/`doHighlighting` on `a.b` unchanged vs baseline | dotted member access identical to pre-fix — **regression** (§3.1c inv. 1); asserted via existing `TableTypeTest`/`QualifiedMemberResolutionTest` staying green | §3.1b, §3.1c |
+| TC-SEED-1 | AC-1 | `Target(REDIS,"7+")`; empty script referencing `KEYS` | `getValueType(exprFor("KEYS"))` | `string[]` (Array) — isolates §3.1a global-seeding independent of subscript | §3.1a |
 | TC-SPEC-1 | AC-2 | bundled resource `commandspec/redis-7.json` | `RedisCommandSpecService.getInstance().specFor(Target(REDIS,"7+"))` twice | returns a non-empty `RedisCommandSpec` with `GET` present (`arity=2`); second call returns the **same** cached instance | §2.2, §4.1 |
 | TC-SPEC-2 | AC-2 | target with no bundled spec (e.g. `Target(TARANTOOL,"2.10")`) | `specFor(target)` | returns `RedisCommandSpec.EMPTY` (no exception); consumers no-op | §2.2, §3.2 |
 | TC-COMP-1 | AC-3 | `Target(REDIS,"7+")`; `redis.call("<caret>")` | `myFixture.completeBasic()`; collect lookup strings | includes `GET`, `SET`, `HSET`; each carries the spec summary as tail text; excludes commands whose `since` is newer than the target | §2.3, §3.3 |
@@ -127,7 +134,7 @@ of the epic in day-to-day editing. Three strands:
 
 | AC | Requirement | Test Case(s) |
 | :--- | :--- | :--- |
-| AC-1 | `KEYS`/`ARGV` ambient `string[]` typing; absent off Redis | TC-KEYS-1, TC-KEYS-2, TC-KEYS-3 |
+| AC-1 | `KEYS`/`ARGV` ambient `string[]` typing (engine: §3.1a seed globals, §3.1b subscript); absent off Redis; regression-guarded | TC-KEYS-1, TC-KEYS-2, TC-KEYS-3, TC-SEED-1 (§3.1a), TC-IDX-1 (§3.1b), TC-IDX-2 + TC-IDX-3 (§3.1c regression) |
 | AC-2 | Per-version bundled command spec via app service (lazy, cached) | TC-SPEC-1, TC-SPEC-2 |
 | AC-3 | Command-name completion inside `redis.call`/`pcall` first arg | TC-COMP-1, TC-COMP-2, TC-COMP-3, TC-COMP-4 (popup visuals: checklist §1) |
 | AC-4 | Unknown / wrong-arity inspection + did-you-mean quick fix | TC-ARITY-1, TC-ARITY-2, TC-UNK-1, TC-UNK-2 |

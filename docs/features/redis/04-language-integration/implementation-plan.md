@@ -10,24 +10,90 @@ folders:
 
 # REDIS-04: Implementation Plan
 
-Phases are independently testable and leave the build green. All Kotlin lands under
+Phases are independently testable and leave the build green. Most Kotlin lands under
 `net.internetisalie.lunar.analysis.redis` (inspections/service/matcher/doc) and
-`net.internetisalie.lunar.lang.completion` (completion). Resource edits under
+`net.internetisalie.lunar.lang.completion` (completion). **Phase 1a additionally edits the
+shared type engine** in `net.internetisalie.lunar.lang.psi.types`
+(`LuaTypesVisitor`, `LuaTypeGraph`) — a high-blast-radius seam gated by the §3.1c regression
+contract. Resource edits under
 `src/main/resources/{runtime/redis,commandspec,inspectionDescriptions}`. Every task names the
 file it creates/edits and the design section it realizes.
 
 ## Phases
 
-### Phase 1: Stubs & ambient typing (AC-1, AC-6) [Must]
-- **Goal**: `KEYS`/`ARGV` type as `string[]` and `redis.pcall` narrows for all registered
-  Redis versions; add `redis.replicate_commands`.
+<!-- Re-plan 2026-07-14 (DR-03 re-opened, REDIS-04-phase-1 ABORT_REPLAN): the original Phase 1
+     assumed "resource-edits only, no engine changes". Ground-truthing proved AC-1 needs real
+     type-engine work (stub-global inference + array-subscript element inference). Phase 1 is
+     split into 1a (engine, STRONG, high-blast-radius) and 1b (stubs + wiring + TC tests).
+     AC-6 (pcall union) and the on-disk stubs/replicate_commands are unaffected and land in 1b. -->
+
+### Phase 1a: Type-engine — stub-global inference + array-subscript element inference (AC-1) [Must]
+- **Goal**: the single-file type engine (a) seeds the active target's ambient stub globals
+  (`KEYS`/`ARGV` as `string[]`) into inference, and (b) infers `arr[1] → T` for any `T[]`
+  receiver — so `getValueType(KEYS[1]) == string`. **High blast radius**: `visitIndexExpr` and
+  the single-file inference path are the shared "Serial: type-engine" seam.
+- **Grounded change points** (cite from design):
+  - [x] **§3.1a** — added `seedAmbientGlobals(file)` to `LuaTypesVisitor`, invoked in the static
+        `buildSnapshot` before `file.accept(visitor)`; reads the target's `global.lua` via
+        `RuntimeLibraryProvider(project).getLibraryFiles(target)`, injects each top-level bare
+        global's `@type` via `LuaTypeGraphBridge.injectTypeAnnotation`, and
+        `scope.declare(name, node)`. Comment attachment walks up parents (`ambientCatsComments`)
+        because the stub's first statement sits inside a `BLOCK` whose leading `---@type` comment
+        is a file-level sibling — realizes design §3.1a
+  - [x] **§3.1b** — extended `visitIndexExpr` with a bracket branch
+        (`nameRef == null && o.expr != null`) → `seedSubscriptElement`, which reads the receiver's
+        resolved `Array(T)` element type (`arrayElementType`, unwrapping a `{ ... } | T[]` union)
+        and emits `graph.value(o, T)`. **DR-03a seam decision: seam (b)** — seam (a) is not
+        implementable without adding a node-carrying field to the shared `Array` data class (it
+        holds a *type*, not a node) or graph side-channel/sentinel state (higher blast radius,
+        against the minimal/regression-safe mandate; reviewer flagged seam (a) "under-specified").
+        Seam (b) reads a stable pre-fixed-point value because the receiver's `@type`/seed edge is
+        wired before `visitIndexExpr` runs (decl precedes use) — realizes design §3.1b
+  - [x] **§3.1b `#`-sub-fix** — widened the `#`-operand `use` constraint at `LuaTypesVisitor.kt`
+        to admit `LuaGraphType.Array(Any)` so `#array` does not emit a spurious "not assignable"
+        — realizes design §3.1b (`#ARGV` note)
+- **Regression contract (§3.1c) — required, not optional**:
+  - [x] Dotted member access unchanged (`nameRef != null` branch untouched).
+  - [x] Non-array bracket / non-Redis global typing unchanged (TC-IDX-2 / TC-KEYS-3 structural).
+  - [x] The FULL `.../lang/types/*` suite stays green on a full-suite run (not isolated
+        `--tests`, per the synthetic-lambda masking note): `TestLuaTypeEnginePhase1`,
+        `TestFlowSensitiveType`, `CrossFileInferenceTest`, `UnionAndGenericTest`,
+        `PrimitiveTypeCompatibilityTest`, `LuaUnionDistributionTest`, `TableTypeTest`,
+        `QualifiedMemberResolutionTest`, `ReceiverAwareMemberResolutionTest`,
+        `MemberFieldIndexTest`, `FunctionSignatureMatchingTest`, `LuaMethodMembersTest`,
+        `MultiReturnValueTest`.
+  - [x] Downstream consumers unregressed (build gate covers their suites):
+        `LuaTypeAssignabilityInspection`, `LuaReturnTypeMismatchInspection`,
+        `LuaSuspiciousConcatenationInspection`, `LuaInferredTypeAnnotator`, and the three
+        inlay-hint providers.
+  - [x] **DR-03b** — the `LuaTypes.forFile` snapshot cache key now folds the active `Target`
+        hash with the document-text hash, so a target switch invalidates it automatically;
+        `LuaTypesVisitor.getTypes` delegates to the same entry point so the two consumers share
+        one KEY/hash scheme (no thrash). Verified by `StubGlobalSeedTypeTest` target-switch test.
+- **Tests (real-flow + unit)**: TC-SEED-1 (§3.1a), TC-IDX-1 (§3.1b), TC-IDX-2 + TC-IDX-3
+  (§3.1c regression) — added under `src/test/kotlin/net/internetisalie/lunar/lang/types/`
+  (`ArraySubscriptTypeTest`, `StubGlobalSeedTypeTest`; using `LuaTypesSnapshot.forFile`).
+- **Exit criteria**: TC-SEED-1, TC-IDX-1, TC-IDX-2, TC-IDX-3 green AND the full type-engine
+  suite (above) green AND `run build` (checkStatus/koverVerify/integrationTest) green.
+
+### Phase 1b: Redis stub resources + ambient-typing wiring (AC-1 tests, AC-6) [Must]
+- **Goal**: the bundled Redis stubs + `pcall` union consumed by the Phase-1a engine; `KEYS[1]`
+  and `redis.pcall` narrowing prove out end-to-end under a real Redis target. **The stub work
+  below is ALREADY ON DISK (uncommitted) from the aborted Phase 1 and verified correct by the
+  handoff — preserve it; do NOT redo.**
 - **Tasks**:
-  - [ ] Create `src/main/resources/runtime/redis/redis-5/` and `redis-6/` mirroring the
+  - [ ] (already on disk) `src/main/resources/runtime/redis/redis-5/` and `redis-6/` mirror the
         `redis-7` file set, trimmed per design §3.10 — realizes design §2.1, §3.10
-  - [ ] Add `---@return boolean\nfunction redis.replicate_commands() end` to every
-        `runtime/redis/*/redis.lua` — realizes design §2.1
-  - [ ] Change `redis.pcall` `@return` to `any|{ err: string }` in every
-        `runtime/redis/*/redis.lua` — realizes design §2.1, §4.2
+  - [ ] (already on disk) `---@return boolean\nfunction redis.replicate_commands() end` added to
+        every `runtime/redis/*/redis.lua` — realizes design §2.1
+  - [ ] (already on disk) `redis.pcall` `@return` changed to `any|{ err: string }` in every
+        `runtime/redis/*/redis.lua` (+ valkey-7.2/8 kept byte-in-sync) — realizes §2.1, §4.2
+  - [ ] Verify (do NOT re-author) the on-disk `RedisAmbientTypingTest.kt`; its TC-KEYS-1 that
+        FAILS pre-1a must now PASS post-1a. Add TC-KEYS-2, TC-KEYS-3, TC-PCALL-1 assertions per
+        the revised requirements.md (real Redis target via
+        `settings.setTargetAndNotify(Target(LuaPlatform.REDIS, VersionEntry(...)))`,
+        `LibraryLoadingAfterTargetChangeTest.kt:96`).
+- **Depends on**: Phase 1a (TC-KEYS-1/2/3 cannot pass without the engine work).
 - **Exit criteria**: TC-KEYS-1, TC-KEYS-2, TC-KEYS-3, TC-PCALL-1 green.
 
 ### Phase 2: Command-spec service + bundled data (AC-2) [Must]
@@ -108,18 +174,20 @@ file it creates/edits and the design section it realizes.
 
 | Requirement | Priority | Delivered in |
 |-------------|----------|--------------|
-| AC-1 `KEYS`/`ARGV` typing | S | Phase 1 |
+| AC-1 `KEYS`/`ARGV` typing | S | Phase 1a (engine) + Phase 1b (tests) |
 | AC-2 command-spec service | S | Phase 2 |
 | AC-3 command completion | S | Phase 3, Phase 4 |
 | AC-4 unknown/arity inspection + fix | S | Phase 3, Phase 5 |
 | AC-5 command quick doc | S | Phase 6 |
-| AC-6 `pcall` union narrowing | S | Phase 1 |
+| AC-6 `pcall` union narrowing | S | Phase 1b |
 | AC-7 sandbox inspection | S | Phase 6 |
 | AC-8 global-creation escalation | S | Phase 6 |
 | AC-9 determinism inspection | S | Phase 5 |
 | AC-10 unit tests | S | Phase 7 |
 
 ## Verification Tasks
+- [x] Type-engine unit tests — covers TC-SEED-1 (§3.1a), TC-IDX-1 (§3.1b), TC-IDX-2/3 (§3.1c
+      regression) + full `.../lang/types/*` suite green
 - [ ] Ambient typing tests — covers TC-KEYS-1..3, TC-PCALL-1
 - [ ] Command-spec service tests — covers TC-SPEC-1, TC-SPEC-2
 - [ ] Completion tests (per-version filter, non-literal, off-Redis) — covers TC-COMP-1..4
@@ -133,7 +201,8 @@ file it creates/edits and the design section it realizes.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Stubs & ambient typing | todo | Must |
+| Phase 1a: Type-engine (stub-global + array-subscript inference) | done | Must |
+| Phase 1b: Redis stub resources + ambient-typing wiring | todo | Must |
 | Phase 2: Command-spec service + data | todo | Must |
 | Phase 3: Call-site matcher | todo | Must |
 | Phase 4: Command completion | todo | Should |
