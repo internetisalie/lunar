@@ -2,7 +2,7 @@
 id: "REDIS"
 title: "REDIS: Redis & Valkey Integration"
 type: "epic"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

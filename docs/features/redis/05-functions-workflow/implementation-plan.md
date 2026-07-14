@@ -2,7 +2,7 @@
 id: "REDIS-05-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "todo"
+status: "done"
 parent_id: "REDIS-05"
 folders:
   - "[[features/redis/05-functions-workflow/requirements|requirements]]"
@@ -98,7 +98,7 @@ suite (memory: isolated `--tests` masks synthetic-lambda failures).
 ### Phase 6: Integration test & polish (AC-10) [Must]
 - **Goal**: end-to-end load/list/call/replace/delete on dockerized `redis:8` + Valkey parity.
 - **Tasks**:
-  - [ ] Add `RedisFunctionsIntegrationTest` under the `redisIntegrationTest` task
+  - [x] Add `RedisFunctionsIntegrationTest` under the `redisIntegrationTest` task
         (REDIS-01 DR-04 / RISK-R10): deploy a `#!lua name=lib` library, `FUNCTION LIST`, `FCALL`,
         edit + `LOAD REPLACE`, `FUNCTION DELETE`; run against `redis:8` and `valkey/valkey:8` —
         covers TC-INT-1
@@ -122,14 +122,14 @@ suite (memory: isolated `--tests` masks synthetic-lambda failures).
 | AC-10 integration + parity | C | Phase 6 |
 
 ## Verification Tasks
-- [ ] Library-model tests (shebang detect variants, registered-name scan) — covers TC-SHB-1/2,
+- [x] Library-model tests (shebang detect variants, registered-name scan) — covers TC-SHB-1/2,
       TC-STUB-1/2, TC-SCAN-1
-- [ ] KEYS/ARGV inspection tests (library vs non-library vs off-Redis) — covers TC-KEYS-1..3
-- [ ] FCALL executor + checkConfiguration tests (deploy-only, call, RO, validation, dynamic-skip)
+- [x] KEYS/ARGV inspection tests (library vs non-library vs off-Redis) — covers TC-KEYS-1..3
+- [x] FCALL executor + checkConfiguration tests (deploy-only, call, RO, validation, dynamic-skip)
       — covers TC-MODE-1, TC-DEPLOY-1, TC-CALL-1, TC-RO-1/2, TC-VALID-1/2
-- [ ] Debug-runner gate test (FCALL vs EVAL) — covers TC-DBG-1
-- [ ] Panel parser/drift/controller tests — covers TC-PANEL-1..3, TC-DRIFT-1
-- [ ] Docker integration test (redis:8 + valkey/valkey:8) — covers TC-INT-1
+- [x] Debug-runner gate test (FCALL vs EVAL) — covers TC-DBG-1
+- [x] Panel parser/drift/controller tests — covers TC-PANEL-1..3, TC-DRIFT-1
+- [x] Docker integration test (redis:8 + valkey/valkey:8) — covers TC-INT-1
 - [ ] Run `human-verification-checklists.md` (shebang render, register_function completion/typing,
       FCALL deploy round-trip, panel list/deploy/delete, Debug-disabled tooltip)
 

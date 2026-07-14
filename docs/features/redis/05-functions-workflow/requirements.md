@@ -2,7 +2,7 @@
 id: "REDIS-05"
 parent_id: "REDIS"
 type: "feature"
-status: "planned"
+status: "done"
 folders:
   - "[[features/redis/requirements|requirements]]"
 title: "REDIS-05: Redis Functions Workflow"
@@ -14,7 +14,7 @@ title: "REDIS-05: Redis Functions Workflow"
 editing, typed `redis.register_function`, a FUNCTION LOAD deploy mode on the run
 configuration, and a server functions panel.
 **Priority**: Could
-**Status**: In Progress (Phase 1 done: AC-1 shebang detect, AC-2 register_function stub)
+**Status**: Done (all phases complete; TC-INT-1 green on redis:8 and valkey/valkey:8)
 
 ---
 
@@ -69,8 +69,8 @@ all.
 - [x] REDIS-02 debugging note surfaced in the UI: LDB does not support stepping FCALL
       invocations (Redis limitation) — the Debug executor for FCALL mode is disabled with
       an explanatory tooltip
-- [ ] Integration test against dockerized `redis:8`: load, list, call, replace, delete;
-      Valkey parity run
+- [x] Integration test against dockerized `redis:8`: load, list, call, replace, delete;
+      Valkey parity run *(Phase 6; TC-INT-1 green on redis:8 and valkey/valkey:8)*
 
 The acceptance criteria above are referenced by position below as **AC-1** (shebang
 recognition) … **AC-10** (integration + Valkey parity), top to bottom.
