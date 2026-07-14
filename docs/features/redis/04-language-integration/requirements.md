@@ -2,7 +2,7 @@
 id: "REDIS-04"
 parent_id: "REDIS"
 type: "feature"
-status: "planned"
+status: "done"
 folders:
   - "[[features/redis/requirements|requirements]]"
 title: "REDIS-04: Language-Engine Integration"
@@ -14,7 +14,7 @@ title: "REDIS-04: Language-Engine Integration"
 completion and arity validation for `redis.call`/`redis.pcall` from a bundled command
 specification, and script-sandbox inspections.
 **Priority**: Should
-**Status**: Not Implemented
+**Status**: Done
 
 ---
 
@@ -88,7 +88,7 @@ of the epic in day-to-day editing. Three strands:
       classification comes from the bundled command spec, not a hand-maintained list.
       Done in Phase 5 (inside `LuaRedisCommandInspection`, §3.9 algorithm);
       TC-DET-1..4 green.
-- [ ] **AC-10** — Unit tests: ambient typing, completion (per-version filtering),
+- [x] **AC-10** — Unit tests: ambient typing, completion (per-version filtering),
       arity/unknown-command inspection positive+negative, pcall narrowing, sandbox inspection
       matrix, and no-op behavior under the Standard target
 

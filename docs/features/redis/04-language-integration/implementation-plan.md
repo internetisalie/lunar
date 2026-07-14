@@ -2,7 +2,7 @@
 id: "REDIS-04-PLAN"
 title: "Implementation Plan"
 type: "plan"
-status: "todo"
+status: "done"
 parent_id: "REDIS-04"
 folders:
   - "[[features/redis/04-language-integration/requirements|requirements]]"
@@ -189,11 +189,12 @@ file it creates/edits and the design section it realizes.
 ### Phase 7: Test suite & polish (AC-10) [Must]
 - **Goal**: all TC-* automated on `BasePlatformTestCase`; no-op behavior off Redis proven.
 - **Tasks**:
-  - [ ] Add test classes under `src/test/kotlin/net/internetisalie/lunar/analysis/redis/` and
+  - [x] Add test classes under `src/test/kotlin/net/internetisalie/lunar/analysis/redis/` and
         `.../lang/completion/` covering every TC (target set via
         `settings.setTargetAndNotify(Target(LuaPlatform.REDIS, VersionEntry(...)))`, the idiom
-        from `LibraryLoadingAfterTargetChangeTest.kt:96`) — covers all TC-*
-  - [ ] Run `human-verification-checklists.md`
+        from `LibraryLoadingAfterTargetChangeTest.kt:96`) — covers all TC-* (all 22 TC families
+        automated across the per-phase real-flow suites; full `test` suite green)
+  - [ ] Run `human-verification-checklists.md` — deferred manual VNC verification (see above)
 - **Exit criteria**: full `test` suite green (not isolated `--tests`, per memory note on
   synthetic-lambda masking); `run build` (checkStatus/koverVerify) green.
 
@@ -219,12 +220,17 @@ file it creates/edits and the design section it realizes.
       redis-5 coverage, chained-subscript regression (TC-KEYS-1 resolution sub-assertion →
       human-verification Scenario 4.1, see risks §Gap 2.3)
 - [x] Command-spec service tests — covers TC-SPEC-1, TC-SPEC-2
-- [ ] Completion tests (per-version filter, non-literal, off-Redis) — covers TC-COMP-1..4
-- [ ] Command inspection + quick fix tests — covers TC-ARITY-1/2, TC-UNK-1/2
-- [ ] Determinism tests — covers TC-DET-1..4
-- [ ] Sandbox + global-escalation tests — covers TC-SBX-1..3, TC-GLOB-1/2
-- [ ] Quick-doc test — covers TC-DOC-1
+- [x] Completion tests (per-version filter, non-literal, off-Redis) — covers TC-COMP-1..4
+      (`LuaRedisCommandCompletionTest`, real-flow `completeBasic`)
+- [x] Command inspection + quick fix tests — covers TC-ARITY-1/2, TC-UNK-1/2
+      (`LuaRedisCommandInspectionTest`, real-flow `enableInspections`+`doHighlighting`)
+- [x] Determinism tests — covers TC-DET-1..4 (`LuaRedisCommandInspectionTest`)
+- [x] Sandbox + global-escalation tests — covers TC-SBX-1..3, TC-GLOB-1/2
+      (`LuaRedisSandboxInspectionTest`, `LuaGlobalCreationRedisEscalationTest`)
+- [x] Quick-doc test — covers TC-DOC-1 (`LuaRedisCommandDocumentationTest`)
 - [ ] Run `human-verification-checklists.md` (completion popup, doc popup, live ERROR gutter)
+      — **deferred manual VNC verification** (UI-render assertions a light fixture cannot make;
+      same deferral as REDIS-01's visual checklist). All automated TCs green.
 
 ## Task Summary
 
@@ -234,7 +240,7 @@ file it creates/edits and the design section it realizes.
 | Phase 1b: Redis stub resources + ambient-typing wiring | done | Must |
 | Phase 2: Command-spec service + data | done | Must |
 | Phase 3: Call-site matcher | done | Must |
-| Phase 4: Command completion | todo | Should |
-| Phase 5: Command inspection + fix + determinism | todo | Should |
-| Phase 6: Sandbox + escalation + quick doc | todo | Should |
-| Phase 7: Test suite & polish | todo | Must |
+| Phase 4: Command completion | done | Should |
+| Phase 5: Command inspection + fix + determinism | done | Should |
+| Phase 6: Sandbox + escalation + quick doc | done | Should |
+| Phase 7: Test suite & polish | done | Must |
