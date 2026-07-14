@@ -17,6 +17,7 @@ import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
+import net.internetisalie.lunar.redis.run.LuaRedisExecMode
 import net.internetisalie.lunar.redis.run.LuaRedisRunConfiguration
 
 /**
@@ -32,7 +33,9 @@ class LuaRedisDebugRunner : GenericProgramRunner<RunnerSettings>() {
     override fun getRunnerId(): String = RUNNER_ID
 
     override fun canRun(executorId: String, runProfile: RunProfile): Boolean =
-        executorId == DefaultDebugExecutor.EXECUTOR_ID && runProfile is LuaRedisRunConfiguration
+        executorId == DefaultDebugExecutor.EXECUTOR_ID &&
+            runProfile is LuaRedisRunConfiguration &&
+            runProfile.execMode != LuaRedisExecMode.FCALL
 
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
         val executionResult = state.execute(environment.executor, this) ?: return null

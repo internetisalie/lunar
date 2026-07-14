@@ -52,18 +52,18 @@ suite (memory: isolated `--tests` masks synthetic-lambda failures).
 ### Phase 3: FCALL run-config mode + executor (AC-4, AC-5, AC-6) [Must]
 - **Goal**: the FCALL deploy/call mode on `LuaRedisRunConfiguration`, validated and executed.
 - **Tasks** (REDIS-01 amendment A1):
-  - [ ] Edit `LuaRedisRunConfigurationOptions`: add `functionName`/`replaceOnLoad`/`deployOnly`
+  - [x] Edit `LuaRedisRunConfigurationOptions`: add `functionName`/`replaceOnLoad`/`deployOnly`
         `string()` StoredProperties; edit `LuaRedisRunConfiguration` with the bridged getters —
         realizes design §2.4
-  - [ ] Create `net.internetisalie.lunar.redis.run.LuaRedisFunctionExecutor`
+  - [x] Create `net.internetisalie.lunar.redis.run.LuaRedisFunctionExecutor`
         (`FUNCTION LOAD [REPLACE]` + `FCALL`/`FCALL_RO`; deploy-only early return; numkeys/keys/argv
         marshalling) — realizes design §2.5, §3.5
-  - [ ] Edit `LuaRedisRunProfileState`: dispatch to `LuaRedisFunctionExecutor` when
+  - [x] Edit `LuaRedisRunProfileState`: dispatch to `LuaRedisFunctionExecutor` when
         `execMode == FCALL` — realizes design §2.6
-  - [ ] Edit `LuaRedisRunConfiguration.checkConfiguration`: remove the FCALL rejection; add the
+  - [x] Edit `LuaRedisRunConfiguration.checkConfiguration`: remove the FCALL rejection; add the
         FCALL branch (function-name presence, static name validation, dynamic-skip) — realizes
         design §3.6, §3.7
-  - [ ] Edit `LuaRedisSettingsEditor` (REDIS-01): FCALL section (function name field, REPLACE +
+  - [x] Edit `LuaRedisSettingsEditor` (REDIS-01): FCALL section (function name field, REPLACE +
         deploy-only checkboxes) + the no-writes hint label (§3.6 step 4) — realizes design §2.4,
         §3.6
 - **Exit criteria**: TC-MODE-1, TC-DEPLOY-1, TC-CALL-1, TC-RO-1, TC-RO-2, TC-VALID-1,
@@ -72,7 +72,7 @@ suite (memory: isolated `--tests` masks synthetic-lambda failures).
 ### Phase 4: Debug executor disable for FCALL (AC-9) [Must]
 - **Goal**: the Debug action is greyed for FCALL configs with an explanatory tooltip.
 - **Tasks** (REDIS-02 amendment A2):
-  - [ ] Edit `net.internetisalie.lunar.redis.debug.LuaRedisDebugRunner.canRun`: add
+  - [x] Edit `net.internetisalie.lunar.redis.debug.LuaRedisDebugRunner.canRun`: add
         `&& runProfile.execMode != LuaRedisExecMode.FCALL`; supply the tooltip text — realizes
         design §3.11, §7 A2
 - **Exit criteria**: TC-DBG-1 green (EVAL still runnable under Debug; FCALL not).

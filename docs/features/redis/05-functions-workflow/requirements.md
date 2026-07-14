@@ -51,13 +51,13 @@ all.
 - [x] Inspection: `KEYS`/`ARGV` usage inside a function library file is flagged (they are
       EVAL-only); REDIS-04's ambient globals are suppressed in library files
       *(Phase 2; TC-KEYS-1/2/3 green)*
-- [ ] REDIS-01 run configuration gains the `FUNCTION LOAD` + `FCALL` execution mode:
+- [x] REDIS-01 run configuration gains the `FUNCTION LOAD` + `FCALL` execution mode:
       library file, `REPLACE` toggle, function name to call, KEYS/ARGV inputs; loading a
       library without calling is a valid "deploy" run
-- [ ] REDIS-01's read-only toggle maps to `FCALL_RO` in this mode; a hint suggests
+- [x] REDIS-01's read-only toggle maps to `FCALL_RO` in this mode; a hint suggests
       enabling it when the selected function declares the `no-writes` flag (and the run
       fails with a clear server error surface if a write is attempted)
-- [ ] `FCALL` mode validates the requested function name against the names registered in
+- [x] `FCALL` mode validates the requested function name against the names registered in
       the library file (best-effort static scan; dynamic names skipped)
 - [ ] Functions tool-window panel (or run-config gutter view) listing `FUNCTION LIST`
       output for a configured connection: libraries, functions, flags; per-library actions
@@ -65,7 +65,7 @@ all.
 - [ ] Local-vs-server drift indicator: the panel marks a library whose local source hash
       differs from the loaded `library_code` (when the server reports it via
       `FUNCTION LIST WITHCODE`)
-- [ ] REDIS-02 debugging note surfaced in the UI: LDB does not support stepping FCALL
+- [x] REDIS-02 debugging note surfaced in the UI: LDB does not support stepping FCALL
       invocations (Redis limitation) — the Debug executor for FCALL mode is disabled with
       an explanatory tooltip
 - [ ] Integration test against dockerized `redis:8`: load, list, call, replace, delete;
