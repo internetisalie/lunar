@@ -143,6 +143,10 @@
             order="first"
             implementation="net.internetisalie.lunar.lang.doc.LuaDocumentationTargetProvider" />
 
+    <!-- AC-5: Redis command quick documentation (sibling to LuaDocumentationTargetProvider) -->
+    <platform.backend.documentation.targetProvider
+            implementation="net.internetisalie.lunar.analysis.redis.RedisCommandDocumentationTargetProvider"/>
+
     <platform.backend.documentation.linkHandler
             implementation="net.internetisalie.lunar.lang.doc.LuaDocumentationLinkHandler"/>
 
@@ -280,6 +284,17 @@
             enabledByDefault="true"
             level="WARNING"
             implementationClass="net.internetisalie.lunar.analysis.redis.LuaRedisCommandInspection"/>
+
+    <!-- AC-7: Redis script sandbox inspection (ships WARNING per RISK-R07) -->
+    <localInspection
+            language="Lua"
+            shortName="LuaRedisSandbox"
+            displayName="Redis script sandbox"
+            groupPath="Lua"
+            groupName="Redis"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="net.internetisalie.lunar.analysis.redis.LuaRedisSandboxInspection"/>
 
     <localInspection language="Lua"
                      shortName="LuaJsonSchemaCompliance"

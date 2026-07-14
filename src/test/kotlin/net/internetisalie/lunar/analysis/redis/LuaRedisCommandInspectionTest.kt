@@ -76,10 +76,10 @@ class LuaRedisCommandInspectionTest : BasePlatformTestCase() {
             "Expected unknown command warning for 'GTE', got: $unknownWarnings",
             unknownWarnings.any { it.contains("'GTE'") },
         )
-        val fixes = myFixture.getAllQuickFixes("Change to 'GET'")
-        assertTrue(
+        val fix = myFixture.getAvailableIntention("Change to 'GET'")
+        assertNotNull(
             "Expected a 'Change to GET' quick fix for the typo 'GTE' (Levenshtein ≤ 2)",
-            fixes.isNotEmpty(),
+            fix,
         )
     }
 

@@ -67,17 +67,17 @@ of the epic in day-to-day editing. Three strands:
       dynamic (non-literal) command names are never flagged. Done in Phase 5
       (`LuaRedisCommandInspection` + `LuaRedisRenameCommandQuickFix`); TC-ARITY-1/2,
       TC-UNK-1/2 green.
-- [ ] **AC-5** — Quick documentation on a command-name string literal shows the spec summary,
+- [x] **AC-5** — Quick documentation on a command-name string literal shows the spec summary,
       since-version, and arity
 - [x] **AC-6** — `redis.pcall` return type models the error-table shape (`{ err: string }`
       union with the success reply type) so `if reply.err then` narrows correctly. Done in
       Phase 1b (stub `@return any|{ err: string }` in every `runtime/redis/*/redis.lua` +
       valkey mirrors); TC-PCALL-1 asserts the inferred reply exposes the `err` member.
-- [ ] **AC-7** — Sandbox inspection: `io.*`, `os.*` (beyond `os.time`/`os.clock` — match the
+- [x] **AC-7** — Sandbox inspection: `io.*`, `os.*` (beyond `os.time`/`os.clock` — match the
       actual sandbox allowlist per version), `require`, `dofile`, `loadfile`, and `print`
       usage flagged under Redis/Valkey targets with explanatory text (ships at WARNING per
       RISK-R07; escalates to ERROR after live validation)
-- [ ] **AC-8** — The existing Global-creation inspection escalates from WARNING to ERROR under
+- [x] **AC-8** — The existing Global-creation inspection escalates from WARNING to ERROR under
       Redis/Valkey targets (global writes are runtime errors in the sandbox), suppressible
       per the normal mechanisms
 - [x] **AC-9** — Determinism inspection under Redis 5/6 targets only: a command whose spec

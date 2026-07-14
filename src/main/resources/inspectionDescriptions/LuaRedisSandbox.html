@@ -1,0 +1,16 @@
+<html>
+<body>
+Reports usage of APIs that are not available inside the Redis/Valkey script sandbox under a Redis
+or Valkey project target. The following are flagged:
+<ul>
+  <li><b>io.*</b> — the standard I/O library is completely absent from the sandbox.</li>
+  <li><b>os.*</b> (except <code>os.time</code> and <code>os.clock</code>) — only the subset declared in
+      the target's bundled <code>os.lua</code> stub is permitted; e.g. <code>os.getenv</code> is blocked.</li>
+  <li><b>require</b>, <b>dofile</b>, <b>loadfile</b> — module-loading globals are removed from the sandbox.</li>
+  <li><b>print</b> — standard output is not available; use <code>redis.log</code> for diagnostics.</li>
+</ul>
+The allowlist is derived from the bundled per-version stub files, so adding a stub automatically permits
+the corresponding name. The inspection is a no-op under non-Redis/Valkey targets and ships at WARNING
+level (RISK-R07) pending live validation.
+</body>
+</html>

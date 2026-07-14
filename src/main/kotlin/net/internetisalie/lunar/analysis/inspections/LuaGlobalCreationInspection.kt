@@ -16,6 +16,7 @@ import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaVisitor
+import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
@@ -52,10 +53,15 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
                         }
                         if (validResolves.isEmpty()) {
                             if (LuaInspectionSuppression.isSuppressed(nameRef, name, DIAGNOSTIC_ID)) continue
+                            val highlightType = if (isRedisTarget(nameRef.project)) {
+                                ProblemHighlightType.ERROR
+                            } else {
+                                ProblemHighlightType.GENERIC_ERROR_OR_WARNING
+                            }
                             holder.registerProblem(
                                 nameRef,
                                 "Global creation '$name'",
-                                ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+                                highlightType,
                                 LuaMakeLocalQuickFix(),
                                 LuaAddToGlobalsQuickFix(name)
                             )
@@ -64,6 +70,12 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
                 }
             }
         }
+
+    /** Returns `true` when the project target is a Redis or Valkey platform (design §3.8). */
+    private fun isRedisTarget(project: Project): Boolean {
+        val platform = LuaProjectSettings.getInstance(project).state.getTarget().platform
+        return platform == LuaPlatform.REDIS || platform == LuaPlatform.VALKEY
+    }
 
     private fun isExemptGlobal(ref: LuaNameRef, name: String): Boolean {
         val settings = LuaProjectSettings.getInstance(ref.project)

@@ -170,17 +170,17 @@ file it creates/edits and the design section it realizes.
 ### Phase 6: Sandbox inspection + Global-creation escalation + quick doc (AC-5, AC-7, AC-8) [Should]
 - **Goal**: sandbox-API WARNINGs; Redis-target ERROR escalation; command quick doc.
 - **Tasks**:
-  - [ ] Create `RedisSandboxAllowlist.forTarget(target)` (derive from stub roots +
+  - [x] Create `RedisSandboxAllowlist.forTarget(target)` (derive from stub roots +
         `os.lua` members via `RuntimeLibraryProvider`, cached per path segment) — realizes
         design §3.7
-  - [ ] Create `LuaRedisSandboxInspection` (`visitNameRef`; declaration skip mirrors
+  - [x] Create `LuaRedisSandboxInspection` (`visitNameRef`; declaration skip mirrors
         `LuaDeprecatedApiInspection.isDeclaration`) + `inspectionDescriptions/
         LuaRedisSandbox.html`; register `<localInspection shortName="LuaRedisSandbox">` —
         realizes design §2.7, §3.7, §7
-  - [ ] Edit `LuaGlobalCreationInspection`: add `isRedisTarget(project)` and select
+  - [x] Edit `LuaGlobalCreationInspection`: add `isRedisTarget(project)` and select
         `ProblemHighlightType.ERROR` vs `GENERIC_ERROR_OR_WARNING` at the `registerProblem`
         site — realizes design §2.8, §3.8
-  - [ ] Create `RedisCommandDocumentationTargetProvider` +
+  - [x] Create `RedisCommandDocumentationTargetProvider` +
         `RedisCommandDocumentationTarget` (`DocumentationResult.documentation(...)`); register
         `<platform.backend.documentation.targetProvider>` — realizes design §2.5(doc), §3.6,
         §7
