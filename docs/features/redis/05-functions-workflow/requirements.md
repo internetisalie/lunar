@@ -59,12 +59,13 @@ all.
       fails with a clear server error surface if a write is attempted)
 - [x] `FCALL` mode validates the requested function name against the names registered in
       the library file (best-effort static scan; dynamic names skipped)
-- [ ] Functions tool-window panel (or run-config gutter view) listing `FUNCTION LIST`
+- [x] Functions tool-window panel (or run-config gutter view) listing `FUNCTION LIST`
       output for a configured connection: libraries, functions, flags; per-library actions
       Deploy (LOAD REPLACE from the local file) and Delete, with confirmation
-- [ ] Local-vs-server drift indicator: the panel marks a library whose local source hash
+      *(Phase 5; TC-PANEL-1/2/3 green; panel UI is human-verification-deferred)*
+- [x] Local-vs-server drift indicator: the panel marks a library whose local source hash
       differs from the loaded `library_code` (when the server reports it via
-      `FUNCTION LIST WITHCODE`)
+      `FUNCTION LIST WITHCODE`) *(Phase 5; TC-DRIFT-1 green)*
 - [x] REDIS-02 debugging note surfaced in the UI: LDB does not support stepping FCALL
       invocations (Redis limitation) — the Debug executor for FCALL mode is disabled with
       an explanatory tooltip

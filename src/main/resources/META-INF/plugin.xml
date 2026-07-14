@@ -79,6 +79,14 @@
             icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
             factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksPackageBrowserToolWindowFactory"/>
 
+    <!-- Redis Functions panel (REDIS-05 AC-7/AC-8) -->
+    <toolWindow
+            id="Redis Functions"
+            anchor="bottom"
+            secondary="true"
+            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
+            factoryClass="net.internetisalie.lunar.redis.functions.ui.LuaRedisFunctionsToolWindowFactory"/>
+
 
 
     <!-- Language -->

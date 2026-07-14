@@ -83,16 +83,16 @@ suite (memory: isolated `--tests` masks synthetic-lambda failures).
 ### Phase 5: Functions panel — list/parse/deploy/delete/drift (AC-7, AC-8) [Should]
 - **Goal**: a "Redis Functions" tool window listing libraries with flags + drift, Deploy/Delete.
 - **Tasks**:
-  - [ ] Create `LuaRedisFunctionListParser` (`RespValue` → `RedisLibraryEntry`/`RedisFunctionEntry`;
+  - [x] Create `LuaRedisFunctionListParser` (`RespValue` → `RedisLibraryEntry`/`RedisFunctionEntry`;
         RESP2 array-of-pairs + RESP3 map) — realizes design §2.7, §3.8
-  - [ ] Create `LuaRedisFunctionDrift` (`compare(serverCode, localBody)` → sha1 normalized) —
+  - [x] Create `LuaRedisFunctionDrift` (`compare(serverCode, localBody)` → sha1 normalized) —
         realizes design §2.8, §3.10
-  - [ ] Create `LuaRedisFunctionsController` (`list`/`delete`/`deploy` over `RespClient`, suspend,
+  - [x] Create `LuaRedisFunctionsController` (`list`/`delete`/`deploy` over `RespClient`, suspend,
         per-call open/dispose) — realizes design §2.9, §3.9
-  - [ ] Create `LuaRedisFunctionsPanel` + `LuaRedisFunctionsToolWindowFactory` (connection
+  - [x] Create `LuaRedisFunctionsPanel` + `LuaRedisFunctionsToolWindowFactory` (connection
         selector, tree with flag/drift glyphs, Deploy/Delete with `Messages.showYesNoDialog`;
         pooled coroutine → EDT publish; `DependencyTreePanel` pattern) — realizes design §2.10, §3.9
-  - [ ] Register `<toolWindow id="Redis Functions" …>` in `plugin.xml` — realizes design §7
+  - [x] Register `<toolWindow id="Redis Functions" …>` in `plugin.xml` — realizes design §7
 - **Exit criteria**: TC-PANEL-1, TC-PANEL-2, TC-PANEL-3, TC-DRIFT-1 green.
 
 ### Phase 6: Integration test & polish (AC-10) [Must]
