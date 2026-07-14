@@ -150,9 +150,9 @@ file it creates/edits and the design section it realizes.
 ### Phase 4: Command completion (AC-3) [Should]
 - **Goal**: version-valid command names inside the first string arg.
 - **Tasks**:
-  - [ ] Create `LuaRedisCommandCompletionContributor` (§3.3 sourcing, §3.11 `sinceLe` filter,
+  - [x] Create `LuaRedisCommandCompletionContributor` (§3.3 sourcing, §3.11 `sinceLe` filter,
         summary tail text) — realizes design §2.3, §3.3, §3.11
-  - [ ] Register `<completion.contributor language="Lua" …>` — realizes design §7
+  - [x] Register `<completion.contributor language="Lua" …>` — realizes design §7
 - **Exit criteria**: TC-COMP-1..4 green.
 
 ### Phase 5: Command inspection + quick fix + determinism (AC-4, AC-9) [Should]

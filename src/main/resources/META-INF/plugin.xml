@@ -324,6 +324,9 @@
     <completion.contributor
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.LuaCompletionContributor"/>
+    <completion.contributor
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.completion.LuaRedisCommandCompletionContributor"/>
 
     <lang.findUsagesProvider
             language="Lua"
