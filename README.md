@@ -1,250 +1,147 @@
-# lunar
+# Lunar
 
-Lua support for IntelliJ Platform (GoLand, IntelliJ IDEA, PyCharm, and other JetBrains IDEs).
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+![Lua 5.1–5.4](https://img.shields.io/badge/Lua-5.1--5.4-000080.svg)
+![IntelliJ Platform 2026.1+](https://img.shields.io/badge/IntelliJ_Platform-2026.1%2B-000000.svg)
 
-## Quick Start
+**Lunar** is a Lua language plugin for the IntelliJ Platform — GoLand, IntelliJ IDEA,
+PyCharm, CLion, WebStorm, and other JetBrains IDEs. It targets **Lua 5.1–5.4** and provides
+syntax highlighting, code completion, navigation, type inference (LuaCATS/LuaDoc),
+documentation, inspections, static analysis (Luacheck), formatting, and remote debugging.
 
-### Build & Test
+> The canonical repository is on Gitea (`gitea.internetisalie.net/lunar/lunar`), mirrored to
+> [GitHub](https://github.com/internetisalie/lunar). CI runs on both — see
+> [Continuous Integration](#continuous-integration).
+
+## Features
+
+- **[SYNTAX]** Syntax & editor support — highlighting, folding, brace matching, code formatting
+- **[COMP]** Code completion — keywords, symbols, cross-file, type-driven
+- **[NAV]** Navigation — go to definition, find usages, structure view, gutter markers, references
+- **[TYPE]** Type system — LuaCATS annotations, type inference, function signatures
+- **[DOC]** Documentation — Quick Doc, LuaCATS/LuaDoc highlighting, parameter info
+- **[INSP]** Inspections & diagnostics — undeclared/unused variables, type mismatches, quick fixes
+- **[ANALYSIS]** Static analysis — Luacheck integration via external annotator
+- **[FORMAT]** Formatting — indentation, alignment, spacing, StyLua-compatible
+- **[REFACT / INTENT]** Refactoring & intentions — rename, labels, introduce variable, string conversions
+- **[DEBUG / RUN]** Debugging & execution — breakpoints, stack frames, remote (DBGp/MobDebug) debugging, REPL
+
+See [docs/features.md](docs/features.md) for the full feature index and
+[docs/roadmap.md](docs/roadmap.md) for the dependency-ordered backlog.
+
+## Building & Testing
+
+Requires **JDK 21**. The Gradle wrapper (`./gradlew`) pins Gradle 8.14.4.
 
 ```bash
-# Build plugin
-./gradlew build
-
-# Run integration tests with GoLand 2026.1.1
-./gradlew integrationTest
-
-# Build Docker container with IDE
-cd docker && ./docker-helper.sh build
-./docker-helper.sh run
-
-# Connect via VNC to localhost:5900 (password: vncpass)
+./gradlew buildPlugin      # compile + verifyPlugin + build the distributable zip
+./gradlew test             # unit-test suite
+./gradlew test --tests "*Glob*"   # a single test pattern
+./gradlew integrationTest  # IDE-Starter integration tests (downloads GoLand, ~1.2 GB first run)
 ```
 
-### Docker Setup
+The distributable plugin zip is written to `build/distributions/lunar-<version>.zip`.
 
-Complete containerized IDE testing with GoLand:
-
-```bash
-# Build Docker image (pre-stages GoLand 2026.1.1)
-./docker-helper.sh build
-
-# Run container
-./docker-helper.sh run
-
-# Open VNC client to localhost:5900
-# IDE auto-launches with plugin installed
-
-# Stop container
-./docker-helper.sh stop
-```
-
-See [docker/README.md](docker/README.md) for detailed Docker instructions.
+> Contributors on the Gitea host use the `tooling/gce-builder/` VM wrapper for heavy builds; it is
+> internal infrastructure and not required to build the plugin — plain `./gradlew` works anywhere
+> with a JDK 21.
 
 ## IDE Configuration
 
-The IDE the plugin builds and tests against is controlled by `gradle.properties`:
+The IDE the plugin compiles and tests against is controlled by `gradle.properties`:
 
 ```properties
-platformType = GO            # IDE for builds: GO (GoLand), IC (IntelliJ Community), etc.
-platformVersion = 2026.1.3   # compile + unit-test platform (artifact coordinate, e.g. go:goland:2026.1.3)
-testVersion = 2026.1.3       # ide-starter INTEGRATION-test IDE (read at runtime by IdeProductResolver.kt)
+platformType    = GO         # IDE for builds: GO (GoLand), IC (IntelliJ Community), PY, WS, …
+platformVersion = 2026.1.3   # compile + unit-test platform (e.g. go:goland:2026.1.3)
+testVersion     = 2026.1.3   # ide-starter INTEGRATION-test IDE (read at runtime by IdeProductResolver)
 ```
 
-`testVersion` is parsed directly from this file by `IdeProductResolver` in `src/integrationTest`,
-not by the gradle plugin, so it must be kept in sync by hand. The containerized debug IDE version is
-separate again — `IDE_VERSION` in [docker/Dockerfile](docker/Dockerfile).
+`pluginSinceBuild = 261` keeps the plugin compatible across the whole 2026.1.x branch.
+`testVersion` is parsed directly from this file by `IdeProductResolver` in `src/integrationTest`
+(not by the Gradle plugin), so keep it in sync by hand. The containerized debug IDE version is
+separate — `IDE_VERSION` in [docker/Dockerfile](docker/Dockerfile).
 
-Change to use different IDE:
+To target a different IDE:
+
 ```bash
-# Switch to IntelliJ Community Edition
-sed -i 's/platformType = .*/platformType = IC/' gradle.properties
-./gradlew build            # Uses IC
-./gradlew integrationTest  # Tests IC with 2026.1.1
+sed -i 's/platformType = .*/platformType = IC/' gradle.properties   # IntelliJ Community
+./gradlew buildPlugin
 ```
 
-## Requirements & Roadmap
+## Docker / VNC (containerized IDE)
 
-For detailed specifications on all features, implementation status, and planned enhancements, see the [Requirements Documentation](docs/requirements.md).
-
-The project covers the following areas:
-
-- **[SYNTAX]** Syntax & Editor support (Lua 5.4, folding, highlighting, formatting)
-- **[COMP]** Code Completion (keywords, symbols, cross-file, type inference)
-- **[NAV]** Code Navigation (go to definition, find usages, structure view, markers, references)
-- **[TYPE]** Type System (LuaCATS, type inference, function signatures)
-- **[DOC]** Documentation (Quick Doc, LuaCATS/LuaDoc highlighting, parameter info)
-- **[INSP]** Inspections & Diagnostics (undeclared variables, type mismatches, unused locals)
-- **[ANALYSIS]** Static Analysis (Luacheck integration, external annotator)
-- **[FORMAT]** Formatting (indentation, alignment, spacing, stylua compatibility)
-- **[REFACT/INTENT]** Refactoring & Intentions (rename, labels, introduce variable, string conversions)
-- **[DEBUG/RUN]** Debugging & Execution (breakpoints, stack frames, remote debugging, REPL)
-- **[Non-Functional]** Technical requirements (Kotlin idiomaticity, performance, caching)
-
-## Documentation
-
-### Getting Started
-
-- [Docker Container Guide](docker/README.md) - Run IDE in Docker with VNC
-- [Container Execution](docs/implementation/container-execution.md) - Docker setup details
-- [Integration Tests](docs/implementation/integration-tests.md) - IDE Starter framework
-
-### API & Development
-
-- [IDE Execution Guide](docs/implementation/ide-execution-guide.md) - IDE Starter framework usage
-- [Run Configuration API](docs/implementation/run-configuration-api.md) - Lua run configuration
-
-## Development
-
-### Build
+A containerized GoLand with the plugin pre-installed, driven over VNC, is available for live
+verification:
 
 ```bash
-./gradlew build
-```
-
-### Test
-
-```bash
-# Run unit tests
-./gradlew test
-
-# Run integration tests (downloads GoLand 2026.1.1)
-./gradlew integrationTest
-
-# Run specific test
-./gradlew test --tests "*Glob*"
-```
-
-### IDE Testing
-
-```bash
-# Build and run in Docker container
 cd docker
-./docker-helper.sh build    # Create image with GoLand
-./docker-helper.sh run      # Start container
-# Connect to localhost:5900 with VNC client
-
-./docker-helper.sh stop     # Stop container
+./docker-helper.sh build    # build the image (pre-stages GoLand)
+./docker-helper.sh run      # start the container; IDE auto-launches
+# connect a VNC client to localhost:5900
+./docker-helper.sh stop
 ```
 
-### Change IDE for Testing
+See [docker/README.md](docker/README.md) for the full guide and
+[docs/agent-debugging-requirements.md](docs/agent-debugging-requirements.md) for the
+terminal + VNC debug loop.
 
-Edit `gradle.properties`:
-```properties
-platformType = IC           # IntelliJ Community Edition
-# or
-platformType = PY           # PyCharm Pro
-# or
-platformType = WS           # WebStorm
-```
+## Continuous Integration
 
-Then rebuild:
-```bash
-./gradlew build
-./gradlew integrationTest
-cd docker && ./docker-helper.sh build && ./docker-helper.sh run
-```
+The repository is dual-hosted, and each platform reads its **own** workflow directory:
+
+| Platform | Workflow dir | Notes |
+|----------|--------------|-------|
+| **Gitea** (canonical) | [`.gitea/workflows/`](.gitea/workflows/) | `act_runner` prefers `.gitea/` over `.github/`; publishes Gitea Releases on `v*` tags. Uses the `@*-node20` artifact-action backports the runner requires. |
+| **GitHub** (mirror) | [`.github/workflows/`](.github/workflows/) | GitHub-native: `actions/*-artifact@v4`, `gh release create` on `v*` tags. |
+
+Both run the same gate — `buildPlugin` + the unit suite — provisioning fonts and a Lua toolchain
+for the headless editor/debug tests. `integrationTest` and parser/lexer regeneration are **not** run
+in CI (they need a display/license and local generator jars respectively).
+
+**Cutting a release:** the git tag is the source of truth for the version. Push a `v*` tag on a
+green commit (`git tag v1.2.3 && git push origin v1.2.3`); the build job builds+tests at that
+version and, only if it passes, the release job publishes the exact tested zip with the top
+`CHANGELOG.md` section as notes.
 
 ## Project Structure
 
 ```
-src/
-├── main/kotlin/net/internetisalie/lunar/
-│   ├── analysis/           # Static analysis (Luacheck integration)
-│   ├── lang/               # Language support
-│   │   ├── lexer/         # Tokenization
-│   │   ├── parser/        # AST parsing
-│   │   ├── psi/           # Program Structure Interface elements
-│   │   ├── structure/     # Structure view
-│   │   └── syntax/        # Syntax highlighting
-│   ├── luacats/           # LuaCATS documentation support
-│   ├── luadoc/            # LuaDoc documentation support
-│   ├── run/               # Run/Debug configuration
-│   ├── settings/          # IDE settings
-│   └── util/              # Utilities
-├── integrationTest/kotlin/ # IDE Starter integration tests
-└── test/kotlin/            # Unit tests
+src/main/kotlin/net/internetisalie/lunar/
+├── analysis/     # Static analysis (Luacheck integration)
+├── lang/         # Core language support (lexer, parser, psi, indexing, syntax, completion, format)
+├── luacats/      # LuaCATS type-annotation support
+├── luadoc/       # LuaDoc support
+├── platform/     # Platform/target version model
+├── refactoring/  # Rename and refactor providers
+├── run/          # Run/Debug configuration (DBGp/MobDebug adapters, REPL)
+├── settings/     # Language level (5.1–5.4) & interpreter settings
+├── toolchain/    # Interpreter discovery/probing & provisioning
+└── util/         # Utilities
 
-docker/
-├── Dockerfile              # Multi-stage Docker build
-├── docker-helper.sh        # Helper commands (build, run, stop, etc.)
-├── ide-stage.sh           # IDE download/staging script
-├── docker-entrypoint.sh   # Container startup script
-├── README.md              # Docker setup guide
-└── openbox-rc.xml         # Window manager config
-
-docs/implementation/
-├── container-execution.md  # Docker container guide
-├── ide-execution-guide.md  # IDE Starter framework
-├── integration-tests.md    # Integration test infrastructure
-└── run-configuration-api.md # Lua run configuration
+src/main/gen/                # Generated parser + lexer (committed by hand; never regenerated in CI)
+src/main/lua/                # Vendored debugger runtime (MobDebug)
+src/main/resources/runtime/  # Lua stdlib API stubs (5.1–5.4)
+src/integrationTest/kotlin/  # IDE-Starter integration tests
+src/test/kotlin/             # Unit tests
+docs/                        # Spec-driven feature documentation (see docs/features.md)
+docker/                      # Containerized IDE test harness (VNC)
 ```
 
-## System Requirements
-
-### Development
-
-- **Java**: JDK 21+ (for Gradle and IDE)
-- **Gradle**: 8.13+
-- **Kotlin**: 1.9+
-
-### Integration Testing
-
-- **GoLand/IntelliJ**: 2026.1.1 (auto-downloaded)
-- **Network**: Required for first IDE download (~1.2GB)
-
-### Docker
-
-- **Docker**: 20.10+
-- **Disk Space**: ~6.5GB for image (with pre-staged IDE)
-- **Ports**: 5900 (VNC), 9090 (HTTP)
-- **Memory**: 4GB+ recommended for IDE
+The on-disk tree is authoritative — packages are added/renamed over time.
 
 ## Contributing
 
-1. Make changes to plugin code
-2. Run `./gradlew build` to verify
-3. Run `./gradlew integrationTest` to test in IDE
-4. Test in Docker: `cd docker && ./docker-helper.sh build && ./docker-helper.sh run`
-5. Create PR with changes
-
-## Debugging
-
-### In IDE (Docker Container)
-
-1. Start container: `./docker-helper.sh run`
-2. Connect via VNC: `localhost:5900`
-3. Open project in GoLand
-4. Set breakpoints and debug normally
-
-### Integration Tests
-
-```bash
-# Add diagnostic logging to code
-# Run tests with debugging
-./gradlew integrationTest --debug
-```
-
-### Docker Build Issues
-
-```bash
-# Check logs
-docker logs lunar-ide
-
-# Interactive shell in container
-docker exec -it lunar-ide bash
-
-# Check IDE installation
-docker exec lunar-ide ls -la /home/lunar/ide/bin/
-```
-
-See [Container Execution Guide](docs/implementation/container-execution.md) for detailed troubleshooting.
+1. Read [docs/engineering-contract.md](docs/engineering-contract.md) — the binding coding standard
+   (threading/EDT rules, PSI/memory hygiene, naming, test conventions).
+2. Make atomic, well-described commits (explain the *why*).
+3. Verify before pushing: `./gradlew test` and, for style, `./gradlew ktlintFormat ktlintCheck`.
+4. Update [CHANGELOG.md](CHANGELOG.md) for any user-facing change.
+5. Open a PR (keep it small and focused).
 
 ## License
 
 Lunar is licensed under the [Apache License, Version 2.0](LICENSE).
 
-It embeds and derives from several third-party works (the Sylvanaar "Lua for
-IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug, and the Lua standard
-library). Their copyright notices and licenses are recorded in [NOTICE](NOTICE)
-and [THIRD-PARTY.md](THIRD-PARTY.md).
-
+It embeds and derives from several third-party works (the Sylvanaar "Lua for IDEA" plugin, the
+IntelliJ Platform, EmmyLua, MobDebug, and the Lua standard library). Their copyright notices and
+licenses are recorded in [NOTICE](NOTICE) and [THIRD-PARTY.md](THIRD-PARTY.md).

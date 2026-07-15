@@ -1,17 +1,25 @@
 name: Build Plugin
 
-# Builds the distributable plugin and runs the unit-test suite on every code push / PR.
+# GitHub Actions variant of the build/test/release pipeline.
 #
-# On a `v*` tag push a second `release` job runs — gated on `build` (so a red build can't cut a
-# release) — that publishes a Gitea Release with the SAME artifact the build already tested (it
-# downloads it; there is no second buildPlugin). Tag pushes bypass the path filters on this runner,
-# so no extra trigger config is needed; the release job self-selects via its `if:` on the tag ref.
+# This is the GitHub-native counterpart to .gitea/workflows/build-plugin.yml. GitHub only reads
+# .github/workflows, and Gitea's act_runner prefers .gitea/workflows (falling back to .github only
+# when .gitea is absent), so each platform runs exactly one copy — no overlap.
 #
-# The env-fragile :integrationTest (launches a real GoLand via IDE-Starter, needs a license +
-# display) is intentionally NOT run here — it stays on the local gce-builder. Parser/lexer
-# regeneration also never runs in CI (needs local generator jars); commit src/main/gen by hand.
+# Differences from the Gitea variant, all forced by platform incompatibilities:
+#   - actions/{upload,download}-artifact@v4  (GitHub retired the v3 protocol the Gitea variant pins)
+#   - release via `gh release create` against the GitHub API (the Gitea variant POSTs the Gitea API)
+#   - explicit `tags: ['v*']` trigger (GitHub does not inherit act_runner's tag/path-filter behavior)
+#   - the internal UniTrack ingest step is omitted (Gitea-only integration + secrets)
+#
+# The env-fragile :integrationTest (real GoLand via IDE-Starter) and parser/lexer regeneration are
+# NOT run here — same as the Gitea variant.
 on:
   push:
+    branches:
+      - main
+    tags:
+      - 'v*'
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
@@ -29,9 +37,7 @@ jobs:
       - name: Derive build version
         id: version
         # On a v* tag the tag IS the release version (v1.2.3 -> 1.2.3); otherwise keep the
-        # gradle.properties value (…-SNAPSHOT) unchanged, so routine branch builds are identical to
-        # before. The tag build therefore produces lunar-<version>.zip, which the release job below
-        # publishes verbatim.
+        # gradle.properties value (…-SNAPSHOT) unchanged.
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             V="${GITHUB_REF_NAME#v}"
@@ -78,52 +84,9 @@ jobs:
         # skips the two tests that read the out-of-repo test/ fixture tree, which a CI checkout lacks.
         run: ./gradlew test --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
 
-      # UniTrack test-analytics ingest (glimmer-docs G-014/G-015). Non-fatal — never breaks
-      # the build/release. Reuses the coverage data the test step produced (Kover instruments
-      # the `test` task), so `-x test` avoids a second run. Needs repo secret UNITRACK_TOKEN
-      # (INGEST-scoped) + var UNITRACK_URL (https://unitrack.internetisalie.net).
-      - name: Kover XML coverage report (JaCoCo format)
-        if: always()
-        continue-on-error: true
-        run: >-
-          ./gradlew koverXmlReport -x test -x integrationTest --no-daemon --stacktrace
-          -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
-
-      - name: Ingest into UniTrack
-        if: always()
-        continue-on-error: true
-        shell: bash
-        env:
-          UNITRACK_URL: ${{ vars.UNITRACK_URL }}
-          UNITRACK_TOKEN: ${{ secrets.UNITRACK_TOKEN }}
-        run: |
-          # One JUnit XML per test class → `junit` (a list); Kover's JaCoCo-format XML → `jacoco`.
-          # Field names are legacy; UniTrack sniffs content.
-          args=()
-          shopt -s nullglob
-          for f in build/test-results/test/TEST-*.xml; do args+=( -F "junit=@${f}" ); done
-          cov=build/reports/kover/report.xml
-          [ -e "$cov" ] && args+=( -F "jacoco=@${cov}" )
-          if [ ${#args[@]} -eq 0 ]; then echo "no test reports — nothing to ingest"; exit 0; fi
-          git ls-files > sources.txt
-          curl -fsS --retry 3 --retry-connrefused \
-            -X POST "${UNITRACK_URL}/api/v1/ingest" \
-            -H "Authorization: Bearer ${UNITRACK_TOKEN}" \
-            -F "project=lunar" \
-            -F "branch=${GITHUB_REF_NAME}" \
-            -F "commit=${GITHUB_SHA}" \
-            -F "ciProvider=gitea" \
-            -F "buildName=${GITHUB_WORKFLOW} #${GITHUB_RUN_NUMBER}" \
-            -F "buildUrl=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-            "${args[@]}" \
-            -F "sourceManifest=@sources.txt"
-
-      # Gitea's act_runner rejects the upload-artifact@v4 protocol ("v4+ not supported on
-      # GHES"), and plain @v3 (v3.2.2) is a Node 16 action the Node 20 runner image can't execute.
-      # The @v3.2.2-node20 backport tag is the Gitea-compatible, Node 20 build.
       - name: Upload plugin artifact
         if: success()
-        uses: actions/upload-artifact@v3.2.2-node20
+        uses: actions/upload-artifact@v4
         with:
           name: lunar-plugin
           path: build/distributions/*.zip
@@ -132,21 +95,19 @@ jobs:
       - name: Upload test reports
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v3.2.2-node20
+        uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: build/reports/tests/
           if-no-files-found: ignore
 
-  # Publishes a Gitea Release on a v* tag push. `needs: build` gates it on a green build+test, and
+  # Publishes a GitHub Release on a v* tag push. `needs: build` gates it on a green build+test, and
   # it reuses the EXACT zip the build tested (download-artifact) rather than rebuilding — so the
   # released bytes are what the suite validated. Marketplace publish (publishPlugin) stays dormant.
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # Releases + asset upload fall under `contents: write`; declare it so we don't depend on the
-    # instance's default token scope.
     permissions:
       contents: write
     steps:
@@ -156,10 +117,8 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      # download-artifact only publishes a v3-node20 backport (no v3.2.2-node20 patch tag like
-      # upload-artifact has); v3-node20 is the Gitea-compatible, Node 20 build.
       - name: Download the tested plugin artifact
-        uses: actions/download-artifact@v3-node20
+        uses: actions/download-artifact@v4
         with:
           name: lunar-plugin
           path: dist
@@ -172,7 +131,6 @@ jobs:
             echo "::error::no plugin zip found in the downloaded artifact"; ls -lR dist || true; exit 1
           fi
           echo "path=$ZIP" >> "$GITHUB_OUTPUT"
-          echo "name=$(basename "$ZIP")" >> "$GITHUB_OUTPUT"
           echo "Release asset: $ZIP"
 
       - name: Extract release notes from CHANGELOG.md
@@ -187,37 +145,11 @@ jobs:
           fi
           echo "---- release notes ----"; cat release-notes.md
 
-      - name: Publish Gitea Release
+      - name: Publish GitHub Release
         env:
-          # Gitea's act_runner injects a repo-scoped token as github.token / GITHUB_TOKEN.
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SERVER: ${{ github.server_url }}
-          REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-          VERSION: ${{ steps.version.outputs.version }}
-          ZIP_PATH: ${{ steps.zip.outputs.path }}
-          ZIP_NAME: ${{ steps.zip.outputs.name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          API="$SERVER/api/v1/repos/$REPO"
-
-          # Build the JSON payload in Python to avoid shell quoting / heredoc pitfalls.
-          PAYLOAD=$(python3 -c 'import json, os; print(json.dumps({
-              "tag_name": os.environ["TAG"],
-              "name": "Lunar " + os.environ["VERSION"],
-              "body": open("release-notes.md").read(),
-              "draft": False, "prerelease": False,
-          }))')
-
-          RESP=$(curl -sf -X POST "$API/releases" \
-            -H "Authorization: token $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
-          RELEASE_ID=$(echo "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
-          echo "Created release id=$RELEASE_ID"
-
-          curl -sf -X POST "$API/releases/$RELEASE_ID/assets?name=$ZIP_NAME" \
-            -H "Authorization: token $TOKEN" \
-            -H "Content-Type: application/octet-stream" \
-            --data-binary @"$ZIP_PATH" > /dev/null
-          echo "Attached $ZIP_NAME to release $VERSION"
+          gh release create "${GITHUB_REF_NAME}" "${{ steps.zip.outputs.path }}" \
+            --title "Lunar ${{ steps.version.outputs.version }}" \
+            --notes-file release-notes.md

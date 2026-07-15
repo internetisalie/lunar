@@ -1,8 +1,5 @@
 name: Docs Front-matter Lint
 
-# GitHub Actions variant of .gitea/workflows/docs-lint.yml. The lint scripts are platform-agnostic;
-# this copy exists so the GitHub mirror runs the same doc gate. GitHub reads only .github/workflows,
-# and Gitea's act_runner prefers .gitea/workflows, so each platform runs exactly one copy.
 on:
   push:
     paths:
