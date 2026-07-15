@@ -28,6 +28,9 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-361` | **`global` Lexed as Keyword** | **H** | **Todo** | `global` is unconditionally lexed as the `GLOBAL` keyword, so it fails to parse as an identifier/field under Lua < 5.5 (and should be contextual even in 5.5). |
 | `BUG-362` | **Platform Target Not Selectable** | **M** | **Todo** | No discoverable way to actively choose the platform target (e.g. Redis) after an interpreter is discovered. |
 | `BUG-363` | **LuaRocks Panel Font Mismatch** | **L** | **Todo** | LuaRocks browser detail panel uses raw `JTextArea` (monospaced LAF default) for summary/deps, not matching the UI font. |
+| `BUG-364` | **Exceptions During Indexing / Panels** | **H** | **Todo** | Numerous exceptions thrown during project indexing and when opening tool-window panels; stack traces not yet captured. |
+| `BUG-365` | **LuaRocks Packages Panel Alignment** | **L** | **Todo** | UI alignment defect in the "LuaRocks Packages" detail panel; needs live characterization. |
+| `BUG-366` | **LuaRocks Tool-Window Overlap** | **L** | **Todo** | Unclear separation of responsibilities between the "LuaRocks" (dependencies) and "LuaRocks Packages" (browser) tool windows. |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).
