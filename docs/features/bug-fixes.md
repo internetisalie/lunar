@@ -31,6 +31,8 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-364` | **Exceptions During Indexing / Panels** | **H** | **Todo** | Numerous exceptions thrown during project indexing and when opening tool-window panels; stack traces not yet captured. |
 | `BUG-365` | **LuaRocks Packages Panel Alignment** | **L** | **Todo** | UI alignment defect in the "LuaRocks Packages" detail panel; needs live characterization. |
 | `BUG-366` | **LuaRocks Tool-Window Overlap** | **L** | **Todo** | Unclear separation of responsibilities between the "LuaRocks" (dependencies) and "LuaRocks Packages" (browser) tool windows. |
+| `BUG-367` | **LuaRocks Packages Empty State** | **L** | **Todo** | Detail panel shows a "(no package selected)" label + blank form instead of a proper empty state (`JBPanelWithEmptyText`). |
+| `BUG-368` | **LuaRocks Packages Deps as Text** | **L** | **Todo** | Dependencies rendered as a `\n`-joined `JTextArea` instead of a `JBList`. |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).
