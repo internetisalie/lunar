@@ -241,5 +241,10 @@ See [Container Execution Guide](docs/implementation/container-execution.md) for 
 
 ## License
 
-[Your License Here]
+Lunar is licensed under the [Apache License, Version 2.0](LICENSE).
+
+It embeds and derives from several third-party works (the Sylvanaar "Lua for
+IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug, and the Lua standard
+library). Their copyright notices and licenses are recorded in [NOTICE](NOTICE)
+and [THIRD-PARTY.md](THIRD-PARTY.md).
 

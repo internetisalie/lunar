@@ -1,0 +1,63 @@
+Lunar — Lua language support for the IntelliJ Platform
+Copyright 2025 internetisalie and the Lunar contributors
+
+This product includes software developed as part of the Lunar project
+(https://gitea.internetisalie.net/lunar/lunar), licensed under the
+Apache License, Version 2.0 (see the LICENSE file).
+
+================================================================================
+Third-party components
+================================================================================
+
+This product includes source code derived from, or vendored from, the
+following third-party works. Each is redistributed under its own license.
+A per-component summary — including the exact in-tree paths — is maintained in
+THIRD-PARTY.md; the notices below satisfy the attribution requirement of the
+Apache License, Section 4(d).
+
+--------------------------------------------------------------------------------
+Apache License 2.0 components
+--------------------------------------------------------------------------------
+
+Sylvanaar "Lua for IDEA" plugin
+  Copyright 2010, 2011, 2016 Jon S Akhtar (Sylvanaar)
+  Portions of the lexer, parser support, syntax highlighting, code formatting,
+  run/debug (DBGp) adapters, settings, and bundled resources are derived from
+  this work.
+
+IntelliJ Platform / IntelliJ IDEA Community Edition
+  Copyright 2000-2024 JetBrains s.r.o. and contributors
+  Portions of the formatting model and the LuaCATS lexer are derived from this
+  work.
+
+EmmyLua
+  Copyright (c) 2017 tangzx (love.tangzx@qq.com)
+  Portions of the Lua language-level model and platform library provisioning
+  are derived from this work.
+
+Max Ishchenko
+  Copyright 2009 Max Ishchenko
+  Portions of the syntax highlighter are derived from this work.
+
+--------------------------------------------------------------------------------
+MIT License components
+--------------------------------------------------------------------------------
+
+MobDebug
+  Copyright 2011-2023 Paul Kulchenko
+  Based on RemDebug 1.0, Copyright Kepler Project 2005
+  Vendored verbatim as the remote Lua debugger runtime.
+
+lua.l flex lexer
+  Copyright "Same as Lua" (the Lua/MIT license)
+  The JFlex Lua lexer grammar is adapted from this work.
+
+Lua standard-library API stubs
+  Copyright (c) 1994-2025 Lua.org, PUC-Rio
+  Type-annotation stubs for the Lua 5.1-5.4 standard libraries, distributed
+  under the Lua (MIT) license.
+
+--------------------------------------------------------------------------------
+
+The full text of each third-party license, and the complete list of affected
+files, is recorded in THIRD-PARTY.md at the root of this repository.

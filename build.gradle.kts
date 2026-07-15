@@ -203,6 +203,18 @@ tasks {
         from(layout.projectDirectory.dir("src/main/lua")) {
             into(pluginName.map { "$it/lua"})
         }
+        // Ship the license and third-party attribution files at the plugin root so the
+        // distributed zip carries them — required by Apache-2.0 §4(a)/(d) (bundle the
+        // License + NOTICE with every distribution). See THIRD-PARTY.md for the registry.
+        from(layout.projectDirectory.file("LICENSE")) {
+            into(pluginName)
+        }
+        from(layout.projectDirectory.file("NOTICE")) {
+            into(pluginName)
+        }
+        from(layout.projectDirectory.file("THIRD-PARTY.md")) {
+            into(pluginName)
+        }
     }
 
     test {
