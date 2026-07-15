@@ -9,10 +9,6 @@ PyCharm, CLion, WebStorm, and other JetBrains IDEs. It targets **Lua 5.1–5.5**
 syntax highlighting, code completion, navigation, type inference (LuaCATS/LuaDoc),
 documentation, inspections, static analysis (Luacheck), formatting, and remote debugging.
 
-> The canonical repository is on Gitea (`gitea.internetisalie.net/lunar/lunar`), mirrored to
-> [GitHub](https://github.com/internetisalie/lunar). CI runs on both — see
-> [Continuous Integration](#continuous-integration).
-
 ## Features
 
 - **[SYNTAX]** Syntax & editor support — highlighting, folding, brace matching, code formatting
@@ -49,10 +45,6 @@ Requires **JDK 21**. The Gradle wrapper (`./gradlew`) pins Gradle 8.14.4.
 ```
 
 The distributable plugin zip is written to `build/distributions/lunar-<version>.zip`.
-
-> Contributors on the Gitea host use the `tooling/gce-builder/` VM wrapper for heavy builds; it is
-> internal infrastructure and not required to build the plugin — plain `./gradlew` works anywhere
-> with a JDK 21.
 
 ## IDE Configuration
 
@@ -95,21 +87,15 @@ terminal + VNC debug loop.
 
 ## Continuous Integration
 
-The repository is dual-hosted, and each platform reads its **own** workflow directory:
+GitHub Actions ([`.github/workflows/`](.github/workflows/)) runs the build + unit-test gate on every
+push and pull request — `buildPlugin` plus the unit suite, provisioning fonts and a Lua toolchain for
+the headless editor/debug tests. `integrationTest` and parser/lexer regeneration are **not** run in
+CI (they need a display/license and local generator artifacts respectively).
 
-| Platform | Workflow dir | Notes |
-|----------|--------------|-------|
-| **Gitea** (canonical) | [`.gitea/workflows/`](.gitea/workflows/) | `act_runner` prefers `.gitea/` over `.github/`; publishes Gitea Releases on `v*` tags. Uses the `@*-node20` artifact-action backports the runner requires. |
-| **GitHub** (mirror) | [`.github/workflows/`](.github/workflows/) | GitHub-native: `actions/*-artifact@v4`, `gh release create` on `v*` tags. |
-
-Both run the same gate — `buildPlugin` + the unit suite — provisioning fonts and a Lua toolchain
-for the headless editor/debug tests. `integrationTest` and parser/lexer regeneration are **not** run
-in CI (they need a display/license and local generator jars respectively).
-
-**Cutting a release:** the git tag is the source of truth for the version. Push a `v*` tag on a
-green commit (`git tag v1.2.3 && git push origin v1.2.3`); the build job builds+tests at that
-version and, only if it passes, the release job publishes the exact tested zip with the top
-`CHANGELOG.md` section as notes.
+**Cutting a release:** the git tag is the source of truth for the version. Push a `v*` tag on a green
+commit (`git tag v1.2.3 && git push origin v1.2.3`); the build job builds + tests at that version
+and, only if it passes, the release job publishes the exact tested zip as a GitHub Release with the
+top `CHANGELOG.md` section as notes.
 
 ## Project Structure
 
