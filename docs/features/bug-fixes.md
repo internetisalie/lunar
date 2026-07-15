@@ -25,6 +25,8 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-358` | **Reformat Read-Only Exception** | **L** | **Todo** | TransactionGuard write-unsafe context exception when reformating a read-only file. |
 | `BUG-359` | **package.path False Positive** | **M** | **Todo** | False positive "nil value is not assignable to string" on `package.path` concat assignment (reported twice). |
 | `BUG-360` | **Failed to make file writable** | **M** | **Todo** | Failed to make in-project file writable due to container/host user UID mismatch. |
+| `BUG-361` | **`global` Lexed as Keyword** | **H** | **Todo** | `global` is unconditionally lexed as the `GLOBAL` keyword, so it fails to parse as an identifier/field under Lua < 5.5 (and should be contextual even in 5.5). |
+| `BUG-362` | **Platform Target Not Selectable** | **M** | **Todo** | No discoverable way to actively choose the platform target (e.g. Redis) after an interpreter is discovered. |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).
