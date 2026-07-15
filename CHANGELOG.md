@@ -2,6 +2,16 @@
 
 All notable changes to the Lunar Lua IDE plugin are documented in this file.
 
+## [0.18.1] - 2026-07-15
+
+### Legal & Distribution
+- **Apache-2.0 license.** The plugin is now formally licensed under the Apache License 2.0. `LICENSE`, `NOTICE`, and `THIRD-PARTY.md` — the latter attributing every embedded/vendored upstream source (the Sylvanaar "Lua for IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug/RemDebug, the `lua.l` lexer, and the Lua.org standard-library stubs) — are now bundled at the plugin root in every distributed zip.
+
+### Documentation
+- **README refresh.** Corrected the IDE/platform versions, fixed dead documentation links, documented the full epic set and the dual Gitea/GitHub CI setup, and updated the supported language range to **Lua 5.1–5.5** (language level; bundled stdlib stubs still cover 5.1–5.4, tracked as TARGET-07).
+
+_No functional plugin or runtime behavior changed in this release._
+
 ## [0.18.0] - 2026-07-14
 
 ### Runtime & Platform Support

@@ -25,6 +25,14 @@ documentation, inspections, static analysis (Luacheck), formatting, and remote d
 - **[FORMAT]** Formatting — indentation, alignment, spacing, StyLua-compatible
 - **[REFACT / INTENT]** Refactoring & intentions — rename, labels, introduce variable, string conversions
 - **[DEBUG / RUN]** Debugging & execution — breakpoints, stack frames, remote (DBGp/MobDebug) debugging, REPL
+- **[EDITOR]** Editor ergonomics — structural editing, breadcrumbs, and the long-tail editor extension points
+- **[TARGET]** Runtime environment configuration — switch platform/version targets (Standard Lua, LuaJIT, Redis/Valkey, Tarantool, OpenResty, Pandoc) with target-aware standard-library resolution
+- **[TOOLING]** Unified Lua toolchain — model, discover, provision, and resolve interpreters and tools
+- **[TOOL]** Tool inventory — registry for external Lua binaries (`luarocks`, `luacheck`, `lua-format`, …)
+- **[ROCKS]** LuaRocks integration — rockspec support, dependency management, package discovery, multi-rock workspaces
+- **[REDIS]** Redis & Valkey — server-side Lua scripting (`redis.*` / `server.*`), sandbox inspections, connection-aware typing
+- **[SCHEMA]** Schema-driven data files — JSON-schema-backed validation & completion for `.rockspec`, `.luacheckrc`, and other Lua data/config
+- **[AI]** AI-assisted development — MCP server + semantic context tools *(planned, post-MVP)*
 
 See [docs/features.md](docs/features.md) for the full feature index and
 [docs/roadmap.md](docs/roadmap.md) for the dependency-ordered backlog.
