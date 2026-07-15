@@ -33,6 +33,7 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-366` | **LuaRocks Tool-Window Overlap** | **L** | **Todo** | Unclear separation of responsibilities between the "LuaRocks" (dependencies) and "LuaRocks Packages" (browser) tool windows. |
 | `BUG-367` | **LuaRocks Packages Empty State** | **L** | **Todo** | Detail panel shows a "(no package selected)" label + blank form instead of a proper empty state (`JBPanelWithEmptyText`). |
 | `BUG-368` | **LuaRocks Packages Deps as Text** | **L** | **Todo** | Dependencies rendered as a `\n`-joined `JTextArea` instead of a `JBList`. |
+| `BUG-369` | **Settings Panels Vertical Spacing** | **L** | **Todo** | Inconsistent vertical spacing across Lua settings panels (mixed Kotlin UI DSL vs legacy `FormBuilder` layouts). |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).
