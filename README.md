@@ -1,11 +1,11 @@
 # Lunar
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-![Lua 5.1–5.4](https://img.shields.io/badge/Lua-5.1--5.4-000080.svg)
+![Lua 5.1–5.5](https://img.shields.io/badge/Lua-5.1--5.5-000080.svg)
 ![IntelliJ Platform 2026.1+](https://img.shields.io/badge/IntelliJ_Platform-2026.1%2B-000000.svg)
 
 **Lunar** is a Lua language plugin for the IntelliJ Platform — GoLand, IntelliJ IDEA,
-PyCharm, CLion, WebStorm, and other JetBrains IDEs. It targets **Lua 5.1–5.4** and provides
+PyCharm, CLion, WebStorm, and other JetBrains IDEs. It targets **Lua 5.1–5.5** and provides
 syntax highlighting, code completion, navigation, type inference (LuaCATS/LuaDoc),
 documentation, inspections, static analysis (Luacheck), formatting, and remote debugging.
 
@@ -114,7 +114,7 @@ src/main/kotlin/net/internetisalie/lunar/
 ├── platform/     # Platform/target version model
 ├── refactoring/  # Rename and refactor providers
 ├── run/          # Run/Debug configuration (DBGp/MobDebug adapters, REPL)
-├── settings/     # Language level (5.1–5.4) & interpreter settings
+├── settings/     # Language level (5.1–5.5) & interpreter settings
 ├── toolchain/    # Interpreter discovery/probing & provisioning
 └── util/         # Utilities
 
