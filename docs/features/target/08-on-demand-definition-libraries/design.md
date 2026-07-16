@@ -89,7 +89,9 @@ Plus: two `List<String>` fields on `LuaProjectSettings.State`, a `setEnabledDefi
   object LuaDefinitionCatalogLoader {
       const val RESOURCE = "/definitions/lunar-definitions-catalog.json"
       fun load(): LuaDefinitionCatalog                 // parse-once + cache (§3.1)
-      fun parse(root: com.google.gson.JsonObject): LuaDefinitionCatalog  // testable
+      fun parse(rawJson: String): LuaDefinitionCatalog // testable — takes the raw JSON text
+                                                       // (internally JsonParser.parseString); matches
+                                                       // TC 2 which passes a JSON string
   }
   ```
 
@@ -184,8 +186,15 @@ Plus: two `List<String>` fields on `LuaProjectSettings.State`, a `setEnabledDefi
      d. If after extraction `dir` is empty → delete `dir`, throw `LuaProvisionException("definition library '${entry.id}' extracted no files")`.
      e. return `dir`.
   4. `catch (ProcessCanceledException) { deleteQuietly(dir); throw }` (re-propagate cancellation).
-  5. `catch (LuaProvisionException | IOException failure) { deleteQuietly(dir); notifyError(entry, failure); return null }`.
-- **Rules / edge handling**: cancellation re-propagates; every other failure yields `null` (never a half-populated cache). `notifyError` posts an ERROR balloon on `notification.group.lunar.tools` (see `BalloonProvisionNotifier`, `.../LuaProvisionNotifier.kt:17`).
+  5. `catch (LuaProvisionException | IOException failure) { deleteQuietly(dir); log.warn(...); return null }`.
+- **Rules / edge handling**: cancellation re-propagates; every other failure yields `null` (never a half-populated cache).
+- **Failure notification is the CALLER's job, not the fetcher's** (review N3): the fetcher deliberately
+  holds no `Project` (§2.3 — it must stay PSI/Project-free for testability), so it cannot itself post a
+  balloon. On a `null` return, the **enable action** (§3.x, which owns the `Project` and runs the
+  `Task.Backgroundable`) posts the ERROR balloon on `notification.group.lunar.tools` via
+  `BalloonProvisionNotifier.notify(project, message, ERROR)` (`.../LuaProvisionNotifier.kt:17`). The
+  fetcher only logs (`log.warn`) and returns `null`. This keeps the `Project` seam at the call site,
+  not inside the fetcher.
 
 ### 3.3 `setEnabledDefinitionLibrariesAndRefresh`
 

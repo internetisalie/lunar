@@ -54,6 +54,7 @@ folders:
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
 | DR-01 | Land the 5.5 stub dir and run `testTableCreateResolvesUnder55Target` / `...DoesNotResolveUnder54Target` to confirm additive resolution + gating with zero Kotlin change. | Risk 1.1, Gap 2.1 | todo |
+| DR-02 | **Verify delta completeness against the upstream source** (review caught this: the "`table.create` is the *only* new 5.5 stdlib symbol + `_VERSION` bump" claim rests on model knowledge — no Lua 5.5 manual exists in the local reference repos). Diff the 5.4→5.5 stdlib against the published Lua 5.5 `manual.html` "Changes" section (or the PUC-Rio release notes) and confirm no additional new/changed/removed stdlib symbol was missed. If a symbol is found, add it to the stub set before landing. | Delta-completeness gap (review Nit A) | todo |
 
 ## Test Case Gaps
 - No test asserts that **every** 5.4 symbol (not just `table.insert`) is present in 5.5.

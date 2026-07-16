@@ -29,8 +29,15 @@ models, or external parsing. Each fix edits exactly one existing class and adds 
 
 ### Prior Art in This Repo
 - **Side-effect-free local resolution** already exists: `LuaResolveUtil.scopeCrawlUp(processor,
-  element)` (`.../lang/psi/LuaResolveUtil.kt:9`) is the exact Phase-1 scope walk used by
-  `LuaNameReference.multiResolve` lines 40–78, factored out. It walks `LuaBlock` / `LuaFuncDef`
+  element)` (`.../lang/psi/LuaResolveUtil.kt:9`) is a standalone Phase-1 scope walk, behaviorally
+  equivalent to the inline Phase-1 walk in `LuaNameReference.multiResolve` (~lines 41–78) — it is a
+  **separate copy**, NOT a shared factoring (one minor divergence: `multiResolve` passes `element`
+  as the `LuaBlock` `lastParent`, while `scopeCrawlUp` passes `prev`; both correctly exclude the
+  self-shadow `local print = print` and forward decls, so this does not affect Fix 1). **Shipped
+  precedent for this exact use:** `LuaShadowingVariableInspection.inspectIdentifier`
+  (`.../analysis/inspections/LuaShadowingVariableInspection.kt:66`) already calls `scopeCrawlUp` with
+  a custom `PsiScopeProcessor` from inside a `buildVisitor`, with no extra read-action wrapping —
+  validating both the approach and the threading. It walks `LuaBlock` / `LuaFuncDef`
   / `LuaFuncDecl` / `LuaLocalFuncDecl` / numeric+generic for-statements and finally the
   `LuaFile`, calling each element's `processDeclarations`, with **no** VFS, stub-index, or type
   engine access. Fix 1 **reuses** this — it does not re-implement a walk.
@@ -187,7 +194,8 @@ call, no local decl) → `foundLocal = false` → falls through to `blockedMessa
 ## 7. Integration Points
 No `plugin.xml` change. Both classes are already registered:
 - `RedisCommandDocumentationTargetProvider` at `plugin.xml:156`
-  (`<lang.documentationTargetProvider language="Lua" …>`).
+  (`<platform.backend.documentation.targetProvider …>` — the unscoped `DocumentationTargetProvider`
+  EP, no `language` attribute).
 - `LuaRedisSandboxInspection` at `plugin.xml:305` (`<localInspection …>`).
 
 The new `LocalBindingScopeProcessor` is a plain class instantiated by the inspection; it needs

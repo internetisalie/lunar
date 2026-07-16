@@ -95,13 +95,15 @@ list.
 | 2 | REDIS-06-01 | Redis 7+ target; `local io = {}\nio.read()` | same | No sandbox warning on `io` (shadowed by local table). |
 | 3 | REDIS-06-01 | Redis 7+ target; `print("x")` (no shadowing local) | same | Sandbox warning `'print' is not available in the Redis script sandbox` is present (genuine global still flagged). |
 | 4 | REDIS-06-01 | Redis 7+ target; `local function f(print) print("x") end` | same | No sandbox warning on the parameter use of `print`. |
+| 4a | REDIS-06-01 | Redis 7+ target; `local print = print` (self-shadow: `print` on the RHS is the genuine global, before the local is in scope) | same | Sandbox warning **is** present on the RHS `print` — the block-level `lastParent`/`prev` gate must exclude the declaring statement so the local does not self-exempt its own initializer. |
+| 4b | REDIS-06-01 | Redis 7+ target; `for io = 1, 3 do io.read() end` (numeric-for var shadows `io`) and a generic-for variant `for io in pairs(t) do io.x() end` | same | No sandbox warning on the loop-variable use of `io` — exercises the `LuaNumericForStatement`/`LuaGenericForStatement` processor branches. |
 | 5 | REDIS-06-02 | Redis 7+ target; `redis.call("GET<caret>", KEYS[1])` | `provider.documentationTargets(file, caretOffset)` | List of size 1 (target for GET). |
 | 6 | REDIS-06-02 | Redis 7+ target; `redis.<caret>call("GET", KEYS[1])` (caret on member) | same | Empty list. |
 | 7 | REDIS-06-02 | Redis 7+ target; `redis.call("GET", KEYS<caret>[1])` (caret in 2nd arg) | same | Empty list. |
 | 8 | REDIS-06-02 | Redis 7+ target; `re<caret>dis.call("GET")` (caret on receiver) | same | Empty list. |
 
 ## Acceptance Criteria
-- [ ] REDIS-06-01: TC 1, 2, 4 produce no sandbox warning; TC 3 still produces the warning.
+- [ ] REDIS-06-01: TC 1, 2, 4, 4b produce no sandbox warning; TC 3 and TC 4a still produce the warning (self-shadow initializer + genuine global stay flagged).
 - [ ] REDIS-06-01: the full gce-builder suite runs with 0 `TestLoggerAssertionError`s
       attributable to this change (the deferral reason).
 - [ ] REDIS-06-02: TC 5 returns exactly one target; TC 6, 7, 8 return empty.
