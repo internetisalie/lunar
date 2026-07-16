@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.rocks.browser
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -43,20 +44,24 @@ class LuaRocksPackageBrowserToolWindowFactory : ToolWindowFactory, DumbAware {
         val panel = PackageBrowserPanel(project)
         val content = com.intellij.ui.content.ContentFactory.getInstance()
             .createContent(panel, "", false)
+        content.setDisposer(panel)
         toolWindow.contentManager.addContent(content)
     }
 
     // ── Inner panel ──────────────────────────────────────────────────────────
 
-    private class PackageBrowserPanel(private val project: Project) : JPanel(BorderLayout()) {
+    private class PackageBrowserPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
         private val searchField = SearchTextField(true)
         private val listModel = DefaultListModel<LuaRockPackage>()
         private val packageList = JBList(listModel).apply { cellRenderer = PackageCellRenderer() }
         private val detailPanel = PackageDetailPanel(project)
         private val statusLabel = JBLabel("").apply { border = JBUI.Borders.empty(2, 6) }
 
-        /** Alarm for 300 ms debounce on the search field. */
-        private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD)
+        /**
+         * Alarm for 300 ms debounce on the search field. Parented to this panel (the tool window
+         * content's disposer) — a non-Swing-thread [Alarm] requires a parent [Disposable].
+         */
+        private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
 
         /** Last executed query — kept so Refresh can re-run it. */
         @Volatile private var lastQuery: String = ""
@@ -160,6 +165,11 @@ class LuaRocksPackageBrowserToolWindowFactory : ToolWindowFactory, DumbAware {
             versionsByName.clear()
             detailPanel.showEmpty()
             statusLabel.text = status
+        }
+
+        /** The parented [alarm] is disposed automatically as a child of this panel. */
+        override fun dispose() {
+            alarm.cancelAllRequests()
         }
     }
 
