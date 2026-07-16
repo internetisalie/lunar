@@ -120,12 +120,24 @@ as a `Could`/`planned` row re-opens a tail of optional work under REDIS without 
 real Redis data source (create one, download the Redis driver, save a password) — the
 `verify-in-ide` flow. Record outcomes inline before advancing.
 
+> **Already retired during planning (2026-07-16) — the API-SURFACE half.** `javap` against the bundled
+> GoLand 2026.1.3 `database-plugin.jar` confirmed every symbol this feature needs *exists and is
+> public/callable*: `DbPsiFacade.getInstance(Project).getDataSources(): List<DbDataSource>`,
+> `LocalDataSource.getUrl()/getUsername()/getDbms()/getSslCfg()/getSshConfiguration()`,
+> `DatabaseCredentials.getInstance().getPassword(DasDataSource): OneTimeString`, `RedisDbms.REDIS`, and
+> the `jdbc:redis://…` grammar (`redis-drivers.xml`). So the biggest original risk — *"is there any
+> third-party-callable seam at all?"* — is **answered YES**. What `javap` **cannot** tell us, and what
+> the spike is now narrowed to, is **runtime behaviour**: does `getPassword()` return the secret
+> *silently* (no master-password modal, no requires-already-connected), and is a Redis `getUrl()`
+> actually *populated* with host/port/db (vs. driver-property fields)? DR-1/DR-2 below are reduced to
+> exactly those runtime questions.
+
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| REDIS-00-DR-01 | In a scratch/spike branch, from a light action, call `DatabaseCredentials.getInstance().getPassword(ds)` on a saved-password Redis data source in GoLand; confirm it returns the secret with **no modal**. Test "Save: Forever" and "Ask" modes. Record which receiver (`DbDataSource` vs `LocalDataSource`) works. | Risk 1.1, Gap 2.1 | todo |
-| REDIS-00-DR-02 | For the same data source, confirm `DbPsiFacade.getInstance(project).dataSources` contains it, `delegate as? LocalDataSource` is non-null, `getDbms().name == "REDIS"`, and `getUrl()` returns a parseable `jdbc:redis://…`. Verify pre- and post-driver-download (Gap 2.2). Capture 3–4 real `getUrl()` strings (standalone / TLS / cluster / auth) to seed `LuaRedisJdbcUrlParser` fixtures. | Risk 1.4, Gap 2.2, DR-2 | todo |
-| REDIS-00-DR-03 | Add `com.intellij.database` to `platformBundledPlugins`, wire `<depends optional=... config-file="lunar-database.xml">`, and confirm: (a) `runIde` in GoLand loads the module; (b) a build/run with the plugin **absent** (simulate the CI/Community profile) loads with **no** `NoClassDefFoundError` and no import button. | Risk 1.3, REDIS-07-01 | todo |
-| REDIS-00-DR-04 | Record the closed-source API stability caveat: pin the tested `platformVersion`/since-build; note that `getUrl`/`getSslCfg`/`getDbms`/`DatabaseCredentials.getPassword` are grounded only to the bundled `database-plugin` jars (no platform source), and flag them for re-verification on each platform bump. | Risk 1.2 | todo |
+| REDIS-00-DR-01 | **API existence CONFIRMED** (`DatabaseCredentials.getInstance().getPassword(DasDataSource): OneTimeString`, javap 2026-07-16). **Runtime-only residue:** from a light action, call it on a saved-password Redis data source in GoLand and confirm it returns the secret with **no modal** and without a prior live connection. Test "Save: Forever" vs "Ask". Confirm the working receiver (`DbDataSource` vs `LocalDataSource`, Gap 2.1). | Risk 1.1, Gap 2.1 | partial — API confirmed; runtime silent-read open |
+| REDIS-00-DR-02 | **API existence CONFIRMED** (`dataSources`, `LocalDataSource.getUrl/getDbms/getSslCfg/getSshConfiguration`, javap 2026-07-16). **Runtime-only residue:** confirm `delegate as? LocalDataSource` is non-null at runtime, `getDbms().name == "REDIS"`, and `getUrl()` returns a *populated* parseable `jdbc:redis://…` (not empty / driver-property-only). Verify pre- and post-driver-download (Gap 2.2). Capture 3–4 real `getUrl()` strings (standalone / TLS / cluster / auth) to seed `LuaRedisJdbcUrlParser` fixtures. | Risk 1.4, Gap 2.2, DR-2 | partial — API confirmed; runtime population open |
+| REDIS-00-DR-03 | Add `com.intellij.database` to `platformBundledPlugins`, wire `<depends optional=... config-file="lunar-database.xml">`, and confirm: (a) `runIde` in GoLand loads the module; (b) a build/run with the plugin **absent** (simulate the CI/Community profile) loads with **no** `NoClassDefFoundError` and no import button. *(Plugin presence in the GoLand sandbox already confirmed — `…/plugins/DatabaseTools`; this task is the build wiring + absent-profile check.)* | Risk 1.3, REDIS-07-01 | todo (build wiring) |
+| REDIS-00-DR-04 | Record the closed-source API stability caveat: pin the tested `platformVersion`/since-build; note that `getUrl`/`getSslCfg`/`getDbms`/`DatabaseCredentials.getPassword` are grounded only to the bundled `database-plugin` jars (no platform source), and flag them for re-verification on each platform bump. | Risk 1.2 | done — caveat recorded (javap-grounded, jar-only; re-verify on platform bump) |
 
 ## Test Case Gaps
 - Live credential read cannot be unit-tested (no PasswordSafe-backed Database data source in a light

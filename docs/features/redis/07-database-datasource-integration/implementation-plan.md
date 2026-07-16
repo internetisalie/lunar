@@ -23,14 +23,23 @@ folders:
 ### Phase 0: De-risking spike — GATE [Must]
 - **Goal**: prove REDIS-07 is buildable at all: the Database Redis endpoint + password are readable,
   and the optional-module mechanics are clean when the plugin is absent.
+- **Narrowed by planning (2026-07-16):** the **API-surface** half is already retired — `javap` against
+  the bundled `database-plugin.jar` confirmed every needed symbol exists and is callable (see the
+  risks-and-gaps DR note), and the plugin is confirmed present in the GoLand sandbox
+  (`…/plugins/DatabaseTools`). So this is no longer a "is it feasible at all" spike; it is a **small
+  runtime probe** of the two behaviours `javap` can't show:
 - **Tasks**:
-  - [ ] Run **REDIS-00-DR-01** (credential read, no modal) — risks-and-gaps.
-  - [ ] Run **REDIS-00-DR-02** (endpoint extraction + capture real `getUrl()` fixtures) — risks-and-gaps.
-  - [ ] Run **REDIS-00-DR-03** (optional-module builds/runs with the plugin present *and* absent).
-  - [ ] Run **REDIS-00-DR-04** (record API-stability caveat, pin since-build).
+  - [ ] Run **REDIS-00-DR-01** (residue: does `getPassword()` return the secret *silently* at runtime —
+    no modal, no requires-live-connection) — risks-and-gaps.
+  - [ ] Run **REDIS-00-DR-02** (residue: is a Redis `getUrl()` *populated* at runtime — capture real
+    fixtures; verify the `LocalDataSource` cast) — risks-and-gaps.
+  - [ ] Run **REDIS-00-DR-03** (build wiring: optional-module builds/runs with the plugin present *and*
+    absent — the remaining non-runtime task).
+  - [ ] **REDIS-00-DR-04** already done (API-stability caveat recorded; javap-grounded, jar-only).
 - **Exit criteria**: a written Go/No-Go verdict (risks-and-gaps). **GO** ⇒ proceed. **Degraded GO**
   ⇒ proceed with REDIS-07-04 relaxed to Should (password re-prompt). **NO-GO** ⇒ set REDIS-07
-  `cancelled`; stop.
+  `cancelled`; stop. *(With the API-existence risk retired, only the DR-1 silent-read outcome
+  separates GO from degraded-GO; a full NO-GO now requires DR-2's runtime population to fail.)*
 - **Conditional gate**: **Phases 1–4 below start only on a GO / degraded-GO verdict.**
 
 ### Phase 1: Optional-module scaffolding + always-loaded seam [Must] — *conditional on Phase 0 GO*
