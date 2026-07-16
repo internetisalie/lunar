@@ -148,6 +148,20 @@ intellijPlatform {
     }
 }
 
+// Gradle Changelog Plugin configuration.
+changelog {
+    // CHANGELOG.md uses milestone-style headers, e.g. `## [0.18] — MVP milestone & first tagged
+    // release`. The plugin splits each header on runs of non-`[-+.0-9a-zA-Z]` characters and takes
+    // the first token that FULLY matches this regex as the version key — so the `[]` brackets and
+    // the ` — <title>` suffix are already stripped by the time the regex is applied (the token seen
+    // here is bare, e.g. `0.18`). The default SEM_VER regex demands three components (`x.y.z`) and
+    // rejects our two-component `0.18`, throwing HeaderParseException at :patchPluginXml. Widen it
+    // to accept any dotted numeric version (`0.18`, `0.18.0`, `1.2.3`); the capture group feeds the
+    // version key. Requiring at least one dot avoids matching stray integers (years, issue numbers)
+    // that appear elsewhere in a header.
+    headerParserRegex.set("""(\d+(?:\.\d+)+)""")
+}
+
 tasks {
 
     wrapper {

@@ -148,7 +148,7 @@
 - **Type-Inferred Completion** (COMP-04): `self` / `__index` resolution.
 - **Class/Table Definitions** (TYPE-02): implicit fields discovered from assignments.
 
-## Initial Work
+### Initial Work
 
 The base plugin, established before the first versioned milestone:
 
