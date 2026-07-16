@@ -1,0 +1,117 @@
+---
+id: "TOOLING-08-PLAN"
+title: "Implementation Plan"
+type: "plan"
+parent_id: "TOOLING-08"
+folders:
+  - "[[features/tooling/08-settings-restructure/requirements|requirements]]"
+---
+
+# TOOLING-08: Implementation Plan
+
+Phased so all decision logic (classification, target modes, global bindings, inherit text) is
+**unit-testable via light fixtures** first, and the pure-appearance work (DSL panel layout, spacing)
+is **VNC-verified** last. Every task names the class/file and the design section it realizes.
+
+## Phases
+
+### Phase 1: Model & classifier logic [Must]
+- **Goal**: the pure, testable core — kind classification and the persisted explicit-target flag —
+  with no UI dependency.
+- **Tasks**:
+  - [ ] Create `net.internetisalie.lunar.toolchain.ui.LuaToolKindClassifier` (`object`) — realizes
+        design §2.1 / §3.1 (`tierOf`, `COMMON_TOOL_KIND_IDS`, `bindable()`, `byTier()`).
+  - [ ] Add `var explicitTarget: Boolean = false` to `LuaProjectSettings.State` — realizes §2.4.
+  - [ ] Add the explicit-target early-return guard to `LuaTargetSynchronizer.recompute()` — realizes
+        §2.5 / §3.3 step 1.
+- **Exit criteria**: `LuaToolKindClassifierTest` passes (TC 6, 7); `LuaTargetSynchronizerTest`
+  extended so an explicit target survives a `TOOL_UPDATED` event (TC 4). Build green.
+
+### Phase 2: Target-control apply/reset logic [Must]
+- **Goal**: buffered platform/version selection, mode switching, and persistence — driven through the
+  configurable's `reset`/`isModified`/`apply` so it is fixture-testable.
+- **Tasks**:
+  - [ ] Add `TargetItem` sealed interface (`toolchain/ui`) — realizes §2.3.
+  - [ ] Add `ProjectControls.platformCombo` / `versionCombo` and `buildTargetGroup`,
+        `resetTargetControls`, `repopulateVersionCombo`, `isTargetModified`, `applyTarget` to
+        `LuaProjectConfigurable` — realizes §2.2 / §3.2 / §3.3. Wire `applyTarget` first in `apply()`
+        and `isTargetModified` into `isModified()`.
+- **Exit criteria**: `LuaProjectConfigurableTargetTest` passes TC 1–5 (Auto default, Redis
+  repopulation, explicit persist, synchronizer no-op, Auto-return). Build green.
+
+### Phase 3: Bindings split + platform-server eviction [Must]
+- **Goal**: replace `orderedKinds()` with the classifier; render common + collapsible advanced.
+- **Tasks**:
+  - [ ] Replace `orderedKinds()` usages with `LuaToolKindClassifier.bindable()` in
+        `resetControls`/`applyBindings`/`isModified` and `ProjectControls.bindingCombos` — realizes
+        §3.4. Delete `orderedKinds()`.
+  - [ ] Split the DSL `group("Toolchain Bindings")` into common `group` + `collapsibleGroup("Advanced
+        tools")` in `buildPanel()` — realizes §3.4.
+- **Exit criteria**: `LuaProjectConfigurableBindingsTest` confirms `bindable()` excludes
+  `redis-server`/`valkey-server` and that resolution of `redis-server` is unaffected (TC 6, 7). Build
+  green.
+
+### Phase 4: Global default bindings + inherit labels [Must/Should]
+- **Goal**: wire `setGlobalBinding` into the app page; make project inherit text explicit.
+- **Tasks**:
+  - [ ] Add `buildGlobalBindings`/`resetGlobalBindings`/`applyGlobalBindings` + a `Controls` holder to
+        `LuaToolchainConfigurable` — realizes §2.6 / §3.5. [Must]
+  - [ ] Compute the two inherit placeholders in `LuaProjectConfigurable.resetControls()` — realizes
+        §3.6. [Should]
+- **Exit criteria**: `LuaToolchainConfigurableGlobalBindingsTest` passes TC 8–9; a placeholder test
+  asserts TC 10. Build green.
+
+### Phase 5: DSL panel migration [Should]
+- **Goal**: BUG-369 layout standardization.
+- **Tasks**:
+  - [ ] Rewrite `LuaApplicationSettingsPanel` with `panel { }`, preserving its public API — realizes
+        §2.7. Remove `FormBuilder`/`IdeBorderFactory` imports.
+  - [ ] Rewrite the `LuaRocksGeneratorPeer` panel build with `panel { }` — realizes §2.8. Remove
+        `FormBuilder` import.
+- **Exit criteria**: `LuaApplicationSettingsPanelTest` (TC 11: `isModified` after a toggle) passes; no
+  `com.intellij.util.ui.FormBuilder` import remains in either file. Build green.
+
+### Phase 6: Spacing audit + live verification [Could/Must-DoD]
+- **Goal**: confirm the tree's vertical rhythm and the discoverable target control live.
+- **Tasks**:
+  - [ ] Record in design §1 / requirements 08-08 that `LuaEditorOptionsConfigurable`
+        (`BeanConfigurable`) and `LuaCodeStyleSettings` (`CustomCodeStyleSettings`) are platform-driven
+        (no manual layout) — realizes 08-08.
+  - [ ] Run the `verify-in-ide` VNC pass over every Lua settings page; capture screenshots of the new
+        target control and consistent spacing.
+- **Exit criteria**: `human-verification-checklists.md` fully checked; VNC screenshots attached to the
+  feature.
+
+## Requirement → Phase Coverage
+
+| Requirement | Priority | Delivered in |
+|-------------|----------|--------------|
+| TOOLING-08-01 | M | Phase 2 |
+| TOOLING-08-02 | M | Phase 1 (guard) + Phase 2 |
+| TOOLING-08-03 | M | Phase 1 (classifier) + Phase 3 |
+| TOOLING-08-04 | M | Phase 1 + Phase 3 |
+| TOOLING-08-05 | M | Phase 4 |
+| TOOLING-08-06 | S | Phase 4 |
+| TOOLING-08-07 | S | Phase 5 |
+| TOOLING-08-08 | C | Phase 6 |
+
+## Verification Tasks
+- [ ] `LuaToolKindClassifierTest` — covers TC 6, 7 (classification + eviction).
+- [ ] `LuaTargetSynchronizerTest` (extend) — covers TC 4 (explicit-target no-op).
+- [ ] `LuaProjectConfigurableTargetTest` — covers TC 1–5.
+- [ ] `LuaProjectConfigurableBindingsTest` — covers TC 6, 7.
+- [ ] `LuaToolchainConfigurableGlobalBindingsTest` — covers TC 8, 9.
+- [ ] Inherit-placeholder test — covers TC 10.
+- [ ] `LuaApplicationSettingsPanelTest` — covers TC 11.
+- [ ] Run [human-verification-checklists.md](human-verification-checklists.md) via `verify-in-ide`.
+
+## Task Summary
+
+| Phase | Status | Priority |
+|-------|--------|----------|
+| Phase 1: Model & classifier logic | todo | Must |
+| Phase 2: Target-control apply/reset logic | todo | Must |
+| Phase 3: Bindings split + eviction | todo | Must |
+| Phase 4: Global bindings + inherit labels | todo | Must |
+| Phase 5: DSL panel migration | todo | Should |
+| Phase 6: Spacing audit + live verification | todo | Could |

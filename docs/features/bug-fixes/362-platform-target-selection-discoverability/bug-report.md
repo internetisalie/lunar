@@ -52,3 +52,12 @@ though the interpreter was discovered — the selection path is not discoverable
 - A `plan-bug` pass should VNC-verify the exact gap (control absent vs. present-but-unclear) and
   decide whether the fix is UI wording/placement, an always-visible target combo, or a hint when a
   discovered interpreter has no explicit target chosen.
+
+## Absorbed by TOOLING-08
+
+This bug is folded into **[TOOLING-08: Lua Settings Restructure](../../tooling/08-settings-restructure/requirements.md)**
+as acceptance criteria (TOOLING-08-01 / TOOLING-08-02). Root cause confirmed during planning: there is
+**no** user-facing target control — the project `Target` is derived from the resolved runtime by
+`LuaTargetSynchronizer`, so a discovered Standard interpreter cannot be overridden to Redis. TOOLING-08
+adds an always-visible *Platform target* combo (platform + version, with an *Auto (from runtime)*
+sentinel) and an explicit-target guard on the synchronizer, rather than being fixed as a standalone bug.

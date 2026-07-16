@@ -54,3 +54,12 @@ settings tree doesn't feel uniform.
 - Same modernize-legacy-Swing theme as the `PackageDetailPanel` cluster
   ([[bug-report|BUG-363]]/[[bug-report|BUG-365]]/[[bug-report|BUG-367]]/[[bug-report|BUG-368]]), but
   settings-scoped and tracked separately.
+
+## Absorbed by TOOLING-08
+
+This bug is folded into **[TOOLING-08: Lua Settings Restructure](../../tooling/08-settings-restructure/requirements.md)**
+as acceptance criteria (TOOLING-08-07 / TOOLING-08-08). Planning narrowed the FormBuilder offenders to
+`LuaApplicationSettingsPanel` and `LuaRocksGeneratorPeer` (migrated to the Kotlin UI DSL);
+`LuaEditorOptionsConfigurable` (`BeanConfigurable`) and `LuaCodeStyleSettings` (`CustomCodeStyleSettings`)
+are platform-driven with no manual layout, so they are audit-only. It will be fixed as part of that
+feature's DSL standardization pass rather than as a standalone bug fix.
