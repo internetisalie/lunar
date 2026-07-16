@@ -4,14 +4,21 @@ name: Build Plugin
 #
 # On a `v*` tag push a second `release` job runs — gated on `build` (so a red build can't cut a
 # release) — that publishes a Gitea Release with the SAME artifact the build already tested (it
-# downloads it; there is no second buildPlugin). Tag pushes bypass the path filters on this runner,
-# so no extra trigger config is needed; the release job self-selects via its `if:` on the tag ref.
+# downloads it; there is no second buildPlugin). The release job self-selects via its `if:` on the
+# tag ref.
 #
 # The env-fragile :integrationTest (launches a real GoLand via IDE-Starter, needs a license +
 # display) is intentionally NOT run here — it stays on the local gce-builder. Parser/lexer
 # regeneration also never runs in CI (needs local generator jars); commit src/main/gen by hand.
 on:
+  # push only on the default branch (+ `v*` release tags); pull_request covers every other branch —
+  # so a branch that has an open PR does not run the build twice (once for the branch push, once for
+  # the PR). The explicit `tags:` is required because a `branches:` filter otherwise excludes tags.
   push:
+    branches:
+      - main
+    tags:
+      - 'v*'
     paths-ignore:
       - 'docs/**'
       - '**/*.md'

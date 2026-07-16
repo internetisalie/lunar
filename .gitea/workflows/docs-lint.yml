@@ -1,12 +1,16 @@
 name: Docs Front-matter Lint
 
 on:
+  # push only on the default branch; pull_request covers every other branch — so a branch that
+  # has an open PR does not run this workflow twice (once for the branch push, once for the PR).
   push:
+    branches:
+      - main
     paths:
       - 'docs/**'
       - 'scripts/lint_docs.py'
       - 'scripts/lint_planning.py'
-      - '.github/workflows/docs-lint.yml'
+      - '.gitea/workflows/docs-lint.yml'
   pull_request:
     paths:
       - 'docs/**'

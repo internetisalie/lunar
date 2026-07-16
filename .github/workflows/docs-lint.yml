@@ -4,7 +4,11 @@ name: Docs Front-matter Lint
 # this copy exists so the GitHub mirror runs the same doc gate. GitHub reads only .github/workflows,
 # and Gitea's act_runner prefers .gitea/workflows, so each platform runs exactly one copy.
 on:
+  # push only on the default branch; pull_request covers every other branch — so a branch that
+  # has an open PR does not run this workflow twice (once for the branch push, once for the PR).
   push:
+    branches:
+      - main
     paths:
       - 'docs/**'
       - 'scripts/lint_docs.py'
