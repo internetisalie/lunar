@@ -1,111 +1,158 @@
 # Change Log
 
-All notable changes to the Lunar Lua IDE plugin are documented in this file.
+## [0.18] — MVP milestone & first tagged release
 
-## [0.18.1] - 2026-07-15
+### Runtime & Platform Support (TARGET)
+- **Target Selection**: project environment selection with platform + version granularity.
+- **Platforms**: explicit targets for **Standard Lua (5.1–5.5)**, **LuaJIT**, **Redis (5/6/7)**,
+  **Valkey (7.2/8)**, plus scaffolding for Tarantool, OpenResty, and Pandoc.
+- **Dynamic Standard Libraries**: automatic resolution of platform-specific library stubs
+  (Standard/Redis/Valkey are stub-backed) from the selected target.
+- **Environment-Aware Luacheck**: `--std` follows the active target.
 
 ### Legal & Distribution
-- **Apache-2.0 license.** The plugin is now formally licensed under the Apache License 2.0. `LICENSE`, `NOTICE`, and `THIRD-PARTY.md` — the latter attributing every embedded/vendored upstream source (the Sylvanaar "Lua for IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug/RemDebug, the `lua.l` lexer, and the Lua.org standard-library stubs) — are now bundled at the plugin root in every distributed zip.
+- **Apache-2.0 license** adopted. `LICENSE`, `NOTICE`, and `THIRD-PARTY.md` (attributing the
+  Sylvanaar "Lua for IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug/RemDebug, the `lua.l`
+  lexer, and the Lua.org standard-library stubs) are bundled at the plugin root in every zip.
 
 ### Documentation
-- **README refresh.** Corrected the IDE/platform versions, fixed dead documentation links, documented the full epic set and the dual Gitea/GitHub CI setup, and updated the supported language range to **Lua 5.1–5.5** (language level; bundled stdlib stubs still cover 5.1–5.4, tracked as TARGET-07).
+- README refreshed (accurate versions, live doc links, full epic list, Lua 5.1–5.5).
 
-_No functional plugin or runtime behavior changed in this release._
+## [0.17] — Redis & Valkey integration (REDIS epic)
 
-## [0.18.0] - 2026-07-14
+- **Connections & Script Run Configuration** (REDIS-01): RESP client + connection management.
+- **LDB Debug Adapter** (REDIS-02): server-side Lua debugging.
+- **Valkey Runtime Target** (REDIS-03): Valkey 7.2/8 as first-class targets with `server.*` stubs
+  and a "Valkey-only API under Redis target" inspection + quick fix.
+- **Language-Engine Integration** (REDIS-04): ambient `redis.*`/`KEYS`/`ARGV` typing & suppression.
+- **Redis Functions Workflow** (REDIS-05): `register_function` support and the Functions panel.
 
-### Runtime & Platform Support
-- **Target Selection**: Introduced comprehensive project environment selection with platform and version granularity.
-- **New Platforms**: Added explicit support for **LuaJIT**, **Redis (5/6/7)**, **Valkey (7.2/8)**, **Tarantool**, **OpenResty (NGX)**, and **Pandoc**.
-- **Dynamic Standard Libraries**: Automatic resolution of platform-specific library definitions (e.g., Redis globals, LuaJIT-specific functions) based on the selected target.
-- **Valkey Runtime Target (REDIS-03)**: Valkey 7.2 and 8 are now selectable runtime targets. Each Valkey target bundles: the `server.*` namespace stubs (`server.call`, `server.pcall`, `server.error_reply`, and the full `redis.*` surface mirror), the `SERVER_NAME`/`SERVER_VERSION`/`SERVER_VERSION_NUM` globals, and a full copy of the Redis 7 compatibility namespace (`redis.*`, `KEYS`, `ARGV`, and shared sandbox libraries) — so scripts using `redis.*` continue to resolve without change. Luacheck runs with `--std redis7` (no dedicated `valkey` std exists in luacheck upstream). A new **Valkey-only API under Redis target** inspection flags `server.*` member access and `SERVER_NAME`/`SERVER_VERSION`/`SERVER_VERSION_NUM` globals as non-portable when the project target is Redis; it offers a one-click quick fix to rewrite `server.<m>` → `redis.<m>` where a 1:1 equivalent exists, and is entirely silent under a Valkey target. On connect, when REDIS-01 detects that the connected server flavor (via `INFO server`) disagrees with the project target (e.g. Valkey server under a Redis target), a single non-modal warning notification is shown per connection per session.
-- **Environment-Aware Luacheck**: Luacheck now dynamically adjusts its analysis standard (`--std`) to match the active project environment.
-- **Clean-Break Settings (TOOLING-05)**: The unified toolchain cutover deliberately does **not** migrate legacy interpreter/tool settings — re-register runtimes and tools and re-provision environments once after updating (see the Project Features note below).
-- **Consolidated Settings UI (TOOLING-06)**: The five separate Lua tool settings pages (*Lua Tools*, *LuaRocks*, *LuaCheck*, the interpreter table on the *Lua* app page, and the legacy *Lua Project* panel) are folded into one **Lua** settings tree under *Languages & Frameworks*: a new **Toolchain** child page presents the unified tool/interpreter inventory (all kinds, RUNTIME entries included) with Add / Auto-Discover / Provision… / Remove / Re-check actions plus app-default luacheck arguments and LuaRocks server URL; the rewritten **Lua Project** child page offers the environment selector, per-kind binding combos, a read-only resolved-runtime/language-level display (replacing the old interpreter/platform/version combos and hererocks checkbox), and the retained source-path patterns, rocks server URL override, and underscore-suppression option. All probing and discovery actions run off the EDT; every apply fires the appropriate toolchain or settings-changed topic (fixing previously silent state writes).
+## [0.16] — Editor ergonomics & structural editing (EDITOR epic)
 
-### Core Language Support
-- **Lua Grammar & Parsing**: Full Lua 5.1-5.4 syntax support with AST-based PSI model
-- **Lexer & Tokenization**: Comprehensive lexical analysis with proper handling of comments, strings, and operators
-- **Syntax Highlighting**: Color scheme configuration with semantic highlighting for syntax elements
+- **Smart Typing** (EDITOR-01): auto-close and keyword-pair completion.
+- **Spellchecking** (EDITOR-02): comments, strings, and declaration names.
+- **TODO / FIXME Indexing** (EDITOR-03) in Lua and LuaCATS comments.
+- **Smart Word Selection** (EDITOR-04): construct-aware `Ctrl+W`.
+- **Surround With** (EDITOR-05) and **Unwrap / Remove** (EDITOR-06).
+- **Move Statement / Element** (EDITOR-07): block-aware structural moves.
+- **Smart Enter** (EDITOR-08): complete half-written blocks and calls.
 
-### Documentation & Type Hints
-- **Markdown Comments**: Plain comment documentation with Markdown support (no tag parsing)
-- **LuaCATS Support**: Modern type annotation system with type hints, overloads, and generics
-- **Inlay Hints**: Display inferred types for variables as inline editor hints
-- **Type Inference Engine**: Cubic biunification constraint-based type analysis
-- **Implicit Class Fields**: `@class` types now include fields discovered from assignments (`ClassName.field = …` and `self.field = …` inside methods), not only `@field` tags — so those members appear in completion and resolution (explicit `@field` still takes precedence)
-- **Canonical Union Types**: Union types are normalized at construction — nested unions flattened, members de-duplicated, `T | any` simplified to `any`, and members sorted — for stable type display and comparison
-- **Union Mismatch Diagnostics**: When a table value fails against a union type, the error names the closest-matching member and its specific missing field (e.g. `closest match 'Point': missing field 'y'`) instead of a generic message
-- **Quick Documentation Resolution Fix**: Quick documentation (and Go-to) for a dotted member access no longer falls back to an unrelated top-level symbol that merely shares the short name — e.g. `package.path` previously showed the doc for `path.rockspec_name_from_rock` from a LuaRocks `path` module, because the declaration index is keyed by receiver and a bare `path` lookup returned every `path.*` function. A member segment now resolves only through its qualified name; when none is documented, nothing is shown rather than an arbitrary wrong symbol.
-- **Member Reference Resolution Fix**: Resolving a dotted member access `a.b` (Go-to-declaration / Find Usages) no longer returns every `b.*` function of an unrelated module. Because the declaration index is keyed by receiver, a bare member-name lookup treated `b` as a receiver; member segments now resolve only through the receiver-qualified name.
-- **Member Field Navigation & Quick Doc (NAV-12)**: `Go to Declaration` and Quick Documentation on a dotted field access (`package.path`, `obj.field`) now resolve to the `receiver.field = value` declaration, via a new qualified-name member-field index (`LuaMemberFieldIndex`). Field assignments aren't stubbed, so they were previously unreachable; keying by the full `receiver.field` keeps them from colliding with unrelated same-short-name module symbols. Quick documentation renders the field's `---@type` and doc comment (choosing the documented declaration over a bare re-assignment), so `package.path` shows its description instead of "No documentation found". Completes `NAV-01-03` (Table Fields → Full).
+## [0.15] — Unified Lua toolchain management (TOOLING epic)
 
-### IDE Features
-- **Smart Enter (EDITOR-08)**: Ctrl+Shift+Enter (*Complete Statement*) now finishes a half-written Lua construct and drops the caret at the next edit point. It scaffolds the missing pieces of a block — `if x` → `if x then … end`, `while c` → `while c do … end`, numeric/generic `for` → `… do … end`, `function foo` → `function foo() … end`, and `repeat` → `repeat … until <caret>` — inserting the required `then`/`do`, the matching `end` (or `until`), and a param list for a bare `function`. It also balances unclosed brackets on the statement first (`print("x"` → `print("x")`, `local t = { 1, 2` → `local t = { 1, 2 }`). Already-complete constructs are left intact. (Works even though a half-typed skeleton parses to an error tree — the completion keys off the opener keyword token, not a fully-formed node.)
-- **Move Statement / Element (EDITOR-07)**: Structural, block-aware movement. **Move Statement Up/Down** (Ctrl+Shift+↑/↓) moves a whole statement over its sibling, steps *into* an adjacent `if`/`while`/`for`/`function`/`do` body (or *out* over its `end`) with automatic re-indentation, and never displaces a block delimiter — a `repeat … until` body statement or a lone/edge statement is left untouched rather than corrupting `until`/`end`; where no structural move applies (blank line, inside a multi-line string) it falls through to the platform line mover. **Move Element Left/Right** (Ctrl+Alt+Shift+←/→) reorders a call/return argument, a table-constructor field, a generic-`for` name, or a `local`/`global` name-list entry, keeping separators valid.
-- **Unwrap / Remove (EDITOR-06)**: The real *Unwrap/Remove* action (Ctrl+Shift+Delete) now works on Lua block constructs. It offers, for each construct enclosing the caret: **Unwrap** an `if`/`while`/`for`/`do`/`function` — removing the keyword + `end` and hoisting the body to the parent scope, re-indented; **Remove 'else' branch** — collapsing the trailing `else`/`elseif` of an `if` while keeping the earlier branches at their original indentation; and **Remove enclosing block** — deleting the whole construct including its body. Each option live-highlights the range it affects before you confirm. A multi-branch `if` offers the else-collapse/remove options but not a plain unwrap; the expression-form `local f = function() … end` is deliberately not offered (unwrapping it would corrupt the file). Shares its block-structure helpers with EDITOR-05.
-- **Surround With (EDITOR-05)**: The real *Surround With* action (Ctrl+Alt+T) now wraps a selected run of Lua statements in a block construct, re-indenting the body. Seven templates are offered — `if <caret> then … end`, `while <caret> do … end`, numeric `for <caret> = 1, 10 do … end`, generic `for <caret> in pairs(t) do … end`, anonymous `function() … end`, bare `do … end`, and `pcall(function() … end)` — with the caret placed in the condition/header for the `if`/`while`/`for` forms and at the wrapped body for `function`/`do`/`pcall`. Only whole-statement selections are offered (a selection that splits a statement or spans a nested block boundary is ignored). Complements, and does not replace, the COMP-07 `$SELECTION$` live-template surrounds (a distinct extension point).
-- **Smart Word Selection (EDITOR-04)**: Extend Selection (Ctrl+W) / Shrink Selection (Ctrl+Shift+W) now grow along Lua constructs. The ladder climbs identifier → argument → call/index expr → statement → block body → enclosing function; inside a string or comment a step selects the interior (delimiters / `--`/`--[==[` markers stripped) before the whole literal; and in an argument or table-constructor list a step selects one item, then all comma-separated items, then the bracketed list.
-- **TODO / FIXME Indexing (EDITOR-03)**: `TODO`, `FIXME`, and custom `TodoConfiguration` patterns inside Lua comments now surface in the TODO tool window (grouped by file), the editor gutter, and the error stripe, and are searchable via *Find TODOs*. Line (`--`), LuaCATS doc (`---`), and block (`--[[ … ]]`, including leveled `--[==[ … ]==]`) comments are all covered; text inside string literals is not matched.
-- **Spellchecking (EDITOR-02)**: Lua comments (line, block, and LuaCATS `---` prose), string-literal contents (quotes and long-bracket forms, escape-aware so typo ranges map to source), and declaration names are wired into the platform spellchecker. Declaration-name checking covers local variables, local functions, parameters, and generic-`for` variables (camelCase/snake_case split, with Rename / change-to / save-to-dictionary quick-fixes); references and known stdlib names / keywords / LuaCATS type tokens are excluded so usages and `local pairs = …` aren't flagged.
-- **Smart Typing (EDITOR-01)**: Auto-close and auto-skip for `"` / `'` (quote pairing) with mid-word suppression; `(`, `[`, `{` auto-close suppressed inside strings and comments; backspace removes the closing quote of a fresh empty pair. Block keywords `do`, `then`, `function`, `repeat` — typed or accepted from completion — scaffold the matching `end` / `until` on the next line; controlled by a per-user "Insert matching `end`/`until` for Lua block keywords" toggle in **Settings → Editor → General → Smart Keys** (on by default). Bracket close/skip (`()`, `[]`, `{}`) and backspace-unpair for brackets are delivered by the existing brace matcher — no settings change required for those.
-- **Interactive Lua Console (REPL)**: A new **Tools → Lua Console** action launches the project's Lua interpreter as an interactive REPL in a Lua-highlighted console (completion and syntax highlighting in the input). Incomplete chunks (e.g. an open `function`/`if`/`do`/`(`/long-string) are detected by a client-side trial parse and switch to multi-line entry until the chunk closes; command history persists across sessions, stdout/stderr are visually distinct, and interpreter output is unbuffered. Reports a notification when no project interpreter is configured.
-- **Method Separators**: Horizontal separator lines are drawn above function/method declarations when the IDE's "Show method separators" setting (Editor | General | Appearance) is enabled.
-- **Convert String Quotes Intention**: An Alt+Enter intention cycles the string literal under the caret between single quotes, double quotes, and long-bracket form, preserving the runtime value (escaping/unescaping and raising the bracket level as needed)
-- **Invert 'if' Statement Intention**: An Alt+Enter intention negates the condition of an `if … then … else … end` statement and swaps its `then` / `else` branch bodies, preserving behaviour (relational operators are flipped, a `not X` condition is unwrapped, and any other condition is wrapped as `not (…)`); offered only when the statement has an `else` branch and no `elseif`
-- **Rename Validation**: The Rename refactoring now rejects new names that are Lua reserved keywords (e.g. `local`, `goto`, `end`) or are not syntactically valid Lua identifiers (e.g. `1var`, `a-b`)
-- **Navigation**: Symbol resolution and cross-file references
-- **Go to Type (bare `@class`/`@alias`)**: Go to Class / Go to Symbol now find bare `--- @class` and `--- @alias` declarations (pure type-level forms with no following `local`), not only types attached to a local declaration
-- **Read/Write Access**: variable references are classified as read vs. write — distinct highlight colors for the variable under the caret, and Read/Write grouping in Find Usages
-- **Create from Usage Intentions**: Alt+Enter on an undeclared name now offers to create its declaration — *Create local variable* turns an undeclared assignment target (`x = 1`) into a `local` declaration (`local x = 1`), and *Create function* generates a `local function name(arg1, …, argN) end` stub above the enclosing statement when an undeclared name is called (`myFunc(1, 2)`), with one parameter per positional argument
-- **Structure View**: Outline view of file structure
-- **Code Completion**: Intelligent completion for variables, functions, and members
-- **Type-Inferred Member Completion**: Completing after `.`/`:` now suggests a receiver's inferred members (fields and methods, with icons), including inherited `@class` members, `self` inside methods, and members exposed through `setmetatable`'s `__index`
-- **Postfix Templates**: Type an expression followed by `.if`/`.not`/`.var`/`.for`/`.forp`/`.fori`/`.ifnot`/`.nil`/`.notnil`/`.return`/`.print` and press Tab to rewrite it into the matching statement (e.g. `ready.not` → `not ready`, `getUser().var` → `local value = getUser()` with an editable name)
-- **Live Templates**: Built-in abbreviation templates for common Lua constructs — `fun`/`lfun`/`if`/`ifel`/`while`/`repeat`/`fori`/`forip`/`forp`/`loc`/`req`/`mod` — plus Surround-With templates (`if`/`for`/`do`/`function`) via Ctrl+Alt+T. Templates are now code-aware and no longer expand inside strings, comments, or numeric literals.
-- **Refactoring**: Label refactoring support
-- **Introduce Variable**: extract a selected expression into a `local <name> = <expr>` before the enclosing statement and replace the occurrence, with a name suggestion, inline rename, and a this-occurrence/all-occurrences chooser when the expression repeats
-- **Variable Name Suggestions**: smart, context-aware variable names derived from the right-hand-side expression — surfaced in the Rename popup and the Introduce Variable name — stripping accessor/factory prefixes (`get`/`set`/`create`/`build`/`new`/`make`/`find`/`load`) when followed by an uppercase letter (`getUser()` → `user`), and resolving method-call callees (`obj:getName()` → `name`)
-- **Safe Delete**: deleting a local/parameter/global/label declaration first searches for usages — removes it silently when unused, or shows the standard "usages found" conflict dialog when references remain
-- **Block Auto-close on Enter**: pressing Enter after a block opener (`then`/`do`/`function`/`repeat` and table `{`) inserts the matching `end`/`until`/`}` on the next line and opens an indented body line. A balance check now fixes a correctness bug where a redundant `end` was appended even when the block was already closed; full opener coverage spans `if`/`while`/numeric & generic `for`/bare `do`/`function`/`repeat`/table literals; and pressing Enter between an already-matched opener and its terminator indents a blank body line without inserting a duplicate.
-- **Code Style**: Settings for indentation, spacing, and formatting
-- **Formatter Fix**: Unary `not` now keeps a space before its operand when reformatting (`not x`); previously it collapsed to the distinct identifier `notx`. Symbolic unary operators (`-`, `#`, `~`) remain tight.
-- **Blank-Line Management**: Reformat now drives blank lines between function definitions from the standard *Blank Lines* code-style settings (`BLANK_LINES_AROUND_METHOD`), caps runs of blank lines between statements at *Keep blank lines* (`KEEP_BLANK_LINES_IN_CODE`), and ensures a whole-file reformat ends the file with exactly one trailing newline.
-- **Expression Wrapping**: New *Call arguments* and *Table constructor* wrapping options (Do not wrap / Wrap if long / Chop down if long) wrap long argument lists and table constructors at the right margin.
-- **Alignment**: Optional *Align consecutive assignments* and *Align table field values* code-style options line up the `=` across a run of assignments and across a table constructor's fields (both off by default).
-- **Comment Formatting**: Optional *Wrap long comments at right margin* hard-wraps over-long `--` line comments onto continuation `--` lines on reformat, preserving word boundaries and leaving LuaCATS doc comments (`---@…`) untouched.
-- **Run Configurations**: Lua script execution and debugging support
-- **Breakpoint Debugging**: DBGp protocol support for remote debugging
+- **Toolchain Model & Registry** (TOOLING-01): unified discovery + version probing.
+- **Resolution, Binding & Environments** (TOOLING-02): project/global precedence + environments.
+- **Execution & Environment Injection** (TOOLING-03): one PATH/`LUA_PATH`/`LUA_CPATH` service.
+- **Native Provisioning Engine** (TOOLING-04): in-plugin builds, no Python/hererocks dependency.
+- **Consumer Migration & Legacy Removal** (TOOLING-05): clean-break cutover.
+- **Settings UI Consolidation** (TOOLING-06): a single Lua settings tree.
+- **Health Monitoring & Diagnostics** (TOOLING-07).
 
-### Analysis & Quality Tools
-- **Luacheck Integration**: Static analysis integration
-- **Type Checking**: Constraint-based type validation with error reporting
-- **Inspections**: Type assignability and return type mismatch detection
-- **Duplicate Diagnostic Fix**: Type errors are no longer reported twice (doubled Problems-panel rows and hover tooltips). The engine surfaced each error through both a redundant whole-file annotator and the inspections; the stale annotator was removed so every diagnostic is surfaced exactly once. The return-vs-assignability split now classifies an error anchored anywhere inside a `return` statement as return-related (previously only its direct child), so the two inspections fully partition all errors without the annotator.
-- **Undeclared-Variable Inspection**: Flags reads of names that resolve to nothing — respecting locals, parameters, loop variables, file/project globals, the per-version standard library, an "Additional Globals" allowlist, and `---@diagnostic`/`-- luacheck: ignore` suppression comments
-- **For-loop Variable Resolution**: `for` loop variables now resolve correctly within the loop body (navigation, completion, and inspections no longer treat them as undeclared)
+## [0.14] — Schema-driven data files (SCHEMA epic)
 
-### Project Features
-- **Toolchain Health Monitoring & Diagnostics (TOOLING-07)**: The unified toolchain now actively monitors binary health. A background VFS watcher reacts to file-system changes (binary deletions, environment directory removals) and batches revalidations through a 500 ms merge window — no polling. Editor banners surface on Lua files when the engaged Lua runtime is missing ("No usable Lua runtime for this project.") or a selected tool (luacheck, StyLua, etc.) becomes unavailable; banners link directly to the Toolchain settings page and the runtime banner is dismissible per session. One balloon notification fires per usable→unusable transition (de-duplicated; a persistently-broken tool does not re-notify). An environment root deleted from disk triggers a separate balloon naming the environment and overrides its member tools' health reason. A **Tools → Lua: Toolchain Diagnostics** action writes a full toolchain state snapshot to the IDE log (inventory with health, bindings, environments, per-kind resolver outcomes) as greppable `[TOOLCHAIN-DIAG]` lines, also logged automatically after each revalidation pass for post-hoc tracing.
-- **Platform Libraries**: Lua standard library definitions and type information
-- **Project Settings**: Language level configuration (Lua 5.1-5.4)
-- **Application Settings**: Interpreter detection and workspace configuration
-- **Unified Toolchain — Clean Break (TOOLING-05)**: Every consumer of an external Lua binary (luacheck, StyLua, busted, luacov, LuaRocks, the Lua runtime for run/debug/console/test, the rockspec bridge, the test matrix, the environment status-bar widget, and the New Project wizard) now resolves and executes through the single unified toolchain (registry + resolver + execution service). The legacy interpreter/tool subsystems are removed outright with **no automatic migration**: after updating, **re-register your Lua runtimes and tools once** (interpreters, luacheck/StyLua/busted/luacov/LuaRocks paths) and **re-provision any isolated environments** under Tools ▸ Lua Toolchain. Old `hererocks` environments and previously stored tool/interpreter settings are not carried over — a `lunar.xml` written by an older build loads cleanly, but its stale interpreter/environment entries are ignored and dropped. No hardcoded default binary paths remain; an unconfigured tool degrades to a "configure it under Settings ▸ Languages & Frameworks ▸ Lua ▸ Toolchain" hint (or, for background features like the annotator, silently produces no results).
-- **Native Toolchain Provisioning (TOOLING-04)**: A Python-free, in-plugin provisioner replaces the `hererocks` path. **Tools ▸ Lua Toolchain** offers *Provision*, *Change Versions*, *Recreate*, *Remove*, and *Provision Version Matrix* — pick a runtime (**Lua 5.1–5.5** or **LuaJIT**), LuaRocks, and dev tools (luacheck, StyLua, busted, luacov, lua-language-server) with per-tool version pins, and the provisioner downloads/verifies/extracts release binaries, builds PUC-Lua and LuaRocks from source on POSIX (exact hererocks recipe; C-toolchain preflight with actionable messaging), installs rocks through the environment's own `luarocks`, and Windows resolves everything to prebuilt binaries. Results register as `PROVISIONED` tools and activate a Lunar environment. Each tree carries a `.lunar-env.json` manifest with an identifiers hash for idempotent re-provision (unchanged components are skipped), and an orphaned tree is offered for one-click re-registration on project open.
-- **LuaJIT provisioning**: LuaJIT is provisionable on POSIX via a full `git clone` + `git checkout <ref>` + `make PREFIX=<env>` build with a hand-copy install (binary, static/shared libs, headers, and the `jit` runtime), gated on `git` + `make` availability. (Requires network + a C toolchain at provision time.)
-- **Version feed with verified pins**: the bundled feed carries real SHA-256 + size pins for every download-based artifact — PUC Lua 5.1–5.5.0 (each tarball cross-checked against the checksums published at lua.org), LuaRocks 3.0.0–3.13.0, StyLua, lua-language-server, luacheck, busted, luacov — with alias resolution (`latest`/`5.4`/`5.1.0`) and version ordering. The LuaJIT git source is exempt (no checksum). Checksum verification is mandatory: any artifact whose bytes don't match its pin is refused. See `src/main/resources/toolchain/README-feed-pins.md` for the pin-update procedure.
-- **Isolated Lua Environments (hererocks)**: Detect, create, upgrade, recreate, and remove a self-contained hererocks Lua+LuaRocks environment from Tools ▸ Lua Environment. On project open, an existing environment is detected with a one-click **Bind**; provisioning runs on a background task and binds the produced `bin/lua` as the project interpreter and `bin/luarocks` as the LuaRocks tool, so every downstream LuaRocks feature transparently targets the isolated env.
-- **Multi-Version Rocks Development (ROCKS-15)**: Maintain a *set* of hererocks environments per project with an active-version switcher in the status bar — pick the active Lua/LuaRocks env from the popup (or add a new one), and the interpreter + LuaRocks binding repoint to it instantly. Existing ROCKS-14 single-environment settings migrate automatically into the new set on load. Adds a **Run Test Matrix** action that runs the rockspec build/test command against every provisioned environment and reports per-version results in a tool window, plus a **Provision Version Matrix** action to provision a whole matrix of Lua versions in one step.
-- **Env Binding Off the EDT (fix)**: Binding a Lua environment — after provisioning, via the one-click **Bind** notification, or via the status-bar version switch — now runs its `luarocks --version` and `lua -v` toolchain probes on a background task instead of the UI thread. Previously each of these paths executed the external processes synchronously on the EDT, tripping the platform's `Synchronous execution on EDT` (`OSProcessHandler#checkEdtAndReadAction`) diagnostic and briefly stalling the UI. The bind still marshals its interpreter/tool settings changes back to the EDT internally. *Verified live in GoLand: a provision→bind that logged three such violations before the fix now logs zero.*
-- **Lua Settings Tree + Tools Fix**: "Lua Project" now nests under "Lua" in the Settings tree (Languages & Frameworks ▸ Lua ▸ Lua Project) instead of sitting beside it. Fixed the *Lua Tools* page's **Auto‑Discover** action running tool `--version` probes on the EDT (it now runs off the UI thread like Re‑check Health), which also unblocks the headless settings‑index build.
-- **Rocks Settings/Dialog Polish (ROCKS-16/17)**: The *Isolated Lua Environment* create dialog now gates its Lua‑version list by the selected flavor (PUC → 5.1–5.5, LuaJIT → 2.0/2.1, still editable for custom refs) instead of showing one mixed list. The Lua Project settings page is grouped into **Interpreter & Target**, **Source & Completion**, and **LuaRocks** sections, and the "Hererocks managed" / completion checkboxes use a `Label: ☑ description` row layout consistent with the other fields.
-- **Run/Debug Honors the Project Interpreter (ROCKS-16 follow-up)**: Run and test-run configurations now use the project interpreter — including a hererocks‑managed env whose path isn't in the global interpreter list — instead of resolving only against globally‑registered interpreters. The project interpreter is offered as a selectable option in the run‑config interpreter dropdown, and when a config has no interpreter of its own it falls back to the project interpreter at launch (matching the REPL), so a config "just works" against the managed env while still allowing a per‑config override.
-- **Interpreter Setup in the New Project Wizard (ROCKS-17)**: The **LuaRocks** new-project wizard now configures the project interpreter at creation time. Pick a Lua **flavor** (PUC or LuaJIT) and **version** (version list is registry-driven — PUC now offers **5.1–5.5**, LuaJIT 2.0/2.1), which sets the project target/language level. Tick **"Provision isolated environment with hererocks"** to have hererocks build a project-scoped `<project>/.lua` env after the project opens and drive the interpreter (Hererocks-managed mode, ROCKS-16); leave it unticked to select an existing registered interpreter (explicit mode). Previously the wizard only scaffolded files and left the interpreter unset.
-- **Lua 5.5 Selectable Everywhere (ROCKS-17)**: Lua **5.5** is now offered as a target in every version picker — the New Project wizard, the *Isolated Lua Environment* create/upgrade dialog, and the *Provision Version Matrix* default — matching its existing support in the platform/version registry. (Provisioning 5.5 requires a hererocks build that can supply it.)
-- **Hererocks-Managed Interpreter Mode (ROCKS-16)**: A new **Hererocks managed** checkbox in Lua project settings (above the Interpreter combo) controls whether the active hererocks environment owns the project interpreter. When **on**, binding or switching an environment derives the interpreter *and* the project target — platform, version, language level, and platform libraries — from the env (PUC → Standard, LuaJIT → LuaJIT, version normalized via `PlatformVersionRegistry`), and the Interpreter/Platform/Version controls become read-only derived views. When **off** (the default for new projects), a bind/switch still tracks the active env and binds the LuaRocks tool but leaves an explicitly chosen interpreter and target untouched — so a manual interpreter now survives both bind and unbind instead of being silently overwritten or cleared. Switching modes is non-destructive: the explicit interpreter/target are stashed while managed and restored on unbind or when the checkbox is turned off. Existing projects that already have a bound environment migrate to **managed** so today's implicit "the env drives the interpreter" behavior is preserved; unbound projects default to explicit.
+- **Lua JSON-Schema Engine** (SCHEMA-01).
+- **Schema Providers**: rockspec (SCHEMA-02), `.luacheckrc` (SCHEMA-03), busted config (SCHEMA-04).
 
-### Architecture
-- **Bipartite Type Graph**: O(n³) incremental reachability for type constraints
-- **Scope Binding**: Lexical scope chains with proper shadowing and function scoping
-- **Annotation Support**: Full LuaCATS @type, @param, @return injection
-- **Type Caching**: CachedValuesManager integration for efficient type resolution
+## [0.13] — LuaRocks multi-rock workspaces & environment (ROCKS, reopened)
+
+- **Multi-Rock Workspace Discovery** (ROCKS-09): index-backed, cached rockspec forest.
+- **Rockspec Module Resolution** (ROCKS-05): `LUA_PATH`/`LUA_CPATH` from derived roots.
+- **Project LuaRocks Environment** (ROCKS-06): per-server resolver, API-key store, server override.
+- **Workspace Build Orchestration** (ROCKS-10): dependency-ordered, topo-sorted builds.
+- **Makefile Task Integration** (ROCKS-11) and **Project-View Roots & Marking** (ROCKS-12).
+
+## [0.12] — Internal & maintenance (MAINT epic)
+
+- Test-coverage features (MAINT-10–18), Kotlin-native token holders (MAINT-19), headless
+  parser/lexer generation (MAINT-20), and the DBGp transport rewrite (MAINT-22) — largely
+  user-invisible.
+- **Fix**: `@return` comma parsing — parse error on comma-separated types in `@return` (BUG-134).
+
+## [0.11] — Backlog & differentiators
+
+- **Parameter Name Hints** (COMP-05).
+- **Test Runner Integration** (RUN-05).
+- **StyLua Compatibility** (FORMAT-07).
+- **Flow-Sensitive Analysis** (TYPE-08).
+- **Full-Text Documentation Search** (DOC-06-04).
+- **Lua 5.5 Support** (SYNTAX-09): `global` declarations and language-level model.
+
+## [0.10] — Tool inventory & LuaRocks (TOOL + ROCKS epics)
+
+- **Tool Registry & Discovery** (TOOL-01), **Project Binding & Env** (TOOL-02), **UI & Health
+  Monitoring** (TOOL-03) for external Lua binaries (`luarocks`, `luacheck`, `lua-format`).
+- **LuaRocks**: Task Execution & Run Configs (ROCKS-04), Dependency Resolution (ROCKS-03), Package
+  Browser (ROCKS-02), Project Initialization (ROCKS-01), Publishing (ROCKS-08).
+
+## [0.9] — Quick wins & differentiators
+
+- **Lua Interpreter SDK** (RUN-01), **Run Configurations** (RUN-02) + **Validation** (RUN-04).
+- **Interactive Console / REPL** (RUN-03): multi-line trial-parse + history.
+- **Documentation Indexing** (DOC-06): stub index + type map.
+- **Method Separators** (SYNTAX-05), lexer optimization (SYNTAX-15), remaining inlay hints.
+
+## [0.8] — Refactoring & intentions
+
+- **String Quote Conversion** (INTENT-01): `'…'` ↔ `"…"` ↔ `[[…]]`.
+- **Invert `if`** (INTENT-02): negate condition + swap `then`/`else`.
+- **Variable Name Suggestion** (INTENT-03): `getUser()` → `user`.
+- **Rename Names Validator** (REFACT-05) and **Create-from-Usage** intentions (REFACT-06).
+
+## [0.7] — Formatting
+
+- **Blank-Line Management** (FORMAT-03), **Expression Wrapping** (FORMAT-04), **Alignment**
+  (FORMAT-05, opt-in), **Comment Formatting** (FORMAT-06, opt-in).
+
+## [0.6] — Completion polish
+
+- **Cross-File Completion** (COMP-03): recursive/transitive resolution with cycle guard.
+- **Postfix Templates** (COMP-06): 11 templates. **Live Templates** (COMP-07): 16 templates.
+- **Block Auto-Complete** (COMP-08): balanced `end`/`until`/`}` insertion.
+
+## [0.5] — Type-system hardening
+
+- **External-API Stubs** (TYPE-07): cross-file `require`→stub resolution + type injection.
+- **Union Distribution Hardening** (TYPE-09): canonicalization limits, memoization, member-specific
+  diagnostics.
+
+## [0.4] — Inspections
+
+- **Global-creation inspection** (INSP-05).
+- **Variable-shadowing inspection** (INSP-06).
+- **Deprecated-usage inspection** (INSP-08).
+- **Unused local / parameter inspection** (INSP-02).
+- **Unreachable-code inspection** (INSP-04).
+- **Suspicious-concatenation inspection** (INSP-07).
+- **Type-mismatch inspection** (INSP-03).
+- **Language-level compliance inspection** (INSP-09).
+
+## [0.3] — Navigation dependents & refactoring
+
+- **Read/Write Access Detector** (NAV-10).
+- **Introduce Variable** (REFACT-02) and **Safe Delete** (REFACT-03).
+
+## [0.2] — Navigation & references core
+
+- **Find Usages** (NAV-02), **Go to Class/File/Symbol** (NAV-03), **Return Highlighter** (NAV-09).
+
+## [0.1] — Type-system intelligence
+
+- **Undeclared-Variable Inspection** (INSP-01), **Auto-Import Completion** (COMP-03-03).
+- **Method-Chaining Inlay Hints** (SYNTAX-07-07, +large-file threshold) and **Inferred-Type
+  Highlighting** (SYNTAX-17).
+- **Method-Override Markers** (NAV-05) and **Type-Hierarchy View** (NAV-06).
+
+## [0.0] — Type engine foundation
+
+- **Union Types** (TYPE-09 P0–P4): infrastructure, flattening, compatibility limits + memoization,
+  error reporting, verification & perf.
+- **Type-Inferred Completion** (COMP-04): `self` / `__index` resolution.
+- **Class/Table Definitions** (TYPE-02): implicit fields discovered from assignments.
+
+## Initial Work
+
+The base plugin, established before the first versioned milestone:
+
+- **Lexer** and **parser / PSI** for the Lua grammar.
+- **LuaCATS / LuaDoc** annotation support.
+- **Syntax highlighting**.
+- **Initial type engine**.
