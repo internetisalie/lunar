@@ -37,7 +37,10 @@ object RockspecBridge {
         val interpreter = LuaToolResolver.getInstance().resolveRuntime(project)?.path
             ?.takeIf { it.isNotBlank() }
         if (interpreter == null) {
-            log.warn("Rockspec bridge skipped for $rockspecPath: no Lua runtime is configured")
+            // Expected, benign condition — callers invoke this once per discovered rockspec, so a
+            // WARN here floods the log on rockspec-heavy projects (BUG-380). The single actionable
+            // "no runtime configured" signal is surfaced by the toolchain banner / [TOOLCHAIN-DIAG].
+            log.debug("Rockspec bridge skipped for $rockspecPath: no Lua runtime is configured")
             return null
         }
         val command = GeneralCommandLine(
