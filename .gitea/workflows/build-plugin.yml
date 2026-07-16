@@ -28,7 +28,49 @@ on:
       - '**/*.md'
 
 jobs:
+  # Gitea's act_runner (1.26.x) does NOT honor the on.push `paths-ignore` filter above — this
+  # workflow is triggered even by docs-only pushes (verified: a docs-only push still ran `build`).
+  # This guard restores the intended behavior in-workflow: it diffs the push/PR range and reports
+  # whether any changed file is outside docs/ and not a *.md. `build` then gates on it, so a
+  # docs-only push skips the (~10-min) Gradle build + test. It FAILS SAFE — any inability to
+  # determine the diff base yields code=true (build runs), and `v*` tags always build (release).
+  # The GitHub variant omits this guard because GitHub applies `paths-ignore` natively.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          emit() { echo "code=$1" >> "$GITHUB_OUTPUT"; echo "resolved code=$1"; exit 0; }
+          # Release tags always build.
+          case "$REF" in refs/tags/v*) emit true ;; esac
+          if [ "$EVENT" = "pull_request" ]; then BASE="${PR_BASE:-}"; else BASE="${BEFORE:-}"; fi
+          ZERO=0000000000000000000000000000000000000000
+          # Unknown/first-push/force-push base → cannot classify → build to be safe.
+          if [ -z "$BASE" ] || [ "$BASE" = "$ZERO" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            emit true
+          fi
+          # code = any changed file that is neither under docs/ nor a *.md.
+          if git diff --name-only "$BASE" "$HEAD_SHA" | grep -vE '^docs/|\.md$' | grep -q .; then
+            emit true
+          else
+            emit false
+          fi
+
   build:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
