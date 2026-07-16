@@ -18,6 +18,15 @@
 ### Documentation
 - README refreshed (accurate versions, live doc links, full epic list, Lua 5.1–5.5).
 
+### Fixes (0.18.2)
+- **LuaRocks Packages crash** (BUG-379): the package-browser debounce `Alarm` was created
+  without a parent `Disposable`, throwing on every open of the LuaRocks Packages view. The
+  `Alarm` is now parented to a disposable panel.
+- **RockspecBridge log noise** (BUG-380): the "no Lua runtime configured" message was logged at
+  `warn`, flooding the IDE log for projects without a configured runtime; demoted to `debug`.
+- **Release build** (build): `patchPluginXml` now accepts milestone-style CHANGELOG headers, so
+  overriding the plugin version to one without a matching CHANGELOG section no longer fails.
+
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 
 - **Connections & Script Run Configuration** (REDIS-01): RESP client + connection management.
