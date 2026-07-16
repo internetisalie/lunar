@@ -21,6 +21,8 @@ The Target Configuration feature manages the runtime environment for Lua code, a
 | [`TARGET-04`](04-library-resolution/requirements.md) | **Library Root Resolution** | **M** | **Not Implemented** | `PlatformLibraryProvider` must inject the correct standard library and SDK stubs based on the target. |
 | [`TARGET-05`](05-luacheck-integration/requirements.md) | **Luacheck Integration** | **M** | **Not Implemented** | Map each Target to its corresponding luacheck `--std` argument via explicit `VersionEntry.luacheckStd` values. |
 | [`TARGET-06`](06-migration/requirements.md) | **Target Migration** | **C** | **Not Implemented** | Existing projects using `LuaLanguageLevel` should gracefully migrate to the `Target` model. |
+| [`TARGET-07`](07-lua-5.5-stdlib-stubs/requirements.md) | **Lua 5.5 Standard-Library Stubs** | **C** | **Not Implemented** | Bundle `runtime/standard/lua-5.5/` API stubs (mirror of 5.4 plus `table.create`, `_VERSION` bump) so the 5.5 target gets stdlib completion/type-inference. Depends on SYNTAX-09. |
+| [`TARGET-08`](08-on-demand-definition-libraries/requirements.md) | **On-demand Definition Libraries** | **C** | **Not Implemented** | Consume community LuaLS/LuaCATS definition libraries (love2d, busted, luassert, openresty, …) for third-party libs, fetched & enabled on demand and registered via `PlatformLibraryProvider`. |
 
 ---
 
@@ -32,7 +34,7 @@ The Target Configuration feature manages the runtime environment for Lua code, a
 | **Standard** | 5.2 | Lua 5.2 | `runtime/standard/lua-5.2/` |
 | **Standard** | 5.3 | Lua 5.3 | `runtime/standard/lua-5.3/` |
 | **Standard** | 5.4 | Lua 5.4 | `runtime/standard/lua-5.4/` |
-| **Standard** | 5.5 | Lua 5.4 † | `runtime/standard/lua-5.5/` |
+| **Standard** | 5.5 | Lua 5.5 † | `runtime/standard/lua-5.5/` |
 | **LuaJIT**   | 2.0 | Lua 5.1 | `runtime/luajit/luajit-2.0/` |
 | **LuaJIT**   | 2.1 | Lua 5.1 | `runtime/luajit/luajit-2.1/` |
 | **Redis**    | 5   | Lua 5.1 | `runtime/redis/redis-5/` |
@@ -42,4 +44,4 @@ The Target Configuration feature manages the runtime environment for Lua code, a
 | **OpenResty**| latest | Lua 5.1 | `runtime/ngx/ngx-latest/` |
 | **Pandoc**   | latest | Lua 5.4 | `runtime/pandoc/pandoc-latest/` |
 
-† Lua 5.5 language level support is future work; maps to `LUA54` until `LUA55` is added.
+† Lua 5.5 language level (`LUA55`) shipped in SYNTAX-09; the `lua-5.5/` standard-library stub set is delivered by [`TARGET-07`](07-lua-5.5-stdlib-stubs/requirements.md).
