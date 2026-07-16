@@ -12,6 +12,23 @@ folders:
 
 # ROCKS-06: Project LuaRocks Environment
 
+> **Post-ship update (2026-07-16).** This spec describes ROCKS-06 as shipped, when the
+> `LuaRocksSettings` app service still existed. The **TOOLING-05** clean-break migration
+> (`b277bc46`) changed the environment layer it specifies:
+> - `LuaRocksSettings` (`executablePath` + `serverUrl`) is **deleted**.
+> - **Executable**: `LuaRocksEnvironment.resolveExecutable` now delegates to the TOOLING-01/02
+>   stack (`LuaToolResolver.resolve(project, "luarocks")`) with **no PATH fallback** — an
+>   unresolved tool yields `null` and a "configure a LuaRocks tool" hint at each call site.
+> - **App-default server URL**: now a LuaRocks kind option
+>   (`LuaKindOptionKeys.LUAROCKS_SERVER_URL`) in `LuaToolchainRegistry`, surfaced on the generic
+>   **Toolchain** page (`LuaToolchainConfigurable`) — there is **no dedicated LuaRocks
+>   Configurable**. The project override (`LuaProjectSettings.rocksServerUrl`) survives unchanged,
+>   surfaced on the **Lua Project** page (`LuaProjectConfigurable`).
+> - The precedence rule (project override > app default > none / no `--server`) and the
+>   per-server credential keying are unchanged.
+>
+> References to `LuaRocksSettings` and `LuaToolManager.getEffectiveTool` below are **historical**.
+
 ## Overview
 
 Today every LuaRocks consumer is hardwired to the default registry (luarocks.org) with no
@@ -41,7 +58,9 @@ credentials become **per-server**, kept in PasswordSafe. Parent epic: [[features
   PasswordSafe / never in VCS XML.
 - **Settings Configurable**: a LuaRocks settings page (application-level) surfacing the
   `executablePath` (no Configurable exists for it today) and the default server URL; plus a
-  project-level server-override field.
+  project-level server-override field. *(Historical — since TOOLING-05/06 the dedicated LuaRocks
+  page is gone: the app default server URL lives on the Toolchain page and the project override
+  on the Lua Project page; see the post-ship update above.)*
 
 ### Out of Scope
 
@@ -142,7 +161,9 @@ generalizes the current direct `LuaRocksSettings.getInstance().executablePath` r
 - [x] ROCKS-06-07: credentials are keyed per-server with a legacy fall-through, in PasswordSafe
       only (TC 7, 8).
 - [x] ROCKS-06-08: a LuaRocks application Configurable surfaces executable + default server; the
-      project Configurable surfaces the project server override.
+      project Configurable surfaces the project server override. *(As shipped; the dedicated
+      LuaRocks page was later replaced by the Toolchain page — post-ship update above,
+      2026-07-16.)*
 
 ## Non-Functional Requirements
 

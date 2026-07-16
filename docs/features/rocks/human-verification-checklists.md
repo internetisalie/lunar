@@ -16,18 +16,23 @@ This document provides step-by-step verification procedures for the ROCKS tasks.
 
 ## ROCKS-01: Project Initialization & Setup
 
+*(Corrected 2026-07-16 — several items below described flows that never shipped:
+`.luacheckrc`/`.stylua.toml` generation is explicitly out of scope, `luarocks init` is never
+executed by the scaffolder (`LuaRocksScaffolder.kt:14-16`), and no "Neovim Plugin" template
+exists — the wizard offers only Library/Application.)*
+
 ### ROCKS-01 Phase 1: Templates & Resources (#164)
-- [ ] **Resource Check**: Verify that `.luacheckrc` and `.stylua.toml` templates are present in the JAR resources.
-- [ ] **Setup Template**: Verify `generateSetupLua` output matches the technical design for various Lua versions.
+- ~~**Resource Check**: `.luacheckrc` and `.stylua.toml` templates in JAR resources~~ *(never implemented — removed 2026-07-16; out of scope for ROCKS-01)*
+- [ ] **Setup Template**: Verify `LuaRocksTemplates.setupLua()` output matches the technical design.
 
 ### ROCKS-01 Phase 2: CLI Integration (#165)
-- [ ] **Init Command**: Run the scaffolder and verify `luarocks init` is called with correct flags.
-- [ ] **Git Check**: Verify `.gitignore` is updated with standard LuaRocks entries.
+- ~~**Init Command**: verify `luarocks init` is called with correct flags~~ *(never implemented — removed 2026-07-16; the scaffolder is template-only and deliberately omits `luarocks init`)*
+- [ ] **Git Check**: Verify `.gitignore` is written with standard LuaRocks entries (no `git init` is run).
 
 ### ROCKS-01 Phase 3: Project Wizard (#166)
-- [ ] **Wizard UI**: Open the "New Project" dialog and verify the LuaRocks template appears.
-- [ ] **Template Selection**: Verify that selecting "Neovim Plugin" creates a `lua/` directory structure.
-- [ ] **End-to-End**: Create a project and verify all files (rockspec, setup.lua, configs) are created.
+- [ ] **Wizard UI**: Open the "New Project" dialog and verify the LuaRocks generator appears.
+- ~~**Template Selection**: "Neovim Plugin" creates a `lua/` directory structure~~ *(never implemented — removed 2026-07-16)*
+- [ ] **End-to-End**: Create a project and verify the generated files (rockspec `[name]-scm-1.rockspec`, `src/`, `lua_modules/`, `.gitignore`; plus `src/setup.lua` for Application + Loader Setup).
 
 ### Verification: Integration & Manual Tests
 - [ ] **Test Suite**: Run `LuaRocksScaffoldingTest` and ensure 100% pass rate.
@@ -49,7 +54,7 @@ This document provides step-by-step verification procedures for the ROCKS tasks.
 ### Phase 3: Action Handlers & Versioning
 - [ ] **Install Flow**: Click "Install" for a package and verify the async progress bar appears.
 - [ ] **Version Selection**: Select a non-latest version and verify the install command uses the correct version string.
-- [ ] **Post-Install Refresh**: Verify the "Installed" badge updates immediately after a successful installation.
+- [ ] **Post-Install Refresh**: Verify the "Installed" badge updates immediately after a successful installation. *(Known failing as of 2026-07-16: the list badge goes stale after install — fix planned in ROCKS-16. Do not sign this off until ROCKS-16 lands.)*
 
 ---
 

@@ -25,31 +25,33 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 | [`ROCKS-09`](09-workspace-discovery/requirements.md) | **Multi-Rock Workspace Discovery** | **M** | **Full** | Recursively discover all project rockspecs (replaces single-root `projectRockspec`); foundational for multi-rock resolution. |
 | [`ROCKS-10`](10-workspace-build/requirements.md) | **Workspace Build Orchestration** | **M** | **Full** | Build discovered rocks with `luarocks make` in topological dependency order. |
 | [`ROCKS-11`](11-makefile-tasks/requirements.md) | **Makefile Task Integration** | **C** | **Full** | Enrich scaffolded Makefile targets; optional Makefile-plugin integration. |
-| [`ROCKS-12`](12-project-view-roots/requirements.md) | **Project-View Roots & Marking** | **M** | **Not Implemented** | Mark the installed-rock tree (`lua_modules`) as External Libraries and first-party `build.modules` source roots in the Project view. |
-| [`ROCKS-14`](14-hererocks-environment/requirements.md) | **Hererocks Environment Lifecycle** | **S** | **Full** | Detect / create / upgrade / recreate / remove an isolated hererocks Lua+LuaRocks env; bind its `lua`/`luarocks` via the interpreter + TOOL-02 machinery. Live provisioning/recreate (TC-9) pending human VNC verification. |
-| [`ROCKS-15`](15-multi-version-development/requirements.md) | **Multi-Version Rocks Development** | **C** | **Full** | Multiple envs + active-version switcher + cross-version test matrix. Depends on ROCKS-14. |
+| [`ROCKS-12`](12-project-view-roots/requirements.md) | **Project-View Roots & Marking** | **M** | **Full** | Mark the installed-rock tree (`lua_modules`) as External Libraries and first-party `build.modules` source roots in the Project view (`LuaRocksLibraryProvider` + `LuaRockSourceRootDecorator`, registered in `plugin.xml`). |
+| [`ROCKS-14`](14-hererocks-environment/requirements.md) | **Hererocks Environment Lifecycle** | **S** | **Superseded** | Shipped, then removed by the TOOLING-05 clean break (`b277bc46`); replaced by TOOLING-02/04 native provisioning — see [TOOLING](../tooling/requirements.md). |
+| [`ROCKS-15`](15-multi-version-development/requirements.md) | **Multi-Version Rocks Development** | **C** | **Superseded** | Shipped, then removed with ROCKS-14 by the TOOLING-05 clean break; replaced by TOOLING-02/04 — the matrix-runner UI survived, rehomed under Tools → Lua Toolchain. See [TOOLING](../tooling/requirements.md). |
 | [`ROCKS-16`](16-package-browser-redesign/requirements.md) | **Package Browser Redesign (Plugins idiom)** | **S** | **Not Implemented** | Redesign the ROCKS-02 browser to the IDE Plugins-page idiom (tool window): Marketplace/Installed tabs, canonical `--tree` install target, honest error/empty states, rich detail pane. Absorbs BUG-363/365/366/367/368. |
 
-> **Table drift (known, tracked in ROCKS-16 risks-and-gaps):** ROCKS-14/15 show **Full** but their
-> front-matter is `superseded`; ROCKS-12 shows **Not Implemented** but is done. Not corrected here —
-> flagged for a separate table-alignment chore.
+> **Table aligned to front-matter 2026-07-16:** the previously flagged drift (ROCKS-12 shown as
+> Not Implemented though `done`; ROCKS-14/15 shown as Full though `superseded`) is corrected above.
+> Per-feature `requirements.md` front-matter remains canonical.
 
 ---
 
-## Relationship to the TOOL track
+## Relationship to the TOOLING track
 
-The **shipped** ROCKS features (ROCKS-01/02/03/04/08) resolve the `luarocks` binary from their own
-app-level `LuaRocksSettings.executablePath` (a `@Service(APP)` defined in ROCKS-04, default `luarocks`
-on `PATH`) — independent of the TOOL track, so the two tracks could ship in parallel in Wave 10.
+*(Rewritten 2026-07-16 — the narrative below previously described the pre-TOOLING-05 world of an
+app-level `LuaRocksSettings.executablePath` with a `luarocks`-on-`PATH` default. `LuaRocksSettings`
+no longer exists.)*
 
-**ROCKS-06 (planned) delivers the TOOL-02 integration** — it is no longer a deferred "future, not a
-dependency" item. [Project LuaRocks Environment](06-project-environment/requirements.md) resolves the
-executable via `LuaToolManager.getEffectiveTool(project, LuaToolType.LUAROCKS)?.path`, falling back to
-`LuaRocksSettings.executablePath` when no project tool is bound. This makes the project-bound `luarocks`
-the single source of truth (with version enforcement) and **retires the earlier "configure `luarocks` in
-two places" trade-off**. ROCKS-06 is the one ROCKS feature that consumes TOOL-02; the shipped features
-continue reading `executablePath` directly until updated to route through ROCKS-06's environment
-resolver.
+All ROCKS consumers (run configs, workspace build, publish, browser search/metadata/actions) resolve
+the `luarocks` binary through the shared facade
+[`LuaRocksEnvironment.resolveExecutable`](../../../src/main/kotlin/net/internetisalie/lunar/rocks/LuaRocksEnvironment.kt),
+which delegates to the TOOLING-01/02 toolchain stack (`LuaToolResolver.resolve(project, "luarocks")`)
+— the cutover happened in TOOLING-05 Phase 2. There is **no hardcoded `PATH` fallback**: when no
+usable `luarocks` tool resolves, the result is `null` and each call site surfaces a kind-specific
+"configure a LuaRocks tool" hint. The registry server likewise resolves via
+`LuaRocksEnvironment.resolveServer` (project `rocksServerUrl` override > app-level toolchain kind
+option > none). See [ROCKS-06](06-project-environment/requirements.md) for the environment facade and
+[TOOLING](../tooling/requirements.md) for the resolution stack.
 
 ## Motivation
 Managing Lua dependencies manually is error-prone and lacks IDE visibility. Integrating LuaRocks directly into the workflow provides a standardized ecosystem for package management, reducing context switching between the terminal and the editor.
@@ -62,10 +64,10 @@ Managing Lua dependencies manually is error-prone and lacks IDE visibility. Inte
 
 ## Detailed Implementation Status
 
-Per-feature, source-verified implementation status — the actual classes backing each feature — lives in
-[`status-detail.md`](../../status-detail.md), the audit generated by inspecting `src/main/kotlin/` and
-`plugin.xml`; the epic roll-up is in [`status.md`](../../status.md) (generated from doc front-matter).
-Refer to those instead of a hand-maintained table here, which had drifted to fictional class names
+The generated rollup files this section used to point at (`docs/status.md` / `docs/status-detail.md`)
+were **retired 2026-07-09** — canonical per-feature status is each feature's `requirements.md`
+front-matter (`status:`); `git grep '^status:' docs/features` is the live picture. There is no
+hand-maintained class table here either — an earlier one had drifted to fictional class names
 (`LuaRockspecGenerator`/`LuaRocksProjectTemplates`/`LuaRocksPathResolver`/`LuaRocksCommandLine` — none
 exist; the real backing classes are `LuaRocksProjectGenerator`, `LuaRocksScaffolder`, `LuaRocksTemplates`,
-and `LuaRocksRunConfiguration`).
+and `LuaRocksRunConfiguration`). *(Section updated 2026-07-16.)*

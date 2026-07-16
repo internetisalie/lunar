@@ -30,7 +30,7 @@ The Package Browser provides an IDE-native interface for exploring, searching, a
 ## Syntax/Behavior
 
 ### Search Logic
-- Uses the `luarocks` binary from `LuaRocksSettings.executablePath`. *(Future: project-bound resolution via TOOL-02 — not a Wave-10 dependency.)*
+- Uses the `luarocks` binary resolved via the TOOLING stack (`LuaRocksEnvironment.resolveExecutable` → `LuaToolResolver`); unresolved → configure hint, no PATH fallback. *(Originally `LuaRocksSettings.executablePath`; `LuaRocksSettings` was deleted by TOOLING-05 — updated 2026-07-16.)*
 - Supports fuzzy matching and regex patterns for advanced discovery.
 - Filters results based on the current Lua version compatibility (using `--lua-version` flag).
 

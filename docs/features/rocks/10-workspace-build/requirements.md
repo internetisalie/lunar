@@ -37,7 +37,9 @@ orders builds by inter-rock dependencies — that ordering is this feature's uni
     rock's rockspec parent, sequentially, stopping on the first non-zero exit,
   - streams all output to one console in the Run tool window.
 - Reuse of the ROCKS-04 command-line builder (`LuaRocksRunConfiguration.buildCommandLine`,
-  `LUAROCKS_COMMANDS`, `LuaRocksSettings.executablePath`) for each per-rock `luarocks make`.
+  `LUAROCKS_COMMANDS`; executable resolved via `LuaRocksEnvironment.resolveExecutable` — the
+  original `LuaRocksSettings.executablePath` was deleted by TOOLING-05) for each per-rock
+  `luarocks make`.
 
 ### Out of Scope
 
@@ -108,7 +110,9 @@ the transitive installed-rock graph.
 
 For each rock in topological order, ROCKS-10 constructs a transient `LuaRocksRunConfiguration`
 (ROCKS-04) configured with `command = "make"`, `rockspecPath = <the rock's rockspec path>`, and an
-empty `arguments`/`globalFlags`, then calls `buildCommandLine(LuaRocksSettings.getInstance().executablePath)`.
+empty `arguments`/`globalFlags`, then calls `buildCommandLine(...)` with the executable resolved
+via `LuaRocksEnvironment.resolveExecutable` *(originally `LuaRocksSettings.getInstance().executablePath`;
+`LuaRocksSettings` was deleted by TOOLING-05 — updated 2026-07-16)*.
 Because `"make" ∈ ROCKSPEC_COMMANDS` and `rockspecPath` is set, the resulting command line is
 `luarocks make <rockspec>` with working directory = the rockspec's **parent** folder
 (`LuaRocksRunConfiguration.resolveWorkingDirectory` already returns the rockspec parent when
@@ -182,7 +186,8 @@ the failing rock and its exit code.
 - **ROCKS-03** (dependency resolution): reuses `RockspecBridge.read` and the `DependencyNode`
   cycle concept (`isCycle`). Does **not** reuse the transitive installed-rock resolver.
 - **ROCKS-04** (task execution): reuses `LuaRocksRunConfiguration.buildCommandLine`,
-  `LUAROCKS_COMMANDS`, `ROCKSPEC_COMMANDS`, and `LuaRocksSettings.executablePath`.
+  `LUAROCKS_COMMANDS`, `ROCKSPEC_COMMANDS`, and TOOLING-stack executable resolution
+  (`LuaRocksEnvironment.resolveExecutable`; formerly `LuaRocksSettings.executablePath`).
 
 ## See Also
 - Design: [design.md](design.md)

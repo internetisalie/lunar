@@ -37,7 +37,7 @@ The configuration dialog will include:
 
 ### Execution
 Running the configuration will:
-1. Resolve the `luarocks` binary from `LuaRocksSettings.executablePath` (default: `luarocks` on `PATH`). *(Future: source it from the project-bound TOOL-01/02 registry once that integration lands — ROCKS does not depend on the TOOL track for Wave 10.)*
+1. Resolve the `luarocks` binary via `LuaRocksEnvironment.resolveExecutable(project)`, which delegates to the TOOLING-01/02 toolchain stack (`LuaToolResolver`). There is **no** `PATH` fallback — when no usable tool resolves, the run fails with a "configure a LuaRocks tool" hint. *(Updated 2026-07-16: the original app-level `LuaRocksSettings.executablePath` service was removed by the TOOLING-05 clean break.)*
 2. Execute the command in the IDE's execution console with proper ANSI color support.
 
 ## Requirements Table

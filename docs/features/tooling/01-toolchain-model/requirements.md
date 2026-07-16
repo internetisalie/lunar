@@ -69,7 +69,7 @@ application-level state alongside — not migrating — the legacy fields.
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
 | TOOLING-01-01 | **Kind descriptor model** | M | Full | `LuaToolKind` is a data descriptor (id, displayName, binaryNames, ProbeSpec, capabilities, minVersion, provisioning specs) replacing the `LuaToolType` enum and `LuaInterpreterFamily`. |
-| TOOLING-01-02 | **Built-in kind registry** | M | Full | `LuaToolKindRegistry` ships 8 built-in kinds (`lua`, `luajit`, `tarantool`, `luarocks`, `luacheck`, `stylua`, `luacov`, `busted`) with complete probe specs; lookup by id is O(1); the set is a data list. |
+| TOOLING-01-02 | **Built-in kind registry** | M | Full | `LuaToolKindRegistry` ships the built-in kinds enumerated by `LuaToolKindRegistry.BUILT_IN` with complete probe specs; lookup by id is O(1); the set is a data list. (As of 2026-07-16 that is 10 kinds: `lua`, `luajit`, `tarantool`, `luarocks`, `luacheck`, `stylua`, `luacov`, `busted`, `redis-server`, `valkey-server` — the last two added by REDIS. `BUILT_IN` is authoritative; don't hardcode the count.) |
 | TOOLING-01-03 | **Registered-tool & health model** | M | Full | `LuaRegisteredTool` (immutable) is the single inventory entry for tools *and* interpreters; `LuaToolHealth` separates fileExists / executable / probeOk(nullable) / probedAtMtime / reason; `isUsable` derives from them. |
 | TOOLING-01-04 | **Runtime info model** | M | Full | RUNTIME-capability kinds carry `LuaRuntimeInfo` (product, version, `LuaLanguageLevel`, `LuaPlatform`, banner line) filled by the probe; mapping rules reproduce today's `LuaInterpreterFamily` levelers. |
 | TOOLING-01-05 | **Semantic version handling** | M | Full | `SemanticVersion` parses `major[.minor[.patch]][-suffix]` and compares numerically component-by-component (never lexicographically). |
@@ -88,7 +88,9 @@ application-level state alongside — not migrating — the legacy fields.
 
 ### TOOLING-01-01/02: Kinds
 
-A kind is data, never an enum branch. The 8 built-in kinds and their complete probe specs
+A kind is data, never an enum branch. The built-in kinds (`LuaToolKindRegistry.BUILT_IN` —
+authoritative list; 10 as of 2026-07-16, after REDIS added `redis-server`/`valkey-server` to the
+original 8) and their complete probe specs
 (binary candidates, probe args, version regexes, timeouts, runtime mappings, minimum versions)
 are pinned in [design.md §2.2/§4](design.md) — extracted from the legacy code they replace:
 version regexes and flags from `tool/LuaToolValidator.kt:32-68,174-180`, binary-name candidates
@@ -173,7 +175,7 @@ Legacy fields it supersedes (deletion is TOOLING-05, cited here per the clean-br
 | 19 | 01-13 | Registered tool whose binary is then deleted from disk | `tools()` (twice) | returned health unchanged (last probed state); state object unmodified; **no** disk access. `refreshTool(id)` afterwards → `fileExists=false`, `TOOL_UPDATED` fired |
 | 20 | 01-06 | Executable file that is **not** a known kind, no hint | `registerTool(path)` | returns `null`, no event, inventory unchanged (no ProbeSpec to run) |
 | 21 | 01-01 | The `lua` kind literal from `LuaToolKindRegistry.BUILT_IN` | read its descriptor fields | `id="lua"`, `displayName="Lua"`, `binaryNames=["lua","lua5.*","lua-5.*"]`, `probe.args=["-v"]`, `capabilities` contains `RUNTIME`, `probe.runtime.productToken="Lua"`; `isRuntime==true` |
-| 22 | 01-02 | `LuaToolKindRegistry` | `all()`; then `findById` for each of `lua, luajit, tarantool, luarocks, luacheck, stylua, luacov, busted`, and `findById("nope")` | `all()` has exactly 8 kinds in §4.1 order; each id resolves to its kind (O(1) map lookup); `findById("nope")==null` |
+| 22 | 01-02 | `LuaToolKindRegistry` | `all()`; then `findById` for each of `lua, luajit, tarantool, luarocks, luacheck, stylua, luacov, busted`, and `findById("nope")` | `all()` returns exactly the `BUILT_IN` kinds in declaration order (was 8 at ship; 10 as of 2026-07-16 after REDIS added `redis-server`/`valkey-server`); each id resolves to its kind (O(1) map lookup); `findById("nope")==null` |
 | 23 | 01-03 | `LuaToolHealth` combinations, one `LuaRegisteredTool` per row: (a) `fileExists=T, executable=T, probeOk=true`; (b) `T,T,null` (never probed); (c) `T,T,false`; (d) `T,false,true`; (e) `false,false,true` | evaluate `isUsable` | (a)→`true`, (b)→`true` (probeOk `!= false`), (c)→`false`, (d)→`false`, (e)→`false` (truth table: `fileExists && executable && probeOk != false`) |
 | 24 | 01-03, 01-12 | One RUNTIME `LuaRegisteredTool` (full `LuaRuntimeInfo`, `origin=DISCOVERED`, `environmentId=null`) | map model → `RegisteredToolState` bean → back to model | resulting model equals the input field-for-field (id, kindId, path, version, luaVersion, runtime.product/version/languageLevel/platform/banner, origin, environmentId, health tri-state) — round-trip identity |
 | 25 | 01-06, 01-08 | Registered tool T whose current health/version already equal the values to be written | `updateToolCheck(T.id, sameHealth, sameVersion, sameLuaVersion, sameRuntime)` | inventory unchanged; **no** `LuaToolchainListener.TOPIC` event fired (no-op when unchanged); a subsequent `updateToolCheck` with a *changed* health fires exactly one `TOOL_UPDATED` |
@@ -182,8 +184,9 @@ Legacy fields it supersedes (deletion is TOOLING-05, cited here per the clean-br
 
 - [ ] All model types exist under `net.internetisalie.lunar.toolchain.model` with the exact
   shapes in design §2 (TOOLING-01-01…05).
-- [ ] `LuaToolKindRegistry.BUILT_IN` contains the 8 kinds with the probe-spec table of design
-  §4 verbatim (TOOLING-01-02).
+- [ ] `LuaToolKindRegistry.BUILT_IN` contains the built-in kinds with the probe-spec table of
+  design §4 verbatim (TOOLING-01-02). (Originally the 8 kinds of design §4; REDIS later added
+  `redis-server`/`valkey-server` — 10 total as of 2026-07-16.)
 - [ ] `LuaToolchainRegistry` is registered as an application service in `plugin.xml` and
   persists/round-trips its state in `lunar.xml` (TOOLING-01-06/07/12).
 - [ ] Every mutation observably fires `LuaToolchainListener.TOPIC` (TOOLING-01-08, TC 15-17).

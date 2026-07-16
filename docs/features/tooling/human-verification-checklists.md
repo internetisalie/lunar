@@ -594,6 +594,12 @@ and binding flows"*). Environment: containerized GoLand over VNC unless stated.
 
 ## Sign-off
 
+> **Note (2026-07-16):** the TOOLING epic is `done` and was verified **per-feature** — see each
+> feature's `requirements.md` verification notes (e.g. TOOLING-07's live-verification note dated
+> 2026-07-09 in `07-health-and-diagnostics/requirements.md`). The formal scenario-by-scenario
+> sign-off below was never performed, so the table is vacuously empty; it is kept for a future
+> full verification pass.
+
 | Section | Scenarios | Verified by | Date |
 |---------|-----------|-------------|------|
 | TOOLING-00 | 00.1–00.5 | | |

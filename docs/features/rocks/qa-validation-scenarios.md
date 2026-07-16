@@ -14,59 +14,67 @@ This document defines high-level validation scenarios to ensure the LuaRocks int
 
 ## 1. Project Lifecycle Scenarios (ROCKS-01)
 
+*(Corrected 2026-07-16 to the shipped wizard: there is no Template selector — the generator peer
+offers Library/Application radio buttons plus runtime-kind and Lua-version combos; rockspecs are
+named `-scm-1`, not `-dev-1`; `.luacheckrc`/`.stylua.toml` are explicitly out of scope.)*
+
 ### Scenario: New Library Scaffolding
 - **Goal**: Verify a user can start a new Lua library with correct LuaRocks structure.
 - **Pre-conditions**: IDE is open, no project loaded.
 - **Steps**:
-    1. Select **New Project** -> **Lua (LuaRocks)**.
+    1. Select **New Project** -> **LuaRocks**.
     2. Enter name `my-lua-lib`.
-    3. Select **Template**: `Standard Library/App`.
-    4. Select **Lua Version**: `5.4`.
+    3. Select **Project type**: `Library`.
+    4. Select **Runtime**: `Lua`, **Lua version**: `5.4`.
     5. Click **Create**.
 - **Expected Results**:
-    - Project created with `my-lua-lib-dev-1.rockspec` in root.
-    - `src/setup.lua` exists with correct `package.path` logic.
-    - `.luacheckrc` and `.stylua.toml` generated.
-    - `.gitignore` includes `/lua_modules/` and `/.luarocks/`.
+    - Project created with `my-lua-lib-scm-1.rockspec` in root.
+    - `src/my-lua-lib.lua` exists (main module). (`src/setup.lua` is generated only for
+      **Application** projects with **Loader Setup** checked.)
+    - `lua_modules/` directory exists.
+    - `.gitignore` includes the standard LuaRocks exclusions (e.g. `/lua_modules/`).
+    - No `.luacheckrc`/`.stylua.toml` (out of scope) and no `.luarocks/` (`luarocks init` is
+      not executed by the scaffolder).
 
 ### Scenario: Neovim Plugin Scaffolding
-- **Goal**: Verify specific structure for Neovim plugin developers.
-- **Steps**:
-    1. Select **New Project** -> **Lua (LuaRocks)**.
-    2. Select **Template**: `Neovim Plugin`.
-    3. Click **Create**.
-- **Expected Results**:
-    - Project contains `lua/my-plugin/` directory.
-    - `plugin/` directory exists for auto-load scripts.
-    - Rockspec correctly identifies the `lua/` folder as the module root.
+*(never implemented — removed 2026-07-16; the generator has only Library/Application project
+types, no Neovim Plugin template ever shipped)*
 
 ---
 
 ## 2. Package Management Scenarios (ROCKS-02)
 
 ### Scenario: Dependency Discovery & Installation
+*(Corrected 2026-07-16: the Package Browser is its own **LuaRocks Packages** tool window
+(bottom), separate from the **LuaRocks** dependency tool window (right) — they are two windows,
+not tabs of one. ROCKS-16 (planned 2026-07-16) will retitle them, not merge them.)*
 - **Goal**: Find and install a package without leaving the IDE.
 - **Steps**:
-    1. Open the **LuaRocks** tool window.
-    2. Go to the **Packages** tab.
-    3. Type `inspect` in the search bar.
-    4. Select the `inspect` rock from the results.
-    5. Verify README and license (MIT) appear in the detail pane.
-    6. Select version `3.1.0`.
-    7. Click **Install**.
+    1. Open the **LuaRocks Packages** tool window.
+    2. Type `inspect` in the search bar.
+    3. Select the `inspect` rock from the results.
+    4. Verify the package metadata (description, license) appears in the detail pane.
+    5. Select version `3.1.0`.
+    6. Click **Install**.
 - **Expected Results**:
     - Background task shows installation progress.
-    - `inspect` appears in the "Installed" list.
+    - `inspect` carries the installed marker (✓) in the results list. *(Known issue as of
+      2026-07-16: the list badge can go stale after install — tracked for fix in ROCKS-16.)*
     - `lua_modules/share/lua/5.4/inspect.lua` is physically present on disk.
 
-### Scenario: Multi-Repository Search
-- **Goal**: Verify searching across custom rock servers.
+### Scenario: Custom Rock Server Search
+*(Corrected 2026-07-16: there is no "Settings → Lua → LuaRocks" page. The default server URL is
+a LuaRocks kind option on the **Toolchain** page (Settings → Languages & Frameworks → Lua →
+Toolchain), with a per-project override on the **Lua Project** page. A single resolved server is
+used per search (`--server`); results are NOT attributed per-server in the list renderer.)*
+- **Goal**: Verify searching against a custom rock server.
 - **Steps**:
-    1. Open **Settings** -> **Lua** -> **LuaRocks**.
-    2. Add a custom rock server URL.
-    3. Search for a package only available on that server.
+    1. Set a custom rock server URL (Toolchain page kind option, or the project override on the
+       Lua Project page).
+    2. Search for a package only available on that server.
 - **Expected Results**:
-    - Package appears in the search results with correct server attribution.
+    - Package appears in the search results (the search command was issued with
+      `--server <url>`). No per-server attribution is shown in the list.
 
 ---
 
@@ -76,7 +84,8 @@ This document defines high-level validation scenarios to ensure the LuaRocks int
 - **Goal**: Understand the full dependency tree of a complex package.
 - **Steps**:
     1. Open a project that depends on `busted`.
-    2. Open the **LuaRocks** tool window -> **Dependencies** tab.
+    2. Open the **LuaRocks** tool window (the dependency-tree window, anchored right — separate
+       from **LuaRocks Packages**; corrected 2026-07-16).
     3. Expand the `busted` node.
 - **Expected Results**:
     - `say`, `luassert`, `mediator_lua`, etc., are shown as child nodes.
