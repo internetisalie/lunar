@@ -23,6 +23,7 @@ Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE
 | [`TYPE-06`](./06-return-type-checking/requirements.md) | **Return Type Checking** | **S** | Validate that `return` statements match the `@return` tag. |
 | [`TYPE-07`](./07-external-api-stubs/requirements.md) | **External API Stubs** | **S** | Allow `.lua` files to define types for external modules. |
 | [`TYPE-09`](./09-union-distribution-logic/requirements.md) | **Union Distribution Logic** | **M** | Distributive checking for union types. |
+| [`TYPE-10`](./10-lambda-parameter-inference/requirements.md) | **Expected-Type → Lambda-Parameter Inference** | **C** | Propagate a parameter's declared `fun(...)` type onto a passed lambda's parameters. |
 | `TYPE-08` | **Flow-Sensitive Analysis** | **C** | Narrow types based on control flow. |
 
 ---
