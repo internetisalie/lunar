@@ -60,9 +60,11 @@ is folded in as an acceptance criterion below).
 
 - Rebuilding the ROCKS-03 dependency-tree tool window's tree content (only its **name /
   tooltip** changes here, per BUG-366).
-- A background auto-refreshing Marketplace catalog / popular-packages list — dropped for good:
-  luarocks.org exposes no public JSON API for search/listing/download counts (risks Gap 2.1,
-  DR-03 investigation 2026-07-16); the Marketplace tab keeps a neutral zero-query prompt.
+- A background auto-refreshing Marketplace catalog / popular-packages list — **out of scope for v1**
+  (Marketplace tab keeps a neutral zero-query prompt), but a **feasible follow-on**: luarocks.org has
+  no JSON API, yet `/stats/this-week` (top downloads) and `/stats/dependencies` (top depended-upon)
+  publish scrapeable ranked tables keyed on `/modules/<author>/<name>` (risks Gap 2.1, corrected
+  2026-07-16). Not "impossible" — deferred, pending a build/skip decision.
 - Multi-tree / system-tree install targets (v1 is the project-local tree only, consistent
   with `LuaRocksTreeLocator` v1 scope).
 

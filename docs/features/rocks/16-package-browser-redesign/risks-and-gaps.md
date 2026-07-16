@@ -37,16 +37,26 @@ folders:
 
 ## Design Gaps
 
-### Gap 2.1: No zero-query Marketplace catalog — RESOLVED (option a)
+### Gap 2.1: No zero-query Marketplace catalog — v1 = option (a); popular-list follow-on FEASIBLE via scrape
 - **Question**: The Plugins page shows a default Marketplace catalog with no query. `luarocks
   search --all` is huge and slow; luarocks has no first-class "popular/recent" CLI.
-- **Decision (owner, 2026-07-16)**: option (a) — neutral `Idle` prompt on the Marketplace tab; the
-  Installed tab provides zero-query content. Option (b) was conditional on a public API and is
-  **dropped**: DR-03 investigation found luarocks.org exposes **no unauthenticated JSON API** for
-  search, listing, or download counts (`luarocks-site` `applications/api.moon` has only
-  API-key-gated upload/status endpoints plus a public `tool_version`; `?format=json` on
-  search/modules pages returns HTML). Popularity data exists only in HTML pages — scraping was
-  rejected as fragile. Revisit only if luarocks.org grows a public API.
+- **Decision (owner, 2026-07-16)**: v1 ships option (a) — neutral `Idle` prompt on the Marketplace
+  tab; the Installed tab provides zero-query content.
+- **Popular-list follow-on — CORRECTED 2026-07-16** (supersedes the earlier "dropped, no API"
+  record): luarocks.org exposes **no JSON API** (`?format=json` returns byte-identical HTML;
+  `luarocks-site` `applications/api.moon` is upload/auth-only + a public `tool_version`) — BUT the
+  popularity **data is published** on two stable, curated pages that are viable to scrape:
+  - **`https://luarocks.org/stats/this-week`** — "Top downloaded versions in the past 7 days",
+    `<table class="table">`, ~40 rows (e.g. LuaFileSystem 51,572; dkjson 32,931; luassert 32,461).
+  - **`https://luarocks.org/stats/dependencies`** — "Top depended-upon modules", `<table
+    class="table">`, ~28 rows (e.g. santoku 2,199; LuaSocket 2,040; lua-cjson 1,964).
+  Each row carries a `/modules/<author>/<name>` link — a stable per-package key. So the follow-on
+  is **feasible via a lightweight HTML scrape** of these two ranking tables (populate the
+  Marketplace zero-query view with "Popular / Trending"), *not* impossible for lack of an API. The
+  earlier DR-03 note wrongly conflated "no JSON API" with "no usable data" and over-stated the
+  scrape fragility — a ~30-row curated ranking table is a far lower-risk scrape than arbitrary
+  search-result pages. Caveat: any HTML scrape breaks if luarocks.org changes the markup, so gate
+  it behind a graceful "couldn't load popular list" fallback to the neutral prompt.
 
 ### Gap 2.2: Rockspec-dependency-add scope (ROCKS-16-13) — RESOLVED (in scope)
 - **Question**: Should install optionally append the rock to the project rockspec's `dependencies`?
@@ -63,8 +73,10 @@ folders:
 All three open items were decided by the product owner on 2026-07-16:
 1. **Roadmap placement** → Wave 18 (see Technical Debt above).
 2. **ROCKS-16-13** (add-to-rockspec) → in scope, this feature (Gap 2.2).
-3. **Zero-query Marketplace catalog** → neutral prompt; popular-list follow-on dropped — no public
-   luarocks.org API exists (Gap 2.1).
+3. **Zero-query Marketplace catalog** → v1 ships the neutral prompt. Popular-list follow-on is
+   **feasible** (corrected 2026-07-16): no JSON API, but `/stats/this-week` + `/stats/dependencies`
+   publish scrapeable ranked tables keyed on `/modules/<author>/<name>` (Gap 2.1). Re-decide whether
+   to build it as a follow-on now that it's known-viable.
 
 ## Epic-table drift (noted, not fixed here)
 `docs/features/rocks/requirements.md` has known drift the reviewer should be aware of: ROCKS-14/15
@@ -78,7 +90,7 @@ drifting rows (out of scope; flagged for a separate table-alignment chore).
 |----|--------|----------|--------|
 | ROCKS-16-00-DR-01 | Live: run `luarocks install --tree <proj>/lua_modules inspect`, then confirm `LuaRocksTreeLocator.installedRocks` enumerates it and the library provider shows it (VNC). | Risk 1.1, ROCKS-16-02 | todo |
 | ROCKS-16-00-DR-02 | Grep all callers of `LuaRocksSearchService.search`/`installed`; confirm only browser+tests; record the migration list for the wrapper. | Risk 1.3 | todo |
-| ROCKS-16-00-DR-03 | Investigate a feasible zero-query Marketplace list (luarocks.org manifest/API); decide option (a) vs (b) for Gap 2.1. | Gap 2.1 | done — no public JSON API (`api.moon` is upload/auth only); option (a) chosen, follow-on dropped (2026-07-16) |
+| ROCKS-16-00-DR-03 | Investigate a feasible zero-query Marketplace list (luarocks.org manifest/API); decide option (a) vs (b) for Gap 2.1. | Gap 2.1 | done — no JSON API (`api.moon` upload/auth only), but `/stats/this-week` + `/stats/dependencies` are scrapeable ranked tables → v1 ships option (a); popular-list follow-on is FEASIBLE via scrape, not dropped (corrected 2026-07-16) |
 | ROCKS-16-00-DR-04 | Prototype `JBHtmlPane` rendering a `luarocks show` detailed description (HTML sanitation, link handling) in the tool window over VNC. | ROCKS-16-04 | todo |
 | ROCKS-16-00-DR-05 | Decide add-to-rockspec scope (build vs defer) with the product owner; if deferred, file the follow-on feature. | Gap 2.2, ROCKS-16-13 | done — in scope, this feature (owner, 2026-07-16) |
 
