@@ -10,6 +10,13 @@ folders:
 
 # BUG-379: LuaRocks Packages tool window logs a SEVERE error (Alarm without parent Disposable) on every open
 
+> **RESOLVED 2026-07-16 (commit `1b6a8ee2`).** `PackageBrowserPanel` now implements `Disposable`,
+> is registered as the tool-window content's disposer (`content.setDisposer(panel)`), and constructs
+> the alarm as `Alarm(POOLED_THREAD, this)`. Verified live via the `verify-in-ide` VNC flow: opening
+> the tool window in a fresh GoLand 2026.1.3 sandbox renders cleanly with **zero** SEVERE/ERROR through
+> lunar code and no error balloon (the same action reproduced the SEVERE before the fix). ROCKS-16's
+> rebuild of this panel must preserve the parented-alarm/disposable-content invariant.
+
 ## 1. Reproduction
 
 1. Open any project in GoLand with the Lunar plugin loaded.

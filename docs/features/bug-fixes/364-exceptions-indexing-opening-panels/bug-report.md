@@ -17,6 +17,7 @@ folders:
 >   `IllegalArgumentException` (Alarm constructed without a parent `Disposable`) and shows a red
 >   "IDE error occurred" balloon on **every** open. Full stack trace captured. The sibling
 >   **LuaRocks** (dependency tree) and **Redis Functions** tool windows verified **clean**.
+>   **✅ RESOLVED 2026-07-16 (commit `1b6a8ee2`, live-verified).**
 > - **[[../380-rockspec-bridge-indexing-warn-flood/bug-report|BUG-380]]** (low) — the *indexing*
 >   half, **reclassified**: these are **not exceptions** but a `RockspecBridge` `WARN` flood (one
 >   line per rockspec — 165 in the session) on rockspec-heavy projects when no runtime resolves.
