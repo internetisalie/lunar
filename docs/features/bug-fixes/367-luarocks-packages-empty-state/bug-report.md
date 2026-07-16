@@ -43,3 +43,7 @@ dependencies) is left blank. It looks inconsistent and unattractive.
 - Same panel as [[bug-report|BUG-363]] (font), [[bug-report|BUG-365]] (alignment), and
   [[bug-report|BUG-368]] (dependencies list). These four are best addressed as a single
   `PackageDetailPanel` polish/rework.
+
+## Absorbed by ROCKS-16
+
+This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.

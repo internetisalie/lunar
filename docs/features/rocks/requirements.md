@@ -28,6 +28,11 @@ Lunar provides deep integration with LuaRocks for dependency management, package
 | [`ROCKS-12`](12-project-view-roots/requirements.md) | **Project-View Roots & Marking** | **M** | **Not Implemented** | Mark the installed-rock tree (`lua_modules`) as External Libraries and first-party `build.modules` source roots in the Project view. |
 | [`ROCKS-14`](14-hererocks-environment/requirements.md) | **Hererocks Environment Lifecycle** | **S** | **Full** | Detect / create / upgrade / recreate / remove an isolated hererocks Lua+LuaRocks env; bind its `lua`/`luarocks` via the interpreter + TOOL-02 machinery. Live provisioning/recreate (TC-9) pending human VNC verification. |
 | [`ROCKS-15`](15-multi-version-development/requirements.md) | **Multi-Version Rocks Development** | **C** | **Full** | Multiple envs + active-version switcher + cross-version test matrix. Depends on ROCKS-14. |
+| [`ROCKS-16`](16-package-browser-redesign/requirements.md) | **Package Browser Redesign (Plugins idiom)** | **S** | **Not Implemented** | Redesign the ROCKS-02 browser to the IDE Plugins-page idiom (tool window): Marketplace/Installed tabs, canonical `--tree` install target, honest error/empty states, rich detail pane. Absorbs BUG-363/365/366/367/368. |
+
+> **Table drift (known, tracked in ROCKS-16 risks-and-gaps):** ROCKS-14/15 show **Full** but their
+> front-matter is `superseded`; ROCKS-12 shows **Not Implemented** but is done. Not corrected here —
+> flagged for a separate table-alignment chore.
 
 ---
 

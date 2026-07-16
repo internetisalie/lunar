@@ -42,3 +42,7 @@ row baselines, inconsistent insets) still needs to be pinned down from a screens
 
 - Purely cosmetic. Best handled together with BUG-363 as a single "polish the LuaRocks Packages detail
   panel" change.
+
+## Absorbed by ROCKS-16
+
+This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.

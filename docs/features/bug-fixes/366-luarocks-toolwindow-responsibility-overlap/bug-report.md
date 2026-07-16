@@ -50,3 +50,7 @@ convey which one manages project dependencies vs. which one browses/installs fro
   descriptive tool-window titles/stripe tooltips.
 - Recommend a `plan-bug` (or lightweight design) pass to choose the approach before touching code;
   this touches user-facing IA and should be decided deliberately.
+
+## Absorbed by ROCKS-16
+
+This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.

@@ -51,3 +51,7 @@ standard IntelliJ font, so the panel looks inconsistent.
   content CSS sets the UI font, so it may exhibit the same class of mismatch and is worth fixing in the
   same pass.
 - Purely cosmetic; no functional impact.
+
+## Absorbed by ROCKS-16
+
+This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.

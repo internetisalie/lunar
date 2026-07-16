@@ -42,3 +42,7 @@ rather than as a proper list of items.
   [[bug-report|BUG-367]] (empty state) — best done together as one `PackageDetailPanel` rework.
 - Note `summaryArea` is also a `JTextArea` (that one is genuinely free-text, so it can stay a text
   area — just fix its font per BUG-363).
+
+## Absorbed by ROCKS-16
+
+This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.
