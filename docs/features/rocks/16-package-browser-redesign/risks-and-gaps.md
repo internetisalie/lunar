@@ -57,6 +57,8 @@ folders:
   scrape fragility — a ~30-row curated ranking table is a far lower-risk scrape than arbitrary
   search-result pages. Caveat: any HTML scrape breaks if luarocks.org changes the markup, so gate
   it behind a graceful "couldn't load popular list" fallback to the neutral prompt.
+- **Decision (owner, 2026-07-16)**: build it **in ROCKS-16 as a Could-have** — **ROCKS-16-15**,
+  Phase 8 (last, non-gating). Design §3.3a; tests TC-ROCKS-16-15a/b.
 
 ### Gap 2.2: Rockspec-dependency-add scope (ROCKS-16-13) — RESOLVED (in scope)
 - **Question**: Should install optionally append the rock to the project rockspec's `dependencies`?
@@ -73,10 +75,10 @@ folders:
 All three open items were decided by the product owner on 2026-07-16:
 1. **Roadmap placement** → Wave 18 (see Technical Debt above).
 2. **ROCKS-16-13** (add-to-rockspec) → in scope, this feature (Gap 2.2).
-3. **Zero-query Marketplace catalog** → v1 ships the neutral prompt. Popular-list follow-on is
-   **feasible** (corrected 2026-07-16): no JSON API, but `/stats/this-week` + `/stats/dependencies`
-   publish scrapeable ranked tables keyed on `/modules/<author>/<name>` (Gap 2.1). Re-decide whether
-   to build it as a follow-on now that it's known-viable.
+3. **Zero-query Marketplace catalog** → the neutral prompt is the baseline; the scraped popular list
+   (feasible via `/stats/this-week` + `/stats/dependencies`, keyed on `/modules/<author>/<name>`) is
+   now **in ROCKS-16 as a Could-have — ROCKS-16-15, Phase 8** (owner, 2026-07-16). No longer a
+   separate follow-on (Gap 2.1).
 
 ## Epic-table drift (noted, not fixed here)
 `docs/features/rocks/requirements.md` has known drift the reviewer should be aware of: ROCKS-14/15

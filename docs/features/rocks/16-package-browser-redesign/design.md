@@ -270,7 +270,9 @@ LuaRocksBrowserToolWindowFactory
 ### 3.3 Marketplace search flow (state transitions)
 - **Input**: debounced `query` from the Marketplace `SearchTextField`.
 - **Steps** (`LuaRocksBrowserModel.runMarketplaceSearch`):
-  1. On EDT: if `query.isBlank()` set `BrowserState.Idle` (neutral prompt) and return.
+  1. On EDT: if `query.isBlank()` set `BrowserState.Idle` (neutral prompt) and return. *(Could-have
+     ROCKS-16-15: when the popular list is enabled, a blank query instead triggers `loadPopular()`
+     — §3.3a — whose failure falls back to this same `Idle` prompt.)*
   2. Set `BrowserState.Loading`; fire `onState`.
   3. `executeOnPooledThread`: resolve `exe`; if `null` → post `BrowserState.Error(LUAROCKS_NOT_CONFIGURED)`.
   4. Else call `LuaRocksSearchService.search(query, project, treeRoot)`; on the new
@@ -278,6 +280,31 @@ LuaRocksBrowserToolWindowFactory
   5. Else build `LuaRockRow`s (installed flag from the tree list; `hasUpdate` computed via
      §3.2 against `latestOf`) and post `BrowserState.Results(rows)`.
   6. All posts go through `invokeLater { … onState(state) }`.
+
+### 3.3a Popular-packages list (Could-have — ROCKS-16-15)
+- **Input**: none (zero-query Marketplace view).
+- **Component**: `LuaRocksPopularService` (`@Service`, project- or app-level) with a TTL cache
+  mirroring `LuaRocksSearchCache`.
+- **Steps** (`LuaRocksBrowserModel.loadPopular`):
+  1. On EDT: set `BrowserState.Loading`.
+  2. `executeOnPooledThread`: `LuaRocksPopularService.fetch()` GETs
+     `https://luarocks.org/stats/this-week` (primary) — optionally merge `/stats/dependencies` — off
+     the EDT with a short timeout.
+  3. Parse the `<table class="table">` rows; derive each package name from the row's
+     `/modules/<author>/<name>` href (the stable key), preserving rank order; keep the count column
+     for a secondary label. Malformed/blank rows are skipped.
+  4. **Any** non-200 / empty body / parse failure → return an **empty list** (never throw, never an
+     error state).
+  5. On EDT: if the list is non-empty, build `LuaRockRow`s (installed flag from the tree list, same
+     as §3.3 step 5) and post `BrowserState.Results(rows)` labelled "Popular"; if empty, post
+     `BrowserState.Idle` (the neutral prompt) — a missing popular list is **not** an error.
+- **Rule**: this path never yields `BrowserState.Error` — it is best-effort decoration of the
+  zero-query view, so it must degrade to the ordinary prompt, distinct from the ROCKS-16-05 error
+  model (which is reserved for an unresolved binary / failed CLI on an *explicit* user action).
+- **Fragility note**: the scrape depends on luarocks.org markup (`<table class="table">` +
+  `/modules/<author>/<name>` links); if the page changes, the empty-list fallback keeps the tab
+  usable. Parser is unit-tested against a captured static fixture (TC-ROCKS-16-15a), not the live
+  site.
 
 ### 3.4 In-place refresh after install/uninstall
 - **Input → Output**: `name: String` → mutated row + single change event.
@@ -435,6 +462,7 @@ change.
 | ROCKS-16-12 | S | §2.4, §3.2 |
 | ROCKS-16-13 | S | §2.6 button + risks DR-05 (in scope, owner 2026-07-16) |
 | ROCKS-16-14 | C | §2.6 (version picker) |
+| ROCKS-16-15 | C | §3.3a (`LuaRocksPopularService` scrape + fallback) |
 
 ## 9. Alternatives Considered
 

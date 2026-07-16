@@ -94,6 +94,21 @@ fully unit-testable **before** any UI work.
     rockspec machinery.
 - **Exit criteria**: a unit test asserts the rockspec edit.
 
+### Phase 8: Popular-packages Marketplace list [Could — ROCKS-16-15] — [logic + UI]
+- **Goal**: Populate the Marketplace zero-query view with a scraped "Popular / Trending" list
+  instead of the neutral prompt; degrade silently on failure (owner decision 2026-07-16: build in
+  this feature as a Could-have). Do this LAST — it must not gate the Must/Should phases.
+- **Tasks**:
+  - [ ] Add a `LuaRocksPopularService` that fetches `luarocks.org/stats/this-week` (and/or
+    `/stats/dependencies`) off the EDT and parses the `<table class="table">` rows, deriving each
+    package name from the row's `/modules/<author>/<name>` link; TTL-cached (reuse the
+    `LuaRocksSearchCache` pattern). Any non-200 / empty / unparseable response → empty list, no throw.
+  - [ ] When the Marketplace tab has no query, render the popular list through the existing result
+    renderer (installed-✓ cross-ref, click-to-detail); on empty result, show the neutral prompt.
+- **Exit criteria**: TC-ROCKS-16-15a (parser over a static HTML fixture) + TC-ROCKS-16-15b (fetch
+  failure → neutral prompt, not the error state) green; VNC-verify the popular list renders and that
+  killing network access falls back to the prompt (not a red error state).
+
 ## Requirement → Phase Coverage
 
 | Requirement | Priority | Delivered in |
@@ -112,6 +127,7 @@ fully unit-testable **before** any UI work.
 | ROCKS-16-12 | S | Phase 6 |
 | ROCKS-16-13 | S | Phase 7 (in scope per DR-05) |
 | ROCKS-16-14 | C | Phase 4 |
+| ROCKS-16-15 | C | Phase 8 |
 
 ## Verification Tasks
 - [ ] Add `LuaRocksInstallCommandTest` — covers TC-ROCKS-16-01/-02/-03/-04.

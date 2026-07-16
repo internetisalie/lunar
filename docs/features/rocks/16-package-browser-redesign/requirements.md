@@ -55,16 +55,18 @@ is folded in as an acceptance criterion below).
 - **Empty state** — `JBPanelWithEmptyText` for "no package selected".
 - **Tool-window differentiation** (BUG-366) — rename the two tool windows so their roles are
   unambiguous, and set stripe tooltips.
+- **Popular-packages Marketplace list** (Could, ROCKS-16-15) — replace the Marketplace tab's neutral
+  zero-query prompt with a "Popular / Trending" list scraped from luarocks.org's curated stats pages
+  (`/stats/this-week`, `/stats/dependencies`), degrading gracefully to the neutral prompt on any
+  fetch/parse failure. See ROCKS-16-15 and risks Gap 2.1.
 
 ### Out of Scope
 
 - Rebuilding the ROCKS-03 dependency-tree tool window's tree content (only its **name /
   tooltip** changes here, per BUG-366).
-- A background auto-refreshing Marketplace catalog / popular-packages list — **out of scope for v1**
-  (Marketplace tab keeps a neutral zero-query prompt), but a **feasible follow-on**: luarocks.org has
-  no JSON API, yet `/stats/this-week` (top downloads) and `/stats/dependencies` (top depended-upon)
-  publish scrapeable ranked tables keyed on `/modules/<author>/<name>` (risks Gap 2.1, corrected
-  2026-07-16). Not "impossible" — deferred, pending a build/skip decision.
+- A **background auto-refreshing** Marketplace catalog / daemon that continuously polls the registry
+  (the popular list, if built per ROCKS-16-15, is fetched on-demand with a TTL cache, not a
+  background poller).
 - Multi-tree / system-tree install targets (v1 is the project-local tree only, consistent
   with `LuaRocksTreeLocator` v1 scope).
 
@@ -86,6 +88,7 @@ is folded in as an acceptance criterion below).
 | **ROCKS-16-12** | **Update detection & affordance** | **S** | Not Implemented | For an installed rock whose latest available version is greater, surface an Update badge and an Update button that runs `luarocks install --tree <treeRoot>`. |
 | **ROCKS-16-13** | **Add-to-rockspec affordance** | **S** | Not Implemented | An "Add to rockspec dependencies" action that appends the installed rock to the discovered project rockspec's `dependencies`. In scope for this feature (owner decision 2026-07-16, risks DR-05). |
 | **ROCKS-16-14** | **Version picker parity** | **C** | Not Implemented | Retain the per-package version picker (ROCKS-02-06) in the detail pane; install uses the selected version. |
+| **ROCKS-16-15** | **Popular-packages Marketplace list** | **C** | Not Implemented | When the Marketplace tab has no query, show a "Popular / Trending" list scraped from luarocks.org's curated stats tables (`/stats/this-week` top-downloads and/or `/stats/dependencies` top-depended-upon), each row keyed on the `/modules/<author>/<name>` link and reusing the existing result renderer (installed-✓, click-to-detail). Fetched on-demand with a TTL cache; **any fetch/parse failure degrades silently to the neutral zero-query prompt** (ROCKS-16-05 error model does not apply — a missing popular list is not an error state). See risks Gap 2.1. |
 
 ## Test Cases
 
@@ -168,3 +171,17 @@ is folded in as an acceptance criterion below).
 - **Expected Output**: the browser tool window id is `LuaRocks Packages` with stripe title
   "LuaRocks Packages"; the dependency tool window id remains `LuaRocks` but its stripe title is
   "LuaRocks Dependencies" (design §7).
+
+### TC-ROCKS-16-15a: Popular-list HTML parser (unit — ROCKS-16-15)
+- **Input**: a captured static HTML fixture of `luarocks.org/stats/this-week` (the
+  `<table class="table">` rows), stored under test resources (no network in the test).
+- **Action**: run the popular-list parser over the fixture string.
+- **Expected Output**: an ordered list of entries with the package name derived from each row's
+  `/modules/<author>/<name>` link (e.g. `luafilesystem`, `dkjson`, `luassert`, …) preserving rank
+  order; the count column is captured; malformed/blank rows are skipped without throwing.
+
+### TC-ROCKS-16-15b: Popular-list fetch failure degrades to neutral prompt (unit — ROCKS-16-15)
+- **Input**: a stubbed fetcher that returns a non-200, an empty body, or unparseable HTML.
+- **Action**: request the Marketplace zero-query view.
+- **Expected Output**: the parser returns an empty list (no throw), and the Marketplace tab falls
+  back to the neutral zero-query prompt — **not** the ROCKS-16-05 error state.
