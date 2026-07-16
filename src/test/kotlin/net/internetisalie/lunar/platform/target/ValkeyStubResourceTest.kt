@@ -44,6 +44,28 @@ class ValkeyStubResourceTest : IndexedBasePlatformTestCase() {
         }
     }
 
+    // `LuaProjectSettings` is a project-level service and `BasePlatformTestCase` reuses one light
+    // project across every test in the module run, so the `Target(VALKEY, "8")` set here would leak
+    // into the alphabetically-later suites that (correctly) assume the STANDARD default — polluting
+    // their library roots (valkey stubs indexed) and breaking `require`/dotted-member resolution.
+    // Restore the default target on teardown so Valkey stub coverage stays isolated. (Same latent
+    // leak fixed in `RedisAmbientTypingTest`/`LuaRedisCommandInspectionTest`.)
+    override fun tearDown() {
+        try {
+            setStandardTarget("5.4")
+        } finally {
+            super.tearDown()
+        }
+    }
+
+    private fun setStandardTarget(label: String) {
+        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label))
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            LuaProjectSettings.getInstance(project).setTargetAndNotify(Target(LuaPlatform.STANDARD, version))
+            PlatformLibraryIndex.reload()
+        }
+    }
+
     /** Resolve the member leaf of a `receiver.member(...)` call in [source] against the bundled stubs. */
     private fun resolveCountForMember(source: String, member: String): Int {
         setValkey8Target()
