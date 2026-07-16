@@ -136,7 +136,7 @@ overrides an explicit annotation.
 | # | Requirement | Given (input) | When (action) | Then (expected) |
 |---|-------------|---------------|---------------|-----------------|
 | 1 | TYPE-10-01, TYPE-10-02 | `redis.register_function('f', function(keys, args) return keys[1] end)` under a Redis target | `getValueType(exprFor("keys"))` | `string[]` (`keys` typed from `callback fun(keys: string[], args: string[])`) |
-| 2 | TYPE-10-01, TYPE-10-02 | same as #1 | `getValueType(exprFor("keys[1]"))` | `string` (re-enables REDIS-05 TC-STUB-1) |
+| 2 | TYPE-10-01, TYPE-10-02 | same as #1 | `getValueType(exprFor("keys[1]"))` | `string` (re-enables REDIS-05 TC-STUB-1). This exercises the lazy-subscript path (design §3.4): the `keys[1]` subscript is visited *before* the `keys` param is seeded, so it must resolve via the deferred `arrayElementType(keys.node.write)` read, not an eager one. |
 | 3 | TYPE-10-01, TYPE-10-02 | `table.sort(t, function(a, b) return a end)` (any target) | `getValueType(exprFor("a"))` | `any` (comparator declared `fun(a: any, b: any)`) — proves stub-driven propagation without asserting element narrowing |
 | 4 | TYPE-10-01 | `---@param cb fun(x: string)`\n`local function run(cb) end`\n`run(function(x) return x end)` | `getValueType(exprFor("x"))` | `string` (LuaCATS-annotated local callee) |
 | 5 | TYPE-10-03 | `run(---@param x number\nfunction(x) return x end)` with `run`'s `cb` = `fun(x: string)` | `getValueType(exprFor("x"))` | `number` (direct `---@param` wins) |

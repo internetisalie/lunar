@@ -23,7 +23,9 @@ the propagated type reaches a **user-visible** surface — the real-flow DoD tha
      `local c = keys[1]:` .
   3. Invoke completion (Ctrl+Space).
 - **Expected**: string methods (e.g. `sub`, `upper`, `len`, `byte`) are offered — proving
-  `keys` is `string[]` and `keys[1]` is `string` (re-enables REDIS-05 TC-STUB-1).
+  `keys` is `string[]` and `keys[1]` is `string` (re-enables REDIS-05 TC-STUB-1). This is the
+  live proof of the lazy-subscript path (design §3.4): `keys[1]` is parsed/visited before the
+  `keys` param is seeded, so a correct result confirms the deferred `arrayElementType` read.
 - **Result**: ⬜ Pass / ⬜ Fail
 
 ### Scenario 1.2: `register_function` callback params via inferred-type surface

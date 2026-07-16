@@ -34,23 +34,40 @@ gate**, not optional. Order: build the resolver in isolation (Phase 1), wire pro
   `fun(a: any, b: any): boolean` (feeds TC 1, 3). Build green.
 
 ### Phase 2: Propagation in visitFuncCall [Must]
-- **Goal**: seed un-annotated lambda parameters from the expected callback type.
+- **Goal**: seed un-annotated lambda parameters from the expected callback type, and make the
+  subscript path order-independent so a seeded receiver's `receiver[i]` resolves (design §3.4).
 - **Tasks**:
+  - [ ] **Lazy subscript seeding (design §3.4) — required for TC 2/9.** Add
+        `LuaTypeGraph.lazyValue(element: PsiElement, compute: () -> LuaGraphType): ValueNode`
+        (`LuaTypeGraph.kt`, mirrors `value`, `LuaTypeGraph.kt:52-57`) and
+        `internal class LazyValueElement(element, compute) : ValueNode` with a computed
+        `write` getter (`LuaTypeNodes.kt`, mirrors `ValueElement`, `LuaTypeNodes.kt:54-57`).
+        Rewrite `seedSubscriptElement` (`LuaTypesVisitor.kt:674-679`) to register
+        `elementNodes[o] = listOf(graph.lazyValue(o) { arrayElementType(receiverNode.write) ?:
+        LuaGraphType.Undefined })` — no eager `arrayElementType` call, no early-return on a
+        currently-`Undefined` receiver write. This closes the intra-traversal ordering hazard
+        (the `keys[1]` subscript is visited during `super.visitFuncCall`, before the seed edge).
   - [ ] Add private `propagateExpectedLambdaParams(o, argExprs, calleeUnwrapped)`,
         `seedLambdaParams(lambda, expected)`, `isAlreadyAnnotated(paramNode)` to
         `LuaTypesVisitor` (`LuaTypesVisitor.kt`) — realizes design §3.1. Each ≤30 logic lines,
         ≤3 args (exactly 3 on `propagateExpectedLambdaParams`; `LuaFuncCall` is not a
-        `Project`/`Disposable`, so it counts — stays at the cap).
+        `Project`/`Disposable`, so it counts — stays at the cap). Its `argExprs` parameter is
+        typed **`List<PsiElement>`** to match the visitor's real local
+        (`LuaTypesVisitor.kt:571-576`, whose `args.string` branch is `PsiElement` per
+        `LuaArgs.getString()`, `LuaArgs.java:17`); per-slot narrowing is
+        `unwrapExpression(argExpr) as? LuaFuncDef` (design §3.1 step 2a).
   - [ ] Call `propagateExpectedLambdaParams(o, argExprs, calleeUnwrapped)` in `visitFuncCall`
         after `argNodes` is built and before
         `graph.addEdge(calleeNode, graph.use(o, callDemand))` (`LuaTypesVisitor.kt:607`) —
         realizes design §2.1.
   - [ ] Implement the `isAlreadyAnnotated` precedence gate via `paramNode.write !=
         LuaGraphType.Undefined` — realizes design §3.1 step 4 / requirements TYPE-10-03.
-  - [ ] Method-call `selfOffset` handling (design §6) — pass 1 when
-        `nameAndArgs.methodExpr != null`, else 0.
+  - [ ] Method-call `selfOffset` handling (design §3.1 step 1 / §6) — pass 1 only when
+        `nameAndArgs.methodExpr != null && calleeType.params.firstOrNull()?.name == "self"`
+        (the mirrored inlay-provider guard, `LuaParameterInlayHintsProvider.kt:60-63`), else 0.
 - **Exit criteria**: TC 1, 2, 3, 4, 5, 6, 7, 8 green as engine-level
-  `IndexedBasePlatformTestCase` tests. Build green.
+  `IndexedBasePlatformTestCase` tests, AND the existing `ArraySubscriptTypeTest` (all 4 cases)
+  stays green (guards the §3.4 lazy-subscript blast radius). Build green.
 
 ### Phase 3: Regression contract + user-visible surfacing [Must]
 - **Goal**: prove no inference regression across the shared seam and its consumers, and
@@ -64,7 +81,8 @@ gate**, not optional. Order: build the resolver in isolation (Phase 1), wire pro
         (`keys[1]:` offers `string` members) OR an inlay/hint assertion on `keys`.
   - [ ] Run the **full** `.../lang/types/*` suite (not isolated `--tests`) plus consumers per
         the regression contract (see risks-and-gaps §"Regression contract"): confirm 0
-        failures — realizes requirements TYPE-10-06.
+        failures — realizes requirements TYPE-10-06. This full suite includes
+        `ArraySubscriptTypeTest` (all 4 cases), the guard for the §3.4 lazy-subscript change.
 - **Exit criteria**: TC 1–10 green AND the full type-engine suite green on a full-suite run
   AND `run build` (checkStatus/koverVerify/integrationTest) green.
 
