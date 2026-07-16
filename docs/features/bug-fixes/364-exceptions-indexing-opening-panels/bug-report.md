@@ -10,8 +10,8 @@ folders:
 
 # BUG-364: Numerous exceptions thrown during indexing and when opening tool-window panels
 
-> **DIAGNOSED 2026-07-16 (VNC session, GoLand 2026.1.3, lunar 0.18.0) — this umbrella is now
-> resolved into two root-caused children; fix work happens in them, not here:**
+> **✅ CLOSED 2026-07-16 — diagnosed via VNC (GoLand 2026.1.3, lunar 0.18.0) into two root-caused
+> children, both now fixed: BUG-379 (commit `1b6a8ee2`, live-verified) + BUG-380 (commit `bab34472`).**
 > - **[[../379-luarocks-packages-alarm-parent-disposable/bug-report|BUG-379]]** (high) — the
 >   *panel-open* half: opening the **LuaRocks Packages** tool window logs a `SEVERE`
 >   `IllegalArgumentException` (Alarm constructed without a parent `Disposable`) and shows a red
@@ -21,6 +21,7 @@ folders:
 > - **[[../380-rockspec-bridge-indexing-warn-flood/bug-report|BUG-380]]** (low) — the *indexing*
 >   half, **reclassified**: these are **not exceptions** but a `RockspecBridge` `WARN` flood (one
 >   line per rockspec — 165 in the session) on rockspec-heavy projects when no runtime resolves.
+>   **✅ RESOLVED 2026-07-16 (commit `bab34472`).**
 > A full-session sweep (all three implicated tool windows + full indexing) found **exactly one**
 > throwable through lunar code (BUG-379) and **zero** other exceptions. The user's "numerous
 > exceptions" = BUG-379's red balloon + BUG-380's Event-Log WARN noise.

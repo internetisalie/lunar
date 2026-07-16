@@ -10,6 +10,14 @@ folders:
 
 # BUG-380: RockspecBridge floods the log with per-rockspec WARNings during indexing when no runtime resolves
 
+> **RESOLVED 2026-07-16 (commit `bab34472`).** The line-40 "no Lua runtime is configured" message
+> is demoted from `warn` to `debug` (off by default) — it is an expected, benign condition already
+> surfaced once by the toolchain banner / `[TOOLCHAIN-DIAG]`. Behavior is unchanged (`read` still
+> returns null); the line-51 "bridge failed" WARN (runtime present but parse failed) stays at WARN.
+> Verified via the full unit suite (`cleanTest test`) + ktlintCheck green. The subprocess-per-rockspec
+> perf note (with a runtime configured) is left as a separate future optimization, not part of this
+> log-noise fix.
+
 ## 1. Reproduction
 
 1. Open a project that contains many `.rockspec` files (the `test` fixture tree has ~100+ under
