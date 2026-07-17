@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.project.Project
 import com.intellij.util.Alarm
 import com.intellij.openapi.wm.ToolWindow
@@ -50,12 +51,17 @@ class LuaRocksPackageBrowserToolWindowFactory : ToolWindowFactory, DumbAware {
 
     // ── Inner panel ──────────────────────────────────────────────────────────
 
-    private class PackageBrowserPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
+    private class PackageBrowserPanel(private val project: Project) :
+        JPanel(BorderLayout()), Disposable, LuaRocksBrowserModel.Listener {
         private val searchField = SearchTextField(true)
         private val listModel = DefaultListModel<LuaRockPackage>()
         private val packageList = JBList(listModel).apply { cellRenderer = PackageCellRenderer() }
-        private val detailPanel = PackageDetailPanel(project)
+        private val model = LuaRocksBrowserModel(ProjectBackend(project), this)
+        private val detailPanel = PackageDetailPane(project, model).also { Disposer.register(this, it) }
         private val statusLabel = JBLabel("").apply { border = JBUI.Borders.empty(2, 6) }
+
+        override fun onState(state: BrowserState) = Unit
+        override fun onRowChanged(index: Int) = Unit
 
         /**
          * Alarm for 300 ms debounce on the search field. Parented to this panel (the tool window
@@ -94,7 +100,7 @@ class LuaRocksPackageBrowserToolWindowFactory : ToolWindowFactory, DumbAware {
                     detailPanel.showEmpty()
                 } else {
                     val versions = versionsByName[pkg.name] ?: listOf(pkg.version)
-                    detailPanel.showPackage(pkg, versions)
+                    detailPanel.showPackage(LuaRockRow(pkg, pkg.isInstalled), versions)
                 }
             }
         }

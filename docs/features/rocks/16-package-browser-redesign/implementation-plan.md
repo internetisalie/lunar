@@ -61,14 +61,16 @@ fully unit-testable **before** any UI work.
 ### Phase 4: Detail pane redesign [Must] — [pure-UI / VNC-verified]
 - **Goal**: Replace `PackageDetailPanel` with `PackageDetailPane` in the Plugins idiom.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.PackageDetailPane` + `DependencyRow` —
+  - [x] Create `net.internetisalie.lunar.rocks.browser.PackageDetailPane` + `DependencyRow` —
     realizes design §2.6 (`JBHtmlPane` description, `JBPanelWithEmptyText` empty card, `JBList`
     deps with click-to-search, inline Install/Uninstall/Update button with progress, Error card
-    with Configure link, NoTree card, `CardLayout`).
-  - [ ] Delete `PackageDetailPanel`.
-- **Exit criteria**: TC-ROCKS-16-10 passes (unit on `dependencyRows`); human-verification
-  checklist items for font parity (BUG-363), alignment (BUG-365), empty state (BUG-367),
-  clickable deps (BUG-368), error/Configure link (ROCKS-16-05).
+    with Configure link, NoTree card, `CardLayout`). Selection-staleness guard (finding #48) via a
+    monotonic `selectionToken` checked in the metadata callback.
+  - [x] Delete `PackageDetailPanel`. (Legacy `PackageBrowserPanel` bridged to the new pane + a model
+    until Phase 5 replaces it.)
+- **Exit criteria**: TC-ROCKS-16-10 passes (unit on `dependencyRows`) ✅ 2 tests / 0 failures.
+  Human-verification items (font parity BUG-363, alignment BUG-365, empty state BUG-367, clickable
+  deps BUG-368, error/Configure link ROCKS-16-05) DEFERRED to the supervised verify-in-ide pass.
 
 ### Phase 5: Two-tab panel + tool-window differentiation [Must] — [pure-UI / VNC-verified]
 - **Goal**: `JBTabbedPane` Marketplace/Installed surface, target-tree strip, renamed tool windows.
@@ -151,7 +153,7 @@ fully unit-testable **before** any UI work.
 | Phase 1: Canonical install/uninstall target | done | Must |
 | Phase 2: Installed listing + error model | done | Must |
 | Phase 3: Browser state model | done | Must |
-| Phase 4: Detail pane redesign | planned | Must |
+| Phase 4: Detail pane redesign | done (unit; VNC deferred) | Must |
 | Phase 5: Two-tab panel + tool-window differentiation | planned | Must |
 | Phase 6: Update affordance | planned | Should |
 | Phase 7: Add-to-rockspec affordance | planned | Should |
