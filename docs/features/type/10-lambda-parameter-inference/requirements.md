@@ -2,7 +2,7 @@
 id: "TYPE-10"
 title: "10: Expected-Type → Lambda-Parameter Inference"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "low"
 parent_id: "TYPE"
 folders:
