@@ -60,6 +60,7 @@ class LuaTargetSynchronizer(private val project: Project) : Disposable {
 
     private fun recompute() {
         try {
+            if (LuaProjectSettings.getInstance(project).state.explicitTarget) return
             val resolved = effectiveRuntimeTool()
             val newId = resolved?.id
             if (newId == lastAppliedRuntimeId) return

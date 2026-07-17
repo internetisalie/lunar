@@ -77,9 +77,14 @@ data class Target(
     companion object {
         /**
          * Creates a default Target (Standard Lua 5.4).
+         *
+         * Pins the documented 5.4 version explicitly (TOOLING-08 / review #50): the registry's first
+         * STANDARD entry is 5.1, so [PlatformVersionRegistry.defaultVersion] would silently return
+         * Lua 5.1. Falls back to the first registered version only if 5.4 is somehow absent.
          */
         fun default(): Target {
-            val defaultVersion = PlatformVersionRegistry.defaultVersion(LuaPlatform.STANDARD)
+            val defaultVersion = PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, "5.4")
+                ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.STANDARD)
                 ?: throw IllegalStateException("No default version found for STANDARD platform")
             return Target(LuaPlatform.STANDARD, defaultVersion)
         }

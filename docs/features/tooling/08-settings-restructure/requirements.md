@@ -2,7 +2,7 @@
 id: "TOOLING-08"
 title: "08: Lua Settings Restructure"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "TOOLING"
 folders:

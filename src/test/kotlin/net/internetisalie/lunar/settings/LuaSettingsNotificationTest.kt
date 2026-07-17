@@ -6,6 +6,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.platform.target.VersionEntry
+import net.internetisalie.lunar.project.LuaSettingsChangeListener
 import net.internetisalie.lunar.project.PlatformLibraryProvider
 
 /**
@@ -37,6 +38,18 @@ class LuaSettingsNotificationTest : BasePlatformTestCase() {
         val stored = LuaProjectSettings.getInstance(project).state.getTarget()
         assertEquals(LuaPlatform.STANDARD, stored.platform)
         assertEquals("5.4", stored.version.label)
+    }
+
+    fun testSettingsChangeListenerIsARealSubscriber() {
+        // review #41: instantiating the @Service subscribes it to the topic so setTargetAndNotify
+        // reaches PlatformLibraryIndex.reload + daemon restart. Publishing the topic after
+        // instantiation must not throw (the listener runs its reload/restart handler).
+        val listener = LuaSettingsChangeListener.getInstance(project)
+        assertNotNull(listener)
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            LuaProjectSettings.getInstance(project)
+                .setTargetAndNotify(Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4")))
+        }
     }
 
     fun testGetSupportLibrariesReturnsPlatformLibraryForValidTarget() {

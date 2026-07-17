@@ -74,7 +74,7 @@ The supervisor should place the roadmap row.
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
 | TOOLING-00-DR-08a | Confirm `com.intellij.ui.dsl.builder.Panel.collapsibleGroup` exists in the pinned SDK and defaults to collapsed | Risk 1.3 | todo |
-| TOOLING-00-DR-08b | Confirm `explicitTarget` XML round-trips through `lunar.xml` and defaults `false` for an old file with no tag | §3 edge case | todo |
+| TOOLING-00-DR-08b | Confirm `explicitTarget` XML round-trips through `lunar.xml` and defaults `false` for an old file with no tag | §3 edge case | done (Phase 1) — `LuaSettingsSerializationTest.explicitTargetRoundTripsAndDefaultsFalseForOldFile` |
 
 ## Absorbed codebase-review findings (2026-07-17)
 
@@ -82,11 +82,11 @@ The 2026-07 codebase review ([docs/review.md](../../../review.md); remediation v
 2026-07-17) has three open findings in the settings machinery this feature restructures. They are
 **in scope here**; do not file/fix them separately:
 
-| Review # | Defect | Where it lands here |
-|----|----|----|
-| #41 | Settings event bus half-dead: the topic is now *published* (`LuaTargetSynchronizer`, `LuaProjectConfigurable`) but the sole subscriber `LuaSettingsChangeListener` is a lazy `@Service` nothing instantiates — events go nowhere | The explicit-target/bindings rework must make the change-notification chain real (instantiate/register the listener, or replace the mechanism) — arguably Phase 0 |
-| #44 | `LuaApplicationSettingsConfigurable` has no `reset()`/`disposeUIResources()`; panel mutates live persisted `LuaInterpreter` objects pre-Apply — Cancel can't undo | DSL migration phase: clone-edit-commit pattern + full Configurable lifecycle |
-| #50 | `Target.default()` documented "Standard Lua 5.4" but resolves to the registry's first entry (5.1) | Explicit-target work (BUG-362) must pin the documented default |
+| Review # | Defect | Where it lands here | Status |
+|----|----|----|----|
+| #41 | Settings event bus half-dead: the topic is now *published* (`LuaTargetSynchronizer`, `LuaProjectConfigurable`) but the sole subscriber `LuaSettingsChangeListener` is a lazy `@Service` nothing instantiates — events go nowhere | The explicit-target/bindings rework must make the change-notification chain real (instantiate/register the listener, or replace the mechanism) — arguably Phase 0 | **CLOSED (Phase 1).** `LuaSettingsChangeListener` is now `Disposable`, scopes its bus connection to its own lifetime, and is instantiated per-project by the already-registered `LuaTargetSyncStartup` ProjectActivity (`LuaSettingsChangeListener.getInstance(project)`) — so `setTargetAndNotify` reaches `PlatformLibraryIndex.reload` + daemon restart. `setGlobalBinding` half is wired into the app page in Phase 4. Evidence: `LuaSettingsNotificationTest.testSettingsChangeListenerIsARealSubscriber`. |
+| #44 | `LuaApplicationSettingsConfigurable` has no `reset()`/`disposeUIResources()`; panel mutates live persisted `LuaInterpreter` objects pre-Apply — Cancel can't undo | DSL migration phase: clone-edit-commit pattern + full Configurable lifecycle | Phase 5 (open). NB the `LuaInterpreter` table premise is stale (removed in TOOLING-05); the configurable now edits two `LuaApplicationSettings.State` booleans. Remediation applied in Phase 5 is the applicable part: add `reset()`/`disposeUIResources()` + clone-edit-commit over a copied `State`, commit in `apply()`. |
+| #50 | `Target.default()` documented "Standard Lua 5.4" but resolves to the registry's first entry (5.1) | Explicit-target work (BUG-362) must pin the documented default | **CLOSED (Phase 1).** `Target.default()` now uses `findVersion(STANDARD, "5.4")` (falling back to first-registered only if 5.4 is absent). One test depended on the 5.1 accident — `TargetTest.testDefault` — corrected to assert 5.4 / LUA54. `ValkeyTargetTest` re-ran green (no other dependant). |
 
 ## Test Case Gaps
 - No test yet asserts the *visual* collapsed state of the advanced group (VNC-only, Phase 6) — this is

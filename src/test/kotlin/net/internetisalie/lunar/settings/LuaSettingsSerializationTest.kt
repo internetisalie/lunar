@@ -68,6 +68,22 @@ class LuaSettingsSerializationTest {
         assertEquals(PathConfiguration.DEFAULT_SOURCE_PATH, state.sourcePath)
         assertTrue(state.suppressUnderscorePrefixedGlobals)
         assertTrue(state.additionalGlobals.isEmpty())
+        assertFalse(state.explicitTarget)
+    }
+
+    /** TOOLING-08 DR-08b: `explicitTarget` round-trips and defaults false for an old file with no tag. */
+    @Test
+    fun explicitTargetRoundTripsAndDefaultsFalseForOldFile() {
+        val state = LuaProjectSettings.State().apply { explicitTarget = true }
+        val serialized = XmlSerializer.serialize(state)
+        assertTrue(XmlSerializer.deserialize(serialized, LuaProjectSettings.State::class.java).explicitTarget)
+
+        // An old lunar.xml written before TOOLING-08 has no explicitTarget option → deserializes false.
+        val legacy = XmlSerializer.serialize(LuaProjectSettings.State())
+        legacy.getChildren("option")
+            .filter { it.getAttributeValue("name") == "explicitTarget" }
+            .forEach { legacy.removeContent(it) }
+        assertFalse(XmlSerializer.deserialize(legacy, LuaProjectSettings.State::class.java).explicitTarget)
     }
 
     /** TC 14: a project `lunar.xml` with stale (unbound) tags loads cleanly + current fields survive. */

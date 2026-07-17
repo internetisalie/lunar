@@ -19,11 +19,14 @@ is **VNC-verified** last. Every task names the class/file and the design section
 - **Goal**: the pure, testable core — kind classification and the persisted explicit-target flag —
   with no UI dependency.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.toolchain.ui.LuaToolKindClassifier` (`object`) — realizes
+  - [x] Create `net.internetisalie.lunar.toolchain.ui.LuaToolKindClassifier` (`object`) — realizes
         design §2.1 / §3.1 (`tierOf`, `COMMON_TOOL_KIND_IDS`, `bindable()`, `byTier()`).
-  - [ ] Add `var explicitTarget: Boolean = false` to `LuaProjectSettings.State` — realizes §2.4.
-  - [ ] Add the explicit-target early-return guard to `LuaTargetSynchronizer.recompute()` — realizes
+  - [x] Add `var explicitTarget: Boolean = false` to `LuaProjectSettings.State` — realizes §2.4.
+  - [x] Add the explicit-target early-return guard to `LuaTargetSynchronizer.recompute()` — realizes
         §2.5 / §3.3 step 1.
+  - [x] (review #50) Pin `Target.default()` to `findVersion(STANDARD, "5.4")`; corrected `TargetTest`.
+  - [x] (review #41) Make `LuaSettingsChangeListener` a real, lifecycle-scoped subscriber and
+        instantiate it from the `LuaTargetSyncStartup` ProjectActivity so the notify chain fires.
 - **Exit criteria**: `LuaToolKindClassifierTest` passes (TC 6, 7); `LuaTargetSynchronizerTest`
   extended so an explicit target survives a `TOOL_UPDATED` event (TC 4). Build green.
 
@@ -109,7 +112,7 @@ is **VNC-verified** last. Every task names the class/file and the design section
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Model & classifier logic | todo | Must |
+| Phase 1: Model & classifier logic | done | Must |
 | Phase 2: Target-control apply/reset logic | todo | Must |
 | Phase 3: Bindings split + eviction | todo | Must |
 | Phase 4: Global bindings + inherit labels | todo | Must |

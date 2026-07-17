@@ -136,7 +136,7 @@ class TargetTest {
     fun testDefault() {
         val target = Target.default()
         assertEquals(LuaPlatform.STANDARD, target.platform)
-        assertEquals("5.1", target.version.label)  // First version in registry
-        assertEquals(LuaLanguageLevel.LUA51, target.getImplicitLanguageLevel())
+        assertEquals("5.4", target.version.label)  // TOOLING-08 #50: pinned to the documented 5.4
+        assertEquals(LuaLanguageLevel.LUA54, target.getImplicitLanguageLevel())
     }
 }

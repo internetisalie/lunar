@@ -69,6 +69,23 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         assertProjectTarget(LuaPlatform.STANDARD, "5.4", LuaLanguageLevel.LUA54)
     }
 
+    fun `test explicit target survives a runtime tool update (TC4)`() {
+        // A runtime probing as STANDARD is bound, but the user has pinned an explicit target.
+        val lua51Runtime = runtimeInfo(LuaPlatform.STANDARD, "5.1.5", LuaLanguageLevel.LUA51)
+        val lua51Tool = seedTool("lua", usable = true, runtime = lua51Runtime)
+        settings.setBinding("lua", lua51Tool.id)
+        pinExplicitTarget(LuaPlatform.REDIS, "7+")
+
+        synchronizer.onEvent(event(LuaToolchainChange.TOOL_UPDATED, kindId = "lua"))
+
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            val target = LuaProjectSettings.getInstance(project).state.getTarget()
+            assertEquals(LuaPlatform.REDIS, target.platform)
+            assertEquals("7+", target.version.label)
+        }
+    }
+
     fun `test bindings are untouched across activate and deactivate`() {
         val luacheckTool = seedTool("luacheck", usable = true)
         settings.setBinding("luacheck", luacheckTool.id)
@@ -85,6 +102,32 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         settings.deactivateEnvironment()
         synchronizer.onEvent(event(LuaToolchainChange.ACTIVE_ENVIRONMENT_CHANGED))
         assertEquals(luacheckTool.id, settings.binding("luacheck"))
+    }
+
+    override fun tearDown() {
+        try {
+            // MAINT-23 lesson: an un-restored Target leaks into alphabetically-later suites. Clear the
+            // explicit-target pin and reset to the default Standard 5.4 target before teardown.
+            EdtTestUtil.runInEdtAndWait<RuntimeException> {
+                val state = LuaProjectSettings.getInstance(project).state
+                state.explicitTarget = false
+                LuaProjectSettings.getInstance(project).setTargetAndNotify(
+                    PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4")
+                )
+            }
+        } finally {
+            super.tearDown()
+        }
+    }
+
+    private fun pinExplicitTarget(platform: LuaPlatform, versionLabel: String) {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            val settings = LuaProjectSettings.getInstance(project)
+            settings.setTargetAndNotify(PlatformVersionRegistry.resolveTarget(platform, versionLabel))
+            settings.state.explicitTarget = true
+        }
+        synchronizer.resetGuardForTest()
     }
 
     private fun prepareBaseline() {

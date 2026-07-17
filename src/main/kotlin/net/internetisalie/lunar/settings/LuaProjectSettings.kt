@@ -43,6 +43,14 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA54
         @Property(surroundWithTag = false)
         var target: TargetState? = null
+
+        /**
+         * TOOLING-08-02: true when the user has explicitly pinned the platform target on the *Lua
+         * Project* page. In Auto mode ([explicitTarget] == false) [LuaTargetSynchronizer] owns the
+         * target and follows the resolved runtime. Defaults to false so an old `lunar.xml` with no
+         * tag deserializes as Auto (clean-break policy, no migration).
+         */
+        var explicitTarget: Boolean = false
         var sourcePath: String = PathConfiguration.DEFAULT_SOURCE_PATH
         var suppressUnderscorePrefixedGlobals: Boolean = true
         var additionalGlobals: MutableList<String> = mutableListOf()
