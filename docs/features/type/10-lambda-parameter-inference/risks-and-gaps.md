@@ -141,9 +141,9 @@ folders:
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| TYPE-10-DR-01 | Confirm `resolveCalleeType()` resolves `redis.register_function` / `table.sort` stubs to a `LuaFunctionType` whose `params[K]` is a callback `fun(...)`, in a throwaway `IndexedBasePlatformTestCase` (Phase 1 exit criterion) | Risk 1.3, TYPE-10-02 | todo |
-| TYPE-10-DR-02 | Confirm an un-annotated lambda param node's `write == Undefined` and an annotated one's is non-`Undefined` at propagation time (validates the `isAlreadyAnnotated` gate) | TYPE-10-03 | todo |
-| TYPE-10-DR-03 | Confirm the §3.4 lazy `seedSubscriptElement` rewrite makes `keys[1]` resolve to `string` when `keys`'s param node is seeded *after* the subscript is visited (the ordering hazard), while `ArraySubscriptTypeTest`'s non-array/dotted cases stay `undefined`/unchanged | Risk 1.2b, TYPE-10-01, TC 2 | todo |
+| TYPE-10-DR-01 | Confirm `resolveCalleeType()` resolves `redis.register_function` / `table.sort` stubs to a `LuaFunctionType` whose `params[K]` is a callback `fun(...)`, in a throwaway `IndexedBasePlatformTestCase` (Phase 1 exit criterion) | Risk 1.3, TYPE-10-02 | done — `ExpectedCallbackResolverTest` (commit `0e4483ed`) resolves both stubs to callback `fun(...)` param types |
+| TYPE-10-DR-02 | Confirm an un-annotated lambda param node's `write == Undefined` and an annotated one's is non-`Undefined` at propagation time (validates the `isAlreadyAnnotated` gate) | TYPE-10-03 | done — `isAlreadyAnnotated` (`LuaTypesVisitor`, commit `38164600`) + `LambdaParamInferenceTest` TC5/TC6; NB Gap 2.5 documents where an inline `---@param` never attaches |
+| TYPE-10-DR-03 | Confirm the §3.4 lazy `seedSubscriptElement` rewrite makes `keys[1]` resolve to `string` when `keys`'s param node is seeded *after* the subscript is visited (the ordering hazard), while `ArraySubscriptTypeTest`'s non-array/dotted cases stay `undefined`/unchanged | Risk 1.2b, TYPE-10-01, TC 2 | done — lazy `seedSubscriptElement` (commit `38164600`); `LambdaParamInferenceTest` TC2 green + `ArraySubscriptTypeTest` all 4 cases green in the full gate |
 
 ## Regression contract (REDIS-04 §3.1c-style — required, not optional)
 The shared-engine seam is `LuaTypesVisitor.visitFuncCall` plus the reused resolution helpers.
