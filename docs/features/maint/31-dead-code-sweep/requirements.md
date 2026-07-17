@@ -3,7 +3,7 @@ id: "MAINT-31"
 title: "31: Dead-Code Sweep"
 type: "feature"
 parent_id: "MAINT"
-status: "todo"
+status: "in_progress"
 priority: "low"
 folders:
   - "[[features/maint/requirements|requirements]]"
