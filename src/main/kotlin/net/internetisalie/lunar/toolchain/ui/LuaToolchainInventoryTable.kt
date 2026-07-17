@@ -13,6 +13,9 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.PopupStep
+import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.TableView
 import com.intellij.util.ui.ColumnInfo
@@ -96,15 +99,35 @@ class LuaToolchainInventoryTable {
     private fun recheck() = pooled { registry().tools().forEach { registry().refreshTool(it.id) } }
 
     private fun provision() {
-        val targetProject = openProject() ?: return
+        val candidates = openProjects()
+        when {
+            candidates.isEmpty() -> return
+            candidates.size == 1 -> provisionInto(candidates.single())
+            else -> showProjectChooser(candidates)
+        }
+    }
+
+    private fun showProjectChooser(candidates: List<Project>) {
+        val step = object : BaseListPopupStep<Project>("Choose Target Project", candidates) {
+            override fun getTextFor(value: Project): String = value.name
+            override fun onChosen(selectedValue: Project, finalChoice: Boolean): PopupStep<*>? {
+                provisionInto(selectedValue)
+                return FINAL_CHOICE
+            }
+        }
+        JBPopupFactory.getInstance().createListPopup(step).showInFocusCenter()
+    }
+
+    private fun provisionInto(targetProject: Project) {
         val dialog = LuaProvisionDialog(targetProject, initial = null)
         if (dialog.showAndGet()) {
             LuaToolProvisioner.getInstance().provision(targetProject, dialog.toRequest())
         }
     }
 
-    private fun openProject(): Project? =
-        ProjectManager.getInstance().openProjects.firstOrNull { !it.isDefault && !it.isDisposed }
+    /** Returns all non-default, non-disposed open projects (BUG-372 project selection seam). */
+    internal fun openProjects(): List<Project> =
+        ProjectManager.getInstance().openProjects.filter { !it.isDefault && !it.isDisposed }
 
     private fun discoverButton(): AnAction =
         object : DumbAwareAction("Auto-Discover", null, AllIcons.Actions.Refresh) {
@@ -120,7 +143,10 @@ class LuaToolchainInventoryTable {
         object : DumbAwareAction("Provision…", null, AllIcons.General.Add) {
             override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
             override fun update(e: AnActionEvent) {
-                e.presentation.isEnabled = openProject() != null
+                val projects = openProjects()
+                e.presentation.isEnabled = projects.isNotEmpty()
+                e.presentation.description =
+                    if (projects.isEmpty()) "No open project to provision into" else null
             }
             override fun actionPerformed(e: AnActionEvent) = provision()
         }

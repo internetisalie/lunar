@@ -10,6 +10,8 @@ folders:
 
 # BUG-372: App-level Provision… button silently guesses the target project
 
+> **RESOLVED 2026-07-17 (this commit)**: `provision()` now calls `openProjects()` (returns all non-default, non-disposed open projects). If exactly one project is open it provisions directly; if multiple are open it shows a `BaseListPopupStep` project chooser; if none are open the button is disabled with a "No open project to provision into" description.
+
 ## 1. Reproduction
 
 1. Open **two** projects in the IDE.
