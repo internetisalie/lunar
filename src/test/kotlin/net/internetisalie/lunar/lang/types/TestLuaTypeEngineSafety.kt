@@ -99,4 +99,32 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
         assertNotNull(snapshot)
         assertTrue("Type checking should complete within safety limit", duration < 5000)
     }
+
+    /**
+     * MAINT-25-02 / TC-03: `graphTypeToLuaType` on a self-referential table (`t.self = t`) must
+     * return a finite member-bearing [LuaType] with the `self` member present — no StackOverflowError.
+     * Builds the cyclic graph type directly so the assertion does not depend on PSI element selection.
+     */
+    @Test
+    fun testGraphTypeToLuaTypeOnSelfReferentialTableTerminates() {
+        val anchor = myFixture.addFileToProject("rec.lua", "")
+        val graph = LuaTypeGraph()
+        val selfNode = graph.variable(anchor)
+        val cyclicTable = LuaGraphType.Table(
+            className = null,
+            localMembers = mapOf("self" to selfNode),
+            isExact = true,
+        )
+        selfNode.upSet.add(graph.value(anchor, cyclicTable))
+        selfNode.downSet.add(graph.use(anchor, cyclicTable))
+
+        val snapshot = LuaTypesSnapshot.forFile(anchor)
+        // No StackOverflowError reaching past this line is the primary TC-03 assertion.
+        val luaType = snapshot.graphTypeToLuaType(cyclicTable)
+
+        val members = (luaType as? LuaTableLiteralType)?.localMembers
+            ?: (luaType as? LuaClassType)?.getMembers()
+        assertNotNull("Self-referential table must convert to a member-bearing LuaType", members)
+        assertTrue("Member 'self' must survive the cycle guard", members!!.containsKey("self"))
+    }
 }

@@ -74,58 +74,73 @@ class LuaTypesSnapshot(
 
     override fun getErrors(): List<ElementError> = graph.errors
 
-    override fun graphTypeToLuaType(type: LuaGraphType): LuaType = when (type) {
-        LuaGraphType.Any -> LuaPrimitiveType.ANY
-        LuaGraphType.Undefined -> LuaPrimitiveType.UNKNOWN
-        LuaGraphType.Nil -> LuaPrimitiveType.NIL
-        LuaGraphType.Boolean -> LuaPrimitiveType.BOOLEAN
-        LuaGraphType.Number -> LuaPrimitiveType.NUMBER
-        LuaGraphType.String -> LuaPrimitiveType.STRING
-        is LuaGraphType.Table -> {
-            val membersMap = type.getMembers().mapValues { (name, node) ->
-                LuaTypeMember(name, graphTypeToLuaType(node.write))
+    override fun graphTypeToLuaType(type: LuaGraphType): LuaType =
+        graphTypeToLuaType(type, mutableMapOf())
+
+    /**
+     * MAINT-25-02: cycle-safe conversion. Mirrors [LuaGraphType.fromLuaType]: register a placeholder
+     * in [visited] before recursing into a structural type's members, so a self-referential graph
+     * type (`t.self = t`) resolves the cycle-back reference to the in-construction placeholder
+     * instead of recursing forever (StackOverflowError). Scalar heads cannot cycle — returned directly.
+     */
+    private fun graphTypeToLuaType(type: LuaGraphType, visited: MutableMap<LuaGraphType, LuaType>): LuaType {
+        visited[type]?.let { return it }
+        return when (type) {
+            LuaGraphType.Any -> LuaPrimitiveType.ANY
+            LuaGraphType.Undefined -> LuaPrimitiveType.UNKNOWN
+            LuaGraphType.Nil -> LuaPrimitiveType.NIL
+            LuaGraphType.Boolean -> LuaPrimitiveType.BOOLEAN
+            LuaGraphType.Number -> LuaPrimitiveType.NUMBER
+            LuaGraphType.String -> LuaPrimitiveType.STRING
+            is LuaGraphType.Table -> tableToLuaType(type, visited)
+            is LuaGraphType.Function -> functionToLuaType(type, visited).also { visited[type] = it }
+            is LuaGraphType.Array ->
+                LuaArrayType(graphTypeToLuaType(type.elementType, visited)).also { visited[type] = it }
+            is LuaGraphType.Union -> {
+                val luaTypes = type.types.map { graphTypeToLuaType(it, visited) }.toSet()
+                LuaUnionType(luaTypes).also { visited[type] = it }
             }
-            if (type.className != null) {
-                // Enrich the graph-derived class with nominal members (incl. methods + supertypes)
-                // from the type manager, so method-aware members reach nominal consumers such as
-                // LuaParameterInlayHintsProvider.resolveMember and the NAV-05/06 hierarchy walk.
-                val nominal = contextFile?.let {
-                    LuaTypeManager.getInstance(it.project).resolveType(type.className, it)
-                }
-                if (nominal is LuaClassType) {
-                    val merged = LinkedHashMap<String, LuaTypeMember>()
-                    merged.putAll(nominal.getMembers())
-                    merged.putAll(membersMap) // graph members win on collision
-                    LuaClassType(type.className, nominal.superTypes, merged)
-                } else {
-                    LuaClassType(type.className, emptyList(), membersMap)
-                }
-            } else {
-                LuaTableLiteralType(membersMap)
+            is LuaGraphType.Generic -> LuaGenericType(type.name)
+        }
+    }
+
+    private fun tableToLuaType(type: LuaGraphType.Table, visited: MutableMap<LuaGraphType, LuaType>): LuaType {
+        val members = LinkedHashMap<String, LuaTypeMember>()
+        if (type.className != null) {
+            val nominal = contextFile?.let {
+                LuaTypeManager.getInstance(it.project).resolveType(type.className, it)
             }
-        }
-        is LuaGraphType.Function -> {
-            val params = type.params.map { p ->
-                val name = p.name ?: when (val el = p.node.element) {
-                    is net.internetisalie.lunar.lang.psi.LuaNameRef -> el.text
-                    is net.internetisalie.lunar.lang.psi.LuaAttName -> el.nameRef.text
-                    else -> "p"
-                }
-                LuaParameter(name, graphTypeToLuaType(p.node.write), p.isOptional, p.isVararg)
+            val superTypes = (nominal as? LuaClassType)?.superTypes ?: emptyList()
+            val placeholder = LuaClassType(type.className, superTypes, members)
+            visited[type] = placeholder
+            // Enrich the graph-derived class with nominal members (incl. methods + supertypes) from
+            // the type manager, so method-aware members reach nominal consumers such as
+            // LuaParameterInlayHintsProvider.resolveMember and the NAV-05/06 hierarchy walk.
+            (nominal as? LuaClassType)?.let { members.putAll(it.getMembers()) }
+            type.getMembers().forEach { (name, node) ->
+                members[name] = LuaTypeMember(name, graphTypeToLuaType(node.write, visited)) // graph members win
             }
-            val returnType = type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write) } ?: LuaPrimitiveType.VOID
-            LuaFunctionType(params, returnType)
+            return placeholder
         }
-        is LuaGraphType.Array -> {
-            LuaArrayType(graphTypeToLuaType(type.elementType))
+        val placeholder = LuaTableLiteralType(members)
+        visited[type] = placeholder
+        type.getMembers().forEach { (name, node) ->
+            members[name] = LuaTypeMember(name, graphTypeToLuaType(node.write, visited))
         }
-        is LuaGraphType.Union -> {
-            val luaTypes = type.types.map { graphTypeToLuaType(it) }.toSet()
-            LuaUnionType(luaTypes)
+        return placeholder
+    }
+
+    private fun functionToLuaType(type: LuaGraphType.Function, visited: MutableMap<LuaGraphType, LuaType>): LuaType {
+        val params = type.params.map { p ->
+            val name = p.name ?: when (val el = p.node.element) {
+                is net.internetisalie.lunar.lang.psi.LuaNameRef -> el.text
+                is net.internetisalie.lunar.lang.psi.LuaAttName -> el.nameRef.text
+                else -> "p"
+            }
+            LuaParameter(name, graphTypeToLuaType(p.node.write, visited), p.isOptional, p.isVararg)
         }
-        is LuaGraphType.Generic -> {
-            LuaGenericType(type.name)
-        }
+        val returnType = type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write, visited) } ?: LuaPrimitiveType.VOID
+        return LuaFunctionType(params, returnType)
     }
 
     companion object {

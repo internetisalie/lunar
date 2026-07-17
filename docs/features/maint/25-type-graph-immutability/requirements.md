@@ -38,7 +38,7 @@ contract (`lang/psi/types/*` + consumers), the same contract TYPE-10 uses.
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
 | MAINT-25-01 | Immutable graph types | M | Full | `LuaGraphType` immutable-by-copy; fresh instances from `TYPEOF_MAP`; copy-on-mutate in `handleSetMetatable` (#1, #58) |
-| MAINT-25-02 | Cycle-safe conversion | M | Not Implemented | Thread a `visited` map through `graphTypeToLuaType` (#2) |
+| MAINT-25-02 | Cycle-safe conversion | M | Full | Thread a `visited` map through `graphTypeToLuaType` (#2) |
 | MAINT-25-03 | No refresh under read lock | M | Not Implemented | `refreshIfNeeded = false` at all three sites (#3, #47) |
 | MAINT-25-04 | Error-reporting hygiene | S | Not Implemented | Cutoffs → `log.warn`; never log PCE (#14) |
 | MAINT-25-05 | Snapshot-cost pass | C | Not Implemented | Fix the O(n²) cats-comment scan and per-access `nodes`-list copy (§2.5.5); `write`/`read` memo deferred |
