@@ -20,16 +20,16 @@ fully unit-testable **before** any UI work.
 - **Goal**: Every install/uninstall targets the project rock tree (`--tree <root>`), replacing
   the tree-blind `LuaRocksActionHandler`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.LuaRocksInstallCommand` — realizes
+  - [x] Create `net.internetisalie.lunar.rocks.browser.LuaRocksInstallCommand` — realizes
     design §2.1 / §3.1 (`buildInstallArgs`, `buildRemoveArgs`, `resolveTargetTree` delegating to
     `LuaRocksTreeLocator.treeRoot`).
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.LuaRocksInstallExecutor` +
+  - [x] Create `net.internetisalie.lunar.rocks.browser.LuaRocksInstallExecutor` +
     `InstallRequest` — realizes design §2.2 (background `Task.Backgroundable`, cache invalidation,
     notifications; `--tree` args + `withWorkDirectory`).
-  - [ ] Delete `LuaRocksActionHandler`; repoint the (temporary) legacy `PackageDetailPanel`
+  - [x] Delete `LuaRocksActionHandler`; repoint the (temporary) legacy `PackageDetailPanel`
     install/uninstall calls at `LuaRocksInstallExecutor` so the build stays green until Phase 4
-    replaces the panel.
-- **Exit criteria**: TC-ROCKS-16-01, -02, -03, -04 pass (unit).
+    replaces the panel. (Also repointed the second caller `LuaCoverageProgramRunner`.)
+- **Exit criteria**: TC-ROCKS-16-01, -02, -03, -04 pass (unit). ✅ 5 tests / 0 failures.
 
 ### Phase 2: Installed listing + error model [Must] — [logic / unit-testable]
 - **Goal**: Per-tree installed listing and honest CLI-error propagation.
@@ -144,10 +144,11 @@ fully unit-testable **before** any UI work.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Canonical install/uninstall target | planned | Must |
+| Phase 1: Canonical install/uninstall target | done | Must |
 | Phase 2: Installed listing + error model | planned | Must |
 | Phase 3: Browser state model | planned | Must |
 | Phase 4: Detail pane redesign | planned | Must |
 | Phase 5: Two-tab panel + tool-window differentiation | planned | Must |
 | Phase 6: Update affordance | planned | Should |
 | Phase 7: Add-to-rockspec affordance | planned | Should |
+| Phase 8: Popular-packages Marketplace list | planned | Could |

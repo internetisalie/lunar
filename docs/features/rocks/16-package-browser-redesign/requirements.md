@@ -2,7 +2,7 @@
 id: "ROCKS-16"
 title: "16: Plugins-Style LuaRocks Package Browser Redesign"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 parent_id: "ROCKS"
 folders:

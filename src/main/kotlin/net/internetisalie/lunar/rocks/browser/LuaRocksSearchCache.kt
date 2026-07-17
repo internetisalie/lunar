@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Entries expire after [TTL_MS] milliseconds. `nowMs` is supplied by callers
  * (`System.currentTimeMillis()`) so tests can inject a fixed clock without mocking.
  *
- * [invalidateAll] is called by [LuaRocksActionHandler] after a successful install/uninstall,
+ * [invalidateAll] is called by [LuaRocksInstallExecutor] after a successful install/uninstall,
  * and by the Refresh toolbar action, so that subsequent searches reflect updated state.
  */
 object LuaRocksSearchCache {

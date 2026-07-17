@@ -19,9 +19,12 @@ import javax.swing.SwingConstants
  *
  * Metadata is fetched on a pooled thread via [LuaRocksMetadataService]; the panel updates on
  * the EDT. The version picker (ROCKS-02-06) allows selecting a specific version; Install and
- * Uninstall buttons delegate to [LuaRocksActionHandler].
+ * Uninstall buttons delegate to [LuaRocksInstallExecutor] against the canonical project tree.
+ *
+ * Legacy bridge — replaced by `PackageDetailPane` in ROCKS-16 Phase 4; kept green in Phase 1.
  */
 class PackageDetailPanel(private val project: Project) : JPanel(BorderLayout()) {
+    private val installExecutor = LuaRocksInstallExecutor(project)
     private val nameLabel = JBLabel("", SwingConstants.LEFT).apply { font = font.deriveFont(font.size2D + 2f) }
     private val versionPicker = JComboBox<String>()
     private val summaryArea = JTextArea(4, 40).apply { isEditable = false; lineWrap = true; wrapStyleWord = true }
@@ -76,30 +79,34 @@ class PackageDetailPanel(private val project: Project) : JPanel(BorderLayout()) 
 
         installButton.addActionListener {
             val pkg = currentPackage ?: return@addActionListener
+            val treeRoot = LuaRocksInstallCommand.resolveTargetTree(project) ?: run {
+                statusLabel.text = "No project rock tree; initialize a LuaRocks project."
+                return@addActionListener
+            }
             val version = versionPicker.selectedItem as? String
             statusLabel.text = "Installing…"
             installButton.isEnabled = false
             uninstallButton.isEnabled = false
-            LuaRocksActionHandler.install(project, pkg.name, version) { success ->
-                ApplicationManager.getApplication().invokeLater {
-                    statusLabel.text = if (success) "Installed." else "Install failed."
-                    installButton.isEnabled = true
-                    uninstallButton.isEnabled = true
-                }
+            installExecutor.install(InstallRequest(pkg.name, version, treeRoot)) { success ->
+                statusLabel.text = if (success) "Installed." else "Install failed."
+                installButton.isEnabled = true
+                uninstallButton.isEnabled = true
             }
         }
 
         uninstallButton.addActionListener {
             val pkg = currentPackage ?: return@addActionListener
+            val treeRoot = LuaRocksInstallCommand.resolveTargetTree(project) ?: run {
+                statusLabel.text = "No project rock tree; initialize a LuaRocks project."
+                return@addActionListener
+            }
             statusLabel.text = "Removing…"
             installButton.isEnabled = false
             uninstallButton.isEnabled = false
-            LuaRocksActionHandler.uninstall(project, pkg.name) { success ->
-                ApplicationManager.getApplication().invokeLater {
-                    statusLabel.text = if (success) "Removed." else "Remove failed."
-                    installButton.isEnabled = true
-                    uninstallButton.isEnabled = true
-                }
+            installExecutor.remove(pkg.name, treeRoot) { success ->
+                statusLabel.text = if (success) "Removed." else "Remove failed."
+                installButton.isEnabled = true
+                uninstallButton.isEnabled = true
             }
         }
 

@@ -14,7 +14,9 @@ import com.intellij.notification.NotificationAction
 import com.intellij.execution.runners.RunContentBuilder
 import net.internetisalie.lunar.run.test.LuaTestRunConfiguration
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
-import net.internetisalie.lunar.rocks.browser.LuaRocksActionHandler
+import net.internetisalie.lunar.rocks.browser.InstallRequest
+import net.internetisalie.lunar.rocks.browser.LuaRocksInstallCommand
+import net.internetisalie.lunar.rocks.browser.LuaRocksInstallExecutor
 import java.io.File
 
 class LuaCoverageProgramRunner : GenericProgramRunner<RunnerSettings>() {
@@ -33,12 +35,15 @@ class LuaCoverageProgramRunner : GenericProgramRunner<RunnerSettings>() {
                 "Code coverage library 'luacov' is not installed in the current SDK.",
                 NotificationType.ERROR
             )
-            notification.addAction(NotificationAction.createSimple("Install via LuaRocks") {
-                notification.expire()
-                LuaRocksActionHandler.install(project, "luacov", null) {
-                    // Handled by background install task
-                }
-            })
+            val treeRoot = LuaRocksInstallCommand.resolveTargetTree(project)
+            if (treeRoot != null) {
+                notification.addAction(NotificationAction.createSimple("Install via LuaRocks") {
+                    notification.expire()
+                    LuaRocksInstallExecutor(project).install(InstallRequest("luacov", null, treeRoot)) {
+                        // Handled by background install task
+                    }
+                })
+            }
             notification.notify(project)
             return null
         }
