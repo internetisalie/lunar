@@ -10,6 +10,8 @@ folders:
 
 # BUG-375: Lua environment status-bar widget is visible in projects with no Lua content
 
+> **RESOLVED 2026-07-17 (this commit)**: `isAvailable()` now returns `LuaToolchainProjectSettings.getInstance(project).environments().isNotEmpty()` — an EDT-safe synchronized in-memory read. The widget is absent by default in non-Lua projects; users can still add it manually via the status-bar context menu.
+
 ## 1. Reproduction
 
 1. Open any project containing no Lua files (e.g. a pure Go or Python project).
