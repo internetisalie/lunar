@@ -13,6 +13,7 @@ import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeed
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeedLoader
+import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
@@ -40,7 +41,9 @@ class LuaProvisionDialog(
     private val runtimeVersionCombo = ComboBox<String>()
     private val includeLuaRocksBox = JBCheckBox("Include LuaRocks", true)
     private val luaRocksVersionCombo = versionCombo("luarocks")
-    private val toolBoxes = LuaToolCatalog.TOOL_KINDS.associateWith { JBCheckBox(it, false) }
+    private val toolBoxes = LuaToolCatalog.TOOL_KINDS.associateWith { kindId ->
+        JBCheckBox(kindDisplayName(kindId), false)
+    }
     private val toolVersionCombos = LuaToolCatalog.TOOL_KINDS.associateWith { versionCombo(it) }
 
     private var userEditedName = false
@@ -220,3 +223,7 @@ class LuaProvisionDialog(
         model = DefaultComboBoxModel(items.toTypedArray())
     }
 }
+
+/** Returns the display name for [kindId], falling back to the raw id when unregistered (BUG-370). */
+internal fun kindDisplayName(kindId: String): String =
+    LuaToolKindRegistry.findById(kindId)?.displayName ?: kindId

@@ -10,6 +10,8 @@ folders:
 
 # BUG-370: Provision dialog tool checkboxes show raw kind ids instead of display names
 
+> **RESOLVED 2026-07-17 (this commit)**: Extracted `kindDisplayName(kindId)` helper (resolves via `LuaToolKindRegistry`, falls back to raw id) and applied it when constructing each `JBCheckBox` in `LuaProvisionDialog`. Now shows "StyLua", "Busted", "LuaCov", "Lua Language Server", etc.
+
 ## 1. Reproduction
 
 1. Open *Tools → Lua Toolchain → Provision Lua Toolchain…* (or the **Provision…** toolbar button
