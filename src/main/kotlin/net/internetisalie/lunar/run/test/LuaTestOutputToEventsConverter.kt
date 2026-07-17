@@ -2,7 +2,6 @@ package net.internetisalie.lunar.run.test
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.execution.testframework.TestConsoleProperties
 import com.intellij.execution.testframework.sm.runner.OutputToGeneralTestEventsConverter
 import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
@@ -11,6 +10,7 @@ import com.intellij.execution.testframework.sm.runner.events.TestFailedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestIgnoredEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Key
 
 class LuaTestOutputToEventsConverter(
@@ -46,8 +46,10 @@ class LuaTestOutputToEventsConverter(
             }
             fireOnUncapturedOutput(text, outputType)
         } else {
-            // Busted
+            // Busted: buffer for the terminal JSON report, and forward live so output is
+            // visible during the run instead of only at process termination (§2.5.7).
             myBuffer.append(text)
+            fireOnUncapturedOutput(text, outputType)
         }
     }
 
@@ -140,32 +142,19 @@ class LuaTestOutputToEventsConverter(
     }
 
     private fun processBustedOutput() {
+        // Raw stdout/stderr has already streamed live via processConsistentText (§2.5.7), so this
+        // terminal pass only builds the structured test tree from the JSON report — re-forwarding
+        // the buffered text here would duplicate every line in the console.
         val fullText = myBuffer.toString()
-        val jsonMatch = findTopLevelJson(fullText)
-        if (jsonMatch != null) {
-            val (jsonStr, range) = jsonMatch
-            val before = fullText.substring(0, range.first)
-            val after = fullText.substring(range.last + 1)
-            if (before.isNotEmpty()) {
-                fireOnUncapturedOutput(before, ProcessOutputTypes.STDOUT)
+        val jsonMatch = findTopLevelJson(fullText) ?: return
+        val (jsonStr, _) = jsonMatch
+        try {
+            val element = JsonParser.parseString(jsonStr)
+            if (element.isJsonObject) {
+                processBustedJson(element.asJsonObject)
             }
-            try {
-                val element = JsonParser.parseString(jsonStr)
-                if (element.isJsonObject) {
-                    processBustedJson(element.asJsonObject)
-                } else {
-                    fireOnUncapturedOutput(jsonStr, ProcessOutputTypes.STDOUT)
-                }
-            } catch (e: Exception) {
-                fireOnUncapturedOutput(jsonStr, ProcessOutputTypes.STDOUT)
-            }
-            if (after.isNotEmpty()) {
-                fireOnUncapturedOutput(after, ProcessOutputTypes.STDOUT)
-            }
-        } else {
-            if (fullText.isNotEmpty()) {
-                fireOnUncapturedOutput(fullText, ProcessOutputTypes.STDOUT)
-            }
+        } catch (e: Exception) {
+            LOG.warn("Failed to parse busted JSON report", e)
         }
     }
 
@@ -278,7 +267,6 @@ class LuaTestOutputToEventsConverter(
         var openBraces = 0
         var startIndex = -1
         var inString = false
-        var stringChar = ' '
         var escape = false
 
         for (i in text.indices) {
@@ -288,13 +276,12 @@ class LuaTestOutputToEventsConverter(
                     escape = false
                 } else if (char == '\\') {
                     escape = true
-                } else if (char == stringChar) {
+                } else if (char == '"') {
                     inString = false
                 }
             } else {
-                if (char == '"' || char == '\'') {
+                if (char == '"') {
                     inString = true
-                    stringChar = char
                 } else if (char == '{') {
                     if (openBraces == 0) {
                         startIndex = i
@@ -359,5 +346,7 @@ class LuaTestOutputToEventsConverter(
             "(?:Passed in|Got|Actual):?\\s*\\n?(.*?)\\n\\s*Expected:?\\s*\\n?(.*)",
             kotlin.text.RegexOption.DOT_MATCHES_ALL
         )
+
+        private val LOG = Logger.getInstance(LuaTestOutputToEventsConverter::class.java)
     }
 }

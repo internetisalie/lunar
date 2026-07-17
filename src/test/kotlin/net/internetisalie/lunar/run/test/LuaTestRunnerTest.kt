@@ -130,6 +130,10 @@ class LuaTestRunnerTest : BaseDocumentTest() {
         LuaToolchainProjectSettings.getInstance(myFixture.project).loadState(LuaToolchainProjectState())
     }
 
+    /** The structured test-tree events, filtering out the live stdout stream (§2.5.7). */
+    private fun structuredEvents(processor: RecordingTestEventsProcessor): List<String> =
+        processor.events.filterNot { it.startsWith("onUncapturedOutput:") }
+
     @Test
     fun testLunityJsonLineParsing() {
         val properties = createProperties(LuaTestFramework.LUNITY)
@@ -221,7 +225,11 @@ class LuaTestRunnerTest : BaseDocumentTest() {
             "onSuiteFinished: name=addition, id=suite_2",
             "onSuiteFinished: name=Calculator, id=suite_1"
         )
-        assertEquals(expected, processor.events)
+        assertEquals(expected, structuredEvents(processor))
+        assertTrue(
+            processor.events.any { it.startsWith("onUncapturedOutput:") },
+            "busted stdout must also stream live (§2.5.7)",
+        )
     }
 
     @Test
@@ -231,18 +239,22 @@ class LuaTestRunnerTest : BaseDocumentTest() {
         val processor = RecordingTestEventsProcessor(myFixture.project, "LuaTest")
         converter.setProcessor(processor)
 
+        val jsonLine = "{\"successes\":[{\"name\":\"tests → foo\",\"trace\":{\"source\":\"@t.lua\",\"currentline\":1},\"duration\":0}]}"
         converter.process("DEBUG: loading test modules...\n", ProcessOutputTypes.STDOUT)
-        converter.process("{\"successes\":[{\"name\":\"tests → foo\",\"trace\":{\"source\":\"@t.lua\",\"currentline\":1},\"duration\":0}]}\n", ProcessOutputTypes.STDOUT)
+        converter.process("$jsonLine\n", ProcessOutputTypes.STDOUT)
         converter.process("Done.\n", ProcessOutputTypes.STDOUT)
         converter.flushBufferOnProcessTermination(0)
 
+        // §2.5.7: raw stdout streams live during the run (each chunk), then the terminal pass
+        // builds the structured test tree from the buffered JSON report.
         val expected = listOf(
             "onUncapturedOutput: text=DEBUG: loading test modules..., type=stdout",
+            "onUncapturedOutput: text=$jsonLine, type=stdout",
+            "onUncapturedOutput: text=Done., type=stdout",
             "onSuiteStarted: name=tests, id=suite_1, parentId=null, url=null",
             "onTestStarted: name=foo, id=test_2, parentId=suite_1, url=lua://t.lua:1",
             "onTestFinished: name=foo, id=test_2, duration=0",
-            "onSuiteFinished: name=tests, id=suite_1",
-            "onUncapturedOutput: text=Done., type=stdout"
+            "onSuiteFinished: name=tests, id=suite_1"
         )
         assertEquals(expected, processor.events)
     }
@@ -258,8 +270,11 @@ class LuaTestRunnerTest : BaseDocumentTest() {
         converter.process(rawText, ProcessOutputTypes.STDOUT)
         converter.flushBufferOnProcessTermination(1)
 
+        // No JSON report → nothing but the live-streamed stdout lines (§2.5.7).
         val expected = listOf(
-            "onUncapturedOutput: text=lua: segfault at 0x00\nstack traceback:\n\t[C]: ?, type=stdout"
+            "onUncapturedOutput: text=lua: segfault at 0x00, type=stdout",
+            "onUncapturedOutput: text=stack traceback:, type=stdout",
+            "onUncapturedOutput: text=[C]: ?, type=stdout"
         )
         assertEquals(expected, processor.events)
     }
@@ -317,7 +332,7 @@ class LuaTestRunnerTest : BaseDocumentTest() {
             "onSuiteFinished: name=addition, id=suite_2",
             "onSuiteFinished: name=Calculator, id=suite_1"
         )
-        assertEquals(expected, processor.events)
+        assertEquals(expected, structuredEvents(processor))
     }
 
     @Test
@@ -483,11 +498,54 @@ class LuaTestRunnerTest : BaseDocumentTest() {
             assertEquals("/bin/sh", commandLine.exePath)
             assertEquals("/project", commandLine.workDirectory.absolutePath)
             assertEquals(
-                listOf("--output=json", "--filter=\\Qtest_fail\\E", "/project/spec/calc_spec.lua"),
+                listOf("--output=json", "--filter=test_fail", "/project/spec/calc_spec.lua"),
                 commandLine.parametersList.list
             )
         } finally {
             resetToolchain()
         }
+    }
+
+    /** TC-07a (#27b): each failed test becomes its own Lua-pattern-escaped `--filter`. */
+    @Test
+    fun testBustedRerunFilterEscapesEachFailedTest() {
+        bindBusted("/bin/sh")
+        try {
+            val properties = createProperties(LuaTestFramework.BUSTED)
+            val config = properties.configuration
+            config.testTarget = ""
+            config.failedTestNames = "a.b,c-d"
+
+            val env = ExecutionEnvironmentBuilder.create(DefaultRunExecutor.getRunExecutorInstance(), config).build()
+            val commandLine = LuaTestCommandLineState(config, env).buildCommandLine()
+
+            assertEquals(
+                listOf("--output=json", "--filter=a%.b", "--filter=c%-d"),
+                commandLine.parametersList.list
+            )
+        } finally {
+            resetToolchain()
+        }
+    }
+
+    /** TC-07b (#54): apostrophes in stdout no longer swallow the JSON report. */
+    @Test
+    fun testBustedApostropheDoesNotSwallowJson() {
+        val properties = createProperties(LuaTestFramework.BUSTED)
+        val converter = LuaTestOutputToEventsConverter("LuaTest", properties)
+        val processor = RecordingTestEventsProcessor(myFixture.project, "LuaTest")
+        converter.setProcessor(processor)
+
+        converter.process("doesn't matter — stray apostrophe\n", ProcessOutputTypes.STDOUT)
+        converter.process(
+            "{\"successes\":[{\"name\":\"tests → it doesn't crash\",\"trace\":{\"source\":\"@t.lua\",\"currentline\":3},\"duration\":0}]}\n",
+            ProcessOutputTypes.STDOUT,
+        )
+        converter.flushBufferOnProcessTermination(0)
+
+        assertTrue(
+            processor.events.contains("onTestStarted: name=it doesn't crash, id=test_2, parentId=suite_1, url=lua://t.lua:3"),
+            "JSON report must parse despite apostrophes; had ${processor.events}",
+        )
     }
 }

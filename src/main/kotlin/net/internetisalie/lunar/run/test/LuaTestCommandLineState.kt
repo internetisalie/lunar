@@ -85,8 +85,9 @@ class LuaTestCommandLineState(
     private fun configureBustedTargets(commandLine: GeneralCommandLine) {
         val failedTests = config.failedTestNames.orEmpty()
         if (failedTests.isNotEmpty()) {
-            val filterPattern = failedTests.split(',').map { Regex.escape(it) }.joinToString("|")
-            commandLine.addParameter("--filter=$filterPattern")
+            failedTests.split(',')
+                .filter { it.isNotBlank() }
+                .forEach { commandLine.addParameter("--filter=${LuaPatternEscaper.escape(it)}") }
         }
 
         val target = config.testTarget.orEmpty()

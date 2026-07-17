@@ -84,15 +84,17 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 - **Goal**: Lua-pattern rerun filter, `"`-only JSON scanner, live console output (#27b, #54,
   §2.5.7).
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.run.test.LuaPatternEscaper` (object) — realizes design §2.7,
+  - [x] Create `net.internetisalie.lunar.run.test.LuaPatternEscaper` (object) — realizes design §2.7,
         §3.8.
-  - [ ] Edit `LuaTestCommandLineState.configureBustedTargets` — one escaped `--filter` per failed
+  - [x] Edit `LuaTestCommandLineState.configureBustedTargets` — one escaped `--filter` per failed
         test (`:86-90`) — §2.7, §3.8.
-  - [ ] Edit `LuaTestOutputToEventsConverter.findTopLevelJson` — only `"` delimits; drop the `'`
+  - [x] Edit `LuaTestOutputToEventsConverter.findTopLevelJson` — only `"` delimits; drop the `'`
         branch + `stringChar` var (`:277-314`) — realizes design §2.8 (#54).
-  - [ ] Edit `LuaTestOutputToEventsConverter.processConsistentText` — forward each busted chunk live
+  - [x] Edit `LuaTestOutputToEventsConverter.processConsistentText` — forward each busted chunk live
         via `fireOnUncapturedOutput` while still buffering for terminal JSON (`:48-51`) — §2.8,
-        §3.8 (§2.5.7).
+        §3.8 (§2.5.7). Terminal `processBustedOutput` no longer re-forwards the buffered raw text
+        (it already streamed live) to avoid duplicating every console line — deviation from §2.8's
+        "before/after" forwarding, justified by the new live stream.
 - **Exit criteria**: `TestLuaPatternEscaper`, a `findTopLevelJson` apostrophe test, and a busted
   filter test green; full suite green. Live output is VNC-gated (HV-06).
 
@@ -166,6 +168,6 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 | Phase 3: Thread-safe controller state | done | Must |
 | Phase 4: Value & stack fidelity | done | Should |
 | Phase 5: Run-config integrity | done | Should |
-| Phase 6: Busted runner correctness | todo | Should |
+| Phase 6: Busted runner correctness | done | Should |
 | Phase 7: Robustness pass | todo | Could |
 | Phase 8: Run to Cursor | todo | Should |
