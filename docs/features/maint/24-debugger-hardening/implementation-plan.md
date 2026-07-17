@@ -19,9 +19,9 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 ### Phase 1: DBGp byte-accurate framing [Must]
 - **Goal**: multibyte UTF-8 payloads no longer desync the protocol (#5).
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.run.DbgpFraming` (object) with `readLine` / `readExactly` /
+  - [x] Create `net.internetisalie.lunar.run.DbgpFraming` (object) with `readLine` / `readExactly` /
         `writeLine` — realizes design §2.1, §3.1.
-  - [ ] Edit `LuaDebugConnection` — replace the `InputStreamReader`/`BufferedReader` (`:186`), the
+  - [x] Edit `LuaDebugConnection` — replace the `InputStreamReader`/`BufferedReader` (`:186`), the
         `writer.write(...toByteArray(charset))` (`:220`), and the private char-based `readExactly`
         (`:335`) with `DbgpFraming` over the raw socket streams; `readLoop`/`handleLine` call the new
         helpers (`:229,257,302`) — realizes design §2.2.
@@ -161,7 +161,7 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: DBGp framing | todo | Must |
+| Phase 1: DBGp framing | done | Must |
 | Phase 2: `!!` sweep + rd-gen import | todo | Must |
 | Phase 3: Thread-safe controller state | todo | Must |
 | Phase 4: Value & stack fidelity | todo | Should |

@@ -10,9 +10,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
+import java.io.BufferedInputStream
 import java.io.IOException
-import java.io.InputStreamReader
+import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
 import java.util.regex.Pattern
@@ -172,7 +172,7 @@ interface LuaDebugObserver {
  * DBGp transport over a single socket (MAINT-22).
  *
  * Structured-concurrency rewrite of the former `Thread.sleep(50)` poll loop + promise-map correlation:
- * a single **reader coroutine** ([readLoop]) owns the [BufferedReader]; [send] publishes one
+ * a single **reader coroutine** ([readLoop]) owns the buffered [InputStream]; [send] publishes one
  * [CompletableDeferred] at a time under [writeMutex], which the reader completes. The protocol keeps at
  * most one command in flight and has a distinct **running** phase (after a [DebugCommandGroup.Run] command
  * the debuggee runs, then emits an out-of-band pause/error line) — that state machine is preserved exactly
@@ -183,9 +183,8 @@ class LuaDebugConnection(
     private val observer: LuaDebugObserver,
     private val scope: CoroutineScope,
 ) {
-    private val reader: BufferedReader = InputStreamReader(socket.inputStream).buffered(100 * 1024)
+    private val input: InputStream = BufferedInputStream(socket.inputStream, 100 * 1024)
     private val writer: OutputStream = socket.outputStream
-    private val charset = charset("UTF8")
 
     private val writeMutex = Mutex()
 
@@ -217,8 +216,7 @@ class LuaDebugConnection(
         pending = deferred
         pendingKind = command.kind
         withContext(Dispatchers.IO) {
-            writer.write("$command\n".toByteArray(charset))
-            writer.flush()
+            DbgpFraming.writeLine(writer, command.toString())
         }
         deferred.await()
     }
@@ -226,7 +224,7 @@ class LuaDebugConnection(
     private suspend fun readLoop() {
         try {
             while (coroutineContext.isActive && !socket.isClosed) {
-                val line = reader.readLine() ?: break
+                val line = DbgpFraming.readLine(input) ?: break
                 handleLine(line)
             }
         } catch (e: IOException) {
@@ -254,7 +252,7 @@ class LuaDebugConnection(
         // Case A: response to the in-flight command.
         if (deferred != null && declared.containsKey(status)) {
             val payload = if (declared[status] == DebuggerResponseDataKind.Extended) {
-                reader.readExactly(data.toInt())
+                DbgpFraming.readExactly(input, data.toInt())
             } else {
                 data
             }
@@ -299,7 +297,7 @@ class LuaDebugConnection(
 
                 DebuggerStatus.ErrorInExecution -> {
                     running = false
-                    val extData = reader.readExactly(data.toInt())
+                    val extData = DbgpFraming.readExactly(input, data.toInt())
                     log.info("execution error: $extData")
                     observer.onRunExecutionError(extData)
                 }
@@ -316,7 +314,7 @@ class LuaDebugConnection(
 
     fun close() {
         try {
-            reader.close()
+            input.close()
         } catch (_: IOException) {
         }
 
@@ -329,18 +327,6 @@ class LuaDebugConnection(
             socket.close()
         } catch (_: IOException) {
         }
-    }
-
-    /** Reads exactly [length] characters from this reader without closing it. */
-    private fun BufferedReader.readExactly(length: Int): String {
-        val buf = CharArray(length)
-        var offset = 0
-        while (offset < length) {
-            val n = read(buf, offset, length - offset)
-            if (n == -1) throw IOException("connection closed after $offset of $length chars")
-            offset += n
-        }
-        return String(buf)
     }
 
     companion object {
