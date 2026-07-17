@@ -139,23 +139,23 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 
 ## Verification Tasks
 
-- [ ] `TestDbgpFraming` — byte-count `readExactly` on a multibyte payload, CRLF `readLine`, short-read
+- [x] `TestDbgpFraming` — byte-count `readExactly` on a multibyte payload, CRLF `readLine`, short-read
       `IOException` — covers TC-01a/b/c.
-- [ ] Extend `TestLuaDebugValue` / `TestLuaDebugVariable` — malformed key (non-string/non-number)
+- [x] Extend `TestLuaDebugValue` / `TestLuaDebugVariable` — malformed key (non-string/non-number)
       renders without crash — covers TC-02a.
-- [ ] Extend `TestLuaPosition` — un-relativizable path falls back to absolute — covers TC-02b (#16).
-- [ ] Extend `TestLuaRemoteResultFactory` — `local a, b = 1` yields no IOOBE — covers TC-02c (#17).
-- [ ] `grep` gate: zero `!!` in `run/` — covers TC-02d (§2.2).
-- [ ] Extend `TestLuaDebugValueParser` — `t[1]` on `{10,20}` → 10 — covers TC-05a (#52).
-- [ ] Extend `TestLuaExecutionStack`/`TestLuaRemoteStackFrames` — `firstFrameIndex=1` drops frame 0;
+- [x] Extend `TestLuaPosition` — un-relativizable path falls back to absolute — covers TC-02b (#16).
+- [x] Extend `TestLuaRemoteResultFactory` — `local a, b = 1` yields no IOOBE — covers TC-02c (#17).
+- [x] `grep` gate: zero `!!` in `run/` — covers TC-02d (§2.2).
+- [x] Extend `TestLuaDebugValueParser` — `t[1]` on `{10,20}` → 10 — covers TC-05a (#52).
+- [x] Extend `TestLuaExecutionStack`/`TestLuaRemoteStackFrames` — `firstFrameIndex=1` drops frame 0;
       C-frame recognized — covers TC-05b/c (#53).
-- [ ] Extend `TestLuaLineBreakpointType` — `getDisplayText` shows 1-based line — covers TC-05d (#59).
-- [ ] Extend `TestLuaRunConfiguration` — sourcePath apply round-trip; empty workdir → basePath;
+- [x] Extend `TestLuaLineBreakpointType` — `getDisplayText` shows 1-based line — covers TC-05d (#59).
+- [x] Extend `TestLuaRunConfiguration` — sourcePath apply round-trip; empty workdir → basePath;
       `checkConfiguration` throws on no runtime — covers TC-06a/b/c (#26, #56).
-- [ ] `TestLuaPatternEscaper` + busted-filter test — magic chars escaped, one `--filter` per test —
+- [x] `TestLuaPatternEscaper` + busted-filter test — magic chars escaped, one `--filter` per test —
       covers TC-07a (#27b).
-- [ ] `findTopLevelJson` apostrophe test — JSON with `"doesn't"` parsed intact — covers TC-07b (#54).
-- [ ] Debug-port round-trip unit test — covers TC-08a (C1).
+- [x] `findTopLevelJson` apostrophe test — JSON with `"doesn't"` parsed intact — covers TC-07b (#54).
+- [x] Debug-port round-trip unit test — covers TC-08a (C1).
 - [ ] Run `human-verification-checklists.md` on the builder VM over VNC (HV-04/06/07/08) — the live
       DBGp/busted flow (MAINT-22 DoD precedent).
 

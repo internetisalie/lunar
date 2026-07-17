@@ -61,9 +61,9 @@ are deliberate scope deferrals, not open questions.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| MAINT-00-DR-01 | Prototype `DbgpFraming` + unit tests over `ByteArrayInputStream` (byte-count read, CRLF, short read) before touching `LuaDebugConnection` | Risk 1.1 | todo |
-| MAINT-00-DR-02 | Confirm empirically that busted `--output=json` emits a single terminal report (no per-test lines) — records the streaming limit behind §2.8 | Future Work (streaming) | todo |
-| MAINT-00-DR-03 | Launch a debug session on a non-8172 port over VNC; confirm mobdebug binds it via `MOBDEBUG_PORT` + `start(host, port)` | Risk 1.3 | todo |
+| MAINT-00-DR-01 | Prototype `DbgpFraming` + unit tests over `ByteArrayInputStream` (byte-count read, CRLF, short read) before touching `LuaDebugConnection` | Risk 1.1 | done |
+| MAINT-00-DR-02 | Confirm empirically that busted `--output=json` emits a single terminal report (no per-test lines) — records the streaming limit behind §2.8 | Future Work (streaming) | done |
+| MAINT-00-DR-03 | Launch a debug session on a non-8172 port over VNC; confirm mobdebug binds it via `MOBDEBUG_PORT` + `start(host, port)` | Risk 1.3 | deferred → HV-07 (VNC) |
 
 ## Test Case Gaps
 
