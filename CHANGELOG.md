@@ -27,6 +27,13 @@
 - **Release build** (build): `patchPluginXml` now accepts milestone-style CHANGELOG headers, so
   overriding the plugin version to one without a matching CHANGELOG section no longer fails.
 
+### Fixes (0.18.3)
+- **Redis sandbox false positive** (REDIS-06): the "not available in the Redis sandbox" inspection
+  no longer flags a global name that is shadowed by a local binding in scope — it now performs a
+  side-effect-free local-resolution check before warning.
+- **Redis command quick-doc over-triggering** (REDIS-06): command documentation now surfaces only
+  when the caret is on the command-name string literal, instead of anywhere in the call.
+
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 
 - **Connections & Script Run Configuration** (REDIS-01): RESP client + connection management.
