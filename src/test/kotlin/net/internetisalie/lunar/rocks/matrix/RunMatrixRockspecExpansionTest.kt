@@ -11,15 +11,18 @@ import java.nio.file.Path
  */
 class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
 
-    private val env1 = LuaEnvironmentState(id = "E1", name = "lua-5.4", rootDir = "/p/e1")
-    private val env2 = LuaEnvironmentState(id = "E2", name = "lua-5.1", rootDir = "/p/e2")
-
     private val rockspecA = Path.of("/p/a/a-1.0-1.rockspec")
     private val rockspecB = Path.of("/p/b/b-2.0-1.rockspec")
+
+    private fun envWithLuarocks(id: String): LuaEnvironmentState {
+        val luarocks = seedTool("luarocks", usable = true, environmentId = id)
+        return LuaEnvironmentState(id = id, name = id, rootDir = "/p/$id", toolIds = mutableListOf(luarocks.id))
+    }
 
     private val noopRunner = MatrixRunner.RowRunner { _, _ -> RowOutcome(0, "ok") }
 
     fun `test execute labels each row with the rockspec filename BUG377`() {
+        val env1 = envWithLuarocks("E1")
         val result = MatrixRunner.execute(
             MatrixRunner.Request("test", rockspecA, listOf(env1)),
             noopRunner,
@@ -29,6 +32,8 @@ class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
     }
 
     fun `test two rockspecs produce independent row sets BUG377`() {
+        val env1 = envWithLuarocks("E1")
+        val env2 = envWithLuarocks("E2")
         val resultA = MatrixRunner.execute(
             MatrixRunner.Request("test", rockspecA, listOf(env1, env2)),
             noopRunner,
@@ -51,11 +56,12 @@ class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
         assertEquals(4, combined.size)
         val aRows = combined.filter { it.rockspecLabel == "a-1.0-1.rockspec" }
         val bRows = combined.filter { it.rockspecLabel == "b-2.0-1.rockspec" }
-        assertEquals(listOf("lua-5.4", "lua-5.1"), aRows.map { it.env.name })
-        assertEquals(listOf("lua-5.4", "lua-5.1"), bRows.map { it.env.name })
+        assertEquals(listOf("E1", "E2"), aRows.map { it.env.name })
+        assertEquals(listOf("E1", "E2"), bRows.map { it.env.name })
     }
 
     fun `test tableRows includes rockspec column BUG377`() {
+        val env1 = envWithLuarocks("E1")
         val result = MatrixRunner.execute(
             MatrixRunner.Request("test", rockspecA, listOf(env1)),
             noopRunner,
@@ -64,8 +70,9 @@ class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
         assertEquals(1, rows.size)
         // Row: [rockspec, env, status, exit]
         assertEquals("a-1.0-1.rockspec", rows[0][0])
-        assertEquals("lua-5.4", rows[0][1])
+        assertEquals("E1", rows[0][1])
         assertEquals("PASS", rows[0][2])
-        assertEquals(0, rows[0][3])
+        // exitCode is Int? boxed as Any; compare as string to avoid JUnit3 boxing differences
+        assertEquals("0", rows[0][3].toString())
     }
 }
