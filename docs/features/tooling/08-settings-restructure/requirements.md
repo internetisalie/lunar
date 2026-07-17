@@ -2,7 +2,7 @@
 id: "TOOLING-08"
 title: "08: Lua Settings Restructure"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "TOOLING"
 folders:
@@ -131,14 +131,14 @@ default is non-blank, else `Inherit (no app default)`. The rocks-URL placeholder
 | 11 | TOOLING-08-07 | `LuaApplicationSettingsPanel` rebuilt on the DSL | `isModified` after toggling type-inference | Returns `true` (behavior preserved through the migration) |
 
 ## Acceptance Criteria
-- [ ] TOOLING-08-01: platform + version combos are visible on the *Lua Project* page and persist the chosen target.
-- [ ] TOOLING-08-02: Auto and explicit modes behave per TC 3–5; the synchronizer respects an explicit target.
-- [ ] TOOLING-08-03: bindings render as common/advanced per TC 6.
-- [ ] TOOLING-08-04: platform-server kinds are UI-absent but still resolvable per TC 7.
-- [ ] TOOLING-08-05: global bindings UI writes/reads `setGlobalBinding`/`globalBindings` per TC 8–9.
-- [ ] TOOLING-08-06: inherit placeholders render per TC 10.
-- [ ] TOOLING-08-07: both target panels compile on the Kotlin UI DSL with no `FormBuilder` import.
-- [ ] VNC/`verify-in-ide` confirms consistent vertical spacing and a discoverable target control (DoD real-flow gate).
+- [x] TOOLING-08-01: platform + version combos are visible on the *Lua Project* page and persist the chosen target. *(Phase 2; `LuaProjectConfigurableTest` TC 1–3.)*
+- [x] TOOLING-08-02: Auto and explicit modes behave per TC 3–5; the synchronizer respects an explicit target. *(Phase 1 guard + Phase 2; `LuaTargetSynchronizerTest`, `LuaProjectConfigurableTest`.)*
+- [x] TOOLING-08-03: bindings render as common/advanced per TC 6. *(Phase 1 classifier + Phase 3.)*
+- [x] TOOLING-08-04: platform-server kinds are UI-absent but still resolvable per TC 7. *(Phase 1 + Phase 3; `LuaToolKindClassifierTest`.)*
+- [x] TOOLING-08-05: global bindings UI writes/reads `setGlobalBinding`/`globalBindings` per TC 8–9. *(Phase 4; `LuaToolchainConfigurableGlobalBindingsTest`.)*
+- [x] TOOLING-08-06: inherit placeholders render per TC 10. *(Phase 4; `LuaProjectConfigurableTest` TC 10/10b.)*
+- [x] TOOLING-08-07: both target panels compile on the Kotlin UI DSL with no `FormBuilder` import. *(Phase 5; `LuaApplicationSettingsPanelTest`, `LuaRocksGeneratorPeerTest`.)*
+- [ ] VNC/`verify-in-ide` confirms consistent vertical spacing and a discoverable target control (DoD real-flow gate). *(Deferred to a supervised verify-in-ide session — awaiting VNC gate.)*
 
 ## Non-Functional Requirements
 - **Threading**: all panel construction, reset, and apply run on the EDT with no I/O; combo

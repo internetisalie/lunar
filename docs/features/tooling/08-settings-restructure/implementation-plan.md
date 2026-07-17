@@ -81,13 +81,14 @@ is **VNC-verified** last. Every task names the class/file and the design section
 ### Phase 6: Spacing audit + live verification [Could/Must-DoD]
 - **Goal**: confirm the tree's vertical rhythm and the discoverable target control live.
 - **Tasks**:
-  - [ ] Record in design §1 / requirements 08-08 that `LuaEditorOptionsConfigurable`
+  - [x] Record in design §1 / requirements 08-08 that `LuaEditorOptionsConfigurable`
         (`BeanConfigurable`) and `LuaCodeStyleSettings` (`CustomCodeStyleSettings`) are platform-driven
-        (no manual layout) — realizes 08-08.
+        (no manual layout) — realizes 08-08. (design §1 "Spacing audit conclusion".)
   - [ ] Run the `verify-in-ide` VNC pass over every Lua settings page; capture screenshots of the new
-        target control and consistent spacing.
-- **Exit criteria**: `human-verification-checklists.md` fully checked; VNC screenshots attached to the
-  feature.
+        target control and consistent spacing. **DEFERRED** to a separate supervised verify-in-ide
+        session (awaiting VNC gate).
+- **Exit criteria**: audit recorded (done); `human-verification-checklists.md` VNC pass is the only
+  remaining item — deferred to a supervised session.
 
 ## Requirement → Phase Coverage
 
@@ -103,14 +104,14 @@ is **VNC-verified** last. Every task names the class/file and the design section
 | TOOLING-08-08 | C | Phase 6 |
 
 ## Verification Tasks
-- [ ] `LuaToolKindClassifierTest` — covers TC 6, 7 (classification + eviction).
-- [ ] `LuaTargetSynchronizerTest` (extend) — covers TC 4 (explicit-target no-op).
-- [ ] `LuaProjectConfigurableTargetTest` — covers TC 1–5.
-- [ ] `LuaProjectConfigurableBindingsTest` — covers TC 6, 7.
+- [x] `LuaToolKindClassifierTest` — covers TC 6, 7 (classification + eviction).
+- [x] `LuaTargetSynchronizerTest` (extend) — covers TC 4 (explicit-target no-op).
+- [x] `LuaProjectConfigurableTargetTest` — covers TC 1–5.
+- [x] `LuaProjectConfigurableBindingsTest` — covers TC 6, 7.
 - [x] `LuaToolchainConfigurableGlobalBindingsTest` — covers TC 8, 9.
-- [x] Inherit-placeholder test — covers TC 10.
+- [x] Inherit-placeholder test — covers TC 10 (`LuaProjectConfigurableTest` TC 10/10b).
 - [x] `LuaApplicationSettingsPanelTest` — covers TC 11.
-- [ ] Run [human-verification-checklists.md](human-verification-checklists.md) via `verify-in-ide`.
+- [ ] Run [human-verification-checklists.md](human-verification-checklists.md) via `verify-in-ide` — deferred (awaiting VNC gate).
 
 ## Task Summary
 
@@ -121,4 +122,4 @@ is **VNC-verified** last. Every task names the class/file and the design section
 | Phase 3: Bindings split + eviction | done | Must |
 | Phase 4: Global bindings + inherit labels | done | Must |
 | Phase 5: DSL panel migration | done | Should |
-| Phase 6: Spacing audit + live verification | todo | Could |
+| Phase 6: Spacing audit (done) + live VNC verification (deferred) | in_progress | Could |

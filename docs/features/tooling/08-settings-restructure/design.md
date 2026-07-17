@@ -59,6 +59,19 @@ folders:
 - `LuaToolchainConfigurable` gains a *Global Default Bindings* group.
 - `LuaApplicationSettingsPanel` and `LuaRocksGeneratorPeer` are re-expressed with `panel { }`.
 
+#### Spacing audit conclusion (TOOLING-08-08, Phase 6)
+Audited the two remaining Lua settings surfaces for manual layout/vgaps:
+- `LuaEditorOptionsConfigurable` (`lang/editor/LuaEditorOptionsConfigurable.kt`) is a
+  `BeanConfigurable<LuaEditorOptions>` whose body is a single `checkBox(...)` call — the **platform**
+  lays out bean rows; there is no `FormBuilder`/`IdeBorderFactory` and no hand-tuned vgap to normalize.
+- `LuaCodeStyleSettings` (`lang/format/LuaCodeStyleSettings.kt`) is a `CustomCodeStyleSettings`
+  **model** (persisted fields only) with no panel of its own; its UI is contributed by the platform's
+  code-style framework.
+
+Conclusion: both are platform-driven — no manual layout to migrate. Once Phase 5 landed the two
+FormBuilder panels on the DSL, the whole Lua settings tree's vertical rhythm is platform-uniform; the
+final cross-page appearance parity is confirmed by the deferred `verify-in-ide` VNC pass.
+
 ## 2. Core Components
 
 ### 2.1 `net.internetisalie.lunar.toolchain.ui.LuaToolKindClassifier`

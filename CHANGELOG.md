@@ -65,6 +65,29 @@
   "LuaRocks Packages" vs "LuaRocks Dependencies"), BUG-367 (`(no package selected)` label →
   empty-text panel), and BUG-368 (newline-joined dependencies → a clickable list).
 
+### Lua settings restructure (TOOLING-08)
+- **Discoverable platform-target control** (BUG-362): the *Lua Project* settings page now has an
+  always-visible *Platform target* + *Version* pair of combos. *Auto (from runtime)* follows the
+  discovered interpreter; picking a concrete platform (e.g. Redis) pins the target explicitly, and a
+  later interpreter re-probe no longer overwrites it. Previously the target could only ever be
+  derived from the runtime, so a Redis project whose interpreter probed as Standard was un-pinnable.
+- **Common / Advanced bindings split with server-kind eviction**: the *Toolchain Bindings* group now
+  shows only the common tools (runtime + LuaRocks + luacheck + StyLua + Busted); the rest move to a
+  collapsed *Advanced tools* group. The capability-less `redis-server` / `valkey-server` platform
+  kinds are removed from the bindings UI entirely while staying fully resolvable for the Redis
+  subsystem.
+- **Global default bindings UI**: the app-level *Toolchain* page gains a *Global Default Bindings*
+  group — one combo per common kind — that writes through the previously orphaned
+  `setGlobalBinding`, so a globally-bound tool applies to any project with no project-level binding.
+- **DSL-standardized settings panels** (BUG-369): the app *Lua* page and the LuaRocks project-generator
+  dialog are rebuilt on the Kotlin UI DSL, replacing the FormBuilder layouts so the settings tree's
+  vertical spacing is uniform.
+- **Honest Cancel/Reset on the app settings page**: the app *Lua* configurable now implements the
+  full lifecycle (`reset()` / `disposeUIResources()`) and only commits its toggles on *Apply*, so
+  *Cancel* truly reverts.
+- **Explicit inherit labelling**: the project Luacheck-arguments and LuaRocks server-URL fields render
+  the effective app default in their placeholder (`Inherit (app default: …)` / `Inherit (luarocks.org)`).
+
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 
 - **Connections & Script Run Configuration** (REDIS-01): RESP client + connection management.

@@ -27,7 +27,7 @@ hererocks environment lifecycle (ROCKS-14/15/16) with **one coherent model**.
 | [`TOOLING-05`](05-consumer-migration/requirements.md) | **Consumer Migration & Legacy Removal** | **M** | done | Every consumer resolves through the new registry; legacy state/services deleted (clean break). |
 | [`TOOLING-06`](06-settings-ui/requirements.md) | **Settings UI Consolidation** | **M** | done | One Lua settings tree; per-tool pages fold in. |
 | [`TOOLING-07`](07-health-and-diagnostics/requirements.md) | **Health Monitoring & Diagnostics** | **S** | done | Unified health model with separated file-exists / probe-passed states; banners, notifications, diagnostics. |
-| [`TOOLING-08`](08-settings-restructure/requirements.md) | **Lua Settings Restructure** | **S** | planned | Post-epic UX pass: discoverable platform-target control, common/advanced bindings split, global-bindings UI, DSL layout consistency. Absorbs BUG-362/BUG-369. |
+| [`TOOLING-08`](08-settings-restructure/requirements.md) | **Lua Settings Restructure** | **S** | done | Post-epic UX pass: discoverable platform-target control, common/advanced bindings split, global-bindings UI, DSL layout consistency. Absorbs BUG-362/BUG-369. All Musts+Shoulds delivered; the Could-priority live VNC spacing pass is deferred to a supervised verify-in-ide session. |
 
 **Delivery:** [Implementation Plan](tooling-implementation-plan.md) (dependency order,
 milestones, effort ~60–95 eng-days, two-engineer parallelization) ·

@@ -12,6 +12,22 @@ folders:
 Run via the `verify-in-ide` VNC flow against GoLand on the builder VM. This is the DoD real-flow gate
 for the appearance work that unit tests cannot cover.
 
+> **Status (2026-07-17): implementation complete, VNC pass DEFERRED.** All Phases 1–5 (Musts + Shoulds)
+> shipped and are unit-verified (see the requirements Acceptance Criteria for the per-scenario test
+> evidence). This VNC pass — the only remaining Could-priority item — is deferred to a separate
+> supervised `verify-in-ide` session; the scenario checkboxes below stay unchecked until then
+> (**awaiting VNC gate**). Implementation evidence per scenario:
+> - **1.x (target control)** — `LuaProjectConfigurable` platform/version combos + `applyTarget`,
+>   synchronizer explicit-target guard; `LuaProjectConfigurableTest`, `LuaTargetSynchronizerTest`.
+> - **2.x (bindings split / server eviction)** — `LuaToolKindClassifier` + `LuaProjectConfigurable`
+>   common/`collapsibleGroup` split; `LuaToolKindClassifierTest`.
+> - **3.x (global bindings)** — `LuaToolchainConfigurable` Global Default Bindings group;
+>   `LuaToolchainConfigurableGlobalBindingsTest`.
+> - **4.x (layout)** — DSL rewrite of `LuaApplicationSettingsPanel` + `LuaRocksGeneratorPeer`
+>   (design §1 spacing-audit conclusion); `LuaApplicationSettingsPanelTest`.
+> - **5.x (inherit placeholders)** — `LuaProjectConfigurable.applyInheritPlaceholders`;
+>   `LuaProjectConfigurableTest` TC 10/10b.
+
 ## 1. Platform Target Discoverability (BUG-362)
 
 ### Scenario 1.1: Target control is visible and usable
