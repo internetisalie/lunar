@@ -202,4 +202,35 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
         val aType = snapshot.getValueType(aVar)
         assertNotNull(aType)
     }
+
+    /**
+     * MAINT-25-03 / TC-04: module resolution must run inside a plain read action without a
+     * synchronous VFS refresh (`refreshIfNeeded = false`). A synchronous refresh under the read lock
+     * would trip a platform assertion; reaching the assertion below without an exception proves the
+     * lookup no longer refreshes under the lock, and an on-disk module still resolves.
+     */
+    @Test
+    fun testModuleResolutionUnderReadActionDoesNotRefresh() {
+        myFixture.addFileToProject(
+            "diskmod.lua",
+            """
+            ---@class DiskMod
+            local m = {}
+            return m
+            """.trimIndent(),
+        )
+        myFixture.configureByText("main.lua", "local dm = require(\"diskmod\")")
+        myFixture.configureByFiles("main.lua", "diskmod.lua")
+
+        val requireDecl = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaLocalVarDecl::class.java)
+            .first { it.text.contains("require") }
+
+        var resolved = false
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            com.intellij.openapi.application.ReadAction.run<RuntimeException> {
+                resolved = LuaTypeManager.getInstance(project).resolveModule("diskmod", requireDecl) != null
+            }
+        }
+        assertTrue("On-disk module resolves under a read action with no synchronous refresh", resolved)
+    }
 }

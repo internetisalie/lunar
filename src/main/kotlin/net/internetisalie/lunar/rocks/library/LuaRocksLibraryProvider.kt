@@ -30,7 +30,7 @@ class LuaRocksLibraryProvider : AdditionalLibraryRootsProvider() {
             tree.resolve("lib").resolve("lua").resolve(version)
         )
 
-        return candidates.mapNotNull { VfsUtil.findFile(it, true) }.filter { it.isDirectory }
+        return candidates.mapNotNull { VfsUtil.findFile(it, false) }.filter { it.isDirectory }
     }
 
     class InstalledRocksLibrary(private val roots: List<VirtualFile>) :

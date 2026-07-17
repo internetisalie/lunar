@@ -60,7 +60,7 @@ class PlatformLibraryProvider : AdditionalLibraryRootsProvider() {
             .map { it -> Paths.get(it) }
             .filter { it.isAbsolute }
             .filter { !it.startsWith(projectBasePath) }
-            .mapNotNull { VfsUtil.findFile(it, true) }
+            .mapNotNull { VfsUtil.findFile(it, false) }
             .toTypedArray()
 
         if (virtualFiles.isEmpty()) return emptyList()

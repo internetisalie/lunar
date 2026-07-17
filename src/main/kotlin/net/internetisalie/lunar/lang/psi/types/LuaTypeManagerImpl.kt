@@ -143,7 +143,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
 
     private fun findVirtualFile(path: String): VirtualFile? {
         LocalFileSystem.getInstance().findFileByPath(path)?.let { return it }
-        return VfsUtil.findFileByIoFile(File(path), true)
+        return VfsUtil.findFileByIoFile(File(path), false)
     }
 
     private fun doResolveType(name: String, project: Project): LuaType? {
