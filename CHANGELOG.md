@@ -39,6 +39,12 @@
   rules now `pin` after their opening keyword, so an unterminated or half-written block yields a
   partial PSI node scoped to that block instead of letting the error cascade to the end of file.
   Completion, highlighting, and structural editing stay accurate while a block is still being typed.
+- **Typed lambda parameters from expected callback types** (TYPE-10): when a lambda is passed to a
+  function whose parameter is a callback type (`fun(...)`), its own un-annotated parameters now infer
+  the expected types with no manual `---@param`. `redis.register_function('f', function(keys, args)
+  … end)` types `keys`/`args` as `string[]` (and `keys[1]` as `string`), and `table.sort(t,
+  function(a, b) … end)` types the comparator from the stub signature. A direct `---@param` on the
+  lambda still wins. Retires REDIS-05's descoped callback typing (Gap 2.4).
 
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 

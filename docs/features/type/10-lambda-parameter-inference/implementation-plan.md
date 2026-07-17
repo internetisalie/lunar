@@ -98,16 +98,16 @@ gate**, not optional. Order: build the resolver in isolation (Phase 1), wire pro
 | TYPE-10-06 | M | Phase 3 |
 
 ## Verification Tasks
-- [ ] Add `LambdaParamInferenceTest` (TC 1–8) — covers the positive + negative engine cases.
-- [ ] Add a completion/inlay surface test — covers TC 9.
-- [ ] Full-suite regression run (not isolated `--tests`) — covers TC 10 / TYPE-10-06.
-- [ ] Re-run REDIS-05 TC-STUB-1 to confirm Gap 2.4 is retired (design §5 Example 1).
-- [ ] Run [human-verification-checklists.md](human-verification-checklists.md).
+- [x] Add `LambdaParamInferenceTest` (TC 1–8) — covers the positive + negative engine cases.
+- [x] Add a completion/inlay surface test — covers TC 9 (`LambdaParamInferenceInlayTest`, type inlay on the seeded lambda param).
+- [x] Full-suite regression run (not isolated `--tests`) — covers TC 10 / TYPE-10-06 (2011 tests / 0 failures, `--rerun-tasks --no-build-cache`).
+- [x] Re-run REDIS-05 TC-STUB-1 to confirm Gap 2.4 is retired (`LambdaParamInferenceTest.testRegisterFunctionKeysInfersStringArray_TC1_TC2`; REDIS-05 risks Gap 2.4 marked RETIRED).
+- [ ] Run [human-verification-checklists.md](human-verification-checklists.md) — live IDE surface (deferred to human verification per risks §Test Case Gaps).
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Expected-callback resolver | planned | Must |
-| Phase 2: Propagation in visitFuncCall | planned | Must |
-| Phase 3: Regression contract + surfacing | planned | Must |
+| Phase 1: Expected-callback resolver | done | Must |
+| Phase 2: Propagation in visitFuncCall | done | Must |
+| Phase 3: Regression contract + surfacing | done | Must |

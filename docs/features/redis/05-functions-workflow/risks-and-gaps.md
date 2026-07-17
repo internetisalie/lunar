@@ -51,7 +51,15 @@ sharpened at the REDIS-05 design level.
 
 ## Design Gaps
 
-### Gap 2.4: no expected-type → lambda-parameter inference (AC-2 callback typing) — **descoped 2026-07-14**
+### Gap 2.4: no expected-type → lambda-parameter inference (AC-2 callback typing) — **RETIRED 2026-07-17 by TYPE-10**
+> **Update (TYPE-10):** this gap is now **closed**. `TYPE-10` (Expected-Type → Lambda-Parameter
+> Inference) implements exactly the "deferred enhancement" below — general expected-type →
+> lambda-param propagation in `LuaTypesVisitor.visitFuncCall`, gated by the REDIS-04 §3.1c-style
+> regression contract. `redis.register_function('f', function(keys, args) return keys[1] end)` now
+> auto-types `keys`/`args` as `string[]` and `keys[1]` as `string` with no user annotation
+> (verified by `LambdaParamInferenceTest.testRegisterFunctionKeysInfersStringArray_TC1_TC2`, which
+> re-enables REDIS-05 TC-STUB-1). The historical descope rationale is retained below for context.
+
 Design §3.3's original premise (the engine auto-types an un-annotated callback's `keys`/`args` as
 `string[]` from `register_function`'s stub `fun(keys: string[], args: string[])` annotation) was
 **ground-truth-false**. An empirical probe proved the bundled type engine propagates parameter
