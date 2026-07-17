@@ -3,7 +3,7 @@ id: "MAINT-25"
 title: "25: Type-Graph Immutability & Safety"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -40,9 +40,9 @@ contract (`lang/psi/types/*` + consumers), the same contract TYPE-10 uses.
 | MAINT-25-01 | Immutable graph types | M | Full | `LuaGraphType` immutable-by-copy; fresh instances from `TYPEOF_MAP`; copy-on-mutate in `handleSetMetatable` (#1, #58) |
 | MAINT-25-02 | Cycle-safe conversion | M | Full | Thread a `visited` map through `graphTypeToLuaType` (#2) |
 | MAINT-25-03 | No refresh under read lock | M | Full | `refreshIfNeeded = false` at all three sites (#3, #47) |
-| MAINT-25-04 | Error-reporting hygiene | S | Not Implemented | Cutoffs → `log.warn`; never log PCE (#14) |
-| MAINT-25-05 | Snapshot-cost pass | C | Not Implemented | Fix the O(n²) cats-comment scan and per-access `nodes`-list copy (§2.5.5); `write`/`read` memo deferred |
-| MAINT-25-06 | No-regression gate | M | Not Implemented | REDIS-04 §3.1c-style contract: full `lang/types/*` + consumers green on a cache-defeated full-suite run vs the 2123/0/1 baseline |
+| MAINT-25-04 | Error-reporting hygiene | S | Full | Cutoffs → `log.warn`; never log PCE (#14) |
+| MAINT-25-05 | Snapshot-cost pass | C | Full | Fix the O(n²) cats-comment scan and per-access `nodes`-list copy (§2.5.5); `write`/`read` memo deferred |
+| MAINT-25-06 | No-regression gate | M | Full | REDIS-04 §3.1c-style contract: full `lang/types/*` + consumers green on a cache-defeated full-suite run vs the 2123/0/1 baseline (measured 2128/0/1) |
 
 **Note:** TYPE-10 (lambda-parameter inference) touches `LuaTypesVisitor`/`LuaTypeGraph`
 concurrently — serialize these two features (same hot files, roadmap `Serial` cluster).

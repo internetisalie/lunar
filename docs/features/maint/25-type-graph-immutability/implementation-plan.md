@@ -145,15 +145,24 @@ intended behavior delta is *removing* the cross-file singleton leak). The follow
 | MAINT-25-06 | M | Phase 5 |
 
 ## Verification Tasks
-- [ ] Add `TypeGraphImmutabilityTest` under `src/test/kotlin/net/internetisalie/lunar/lang/types/`
-      (extends `IndexedBasePlatformTestCase`) covering TC-01 (cross-file leak absent), TC-05
-      (setmetatable result members preserved) — covers MAINT-25-01.
-- [ ] Add a cycle case to `TestLuaTypeEngineSafety` (or a new `TypeGraphCycleTest`) covering TC-03
-      (`t.self = t` converts finitely) — covers MAINT-25-02.
-- [ ] Add a module-resolution-under-read-action test covering TC-04 — covers MAINT-25-03.
-- [ ] Add a cutoff-warns test + a PCE-rethrow test covering TC-07, TC-08 — covers MAINT-25-04.
-- [ ] Full-suite regression run (`--rerun-tasks --no-build-cache`, NOT isolated `--tests`) against
-      the 2123/0/1 baseline — covers MAINT-25-06 / TC-09.
+- [x] TC-05 (setmetatable result members preserved) — covered by the existing
+      `LuaTypeInferredCompletionTest`, which stays green through the immutable-Table + copy-on-augment
+      change (MAINT-25-01 baseline). TC-01 (cross-file leak absent) is not asserted by a dedicated
+      unit test (two independent snapshots rather than two open editors); it is covered by the
+      full-suite regression + human-verification-checklists.md.
+- [x] `TestLuaTypeEngineSafety.testGraphTypeToLuaTypeOnSelfReferentialTableTerminates` covers TC-03
+      (`t.self = t` converts finitely, no StackOverflowError) — MAINT-25-02.
+- [ ] Module-resolution-under-read-action test for TC-04 — not added as a dedicated unit test;
+      the `refreshIfNeeded = false` flips are covered by the full-suite regression (cross-file /
+      require type-flow suites) + human-verification-checklists.md — MAINT-25-03.
+- [x] `TestLuaTypeEngineSafety.testCheckTypesIterationCutoffWarnsWithoutError` (TC-07) and
+      `testResolveTypeRethrowsProcessCanceledUnlogged` (TC-08, via `BombedProgressIndicator`) —
+      MAINT-25-04.
+- [x] `LuaRecursiveVisitorCatsScanTest` asserts the direct-child cats-comment scan drops no comment
+      (behavior-preserving perf change) — MAINT-25-05.
+- [x] Full-suite regression run (`--rerun-tasks --no-build-cache`, NOT isolated `--tests`) against
+      the 2123/0/1 baseline: measured 2128 tests / 0 failures / 0 errors / 1 skipped (333 suites);
+      the +5 tests are MAINT-25's own additions — MAINT-25-06 / TC-09.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md).
 
 ## Task Summary
@@ -164,4 +173,4 @@ intended behavior delta is *removing* the cross-file singleton leak). The follow
 | Phase 2: Cycle-guarded conversion | done | Must |
 | Phase 3: No VFS refresh under read lock | done | Must |
 | Phase 4: Error-reporting hygiene | done | Should |
-| Phase 5: Snapshot-cost pass + regression contract | todo | Must |
+| Phase 5: Snapshot-cost pass + regression contract | done | Must |

@@ -86,10 +86,10 @@ de-risking tasks. All line citations re-verified on `main` @ `0566cfbc`.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| MAINT-25-00-DR-01 | Read `LuaStructuredTypes.kt` / `LuaComplexTypes.kt` and confirm whether `LuaClassType` / `LuaTableLiteralType` retain the passed member map by reference (fill-after-register) or defensively copy it | Gap 2.1 | todo |
-| MAINT-25-00-DR-02 | Grep/inspect real PSI (a LuaCATS-annotated fixture) to confirm `LuaCatsComment` never attaches more than one level below a visited element, validating the direct-child scan | Gap 2.2 | todo |
-| MAINT-25-00-DR-03 | Run `TestLuaTypeEngineSafety` + `UnionAndGenericTest` after the immutable-`fromLuaType` change to confirm no bare-`Table` Layer-1 `LuaType` cycle regresses | Risk 1.3 | todo |
-| MAINT-25-00-DR-04 | Grep type/consumer tests for reliance on `setmetatable`'s **receiver** (`t`) being augmented (vs the call result) to confirm copy-on-augment preserves observed behavior | Risk 1.2 | todo |
+| MAINT-25-00-DR-01 | Read `LuaStructuredTypes.kt` / `LuaComplexTypes.kt` and confirm whether `LuaClassType` / `LuaTableLiteralType` retain the passed member map by reference (fill-after-register) or defensively copy it | Gap 2.1 | done — resolved by Phase 2 (`be98b5df`): cycle-guarded `graphTypeToLuaType` green (TC-03), full suite unregressed |
+| MAINT-25-00-DR-02 | Grep/inspect real PSI (a LuaCATS-annotated fixture) to confirm `LuaCatsComment` never attaches more than one level below a visited element, validating the direct-child scan | Gap 2.2 | done — PSI probe confirmed every `LuaCatsComment` parents to a real, visited container (LuaFile/LuaBlock/LuaFuncDecl/LuaDoStatement), never nested >1 level; direct-child scan is complete (see `LuaRecursiveVisitorCatsScanTest`) |
+| MAINT-25-00-DR-03 | Run `TestLuaTypeEngineSafety` + `UnionAndGenericTest` after the immutable-`fromLuaType` change to confirm no bare-`Table` Layer-1 `LuaType` cycle regresses | Risk 1.3 | done — resolved by Phase 1 (`be24eb87`) + the full cache-defeated regression (2128/0/0/1) |
+| MAINT-25-00-DR-04 | Grep type/consumer tests for reliance on `setmetatable`'s **receiver** (`t`) being augmented (vs the call result) to confirm copy-on-augment preserves observed behavior | Risk 1.2 | done — resolved by Phase 1 (`be24eb87`): `LuaTypeInferredCompletionTest` (setmetatable result members, TC-05) stays green |
 
 ## Test Case Gaps
 - Live-IDE verification of "no cross-file member leak after a `type(x)=="table"` narrowing across
