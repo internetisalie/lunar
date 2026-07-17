@@ -148,13 +148,13 @@ fully unit-testable **before** any UI work.
 | ROCKS-16-15 | C | Phase 8 |
 
 ## Verification Tasks
-- [ ] Add `LuaRocksInstallCommandTest` — covers TC-ROCKS-16-01/-02/-03/-04.
-- [ ] Add `LuaRocksInstalledServiceParseTest` — covers TC-ROCKS-16-05.
-- [ ] Add `LuaRocksUpdateDetectorTest` — covers TC-ROCKS-16-06.
-- [ ] Add `LuaRocksBrowserModelTest` (fake services) — covers TC-ROCKS-16-07/-08/-09.
-- [ ] Extend `LuaRocksSearchServiceParseTest` regression guard — covers TC-ROCKS-16-11.
-- [ ] Add `PackageDetailPaneDependencyTest` — covers TC-ROCKS-16-10.
-- [ ] Add/extend an integration check enumerating tool-window ids/titles — covers TC-ROCKS-16-12.
+- [x] Add `LuaRocksInstallCommandTest` — covers TC-ROCKS-16-01/-02/-03/-04.
+- [x] Add `LuaRocksInstalledServiceParseTest` — covers TC-ROCKS-16-05.
+- [x] Add `LuaRocksUpdateDetectorTest` — covers TC-ROCKS-16-06.
+- [x] Add `LuaRocksBrowserModelTest` (fake services) — covers TC-ROCKS-16-07/-08/-09.
+- [x] Extend `LuaRocksSearchServiceParseTest` regression guard — covers TC-ROCKS-16-11.
+- [x] Add `PackageDetailPaneDependencyTest` — covers TC-ROCKS-16-10.
+- [x] Add/extend an integration check enumerating tool-window ids/titles — covers TC-ROCKS-16-12.
 - [ ] Run `human-verification-checklists.md` over the VNC gate (verify-in-ide) — all UI phases
   (4, 5, 6) require live confirmation; unit tests cannot render the tool window.
 
