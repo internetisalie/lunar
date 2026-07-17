@@ -57,7 +57,9 @@ class PackageDetailPane(
     private val depsList = JBList(depsModel)
     private val actionButton = JButton("Install")
     private val updateButton = JButton("Update").apply { isVisible = false }
+    private val addToRockspecButton = JButton("Add to rockspec").apply { isVisible = false }
     private val statusLabel = JBLabel().apply { border = JBUI.Borders.empty(2, 0) }
+    private val rockspecService = LuaRocksRockspecDependencyService(project)
 
     private val emptyCard = JBPanelWithEmptyText().withEmptyText("No package selected")
     private val errorCard = ErrorCard(project)
@@ -77,6 +79,7 @@ class PackageDetailPane(
         homepageButton.addActionListener { openHomepage() }
         actionButton.addActionListener { onActionClicked() }
         updateButton.addActionListener { onUpdateClicked() }
+        addToRockspecButton.addActionListener { onAddToRockspecClicked() }
         showEmpty()
     }
 
@@ -123,7 +126,7 @@ class PackageDetailPane(
             border = JBUI.Borders.empty(4, 6)
         }
         val actions = JPanel(HorizontalLayout(6)).apply {
-            add(actionButton); add(updateButton); add(statusLabel)
+            add(actionButton); add(updateButton); add(addToRockspecButton); add(statusLabel)
             border = JBUI.Borders.empty(4, 6)
         }
         return JPanel(BorderLayout()).apply {
@@ -244,7 +247,15 @@ class PackageDetailPane(
         actionButton.text = if (row.installed) "Uninstall" else "Install"
         actionButton.isEnabled = true
         updateButton.isVisible = row.hasUpdate
+        addToRockspecButton.isVisible = row.installed
         statusLabel.text = if (row.hasUpdate) "Update available" else ""
+    }
+
+    private fun onAddToRockspecClicked() {
+        val row = currentRow ?: return
+        val version = versionPicker.selectedItem as? String
+        val added = rockspecService.addDependency(row.pkg.name, version)
+        statusLabel.text = if (added) "Added to rockspec." else "No project rockspec found."
     }
 
     private fun resetDetailBody() {

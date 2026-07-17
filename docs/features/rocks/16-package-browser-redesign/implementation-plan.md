@@ -104,9 +104,12 @@ fully unit-testable **before** any UI work.
 - **Goal**: "Add to rockspec dependencies" action (owner decision 2026-07-16: build in this
   feature, not a follow-on).
 - **Tasks**:
-  - [ ] Append the installed rock to the discovered rockspec's `dependencies` via the ROCKS-05
-    rockspec machinery.
-- **Exit criteria**: a unit test asserts the rockspec edit.
+  - [x] Append the installed rock to the discovered rockspec's `dependencies` via
+    `RockspecDependencyEditor` (pure text edit) + `LuaRocksRockspecDependencyService` (ROCKS-09
+    discovery + `WriteCommandAction` VFS write). Detail pane gains an "Add to rockspec" button shown
+    for installed rocks.
+- **Exit criteria**: a unit test asserts the rockspec edit ✅ — `RockspecDependencyEditorTest`
+  (6, pure) + `LuaRocksRockspecDependencyServiceTest` (2, write under command). 0 failures.
 
 ### Phase 8: Popular-packages Marketplace list [Could — ROCKS-16-15] — [logic + UI]
 - **Goal**: Populate the Marketplace zero-query view with a scraped "Popular / Trending" list
@@ -164,5 +167,5 @@ fully unit-testable **before** any UI work.
 | Phase 4: Detail pane redesign | done (unit; VNC deferred) | Must |
 | Phase 5: Two-tab panel + tool-window differentiation | done (unit; VNC deferred) | Must |
 | Phase 6: Update affordance | done (unit; VNC deferred) | Should |
-| Phase 7: Add-to-rockspec affordance | planned | Should |
+| Phase 7: Add-to-rockspec affordance | done | Should |
 | Phase 8: Popular-packages Marketplace list | planned | Could |
