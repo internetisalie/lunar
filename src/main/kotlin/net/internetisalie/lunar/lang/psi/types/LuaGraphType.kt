@@ -36,9 +36,9 @@ sealed class LuaGraphType {
 
     data class Table(
         val className: kotlin.String? = null,
-        val localMembers: MutableMap<kotlin.String, VariableNode> = mutableMapOf(),
-        val superTypes: MutableList<LuaGraphType> = mutableListOf(),
-        var isExact: kotlin.Boolean = false,
+        val localMembers: Map<kotlin.String, VariableNode> = emptyMap(),
+        val superTypes: List<LuaGraphType> = emptyList(),
+        val isExact: kotlin.Boolean = false,
     ) : LuaGraphType()
 
     data class Union(
@@ -129,17 +129,9 @@ sealed class LuaGraphType {
                     visited[type] = result
 
                     val params = type.params.map { p ->
-                        val paramNode = graph.variable(graph.nodes.firstOrNull()?.element ?: error("Graph must have at least one node"))
-                        val pType = fromLuaType(p.type, graph, visited)
-                        // Inject both source and sink for structural matching
-                        paramNode.upSet.add(graph.value(paramNode.element, pType))
-                        paramNode.downSet.add(graph.use(paramNode.element, pType))
-                        Function.Parameter(paramNode, p.name, p.isOptional, p.isVararg)
+                        Function.Parameter(memberNodeFor(p.type, graph, visited), p.name, p.isOptional, p.isVararg)
                     }
-                    val returnNode = graph.variable(graph.nodes.firstOrNull()?.element ?: error("Graph must have at least one node"))
-                    val rType = fromLuaType(type.returnType, graph, visited)
-                    returnNode.upSet.add(graph.value(returnNode.element, rType))
-                    returnNode.downSet.add(graph.use(returnNode.element, rType))
+                    val returnNode = memberNodeFor(type.returnType, graph, visited)
 
                     val finalFunc = Function(params, listOf(returnNode))
                     visited[type] = finalFunc
@@ -154,33 +146,24 @@ sealed class LuaGraphType {
                 }
 
                 is LuaTableLiteralType -> {
-                    val result = Table(null, mutableMapOf(), isExact = true)
+                    val members = LinkedHashMap<kotlin.String, VariableNode>()
+                    val result = Table(null, members, isExact = true)
                     visited[type] = result
-
-                    val members = type.getMembers().mapValues { (_, member) ->
-                        val memberNode = graph.variable(graph.nodes.firstOrNull()?.element ?: error("Graph must have at least one node"))
-                        val memberType = fromLuaType(member.type, graph, visited)
-                        memberNode.upSet.add(graph.value(memberNode.element, memberType))
-                        memberNode.downSet.add(graph.use(memberNode.element, memberType))
-                        memberNode
+                    type.getMembers().forEach { (name, member) ->
+                        members[name] = memberNodeFor(member.type, graph, visited)
                     }
-                    result.localMembers.putAll(members)
                     result
                 }
 
                 is LuaClassType -> {
-                    val result = Table(type.name, mutableMapOf(), isExact = true)
+                    val members = LinkedHashMap<kotlin.String, VariableNode>()
+                    val supers = mutableListOf<LuaGraphType>()
+                    val result = Table(type.name, members, supers, isExact = true)
                     visited[type] = result
-
-                    val members = type.getMembers().mapValues { (_, member) ->
-                        val memberNode = graph.variable(graph.nodes.firstOrNull()?.element ?: error("Graph must have at least one node"))
-                        val memberType = fromLuaType(member.type, graph, visited)
-                        memberNode.upSet.add(graph.value(memberNode.element, memberType))
-                        memberNode.downSet.add(graph.use(memberNode.element, memberType))
-                        memberNode
+                    type.getMembers().forEach { (name, member) ->
+                        members[name] = memberNodeFor(member.type, graph, visited)
                     }
-                    result.localMembers.putAll(members)
-                    result.superTypes.addAll(type.superTypes.map { fromLuaType(it, graph, visited) })
+                    type.superTypes.forEach { supers.add(fromLuaType(it, graph, visited)) }
                     result
                 }
 
@@ -204,6 +187,19 @@ sealed class LuaGraphType {
 
                 else -> Any
             }
+        }
+
+        private fun memberNodeFor(
+            memberType: LuaType,
+            graph: LuaTypeGraph,
+            visited: MutableMap<LuaType, LuaGraphType>,
+        ): VariableNode {
+            val anchor = graph.firstNodeElement() ?: error("Graph must have at least one node")
+            val memberNode = graph.variable(anchor)
+            val graphType = fromLuaType(memberType, graph, visited)
+            memberNode.upSet.add(graph.value(memberNode.element, graphType))
+            memberNode.downSet.add(graph.use(memberNode.element, graphType))
+            return memberNode
         }
     }
 }

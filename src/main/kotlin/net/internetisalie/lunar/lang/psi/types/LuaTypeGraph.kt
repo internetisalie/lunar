@@ -41,6 +41,12 @@ class LuaTypeGraph {
     /** All nodes in the order they were added. Immutable snapshot for callers. */
     val nodes: List<TypeNode> get() = _nodes.toList()
 
+    /**
+     * The PSI element of the first-added node, without copying the whole node list.
+     * Used as an anchor for synthetic member/parameter nodes in [LuaGraphType.fromLuaType].
+     */
+    fun firstNodeElement(): PsiElement? = _nodes.firstOrNull()?.element
+
     // ---------------------------------------------------------------------------
     // Factory helpers — create nodes and register them
     // ---------------------------------------------------------------------------

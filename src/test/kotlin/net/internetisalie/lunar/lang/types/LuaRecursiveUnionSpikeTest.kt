@@ -54,13 +54,12 @@ class LuaRecursiveUnionSpikeTest : IndexedBasePlatformTestCase() {
         val graph = LuaTypeGraph()
 
         // Build a class table T whose member 'self' is the union T | number — self-referential.
-        val tableT = LuaGraphType.Table(className = "T", isExact = true)
+        val memberNode = graph.variable(anchor)
+        val tableT = LuaGraphType.Table(className = "T", localMembers = mapOf("self" to memberNode), isExact = true)
         val recursiveUnion = LuaGraphType.Union(setOf(tableT, LuaGraphType.Number))
 
-        val memberNode = graph.variable(anchor)
         memberNode.upSet.add(graph.value(anchor, recursiveUnion))
         memberNode.downSet.add(graph.use(anchor, recursiveUnion))
-        tableT.localMembers["self"] = memberNode
 
         // 1. getMembers on the recursive union must terminate and expose 'self'.
         val members = recursiveUnion.getMembers()

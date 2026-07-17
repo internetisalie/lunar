@@ -91,8 +91,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val mtType = (firstNode(unwrapExpression(argExprs[1])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
 
         val indexType = indexTableOf(mtType) ?: return false
-        tType.superTypes.add(indexType)
-        graph.addEdge(graph.value(o, tType), resultNode)
+        val augmented = tType.copy(superTypes = tType.superTypes + indexType)
+        graph.addEdge(graph.value(o, augmented), resultNode)
         return true
     }
 
@@ -257,7 +257,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val variableName = typeofArgumentName(typeCall) ?: return null
         val terminal = stringSide as? LuaTerminalExpr ?: return null
         val typeName = terminal.string?.text?.trim('"', '\'') ?: return null
-        val narrowedType = TYPEOF_MAP[typeName] ?: LuaGraphType.Any
+        val narrowedType = TYPEOF_MAP[typeName]?.invoke() ?: LuaGraphType.Any
 
         return TypeGuard(variableName, narrowedType, isEquality = op == "==", anchor = binOp)
     }
@@ -413,7 +413,6 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         super.visitTableConstructor(o)
 
         val localMembers = mutableMapOf<String, VariableNode>()
-        val tableType = LuaGraphType.Table(null, localMembers)
         o.fieldList?.fieldList?.forEach { field ->
             val key = field.identifier?.text
             val valExpr = field.exprList.lastOrNull()
@@ -424,6 +423,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 localMembers[key] = memberNode
             }
         }
+        val tableType = LuaGraphType.Table(null, localMembers)
         elementNodes[o] = listOf(graph.value(o, tableType))
     }
 
@@ -490,8 +490,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val propName = prop.nameRef?.text
             if (propName != null) {
                 val memberNode = graph.variable(prop)
-                val tableConstraint = LuaGraphType.Table()
-                tableConstraint.localMembers[propName] = memberNode
+                val tableConstraint = LuaGraphType.Table(localMembers = mapOf(propName to memberNode))
                 graph.addEdge(calleeNode, graph.use(prop, tableConstraint))
                 calleeNode = memberNode
             }
@@ -507,8 +506,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val methodName = method.nameRef?.text
             if (methodName != null) {
                 val memberNode = graph.variable(method)
-                val tableConstraint = LuaGraphType.Table()
-                tableConstraint.localMembers[methodName] = memberNode
+                val tableConstraint = LuaGraphType.Table(localMembers = mapOf(methodName to memberNode))
                 graph.addEdge(calleeNode, graph.use(method, tableConstraint))
                 calleeNode = memberNode
             }
@@ -568,8 +566,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val methodName = methodExpr.nameRef?.text
             if (methodName != null) {
                 val memberNode = graph.variable(methodExpr)
-                val tableConstraint = LuaGraphType.Table()
-                tableConstraint.localMembers[methodName] = memberNode
+                val tableConstraint = LuaGraphType.Table(localMembers = mapOf(methodName to memberNode))
                 graph.addEdge(calleeNode, graph.use(methodExpr, tableConstraint))
                 calleeNode = memberNode
             }
@@ -701,8 +698,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             if (varElement != null) {
                 val receiverNode = firstNode(unwrapExpression(varElement.firstChild)) ?: return
                 val memberNode = graph.variable(o)
-                val tableConstraint = LuaGraphType.Table()
-                tableConstraint.localMembers[nameRef.text] = memberNode
+                val tableConstraint = LuaGraphType.Table(localMembers = mapOf(nameRef.text to memberNode))
                 graph.addEdge(receiverNode, graph.use(o, tableConstraint))
                 elementNodes[o] = listOf(memberNode)
             }
@@ -912,16 +908,21 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         internal fun inProgressSnapshot(file: PsiFile): LuaTypes? =
             inProgressBuilds.get()[file]?.buildSnapshot(file)
 
-        /** TYPE-08: maps `type()` return strings to their graph type (requirements §TYPE-08-01). */
-        private val TYPEOF_MAP: Map<String, LuaGraphType> = mapOf(
-            "string" to LuaGraphType.String,
-            "number" to LuaGraphType.Number,
-            "boolean" to LuaGraphType.Boolean,
-            "nil" to LuaGraphType.Nil,
-            "table" to LuaGraphType.Table(),
-            "function" to LuaGraphType.Function(emptyList(), emptyList()),
-            "thread" to LuaGraphType.Any,
-            "userdata" to LuaGraphType.Any,
+        /**
+         * TYPE-08: maps `type()` return strings to a factory yielding a **fresh** graph type per
+         * lookup (requirements §TYPE-08-01). MAINT-25-01: `table`/`function` must be distinct
+         * instances per narrowing site so a later copy-on-augment (setmetatable) never leaks members
+         * into the shared session singleton across files.
+         */
+        private val TYPEOF_MAP: Map<String, () -> LuaGraphType> = mapOf(
+            "string" to { LuaGraphType.String },
+            "number" to { LuaGraphType.Number },
+            "boolean" to { LuaGraphType.Boolean },
+            "nil" to { LuaGraphType.Nil },
+            "table" to { LuaGraphType.Table() },
+            "function" to { LuaGraphType.Function(emptyList(), emptyList()) },
+            "thread" to { LuaGraphType.Any },
+            "userdata" to { LuaGraphType.Any },
         )
 
         internal fun buildSnapshot(file: PsiFile): LuaTypes {

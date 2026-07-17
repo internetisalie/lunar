@@ -160,7 +160,7 @@ intended behavior delta is *removing* the cross-file singleton leak). The follow
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Immutable Table + construct-once | todo | Must |
+| Phase 1: Immutable Table + construct-once | done | Must |
 | Phase 2: Cycle-guarded conversion | todo | Must |
 | Phase 3: No VFS refresh under read lock | todo | Must |
 | Phase 4: Error-reporting hygiene | todo | Should |
