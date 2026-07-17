@@ -139,6 +139,7 @@ class LuaTypesSnapshot(
          */
         fun forFile(file: PsiFile): LuaTypes {
             val psiFile = file.containingFile
+            LuaTypesVisitor.inProgressSnapshot(psiFile)?.let { return it }
             val cacheKey = snapshotCacheKey(psiFile)
             val existing = psiFile.getUserData(LuaTypesVisitor.KEY)
             if (existing != null && existing.hash == cacheKey) {

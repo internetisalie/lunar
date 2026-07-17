@@ -104,7 +104,30 @@ folders:
 - **Resolved by**: requirements Out-of-Scope note; TC 3 asserts `any` (the honest ground
   truth), not the element type. Future work below.
 
+### Gap 2.5: inline `---@param` on a *passed lambda* does not attach (discovered in implementation)
+- **Question**: TYPE-10-03 / design N2 / original TC 5 assume an inline
+  `run(---@param x number\nfunction(x) end)` annotation is injected onto the lambda parameter,
+  so the precedence gate skips the expected-type seed and `x` infers `number`.
+- **Ground truth (empirical, TYPE-10 impl)**: an inline `---@param` placed inside the argument
+  list parents to the `LuaArgs` node — it is **not** a `prevSibling` of the `LuaFuncDef`. The
+  visitor's `getAllCatsComments(funcDef)` walks the funcDef's prevSiblings, so the inline comment
+  is never injected (`funcDef.prevSibling == null`; the comment's parent is `ARGS`). This is a
+  **pre-existing** comment-attachment limitation in the PSI/visitor model, independent of
+  TYPE-10 — no passed-lambda form attaches an inline annotation today.
+- **Impact on TYPE-10-03**: the precedence gate `isAlreadyAnnotated` (`paramNode.write !=
+  Undefined`) is implemented and **correct** — it defends any annotation that *does* attach — but
+  because inline lambda-arg annotations don't attach in the baseline, the gate is effectively a
+  defensive no-op for passed lambdas in practice. TC 5 was retargeted to assert the honest
+  baseline (`testInlineParamDoesNotAttach_TC5`: the seed applies, `x` → `string`, no exception),
+  and the gate remains as cheap correctness insurance.
+- **Resolved by**: kept the gate (correct); documented the attachment limitation here. Making
+  inline lambda-arg `---@param` attach requires extending comment-ownership to the `LuaArgs`
+  seam — a broad, function-wide change out of TYPE-10 scope. Future work below.
+
 ## Technical Debt & Future Work
+- **TBD: Inline lambda-arg `---@param` attachment** — teach the visitor's comment resolution to
+  pick up a `---@param` parented to `LuaArgs` before a passed `LuaFuncDef`, so TYPE-10-03's
+  precedence is exercisable for inline-annotated passed lambdas (Gap 2.5).
 - **TBD: Return-type back-pressure** — constrain the lambda's return from `fun(...): R`
   (Gap 2.1).
 - **TBD: Generic comparator stubs** — declare `table.sort`'s `comp` as `fun(a: T, b: T)` and

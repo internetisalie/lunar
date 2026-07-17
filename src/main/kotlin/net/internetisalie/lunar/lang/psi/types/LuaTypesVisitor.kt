@@ -552,9 +552,15 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             if (handleSetMetatable(o, callResultNodes.first())) return
         }
 
-        val calleeNodeRef = firstNode(calleeUnwrapped) ?: return
-
         val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return
+        val argExprs = argExpressionsOf(nameAndArgs)
+
+        // TYPE-10: seed passed lambdas' params from the callee's expected callback types. Runs
+        // before the calleeNode guard so bundled-stub callees (redis.register_function, table.sort),
+        // which have no in-file graph node, are still handled.
+        propagateExpectedLambdaParams(o, argExprs, calleeUnwrapped)
+
+        val calleeNodeRef = firstNode(calleeUnwrapped) ?: return
 
         var calleeNode = calleeNodeRef
         val methodExpr = nameAndArgs.methodExpr
@@ -567,14 +573,6 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 graph.addEdge(calleeNode, graph.use(methodExpr, tableConstraint))
                 calleeNode = memberNode
             }
-        }
-
-        val args = nameAndArgs.args
-        val argExprs = when {
-            args.string != null -> args.string?.let { listOf(it) } ?: emptyList()
-            args.exprList != null -> args.exprList?.exprList ?: emptyList()
-            args.tableConstructor != null -> listOf(args.tableConstructor!!)
-            else -> emptyList()
         }
 
         val argNodes = argExprs.map { argExpr ->
@@ -608,6 +606,55 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
         graph.addEdge(calleeNode, graph.use(o, callDemand))
     }
+
+    /** The per-argument expression list for a call (string / exprList / tableConstructor form). */
+    private fun argExpressionsOf(nameAndArgs: LuaNameAndArgs): List<PsiElement> {
+        val args = nameAndArgs.args
+        return when {
+            args.string != null -> args.string?.let { listOf(it) } ?: emptyList()
+            args.exprList != null -> args.exprList?.exprList ?: emptyList()
+            args.tableConstructor != null -> listOf(args.tableConstructor!!)
+            else -> emptyList()
+        }
+    }
+
+    /**
+     * TYPE-10 §3.1: for each lambda argument passed into a `fun(...)`-typed callee slot, seed the
+     * lambda's un-annotated parameters from the expected callback type. Additive — only new
+     * `value → lambda-paramNode` edges are added; a direct `---@param` on a lambda parameter wins
+     * ([isAlreadyAnnotated]). No-op when the callee has no resolvable `LuaFunctionType`.
+     */
+    private fun propagateExpectedLambdaParams(o: LuaFuncCall, argExprs: List<PsiElement>, calleeUnwrapped: PsiElement?) {
+        val resolver = LuaExpectedCallbackResolver(o, calleeUnwrapped)
+        val calleeType = resolver.resolveCalleeType() ?: return
+        val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return
+        val selfOffset = if (nameAndArgs.methodExpr != null && calleeType.params.firstOrNull()?.name == "self") 1 else 0
+        argExprs.forEachIndexed { index, argExpr ->
+            val lambda = unwrapExpression(argExpr) as? LuaFuncDef ?: return@forEachIndexed
+            val expected = resolver.expectedCallbackAt(index, calleeType, selfOffset) ?: return@forEachIndexed
+            seedLambdaParams(lambda, expected)
+        }
+    }
+
+    /** TYPE-10 §3.1 step 3: positional, arity-clamped seeding of one lambda's parameter nodes. */
+    private fun seedLambdaParams(lambda: LuaFuncDef, expected: LuaFunctionType) {
+        val lambdaParams = lambda.parList?.nameList?.nameRefList ?: emptyList()
+        lambdaParams.forEachIndexed { i, nameRef ->
+            val expectedParam = expected.params.getOrNull(i) ?: return
+            val paramNode = elementNodes[nameRef]?.firstOrNull() as? VariableNode ?: return@forEachIndexed
+            if (isAlreadyAnnotated(paramNode)) return@forEachIndexed
+            val graphType = LuaGraphType.fromLuaType(expectedParam.type, graph)
+            graph.addEdge(graph.value(nameRef, graphType), paramNode)
+        }
+    }
+
+    /**
+     * TYPE-10 §3.1 step 4 (TYPE-10-03 precedence): a lambda parameter carrying its own `---@param`
+     * already has a non-`Undefined` `write` from the injected value edge, so the expected-type seed
+     * must skip it. An un-annotated parameter's `write` is `Undefined` at propagation time.
+     */
+    private fun isAlreadyAnnotated(paramNode: VariableNode): Boolean =
+        paramNode.write != LuaGraphType.Undefined
 
     override fun visitAssignmentStatement(o: LuaAssignmentStatement) {
         super.visitAssignmentStatement(o)
@@ -668,16 +715,21 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      * REDIS-04 §3.1b: bracket-subscript element inference. For a subscript `receiver[index]` whose
      * receiver's value type resolves to an `Array(T)` (directly, or as a member of a union — e.g.
      * a `---@type string[]` local infers as `{ ... } | string[]`), record the subscript's element
-     * type as `T`. A non-array receiver records nothing → the subscript stays `Undefined`, exactly
-     * as before (§3.1c regression contract, invariant 2). This is DR-03a seam (b): the element type
-     * is read from the already-wired receiver value node, which is stable at visit time because the
-     * receiver's declaration precedes its use in document order.
+     * type as `T`. A non-array receiver projects to `Undefined` → the subscript stays `Undefined`,
+     * exactly as before (§3.1c regression contract, invariant 2).
+     *
+     * TYPE-10 §3.4: the element type is a **lazy** projection over the receiver's `write`, computed
+     * at read time rather than eagerly at visit time. This closes the intra-traversal ordering
+     * hazard — a lambda body's `keys[1]` subscript is visited during `super.visitFuncCall`, before
+     * `propagateExpectedLambdaParams` seeds the `keys` receiver; laziness lets the later seed edge
+     * be observed (the snapshot is read only after the full traversal + `checkTypes()`).
      */
     private fun seedSubscriptElement(o: LuaIndexExpr) {
         val varElement = PsiTreeUtil.getParentOfType(o, LuaVar::class.java) ?: return
         val receiverNode = firstNode(unwrapExpression(varElement.firstChild)) as? ValueNode ?: return
-        val elementType = arrayElementType(receiverNode.write) ?: return
-        elementNodes[o] = listOf(graph.value(o, elementType))
+        elementNodes[o] = listOf(
+            graph.lazyValue(o) { arrayElementType(receiverNode.write) ?: LuaGraphType.Undefined },
+        )
     }
 
     private fun arrayElementType(type: LuaGraphType): LuaGraphType? = when (type) {
@@ -846,6 +898,20 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     companion object {
         internal val KEY: Key<FileUserData<LuaTypes>> = Key.create("LuaTypesSnapshotV3")
 
+        /**
+         * TYPE-10: files whose snapshot is being built on the current thread, mapped to their
+         * in-progress visitor. Guards against re-entrant [LuaTypes.forFile] on the file under
+         * construction — a same-file callee resolved by [LuaExpectedCallbackResolver] during
+         * `visitFuncCall` would otherwise recurse into `buildSnapshot`. The in-progress snapshot
+         * already reflects earlier-visited declarations (a callee decl precedes its call site).
+         */
+        private val inProgressBuilds: ThreadLocal<MutableMap<PsiFile, LuaTypesVisitor>> =
+            ThreadLocal.withInitial { mutableMapOf() }
+
+        /** TYPE-10: the partially-built snapshot for [file] if it is under construction on this thread. */
+        internal fun inProgressSnapshot(file: PsiFile): LuaTypes? =
+            inProgressBuilds.get()[file]?.buildSnapshot(file)
+
         /** TYPE-08: maps `type()` return strings to their graph type (requirements §TYPE-08-01). */
         private val TYPEOF_MAP: Map<String, LuaGraphType> = mapOf(
             "string" to LuaGraphType.String,
@@ -860,10 +926,16 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
         internal fun buildSnapshot(file: PsiFile): LuaTypes {
             val visitor = LuaTypesVisitor()
-            visitor.seedAmbientGlobals(file)
-            file.accept(visitor)
-            visitor.graph.checkTypes()
-            return visitor.buildSnapshot(file)
+            val builds = inProgressBuilds.get()
+            builds[file] = visitor
+            try {
+                visitor.seedAmbientGlobals(file)
+                file.accept(visitor)
+                visitor.graph.checkTypes()
+                return visitor.buildSnapshot(file)
+            } finally {
+                builds.remove(file)
+            }
         }
     }
 }

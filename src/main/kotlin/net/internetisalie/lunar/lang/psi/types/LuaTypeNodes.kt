@@ -54,6 +54,19 @@ internal class ValueElement(
     override val write: LuaGraphType,
 ) : ValueNode
 
+/**
+ * TYPE-10 §3.4: a [ValueNode] whose [write] is computed lazily at read time. Used by
+ * `seedSubscriptElement` so a subscript's element type is a projection over the receiver's
+ * (lazy) `write`, resolved after the full traversal + `checkTypes()` — by which point a
+ * later-added seed edge into the receiver is already visible. Created by [LuaTypeGraph.lazyValue].
+ */
+internal class LazyValueElement(
+    override val element: PsiElement,
+    private val compute: () -> LuaGraphType,
+) : ValueNode {
+    override val write: LuaGraphType get() = compute()
+}
+
 /** Immutable typed constraint. Created by [LuaTypeGraph.use]. */
 internal class UseElement(
     override val element: PsiElement,

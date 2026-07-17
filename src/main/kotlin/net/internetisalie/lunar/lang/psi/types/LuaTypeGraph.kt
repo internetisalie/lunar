@@ -59,6 +59,17 @@ class LuaTypeGraph {
     fun nil(element: PsiElement): ValueNode = value(element, LuaGraphType.Nil)
 
     /**
+     * TYPE-10 §3.4: creates a [ValueNode] whose type is computed lazily by [compute] at read time.
+     * Used for array-subscript element types so a receiver seeded *after* the subscript is visited
+     * is still observed (the snapshot is read only after the full traversal + `checkTypes()`).
+     */
+    fun lazyValue(element: PsiElement, compute: () -> LuaGraphType): ValueNode {
+        val node = LazyValueElement(element, compute)
+        _nodes += node
+        return node
+    }
+
+    /**
      * Creates a [UseNode] demanding that whatever flows in must be compatible with [type].
      * Typical uses: parameter coercion sites, assignment left-hand sides with annotations.
      */
