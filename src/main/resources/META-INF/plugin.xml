@@ -99,13 +99,6 @@
             extensions="lua;rockspec"
             fileNames=".luacheckrc;.busted"/>
 
-    <fileType
-            name="Lua Workspace"
-            implementationClass="net.internetisalie.lunar.lang.LuaWorkFileType"
-            fieldName="INSTANCE"
-            language="Lua"
-            extensions="luawork"/>
-
     <lang.syntaxHighlighterFactory
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaSyntaxHighlighterFactory"/>

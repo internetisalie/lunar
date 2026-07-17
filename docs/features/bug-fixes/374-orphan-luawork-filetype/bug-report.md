@@ -10,6 +10,8 @@ folders:
 
 # BUG-374: Orphaned "Lua Workspace" (*.luawork) file type — dead code from the removed workspace concept
 
+> **RESOLVED 2026-07-17 (this commit)**: Deleted `LuaWorkFileType.kt` and the `plugin.xml` `<fileType>` registration block; no references remain in production code.
+
 This is a **chore** (dead-code removal), not a user-visible defect.
 
 ## 1. Reproduction
