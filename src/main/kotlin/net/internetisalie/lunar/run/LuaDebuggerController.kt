@@ -35,6 +35,7 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Responsible for interacting with the remote debugger client.
@@ -57,8 +58,10 @@ class LuaDebuggerController(
     var isReady: Boolean = false
         private set
 
-    var myBreakpoints2Pos: MutableMap<XBreakpoint<*>?, LuaPosition?> = HashMap<XBreakpoint<*>?, LuaPosition?>()
-    var myPos2Breakpoints: MutableMap<LuaPosition?, XBreakpoint<*>?> = HashMap<LuaPosition?, XBreakpoint<*>?>()
+    private val myBreakpoints2Pos: ConcurrentHashMap<XBreakpoint<*>, LuaPosition> = ConcurrentHashMap()
+    private val myPos2Breakpoints: ConcurrentHashMap<LuaPosition, XBreakpoint<*>> = ConcurrentHashMap()
+
+    fun breakpointAt(pos: LuaPosition): XBreakpoint<*>? = myPos2Breakpoints[pos]
 
     private var baseDir: String
     private var workingDir: File
@@ -268,7 +271,7 @@ class LuaDebuggerController(
         }
 
         private fun onPause(pos: LuaPosition) {
-            val bp: XBreakpoint<*>? = myPos2Breakpoints[pos]
+            val bp: XBreakpoint<*>? = breakpointAt(pos)
 
             scope.launch {
                 val stack = variables()

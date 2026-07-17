@@ -53,7 +53,7 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 ### Phase 3: Thread-safe controller state [Must]
 - **Goal**: no EDT-vs-reader data race on breakpoint maps (#18).
 - **Tasks**:
-  - [ ] Edit `LuaDebuggerController` — `myBreakpoints2Pos`/`myPos2Breakpoints` become private
+  - [x] Edit `LuaDebuggerController` — `myBreakpoints2Pos`/`myPos2Breakpoints` become private
         `ConcurrentHashMap`; add `fun breakpointAt(pos: LuaPosition): XBreakpoint<*>?`; route
         `onPause` (`:275`) through it (`:60-61`) — realizes design §2.3, §3.3.
 - **Exit criteria**: existing debugger tests green; full suite green.
@@ -163,7 +163,7 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 |-------|--------|----------|
 | Phase 1: DBGp framing | done | Must |
 | Phase 2: `!!` sweep + rd-gen import | done | Must |
-| Phase 3: Thread-safe controller state | todo | Must |
+| Phase 3: Thread-safe controller state | done | Must |
 | Phase 4: Value & stack fidelity | todo | Should |
 | Phase 5: Run-config integrity | todo | Should |
 | Phase 6: Busted runner correctness | todo | Should |
