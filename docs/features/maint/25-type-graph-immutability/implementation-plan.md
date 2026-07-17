@@ -26,20 +26,20 @@ one atomic phase (Phase 1) so the code compiles, then layer the independent safe
 - **Goal**: `LuaGraphType.Table` becomes immutable-by-construction and every mutation site is
   converted so the module compiles and existing tests pass.
 - **Tasks**:
-  - [ ] Change `LuaGraphType.Table` fields to `Map`/`List`/`val isExact`
+  - [x] Change `LuaGraphType.Table` fields to `Map`/`List`/`val isExact`
         (`LuaGraphType.kt:37-42`) — realizes design §2.1.
-  - [ ] Convert `fromLuaType` accumulation to construct-once: build members/superTypes into local
+  - [x] Convert `fromLuaType` accumulation to construct-once: build members/superTypes into local
         collections, then construct the `Table` and register it in `visited`
         (`LuaGraphType.kt:157,167,172,182-183`) — realizes design §6 E3.
-  - [ ] Convert the five in-place member-accumulation sites in `LuaTypesVisitor`
+  - [x] Convert the five in-place member-accumulation sites in `LuaTypesVisitor`
         (`:493-494, :510-511, :571-572, :704-705`, and confirm `:416` already constructs with the
         map) to build the map locally and construct the `Table` once — realizes design §6 E1.
-  - [ ] Update `LuaTypes.getValueType` Table re-wrap (`LuaTypes.kt:58-62`) to compile against the
+  - [x] Update `LuaTypes.getValueType` Table re-wrap (`LuaTypes.kt:58-62`) to compile against the
         read-only field types (no logic change) — realizes design §6 E2.
-  - [ ] Change `TYPEOF_MAP` to `Map<String, () -> LuaGraphType>` and update the call site to
+  - [x] Change `TYPEOF_MAP` to `Map<String, () -> LuaGraphType>` and update the call site to
         `TYPEOF_MAP[typeName]?.invoke() ?: LuaGraphType.Any` (`LuaTypesVisitor.kt:260, :916-925`) —
         realizes design §2.2.
-  - [ ] Rewrite `handleSetMetatable` to copy-on-augment
+  - [x] Rewrite `handleSetMetatable` to copy-on-augment
         (`tType.copy(superTypes = tType.superTypes + indexType)`; publish via `graph.value(o, augmented)`)
         (`LuaTypesVisitor.kt:85-97`) — realizes design §2.3, §3.1.
 - **Exit criteria**: module compiles; the full `.../lang/types/*` suite (Phase 5 list) is green,
@@ -49,7 +49,7 @@ one atomic phase (Phase 1) so the code compiles, then layer the independent safe
 ### Phase 2: Cycle-guarded `graphTypeToLuaType` [Must]
 - **Goal**: self-referential tables convert without `StackOverflowError`.
 - **Tasks**:
-  - [ ] Add a private `graphTypeToLuaType(type, visited: MutableMap<LuaGraphType, LuaType>)` overload
+  - [x] Add a private `graphTypeToLuaType(type, visited: MutableMap<LuaGraphType, LuaType>)` overload
         that registers a placeholder before recursing into `Table`/`Function`/`Array`/`Union`
         members; keep the public `override fun graphTypeToLuaType(type)` delegating with a fresh
         `mutableMapOf()` (`LuaTypes.kt:77-129`) — realizes design §2.4, §3.2.
@@ -60,9 +60,9 @@ one atomic phase (Phase 1) so the code compiles, then layer the independent safe
 ### Phase 3: No VFS refresh under read lock [Must]
 - **Goal**: remove the three synchronous-refresh calls in forbidden contexts.
 - **Tasks**:
-  - [ ] `VfsUtil.findFileByIoFile(File(path), false)` (`LuaTypeManagerImpl.kt:146`) — design §3.3, §7.
-  - [ ] `VfsUtil.findFile(it, false)` (`LuaRocksLibraryProvider.kt:33`) — design §3.3, §7.
-  - [ ] `VfsUtil.findFile(it, false)` (`PlatformLibraryProvider.kt:63`) — design §3.3, §7.
+  - [x] `VfsUtil.findFileByIoFile(File(path), false)` (`LuaTypeManagerImpl.kt:146`) — design §3.3, §7.
+  - [x] `VfsUtil.findFile(it, false)` (`LuaRocksLibraryProvider.kt:33`) — design §3.3, §7.
+  - [x] `VfsUtil.findFile(it, false)` (`PlatformLibraryProvider.kt:63`) — design §3.3, §7.
 - **Exit criteria**: TC-04 (module resolution under a read action does not throw / does not perform
   a synchronous refresh) green; library-root and cross-file resolution tests
   (`CrossFileInferenceTest`, `LuaRequireTypeFlowTest`) green. Build green.
@@ -70,13 +70,13 @@ one atomic phase (Phase 1) so the code compiles, then layer the independent safe
 ### Phase 4: Error-reporting hygiene [Should]
 - **Goal**: designed cutoffs no longer raise fatal-error popups; PCE is never logged.
 - **Tasks**:
-  - [ ] `LuaTypeGraph.checkTypes`: both `log.error(...)` → `log.warn(...)` using the companion `log`
+  - [x] `LuaTypeGraph.checkTypes`: both `log.error(...)` → `log.warn(...)` using the companion `log`
         (`LuaTypeGraph.kt:210-219, :560`) — realizes design §3.4 step 1.
-  - [ ] `LuaTypeGraph.checkTypes` cutoff test seam: promote the hard-coded cutoffs to defaulted
+  - [x] `LuaTypeGraph.checkTypes` cutoff test seam: promote the hard-coded cutoffs to defaulted
         parameters — `fun checkTypes(maxIterations: Int = 1000, timeLimitMs: Long = 5000)`
         (`LuaTypeGraph.kt:193,197,199`); production call sites unchanged (no args) — realizes
         design §3.4 step 1b, enables TC-07.
-  - [ ] `LuaTypeManagerImpl.resolveType`: add a `catch (e: ProcessCanceledException) { throw e }`
+  - [x] `LuaTypeManagerImpl.resolveType`: add a `catch (e: ProcessCanceledException) { throw e }`
         **before** the `catch (e: Exception)` so PCE is rethrown unlogged
         (`LuaTypeManagerImpl.kt:64-66`) — realizes design §3.4 step 2.
 - **Exit criteria**: TC-07 (checkTypes(maxIterations = 1) on a ≥1-edge graph warns, does not throw), TC-08
@@ -86,12 +86,12 @@ one atomic phase (Phase 1) so the code compiles, then layer the independent safe
 - **Goal**: address the Could-have perf items safely, and prove no inference regression across the
   shared engine and its consumers.
 - **Tasks**:
-  - [ ] Replace the per-element deep `findChildrenOfType` in `LuaRecursiveVisitor.visitElement`
+  - [x] Replace the per-element deep `findChildrenOfType` in `LuaRecursiveVisitor.visitElement`
         (`:21-28`) with a direct-child `LuaCatsComment` scan — realizes design §3.5 (gated on DR-02).
-  - [ ] Add `LuaTypeGraph.firstNodeElement()` and replace the four `graph.nodes.firstOrNull()?.element`
+  - [x] Add `LuaTypeGraph.firstNodeElement()` and replace the four `graph.nodes.firstOrNull()?.element`
         call sites in `LuaGraphType.fromLuaType` (`:132,139,161,176`) — realizes design §3.5.
         (Leave `write`/`read` memoization deferred per design §3.5 / risks TBD.)
-  - [ ] **Regression contract (required):** run the **full** `.../lang/types/*` suite (NOT isolated
+  - [x] **Regression contract (required):** run the **full** `.../lang/types/*` suite (NOT isolated
         `--tests`) plus the consumer suites, with the cache defeated (`--rerun-tasks --no-build-cache`),
         and confirm 0 failures against the 2123-test / 0-failure / 1-skipped baseline
         (`main` @ `0566cfbc`) — realizes requirements MAINT-25-06 acceptance. See the contract below.
