@@ -31,5 +31,5 @@ present 2026-07-17).*
 
 Fix per the review: reuse the existing bounds-checked helpers
 `LuaLiterals.getLuaStringDelimiterLength` / `LuaComment.getLuaCommentDelimiterLength` instead of
-raw indexing. Isolated annotator fix — kept as a BUG rather than folded into a Wave-20 MAINT
+raw indexing. Isolated annotator fix — kept as a BUG rather than folded into a Wave-19 MAINT
 cluster (it touches neither the LuaCATS subsystem nor the inspection stack).

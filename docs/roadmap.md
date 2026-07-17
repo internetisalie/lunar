@@ -14,13 +14,16 @@ folders:
 > here is advisory. Only **open** work is listed — completed waves (0–10, 13–17) are done and
 > live in git history.
 
-> **MVP scope (2026-07-14).** The product is **feature-complete for MVP** once Wave 18's
-> items land — **SYNTAX-18, MAINT-23, TYPE-10, REDIS-06**, plus **ROCKS-16** and **TOOLING-08** (added 2026-07-16
+> **MVP scope (2026-07-14; expanded 2026-07-17).** The product is **feature-complete for MVP**
+> once Wave 18's items land — **SYNTAX-18, MAINT-23, TYPE-10, REDIS-06**, plus **ROCKS-16** and **TOOLING-08** (added 2026-07-16
 > under the testing-surfaced-issues clause: user-feedback browser + settings UX consolidation) —
-> barring further new issues surfaced by testing. **MAINT-21**, **TARGET-07**, and **TARGET-08** are *not* MVP-gating (MAINT-21 is
+> **and Wave 19 (codebase-review remediation, MAINT-24…32) completes** — added to MVP 2026-07-17
+> given its breadth: it drains the review's confirmed P1 crashes, destructive quick fixes, and
+> silently-broken features across every subsystem, which is quality debt an MVP shouldn't ship.
+> **MAINT-21**, **TARGET-07**, and **TARGET-08** are *not* MVP-gating (MAINT-21 is
 > externally blocked on the unreleased 2026.2 platform; TARGET-07 and TARGET-08 are post-MVP
 > stub/library-coverage follow-ons).
-> The **AI epic (Wave 19) is post-MVP.**
+> The **AI epic (Wave 20) is post-MVP.**
 
 ## How an agent uses this
 
@@ -54,7 +57,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 ---
 
-## Wave 18 — MVP  *(all remaining non-AI open work; per-feature deferrals stay in each risks-and-gaps.md — promote here only when top-level tracking is warranted)*
+## Wave 18 — MVP feature work  *(per-feature deferrals stay in each risks-and-gaps.md — promote here only when top-level tracking is warranted)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -70,18 +73,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 ---
 
-## Wave 19 — AI integration  *(AI epic)*
-
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
-| AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
-| AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
-| AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
-
----
-
-## Wave 20 — Codebase-review remediation  *(MAINT; post-MVP)*
+## Wave 19 — MVP quality: codebase-review remediation  *(MAINT; MVP-gating, added 2026-07-17)*
 
 Drains the 57 still-open findings of the 2026-07 full codebase review ([docs/review.md](review.md);
 remediation status verified 2026-07-17 — 5 fixed, 4 moot, 6 partial incidentally via earlier waves).
@@ -92,7 +84,7 @@ Isolated fixes went to BUG-382…386 (#23, #45, #46, #49, #15); #22 was already 
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MAINT-31 | Dead-code sweep (review §3) | todo | C | — | every other Wave-20 feature *(soft — shrinks their diffs)* | ✓ pure deletion; **do first** |
+| MAINT-31 | Dead-code sweep (review §3) | todo | C | — | every other Wave-19 feature *(soft — shrinks their diffs)* | ✓ pure deletion; **do first** |
 | MAINT-25 | Type-graph immutability & safety | todo | M | TYPE-10 *(serialize — same hot files `LuaTypesVisitor`/`LuaTypeGraph`)* | — | Serial: type engine |
 | MAINT-24 | Debugger & test-runner hardening | todo | S | MAINT-22 *(done — coroutine debugger base)* | **AI-03** | ✓ run/ subsystem |
 | MAINT-26 | Luacheck pipeline correctness | todo | S | — | — | ✓ analysis/luacheck |
@@ -101,3 +93,15 @@ Isolated fixes went to BUG-382…386 (#23, #45, #46, #49, #15); #22 was already 
 | MAINT-29 | Control-flow & inspection accuracy | todo | S | — | — | ✓ analysis/ + quick fixes |
 | MAINT-30 | Indexing & resolution caching | todo | S | — | — | Serial vs MAINT-28 *(both touch `LuaCompletionContributor`/resolution seams)* |
 | MAINT-32 | Process-execution discipline (`LuaProcessUtil`) | todo | S | — | — | ✓ util/ primitive + caller migration (#11, §2.1) |
+
+---
+
+## Wave 20 — AI integration  *(AI epic)*
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
+| AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
+| AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
+| AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
+

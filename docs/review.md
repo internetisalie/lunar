@@ -34,7 +34,7 @@ systemic patterns worth fixing once rather than per-site.
 > waves rebuilt code wholesale (TOOLING-05/06/07, REDIS-02 debugger rework, ROCKS-06,
 > BUG-379); none of the review's "Suggested execution order" passes has been executed as such.
 
-> **All open findings are now tracked work (planned 2026-07-17, roadmap Wave 20).** Coalesced by
+> **All open findings are now tracked work (planned 2026-07-17, roadmap Wave 19 — MVP-gating).** Coalesced by
 > root cause into nine MAINT features — **MAINT-24** debugger/test-runner (#5–#7, #16–#18, #26,
 > #27b, #52–#54, #56, #59, §2.2, §2.5.7) · **MAINT-25** type-graph immutability (#1–#3, #14, #47,
 > #58, §2.5.1) · **MAINT-26** luacheck (#28–#31, #60, #61, §2.5.6) · **MAINT-27** LuaCATS
@@ -45,7 +45,7 @@ systemic patterns worth fixing once rather than per-site.
 > features: **ROCKS-16** (#48, #64, #70, #71b) and **TOOLING-08** (#41, #44, #50); isolated fixes
 > filed as **BUG-382** (#23), **BUG-383** (#45), **BUG-384** (#46), **BUG-385** (#49),
 > **BUG-386** (#15); #22 was already **BUG-361**. Perf items (§2.5.5) split across their owning
-> clusters. Roadmap: **Wave 20** (MAINT-31 first; MAINT-24 unblocks AI-03; MAINT-25 serialized
+> clusters. Roadmap: **Wave 19** (MVP-gating; MAINT-31 first; MAINT-24 unblocks AI-03; MAINT-25 serialized
 > after TYPE-10).
 
 ## 1. Bugs (prioritized)
