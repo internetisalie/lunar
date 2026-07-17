@@ -5,7 +5,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.indexing.*
-import net.internetisalie.lunar.lang.insight.LuaImports
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.project.PlatformLibraryIndex

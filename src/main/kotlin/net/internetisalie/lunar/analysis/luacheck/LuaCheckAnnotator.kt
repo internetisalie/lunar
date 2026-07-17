@@ -44,13 +44,8 @@ class LuaCheckAnnotator : ExternalAnnotator<LuaCheckAnnotator.Info, LuaCheckAnno
         val endOffset = file.fileDocument.getLineStartOffset(problem.lineEnd) + problem.columnEnd + 1
         val range = TextRange(startOffset, endOffset)
 
-        val builder = holder.newAnnotation(HighlightSeverity.WARNING, problem.message ?: "Unspecified problem")
-        builder.range(range)
-
-        if (problem.name != null) {
-            builder.tooltip(problem.name!!)
-        }
-
-        builder.create()
+        holder.newAnnotation(HighlightSeverity.WARNING, problem.message ?: "Unspecified problem")
+            .range(range)
+            .create()
     }
 }

@@ -29,7 +29,6 @@ class LuaCheckAnnotatorTest : BasePlatformTestCase() {
             columnEnd = 10,
             message = "unused variable 'x'",
             file = "test.lua",
-            psiFile = file
         )
         val p2 = Problem(
             lineStart = 0,
@@ -38,7 +37,6 @@ class LuaCheckAnnotatorTest : BasePlatformTestCase() {
             columnEnd = 10,
             message = "unused variable 'x'",
             file = "test.lua",
-            psiFile = file
         )
         val p3 = Problem(
             lineStart = 0,
@@ -47,7 +45,6 @@ class LuaCheckAnnotatorTest : BasePlatformTestCase() {
             columnEnd = 10,
             message = "different message on same line",
             file = "test.lua",
-            psiFile = file
         )
         val p4 = Problem(
             lineStart = 1,
@@ -56,7 +53,6 @@ class LuaCheckAnnotatorTest : BasePlatformTestCase() {
             columnEnd = 10,
             message = "unused variable 'x'",
             file = "test.lua",
-            psiFile = file
         )
         val p5 = Problem(
             lineStart = 2,
@@ -65,7 +61,6 @@ class LuaCheckAnnotatorTest : BasePlatformTestCase() {
             columnEnd = 10,
             message = "another message",
             file = "test.lua",
-            psiFile = file
         )
 
         val results = LuaCheckAnnotator.Results(listOf(p1, p2, p3, p4, p5))

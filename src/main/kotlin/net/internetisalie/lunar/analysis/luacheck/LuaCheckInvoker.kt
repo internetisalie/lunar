@@ -46,8 +46,6 @@ object LuaCheckInvoker {
             columnEnd = colEndGroup.value.toInt() - 1,
             message = message,
             file = psiFile.name,
-            absFile = psiFile.virtualFile.canonicalPath,
-            psiFile = psiFile,
         )
     }
 }
