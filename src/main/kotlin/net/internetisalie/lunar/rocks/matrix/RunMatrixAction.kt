@@ -38,11 +38,14 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
                 notify(project, "No Lua environments to run the matrix against", NotificationType.WARNING)
                 return
             }
-            val rockspec = firstRockspec(project) ?: run {
+            val rockspecs = allRockspecs(project)
+            if (rockspecs.isEmpty()) {
                 notify(project, "No rockspec discovered for the matrix", NotificationType.WARNING)
                 return
             }
-            launchMatrix(MatrixRun(project, MatrixRunner.Request("test", rockspec, envs)))
+            rockspecs.forEach { rockspec ->
+                launchMatrix(MatrixRun(project, MatrixRunner.Request("test", rockspec, envs)))
+            }
         } catch (throwable: Throwable) {
             LOG.warn("Failed to launch test matrix", throwable)
             notify(project, "Failed to launch test matrix: ${throwable.message}", NotificationType.ERROR)
@@ -54,7 +57,8 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
 
     /** Shared per-run context: the request, the mutable rows, and a completion counter. */
     private class MatrixRun(val project: Project, val request: MatrixRunner.Request) {
-        val rows: List<MatrixRow> = request.envs.map { MatrixRow(it) }
+        val label: String = request.rockspec.fileName?.toString() ?: request.rockspec.toString()
+        val rows: List<MatrixRow> = request.envs.map { MatrixRow(it, rockspecLabel = label) }
         val remaining = AtomicInteger(rows.size)
     }
 
@@ -63,7 +67,7 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
     }
 
     private fun rowTask(run: MatrixRun, row: MatrixRow) =
-        object : Task.Backgroundable(run.project, "Running Lua matrix: ${row.env.name}", true) {
+        object : Task.Backgroundable(run.project, "Running Lua matrix: ${run.label} / ${row.env.name}", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.checkCanceled()
                 MatrixRunner.runRow(run.request, MatrixRunner.processRunner, row)
@@ -92,8 +96,9 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
         notify(project, summary, type)
     }
 
-    private fun firstRockspec(project: Project): Path? =
-        LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths().firstOrNull()?.rockspec
+    /** Returns all discovered rockspec paths for the matrix (BUG-377: was firstOrNull). */
+    internal fun allRockspecs(project: Project): List<Path> =
+        LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths().map { it.rockspec }
 
     private fun notify(project: Project, message: String, type: NotificationType) {
         NotificationGroupManager.getInstance()

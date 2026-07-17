@@ -88,6 +88,36 @@
   constructed a fresh `LuaRunConfigurationType()` instead of the platform-registered
   singleton, so template patching operated on a divergent instance. Fixed to look up the
   singleton via `ConfigurationTypeUtil.findConfigurationType`.
+- **Orphaned Lua Workspace file type** (BUG-374): `LuaWorkFileType` and its `plugin.xml`
+  registration survived the removal of the workspace concept; deleted the dead class and
+  registration so `*.luawork` is no longer claimed by the plugin.
+- **lua-language-server missing from kind registry** (BUG-373): the kind was provisionable
+  (present in the feed and provision dialog) but absent from `LuaToolKindRegistry.BUILT_IN`,
+  so its inventory Kind column showed a raw id and no binding row appeared on the Lua Project
+  page. Added as kind #11 with displayName "Lua Language Server".
+- **Provision dialog checkboxes show raw kind ids** (BUG-370): tool checkboxes in the
+  provision dialog used the raw kind id (e.g. `stylua`) as the checkbox label. Fixed by
+  resolving through `LuaToolKindRegistry` so the dialog now shows "StyLua", "Busted",
+  "LuaCov", "Lua Language Server", etc.
+- **Change Versions dialog leaves root directory editable** (BUG-371): the *Change Versions*
+  flow documents that the root directory is fixed, but `prefill()` set the text without
+  disabling the field or its browse button. Fixed by calling `rootDirField.isEnabled = false`
+  when prefilling.
+- **Env status-bar widget shown in non-Lua projects** (BUG-375): the factory's `isAvailable`
+  was hardcoded `true`, showing the widget in every project. Now gates on
+  `LuaToolchainProjectSettings.environments().isNotEmpty()` — an EDT-safe in-memory check.
+- **App-level Provision silently targets wrong project** (BUG-372): with multiple projects
+  open, the toolchain inventory's Provision button guessed via `openProjects.firstOrNull()`.
+  Now shows a project-chooser popup when multiple are open; disabled with "No open project"
+  tooltip when none are open.
+- **Publish Rock API key not manageable after rotation** (BUG-376): on a bad/rotated key the
+  action reused the stored credential with no recovery. Now detects auth failures (Invalid
+  API key / Unauthorized / Forbidden) in `luarocks upload` output, clears the stored key,
+  and notifies the user to re-run Publish to enter a new key.
+- **Run Test Matrix covers only the first rockspec** (BUG-377): `firstRockspec()` silently
+  dropped all but the first discovered rockspec. Now iterates all discovered rockspecs,
+  launching one matrix per rockspec (env × rockspec product). The results table gains a
+  Rockspec column to distinguish rows across multiple rocks.
 
 ### Lua settings restructure (TOOLING-08)
 - **Discoverable platform-target control** (BUG-362): the *Lua Project* settings page now has an

@@ -12,9 +12,14 @@ import net.internetisalie.lunar.toolchain.model.LuaEnvironmentState
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import java.nio.file.Path
 
-/** Per-env matrix row state (ROCKS-15-04, design §2.6). */
+/**
+ * Per-env matrix row state (ROCKS-15-04, design §2.6).
+ * [rockspecLabel] is the short display name for the rockspec (filename, or full path as fallback)
+ * so the results table can distinguish rows across multiple rockspecs (BUG-377).
+ */
 data class MatrixRow(
     val env: LuaEnvironmentState,
+    val rockspecLabel: String = "",
     var status: Status = Status.PENDING,
     var exitCode: Int? = null,
     var output: String = "",
@@ -80,7 +85,8 @@ object MatrixRunner {
      * unit-testable in a single call.
      */
     fun execute(request: Request, runner: RowRunner): MatrixResult {
-        val rows = request.envs.map { MatrixRow(it) }
+        val label = request.rockspec.fileName?.toString() ?: request.rockspec.toString()
+        val rows = request.envs.map { MatrixRow(it, rockspecLabel = label) }
         rows.forEach { runRow(request, runner, it) }
         return MatrixResult(rows)
     }

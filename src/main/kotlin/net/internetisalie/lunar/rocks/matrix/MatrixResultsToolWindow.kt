@@ -32,9 +32,9 @@ class MatrixResultsToolWindow : ToolWindowFactory {
         const val TOOL_WINDOW_ID = "Lunar.LuaMatrix"
         private val LOG = Logger.getInstance(MatrixResultsToolWindow::class.java)
 
-        /** Builds the row cells `[name, status, exit]` for a [MatrixResult] (test seam). */
+        /** Builds the row cells `[rockspec, env, status, exit]` for a [MatrixResult] (test seam). */
         fun tableRows(result: MatrixResult): List<Array<Any>> =
-            result.rows.map { arrayOf<Any>(it.env.name, it.status.name, it.exitCode ?: "") }
+            result.rows.map { arrayOf<Any>(it.rockspecLabel, it.env.name, it.status.name, it.exitCode ?: "") }
     }
 
     /**
@@ -43,7 +43,7 @@ class MatrixResultsToolWindow : ToolWindowFactory {
      */
     @Service(Service.Level.PROJECT)
     class MatrixResultsPanel : JPanel(BorderLayout()) {
-        private val model = DefaultTableModel(arrayOf<Any>("Environment", "Status", "Exit"), 0)
+        private val model = DefaultTableModel(arrayOf<Any>("Rockspec", "Environment", "Status", "Exit"), 0)
 
         init {
             add(JBScrollPane(JBTable(model)), BorderLayout.CENTER)

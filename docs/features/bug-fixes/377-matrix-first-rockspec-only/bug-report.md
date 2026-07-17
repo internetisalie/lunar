@@ -10,6 +10,8 @@ folders:
 
 # BUG-377: Run Test Matrix silently tests only the first discovered rockspec (and its "…" promises a dialog)
 
+> **RESOLVED 2026-07-17 (this commit)**: Replaced `firstRockspec()` with `allRockspecs()` in `RunMatrixAction`. The action now launches one `MatrixRun` per discovered rockspec (env × rockspec product). Added `rockspecLabel` to `MatrixRow`; updated the results table to show a "Rockspec" column so the user can distinguish rows across multiple rocks. Progress title shows `<rockspec> / <env>`.
+
 ## 1. Reproduction
 
 1. Open a multi-rock workspace (two or more rockspecs discovered by ROCKS-09, e.g. `a.rockspec`
