@@ -2,7 +2,7 @@
 id: "ROCKS-16"
 title: "16: Plugins-Style LuaRocks Package Browser Redesign"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "ROCKS"
 folders:
@@ -72,23 +72,27 @@ is folded in as an acceptance criterion below).
 
 ## Requirements Table
 
+Status legend: **Full** = implemented and unit-verified; **Full (VNC pending)** = implemented and
+unit-verified, live UI confirmation deferred to the supervised verify-in-ide pass (checklist items
+left unchecked).
+
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| **ROCKS-16-01** | **Two-tab Plugins-idiom surface** | **M** | Not Implemented | Tool window presents Marketplace and Installed tabs in the Plugins visual idiom, all built from `JB*` / Kotlin UI DSL components (no raw `javax.swing` layout). |
-| **ROCKS-16-02** | **Canonical install target** | **M** | Not Implemented | Install/uninstall commands include `--tree <treeRoot>` resolved from `LuaRocksTreeLocator`, so results are visible to the rest of the plugin. The active tree path is shown in the UI. |
-| **ROCKS-16-03** | **Installed tab (zero-query)** | **M** | Not Implemented | Installed tab lists installed rocks from `luarocks list --porcelain --tree <treeRoot>` with no search query, each with an inline Uninstall action. |
-| **ROCKS-16-04** | **Rich detail pane** | **M** | Not Implemented | Detail pane renders an HTML description (`JBHtmlPane`), a name/version header, license, homepage link, and a clickable dependency list. |
-| **ROCKS-16-05** | **Honest error state** | **M** | Not Implemented | On unresolved binary or non-zero CLI exit, the panel shows an error state with a Configure link to the Toolchain settings page — never "No packages found". |
-| **ROCKS-16-06** | **Empty state** | **M** | Not Implemented | No-selection state renders via `JBPanelWithEmptyText`, not a `(no package selected)` label (absorbs BUG-367). |
-| **ROCKS-16-07** | **Dependencies as clickable list** | **M** | Not Implemented | Dependencies render as a `JBList`, one row per dependency; activating a row selects/searches that dependency (absorbs BUG-368). |
-| **ROCKS-16-08** | **Immediate in-place refresh** | **M** | Not Implemented | After install/uninstall, the originating row's installed state and the detail pane's buttons flip in place without a re-search. |
-| **ROCKS-16-09** | **UI font & alignment parity** | **M** | Not Implemented | All text uses the standard IDE UI font on a consistent grid (absorbs BUG-363 font mismatch and BUG-365 alignment). |
-| **ROCKS-16-10** | **Tool-window differentiation** | **M** | Not Implemented | The two tool windows are renamed to unambiguous roles with stripe tooltips (absorbs BUG-366). |
-| **ROCKS-16-11** | **Marketplace search parity** | **M** | Not Implemented | Marketplace tab retains debounced `luarocks search --porcelain` search with the collapsed-arch result model and TTL cache from ROCKS-02. |
-| **ROCKS-16-12** | **Update detection & affordance** | **S** | Not Implemented | For an installed rock whose latest available version is greater, surface an Update badge and an Update button that runs `luarocks install --tree <treeRoot>`. |
-| **ROCKS-16-13** | **Add-to-rockspec affordance** | **S** | Not Implemented | An "Add to rockspec dependencies" action that appends the installed rock to the discovered project rockspec's `dependencies`. In scope for this feature (owner decision 2026-07-16, risks DR-05). |
-| **ROCKS-16-14** | **Version picker parity** | **C** | Not Implemented | Retain the per-package version picker (ROCKS-02-06) in the detail pane; install uses the selected version. |
-| **ROCKS-16-15** | **Popular-packages Marketplace list** | **C** | Not Implemented | When the Marketplace tab has no query, show a "Popular / Trending" list scraped from luarocks.org's curated stats tables (`/stats/this-week` top-downloads and/or `/stats/dependencies` top-depended-upon), each row keyed on the `/modules/<author>/<name>` link and reusing the existing result renderer (installed-✓, click-to-detail). Fetched on-demand with a TTL cache; **any fetch/parse failure degrades silently to the neutral zero-query prompt** (ROCKS-16-05 error model does not apply — a missing popular list is not an error state). See risks Gap 2.1. |
+| **ROCKS-16-01** | **Two-tab Plugins-idiom surface** | **M** | Full (VNC pending) | Tool window presents Marketplace and Installed tabs in the Plugins visual idiom, all built from `JB*` / Kotlin UI DSL components (no raw `javax.swing` layout). |
+| **ROCKS-16-02** | **Canonical install target** | **M** | Full | Install/uninstall commands include `--tree <treeRoot>` resolved from `LuaRocksTreeLocator`, so results are visible to the rest of the plugin. The active tree path is shown in the UI. |
+| **ROCKS-16-03** | **Installed tab (zero-query)** | **M** | Full (VNC pending) | Installed tab lists installed rocks from `luarocks list --porcelain --tree <treeRoot>` with no search query, each with an inline Uninstall action. |
+| **ROCKS-16-04** | **Rich detail pane** | **M** | Full (VNC pending) | Detail pane renders an HTML description (`JBHtmlPane`), a name/version header, license, homepage link, and a clickable dependency list. |
+| **ROCKS-16-05** | **Honest error state** | **M** | Full | On unresolved binary or non-zero CLI exit, the panel shows an error state with a Configure link to the Toolchain settings page — never "No packages found". |
+| **ROCKS-16-06** | **Empty state** | **M** | Full (VNC pending) | No-selection state renders via `JBPanelWithEmptyText`, not a `(no package selected)` label (absorbs BUG-367). |
+| **ROCKS-16-07** | **Dependencies as clickable list** | **M** | Full (VNC pending) | Dependencies render as a `JBList`, one row per dependency; activating a row selects/searches that dependency (absorbs BUG-368). |
+| **ROCKS-16-08** | **Immediate in-place refresh** | **M** | Full | After install/uninstall, the originating row's installed state and the detail pane's buttons flip in place without a re-search. |
+| **ROCKS-16-09** | **UI font & alignment parity** | **M** | Full (VNC pending) | All text uses the standard IDE UI font on a consistent grid (absorbs BUG-363 font mismatch and BUG-365 alignment). |
+| **ROCKS-16-10** | **Tool-window differentiation** | **M** | Full (VNC pending) | The two tool windows are renamed to unambiguous roles with distinct stripe titles (absorbs BUG-366). Deviation: `ToolWindow.setToolTipText` does not exist in the 2026.1 SDK, so role differentiation is by stripe title only. |
+| **ROCKS-16-11** | **Marketplace search parity** | **M** | Full | Marketplace tab retains debounced `luarocks search --porcelain` search with the collapsed-arch result model and TTL cache from ROCKS-02 (cache now keyed on resolved server, finding #70). |
+| **ROCKS-16-12** | **Update detection & affordance** | **S** | Full (VNC pending) | For an installed rock whose latest available version is greater, surface an Update badge and an Update button that runs `luarocks install --tree <treeRoot>`. |
+| **ROCKS-16-13** | **Add-to-rockspec affordance** | **S** | Full | An "Add to rockspec dependencies" action that appends the installed rock to the discovered project rockspec's `dependencies`. In scope for this feature (owner decision 2026-07-16, risks DR-05). |
+| **ROCKS-16-14** | **Version picker parity** | **C** | Full (VNC pending) | Retain the per-package version picker (ROCKS-02-06) in the detail pane; install uses the selected version. |
+| **ROCKS-16-15** | **Popular-packages Marketplace list** | **C** | Full (VNC pending) | When the Marketplace tab has no query, show a "Popular / Trending" list scraped from luarocks.org's curated stats tables (`/stats/this-week`), each row keyed on the `/modules/<author>/<name>` link and reusing the existing result renderer (click-to-detail). Fetched on-demand with a TTL cache; **any fetch/parse failure degrades silently to the neutral zero-query prompt** (ROCKS-16-05 error model does not apply). See risks Gap 2.1. |
 
 ## Test Cases
 

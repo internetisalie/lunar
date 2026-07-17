@@ -46,6 +46,25 @@
   function(a, b) … end)` types the comparator from the stub signature. A direct `---@param` on the
   lambda still wins. Retires REDIS-05's descoped callback typing (Gap 2.4).
 
+### LuaRocks package browser redesign (ROCKS-16)
+- **Plugins-style two-tab browser**: the LuaRocks Packages tool window is rebuilt in the IDE
+  Plugins-page idiom — a **Marketplace** tab (debounced search) and an **Installed** tab
+  (zero-query list of the project's rocks), both `JB*`-component surfaces, sharing a rich detail
+  pane with a `JBHtmlPane` description, a clickable dependency list, a version picker, and inline
+  Install / Uninstall / Update / Add-to-rockspec actions.
+- **Canonical install target**: browser installs/uninstalls now pass `--tree <project rock tree>`,
+  so an installed rock is visible to module resolution, the dependency tree, and the library
+  provider — no longer landing in the binary's default global tree.
+- **Honest error & empty states**: an unresolved `luarocks` binary or a failed CLI call now shows
+  an error card with a **Configure** link to the Toolchain settings, never the misleading "No
+  packages found"; the no-selection state is a proper empty-text panel. The zero-query Marketplace
+  view optionally shows a "Popular / Trending" list scraped from luarocks.org, degrading silently
+  to a neutral prompt on any fetch failure.
+- **Fixes**: absorbs BUG-363 (monospaced detail font → standard UI font), BUG-365 (detail-pane
+  alignment), BUG-366 (the two LuaRocks tool windows now have unambiguous stripe titles —
+  "LuaRocks Packages" vs "LuaRocks Dependencies"), BUG-367 (`(no package selected)` label →
+  empty-text panel), and BUG-368 (newline-joined dependencies → a clickable list).
+
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 
 - **Connections & Script Run Configuration** (REDIS-01): RESP client + connection management.

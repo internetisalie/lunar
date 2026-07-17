@@ -109,6 +109,34 @@ The 2026-07 codebase review ([docs/review.md](../../../review.md); remediation v
 | #71b | `runSearch` has no stale-result guard (the Alarm-parent half was fixed as BUG-379) | Same staleness rule as #48 for the results list |
 | #64 | `LuaRocksActionHandler` KDoc promises `onDone` on EDT but runs it on the task thread | Fix the contract (or the doc) when the handler is reworked for inline install |
 
+### Finding closure (as implemented, 2026-07-17)
+- **#48 / #71b — CLOSED**: `PackageDetailPane` guards its metadata callback with a monotonic
+  `selectionToken` (bail if the selection changed); `LuaRocksBrowserModel` guards every posted
+  search/installed/popular result with a monotonic `requestId` (a stale result is dropped). Both are
+  unit-tested (`LuaRocksBrowserModelTest` staleness-drop; the pane token in code).
+- **#70 — CLOSED**: `LuaRocksSearchCache` now keys on `(resolvedServer, query)` and is invalidated
+  on install/uninstall via `onInstallSucceeded`/`onRemoveSucceeded`. Unit-tested
+  (`LuaRocksSearchCacheTest` server-scoping).
+- **#64 — CLOSED**: `LuaRocksInstallExecutor.install`/`remove` invoke `onDone` on the EDT (via
+  `invokeLater`) and the KDoc states exactly that — the old handler's dishonest promise is gone.
+
+## Implementation deviations (2026-07-17)
+- **`ToolWindow.setToolTipText` does not exist in the pinned 2026.1 SDK.** Design §7 called for a
+  role tooltip via `toolWindow.setToolTipText(...)`; `platform/ide-core/.../ToolWindow.java` exposes
+  only `setStripeTitle`/`setTitle`/`setHelpId`/`setStripeTitleProvider`. Substitution (per the SCOPE
+  BOUNDARY rule, verified against local intellij-community): differentiate the two tool windows by
+  their distinct stripe titles alone; the role tooltip is dropped. BUG-366's core (unambiguous names)
+  is still delivered.
+- **`LuaRocksBrowserBackend` seam** (not in the design's §2.5 API sketch): the model calls the CLI
+  services through an injectable interface (`ProjectBackend` in prod, a synchronous fake in tests) so
+  its transitions are verifiable headlessly — the plan's injected-fake-services requirement.
+- **TC-16-12 asserted via a recording proxy**, not the headless manager: `MockToolWindow` no-ops the
+  title setters, so the titles are asserted at the setter call site. Live stripe rendering stays the
+  VNC/integration check.
+- **Add-to-rockspec write** (Phase 7) verified via a testable `applyTo(rockspec, …)` core because the
+  light-fixture `temp://` VFS does not round-trip a discovered nio `Path` back to a `VirtualFile`;
+  production `addDependency` resolves a real local rockspec via `VfsUtil.findFile`.
+
 ## Test Case Gaps
 - **Live install visibility** (Risk 1.1) is not unit-testable (requires a real `luarocks`); covered
   by DR-01 + the human-verification checklist, not an automated TC.
