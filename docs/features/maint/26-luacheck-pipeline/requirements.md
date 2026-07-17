@@ -3,7 +3,7 @@ id: "MAINT-26"
 title: "26: Luacheck Pipeline Correctness"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -37,11 +37,11 @@ file:line and residual state are recorded here (full evidence in [design.md](des
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| MAINT-26-01 | Command-line fidelity | M | Not Implemented | Replace flat-token `distinct()` with pair-aware de-dup preserving repeated value tokens (#28) |
+| MAINT-26-01 | Command-line fidelity | M | Full | Replace flat-token `distinct()` with pair-aware de-dup preserving repeated value tokens (#28) |
 | MAINT-26-02 | Robust output parsing | M | Not Implemented | Formalize accumulate-and-split parse over the full captured stdout; ANSI-strip; ignore non-matching lines (#29) |
 | MAINT-26-03 | Editor-accurate offsets | M | Not Implemented | Feed the live editor document via stdin (`luacheck - --filename <name>`); clamp all offset math to the document (#30) |
 | MAINT-26-04 | Suppression scoping | S | Not Implemented | Close only name-intersecting disable blocks on `enable` (#31); scope inline `-- luacheck: ignore` to its own line (#60) |
-| MAINT-26-05 | Stdlib accuracy | S | Not Implemented | Add `arg` (stand-alone script args table) to `DELTA_51` (#61) |
+| MAINT-26-05 | Stdlib accuracy | S | Full | Add `arg` (stand-alone script args table) to `DELTA_51` (#61) |
 | MAINT-26-06 | Process hygiene | S | Not Implemented | Classify `LuaExecResult.outcome`/`exitCode`; surface launch failure & exit ≥ 2 as a WARNING annotation + log; keep all PSI reads out of `doAnnotate` (§2.5.6; §2.1 residual) |
 
 ## Test Cases

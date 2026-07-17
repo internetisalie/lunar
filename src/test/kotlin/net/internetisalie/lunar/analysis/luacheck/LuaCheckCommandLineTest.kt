@@ -33,6 +33,16 @@ class LuaCheckCommandLineTest : ToolchainSettingsTestCase() {
         assertNull(newLuaCheckCommandLine(project, "a.lua", workDir))
     }
 
+    fun `test dedupePairs keeps repeated value tokens across distinct pairs`() {
+        val input = listOf("--ignore", "611", "--max-line-length", "611", "--codes", "--ranges")
+        assertEquals(input, dedupePairs(input))
+    }
+
+    fun `test dedupePairs collapses duplicate lone flag and duplicate pair`() {
+        val input = listOf("--codes", "--codes", "--std", "max", "--std", "max")
+        assertEquals(listOf("--codes", "--std", "max"), dedupePairs(input))
+    }
+
     private fun seedToolAt(kindId: String, path: String): LuaRegisteredTool {
         val model = LuaRegisteredTool(
             id = UUID.randomUUID().toString(),

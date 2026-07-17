@@ -21,7 +21,7 @@ object LuaStandardGlobals {
     )
 
     private val DELTA_51: Set<String> = setOf(
-        "loadstring", "unpack", "gcinfo", "module", "getfenv", "setfenv", "newproxy",
+        "loadstring", "unpack", "gcinfo", "module", "getfenv", "setfenv", "newproxy", "arg",
     )
 
     private val DELTA_52: Set<String> = setOf("rawlen", "bit32")
