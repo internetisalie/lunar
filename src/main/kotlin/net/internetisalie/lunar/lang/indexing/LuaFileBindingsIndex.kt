@@ -1,13 +1,11 @@
 package net.internetisalie.lunar.lang.indexing
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.search.IndexPatternProvider
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
@@ -20,7 +18,6 @@ import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 import org.jetbrains.annotations.NonNls
-import java.beans.PropertyChangeListener
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
@@ -81,16 +78,6 @@ class LuaFileBindingsIndex : FileBasedIndexExtension<Int, LuaFileBindingsRecord>
             val extension = file.path.substringAfterLast('.', "")
             return extension == "lua"
         }
-    }
-
-    init {
-        ApplicationManager.getApplication().messageBus.simpleConnect()
-            .subscribe(
-                IndexPatternProvider.INDEX_PATTERNS_CHANGED,
-                PropertyChangeListener {
-                    FileBasedIndex.getInstance().requestRebuild(LuaFileBindingsIndexName)
-                }
-            )
     }
 
     override fun getIndexer(): ForwardIndexer<LuaFileBindingsRecord> {

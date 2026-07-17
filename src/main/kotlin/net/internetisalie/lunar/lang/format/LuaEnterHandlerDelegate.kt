@@ -22,24 +22,7 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
         caretAdvance: Ref<Int?>,
         dataContext: DataContext,
         originalHandler: EditorActionHandler?
-    ): Result {
-        if (file !is LuaFile) {
-            return Result.Continue
-        }
-
-        val caretModel = editor.caretModel
-        val document = editor.document
-        val line = document.getLineNumber(caretModel.offset)
-        val lineStart = document.getLineStartOffset(line)
-        val lineText = document.getText(com.intellij.openapi.util.TextRange(lineStart, caretModel.offset)).trim()
-
-        // Only auto-continue LuaDOC-style comments (---)
-        if (lineText.startsWith("---")) {
-            return Result.Continue
-        }
-
-        return Result.Continue
-    }
+    ): Result = Result.Continue
 
     override fun postProcessEnter(
         file: PsiFile,
