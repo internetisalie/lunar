@@ -13,6 +13,8 @@ import com.intellij.ui.content.ContentFactory
  */
 class LuaRocksToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        toolWindow.stripeTitle = "LuaRocks Dependencies"
+        toolWindow.title = "LuaRocks Dependencies"
         val panel = DependencyTreePanel(project)
         val content = ContentFactory.getInstance().createContent(panel, "", false)
         toolWindow.contentManager.addContent(content)

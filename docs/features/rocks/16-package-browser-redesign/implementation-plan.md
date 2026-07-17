@@ -75,14 +75,20 @@ fully unit-testable **before** any UI work.
 ### Phase 5: Two-tab panel + tool-window differentiation [Must] — [pure-UI / VNC-verified]
 - **Goal**: `JBTabbedPane` Marketplace/Installed surface, target-tree strip, renamed tool windows.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.LuaRocksBrowserPanel` — realizes design §2.7.
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.LuaRocksBrowserToolWindowFactory`; delete
-    `LuaRocksPackageBrowserToolWindowFactory`; update `plugin.xml:75-80` `factoryClass` — realizes
-    design §7.
-  - [ ] Set stripe titles/tooltips on both factories (`LuaRocksToolWindowFactory` →
-    "LuaRocks Dependencies"; browser → "LuaRocks Packages") — realizes design §7 (BUG-366).
-- **Exit criteria**: TC-ROCKS-16-12 (integration/enumeration); human-verification of the two-tab
-  layout, zero-query Installed tab, and unambiguous stripe names.
+  - [x] Create `net.internetisalie.lunar.rocks.browser.LuaRocksBrowserPanel` — realizes design §2.7
+    (JBTabbedPane Marketplace/Installed, shared PackageDetailPane, target-tree strip, Alarm debounce
+    parented to the panel Disposable).
+  - [x] Create `net.internetisalie.lunar.rocks.browser.LuaRocksBrowserToolWindowFactory`; delete
+    `LuaRocksPackageBrowserToolWindowFactory`; update `plugin.xml` `factoryClass` — realizes design §7.
+  - [x] Set stripe titles on both factories (`LuaRocksToolWindowFactory` → "LuaRocks Dependencies";
+    browser → "LuaRocks Packages") — realizes design §7 (BUG-366). **Deviation**: `ToolWindow` has no
+    `setToolTipText` (design's "tooltips" call does not exist in the 2026.1 SDK — `ToolWindow.java`
+    exposes only `setStripeTitle`/`setTitle`/`setHelpId`); role tooltip dropped, differentiation is
+    via the distinct stripe titles.
+- **Exit criteria**: TC-ROCKS-16-12 stripe/title assertion ✅ 2 tests / 0 failures (via a recording
+  proxy — the headless mock ToolWindow no-ops the setters, so titles are asserted at the setter call
+  site, not read back from the manager). Live two-tab layout / zero-query Installed tab / stripe
+  rendering DEFERRED to the supervised verify-in-ide pass.
 
 ### Phase 6: Update affordance [Should] — [pure-UI + logic]
 - **Goal**: Surface the Update badge/button.
@@ -154,7 +160,7 @@ fully unit-testable **before** any UI work.
 | Phase 2: Installed listing + error model | done | Must |
 | Phase 3: Browser state model | done | Must |
 | Phase 4: Detail pane redesign | done (unit; VNC deferred) | Must |
-| Phase 5: Two-tab panel + tool-window differentiation | planned | Must |
+| Phase 5: Two-tab panel + tool-window differentiation | done (unit; VNC deferred) | Must |
 | Phase 6: Update affordance | planned | Should |
 | Phase 7: Add-to-rockspec affordance | planned | Should |
 | Phase 8: Popular-packages Marketplace list | planned | Could |

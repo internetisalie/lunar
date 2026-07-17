@@ -72,12 +72,12 @@
             icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
             factoryClass="net.internetisalie.lunar.rocks.ui.LuaRocksToolWindowFactory"/>
 
-    <!-- LuaRocks Package Browser (ROCKS-02) -->
+    <!-- LuaRocks Package Browser (ROCKS-02; redesigned ROCKS-16) -->
     <toolWindow
             id="LuaRocks Packages"
             anchor="bottom"
             icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
-            factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksPackageBrowserToolWindowFactory"/>
+            factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksBrowserToolWindowFactory"/>
 
     <!-- Redis Functions panel (REDIS-05 AC-7/AC-8) -->
     <toolWindow
