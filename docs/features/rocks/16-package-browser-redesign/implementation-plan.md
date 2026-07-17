@@ -50,11 +50,13 @@ fully unit-testable **before** any UI work.
 - **Goal**: EDT-confined `LuaRocksBrowserModel` + `BrowserState` driving all state, with in-place
   refresh.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.LuaRocksBrowserModel`, `BrowserState`,
-    `LuaRockRow`, `Listener` — realizes design §2.5 / §3.3 / §3.4 (search flow, `onInstallSucceeded`,
-    `onRemoveSucceeded`, monotonic `requestId` staleness guard).
+  - [x] Create `net.internetisalie.lunar.rocks.browser.LuaRocksBrowserModel`, `BrowserState`,
+    `Listener` (+ `LuaRockRow` landed in Phase 2) — realizes design §2.5 / §3.3 / §3.4 (search flow,
+    `onInstallSucceeded`, `onRemoveSucceeded`, monotonic `requestId` staleness guard). Added a
+    `LuaRocksBrowserBackend` CLI+threading seam (`ProjectBackend` prod / fake in tests) so the model
+    is verifiable headlessly.
 - **Exit criteria**: TC-ROCKS-16-07, -08, -09 pass (unit — model transitions/mutations tested
-  headlessly with injected fake services).
+  headlessly with injected fake services). ✅ 6 tests / 0 failures (incl. staleness-drop §6).
 
 ### Phase 4: Detail pane redesign [Must] — [pure-UI / VNC-verified]
 - **Goal**: Replace `PackageDetailPanel` with `PackageDetailPane` in the Plugins idiom.
@@ -148,7 +150,7 @@ fully unit-testable **before** any UI work.
 |-------|--------|----------|
 | Phase 1: Canonical install/uninstall target | done | Must |
 | Phase 2: Installed listing + error model | done | Must |
-| Phase 3: Browser state model | planned | Must |
+| Phase 3: Browser state model | done | Must |
 | Phase 4: Detail pane redesign | planned | Must |
 | Phase 5: Two-tab panel + tool-window differentiation | planned | Must |
 | Phase 6: Update affordance | planned | Should |
