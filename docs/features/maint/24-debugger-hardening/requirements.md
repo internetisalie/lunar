@@ -47,7 +47,7 @@ evaluator error path (#13) and the connect timeout (#55), and removed the breakp
 | MAINT-24-03 | Thread-safe controller state | M | Full | Controller breakpoint maps become private `ConcurrentHashMap`s (lock-free, coroutine-idiomatic — design §3.3 explicitly rejects bolting `synchronized`/`@Volatile` onto the coroutine model); connection state is already `@Volatile` since MAINT-22, no new locking (#18) |
 | MAINT-24-04 | Run to Cursor | S | Not Implemented | Implement via temporary SETB + RUN + DELB (#6) |
 | MAINT-24-05 | Value/stack fidelity | S | Full | Positional index lookup (#52), `firstFrameIndex` (#53), 1-based line display (#59) |
-| MAINT-24-06 | Run-config integrity | S | Not Implemented | Source-path write-back (#26), `checkConfiguration()` + basePath fallback (#56) |
+| MAINT-24-06 | Run-config integrity | S | Full | Source-path write-back (#26), `checkConfiguration()` + basePath fallback (#56) |
 | MAINT-24-07 | Busted runner correctness | S | Not Implemented | Lua-pattern rerun filter (#27), JSON scanner `"`-only delimiters (#54), streaming output (§2.5.7) |
 | MAINT-24-08 | Robustness pass | C | Not Implemented | Configurable port, remove sleep-based races, graceful EXIT on stop (§2.5.7, §3) |
 

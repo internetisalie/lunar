@@ -1,6 +1,8 @@
 package net.internetisalie.lunar.run
 
+import com.intellij.execution.configurations.RuntimeConfigurationException
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.util.Disposer
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.AfterEach
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -105,6 +108,48 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
         val afterPaths = modelPaths(combo)
         assertTrue(afterPaths.contains("/x/lua"), "ad-hoc typed path must be present; had $afterPaths")
         assertTrue(afterPaths.contains(toolB.path), "default B must remain listed (ROCKS-16); had $afterPaths")
+    }
+
+    /** TC-06a (#26): the editor writes the Source-path field back on Apply and reloads it. */
+    @Test
+    fun testSourcePathRoundTripsThroughEditor() {
+        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+        config.sourcePath = "foo;bar"
+
+        val editor = LuaRunSettingsEditor(myFixture.project)
+        try {
+            editor.resetFrom(config)
+
+            val reapplied = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg2")
+            editor.applyTo(reapplied)
+
+            assertEquals("foo;bar", reapplied.sourcePath)
+        } finally {
+            Disposer.dispose(editor)
+        }
+    }
+
+    /** TC-06b (#56): an empty working directory resolves to the project base path. */
+    @Test
+    fun testEmptyWorkingDirectoryFallsBackToBasePath() {
+        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+
+        config.workingDirectory = ""
+        assertEquals(myFixture.project.basePath, config.effectiveWorkDirectory())
+
+        config.workingDirectory = "/explicit/dir"
+        assertEquals("/explicit/dir", config.effectiveWorkDirectory())
+    }
+
+    /** TC-06c (#56): checkConfiguration rejects a config with no resolvable runtime. */
+    @Test
+    fun testCheckConfigurationThrowsWithoutRuntime() {
+        LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
+        LuaToolchainProjectSettings.getInstance(myFixture.project).loadState(LuaToolchainProjectState())
+
+        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+        assertNull(config.resolveInterpreter())
+        assertFailsWith<RuntimeConfigurationException> { config.checkConfiguration() }
     }
 
     private fun modelPaths(combo: ComboBox<LuaRegisteredTool>): List<String> =

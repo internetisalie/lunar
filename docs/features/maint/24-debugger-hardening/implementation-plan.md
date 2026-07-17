@@ -73,9 +73,9 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 ### Phase 5: Run-config integrity [Should]
 - **Goal**: source-path persists; empty run configs start (#26, #56).
 - **Tasks**:
-  - [ ] Edit `LuaRunConfiguration.LuaRunSettingsEditor.applyEditorTo` — add
+  - [x] Edit `LuaRunConfiguration.LuaRunSettingsEditor.applyEditorTo` — add
         `runConfiguration.sourcePath = sourcePathField.text` (`:345-352`) — realizes design §2.6.
-  - [ ] Edit `LuaRunConfiguration` — override `checkConfiguration()` and add the `project.basePath`
+  - [x] Edit `LuaRunConfiguration` — override `checkConfiguration()` and add the `project.basePath`
         working-directory fallback in `getState` (`:256`) — realizes design §3.6.
 - **Exit criteria**: `TestLuaRunConfiguration` extended (round-trips sourcePath; empty-workdir
   fallback) and green; full suite green.
@@ -165,7 +165,7 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 | Phase 2: `!!` sweep + rd-gen import | done | Must |
 | Phase 3: Thread-safe controller state | done | Must |
 | Phase 4: Value & stack fidelity | done | Should |
-| Phase 5: Run-config integrity | todo | Should |
+| Phase 5: Run-config integrity | done | Should |
 | Phase 6: Busted runner correctness | todo | Should |
 | Phase 7: Robustness pass | todo | Could |
 | Phase 8: Run to Cursor | todo | Should |

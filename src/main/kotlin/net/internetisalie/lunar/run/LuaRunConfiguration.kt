@@ -192,6 +192,10 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
             options.workingDirectory = workingDirectory
         }
 
+    /** The working directory to launch in, falling back to the project base path when unset (#56). */
+    fun effectiveWorkDirectory(): String? =
+        workingDirectory?.takeIf { it.isNotEmpty() } ?: project.basePath
+
     var sourcePath: String?
         get() = options.sourcePath
         set(sourcePath) {
@@ -232,6 +236,18 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         return LuaRunSettingsEditor(project)
     }
 
+    override fun checkConfiguration() {
+        if (resolveInterpreter() == null) {
+            throw RuntimeConfigurationException(
+                "No Lua runtime is configured. Add one under " +
+                    "Settings | Languages & Frameworks | Lua | Toolchain.",
+            )
+        }
+        if (options.scriptName.isNullOrEmpty()) {
+            throw RuntimeConfigurationWarning("No script file configured")
+        }
+    }
+
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
         return object : CommandLineState(environment) {
             override fun startProcess(): ProcessHandler {
@@ -252,8 +268,8 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
                 val programArguments = ParametersListUtil.parse(programArguments.orEmpty())
                 commandLine.withParameters(programArguments)
 
-                commandLine
-                    .withWorkDirectory(workingDirectory)
+                val workDir = effectiveWorkDirectory()
+                if (!workDir.isNullOrEmpty()) commandLine.withWorkDirectory(workDir)
 
                 environmentVariables?.configureCommandLine(commandLine, true)
 
@@ -346,6 +362,7 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
         runConfiguration.scriptName = scriptPathField.text
         runConfiguration.interpreter = interpreterField.item
         runConfiguration.workingDirectory = workingDirectoryField.text
+        runConfiguration.sourcePath = sourcePathField.text
         runConfiguration.environmentVariables = environmentVariablesField.data
         runConfiguration.interpreterArguments = interpreterArgumentsField.text
         runConfiguration.programArguments = programArgumentsField.text
