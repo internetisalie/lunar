@@ -237,6 +237,15 @@ class LuaDebugValueParser(private val project: Project? = null) {
         if (expr != null) {
             val keyValue = evaluateExpression(expr)
             if (keyValue != null) {
+                // Positional lookup for integer subscripts: Lua t[1] → 0-based indexed[0] (#52).
+                if (keyValue.kind == LuaValueKind.Number) {
+                    val k = keyValue.numberValue?.toInt()
+                    if (k != null && k > 0) {
+                        val positional = table.indexed.getOrNull(k - 1)
+                        if (positional != null) return positional
+                    }
+                }
+
                 val key = when (keyValue.kind) {
                     LuaValueKind.String -> keyValue.stringValue
                     LuaValueKind.Number -> keyValue.numberValue?.toInt()?.toString()

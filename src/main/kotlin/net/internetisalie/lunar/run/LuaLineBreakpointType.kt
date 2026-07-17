@@ -39,7 +39,7 @@ class LuaLineBreakpointType : XLineBreakpointTypeBase(
     override fun getDisplayText(breakpoint: XLineBreakpoint<XBreakpointProperties<*>?>): String {
         val sourcePosition: XSourcePosition = breakpoint.sourcePosition ?: return "Unknown position"
         val displayPath = FileUtil.toSystemDependentName(sourcePosition.file.path)
-        return "Line ${sourcePosition.line} in file $displayPath"
+        return "Line ${sourcePosition.line + 1} in file $displayPath"
     }
 
     override fun canPutAt(file: VirtualFile, line: Int, project: Project): Boolean {

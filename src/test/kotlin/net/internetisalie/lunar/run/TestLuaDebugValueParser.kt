@@ -173,4 +173,35 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
             assertEquals("B", secondEntry.stringValue)
         }
     }
+
+    /** TC-05a (#52): a positional subscript `t[1]` on `{10, 20}` resolves the first element (10). */
+    @Test
+    fun testPositionalIndexResolvesFirstElement() {
+        myFixture.configureByText(LuaFileType, "")
+
+        ApplicationManager.getApplication().runReadAction {
+            val chunk = "do local t = {10, 20};return t[1];end"
+            val table = LuaDebugValueParser.parseChunk(myFixture.project, chunk)
+
+            assertEquals(1, table.indexed.size)
+            val first = table.indexed[0]
+            assertNotNull(first)
+            assertEquals(LuaValueKind.Number, first.kind)
+            assertEquals(10, first.numberValue?.toInt())
+        }
+    }
+
+    /** #52: the second positional subscript `t[2]` resolves the second element (20). */
+    @Test
+    fun testPositionalIndexResolvesSecondElement() {
+        myFixture.configureByText(LuaFileType, "")
+
+        ApplicationManager.getApplication().runReadAction {
+            val chunk = "do local t = {10, 20};return t[2];end"
+            val table = LuaDebugValueParser.parseChunk(myFixture.project, chunk)
+
+            assertEquals(1, table.indexed.size)
+            assertEquals(20, table.indexed[0].numberValue?.toInt())
+        }
+    }
 }

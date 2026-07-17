@@ -61,12 +61,12 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 ### Phase 4: Value & stack fidelity [Should]
 - **Goal**: correct table indexing, frame paging, 1-based lines (#52, #53, #59).
 - **Tasks**:
-  - [ ] Edit `LuaDebugValueParser.evaluateVarSuffixIndex` — for a numeric key, look up
+  - [x] Edit `LuaDebugValueParser.evaluateVarSuffixIndex` — for a numeric key, look up
         `table.indexed.getOrNull(key-1)` first, fall back to `named` (`:241-249`) — realizes design
         §2.5 note / requirements #52.
-  - [ ] Edit `LuaExecutionStack.computeStackFrames` — `drop(firstFrameIndex)` (`:35`) and compare
+  - [x] Edit `LuaExecutionStack.computeStackFrames` — `drop(firstFrameIndex)` (`:35`) and compare
         `it.frame.file == "=[C]"` (`:37`) — realizes design §3.9.
-  - [ ] Edit `LuaLineBreakpointType.getDisplayText` — `sourcePosition.line + 1` (`:42`) — §3.10.
+  - [x] Edit `LuaLineBreakpointType.getDisplayText` — `sourcePosition.line + 1` (`:42`) — §3.10.
 - **Exit criteria**: `TestLuaDebugValueParser`, `TestLuaExecutionStack`/`TestLuaRemoteStackFrames`,
   `TestLuaLineBreakpointType` extended and green; full suite green.
 
@@ -164,7 +164,7 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 | Phase 1: DBGp framing | done | Must |
 | Phase 2: `!!` sweep + rd-gen import | done | Must |
 | Phase 3: Thread-safe controller state | done | Must |
-| Phase 4: Value & stack fidelity | todo | Should |
+| Phase 4: Value & stack fidelity | done | Should |
 | Phase 5: Run-config integrity | todo | Should |
 | Phase 6: Busted runner correctness | todo | Should |
 | Phase 7: Robustness pass | todo | Could |

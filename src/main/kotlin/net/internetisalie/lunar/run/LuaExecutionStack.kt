@@ -32,9 +32,9 @@ class LuaExecutionStack(
     }
 
     override fun computeStackFrames(firstFrameIndex: Int, container: XStackFrameContainer) {
-        val entries = stack.entries
+        val entries = stack.entries.drop(firstFrameIndex)
         val frames = entries.map {
-            if (it.frame.path == "=[C]") LuaStackFrame(
+            if (it.frame.file == "=[C]") LuaStackFrame(
                 project,
                 controller,
                 null,
