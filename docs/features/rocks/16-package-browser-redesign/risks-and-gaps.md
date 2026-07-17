@@ -96,6 +96,19 @@ drifting rows (out of scope; flagged for a separate table-alignment chore).
 | ROCKS-16-00-DR-04 | Prototype `JBHtmlPane` rendering a `luarocks show` detailed description (HTML sanitation, link handling) in the tool window over VNC. | ROCKS-16-04 | todo |
 | ROCKS-16-00-DR-05 | Decide add-to-rockspec scope (build vs defer) with the product owner; if deferred, file the follow-on feature. | Gap 2.2, ROCKS-16-13 | done — in scope, this feature (owner, 2026-07-16) |
 
+## Absorbed codebase-review findings (2026-07-17)
+
+The 2026-07 codebase review ([docs/review.md](../../../review.md); remediation verified
+2026-07-17) has four open findings in the code this feature replaces. They are **in scope here**
+— the new browser must not reintroduce them; do not file/fix them separately against the old panel:
+
+| Review # | Defect in the old browser | Where it lands here |
+|----|----|----|
+| #48 | `PackageDetailPanel` async metadata fetch has no staleness guard — a slow response for A overwrites B's details | Detail-pane design: bail in the callback if the selection changed |
+| #70 | `LuaRocksSearchCache` keyed on bare query — survives server-setting changes and out-of-band installs | New cache keys on resolved server; invalidate on settings change/install |
+| #71b | `runSearch` has no stale-result guard (the Alarm-parent half was fixed as BUG-379) | Same staleness rule as #48 for the results list |
+| #64 | `LuaRocksActionHandler` KDoc promises `onDone` on EDT but runs it on the task thread | Fix the contract (or the doc) when the handler is reworked for inline install |
+
 ## Test Case Gaps
 - **Live install visibility** (Risk 1.1) is not unit-testable (requires a real `luarocks`); covered
   by DR-01 + the human-verification checklist, not an automated TC.

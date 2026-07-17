@@ -76,6 +76,18 @@ The supervisor should place the roadmap row.
 | TOOLING-00-DR-08a | Confirm `com.intellij.ui.dsl.builder.Panel.collapsibleGroup` exists in the pinned SDK and defaults to collapsed | Risk 1.3 | todo |
 | TOOLING-00-DR-08b | Confirm `explicitTarget` XML round-trips through `lunar.xml` and defaults `false` for an old file with no tag | §3 edge case | todo |
 
+## Absorbed codebase-review findings (2026-07-17)
+
+The 2026-07 codebase review ([docs/review.md](../../../review.md); remediation verified
+2026-07-17) has three open findings in the settings machinery this feature restructures. They are
+**in scope here**; do not file/fix them separately:
+
+| Review # | Defect | Where it lands here |
+|----|----|----|
+| #41 | Settings event bus half-dead: the topic is now *published* (`LuaTargetSynchronizer`, `LuaProjectConfigurable`) but the sole subscriber `LuaSettingsChangeListener` is a lazy `@Service` nothing instantiates — events go nowhere | The explicit-target/bindings rework must make the change-notification chain real (instantiate/register the listener, or replace the mechanism) — arguably Phase 0 |
+| #44 | `LuaApplicationSettingsConfigurable` has no `reset()`/`disposeUIResources()`; panel mutates live persisted `LuaInterpreter` objects pre-Apply — Cancel can't undo | DSL migration phase: clone-edit-commit pattern + full Configurable lifecycle |
+| #50 | `Target.default()` documented "Standard Lua 5.4" but resolves to the registry's first entry (5.1) | Explicit-target work (BUG-362) must pin the documented default |
+
 ## Test Case Gaps
 - No test yet asserts the *visual* collapsed state of the advanced group (VNC-only, Phase 6) — this is
   intentional; appearance is a `verify-in-ide` DoD gate, not a unit test.

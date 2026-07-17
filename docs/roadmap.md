@@ -76,5 +76,28 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
 | AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
-| AI-03 | Debugger Toolset | todo | C | AI-01; **MobDebug hardening (docs/review.md, unscheduled MAINT)**; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
+| AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
 | AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
+
+---
+
+## Wave 20 — Codebase-review remediation  *(MAINT; post-MVP)*
+
+Drains the 57 still-open findings of the 2026-07 full codebase review ([docs/review.md](review.md);
+remediation status verified 2026-07-17 — 5 fixed, 4 moot, 6 partial incidentally via earlier waves).
+Coalesced by root cause per the review's §2.5 "fix once, not per-site" analysis rather than filed as
+~57 individual bugs. Browser/settings-adjacent findings are **absorbed by ROCKS-16 (#48, #64, #70,
+#71b) and TOOLING-08 (#41, #44, #50)** — tracked in those features' risks-and-gaps, not here.
+Isolated fixes went to BUG-382…386 (#23, #45, #46, #49, #15); #22 was already BUG-361.
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| MAINT-31 | Dead-code sweep (review §3) | todo | C | — | every other Wave-20 feature *(soft — shrinks their diffs)* | ✓ pure deletion; **do first** |
+| MAINT-25 | Type-graph immutability & safety | todo | M | TYPE-10 *(serialize — same hot files `LuaTypesVisitor`/`LuaTypeGraph`)* | — | Serial: type engine |
+| MAINT-24 | Debugger & test-runner hardening | todo | S | MAINT-22 *(done — coroutine debugger base)* | **AI-03** | ✓ run/ subsystem |
+| MAINT-26 | Luacheck pipeline correctness | todo | S | — | — | ✓ analysis/luacheck |
+| MAINT-27 | LuaCATS doc & lexer correctness | todo | S | — | — | ✓ luacats/ (needs local parser-gen jars for the .flex regen) |
+| MAINT-28 | Completion correctness & performance | todo | S | — | — | ✓ completion stack |
+| MAINT-29 | Control-flow & inspection accuracy | todo | S | — | — | ✓ analysis/ + quick fixes |
+| MAINT-30 | Indexing & resolution caching | todo | S | — | — | Serial vs MAINT-28 *(both touch `LuaCompletionContributor`/resolution seams)* |
+| MAINT-32 | Process-execution discipline (`LuaProcessUtil`) | todo | S | — | — | ✓ util/ primitive + caller migration (#11, §2.1) |
