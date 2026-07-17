@@ -3,7 +3,7 @@ id: "MAINT-24"
 title: "24: Debugger & Test-Runner Hardening"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
