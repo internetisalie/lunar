@@ -2,7 +2,7 @@
 id: "REDIS-06-CHECKLIST"
 title: "Verification Checklists"
 type: "qa"
-status: "planned"
+status: "done"
 parent_id: "REDIS-06"
 folders:
   - "[[features/redis/06-sandbox-quickdoc-refinements/requirements|requirements]]"
