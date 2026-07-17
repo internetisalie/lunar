@@ -195,14 +195,17 @@ class LuaTypeGraph {
     /**
      * Perform constraint checking on the fully-built graph.
      * For each variable node, check that all values flowing into it satisfy its constraints.
+     *
+     * [maxIterations] and [timeLimitMs] are the fixed-point safety cutoffs; they are defaulted
+     * parameters (production callers pass nothing) so cutoff-behavior tests can trip them
+     * deterministically (MAINT-25-04 / TC-07) without a pathological input. A tripped cutoff is a
+     * designed break — it logs `warn` (never `error`, which would raise an IDE fatal-error popup).
      */
-    fun checkTypes() {
+    fun checkTypes(maxIterations: Int = 1000, timeLimitMs: Long = 5000) {
         val checkedPairs = mutableSetOf<Pair<TypeNode, TypeNode>>()
         var changed: Boolean
         var iterations = 0
-        val maxIterations = 1000
         val startTime = System.currentTimeMillis()
-        val timeLimitMs = 5000 // 5 seconds safety limit
 
         do {
             changed = false
@@ -214,13 +217,11 @@ class LuaTypeGraph {
             // perf headroom confirmed by the P0 spike).
             compatMemo.clear()
             if (iterations > maxIterations) {
-                val log = com.intellij.openapi.diagnostic.Logger.getInstance(LuaTypeGraph::class.java)
-                log.error("Type checking exceeded max iterations ($maxIterations). Potential infinite loop detected.")
+                log.warn("Type checking exceeded max iterations ($maxIterations). Potential infinite loop detected.")
                 break
             }
             if (System.currentTimeMillis() - startTime > timeLimitMs) {
-                val log = com.intellij.openapi.diagnostic.Logger.getInstance(LuaTypeGraph::class.java)
-                log.error("Type checking exceeded time limit (${timeLimitMs}ms). Potential performance bottleneck.")
+                log.warn("Type checking exceeded time limit (${timeLimitMs}ms). Potential performance bottleneck.")
                 break
             }
 

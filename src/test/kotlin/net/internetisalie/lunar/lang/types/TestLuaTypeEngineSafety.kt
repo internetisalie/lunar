@@ -1,11 +1,12 @@
 package net.internetisalie.lunar.lang.types
 
+import com.intellij.testFramework.BombedProgressIndicator
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.types.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import java.lang.reflect.Field
+import java.util.function.Predicate
 
 @RunWith(JUnit4::class)
 class TestLuaTypeEngineSafety : BasePlatformTestCase() {
@@ -126,5 +127,67 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
             ?: (luaType as? LuaClassType)?.getMembers()
         assertNotNull("Self-referential table must convert to a member-bearing LuaType", members)
         assertTrue("Member 'self' must survive the cycle guard", members!!.containsKey("self"))
+    }
+
+    /**
+     * MAINT-25-04 / TC-07: a tripped iteration cutoff (`checkTypes(maxIterations = 1)` on a graph
+     * with ≥1 edge) logs `warn` and breaks — it must NOT throw or emit `log.error` (which the test
+     * framework converts into a failure and which would raise an IDE fatal-error popup in production).
+     */
+    @Test
+    fun testCheckTypesIterationCutoffWarnsWithoutError() {
+        val anchor = myFixture.addFileToProject("cutoff.lua", "")
+        val graph = LuaTypeGraph()
+        val variable = graph.variable(anchor)
+        graph.addEdge(graph.value(anchor, LuaGraphType.Number), variable)
+
+        // maxIterations = 1 trips the cutoff on the second pass; no exception, no log.error.
+        graph.checkTypes(maxIterations = 1)
+    }
+
+    /**
+     * MAINT-25-04 / TC-08: a [ProcessCanceledException] raised inside `resolveType` must be
+     * rethrown UNLOGGED. If the PCE were logged via `log.error`, the platform test framework's
+     * `LoggedErrorProcessor` would convert it into a test failure — this is what asserts the
+     * "unlogged" half of the requirement. The `fail(...)` after the resolve asserts the "rethrown"
+     * half: if the production catch swallowed the PCE and returned normally, the resolve would fall
+     * through to `fail(...)`.
+     *
+     * The PCE is induced deterministically via [BombedProgressIndicator.explodeOnStackElement],
+     * which cancels the instant the platform calls `ProgressManager.checkCanceled()` while
+     * `LuaTypeManagerImpl.doResolveType` is on the stack. `resolveType` reaches `doResolveType` →
+     * `StubIndex.getElements(LuaClassNameIndex.KEY, "Present", ...)`, whose backing
+     * `Processors.cancelableCollectProcessor` calls `ProgressManager.checkCanceled()` for every
+     * indexed element it processes — so `Present` is seeded as a fully-indexed `---@class` to
+     * guarantee ≥1 processed element, and a fresh [LuaTypeManagerImpl] (isolated, empty cache) is
+     * used so the resolve cannot short-circuit on a cache hit before reaching the index.
+     * `runBombed` installs the pooled-thread canceled-indicator mock that keeps
+     * `ProgressManager.checkCanceled()` armed for the calling thread.
+     */
+    @Test
+    fun testResolveTypeRethrowsProcessCanceledUnlogged() {
+        myFixture.addFileToProject(
+            "present.lua",
+            """
+            ---@class Present
+            ---@field marker string
+            local Present = {}
+            """.trimIndent(),
+        )
+        val context = myFixture.configureByText("pce_usage.lua", "local p")
+
+        assertNotNull(
+            "Present must be indexed for the cancellation path to process an element",
+            LuaTypeManagerImpl(project).resolveType("Present", context),
+        )
+
+        val cancelInsideResolve = Predicate<StackTraceElement> { frame ->
+            frame.className == LuaTypeManagerImpl::class.java.name && frame.methodName == "doResolveType"
+        }
+        val canceled = BombedProgressIndicator.explodeOnStackElement(cancelInsideResolve).runBombed {
+            LuaTypeManagerImpl(project).resolveType("Present", context)
+            fail("resolveType must rethrow the ProcessCanceledException, not swallow it")
+        }
+        assertTrue("The bomb must have canceled resolveType mid-flight", canceled)
     }
 }

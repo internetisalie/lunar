@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.lang.psi.types
 
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
@@ -61,6 +62,8 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         return try {
             resolvingTypes.get().add(name)
             doResolveType(name, project)
+        } catch (e: ProcessCanceledException) {
+            throw e
         } catch (e: Exception) {
             logError("Error resolving type $name", e)
             throw e
