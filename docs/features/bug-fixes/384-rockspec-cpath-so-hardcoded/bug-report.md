@@ -4,7 +4,6 @@ title: "Rockspec run-path provider hardcodes `?.so` in LUA_CPATH (wrong on Windo
 type: "bug"
 parent_id: "BUG"
 priority: "low"
-status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---

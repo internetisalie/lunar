@@ -4,7 +4,6 @@ title: "LuaRocks scaffolder instantiates a fresh LuaRunConfigurationType instead
 type: "bug"
 parent_id: "BUG"
 priority: "low"
-status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---

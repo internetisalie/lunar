@@ -4,7 +4,6 @@ title: "Reformat forces spaces inside index brackets (`t[ 1 ]`); the Space-withi
 type: "bug"
 parent_id: "BUG"
 priority: "medium"
-status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---

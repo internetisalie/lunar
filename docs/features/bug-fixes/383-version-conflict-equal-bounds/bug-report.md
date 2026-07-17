@@ -4,7 +4,6 @@ title: "Rockspec version-conflict engine misses equal-version strict bounds (`>=
 type: "bug"
 parent_id: "BUG"
 priority: "low"
-status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---

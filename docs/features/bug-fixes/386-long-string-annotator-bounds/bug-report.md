@@ -4,7 +4,6 @@ title: "Long-string/long-comment annotators throw StringIndexOutOfBounds on trun
 type: "bug"
 parent_id: "BUG"
 priority: "medium"
-status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
