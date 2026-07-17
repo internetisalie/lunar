@@ -10,6 +10,8 @@ folders:
 
 # BUG-376: Publish Rock API key cannot be changed or cleared once stored
 
+> **RESOLVED 2026-07-17 (this commit)**: Added `isAuthFailure(exitCode, stderr)` helper that detects authentication-related upload errors ("Invalid API key", "Authentication failed", "Unauthorized", "Forbidden", "auth" + "key"). On auth failure the stored key is cleared via `LuaRocksApiKeyStore.setApiKey(server, null)` and the error notification prompts the user to re-run Publish to enter a new key.
+
 ## 1. Reproduction
 
 1. Right-click a `.rockspec` → *Publish Rock to LuaRocks…* and enter an API key when prompted —

@@ -73,7 +73,17 @@ class PublishRockAction : DumbAwareAction(
                         notify(project, "LuaRocks: published $rockspecPath", NotificationType.INFORMATION)
                     } else {
                         val stderr = output.stderr.trim().ifEmpty { "(no output)" }
-                        notify(project, "LuaRocks publish failed: $stderr", NotificationType.ERROR)
+                        if (isAuthFailure(output.exitCode, output.stderr)) {
+                            LuaRocksApiKeyStore.setApiKey(server, null)
+                            notify(
+                                project,
+                                "LuaRocks publish failed (auth error — stored API key cleared): $stderr. " +
+                                    "Run Publish again to re-enter the key.",
+                                NotificationType.ERROR,
+                            )
+                        } else {
+                            notify(project, "LuaRocks publish failed: $stderr", NotificationType.ERROR)
+                        }
                     }
                 }
             },
@@ -96,5 +106,25 @@ class PublishRockAction : DumbAwareAction(
         /** True when [file] is a `.rockspec` (the upload target). */
         fun isRockspec(file: VirtualFile): Boolean =
             !file.isDirectory && file.extension == "rockspec"
+
+        /**
+         * Returns true when a non-zero [exitCode] with [stderr] output looks like an authentication
+         * failure (BUG-376). Used to clear the stored API key and prompt the user to re-enter it.
+         *
+         * Matches patterns emitted by `luarocks upload` on a bad or revoked key:
+         * - "Invalid API key"
+         * - "Authentication failed" / "auth"
+         * - "Forbidden" (HTTP 403)
+         * - "Unauthorized" (HTTP 401)
+         */
+        internal fun isAuthFailure(exitCode: Int, stderr: String): Boolean {
+            if (exitCode == 0) return false
+            val lower = stderr.lowercase()
+            return lower.contains("invalid api key") ||
+                lower.contains("authentication failed") ||
+                lower.contains("unauthorized") ||
+                lower.contains("forbidden") ||
+                (lower.contains("auth") && lower.contains("key"))
+        }
     }
 }
