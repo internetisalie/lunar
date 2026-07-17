@@ -3,7 +3,7 @@ id: "MAINT-29"
 title: "29: Control-Flow & Inspection Accuracy"
 type: "feature"
 parent_id: "MAINT"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -36,5 +36,29 @@ Coalesces the control-flow-graph defects and inspection/quick-fix correctness bu
 | MAINT-29-03 | Unused-local accuracy | S | Not Implemented | Exclude simple write targets (#34); `multiResolve(false)` (#69) |
 | MAINT-29-04 | Concat false positives | C | Not Implemented | Respect `__concat` metamethods (#68) |
 
-**Note:** the redundant nested-write-action wrappers in these inspections' fixes (§3) should be
-removed in the same pass (intention-preview hazard).
+**Note:** the redundant nested-write-action wrappers in these inspections' fixes (§3) were the
+subject of a same-pass cleanup — **now moot**: MAINT-31 (`status: done`) already removed them, and
+`grep -rn WriteCommandAction` across all four target files returns zero hits. No work remains for
+this item; the design records it and forbids re-introducing a nested write action (design §6).
+
+## Test Cases
+
+Inputs are Lua source configured via `myFixture.configureByText`. Quick-fix cases assert
+before→after buffer text via `findSingleIntention` + `launchAction` + `checkResult` (not a bare
+`getAllQuickFixes` presence check). CFG cases assert on `ControlFlowCache.getControlFlow` +
+`isReachable`; inspection cases on `enableInspections` + `doHighlighting`.
+
+| TC | Requirement | Input | Action | Expected |
+| :-- | :-- | :-- | :-- | :-- |
+| TC-01 | MAINT-29-01 (#8) | `local n = 7 // 2` @ Lua 5.1 | Apply "Replace // with / and math.floor()" | Buffer = `local n = math.floor(7 / 2)` |
+| TC-02 | MAINT-29-01 (#8) | `local n = (a+b) // c` @ Lua 5.1 | Apply the fix | Buffer = `local n = math.floor((a+b) / c)` (operands/parens preserved) |
+| TC-03 | MAINT-29-01 (#9) | `x = 1` (single simple target global) | Query intentions | "Make Local" **is** offered; applying yields `local x = 1` |
+| TC-04 | MAINT-29-01 (#9) | `x, t.f = 1, 2` | Query intentions | "Make Local" is **not** offered (only "Add to globals"); no invalid `local x, t.f = ...` |
+| TC-05 | MAINT-29-02 (#32a) | `function f(x) if x then return 1 else return 2 end print("u") end` | Build CFG for `f` | `print("u")` instruction `isReachable == false` (no spurious edge out of the returns) |
+| TC-06 | MAINT-29-02 (#32c) | Two sibling `for` loops each with `::continue::` and `goto continue` | Build CFG | Each `goto continue` edges to its **own** loop's label (no cross-wire) |
+| TC-07 | MAINT-29-02 (#33) | `local a = 1 if a then end` | Build CFG for file | A READ `LuaReadWriteInstruction` with `variableName == "a"` exists for the condition |
+| TC-08 | MAINT-29-02 (#32b) | `if c1 then return elseif c2 then return end print("r")` (both branches abrupt only when reached) | `doHighlighting` | Reachability of `print("r")` matches Lua semantics (no elseif-leak false negative) |
+| TC-09 | MAINT-29-03 (#34) | `local flag; flag = true` (no read of `flag`) | `doHighlighting` | "Unused local variable 'flag'" reported |
+| TC-10 | MAINT-29-03 (#69) | Shadowed locals where a usage resolves ambiguously to two decls | `doHighlighting` | Neither decl falsely flagged unused |
+| TC-11 | MAINT-29-04 (#68) | `---@class Vec` with `Vec.__concat`; `local v = ... .. Vec_instance` | `doHighlighting` | No "Suspicious concatenation" on the `__concat` operand (membership via `localMembers`/`resolveMember` per DR-01 — NOT the nonexistent `fields`); a plain `{}` operand **is** flagged |
+| TC-12 | MAINT-29-02 (#32c) | `do ::top:: for i=1,2 do goto top end end` (goto targets a label in an ENCLOSING block) | Build CFG | The `goto top` edges to the enclosing block's `::top::` label (ascent through parent blocks resolves; no unresolved-goto) |
