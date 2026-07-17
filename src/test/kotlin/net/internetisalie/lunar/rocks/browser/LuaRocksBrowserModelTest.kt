@@ -34,9 +34,11 @@ class LuaRocksBrowserModelTest {
     ) : LuaRocksBrowserBackend {
         val backgroundTasks = ArrayDeque<() -> Unit>()
         val edtActions = ArrayDeque<() -> Unit>()
+        var popular: List<PopularEntry> = emptyList()
         override fun resolveTree(): Path? = treeRoot
         override fun search(query: String, treeRoot: Path?): List<LuaRockPackage> = searchResult()
         override fun listInstalled(treeRoot: Path): List<InstalledRockRow> = installedResult()
+        override fun fetchPopular(): List<PopularEntry> = popular
         override fun runInBackground(task: () -> Unit) { backgroundTasks += task }
         override fun onEdt(action: () -> Unit) { edtActions += action }
         fun drain() {
@@ -120,13 +122,30 @@ class LuaRocksBrowserModelTest {
     }
 
     @Test
-    fun `blank query posts Idle without a background task`() {
+    fun `TC-ROCKS-16-15b blank query with no popular list degrades to the neutral Idle prompt`() {
+        // The fake's default popular list is empty (a fetch/parse failure) → neutral prompt, NOT Error.
         val backend = FakeBackend(tree, { emptyList() })
         val listener = RecordingListener()
         LuaRocksBrowserModel(backend, listener).runMarketplaceSearch("   ")
+        backend.drain()
 
-        assertEquals(listOf(BrowserState.Idle), listener.states)
-        assertTrue(backend.backgroundTasks.isEmpty())
+        assertEquals(BrowserState.Loading, listener.states.first())
+        assertEquals(BrowserState.Idle, listener.states.last())
+        assertTrue(listener.states.none { it is BrowserState.Error })
+    }
+
+    @Test
+    fun `blank query renders a non-empty popular list as Results`() {
+        val backend = FakeBackend(tree, { emptyList() }).apply {
+            popular = listOf(PopularEntry("luafilesystem", "51572"), PopularEntry("dkjson", "32931"))
+        }
+        val listener = RecordingListener()
+        val model = LuaRocksBrowserModel(backend, listener)
+        model.runMarketplaceSearch("")
+        backend.drain()
+
+        val results = listener.states.filterIsInstance<BrowserState.Results>().single()
+        assertEquals(listOf("luafilesystem", "dkjson"), results.rows.map { it.pkg.name })
     }
 
     @Test

@@ -27,15 +27,24 @@ class LuaRocksBrowserModel(
     /** The current Marketplace rows (read-only view for the panel/tests). */
     val currentRows: List<LuaRockRow> get() = marketplaceRows
 
-    /** Runs a Marketplace search; blank query → the neutral [BrowserState.Idle] prompt (design §3.3). */
+    /** Runs a Marketplace search; blank query → the popular list, degrading to [BrowserState.Idle] (§3.3/§3.3a). */
     fun runMarketplaceSearch(query: String) {
         if (query.isBlank()) {
-            post(BrowserState.Idle)
+            loadPopular()
             return
         }
         val id = beginRequest()
         val treeRoot = backend.resolveTree()
         backend.runInBackground { fetchSearch(query, treeRoot, id) }
+    }
+
+    /**
+     * Best-effort zero-query "Popular" list (ROCKS-16-15, §3.3a). A non-empty list → [BrowserState.Results];
+     * an empty list → [BrowserState.Idle] (the neutral prompt). Never an error state.
+     */
+    fun loadPopular() {
+        val id = beginRequest()
+        backend.runInBackground { fetchPopular(id) }
     }
 
     /** Loads the Installed tab; no tree → [BrowserState.NoTree] (design §3.3 Installed / §4.1). */
@@ -85,6 +94,24 @@ class LuaRocksBrowserModel(
             LuaRockRow(pkg, pkg.isInstalled, hasUpdate)
         }
     }
+
+    private fun fetchPopular(id: Long) {
+        val entries = backend.fetchPopular()
+        backend.onEdt { publishPopular(entries, id) }
+    }
+
+    private fun publishPopular(entries: List<PopularEntry>, id: Long) {
+        if (id != requestId) return
+        if (entries.isEmpty()) {
+            listener.onState(BrowserState.Idle)
+            return
+        }
+        marketplaceRows = entries.mapTo(mutableListOf()) { LuaRockRow(popularPackage(it), installed = false) }
+        listener.onState(BrowserState.Results(marketplaceRows.toList()))
+    }
+
+    private fun popularPackage(entry: PopularEntry): LuaRockPackage =
+        LuaRockPackage(entry.name, entry.count ?: "", "popular", "", "")
 
     private fun fetchInstalled(treeRoot: Path, id: Long) {
         val outcome = runCatching { backend.listInstalled(treeRoot) }

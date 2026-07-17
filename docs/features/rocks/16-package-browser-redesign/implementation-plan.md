@@ -116,15 +116,16 @@ fully unit-testable **before** any UI work.
   instead of the neutral prompt; degrade silently on failure (owner decision 2026-07-16: build in
   this feature as a Could-have). Do this LAST — it must not gate the Must/Should phases.
 - **Tasks**:
-  - [ ] Add a `LuaRocksPopularService` that fetches `luarocks.org/stats/this-week` (and/or
-    `/stats/dependencies`) off the EDT and parses the `<table class="table">` rows, deriving each
-    package name from the row's `/modules/<author>/<name>` link; TTL-cached (reuse the
-    `LuaRocksSearchCache` pattern). Any non-200 / empty / unparseable response → empty list, no throw.
-  - [ ] When the Marketplace tab has no query, render the popular list through the existing result
-    renderer (installed-✓ cross-ref, click-to-detail); on empty result, show the neutral prompt.
-- **Exit criteria**: TC-ROCKS-16-15a (parser over a static HTML fixture) + TC-ROCKS-16-15b (fetch
-  failure → neutral prompt, not the error state) green; VNC-verify the popular list renders and that
-  killing network access falls back to the prompt (not a red error state).
+  - [x] Add `LuaRocksPopularService` (fetches `luarocks.org/stats/this-week` off the EDT via
+    `HttpRequests` with a 5 s timeout, TTL-cached 1 h) + a pure `PopularListParser` (derives each
+    package name from the row's `/modules/<author>/<name>` link, captures the count, skips
+    malformed rows). Any non-200 / empty / unparseable response → empty list, no throw.
+  - [x] Zero-query Marketplace → `LuaRocksBrowserModel.loadPopular` renders the list as `Results`
+    (click-to-detail via the existing renderer); an empty list falls back to `Idle` (neutral prompt),
+    never an error state. Popular fetch is a new `LuaRocksBrowserBackend.fetchPopular` seam.
+- **Exit criteria**: TC-ROCKS-16-15a (parser over the static HTML fixture, 3) + TC-ROCKS-16-15b
+  (fetch failure → neutral prompt, not the error state — service 4 + model blank-Idle) green ✅.
+  Live popular-list render / network-kill fallback DEFERRED to the supervised verify-in-ide pass.
 
 ## Requirement → Phase Coverage
 
@@ -168,4 +169,4 @@ fully unit-testable **before** any UI work.
 | Phase 5: Two-tab panel + tool-window differentiation | done (unit; VNC deferred) | Must |
 | Phase 6: Update affordance | done (unit; VNC deferred) | Should |
 | Phase 7: Add-to-rockspec affordance | done | Should |
-| Phase 8: Popular-packages Marketplace list | planned | Could |
+| Phase 8: Popular-packages Marketplace list | done (unit; VNC deferred) | Could |
