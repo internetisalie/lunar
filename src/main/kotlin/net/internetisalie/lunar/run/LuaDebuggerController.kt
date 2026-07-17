@@ -63,8 +63,13 @@ class LuaDebuggerController(
 
     fun breakpointAt(pos: LuaPosition): XBreakpoint<*>? = myPos2Breakpoints[pos]
 
+    @Volatile
+    private var pendingRunToCursor: LuaPosition? = null
+
     private var baseDir: String
     private var workingDir: File
+
+    fun workingDirectory(): File = workingDir
 
     init {
         session.setPauseActionSupported(false)
@@ -189,6 +194,21 @@ class LuaDebuggerController(
         sendCommand(DebugCommand(DebugCommandKind.BASEDIR, listOf(baseDir)))
     }
 
+    /**
+     * Run to Cursor (#6): if the cursor line already carries a user breakpoint, just resume; else
+     * arm a temporary breakpoint and resume. The temporary breakpoint is removed one-shot in
+     * [DebugObserver.onPause] once the debuggee pauses at [pos].
+     */
+    suspend fun runToCursor(pos: LuaPosition) {
+        if (breakpointAt(pos) != null) {
+            sendCommand(DebugCommand(DebugCommandKind.RUN))
+            return
+        }
+        pendingRunToCursor = pos
+        sendCommand(DebugCommand(DebugCommandKind.SETB, pos.args()))
+        sendCommand(DebugCommand(DebugCommandKind.RUN))
+    }
+
     suspend fun addBreakPoint(breakpoint: XBreakpoint<*>) {
         val sourcePosition = breakpoint.sourcePosition ?: return
         val pos = LuaPosition.createRemotePosition(sourcePosition, workingDir)
@@ -277,6 +297,10 @@ class LuaDebuggerController(
             val bp: XBreakpoint<*>? = breakpointAt(pos)
 
             scope.launch {
+                if (pendingRunToCursor == pos) {
+                    pendingRunToCursor = null
+                    sendCommand(DebugCommand(DebugCommandKind.DELB, pos.args()))
+                }
                 val stack = variables()
                 if (bp != null) {
                     // Breakpoint fired

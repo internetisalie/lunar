@@ -45,7 +45,7 @@ evaluator error path (#13) and the connect timeout (#55), and removed the breakp
 | MAINT-24-01 | DBGp byte-accurate framing | M | Full | Read exactly N raw bytes then decode UTF-8; explicit charset on reader (#5) |
 | MAINT-24-02 | Crash-proof payload parsing | M | Full | Remove `!!` from debugger payload paths; malformed data degrades gracefully; drop the rd-gen internal import (#7, #16, #17, §2.2) |
 | MAINT-24-03 | Thread-safe controller state | M | Full | Controller breakpoint maps become private `ConcurrentHashMap`s (lock-free, coroutine-idiomatic — design §3.3 explicitly rejects bolting `synchronized`/`@Volatile` onto the coroutine model); connection state is already `@Volatile` since MAINT-22, no new locking (#18) |
-| MAINT-24-04 | Run to Cursor | S | Not Implemented | Implement via temporary SETB + RUN + DELB (#6) |
+| MAINT-24-04 | Run to Cursor | S | Full | Implement via temporary SETB + RUN + DELB (#6) |
 | MAINT-24-05 | Value/stack fidelity | S | Full | Positional index lookup (#52), `firstFrameIndex` (#53), 1-based line display (#59) |
 | MAINT-24-06 | Run-config integrity | S | Full | Source-path write-back (#26), `checkConfiguration()` + basePath fallback (#56) |
 | MAINT-24-07 | Busted runner correctness | S | Full | Lua-pattern rerun filter (#27), JSON scanner `"`-only delimiters (#54), streaming output (§2.5.7) |

@@ -78,7 +78,8 @@ class LuaDebugProcess(
     }
 
     override fun runToPosition(position: XSourcePosition, context: XSuspendContext?) {
-        throw AbstractMethodError()
+        val pos = LuaPosition.createRemotePosition(position, controller.workingDirectory())
+        sessionScope.launch { controller.runToCursor(pos) }
     }
 
     override fun doGetProcessHandler(): ProcessHandler? {

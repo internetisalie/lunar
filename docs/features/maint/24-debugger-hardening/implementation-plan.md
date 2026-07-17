@@ -116,10 +116,10 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 ### Phase 8: Run to Cursor [Should]
 - **Goal**: implement Run to Cursor via SETB + RUN + DELB (#6).
 - **Tasks**:
-  - [ ] Edit `LuaDebuggerController` — add `suspend fun runToCursor(pos: LuaPosition)` and the
-        `pendingRunToCursor` one-shot in `DebugObserver.onPauseBreakpoint`; expose `workingDir` —
-        realizes design §2.3, §3.2.
-  - [ ] Edit `LuaDebugProcess.runToPosition` — replace `throw AbstractMethodError()` with the
+  - [x] Edit `LuaDebuggerController` — add `suspend fun runToCursor(pos: LuaPosition)` and the
+        `pendingRunToCursor` one-shot in `DebugObserver.onPause` (shared by breakpoint/watchpoint
+        pauses); expose `workingDirectory()` — realizes design §2.3, §3.2.
+  - [x] Edit `LuaDebugProcess.runToPosition` — replace `throw AbstractMethodError()` with the
         dispatch to `controller.runToCursor` (`:79-81`) — realizes design §2.4, §3.2.
 - **Exit criteria**: full suite green; Run to Cursor is VNC-gated (HV-04) — the SETB/RUN/DELB
   sequencing is only honestly testable against a live debuggee.
@@ -170,4 +170,4 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 | Phase 5: Run-config integrity | done | Should |
 | Phase 6: Busted runner correctness | done | Should |
 | Phase 7: Robustness pass | done | Could |
-| Phase 8: Run to Cursor | todo | Should |
+| Phase 8: Run to Cursor | done | Should |
