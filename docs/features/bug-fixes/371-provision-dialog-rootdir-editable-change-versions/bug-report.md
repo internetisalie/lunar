@@ -10,6 +10,8 @@ folders:
 
 # BUG-371: Change Toolchain Versions leaves rootDir editable despite documented "fixed" contract
 
+> **RESOLVED 2026-07-17 (this commit)**: Added `rootDirField.isEnabled = false` in `LuaProvisionDialog.prefill()` so that the Change Versions flow (initial != null) disables both the text field and its browse button, matching the documented contract.
+
 ## 1. Reproduction
 
 1. Provision an environment (*Tools → Lua Toolchain → Provision Lua Toolchain…*).

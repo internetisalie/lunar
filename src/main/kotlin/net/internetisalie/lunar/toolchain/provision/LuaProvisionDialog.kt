@@ -129,6 +129,7 @@ class LuaProvisionDialog(
         nameField.text = request.environmentName
         settingNameProgrammatically = false
         rootDirField.text = request.rootDir
+        rootDirField.isEnabled = false
         prefillRuntime(request)
         prefillLuaRocks(request)
         prefillTools(request)
@@ -211,6 +212,9 @@ class LuaProvisionDialog(
         }
 
     fun toRequest(): LuaProvisionRequest = formState().toRequest()
+
+    /** Exposes the root-dir field for tests (BUG-371: verify disabled state on prefill). */
+    internal fun rootDirFieldForTest() = rootDirField
 
     private fun versionCombo(kindId: String): ComboBox<String> {
         val combo = ComboBox<String>()
