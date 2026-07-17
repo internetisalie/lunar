@@ -56,6 +56,7 @@ class PackageDetailPane(
     private val depsModel = DefaultListModel<DependencyRow>()
     private val depsList = JBList(depsModel)
     private val actionButton = JButton("Install")
+    private val updateButton = JButton("Update").apply { isVisible = false }
     private val statusLabel = JBLabel().apply { border = JBUI.Borders.empty(2, 0) }
 
     private val emptyCard = JBPanelWithEmptyText().withEmptyText("No package selected")
@@ -75,6 +76,7 @@ class PackageDetailPane(
         wireDepsClick()
         homepageButton.addActionListener { openHomepage() }
         actionButton.addActionListener { onActionClicked() }
+        updateButton.addActionListener { onUpdateClicked() }
         showEmpty()
     }
 
@@ -121,7 +123,7 @@ class PackageDetailPane(
             border = JBUI.Borders.empty(4, 6)
         }
         val actions = JPanel(HorizontalLayout(6)).apply {
-            add(actionButton); add(statusLabel)
+            add(actionButton); add(updateButton); add(statusLabel)
             border = JBUI.Borders.empty(4, 6)
         }
         return JPanel(BorderLayout()).apply {
@@ -196,6 +198,19 @@ class PackageDetailPane(
         if (row.installed) runRemove(row, treeRoot) else runInstall(row, treeRoot)
     }
 
+    private fun onUpdateClicked() {
+        val row = currentRow ?: return
+        val treeRoot = LuaRocksInstallCommand.resolveTargetTree(project) ?: run {
+            showNoTree()
+            return
+        }
+        beginProgress("Updating…")
+        executor.install(InstallRequest(row.pkg.name, null, treeRoot)) { success ->
+            endProgress(success, "Updated.", "Update failed.")
+            if (success) model.onInstallSucceeded(row.pkg.name)
+        }
+    }
+
     private fun runInstall(row: LuaRockRow, treeRoot: java.nio.file.Path) {
         beginProgress("Installing…")
         val version = versionPicker.selectedItem as? String
@@ -228,6 +243,7 @@ class PackageDetailPane(
         currentRow = row
         actionButton.text = if (row.installed) "Uninstall" else "Install"
         actionButton.isEnabled = true
+        updateButton.isVisible = row.hasUpdate
         statusLabel.text = if (row.hasUpdate) "Update available" else ""
     }
 

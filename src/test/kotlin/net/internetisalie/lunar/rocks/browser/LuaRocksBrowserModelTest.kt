@@ -91,6 +91,35 @@ class LuaRocksBrowserModelTest {
     }
 
     @Test
+    fun `an installed rock with a newer search version is flagged hasUpdate`() {
+        val results = listOf(
+            pkg("inspect", "3.1.2-0", installed = true),
+            pkg("inspect", "3.1.3-0", installed = true),
+        )
+        val backend = FakeBackend(tree, { results })
+        val listener = RecordingListener()
+        val model = LuaRocksBrowserModel(backend, listener)
+        model.runMarketplaceSearch("inspect")
+        backend.drain()
+
+        val installedOlder = model.currentRows.first { it.pkg.version == "3.1.2-0" }
+        val installedLatest = model.currentRows.first { it.pkg.version == "3.1.3-0" }
+        assertTrue("older installed row should offer an update", installedOlder.hasUpdate)
+        assertTrue("latest installed row should NOT offer an update", !installedLatest.hasUpdate)
+    }
+
+    @Test
+    fun `a not-installed rock is never flagged hasUpdate`() {
+        val backend = FakeBackend(tree, { listOf(pkg("inspect", "3.1.2-0"), pkg("inspect", "3.1.3-0")) })
+        val listener = RecordingListener()
+        val model = LuaRocksBrowserModel(backend, listener)
+        model.runMarketplaceSearch("inspect")
+        backend.drain()
+
+        assertTrue(model.currentRows.none { it.hasUpdate })
+    }
+
+    @Test
     fun `blank query posts Idle without a background task`() {
         val backend = FakeBackend(tree, { emptyList() })
         val listener = RecordingListener()

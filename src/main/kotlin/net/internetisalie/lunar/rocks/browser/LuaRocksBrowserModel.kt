@@ -69,10 +69,21 @@ class LuaRocksBrowserModel(
         if (id != requestId) return
         outcome
             .onSuccess { packages ->
-                marketplaceRows = packages.mapTo(mutableListOf()) { LuaRockRow(it, it.isInstalled) }
+                marketplaceRows = buildRows(packages)
                 listener.onState(BrowserState.Results(marketplaceRows.toList()))
             }
             .onFailure { listener.onState(BrowserState.Error(messageOf(it))) }
+    }
+
+    /** Builds rows, flagging `hasUpdate` on an installed rock whose latest search version is newer (§3.2). */
+    private fun buildRows(packages: List<LuaRockPackage>): MutableList<LuaRockRow> {
+        val latestByName = packages.groupBy { it.name }
+            .mapValues { (_, group) -> group.map { LuaRockRow(it, false) } }
+            .mapValues { (_, rows) -> LuaRocksUpdateDetector.latestOf(rows) }
+        return packages.mapTo(mutableListOf()) { pkg ->
+            val hasUpdate = pkg.isInstalled && LuaRocksUpdateDetector.hasUpdate(pkg.version, latestByName[pkg.name])
+            LuaRockRow(pkg, pkg.isInstalled, hasUpdate)
+        }
     }
 
     private fun fetchInstalled(treeRoot: Path, id: Long) {

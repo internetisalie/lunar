@@ -93,10 +93,12 @@ fully unit-testable **before** any UI work.
 ### Phase 6: Update affordance [Should] — [pure-UI + logic]
 - **Goal**: Surface the Update badge/button.
 - **Tasks**:
-  - [ ] Wire `LuaRocksUpdateDetector` (§3.2) into `LuaRockRow.hasUpdate` and render the Update
-    badge in the list cell renderer + the detail-pane Update button (runs install of `latestOf`).
-- **Exit criteria**: TC-ROCKS-16-06 (update detection) already green in Phase 2; VNC-verify the
-  badge/button surface.
+  - [x] Wire `LuaRocksUpdateDetector` (§3.2) into `LuaRockRow.hasUpdate` (model `buildRows` computes
+    it per name for installed rocks) and render the Update badge in the list cell renderer (`⬆`) +
+    the detail-pane Update button (installs the latest into the same tree).
+- **Exit criteria**: TC-ROCKS-16-06 (update detection) green in Phase 2; model `buildRows` hasUpdate
+  wiring covered by 2 new model tests ✅ (8 total / 0 failures). Live badge/button surface DEFERRED
+  to the supervised verify-in-ide pass.
 
 ### Phase 7: Add-to-rockspec affordance [Should — in scope per DR-05] — [logic]
 - **Goal**: "Add to rockspec dependencies" action (owner decision 2026-07-16: build in this
@@ -161,6 +163,6 @@ fully unit-testable **before** any UI work.
 | Phase 3: Browser state model | done | Must |
 | Phase 4: Detail pane redesign | done (unit; VNC deferred) | Must |
 | Phase 5: Two-tab panel + tool-window differentiation | done (unit; VNC deferred) | Must |
-| Phase 6: Update affordance | planned | Should |
+| Phase 6: Update affordance | done (unit; VNC deferred) | Should |
 | Phase 7: Add-to-rockspec affordance | planned | Should |
 | Phase 8: Popular-packages Marketplace list | planned | Could |
