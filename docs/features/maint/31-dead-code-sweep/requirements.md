@@ -3,7 +3,7 @@ id: "MAINT-31"
 title: "31: Dead-Code Sweep"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "low"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -38,9 +38,9 @@ review-remediation features, since every other cluster's diffs shrink once the d
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| MAINT-31-01 | Whole-file removals | S | Not Implemented | 4 files + their orphaned tests/imports |
-| MAINT-31-02 | No-op deregistration | S | Not Implemented | Cycle-costing no-ops removed |
-| MAINT-31-03 | Dead-declaration sweep | S | Not Implemented | Every §3 line item re-verified zero-reference, then removed |
+| MAINT-31-01 | Whole-file removals | S | Full | 4 files + their orphaned tests/imports |
+| MAINT-31-02 | No-op deregistration | S | Full | Cycle-costing no-ops removed |
+| MAINT-31-03 | Dead-declaration sweep | S | Full | Every §3 line item re-verified zero-reference, then removed |
 
 **Rule:** each removal is re-verified by repo-wide search at implementation time (the review is
 two weeks old); anything that has since gained a caller is skipped and noted. Behavior-preserving:

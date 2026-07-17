@@ -95,7 +95,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             }
         } else {
             // Fallback: use live analysis if stub is not available
-            val snapshot = LuaTypesVisitor.getTypes(psiFile)
+            val snapshot = LuaTypesSnapshot.forFile(psiFile)
             val graphType = snapshot.getFileReturnType()
             if (graphType != LuaGraphType.Any && graphType != LuaGraphType.Undefined) {
                 return snapshot.graphTypeToLuaType(graphType)

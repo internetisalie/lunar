@@ -13,7 +13,6 @@ import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
 import net.internetisalie.lunar.lang.psi.types.LuaTypes
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
-import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 
 /**
  * SYNTAX-07-07: shows the return type of intermediate calls in a multi-line fluent
@@ -69,7 +68,7 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
         val steps = call.nameAndArgsList
         if (steps.size < 2) return
 
-        val types = LuaTypesVisitor.getTypes(call)
+        val types = LuaTypesSnapshot.forFile(call.containingFile)
         val receiver = LuaTypeInlayHintProvider.unwrapExpression(call.varOrExp) ?: call.varOrExp
         var receiverClass = className(types.getValueType(receiver))
         var receiverStart = receiver.textRange.startOffset

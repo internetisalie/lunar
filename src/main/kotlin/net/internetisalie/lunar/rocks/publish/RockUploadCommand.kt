@@ -25,16 +25,10 @@ object RockUploadCommand {
     fun arguments(
         rockspecPath: String,
         apiKey: String,
-        force: Boolean = false,
         server: String? = null,
     ): List<String> =
         LuaRocksEnvironment.withServer(
-            buildList {
-                add("upload")
-                add(rockspecPath)
-                add("--api-key=$apiKey")
-                if (force) add("--force")
-            },
+            listOf("upload", rockspecPath, "--api-key=$apiKey"),
             server,
         )
 
@@ -43,9 +37,8 @@ object RockUploadCommand {
         luarocksBinary: String,
         rockspecPath: String,
         apiKey: String,
-        force: Boolean = false,
         server: String? = null,
     ): GeneralCommandLine =
         GeneralCommandLine(luarocksBinary)
-            .withParameters(arguments(rockspecPath, apiKey, force, server))
+            .withParameters(arguments(rockspecPath, apiKey, server))
 }

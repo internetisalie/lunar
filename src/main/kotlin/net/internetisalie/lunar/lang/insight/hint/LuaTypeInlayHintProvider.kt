@@ -8,7 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
-import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
+import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 
 class LuaTypeInlayHintProvider : InlayHintsProvider {
     companion object {
@@ -89,7 +89,7 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                 if (isDecl) {
                     if (respectAnnotations && hasExplicitAnnotation(element)) return
 
-                    val types = LuaTypesVisitor.getTypes(element)
+                    val types = LuaTypesSnapshot.forFile(element.containingFile)
                     val type = types.getValueType(element)
 
                     if (type != LuaGraphType.Any && type != LuaGraphType.Undefined) {
@@ -114,7 +114,7 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
             ) {
                 if (respectAnnotations && hasExplicitReturnAnnotation(func)) return
 
-                val types = LuaTypesVisitor.getTypes(func)
+                val types = LuaTypesSnapshot.forFile(func.containingFile)
                 val funcGraphType = types.getValueType(func)
 
                 if (funcGraphType !is LuaGraphType.Function) return

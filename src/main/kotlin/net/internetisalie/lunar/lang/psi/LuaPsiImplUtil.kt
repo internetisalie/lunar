@@ -77,30 +77,10 @@ object LuaPsiImplUtil {
     }
 }
 
-inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipWhitespace(): T? {
-    var prev = prevSibling
-    while (prev is PsiWhiteSpace || (prev is PsiComment && prev !is LuaCatsComment)) {
-        prev = prev.prevSibling
-    }
-    return prev as? T
-}
-
 inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipWhitespaceOnly(): T? {
     var prev = prevSibling
     while (prev is PsiWhiteSpace) {
         prev = prev.prevSibling
-    }
-    return prev as? T
-}
-
-inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipNewline(): T? {
-    var prev = prevSibling
-    if (prev is PsiWhiteSpace) {
-        if (prev.text == "\n") {
-            prev = prev.prevSibling
-        } else {
-            return null
-        }
     }
     return prev as? T
 }

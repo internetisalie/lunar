@@ -77,27 +77,6 @@ object LuaPsiUtils {
     private fun isValidContainer(element: PsiElement): Boolean = element is LuaBlock
 
     @JvmStatic
-    fun processChildDeclarationsS(
-        parentContainer: PsiElement,
-        processor: PsiScopeProcessor,
-        resolveState: ResolveState,
-        parent: PsiElement,
-        place: PsiElement,
-    ): Boolean {
-        var child = parentContainer.firstChild
-
-        while (child != null) {
-            if (!child.processDeclarations(processor, resolveState, parent, place)) {
-                return false
-            }
-
-            child = child.nextSibling
-        }
-
-        return true
-    }
-
-    @JvmStatic
     fun processChildDeclarations(
         element: PsiElement,
         processor: PsiScopeProcessor,

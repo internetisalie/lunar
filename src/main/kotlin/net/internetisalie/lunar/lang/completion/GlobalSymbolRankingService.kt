@@ -36,7 +36,6 @@ class GlobalSymbolRankingService(private val project: Project) {
         val proximityWeight: Double,
         val isClassType: Boolean = false,
         val sourceVirtualFile: VirtualFile? = null,
-        val isImported: Boolean = false
     )
 
     /**
@@ -128,7 +127,6 @@ class GlobalSymbolRankingService(private val project: Project) {
                         proximityWeight = weight,
                         isClassType = false,
                         sourceVirtualFile = funcDecl.containingFile?.virtualFile,
-                        isImported = false
                     )
                 )
             }
@@ -199,7 +197,6 @@ class GlobalSymbolRankingService(private val project: Project) {
                         proximityWeight = weight,
                         isClassType = true,
                         sourceVirtualFile = classElement.containingFile?.virtualFile,
-                        isImported = false
                     )
                 )
             }

@@ -3,7 +3,6 @@ package net.internetisalie.lunar.lang.types
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
-import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -51,7 +50,7 @@ class CrossFileInferenceTest : IndexedBasePlatformTestCase() {
 
         myFixture.configureByFiles("test.lua", "mylib.lua")
 
-        val snapshot = LuaTypesVisitor.getTypes(myFixture.file)
+        val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
         assertNotNull(snapshot)
         val errors = snapshot.getErrors()
         if (errors.isNotEmpty()) {

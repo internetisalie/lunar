@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
 import net.internetisalie.lunar.lang.psi.types.LuaTypes
-import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
+import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 
 /**
  * Applies type-derived [TextAttributesKey]s to [LuaNameRef] identifiers in call, class-ref,
@@ -32,7 +32,7 @@ class LuaInferredTypeAnnotator : Annotator {
     }
 
     private fun classify(ref: LuaNameRef): TextAttributesKey? {
-        val snap = LuaTypesVisitor.getTypes(ref)
+        val snap = LuaTypesSnapshot.forFile(ref.containingFile)
         val gt = snap.getValueType(ref)
         return classifyMember(ref, snap)
             ?: classifyCall(ref, gt)

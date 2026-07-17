@@ -37,7 +37,7 @@ import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 import net.internetisalie.lunar.lang.psi.LuaStatement
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
-import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
+import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.settings.LuaEditorOptions
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
@@ -94,7 +94,6 @@ class LuaCompletionContributor : CompletionContributor() {
             result: CompletionResultSet,
             position: PsiElement,
             processor: LuaCompletionScopeProcessor,
-            prefix: String? = null
         ) {
             // Walk up the PSI tree to collect declarations from all enclosing scopes
             var current: PsiElement? = position
@@ -131,27 +130,24 @@ class LuaCompletionContributor : CompletionContributor() {
 
             // Add collected symbols to completion result
             processor.results.forEach { (symbolName, info) ->
-                // Filter by prefix if provided
-                if (prefix == null || symbolName.startsWith(prefix)) {
-                    val icon = when (info.type) {
-                        LuaCompletionScopeProcessor.SymbolType.LOCAL -> com.intellij.icons.AllIcons.Nodes.Variable
-                        LuaCompletionScopeProcessor.SymbolType.PARAMETER -> com.intellij.icons.AllIcons.Nodes.Parameter
-                        LuaCompletionScopeProcessor.SymbolType.GLOBAL -> com.intellij.icons.AllIcons.Nodes.Function
-                    }
-
-                    val tailText = when (info.type) {
-                        LuaCompletionScopeProcessor.SymbolType.LOCAL -> " local"
-                        LuaCompletionScopeProcessor.SymbolType.PARAMETER -> " parameter"
-                        LuaCompletionScopeProcessor.SymbolType.GLOBAL -> " global"
-                    }
-
-                    val builder = LookupElementBuilder.create(symbolName)
-                        .withIcon(icon)
-                        .withTailText(tailText, true)
-                    
-                    val element = PrioritizedLookupElement.withPriority(builder, SYMBOL_PRIORITY)
-                    result.addElement(element)
+                val icon = when (info.type) {
+                    LuaCompletionScopeProcessor.SymbolType.LOCAL -> com.intellij.icons.AllIcons.Nodes.Variable
+                    LuaCompletionScopeProcessor.SymbolType.PARAMETER -> com.intellij.icons.AllIcons.Nodes.Parameter
+                    LuaCompletionScopeProcessor.SymbolType.GLOBAL -> com.intellij.icons.AllIcons.Nodes.Function
                 }
+
+                val tailText = when (info.type) {
+                    LuaCompletionScopeProcessor.SymbolType.LOCAL -> " local"
+                    LuaCompletionScopeProcessor.SymbolType.PARAMETER -> " parameter"
+                    LuaCompletionScopeProcessor.SymbolType.GLOBAL -> " global"
+                }
+
+                val builder = LookupElementBuilder.create(symbolName)
+                    .withIcon(icon)
+                    .withTailText(tailText, true)
+
+                val element = PrioritizedLookupElement.withPriority(builder, SYMBOL_PRIORITY)
+                result.addElement(element)
             }
         }
     }
@@ -291,7 +287,7 @@ class LuaCompletionContributor : CompletionContributor() {
                     // Build the snapshot from the file that actually owns receiverExpr (the in-memory
                     // completion copy), not parameters.originalFile — otherwise the PSI identities
                     // differ and the elementNodes lookup misses.
-                    val snapshot = LuaTypesVisitor.getTypes(receiverExpr.containingFile)
+                    val snapshot = LuaTypesSnapshot.forFile(receiverExpr.containingFile)
                     val type = snapshot.getValueType(receiverExpr)
 
                     val members = type.getMembers()
@@ -355,8 +351,6 @@ class LuaCompletionContributor : CompletionContributor() {
     }
 
     private fun addContextualKeywords(prevLeaf: PsiElement, result: CompletionResultSet) {
-        val prevType = prevLeaf.node.elementType
-
         // Scan backwards for 'if' or 'elseif' to suggest 'then'
         var leaf: PsiElement? = prevLeaf
         var foundIf = false

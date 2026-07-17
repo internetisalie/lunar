@@ -7,7 +7,6 @@ import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -135,8 +134,6 @@ class LuaRemoveUnreachableCodeQuickFix : LocalQuickFix {
         val statement = element as? LuaStatement
             ?: PsiTreeUtil.getParentOfType(element, LuaStatement::class.java)
             ?: return
-        WriteCommandAction.runWriteCommandAction(project, "Remove unreachable code", null, {
-            statement.delete()
-        })
+        statement.delete()
     }
 }

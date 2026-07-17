@@ -10,7 +10,6 @@ import net.internetisalie.lunar.lang.psi.types.LuaType
 import net.internetisalie.lunar.lang.psi.types.LuaTypeMember
 import net.internetisalie.lunar.lang.psi.types.LuaTypes
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
-import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 import net.internetisalie.lunar.lang.psi.types.LuaUnionType
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
@@ -41,7 +40,7 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 val nameAndArgs = element.nameAndArgsList.firstOrNull() ?: return
                 if (isStdlibCall(element, nameAndArgs)) return
 
-                val types = LuaTypesVisitor.getTypes(element)
+                val types = LuaTypesSnapshot.forFile(element.containingFile)
                 val functionType = resolveFunctionType(element, types) ?: return
 
                 val args = nameAndArgs.args

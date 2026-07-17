@@ -19,14 +19,6 @@ class RockUploadCommandTest {
     }
 
     @Test
-    fun forceAppendsFlag() {
-        assertEquals(
-            listOf("upload", "app-1.rockspec", "--api-key=SECRET", "--force"),
-            RockUploadCommand.arguments("app-1.rockspec", "SECRET", force = true),
-        )
-    }
-
-    @Test
     fun apiKeyIsASingleToken() {
         val args = RockUploadCommand.arguments("a.rockspec", "key with spaces")
         // key rides --api-key= as a single token — find it in args (may be offset by --server tokens)

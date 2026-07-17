@@ -21,8 +21,3 @@ class LuaReadWriteInstruction(
         return "$accessType $variableName"
     }
 }
-
-class LuaBranchInstruction(
-    builder: ControlFlowBuilder,
-    element: PsiElement?
-) : InstructionImpl(builder, element), LuaInstruction

@@ -66,7 +66,6 @@ class LuaLexer : MergingLexerAdapter(
         LuaTokenTypes.MINUS to LuaElementTypes.MINUS,
         LuaTokenTypes.MOD to LuaElementTypes.MOD,
         LuaTokenTypes.MULT to LuaElementTypes.MULT,
-        LuaTokenTypes.IDENTIFIER to LuaElementTypes.IDENTIFIER,
         LuaTokenTypes.NE to LuaElementTypes.NE,
         LuaTokenTypes.NEG to LuaElementTypes.NEG,
         LuaTokenTypes.NIL to LuaElementTypes.NIL,

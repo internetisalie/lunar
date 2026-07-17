@@ -6,7 +6,6 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiPolyVariantReference
@@ -98,13 +97,11 @@ class LuaMakeLocalQuickFix : LocalQuickFix {
         val element = descriptor.psiElement ?: return
         val assignStat = PsiTreeUtil.getParentOfType(element, LuaAssignmentStatement::class.java) ?: return
 
-        WriteCommandAction.runWriteCommandAction(project, "Make Local", null, {
-            val text = "local " + assignStat.text
-            val tempFile = LuaElementFactory.createFile(project, text)
-            val newLocalVarDecl = PsiTreeUtil.findChildOfType(tempFile, LuaLocalVarDecl::class.java)
-            if (newLocalVarDecl != null) {
-                assignStat.replace(newLocalVarDecl)
-            }
-        })
+        val text = "local " + assignStat.text
+        val tempFile = LuaElementFactory.createFile(project, text)
+        val newLocalVarDecl = PsiTreeUtil.findChildOfType(tempFile, LuaLocalVarDecl::class.java)
+        if (newLocalVarDecl != null) {
+            assignStat.replace(newLocalVarDecl)
+        }
     }
 }

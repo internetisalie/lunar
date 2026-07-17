@@ -36,7 +36,7 @@ interface LuaTypes {
 
 /**
  * Immutable snapshot of the type graph for a single file.  Created and cached by
- * [LuaTypesVisitor.getTypes].
+ * [LuaTypesSnapshot.forFile].
  */
 class LuaTypesSnapshot(
     private val graph: LuaTypeGraph,

@@ -263,7 +263,7 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
             .withIcon(icon)
 
         val targetFile = symbol.sourceVirtualFile
-        if (!symbol.isImported && targetFile != null) {
+        if (targetFile != null) {
             builder = builder.withInsertHandler(
                 LuaAutoImportInsertHandler(
                     targetFile = targetFile,

@@ -56,7 +56,7 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
             local c_err = c -- Error: boolean not assignable to number
         """.trimIndent())
 
-        val snapshot = LuaTypesVisitor.getTypes(file)
+        val snapshot = LuaTypesSnapshot.forFile(file)
         val errors = snapshot.getErrors()
 
         // If isolation is working:
@@ -93,7 +93,7 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
         """.trimIndent())
 
         val startTime = System.currentTimeMillis()
-        val snapshot = LuaTypesVisitor.getTypes(file)
+        val snapshot = LuaTypesSnapshot.forFile(file)
         val duration = System.currentTimeMillis() - startTime
 
         assertNotNull(snapshot)

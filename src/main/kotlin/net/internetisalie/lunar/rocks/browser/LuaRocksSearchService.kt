@@ -66,10 +66,11 @@ object LuaRocksSearchService {
     }
 
     /**
-     * Returns the set of installed package names (lower-case keys).
-     * Uses `luarocks list --porcelain` (same field format as search).
+     * Returns the set of installed package names, as reported by luarocks.
+     * Uses `luarocks list --porcelain` (same field format as search) — a purely local
+     * operation, so no `--server` override applies.
      *
-     * @param project used to resolve the effective executable and registry server (ROCKS-06).
+     * @param project used to resolve the effective executable (ROCKS-06).
      *   Pass `null` to use the application defaults.
      */
     fun installed(project: Project? = null): Set<String> {
@@ -77,8 +78,7 @@ object LuaRocksSearchService {
             log.warn("luarocks list skipped: no luarocks binary resolved")
             return emptySet()
         }
-        val server = LuaRocksEnvironment.resolveServer(project)
-        val subArgs = LuaRocksEnvironment.withServer(listOf("list", "--porcelain"), server)
+        val subArgs = listOf("list", "--porcelain")
         val output = LuaToolExecutionService.getInstance().capture(
             GeneralCommandLine(exe, *subArgs.toTypedArray()),
             LuaExecTimeout.COMMAND,

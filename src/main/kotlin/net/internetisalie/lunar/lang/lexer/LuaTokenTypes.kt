@@ -108,7 +108,6 @@ object LuaTokenTypes {
     @JvmField val ELSE: IElementType = LuaElementType("else")
     @JvmField val ELSEIF: IElementType = LuaElementType("elseif")
     @JvmField val WHILE: IElementType = LuaElementType("while")
-    @JvmField val WITH: IElementType = LuaElementType("with")
 
     @JvmField val THEN: IElementType = LuaElementType("then")
     @JvmField val FOR: IElementType = LuaElementType("for")
@@ -116,7 +115,6 @@ object LuaTokenTypes {
     @JvmField val RETURN: IElementType = LuaElementType("return")
     @JvmField val BREAK: IElementType = LuaElementType("break")
 
-    @JvmField val CONTINUE: IElementType = LuaElementType("continue")
     @JvmField val TRUE: IElementType = LuaElementType("true")
     @JvmField val FALSE: IElementType = LuaElementType("false")
     @JvmField val NIL: IElementType = LuaElementType("nil")

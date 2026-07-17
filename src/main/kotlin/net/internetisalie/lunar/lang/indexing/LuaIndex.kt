@@ -34,19 +34,3 @@ abstract class ForwardIndexer<V> : DataIndexer<Int, V, FileContent> {
         const val KEY: Int = 0
     }
 }
-
-data class Dotted<T>(val value: T, val prev: Dotted<T>?) {
-    override fun toString(): String {
-        val sb = StringBuilder()
-        appendString(sb)
-        return sb.toString()
-    }
-
-    private fun appendString(to: StringBuilder) {
-        if (prev != null) {
-            prev.appendString(to)
-            to.append(".")
-        }
-        to.append(value.toString())
-    }
-}

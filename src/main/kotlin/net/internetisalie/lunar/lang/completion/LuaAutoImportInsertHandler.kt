@@ -15,7 +15,7 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
  * On acceptance of a non-imported cross-file symbol, inserts the appropriate `require`
- * statement (COMP-03-03). Attached only to lookup elements with `isImported = false`.
+ * statement (COMP-03-03). Attached to cross-file global lookup elements.
  *
  * Threading: [handleInsert] runs on the EDT. All PSI/VFS reads happen in [runReadActionBlocking];
  * the single document mutation runs in one [WriteCommandAction] (one undoable command).

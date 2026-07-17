@@ -136,13 +136,8 @@ class LuaFoldingVisitor(
         if (end == null) end = lastBlock
         
         val startOffset = start.textRange.startOffset
-        var endOffset = end.textRange.endOffset
-        
-        // Handle trailing newline
-        if (end is PsiWhiteSpace && end.text.lastIndexOf(NEWLINE) == end.textLength - 1) {
-            endOffset--
-        }
-        
+        val endOffset = end.textRange.endOffset
+
         descriptors.add(
             FoldingDescriptor(
                 firstBlock.node,

@@ -13,11 +13,6 @@ object LuaCatsSyntax {
         LuaCatsElementTypes.NAME,
     )
     
-    val STRINGS: TokenSet = TokenSet.create(
-        LuaCatsElementTypes.STRING,
-        LuaCatsElementTypes.CODE,
-    )
-    
     val SYMBOLS: TokenSet = TokenSet.create(
         LuaCatsElementTypes.SYMBOL,
     )
@@ -26,7 +21,4 @@ object LuaCatsSyntax {
         LuaCatsElementTypes.TAG
     )
 
-    val KEYWORDS: TokenSet = TokenSet.create(
-        LuaCatsElementTypes.KEYWORD
-    )
 }

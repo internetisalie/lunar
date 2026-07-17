@@ -135,11 +135,6 @@ data class PackageFile(
     val virtualFile: VirtualFile,
 )
 
-data class PackageFileBindings(
-    val packageFile: PackageFile,
-    val bindings: List<LuaBinding>,
-)
-
 data class LuaBinding(
     val name: String,
     val textOffset: Int,

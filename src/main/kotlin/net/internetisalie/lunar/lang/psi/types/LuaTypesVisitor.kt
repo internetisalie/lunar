@@ -858,12 +858,6 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             "userdata" to LuaGraphType.Any,
         )
 
-        fun getTypes(element: PsiElement): LuaTypes {
-            // Delegate to the single target-aware cache entry point so both callers share one
-            // KEY/hash scheme (REDIS-04 DR-03b) and never thrash each other's cached snapshot.
-            return LuaTypesSnapshot.forFile(element.containingFile)
-        }
-
         internal fun buildSnapshot(file: PsiFile): LuaTypes {
             val visitor = LuaTypesVisitor()
             visitor.seedAmbientGlobals(file)

@@ -81,7 +81,7 @@ Isolated fixes went to BUG-382…386 (#23, #45, #46, #49, #15); #22 was already 
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MAINT-31 | Dead-code sweep (review §3) | todo | C | — | every other Wave-19 feature *(soft — shrinks their diffs)* | ✓ pure deletion; **do first** |
+| MAINT-31 | Dead-code sweep (review §3) | done | C | — | every other Wave-19 feature *(soft — shrinks their diffs)* | ✓ pure deletion; **do first** |
 | MAINT-25 | Type-graph immutability & safety | todo | M | TYPE-10 *(serialize — same hot files `LuaTypesVisitor`/`LuaTypeGraph`)* | — | Serial: type engine |
 | MAINT-24 | Debugger & test-runner hardening | todo | S | MAINT-22 *(done — coroutine debugger base)* | **AI-03** | ✓ run/ subsystem |
 | MAINT-26 | Luacheck pipeline correctness | todo | S | — | — | ✓ analysis/luacheck |

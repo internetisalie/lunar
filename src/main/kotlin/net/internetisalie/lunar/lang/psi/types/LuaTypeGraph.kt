@@ -137,44 +137,8 @@ class LuaTypeGraph {
         template: LuaGraphType.Function,
         element: PsiElement,
     ): LuaGraphType.Function {
-        // Find all unique generic type names used in the function signature
-
-        val genericNames = mutableSetOf<String>()
-        fun collectGenerics(type: LuaGraphType) {
-            when (type) {
-                is LuaGraphType.Generic -> genericNames.add(type.name)
-                is LuaGraphType.Union -> type.types.forEach { collectGenerics(it) }
-                is LuaGraphType.Function -> {
-                    // Nested functions might have their own generics, but we only care about template's ones
-                    // However, we should recurse into param/return types if they were resolved.
-                    // For now, let's keep it simple.
-                }
-                else -> {}
-            }
-        }
-
-        // This is a bit tricky because VariableNodes don't carry the "Generic" head directly,
-        // their 'write' or 'read' side might resolve to it.
-        // Let's assume the visitor identifies generics and passes them or we scan the resolved types.
-
-        // Simpler approach: create a mapping for every Generic head we encounter during substitution.
         val substitutionMap = mutableMapOf<String, VariableNode>()
 
-        fun substitute(type: LuaGraphType): LuaGraphType = when (type) {
-            is LuaGraphType.Generic -> {
-                substitutionMap.getOrPut(type.name) { variable(element) }
-                // Return Undefined so the caller knows to use the variable node from map?
-                // No, we need to return a type that represents the substituted variable.
-                // But LuaGraphType doesn't have a 'VariableReference' type.
-                // Wait, VariableElement IS a ValueNode, but its 'write' is what it produces.
-                // Let's use 'Any' for now and handle the flow separately.
-                type
-            }
-            is LuaGraphType.Union -> LuaGraphType.Union(type.types.map { substitute(it) }.toSet())
-            else -> type
-        }
-
-        // Realistically, we need to clone the parameters and returns.
         val instantiatedParams = template.params.map { p ->
             val pType = p.node.write
             if (pType is LuaGraphType.Generic) {
