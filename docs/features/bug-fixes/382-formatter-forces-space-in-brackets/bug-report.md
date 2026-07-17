@@ -11,7 +11,7 @@ folders:
 
 # BUG-382: Reformat forces spaces inside index brackets
 
-> **RESOLVED 2026-07-17 (this commit)**: Removed the erroneous `return SINGLE_SPACING` branch in `LuaSpacingBuilder.getSpacing` that was labelled "No spacing inside brackets" — the `spacingBuilder.withinPair(LBRACK, RBRACK).spaceIf(SPACE_WITHIN_BRACKETS)` rule in the `SpacingBuilder` now governs bracket spacing authoritatively. Added two formatter tests asserting `t[1]` (off) and `t[ 1 ]` (on).
+> **RESOLVED 2026-07-17 (commit 113b9ef4)**: Removed the erroneous `return SINGLE_SPACING` branch in `LuaSpacingBuilder.getSpacing` that was labelled "No spacing inside brackets" — the `spacingBuilder.withinPair(LBRACK, RBRACK).spaceIf(SPACE_WITHIN_BRACKETS)` rule in the `SpacingBuilder` now governs bracket spacing authoritatively. Added two formatter tests asserting `t[1]` (off) and `t[ 1 ]` (on).
 
 *Source: codebase review [`docs/review.md`](../../../review.md) finding **#23** (verified in
 source 2026-07-02 and still present 2026-07-17).*

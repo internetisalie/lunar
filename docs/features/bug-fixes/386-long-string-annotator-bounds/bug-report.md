@@ -11,7 +11,7 @@ folders:
 
 # BUG-386: Long-string/long-comment annotators throw on truncated tokens
 
-> **RESOLVED 2026-07-17 (this commit)**: Replaced raw `text[level+1]`/`text[level+3]` indexing in `LuaLongStringAnnotator` and `LuaLongCommentAnnotator` with the bounds-checked helpers `getLuaStringDelimiterLength` / `getLuaCommentDelimiterLength`; added `LuaLongBracketAnnotatorTest` with truncated-token no-throw assertions and positive highlighting assertions.
+> **RESOLVED 2026-07-17 (commit 113b9ef4)**: Replaced raw `text[level+1]`/`text[level+3]` indexing in `LuaLongStringAnnotator` and `LuaLongCommentAnnotator` with the bounds-checked helpers `getLuaStringDelimiterLength` / `getLuaCommentDelimiterLength`; added `LuaLongBracketAnnotatorTest` with truncated-token no-throw assertions and positive highlighting assertions.
 
 *Source: codebase review [`docs/review.md`](../../../review.md) finding **#15** (P1; still
 present 2026-07-17).*

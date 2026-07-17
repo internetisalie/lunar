@@ -11,7 +11,7 @@ folders:
 
 # BUG-383: Version-conflict engine misses equal-version strict bounds
 
-> **RESOLVED 2026-07-17 (this commit)**: `flagUnsatisfiable` in `VersionConflictEngine` now also flags pairs where `lower.version.compareTo(upper.version) == 0` and at least one bound is exclusive (`GT` or `LT`). `>= 2.0 + <= 2.0` remains satisfiable. Added two tests to `VersionConflictEngineTest`.
+> **RESOLVED 2026-07-17 (commit 113b9ef4)**: `flagUnsatisfiable` in `VersionConflictEngine` now also flags pairs where `lower.version.compareTo(upper.version) == 0` and at least one bound is exclusive (`GT` or `LT`). `>= 2.0 + <= 2.0` remains satisfiable. Added two tests to `VersionConflictEngineTest`.
 
 *Source: codebase review [`docs/review.md`](../../../review.md) finding **#45** (still present
 2026-07-17).*

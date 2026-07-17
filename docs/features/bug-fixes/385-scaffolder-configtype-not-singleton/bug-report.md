@@ -11,7 +11,7 @@ folders:
 
 # BUG-385: Scaffolder instantiates a fresh run-configuration type
 
-> **RESOLVED 2026-07-17 (this commit)**: `LuaRocksScaffolder.patchRunConfigTemplate` now calls `ConfigurationTypeUtil.findConfigurationType(LuaRunConfigurationType::class.java)` to obtain the platform-registered singleton instead of constructing `LuaRunConfigurationType()`. Added `testScaffolderUsesRegisteredConfigTypeSingleton` to `LuaRocksScaffolderTest`.
+> **RESOLVED 2026-07-17 (commit 113b9ef4)**: `LuaRocksScaffolder.patchRunConfigTemplate` now calls `ConfigurationTypeUtil.findConfigurationType(LuaRunConfigurationType::class.java)` to obtain the platform-registered singleton instead of constructing `LuaRunConfigurationType()`. Added `testScaffolderUsesRegisteredConfigTypeSingleton` to `LuaRocksScaffolderTest`.
 
 *Source: codebase review [`docs/review.md`](../../../review.md) finding **#49** (still present
 2026-07-17).*
