@@ -34,6 +34,12 @@
 - **Redis command quick-doc over-triggering** (REDIS-06): command documentation now surfaces only
   when the caret is on the command-name string literal, instead of anywhere in the call.
 
+### Language & Editor (0.18.4)
+- **Parser error recovery for block constructs** (SYNTAX-18): `do`/`while`/`repeat`/function block
+  rules now `pin` after their opening keyword, so an unterminated or half-written block yields a
+  partial PSI node scoped to that block instead of letting the error cascade to the end of file.
+  Completion, highlighting, and structural editing stay accurate while a block is still being typed.
+
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 
 - **Connections & Script Run Configuration** (REDIS-01): RESP client + connection management.
