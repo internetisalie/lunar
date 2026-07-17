@@ -46,11 +46,11 @@ class LuaToolKindRegistryTest {
     @Test
     fun testRegistryCompleteness_TC22() {
         val allKinds = LuaToolKindRegistry.all()
-        assertEquals(10, allKinds.size)
+        assertEquals(11, allKinds.size)
 
         val expectedIds = listOf(
             "lua", "luajit", "tarantool", "luarocks", "luacheck", "stylua", "luacov", "busted",
-            "redis-server", "valkey-server",
+            "redis-server", "valkey-server", "lua-language-server",
         )
         assertEquals(expectedIds, allKinds.map { it.id })
 
@@ -61,6 +61,17 @@ class LuaToolKindRegistryTest {
         }
 
         assertNull(LuaToolKindRegistry.findById("nope"))
+    }
+
+    @Test
+    fun testLuaLanguageServerKindDescriptor_BUG373() {
+        val lls = LuaToolKindRegistry.findById("lua-language-server")
+        assertNotNull(lls, "lua-language-server must be in the registry (BUG-373)")
+        lls!!
+        assertEquals("Lua Language Server", lls.displayName)
+        assertEquals(listOf("lua-language-server"), lls.binaryNames)
+        assertEquals(listOf("--version"), lls.probe.args)
+        assertFalse(lls.isRuntime)
     }
 
     @Test

@@ -10,6 +10,8 @@ folders:
 
 # BUG-373: lua-language-server is provisionable but missing from LuaToolKindRegistry
 
+> **RESOLVED 2026-07-17 (this commit)**: Added `lua-language-server` as kind #11 in `LuaToolKindRegistry.BUILT_IN` with displayName "Lua Language Server", `--version` probe, and `emptySet()` capabilities; updated registry completeness test from 10 to 11.
+
 ## 1. Reproduction
 
 1. *Tools → Lua Toolchain → Provision Lua Toolchain…*, tick **lua-language-server**, provision.

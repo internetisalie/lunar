@@ -149,6 +149,17 @@ object LuaToolKindRegistry {
                 versionRegex = Regex("""v=(\d[\w.]*)""")
             ),
             capabilities = emptySet()
+        ),
+        // 11. lua-language-server (BUG-373; feed entry at lunar-toolchain-feed.json:771)
+        LuaToolKind(
+            id = "lua-language-server",
+            displayName = "Lua Language Server",
+            binaryNames = listOf("lua-language-server"),
+            probe = ProbeSpec(
+                args = listOf("--version"),
+                versionRegex = Regex("""(\d[\w.]*)""")
+            ),
+            capabilities = emptySet()
         )
     )
 
