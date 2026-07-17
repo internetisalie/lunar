@@ -45,10 +45,10 @@ is **VNC-verified** last. Every task names the class/file and the design section
 ### Phase 3: Bindings split + platform-server eviction [Must]
 - **Goal**: replace `orderedKinds()` with the classifier; render common + collapsible advanced.
 - **Tasks**:
-  - [ ] Replace `orderedKinds()` usages with `LuaToolKindClassifier.bindable()` in
+  - [x] Replace `orderedKinds()` usages with `LuaToolKindClassifier.bindable()` in
         `resetControls`/`applyBindings`/`isModified` and `ProjectControls.bindingCombos` — realizes
         §3.4. Delete `orderedKinds()`.
-  - [ ] Split the DSL `group("Toolchain Bindings")` into common `group` + `collapsibleGroup("Advanced
+  - [x] Split the DSL `group("Toolchain Bindings")` into common `group` + `collapsibleGroup("Advanced
         tools")` in `buildPanel()` — realizes §3.4.
 - **Exit criteria**: `LuaProjectConfigurableBindingsTest` confirms `bindable()` excludes
   `redis-server`/`valkey-server` and that resolution of `redis-server` is unaffected (TC 6, 7). Build
@@ -114,7 +114,7 @@ is **VNC-verified** last. Every task names the class/file and the design section
 |-------|--------|----------|
 | Phase 1: Model & classifier logic | done | Must |
 | Phase 2: Target-control apply/reset logic | done | Must |
-| Phase 3: Bindings split + eviction | todo | Must |
+| Phase 3: Bindings split + eviction | done | Must |
 | Phase 4: Global bindings + inherit labels | todo | Must |
 | Phase 5: DSL panel migration | todo | Should |
 | Phase 6: Spacing audit + live verification | todo | Could |

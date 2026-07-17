@@ -73,7 +73,7 @@ The supervisor should place the roadmap row.
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| TOOLING-00-DR-08a | Confirm `com.intellij.ui.dsl.builder.Panel.collapsibleGroup` exists in the pinned SDK and defaults to collapsed | Risk 1.3 | todo |
+| TOOLING-00-DR-08a | Confirm `com.intellij.ui.dsl.builder.Panel.collapsibleGroup` exists in the pinned SDK and defaults to collapsed | Risk 1.3 | done (Phase 3) — `Panel.collapsibleGroup(title, indent=true, init)` exists; `PanelImpl` sets `result.expanded = false` (collapsed default). |
 | TOOLING-00-DR-08b | Confirm `explicitTarget` XML round-trips through `lunar.xml` and defaults `false` for an old file with no tag | §3 edge case | done (Phase 1) — `LuaSettingsSerializationTest.explicitTargetRoundTripsAndDefaultsFalseForOldFile` |
 
 ## Absorbed codebase-review findings (2026-07-17)

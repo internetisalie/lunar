@@ -23,7 +23,6 @@ import net.internetisalie.lunar.settings.LuaSettingsChangedListener
 import net.internetisalie.lunar.toolchain.model.LuaToolKind
 import net.internetisalie.lunar.toolchain.resolve.LuaTargetSynchronizer
 import net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys
-import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainEvent
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainListener
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
@@ -73,7 +72,12 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
             row("Active environment:") { cell(controls.environmentCombo) }
         }
         group("Toolchain Bindings") {
-            orderedKinds().forEach { kind ->
+            commonKinds().forEach { kind ->
+                row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
+            }
+        }
+        collapsibleGroup("Advanced tools") {
+            advancedKinds().forEach { kind ->
                 row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
             }
         }
@@ -97,7 +101,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     override fun isModified(): Boolean {
         if (isTargetModified()) return true
         if (environmentSelectionId() != toolchainSettings.activeEnvironment()?.id) return true
-        if (orderedKinds().any { selectedToolId(it.id) != normalizedBinding(it.id) }) return true
+        if (LuaToolKindClassifier.bindable().any { selectedToolId(it.id) != normalizedBinding(it.id) }) return true
         val projectState = projectSettings.state
         if (controls.luacheckArgsField.text.trim() != savedProjectLuacheckArgs()) return true
         if (controls.rocksUrlField.text.trim() != projectState.rocksServerUrl.trim()) return true
@@ -119,7 +123,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     private fun resetControls() {
         resetTargetControls()
         resetEnvironmentCombo()
-        orderedKinds().forEach { resetBindingCombo(it) }
+        LuaToolKindClassifier.bindable().forEach { resetBindingCombo(it) }
         controls.luacheckArgsField.text = savedProjectLuacheckArgs()
         val projectState = projectSettings.state
         controls.rocksUrlField.text = projectState.rocksServerUrl
@@ -238,7 +242,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     private fun applyBindings() {
-        orderedKinds().forEach { kind ->
+        LuaToolKindClassifier.bindable().forEach { kind ->
             val selectedId = selectedToolId(kind.id)
             if (selectedId != normalizedBinding(kind.id)) {
                 toolchainSettings.setBinding(kind.id, selectedId)
@@ -289,10 +293,11 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         )
     }
 
-    private fun orderedKinds(): List<LuaToolKind> {
-        val (runtimeKinds, otherKinds) = LuaToolKindRegistry.all().partition { it.isRuntime }
-        return runtimeKinds + otherKinds
-    }
+    private fun commonKinds(): List<LuaToolKind> =
+        LuaToolKindClassifier.byTier()[LuaToolKindClassifier.Tier.COMMON].orEmpty()
+
+    private fun advancedKinds(): List<LuaToolKind> =
+        LuaToolKindClassifier.byTier()[LuaToolKindClassifier.Tier.ADVANCED].orEmpty()
 
     private fun environmentSelectionId(): String? =
         (controls.environmentCombo.selectedItem as? LuaEnvironmentItem.Env)?.env?.id
@@ -349,7 +354,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         )
 
         private val bindingCombos: Map<String, ComboBox<LuaBindingItem>> =
-            orderedKinds().associate { kind -> kind.id to newBindingCombo(kind.id) }
+            LuaToolKindClassifier.bindable().associate { kind -> kind.id to newBindingCombo(kind.id) }
 
         fun bindingCombo(kindId: String): ComboBox<LuaBindingItem> =
             bindingCombos[kindId] ?: newBindingCombo(kindId)
