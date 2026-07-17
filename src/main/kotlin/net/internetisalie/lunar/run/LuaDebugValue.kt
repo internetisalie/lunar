@@ -21,7 +21,6 @@ import com.intellij.xdebugger.frame.presentation.XNumericValuePresentation
 import com.intellij.xdebugger.frame.presentation.XRegularValuePresentation
 import com.intellij.xdebugger.frame.presentation.XStringValuePresentation
 import com.intellij.xdebugger.frame.presentation.XValuePresentation
-import com.jetbrains.rd.generator.nova.GenerationSpec.Companion.nullIfEmpty
 import javax.swing.Icon
 
 class LuaDebugValue : XValue {
@@ -86,10 +85,10 @@ class LuaDebugValue : XValue {
 
         val xValues = XValueChildrenList(fields.size)
         fields.forEach { field ->
-            val key = if (field.first.kind == LuaValueKind.String) {
-                field.first.stringValue!!
-            } else {
-                "[" + field.first.numberValue!!.toInt() + "]"
+            val key = when (field.first.kind) {
+                LuaValueKind.String -> field.first.stringValue ?: "?"
+                LuaValueKind.Number -> "[" + (field.first.numberValue?.toInt() ?: 0) + "]"
+                else -> "[" + field.first.toDisplayString() + "]"
             }
             val debugValue = LuaDebugValue(field.second, null, AllIcons.Nodes.Field)
             xValues.add(key, debugValue)
@@ -100,7 +99,7 @@ class LuaDebugValue : XValue {
 
     private val presentation: XValuePresentation
         get() {
-            val stringValue = displayValue!!
+            val stringValue = displayValue ?: ""
             if (this.isNumber) return XNumericValuePresentation(stringValue)
             if (this.isString) return XStringValuePresentation(stringValue)
             if (this.isBool) {
@@ -111,7 +110,7 @@ class LuaDebugValue : XValue {
                 }
             }
             return XRegularValuePresentation(
-                stringValue.nullIfEmpty() ?: identityValue ?: "",
+                stringValue.ifEmpty { null } ?: identityValue ?: "",
                 typeName,
             )
         }

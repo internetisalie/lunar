@@ -78,6 +78,6 @@ class LuaLineBreakpointType : XLineBreakpointTypeBase(
             true
         }
 
-        return result.get()!!
+        return result.get() ?: false
     }
 }

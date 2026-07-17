@@ -32,7 +32,7 @@ class LuaDebugValueParser(private val project: Project? = null) {
     private fun evaluateTerminalExpr(expr: LuaTerminalExpr): LuaValue? {
         return when {
             expr.number != null -> {
-                val numberValue = expr.number!!.text.toDoubleOrNull() ?: return null
+                val numberValue = expr.number?.text?.toDoubleOrNull() ?: return null
                 LuaValue(
                     kind = LuaValueKind.Number,
                     numberValue = numberValue,
@@ -41,7 +41,7 @@ class LuaDebugValueParser(private val project: Project? = null) {
             }
 
             expr.string != null -> {
-                val stringValue = extractLuaString(expr.string!!.text)
+                val stringValue = extractLuaString(expr.string?.text ?: return null)
                 LuaValue(
                     kind = LuaValueKind.String,
                     stringValue = stringValue,
@@ -79,11 +79,10 @@ class LuaDebugValueParser(private val project: Project? = null) {
         expr.fieldList?.fieldList?.forEach { field ->
             val fieldValue = evaluateExpression(field.value)
             if (fieldValue != null) {
-                if (field.name != null) {
-                    // Named field
-                    table.addByName(field.name!!, fieldValue)
+                val fieldName = field.name
+                if (fieldName != null) {
+                    table.addByName(fieldName, fieldValue)
                 } else {
-                    // Positional field
                     table.push(fieldValue)
                 }
             }

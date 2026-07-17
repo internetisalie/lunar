@@ -205,8 +205,7 @@ class LuaDebuggerController(
 
     suspend fun execute(statement: String): LuaDebugValue {
         val text = sendCommand(DebugCommand(DebugCommandKind.EXEC, listOf(statement)))
-        var luaDebugValue: LuaDebugValue? = null
-        ApplicationManager.getApplication().runReadAction {
+        return ApplicationManager.getApplication().runReadAction<LuaDebugValue> {
             val table = LuaDebugValueParser.parseChunk(session.project, text)
 
             // Re-parse each string value in the result to recover types from stringification
@@ -234,9 +233,8 @@ class LuaDebuggerController(
             } else {
                 LuaValue.newTable(reparsedTable)
             }
-            luaDebugValue = LuaDebugValue(value, null, AllIcons.Nodes.Lambda)
+            LuaDebugValue(value, null, AllIcons.Nodes.Lambda)
         }
-        return luaDebugValue!!
     }
 
     /** Bridge for [LuaDebuggerEvaluator] (XDebugger callback API): evaluate on [scope], report via [callback]. */
@@ -253,11 +251,9 @@ class LuaDebuggerController(
 
     suspend fun variables(): LuaRemoteStack {
         val text = sendCommand(DebugCommand(DebugCommandKind.STACK))
-        var luaRemoteStack: LuaRemoteStack? = null
-        ApplicationManager.getApplication().runReadAction {
-            luaRemoteStack = LuaRemoteStack.create(session.project, text)
+        return ApplicationManager.getApplication().runReadAction<LuaRemoteStack> {
+            LuaRemoteStack.create(session.project, text)
         }
-        return luaRemoteStack!!
     }
 
     inner class DebugObserver : LuaDebugObserver {

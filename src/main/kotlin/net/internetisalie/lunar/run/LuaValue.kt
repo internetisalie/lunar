@@ -166,7 +166,7 @@ open class LuaTable(
 
 val LuaField.name: String?
     get() = if (identifier != null) {
-        identifier!!.text
+        identifier?.text
     } else if (exprList.size == 2) {
         extractLuaString(exprList[0].text)
     } else {

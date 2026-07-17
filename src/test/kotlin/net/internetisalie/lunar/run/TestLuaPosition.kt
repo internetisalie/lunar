@@ -46,6 +46,24 @@ class TestLuaPosition : BaseDocumentTest() {
         assertEquals(10, localPos.line) // 0-indexed in IDE
     }
 
+    /**
+     * TC-02b (#16): a null working directory makes `FileUtil.getRelativePath` return null; the
+     * fallback must yield the absolute path (previously an NPE from the `!!`).
+     */
+    @Test
+    fun testCreateRemotePositionFallsBackToAbsolutePath() {
+        val psiFile = myFixture.configureByText(LuaFileType, "-- test file")
+        val virtualFile = psiFile.virtualFile
+
+        val xSourcePosition = XDebuggerUtil.getInstance().createPosition(virtualFile, 0)
+        assertNotNull(xSourcePosition)
+
+        val remotePos = LuaPosition.createRemotePosition(xSourcePosition, null)
+
+        assertEquals(virtualFile.path.replace('\\', '/'), remotePos.path)
+        assertEquals(1, remotePos.line)
+    }
+
     /** TC 12: args() emits [path, line-as-string]. */
     @Test
     fun testArgs() {

@@ -13,8 +13,8 @@ class LuaRemoteStack(
     stack: LuaTable?,
 ) {
     private val virtualFiles: MutableMap<String, VirtualFile?> = mutableMapOf()
-    val entries: List<LuaRemoteStackEntry> = stack?.indexed?.map {
-        LuaRemoteStackEntry(it.checkTable()!!, virtualFiles)
+    val entries: List<LuaRemoteStackEntry> = stack?.indexed?.mapNotNull {
+        it.checkTable()?.let { table -> LuaRemoteStackEntry(table, virtualFiles) }
     } ?: emptyList()
 
     companion object {
@@ -126,7 +126,7 @@ object LuaRemoteResultFactory {
                 is LuaLocalVarDecl -> {
                     for ((index, attName) in statement.attNameList.withIndex()) {
                         val name = attName.nameRef.text
-                        val psiValue = statement.exprList?.exprList[index] ?: continue
+                        val psiValue = statement.exprList?.exprList?.getOrNull(index) ?: continue
                         variables[name] = LuaValue(psiValue)
                     }
                 }
@@ -135,15 +135,8 @@ object LuaRemoteResultFactory {
                 }
 
                 is LuaFinalStatement -> {
-                    val varName = statement.exprList?.exprList[0]?.text ?: continue
-
-                    return if (!variables.containsKey(varName)) {
-                        // missing variable
-                        LuaValue.NONE
-                    } else {
-                        // return the value
-                        variables[varName]!!
-                    }
+                    val varName = statement.exprList?.exprList?.getOrNull(0)?.text ?: continue
+                    return variables[varName] ?: LuaValue.NONE
                 }
             }
         }

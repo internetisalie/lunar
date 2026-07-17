@@ -52,4 +52,23 @@ class TestLuaRemoteResultFactory : BaseDocumentTest() {
             assertNotNull(result)
         }
     }
+
+    /** TC-02c (#17): a multi-name decl with fewer exprs (`local a, b = 1`) must not throw IOOBE. */
+    @Test
+    fun testCreateHandlesFewerExprsThanNames() {
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            do
+                local a, b = 1;
+                return b;
+            end
+            """.trimIndent(),
+        )
+
+        ApplicationManager.getApplication().runReadAction {
+            val result = LuaRemoteResultFactory.create(myFixture.file)
+            assertNotNull(result)
+        }
+    }
 }

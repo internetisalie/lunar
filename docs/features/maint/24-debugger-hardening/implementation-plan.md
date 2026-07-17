@@ -31,21 +31,21 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 - **Goal**: malformed remote data degrades gracefully; no rd-gen internal import (#7, #16, #17,
   §2.2).
 - **Tasks**:
-  - [ ] Edit `LuaDebugValue` — delete the `com.jetbrains.rd.generator.nova.GenerationSpec.Companion.nullIfEmpty`
+  - [x] Edit `LuaDebugValue` — delete the `com.jetbrains.rd.generator.nova.GenerationSpec.Companion.nullIfEmpty`
         import (`:24`), use `stringValue.ifEmpty { null }` (`:114`), `displayValue ?: ""` (`:103`),
         §3.4 key policy (`:90-92`) — realizes design §2.5, §3.4, §3.5 (#7, sites 2–4).
-  - [ ] Edit `LuaDebugVariable` — §3.4 key policy (`:58-60`) — realizes §3.5 (sites 5–6).
-  - [ ] Edit `LuaValue` — `identifier?.text` in `LuaField.name` (`:169`) — §3.5 (site 7).
-  - [ ] Edit `LuaRemoteStack` — `mapNotNull { it.checkTable() }` (`:17`); `getOrNull` in
+  - [x] Edit `LuaDebugVariable` — §3.4 key policy (`:58-60`) — realizes §3.5 (sites 5–6).
+  - [x] Edit `LuaValue` — `identifier?.text` in `LuaField.name` (`:169`) — §3.5 (site 7).
+  - [x] Edit `LuaRemoteStack` — `mapNotNull { it.checkTable() }` (`:17`); `getOrNull` in
         `LuaRemoteResultFactory` (`:129,138`); `variables[varName] ?: LuaValue.NONE` (`:145`) —
         §3.5, §3.5b (#17, sites 8–9).
-  - [ ] Edit `LuaDebugValueParser` — null-safe `expr.number`/`expr.string`/`field.name` under their
+  - [x] Edit `LuaDebugValueParser` — null-safe `expr.number`/`expr.string`/`field.name` under their
         existing guards (`:35,44,84`) — §3.5 (sites 10–12).
-  - [ ] Edit `LuaDebuggerController` — return from `runReadAction { }` in `execute`/`variables`
+  - [x] Edit `LuaDebuggerController` — return from `runReadAction { }` in `execute`/`variables`
         (`:239,260`) — §3.5 (sites 13–14).
-  - [ ] Edit `LuaPosition` — absolute-path fallback for `getRelativePath` (`:43`) — §3.5a (#16,
+  - [x] Edit `LuaPosition` — absolute-path fallback for `getRelativePath` (`:43`) — §3.5a (#16,
         site 15).
-  - [ ] Edit `LuaLineBreakpointType` — `result.get() ?: false` (`:81`) — §3.5 (site 1).
+  - [x] Edit `LuaLineBreakpointType` — `result.get() ?: false` (`:81`) — §3.5 (site 1).
 - **Exit criteria**: `grep -c '!!' src/main/kotlin/net/internetisalie/lunar/run/` returns 0;
   `TestLuaRemoteResultFactory`, `TestLuaPosition`, `TestLuaDebugValue` extended and green; full
   suite green.
@@ -162,7 +162,7 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: DBGp framing | done | Must |
-| Phase 2: `!!` sweep + rd-gen import | todo | Must |
+| Phase 2: `!!` sweep + rd-gen import | done | Must |
 | Phase 3: Thread-safe controller state | todo | Must |
 | Phase 4: Value & stack fidelity | todo | Should |
 | Phase 5: Run-config integrity | todo | Should |

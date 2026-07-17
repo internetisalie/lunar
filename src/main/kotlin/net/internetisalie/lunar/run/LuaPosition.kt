@@ -39,9 +39,11 @@ data class LuaPosition(
 
     companion object {
         fun createRemotePosition(xSourcePosition: XSourcePosition, workingDir: File?): LuaPosition {
+            val target = File(xSourcePosition.file.path)
+            val relative = FileUtil.getRelativePath(workingDir, target) ?: target.path
             return LuaPosition(
-                FileUtil.getRelativePath(workingDir, File(xSourcePosition.file.path))!!.replace('\\', '/'),
-                xSourcePosition.line + 1
+                relative.replace('\\', '/'),
+                xSourcePosition.line + 1,
             )
         }
 

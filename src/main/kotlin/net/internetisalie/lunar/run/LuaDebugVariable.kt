@@ -54,10 +54,10 @@ class LuaDebugVariable private constructor(
             val fields = value.raw.checkTable()?.pairs() ?: return
             val xValues = XValueChildrenList(fields.size);
             fields.forEach { field ->
-                val key = if (field.first.kind == LuaValueKind.String) {
-                    field.first.stringValue!!
-                } else {
-                    "[" + field.first.numberValue!!.toInt() + "]"
+                val key = when (field.first.kind) {
+                    LuaValueKind.String -> field.first.stringValue ?: "?"
+                    LuaValueKind.Number -> "[" + (field.first.numberValue?.toInt() ?: 0) + "]"
+                    else -> "[" + field.first.toDisplayString() + "]"
                 }
                 val debugValue = LuaDebugValue(field.second, null, AllIcons.Nodes.Field)
                 xValues.add(
