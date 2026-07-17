@@ -2,7 +2,7 @@
 id: "REDIS-06-RISKS"
 title: "Risks & Gaps"
 type: "risk"
-status: "planned"
+status: "done"
 parent_id: "REDIS-06"
 folders:
   - "[[features/redis/06-sandbox-quickdoc-refinements/requirements|requirements]]"
@@ -54,7 +54,7 @@ _None — both fixes are fully specified against grounded, real symbols (design 
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| REDIS-00-DR-01 | After Phase 1, run the FULL gce-builder `run test` suite and grep the output for `TestLoggerAssertionError` / `resolveModule` warnings; confirm zero, especially in the Redis suites and any alphabetically-later suite sharing harness state. | Risk 1.1 | todo |
+| REDIS-00-DR-01 | After Phase 1, run the FULL gce-builder `run test` suite and grep the output for `TestLoggerAssertionError` / `resolveModule` warnings; confirm zero, especially in the Redis suites and any alphabetically-later suite sharing harness state. | Risk 1.1 | done — full GCE suite `test --rerun-tasks --no-build-cache` = 2001 tests / 0 failures; `TestLoggerAssertionError` = 0, `resolveModule` = 0 (commit e01ae17b, independently re-run at review) |
 
 ## Test Case Gaps
 - The parameter-shadow case (TC 4) and the numeric/generic for-variable shadow are covered by

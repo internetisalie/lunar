@@ -2,7 +2,7 @@
 id: "REDIS-06"
 title: "REDIS-06: Sandbox & Quick-Doc Gating Refinements"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "low"
 parent_id: "REDIS"
 folders:
@@ -75,7 +75,7 @@ declaration is still skipped first (cheap check before the scope walk).
 **any** descendant element (`RedisCallSiteMatcher.kt:60-62`). So the caret on `redis`, on
 `call`, on `KEYS[1]`, or on a comma still yields a match and a documentation target. The fix
 requires the caret element to be the STRING token AND to be the command-name literal of the
-matched site: `element.elementType == LuaTokenTypes.STRING` and the matched
+matched site: `element.elementType == LuaElementTypes.STRING` and the matched
 `RedisCallSite.nameLiteral?.string === element`. When either condition fails, return an empty
 list.
 

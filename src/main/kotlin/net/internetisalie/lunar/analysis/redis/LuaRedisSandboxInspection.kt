@@ -13,6 +13,7 @@ import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaNameList
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaParList
+import net.internetisalie.lunar.lang.psi.LuaResolveUtil
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVisitor
 import net.internetisalie.lunar.platform.LuaPlatform
@@ -49,6 +50,7 @@ class LuaRedisSandboxInspection : LocalInspectionTool() {
             override fun visitNameRef(o: LuaNameRef) {
                 if (isDeclaration(o)) return
                 val rootName = rootNameOf(o) ?: return
+                if (bindsToLocal(o, rootName)) return
                 val project = o.project
                 val target = LuaProjectSettings.getInstance(project).state.getTarget()
                 if (target.platform != LuaPlatform.REDIS && target.platform != LuaPlatform.VALKEY) return
@@ -131,6 +133,22 @@ class LuaRedisSandboxInspection : LocalInspectionTool() {
                 if (owner is LuaParList || owner is LuaGenericForStatement) return true
             }
             return false
+        }
+
+        /**
+         * Returns `true` when [ref]'s root name binds to a **local** declaration visible in
+         * scope (local var, parameter, numeric/generic for-variable, or local function), so the
+         * ref is exempt from sandbox flagging (REDIS-06-01, design §2.2, §3.1).
+         *
+         * Uses the side-effect-free Phase-1 scope walk ([LuaResolveUtil.scopeCrawlUp]) with a
+         * local-only [LocalBindingScopeProcessor]; it touches only in-tree PSI (no VFS, stub
+         * index, or type engine — risk §1.1). A name with no visible local binding is treated
+         * as a global and evaluated against the allowlist as before.
+         */
+        private fun bindsToLocal(ref: LuaNameRef, rootName: String): Boolean {
+            val processor = LocalBindingScopeProcessor(rootName)
+            LuaResolveUtil.scopeCrawlUp(processor, ref)
+            return processor.foundLocal
         }
     }
 }

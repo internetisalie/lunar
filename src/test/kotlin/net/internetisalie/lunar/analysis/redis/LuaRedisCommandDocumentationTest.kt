@@ -63,6 +63,45 @@ class LuaRedisCommandDocumentationTest : BasePlatformTestCase() {
         assertTrue("Expected 'Arity 2' in HTML (was: '$html')", html.contains("Arity 2"))
     }
 
+    // -------------------------------------------------------------------------
+    // TC 6: caret on member name (`call`) → empty (REDIS-06-02).
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun testDocProviderReturnsEmptyWhenCaretOnMemberName() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", """redis.<caret>call("GET", KEYS[1])""")
+        val provider = RedisCommandDocumentationTargetProvider()
+        val targets = provider.documentationTargets(myFixture.file, myFixture.caretOffset)
+        assertTrue("Expected empty list when caret is on member 'call', got: $targets", targets.isEmpty())
+    }
+
+    // -------------------------------------------------------------------------
+    // TC 7: caret on second argument (`KEYS`) → empty (REDIS-06-02).
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun testDocProviderReturnsEmptyWhenCaretOnSecondArg() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", """redis.call("GET", KEYS<caret>[1])""")
+        val provider = RedisCommandDocumentationTargetProvider()
+        val targets = provider.documentationTargets(myFixture.file, myFixture.caretOffset)
+        assertTrue("Expected empty list when caret is in second arg, got: $targets", targets.isEmpty())
+    }
+
+    // -------------------------------------------------------------------------
+    // TC 8: caret on receiver (`redis`) → empty (REDIS-06-02).
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun testDocProviderReturnsEmptyWhenCaretOnReceiver() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", """re<caret>dis.call("GET")""")
+        val provider = RedisCommandDocumentationTargetProvider()
+        val targets = provider.documentationTargets(myFixture.file, myFixture.caretOffset)
+        assertTrue("Expected empty list when caret is on receiver 'redis', got: $targets", targets.isEmpty())
+    }
+
     @Test
     fun testDocProviderReturnsEmptyForUnknownCommand() {
         setRedisTarget("7+")

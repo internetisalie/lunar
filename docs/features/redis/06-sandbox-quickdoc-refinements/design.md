@@ -2,7 +2,7 @@
 id: "REDIS-06-DESIGN"
 title: "Technical Design"
 type: "design"
-status: "planned"
+status: "done"
 parent_id: "REDIS-06"
 folders:
   - "[[features/redis/06-sandbox-quickdoc-refinements/requirements|requirements]]"
@@ -48,7 +48,11 @@ models, or external parsing. Each fix edits exactly one existing class and adds 
 - **Caret element-type gating** prior art: `LuaDocumentationTargetProvider`
   (`.../lang/doc/LuaDocumentationTargetProvider.kt:39-41`) reads `element.elementType` from
   `findElementAt(offset)` and branches on token type. Fix 2 mirrors this idiom using
-  `LuaTokenTypes.STRING` (`.../lang/lexer/LuaTokenTypes.kt:62`).
+  `LuaElementTypes.STRING` — the string leaf the lexer actually emits (it is the sole member of
+  `LuaSyntax.StringLiteralTokens` and what the generated `LuaTerminalExprImpl.getString()` /
+  `findChildByType` returns, so `element === nameLiteral.string` holds). NB the separate
+  `LuaTokenTypes.STRING` (`LuaTokenTypes.kt:62`) is a stale duplicate instance that
+  `findElementAt` never returns — do NOT gate on it.
 - No existing component duplicates either fix; both **edit** the named REDIS-04 classes.
 
 ### Target State
@@ -95,7 +99,7 @@ models, or external parsing. Each fix edits exactly one existing class and adds 
 - **Responsibility**: unchanged except a caret-on-STRING gate at the top of
   `documentationTargets` and an identity check against the matched site's command literal.
 - **Threading**: unchanged (documentation provider read context).
-- **Collaborators**: adds `element.elementType == LuaTokenTypes.STRING` check; uses the already-
+- **Collaborators**: adds `element.elementType == LuaElementTypes.STRING` check; uses the already-
   matched `RedisCallSite.nameLiteral` (`RedisCallSiteMatcher.kt` — real).
 - **Key API**: no signature change; internal gate per §3.2.
 
@@ -143,7 +147,7 @@ models, or external parsing. Each fix edits exactly one existing class and adds 
 - **Input → Output**: `(file: PsiFile, offset: Int)` → `List<DocumentationTarget>`.
 - **Steps** (revised head of `documentationTargets`, replacing lines 26–27 of the current file):
   1. `val element = file.findElementAt(offset) ?: return emptyList()`.
-  2. **NEW**: `if (element.elementType != LuaTokenTypes.STRING) return emptyList()`.
+  2. **NEW**: `if (element.elementType != LuaElementTypes.STRING) return emptyList()`.
   3. `val site = RedisCallSiteMatcher.match(element) ?: return emptyList()`.
   4. **NEW**: `if (site.nameLiteral?.string !== element) return emptyList()` — the caret STRING
      must be *the command-name literal*, not some other string argument.

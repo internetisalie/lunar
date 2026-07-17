@@ -165,6 +165,89 @@ class LuaRedisSandboxInspectionTest : BasePlatformTestCase() {
     }
 
     // -------------------------------------------------------------------------
+    // REDIS-06-01: shadowed-local exemption. A name bound to a local (var, table,
+    // parameter, numeric/generic for-variable) is NOT flagged; a genuine global still is,
+    // and a self-shadow initializer does NOT exempt its own RHS.
+    // -------------------------------------------------------------------------
+
+    /** TC 1: `local print = redis.log` shadows `print`; the use is exempt. */
+    @Test
+    fun testShadowingLocalVarExemptsPrint() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", "local print = redis.log\nprint(\"x\")")
+        assertTrue(
+            "Shadowing local 'print' must exempt the print use, got: ${sandboxWarnings()}",
+            sandboxWarnings().isEmpty(),
+        )
+    }
+
+    /** TC 2: `local io = {}` shadows `io`; the member access is exempt. */
+    @Test
+    fun testShadowingLocalTableExemptsIo() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", "local io = {}\nio.read()")
+        assertTrue(
+            "Shadowing local 'io' must exempt the io.read() use, got: ${sandboxWarnings()}",
+            sandboxWarnings().isEmpty(),
+        )
+    }
+
+    /** TC 3: no shadowing local — a genuine global `print` is still flagged. */
+    @Test
+    fun testGenuineGlobalPrintStillFlagged() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", "print(\"x\")")
+        assertTrue(
+            "Genuine global 'print' must still be flagged, got: ${sandboxWarnings()}",
+            sandboxWarnings().any { it.contains("'print'") },
+        )
+    }
+
+    /** TC 4: a parameter named `print` shadows the global inside the function body. */
+    @Test
+    fun testParameterShadowExemptsPrint() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", "local function f(print) print(\"x\") end")
+        assertTrue(
+            "Parameter 'print' must exempt the print use in the body, got: ${sandboxWarnings()}",
+            sandboxWarnings().isEmpty(),
+        )
+    }
+
+    /** TC 4a: `local print = print` — the RHS `print` is the genuine global (not yet in scope). */
+    @Test
+    fun testSelfShadowInitializerStillFlagsRhs() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", "local print = print")
+        assertTrue(
+            "Self-shadow initializer must still flag the RHS global 'print', got: ${sandboxWarnings()}",
+            sandboxWarnings().any { it.contains("'print'") },
+        )
+    }
+
+    /** TC 4b (numeric-for): `for io = 1, 3 do io.read() end` — the loop var shadows `io`. */
+    @Test
+    fun testNumericForVarExemptsIo() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", "for io = 1, 3 do io.read() end")
+        assertTrue(
+            "Numeric-for loop var 'io' must exempt the io.read() use, got: ${sandboxWarnings()}",
+            sandboxWarnings().isEmpty(),
+        )
+    }
+
+    /** TC 4b (generic-for): `for io in pairs(t) do io.x() end` — the loop var shadows `io`. */
+    @Test
+    fun testGenericForVarExemptsIo() {
+        setRedisTarget("7+")
+        myFixture.configureByText("test.lua", "for io in pairs(t) do io.x() end")
+        assertTrue(
+            "Generic-for loop var 'io' must exempt the io.x() use, got: ${sandboxWarnings()}",
+            sandboxWarnings().isEmpty(),
+        )
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 

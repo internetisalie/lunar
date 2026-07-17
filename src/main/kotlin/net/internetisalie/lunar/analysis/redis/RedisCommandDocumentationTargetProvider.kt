@@ -6,6 +6,8 @@ import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.elementType
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
@@ -24,7 +26,9 @@ class RedisCommandDocumentationTargetProvider : DocumentationTargetProvider {
 
     override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
         val element = file.findElementAt(offset) ?: return emptyList()
+        if (element.elementType != LuaElementTypes.STRING) return emptyList()
         val site = RedisCallSiteMatcher.match(element) ?: return emptyList()
+        if (site.nameLiteral?.string !== element) return emptyList()
         val name = site.commandName ?: return emptyList()
         val project = file.project
         val target = LuaProjectSettings.getInstance(project).state.getTarget()
