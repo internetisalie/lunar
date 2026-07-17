@@ -8,10 +8,9 @@ import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.platform.ProjectGeneratorPeer
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.components.JBTextField
-import com.intellij.util.ui.FormBuilder
+import com.intellij.ui.dsl.builder.panel
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.VersionEntry
@@ -57,7 +56,28 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
     private val bustedConfigCheck = JBCheckBox("Busted Configuration (spec/)")
     private val makefileCheck = JBCheckBox("Makefile")
 
-    private val panel: JPanel
+    // Built lazily on first component access (always on the EDT in the wizard) so the peer's widget
+    // state is still construction-time testable off the EDT — the Kotlin UI DSL requires the EDT.
+    private val panel: JPanel by lazy {
+        panel {
+            row("Project name:") { cell(nameField) }
+            group("Project type") {
+                row { cell(libraryButton) }
+                row { cell(applicationButton) }
+            }
+            group("Interpreter") {
+                row("Runtime:") { cell(kindCombo) }
+                row("Lua version:") { cell(versionCombo) }
+                row { cell(provisionCheck) }
+                row("Existing interpreter:") { cell(interpreterCombo) }
+            }
+            group("Options") {
+                row { cell(loaderSetupCheck) }
+                row { cell(bustedConfigCheck) }
+                row { cell(makefileCheck) }
+            }
+        }
+    }
 
     init {
         ButtonGroup().also {
@@ -80,25 +100,6 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
         // The existing-interpreter combo is only relevant when NOT provisioning an isolated env.
         provisionCheck.addActionListener { updateInterpreterEnablement() }
         updateInterpreterEnablement()
-
-        panel = FormBuilder.createFormBuilder()
-            .addLabeledComponent("Project name:", nameField)
-            .addSeparator()
-            .addComponent(JBLabel("Project type:"))
-            .addComponent(libraryButton)
-            .addComponent(applicationButton)
-            .addSeparator()
-            .addComponent(JBLabel("Interpreter:"))
-            .addLabeledComponent("Runtime:", kindCombo)
-            .addLabeledComponent("Lua version:", versionCombo)
-            .addComponent(provisionCheck)
-            .addLabeledComponent("Existing interpreter:", interpreterCombo)
-            .addSeparator()
-            .addComponent(JBLabel("Options:"))
-            .addComponent(loaderSetupCheck)
-            .addComponent(bustedConfigCheck)
-            .addComponent(makefileCheck)
-            .panel
     }
 
     private fun platformFor(kindId: String): LuaPlatform =

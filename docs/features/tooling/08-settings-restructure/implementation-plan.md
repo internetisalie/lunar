@@ -68,12 +68,15 @@ is **VNC-verified** last. Every task names the class/file and the design section
 ### Phase 5: DSL panel migration [Should]
 - **Goal**: BUG-369 layout standardization.
 - **Tasks**:
-  - [ ] Rewrite `LuaApplicationSettingsPanel` with `panel { }`, preserving its public API — realizes
-        §2.7. Remove `FormBuilder`/`IdeBorderFactory` imports.
-  - [ ] Rewrite the `LuaRocksGeneratorPeer` panel build with `panel { }` — realizes §2.8. Remove
-        `FormBuilder` import.
+  - [x] Rewrite `LuaApplicationSettingsPanel` with `panel { }`, preserving its public API — realizes
+        §2.7. Removed `FormBuilder`/`IdeBorderFactory` imports. Full Configurable lifecycle
+        (`reset()`/`disposeUIResources()` + clone-edit-commit) added to `LuaApplicationSettingsConfigurable`
+        (review #44).
+  - [x] Rewrite the `LuaRocksGeneratorPeer` panel build with `panel { }` (lazy, EDT-built) — realizes
+        §2.8. Removed `FormBuilder`/`JBLabel` imports.
 - **Exit criteria**: `LuaApplicationSettingsPanelTest` (TC 11: `isModified` after a toggle) passes; no
-  `com.intellij.util.ui.FormBuilder` import remains in either file. Build green.
+  `com.intellij.util.ui.FormBuilder` import remains in either file; `LuaRocksGeneratorPeerTest` green.
+  Build green.
 
 ### Phase 6: Spacing audit + live verification [Could/Must-DoD]
 - **Goal**: confirm the tree's vertical rhythm and the discoverable target control live.
@@ -106,7 +109,7 @@ is **VNC-verified** last. Every task names the class/file and the design section
 - [ ] `LuaProjectConfigurableBindingsTest` — covers TC 6, 7.
 - [x] `LuaToolchainConfigurableGlobalBindingsTest` — covers TC 8, 9.
 - [x] Inherit-placeholder test — covers TC 10.
-- [ ] `LuaApplicationSettingsPanelTest` — covers TC 11.
+- [x] `LuaApplicationSettingsPanelTest` — covers TC 11.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) via `verify-in-ide`.
 
 ## Task Summary
@@ -117,5 +120,5 @@ is **VNC-verified** last. Every task names the class/file and the design section
 | Phase 2: Target-control apply/reset logic | done | Must |
 | Phase 3: Bindings split + eviction | done | Must |
 | Phase 4: Global bindings + inherit labels | done | Must |
-| Phase 5: DSL panel migration | todo | Should |
+| Phase 5: DSL panel migration | done | Should |
 | Phase 6: Spacing audit + live verification | todo | Could |

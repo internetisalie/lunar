@@ -17,36 +17,32 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.psi.PsiManager
-import com.intellij.ui.IdeBorderFactory
-import com.intellij.util.ui.FormBuilder
+import com.intellij.ui.components.JBCheckBox
 import net.internetisalie.lunar.LuaBundle
-import javax.swing.JCheckBox
 import javax.swing.JPanel
 
 /**
  * Application-level Lua settings page (interim slimming, TOOLING-05 §6.3). The interpreters table was
  * removed — external Lua runtimes are now registered/discovered through the toolchain subsystem
  * (TOOLING-01/02) and surfaced by the Toolchain page (TOOLING-06). Only the editor-feature toggles
- * remain here until TOOLING-06 folds this page.
+ * remain here.
+ *
+ * TOOLING-08 §2.7 (BUG-369): rebuilt on the Kotlin UI DSL (`panel { }`), replacing the FormBuilder /
+ * IdeBorderFactory layout. The checkboxes are the buffer (clone-edit-commit, review #44): [setData]
+ * loads a copied [LuaApplicationSettings.State] into the UI, [isModified] compares UI vs that copy,
+ * and [getData] commits UI → the live state only when the configurable's `apply()` runs — so Cancel
+ * never touches persisted state. The public API is unchanged so callers stay untouched.
  */
 class LuaApplicationSettingsPanel {
-    val mainPanel: JPanel
-    private val addAdditionalCompletionsCheckBox: JCheckBox
-    private val enableTypeInference: JCheckBox
+    private val enableTypeInference = JBCheckBox(LuaBundle.message("application.enableTypeInference"))
+    private val addAdditionalCompletionsCheckBox =
+        JBCheckBox(LuaBundle.message("application.addAdditionalCompletions"))
 
-    init {
-        enableTypeInference = JCheckBox(LuaBundle.message("application.enableTypeInference"))
-        addAdditionalCompletionsCheckBox = JCheckBox(LuaBundle.message("application.addAdditionalCompletions"))
-
-        val editorPanel = FormBuilder.createFormBuilder()
-            .addComponent(enableTypeInference, 2)
-            .addComponent(addAdditionalCompletionsCheckBox, 2)
-            .panel
-        editorPanel.border = IdeBorderFactory.createTitledBorder("Editor Features", false)
-
-        mainPanel = FormBuilder.createFormBuilder()
-            .addComponentFillVertically(editorPanel, 0)
-            .panel
+    val mainPanel: JPanel = com.intellij.ui.dsl.builder.panel {
+        group("Editor Features") {
+            row { cell(enableTypeInference) }
+            row { cell(addAdditionalCompletionsCheckBox) }
+        }
     }
 
     fun apply(state: LuaApplicationSettings.State) {
@@ -66,15 +62,14 @@ class LuaApplicationSettingsPanel {
         data.includeAllFieldsInCompletions = addAdditionalCompletionsCheckBox.isSelected
         data.enableTypeInference = enableTypeInference.isSelected
         if (data.enableTypeInference) {
-            for (project in ProjectManager.getInstance().openProjects) PsiManager.getInstance(
-                project
-            ).dropResolveCaches()
+            for (project in ProjectManager.getInstance().openProjects) {
+                PsiManager.getInstance(project).dropResolveCaches()
+            }
         }
     }
 
     fun isModified(data: LuaApplicationSettings.State): Boolean {
         if (addAdditionalCompletionsCheckBox.isSelected != data.includeAllFieldsInCompletions) return true
-        if (enableTypeInference.isSelected != data.enableTypeInference) return true
-        return false
+        return enableTypeInference.isSelected != data.enableTypeInference
     }
 }
