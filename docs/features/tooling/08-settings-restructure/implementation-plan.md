@@ -34,8 +34,8 @@ is **VNC-verified** last. Every task names the class/file and the design section
 - **Goal**: buffered platform/version selection, mode switching, and persistence — driven through the
   configurable's `reset`/`isModified`/`apply` so it is fixture-testable.
 - **Tasks**:
-  - [ ] Add `TargetItem` sealed interface (`toolchain/ui`) — realizes §2.3.
-  - [ ] Add `ProjectControls.platformCombo` / `versionCombo` and `buildTargetGroup`,
+  - [x] Add `TargetItem` sealed interface (`toolchain/ui`) — realizes §2.3.
+  - [x] Add `ProjectControls.platformCombo` / `versionCombo` and `buildTargetGroup`,
         `resetTargetControls`, `repopulateVersionCombo`, `isTargetModified`, `applyTarget` to
         `LuaProjectConfigurable` — realizes §2.2 / §3.2 / §3.3. Wire `applyTarget` first in `apply()`
         and `isTargetModified` into `isModified()`.
@@ -113,7 +113,7 @@ is **VNC-verified** last. Every task names the class/file and the design section
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Model & classifier logic | done | Must |
-| Phase 2: Target-control apply/reset logic | todo | Must |
+| Phase 2: Target-control apply/reset logic | done | Must |
 | Phase 3: Bindings split + eviction | todo | Must |
 | Phase 4: Global bindings + inherit labels | todo | Must |
 | Phase 5: DSL panel migration | todo | Should |

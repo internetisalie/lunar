@@ -14,10 +14,14 @@ import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.ui.dsl.builder.panel
 import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.path.PathConfiguration
+import net.internetisalie.lunar.platform.LuaPlatform
+import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
+import net.internetisalie.lunar.platform.target.VersionEntry
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.settings.LuaSettingsChangedListener
 import net.internetisalie.lunar.toolchain.model.LuaToolKind
+import net.internetisalie.lunar.toolchain.resolve.LuaTargetSynchronizer
 import net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys
 import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainEvent
@@ -47,6 +51,9 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
 
     private val controls = ProjectControls()
 
+    /** True while [resetTargetControls] drives the platform combo, so its action listener stays inert. */
+    private var suppressPlatformEvents = false
+
     private val toolchainSettings: LuaToolchainProjectSettings
         get() = LuaToolchainProjectSettings.getInstance(project)
 
@@ -61,6 +68,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     private fun buildPanel(): DialogPanel = panel {
+        buildTargetGroup(this)
         group("Environment") {
             row("Active environment:") { cell(controls.environmentCombo) }
         }
@@ -87,6 +95,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     override fun isModified(): Boolean {
+        if (isTargetModified()) return true
         if (environmentSelectionId() != toolchainSettings.activeEnvironment()?.id) return true
         if (orderedKinds().any { selectedToolId(it.id) != normalizedBinding(it.id) }) return true
         val projectState = projectSettings.state
@@ -97,6 +106,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     override fun apply() {
+        applyTarget()
         applyEnvironment()
         applyBindings()
         applyProjectLuacheckArgs()
@@ -107,6 +117,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     override fun reset() = resetControls()
 
     private fun resetControls() {
+        resetTargetControls()
         resetEnvironmentCombo()
         orderedKinds().forEach { resetBindingCombo(it) }
         controls.luacheckArgsField.text = savedProjectLuacheckArgs()
@@ -136,6 +147,84 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         combo.selectedItem = items.firstOrNull {
             it is LuaBindingItem.Tool && it.tool.id == savedId
         } ?: LuaBindingItem.Inherit
+    }
+
+    private fun buildTargetGroup(panelBuilder: com.intellij.ui.dsl.builder.Panel) {
+        panelBuilder.group("Platform Target") {
+            row("Platform target:") { cell(controls.platformCombo) }
+            row("Version:") { cell(controls.versionCombo) }
+            row { comment("Auto (from runtime) follows the discovered interpreter; pick a platform to pin it") }
+        }
+    }
+
+    private fun resetTargetControls() {
+        suppressPlatformEvents = true
+        try {
+            val state = projectSettings.state
+            val platformItems = listOf<TargetItem>(TargetItem.Auto) +
+                PlatformVersionRegistry.platforms().sortedBy { it.label }.map { TargetItem.Platform(it) }
+            controls.platformCombo.model = DefaultComboBoxModel(platformItems.toTypedArray())
+            if (state.explicitTarget) {
+                val pinned = state.getTarget()
+                controls.platformCombo.selectedItem = TargetItem.Platform(pinned.platform)
+                repopulateVersionCombo(pinned.platform)
+                selectVersionLabel(pinned.version.label)
+            } else {
+                controls.platformCombo.selectedItem = TargetItem.Auto
+                repopulateVersionCombo(null)
+            }
+        } finally {
+            suppressPlatformEvents = false
+        }
+    }
+
+    private fun repopulateVersionCombo(platform: LuaPlatform?) {
+        if (platform == null) {
+            val autoVersion = projectSettings.state.getTarget().version
+            controls.versionCombo.model = DefaultComboBoxModel(arrayOf(autoVersion))
+            controls.versionCombo.selectedItem = autoVersion
+            controls.versionCombo.isEnabled = false
+            return
+        }
+        val previousLabel = (controls.versionCombo.selectedItem as? VersionEntry)?.label
+        val versions = PlatformVersionRegistry.getVersions(platform)
+        controls.versionCombo.model = DefaultComboBoxModel(versions.toTypedArray())
+        controls.versionCombo.isEnabled = versions.isNotEmpty()
+        val keep = versions.firstOrNull { it.label == previousLabel }
+        controls.versionCombo.selectedItem = keep ?: PlatformVersionRegistry.defaultVersion(platform)
+    }
+
+    private fun selectVersionLabel(label: String) {
+        val combo = controls.versionCombo
+        val match = (0 until combo.itemCount).map { combo.getItemAt(it) }.firstOrNull { it?.label == label }
+        combo.selectedItem = match ?: combo.getItemAt(0)
+    }
+
+    private fun isTargetModified(): Boolean {
+        val state = projectSettings.state
+        val selectedIsAuto = controls.platformCombo.selectedItem is TargetItem.Auto
+        if (selectedIsAuto != !state.explicitTarget) return true
+        if (selectedIsAuto) return false
+        val selectedPlatform = (controls.platformCombo.selectedItem as? TargetItem.Platform)?.platform
+        val selectedVersionLabel = (controls.versionCombo.selectedItem as? VersionEntry)?.label
+        return selectedPlatform != state.getTarget().platform ||
+            selectedVersionLabel != state.getTarget().version.label
+    }
+
+    private fun applyTarget() {
+        if (!isTargetModified()) return
+        val state = projectSettings.state
+        val selected = controls.platformCombo.selectedItem
+        if (selected is TargetItem.Platform) {
+            val versionLabel = (controls.versionCombo.selectedItem as? VersionEntry)?.label ?: ""
+            state.explicitTarget = true
+            projectSettings.setTargetAndNotify(
+                PlatformVersionRegistry.resolveTarget(selected.platform, versionLabel)
+            )
+        } else if (state.explicitTarget) {
+            state.explicitTarget = false
+            LuaTargetSynchronizer.getInstance(project).ensureSynchronized()
+        }
     }
 
     private fun applyEnvironment() {
@@ -223,6 +312,19 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
 
     /** Holds the buffered Swing controls so the per-group / per-field helpers stay within the arg cap. */
     private inner class ProjectControls {
+        val platformCombo = ComboBox<TargetItem>().apply {
+            renderer = SimpleListCellRenderer.create("") { platformItemLabel(it) }
+            addActionListener {
+                if (!suppressPlatformEvents) {
+                    repopulateVersionCombo((selectedItem as? TargetItem.Platform)?.platform)
+                }
+            }
+        }
+
+        val versionCombo = ComboBox<VersionEntry>().apply {
+            renderer = SimpleListCellRenderer.create("") { it.label }
+        }
+
         val environmentCombo = ComboBox<LuaEnvironmentItem>().apply {
             renderer = SimpleListCellRenderer.create("") { environmentLabel(it) }
         }
@@ -256,6 +358,11 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
             ComboBox<LuaBindingItem>().apply {
                 renderer = SimpleListCellRenderer.create("") { bindingLabel(kindId, it) }
             }
+    }
+
+    private fun platformItemLabel(item: TargetItem): String = when (item) {
+        TargetItem.Auto -> "Auto (from runtime)"
+        is TargetItem.Platform -> item.platform.label
     }
 
     private fun environmentLabel(item: LuaEnvironmentItem): String = when (item) {
