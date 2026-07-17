@@ -1,50 +1,6 @@
 # Change Log
 
-## [0.18] — MVP milestone & first tagged release
-
-### Runtime & Platform Support (TARGET)
-- **Target Selection**: project environment selection with platform + version granularity.
-- **Platforms**: explicit targets for **Standard Lua (5.1–5.5)**, **LuaJIT**, **Redis (5/6/7)**,
-  **Valkey (7.2/8)**, plus scaffolding for Tarantool, OpenResty, and Pandoc.
-- **Dynamic Standard Libraries**: automatic resolution of platform-specific library stubs
-  (Standard/Redis/Valkey are stub-backed) from the selected target.
-- **Environment-Aware Luacheck**: `--std` follows the active target.
-
-### Legal & Distribution
-- **Apache-2.0 license** adopted. `LICENSE`, `NOTICE`, and `THIRD-PARTY.md` (attributing the
-  Sylvanaar "Lua for IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug/RemDebug, the `lua.l`
-  lexer, and the Lua.org standard-library stubs) are bundled at the plugin root in every zip.
-
-### Documentation
-- README refreshed (accurate versions, live doc links, full epic list, Lua 5.1–5.5).
-
-### Fixes (0.18.2)
-- **LuaRocks Packages crash** (BUG-379): the package-browser debounce `Alarm` was created
-  without a parent `Disposable`, throwing on every open of the LuaRocks Packages view. The
-  `Alarm` is now parented to a disposable panel.
-- **RockspecBridge log noise** (BUG-380): the "no Lua runtime configured" message was logged at
-  `warn`, flooding the IDE log for projects without a configured runtime; demoted to `debug`.
-- **Release build** (build): `patchPluginXml` now accepts milestone-style CHANGELOG headers, so
-  overriding the plugin version to one without a matching CHANGELOG section no longer fails.
-
-### Fixes (0.18.3)
-- **Redis sandbox false positive** (REDIS-06): the "not available in the Redis sandbox" inspection
-  no longer flags a global name that is shadowed by a local binding in scope — it now performs a
-  side-effect-free local-resolution check before warning.
-- **Redis command quick-doc over-triggering** (REDIS-06): command documentation now surfaces only
-  when the caret is on the command-name string literal, instead of anywhere in the call.
-
-### Language & Editor (0.18.4)
-- **Parser error recovery for block constructs** (SYNTAX-18): `do`/`while`/`repeat`/function block
-  rules now `pin` after their opening keyword, so an unterminated or half-written block yields a
-  partial PSI node scoped to that block instead of letting the error cascade to the end of file.
-  Completion, highlighting, and structural editing stay accurate while a block is still being typed.
-- **Typed lambda parameters from expected callback types** (TYPE-10): when a lambda is passed to a
-  function whose parameter is a callback type (`fun(...)`), its own un-annotated parameters now infer
-  the expected types with no manual `---@param`. `redis.register_function('f', function(keys, args)
-  … end)` types `keys`/`args` as `string[]` (and `keys[1]` as `string`), and `table.sort(t,
-  function(a, b) … end)` types the comparator from the stub signature. A direct `---@param` on the
-  lambda still wins. Retires REDIS-05's descoped callback typing (Gap 2.4).
+## [0.19] — LuaRocks package browser, settings restructure & bug sweep
 
 ### LuaRocks package browser redesign (ROCKS-16)
 - **Plugins-style two-tab browser**: the LuaRocks Packages tool window is rebuilt in the IDE
@@ -65,7 +21,7 @@
   "LuaRocks Packages" vs "LuaRocks Dependencies"), BUG-367 (`(no package selected)` label →
   empty-text panel), and BUG-368 (newline-joined dependencies → a clickable list).
 
-### Fixes (0.18.5)
+### Bug fixes
 - **Long-bracket annotator crash mid-typing** (BUG-386): `LuaLongStringAnnotator` and
   `LuaLongCommentAnnotator` raw-indexed token text without bounds checks, throwing
   `StringIndexOutOfBoundsException` when a truncated delimiter (e.g. `[==` or `--[=`) was
@@ -150,6 +106,52 @@
   *Cancel* truly reverts.
 - **Explicit inherit labelling**: the project Luacheck-arguments and LuaRocks server-URL fields render
   the effective app default in their placeholder (`Inherit (app default: …)` / `Inherit (luarocks.org)`).
+
+## [0.18] — MVP milestone & first tagged release
+
+### Runtime & Platform Support (TARGET)
+- **Target Selection**: project environment selection with platform + version granularity.
+- **Platforms**: explicit targets for **Standard Lua (5.1–5.5)**, **LuaJIT**, **Redis (5/6/7)**,
+  **Valkey (7.2/8)**, plus scaffolding for Tarantool, OpenResty, and Pandoc.
+- **Dynamic Standard Libraries**: automatic resolution of platform-specific library stubs
+  (Standard/Redis/Valkey are stub-backed) from the selected target.
+- **Environment-Aware Luacheck**: `--std` follows the active target.
+
+### Legal & Distribution
+- **Apache-2.0 license** adopted. `LICENSE`, `NOTICE`, and `THIRD-PARTY.md` (attributing the
+  Sylvanaar "Lua for IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug/RemDebug, the `lua.l`
+  lexer, and the Lua.org standard-library stubs) are bundled at the plugin root in every zip.
+
+### Documentation
+- README refreshed (accurate versions, live doc links, full epic list, Lua 5.1–5.5).
+
+### Fixes (0.18.2)
+- **LuaRocks Packages crash** (BUG-379): the package-browser debounce `Alarm` was created
+  without a parent `Disposable`, throwing on every open of the LuaRocks Packages view. The
+  `Alarm` is now parented to a disposable panel.
+- **RockspecBridge log noise** (BUG-380): the "no Lua runtime configured" message was logged at
+  `warn`, flooding the IDE log for projects without a configured runtime; demoted to `debug`.
+- **Release build** (build): `patchPluginXml` now accepts milestone-style CHANGELOG headers, so
+  overriding the plugin version to one without a matching CHANGELOG section no longer fails.
+
+### Fixes (0.18.3)
+- **Redis sandbox false positive** (REDIS-06): the "not available in the Redis sandbox" inspection
+  no longer flags a global name that is shadowed by a local binding in scope — it now performs a
+  side-effect-free local-resolution check before warning.
+- **Redis command quick-doc over-triggering** (REDIS-06): command documentation now surfaces only
+  when the caret is on the command-name string literal, instead of anywhere in the call.
+
+### Language & Editor (0.18.4)
+- **Parser error recovery for block constructs** (SYNTAX-18): `do`/`while`/`repeat`/function block
+  rules now `pin` after their opening keyword, so an unterminated or half-written block yields a
+  partial PSI node scoped to that block instead of letting the error cascade to the end of file.
+  Completion, highlighting, and structural editing stay accurate while a block is still being typed.
+- **Typed lambda parameters from expected callback types** (TYPE-10): when a lambda is passed to a
+  function whose parameter is a callback type (`fun(...)`), its own un-annotated parameters now infer
+  the expected types with no manual `---@param`. `redis.register_function('f', function(keys, args)
+  … end)` types `keys`/`args` as `string[]` (and `keys[1]` as `string`), and `table.sort(t,
+  function(a, b) … end)` types the comparator from the stub signature. A direct `---@param` on the
+  lambda still wins. Retires REDIS-05's descoped callback typing (Gap 2.4).
 
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 
