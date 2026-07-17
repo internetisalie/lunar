@@ -9,10 +9,10 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment;
 
 public interface LuaGlobalFuncDecl extends LuaStatement, LuaCommentOwner, LuaBlockParent {
 
-  @NotNull
+  @Nullable
   LuaBlock getBlock();
 
-  @NotNull
+  @Nullable
   LuaNameRef getNameRef();
 
   @Nullable

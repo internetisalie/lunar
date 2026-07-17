@@ -28,15 +28,15 @@ public class LuaRepeatStatementImpl extends LuaStatementImpl implements LuaRepea
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaBlock getBlock() {
-    return findNotNullChildByClass(LuaBlock.class);
+    return findChildByClass(LuaBlock.class);
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaExpr getExpr() {
-    return findNotNullChildByClass(LuaExpr.class);
+    return findChildByClass(LuaExpr.class);
   }
 
   @Override

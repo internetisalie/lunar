@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.psi.stubs.impl
 import com.intellij.psi.stubs.*
 import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.impl.LuaFuncDeclImpl
 import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
@@ -16,7 +17,9 @@ class LuaFuncStubElementType(debugName: String) :
     }
 
     override fun createStub(psi: LuaFuncDecl, parentStub: StubElement<out com.intellij.psi.PsiElement>?): LuaFuncStub {
-        val name = psi.funcName.text
+        // SYNTAX-18: a pinned partial `function` decl may lack its funcName; the hand-stubbed
+        // getter is @NotNull, so read the child off the node instead of throwing.
+        val name = psi.node.findChildByType(LuaElementTypes.FUNC_NAME)?.text ?: ""
         val catsComment = LuaPsiImplUtil.getCatsComment(psi)
         val returnType = catsComment?.getReturnTagList()?.flatMap { it.returnTypeDescriptorList }?.firstOrNull()?.argType?.text
         val paramTypes = catsComment?.getParamTagList()?.associate {

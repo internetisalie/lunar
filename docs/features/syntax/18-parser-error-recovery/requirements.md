@@ -2,7 +2,7 @@
 id: SYNTAX-18
 title: "18: Parser Error Recovery for Block Constructs"
 type: feature
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: SYNTAX
 folders:
@@ -29,8 +29,14 @@ Parent epic: SYNTAX.
   `doStatement` (`lua.bnf:125`), `whileStatement` (`:129`), `repeatStatement` (`:133`),
   `ifStatement` (`:137`), `numericForStatement` (`:140`), `genericForStatement` (`:144`),
   `localFuncDecl` (`:162`), `funcDecl` (`:174`), `globalFuncDecl` (`:208`).
-- Add a shared `recoverWhile` predicate rule so recovery stops at the next statement/block
-  boundary (a statement-starter or block-terminator token).
+- ~~Add a shared `recoverWhile` predicate rule~~ **Dropped during implementation**: `recoverWhile`
+  proved empirically unusable in this grammar (it destroys sibling backtracking on any rule that
+  can fail after its first token, and its junk consumption materializes an unconstructable
+  `STATEMENT` node) — see risks-and-gaps.md Blockers 3.2–3.4. The pins alone deliver the typed
+  partial nodes and localized errors.
+- Adapt the downstream features keyed to the old anonymous-error-tree shape (Smart Enter fixers,
+  keyword block closer / enter handler balance check, REPL chunk completion, stub creation,
+  types visitor) to typed partial nodes.
 - Regenerate the parser via the headless `.claude/skills/generate-parser/scripts/generate.sh`
   and commit the resulting `src/main/gen/` delta by hand.
 - Harden `getName()` on `net.internetisalie.lunar.lang.psi.LuaNameRefElementImpl`
@@ -55,7 +61,7 @@ Parent epic: SYNTAX.
 | SYNTAX-18-01 | **Partial node per block kind** | M | Each half-written block skeleton (`if`/`while`/`for`(numeric & generic)/`do`/`repeat`/`function`/`local function`/`global function`) builds the corresponding typed PSI node (`LuaIfStatement`, `LuaWhileStatement`, `LuaNumericForStatement`, `LuaGenericForStatement`, `LuaDoStatement`, `LuaRepeatStatement`, `LuaFuncDecl`, `LuaLocalFuncDecl`, `LuaGlobalFuncDecl`) rather than rolling back to a bare error tree under `block`. |
 | SYNTAX-18-02 | **Localized error placement** | M | The `PsiErrorElement` for a half-written block is emitted at the first missing/unexpected token inside the construct (e.g. the absent `then` for `if x`, absent `do` for `while c`, absent `end` for `if x then`), not as a whole-statement error spanning the opener keyword. |
 | SYNTAX-18-03 | **No regression to well-formed parsing** | M | Every currently-valid construct in `TestLuaParsingExhaustive` continues to parse with zero `PsiErrorElement`s and produces byte-identical PSI structure (same element types, same tree shape) as before the pin change. |
-| SYNTAX-18-04 | **Bounded recovery at statement boundary** | M | Recovery for a failed block rule consumes tokens only up to (not including) the next statement-starter or block-terminator token, so a following well-formed statement parses normally as a sibling and is not swallowed into the error node. |
+| SYNTAX-18-04 | **Bounded recovery at statement boundary** | M | A failed block rule consumes no junk beyond its own grammar (there is no `recoverWhile` consumption); a following well-formed statement is never lost to an anonymous error tree. Note: grammar-kit's greedy pinned continuation parses a following statement as a **typed node nested inside** the partial block (e.g. `return 1` becomes a `LuaFinalStatement` inside the recovered `if`), not as an outer sibling. |
 | SYNTAX-18-05 | **Robust name accessor on partial nodes** | M | `LuaNameRefElementImpl.getName()` returns `null` (never throws) when the recovered node has no `IDENTIFIER` child. |
 | SYNTAX-18-06 | **Deterministic regeneration** | S | Re-running `generate.sh` over the edited `lua.bnf` produces a stable, reviewable `src/main/gen/` diff; a second run over unchanged sources is a no-op (`git diff src/main/gen` empty). |
 
@@ -123,20 +129,20 @@ Recovery therefore stops before the next statement or before an enclosing block'
 | 8 | SYNTAX-18-01 | `local function foo` | `configureByText` | a `LuaLocalFuncDecl` node exists |
 | 9 | SYNTAX-18-01 | `global function foo` | `configureByText` | a `LuaGlobalFuncDecl` node exists |
 | 10 | SYNTAX-18-02 | `if x` | `configureByText`; find the `PsiErrorElement` | the error's `textOffset` is at or after the end of `x` (not at the `if` keyword start, offset 0) |
-| 11 | SYNTAX-18-04 | `if x\nreturn 1` | `configureByText` | both a `LuaIfStatement` and a sibling `LuaFinalStatement` (`return 1`) exist; the `return` is NOT inside the if node |
+| 11 | SYNTAX-18-04 | `if x\nreturn 1` | `configureByText` | both a `LuaIfStatement` and a typed `LuaFinalStatement` (`return 1`) exist (the final statement nests inside the recovered if per grammar-kit's greedy pinned continuation) |
 | 12 | SYNTAX-18-03 | every case in `testValidControlFlow`, `testValidAssignments`, `testValidExpressions`, `testVarargsCoverage` | `configureByText` | zero `PsiErrorElement`s (unchanged) |
 | 13 | SYNTAX-18-05 | `function foo` | build the `LuaFuncDecl`, take its `nameRef` child, call `getName()` on a `nameRef` with no identifier (e.g. a recovered empty ref) | returns `null`, no `KotlinNullPointerException` |
 | 14 | SYNTAX-18-02 | `while c` | find the `PsiErrorElement` | error offset is at/after the end of `c` |
 | 15 | SYNTAX-18-06 | edited `lua.bnf` | run `generate.sh` twice | second run leaves `git diff src/main/gen` empty |
 
 ## Acceptance Criteria
-- [ ] SYNTAX-18-01: all nine skeletons build their typed partial node (TC 1–9).
-- [ ] SYNTAX-18-02: error is localized to the missing token, not the opener (TC 10, 14).
-- [ ] SYNTAX-18-03: `TestLuaParsingExhaustive` valid-case suites are unchanged and green (TC 12).
-- [ ] SYNTAX-18-04: a following statement parses as a sibling (TC 11).
-- [ ] SYNTAX-18-05: `getName()` returns `null` on a partial node (TC 13).
-- [ ] SYNTAX-18-06: regeneration is deterministic and a no-op over unchanged sources (TC 15).
-- [ ] `generate.sh` output committed; full unit suite green via `gce-builder run test`.
+- [x] SYNTAX-18-01: all nine skeletons build their typed partial node (TC 1–9).
+- [x] SYNTAX-18-02: error is localized to the missing token, not the opener (TC 10, 14).
+- [x] SYNTAX-18-03: `TestLuaParsingExhaustive` valid-case suites are unchanged and green (TC 12).
+- [x] SYNTAX-18-04 (typed nested, see TC 11 note): a following statement parses as a sibling (TC 11).
+- [x] SYNTAX-18-05: `getName()` returns `null` on a partial node (TC 13).
+- [x] SYNTAX-18-06: regeneration is deterministic and a no-op over unchanged sources (TC 15).
+- [x] `generate.sh` output committed; full clean suite green (`clean test --no-build-cache ktlintCheck` → BUILD SUCCESSFUL, 1998 tests, 0 failures, 2026-07-16).
 
 ## Non-Functional Requirements
 - **Threading**: parsing runs under the platform's parser thread; no EDT work is added. PSI

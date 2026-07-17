@@ -455,7 +455,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
     override fun visitLocalFuncDecl(o: LuaLocalFuncDecl) {
         val funcNode = graph.variable(o)
-        o.nameRef?.let { scope.declare(it.text, funcNode) }
+        // SYNTAX-18: a pinned partial decl may lack its nameRef; the stub getter is @NotNull.
+        o.node.findChildByType(LuaElementTypes.NAME_REF)?.psi?.let { scope.declare(it.text, funcNode) }
         elementNodes[o] = listOf(funcNode)
 
         visitFunctionBody(
@@ -475,7 +476,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val funcNode = graph.variable(o)
         elementNodes[o] = listOf(funcNode)
 
-        val funcName = o.funcName
+        // SYNTAX-18: a pinned partial decl may lack its funcName; the stub getter is @NotNull.
+        val funcName = o.node.findChildByType(LuaElementTypes.FUNC_NAME)?.psi as? LuaFuncName ?: return
         val baseName = funcName.nameRef.text
         val baseVar = scope.lookup(baseName) ?: run {
             val fresh = graph.variable(funcName.nameRef)

@@ -64,8 +64,9 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
             }
 
             is LuaGlobalFuncDecl -> {
-                if (element.nameRef.identifier.text == name) {
-                    result = element.nameRef.identifier
+                val identifier = element.nameRef?.identifier
+                if (identifier != null && identifier.text == name) {
+                    result = identifier
                     found = true
                     return false
                 }
@@ -175,8 +176,10 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
             }
 
             is LuaGlobalFuncDecl -> {
-                val name = element.nameRef.identifier.text
-                results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.GLOBAL))
+                val name = element.nameRef?.identifier?.text
+                if (name != null) {
+                    results.putIfAbsent(name, SymbolInfo(name, element, SymbolType.GLOBAL))
+                }
             }
 
             is LuaFuncDecl -> {

@@ -1,9 +1,20 @@
 package net.internetisalie.lunar.lang.parser
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
+import net.internetisalie.lunar.lang.psi.LuaDoStatement
+import net.internetisalie.lunar.lang.psi.LuaFinalStatement
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaIfStatement
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
+import net.internetisalie.lunar.lang.psi.LuaRepeatStatement
+import net.internetisalie.lunar.lang.psi.LuaWhileStatement
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -232,5 +243,163 @@ class TestLuaParsingExhaustive : BaseDocumentTest() {
         // Snippets from tests/errors.lua that are actual parser errors
         doTest("local a = {4", expectErrors = true)
         doTest("while << do end", expectErrors = true)
+    }
+
+    // ---- SYNTAX-18: Parser Error Recovery tests ----
+
+    /**
+     * TC 1–9 (SYNTAX-18-01): Half-written block skeletons build the correct typed PSI node.
+     * Each input is a valid opener keyword with no closing construct, so a PsiErrorElement
+     * is expected, but the TYPED outer node must still be present.
+     */
+    @Test
+    fun testPartialBlockNodes() {
+        // TC 1: if
+        myFixture.configureByText(LuaFileType, "if x")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaIfStatement::class.java)
+            Assertions.assertNotNull(node, "TC 1: expected LuaIfStatement for 'if x'")
+        }
+
+        // TC 2: while
+        myFixture.configureByText(LuaFileType, "while c")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaWhileStatement::class.java)
+            Assertions.assertNotNull(node, "TC 2: expected LuaWhileStatement for 'while c'")
+        }
+
+        // TC 3: for numeric
+        myFixture.configureByText(LuaFileType, "for i = 1, n")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaNumericForStatement::class.java)
+            Assertions.assertNotNull(node, "TC 3: expected LuaNumericForStatement for 'for i = 1, n'")
+        }
+
+        // TC 4: for generic
+        myFixture.configureByText(LuaFileType, "for k,v in pairs(t)")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaGenericForStatement::class.java)
+            Assertions.assertNotNull(node, "TC 4: expected LuaGenericForStatement for 'for k,v in pairs(t)'")
+        }
+
+        // TC 5: repeat
+        myFixture.configureByText(LuaFileType, "repeat")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaRepeatStatement::class.java)
+            Assertions.assertNotNull(node, "TC 5: expected LuaRepeatStatement for 'repeat'")
+        }
+
+        // TC 6: do
+        myFixture.configureByText(LuaFileType, "do")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaDoStatement::class.java)
+            Assertions.assertNotNull(node, "TC 6: expected LuaDoStatement for 'do'")
+        }
+
+        // TC 7: function (top-level funcDecl)
+        myFixture.configureByText(LuaFileType, "function foo")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaFuncDecl::class.java)
+            Assertions.assertNotNull(node, "TC 7: expected LuaFuncDecl for 'function foo'")
+        }
+
+        // TC 8: local function
+        myFixture.configureByText(LuaFileType, "local function foo")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaLocalFuncDecl::class.java)
+            Assertions.assertNotNull(node, "TC 8: expected LuaLocalFuncDecl for 'local function foo'")
+        }
+
+        // TC 9: global function
+        myFixture.configureByText(LuaFileType, "global function foo")
+        runReadAction {
+            val node = PsiTreeUtil.findChildOfType(myFixture.file, LuaGlobalFuncDecl::class.java)
+            Assertions.assertNotNull(node, "TC 9: expected LuaGlobalFuncDecl for 'global function foo'")
+        }
+    }
+
+    /**
+     * TC 10, 14 (SYNTAX-18-02): The PsiErrorElement is localized — its textOffset is at or
+     * after the end of the opener expression, not at the `if`/`while` keyword (offset 0).
+     */
+    @Test
+    fun testErrorLocalization() {
+        // TC 10: 'if x' — error should be at or after end of 'x' (offset >= 4: "if x" is 4 chars)
+        myFixture.configureByText(LuaFileType, "if x")
+        runReadAction {
+            val errors = PsiTreeUtil.findChildrenOfType(myFixture.file, PsiErrorElement::class.java)
+            Assertions.assertFalse(errors.isEmpty(), "TC 10: expected at least one PsiErrorElement for 'if x'")
+            val errorOffset = errors.first().textOffset
+            Assertions.assertTrue(
+                errorOffset >= 3,
+                "TC 10: error should be at or after 'x' (offset >= 3), got $errorOffset"
+            )
+        }
+
+        // TC 14: 'while c' — error should be after 'c' (offset >= 6: "while " is 6 chars)
+        myFixture.configureByText(LuaFileType, "while c")
+        runReadAction {
+            val errors = PsiTreeUtil.findChildrenOfType(myFixture.file, PsiErrorElement::class.java)
+            Assertions.assertFalse(errors.isEmpty(), "TC 14: expected at least one PsiErrorElement for 'while c'")
+            val errorOffset = errors.first().textOffset
+            Assertions.assertTrue(
+                errorOffset >= 6,
+                "TC 14: error should be at or after 'c' (offset >= 6), got $errorOffset"
+            )
+        }
+    }
+
+    /**
+     * TC 11 (SYNTAX-18-04): 'if x\nreturn 1' — both a LuaIfStatement and a typed LuaFinalStatement
+     * exist; the return is a nested child of the recovered if-block (grammar-kit maximal-partial-tree),
+     * not lost to an anonymous error tree; the PsiErrorElement is localized.
+     */
+    @Test
+    fun testNestedTypedRecovery() {
+        myFixture.configureByText(LuaFileType, "if x\nreturn 1")
+        runReadAction {
+            val ifNode = PsiTreeUtil.findChildOfType(myFixture.file, LuaIfStatement::class.java)
+            Assertions.assertNotNull(ifNode, "TC 11: expected LuaIfStatement for 'if x\\nreturn 1'")
+
+            val returnNode = PsiTreeUtil.findChildOfType(myFixture.file, LuaFinalStatement::class.java)
+            Assertions.assertNotNull(returnNode, "TC 11: expected a typed LuaFinalStatement (return 1)")
+
+            // The return is nested inside the if-statement (grammar-kit maximal-partial-tree §3.5)
+            Assertions.assertTrue(
+                PsiTreeUtil.isAncestor(ifNode!!, returnNode!!, false),
+                "TC 11: LuaFinalStatement should be a descendant of LuaIfStatement (nested recovery)"
+            )
+
+            // Error is localized (not at offset 0)
+            val errors = PsiTreeUtil.findChildrenOfType(myFixture.file, PsiErrorElement::class.java)
+            Assertions.assertFalse(errors.isEmpty(), "TC 11: expected a PsiErrorElement inside the if")
+            val errorOffset = errors.first().textOffset
+            Assertions.assertTrue(
+                errorOffset >= 4,
+                "TC 11: error textOffset should be >= 4 (after 'if x'), got $errorOffset"
+            )
+        }
+    }
+
+    /**
+     * TC 13 (SYNTAX-18-05): getName() on a partial node (where the IDENTIFIER may be absent)
+     * returns null and never throws.
+     */
+    @Test
+    fun testGetNameOnPartialNode() {
+        // 'function foo' is partial (no parens/body/end) but 'foo' is present — getName() should
+        // return "foo", not throw (SYNTAX-18-05: LuaNameRefElementImpl.getName() uses ?. not !!).
+        myFixture.configureByText(LuaFileType, "function foo")
+        runReadAction {
+            val funcDecl = PsiTreeUtil.findChildOfType(myFixture.file, LuaFuncDecl::class.java)
+            Assertions.assertNotNull(funcDecl, "TC 13: expected LuaFuncDecl for 'function foo'")
+            // funcName.nameRef.getName() must not throw; the IDENTIFIER 'foo' is present so we
+            // get a string. This verifies that the ?. change in LuaNameRefElementImpl.getName()
+            // does not break the non-error path.
+            val nameRef = funcDecl!!.funcName.nameRef
+            // Calling getName() must not throw KotlinNullPointerException (SYNTAX-18-05)
+            val name = nameRef.name
+            Assertions.assertEquals("foo", name, "TC 13: funcName.nameRef.getName() should return 'foo'")
+        }
     }
 }

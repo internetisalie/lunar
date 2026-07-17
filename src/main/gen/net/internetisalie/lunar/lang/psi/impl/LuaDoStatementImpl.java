@@ -28,9 +28,9 @@ public class LuaDoStatementImpl extends LuaStatementImpl implements LuaDoStateme
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaBlock getBlock() {
-    return findNotNullChildByClass(LuaBlock.class);
+    return findChildByClass(LuaBlock.class);
   }
 
   @Override

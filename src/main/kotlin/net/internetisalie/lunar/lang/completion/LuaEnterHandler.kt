@@ -10,11 +10,9 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
-import com.intellij.psi.util.PsiTreeUtil
-import net.internetisalie.lunar.lang.psi.LuaBlockParent
+import net.internetisalie.lunar.lang.editor.LuaKeywordBlockCloser
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.syntax.LuaBlockPairs
 
 class LuaEnterHandler : EnterHandlerDelegateAdapter() {
@@ -47,11 +45,10 @@ class LuaEnterHandler : EnterHandlerDelegateAdapter() {
         terminatorType: com.intellij.psi.tree.IElementType,
         offset: Int
     ): EnterHandlerDelegate.Result {
-        val parentClass =
-            if (terminatorType == LuaElementTypes.RCURLY) LuaTableConstructor::class.java else LuaBlockParent::class.java
-        val statement = PsiTreeUtil.getParentOfType(opener, parentClass, false)
-
-        if (statement != null && statement.node.findChildByType(terminatorType) != null) {
+        // Balance check shared with LuaKeywordBlockCloser — SYNTAX-18: a pinned partial ancestor
+        // may have had its terminator stolen by this opener's own node, so "owner has terminator"
+        // alone no longer proves balance (§3.2).
+        if (!LuaKeywordBlockCloser.needsTerminator(opener, terminatorType)) {
             // Already balanced: open an indented body line, insert no second terminator (§3.2).
             return EnterHandlerDelegate.Result.DefaultForceIndent
         }

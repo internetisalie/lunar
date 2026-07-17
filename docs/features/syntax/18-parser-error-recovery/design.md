@@ -9,6 +9,12 @@ folders:
 
 # Technical Design: SYNTAX-18 — Parser Error Recovery for Block Constructs
 
+> **As-built note (2026-07-16):** the `recoverWhile`/`lua_statement_recover` half of this design
+> was dropped during implementation — empirically unusable (see risks-and-gaps.md Blockers
+> 3.2–3.4 and implementation-plan.md "As-Built Deviations"). What shipped is the pin table of
+> §3.1 exactly, with no recovery predicate; sections mentioning `recoverWhile`/
+> `lua_statement_recover` describe the superseded plan.
+
 ## 1. Architecture Overview
 
 ### Current State
@@ -63,11 +69,17 @@ Two symptoms follow:
   `:287 …_recover ::= !(ARITH_SQUARE_RIGHT)`) and `plugins/groovy/…/groovy.bnf:566` (`{ pin = 1 recoverWhile = extends_recovery }`).
 
 ### Target State
-`lua.bnf` gains: (a) a `pin=N` attribute on each of the nine block rules, at the offset that
-commits the node after the opener keyword(s); (b) a shared `private lua_statement_recover` predicate
-rule; (c) a `recoverWhile=lua_statement_recover` reference on each of the nine rules. The parser is
-regenerated headlessly and the `src/main/gen/` delta committed. `LuaNameRefElementImpl.getName()` is
-hardened to return `null` instead of `!!`-throwing.
+`lua.bnf` gains a `pin=N` attribute on each of the nine block rules, at the offset that
+commits the node after the opener keyword(s). **No `recoverWhile` is used** — implementation
+proved it empirically unusable in this grammar (risks-and-gaps.md Blockers 3.2/3.4: it destroys
+sibling backtracking on any rule that can fail after its first token, and its junk consumption
+materializes an unconstructable `STATEMENT` node). The pinned `exit_section_` alone builds the
+typed partial node and reports the error at the missing token; grammar-kit's greedy pinned
+continuation absorbs following statements as typed children. The parser is regenerated headlessly
+and the `src/main/gen/` delta committed. `LuaNameRefElementImpl.getName()` is hardened to return
+`null` instead of `!!`-throwing, and five downstream features keyed to the old error-tree shape
+are adapted (Smart Enter, block-closer/enter-handler balance, REPL chunk completion, stub
+creation, types visitor).
 
 ## 2. Core Components
 

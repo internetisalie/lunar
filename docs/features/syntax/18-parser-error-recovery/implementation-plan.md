@@ -93,8 +93,29 @@ folders:
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: De-risk pin/recover shape | todo | Must |
-| Phase 1: Grammar edits | todo | Must |
-| Phase 2: Regenerate parser | todo | Must |
-| Phase 3: Harden name accessor | todo | Must |
-| Phase 4: Tests | todo | Must |
+| Phase 0: De-risk pin/recover shape | done | Must |
+| Phase 1: Grammar edits | done | Must |
+| Phase 2: Regenerate parser | done | Must |
+| Phase 3: Harden name accessor | done | Must |
+| Phase 4: Tests | done | Must |
+
+## As-Built Deviations (2026-07-16)
+
+The plan's `recoverWhile` half was **dropped during implementation** — four empirically-gated
+design iterations (direct pin+recover → public wrappers → private wrappers → predicate-guarded
+recover → **pins only**) proved `recoverWhile` unusable in this grammar and both wrapper
+factorings dead ends; see risks-and-gaps.md Blockers 3.2–3.5 for the full ledger. What shipped:
+
+- **Grammar (commit `3be7407f`)**: `pin` only, on all nine block rules (do/while/repeat/if/
+  funcDecl=1, localFuncDecl/globalFuncDecl=2, numericFor/genericFor=3); no predicate rule, no
+  `recoverWhile`; regen idempotent (tree-hash-verified).
+- **Null-hardening (commit `446c5c05`)**: pinned rules' generated getters flip `@Nullable` —
+  guarded LuaScopeProcessor (×3), LuaDebugValueParser, LuaRemoteStack, and getName() (Phase 3).
+- **Downstream adaptations (commit `fc88905f`, unplanned but forced)**: Smart Enter opener-leaf
+  feeding, LuaKeywordBlockCloser/LuaEnterHandler stolen-terminator balance check, REPL
+  LuaChunkCompletion funcBody-rollback secondary check, stub createStub node-based access,
+  LuaTypesVisitor partial-decl guards.
+- **Tests (commit `4568dc5e`)**: as planned, except TC 11 asserts the typed `LuaFinalStatement`
+  **nested** inside the recovered if (grammar-kit's greedy pinned continuation), not an outer
+  sibling; all PSI reads under `runReadAction`.
+- **Gate**: full clean uncached suite + ktlint green (1998 tests, 0 failures).

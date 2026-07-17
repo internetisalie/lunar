@@ -69,7 +69,7 @@ interface LuaNameRefElement : PsiNamedElement
 
 abstract class LuaNameRefElementImpl(node: ASTNode) : LuaBaseElement(node), LuaNameRefElement {
     override fun getName(): String? {
-        return findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)!!.text
+        return findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)?.text
     }
 
     override fun setName(newName: String): PsiElement {

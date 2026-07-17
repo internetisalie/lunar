@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaDoStatement extends LuaStatement, LuaBlockParent {
 
-  @NotNull
+  @Nullable
   LuaBlock getBlock();
 
   @NotNull

@@ -119,8 +119,9 @@ object LuaRemoteResultFactory {
         val variables = mutableMapOf<String, LuaValue>()
         val wrapper = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
             ?: return LuaValue.NONE
+        val wrapperBlock = wrapper.block ?: return LuaValue.NONE
 
-        for (statement in wrapper.block.statementList) {
+        for (statement in wrapperBlock.statementList) {
             when (statement) {
                 is LuaLocalVarDecl -> {
                     for ((index, attName) in statement.attNameList.withIndex()) {

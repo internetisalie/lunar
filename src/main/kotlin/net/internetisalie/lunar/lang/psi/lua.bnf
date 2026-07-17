@@ -123,25 +123,38 @@ exprStatement ::= expr
 breakStatement ::= BREAK
 gotoStatement ::= GOTO labelRef
 doStatement ::= DO block END {
+    pin = 1
     implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
     methods=[getBlockList]
 }
 whileStatement ::= WHILE expr DO block END {
+    pin = 1
     implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
     methods=[getBlockList]
 }
 repeatStatement ::= REPEAT block UNTIL expr {
+    pin = 1
     implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
     methods=[getBlockList]
 }
 ifStatement ::= IF expr THEN block {ELSEIF expr THEN block}* [ELSE block] END {
+    pin = 1
     implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
 }
+// SYNTAX-18: block rules take pin WITHOUT recoverWhile. The pin alone builds the typed
+// partial node and reports the error at the missing token; recoverWhile is deliberately
+// avoided everywhere because (a) on a rule that can fail after its first token (mid-prefix
+// or via a lookahead) it destroys sibling backtracking, and (b) its junk consumption lands
+// inside the statement _COLLAPSE_ frame, materializing an unconstructable STATEMENT node.
+// Prefix-sharing rules pin past their disambiguating token (FOR family =3, LOCAL/GLOBAL
+// func decls =2) so pre-pin failures roll back cleanly to the sibling alternative.
 numericForStatement ::= FOR IDENTIFIER '=' expr ',' expr [',' expr] DO block END {
+    pin = 3
     implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
     methods=[getBlockList]
 }
 genericForStatement ::= FOR nameList IN exprList DO block END {
+    pin = 3
     implements = ["net.internetisalie.lunar.lang.psi.LuaBlockParent"]
     methods=[getBlockList]
 }
@@ -160,6 +173,7 @@ nameRef ::= IDENTIFIER {
 exprList ::= expr {',' expr}*
 
 localFuncDecl ::= LOCAL FUNCTION nameRef funcBody {
+    pin = 2
     implements = [
         "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
         "net.internetisalie.lunar.lang.psi.LuaBlockParent"
@@ -172,6 +186,7 @@ localFuncDecl ::= LOCAL FUNCTION nameRef funcBody {
 }
 
 funcDecl ::= FUNCTION funcName funcBody {
+    pin = 1
     implements = [
         "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
         "net.internetisalie.lunar.lang.psi.LuaBlockParent"
@@ -206,6 +221,7 @@ globalModeDecl ::= GLOBAL [attrib] '*' {
 }
 
 globalFuncDecl ::= GLOBAL FUNCTION nameRef funcBody {
+    pin = 2
     implements = [
         "net.internetisalie.lunar.lang.psi.LuaCommentOwner"
         "net.internetisalie.lunar.lang.psi.LuaBlockParent"

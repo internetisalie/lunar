@@ -60,7 +60,60 @@ folders:
   design §3.1 / §6. Answer folded into design: `pin=3` on both FOR rules; bare `for i` accepted as
   unrecovered.
 
+## Execution Blockers (all RESOLVED — empirical design ledger, 2026-07-16)
+
+Implementation went through four empirically-gated design iterations; each blocker below was
+reproduced on a clean, uncached full-suite run (`gce-builder run "clean test --no-build-cache"`).
+
+### Blocker 3.1 (RESOLVED): pinned rules flip generated getters to `@Nullable`
+Pinning makes post-pin children optional, so grammar-kit regenerates `getBlock()`/`getExpr()`/
+`getNameRef()` on the pinned rules as `@Nullable`, breaking compile at four pre-existing
+dereference sites. **Resolution**: null-safe guards in `LuaScopeProcessor` (×3),
+`LuaDebugValueParser`, `LuaRemoteStack`, plus the planned `getName()` harden (commit `446c5c05`).
+Note: the three hand-stubbed decl types (`LuaFuncDecl`/`LuaLocalFuncDecl`/`LuaLocalVarDecl`) are
+restored by `generate.sh`, so their getters stay `@NotNull` and THROW on partial nodes — callers
+on the partial-node path use node-based access instead (stub creation, types visitor).
+
+### Blocker 3.2 (RESOLVED): `recoverWhile` + multi-token pin destroys sibling backtracking
+`pin=2/3` + `recoverWhile` on the prefix-sharing rules (`localFuncDecl`, `numericForStatement`…)
+regressed VALID parsing (`local a, b = 1, 2`, `for k,v in pairs(t) do end` → `Empty element
+parsed in 'root'`): a recover-exit does not roll back a mid-prefix failure, so the sibling
+alternative starts mid-statement. 155→342-failure class regressions across two variants.
+
+### Blocker 3.3 (RESOLVED): wrapper factorings are dead ends
+Public wrappers (`forStatement ::= FOR forTail`) parse correctly but insert a PSI node between
+block and decl → 155 failures across the type engine, stub indexing, inlay hints, docs and
+inspections (pervasive tree-shape dependency). Private wrappers do not compile: a
+`statement`-typed tail inlined into `statement` makes grammar-kit emit an abstract
+`getStatement()` on `LuaStatement` (renaming the wrapper out of `.*Statement` fixes the
+element-type collision but not this).
+
+### Blocker 3.4 (RESOLVED): `recoverWhile` poisons the choice even behind a zero-width guard
+`&(FOR IDENTIFIER '=')`-guarded pins still regressed valid parsing (342 failures) — a failed
+lookahead inside a recovered rule leaves the choice frame corrupted. Additionally, recovery junk
+consumption lands inside the `statement ::=` `_COLLAPSE_` frame; when the collapse fails a real
+`STATEMENT` node materializes and the generated factory throws `AssertionError("Unknown element
+type: STATEMENT")` (`LuaStatementImpl` is abstract) during indexing/annotation.
+
+### Resolution — pins only (shipped)
+`pin` on all nine rules, NO `recoverWhile` anywhere. Plain pins backtrack cleanly below the pin,
+build the typed partial node with the error at the missing token, and leave trailing-junk
+handling byte-identical to the unpinned parser. Downstream features keyed to the old
+error-tree shape were adapted (commit `fc88905f`): Smart Enter opener-leaf feeding (composite
+`getChildren()` skips leaves), stolen-terminator balance check (a pinned inner block greedily
+consumes the enclosing block's `end`), REPL funcBody-rollback secondary check, stub/type-visitor
+node-based access. Full clean suite + ktlint green (1998 tests, 0 failures).
+
 ## Technical Debt & Future Work
+- **`@NotNull` getters on partial nodes** — the hand-stubbed decl getters (`funcName`/`nameRef`)
+  and the non-flipped generated getters (`genericForStatement.getNameList()`/`getExprList()`)
+  throw if called on a partial node; only the paths exercised by the suite are guarded. New
+  partial-node consumers must use node-based access or guard explicitly.
+- **End-stealing** — a pinned inner block's greedy continuation consumes the enclosing block's
+  terminator (`do while x do<caret> end` → the `while` owns the `end`). The balance checks
+  compensate; other tree consumers observing malformed nests should be aware.
+- **`recoverWhile` is banned in `lua.bnf`** — see Blockers 3.2/3.4; revisit only with a
+  grammar-kit version that fixes the recover-exit rollback, and only via an empirical spike.
 - **TBD: Remaining `!!` hardening** — the other ~39 `!!` sites in `docs/review.md:154` (e.g.
   `LuaElementFactory.kt:24`, `LuaComplexTypes.kt:14`, `structure/LuaStructureViewTreeElement.kt:10`)
   are out of scope; only the recovery-hit accessor is fixed here.

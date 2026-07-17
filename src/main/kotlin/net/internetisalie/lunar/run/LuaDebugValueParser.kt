@@ -262,7 +262,7 @@ class LuaDebugValueParser(private val project: Project? = null) {
 
     fun parse(doStatement: LuaDoStatement): LuaTable {
         // Execute each statement in the block
-        val block = doStatement.block
+        val block = doStatement.block ?: return LuaTable()
         val statements = block.statementList
 
         for (i in statements.indices) {

@@ -30,15 +30,15 @@ public class LuaGlobalFuncDeclImpl extends LuaStatementImpl implements LuaGlobal
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaBlock getBlock() {
-    return findNotNullChildByClass(LuaBlock.class);
+    return findChildByClass(LuaBlock.class);
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaNameRef getNameRef() {
-    return findNotNullChildByClass(LuaNameRef.class);
+    return findChildByClass(LuaNameRef.class);
   }
 
   @Override

@@ -293,13 +293,14 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean doStatement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "doStatement")) return false;
     if (!nextTokenIs(builder_, DO)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, DO_STATEMENT, null);
     result_ = consumeToken(builder_, DO);
-    result_ = result_ && block(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, END);
-    exit_section_(builder_, marker_, DO_STATEMENT, result_);
-    return result_;
+    pinned_ = result_; // pin = 1
+    result_ = result_ && report_error_(builder_, block(builder_, level_ + 1));
+    result_ = pinned_ && consumeToken(builder_, END) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   /* ********************************************************** */
@@ -507,13 +508,14 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean funcDecl(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "funcDecl")) return false;
     if (!nextTokenIs(builder_, FUNCTION)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, FUNC_DECL, null);
     result_ = consumeToken(builder_, FUNCTION);
-    result_ = result_ && funcName(builder_, level_ + 1);
-    result_ = result_ && funcBody(builder_, level_ + 1);
-    exit_section_(builder_, marker_, FUNC_DECL, result_);
-    return result_;
+    pinned_ = result_; // pin = 1
+    result_ = result_ && report_error_(builder_, funcName(builder_, level_ + 1));
+    result_ = pinned_ && funcBody(builder_, level_ + 1) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   /* ********************************************************** */
@@ -579,17 +581,18 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean genericForStatement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "genericForStatement")) return false;
     if (!nextTokenIs(builder_, FOR)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, GENERIC_FOR_STATEMENT, null);
     result_ = consumeToken(builder_, FOR);
     result_ = result_ && nameList(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, IN);
-    result_ = result_ && exprList(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, DO);
-    result_ = result_ && block(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, END);
-    exit_section_(builder_, marker_, GENERIC_FOR_STATEMENT, result_);
-    return result_;
+    pinned_ = result_; // pin = 3
+    result_ = result_ && report_error_(builder_, exprList(builder_, level_ + 1));
+    result_ = pinned_ && report_error_(builder_, consumeToken(builder_, DO)) && result_;
+    result_ = pinned_ && report_error_(builder_, block(builder_, level_ + 1)) && result_;
+    result_ = pinned_ && consumeToken(builder_, END) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   /* ********************************************************** */
@@ -597,13 +600,14 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean globalFuncDecl(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "globalFuncDecl")) return false;
     if (!nextTokenIs(builder_, GLOBAL)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
-    result_ = consumeTokens(builder_, 0, GLOBAL, FUNCTION);
-    result_ = result_ && nameRef(builder_, level_ + 1);
-    result_ = result_ && funcBody(builder_, level_ + 1);
-    exit_section_(builder_, marker_, GLOBAL_FUNC_DECL, result_);
-    return result_;
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, GLOBAL_FUNC_DECL, null);
+    result_ = consumeTokens(builder_, 2, GLOBAL, FUNCTION);
+    pinned_ = result_; // pin = 2
+    result_ = result_ && report_error_(builder_, nameRef(builder_, level_ + 1));
+    result_ = pinned_ && funcBody(builder_, level_ + 1) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   /* ********************************************************** */
@@ -677,17 +681,18 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean ifStatement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "ifStatement")) return false;
     if (!nextTokenIs(builder_, IF)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, IF_STATEMENT, null);
     result_ = consumeToken(builder_, IF);
-    result_ = result_ && expr(builder_, level_ + 1, -1);
-    result_ = result_ && consumeToken(builder_, THEN);
-    result_ = result_ && block(builder_, level_ + 1);
-    result_ = result_ && ifStatement_4(builder_, level_ + 1);
-    result_ = result_ && ifStatement_5(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, END);
-    exit_section_(builder_, marker_, IF_STATEMENT, result_);
-    return result_;
+    pinned_ = result_; // pin = 1
+    result_ = result_ && report_error_(builder_, expr(builder_, level_ + 1, -1));
+    result_ = pinned_ && report_error_(builder_, consumeToken(builder_, THEN)) && result_;
+    result_ = pinned_ && report_error_(builder_, block(builder_, level_ + 1)) && result_;
+    result_ = pinned_ && report_error_(builder_, ifStatement_4(builder_, level_ + 1)) && result_;
+    result_ = pinned_ && report_error_(builder_, ifStatement_5(builder_, level_ + 1)) && result_;
+    result_ = pinned_ && consumeToken(builder_, END) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   // {ELSEIF expr THEN block}*
@@ -811,13 +816,14 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean localFuncDecl(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "localFuncDecl")) return false;
     if (!nextTokenIs(builder_, LOCAL)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
-    result_ = consumeTokens(builder_, 0, LOCAL, FUNCTION);
-    result_ = result_ && nameRef(builder_, level_ + 1);
-    result_ = result_ && funcBody(builder_, level_ + 1);
-    exit_section_(builder_, marker_, LOCAL_FUNC_DECL, result_);
-    return result_;
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, LOCAL_FUNC_DECL, null);
+    result_ = consumeTokens(builder_, 2, LOCAL, FUNCTION);
+    pinned_ = result_; // pin = 2
+    result_ = result_ && report_error_(builder_, nameRef(builder_, level_ + 1));
+    result_ = pinned_ && funcBody(builder_, level_ + 1) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   /* ********************************************************** */
@@ -947,18 +953,19 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean numericForStatement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "numericForStatement")) return false;
     if (!nextTokenIs(builder_, FOR)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
-    result_ = consumeTokens(builder_, 0, FOR, IDENTIFIER, ASSIGN);
-    result_ = result_ && expr(builder_, level_ + 1, -1);
-    result_ = result_ && consumeToken(builder_, COMMA);
-    result_ = result_ && expr(builder_, level_ + 1, -1);
-    result_ = result_ && numericForStatement_6(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, DO);
-    result_ = result_ && block(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, END);
-    exit_section_(builder_, marker_, NUMERIC_FOR_STATEMENT, result_);
-    return result_;
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, NUMERIC_FOR_STATEMENT, null);
+    result_ = consumeTokens(builder_, 3, FOR, IDENTIFIER, ASSIGN);
+    pinned_ = result_; // pin = 3
+    result_ = result_ && report_error_(builder_, expr(builder_, level_ + 1, -1));
+    result_ = pinned_ && report_error_(builder_, consumeToken(builder_, COMMA)) && result_;
+    result_ = pinned_ && report_error_(builder_, expr(builder_, level_ + 1, -1)) && result_;
+    result_ = pinned_ && report_error_(builder_, numericForStatement_6(builder_, level_ + 1)) && result_;
+    result_ = pinned_ && report_error_(builder_, consumeToken(builder_, DO)) && result_;
+    result_ = pinned_ && report_error_(builder_, block(builder_, level_ + 1)) && result_;
+    result_ = pinned_ && consumeToken(builder_, END) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   // [',' expr]
@@ -1015,14 +1022,15 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean repeatStatement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "repeatStatement")) return false;
     if (!nextTokenIs(builder_, REPEAT)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, REPEAT_STATEMENT, null);
     result_ = consumeToken(builder_, REPEAT);
-    result_ = result_ && block(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, UNTIL);
-    result_ = result_ && expr(builder_, level_ + 1, -1);
-    exit_section_(builder_, marker_, REPEAT_STATEMENT, result_);
-    return result_;
+    pinned_ = result_; // pin = 1
+    result_ = result_ && report_error_(builder_, block(builder_, level_ + 1));
+    result_ = pinned_ && report_error_(builder_, consumeToken(builder_, UNTIL)) && result_;
+    result_ = pinned_ && expr(builder_, level_ + 1, -1) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   /* ********************************************************** */
@@ -1248,15 +1256,16 @@ public class LuaParser implements PsiParser, LightPsiParser {
   public static boolean whileStatement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "whileStatement")) return false;
     if (!nextTokenIs(builder_, WHILE)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
+    boolean result_, pinned_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, WHILE_STATEMENT, null);
     result_ = consumeToken(builder_, WHILE);
-    result_ = result_ && expr(builder_, level_ + 1, -1);
-    result_ = result_ && consumeToken(builder_, DO);
-    result_ = result_ && block(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, END);
-    exit_section_(builder_, marker_, WHILE_STATEMENT, result_);
-    return result_;
+    pinned_ = result_; // pin = 1
+    result_ = result_ && report_error_(builder_, expr(builder_, level_ + 1, -1));
+    result_ = pinned_ && report_error_(builder_, consumeToken(builder_, DO)) && result_;
+    result_ = pinned_ && report_error_(builder_, block(builder_, level_ + 1)) && result_;
+    result_ = pinned_ && consumeToken(builder_, END) && result_;
+    exit_section_(builder_, level_, marker_, result_, pinned_, null);
+    return result_ || pinned_;
   }
 
   /* ********************************************************** */

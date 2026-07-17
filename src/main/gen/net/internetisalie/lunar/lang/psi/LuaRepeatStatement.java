@@ -7,10 +7,10 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaRepeatStatement extends LuaStatement, LuaBlockParent {
 
-  @NotNull
+  @Nullable
   LuaBlock getBlock();
 
-  @NotNull
+  @Nullable
   LuaExpr getExpr();
 
   @NotNull
