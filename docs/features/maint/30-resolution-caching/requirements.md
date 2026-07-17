@@ -3,7 +3,7 @@ id: "MAINT-30"
 title: "30: Indexing & Resolution Caching"
 type: "feature"
 parent_id: "MAINT"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -36,4 +36,22 @@ require-extraction copy-paste consolidation that the review traced to real diver
 | MAINT-30-04 | Idiom migration | C | Not Implemented | Method-chain provider → `resolveType`/`resolveMember` (§2.5.4) |
 
 **Blast radius:** resolution touches everything — full-suite gate mandatory; watch the two
-external-fixture tests (`LuaRecursiveReferenceTest`) that exercise cross-file resolution.
+external-fixture tests (`LuaRecursiveReferenceTest`, `LuaDescriptionIndexTest`) that exercise
+cross-file resolution (builder-only — CI skips them; gate on `gce-builder run test`).
+
+## Test Cases
+
+Each `Must` requirement has ≥1 concrete input→output case (design section in parens).
+
+| TC | Requirement | Input | Action | Expected Output |
+| :--- | :--- | :--- | :--- | :--- |
+| TC-01 | MAINT-30-01 | `c.lua`: `function bar() end`; `b.lua`: `print(bar)` (a usage); `d.lua`: `bar()` | Resolve `bar` from `d.lua` (§3.1) | Resolves to `c.lua` declaration only; `b.lua`'s usage leaf is **not** a candidate (before fix it was) |
+| TC-02 | MAINT-30-03 | `local x = <caret>x` (RHS `x` in a self-referential initializer) | Resolve the RHS `x` reference via `multiResolve`/Go-to-Declaration (§3.3) | RHS `x` does **not** resolve to the enclosing `local x` declaration (Lua scope: the local is not yet in scope on its own RHS); resolves elsewhere or to `null`. Locks the scope-walk correction (before the §2.1 collapse the inline walk wrongly resolved it to the local) |
+| TC-07 | MAINT-30-01 | `t.f = 1` at file top level | Read the FileBindings record for the file (§3.1) | Record contains **no** binding named `t` or `f` (dotted assignment owned by member-field index) |
+| TC-03 | MAINT-30-02 | `local x = 1; print(x)` — reference the `x` in `print(x)` | `configureByText` → resolve the `x` reference once and record `LuaNameReference.RESOLVE_INVOCATIONS.get()` (call it `n`) → resolve the **same** reference again with **no** PSI edit → assert the counter delta for the second resolve is `0` (`RESOLVE_INVOCATIONS.get() == n`, i.e. served from `ResolveCache`); then perform a PSI edit (e.g. `myFixture.type(...)`) and resolve again → assert `RESOLVE_INVOCATIONS.get() > n` (the cache was dropped and the body recomputed) (§2.2) | Second (no-change) resolve does **not** re-enter `doMultiResolve` (counter unchanged); post-edit resolve **does** re-enter (counter increments). Seam: `@VisibleForTesting internal val RESOLVE_INVOCATIONS: AtomicInteger` on `LuaNameReference.Companion`, incremented as the first statement of `doMultiResolve` |
+| TC-04 | MAINT-30-02 | `local x = KEYS[1]` under REDIS target | Read `forFile` snapshot, switch target to plain Lua (no text edit), read again (§3.4) | Snapshot recomputes; `x` type differs across targets (KEYS unseeded) |
+| TC-05 | MAINT-30-02 | `local a = 1` then edit to `local a = "s"` (same length) | Read `forFile` before and after the edit (§3.4) | Second read reflects the new type (no stale-hash serve) |
+| TC-06 | MAINT-30-02 | A file whose `visitFuncCall` re-enters `forFile` during a build | Build the snapshot (§3.4, §6) | Completes without recursion; `inProgressSnapshot` short-circuits before `CachedValuesManager` |
+| TC-08 | MAINT-30-03 | `require("m")` where `m.lua` exists on disk but not yet in VFS | Resolve the module via `resolveModuleCandidates` (§3.6) | Resolution does **not** trigger a synchronous VFS refresh (refresh flag `false`) |
+| TC-09 | MAINT-30-04 | Existing multi-line method-chain fixtures | Run the inlay-hint provider (§2.7) | Hint text identical to the pre-migration stub-index path (or DR-03 fallback documented) |
+
