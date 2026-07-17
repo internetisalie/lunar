@@ -429,6 +429,4 @@ to the `registerProblem` varargs conditionally instead of unconditionally
   (dataflow correctness), not re-derived per consumer.
 
 ## 10. Open Questions
-_None — feature has cleared the planning bar. The single implementation-time confirmation
-(`LuaGraphType.Table.fields` metamethod carriage, #68) is tracked as DR-01 in
-[risks-and-gaps.md](risks-and-gaps.md)._
+None. (The single implementation-time confirmation — the `__concat` membership accessor, #68 — is DR-01 in risks-and-gaps.md.)
