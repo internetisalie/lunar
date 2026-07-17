@@ -18,6 +18,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.NotNullLazyValue
+import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.RawCommandLineEditor
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.execution.ParametersListUtil
@@ -97,6 +98,10 @@ class LuaRunConfigurationOptions : RunConfigurationOptions() {
         this, "interpreterArguments"
     )
 
+    private val myDebugPort: StoredProperty<Int> = property(DEFAULT_DEBUG_PORT).provideDelegate(
+        this, "debugPort"
+    )
+
     var interpreter: String?
         get() = myInterpreter.getValue(this)
         set(interpreter) {
@@ -151,6 +156,15 @@ class LuaRunConfigurationOptions : RunConfigurationOptions() {
             myInterpreterArguments.setValue(this, interpreterArguments)
         }
 
+    var debugPort: Int
+        get() = myDebugPort.getValue(this)
+        set(debugPort) {
+            myDebugPort.setValue(this, debugPort)
+        }
+
+    companion object {
+        const val DEFAULT_DEBUG_PORT: Int = 8172
+    }
 }
 
 class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name: String?) :
@@ -200,6 +214,12 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         get() = options.sourcePath
         set(sourcePath) {
             options.sourcePath = sourcePath
+        }
+
+    var debugPort: Int
+        get() = options.debugPort
+        set(debugPort) {
+            options.debugPort = debugPort
         }
 
     var environmentVariables: EnvironmentVariablesData?
@@ -284,6 +304,7 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
                         pluginLuaPath.path + "/?/init.lua;" + pluginLuaPath.path + "/?.lua")
                     commandLine.withEnvironment(ENV_LUNAR_DEBUGGER_PACKAGE, DEBUGGER_PACKAGE)
                     commandLine.withEnvironment(ENV_LUA_INIT, "@${debuggerPreloaderFile.path}")
+                    commandLine.withEnvironment(ENV_MOBDEBUG_PORT, debugPort.toString())
                 }
 
                 // TOOLING-05 §2.5: PATH prepend + LUA_PATH/LUA_CPATH from the env builder, honoring
@@ -307,6 +328,7 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         const val ENV_LUA_INIT = "LUA_INIT"
         const val ENV_LUNAR_LUA_PATH_TEMPLATE = "LUNAR_LUA_PATH_TEMPLATE"
         const val ENV_LUNAR_DEBUGGER_PACKAGE = "LUNAR_DEBUGGER_PACKAGE"
+        const val ENV_MOBDEBUG_PORT = "MOBDEBUG_PORT"
     }
 }
 
@@ -322,6 +344,7 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
     private val environmentVariablesField = EnvironmentVariablesTextFieldWithBrowseButton()
     private val interpreterArgumentsField = RawCommandLineEditor()
     private val programArgumentsField = RawCommandLineEditor()
+    private val debugPortField = JBIntSpinner(LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT, 1, 65535)
 
 
     init {
@@ -345,6 +368,7 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
             .addLabeledComponent("Environment", environmentVariablesField)
             .addLabeledComponent("Interpreter arguments", interpreterArgumentsField)
             .addLabeledComponent("Program arguments", programArgumentsField)
+            .addLabeledComponent("Debug port", debugPortField)
             .panel
     }
 
@@ -356,6 +380,7 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
         environmentVariablesField.data = runConfiguration.environmentVariables ?: EnvironmentVariablesData.DEFAULT
         interpreterArgumentsField.text = runConfiguration.interpreterArguments ?: ""
         programArgumentsField.text = runConfiguration.programArguments ?: ""
+        debugPortField.number = runConfiguration.debugPort
     }
 
     override fun applyEditorTo(runConfiguration: LuaRunConfiguration) {
@@ -366,6 +391,7 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
         runConfiguration.environmentVariables = environmentVariablesField.data
         runConfiguration.interpreterArguments = interpreterArgumentsField.text
         runConfiguration.programArguments = programArgumentsField.text
+        runConfiguration.debugPort = debugPortField.number
     }
 
     override fun createEditor(): JComponent {

@@ -141,6 +141,26 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
         assertEquals("/explicit/dir", config.effectiveWorkDirectory())
     }
 
+    /** TC-08a (C1): the debug port round-trips through the editor and defaults to 8172. */
+    @Test
+    fun testDebugPortRoundTripsThroughEditor() {
+        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+        assertEquals(LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT, config.debugPort)
+        config.debugPort = 9000
+
+        val editor = LuaRunSettingsEditor(myFixture.project)
+        try {
+            editor.resetFrom(config)
+
+            val reapplied = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg2")
+            editor.applyTo(reapplied)
+
+            assertEquals(9000, reapplied.debugPort)
+        } finally {
+            Disposer.dispose(editor)
+        }
+    }
+
     /** TC-06c (#56): checkConfiguration rejects a config with no resolvable runtime. */
     @Test
     fun testCheckConfigurationThrowsWithoutRuntime() {

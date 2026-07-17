@@ -101,14 +101,14 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 ### Phase 7: Robustness pass [Could]
 - **Goal**: configurable port, graceful EXIT (#§2.5.7, §3).
 - **Tasks**:
-  - [ ] Edit `LuaRunConfigurationOptions` + `LuaRunConfiguration` — add `debugPort` StoredProperty
+  - [x] Edit `LuaRunConfigurationOptions` + `LuaRunConfiguration` — add `debugPort` StoredProperty
         (default 8172), editor spinner, `MOBDEBUG_PORT` env in the debug branch (`:261-271`) —
         realizes design §2.6, §3.7.
-  - [ ] Edit `LuaDebuggerController.init` — set `serverPort` from the run config's `debugPort`
+  - [x] Edit `LuaDebuggerController.init` — set `serverPort` from the run config's `debugPort`
         (`:55,70`) — §3.7.
-  - [ ] Edit `src/main/lua/lunar/debug.lua` — read `MOBDEBUG_PORT` and pass `start(host, port)` —
+  - [x] Edit `src/main/lua/lunar/debug.lua` — read `MOBDEBUG_PORT` and pass `start(host, port)` —
         §3.7.
-  - [ ] Edit `LuaDebugProcess.stop()` — call `controller.terminate()` before `destroyProcess()`
+  - [x] Edit `LuaDebugProcess.stop()` — call `controller.terminate()` before `destroyProcess()`
         (`:69-73`) — realizes design §2.4 (graceful EXIT; retires the review §3 dead-code note).
 - **Exit criteria**: a port round-trip unit test green; full suite green. Port binding + graceful
   EXIT are VNC-gated (HV-07, HV-08).
@@ -169,5 +169,5 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
 | Phase 4: Value & stack fidelity | done | Should |
 | Phase 5: Run-config integrity | done | Should |
 | Phase 6: Busted runner correctness | done | Should |
-| Phase 7: Robustness pass | todo | Could |
+| Phase 7: Robustness pass | done | Could |
 | Phase 8: Run to Cursor | todo | Should |

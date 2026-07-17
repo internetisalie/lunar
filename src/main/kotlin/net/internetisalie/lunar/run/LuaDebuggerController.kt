@@ -53,7 +53,7 @@ class LuaDebuggerController(
     private var serverSocket: ServerSocket? = null
     private var clientAddress: InetAddress? = null
     private var connection: LuaDebugConnection? = null
-    private var serverPort: Int = 8172
+    private var serverPort: Int = LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT
     private var console: ConsoleView? = null
     var isReady: Boolean = false
         private set
@@ -68,6 +68,9 @@ class LuaDebuggerController(
 
     init {
         session.setPauseActionSupported(false)
+
+        serverPort = (this.session.runProfile as? LuaRunConfiguration)?.debugPort
+            ?: LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT
 
         val workingDirectory: String = listOfNotNull(
             (this.session.runProfile as? LuaRunConfiguration)?.workingDirectory,

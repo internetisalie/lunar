@@ -49,7 +49,7 @@ evaluator error path (#13) and the connect timeout (#55), and removed the breakp
 | MAINT-24-05 | Value/stack fidelity | S | Full | Positional index lookup (#52), `firstFrameIndex` (#53), 1-based line display (#59) |
 | MAINT-24-06 | Run-config integrity | S | Full | Source-path write-back (#26), `checkConfiguration()` + basePath fallback (#56) |
 | MAINT-24-07 | Busted runner correctness | S | Full | Lua-pattern rerun filter (#27), JSON scanner `"`-only delimiters (#54), streaming output (§2.5.7) |
-| MAINT-24-08 | Robustness pass | C | Not Implemented | Configurable port, remove sleep-based races, graceful EXIT on stop (§2.5.7, §3) |
+| MAINT-24-08 | Robustness pass | C | Full | Configurable port, remove sleep-based races, graceful EXIT on stop (§2.5.7, §3) |
 
 ## Scope
 
