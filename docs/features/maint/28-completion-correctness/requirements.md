@@ -3,7 +3,7 @@ id: "MAINT-28"
 title: "28: Completion Correctness & Performance"
 type: "feature"
 parent_id: "MAINT"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -39,3 +39,17 @@ review's systemic analysis attributed to this stack.
 
 **DoD note:** completion features gate on real-flow tests (`completeBasic()`), per the roadmap's
 DoD clause — engine-only tests hid exactly this class of bug (#24) for a full wave.
+
+## Test Cases
+
+Every case is real-flow: `myFixture.completeBasic()` (or actual Enter), never engine-only.
+
+| TC | Requirement | Input (fixture) | Action | Expected output |
+| :--- | :--- | :--- | :--- | :--- |
+| TC-24 | MAINT-28-01 | `main.lua` = `require("mod")\nfoo<caret>`; `mod.lua` = `function foobar() end`; both on real disk (heavy fixture, source content root registered) | `completeBasic()` | Lookup strings contain `foobar` (cross-file require phase resolves against the indexed original file). Before fix: absent. |
+| TC-39 | MAINT-28-02 | `local price = 1\npri<caret>` | `completeBasic()` | Lookup offers `price` exactly once (no duplicate `price` entries); scope-walk runs once per session. |
+| TC-39b | MAINT-28-02 | `local price = 1\nlocal t = {}\nt.pri<caret>` | `completeBasic()` | Lookup does **not** offer the standalone local `price` after the dot (the deleted IDENTIFIER provider's member-position leak is gone); member completion for `t` unaffected. |
+| TC-40 | MAINT-28-03 | `function Account:deposit() end\nfunction ledger() end\nledg<caret>` and separately `Acc<caret>` | `completeBasic()` | `ledger` offered; typing `Acc`, `Account` is **not** offered as a global function (method receiver excluded). |
+| TC-62 | MAINT-28-03 | `local x = tr<caret>` (typed prefix `tr`) | `completeBasic()` | Expression keyword `true` is **not** injected into the list (real prefix suppresses the keyword literals); with empty prefix `local x = <caret>`, `true`/`false`/`nil` **are** offered. |
+| TC-25p | MAINT-28-05 | Any file with ≥1 project global | Two consecutive `completeBasic()` invocations with no intervening PSI edit | The `CachedValue` instance returns the **identical `List` object** on both invocations (`assertSame` on `funcKeyCache.value` snapshots taken around each completion) — proving no recomputation; after a PSI edit, a different instance. No spy/counter seam needed. |
+| TC-25 | MAINT-28-04 | `if x then<caret>end` (caret between `then` and `end`) | Type Enter (`myFixture.type("\n")`) | A blank, indented body line is opened above `end` (`DefaultForceIndent` fires). Negative: Enter *after* `end` leaves default behavior. |
