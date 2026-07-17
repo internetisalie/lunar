@@ -32,6 +32,21 @@ class LuaRocksSearchServiceParseTest {
     }
 
     @Test
+    fun `TC-ROCKS-16-11 redesign did not alter arch collapse`() {
+        // Regression guard: two arch rows for the same (name, version) collapse to one row.
+        val stdout = """
+            inspect 3.1.3-0 rockspec https://luarocks.org/manifests/kikito
+            inspect 3.1.3-0 src https://luarocks.org/manifests/kikito
+        """.trimIndent()
+
+        val results = LuaRocksSearchService.parseSearchOutput(stdout, emptySet())
+
+        assertEquals(1, results.size)
+        assertEquals("inspect", results[0].name)
+        assertEquals("3.1.3-0", results[0].version)
+    }
+
+    @Test
     fun `skips lines with fewer than 4 fields`() {
         val stdout = """
             inspect 3.1.3-0 rockspec https://luarocks.org/manifests/kikito

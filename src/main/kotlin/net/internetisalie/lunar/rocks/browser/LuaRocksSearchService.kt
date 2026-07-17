@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
 import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
+import java.nio.file.Path
 
 /**
  * Shells out to `luarocks search --porcelain` / `luarocks list --porcelain` and parses the results.
@@ -34,61 +35,78 @@ object LuaRocksSearchService {
 
     /**
      * Returns packages matching [query], annotated with [LuaRockPackage.isInstalled].
-     * Returns an empty list if [query] is blank, or if the CLI is unavailable / offline.
+     * Returns an empty list only when [query] is blank.
      *
-     * @param project used to resolve the effective executable and registry server (ROCKS-06).
-     *   Pass `null` to use the application defaults.
+     * Throws [BrowserCliError] (design §3.5) when no binary resolves or the CLI exits non-zero, so
+     * the browser can render an honest error state instead of a misleading empty result. Non-browser
+     * callers should use [searchOrEmpty], which preserves the silent-empty contract.
+     *
+     * @param project resolves the effective executable and registry server (ROCKS-06).
+     * @param treeRoot the canonical tree whose installed rocks flag the ✓ cross-ref (design §2.3).
      */
-    fun search(query: String, project: Project? = null): List<LuaRockPackage> {
+    fun search(query: String, project: Project? = null, treeRoot: Path? = null): List<LuaRockPackage> {
         if (query.isBlank()) return emptyList()
-        val cached = LuaRocksSearchCache.get(query, System.currentTimeMillis())
-        if (cached != null) return cached
-
-        val exe = LuaRocksEnvironment.resolveExecutable(project) ?: run {
-            log.warn("luarocks search skipped: no luarocks binary resolved")
-            return emptyList()
-        }
         val server = LuaRocksEnvironment.resolveServer(project)
+        LuaRocksSearchCache.get(query, server, System.currentTimeMillis())?.let { return it }
+
+        val exe = LuaRocksEnvironment.resolveExecutable(project)
+            ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
         val subArgs = LuaRocksEnvironment.withServer(listOf("search", "--porcelain", query), server)
         val output = LuaToolExecutionService.getInstance().capture(
             GeneralCommandLine(exe, *subArgs.toTypedArray()),
             LuaExecTimeout.COMMAND,
         )
         if (output.exitCode != 0) {
-            log.warn("luarocks search --porcelain $query exited ${output.exitCode}: ${output.stderr.trim()}")
-            return emptyList()
+            throw BrowserCliError(output.stderr.trim().ifEmpty { "luarocks search exited ${output.exitCode}" })
         }
 
-        val installedNames = installed(project)
+        val installedNames = installed(project, treeRoot)
         val packages = parseSearchOutput(output.stdout, installedNames)
-        LuaRocksSearchCache.put(query, packages, System.currentTimeMillis())
+        LuaRocksSearchCache.put(query, server, packages, System.currentTimeMillis())
         return packages
     }
 
-    /**
-     * Returns the set of installed package names, as reported by luarocks.
-     * Uses `luarocks list --porcelain` (same field format as search) — a purely local
-     * operation, so no `--server` override applies.
-     *
-     * @param project used to resolve the effective executable (ROCKS-06).
-     *   Pass `null` to use the application defaults.
-     */
-    fun installed(project: Project? = null): Set<String> {
-        val exe = LuaRocksEnvironment.resolveExecutable(project) ?: run {
-            log.warn("luarocks list skipped: no luarocks binary resolved")
-            return emptySet()
+    /** [search] wrapper preserving the graceful silent-empty path for non-browser callers (design §6). */
+    fun searchOrEmpty(query: String, project: Project? = null, treeRoot: Path? = null): List<LuaRockPackage> =
+        try {
+            search(query, project, treeRoot)
+        } catch (failure: BrowserCliError) {
+            log.warn("luarocks search '$query' failed: ${failure.message}")
+            emptyList()
         }
-        val subArgs = listOf("list", "--porcelain")
+
+    /**
+     * Returns the set of installed package names reported by `luarocks list --porcelain`, scoped to
+     * [treeRoot] via `--tree` when non-null (design §2.3). Throws [BrowserCliError] on unresolved
+     * binary / non-zero exit; [installedOrEmpty] keeps the graceful path.
+     *
+     * @param project resolves the effective executable (ROCKS-06).
+     */
+    fun installed(project: Project? = null, treeRoot: Path? = null): Set<String> {
+        val exe = LuaRocksEnvironment.resolveExecutable(project)
+            ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
+        val subArgs = buildList {
+            add("list"); add("--porcelain")
+            if (treeRoot != null) { add("--tree"); add(treeRoot.toString()) }
+        }
         val output = LuaToolExecutionService.getInstance().capture(
             GeneralCommandLine(exe, *subArgs.toTypedArray()),
             LuaExecTimeout.COMMAND,
         )
         if (output.exitCode != 0) {
-            log.warn("luarocks list --porcelain exited ${output.exitCode}: ${output.stderr.trim()}")
-            return emptySet()
+            throw BrowserCliError(output.stderr.trim().ifEmpty { "luarocks list exited ${output.exitCode}" })
         }
         return parseInstalledOutput(output.stdout)
     }
+
+    /** [installed] wrapper preserving the graceful silent-empty path (design §6). */
+    fun installedOrEmpty(project: Project? = null, treeRoot: Path? = null): Set<String> =
+        try {
+            installed(project, treeRoot)
+        } catch (failure: BrowserCliError) {
+            log.warn("luarocks list failed: ${failure.message}")
+            emptySet()
+        }
 
     // ── Parsing helpers ─────────────────────────────────────────────────────
 

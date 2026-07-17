@@ -34,15 +34,17 @@ fully unit-testable **before** any UI work.
 ### Phase 2: Installed listing + error model [Must] — [logic / unit-testable]
 - **Goal**: Per-tree installed listing and honest CLI-error propagation.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.LuaRocksInstalledService` +
+  - [x] Create `net.internetisalie.lunar.rocks.browser.LuaRocksInstalledService` +
     `InstalledRockRow` — realizes design §2.3 / §4.1 (`list`, `parseInstalled`).
-  - [ ] Add `net.internetisalie.lunar.rocks.browser.BrowserCliError`; extend
+  - [x] Add `net.internetisalie.lunar.rocks.browser.BrowserCliError`; extend
     `LuaRocksSearchService.search`/`installed` to accept `treeRoot: Path?` and throw
     `BrowserCliError` on unresolved binary / non-zero exit, plus `searchOrEmpty`/`installedOrEmpty`
-    wrappers — realizes design §3.5 / §6. Migrate existing non-browser callers to the wrapper.
-  - [ ] Create `net.internetisalie.lunar.rocks.browser.LuaRocksUpdateDetector` — realizes
-    design §2.4 / §3.2.
-- **Exit criteria**: TC-ROCKS-16-05, -06, -07, -08, -11 pass (unit).
+    wrappers — realizes design §3.5 / §6. Migrated the legacy panel caller to `searchOrEmpty`.
+    Also keyed `LuaRocksSearchCache` on the resolved server (review finding #70).
+  - [x] Create `net.internetisalie.lunar.rocks.browser.LuaRocksUpdateDetector` — realizes
+    design §2.4 / §3.2 (+ `LuaRockRow` pulled forward as the shared row type).
+- **Exit criteria**: TC-ROCKS-16-05, -06, -11 pass (unit) ✅. TC-ROCKS-16-07/-08 (model error
+  transitions) land with the model in Phase 3 — the service-level throw substrate is in place here.
 
 ### Phase 3: Browser state model [Must] — [logic / unit-testable]
 - **Goal**: EDT-confined `LuaRocksBrowserModel` + `BrowserState` driving all state, with in-place
@@ -145,7 +147,7 @@ fully unit-testable **before** any UI work.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Canonical install/uninstall target | done | Must |
-| Phase 2: Installed listing + error model | planned | Must |
+| Phase 2: Installed listing + error model | done | Must |
 | Phase 3: Browser state model | planned | Must |
 | Phase 4: Detail pane redesign | planned | Must |
 | Phase 5: Two-tab panel + tool-window differentiation | planned | Must |

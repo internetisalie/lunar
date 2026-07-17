@@ -131,7 +131,7 @@ class LuaRocksPackageBrowserToolWindowFactory : ToolWindowFactory, DumbAware {
 
             ApplicationManager.getApplication().executeOnPooledThread {
                 lastQuery = query
-                val results = LuaRocksSearchService.search(query, project)
+                val results = LuaRocksSearchService.searchOrEmpty(query, project)
 
                 // Build the version map from the full (non-collapsed) perspective:
                 // search() already collapses arch variants, but different version rows survive
