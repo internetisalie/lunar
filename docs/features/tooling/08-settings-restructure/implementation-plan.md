@@ -57,12 +57,13 @@ is **VNC-verified** last. Every task names the class/file and the design section
 ### Phase 4: Global default bindings + inherit labels [Must/Should]
 - **Goal**: wire `setGlobalBinding` into the app page; make project inherit text explicit.
 - **Tasks**:
-  - [ ] Add `buildGlobalBindings`/`resetGlobalBindings`/`applyGlobalBindings` + a `Controls` holder to
-        `LuaToolchainConfigurable` — realizes §2.6 / §3.5. [Must]
-  - [ ] Compute the two inherit placeholders in `LuaProjectConfigurable.resetControls()` — realizes
-        §3.6. [Should]
-- **Exit criteria**: `LuaToolchainConfigurableGlobalBindingsTest` passes TC 8–9; a placeholder test
-  asserts TC 10. Build green.
+  - [x] Add `buildGlobalBindings`/`resetGlobalBindings`/`applyGlobalBindings` + global binding combos
+        to `LuaToolchainConfigurable` — realizes §2.6 / §3.5. [Must]
+  - [x] Compute the two inherit placeholders in `LuaProjectConfigurable.resetControls()`
+        (`applyInheritPlaceholders`) — realizes §3.6. [Should]
+- **Exit criteria**: `LuaToolchainConfigurableGlobalBindingsTest` passes TC 8–9; placeholder tests
+  assert TC 10 (`LuaProjectConfigurableTest.testInheritPlaceholdersRenderAppDefaults_TC10` + `_TC10b`).
+  Build green.
 
 ### Phase 5: DSL panel migration [Should]
 - **Goal**: BUG-369 layout standardization.
@@ -103,8 +104,8 @@ is **VNC-verified** last. Every task names the class/file and the design section
 - [ ] `LuaTargetSynchronizerTest` (extend) — covers TC 4 (explicit-target no-op).
 - [ ] `LuaProjectConfigurableTargetTest` — covers TC 1–5.
 - [ ] `LuaProjectConfigurableBindingsTest` — covers TC 6, 7.
-- [ ] `LuaToolchainConfigurableGlobalBindingsTest` — covers TC 8, 9.
-- [ ] Inherit-placeholder test — covers TC 10.
+- [x] `LuaToolchainConfigurableGlobalBindingsTest` — covers TC 8, 9.
+- [x] Inherit-placeholder test — covers TC 10.
 - [ ] `LuaApplicationSettingsPanelTest` — covers TC 11.
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) via `verify-in-ide`.
 
@@ -115,6 +116,6 @@ is **VNC-verified** last. Every task names the class/file and the design section
 | Phase 1: Model & classifier logic | done | Must |
 | Phase 2: Target-control apply/reset logic | done | Must |
 | Phase 3: Bindings split + eviction | done | Must |
-| Phase 4: Global bindings + inherit labels | todo | Must |
+| Phase 4: Global bindings + inherit labels | done | Must |
 | Phase 5: DSL panel migration | todo | Should |
 | Phase 6: Spacing audit + live verification | todo | Could |

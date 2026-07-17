@@ -205,8 +205,32 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
         error("environment $envId not in combo")
     }
 
+    fun testInheritPlaceholdersRenderAppDefaults_TC10() {
+        registry.setKindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS, "--std max")
+
+        withConfigurable { _, panel ->
+            assertEquals("Inherit (app default: --std max)", luacheckArgsField(panel).emptyText.text)
+            assertEquals("Inherit (luarocks.org)", rocksUrlField(panel).emptyText.text)
+        }
+    }
+
+    fun testInheritPlaceholdersWhenNoAppDefault_TC10b() {
+        registry.setKindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL, "https://rocks.example")
+
+        withConfigurable { _, panel ->
+            assertEquals("Inherit (no app default)", luacheckArgsField(panel).emptyText.text)
+            assertEquals("Inherit (app default: https://rocks.example)", rocksUrlField(panel).emptyText.text)
+        }
+    }
+
     private fun expandableFields(panel: JComponent): List<ExpandableTextField> =
         UIUtil.findComponentsOfType(panel, ExpandableTextField::class.java)
+
+    // The rocks-URL project-override field is the sole plain JBTextField (columns 40); the two
+    // ExpandableTextFields are JBTextField subclasses, so filter to the exact class.
+    private fun rocksUrlField(panel: JComponent): JBTextField =
+        UIUtil.findComponentsOfType(panel, JBTextField::class.java)
+            .first { it::class.java == JBTextField::class.java }
 
     // Layout order (§2.3): the Luacheck group's args field precedes the Source & Completion
     // source-path field, so the two ExpandableTextFields appear in that fixed order.

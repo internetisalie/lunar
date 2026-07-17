@@ -129,6 +129,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         controls.rocksUrlField.text = projectState.rocksServerUrl
         controls.sourcePathField.text = projectState.sourcePath
         controls.underscoreCheckBox.isSelected = projectState.suppressUnderscorePrefixedGlobals
+        applyInheritPlaceholders()
         recomputeRuntimeDisplay()
     }
 
@@ -315,6 +316,17 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         LuaToolchainProjectSettings.getInstance(project).state.kindOptions[LuaKindOptionKeys.LUACHECK_ARGUMENTS]
             ?.trim() ?: ""
 
+    /** §3.6: renders the effective app default in each inherited field's empty-text placeholder. */
+    private fun applyInheritPlaceholders() {
+        val registry = LuaToolchainRegistry.getInstance()
+        val appArgs = registry.kindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS)
+        controls.luacheckArgsField.emptyText.text =
+            if (appArgs.isBlank()) "Inherit (no app default)" else "Inherit (app default: $appArgs)"
+        val appUrl = registry.kindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL)
+        controls.rocksUrlField.emptyText.text =
+            if (appUrl.isBlank()) "Inherit (luarocks.org)" else "Inherit (app default: $appUrl)"
+    }
+
     /** Holds the buffered Swing controls so the per-group / per-field helpers stay within the arg cap. */
     private inner class ProjectControls {
         val platformCombo = ComboBox<TargetItem>().apply {
@@ -339,10 +351,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
 
         val luacheckArgsField = ExpandableTextField().apply { columns = 40 }
 
-        val rocksUrlField = JBTextField().apply {
-            columns = 40
-            emptyText.text = "Empty = use app default or luarocks.org"
-        }
+        val rocksUrlField = JBTextField().apply { columns = 40 }
 
         val sourcePathField = ExpandableTextField(
             { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
