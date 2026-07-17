@@ -4,7 +4,7 @@ package net.internetisalie.lunar.lang.parser;
 import com.intellij.lang.PsiBuilder;
 import com.intellij.lang.PsiBuilder.Marker;
 import static net.internetisalie.lunar.lang.psi.LuaElementTypes.*;
-import static com.intellij.lang.parser.GeneratedParserUtilBase.*;
+import static net.internetisalie.lunar.lang.parser.LuaParserUtil.*;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.tree.TokenSet;
@@ -596,13 +596,13 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // GLOBAL FUNCTION nameRef funcBody
+  // <<globalKeyword>> FUNCTION nameRef funcBody
   public static boolean globalFuncDecl(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "globalFuncDecl")) return false;
-    if (!nextTokenIs(builder_, GLOBAL)) return false;
     boolean result_, pinned_;
-    Marker marker_ = enter_section_(builder_, level_, _NONE_, GLOBAL_FUNC_DECL, null);
-    result_ = consumeTokens(builder_, 2, GLOBAL, FUNCTION);
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, GLOBAL_FUNC_DECL, "<global func decl>");
+    result_ = globalKeyword(builder_, level_ + 1);
+    result_ = result_ && consumeToken(builder_, FUNCTION);
     pinned_ = result_; // pin = 2
     result_ = result_ && report_error_(builder_, nameRef(builder_, level_ + 1));
     result_ = pinned_ && funcBody(builder_, level_ + 1) && result_;
@@ -611,16 +611,15 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // GLOBAL [attrib] '*'
+  // <<globalKeyword>> [attrib] '*'
   public static boolean globalModeDecl(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "globalModeDecl")) return false;
-    if (!nextTokenIs(builder_, GLOBAL)) return false;
     boolean result_;
-    Marker marker_ = enter_section_(builder_);
-    result_ = consumeToken(builder_, GLOBAL);
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, GLOBAL_MODE_DECL, "<global mode decl>");
+    result_ = globalKeyword(builder_, level_ + 1);
     result_ = result_ && globalModeDecl_1(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, MULT);
-    exit_section_(builder_, marker_, GLOBAL_MODE_DECL, result_);
+    exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
 
@@ -632,16 +631,15 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // GLOBAL attNameList ['=' exprList]
+  // <<globalKeyword>> attNameList ['=' exprList]
   public static boolean globalVarDecl(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "globalVarDecl")) return false;
-    if (!nextTokenIs(builder_, GLOBAL)) return false;
     boolean result_;
-    Marker marker_ = enter_section_(builder_);
-    result_ = consumeToken(builder_, GLOBAL);
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, GLOBAL_VAR_DECL, "<global var decl>");
+    result_ = globalKeyword(builder_, level_ + 1);
     result_ = result_ && attNameList(builder_, level_ + 1);
     result_ = result_ && globalVarDecl_2(builder_, level_ + 1);
-    exit_section_(builder_, marker_, GLOBAL_VAR_DECL, result_);
+    exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
 
@@ -1047,6 +1045,9 @@ public class LuaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // emptyStatement
+  //     | globalFuncDecl
+  //     | globalModeDecl
+  //     | globalVarDecl
   //     | assignmentStatement
   //     | exprStatement
   //     | label
@@ -1061,14 +1062,14 @@ public class LuaParser implements PsiParser, LightPsiParser {
   //     | funcDecl
   //     | localFuncDecl
   //     | localVarDecl
-  //     | globalVarDecl
-  //     | globalFuncDecl
-  //     | globalModeDecl
   public static boolean statement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "statement")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _COLLAPSE_, STATEMENT, "<statement>");
     result_ = emptyStatement(builder_, level_ + 1);
+    if (!result_) result_ = globalFuncDecl(builder_, level_ + 1);
+    if (!result_) result_ = globalModeDecl(builder_, level_ + 1);
+    if (!result_) result_ = globalVarDecl(builder_, level_ + 1);
     if (!result_) result_ = assignmentStatement(builder_, level_ + 1);
     if (!result_) result_ = exprStatement(builder_, level_ + 1);
     if (!result_) result_ = label(builder_, level_ + 1);
@@ -1083,9 +1084,6 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!result_) result_ = funcDecl(builder_, level_ + 1);
     if (!result_) result_ = localFuncDecl(builder_, level_ + 1);
     if (!result_) result_ = localVarDecl(builder_, level_ + 1);
-    if (!result_) result_ = globalVarDecl(builder_, level_ + 1);
-    if (!result_) result_ = globalFuncDecl(builder_, level_ + 1);
-    if (!result_) result_ = globalModeDecl(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }

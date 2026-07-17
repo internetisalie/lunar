@@ -114,6 +114,26 @@ class LuaLongCommentAnnotator : Annotator {
     }
 }
 
+/**
+ * Colours the leading `global` keyword of a Lua 5.5 global declaration (BUG-361). Because `global`
+ * is now lexed as an [LuaElementTypes.IDENTIFIER] and only remapped to [LuaElementTypes.GLOBAL] by
+ * the soft-keyword parser rule, plain identifier/field uses of `global` stay un-highlighted; only
+ * the token that actually leads a declaration node carries the keyword colour.
+ */
+class LuaGlobalKeywordAnnotator : Annotator {
+    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
+        val isGlobalDecl = element is LuaGlobalVarDecl ||
+            element is LuaGlobalFuncDecl ||
+            element is LuaGlobalModeDecl
+        if (!isGlobalDecl) return
+        val keyword = element.firstChild?.takeIf { it.elementType == LuaElementTypes.GLOBAL } ?: return
+        holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
+            .range(keyword)
+            .textAttributes(LuaHighlight.KEYWORD)
+            .create()
+    }
+}
+
 class LuaAttribNameAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         when (element) {

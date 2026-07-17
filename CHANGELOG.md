@@ -118,6 +118,15 @@
   dropped all but the first discovered rockspec. Now iterates all discovered rockspecs,
   launching one matrix per rockspec (env × rockspec product). The results table gains a
   Rockspec column to distinguish rows across multiple rocks.
+- **`global` lexed as a hard keyword pre-5.5** (BUG-361): SYNTAX-09 added `global` as an
+  unconditional keyword, so ordinary Lua 5.1–5.4 code using `global` as an identifier/field
+  (`local global = 1`, `t.global`, `global.x = 1`, `global()`) produced parse errors. Fixed by
+  making `global` a soft/contextual keyword: it now lexes as `IDENTIFIER` and a new
+  `<<globalKeyword>>` parser rule only reinterprets it as the declaration lead-in when a
+  declaration actually follows (one-token lookahead). The Lua 5.5 `global` declaration parses
+  exactly as before, keyword highlighting now applies only to the declaration keyword (via
+  `LuaGlobalKeywordAnnotator`), and the language-level inspection still flags real 5.5
+  declarations under earlier levels.
 
 ### Lua settings restructure (TOOLING-08)
 - **Discoverable platform-target control** (BUG-362): the *Lua Project* settings page now has an

@@ -71,6 +71,7 @@
 //    generate=[tokenAccessors="no"]
 
     parserClass="net.internetisalie.lunar.lang.parser.LuaParser"
+    parserUtilClass="net.internetisalie.lunar.lang.parser.LuaParserUtil"
     parserImports=[]
 
     extends="net.internetisalie.lunar.lang.psi.LuaBaseElement"
@@ -98,6 +99,9 @@ block ::= not_eof {statement}* [finalStatement SEMI?]
 private not_eof ::= !<<eof>>
 
 statement ::= emptyStatement
+    | globalFuncDecl
+    | globalModeDecl
+    | globalVarDecl
     | assignmentStatement
     | exprStatement
     | label
@@ -112,9 +116,6 @@ statement ::= emptyStatement
     | funcDecl
     | localFuncDecl
     | localVarDecl
-    | globalVarDecl
-    | globalFuncDecl
-    | globalModeDecl
     { extends=statement }
 
 emptyStatement ::= ';'
@@ -208,19 +209,24 @@ localVarDecl ::= LOCAL attNameList ['=' exprList] {
     extends=statement
 }
 
-globalVarDecl ::= GLOBAL attNameList ['=' exprList] {
+// BUG-361: `global` is a SOFT keyword. It is lexed as IDENTIFIER (a valid name/field in Lua
+// 5.1–5.4); <<globalKeyword>> only remaps the leading IDENTIFIER("global") to the GLOBAL token
+// when a declaration actually follows. A non-declaration `global` (`global.x = 1`, `global()`)
+// fails these rules and falls through to assignment/expression statements. Level enforcement
+// stays in LuaLanguageLevelInspection — the parser accepts the declaration at every level.
+globalVarDecl ::= <<globalKeyword>> attNameList ['=' exprList] {
     implements = ["net.internetisalie.lunar.lang.psi.LuaCommentOwner"]
     methods=[getComment getDocComment getCatsComment]
     extends=statement
 }
 
-globalModeDecl ::= GLOBAL [attrib] '*' {
+globalModeDecl ::= <<globalKeyword>> [attrib] '*' {
     implements = ["net.internetisalie.lunar.lang.psi.LuaCommentOwner"]
     methods=[getComment getDocComment getCatsComment]
     extends=statement
 }
 
-globalFuncDecl ::= GLOBAL FUNCTION nameRef funcBody {
+globalFuncDecl ::= <<globalKeyword>> FUNCTION nameRef funcBody {
     pin = 2
     implements = [
         "net.internetisalie.lunar.lang.psi.LuaCommentOwner"

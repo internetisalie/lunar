@@ -173,6 +173,9 @@
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaAttribNameAnnotator"/>
     <annotator
             language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.syntax.LuaGlobalKeywordAnnotator"/>
+    <annotator
+            language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaStandaloneExpressionAnnotator"/>
     <annotator
             language="Lua"

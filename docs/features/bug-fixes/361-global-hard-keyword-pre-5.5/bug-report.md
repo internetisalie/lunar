@@ -64,3 +64,29 @@ errors and a broken PSI tree instead of an identifier.
 - Introduced by SYNTAX-09 (Lua 5.5 `global` declarations); the language-level enforcement was added
   as an inspection rather than gating the token itself.
 - Watch for the analogous risk with any other 5.5 contextual keyword.
+
+## 5. Resolution
+
+Fixed by making `global` a **soft/contextual keyword** at the lexer + parser boundary:
+
+- **Lexer** (`lua.flex`): dropped the unconditional `"global" { return GLOBAL; }` rule, so `global`
+  now lexes as an ordinary `IDENTIFIER` at every language level.
+- **Parser** (`lua.bnf` + new `LuaParserUtil.globalKeyword`): the three declaration rules
+  (`globalVarDecl` / `globalFuncDecl` / `globalModeDecl`) now start with the external soft-keyword
+  rule `<<globalKeyword>>` instead of the hard `GLOBAL` token. `globalKeyword` remaps the leading
+  `IDENTIFIER("global")` to `GLOBAL` **only** when a one-token lookahead confirms a declaration
+  follows (`IDENTIFIER` / `function` / `*` / attribute `<`); otherwise it fails without touching the
+  builder, so `global.x = 1`, `global()`, `local global`, `t.global` and a `global` parameter all
+  parse as plain identifiers. The three global rules are ordered ahead of `assignmentStatement` /
+  `exprStatement` so a genuine `global x = 10` is recognised before the assignment fallback.
+- **Highlighting** (`LuaGlobalKeywordAnnotator`): the lexer no longer paints `global` as a keyword;
+  a new annotator colours the leading `GLOBAL` leaf of a declaration node with the keyword attribute,
+  so only the 5.5 declaration keyword is highlighted — identifier/field uses are not.
+- **Language level** (`LuaLanguageLevelInspection`): unchanged. Because the parser still produces the
+  same `LuaGlobalVarDecl` / `LuaGlobalFuncDecl` / `LuaGlobalModeDecl` nodes, a *real* global
+  declaration under Lua 5.1–5.4 is still flagged; a mere identifier named `global` never is.
+
+Verified by `LuaGlobalSoftKeywordTest` (identifier/field/parameter/call uses parse clean pre-5.5;
+declarations parse under 5.5; keyword highlighting only on the declaration), the extended
+`TestLuaParsingExhaustive.testGlobalAsSoftKeyword`, and the unchanged SYNTAX-09
+`LuaLanguageLevelInspectionTest` global cases.

@@ -160,6 +160,26 @@ class TestLuaParsingExhaustive : BaseDocumentTest() {
     }
 
     @Test
+    fun testGlobalAsSoftKeyword() {
+        // BUG-361: `global` is a soft keyword — valid as an ordinary identifier/field pre-5.5.
+        val cases = listOf(
+            "local global = 1",
+            "print(global)",
+            "local t = { global = 2 }",
+            "return t.global",
+            "global.x = 1",
+            "global()",
+            "local function f(global) return global end",
+            "local a = global.b.c",
+            // And the genuine 5.5 declarations still parse:
+            "global x = 10",
+            "global function f() end",
+            "global *",
+        )
+        cases.forEach { doTest(it) }
+    }
+
+    @Test
     fun testLua54Attributes() {
         val cases = listOf(
             "local x <const> = 10",

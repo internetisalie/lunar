@@ -71,7 +71,6 @@ luacats     =   ---[^\r\n]*{nl}([ \t]*--({nobrknl}{nonl}*{nl}|{nonl}{nl}|{nl}))*
 "false"        { return FALSE; }
 "for"          { return FOR; }
 "function"     { return FUNCTION; }
-"global"       { return GLOBAL; }
 "goto"         { return GOTO; }
 "if"           { return IF; }
 "in"           { return IN; }

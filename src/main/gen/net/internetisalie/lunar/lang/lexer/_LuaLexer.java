@@ -115,17 +115,17 @@ class _LuaLexer implements FlexLexer {
     "\1\37\2\40\1\41\2\42\3\43\1\44\2\45\1\46"+
     "\1\44\2\47\1\46\1\44\1\50\1\51\1\52\1\20"+
     "\1\53\1\20\1\0\1\54\1\55\1\56\1\57\1\60"+
-    "\1\61\1\0\1\62\2\26\1\63\7\26\1\64\1\65"+
+    "\1\61\1\0\1\62\2\26\1\63\6\26\1\64\1\65"+
     "\3\26\1\66\5\26\1\67\1\0\1\70\1\0\1\71"+
     "\1\51\1\0\1\72\1\20\1\0\1\20\1\73\2\26"+
-    "\1\74\1\26\1\75\4\26\1\76\1\77\6\26\1\0"+
-    "\2\100\1\101\1\20\1\26\1\102\3\26\1\103\3\26"+
-    "\1\104\1\105\2\26\2\0\1\106\1\26\1\107\2\26"+
+    "\1\74\1\26\1\75\3\26\1\76\1\77\6\26\1\0"+
+    "\2\100\1\101\1\20\1\26\1\102\2\26\1\103\3\26"+
+    "\1\104\1\105\2\26\2\0\1\106\1\26\1\107\1\26"+
     "\1\110\2\26\1\111\1\112\1\0\1\113\1\26\1\114"+
-    "\1\115\1\116\1\0\1\26\1\117";
+    "\1\115\1\0\1\26\1\116";
 
   private static int [] zzUnpackAction() {
-    int [] result = new int[176];
+    int [] result = new int[171];
     int offset = 0;
     offset = zzUnpackAction(ZZ_ACTION_PACKED_0, offset, result);
     return result;
@@ -162,19 +162,19 @@ class _LuaLexer implements FlexLexer {
     "\0\u019d\0\u0b10\0\u0b4b\0\u0b86\0\u019d\0\u0bc1\0\u0bfc\0\u019d"+
     "\0\u019d\0\u019d\0\u019d\0\u019d\0\u019d\0\u049c\0\u019d\0\u0c37"+
     "\0\u0c72\0\u0461\0\u0cad\0\u0ce8\0\u0d23\0\u0d5e\0\u0d99\0\u0dd4"+
-    "\0\u0e0f\0\u0461\0\u0461\0\u0e4a\0\u0e85\0\u0ec0\0\u0461\0\u0efb"+
-    "\0\u0f36\0\u0f71\0\u0fac\0\u0fe7\0\u019d\0\u0887\0\u019d\0\u0973"+
-    "\0\u019d\0\u1022\0\u105d\0\u019d\0\u1098\0\u10d3\0\u110e\0\u0461"+
-    "\0\u1149\0\u1184\0\u0461\0\u11bf\0\u0461\0\u11fa\0\u1235\0\u1270"+
-    "\0\u12ab\0\u0461\0\u0461\0\u12e6\0\u1321\0\u135c\0\u1397\0\u13d2"+
-    "\0\u140d\0\u1448\0\u1483\0\u14be\0\u019d\0\u14f9\0\u1534\0\u156f"+
-    "\0\u15aa\0\u15e5\0\u1620\0\u0461\0\u165b\0\u1696\0\u16d1\0\u0461"+
-    "\0\u0461\0\u170c\0\u1747\0\u1483\0\u1782\0\u0461\0\u17bd\0\u0461"+
-    "\0\u17f8\0\u1833\0\u0461\0\u186e\0\u18a9\0\u0461\0\u0461\0\u18e4"+
-    "\0\u0461\0\u191f\0\u0461\0\u0461\0\u0461\0\u195a\0\u1995\0\u0461";
+    "\0\u0461\0\u0461\0\u0e0f\0\u0e4a\0\u0e85\0\u0461\0\u0ec0\0\u0efb"+
+    "\0\u0f36\0\u0f71\0\u0fac\0\u019d\0\u0887\0\u019d\0\u0973\0\u019d"+
+    "\0\u0fe7\0\u1022\0\u019d\0\u105d\0\u1098\0\u10d3\0\u0461\0\u110e"+
+    "\0\u1149\0\u0461\0\u1184\0\u0461\0\u11bf\0\u11fa\0\u1235\0\u0461"+
+    "\0\u0461\0\u1270\0\u12ab\0\u12e6\0\u1321\0\u135c\0\u1397\0\u13d2"+
+    "\0\u140d\0\u1448\0\u019d\0\u1483\0\u14be\0\u14f9\0\u1534\0\u156f"+
+    "\0\u0461\0\u15aa\0\u15e5\0\u1620\0\u0461\0\u0461\0\u165b\0\u1696"+
+    "\0\u140d\0\u16d1\0\u0461\0\u170c\0\u0461\0\u1747\0\u0461\0\u1782"+
+    "\0\u17bd\0\u0461\0\u0461\0\u17f8\0\u0461\0\u1833\0\u0461\0\u0461"+
+    "\0\u186e\0\u18a9\0\u0461";
 
   private static int [] zzUnpackRowMap() {
-    int [] result = new int[176];
+    int [] result = new int[171];
     int offset = 0;
     offset = zzUnpackRowMap(ZZ_ROWMAP_PACKED_0, offset, result);
     return result;
@@ -221,87 +221,82 @@ class _LuaLexer implements FlexLexer {
     "\7\36\27\0\2\36\5\0\5\36\4\0\12\36\1\133"+
     "\1\134\10\36\27\0\2\36\5\0\5\36\4\0\1\135"+
     "\13\36\1\136\4\36\1\137\2\36\27\0\2\36\5\0"+
-    "\5\36\4\0\12\36\1\140\1\36\1\141\7\36\27\0"+
-    "\2\36\5\0\5\36\4\0\5\36\1\142\5\36\1\143"+
-    "\10\36\27\0\2\36\5\0\5\36\4\0\14\36\1\144"+
-    "\7\36\27\0\2\36\5\0\5\36\4\0\10\36\1\145"+
-    "\3\36\1\146\7\36\27\0\2\36\5\0\5\36\4\0"+
-    "\16\36\1\147\5\36\27\0\2\36\5\0\5\36\4\0"+
-    "\4\36\1\150\17\36\27\0\2\36\5\0\5\36\4\0"+
-    "\7\36\1\151\6\36\1\152\5\36\27\0\2\36\5\0"+
-    "\5\36\4\0\13\36\1\153\10\36\27\0\2\36\5\0"+
-    "\5\36\4\0\7\36\1\154\14\36\34\0\1\155\44\0"+
-    "\1\64\120\0\1\156\10\0\1\157\33\0\1\70\72\0"+
-    "\1\73\72\0\1\75\120\0\1\160\10\0\1\161\33\0"+
-    "\1\101\76\0\1\100\66\0\1\100\3\0\1\100\3\0"+
-    "\1\100\24\0\3\100\1\0\2\100\3\0\1\100\5\0"+
-    "\1\100\2\0\1\100\1\0\1\100\1\0\1\100\7\0"+
-    "\1\105\102\0\1\100\62\0\1\100\7\0\1\100\24\0"+
+    "\5\36\4\0\14\36\1\140\7\36\27\0\2\36\5\0"+
+    "\5\36\4\0\5\36\1\141\5\36\1\142\10\36\27\0"+
+    "\2\36\5\0\5\36\4\0\14\36\1\143\7\36\27\0"+
+    "\2\36\5\0\5\36\4\0\10\36\1\144\3\36\1\145"+
+    "\7\36\27\0\2\36\5\0\5\36\4\0\16\36\1\146"+
+    "\5\36\27\0\2\36\5\0\5\36\4\0\4\36\1\147"+
+    "\17\36\27\0\2\36\5\0\5\36\4\0\7\36\1\150"+
+    "\6\36\1\151\5\36\27\0\2\36\5\0\5\36\4\0"+
+    "\13\36\1\152\10\36\27\0\2\36\5\0\5\36\4\0"+
+    "\7\36\1\153\14\36\34\0\1\154\44\0\1\64\120\0"+
+    "\1\155\10\0\1\156\33\0\1\70\72\0\1\73\72\0"+
+    "\1\75\120\0\1\157\10\0\1\160\33\0\1\101\76\0"+
+    "\1\100\66\0\1\100\3\0\1\100\3\0\1\100\24\0"+
     "\3\100\1\0\2\100\3\0\1\100\5\0\1\100\2\0"+
-    "\1\100\1\0\1\100\1\0\1\100\25\0\1\162\16\0"+
-    "\1\163\54\0\1\164\74\0\2\114\6\0\1\116\13\0"+
-    "\1\116\41\0\1\165\1\0\1\165\2\0\2\165\67\0"+
-    "\1\166\1\0\2\167\5\0\2\167\1\0\1\116\5\0"+
-    "\6\167\7\0\1\116\35\0\2\36\5\0\5\36\4\0"+
-    "\3\36\1\170\20\36\27\0\2\36\5\0\5\36\4\0"+
-    "\4\36\1\171\17\36\27\0\2\36\5\0\5\36\4\0"+
-    "\17\36\1\172\4\36\27\0\2\36\5\0\5\36\4\0"+
-    "\3\36\1\173\20\36\27\0\2\36\5\0\5\36\4\0"+
-    "\12\36\1\174\11\36\27\0\2\36\5\0\5\36\4\0"+
-    "\16\36\1\175\5\36\27\0\2\36\5\0\5\36\4\0"+
-    "\13\36\1\176\10\36\27\0\2\36\5\0\5\36\4\0"+
-    "\14\36\1\177\7\36\27\0\2\36\5\0\5\36\4\0"+
-    "\20\36\1\200\3\36\27\0\2\36\5\0\5\36\4\0"+
-    "\2\36\1\201\21\36\27\0\2\36\5\0\5\36\4\0"+
-    "\12\36\1\202\11\36\27\0\2\36\5\0\5\36\4\0"+
-    "\20\36\1\203\3\36\27\0\2\36\5\0\5\36\4\0"+
-    "\15\36\1\204\2\36\1\205\3\36\27\0\2\36\5\0"+
-    "\5\36\4\0\4\36\1\206\17\36\27\0\2\36\5\0"+
-    "\5\36\4\0\21\36\1\207\2\36\27\0\2\36\5\0"+
-    "\5\36\4\0\20\36\1\210\3\36\27\0\2\36\5\0"+
-    "\5\36\4\0\10\36\1\211\13\36\4\0\2\212\1\213"+
-    "\1\212\1\214\13\212\1\162\52\212\30\0\1\163\6\0"+
-    "\1\215\56\0\2\165\71\0\2\216\5\0\2\216\7\0"+
-    "\6\216\43\0\1\216\1\0\2\167\5\0\2\167\1\0"+
-    "\1\116\5\0\6\167\7\0\1\116\35\0\2\36\5\0"+
-    "\5\36\4\0\1\217\23\36\27\0\2\36\5\0\5\36"+
-    "\4\0\4\36\1\220\17\36\27\0\2\36\5\0\5\36"+
-    "\4\0\17\36\1\221\4\36\27\0\2\36\5\0\5\36"+
-    "\4\0\2\36\1\222\21\36\27\0\2\36\5\0\5\36"+
-    "\4\0\1\36\1\223\22\36\27\0\2\36\5\0\5\36"+
-    "\4\0\14\36\1\224\7\36\27\0\2\36\5\0\5\36"+
-    "\4\0\1\225\23\36\27\0\2\36\5\0\5\36\4\0"+
-    "\4\36\1\226\17\36\27\0\2\36\5\0\5\36\4\0"+
-    "\21\36\1\227\2\36\27\0\2\36\5\0\5\36\4\0"+
-    "\13\36\1\230\10\36\27\0\2\36\5\0\5\36\4\0"+
-    "\4\36\1\231\17\36\27\0\2\36\5\0\5\36\4\0"+
-    "\10\36\1\232\13\36\27\0\2\36\5\0\5\36\4\0"+
-    "\12\36\1\233\11\36\4\0\2\212\1\213\1\212\1\214"+
-    "\66\212\1\0\1\234\16\0\1\235\53\0\1\234\1\213"+
-    "\15\0\1\235\75\0\2\216\5\0\2\216\1\0\1\116"+
-    "\5\0\6\216\7\0\1\116\35\0\2\36\5\0\5\36"+
-    "\4\0\11\36\1\236\12\36\27\0\2\36\5\0\5\36"+
-    "\4\0\10\36\1\237\13\36\27\0\2\36\5\0\5\36"+
-    "\4\0\4\36\1\240\17\36\27\0\2\36\5\0\5\36"+
-    "\4\0\20\36\1\241\3\36\27\0\2\36\5\0\5\36"+
-    "\4\0\1\242\23\36\27\0\2\36\5\0\5\36\4\0"+
-    "\12\36\1\243\11\36\27\0\2\36\5\0\5\36\4\0"+
-    "\1\244\23\36\27\0\2\36\5\0\5\36\4\0\16\36"+
-    "\1\245\5\36\27\0\2\36\5\0\5\36\4\0\12\36"+
-    "\1\246\11\36\27\0\2\36\5\0\5\36\4\0\4\36"+
-    "\1\247\17\36\24\0\1\250\75\0\2\36\5\0\5\36"+
-    "\4\0\5\36\1\251\16\36\27\0\2\36\5\0\5\36"+
-    "\4\0\10\36\1\252\13\36\27\0\2\36\5\0\5\36"+
-    "\4\0\12\36\1\253\11\36\27\0\2\36\5\0\5\36"+
-    "\4\0\20\36\1\254\3\36\27\0\2\36\5\0\5\36"+
-    "\4\0\13\36\1\255\10\36\4\0\2\212\1\213\1\212"+
-    "\1\214\32\212\1\256\33\212\23\0\2\36\5\0\5\36"+
-    "\4\0\14\36\1\257\7\36\6\0\1\213\1\0\1\214"+
-    "\111\0\2\36\5\0\5\36\4\0\13\36\1\260\10\36"+
-    "\4\0";
+    "\1\100\1\0\1\100\1\0\1\100\7\0\1\105\102\0"+
+    "\1\100\62\0\1\100\7\0\1\100\24\0\3\100\1\0"+
+    "\2\100\3\0\1\100\5\0\1\100\2\0\1\100\1\0"+
+    "\1\100\1\0\1\100\25\0\1\161\16\0\1\162\54\0"+
+    "\1\163\74\0\2\114\6\0\1\116\13\0\1\116\41\0"+
+    "\1\164\1\0\1\164\2\0\2\164\67\0\1\165\1\0"+
+    "\2\166\5\0\2\166\1\0\1\116\5\0\6\166\7\0"+
+    "\1\116\35\0\2\36\5\0\5\36\4\0\3\36\1\167"+
+    "\20\36\27\0\2\36\5\0\5\36\4\0\4\36\1\170"+
+    "\17\36\27\0\2\36\5\0\5\36\4\0\17\36\1\171"+
+    "\4\36\27\0\2\36\5\0\5\36\4\0\3\36\1\172"+
+    "\20\36\27\0\2\36\5\0\5\36\4\0\12\36\1\173"+
+    "\11\36\27\0\2\36\5\0\5\36\4\0\16\36\1\174"+
+    "\5\36\27\0\2\36\5\0\5\36\4\0\13\36\1\175"+
+    "\10\36\27\0\2\36\5\0\5\36\4\0\20\36\1\176"+
+    "\3\36\27\0\2\36\5\0\5\36\4\0\2\36\1\177"+
+    "\21\36\27\0\2\36\5\0\5\36\4\0\12\36\1\200"+
+    "\11\36\27\0\2\36\5\0\5\36\4\0\20\36\1\201"+
+    "\3\36\27\0\2\36\5\0\5\36\4\0\15\36\1\202"+
+    "\2\36\1\203\3\36\27\0\2\36\5\0\5\36\4\0"+
+    "\4\36\1\204\17\36\27\0\2\36\5\0\5\36\4\0"+
+    "\21\36\1\205\2\36\27\0\2\36\5\0\5\36\4\0"+
+    "\20\36\1\206\3\36\27\0\2\36\5\0\5\36\4\0"+
+    "\10\36\1\207\13\36\4\0\2\210\1\211\1\210\1\212"+
+    "\13\210\1\161\52\210\30\0\1\162\6\0\1\213\56\0"+
+    "\2\164\71\0\2\214\5\0\2\214\7\0\6\214\43\0"+
+    "\1\214\1\0\2\166\5\0\2\166\1\0\1\116\5\0"+
+    "\6\166\7\0\1\116\35\0\2\36\5\0\5\36\4\0"+
+    "\1\215\23\36\27\0\2\36\5\0\5\36\4\0\4\36"+
+    "\1\216\17\36\27\0\2\36\5\0\5\36\4\0\17\36"+
+    "\1\217\4\36\27\0\2\36\5\0\5\36\4\0\2\36"+
+    "\1\220\21\36\27\0\2\36\5\0\5\36\4\0\14\36"+
+    "\1\221\7\36\27\0\2\36\5\0\5\36\4\0\1\222"+
+    "\23\36\27\0\2\36\5\0\5\36\4\0\4\36\1\223"+
+    "\17\36\27\0\2\36\5\0\5\36\4\0\21\36\1\224"+
+    "\2\36\27\0\2\36\5\0\5\36\4\0\13\36\1\225"+
+    "\10\36\27\0\2\36\5\0\5\36\4\0\4\36\1\226"+
+    "\17\36\27\0\2\36\5\0\5\36\4\0\10\36\1\227"+
+    "\13\36\27\0\2\36\5\0\5\36\4\0\12\36\1\230"+
+    "\11\36\4\0\2\210\1\211\1\210\1\212\66\210\1\0"+
+    "\1\231\16\0\1\232\53\0\1\231\1\211\15\0\1\232"+
+    "\75\0\2\214\5\0\2\214\1\0\1\116\5\0\6\214"+
+    "\7\0\1\116\35\0\2\36\5\0\5\36\4\0\11\36"+
+    "\1\233\12\36\27\0\2\36\5\0\5\36\4\0\10\36"+
+    "\1\234\13\36\27\0\2\36\5\0\5\36\4\0\4\36"+
+    "\1\235\17\36\27\0\2\36\5\0\5\36\4\0\20\36"+
+    "\1\236\3\36\27\0\2\36\5\0\5\36\4\0\12\36"+
+    "\1\237\11\36\27\0\2\36\5\0\5\36\4\0\1\240"+
+    "\23\36\27\0\2\36\5\0\5\36\4\0\16\36\1\241"+
+    "\5\36\27\0\2\36\5\0\5\36\4\0\12\36\1\242"+
+    "\11\36\27\0\2\36\5\0\5\36\4\0\4\36\1\243"+
+    "\17\36\24\0\1\244\75\0\2\36\5\0\5\36\4\0"+
+    "\5\36\1\245\16\36\27\0\2\36\5\0\5\36\4\0"+
+    "\10\36\1\246\13\36\27\0\2\36\5\0\5\36\4\0"+
+    "\20\36\1\247\3\36\27\0\2\36\5\0\5\36\4\0"+
+    "\13\36\1\250\10\36\4\0\2\210\1\211\1\210\1\212"+
+    "\32\210\1\251\33\210\23\0\2\36\5\0\5\36\4\0"+
+    "\14\36\1\252\7\36\6\0\1\211\1\0\1\212\111\0"+
+    "\2\36\5\0\5\36\4\0\13\36\1\253\10\36\4\0";
 
   private static int [] zzUnpacktrans() {
-    int [] result = new int[6608];
+    int [] result = new int[6372];
     int offset = 0;
     offset = zzUnpacktrans(ZZ_TRANS_PACKED_0, offset, result);
     return result;
@@ -343,12 +338,12 @@ class _LuaLexer implements FlexLexer {
     "\5\1\2\11\16\1\3\11\1\1\1\11\2\1\2\11"+
     "\1\1\2\11\1\1\1\11\2\1\2\11\3\1\1\11"+
     "\3\1\1\11\3\1\1\11\1\1\1\0\6\11\1\0"+
-    "\1\11\25\1\1\11\1\0\1\11\1\0\1\11\1\1"+
-    "\1\0\1\11\1\1\1\0\23\1\1\0\2\1\1\11"+
-    "\16\1\2\0\12\1\1\0\5\1\1\0\2\1";
+    "\1\11\24\1\1\11\1\0\1\11\1\0\1\11\1\1"+
+    "\1\0\1\11\1\1\1\0\22\1\1\0\2\1\1\11"+
+    "\15\1\2\0\11\1\1\0\4\1\1\0\2\1";
 
   private static int [] zzUnpackAttribute() {
-    int [] result = new int[176];
+    int [] result = new int[171];
     int offset = 0;
     offset = zzUnpackAttribute(ZZ_ATTRIBUTE_PACKED_0, offset, result);
     return result;
@@ -676,277 +671,277 @@ class _LuaLexer implements FlexLexer {
             { return WRONG;
             }
           // fall through
-          case 80: break;
+          case 79: break;
           case 2:
             { return WS;
             }
           // fall through
-          case 81: break;
+          case 80: break;
           case 3:
             { yybegin(XSTRINGQ);  return STRING;
             }
           // fall through
-          case 82: break;
+          case 81: break;
           case 4:
             { return GETN;
             }
           // fall through
-          case 83: break;
+          case 82: break;
           case 5:
             { return MOD;
             }
           // fall through
-          case 84: break;
+          case 83: break;
           case 6:
             { return AMP;
             }
           // fall through
-          case 85: break;
+          case 84: break;
           case 7:
             { yybegin(XSTRINGA); return STRING;
             }
           // fall through
-          case 86: break;
+          case 85: break;
           case 8:
             { return LPAREN;
             }
           // fall through
-          case 87: break;
+          case 86: break;
           case 9:
             { return RPAREN;
             }
           // fall through
-          case 88: break;
+          case 87: break;
           case 10:
             { return MULT;
             }
           // fall through
-          case 89: break;
+          case 88: break;
           case 11:
             { return PLUS;
             }
           // fall through
-          case 90: break;
+          case 89: break;
           case 12:
             { return COMMA;
             }
           // fall through
-          case 91: break;
+          case 90: break;
           case 13:
             { return MINUS;
             }
           // fall through
-          case 92: break;
+          case 91: break;
           case 14:
             { return DOT;
             }
           // fall through
-          case 93: break;
+          case 92: break;
           case 15:
             { return DIV;
             }
           // fall through
-          case 94: break;
+          case 93: break;
           case 16:
             { return NUMBER;
             }
           // fall through
-          case 95: break;
+          case 94: break;
           case 17:
             { return COLON;
             }
           // fall through
-          case 96: break;
+          case 95: break;
           case 18:
             { return SEMI;
             }
           // fall through
-          case 97: break;
+          case 96: break;
           case 19:
             { return LT;
             }
           // fall through
-          case 98: break;
+          case 97: break;
           case 20:
             { return ASSIGN;
             }
           // fall through
-          case 99: break;
+          case 98: break;
           case 21:
             { return GT;
             }
           // fall through
-          case 100: break;
+          case 99: break;
           case 22:
             { return IDENTIFIER;
             }
           // fall through
-          case 101: break;
+          case 100: break;
           case 23:
             { return LBRACK;
             }
           // fall through
-          case 102: break;
+          case 101: break;
           case 24:
             { return RBRACK;
             }
           // fall through
-          case 103: break;
+          case 102: break;
           case 25:
             { return EXP;
             }
           // fall through
-          case 104: break;
+          case 103: break;
           case 26:
             { return LCURLY;
             }
           // fall through
-          case 105: break;
+          case 104: break;
           case 27:
             { return PIPE;
             }
           // fall through
-          case 106: break;
+          case 105: break;
           case 28:
             { return RCURLY;
             }
           // fall through
-          case 107: break;
+          case 106: break;
           case 29:
             { return NEG;
             }
           // fall through
-          case 108: break;
+          case 107: break;
           case 30:
             { return LONGSTRING;
             }
           // fall through
-          case 109: break;
+          case 108: break;
           case 31:
             { yypushback(yytext().length()); yybegin(XLONGSTRING); return advance();
             }
           // fall through
-          case 110: break;
+          case 109: break;
           case 32:
             { return NL_BEFORE_LONGSTRING;
             }
           // fall through
-          case 111: break;
+          case 110: break;
           case 33:
             { return SHORTCOMMENT;
             }
           // fall through
-          case 112: break;
+          case 111: break;
           case 34:
             { yybegin(YYINITIAL);  yypushback(yytext().length()); return advance();
             }
           // fall through
-          case 113: break;
+          case 112: break;
           case 35:
             { return LONGCOMMENT;
             }
           // fall through
-          case 114: break;
+          case 113: break;
           case 36:
             { return STRING;
             }
           // fall through
-          case 115: break;
+          case 114: break;
           case 37:
             { yybegin(YYINITIAL); return WRONG;
             }
           // fall through
-          case 116: break;
+          case 115: break;
           case 38:
             { yybegin(YYINITIAL); return STRING;
             }
           // fall through
-          case 117: break;
+          case 116: break;
           case 39:
             { yybegin(YYINITIAL);return WRONG;
             }
           // fall through
-          case 118: break;
+          case 117: break;
           case 40:
             { yybegin( XSHORTCOMMENT ); return SHEBANG;
             }
           // fall through
-          case 119: break;
+          case 118: break;
           case 41:
             { yypushback(yytext().length()); yybegin( XSHORTCOMMENT ); return advance();
             }
           // fall through
-          case 120: break;
+          case 119: break;
           case 42:
             { return CONCAT;
             }
           // fall through
-          case 121: break;
+          case 120: break;
           case 43:
             { return INTDIV;
             }
           // fall through
-          case 122: break;
+          case 121: break;
           case 44:
             { return MARKER;
             }
           // fall through
-          case 123: break;
+          case 122: break;
           case 45:
             { return BSL;
             }
           // fall through
-          case 124: break;
+          case 123: break;
           case 46:
             { return LE;
             }
           // fall through
-          case 125: break;
+          case 124: break;
           case 47:
             { return EQ;
             }
           // fall through
-          case 126: break;
+          case 125: break;
           case 48:
             { return GE;
             }
           // fall through
-          case 127: break;
+          case 126: break;
           case 49:
             { return BSR;
             }
           // fall through
-          case 128: break;
+          case 127: break;
           case 50:
             { longCommentOrStringHandler.setCurrentExtQuoteStart(yytext().toString()); yybegin( XLONGSTRING_BEGIN ); return LONGSTRING_BEGIN;
             }
           // fall through
-          case 129: break;
+          case 128: break;
           case 51:
             { return DO;
             }
           // fall through
-          case 130: break;
+          case 129: break;
           case 52:
             { return IF;
             }
           // fall through
-          case 131: break;
+          case 130: break;
           case 53:
             { return IN;
             }
           // fall through
-          case 132: break;
+          case 131: break;
           case 54:
             { return OR;
             }
           // fall through
-          case 133: break;
+          case 132: break;
           case 55:
             { return NE;
             }
           // fall through
-          case 134: break;
+          case 133: break;
           case 56:
             { if (longCommentOrStringHandler.isCurrentExtQuoteStart(yytext())) {
                        yybegin(YYINITIAL); longCommentOrStringHandler.resetCurrentExtQuoteStart(); return LONGSTRING_END;
@@ -954,7 +949,7 @@ class _LuaLexer implements FlexLexer {
                         return LONGSTRING;
             }
           // fall through
-          case 135: break;
+          case 134: break;
           case 57:
             { if (longCommentOrStringHandler.isCurrentExtQuoteStart(yytext())) {
                        yybegin(YYINITIAL); longCommentOrStringHandler.resetCurrentExtQuoteStart(); return LONGCOMMENT_END;
@@ -962,117 +957,112 @@ class _LuaLexer implements FlexLexer {
                         return LONGCOMMENT;
             }
           // fall through
-          case 136: break;
+          case 135: break;
           case 58:
             { return ELLIPSIS;
             }
           // fall through
-          case 137: break;
+          case 136: break;
           case 59:
             { return AND;
             }
           // fall through
-          case 138: break;
+          case 137: break;
           case 60:
             { return END;
             }
           // fall through
-          case 139: break;
+          case 138: break;
           case 61:
             { return FOR;
             }
           // fall through
-          case 140: break;
+          case 139: break;
           case 62:
             { return NIL;
             }
           // fall through
-          case 141: break;
+          case 140: break;
           case 63:
             { return NOT;
             }
           // fall through
-          case 142: break;
+          case 141: break;
           case 64:
             { yypushback(1); /* TODO: Only pushback a newline */  return SHORTCOMMENT;
             }
           // fall through
-          case 143: break;
+          case 142: break;
           case 65:
             { longCommentOrStringHandler.setCurrentExtQuoteStart(yytext().toString()); yybegin( XLONGCOMMENT ); return LONGCOMMENT_BEGIN;
             }
           // fall through
-          case 144: break;
+          case 143: break;
           case 66:
             { return ELSE;
             }
           // fall through
-          case 145: break;
+          case 144: break;
           case 67:
             { return GOTO;
             }
           // fall through
-          case 146: break;
+          case 145: break;
           case 68:
             { return THEN;
             }
           // fall through
-          case 147: break;
+          case 146: break;
           case 69:
             { return TRUE;
             }
           // fall through
-          case 148: break;
+          case 147: break;
           case 70:
             { return BREAK;
             }
           // fall through
-          case 149: break;
+          case 148: break;
           case 71:
             { return FALSE;
             }
           // fall through
-          case 150: break;
+          case 149: break;
           case 72:
             { return LOCAL;
             }
           // fall through
-          case 151: break;
+          case 150: break;
           case 73:
             { return UNTIL;
             }
           // fall through
-          case 152: break;
+          case 151: break;
           case 74:
             { return WHILE;
             }
           // fall through
-          case 153: break;
+          case 152: break;
           case 75:
             { return ELSEIF;
             }
           // fall through
-          case 154: break;
+          case 153: break;
           case 76:
-            { return GLOBAL;
-            }
-          // fall through
-          case 155: break;
-          case 77:
             { return REPEAT;
             }
           // fall through
-          case 156: break;
-          case 78:
+          case 154: break;
+          case 77:
             { return RETURN;
             }
           // fall through
-          case 157: break;
-          case 79:
+          case 155: break;
+          case 78:
             { return FUNCTION;
             }
           // fall through
-          case 158: break;
+          case 156: break;
           default:
             zzScanError(ZZ_NO_MATCH);
           }
