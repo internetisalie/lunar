@@ -297,11 +297,6 @@ class LuaSpacingBuilder(
                 -> return if (right.node.firstChildNode.elementType == LuaElementTypes.LPAREN) NO_SPACING
             else SINGLE_SPACING
 
-            // No spacing inside brackets
-            right.hasElementType(LuaElementTypes.RBRACK, LuaElementTypes.LBRACK) ||
-                    left.hasElementType(LuaElementTypes.LBRACK)
-                -> return SINGLE_SPACING
-
             // No spacing inside empty parens
             right.hasElementType(LuaElementTypes.RPAREN, LuaElementTypes.LPAREN) ||
                     left.hasElementType(LuaElementTypes.LPAREN)

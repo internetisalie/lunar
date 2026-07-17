@@ -4,11 +4,14 @@ title: "Rockspec run-path provider hardcodes `?.so` in LUA_CPATH (wrong on Windo
 type: "bug"
 parent_id: "BUG"
 priority: "low"
+status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-384: Rockspec run-path provider hardcodes `?.so` and reads deprecated languageLevel
+
+> **RESOLVED 2026-07-17 (this commit)**: `RockspecRunPathProvider.luaCPath` now uses `SystemInfo.isWindows` via `nativeModuleExtension()` to produce `?.dll` on Windows and `?.so` elsewhere, and derives the language level from `state.getTarget().getImplicitLanguageLevel().version` — the same source `LuaRocksLibraryProvider` uses. Added `testNativeModuleExtensionMatchesPlatform` and `testLuaCPathUsesNativeExtension` to `RockspecRunPathProviderTest`.
 
 *Source: codebase review [`docs/review.md`](../../../review.md) finding **#46** (still present
 2026-07-17).*

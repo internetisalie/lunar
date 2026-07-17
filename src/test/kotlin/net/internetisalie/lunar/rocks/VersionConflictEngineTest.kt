@@ -53,4 +53,36 @@ class VersionConflictEngineTest {
         VersionConflictEngine.annotate(root)
         assertTrue(lib.conflicts.isEmpty())
     }
+
+    // BUG-383: equal-version exclusive bounds must be flagged unsatisfiable
+
+    @Test
+    fun equalVersionWithExclusiveUpperIsFlaggedUnsatisfiable() {
+        val root = DependencyNode("project", isTransitive = false)
+        val lib = node("lib", null).apply {
+            requiredConstraints += constraint(">= 2.0")
+            requiredConstraints += constraint("< 2.0")
+        }
+        root.children += lib
+        VersionConflictEngine.annotate(root)
+        assertTrue(
+            lib.conflicts.any { it.type == ConflictType.VERSION_MISMATCH },
+            ">= 2.0 + < 2.0 is unsatisfiable and must be flagged",
+        )
+    }
+
+    @Test
+    fun equalVersionBothInclusiveIsSatisfiable() {
+        val root = DependencyNode("project", isTransitive = false)
+        val lib = node("lib", "2.0").apply {
+            requiredConstraints += constraint(">= 2.0")
+            requiredConstraints += constraint("<= 2.0")
+        }
+        root.children += lib
+        VersionConflictEngine.annotate(root)
+        assertTrue(
+            lib.conflicts.none { it.type == ConflictType.VERSION_MISMATCH },
+            ">= 2.0 + <= 2.0 is satisfiable by exactly 2.0 — must not be flagged as a conflict",
+        )
+    }
 }

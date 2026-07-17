@@ -4,11 +4,14 @@ title: "Long-string/long-comment annotators throw StringIndexOutOfBounds on trun
 type: "bug"
 parent_id: "BUG"
 priority: "medium"
+status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-386: Long-string/long-comment annotators throw on truncated tokens
+
+> **RESOLVED 2026-07-17 (this commit)**: Replaced raw `text[level+1]`/`text[level+3]` indexing in `LuaLongStringAnnotator` and `LuaLongCommentAnnotator` with the bounds-checked helpers `getLuaStringDelimiterLength` / `getLuaCommentDelimiterLength`; added `LuaLongBracketAnnotatorTest` with truncated-token no-throw assertions and positive highlighting assertions.
 
 *Source: codebase review [`docs/review.md`](../../../review.md) finding **#15** (P1; still
 present 2026-07-17).*

@@ -5,7 +5,6 @@ import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
 
@@ -74,13 +73,12 @@ class LuaLongStringAnnotator : Annotator {
         if (element.elementType != LuaElementTypes.STRING) return
 
         val text = element.text
-        if (text[0] != '[') { return }
-        var level = 0
-        while (text[level+1] == '=') level++
+        val delimLen = getLuaStringDelimiterLength(text)
+        if (delimLen < 2) return
 
         val textRange = element.textRange
-        val beginRange = TextRange(textRange.startOffset, textRange.startOffset + level + 2)
-        val endRange = TextRange(textRange.endOffset - level - 2, textRange.endOffset)
+        val beginRange = TextRange(textRange.startOffset, textRange.startOffset + delimLen)
+        val endRange = TextRange(textRange.endOffset - delimLen, textRange.endOffset)
 
         holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
             .range(beginRange)
@@ -98,13 +96,12 @@ class LuaLongCommentAnnotator : Annotator {
         if (element.elementType != LuaElementTypes.LONGCOMMENT) return
 
         val text = element.text
-        if (text.substring(0, 3) != "--[") { return }
-        var level = 0
-        while (text[level+3] == '=') level++
+        val delimLen = getLuaCommentDelimiterLength(text)
+        if (delimLen <= 2) return
 
         val textRange = element.textRange
-        val beginRange = TextRange(textRange.startOffset, textRange.startOffset + level + 4)
-        val endRange = TextRange(textRange.endOffset - level - 2, textRange.endOffset)
+        val beginRange = TextRange(textRange.startOffset, textRange.startOffset + delimLen)
+        val endRange = TextRange(textRange.endOffset - (delimLen - 2), textRange.endOffset)
 
         holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
             .range(beginRange)

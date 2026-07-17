@@ -65,6 +65,30 @@
   "LuaRocks Packages" vs "LuaRocks Dependencies"), BUG-367 (`(no package selected)` label →
   empty-text panel), and BUG-368 (newline-joined dependencies → a clickable list).
 
+### Fixes (0.18.5)
+- **Long-bracket annotator crash mid-typing** (BUG-386): `LuaLongStringAnnotator` and
+  `LuaLongCommentAnnotator` raw-indexed token text without bounds checks, throwing
+  `StringIndexOutOfBoundsException` when a truncated delimiter (e.g. `[==` or `--[=`) was
+  lexed at EOF while typing. Fixed by delegating to the existing bounds-checked helpers
+  `getLuaStringDelimiterLength` / `getLuaCommentDelimiterLength`.
+- **Reformat forces spaces inside brackets** (BUG-382): reformat always produced `t[ 1 ]`
+  because a rule labelled "No spacing inside brackets" mistakenly returned `SINGLE_SPACING`,
+  making the *Spaces → Within → Brackets* code-style setting unreachable. Fixed by removing
+  the erroneous override and deferring to the `spacingBuilder.withinPair` rule that already
+  respects `SPACE_WITHIN_BRACKETS`.
+- **Version-conflict engine misses equal-version exclusive bounds** (BUG-383): `>= 2.0` +
+  `< 2.0` was not flagged as unsatisfiable because the engine only checked
+  `lower.version > upper.version`. Fixed to also flag pairs where the versions are equal but
+  at least one bound is exclusive (`>= 2.0 + <= 2.0` remains satisfiable by exactly 2.0).
+- **LUA_CPATH hardcodes `?.so` on Windows** (BUG-384): `RockspecRunPathProvider.luaCPath`
+  hardcoded `?.so` and read the deprecated `state.languageLevel`. Fixed to use the native
+  extension per `SystemInfo` (`.dll` on Windows, `.so` elsewhere) and derive the language
+  level from the active target — the same source `LuaRocksLibraryProvider` uses.
+- **Scaffolder instantiates a fresh run-configuration type** (BUG-385): `LuaRocksScaffolder`
+  constructed a fresh `LuaRunConfigurationType()` instead of the platform-registered
+  singleton, so template patching operated on a divergent instance. Fixed to look up the
+  singleton via `ConfigurationTypeUtil.findConfigurationType`.
+
 ### Lua settings restructure (TOOLING-08)
 - **Discoverable platform-target control** (BUG-362): the *Lua Project* settings page now has an
   always-visible *Platform target* + *Version* pair of combos. *Auto (from runtime)* follows the

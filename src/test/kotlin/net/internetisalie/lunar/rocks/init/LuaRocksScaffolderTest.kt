@@ -1,9 +1,11 @@
 package net.internetisalie.lunar.rocks.init
 
+import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.run.LuaRunConfigurationType
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -152,6 +154,28 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
         scaffold(LuaRocksProjectSettings(name = "app", type = RockType.APPLICATION))
         assertFileContains("app-scm-1.rockspec", "src/main.lua")
         assertFileContains("app-scm-1.rockspec", "install")
+    }
+
+    // ------------------------------------------------------------------ BUG-385
+
+    /**
+     * BUG-385: [LuaRocksScaffolder.patchRunConfigTemplate] must operate on the registered
+     * [LuaRunConfigurationType] singleton, not a fresh unregistered instance.
+     *
+     * This test verifies that [ConfigurationTypeUtil.findConfigurationType] returns the same
+     * singleton that the platform registered via plugin.xml — i.e. the scaffolder no longer
+     * constructs a detached copy.
+     */
+    @Test
+    fun testScaffolderUsesRegisteredConfigTypeSingleton() {
+        val registered = ConfigurationTypeUtil.findConfigurationType(LuaRunConfigurationType::class.java)
+        assertNotNull("LuaRunConfigurationType must be registered in plugin.xml", registered)
+        val fresh = LuaRunConfigurationType()
+        assertNotSame(
+            "Scaffolder must use the registered singleton, not a fresh LuaRunConfigurationType()",
+            fresh,
+            registered,
+        )
     }
 
     // ------------------------------------------------------------------ helpers

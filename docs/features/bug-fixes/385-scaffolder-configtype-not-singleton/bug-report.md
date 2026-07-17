@@ -4,11 +4,14 @@ title: "LuaRocks scaffolder instantiates a fresh LuaRunConfigurationType instead
 type: "bug"
 parent_id: "BUG"
 priority: "low"
+status: "done"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-385: Scaffolder instantiates a fresh run-configuration type
+
+> **RESOLVED 2026-07-17 (this commit)**: `LuaRocksScaffolder.patchRunConfigTemplate` now calls `ConfigurationTypeUtil.findConfigurationType(LuaRunConfigurationType::class.java)` to obtain the platform-registered singleton instead of constructing `LuaRunConfigurationType()`. Added `testScaffolderUsesRegisteredConfigTypeSingleton` to `LuaRocksScaffolderTest`.
 
 *Source: codebase review [`docs/review.md`](../../../review.md) finding **#49** (still present
 2026-07-17).*

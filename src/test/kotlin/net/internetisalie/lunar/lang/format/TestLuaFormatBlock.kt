@@ -4,8 +4,10 @@ import com.intellij.application.options.CodeStyle
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.CodeStyleSettings
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
+import net.internetisalie.lunar.lang.LuaLanguage
 import kotlin.test.Test
 import org.junit.Ignore
 
@@ -278,6 +280,26 @@ class TestLuaFormatBlock : BaseDocumentTest() {
                     c = 1
         """.trimIndent() + "\n"
         )
+    }
+
+    // ── BUG-382: SPACE_WITHIN_BRACKETS must be authoritative ─────────────────────
+
+    @Test
+    fun `bracket spacing off produces no spaces inside brackets`() {
+        myFixture.configureByText(LuaFileType, "local x = t[1]")
+        reformatText { settings ->
+            settings.getCommonSettings(LuaLanguage).SPACE_WITHIN_BRACKETS = false
+        }
+        myFixture.checkResult("local x = t[1]\n")
+    }
+
+    @Test
+    fun `bracket spacing on produces spaces inside brackets`() {
+        myFixture.configureByText(LuaFileType, "local x = t[1]")
+        reformatText { settings ->
+            settings.getCommonSettings(LuaLanguage).SPACE_WITHIN_BRACKETS = true
+        }
+        myFixture.checkResult("local x = t[ 1 ]\n")
     }
 
     @Ignore

@@ -2,6 +2,7 @@ package net.internetisalie.lunar.rocks.init
 
 import com.intellij.execution.RunManager
 import com.intellij.execution.configuration.EnvironmentVariablesData
+import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VfsUtil
@@ -70,7 +71,8 @@ object LuaRocksScaffolder {
     }
 
     private fun patchRunConfigTemplate(project: Project, baseDir: VirtualFile) {
-        val factory = LuaRunConfigurationType().configurationFactories.first()
+        val configType = ConfigurationTypeUtil.findConfigurationType(LuaRunConfigurationType::class.java)
+        val factory = configType.configurationFactories.first()
         val template = RunManager.getInstance(project).getConfigurationTemplate(factory)
         val cfg = template.configuration as? LuaRunConfiguration ?: return
         cfg.environmentVariables = EnvironmentVariablesData.create(

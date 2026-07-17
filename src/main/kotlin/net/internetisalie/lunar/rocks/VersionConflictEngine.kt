@@ -42,13 +42,23 @@ object VersionConflictEngine {
         }
     }
 
-    /** Flags a `(>= a, < b)`-style internally unsatisfiable constraint set with `a > b`. */
+    /**
+     * Flags a constraint set that is internally unsatisfiable.
+     *
+     * A lower/upper pair is unsatisfiable when:
+     * - the lower bound version is strictly greater than the upper bound version, OR
+     * - the bounds are equal but at least one side is exclusive
+     *   (e.g. `>= 2.0` + `< 2.0` cannot be satisfied by any version).
+     */
     private fun flagUnsatisfiable(node: DependencyNode) {
         val lowers = node.requiredConstraints.filter { it.op == ConstraintOp.GE || it.op == ConstraintOp.GT }
         val uppers = node.requiredConstraints.filter { it.op == ConstraintOp.LE || it.op == ConstraintOp.LT }
         for (lower in lowers) {
             for (upper in uppers) {
-                if (lower.version > upper.version) {
+                val versionsEqual = lower.version.compareTo(upper.version) == 0
+                val unsatisfiable = lower.version > upper.version ||
+                    (versionsEqual && (lower.op == ConstraintOp.GT || upper.op == ConstraintOp.LT))
+                if (unsatisfiable) {
                     node.conflicts += ConflictInfo(
                         ConflictType.VERSION_MISMATCH,
                         "no version can satisfy ${lower.op.token} ${lower.version.raw} and ${upper.op.token} ${upper.version.raw}",
