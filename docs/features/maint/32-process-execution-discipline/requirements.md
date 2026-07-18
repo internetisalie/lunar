@@ -3,7 +3,7 @@ id: "MAINT-32"
 title: "32: Process-Execution Discipline (LuaProcessUtil)"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -32,7 +32,7 @@ or under the read lock is the *enabling defect* behind several P1s. Harden `LuaP
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| MAINT-32-01 | Hardened primitive | M | Not Implemented | `LuaProcessUtil`: EDT assertion, cancellable wait, no blocking `.get()` under the read lock |
+| MAINT-32-01 | Hardened primitive | M | Full | `LuaToolExecutionService` (the surviving primitive; `LuaProcessUtil` confirmed deleted): EDT soft-assert, cancellable wait, read-lock offload to a pooled thread. Verify-and-fence + regression tests TC-01/TC-02. |
 | MAINT-32-02 | Bridge off the lock | M | Not Implemented | Widen the `RockspecSourcePathProvider` `CachedValue` guard from `isDispatchThread` to `isReadAccessAllowed`: read-lock callers get degraded static patterns + a deduplicated off-read-lock prewarm that runs `RockspecBridge.read` outside any read action; full derived patterns land on a later pass (#11) |
 | MAINT-32-03 | Caller migration | S | Not Implemented | Console action, coverage runner, health monitor prepare-phase, rocks environment I/O — all off the EDT/fast paths (§2.1) |
 | MAINT-32-04 | Cancellable builds | S | Not Implemented | Indicator-aware `waitFor` + kill-on-cancel in build/install tasks (§2.1) |

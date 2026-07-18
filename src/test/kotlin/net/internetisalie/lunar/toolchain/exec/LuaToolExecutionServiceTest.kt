@@ -5,6 +5,7 @@ import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.Key
 import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -125,6 +126,38 @@ class LuaToolExecutionServiceTest : BasePlatformTestCase() {
         val elapsed = System.currentTimeMillis() - started
         assertEquals(LuaExecOutcome.TIMED_OUT, result.outcome)
         assertTrue("expected prompt timeout, took ${elapsed}ms", elapsed < 4_000)
+    }
+
+    // MAINT-32 TC-01: read-lock-held call offloads the process to a pooled thread and completes.
+    fun testCaptureUnderReadLockOffloadsToPool() {
+        val result = onPooledThread {
+            ApplicationManager.getApplication().runReadAction(Computable { service.capture(sh("echo x")) })
+        }
+        assertEquals(LuaExecOutcome.COMPLETED, result.outcome)
+        assertEquals("x\n", result.stdout)
+    }
+
+    // MAINT-32 TC-02: the read-lock offload is the sanctioned path — no softAssertBackgroundThread error.
+    fun testCaptureUnderReadLockDoesNotLogSoftAssert() {
+        val logged = AtomicReference<String>()
+        LoggedErrorProcessor.executeWith<RuntimeException>(
+            object : LoggedErrorProcessor() {
+                override fun processError(
+                    category: String,
+                    message: String,
+                    details: Array<String>,
+                    t: Throwable?,
+                ): Set<Action> {
+                    logged.set(message)
+                    return Action.NONE
+                }
+            },
+        ) {
+            onPooledThread {
+                ApplicationManager.getApplication().runReadAction(Computable { service.capture(sh("exit 0")) })
+            }
+        }
+        assertNull("read-lock offload must not log a softAssertBackgroundThread error", logged.get())
     }
 
     // TC 23

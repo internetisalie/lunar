@@ -20,9 +20,9 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 - **Goal**: Prove `LuaToolExecutionService` already satisfies §2.1 and forbid regressions; confirm
   `LuaProcessUtil` is gone.
 - **Tasks**:
-  - [ ] Add `git grep LuaProcessUtil src/` assertion to the phase notes (must be empty) — realizes design §1.
-  - [ ] Add `LuaToolExecutionServiceTest.testCaptureUnderReadLockOffloadsToPool` — realizes design §3.2 (TC-01).
-  - [ ] Add `LuaToolExecutionServiceTest.testCaptureUnderReadLockDoesNotLogSoftAssert` (the read-lock
+  - [x] Add `git grep LuaProcessUtil src/` assertion to the phase notes (must be empty) — realizes design §1.
+  - [x] Add `LuaToolExecutionServiceTest.testCaptureUnderReadLockOffloadsToPool` — realizes design §3.2 (TC-01).
+  - [x] Add `LuaToolExecutionServiceTest.testCaptureUnderReadLockDoesNotLogSoftAssert` (the read-lock
         branch is sanctioned — no `softAssertBackgroundThread` error) — realizes design §3.2 (TC-02).
 - **Exit criteria**: TC-01, TC-02 green; existing `testCaptureOnEdtLogsSoftAssert` still green; no
   `LuaProcessUtil` symbol in `src/`.
@@ -107,7 +107,7 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Primitive verify-and-fence | todo | Must |
+| Phase 1: Primitive verify-and-fence | done | Must |
 | Phase 2: Rockspec bridge off the read lock | todo | Must |
 | Phase 3: Caller migrations | todo | Should |
 | Phase 4: Cancellable build + install | todo | Should |
