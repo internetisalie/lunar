@@ -34,9 +34,9 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 ### Phase 1: Declaration-only index + version bump [Must]
 - **Goal**: MAINT-30-01 — file-bindings index records only file-scope declarations; force re-index.
 - **Tasks**:
-  - [ ] Replace `extractBindingsFromStatement` in `net.internetisalie.lunar.lang.indexing.LuaFileBindingsIndex`
+  - [x] Replace `extractBindingsFromStatement` in `net.internetisalie.lunar.lang.indexing.LuaFileBindingsIndex`
     with the container-matching filter — realizes design §3.1.
-  - [ ] Bump `LuaFileBindingsIndex.VERSION` `2 → 3` — realizes design §3.2.
+  - [x] Bump `LuaFileBindingsIndex.VERSION` `2 → 3` — realizes design §3.2.
 - **Exit criteria**: TC-01, TC-07 pass; `LuaRecursiveReferenceTest` + `LuaDescriptionIndexTest` green on
   the builder; a global usage no longer appears as a cross-file binding.
 
@@ -98,11 +98,11 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 | MAINT-30-04 | C | Phase 5 |
 
 ## Verification Tasks
-- [ ] TC-01 declaration-only cross-file resolution (usage not recorded) — Phase 1.
+- [x] TC-01 declaration-only cross-file resolution (usage not recorded) — Phase 1.
 - [ ] TC-02 self-referential-initializer scope correction (`local x = x` RHS ≠ new local) — Phase 4.
 - [ ] TC-03 ResolveCache single-compute counter — Phase 2.
 - [ ] TC-04/TC-05/TC-06 snapshot invalidation + reentrancy — Phase 3.
-- [ ] TC-07 dotted-assignment not a binding — Phase 1.
+- [x] TC-07 dotted-assignment not a binding — Phase 1.
 - [ ] TC-08 module-resolver refresh flag — Phase 4.
 - [ ] TC-09 method-chain hints unchanged — Phase 5.
 - [ ] Full builder gate `tooling/gce-builder/gce-builder.sh run test` (incl. `LuaRecursiveReferenceTest`,
@@ -114,7 +114,7 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 0: De-risking | done | Must |
-| Phase 1: Declaration-only index | todo | Must |
+| Phase 1: Declaration-only index | done | Must |
 | Phase 2: ResolveCache in multiResolve | todo | Must |
 | Phase 3: Snapshot cache re-key | todo | Must |
 | Phase 4: Single canonical helpers | todo | Should |

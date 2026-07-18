@@ -15,6 +15,12 @@ import com.intellij.util.io.KeyDescriptor
 import net.internetisalie.lunar.lang.path.SourcePathPattern
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncCall
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 import org.jetbrains.annotations.NonNls
@@ -109,7 +115,9 @@ class LuaFileBindingsIndex : FileBasedIndexExtension<Int, LuaFileBindingsRecord>
     }
 
     companion object {
-        const val VERSION: Int = 2
+        // MAINT-30-01 (§3.2): 2 → 3 forces a one-time full rebuild so the shrunk declaration-only
+        // binding set (usages no longer recorded) replaces the stale usage-inclusive index.
+        const val VERSION: Int = 3
     }
 }
 
@@ -339,46 +347,49 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
         })
     }
 
+    /**
+     * MAINT-30-01 (§3.1): record only **file-scope declaration** names, never a bare-name usage.
+     * Lua has no declaration PSI (a declared name is a `LuaNameRef` inside a declaration container),
+     * so this matches the top-level container kinds that introduce file-scope names. A usage
+     * (`print(foo)`) is not one of these containers, so it is never recorded (#20 fix).
+     */
     private fun extractBindings(file: LuaFile, fileBindings: MutableList<LuaBinding>) {
-        // Extract top-level and dotted names (table.field)
-        // This maintains backward compatibility with index structure
         val visited = mutableSetOf<String>()
-        
         file.getBlockList().forEach { block ->
             block.statementList.forEach { stmt ->
-                extractBindingsFromStatement(stmt, fileBindings, visited)
+                declaredNameLeaves(stmt).forEach { leaf -> addBinding(fileBindings, visited, leaf) }
             }
         }
     }
 
-    private fun extractBindingsFromStatement(
-        stmt: PsiElement?,
-        fileBindings: MutableList<LuaBinding>,
-        visited: MutableSet<String>,
-    ) {
-        if (stmt == null) return
-        
-        stmt.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                when (element) {
-                    is com.intellij.psi.PsiNamedElement -> {
-                        val name = element.name ?: return@visitElement
-                        if (!visited.contains(name)) {
-                            visited.add(name)
-                            fileBindings.add(
-                                LuaBinding(
-                                    name,
-                                    element.textOffset,
-                                    0,  // Kind.Variable
-                                )
-                            )
-                        }
-                    }
-                }
-                super.visitElement(element)
-            }
-        })
+    private fun addBinding(fileBindings: MutableList<LuaBinding>, visited: MutableSet<String>, leaf: PsiElement) {
+        val name = leaf.text ?: return
+        if (visited.add(name)) fileBindings.add(LuaBinding(name, leaf.textOffset, 0))
     }
+
+    /** The declared-name IDENTIFIER leaves introduced by [stmt] at file scope, or empty for a usage. */
+    private fun declaredNameLeaves(stmt: PsiElement): List<PsiElement> = when (stmt) {
+        is LuaLocalVarDecl -> stmt.attNameList.map { it.nameRef.identifier }
+        is LuaGlobalVarDecl -> stmt.attNameList.map { it.nameRef.identifier }
+        is LuaLocalFuncDecl -> listOf(stmt.nameRef.identifier)
+        is LuaGlobalFuncDecl -> listOfNotNull(stmt.nameRef?.identifier)
+        is LuaFuncDecl -> funcDeclNameLeaves(stmt)
+        is LuaAssignmentStatement -> assignmentNameLeaves(stmt)
+        else -> emptyList()
+    }
+
+    /** `function foo` → `foo`; `function recv:m` / `recv.m` → the method-qualified leaf as well. */
+    private fun funcDeclNameLeaves(decl: LuaFuncDecl): List<PsiElement> {
+        val plain = decl.funcName.nameRef.identifier
+        val method = decl.funcName.funcNameMethod?.nameRef?.identifier
+        return listOfNotNull(plain, method)
+    }
+
+    /** Bare global assignment `x = …` declares `x`; a dotted `t.f = …` is owned by the member-field index. */
+    private fun assignmentNameLeaves(stmt: LuaAssignmentStatement): List<PsiElement> =
+        stmt.varList.varList.mapNotNull { luaVar ->
+            if (luaVar.varSuffixList.isEmpty()) luaVar.nameRef?.identifier else null
+        }
 }
 
 data class LuaFileBindingsRecord(

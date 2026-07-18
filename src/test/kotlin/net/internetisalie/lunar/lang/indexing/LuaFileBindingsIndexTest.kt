@@ -70,6 +70,41 @@ class LuaFileBindingsIndexTest {
         }
     }
 
+    @Test
+    fun testDottedAssignmentIsNotABinding() {
+        // TC-07 (MAINT-30-01): `t.f = 1` is a member-field assignment owned by the member-field index,
+        // not a file-scope binding — neither `t` nor `f` is recorded.
+        runInEdtAndWait {
+            val virtualFile = myFixture.addFileToProject("dotted.lua", "t.f = 1\n").virtualFile
+            val record = readBindingsRecord(virtualFile)
+            assertTrue(
+                record.bindings.none { it.name == "t" || it.name == "f" },
+                "Dotted assignment must record no bare binding. Found: ${record.bindings.map { it.name }}",
+            )
+        }
+    }
+
+    @Test
+    fun testUsageIsNotABinding() {
+        // TC-01 (MAINT-30-01): a bare-name usage `print(bar)` records no `bar` binding — only the
+        // declaration container `function bar() end` in c.lua does (declaration-only index, #20 fix).
+        runInEdtAndWait {
+            val usageFile = myFixture.addFileToProject("usage.lua", "print(bar)\n").virtualFile
+            val declFile = myFixture.addFileToProject("decl.lua", "function bar() end\n").virtualFile
+
+            val usageRecord = readBindingsRecord(usageFile)
+            assertTrue(
+                usageRecord.bindings.none { it.name == "bar" },
+                "A usage `print(bar)` must not record a `bar` binding. Found: ${usageRecord.bindings.map { it.name }}",
+            )
+            val declRecord = readBindingsRecord(declFile)
+            assertTrue(
+                declRecord.bindings.any { it.name == "bar" },
+                "A declaration `function bar()` must record a `bar` binding. Found: ${declRecord.bindings.map { it.name }}",
+            )
+        }
+    }
+
     private fun readBindingsRecord(virtualFile: VirtualFile): LuaFileBindingsRecord {
         assertTrue(
             virtualFile.url.startsWith("file:"),
