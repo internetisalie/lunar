@@ -32,28 +32,35 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
   under the read lock — the real #11 path (`LuaNameReference:88`/`LuaRequireReference:21` →
   `getProjectSourcePathPatterns` → `derivedPatterns()` → `compute():61`).
 - **Tasks**:
-  - [ ] In `RockspecSourcePathProvider` (`:22-46`), widen the `CachedValue` guard at `:24` from
+  - [x] In `RockspecSourcePathProvider` (`:22-46`), widen the `CachedValue` guard at `:24` from
         `app.isDispatchThread && !app.isUnitTestMode` to `app.isReadAccessAllowed && !app.isUnitTestMode`;
         in the guarded branch return degraded static patterns
         (`PathConfiguration.getStaticSourcePathPatterns(project) to emptyList<CModuleRock>()`) and call
         `prewarm()` — realizes design §2.1, §3.1 steps 1-3.
-  - [ ] Add `prewarm()` with `AtomicBoolean prewarmInFlight` dedup + `cache.hasUpToDateValue()`
+  - [x] Add `prewarm()` with `AtomicBoolean prewarmInFlight` dedup + `cache.hasUpToDateValue()`
         guard; it `readAction {}`-wraps only `discoverRockspecPaths()` then runs
         `computePatternsFromPaths(paths)` (the `RockspecBridge.read` loop) **outside** any read action
         on `LunarCoroutineScopeService.scope`, bumping `forceRefreshTracker` on completion — realizes
         design §3.1 steps 4-6.
-  - [ ] Refactor the current `compute()` (`:54-73`) into `computePatternsFromPaths(paths)`; the
+  - [x] Refactor the current `compute()` (`:54-73`) into `computePatternsFromPaths(paths)`; the
         synchronous `else` branch (no read access) calls `readAction { discoverRockspecPaths() }` then
         `computePatternsFromPaths(...)` — realizes design §3.1 step 5.
-  - [ ] Add `@VisibleForTesting internal val BRIDGE_INVOCATIONS: AtomicInteger` to `RockspecBridge`,
+  - [x] Add `@VisibleForTesting internal val BRIDGE_INVOCATIONS: AtomicInteger` to `RockspecBridge`,
         incremented as the first statement of `read` — realizes the TC-03/04/05 seam.
-  - [ ] Do NOT touch `LuaRockspecDiscoveryService`, do NOT add `discoverRockspecData()`, do NOT add
+  - [x] Do NOT touch `LuaRockspecDiscoveryService`, do NOT add `discoverRockspecData()`, do NOT add
         `assertNoReadAccess()` — design §3.1 (dropped alternatives). `BuildWorkspaceAction.update()`
         already uses `discoverRockspecPaths()` (path-only); no change.
 - **Exit criteria**: TC-03, TC-04, TC-05 green; `RockspecSourcePathProviderTest`,
   `LuaRockspecDiscoveryServiceTest`, and `BuildWorkspaceActionTest` still green (the widened guard
   bypasses in unit-test mode, so the existing pooled-thread `getProjectSourcePathPatterns` tests still
   compute synchronously).
+- **Deviation (minimal, necessary)**: production predicate is exactly
+  `app.isReadAccessAllowed && !app.isUnitTestMode` as specified. Because the `!isUnitTestMode` bypass
+  makes the fenced branch unreachable in unit-test mode, a `@TestOnly testForceReadLockGuard` flag was
+  added so TC-03/04/05 exercise the degraded+prewarm path; when unset (the default, all non-MAINT-32
+  tests) behavior is identical to the plan. A `@TestOnly isPrewarmComplete` await-seam (reads
+  `cachedFull`, no compute) was added so the prewarm-await does not itself trigger an off-lock
+  synchronous bridge and skew `BRIDGE_INVOCATIONS`.
 
 ### Phase 3: Caller migrations [Should]
 - **Goal**: Console spawn, coverage file I/O, and health-monitor prepare-phase I/O all leave their
@@ -108,6 +115,6 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Primitive verify-and-fence | done | Must |
-| Phase 2: Rockspec bridge off the read lock | todo | Must |
+| Phase 2: Rockspec bridge off the read lock | done | Must |
 | Phase 3: Caller migrations | todo | Should |
 | Phase 4: Cancellable build + install | todo | Should |
