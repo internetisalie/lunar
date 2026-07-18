@@ -1,8 +1,6 @@
 package net.internetisalie.lunar.analysis.luacheck
 
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiFile
 import net.internetisalie.lunar.toolchain.exec.LuaExecOutcome
 import net.internetisalie.lunar.toolchain.exec.LuaExecResult
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
@@ -14,15 +12,13 @@ object LuaCheckInvoker {
     private val LINE_PATTERN = "(.+?):(\\d+):(\\d+)-(\\d+):(.+)".toRegex()
     private val ANSI_PATTERN = Regex("\\[[;\\d]*m")
 
-    fun invoke(virtualFile: VirtualFile, psiFile: PsiFile): LuaCheckOutcome {
-        val dir = virtualFile.parent ?: return LuaCheckOutcome.NotApplicable
-        val fileName = psiFile.name
-
-        val cmd = newLuaCheckCommandLine(psiFile.project, virtualFile.name, dir)
+    fun invoke(info: LuaCheckAnnotator.Info): LuaCheckOutcome {
+        val cmd = newLuaCheckCommandLine(info.project, info.fileName, info.workDir, useStdin = true)
             ?: return LuaCheckOutcome.NotApplicable
 
-        val result = LuaToolExecutionService.getInstance().capture(cmd, LuaExecTimeout.FORMAT)
-        return classify(result, fileName)
+        val result = LuaToolExecutionService.getInstance()
+            .capture(cmd, LuaExecTimeout.FORMAT, stdin = info.documentText)
+        return classify(result, info.fileName)
     }
 
     internal fun classify(result: LuaExecResult, fileName: String): LuaCheckOutcome = when (result.outcome) {

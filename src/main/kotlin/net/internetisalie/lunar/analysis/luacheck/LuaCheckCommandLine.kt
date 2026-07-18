@@ -15,13 +15,18 @@ fun newLuaCheckCommandLine(
     project: Project,
     targetFileName: String,
     workDirectory: VirtualFile,
+    useStdin: Boolean = false,
 ): GeneralCommandLine? {
     val tool = LuaToolResolver.getInstance().resolve(project, "luacheck") ?: return null
     val cmd = GeneralCommandLine(tool.path)
         .withWorkDirectory(workDirectory.path)
 
     cmd.addParameters(dedupePairs(resolveArguments(project)))
-    cmd.addParameter(targetFileName)
+    if (useStdin) {
+        cmd.addParameters("--filename", targetFileName, "-")
+    } else {
+        cmd.addParameter(targetFileName)
+    }
     return cmd
 }
 
