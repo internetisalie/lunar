@@ -10,10 +10,8 @@ import net.internetisalie.lunar.toolchain.exec.LuaExecResult
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
 import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
-import org.jetbrains.annotations.VisibleForTesting
 import java.nio.file.Path
 import java.util.concurrent.Callable
-import java.util.concurrent.atomic.AtomicInteger
 
 /** The rockspec fields ROCKS-03 consumes; all other exported fields are ignored. */
 data class RockspecData(
@@ -35,15 +33,7 @@ object RockspecBridge {
     private val log = logger<RockspecBridge>()
     private const val ENV_LUA_PATH_TEMPLATE = "LUNAR_LUA_PATH_TEMPLATE"
 
-    /**
-     * Counts subprocess-bridge invocations (MAINT-32-02 seam). Tests snapshot this to assert the
-     * bridge never runs under the read lock (only inside the off-lock prewarm).
-     */
-    @VisibleForTesting
-    internal val BRIDGE_INVOCATIONS: AtomicInteger = AtomicInteger(0)
-
     fun read(project: Project, rockspecPath: Path): RockspecData? {
-        BRIDGE_INVOCATIONS.incrementAndGet()
         val interpreter = LuaToolResolver.getInstance().resolveRuntime(project)?.path
             ?.takeIf { it.isNotBlank() }
         if (interpreter == null) {

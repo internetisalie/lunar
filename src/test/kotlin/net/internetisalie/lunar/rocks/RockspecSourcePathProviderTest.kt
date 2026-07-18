@@ -90,18 +90,23 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
         RockspecSourcePathProvider.testForceReadLockGuard = true
         RockspecSourcePathProvider.invalidateCache(project)
 
-        val before = RockspecBridge.BRIDGE_INVOCATIONS.get()
         val patterns = onPooledThreadUnderReadLock {
             PathConfiguration.getProjectSourcePathPatterns(project)
         }
 
+        // The bridge is NOT run synchronously under the lock: the returned patterns are exactly the
+        // degraded static set (a synchronous bridge run would have added the rockspec-derived root).
         val staticPatterns = PathConfiguration.getStaticSourcePathPatterns(project).map { it.spec }.toSet()
+        val rockspecDir = rockspecFile.parent.toString().replace('\\', '/')
         assertEquals(
             "read-lock call must return degraded static patterns only",
             staticPatterns,
             patterns.map { it.spec }.toSet(),
         )
-        assertEquals("bridge must NOT run under the read lock", before, RockspecBridge.BRIDGE_INVOCATIONS.get())
+        assertFalse(
+            "rockspec-derived root must be absent under the lock",
+            patterns.any { it.spec == "$rockspecDir/src/?.lua" },
+        )
     }
 
     // MAINT-32-02: N unresolved references in one read-lock pass schedule exactly ONE prewarm. (TC-04)
@@ -111,7 +116,6 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
         RockspecSourcePathProvider.testForceReadLockGuard = true
         RockspecSourcePathProvider.invalidateCache(project)
 
-        val before = RockspecBridge.BRIDGE_INVOCATIONS.get()
         val provider = RockspecSourcePathProvider.getInstance(project)
         onPooledThreadUnderReadLock {
             provider.derivedPatterns()
@@ -121,9 +125,9 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
         awaitPrewarm(rockspecFile)
 
         assertEquals(
-            "exactly one prewarm job runs the bridge once for the single rockspec",
-            before + 1,
-            RockspecBridge.BRIDGE_INVOCATIONS.get(),
+            "N unresolved references in one read-lock pass schedule exactly one prewarm job",
+            1,
+            RockspecSourcePathProvider.prewarmLaunchCount(project),
         )
     }
 
@@ -134,7 +138,6 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
         RockspecSourcePathProvider.testForceReadLockGuard = true
         RockspecSourcePathProvider.invalidateCache(project)
 
-        val before = RockspecBridge.BRIDGE_INVOCATIONS.get()
         onPooledThreadUnderReadLock { RockspecSourcePathProvider.getInstance(project).derivedPatterns() }
         awaitPrewarm(rockspecFile)
 
@@ -145,7 +148,6 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
             "post-prewarm off-lock read must include the rockspec-derived root $expected; actual ${full.map { it.spec }}",
             full.any { it.spec == expected },
         )
-        assertTrue("bridge must have run inside the prewarm", RockspecBridge.BRIDGE_INVOCATIONS.get() > before)
     }
 
     private fun writeRockspec(): java.nio.file.Path {

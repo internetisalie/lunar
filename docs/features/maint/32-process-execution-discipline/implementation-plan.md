@@ -45,8 +45,13 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
   - [x] Refactor the current `compute()` (`:54-73`) into `computePatternsFromPaths(paths)`; the
         synchronous `else` branch (no read access) calls `readAction { discoverRockspecPaths() }` then
         `computePatternsFromPaths(...)` — realizes design §3.1 step 5.
-  - [x] Add `@VisibleForTesting internal val BRIDGE_INVOCATIONS: AtomicInteger` to `RockspecBridge`,
-        incremented as the first statement of `read` — realizes the TC-03/04/05 seam.
+  - [x] TC-03/04/05 seam — the planned global `RockspecBridge.BRIDGE_INVOCATIONS` counter proved
+        fragile under the full interleaved suite (a concurrent test's async prewarm bumps the shared
+        global, breaking an absolute-count assertion). Pivoted to a **project-local** seam:
+        `RockspecSourcePathProvider.prewarmLaunchCount(project)` (per-test-project, deterministic) proves
+        the N-refs-one-prewarm dedup (TC-04); TC-03/TC-05 assert on the returned **patterns** (degraded
+        static set under the lock vs full rockspec-derived roots after prewarm), which is the race-free
+        invariant. No production counter left on the hot `RockspecBridge.read` path.
   - [x] Do NOT touch `LuaRockspecDiscoveryService`, do NOT add `discoverRockspecData()`, do NOT add
         `assertNoReadAccess()` — design §3.1 (dropped alternatives). `BuildWorkspaceAction.update()`
         already uses `discoverRockspecPaths()` (path-only); no change.

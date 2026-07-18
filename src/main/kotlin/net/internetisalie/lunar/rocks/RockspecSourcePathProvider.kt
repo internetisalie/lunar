@@ -15,6 +15,7 @@ import net.internetisalie.lunar.lang.path.SourcePathPattern
 import net.internetisalie.lunar.util.LunarCoroutineScopeService
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 @Service(Service.Level.PROJECT)
@@ -22,6 +23,7 @@ class RockspecSourcePathProvider(private val project: Project) {
 
     private val forceRefreshTracker = SimpleModificationTracker()
     private val prewarmInFlight = AtomicBoolean(false)
+    private val prewarmLaunches = AtomicInteger(0)
     private val cachedFull = AtomicReference<Pair<List<SourcePathPattern>, List<CModuleRock>>>(null)
 
     private val cache: CachedValue<Pair<List<SourcePathPattern>, List<CModuleRock>>> =
@@ -65,6 +67,7 @@ class RockspecSourcePathProvider(private val project: Project) {
     private fun prewarm() {
         if (cache.hasUpToDateValue()) return
         if (!prewarmInFlight.compareAndSet(false, true)) return
+        prewarmLaunches.incrementAndGet()
         LunarCoroutineScopeService.getInstance(project).scope.launch {
             try {
                 val discovered = readAction {
@@ -110,12 +113,17 @@ class RockspecSourcePathProvider(private val project: Project) {
         fun invalidateCache(project: Project) {
             val provider = getInstance(project)
             provider.cachedFull.set(null)
+            provider.prewarmLaunches.set(0)
             provider.forceRefreshTracker.incModificationCount()
         }
 
         /** True once the off-lock prewarm has published full patterns (test await seam; no compute). */
         @TestOnly
         fun isPrewarmComplete(project: Project): Boolean = getInstance(project).cachedFull.get() != null
+
+        /** Count of prewarm jobs this project's provider launched (project-local; dedup assertions). */
+        @TestOnly
+        fun prewarmLaunchCount(project: Project): Int = getInstance(project).prewarmLaunches.get()
 
         fun getInstance(project: Project): RockspecSourcePathProvider =
             project.getService(RockspecSourcePathProvider::class.java)
