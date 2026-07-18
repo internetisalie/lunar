@@ -43,7 +43,7 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 ### Phase 2: ResolveCache in multiResolve [Must]
 - **Goal**: MAINT-30-02 (part 1) — cache reference resolution.
 - **Tasks**:
-  - [ ] Move `multiResolve`'s body into `private fun doMultiResolve`; add the static
+  - [x] Move `multiResolve`'s body into `private fun doMultiResolve`; add the static
     `RESOLVER: ResolveCache.PolyVariantResolver<LuaNameReference>`; delegate `multiResolve` to
     `ResolveCache.getInstance(project).resolveWithCaching(this, RESOLVER, false, incompleteCode)` in
     `net.internetisalie.lunar.lang.LuaNameReference` — realizes design §2.2.
@@ -100,7 +100,7 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 ## Verification Tasks
 - [x] TC-01 declaration-only cross-file resolution (usage not recorded) — Phase 1.
 - [ ] TC-02 self-referential-initializer scope correction (`local x = x` RHS ≠ new local) — Phase 4.
-- [ ] TC-03 ResolveCache single-compute counter — Phase 2.
+- [x] TC-03 ResolveCache single-compute counter — Phase 2.
 - [ ] TC-04/TC-05/TC-06 snapshot invalidation + reentrancy — Phase 3.
 - [x] TC-07 dotted-assignment not a binding — Phase 1.
 - [ ] TC-08 module-resolver refresh flag — Phase 4.
@@ -115,7 +115,7 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 |-------|--------|----------|
 | Phase 0: De-risking | done | Must |
 | Phase 1: Declaration-only index | done | Must |
-| Phase 2: ResolveCache in multiResolve | todo | Must |
+| Phase 2: ResolveCache in multiResolve | done | Must |
 | Phase 3: Snapshot cache re-key | todo | Must |
 | Phase 4: Single canonical helpers | todo | Should |
 | Phase 5: Method-chain idiom migration | todo | Could |

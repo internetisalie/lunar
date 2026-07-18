@@ -3,10 +3,13 @@ package net.internetisalie.lunar.lang
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.intellij.psi.impl.source.resolve.ResolveCache
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.elementType
+import org.jetbrains.annotations.VisibleForTesting
+import java.util.concurrent.atomic.AtomicInteger
 import net.internetisalie.lunar.lang.LuaIcons.FILE
 import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
@@ -34,6 +37,13 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
     private val name = element.text.substring(textRange.startOffset, textRange.endOffset)
 
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
+        val hostElement = myElement ?: return ResolveResult.EMPTY_ARRAY
+        return ResolveCache.getInstance(hostElement.project)
+            .resolveWithCaching(this, RESOLVER, /* needToPreventRecursion = */ false, incompleteCode)
+    }
+
+    private fun doMultiResolve(incompleteCode: Boolean): Array<ResolveResult> {
+        RESOLVE_INVOCATIONS.incrementAndGet() // TC-03 observation seam: counts un-cached compute entries.
         val element = myElement ?: return emptyArray()
         val results = mutableListOf<ResolveResult>()
 
@@ -273,5 +283,17 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         // Code completion: return empty for now
         // (Modern IntelliJ uses CompletionContributor instead of PsiReference.getVariants())
         return emptyArray()
+    }
+
+    companion object {
+        // Static singleton so the ResolveCache key identity is stable across calls (a per-call
+        // lambda would defeat the cache). needToPreventRecursion=false: Lua name resolution has no
+        // reference->reference recursion (Phase-2 uses the stub index, not .resolve()).
+        private val RESOLVER =
+            ResolveCache.PolyVariantResolver<LuaNameReference> { ref, incomplete -> ref.doMultiResolve(incomplete) }
+
+        /** TC-03 observation seam: counts entries into [doMultiResolve] (the un-cached compute path). */
+        @VisibleForTesting
+        internal val RESOLVE_INVOCATIONS = AtomicInteger()
     }
 }
