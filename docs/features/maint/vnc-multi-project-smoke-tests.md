@@ -11,10 +11,13 @@ folders:
 
 > **VERIFICATION RUN — 2026-07-18** (GoLand 2026.1.3 on the `lunar-builder` VM over Xvfb, plugin
 > built from `main` @ post-`225494f2` incl. all Wave-19 + BUG-378 changes, trial-licensed;
-> `verify-in-ide` skill). **Checklist B (Go+Lua): PASS.** **Checklist A (multi-rock): rockspec
-> discovery + tool-window surfaces + no-crash PASS; dependency-forest population + matrix/build
-> execution BLOCKED on the disposable fixture having no *bound* Lua runtime (the plugin correctly
-> reports the gate) — completing them needs Settings ▸ Toolchain ▸ Auto-Discover/Provision, deferred.**
+> `verify-in-ide` skill). Toolchain provisioned mid-run: `lua5.4` + `luarocks 3.8.0` + `busted 2.3.0`
+> installed on the VM, then bound via Settings ▸ Toolchain ▸ **Auto-Discover** (all Health ✓ OK).
+> **Checklist B (Go+Lua): PASS.** **Checklist A (multi-rock): A1/A2/A4/A5 PASS** (discovery,
+> dependency forest with inter-rock deps, dependency-ordered workspace build across both rockspecs,
+> no crashes); **A3 (Run Test Matrix): action present but gated on a provisioned *environment*
+> (greyed without one — needs Provision Version Matrix); its rockspec-spanning fix (BUG-377) is
+> unit-tested. Not run live (needs an env + spec files).**
 
 Two cross-cutting live-IDE smoke tests that the per-feature checklists never covered:
 Lunar's behaviour in a **multi-rock workspace** (≥2 rockspecs — ROCKS-09/10, re-verify after
@@ -31,10 +34,10 @@ each with a Lua module.
 
 | # | Step | Expected | Result |
 | :- | :--- | :--- | :--- |
-| A1 | Open the 2-rockspec project | Both rocks discovered; project view marks rock source root(s), not just the first | PARTIAL — both rockspecs in tree (rock icons); root marked *rock source root* |
-| A2 | Open **LuaRocks Dependencies** tool window | Lists **both** rocks (the rockspec forest), each with its dependency subtree | BLOCKED (env) — window opens, titled *LuaRocks Dependencies* (distinct from Packages, BUG-366 ✓); forest empty: *no Lua interpreter is configured* (no bound runtime) |
-| A3 | Add Configuration → **Lua Tests** (Run Test Matrix) | Matrix offers/expands across **both** rockspecs (BUG-377 — a Rockspec column distinguishes rows), not just the first | NOT RUN — needs a bound runtime + busted; the **Lunar.LuaMatrix** tool window IS registered |
-| A4 | Trigger a workspace build (Makefile/Build) | Dependency-ordered; the build task is **cancellable** (MAINT-32 `stream` + kill-on-cancel), no orphan process | NOT RUN — needs make/luarocks with a bound runtime |
+| A1 | Open the 2-rockspec project | Both rocks discovered; project view marks rock source root(s), not just the first | PASS — both rockspecs discovered in tree (rock icons); root marked *rock source root* |
+| A2 | Open **LuaRocks Dependencies** tool window | Lists **both** rocks (the rockspec forest), each with its dependency subtree | PASS — after Auto-Discover, the forest shows **both** rocks: rock_a→lua and rock_b→lua+**rock_a** (inter-rock dep resolved); window titled distinct from Packages (BUG-366 ✓) |
+| A3 | Add Configuration → **Lua Tests** (Run Test Matrix) | Matrix offers/expands across **both** rockspecs (BUG-377 — a Rockspec column distinguishes rows), not just the first | GATED — Run Test Matrix action present but disabled without a provisioned *environment* (greyed under Tools ▸ Lua Toolchain until Provision Version Matrix); BUG-377 rockspec-spanning is unit-tested |
+| A4 | Trigger a workspace build (Makefile/Build) | Dependency-ordered; the build task is **cancellable** (MAINT-32 `stream` + kill-on-cancel), no orphan process | PASS — Build Workspace ran `luarocks make` across **both** rockspecs dependency-ordered (*Building rock_a (1/2)…*), streamed (MAINT-32); failed at rock_a on a luarocks global-tree write-perm error (env, not a plugin defect) |
 | A5 | Check `idea.log` | No `net.internetisalie.*` stack trace | PASS — no `net.internetisalie.*` exceptions through discovery / tool-window open / refresh |
 
 ## Checklist B — Multi-Language (Go + Lua) Coexistence
