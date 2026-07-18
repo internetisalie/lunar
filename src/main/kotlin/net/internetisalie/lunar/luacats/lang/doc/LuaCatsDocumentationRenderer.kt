@@ -1,14 +1,18 @@
 package net.internetisalie.lunar.luacats.lang.doc
 
 import com.intellij.lang.documentation.DocumentationMarkup
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.doc.LuaDocumentationRenderer
 import net.internetisalie.lunar.lang.doc.buildTypeLink
 import net.internetisalie.lunar.lang.doc.codeFragment
+import net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
@@ -411,11 +415,9 @@ object LuaCatsDocumentationRenderer {
             is LuaCatsClassTag -> element
             else -> null
         }
-        val parentTypeName = classTag?.parentTypes?.text
-        val parentComment = parentTypeName?.let { lookupParentComment(element.project, it) }
-        val hasInheritedFields = parentComment != null && parentComment.fieldTagList.isNotEmpty()
+        val inheritedFields = classTag?.let { collectInheritedFieldTags(element.project, it) } ?: emptyList()
 
-        if (!hasDirectFields && !hasInheritedFields) return
+        if (!hasDirectFields && inheritedFields.isEmpty()) return
 
         if (hasDirectFields) {
             buildSectionHeader("Fields:", sb)
@@ -425,9 +427,9 @@ object LuaCatsDocumentationRenderer {
             sb.append(SECTION_END)
         }
 
-        if (hasInheritedFields) {
+        if (inheritedFields.isNotEmpty()) {
             buildSectionHeader("Inherited Fields:", sb)
-            parentComment.fieldTagList.forEach { tag ->
+            inheritedFields.forEach { tag ->
                 buildFieldTag(tag, sb)
             }
             sb.append(SECTION_END)
@@ -523,9 +525,57 @@ object LuaCatsDocumentationRenderer {
         }
     }
 
-    private fun lookupParentComment(project: Project, parentTypeName: String): LuaCatsComment? {
+    private const val INHERITANCE_DEPTH_CAP = 64
+
+    /** The simple class name of a parent [LuaCatsArgType], trimmed and stripped of any generic args. */
+    private fun parentClassName(argType: LuaCatsArgType): String =
+        argType.text.substringBefore('<').trim()
+
+    private fun parentClassNames(classTag: LuaCatsClassTag?): List<String> =
+        classTag?.parentTypes?.argTypeList?.map { parentClassName(it) }?.filter { it.isNotEmpty() } ?: emptyList()
+
+    /**
+     * Resolves a parent `@class` name to its comment. Prefers the stub-indexed host-decl form and
+     * falls back to the file-based [LuaCatsTypeNameIndex] so a bare `--- @class Parent` (no host
+     * decl, absent from [LuaClassNameIndex]) is still found. Mirrors [LuaCatsTypeNavigation].
+     */
+    private fun resolveClassComment(project: Project, className: String): LuaCatsComment? {
         val scope = GlobalSearchScope.allScope(project)
-        val parentDecl = StubIndex.getElements(LuaClassNameIndex.KEY, parentTypeName, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
-        return parentDecl?.catsComment
+        val stubDecl = StubIndex.getElements(LuaClassNameIndex.KEY, className, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+        if (stubDecl != null) return stubDecl.catsComment
+        return resolveBareClassComment(project, className, scope)
+    }
+
+    private fun resolveBareClassComment(project: Project, className: String, scope: GlobalSearchScope): LuaCatsComment? {
+        val psiManager = PsiManager.getInstance(project)
+        for (virtualFile in FileBasedIndex.getInstance().getContainingFiles(LuaCatsTypeNameIndex.KEY, className, scope)) {
+            val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
+            for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsClassTag::class.java)) {
+                if (tag.argType.text.trim() != className) continue
+                return PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java)
+            }
+        }
+        return null
+    }
+
+    /**
+     * Breadth-first walk of the inheritance chain, collecting each ancestor's field tags. A local
+     * `visited` set is the cycle guard (`@class A : B`, `@class B : A` terminates) and
+     * [INHERITANCE_DEPTH_CAP] is a hard depth ceiling against pathological chains.
+     */
+    private fun collectInheritedFieldTags(project: Project, classTag: LuaCatsClassTag): List<LuaCatsFieldTag> {
+        val visited = mutableSetOf(classTag.argType.text.trim())
+        val queue = ArrayDeque(parentClassNames(classTag))
+        val collected = mutableListOf<LuaCatsFieldTag>()
+
+        while (queue.isNotEmpty() && visited.size <= INHERITANCE_DEPTH_CAP) {
+            ProgressManager.checkCanceled()
+            val name = queue.removeFirst()
+            if (!visited.add(name)) continue
+            val parentComment = resolveClassComment(project, name) ?: continue
+            collected.addAll(parentComment.fieldTagList)
+            queue.addAll(parentClassNames(parentComment.classTagList.firstOrNull()))
+        }
+        return collected
     }
 }

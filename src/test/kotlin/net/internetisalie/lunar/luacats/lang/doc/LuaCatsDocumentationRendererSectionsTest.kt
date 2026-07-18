@@ -134,6 +134,71 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
     }
 
     @Test
+    fun testGrandparentFieldsRender() {
+        // TC-03a (#67): C : B : A; A has field id -> Inherited Fields for C lists the grandparent field.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val doc = renderAtCaret(
+                    """
+                    ---@class A
+                    ---@field id integer
+                    local A = {}
+
+                    ---@class B : A
+                    local B = {}
+
+                    ---@class C : B
+                    local <caret>C = {}
+                    """.trimIndent(),
+                )
+                assertContains(doc, "Inherited Fields:")
+                assertContains(doc, "id")
+            }
+        }
+    }
+
+    @Test
+    fun testBareParentClassFieldsFoundViaIndex() {
+        // TC-03b (#36): a bare `--- @class Parent` (no host decl) is resolved via LuaCatsTypeNameIndex.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val doc = renderAtCaret(
+                    """
+                    --- @class Parent
+                    --- @field p string
+
+                    ---@class Child : Parent
+                    local <caret>Child = {}
+                    """.trimIndent(),
+                )
+                assertContains(doc, "Inherited Fields:")
+                assertContains(doc, "p")
+            }
+        }
+    }
+
+    @Test
+    fun testCyclicInheritanceTerminates() {
+        // TC-03c (#67): @class A : B; @class B : A must terminate (no stack overflow / hang).
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val doc = renderAtCaret(
+                    """
+                    ---@class A : B
+                    ---@field a integer
+                    local A = {}
+
+                    ---@class B : A
+                    ---@field b integer
+                    local <caret>B = {}
+                    """.trimIndent(),
+                )
+                assertNotNull(doc, "Cyclic inheritance render must terminate and produce output")
+            }
+        }
+    }
+
+    @Test
     fun testUnsupportedElementReturnsNull() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {

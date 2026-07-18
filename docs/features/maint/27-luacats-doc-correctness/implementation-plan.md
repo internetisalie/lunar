@@ -60,12 +60,12 @@ explicit precondition gate.
 ### Phase 3: Inheritance rendering [Should]
 - **Goal**: #36 (per-`ArgType` parent lookup + `LuaCatsTypeNameIndex` fallback) and #67 (chain walk).
 - **Tasks**:
-  - [ ] Add `resolveClassComment(project, className)` — realizes design §3.4; replaces the
-    stub-only `lookupParentComment` (renderer lines 502–506).
-  - [ ] Add `collectInheritedFieldTags(project, classTag)` (BFS + `visited` cycle guard + `<= 64`
+  - [x] Add `resolveClassComment(project, className)` (+ `resolveBareClassComment` fallback) —
+    realizes design §3.4; replaces the stub-only `lookupParentComment`.
+  - [x] Add `collectInheritedFieldTags(project, classTag)` (BFS + `visited` cycle guard + `<= 64`
     depth cap + `ProgressManager.checkCanceled()`) — realizes design §3.5.
-  - [ ] Rewire `buildFieldsSection` (lines 398–426) to source inherited fields from
-    `collectInheritedFieldTags` and iterate `classTag.parentTypes?.argTypeList` per-name.
+  - [x] Rewire `buildFieldsSection` to source inherited fields from `collectInheritedFieldTags`,
+    which iterates `classTag.parentTypes.argTypeList` per-name (`parentClassNames` helper).
 - **Exit criteria**: TC-03a (grandparent field appears), TC-03b (bare `--- @class Parent` fields
   found via `LuaCatsTypeNameIndex`), TC-03c (`@class A : A` cycle terminates) pass.
 
@@ -132,7 +132,7 @@ explicit precondition gate.
 |-------|--------|----------|
 | Phase 1: Lexer containment + dead-state removal | done | Must |
 | Phase 2: Escaped, correct doc HTML | done | Must |
-| Phase 3: Inheritance rendering | todo | Should |
+| Phase 3: Inheritance rendering | done | Should |
 | Phase 4: Alias values | todo | Should |
 | Phase 5: Direct-children getters | todo | Should |
 | Phase 6: Annotator cleanup | todo | Could |
