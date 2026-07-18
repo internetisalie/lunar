@@ -85,9 +85,11 @@ explicit precondition gate.
 ### Phase 5: Direct-children getters [Should]
 - **Goal**: #38 — restore the direct-children contract on the lazy comment.
 - **Tasks**:
-  - [ ] In `LuaCatsLazyCommentImpl`, change every getter body (lines 27–129) from
-    `PsiTreeUtil.findChildrenOfType(this, X::class.java).toList()` to
-    `PsiTreeUtil.getChildrenOfTypeAsList(this, X::class.java)` — realizes design §3.6. No cache.
+  - [x] In `LuaCatsLazyCommentImpl`, every getter now delegates to the inner `LuaCatsComment` child
+    (whose generated getters use `getChildrenOfTypeAsList` on their direct children) — realizes the
+    #38 intent. No cache. DEVIATION from the literal `getChildrenOfTypeAsList(this, …)` swap: a PSI
+    dump showed the lazy node's single child is the inner `COMMENT` node and the tags are one level
+    below it, so a `this`-level swap returned empty lists (12 regressions). See risks-and-gaps.md.
 - **Exit criteria**: TC-05a (`getDescriptionList()` returns only the top-level description, not
   tag-nested ones), TC-05b (`isDocCommentEmpty` accurate for a `--- @param` comment) pass; existing
   `LuaCatsLazyCommentTest` still green.
@@ -139,5 +141,5 @@ explicit precondition gate.
 | Phase 2: Escaped, correct doc HTML | done | Must |
 | Phase 3: Inheritance rendering | done | Should |
 | Phase 4: Alias values | done | Should |
-| Phase 5: Direct-children getters | todo | Should |
+| Phase 5: Direct-children getters | done | Should |
 | Phase 6: Annotator cleanup | todo | Could |

@@ -110,6 +110,49 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
     }
 
     @Test
+    fun testDescriptionListExcludesTagNestedDescriptions() {
+        // TC-05a (#38): getDescriptionList() returns only top-level (direct-child) descriptions.
+        // A @param's trailing description is nested inside the paramTag, so it must NOT leak in.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val comment = catsComment(
+                    """
+                    ---@param x number Some desc
+                    function f(x) end
+                    """.trimIndent(),
+                )
+                assertEquals(
+                    0,
+                    comment.descriptionList.size,
+                    "Top-level descriptionList must exclude the @param-nested description",
+                )
+                assertTrue(
+                    comment.paramTagList.first().description?.text?.contains("Some desc") == true,
+                    "The @param description should live on the param tag, not the comment",
+                )
+            }
+        }
+    }
+
+    @Test
+    fun testDescriptionListEmptyForBareParamComment() {
+        // TC-05b (#38): a comment whose only content is a @param tag has an empty top-level
+        // descriptionList — the isDocCommentEmpty-equivalent check is accurate (not skewed by
+        // the tag subtree).
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val comment = catsComment(
+                    """
+                    ---@param x number
+                    function f(x) end
+                    """.trimIndent(),
+                )
+                assertEquals(0, comment.descriptionList.size)
+            }
+        }
+    }
+
+    @Test
     fun testParamTagList() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {

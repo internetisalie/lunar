@@ -8,6 +8,14 @@ import net.internetisalie.lunar.luacats.lang.psi.*
 
 /**
  * @author ilyas
+ *
+ * The lazy-parseable chameleon node whose single content child is the inner `comment`
+ * ([LuaCatsComment], generated as [LuaCatsCommentImpl]) produced by `parseContents`
+ * ([net.internetisalie.lunar.lang.psi.LuaLazyElementTypes.LUACATS_COMMENT]). Because the tags and
+ * top-level descriptions are direct children of that inner comment (bnf `private commentLine`),
+ * every accessor delegates to it. This restores the generated direct-children contract: a
+ * description nested inside a tag (`classTag ::= … description?`) no longer leaks into
+ * [getDescriptionList], fixing the duplicate-summary and `isDocCommentEmpty` skew (MAINT-27 #38).
  */
 class LuaCatsLazyCommentImpl(text: CharSequence?) : LazyParseablePsiElement(LuaLazyElementTypes.LUACATS_COMMENT, text),
     LuaCatsComment {
@@ -24,107 +32,61 @@ class LuaCatsLazyCommentImpl(text: CharSequence?) : LazyParseablePsiElement(LuaL
         else super.accept(visitor)
     }
 
-    override fun getAliasTagList(): List<LuaCatsAliasTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsAliasTag::class.java).toList()
-    }
+    private fun innerComment(): LuaCatsComment? =
+        PsiTreeUtil.getChildOfType(this, LuaCatsComment::class.java)
 
-    override fun getAsyncTagList(): List<LuaCatsAsyncTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsAsyncTag::class.java).toList()
-    }
+    private fun <T> delegate(select: (LuaCatsComment) -> List<T>): List<T> =
+        innerComment()?.let(select) ?: emptyList()
 
-    override fun getCastTagList(): List<LuaCatsCastTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsCastTag::class.java).toList()
-    }
+    override fun getAliasTagList(): List<LuaCatsAliasTag> = delegate { it.aliasTagList }
 
-    override fun getClassTagList(): List<LuaCatsClassTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsClassTag::class.java).toList()
-    }
+    override fun getAsyncTagList(): List<LuaCatsAsyncTag> = delegate { it.asyncTagList }
 
-    override fun getDeprecatedTagList(): List<LuaCatsDeprecatedTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsDeprecatedTag::class.java).toList()
-    }
+    override fun getCastTagList(): List<LuaCatsCastTag> = delegate { it.castTagList }
 
-    override fun getDescriptionList(): List<LuaCatsDescription> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsDescription::class.java).toList()
-    }
+    override fun getClassTagList(): List<LuaCatsClassTag> = delegate { it.classTagList }
 
-    override fun getDiagnosticTagList(): List<LuaCatsDiagnosticTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsDiagnosticTag::class.java).toList()
-    }
+    override fun getDeprecatedTagList(): List<LuaCatsDeprecatedTag> = delegate { it.deprecatedTagList }
 
-    override fun getEnumTagList(): List<LuaCatsEnumTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsEnumTag::class.java).toList()
-    }
+    override fun getDescriptionList(): List<LuaCatsDescription> = delegate { it.descriptionList }
 
-    override fun getFieldTagList(): List<LuaCatsFieldTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsFieldTag::class.java).toList()
-    }
+    override fun getDiagnosticTagList(): List<LuaCatsDiagnosticTag> = delegate { it.diagnosticTagList }
 
-    override fun getGenericTagList(): List<LuaCatsGenericTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsGenericTag::class.java).toList()
-    }
+    override fun getEnumTagList(): List<LuaCatsEnumTag> = delegate { it.enumTagList }
 
-    override fun getMetaTagList(): List<LuaCatsMetaTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsMetaTag::class.java).toList()
-    }
+    override fun getFieldTagList(): List<LuaCatsFieldTag> = delegate { it.fieldTagList }
 
-    override fun getModuleTagList(): List<LuaCatsModuleTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsModuleTag::class.java).toList()
-    }
+    override fun getGenericTagList(): List<LuaCatsGenericTag> = delegate { it.genericTagList }
 
-    override fun getNodiscardTagList(): List<LuaCatsNodiscardTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsNodiscardTag::class.java).toList()
-    }
+    override fun getMetaTagList(): List<LuaCatsMetaTag> = delegate { it.metaTagList }
 
-    override fun getOperatorTagList(): List<LuaCatsOperatorTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsOperatorTag::class.java).toList()
-    }
+    override fun getModuleTagList(): List<LuaCatsModuleTag> = delegate { it.moduleTagList }
 
-    override fun getOverloadTagList(): List<LuaCatsOverloadTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsOverloadTag::class.java).toList()
-    }
+    override fun getNodiscardTagList(): List<LuaCatsNodiscardTag> = delegate { it.nodiscardTagList }
 
-    override fun getPackageTagList(): List<LuaCatsPackageTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsPackageTag::class.java).toList()
-    }
+    override fun getOperatorTagList(): List<LuaCatsOperatorTag> = delegate { it.operatorTagList }
 
-    override fun getParamTagList(): List<LuaCatsParamTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsParamTag::class.java).toList()
-    }
+    override fun getOverloadTagList(): List<LuaCatsOverloadTag> = delegate { it.overloadTagList }
 
-    override fun getPrivateTagList(): List<LuaCatsPrivateTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsPrivateTag::class.java).toList()
-    }
+    override fun getPackageTagList(): List<LuaCatsPackageTag> = delegate { it.packageTagList }
 
-    override fun getProtectedTagList(): List<LuaCatsProtectedTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsProtectedTag::class.java).toList()
-    }
+    override fun getParamTagList(): List<LuaCatsParamTag> = delegate { it.paramTagList }
 
-    override fun getReturnTagList(): List<LuaCatsReturnTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsReturnTag::class.java).toList()
-    }
+    override fun getPrivateTagList(): List<LuaCatsPrivateTag> = delegate { it.privateTagList }
 
-    override fun getSeeTagList(): List<LuaCatsSeeTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsSeeTag::class.java).toList()
-    }
+    override fun getProtectedTagList(): List<LuaCatsProtectedTag> = delegate { it.protectedTagList }
 
-    override fun getSourceTagList(): List<LuaCatsSourceTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsSourceTag::class.java).toList()
-    }
+    override fun getReturnTagList(): List<LuaCatsReturnTag> = delegate { it.returnTagList }
 
-    override fun getTypeOptionList(): List<LuaCatsTypeOption> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsTypeOption::class.java).toList()
-    }
+    override fun getSeeTagList(): List<LuaCatsSeeTag> = delegate { it.seeTagList }
 
-    override fun getTypeTagList(): List<LuaCatsTypeTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsTypeTag::class.java).toList()
-    }
+    override fun getSourceTagList(): List<LuaCatsSourceTag> = delegate { it.sourceTagList }
 
-    override fun getVarargTagList(): List<LuaCatsVarargTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsVarargTag::class.java).toList()
-    }
+    override fun getTypeOptionList(): List<LuaCatsTypeOption> = delegate { it.typeOptionList }
 
-    override fun getVersionTagList(): List<LuaCatsVersionTag> {
-        return PsiTreeUtil.findChildrenOfType(this, LuaCatsVersionTag::class.java).toList()
-    }
+    override fun getTypeTagList(): List<LuaCatsTypeTag> = delegate { it.typeTagList }
+
+    override fun getVarargTagList(): List<LuaCatsVarargTag> = delegate { it.varargTagList }
+
+    override fun getVersionTagList(): List<LuaCatsVersionTag> = delegate { it.versionTagList }
 }

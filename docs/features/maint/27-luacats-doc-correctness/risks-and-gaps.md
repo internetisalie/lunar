@@ -52,6 +52,24 @@ _None open._ Every design decision the implementer would otherwise have to make 
 - #66 Unicode class → §3.1 (`[:letter:]`).
 - luacats.bnf regen scope → §9 (flex-only ⇒ bnf regen is a no-op).
 
+## Implementation Deviation (Phase 5, #38)
+
+Design §1/§3.6 assumed `LuaCatsLazyCommentImpl` and the generated `LuaCatsCommentImpl` are the
+**same** node, so a blanket getter swap to `getChildrenOfTypeAsList(this, …)` would return the
+tags as direct children. A PSI dump (`DebugUtil.psiToString`) disproved this: `parseContents`
+returns `root.firstChildNode`, so the lazy chameleon's *single* child is an inner `COMMENT` node
+(the generated `LuaCatsCommentImpl`), and **the tags are direct children of that inner comment**,
+one level below the lazy node. A direct `getChildrenOfTypeAsList(this, …)` therefore returned empty
+lists and broke `getSeeTagList`/`getParamTagList`/`getVersionTagList`/`LuaDescriptionIndex` (12 test
+regressions).
+
+Resolution (preserves the #38 intent): every lazy getter now **delegates to the inner
+`LuaCatsComment` child** (`PsiTreeUtil.getChildOfType(this, LuaCatsComment::class.java)`), whose own
+generated getters already use `getChildrenOfTypeAsList` on *their* direct children. Result is the
+same as the design's goal — `getDescriptionList()` returns only the inner comment's direct
+(top-level) descriptions, excluding tag-nested ones — but reached via delegation, not a `this`-level
+direct-children read. No cache, matching design §3.6/§9.
+
 ## Technical Debt & Future Work
 
 - **TBD: full LuaCATS type-string parsing for hyperlinking substructure** — #35 links only whole
