@@ -70,6 +70,23 @@ same as the design's goal — `getDescriptionList()` returns only the inner comm
 (top-level) descriptions, excluding tag-nested ones — but reached via delegation, not a `this`-level
 direct-children read. No cache, matching design §3.6/§9.
 
+## Implementation Deviation (Phase 6, #72)
+
+Design §3.7 step 3 directed removing **both** the `LuaCatsNamedType` classTag/aliasTag special case
+**and** the `LuaCatsElementTypes.NAME` else-branch as "unreachable". The verify-first fixtures
+(added before any edit, per the protocol) disproved the second half: the class name `Foo` in
+`---@class Foo : Bar` is a **raw `NAME` token** (`typeName ::= parameterizedName | NAME`, bnf line
+93), and the `LuaCatsElementTypes.NAME` else-branch is the **only** producer of its `NAME` highlight
+— the baseline fixture `testClassNameHighlightUnchanged` passes *because of* that branch. Removing it
+would strip the class-name highlight, violating requirements TC-06 ("class name Foo highlighting
+unchanged from the captured baseline").
+
+Resolution: removed **only** the genuinely-dead `LuaCatsNamedType` special case (empirically dead —
+the alias target `Player` and parent `Bar` already highlight `TYPE` before and after removal, so
+`testAliasTargetHighlightsAsType` / `testClassParentTypeHighlightsAsType` are unchanged). Kept the
+load-bearing `LuaCatsElementTypes.NAME` else-branch. This is exactly the outcome the design's
+"verify FIRST, then drop only what the fixture proves dead" protocol is meant to produce.
+
 ## Technical Debt & Future Work
 
 - **TBD: full LuaCATS type-string parsing for hyperlinking substructure** — #35 links only whole

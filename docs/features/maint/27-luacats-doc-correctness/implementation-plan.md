@@ -97,11 +97,12 @@ explicit precondition gate.
 ### Phase 6: Annotator cleanup [Could]
 - **Goal**: #72 — fixture-verify then drop the dead branch.
 - **Tasks**:
-  - [ ] **First** add the assertion fixtures to `LuaCatsAnnotatorTest` (`---@class Foo : Bar`,
+  - [x] **First** added the assertion fixtures to `LuaCatsAnnotatorTest` (`---@class Foo : Bar`,
     `---@alias Mode Player`) capturing current highlight keys — realizes design §3.7 step 1.
-  - [ ] Remove the `LuaCatsNamedType` classTag/aliasTag special case (annotator lines 24–30 → single
-    `TYPE` highlight) and the unreachable `LuaCatsElementTypes.NAME` else-branch (lines 56–61) —
-    realizes design §3.7 steps 2–3.
+  - [x] Removed the `LuaCatsNamedType` classTag/aliasTag special case (→ single `TYPE` highlight),
+    proven dead by the fixtures. DEVIATION: KEPT the `LuaCatsElementTypes.NAME` else-branch — the
+    verify-first fixture proved it is the sole producer of the class-name `NAME` highlight (class
+    name is a raw `NAME` token, bnf line 93), so removing it would violate TC-06. See risks-and-gaps.md.
 - **Exit criteria**: TC-06 (class name / alias target highlighting unchanged-or-corrected after
   removal) passes; full suite green.
 
@@ -142,4 +143,4 @@ explicit precondition gate.
 | Phase 3: Inheritance rendering | done | Should |
 | Phase 4: Alias values | done | Should |
 | Phase 5: Direct-children getters | done | Should |
-| Phase 6: Annotator cleanup | todo | Could |
+| Phase 6: Annotator cleanup | done | Could |

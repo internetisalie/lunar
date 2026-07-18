@@ -74,4 +74,45 @@ class LuaCatsAnnotatorTest : BaseDocumentTest() {
         )
         assertHighlighted("(", LuaCatsHighlight.BRACKETS)
     }
+
+    @Test
+    fun testClassNameHighlightUnchanged() {
+        // TC-06: the class name Foo (raw NAME under a classTag ArgType) keeps its NAME highlight
+        // after the dead-branch removal — baseline captured here.
+        myFixture.configureByText(
+            "test.lua",
+            """
+            ---@class Foo : Bar
+            local Foo = {}
+            """.trimIndent(),
+        )
+        assertHighlighted("Foo", LuaCatsHighlight.NAME)
+    }
+
+    @Test
+    fun testClassParentTypeHighlightsAsType() {
+        // TC-06: the parent Bar (LuaCatsNamedType under parentTypes) highlights as TYPE.
+        myFixture.configureByText(
+            "test.lua",
+            """
+            ---@class Foo : Bar
+            local Foo = {}
+            """.trimIndent(),
+        )
+        assertHighlighted("Bar", LuaCatsHighlight.TYPE)
+    }
+
+    @Test
+    fun testAliasTargetHighlightsAsType() {
+        // TC-06: an alias target that is a bare class name (LuaCatsNamedType under the aliasTag
+        // ArgType) highlights as TYPE — the corrected kind after the dead-branch removal.
+        myFixture.configureByText(
+            "test.lua",
+            """
+            ---@alias Mode Player
+            local m
+            """.trimIndent(),
+        )
+        assertHighlighted("Player", LuaCatsHighlight.TYPE)
+    }
 }

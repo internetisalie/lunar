@@ -20,15 +20,7 @@ class LuaCatsAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         when (element) {
             is LuaCatsArgKeyword -> highlight(holder, element, LuaCatsHighlight.KEYWORD)
-            is LuaCatsNamedType -> {
-                // If it's the direct child of classTag or aliasTag, it's a name
-                val parent = element.parent
-                if (parent is LuaCatsArgType && (parent.parent is LuaCatsClassTag || parent.parent is LuaCatsAliasTag)) {
-                    highlight(holder, element, LuaCatsHighlight.NAME)
-                } else {
-                    highlight(holder, element, LuaCatsHighlight.TYPE)
-                }
-            }
+            is LuaCatsNamedType -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsTypeParam -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsBuiltinType -> highlight(holder, element, LuaCatsHighlight.TYPE)
             is LuaCatsLiteralType -> highlight(holder, element, LuaCatsHighlight.KEYWORD)
