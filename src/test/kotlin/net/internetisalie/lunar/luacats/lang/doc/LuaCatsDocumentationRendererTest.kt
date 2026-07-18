@@ -221,6 +221,36 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
         }
     }
 
+    @Test
+    fun testUnionAliasRendersValues() {
+        // TC-04 (#37): the standard `---|` union-alias form (no @enum) must render a Values:
+        // section listing "r","w". Only the `---|` continuation form populates typeOptionList;
+        // the inline `"r"|"w"` shorthand parses the union into the aliasTag's ARG_TYPE instead
+        // (see PLAN Phase 4 deviation note), so this asserts the form the fix actually targets.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                configureByText(
+                    """
+                    ---@alias Mode
+                    ---| "r"
+                    ---| "w"
+                    local m
+                    """.trimIndent(),
+                )
+                val aliasTag = PsiTreeUtil.findChildOfType(
+                    myFixture.file,
+                    net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag::class.java,
+                )
+                assertNotNull(aliasTag, "Could not find alias tag")
+                val doc = LuaCatsDocumentationRenderer.renderDoc(aliasTag!!)
+                assertNotNull(doc)
+                assertContains(doc!!, "Values:")
+                assertContains(doc, "\"r\"")
+                assertContains(doc, "\"w\"")
+            }
+        }
+    }
+
     private fun renderLocalVarDoc(code: String): String {
         configureByText(code)
         val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)

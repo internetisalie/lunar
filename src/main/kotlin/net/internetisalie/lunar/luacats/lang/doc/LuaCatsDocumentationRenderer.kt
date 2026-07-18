@@ -324,7 +324,7 @@ object LuaCatsDocumentationRenderer {
                 buildFieldsSection(element, comment, sb)
             }
             is LuaCatsAliasTag -> {
-                if (comment.enumTagList.isNotEmpty()) {
+                if (comment.typeOptionList.isNotEmpty()) {
                     buildEnumValuesSection(comment, sb)
                 }
             }

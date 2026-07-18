@@ -72,9 +72,14 @@ explicit precondition gate.
 ### Phase 4: Alias values [Should]
 - **Goal**: #37 — union-alias `Values:` section.
 - **Tasks**:
-  - [ ] In `buildSectionsBlock`, change the `LuaCatsAliasTag` arm (line 313) to gate on
+  - [x] In `buildSectionsBlock`, changed the `LuaCatsAliasTag` arm to gate on
     `comment.typeOptionList.isNotEmpty()` instead of `comment.enumTagList.isNotEmpty()` — realizes
     design §5 Ex.3.
+  - DEVIATION: TC-04's requirements-table input used the *inline* `---@alias Mode "r"|"w"` shorthand,
+    but that form parses the union into the aliasTag's `ARG_TYPE` (UNION_TYPE) and produces **no**
+    `TYPE_OPTION` nodes (verified by PSI dump). Only the `---|` continuation form populates
+    `typeOptionList`, which is exactly what the design §5 Ex.3 fix (and review #37's "`---|`
+    union-alias form") targets. TC-04 asserts the `---|` form accordingly.
 - **Exit criteria**: TC-04 (`---@alias Mode "r"|"w"` renders `Values: "r", "w"`) passes.
 
 ### Phase 5: Direct-children getters [Should]
@@ -133,6 +138,6 @@ explicit precondition gate.
 | Phase 1: Lexer containment + dead-state removal | done | Must |
 | Phase 2: Escaped, correct doc HTML | done | Must |
 | Phase 3: Inheritance rendering | done | Should |
-| Phase 4: Alias values | todo | Should |
+| Phase 4: Alias values | done | Should |
 | Phase 5: Direct-children getters | todo | Should |
 | Phase 6: Annotator cleanup | todo | Could |
