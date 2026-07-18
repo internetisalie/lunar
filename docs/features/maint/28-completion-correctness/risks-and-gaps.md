@@ -64,9 +64,9 @@ _None open._ Every decision the design left implicit at intake was resolved and 
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| MAINT-28-00-DR-01 | Before Phase 1, add TC-39 (in-scope locals still offered) and confirm the existing member-completion tests are green on `main` (ff1dfbd5) — establishes the regression fence for the originalFile switch. | Risk 1.1 | todo |
-| MAINT-28-00-DR-02 | Confirm `LuaFuncName.getFuncNameMethod()` is non-null for `function Class:m()` and `getFuncNamePropertyList()` non-empty for `function M.fn()` via a one-off `configureByText` + PSI dump, before relying on it in §3.2. | Risk 1.2 | todo |
-| MAINT-28-00-DR-03 | Confirm `CachedValue` on a `@Service(Level.PROJECT)` field survives across completion invocations (value recomputed only on `MODIFICATION_COUNT` bump) by asserting a call counter — mirrors `LuaRockspecDiscoveryService`. | §2.5.5 correctness | todo |
+| MAINT-28-00-DR-01 | Before Phase 1, add TC-39 (in-scope locals still offered) and confirm the existing member-completion tests are green on `main` (ff1dfbd5) — establishes the regression fence for the originalFile switch. | Risk 1.1 | done — TC-39/TC-39b added; member/PSI/type-inferred completion suites green through every phase; full suite 2191/0/1. |
+| MAINT-28-00-DR-02 | Confirm `LuaFuncName.getFuncNameMethod()` is non-null for `function Class:m()` and `getFuncNamePropertyList()` non-empty for `function M.fn()` via a one-off `configureByText` + PSI dump, before relying on it in §3.2. | Risk 1.2 | done — `LuaFuncName.java` confirms `@Nullable getFuncNameMethod()` / `@NotNull List getFuncNamePropertyList()`; TC-40 asserts the receiver exclusion end-to-end. |
+| MAINT-28-00-DR-03 | Confirm `CachedValue` on a `@Service(Level.PROJECT)` field survives across completion invocations (value recomputed only on `MODIFICATION_COUNT` bump) by asserting a call counter — mirrors `LuaRockspecDiscoveryService`. | §2.5.5 correctness | done — TC-25p asserts `assertSame` List identity across reads and `assertNotSame` after a PSI edit. |
 
 ## Test Case Gaps
 
