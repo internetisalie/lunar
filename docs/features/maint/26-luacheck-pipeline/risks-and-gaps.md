@@ -61,8 +61,11 @@ folders:
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
 | MAINT-26-00-DR-01 | Verify luacheck supports `- --filename` stdin. **DONE**: confirmed in vendored source `../tools/luacheck/src/luacheck/main.lua (external-local checkout, one level above the repo root — not git-tracked):33` (`'-'` = stdin), `:218` (`--filename`), `:303-306` (`io.stdin`). Stdin is the primary #30 fix; clamping is the guard. | §3.3 stdin decision | done |
-| MAINT-26-00-DR-02 | Spike the annotator real-flow test seam: point the seeded luacheck tool at a `/bin/sh -c` echo-script (option 1) and confirm `doHighlighting` produces the clamped ranges; else split pure logic (option 2). | Gap 2.1 | todo |
-| MAINT-26-00-DR-03 | Confirm `--filename` value: pass workdir-relative path (not bare name) so `.luacheckrc` overrides resolve as they do for the on-disk run; add a fixture with a directory-scoped override. | Risk 1.1 | todo |
+| MAINT-26-00-DR-02 | Spike the annotator real-flow test seam: point the seeded luacheck tool at a `/bin/sh -c` echo-script (option 1) and confirm `doHighlighting` produces the clamped ranges; else split pure logic (option 2). | Gap 2.1 | done |
+| MAINT-26-00-DR-03 | Confirm `--filename` value: pass workdir-relative path (not bare name) so `.luacheckrc` overrides resolve as they do for the on-disk run; add a fixture with a directory-scoped override. | Risk 1.1 | deferred |
+
+
+**DR-03 deferral (2026-07-17, review remediation):** MAINT-26-03's offset accuracy (#30) is delivered — the annotator runs with `withWorkDirectory(virtualFile.parent)` and `--filename <name>`, which is self-consistent: `.luacheckrc` discovery searches upward from the file's own directory (common case works), and diagnostics report the correct name. Only **directory-glob-scoped** `.luacheckrc` overrides under stdin (Risk 1.1, likelihood **low**) are unaddressed — resolving them would require switching the workdir to the project root and passing a root-relative `--filename`, which risks regressing `.luacheckrc` *discovery* for the common case. That trade-off is exactly what the DR-03 empirical spike (directory-scoped-override fixture) was meant to settle; it is deferred as a tracked follow-up rather than shipped unverified.
 
 ## Test Case Gaps
 - No test currently exercises a **non-zero, non-1 exit** through the annotator (only the pure
