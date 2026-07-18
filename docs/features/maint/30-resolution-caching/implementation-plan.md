@@ -84,9 +84,10 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 ### Phase 5: Method-chain idiom migration [Could]
 - **Goal**: MAINT-30-04 — provider uses `resolveMember`.
 - **Tasks**:
-  - [ ] Replace `findMethodDecl`/`annotatedReturnNames`/`inferredReturnNames` with a
-    `LuaTypeManager.resolveType(...).resolveMember(...)` lookup in
-    `net.internetisalie.lunar.lang.insight.hint.LuaMethodChainInlayHintProvider` — realizes design §2.7.
+  - [x] Add a `LuaTypeManager.resolveType(...).resolveMember(...)` primary lookup in
+    `net.internetisalie.lunar.lang.insight.hint.LuaMethodChainInlayHintProvider`; the stub path
+    (`findMethodDecl`/`annotatedReturnNames`/`inferredReturnNames`) is retained as the DR-03 multi-return
+    fallback (a single `LuaFunctionType.returnType` cannot represent `---@return A, B`) — realizes §2.7.
 - **Exit criteria**: TC-09 (existing chain-hint tests) still green; if `resolveMember` cannot match
   multi-return output, DR-03 outcome applied (keep stub fallback), documented.
 
@@ -106,7 +107,7 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 - [x] TC-04/TC-05/TC-06 snapshot invalidation + reentrancy — Phase 3.
 - [x] TC-07 dotted-assignment not a binding — Phase 1.
 - [x] TC-08 module-resolver refresh flag — Phase 4.
-- [ ] TC-09 method-chain hints unchanged — Phase 5.
+- [x] TC-09 method-chain hints unchanged — Phase 5.
 - [ ] Full builder gate `tooling/gce-builder/gce-builder.sh run test` (incl. `LuaRecursiveReferenceTest`,
   `LuaDescriptionIndexTest`) at each phase; expect 2123/0/1.
 - [ ] Run `human-verification-checklists.md`.
@@ -120,4 +121,4 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 | Phase 2: ResolveCache in multiResolve | done | Must |
 | Phase 3: Snapshot cache re-key | done | Must |
 | Phase 4: Single canonical helpers | done | Should |
-| Phase 5: Method-chain idiom migration | todo | Could |
+| Phase 5: Method-chain idiom migration | done | Could |

@@ -10,7 +10,10 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.*
+import net.internetisalie.lunar.lang.psi.types.LuaClassType
+import net.internetisalie.lunar.lang.psi.types.LuaFunctionType
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
+import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.lang.psi.types.LuaTypes
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 
@@ -68,7 +71,8 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
         val steps = call.nameAndArgsList
         if (steps.size < 2) return
 
-        val types = LuaTypesSnapshot.forFile(call.containingFile)
+        val file = call.containingFile as? LuaFile ?: return
+        val types = LuaTypesSnapshot.forFile(file)
         val receiver = LuaTypeInlayHintProvider.unwrapExpression(call.varOrExp) ?: call.varOrExp
         var receiverClass = className(types.getValueType(receiver))
         var receiverStart = receiver.textRange.startOffset
@@ -80,7 +84,7 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
                 return@forEach
             }
 
-            val stepType = resolveStepType(call.project, receiverClass, methodName)
+            val stepType = resolveStepType(receiverClass, methodName, file)
             if (isMultiLineStep(step, receiverStart, document)) {
                 emitHint(step, stepType.returnNames, receiverClass, sink)
             }
@@ -115,17 +119,42 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
      * so a copied receiver (`local b = Builder`) never resolves. Instead we look the method up by
      * its declared key `<class>:<method>` in the global-declaration stub index and read `---@return`.
      */
-    private fun resolveStepType(project: Project, receiverClass: String?, methodName: String): StepType {
+    private fun resolveStepType(receiverClass: String?, methodName: String, file: LuaFile): StepType {
         if (receiverClass == null) return StepType(emptyList(), null)
-        val funcDecl = findMethodDecl(project, receiverClass, methodName)
+
+        // MAINT-30-04 (§2.7): resolve the method through the type engine's resolveMember first
+        // (the documented idiom). DR-03: resolveMember yields a single returnType, so it cannot
+        // reproduce a multi-value `---@return A, B`; the stub path stays as the multi-return fallback
+        // (priority C), giving output identical to the pre-migration path (TC-09).
+        val rawNames = memberReturnNames(receiverClass, methodName, file)
+            ?: findMethodDecl(file.project, receiverClass, methodName)?.let {
+                annotatedReturnNames(it) ?: inferredReturnNames(it)
+            }
             ?: return StepType(emptyList(), receiverClass)
 
-        // The `---@return` annotation keeps `self` and class names verbatim (the type graph
-        // collapses or drops them when the name is not a resolvable class).
-        val rawNames = annotatedReturnNames(funcDecl) ?: inferredReturnNames(funcDecl)
         val resolvedNames = rawNames.map { if (it == "self") receiverClass else it }
         val nextClass = resolvedNames.firstOrNull { it !in UNRESOLVED_NAMES } ?: receiverClass
         return StepType(resolvedNames, nextClass)
+    }
+
+    /**
+     * The method's return-type names via `resolveType(receiverClass).resolveMember(method)`. Returns
+     * null when the class/member does not resolve to a function OR when the stub path would yield a
+     * multi-return list (DR-03: a single `LuaFunctionType.returnType` cannot represent it), so the
+     * caller falls back to the stub path and preserves identical hint text.
+     */
+    private fun memberReturnNames(receiverClass: String, methodName: String, file: LuaFile): List<String>? {
+        val classType = LuaTypeManager.getInstance(file.project).resolveType(receiverClass, file) as? LuaClassType
+        val funcType = classType?.resolveMember(methodName)?.type as? LuaFunctionType ?: return null
+        if (multiReturnDecl(file.project, receiverClass, methodName)) return null
+        val name = funcType.returnType.name
+        return if (name in UNRESOLVED_NAMES) emptyList() else listOf(name)
+    }
+
+    /** True when the declared method has a multi-value `---@return A, B` (stub path owns those). */
+    private fun multiReturnDecl(project: Project, receiverClass: String, methodName: String): Boolean {
+        val decl = findMethodDecl(project, receiverClass, methodName) ?: return false
+        return (annotatedReturnNames(decl)?.size ?: 0) > 1
     }
 
     /** Look up `function <class>:<method>` (or `.<method>`) via the global-declaration stub index. */

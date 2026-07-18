@@ -33,7 +33,7 @@ require-extraction copy-paste consolidation that the review traced to real diver
 | MAINT-30-01 | Declaration-only index | M | Full | Restrict file-bindings indexing to file-scope declarations (#20) — index-version bump + rebuild |
 | MAINT-30-02 | Platform caching | M | Full | `CachedValuesManager` replaces `FileUserData` (#21); `ResolveCache` in `multiResolve` (§2.5.2) |
 | MAINT-30-03 | Single canonical helpers | S | Full | One scope-walk, one require-extractor, one module-resolver, one `LuaRocksEnvironment.command()` (§2.5.3) |
-| MAINT-30-04 | Idiom migration | C | Not Implemented | Method-chain provider → `resolveType`/`resolveMember` (§2.5.4) |
+| MAINT-30-04 | Idiom migration | C | Full | Method-chain provider → `resolveType`/`resolveMember` (§2.5.4) |
 
 **Blast radius:** resolution touches everything — full-suite gate mandatory; watch the two
 external-fixture tests (`LuaRecursiveReferenceTest`, `LuaDescriptionIndexTest`) that exercise
