@@ -1,5 +1,22 @@
 # Change Log
 
+## [0.20] — Terminology & settings-label polish
+
+### Terminology unification (BUG-378)
+- **interpreter → runtime** across all user-visible strings: the Lua run/test configuration editors
+  label the field **Runtime** and **Runtime arguments** (was "Interpreter"), and the no-runtime
+  validation reads **"Runtime is not defined"**. The rockspec wizard group, the runtime combo's
+  unknown-entry renderer, and the Recreate/Remove environment dialog titles are aligned to the
+  ratified vocabulary (runtime / tool / toolchain / environment / package). The run-config
+  **Environment** field is renamed **Environment variables** so it no longer collides with the
+  toolchain *environment* concept.
+
+### Clearer toolchain binding labels (BUG-387)
+- The tool-binding combos drop the ambiguous **"Inherit (none)"**: the app-level *Global Default
+  Bindings* now read **"No default"** (there is no higher tier to inherit from), and a project
+  binding that resolves to nothing reads **"Inherit (nothing resolved)"**. Resolution precedence is
+  unchanged (active env → project → global → inventory).
+
 ## [0.19] — LuaRocks browser, settings restructure, bug sweep & MVP-quality wave
 
 ### Quality & correctness — codebase-review remediation (0.19.1)
