@@ -63,19 +63,21 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 ### Phase 4: Single canonical helpers [Should]
 - **Goal**: MAINT-30-03 — one scope walk, one require extractor, one module resolver, one luarocks command.
 - **Tasks**:
-  - [ ] Collapse `LuaNameReference` Phase-1 onto `LuaResolveUtil.scopeCrawlUp`; delete the inline walk
+  - [x] Collapse `LuaNameReference` Phase-1 onto `LuaResolveUtil.scopeCrawlUp`; delete the inline walk
     — realizes design §2.1, §3.3. **This is a deliberate scope-walk correction** (§3.3): the RHS of a
     self-referential `local x = x` now correctly resolves to the outer/undeclared `x`, not the new local.
-  - [ ] Create `lang/indexing/LuaRequireExtraction.kt::fileRequires`; delete `LuaNameReference`'s
+  - [x] Create `lang/indexing/LuaRequireExtraction.kt::fileRequires`; delete `LuaNameReference`'s
     `extractRequires`/`extractRequiresFromStatement`; repoint `LuaCrossFileCompletionProvider` and
     `multiResolve` Phase-2 — realizes design §2.4, §3.5.
-  - [ ] Create `lang/path/LuaModuleFileResolver.kt::resolveModuleCandidates(): Sequence<LuaFile>`
+  - [x] Create `lang/path/LuaModuleFileResolver.kt::resolveModuleCandidates(): Sequence<LuaFile>`
     (refresh=`false`); repoint `LuaRequireReference.resolve` (`.firstOrNull()`) and
     `LuaTypeManagerImpl.doResolveModule` (`.firstNotNullOfOrNull { getModuleType(it, context) }`,
     preserving its skip-untyped-and-try-next-pattern terminal) — realizes design §2.5, §3.6.
-  - [ ] Add `LuaRocksEnvironment.command`; migrate the 5 inlined call sites (`LuaRocksInstalledService`,
-    `LuaRocksInstallExecutor`, `WorkspaceBuildRunner`, `LuaRocksSearchService` ×2, `LuaRocksMetadataService`)
-    — realizes design §2.6.
+  - [x] Add `LuaRocksEnvironment.command`; migrate 4 of the 5 inlined call sites (`LuaRocksInstalledService`,
+    `LuaRocksInstallExecutor`, `LuaRocksSearchService` ×2, `LuaRocksMetadataService`). **Deviation:**
+    `WorkspaceBuildRunner` was NOT migrated — it does not build the plain `GeneralCommandLine(exe, *subArgs)`
+    shape; it passes the resolved `exe` string to `LuaRocksRunConfiguration.buildCommandLine(exe)`, the
+    run-config command shape that §2.6 explicitly lists as out of scope. — realizes design §2.6.
 - **Exit criteria**: TC-01/TC-03 unchanged; TC-02 (self-referential-initializer scope correction)
   passes; a `require` refresh-flag regression test (TC-08) passes; full builder suite green.
 
@@ -99,11 +101,11 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 
 ## Verification Tasks
 - [x] TC-01 declaration-only cross-file resolution (usage not recorded) — Phase 1.
-- [ ] TC-02 self-referential-initializer scope correction (`local x = x` RHS ≠ new local) — Phase 4.
+- [x] TC-02 self-referential-initializer scope correction (`local x = x` RHS ≠ new local) — Phase 4.
 - [x] TC-03 ResolveCache single-compute counter — Phase 2.
 - [x] TC-04/TC-05/TC-06 snapshot invalidation + reentrancy — Phase 3.
 - [x] TC-07 dotted-assignment not a binding — Phase 1.
-- [ ] TC-08 module-resolver refresh flag — Phase 4.
+- [x] TC-08 module-resolver refresh flag — Phase 4.
 - [ ] TC-09 method-chain hints unchanged — Phase 5.
 - [ ] Full builder gate `tooling/gce-builder/gce-builder.sh run test` (incl. `LuaRecursiveReferenceTest`,
   `LuaDescriptionIndexTest`) at each phase; expect 2123/0/1.
@@ -117,5 +119,5 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 | Phase 1: Declaration-only index | done | Must |
 | Phase 2: ResolveCache in multiResolve | done | Must |
 | Phase 3: Snapshot cache re-key | done | Must |
-| Phase 4: Single canonical helpers | todo | Should |
+| Phase 4: Single canonical helpers | done | Should |
 | Phase 5: Method-chain idiom migration | todo | Could |

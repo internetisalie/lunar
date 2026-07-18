@@ -16,14 +16,8 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.ResolveState
 import com.intellij.psi.scope.PsiScopeProcessor
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
-import com.intellij.psi.util.CachedValue
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.ProcessingContext
-import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.path.LuaModulePathResolver
 import net.internetisalie.lunar.lang.path.PathConfiguration
@@ -56,7 +50,7 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         result: CompletionResultSet
     ) {
         val sourcePathPatterns = PathConfiguration.getProjectSourcePathPatterns(project)
-        val requires = extractRequires(currentFile)
+        val requires = fileRequires(currentFile)
         val visited = mutableSetOf<String>()
 
         // Collect imported symbol names for deduplication
@@ -100,26 +94,6 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         return processor.names
     }
 
-    private fun extractRequires(file: LuaFile): List<String> {
-        val cachedValue: CachedValue<List<String>> = CachedValuesManager.getManager(file.project)
-            .createCachedValue(
-                {
-                    val index = FileBasedIndex.getInstance()
-                    val scope = GlobalSearchScope.fileScope(file)
-                    val record = index.getValues(LuaFileBindingsIndexName, ForwardIndexer.KEY, scope)
-                        .firstOrNull()
-                    
-                    CachedValueProvider.Result.create(
-                        record?.requires ?: emptyList(),
-                        PsiModificationTracker.MODIFICATION_COUNT
-                    )
-                },
-                /* trackValue = */ false
-            )
-        
-        return cachedValue.value
-    }
-
     private fun resolveAndAddSymbols(
         project: Project,
         requireName: String,
@@ -140,7 +114,7 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         addSymbolsFromFile(psiFile, prefix, result, importedSymbolNames)
 
         // Recursively add symbols from dependencies
-        val childRequires = extractRequires(psiFile)
+        val childRequires = fileRequires(psiFile)
         childRequires.forEach { childRequireName ->
             resolveAndAddSymbols(
                 project,

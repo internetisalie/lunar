@@ -4,7 +4,6 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
@@ -14,17 +13,12 @@ import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import net.internetisalie.lunar.lang.path.PathConfiguration
+import net.internetisalie.lunar.lang.path.resolveModuleCandidates
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.stubs.LuaFileStub
 import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.ConcurrentHashMap
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiManager
-import java.io.File
 
 class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
 
@@ -107,47 +101,12 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         return null
     }
 
-    private fun doResolveModule(moduleName: String, context: PsiElement): LuaType {
-        val patterns = PathConfiguration.getProjectSourcePathPatterns(project)
-        for (pattern in patterns) {
-            val path = pattern.interpolate(moduleName)
-
-            var virtualFile = findVirtualFile(path)
-            if (virtualFile == null) {
-                val fileName = path.substringAfterLast('/')
-                val projectScope = GlobalSearchScope.allScope(project)
-                virtualFile = FilenameIndex.getVirtualFilesByName(fileName, projectScope).firstOrNull()
-            }
-
-            if (virtualFile == null) continue
-
-            val psiFile = PsiManager.getInstance(project).findFile(virtualFile) as? LuaFile ?: continue
-            getModuleType(psiFile, context)?.let { return it }
-        }
-
-        // If not found in source path patterns, look in the filename index (stubs/libraries)
-        val fileName = moduleName.substringAfterLast('.') + ".lua"
-        val expectedPathPart = moduleName.replace('.', '/') + ".lua"
-        val expectedInitPathPart = moduleName.replace('.', '/') + "/init.lua"
-        val projectScope = GlobalSearchScope.allScope(project)
-        val virtualFiles = FilenameIndex.getVirtualFilesByName(fileName, projectScope) +
-                           FilenameIndex.getVirtualFilesByName("init.lua", projectScope)
-
-        for (virtualFile in virtualFiles) {
-            val path = virtualFile.path
-            if (path.endsWith(expectedPathPart) || path.endsWith(expectedInitPathPart) || !moduleName.contains('.')) {
-                val psiFile = PsiManager.getInstance(project).findFile(virtualFile) as? LuaFile ?: continue
-                getModuleType(psiFile, context)?.let { return it }
-            }
-        }
-
-        return LuaPrimitiveType.ANY
-    }
-
-    private fun findVirtualFile(path: String): VirtualFile? {
-        LocalFileSystem.getInstance().findFileByPath(path)?.let { return it }
-        return VfsUtil.findFileByIoFile(File(path), false)
-    }
+    // MAINT-30-03 (§2.5): resolution over the single canonical candidate sequence; the terminal keeps
+    // the "skip a found-but-untyped file, try the next pattern" semantic via firstNotNullOfOrNull.
+    private fun doResolveModule(moduleName: String, context: PsiElement): LuaType =
+        resolveModuleCandidates(project, moduleName)
+            .firstNotNullOfOrNull { getModuleType(it, context) }
+            ?: LuaPrimitiveType.ANY
 
     private fun doResolveType(name: String, project: Project): LuaType? {
         val scope = GlobalSearchScope.projectScope(project)

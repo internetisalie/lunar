@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.rocks.browser
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
@@ -30,13 +29,13 @@ object LuaRocksMetadataService {
      * @param project used to resolve the effective executable (pass `null` for app defaults).
      */
     fun show(name: String, version: String? = null, project: Project? = null): LuaRockMetadata? {
-        val exe = LuaRocksEnvironment.resolveExecutable(project) ?: return null
-        val args = buildList {
-            add(exe); add("show"); add("--porcelain"); add(name)
+        val subArgs = buildList {
+            add("show"); add("--porcelain"); add(name)
             if (version != null) add(version)
         }
+        val command = LuaRocksEnvironment.command(project, subArgs) ?: return null
         val output = LuaToolExecutionService.getInstance()
-            .capture(GeneralCommandLine(args), LuaExecTimeout.COMMAND)
+            .capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
             log.warn("luarocks show --porcelain $name ${version ?: ""} exited ${output.exitCode}: ${output.stderr.trim()}")
             return null

@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.rocks.browser
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
@@ -23,9 +22,8 @@ object LuaRocksInstalledService {
 
     /** Lists installed rocks in [treeRoot]. Throws [BrowserCliError] on unresolved binary / non-zero exit. */
     fun list(project: Project, treeRoot: Path): List<InstalledRockRow> {
-        val exe = LuaRocksEnvironment.resolveExecutable(project)
+        val command = LuaRocksEnvironment.command(project, listOf("list", "--porcelain", "--tree", treeRoot.toString()))
             ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
-        val command = GeneralCommandLine(exe, "list", "--porcelain", "--tree", treeRoot.toString())
         val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
             throw BrowserCliError(output.stderr.trim().ifEmpty { "luarocks list exited ${output.exitCode}" })

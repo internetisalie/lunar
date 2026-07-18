@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.rocks.browser
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
@@ -56,8 +55,7 @@ class LuaRocksInstallExecutor(private val project: Project) {
     }
 
     private fun execute(job: Job, indicator: ProgressIndicator) {
-        val exe = LuaRocksEnvironment.resolveExecutable(project) ?: return finish(false, NOT_CONFIGURED, job.onDone)
-        val command = GeneralCommandLine(exe, *job.args.toTypedArray())
+        val command = (LuaRocksEnvironment.command(project, job.args) ?: return finish(false, NOT_CONFIGURED, job.onDone))
             .withWorkDirectory(job.treeRoot.parent?.toString())
         val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.INSTALL, indicator = indicator)
         if (output.exitCode == 0) {

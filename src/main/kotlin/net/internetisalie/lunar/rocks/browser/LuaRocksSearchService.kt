@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.rocks.browser
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
@@ -49,13 +48,9 @@ object LuaRocksSearchService {
         val server = LuaRocksEnvironment.resolveServer(project)
         LuaRocksSearchCache.get(query, server, System.currentTimeMillis())?.let { return it }
 
-        val exe = LuaRocksEnvironment.resolveExecutable(project)
+        val command = LuaRocksEnvironment.command(project, listOf("search", "--porcelain", query))
             ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
-        val subArgs = LuaRocksEnvironment.withServer(listOf("search", "--porcelain", query), server)
-        val output = LuaToolExecutionService.getInstance().capture(
-            GeneralCommandLine(exe, *subArgs.toTypedArray()),
-            LuaExecTimeout.COMMAND,
-        )
+        val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
             throw BrowserCliError(output.stderr.trim().ifEmpty { "luarocks search exited ${output.exitCode}" })
         }
@@ -83,16 +78,13 @@ object LuaRocksSearchService {
      * @param project resolves the effective executable (ROCKS-06).
      */
     fun installed(project: Project? = null, treeRoot: Path? = null): Set<String> {
-        val exe = LuaRocksEnvironment.resolveExecutable(project)
-            ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
         val subArgs = buildList {
             add("list"); add("--porcelain")
             if (treeRoot != null) { add("--tree"); add(treeRoot.toString()) }
         }
-        val output = LuaToolExecutionService.getInstance().capture(
-            GeneralCommandLine(exe, *subArgs.toTypedArray()),
-            LuaExecTimeout.COMMAND,
-        )
+        val command = LuaRocksEnvironment.command(project, subArgs)
+            ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
+        val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
             throw BrowserCliError(output.stderr.trim().ifEmpty { "luarocks list exited ${output.exitCode}" })
         }

@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.rocks
 
+import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys
@@ -61,4 +62,19 @@ object LuaRocksEnvironment {
      */
     fun withServer(args: List<String>, server: String?): List<String> =
         if (server.isNullOrBlank()) args else listOf("--server", server) + args
+
+    /**
+     * MAINT-30-03 (§2.6): the single builder for the plain effective luarocks command line
+     * (`<exe> [--server <s>] <subArgs…>`). Returns `null` when no executable resolves, so each call
+     * site keeps its own degrade path (configure hint / silent empty). [subArgs] must start with the
+     * subcommand; `--server` is injected as a global flag before it.
+     *
+     * Out of scope: command shapes that are not `GeneralCommandLine(exe, *subArgs)` — the run-config's
+     * user command list and the upload command (`RockUploadCommand`) build their own forms (§2.6).
+     */
+    fun command(project: Project?, subArgs: List<String>): GeneralCommandLine? {
+        val exe = resolveExecutable(project) ?: return null
+        val args = withServer(subArgs, resolveServer(project))
+        return GeneralCommandLine(exe, *args.toTypedArray())
+    }
 }

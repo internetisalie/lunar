@@ -14,20 +14,13 @@ import net.internetisalie.lunar.lang.LuaIcons.FILE
 import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.path.PathConfiguration
-import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaFuncDef
-import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
 import net.internetisalie.lunar.lang.psi.LuaIndexExpr
-import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
-import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
-import net.internetisalie.lunar.lang.syntax.extractLuaString
+import net.internetisalie.lunar.lang.psi.LuaResolveUtil
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVarSuffix
 import net.internetisalie.lunar.project.PlatformLibraryIndex
@@ -48,39 +41,12 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         val results = mutableListOf<ResolveResult>()
 
         // === PHASE 1: Local Resolution (LAZY) ===
-        // Walk up the PSI tree and process declarations at each scope
+        // Sole owner of the bottom-up scope walk is LuaResolveUtil.scopeCrawlUp (§2.1, §3.3). It
+        // passes `prev` (the child ascended from) as `lastParent`, excluding the reference's own
+        // declaring statement from scope — so the RHS of a self-referential `local x = x` resolves to
+        // the outer/undeclared `x`, not the new local (Lua §3.3.3/§3.5). TC-02 locks this.
         val processor = LuaScopeProcessor(name)
-        var prev: PsiElement? = null
-        var current: PsiElement? = element
-
-        while (current != null && current !is PsiFile) {
-            val state = ResolveState.initial()
-
-            // Process declarations in scope elements
-            val matchFound = when (current) {
-                is LuaBlock -> !current.processDeclarations(processor, state, element, element)
-                is LuaFuncDef -> !current.processDeclarations(processor, state, element, element)
-                is LuaFuncDecl -> !current.processDeclarations(processor, state, element, element)
-                is LuaLocalFuncDecl -> !current.processDeclarations(processor, state, element, element)
-                // Pass `prev` (the child we ascended from) as lastParent: a for-loop variable is
-                // visible only when the reference sits in the loop body block (prev == block), not
-                // in the iterator expression. processDeclarations gates loop-var visibility on
-                // `lastParent == block`, which the deep reference element never satisfies.
-                is LuaNumericForStatement -> !current.processDeclarations(processor, state, prev ?: element, element)
-                is LuaGenericForStatement -> !current.processDeclarations(processor, state, prev ?: element, element)
-                else -> false
-            }
-
-            if (matchFound) break
-
-            prev = current
-            current = current.parent
-        }
-
-        // Also process the file itself
-        if (current is LuaFile && processor.result == null) {
-            current.processDeclarations(processor, ResolveState.initial(), element, element)
-        }
+        LuaResolveUtil.scopeCrawlUp(processor, element)
 
         if (processor.result != null) {
             results.add(PsiElementResolveResult(processor.result!!))
@@ -96,7 +62,7 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         val requiresQuery = RequiredFilesQuery(
             ProjectScope.getProjectScope(element.project),
             PathConfiguration.getProjectSourcePathPatterns(element.project),
-            extractRequires(element.containingFile),
+            (element.containingFile as? LuaFile)?.let { fileRequires(it) } ?: emptyList(),
         )
 
         val importedResults = queryFiles(platformQuery, requiresQuery)
@@ -194,65 +160,6 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
             val targetElement = psiFile.findElementAt(binding.textOffset) ?: return@forEach
             results.add(PsiElementResolveResult(targetElement))
         }
-    }
-
-    private fun extractRequires(file: PsiFile): List<String> {
-        val requires = mutableListOf<String>()
-        if (file !is LuaFile) return requires
-
-        // Walk all statements in all blocks to find require() calls
-        file.getBlockList().forEach { block ->
-            block.statementList.forEach { stmt ->
-                extractRequiresFromStatement(stmt, requires)
-            }
-        }
-        return requires
-    }
-
-    private fun extractRequiresFromStatement(stmt: PsiElement?, requires: MutableList<String>) {
-        if (stmt == null) return
-
-        // Recursively walk to find require() calls
-        stmt.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                if (element is LuaFuncCall) {
-                    // Try to extract require() call
-                    val varOrExp = element.varOrExp ?: return@visitElement
-                    val luaVar = varOrExp.`var` ?: return@visitElement
-
-                    // Check if function name is "require"
-                    val nameAndArgsList = element.nameAndArgsList
-                    if (nameAndArgsList.isEmpty()) return@visitElement
-
-                    if (luaVar.nameRef?.identifier?.text != "require") return@visitElement
-
-                    // Extract string argument
-                    val nameAndArgs = nameAndArgsList[0]
-                    val args = nameAndArgs.args ?: return@visitElement
-
-                    // Try to get string from args
-                    var stringElem = args.string
-                    if (stringElem == null) {
-                        // Try to get from exprList
-                        val exprList = args.exprList?.exprList ?: return@visitElement
-                        if (exprList.size == 1) {
-                            val expr = exprList[0]
-                            if (expr is LuaTerminalExpr) {
-                                stringElem = expr.string
-                            }
-                        }
-                    }
-
-                    stringElem?.let {
-                        val str = extractLuaString(it.text)
-                        if (str != null && !requires.contains(str)) {
-                            requires.add(str)
-                        }
-                    }
-                }
-                super.visitElement(element)
-            }
-        })
     }
 
     override fun resolve(): PsiElement? {

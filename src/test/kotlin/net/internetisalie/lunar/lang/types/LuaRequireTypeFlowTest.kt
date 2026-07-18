@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.types
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.lang.LuaRequireReference
+import net.internetisalie.lunar.lang.path.resolveModuleCandidates
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
@@ -51,6 +52,25 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
         assertNotNull("Should resolve mylib", resolved)
         assertTrue("Resolved element should be a LuaFile", resolved is LuaFile)
         assertEquals("mylib.lua", (resolved as LuaFile).name)
+    }
+
+    @Test
+    fun testResolveModuleCandidatesResolvesInVfsModuleWithoutRefresh() {
+        // TC-08 (MAINT-30-03, §3.6): the single canonical resolveModuleCandidates helper resolves an
+        // in-VFS module without a synchronous VFS refresh (refresh flag = false in findByPath). An
+        // already-indexed module still resolves — proving resolution never needs the refreshing form.
+        myFixture.addFileToProject(
+            "vfsmod.lua",
+            """
+            local m = {}
+            return m
+            """.trimIndent(),
+        )
+        myFixture.configureByText("caller.lua", "local m = require(\"vfsmod\")")
+
+        val candidates = resolveModuleCandidates(project, "vfsmod").toList()
+        assertTrue("resolveModuleCandidates must resolve the in-VFS module", candidates.isNotEmpty())
+        assertEquals("vfsmod.lua", candidates.first().name)
     }
 
     @Test
