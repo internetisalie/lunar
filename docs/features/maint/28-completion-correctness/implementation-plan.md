@@ -53,10 +53,10 @@ ships an independently verifiable, real-flow-tested behavior. No new production 
 ### Phase 4: Session cost — key caching (#25 perf half is §2.5.5) [Should]
 - **Goal**: `getAllKeys` runs once per PSI-modification window, not per completion invocation.
 - **Tasks**:
-  - [ ] Add `funcKeyCache`/`classKeyCache` `CachedValue<List<String>>` fields to
+  - [x] Add `funcKeyCache`/`classKeyCache` `CachedValue<List<String>>` fields to
     `GlobalSymbolRankingService` (mirroring `LuaRockspecDiscoveryService.kt:40-49`) and replace the
     `getAllKeys` calls at `:81`/`:151` with `.value` reads — realizes design §3.4 steps 1–3.
-  - [ ] Add the §3.4 doc-comment recording that the member-snapshot item is already-cached
+  - [x] Add the §3.4 doc-comment recording that the member-snapshot item is already-cached
     (no member-provider change) — realizes design §3.4 "PARTLY MOOT".
 - **Exit criteria**: TC-25p passes (two invocations on unchanged PSI; keys computed once — asserted
   via a spy/counter or by confirming the `CachedValue` identity is stable). Full suite green.
@@ -102,5 +102,5 @@ note — engine-only tests hid #24 for a full wave.
 | Phase 1: Original-file discipline (#24) | done | Must |
 | Phase 2: Ranking accuracy (#40, #62) | done | Should |
 | Phase 3: Single symbol pass (#39) | done | Should |
-| Phase 4: Session cost — key caching (§2.5.5) | todo | Should |
+| Phase 4: Session cost — key caching (§2.5.5) | done | Should |
 | Phase 5: Enter-between-blocks guard (#25) | todo | Could |

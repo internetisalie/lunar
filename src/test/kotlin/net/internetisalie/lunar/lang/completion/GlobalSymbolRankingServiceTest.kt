@@ -2,8 +2,11 @@ package net.internetisalie.lunar.lang.completion
 
 import net.internetisalie.lunar.BaseDocumentTest
 import com.intellij.openapi.application.runReadAction
+import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.lang.psi.LuaFile
 import org.junit.jupiter.api.Test
+import kotlin.test.assertNotSame
+import kotlin.test.assertSame
 
 /**
  * Tests for GlobalSymbolRankingService
@@ -71,5 +74,32 @@ class GlobalSymbolRankingServiceTest : BaseDocumentTest() {
 
         val names = globals.map { it.name }
         assert(!names.contains("helper")) { "Should NOT include imported symbol helper" }
+    }
+
+    // MAINT-28 TC-25p (§2.5.5): the cached func-key snapshot is the identical List instance across
+    // reads with no intervening PSI edit (no getAllKeys recomputation), and a fresh instance after
+    // a PSI modification bumps MODIFICATION_COUNT.
+    @Test
+    fun `TC-25p func key snapshot is memoized until a PSI edit`() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            function globalOne() end
+            local x = 10
+            """.trimIndent(),
+        )
+        val service = GlobalSymbolRankingService.getInstance(myFixture.project)
+
+        val first = runReadAction { service.funcKeySnapshotForTest() }
+        val second = runReadAction { service.funcKeySnapshotForTest() }
+        assertSame(first, second, "Key snapshot must be the identical List across reads with no PSI edit")
+
+        // A new global bumps MODIFICATION_COUNT, invalidating the CachedValue.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            myFixture.addFileToProject("more.lua", "function globalTwo() end\n")
+        }
+
+        val afterEdit = runReadAction { service.funcKeySnapshotForTest() }
+        assertNotSame(second, afterEdit, "A PSI edit must invalidate the cache and yield a fresh List")
     }
 }

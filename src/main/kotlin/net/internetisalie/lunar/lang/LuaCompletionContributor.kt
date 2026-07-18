@@ -265,6 +265,9 @@ class LuaCompletionContributor : CompletionContributor() {
                     // Build the snapshot from the file that actually owns receiverExpr (the in-memory
                     // completion copy), not parameters.originalFile — otherwise the PSI identities
                     // differ and the elementNodes lookup misses.
+                    // MAINT-28-05 (§3.4): no per-session caching is added here — LuaTypesSnapshot.forFile
+                    // already memoizes per file-text via PsiFile UserData, so checkTypes runs at most
+                    // once per distinct copy-file text within a session; a second cache would be redundant.
                     val snapshot = LuaTypesSnapshot.forFile(receiverExpr.containingFile)
                     val type = snapshot.getValueType(receiverExpr)
 

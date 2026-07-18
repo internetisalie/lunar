@@ -9,6 +9,10 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
@@ -37,6 +41,33 @@ class GlobalSymbolRankingService(private val project: Project) {
         val isClassType: Boolean = false,
         val sourceVirtualFile: VirtualFile? = null,
     )
+
+    // §2.5.5: StubIndex.getAllKeys was scanned on every completion invocation (twice per session).
+    // Keys change only on a PSI/stub edit, so memoize each key snapshot against MODIFICATION_COUNT.
+    // The .toList() freezes the key Collection into a stable immutable List for the cache window.
+    private val funcKeyCache: CachedValue<List<String>> =
+        CachedValuesManager.getManager(project).createCachedValue({
+            CachedValueProvider.Result.create(
+                if (DumbService.isDumb(project)) {
+                    emptyList()
+                } else {
+                    StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project).toList()
+                },
+                PsiModificationTracker.getInstance(project),
+            )
+        }, /* trackValue = */ false)
+
+    private val classKeyCache: CachedValue<List<String>> =
+        CachedValuesManager.getManager(project).createCachedValue({
+            CachedValueProvider.Result.create(
+                if (DumbService.isDumb(project)) {
+                    emptyList()
+                } else {
+                    StubIndex.getInstance().getAllKeys(LuaClassNameIndex.KEY, project).toList()
+                },
+                PsiModificationTracker.getInstance(project),
+            )
+        }, /* trackValue = */ false)
 
     /**
      * Get project-wide global symbols with proximity ranking.
@@ -78,8 +109,8 @@ class GlobalSymbolRankingService(private val project: Project) {
         val suppressUnderscore = settings.suppressUnderscorePrefixedGlobals
         val scope = GlobalSearchScope.projectScope(project)
 
-        val allFuncKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
-         
+        val allFuncKeys = funcKeyCache.value
+
         // Use labeled for loop to properly exit nested loops when limit is reached
         outer@ for (key in allFuncKeys) {
             // Check early exit and cancellation before processing each key
@@ -148,8 +179,8 @@ class GlobalSymbolRankingService(private val project: Project) {
         val suppressUnderscore = settings.suppressUnderscorePrefixedGlobals
         val scope = GlobalSearchScope.projectScope(project)
 
-        val allClassKeys = StubIndex.getInstance().getAllKeys(LuaClassNameIndex.KEY, project)
-         
+        val allClassKeys = classKeyCache.value
+
         // Use labeled for loop to properly exit nested loops when limit is reached
         outer@ for (className in allClassKeys) {
             // Check early exit and cancellation before processing each key
@@ -230,6 +261,13 @@ class GlobalSymbolRankingService(private val project: Project) {
        val identifier = attNames.nameRef.identifier ?: return null
        return identifier.text
     }
+
+    /**
+     * §2.5.5 identity probe (TC-25p): the cached func-key [List] instance. Stable across completion
+     * invocations within one MODIFICATION_COUNT window; a fresh instance after a PSI edit.
+     */
+    @org.jetbrains.annotations.TestOnly
+    fun funcKeySnapshotForTest(): List<String> = funcKeyCache.value
 
     companion object {
        private const val MAX_CANDIDATES = 500

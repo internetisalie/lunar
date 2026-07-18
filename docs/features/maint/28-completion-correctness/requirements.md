@@ -35,7 +35,7 @@ review's systemic analysis attributed to this stack.
 | MAINT-28-02 | Single symbol pass | S | Full | One `addSymbolCompletions` call site; fold the identifier provider in (#39) |
 | MAINT-28-03 | Ranking accuracy | S | Full | Skip method-separator decls in global ranking (#40); fix `hasPrefix` (#62) |
 | MAINT-28-04 | Enter-between-blocks | C | Not Implemented | Fix the off-by-one guard (#25) — real-flow DoD test required |
-| MAINT-28-05 | Session cost | S | Not Implemented | Modification-tracked key caching; avoid full `checkTypes` snapshot per session (§2.5.5) |
+| MAINT-28-05 | Session cost | S | Full | Modification-tracked key caching; avoid full `checkTypes` snapshot per session (§2.5.5) |
 
 **DoD note:** completion features gate on real-flow tests (`completeBasic()`), per the roadmap's
 DoD clause — engine-only tests hid exactly this class of bug (#24) for a full wave.
