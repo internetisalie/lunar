@@ -2,7 +2,10 @@ package net.internetisalie.lunar.settings
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.ModificationTracker
+import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.util.xmlb.annotations.Property
+import com.intellij.util.xmlb.annotations.Transient
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.platform.LuaPlatform
@@ -43,6 +46,15 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA54
         @Property(surroundWithTag = false)
         var target: TargetState? = null
+
+        /**
+         * MAINT-30-02 (DR-01, design §3.4): bumped whenever the active target changes. A text-free
+         * target switch does not move `PsiModificationTracker.MODIFICATION_COUNT`, so the type
+         * snapshot cache ([LuaTypesSnapshot.forFile]) depends on this tracker to invalidate across a
+         * REDIS↔Lua switch (TC-04). Transient — never serialized; a fresh `State` starts at count 0.
+         */
+        @get:Transient
+        val targetModificationTracker: ModificationTracker = SimpleModificationTracker()
 
         /**
          * TOOLING-08-02: true when the user has explicitly pinned the platform target on the *Lua
@@ -104,6 +116,7 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         }
 
         fun setTarget(newTarget: Target) {
+            (targetModificationTracker as SimpleModificationTracker).incModificationCount()
             target = TargetState.from(newTarget)
             languageLevel = newTarget.getImplicitLanguageLevel()
         }

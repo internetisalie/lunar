@@ -2,7 +2,9 @@ package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import net.internetisalie.lunar.lang.psi.FileUserData
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
@@ -147,28 +149,26 @@ class LuaTypesSnapshot(
         /**
          * Compute (or return a cached) [LuaTypes] snapshot for [file].
          *
-         * The cache key folds the document-text hash with the active target
-         * (REDIS-04 §3.1a / DR-03b): ambient stub-global seeding depends on the target, and a
-         * target switch does not change the file text, so a text-only key would serve a stale,
-         * wrongly-seeded snapshot. Both a text edit and a target switch now invalidate the cache.
+         * MAINT-30-02 (§2.3/§3.4): memoized via [CachedValuesManager]. Dependencies are the file
+         * itself + [PsiModificationTracker.MODIFICATION_COUNT] (any reparse — the FileUserData
+         * text-hash-collision staleness is structurally impossible now) and the project's
+         * [State.targetModificationTracker], so a text-free REDIS↔Lua target switch also invalidates
+         * (REDIS-04 §3.1a / TC-04). The TYPE-10 [inProgressSnapshot] reentrancy guard runs FIRST,
+         * ahead of `getCachedValue`, so a re-entrant `visitFuncCall → forFile` never recurses into a
+         * nested `getCachedValue` compute (TC-06).
          */
         fun forFile(file: PsiFile): LuaTypes {
             val psiFile = file.containingFile
             LuaTypesVisitor.inProgressSnapshot(psiFile)?.let { return it }
-            val cacheKey = snapshotCacheKey(psiFile)
-            val existing = psiFile.getUserData(LuaTypesVisitor.KEY)
-            if (existing != null && existing.hash == cacheKey) {
-                return existing.data
+            return CachedValuesManager.getCachedValue(psiFile, LuaTypesVisitor.KEY) {
+                val targetTracker = LuaProjectSettings.getInstance(psiFile.project).state.targetModificationTracker
+                CachedValueProvider.Result.create(
+                    LuaTypesVisitor.buildSnapshot(psiFile),
+                    psiFile,
+                    PsiModificationTracker.MODIFICATION_COUNT,
+                    targetTracker,
+                )
             }
-            val fresh = LuaTypesVisitor.buildSnapshot(psiFile)
-            psiFile.putUserData(LuaTypesVisitor.KEY, FileUserData(cacheKey, fresh))
-            return fresh
-        }
-
-        private fun snapshotCacheKey(file: PsiFile): Int {
-            val textHash = file.fileDocument.text.hashCode()
-            val target = LuaProjectSettings.getInstance(file.project).state.getTarget()
-            return 31 * textHash + target.hashCode()
         }
     }
 }

@@ -6,6 +6,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
@@ -892,7 +893,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     companion object {
-        internal val KEY: Key<FileUserData<LuaTypes>> = Key.create("LuaTypesSnapshotV3")
+        internal val KEY: Key<CachedValue<LuaTypes>> = Key.create("LuaTypesSnapshotV3")
 
         /**
          * TYPE-10: files whose snapshot is being built on the current thread, mapped to their

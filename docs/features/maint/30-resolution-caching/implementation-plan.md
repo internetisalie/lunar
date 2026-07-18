@@ -53,9 +53,9 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 ### Phase 3: Snapshot cache re-key + delete FileUserData [Must]
 - **Goal**: MAINT-30-02 (part 2) — `CachedValuesManager` replaces `FileUserData`.
 - **Tasks**:
-  - [ ] Re-key `LuaTypesSnapshot.forFile` onto `CachedValuesManager.getCachedValue` with the target
+  - [x] Re-key `LuaTypesSnapshot.forFile` onto `CachedValuesManager.getCachedValue` with the target
     dependency from DR-01; keep `inProgressSnapshot` as the first statement — realizes design §2.3, §3.4.
-  - [ ] Change `LuaTypesVisitor.KEY` type to `Key<CachedValue<LuaTypes>>`; delete
+  - [x] Change `LuaTypesVisitor.KEY` type to `Key<CachedValue<LuaTypes>>`; delete
     `net.internetisalie.lunar.lang.psi.FileUserData` and its imports — realizes design §2.3.
 - **Exit criteria**: TC-04 (target switch invalidates), TC-05 (reparse invalidates), TC-06
   (reentrancy safe) pass; full builder suite green.
@@ -101,7 +101,7 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 - [x] TC-01 declaration-only cross-file resolution (usage not recorded) — Phase 1.
 - [ ] TC-02 self-referential-initializer scope correction (`local x = x` RHS ≠ new local) — Phase 4.
 - [x] TC-03 ResolveCache single-compute counter — Phase 2.
-- [ ] TC-04/TC-05/TC-06 snapshot invalidation + reentrancy — Phase 3.
+- [x] TC-04/TC-05/TC-06 snapshot invalidation + reentrancy — Phase 3.
 - [x] TC-07 dotted-assignment not a binding — Phase 1.
 - [ ] TC-08 module-resolver refresh flag — Phase 4.
 - [ ] TC-09 method-chain hints unchanged — Phase 5.
@@ -116,6 +116,6 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 | Phase 0: De-risking | done | Must |
 | Phase 1: Declaration-only index | done | Must |
 | Phase 2: ResolveCache in multiResolve | done | Must |
-| Phase 3: Snapshot cache re-key | todo | Must |
+| Phase 3: Snapshot cache re-key | done | Must |
 | Phase 4: Single canonical helpers | todo | Should |
 | Phase 5: Method-chain idiom migration | todo | Could |
