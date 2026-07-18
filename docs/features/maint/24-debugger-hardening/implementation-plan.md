@@ -77,6 +77,14 @@ suite passing (baseline 2123 tests / 0 failures / 1 skipped on `main` 2026-07-17
         `runConfiguration.sourcePath = sourcePathField.text` (`:345-352`) — realizes design §2.6.
   - [x] Edit `LuaRunConfiguration` — override `checkConfiguration()` and add the `project.basePath`
         working-directory fallback in `getState` (`:256`) — realizes design §3.6.
+  - [x] **(missed at delivery, reconciled 2026-07-18 — commit `5100824c`)** Align the downstream
+        RUN-02/RUN-04/api-reference docs to the new no-runtime message. This phase changed the main
+        `LuaRunConfiguration` null-runtime handling to `RuntimeConfigurationException` /
+        `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages &
+        Frameworks | Lua | Toolchain.")`, superseding the old `"Interpreter is not defined"` that
+        RUN-02/RUN-04's acceptance criteria and `run-configuration-api-reference.md` still documented.
+        The doc update was a requirement of this message change and was missed in the original Phase-5
+        commit (`f8fa8db5`); swept across 6 debug docs and doc-linter-clean.
 - **Exit criteria**: `TestLuaRunConfiguration` extended (round-trips sourcePath; empty-workdir
   fallback) and green; full suite green.
 
