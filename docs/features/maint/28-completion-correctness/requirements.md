@@ -3,7 +3,7 @@ id: "MAINT-28"
 title: "28: Completion Correctness & Performance"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -31,7 +31,7 @@ review's systemic analysis attributed to this stack.
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| MAINT-28-01 | Original-file discipline | M | Not Implemented | Index/proximity work against `parameters.originalFile` (#24) |
+| MAINT-28-01 | Original-file discipline | M | Full | Index/proximity work against `parameters.originalFile` (#24) |
 | MAINT-28-02 | Single symbol pass | S | Not Implemented | One `addSymbolCompletions` call site; fold the identifier provider in (#39) |
 | MAINT-28-03 | Ranking accuracy | S | Not Implemented | Skip method-separator decls in global ranking (#40); fix `hasPrefix` (#62) |
 | MAINT-28-04 | Enter-between-blocks | C | Not Implemented | Fix the off-by-one guard (#25) — real-flow DoD test required |

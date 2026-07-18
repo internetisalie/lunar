@@ -38,13 +38,15 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
         context: ProcessingContext,
         result: CompletionResultSet
     ) {
-        val position = parameters.position
-        val file = position.containingFile as? LuaFile ?: return
-        val project = file.project
+        // #24: index queries (FileBasedIndex fileScope in extractRequires) and proximity ranking
+        // must read the real, on-disk, indexed file — parameters.originalFile — not the never-indexed
+        // in-memory completion copy (position.containingFile), which returns nothing from the indexes.
+        val originalFile = parameters.originalFile as? LuaFile ?: return
+        val project = originalFile.project
 
         val prefix = result.prefixMatcher.prefix
 
-        processCrossFileSymbols(project, file, prefix, result)
+        processCrossFileSymbols(project, originalFile, prefix, result)
     }
 
     private fun processCrossFileSymbols(

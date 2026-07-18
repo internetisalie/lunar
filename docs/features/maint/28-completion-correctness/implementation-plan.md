@@ -18,9 +18,9 @@ ships an independently verifiable, real-flow-tested behavior. No new production 
 - **Goal**: cross-file require-graph + project-global completion works again (index queries and
   proximity read the real on-disk file, not the never-indexed completion copy).
 - **Tasks**:
-  - [ ] Edit `LuaCrossFileCompletionProvider.addCompletions` (`:36-48`) to read
+  - [x] Edit `LuaCrossFileCompletionProvider.addCompletions` (`:36-48`) to read
     `parameters.originalFile as? LuaFile ?: return` and pass it through — realizes design §2.1, §3.6.
-  - [ ] Thread `originalFile` into `processCrossFileSymbols`, `getLocalSymbolNames`, and
+  - [x] Thread `originalFile` into `processCrossFileSymbols`, `getLocalSymbolNames`, and
     `processGlobalsWithRanking` (they currently receive the copy) — realizes design §3.6 table
     rows 1–3. Do **not** touch the member-provider snapshot (`LuaCompletionContributor.kt:290`)
     or the `addSymbolCompletions` scope walk — those stay on the copy (§3.6 KEEP rows).
@@ -99,7 +99,7 @@ note — engine-only tests hid #24 for a full wave.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Original-file discipline (#24) | todo | Must |
+| Phase 1: Original-file discipline (#24) | done | Must |
 | Phase 2: Ranking accuracy (#40, #62) | todo | Should |
 | Phase 3: Single symbol pass (#39) | todo | Should |
 | Phase 4: Session cost — key caching (§2.5.5) | todo | Should |
