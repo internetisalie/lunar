@@ -11,7 +11,6 @@ class TestLuaCatsLexer {
         private const val YYINITIAL: Int = _LuaCatsLexer.YYINITIAL
         private const val COMMENT_START: Int = _LuaCatsLexer.COMMENT_START
         private const val COMMENT_DATA: Int = _LuaCatsLexer.COMMENT_DATA
-        private const val COMMENT_END: Int = _LuaCatsLexer.COMMENT_END
         private const val TAG_CAST: Int = _LuaCatsLexer.TAG_CAST
         private const val TAG_CLASS: Int = _LuaCatsLexer.TAG_CLASS
         private const val TAG_DIAGNOSTIC: Int = _LuaCatsLexer.TAG_DIAGNOSTIC
@@ -19,7 +18,6 @@ class TestLuaCatsLexer {
         private const val TAG_FIELD: Int = _LuaCatsLexer.TAG_FIELD
         private const val TAG_MODULE: Int = _LuaCatsLexer.TAG_MODULE
         private const val TAG_OPERATOR: Int = _LuaCatsLexer.TAG_OPERATOR
-        private const val TAG_OVERLOAD: Int = _LuaCatsLexer.TAG_OVERLOAD
         private const val TAG_PARAM: Int = _LuaCatsLexer.TAG_PARAM
         private const val TAG_RETURN: Int = _LuaCatsLexer.TAG_RETURN
         private const val TAG_SEE: Int = _LuaCatsLexer.TAG_SEE
@@ -125,15 +123,6 @@ class TestLuaCatsLexer {
             "This \n", COMMENT_DATA,
             Token("This ", LuaCatsTokenTypes.LCATS_TEXT),
             Token("\n", LuaCatsTokenTypes.LCATS_WHITESPACE)
-        )
-    }
-
-    @Test
-    fun testCommentEnd() {
-        testLexer(
-            " \n", COMMENT_END,
-            Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
-            Token("\n", LuaCatsTokenTypes.LCATS_WHITESPACE),
         )
     }
 
@@ -321,7 +310,7 @@ class TestLuaCatsLexer {
     @Test
     fun testOverload() {
         testLexer(
-            "fun(objectID: integer): boolean", TAG_OVERLOAD,
+            "fun(objectID: integer): boolean", TAG_TYPE,
             Token("fun", LuaCatsTokenTypes.LCATS_KEYWORD),
             Token("(", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("objectID", LuaCatsTokenTypes.LCATS_NAME),
@@ -465,6 +454,41 @@ class TestLuaCatsLexer {
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
         )
 
+    }
+
+    @Test
+    fun testUnclosedBacktickDoesNotSpanNewline() {
+        testLexer(
+            "x `unclosed\n", TAG_PARAM,
+            Token("x", LuaCatsTokenTypes.LCATS_NAME),
+            Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
+            Token("`", LuaCatsTokenTypes.LCATS_TEXT),
+            Token("unclosed", LuaCatsTokenTypes.LCATS_TEXT),
+            Token("\n", LuaCatsTokenTypes.LCATS_WHITESPACE),
+        )
+    }
+
+    @Test
+    fun testUnclosedStringDoesNotSpanNewline() {
+        testLexer(
+            "\"unterminated\n", TAG_TYPE,
+            Token("\"", LuaCatsTokenTypes.LCATS_TEXT),
+            Token("unterminated", LuaCatsTokenTypes.LCATS_TEXT),
+            Token("\n", LuaCatsTokenTypes.LCATS_WHITESPACE),
+        )
+    }
+
+    @Test
+    fun testUnicodeClassNameLexesAsSingleName() {
+        testLexer(
+            "名前", TAG_CLASS,
+            Token("名前", LuaCatsTokenTypes.LCATS_NAME),
+        )
+
+        testLexer(
+            "Игрок", TAG_CLASS,
+            Token("Игрок", LuaCatsTokenTypes.LCATS_NAME),
+        )
     }
 
     @Test

@@ -28,21 +28,18 @@ explicit precondition gate.
 ### Phase 1: Lexer containment + dead-state removal [Must]
 - **Goal**: fix #19/#66 and delete the §3 dead lexer states; regenerate headlessly.
 - **Tasks**:
-  - [ ] Edit `luacats/lang/lexer/luacats.flex` — realizes design §3.1:
+  - [x] Edit `luacats/lang/lexer/luacats.flex` — realizes design §3.1:
     - line 72: `CODE={BACKTICK}[^`]+{BACKTICK}` → `CODE={BACKTICK}[^`\r\n]+{BACKTICK}`.
     - line 77: `STRINGD={QUOTE}[^\"]*{QUOTE}` → `STRINGD={QUOTE}[^\"\r\n]*{QUOTE}`.
     - line 68: replace `HIGH_ASCII=[\x80-\xff]` with `UNICODE_LETTER=[:letter:]`.
     - lines 70–71: substitute `{UNICODE_LETTER}` for `{HIGH_ASCII}` in `NAME_LEADING`/`NAME_TRAILING`.
-    - line 80: remove `COMMENT_END` from the `%state` list.
+    - line 80: remove `COMMENT_END` from the `%state` list; also removed `TAG_OVERLOAD` from `%state`.
     - lines 187–192: delete the entire `<TAG_OVERLOAD>` block.
-  - [ ] Run `.claude/skills/generate-parser/scripts/generate.sh` — regenerates `_LuaCatsLexer.java`
-    (and re-runs bnf; see next task). Script self-verifies compilation (`generate.sh:108-110`).
-  - [ ] **No-op sanity check** (design §9 / DR-01): `git diff --stat src/main/gen` must show changes
-    **only** under `src/main/gen/net/internetisalie/lunar/luacats/lang/lexer/` (the lexer);
-    `git diff src/main/gen/net/internetisalie/lunar/luacats/lang/psi` must be **empty** (bnf regen
-    is a no-op for a lexer-only change). If the psi diff is non-empty, stop — a token/element-type
-    assumption was violated.
-  - [ ] Commit the regenerated `src/main/gen/` alongside the `.flex` edit.
+  - [x] Run `.claude/skills/generate-parser/scripts/generate.sh` — regenerated `_LuaCatsLexer.java`;
+    build self-verified clean.
+  - [x] **No-op sanity check** (design §9 / DR-01): `git diff src/main/gen/.../luacats/lang/psi`
+    was **EMPTY**; only `_LuaCatsLexer.java` changed. `_LuaLexer.java` regen was also a no-op.
+  - [x] Commit the regenerated `src/main/gen/` alongside the `.flex` edit.
 - **Exit criteria**: TC-01a (unclosed backtick does not corrupt the next tag line), TC-01b (CJK
   class name lexes as one `NAME`), TC-01c (`@overload fun(...)` still lexes via `TAG_TYPE`) pass;
   full unit suite green.
@@ -133,7 +130,7 @@ explicit precondition gate.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Lexer containment + dead-state removal | todo | Must |
+| Phase 1: Lexer containment + dead-state removal | done | Must |
 | Phase 2: Escaped, correct doc HTML | todo | Must |
 | Phase 3: Inheritance rendering | todo | Should |
 | Phase 4: Alias values | todo | Should |

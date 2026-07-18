@@ -3,7 +3,7 @@ id: "MAINT-27"
 title: "27: LuaCATS Doc & Lexer Correctness"
 type: "feature"
 parent_id: "MAINT"
-status: "todo"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -35,7 +35,7 @@ the two `luacats.flex` lexing hazards, the recursive-getter contract violation i
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| MAINT-27-01 | Lexer containment | M | Not Implemented | Exclude `\r\n` from `CODE`/`STRINGD` negated classes (#19); replace `HIGH_ASCII=[\x80-\xff]` with the JFlex `[:letter:]` Unicode class in `NAME_LEADING`/`NAME_TRAILING` (#66); drop the dead `COMMENT_END` state + `<TAG_OVERLOAD>` block (review §3) — regen via `generate-parser` (design §3.1) |
+| MAINT-27-01 | Lexer containment | M | Full | Exclude `\r\n` from `CODE`/`STRINGD` negated classes (#19); replace `HIGH_ASCII=[\x80-\xff]` with the JFlex `[:letter:]` Unicode class in `NAME_LEADING`/`NAME_TRAILING` (#66); drop the dead `COMMENT_END` state + `<TAG_OVERLOAD>` block (review §3) — regen via `generate-parser` (design §3.1) |
 | MAINT-27-02 | Escaped, correct doc HTML | M | Not Implemented | `renderTypeText` HTML-escapes type text and links only simple identifiers `^[\p{L}_][\p{L}\p{N}_.]*$`; structured types render as escaped code (#35); `---@type T` local renders `local <name> : <type>`, not `class T` (#57) — design §3.2/§3.3 |
 | MAINT-27-03 | Inheritance rendering | S | Not Implemented | `resolveClassComment` iterates individual `parentTypes.argTypeList` and falls back to `LuaCatsTypeNameIndex` for bare `@class` (#36); `collectInheritedFieldTags` BFS-walks the chain with a `visited` cycle guard + `<= 64` depth cap (#67) — design §3.4/§3.5 |
 | MAINT-27-04 | Alias values | S | Not Implemented | Gate the alias `Values:` section on `comment.typeOptionList.isNotEmpty()` instead of `enumTagList` (#37) — design §5 Ex.3 |

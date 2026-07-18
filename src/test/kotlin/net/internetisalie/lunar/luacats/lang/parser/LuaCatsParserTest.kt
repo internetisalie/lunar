@@ -233,6 +233,52 @@ class LuaCatsParserTest : BaseDocumentTest() {
     }
 
     @Test
+    fun testUnclosedBacktickDoesNotCorruptNextTagLine() {
+        // MAINT-27 #19: an unclosed backtick must not consume across the newline into
+        // the following tag line. The stray backtick on line 1 is a local error, but the
+        // @param on line 2 must still parse normally (its NAME tokens intact, not swallowed).
+        myFixture.configureByText(
+            LuaFileType,
+            """
+            ---@param x `unclosed
+            ---@param y number
+            function f(x, y) end
+            """.trimIndent(),
+        )
+
+        com.intellij.openapi.application.runReadAction {
+            val file = myFixture.file
+            PsiTreeUtil.findChildrenOfAnyType(file, false, com.intellij.psi.PsiElement::class.java)
+
+            val errors = PsiTreeUtil.findChildrenOfType(file, PsiErrorElement::class.java)
+            val maxErrorOffset = errors.maxOfOrNull { it.textOffset } ?: -1
+            val line2Offset = myFixture.file.text.indexOf("@param y")
+
+            Assertions.assertTrue(
+                maxErrorOffset < line2Offset,
+                "Backtick error leaked past line 1 into line 2 (@param y): errors at " +
+                    errors.joinToString { it.textOffset.toString() },
+            )
+
+            val names = PsiTreeUtil.findChildrenOfType(file, com.intellij.psi.PsiElement::class.java)
+                .filter { it.text == "y" || it.text == "number" }
+            Assertions.assertTrue(
+                names.any { it.text == "y" } && names.any { it.text == "number" },
+                "Line 2 @param tokens were swallowed by the unclosed backtick",
+            )
+        }
+    }
+
+    @Test
+    fun testUnicodeClassNameParses() {
+        // MAINT-27 #66: a non-ASCII class name lexes as a single NAME (no BAD_CHARACTER).
+        doTest("""
+            ---@class 名前
+            local x = {}
+        """.trimIndent())
+    }
+
+    @Test
     fun testReturnMultipleCommaSeparated() {
         doTest("""
             ---@return string id, boolean status
