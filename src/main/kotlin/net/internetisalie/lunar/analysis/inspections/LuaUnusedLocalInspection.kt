@@ -8,6 +8,7 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiPolyVariantReference
 import com.intellij.psi.PsiRecursiveElementWalkingVisitor
 import net.internetisalie.lunar.lang.psi.LuaAttName
 import net.internetisalie.lunar.lang.psi.LuaFile
@@ -16,6 +17,8 @@ import net.internetisalie.lunar.lang.psi.LuaNameList
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 import net.internetisalie.lunar.lang.psi.LuaParList
+import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.lang.psi.LuaVarList
 
 /**
  * Flags local variables, loop variables, and parameters that are declared but never read.
@@ -103,8 +106,14 @@ class LuaUnusedLocalInspection : LocalInspectionTool() {
                     record(nameRef.identifier, nameRef, declarations, declLeaves, declNames, "Unused parameter")
                 }
             }
+            isSimpleWriteTarget(nameRef) -> Unit
             else -> usages.add(nameRef)
         }
+    }
+
+    private fun isSimpleWriteTarget(nameRef: LuaNameRef): Boolean {
+        val luaVar = nameRef.parent as? LuaVar ?: return false
+        return luaVar.varSuffixList.isEmpty() && luaVar.parent is LuaVarList
     }
 
     private fun record(
@@ -128,8 +137,11 @@ class LuaUnusedLocalInspection : LocalInspectionTool() {
         val used = mutableSetOf<PsiElement>()
         for (usage in usages) {
             if (usage.identifier.text !in declNames) continue
-            val resolved = usage.reference?.resolve() ?: continue
-            if (resolved in declLeaves) used.add(resolved)
+            val reference = usage.reference as? PsiPolyVariantReference ?: continue
+            for (result in reference.multiResolve(false)) {
+                val target = result.element ?: continue
+                if (target in declLeaves) used.add(target)
+            }
         }
         return used
     }

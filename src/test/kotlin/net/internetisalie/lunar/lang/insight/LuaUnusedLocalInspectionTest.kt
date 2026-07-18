@@ -138,6 +138,51 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    /** TC-09 (#34): a local that is only ever *assigned* (never read) is flagged unused. */
+    @Test
+    fun testAssignedOnlyLocalFlagged() {
+        assertUnused(
+            """
+            local flag
+            flag = true
+            """.trimIndent(),
+            "Unused local variable 'flag'",
+        )
+    }
+
+    /** TC-09 (#34): a simple write target does not count as a read that clears the warning. */
+    @Test
+    fun testWriteThenReadLocalNotFlagged() {
+        assertNoUnused(
+            """
+            local flag
+            flag = true
+            print(flag)
+            """.trimIndent(),
+        )
+    }
+
+    /**
+     * TC-10 (#69): a usage that resolves (even ambiguously across shadowed decls) must keep the
+     * read-referenced declaration off the unused list. multiResolve(false) retains ambiguous
+     * targets that the old resolve()==null path silently dropped.
+     */
+    @Test
+    fun testAmbiguousUsageDoesNotFalselyFlag() {
+        assertUnused(
+            """
+            local value = 1
+            do
+                local value = 2
+                print(value)
+            end
+            print(value)
+            """.trimIndent(),
+        )
+        // Both `value` decls are read (inner by the do-block print, outer by the trailing print);
+        // neither may be flagged unused even though the name resolves across shadowing scopes.
+    }
+
     @Test
     fun testShadowedVariable() {
         assertUnused(

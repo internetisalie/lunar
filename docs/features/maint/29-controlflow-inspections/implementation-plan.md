@@ -62,10 +62,10 @@ for the user-visible unreachable-code assertions.
 ### Phase 3: Unused-local accuracy (#34, #69) [Should]
 - **Goal**: Assigned-only locals flagged; ambiguous usages retained.
 - **Tasks**:
-  - [ ] Add `isSimpleWriteTarget(nameRef: LuaNameRef)` and a `when` branch in
+  - [x] Add `isSimpleWriteTarget(nameRef: LuaNameRef)` and a `when` branch in
     `LuaUnusedLocalInspection.classify` (lines 88-108) that skips simple write targets before the
     `else -> usages.add` — realizes design §3.6.
-  - [ ] Replace `usage.reference?.resolve()` in `collectUsedDeclarations` (line 131) with a
+  - [x] Replace `usage.reference?.resolve()` in `collectUsedDeclarations` (line 131) with a
     `multiResolve(false)` iteration over `PsiPolyVariantReference` results — realizes design §3.7.
 - **Exit criteria**: `LuaUnusedLocalInspectionTest` still green; new TC-09..TC-10 pass
   (`local flag; flag = true` flagged; shadowed-ambiguous usage not falsely flagged).
@@ -113,5 +113,5 @@ for the user-visible unreachable-code assertions.
 |-------|--------|----------|
 | Phase 1: Safe quick fixes (#8, #9) | done | Must |
 | Phase 2: CFG correctness (#32, #33) | done | Must |
-| Phase 3: Unused-local accuracy (#34, #69) | todo | Should |
+| Phase 3: Unused-local accuracy (#34, #69) | done | Should |
 | Phase 4: Concat false positives (#68) | todo | Could |
