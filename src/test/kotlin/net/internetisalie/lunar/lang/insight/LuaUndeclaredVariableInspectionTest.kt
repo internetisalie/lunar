@@ -120,6 +120,48 @@ class LuaUndeclaredVariableInspectionTest : BasePlatformTestCase() {
         assertNoUndeclared("print(mysteryGlobal) -- luacheck: ignore mysteryGlobal")
     }
 
+    // MAINT-26-04 / TC7: an inline `-- luacheck: ignore` scopes to its own line only; an
+    // undeclared global on the FOLLOWING line is still flagged.
+    @Test
+    fun testInlineLuacheckIgnoreDoesNotSuppressNextLine() {
+        assertUndeclared(
+            """
+            local y = 1 -- luacheck: ignore
+            print(mysteryGlobal)
+            """.trimIndent(),
+            "mysteryGlobal",
+        )
+    }
+
+    // MAINT-26-04 / TC6: a `disable: undefined-global` block is NOT closed by an
+    // `enable` naming an unrelated diagnostic — the block stays open past it.
+    @Test
+    fun testEnableUnrelatedNameLeavesUndefinedGlobalBlockOpen() {
+        assertNoUndeclared(
+            """
+            ---@diagnostic disable: undefined-global
+            print(firstGlobal)
+            ---@diagnostic enable: unused
+            print(secondGlobal)
+            """.trimIndent(),
+        )
+    }
+
+    // MAINT-26-04 / TC6 (complement): a matching `enable: undefined-global` DOES close the
+    // block, so a global after the enable is flagged again.
+    @Test
+    fun testEnableMatchingNameClosesUndefinedGlobalBlock() {
+        assertUndeclared(
+            """
+            ---@diagnostic disable: undefined-global
+            print(firstGlobal)
+            ---@diagnostic enable: undefined-global
+            print(secondGlobal)
+            """.trimIndent(),
+            "secondGlobal",
+        )
+    }
+
     // TC-10: Underscore-Prefixed Globals (INSP-01-04)
     @Test
     fun testUnderscorePrefixedSuppressed() {

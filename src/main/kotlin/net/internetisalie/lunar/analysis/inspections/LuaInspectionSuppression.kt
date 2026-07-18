@@ -61,7 +61,7 @@ object LuaInspectionSuppression {
         for (comment in comments) {
             val commentLine = lineOf(file, comment.textOffset) ?: continue
             parseDiagnostic(comment, commentLine, lineCount, open, ranges)
-            parseLuacheck(comment, commentLine, lineCount, ranges)
+            parseLuacheck(comment, commentLine, ranges)
         }
         open.forEach { ranges.add(it.close(lineCount)) }
         return ranges
@@ -118,21 +118,26 @@ object LuaInspectionSuppression {
         val iterator = open.iterator()
         while (iterator.hasNext()) {
             val block = iterator.next()
+            if (!closesBlock(block, names)) continue
             ranges.add(SuppressionRange(block.startLine, enableLine - 1, block.names, block.allDiagnostics))
             iterator.remove()
         }
     }
 
+    private fun closesBlock(block: OpenDisableBlock, names: Set<String>): Boolean {
+        if (block.allDiagnostics || names.isEmpty()) return true
+        return block.names.intersect(names).isNotEmpty()
+    }
+
     private fun parseLuacheck(
         comment: PsiElement,
         commentLine: Int,
-        lineCount: Int,
         ranges: MutableList<SuppressionRange>,
     ) {
         val match = LUACHECK_REGEX.find(comment.text) ?: return
         val names = splitNames(match.groupValues[1])
         val allDiagnostics = names.isEmpty()
-        ranges.add(SuppressionRange(commentLine, minOf(commentLine + 1, lineCount), names, allDiagnostics))
+        ranges.add(SuppressionRange(commentLine, commentLine, names, allDiagnostics))
     }
 
     private fun splitNames(raw: String): Set<String> =

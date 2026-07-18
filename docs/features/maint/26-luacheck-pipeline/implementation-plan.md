@@ -94,6 +94,6 @@ testable. Phases are ordered so the pure-function fixes (no annotator plumbing) 
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Command-line fidelity & stdlib | done | Must |
-| Phase 2: Suppression scoping | todo | Should |
+| Phase 2: Suppression scoping | done | Should |
 | Phase 3: Outcome model & failure classification | todo | Should |
 | Phase 4: Stdin offsets & annotator wiring | todo | Must |
