@@ -15,12 +15,12 @@ explicit precondition gate.
 
 ## Preconditions (before Phase 1)
 
-- [ ] **Parser-gen jars present**: verify `ls tooling/parser-gen/grammar-kit-*.jar
+- [x] **Parser-gen jars present**: verify `ls tooling/parser-gen/grammar-kit-*.jar
       tooling/parser-gen/jflex-*.jar` both resolve. `generate.sh` aborts (exit 1) if either is
       missing (`generate.sh:67-75`); these are git-ignored, local-only (see
       `tooling/parser-gen/README.md`). If absent, obtain them before starting — regen never runs
       in CI.
-- [ ] **Baseline green**: `tooling/gce-builder/gce-builder.sh run test` reports the wave baseline
+- [x] **Baseline green**: `tooling/gce-builder/gce-builder.sh run test` reports the wave baseline
       (2123 pass / 0 fail / 1 ignored on main `a3ddf82b`) before any edit.
 
 ## Phases
@@ -119,15 +119,15 @@ explicit precondition gate.
 
 ## Verification Tasks
 
-- [ ] Extend `LuaCatsElementTypeTest` / `TestLuaCatsLexer` with TC-01a/b/c — covers #19, #66, §3.
-- [ ] Extend `LuaCatsDocumentationRendererTest` with TC-02a/b/c, TC-04 — covers #35, #57, #37.
-- [ ] Extend `LuaCatsDocumentationRendererSectionsTest` with TC-03a/b/c — covers #36, #67.
-- [ ] Extend `LuaCatsLazyCommentTest` with TC-05a/b — covers #38.
-- [ ] Extend `LuaCatsAnnotatorTest` with TC-06 — covers #72.
-- [ ] Run `tooling/gce-builder/gce-builder.sh run "clean build"` — gates `verifyPlugin` + full suite.
+- [x] Extend `LuaCatsElementTypeTest` / `TestLuaCatsLexer` with TC-01a/b/c — covers #19, #66, §3.
+- [x] Extend `LuaCatsDocumentationRendererTest` with TC-02a/b/c, TC-04 — covers #35, #57, #37.
+- [x] Extend `LuaCatsDocumentationRendererSectionsTest` with TC-03a/b/c — covers #36, #67.
+- [x] Extend `LuaCatsLazyCommentTest` with TC-05a/b — covers #38.
+- [x] Extend `LuaCatsAnnotatorTest` with TC-06 — covers #72.
+- [x] Run `tooling/gce-builder/gce-builder.sh run "clean build"` — gates `verifyPlugin` + full suite.
 - [ ] Run `human-verification-checklists.md`.
 
-- [ ] Out-of-`luacats/**` consumers of the #38 getter swap (reviewer recommendation): assert
+- [x] Out-of-`luacats/**` consumers of the #38 getter swap (reviewer recommendation): assert
   `collectDescriptionText`-fed surfaces stay correct — `LuaDescriptionIndex` content (run
   `LuaDescriptionIndexTest` on the builder where the external fixture tree exists; CI skips it) and
   `isDocCommentEmpty` consumers (`LuaEnterHandlerDelegate`, `LuaGenerateDocIntention`) — the
