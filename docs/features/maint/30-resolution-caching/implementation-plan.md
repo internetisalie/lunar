@@ -24,9 +24,9 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 - **Goal**: retire DR-01 (settings modification tracker) and DR-02 (MAINT-25 ordering) before touching
   the snapshot cache.
 - **Tasks**:
-  - [ ] DR-01 — confirm whether `LuaProjectSettings` exposes/implements a `ModificationTracker` that
+  - [x] DR-01 — confirm whether `LuaProjectSettings` exposes/implements a `ModificationTracker` that
     bumps on target change; record the exact dependency object for §3.4 — realizes risks DR-01.
-  - [ ] DR-02 — confirm MAINT-25 merge order with the type-engine owner; record Serial decision —
+  - [x] DR-02 — confirm MAINT-25 merge order with the type-engine owner; record Serial decision —
     realizes risks DR-02.
 - **Exit criteria**: DR-01/DR-02 marked done in `risks-and-gaps.md` with the concrete dependency object
   named; no code yet.
@@ -113,7 +113,7 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: De-risking | todo | Must |
+| Phase 0: De-risking | done | Must |
 | Phase 1: Declaration-only index | todo | Must |
 | Phase 2: ResolveCache in multiResolve | todo | Must |
 | Phase 3: Snapshot cache re-key | todo | Must |

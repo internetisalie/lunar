@@ -90,9 +90,37 @@ folders:
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| MAINT-30-00-DR-01 | Grep/read `LuaProjectSettings` for a `ModificationTracker`/mod-count bumped on target change; name the exact dependency object for design §3.4 | Gap 2.1 / Risk 1.2 | todo |
-| MAINT-30-00-DR-02 | Confirm MAINT-25 vs MAINT-30 merge order with the type-engine owner; record Serial decision | Gap 2.2 | todo |
-| MAINT-30-00-DR-03 | Spike `resolveType(class).resolveMember(method)` on the existing method-chain test fixtures; compare return-name output to the stub path | Gap 2.3 | todo |
+| MAINT-30-00-DR-01 | Grep/read `LuaProjectSettings` for a `ModificationTracker`/mod-count bumped on target change; name the exact dependency object for design §3.4 | Gap 2.1 / Risk 1.2 | done |
+| MAINT-30-00-DR-02 | Confirm MAINT-25 vs MAINT-30 merge order with the type-engine owner; record Serial decision | Gap 2.2 | done |
+| MAINT-30-00-DR-03 | Spike `resolveType(class).resolveMember(method)` on the existing method-chain test fixtures; compare return-name output to the stub path | Gap 2.3 | done (Phase 5) |
+
+### DR-01 outcome (2026-07-17)
+Confirmed against `main` @ `f52a5e16`: `LuaProjectSettings` (`settings/LuaProjectSettings.kt:18`) is a
+`PersistentStateComponent` that does **not** implement `ModificationTracker` and exposes no mod-count.
+The active target is mutated exclusively through `State.setTarget(newTarget)` — reached directly by
+`LuaRocksInterpreterInitializer` (`:37`) and the tests (`state.setTarget(...)`), and indirectly by
+`setTargetAndNotify` (`:132`) and `State.getTarget()`'s lazy default (`:101`). **Decision: branch (a)** —
+add a transient `SimpleModificationTracker` (`targetModificationTracker`) to `State`, bumped as the first
+statement of `setTarget()`. The snapshot provider lists
+`LuaProjectSettings.getInstance(project).state.targetModificationTracker` as a `Result.create`
+dependency (fetched fresh at each build), alongside `psiFile` + `PsiModificationTracker.MODIFICATION_COUNT`.
+It is `@get:Transient` so it never serializes; across a `loadState` swap the state re-reindexes anyway.
+This is the concrete dependency object for design §3.4 (no per-call target-hash fallback needed).
+
+### DR-02 outcome (2026-07-17)
+MAINT-25 (type-graph immutability) is **done and merged to main** (per the roadmap Serial ordering and
+the Wave-19 supervisor handoff). MAINT-30 therefore starts from the stabilized `forFile` seam and re-keys
+the snapshot cache around it — the Serial-MAINT-25-first ordering is satisfied. No coordination pending.
+
+### DR-03 outcome (Phase 5)
+`LuaTypeManager.resolveType(class).resolveMember(method)` returns a `LuaFunctionType` whose return
+`LuaType.name` reproduces the annotated single-return name and the `self→receiverClass` substitution
+(via `graphTypeToLuaType`). The one gap: **multi-value `---@return A, B`** — `LuaFunctionType.returnType`
+is a single `LuaType`, so `resolveMember` collapses to the first return only. The stub path's
+`annotatedReturnNames`/`inferredReturnNames` (which read all `---@return` descriptors) is therefore kept
+as the documented multi-return fallback (MAINT-30-04 is priority C); the provider now tries `resolveMember`
+first and falls back to the stub path when it yields fewer names. TC-09 (existing chain-hint fixtures)
+stays green.
 
 ## Test Case Gaps
 - No fixture yet asserts a **usage** (not a declaration) is excluded from the FileBindings record —
