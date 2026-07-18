@@ -59,7 +59,7 @@ folders:
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
 | MAINT-00-DR-01 | Read `lang/psi/types/LuaGraphType.kt` `Table` and confirm the `__concat` field accessor (fields map vs. materialized-class member lookup); pin the exact expression in design §3.8 | Gap 2.1 (#68) | done — no `fields` accessor; `Table` carries `localMembers` (+ supertypes via `getMembers()`). Fix uses `type.getMembers().containsKey("__concat")` |
-| MAINT-00-DR-02 | Confirm `myFixture.findSingleIntention`/`launchAction`/`checkResult` semantics for the `ReplaceIntegerDivisionFix` (registered as a bare `BaseIntentionAction`, NOT `IntentionWrapper`-wrapped — the intention text `"Replace // with / and math.floor()"` surfaces directly) | Phase 1 test wiring | done — TC-01/02 pass via `findSingleIntention` + `launchAction` + `checkResult` |
+| MAINT-00-DR-02 | Confirm `myFixture.findSingleIntention`/`launchAction`/`checkResult` semantics for the `ReplaceIntegerDivisionFix` (registered via `IntentionWrapper` at `LuaLanguageLevelInspection.kt:141`; the intention text `"Replace // with / and math.floor()"` survives the wrapper, so it surfaces for `findSingleIntention`) | Phase 1 test wiring | done — TC-01/02 pass via `findSingleIntention` + `launchAction` + `checkResult` |
 
 ## Test Case Gaps
 - No existing test asserts the **sibling `::continue::` cross-wire** (#32c) — added as TC-06.
