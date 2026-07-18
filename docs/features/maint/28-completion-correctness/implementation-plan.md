@@ -64,7 +64,7 @@ ships an independently verifiable, real-flow-tested behavior. No new production 
 ### Phase 5: Enter-between-blocks guard (#25) [Could]
 - **Goal**: COMP-08-04 fires — Enter inside an open block body force-indents.
 - **Tasks**:
-  - [ ] Rewrite the final `return if` in `LuaEnterBetweenBlockHandler.preprocessEnter` (`:45`) to
+  - [x] Rewrite the final `return if` in `LuaEnterBetweenBlockHandler.preprocessEnter` (`:45`) to
     `offset in (owner.textRange.startOffset + 1)..terminator.startOffset` — realizes design §3.1.
 - **Exit criteria**: TC-25 passes (real-flow: type Enter between `then`/`end` → indented blank
   body line). Full suite green.
@@ -103,4 +103,4 @@ note — engine-only tests hid #24 for a full wave.
 | Phase 2: Ranking accuracy (#40, #62) | done | Should |
 | Phase 3: Single symbol pass (#39) | done | Should |
 | Phase 4: Session cost — key caching (§2.5.5) | done | Should |
-| Phase 5: Enter-between-blocks guard (#25) | todo | Could |
+| Phase 5: Enter-between-blocks guard (#25) | done | Could |

@@ -42,7 +42,13 @@ class LuaEnterBetweenBlockHandler : EnterHandlerDelegateAdapter() {
         val terminatorType = LuaBlockPairs.terminatorForOwner(owner)
         val terminator = owner.node.findChildByType(terminatorType) ?: return EnterHandlerDelegate.Result.Continue
 
-        return if (offset in (leaf.textRange.endOffset + 1) until terminator.startOffset) {
+        // #25: the old bound `leaf.textRange.endOffset + 1 until terminator.startOffset` was always
+        // empty — `leaf` is the caret-adjacent leaf, so its endOffset >= offset and the lower bound
+        // exceeds the caret, making the branch dead. Anchor on the owner's opener start instead: fire
+        // when the caret sits strictly after the opener and at-or-before the terminator (immediately
+        // before `end`/`until`/`}` still opens an indented body line above it).
+        val openerStart = owner.textRange.startOffset
+        return if (offset in (openerStart + 1)..terminator.startOffset) {
             EnterHandlerDelegate.Result.DefaultForceIndent
         } else {
             EnterHandlerDelegate.Result.Continue

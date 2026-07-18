@@ -103,6 +103,29 @@ class LuaEnterHandlerTest : BasePlatformTestCase() {
         assertTrue("caret rests on a body line above a terminator", lines[caretLine + 1].trim() == "end")
     }
 
+    // MAINT-28 TC-25 (#25): caret between `then` and `end` on one line. DefaultForceIndent fires and
+    // opens a body line, splitting `then` and `end` across lines with no extra terminator inserted.
+    // (In-process harness quirk, same as testEnterReindentsBodyAndTerminator: the body line is not
+    // reindented to nested depth and the caret rests at the start of the terminator line, so this
+    // asserts the structural split rather than an exact indent column.)
+    fun testEnterBetweenThenAndEndSameLine() {
+        myFixture.configureByText("test.lua", "if x then<caret>end")
+        myFixture.type('\n')
+        assertEquals("no second 'end' inserted between the matched pair", 1, endCount())
+        val lines = myFixture.editor.document.text.lines()
+        assertEquals("then and end split across two lines", 2, lines.size)
+        assertTrue("first line retains the opener up to 'then'", lines[0].trimEnd().endsWith("then"))
+        assertEquals("terminator on its own line", "end", lines[1].trim())
+    }
+
+    // TC-25 negative: Enter *after* `end` leaves default behavior (no forced body line above a
+    // terminator, since the caret is past the terminator start).
+    fun testEnterAfterEndIsDefault() {
+        myFixture.configureByText("test.lua", "if x then\nend<caret>")
+        myFixture.type('\n')
+        assertEquals("still exactly one 'end'", 1, endCount())
+    }
+
     private fun endCount(): Int = occurrences(myFixture.editor.document.text, Regex("\\bend\\b"))
 
     private fun assertNoExtraTerminator(keyword: String) {
