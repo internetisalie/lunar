@@ -63,7 +63,7 @@ class LuaCheckAnnotatorTest : BasePlatformTestCase() {
             file = "test.lua",
         )
 
-        val results = LuaCheckAnnotator.Results(listOf(p1, p2, p3, p4, p5))
+        val results = LuaCheckOutcome.Problems(listOf(p1, p2, p3, p4, p5))
 
         val holder = AnnotationSessionImpl.computeWithSession(file, false, annotator) { annotationHolder ->
             val holderImpl = annotationHolder as AnnotationHolderImpl

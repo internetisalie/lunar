@@ -1,9 +1,10 @@
 package net.internetisalie.lunar.analysis.luacheck
 
-import com.intellij.execution.ExecutionException
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
+import net.internetisalie.lunar.toolchain.exec.LuaExecOutcome
+import net.internetisalie.lunar.toolchain.exec.LuaExecResult
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
 import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
@@ -11,26 +12,40 @@ object LuaCheckInvoker {
     private val LOG = logger<LuaCheckInvoker>()
 
     private val LINE_PATTERN = "(.+?):(\\d+):(\\d+)-(\\d+):(.+)".toRegex()
-    private val ANSI_PATTERN = Regex("\\[[;\\d]*m")
+    private val ANSI_PATTERN = Regex("\\[[;\\d]*m")
 
-    fun invoke(virtualFile: VirtualFile, psiFile: PsiFile): List<Problem> {
-        val dir = virtualFile.parent ?: return emptyList()
-        val relativeFilePath = virtualFile.name
+    fun invoke(virtualFile: VirtualFile, psiFile: PsiFile): LuaCheckOutcome {
+        val dir = virtualFile.parent ?: return LuaCheckOutcome.NotApplicable
+        val fileName = psiFile.name
 
-        val cmd = newLuaCheckCommandLine(psiFile.project, relativeFilePath, dir) ?: return emptyList()
+        val cmd = newLuaCheckCommandLine(psiFile.project, virtualFile.name, dir)
+            ?: return LuaCheckOutcome.NotApplicable
 
-        val output = try {
-            LuaToolExecutionService.getInstance().capture(cmd, LuaExecTimeout.FORMAT)
-        } catch (_: ExecutionException) {
-            return emptyList()
-        }
-
-        return output.stdout.lineSequence()
-            .mapNotNull { line -> problemFrom(line, psiFile) }
-            .toList()
+        val result = LuaToolExecutionService.getInstance().capture(cmd, LuaExecTimeout.FORMAT)
+        return classify(result, fileName)
     }
 
-    private fun problemFrom(line: String, psiFile: PsiFile): Problem? {
+    internal fun classify(result: LuaExecResult, fileName: String): LuaCheckOutcome = when (result.outcome) {
+        LuaExecOutcome.START_FAILED -> LuaCheckOutcome.Failure(FailureKind.LAUNCH_FAILED, "Could not execute luacheck")
+        LuaExecOutcome.TIMED_OUT ->
+            LuaCheckOutcome.Failure(FailureKind.TIMED_OUT, "luacheck did not respond within ${timeoutSeconds()}s")
+        LuaExecOutcome.CANCELLED -> LuaCheckOutcome.NotApplicable
+        LuaExecOutcome.COMPLETED -> completedOutcome(result, fileName)
+    }
+
+    private fun completedOutcome(result: LuaExecResult, fileName: String): LuaCheckOutcome {
+        if (result.exitCode >= FATAL_EXIT_CODE) {
+            val detail = result.stderr.lineSequence().firstOrNull { it.isNotBlank() }
+                ?: "luacheck exited with code ${result.exitCode}"
+            return LuaCheckOutcome.Failure(FailureKind.CRASHED, detail)
+        }
+        return LuaCheckOutcome.Problems(parseProblems(result.stdout, fileName))
+    }
+
+    private fun parseProblems(stdout: String, fileName: String): List<Problem> =
+        stdout.lineSequence().mapNotNull { line -> problemFrom(line, fileName) }.toList()
+
+    private fun problemFrom(line: String, fileName: String): Problem? {
         val match = LINE_PATTERN.find(line) ?: return null
         val lineGroup = match.groups[2] ?: return null
         val colStartGroup = match.groups[3] ?: return null
@@ -45,7 +60,11 @@ object LuaCheckInvoker {
             columnStart = colStartGroup.value.toInt() - 1,
             columnEnd = colEndGroup.value.toInt() - 1,
             message = message,
-            file = psiFile.name,
+            file = fileName,
         )
     }
+
+    private fun timeoutSeconds(): Int = LuaExecTimeout.FORMAT.millis / 1000
+
+    private const val FATAL_EXIT_CODE = 2
 }
