@@ -100,9 +100,9 @@ load-bearing `LuaCatsElementTypes.NAME` else-branch. This is exactly the outcome
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| MAINT-27-00-DR-01 | Run `generate.sh` on the edited `luacats.flex`; assert `git diff src/main/gen/.../luacats/lang/psi` is empty and only the lexer dir changed | Risk 1.1 | todo |
-| MAINT-27-00-DR-02 | Add TC-01b (CJK `@class` name) and TC-01a (unclosed backtick) lexer fixtures; confirm containment + Unicode NAME before wider renderer work | Risk 1.3 | todo |
-| MAINT-27-00-DR-03 | Verify both `tooling/parser-gen/grammar-kit-*.jar` and `jflex-*.jar` resolve before Phase 1 | Risk 1.2 | todo |
+| MAINT-27-00-DR-01 | Run `generate.sh` on the edited `luacats.flex`; assert `git diff src/main/gen/.../luacats/lang/psi` is empty and only the lexer dir changed | Risk 1.1 | done (psi diff EMPTY; only `_LuaCatsLexer.java` changed) |
+| MAINT-27-00-DR-02 | Add TC-01b (CJK `@class` name) and TC-01a (unclosed backtick) lexer fixtures; confirm containment + Unicode NAME before wider renderer work | Risk 1.3 | done (lexer + parser-level fixtures green) |
+| MAINT-27-00-DR-03 | Verify both `tooling/parser-gen/grammar-kit-*.jar` and `jflex-*.jar` resolve before Phase 1 | Risk 1.2 | done (both present) |
 
 ## Test Case Gaps
 

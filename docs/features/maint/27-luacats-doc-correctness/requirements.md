@@ -3,7 +3,7 @@ id: "MAINT-27"
 title: "27: LuaCATS Doc & Lexer Correctness"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
