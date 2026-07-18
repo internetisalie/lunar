@@ -42,10 +42,10 @@ ships an independently verifiable, real-flow-tested behavior. No new production 
 ### Phase 3: Single symbol pass (#39) [Should]
 - **Goal**: exactly one `addSymbolCompletions` invocation per completion session.
 - **Tasks**:
-  - [ ] In `LuaCompletionContributor`: delete the redundant `addSymbolCompletions(position, result)`
+  - [x] In `LuaCompletionContributor`: delete the redundant `addSymbolCompletions(position, result)`
     at `:241` and its wrapping `if (canBeExpressionStart)` block (`:236-242`); keep the `:216`
     call — realizes design §3.3 steps 1.
-  - [ ] Delete the IDENTIFIER-pattern symbol provider `extend(...)` (`:247-261`) — realizes design
+  - [x] Delete the IDENTIFIER-pattern symbol provider `extend(...)` (`:247-261`) — realizes design
     §3.3 step 2. Retain the IDENTIFIER-pattern **cross-file** provider (`:263-268`).
 - **Exit criteria**: TC-39 passes (identifier-position completion still offers in-scope locals; no
   duplicate lookup strings). Full suite green.
@@ -101,6 +101,6 @@ note — engine-only tests hid #24 for a full wave.
 |-------|--------|----------|
 | Phase 1: Original-file discipline (#24) | done | Must |
 | Phase 2: Ranking accuracy (#40, #62) | done | Should |
-| Phase 3: Single symbol pass (#39) | todo | Should |
+| Phase 3: Single symbol pass (#39) | done | Should |
 | Phase 4: Session cost — key caching (§2.5.5) | todo | Should |
 | Phase 5: Enter-between-blocks guard (#25) | todo | Could |

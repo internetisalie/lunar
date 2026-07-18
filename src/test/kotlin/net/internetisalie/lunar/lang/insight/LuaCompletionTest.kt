@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.insight
 import net.internetisalie.lunar.IndexedDocumentTest
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -140,6 +141,24 @@ class LuaCompletionTest : IndexedDocumentTest() {
         // Should NOT contain keywords when there's a prefix
         assertTrue(!strings.contains("if"), "Completion should NOT contain 'if' when typing a prefix")
         assertTrue(!strings.contains("while"), "Completion should NOT contain 'while' when typing a prefix")
+    }
+
+    // MAINT-28 TC-39 (#39): exactly one symbol pass — a scope local is offered once, not duplicated
+    // by the (now-deleted) redundant call sites.
+    @Test
+    fun `TC-39 scope local offered exactly once`() {
+        configureByText("local price = 1\nlocal priced = 2\npri<caret>")
+        myFixture.completeBasic()
+        val strings = myFixture.lookupElementStrings
+        assertNotNull(strings, "Completion lookup should not be null")
+        assertEquals(1, strings.count { it == "price" }, "'price' should appear exactly once. Found: $strings")
+    }
+
+    // MAINT-28 TC-39b (#39): after a dot, the deleted IDENTIFIER symbol provider no longer leaks the
+    // standalone scope local into member position.
+    @Test
+    fun `TC-39b standalone local not offered after dot`() {
+        doNotContainTest("local price = 1\nlocal t = {}\nt.pri<caret>", "price")
     }
 
     // MAINT-28 TC-40 (#40): a `function Class:method()` receiver must not leak into global

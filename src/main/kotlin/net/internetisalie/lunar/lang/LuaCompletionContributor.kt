@@ -234,30 +234,6 @@ class LuaCompletionContributor : CompletionContributor() {
                         // else, elseif, end
                         addBlockClosureKeywords(prevLeaf, result)
                     }
-
-                    // 4. Symbol Completion (COMP-02)
-                    // Add symbols in expression contexts
-                    // Note: We add symbols even at statement start if canBeExpressionStart is true
-                    // (e.g., after `local x = ` or at the start of a file where variables can appear)
-                    if (canBeExpressionStart) {
-                        addSymbolCompletions(position, result)
-                    }
-                }
-            }
-        )
-
-        // Symbol completion provider - triggers on identifier elements
-        extend(
-            CompletionType.BASIC,
-            psiElement().withElementType(LuaElementTypes.IDENTIFIER),
-            object : CompletionProvider<CompletionParameters>() {
-                override fun addCompletions(
-                    parameters: CompletionParameters,
-                    context: ProcessingContext,
-                    result: CompletionResultSet
-                ) {
-                    val position = parameters.position
-                    addSymbolCompletions(position, result)
                 }
             }
         )
