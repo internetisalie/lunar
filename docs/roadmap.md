@@ -11,19 +11,15 @@ folders:
 
 > **Durable value = the ordering and dependency edges, not the `Status` column.** Canonical
 > per-feature status is each feature's `requirements.md` front-matter (`status:`); the `Status`
-> here is advisory. Only **open** work is listed — completed waves (0–10, 13–17) are done and
+> here is advisory. Only **open** work is listed — completed waves (0–19) are done and
 > live in git history.
 
-> **MVP scope (2026-07-14; expanded 2026-07-17).** The product is **feature-complete for MVP**
-> once Wave 18's items land — **SYNTAX-18, MAINT-23, TYPE-10, REDIS-06**, plus **ROCKS-16** and **TOOLING-08** (added 2026-07-16
-> under the testing-surfaced-issues clause: user-feedback browser + settings UX consolidation) —
-> **and Wave 19 (codebase-review remediation, MAINT-24…32) completes** — added to MVP 2026-07-17
-> given its breadth: it drains the review's confirmed P1 crashes, destructive quick fixes, and
-> silently-broken features across every subsystem, which is quality debt an MVP shouldn't ship.
-> **MAINT-21**, **TARGET-07**, and **TARGET-08** are *not* MVP-gating (MAINT-21 is
-> externally blocked on the unreleased 2026.2 platform; TARGET-07 and TARGET-08 are post-MVP
-> stub/library-coverage follow-ons) — they live in **Wave 21**.
-> The **AI epic (Wave 20) is post-MVP.**
+> **MVP COMPLETE (2026-07-18).** The product is **feature-complete for MVP** — Wave 18 (SYNTAX-18,
+> MAINT-23, TYPE-10, REDIS-06, ROCKS-16, TOOLING-08) and Wave 19 (codebase-review remediation,
+> MAINT-24 through 32) both shipped and released (v0.19.0 / v0.19.1). Those two completed waves are
+> removed from this roadmap and live in git history. **Remaining work is all post-MVP:** the **AI
+> epic (Wave 20)** and the **Wave 21 follow-ons** — TARGET-07/08 (post-MVP stub/library coverage)
+> and MAINT-21 (deferred, externally blocked on the unreleased 2026.2 platform).
 
 ## How an agent uses this
 
@@ -57,54 +53,18 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 ---
 
-## Wave 18 — MVP feature work  *(per-feature deferrals stay in each risks-and-gaps.md — promote here only when top-level tracking is warranted)*
-
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYNTAX-18 | Parser Error Recovery for Block Constructs | done | M | — | EDITOR-08 simplification *(soft)* | shipped 2026-07-16: `pin` (no `recoverWhile` — empirically unusable, see feature risks doc) on 9 block rules + regen + downstream adaptations; full suite green |
-| MAINT-23| Test hygiene: `ValkeyStubResourceTest` tearDown (target leak) | done | S | — | — | ✓ REDIS-03's `ValkeyStubResourceTest` set `Target(VALKEY,…)` via `setTargetAndNotify` without restoring — the same latent leak fixed in `RedisAmbientTypingTest`/`LuaRedisCommandInspectionTest`; an un-restored target leaks into alphabetically-later suites. Fixed 2026-07-16: added a `tearDown` restoring `Target(STANDARD,"5.4")` + `PlatformLibraryIndex.reload()` (mirrors the sibling suites). Full ktlintCheck + test suite green on gce-builder |
-| TYPE-10 | Expected-type → lambda-parameter inference | done | C | TYPE-01 *(Type engine)* | REDIS-05 AC-2 *(full callback typing)* | ✓ new: in `LuaTypesVisitor.visitFuncCall` unification, propagate a parameter's declared `fun(...)` type onto a passed lambda's params. Ground-truthed 2026-07-14: engine types params only from a **direct** `---@param`, not from the expected argument type (probe V3 → `Undefined`), so `redis.register_function('f', function(keys,args)…)` doesn't type `keys` as `string[]`. High-blast-radius shared-engine change → gate with the REDIS-04 §3.1c-style regression contract (`.../lang/types/*` + consumers) + positive tests (table.sort comparator, pcall, register_function). Re-enables REDIS-05 TC-STUB-1 `keys[1]→string` (currently descoped, REDIS-05 risks Gap 2.4) |
-| TOOLING-08 | Lua settings restructure | done | S | TOOLING-06 *(done)* | — | ✓ settings-page rework: explicit platform-target control (BUG-362 root cause: target only ever derived via `LuaTargetSynchronizer`, no user control existed), capability-based bindings split (evicts the capability-less redis/valkey server kinds), wires the orphaned `setGlobalBinding` UI, DSL migration for the two FormBuilder panels (BUG-369); planned 2026-07-16 → `docs/features/tooling/08-settings-restructure/` (6 phases) |
-| ROCKS-16 | Plugins-style LuaRocks package browser redesign | done (VNC pending) | S | ROCKS-02/-03/-05/-12 *(done)*; TOOLING-02 *(done)* | — | ✓ delivered 2026-07-17 — all 8 phases landed under `rocks/browser/` (canonical `--tree` install target, two-tab Marketplace/Installed surface, JBHtmlPane detail pane, honest error/empty states, update + add-to-rockspec + popular-list); absorbs BUG-363/365/366/367/368 and review findings #48/#64/#70/#71b; full suite 2055/0, ktlint clean. Live UI checklist (font/alignment/empty/deps/error-link, tabs, stripe names, install-visibility) deferred to a supervised verify-in-ide pass; DR-01/DR-04 annotated "awaiting VNC gate" |
-| REDIS-06 | Redis sandbox + quick-doc gating refinements | done | C | REDIS-04 *(done)* | — | ✓ done 2026-07-16 (PR #5, squash `5b7c9d0c`): (1) `LuaRedisSandboxInspection` now exempts shadowed locals via a side-effect-free `LuaResolveUtil.scopeCrawlUp` + local-only `LocalBindingScopeProcessor` (no VFS/type-engine — the earlier TestLogger cause is not reintroduced; DR-01 clean). (2) `RedisCommandDocumentationTargetProvider` gates on caret-on-command-STRING (`LuaElementTypes.STRING` + `!==` identity). Full GCE suite 2001/0; manual sandbox-IDE checklist still advisory |
-
----
-
-## Wave 19 — MVP quality: codebase-review remediation  *(MAINT; MVP-gating, added 2026-07-17)*
-
-Drains the 57 still-open findings of the 2026-07 full codebase review ([docs/review.md](review.md);
-remediation status verified 2026-07-17 — 5 fixed, 4 moot, 6 partial incidentally via earlier waves).
-Coalesced by root cause per the review's §2.5 "fix once, not per-site" analysis rather than filed as
-~57 individual bugs. Browser/settings-adjacent findings are **absorbed by ROCKS-16 (#48, #64, #70,
-#71b) and TOOLING-08 (#41, #44, #50)** — tracked in those features' risks-and-gaps, not here.
-Isolated fixes went to BUG-382…386 (#23, #45, #46, #49, #15); #22 was already BUG-361.
-
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MAINT-31 | Dead-code sweep (review §3) | done | C | — | every other Wave-19 feature *(soft — shrinks their diffs)* | ✓ pure deletion; **do first** |
-| MAINT-25 | Type-graph immutability & safety | todo | M | TYPE-10 *(serialize — same hot files `LuaTypesVisitor`/`LuaTypeGraph`)* | — | Serial: type engine |
-| MAINT-24 | Debugger & test-runner hardening | todo | S | MAINT-22 *(done — coroutine debugger base)* | **AI-03** | ✓ run/ subsystem |
-| MAINT-26 | Luacheck pipeline correctness | todo | S | — | — | ✓ analysis/luacheck |
-| MAINT-27 | LuaCATS doc & lexer correctness | todo | S | — | — | ✓ luacats/ (needs local parser-gen jars for the .flex regen) |
-| MAINT-28 | Completion correctness & performance | todo | S | — | — | ✓ completion stack |
-| MAINT-29 | Control-flow & inspection accuracy | todo | S | — | — | ✓ analysis/ + quick fixes |
-| MAINT-30 | Indexing & resolution caching | todo | S | — | — | Serial vs MAINT-28 *(both touch `LuaCompletionContributor`/resolution seams)* |
-| MAINT-32 | Process-execution discipline (`LuaProcessUtil`) | done | S | — | — | ✓ util/ primitive + caller migration (#11, §2.1) |
-
----
-
 ## Wave 20 — AI integration  *(AI epic)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
 | AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
-| AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
+| AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(done; debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
 | AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
 
 ---
 
-## Wave 21 — Post-MVP follow-ons  *(non-gating; moved out of Wave 18 on 2026-07-17)*
+## Wave 21 — Post-MVP follow-ons  *(non-gating)*
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
