@@ -109,6 +109,23 @@ class LuaUnreachableCodeInspectionTest : BasePlatformTestCase() {
         assertEquals("print(\"skipped\")", highlightedText(text, warnings.single()))
     }
 
+    /**
+     * TC-08 (#32b): `if c1 then return elseif c2 then return end` has NO else, so when both
+     * conditions are false control falls through — `print("r")` is reachable. The elseif-leak
+     * defect would falsely chain a branch body forward and mis-model this.
+     */
+    @Test
+    fun testElseifWithoutElseKeepsFollowingCodeReachable() {
+        val warnings = unreachable(
+            """
+            local c1, c2 = false, false
+            if c1 then return elseif c2 then return end
+            print("r")
+            """.trimIndent(),
+        )
+        assertTrue("print(\"r\") must stay reachable after an elseif chain with no else, found: $warnings", warnings.isEmpty())
+    }
+
     @Test
     fun testRemoveUnreachableQuickFix() {
         myFixture.configureByText(

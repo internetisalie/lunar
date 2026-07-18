@@ -118,6 +118,98 @@ class LuaControlFlowTest : BasePlatformTestCase() {
         assertTrue("Print after loop should be reachable", flow.isReachable(reachableInst!!))
     }
 
+    /** TC-05 (#32a): no spurious fall-through edge out of a fully-abrupt if/else. */
+    @Test
+    fun testNoSpuriousEdgeOutOfReturns() {
+        val file = myFixture.configureByText("test.lua", """
+            function f(x)
+                if x then return 1 else return 2 end
+                print("u")
+            end
+        """.trimIndent())
+        val func = PsiTreeUtil.findChildOfType(file, LuaFuncDecl::class.java)
+        assertNotNull("Expected LuaFuncDecl", func)
+        val flow = ControlFlowCache.getControlFlow(func!!)
+
+        val printCall = PsiTreeUtil.findChildrenOfType(func, LuaFuncCall::class.java)
+            .firstOrNull { it.text.startsWith("print") }
+        assertNotNull("Expected print call", printCall)
+        val printInst = flow.instructions.firstOrNull { it.element == printCall || it.element == printCall?.parent }
+        assertNotNull("Expected instruction for print call", printInst)
+        assertFalse("print(\"u\") must be unreachable (no edge out of the returns)", flow.isReachable(printInst!!))
+    }
+
+    /** TC-06 (#32c): sibling `::continue::` loops key on distinct blocks — no cross-wire. */
+    @Test
+    fun testSiblingContinueLabelsDoNotCrossWire() {
+        val file = myFixture.configureByText("test.lua", """
+            for i = 1, 2 do
+                goto continue
+                ::continue::
+            end
+            for j = 1, 2 do
+                goto continue
+                ::continue::
+            end
+        """.trimIndent())
+        val flow = ControlFlowCache.getControlFlow(file)
+
+        val gotos = PsiTreeUtil.findChildrenOfType(file, LuaGotoStatement::class.java).toList()
+        val labels = PsiTreeUtil.findChildrenOfType(file, LuaLabel::class.java).toList()
+        assertEquals(2, gotos.size)
+        assertEquals(2, labels.size)
+
+        for (index in gotos.indices) {
+            val gotoInst = flow.instructions.firstOrNull { it.element == gotos[index] }
+            val ownLabelInst = flow.instructions.firstOrNull { it.element == labels[index] }
+            assertNotNull("goto instruction $index", gotoInst)
+            assertNotNull("label instruction $index", ownLabelInst)
+            val edgesToOwnLabel = gotoInst!!.allSucc().any { it == ownLabelInst }
+            assertTrue("goto in loop $index must edge to its OWN loop's ::continue::", edgesToOwnLabel)
+        }
+    }
+
+    /** TC-07 (#33): a name used in an `if` condition emits a READ instruction. */
+    @Test
+    fun testConditionNameEmitsReadInstruction() {
+        val file = myFixture.configureByText("test.lua", """
+            local a = 1
+            if a then end
+        """.trimIndent())
+        val flow = ControlFlowCache.getControlFlow(file)
+
+        val readOfA = flow.instructions.filterIsInstance<LuaReadWriteInstruction>()
+            .firstOrNull { it.variableName == "a" && it.accessType == AccessType.READ }
+        assertNotNull("Expected a READ instruction for the condition name 'a'", readOfA)
+    }
+
+    /** TC-12 (#32c): a `goto` resolves a label in an ENCLOSING block via block ascent. */
+    @Test
+    fun testGotoResolvesEnclosingBlockLabel() {
+        val file = myFixture.configureByText("test.lua", """
+            do
+                ::top::
+                for i = 1, 2 do
+                    goto top
+                end
+            end
+        """.trimIndent())
+        val flow = ControlFlowCache.getControlFlow(file)
+
+        val gotoStat = PsiTreeUtil.findChildOfType(file, LuaGotoStatement::class.java)
+        val label = PsiTreeUtil.findChildOfType(file, LuaLabel::class.java)
+        assertNotNull(gotoStat)
+        assertNotNull(label)
+        val gotoInst = flow.instructions.firstOrNull { it.element == gotoStat }
+        val labelInst = flow.instructions.firstOrNull { it.element == label }
+        assertNotNull("goto instruction", gotoInst)
+        assertNotNull("label instruction", labelInst)
+        assertTrue(
+            "goto top must edge to the enclosing block's ::top:: label",
+            gotoInst!!.allSucc().any { it == labelInst },
+        )
+    }
+
     @Test
     fun testGotoAndLabel() {
         val file = myFixture.configureByText("test.lua", """

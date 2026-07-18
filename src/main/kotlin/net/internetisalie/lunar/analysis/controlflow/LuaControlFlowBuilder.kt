@@ -4,6 +4,7 @@ import com.intellij.codeInsight.controlflow.ControlFlow
 import com.intellij.codeInsight.controlflow.ControlFlowBuilder
 import com.intellij.codeInsight.controlflow.Instruction
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.*
 
 class LuaControlFlowBuilder : LuaVisitor() {
@@ -11,9 +12,10 @@ class LuaControlFlowBuilder : LuaVisitor() {
     private val breakStack = mutableListOf<MutableList<Instruction>>()
     private val returnInstructions = mutableListOf<Instruction>()
     
-    private data class GotoRecord(val gotoInst: Instruction, val targetName: String)
+    private data class GotoRecord(val gotoInst: Instruction, val targetName: String, val gotoElement: PsiElement)
+    private data class LabelKey(val name: String, val block: LuaBlock)
     private val gotoInstructions = mutableListOf<GotoRecord>()
-    private val labelInstructions = mutableMapOf<String, Instruction>()
+    private val labelInstructions = mutableMapOf<LabelKey, Instruction>()
     
     private var isAbrupted = false
 
@@ -56,14 +58,23 @@ class LuaControlFlowBuilder : LuaVisitor() {
         }
         
         for (gotoRec in gotoInstructions) {
-            val targetLabel = labelInstructions[gotoRec.targetName]
+            val targetLabel = resolveGoto(gotoRec)
             if (targetLabel != null) {
                 builder.addEdge(gotoRec.gotoInst, targetLabel)
             }
         }
-        
+
         builder.completeControlFlow()
         return LuaControlFlowImpl(builder.controlFlow.instructions)
+    }
+
+    private fun resolveGoto(record: GotoRecord): Instruction? {
+        var block = PsiTreeUtil.getParentOfType(record.gotoElement, LuaBlock::class.java)
+        while (block != null) {
+            labelInstructions[LabelKey(record.targetName, block)]?.let { return it }
+            block = PsiTreeUtil.getParentOfType(block, LuaBlock::class.java)
+        }
+        return null
     }
 
     override fun visitBlock(block: LuaBlock) {
@@ -102,14 +113,15 @@ class LuaControlFlowBuilder : LuaVisitor() {
                 if (prevCondInstruction != null) {
                     builder.addEdge(prevCondInstruction, condInst)
                 }
-                
+                expr.accept(this)
+
                 isAbrupted = false
                 blockList[i].accept(this)
                 branchAbruptedList.add(isAbrupted)
-                
-                val lastOfBlock = builder.controlFlow.instructions.lastOrNull()
-                if (!isAbrupted && lastOfBlock != null) {
-                    builder.addPendingEdge(ifStatement, lastOfBlock)
+
+                val fallThrough = builder.prevInstruction
+                if (!isAbrupted && fallThrough != null) {
+                    builder.addPendingEdge(ifStatement, fallThrough)
                 }
                 builder.flowAbrupted()
                 prevCondInstruction = condInst
@@ -118,14 +130,14 @@ class LuaControlFlowBuilder : LuaVisitor() {
                 if (prevCondInstruction != null) {
                     builder.addEdge(prevCondInstruction, elseInst)
                 }
-                
+
                 isAbrupted = false
                 blockList[i].accept(this)
                 branchAbruptedList.add(isAbrupted)
-                
-                val lastOfBlock = builder.controlFlow.instructions.lastOrNull()
-                if (!isAbrupted && lastOfBlock != null) {
-                    builder.addPendingEdge(ifStatement, lastOfBlock)
+
+                val fallThrough = builder.prevInstruction
+                if (!isAbrupted && fallThrough != null) {
+                    builder.addPendingEdge(ifStatement, fallThrough)
                 }
                 builder.flowAbrupted()
                 prevCondInstruction = null
@@ -142,14 +154,15 @@ class LuaControlFlowBuilder : LuaVisitor() {
 
     override fun visitWhileStatement(whileStatement: LuaWhileStatement) {
         val condInst = builder.startNode(whileStatement.getExpr())
+        whileStatement.getExpr()?.accept(this)
         breakStack.add(mutableListOf())
-        
+
         isAbrupted = false
         whileStatement.getBlockList().firstOrNull()?.accept(this)
-        
-        val lastOfBlock = builder.controlFlow.instructions.lastOrNull()
-        if (!isAbrupted && lastOfBlock != null) {
-            builder.addEdge(lastOfBlock, condInst)
+
+        val fallThrough = builder.prevInstruction
+        if (!isAbrupted && fallThrough != null) {
+            builder.addEdge(fallThrough, condInst)
         }
         builder.flowAbrupted()
         
@@ -171,6 +184,7 @@ class LuaControlFlowBuilder : LuaVisitor() {
         
         val cond = repeatStatement.getExpr()
         val condInst = builder.startNode(cond)
+        cond?.accept(this)
         if (!isAbrupted) {
             builder.addEdge(condInst, startInst)
         }
@@ -193,10 +207,10 @@ class LuaControlFlowBuilder : LuaVisitor() {
         breakStack.add(mutableListOf())
         isAbrupted = false
         numericForStatement.getBlockList().firstOrNull()?.accept(this)
-        
-        val lastOfBlock = builder.controlFlow.instructions.lastOrNull()
-        if (!isAbrupted && lastOfBlock != null) {
-            builder.addEdge(lastOfBlock, loopInst)
+
+        val fallThrough = builder.prevInstruction
+        if (!isAbrupted && fallThrough != null) {
+            builder.addEdge(fallThrough, loopInst)
         }
         builder.flowAbrupted()
         
@@ -220,10 +234,10 @@ class LuaControlFlowBuilder : LuaVisitor() {
         breakStack.add(mutableListOf())
         isAbrupted = false
         genericForStatement.getBlockList().firstOrNull()?.accept(this)
-        
-        val lastOfBlock = builder.controlFlow.instructions.lastOrNull()
-        if (!isAbrupted && lastOfBlock != null) {
-            builder.addEdge(lastOfBlock, loopInst)
+
+        val fallThrough = builder.prevInstruction
+        if (!isAbrupted && fallThrough != null) {
+            builder.addEdge(fallThrough, loopInst)
         }
         builder.flowAbrupted()
         
@@ -258,7 +272,7 @@ class LuaControlFlowBuilder : LuaVisitor() {
     override fun visitGotoStatement(gotoStatement: LuaGotoStatement) {
         val gotoInst = builder.startNode(gotoStatement)
         val labelRef = gotoStatement.getLabelRef()
-        gotoInstructions.add(GotoRecord(gotoInst, labelRef.text))
+        gotoInstructions.add(GotoRecord(gotoInst, labelRef.text, gotoStatement))
         builder.flowAbrupted()
         isAbrupted = true
     }
@@ -266,7 +280,10 @@ class LuaControlFlowBuilder : LuaVisitor() {
     override fun visitLabel(label: LuaLabel) {
         val labelInst = builder.startNode(label)
         val labelName = label.getLabelName()
-        labelInstructions[labelName.text] = labelInst
+        val enclosingBlock = PsiTreeUtil.getParentOfType(label, LuaBlock::class.java)
+        if (enclosingBlock != null) {
+            labelInstructions[LabelKey(labelName.text, enclosingBlock)] = labelInst
+        }
         isAbrupted = false
     }
 

@@ -43,17 +43,17 @@ for the user-visible unreachable-code assertions.
 ### Phase 2: CFG correctness (#32, #33) [Must]
 - **Goal**: Fall-through/pending/label edges correct; conditions descended.
 - **Tasks**:
-  - [ ] Replace every fall-through `builder.controlFlow.instructions.lastOrNull()` with
+  - [x] Replace every fall-through `builder.controlFlow.instructions.lastOrNull()` with
     `builder.prevInstruction` in `LuaControlFlowBuilder` (lines 110, 126, 150, 197, 224) —
     realizes design §3.3.
-  - [ ] Reorder `visitIfStatement` (lines 98-141) so each branch's fall-through pending edge is
+  - [x] Reorder `visitIfStatement` (lines 98-141) so each branch's fall-through pending edge is
     computed from the branch body's `prevInstruction`, then `flowAbrupted()` runs before the next
     condition node — realizes design §3.4.
-  - [ ] Replace the flat `labelInstructions: Map<String, Instruction>` (line 16) with a
+  - [x] Replace the flat `labelInstructions: Map<String, Instruction>` (line 16) with a
     `Map<LabelKey, Instruction>` keyed on `(name, enclosing LuaBlock)`; capture `gotoElement` in
     `GotoRecord` (`visitGotoStatement`, line 258); add `resolveGoto` that ascends enclosing blocks;
     rewire the `build` label-linking loop (lines 58-63) — realizes design §3.5.
-  - [ ] `expr.accept(this)` on the condition in `visitIfStatement` (each condition at line 101),
+  - [x] `expr.accept(this)` on the condition in `visitIfStatement` (each condition at line 101),
     `visitWhileStatement` (line 144), and `visitRepeatStatement` (line 173), after the
     `startNode` — realizes design §3.3/#33.
 - **Exit criteria**: `LuaControlFlowTest` + `LuaUnreachableCodeInspectionTest` still green; new
@@ -112,6 +112,6 @@ for the user-visible unreachable-code assertions.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Safe quick fixes (#8, #9) | done | Must |
-| Phase 2: CFG correctness (#32, #33) | todo | Must |
+| Phase 2: CFG correctness (#32, #33) | done | Must |
 | Phase 3: Unused-local accuracy (#34, #69) | todo | Should |
 | Phase 4: Concat false positives (#68) | todo | Could |
