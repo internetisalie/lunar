@@ -3,7 +3,7 @@ id: "MAINT-30"
 title: "30: Indexing & Resolution Caching"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
