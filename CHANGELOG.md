@@ -1,6 +1,33 @@
 # Change Log
 
-## [0.19] — LuaRocks package browser, settings restructure & bug sweep
+## [0.19] — LuaRocks browser, settings restructure, bug sweep & MVP-quality wave
+
+### Quality & correctness — codebase-review remediation (0.19.1)
+A wave of correctness, stability, and performance fixes draining the 2026-07 full codebase
+review (MAINT-24…32); the unit suite grew from 2123 to 2224 tests, all green:
+- **Debugger & test runner** (MAINT-24): byte-accurate DBGp framing (multibyte variable values no
+  longer desync the protocol), crash-proof payload parsing, a thread-safe breakpoint model, correct
+  table indexing and 1-based line display, run-config source-path persistence, a Lua-pattern busted
+  rerun filter with live console output, a configurable debug port, and Run to Cursor.
+- **Type engine** (MAINT-25): eliminates a cross-file type leak (narrowing a value to `table` in one
+  file could pollute another), converts self-referential tables without a `StackOverflowError`, and no
+  longer raises fatal-error popups on designed inference cutoffs.
+- **Luacheck** (MAINT-26): diagnostics now index the live editor buffer (via stdin) so ranges land
+  correctly on unsaved edits; launch failures surface honestly instead of a silent pass; suppression
+  comments are correctly scoped; and Lua 5.1's `arg` global is recognized.
+- **LuaCATS docs & lexer** (MAINT-27): lexer containment fixes (`\r\n`, Unicode identifiers), escaped
+  and correct documentation HTML, `@class` inheritance rendering, and union-alias value listing.
+- **Completion** (MAINT-28): restores silently-disabled cross-file completion, corrects symbol
+  ranking, removes a duplicate symbol pass, and caches per-session work.
+- **Control-flow & inspections** (MAINT-29): safe integer-division and make-local quick fixes,
+  control-flow-graph edge/label accuracy, unused-local precision, and `__concat`-aware concatenation
+  checks.
+- **Indexing & resolution** (MAINT-30): faster reference resolution and type snapshots (platform
+  `ResolveCache` + `CachedValuesManager`), corrected local-scope resolution (`local x = x` binds the
+  outer `x`), and cache invalidation on platform-target switches.
+- **Process execution** (MAINT-32): fixes an IDE freeze caused by launching a subprocess while holding
+  a read lock, makes workspace builds and rock installs cancellable, and moves tool I/O off the UI thread.
+- **Internal**: dead-code sweep (MAINT-31, ~940 lines).
 
 ### LuaRocks package browser redesign (ROCKS-16)
 - **Plugins-style two-tab browser**: the LuaRocks Packages tool window is rebuilt in the IDE
