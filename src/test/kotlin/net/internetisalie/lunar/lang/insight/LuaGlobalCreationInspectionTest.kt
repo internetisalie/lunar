@@ -51,6 +51,23 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
         myFixture.checkResult("local myGlobal = 1")
     }
 
+    /** TC-03: single simple target offers Make Local and applies to a valid local decl. */
+    @Test
+    fun testMakeLocalOfferedOnSingleSimpleTarget() {
+        myFixture.configureByText("test.lua", "<caret>x = 1")
+        val intention = myFixture.findSingleIntention("Make Local")
+        myFixture.launchAction(intention)
+        myFixture.checkResult("local x = 1")
+    }
+
+    /** TC-04: a multi-target / suffixed assignment must NOT offer Make Local (only Add to globals). */
+    @Test
+    fun testMakeLocalWithheldOnSuffixedMultiTarget() {
+        myFixture.configureByText("test.lua", "<caret>x, t.f = 1, 2")
+        val makeLocalOffered = myFixture.filterAvailableIntentions("Make Local").isNotEmpty()
+        assertFalse("Make Local must not be offered for a multi-target/suffixed assignment", makeLocalOffered)
+    }
+
     @Test
     fun testSecondAssignmentNotFlagged() {
         assertGlobalCreation(

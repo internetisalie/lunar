@@ -3,10 +3,13 @@ package net.internetisalie.lunar.lang.syntax
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.LuaLanguageLevel
+import net.internetisalie.lunar.lang.psi.LuaBinOpExpr
+import net.internetisalie.lunar.lang.psi.LuaElementFactory
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaGotoStatement
 import net.internetisalie.lunar.lang.psi.LuaLabel
 import net.internetisalie.lunar.settings.LuaProjectSettings
@@ -86,24 +89,13 @@ class ReplaceIntegerDivisionFix : BaseIntentionAction() {
     override fun invoke(project: Project, editor: Editor, file: PsiFile) {
         val offset = editor.caretModel.offset
         val element = file.findElementAt(offset) ?: return
-        
-        // Find the // operator and replace it
-        var current: PsiElement? = element
-        while (current != null) {
-            if (current.text.contains("//")) {
-                val replacement = current.text.replace("//", "/")
-                // Wrap in math.floor for proper integer division semantics
-                val newText = "math.floor($replacement)"
-                
-                // Use document to replace
-                val document = editor.document
-                val startOffset = current.textRange.startOffset
-                val endOffset = current.textRange.endOffset
-                document.replaceString(startOffset, endOffset, newText)
-                return
-            }
-            current = current.parent
-        }
+        val binOpExpr = PsiTreeUtil.getParentOfType(element, LuaBinOpExpr::class.java, false) ?: return
+        if (binOpExpr.binOp.firstChild?.elementType != LuaElementTypes.INTDIV) return
+        val leftOperand = binOpExpr.left
+        val rightOperand = binOpExpr.right ?: return
+        val floorExpr = "math.floor(${leftOperand.text} / ${rightOperand.text})"
+        val replacement = LuaElementFactory.createExpression(project, floorExpr) ?: return
+        binOpExpr.replace(replacement)
     }
 
     override fun startInWriteAction(): Boolean = true

@@ -633,6 +633,28 @@ class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
         )
     }
 
+    /** TC-01: replace `7 // 2` with `math.floor(7 / 2)` at Lua 5.1 via the intention. */
+    @Test
+    fun replaceIntegerDivisionQuickFixRebuildsFloor() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "local n = 7 /<caret>/ 2")
+        myFixture.doHighlighting(HighlightSeverity.ERROR)
+        val fix = myFixture.findSingleIntention("Replace // with / and math.floor()")
+        myFixture.launchAction(fix)
+        myFixture.checkResult("local n = math.floor(7 / 2)")
+    }
+
+    /** TC-02: operands and parentheses are preserved (`(a+b) // c` → `math.floor((a+b) / c)`). */
+    @Test
+    fun replaceIntegerDivisionQuickFixPreservesOperands() {
+        setLanguageLevel(LuaLanguageLevel.LUA51)
+        myFixture.configureByText(LuaFileType, "local n = (a+b) /<caret>/ c")
+        myFixture.doHighlighting(HighlightSeverity.ERROR)
+        val fix = myFixture.findSingleIntention("Replace // with / and math.floor()")
+        myFixture.launchAction(fix)
+        myFixture.checkResult("local n = math.floor((a+b) / c)")
+    }
+
     @Test
     fun removeGotoQuickFixDeletesStatement() {
         setLanguageLevel(LuaLanguageLevel.LUA51)

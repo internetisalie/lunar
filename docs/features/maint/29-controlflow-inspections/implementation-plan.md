@@ -26,12 +26,12 @@ for the user-visible unreachable-code assertions.
 - **Goal**: The two destructive fixes produce valid Lua or are withheld. This is the user-facing
   headline.
 - **Tasks**:
-  - [ ] Rewrite `ReplaceIntegerDivisionFix.invoke`
+  - [x] Rewrite `ReplaceIntegerDivisionFix.invoke`
     (`lang/syntax/LuaLanguageLevelQuickFixes.kt:86-107`) to navigate to the enclosing
     `LuaBinOpExpr`, guard on `LuaElementTypes.INTDIV`, and rebuild
     `math.floor(left / right)` via `LuaElementFactory.createExpression` then `binOp.replace(...)`
     — realizes design §3.1. Keep `startInWriteAction() = true`; add no `WriteCommandAction`.
-  - [ ] Make the `LuaMakeLocalQuickFix()` registration conditional in
+  - [x] Make the `LuaMakeLocalQuickFix()` registration conditional in
     `LuaGlobalCreationInspection.buildVisitor` (`LuaGlobalCreationInspection.kt:60-66`): compute
     `eligible = assignStat.varList.varList.size == 1 && variable.varSuffixList.isEmpty()` and
     prepend the make-local fix only when eligible — realizes design §3.2. Add the defensive
@@ -111,7 +111,7 @@ for the user-visible unreachable-code assertions.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Safe quick fixes (#8, #9) | todo | Must |
+| Phase 1: Safe quick fixes (#8, #9) | done | Must |
 | Phase 2: CFG correctness (#32, #33) | todo | Must |
 | Phase 3: Unused-local accuracy (#34, #69) | todo | Should |
 | Phase 4: Concat false positives (#68) | todo | Could |

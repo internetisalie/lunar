@@ -57,12 +57,16 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
                             } else {
                                 ProblemHighlightType.GENERIC_ERROR_OR_WARNING
                             }
+                            val makeLocalEligible = varList.size == 1 && variable.varSuffixList.isEmpty()
+                            val fixes = buildList {
+                                if (makeLocalEligible) add(LuaMakeLocalQuickFix())
+                                add(LuaAddToGlobalsQuickFix(name))
+                            }
                             holder.registerProblem(
                                 nameRef,
                                 "Global creation '$name'",
                                 highlightType,
-                                LuaMakeLocalQuickFix(),
-                                LuaAddToGlobalsQuickFix(name)
+                                *fixes.toTypedArray()
                             )
                         }
                     }
@@ -96,6 +100,7 @@ class LuaMakeLocalQuickFix : LocalQuickFix {
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
         val element = descriptor.psiElement ?: return
         val assignStat = PsiTreeUtil.getParentOfType(element, LuaAssignmentStatement::class.java) ?: return
+        if (assignStat.varList.varList.size != 1) return
 
         val text = "local " + assignStat.text
         val tempFile = LuaElementFactory.createFile(project, text)
