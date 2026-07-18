@@ -34,7 +34,7 @@ Coalesces the control-flow-graph defects and inspection/quick-fix correctness bu
 | MAINT-29-01 | Safe quick fixes | M | Full | Rebuild `math.floor(l / r)` from operands (#8); bail/split on multi-target "Make local" (#9) — with real-flow quick-fix tests |
 | MAINT-29-02 | CFG correctness | M | Full | Pending-edge mechanics, per-branch scoping, block-scoped label resolution (#32); visit conditions (#33) |
 | MAINT-29-03 | Unused-local accuracy | S | Full | Exclude simple write targets (#34); `multiResolve(false)` (#69) |
-| MAINT-29-04 | Concat false positives | C | Not Implemented | Respect `__concat` metamethods (#68) |
+| MAINT-29-04 | Concat false positives | C | Full | Respect `__concat` metamethods (#68) |
 
 **Note:** the redundant nested-write-action wrappers in these inspections' fixes (§3) were the
 subject of a same-pass cleanup — **now moot**: MAINT-31 (`status: done`) already removed them, and

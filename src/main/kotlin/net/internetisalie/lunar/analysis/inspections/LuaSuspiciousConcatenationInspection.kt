@@ -72,9 +72,14 @@ class LuaSuspiciousConcatenationInspection : LocalInspectionTool() {
         LuaGraphType.String, LuaGraphType.Number -> true
         LuaGraphType.Any, LuaGraphType.Undefined -> true
         is LuaGraphType.Generic -> true
+        is LuaGraphType.Table -> type.getMembers().containsKey(CONCAT_METAMETHOD)
         LuaGraphType.Nil, LuaGraphType.Boolean,
-        is LuaGraphType.Table, is LuaGraphType.Function,
+        is LuaGraphType.Function,
         is LuaGraphType.Array -> false
         is LuaGraphType.Union -> type.types.any { isConcatenable(it) }
+    }
+
+    private companion object {
+        private const val CONCAT_METAMETHOD = "__concat"
     }
 }

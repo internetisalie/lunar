@@ -73,10 +73,12 @@ for the user-visible unreachable-code assertions.
 ### Phase 4: Concat false positives (#68) [Could]
 - **Goal**: `__concat` classes not flagged.
 - **Tasks**:
-  - [ ] Change the `is LuaGraphType.Table` branch in
+  - [x] Change the `is LuaGraphType.Table` branch in
     `LuaSuspiciousConcatenationInspection.isConcatenable` (lines 71-79) to
-    `type.localMembers.containsKey("__concat")` (or `resolveMember("__concat") != null` per DR-01's evidence) — realizes design §3.8 (confirm the `Table.localMembers`
-    accessor via DR-01 first).
+    `type.getMembers().containsKey("__concat")` — realizes design §3.8. DR-01 resolved:
+    `LuaGraphType.Table` has no `fields` accessor; membership is `localMembers` (+ supertypes via
+    `getMembers()`). Used `getMembers()` over bare `localMembers` so an inherited `__concat` also
+    counts (strictly fewer false positives; same TC-11 outcome).
 - **Exit criteria**: `LuaSuspiciousConcatenationInspectionTest` still green; new TC-11 passes
   (a `@class` with `__concat` is not flagged; a plain table still is).
 
@@ -114,4 +116,4 @@ for the user-visible unreachable-code assertions.
 | Phase 1: Safe quick fixes (#8, #9) | done | Must |
 | Phase 2: CFG correctness (#32, #33) | done | Must |
 | Phase 3: Unused-local accuracy (#34, #69) | done | Should |
-| Phase 4: Concat false positives (#68) | todo | Could |
+| Phase 4: Concat false positives (#68) | done | Could |

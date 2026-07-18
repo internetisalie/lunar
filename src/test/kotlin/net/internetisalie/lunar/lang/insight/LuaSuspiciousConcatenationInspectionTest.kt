@@ -116,6 +116,38 @@ class LuaSuspiciousConcatenationInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    /**
+     * TC-11 (#68): a `@class` declaring a `__concat` metamethod is concatenable — no warning.
+     * Membership is checked via the Table's materialized members (DR-01: there is no `fields`
+     * accessor; `getMembers()`/`localMembers` carry the metamethod).
+     */
+    @Test
+    fun testConcatMetamethodClassNoWarning() {
+        assertNoWarning(
+            """
+            ---@class Vec
+            local Vec = {}
+            function Vec.__concat(a, b) return a end
+
+            ---@type Vec
+            local v = nil
+            local s = "x" .. v
+            """.trimIndent(),
+        )
+    }
+
+    /** TC-11 (#68): a plain table with no `__concat` is still flagged (true positive preserved). */
+    @Test
+    fun testPlainTableStillWarns() {
+        assertOneWarning(
+            """
+            local t = {}
+            local s = "x" .. t
+            """.trimIndent(),
+            "Suspicious concatenation: operand of type '{ ... }' cannot be concatenated",
+        )
+    }
+
     /** TC-8: nil operand — warns (INSP-07-01) */
     @Test
     fun testNilOperandWarns() {
