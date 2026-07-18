@@ -92,22 +92,22 @@ for the user-visible unreachable-code assertions.
 | MAINT-29-04 | C | Phase 4 |
 
 ## Verification Tasks
-- [ ] Extend `LuaLanguageLevelInspectionTest` with quick-fix before/after `checkResult` cases for
+- [x] Extend `LuaLanguageLevelInspectionTest` with quick-fix before/after `checkResult` cases for
   #8 (integer-division rewrite) — covers TC-01, TC-02.
-- [ ] Extend `LuaGlobalCreationInspectionTest` with make-local offered/withheld cases via
+- [x] Extend `LuaGlobalCreationInspectionTest` with make-local offered/withheld cases via
   `findSingleIntention` — covers TC-03, TC-04.
-- [ ] Extend `LuaControlFlowTest` with `isReachable` edge assertions for the spurious-edge,
-  sibling-`::continue::`, and condition-READ (`LuaReadWriteInstruction` for a condition name)
-  cases — covers TC-05, TC-06, TC-07.
-- [ ] Extend `LuaUnreachableCodeInspectionTest` (`doHighlighting`) for the elseif-leak
+- [x] Extend `LuaControlFlowTest` with `isReachable`/`allSucc` edge assertions for the spurious-edge,
+  sibling-`::continue::`, condition-READ, and enclosing-block goto cases — covers TC-05, TC-06,
+  TC-07, TC-12.
+- [x] Extend `LuaUnreachableCodeInspectionTest` (`doHighlighting`) for the elseif-leak
   false-negative — covers TC-08.
-- [ ] Extend `LuaUnusedLocalInspectionTest` — covers TC-09, TC-10.
-- [ ] Extend `LuaSuspiciousConcatenationInspectionTest` — covers TC-11.
-- [ ] Run the full suite via `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"`
-  (defeats the remote-cache false-green on deletion/edit-heavy changes) and confirm ≥ 2123 pass /
-  0 fail.
-- [ ] Run `python3 scripts/lint_docs.py docs` and `python3 scripts/lint_planning.py docs` — both
-  clean.
+- [x] Extend `LuaUnusedLocalInspectionTest` — covers TC-09, TC-10.
+- [x] Extend `LuaSuspiciousConcatenationInspectionTest` — covers TC-11.
+- [x] Run the full suite via `tooling/gce-builder/gce-builder.sh run "test --rerun-tasks --no-build-cache"`
+  (defeats the remote-cache false-green on deletion/edit-heavy changes): 2205 pass / 0 fail /
+  1 skipped across 338 suites (baseline 2191 + 14 new).
+- [x] Run `python3 scripts/lint_docs.py docs` and `python3 scripts/lint_planning.py docs` — both
+  clean (0 errors; pre-existing REDIS warnings unrelated).
 
 ## Task Summary
 

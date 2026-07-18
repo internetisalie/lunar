@@ -3,7 +3,7 @@ id: "MAINT-29"
 title: "29: Control-Flow & Inspection Accuracy"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
