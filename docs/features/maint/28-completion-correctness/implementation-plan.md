@@ -84,14 +84,14 @@ ships an independently verifiable, real-flow-tested behavior. No new production 
 Real-flow (`myFixture.completeBasic()` / actual Enter) is **mandatory** per the requirements DoD
 note — engine-only tests hid #24 for a full wave.
 
-- [ ] `LuaCrossFileCompletionOriginalFileTest` (new, extends the `LuaCrossFileCompletionHeavyTest`
+- [x] `LuaCrossFileCompletionOriginalFileTest` (new, extends the `LuaCrossFileCompletionHeavyTest`
   heavy-fixture pattern: `IdeaTestFixtureFactory` + `EmptyModuleFixtureBuilder.addSourceContentRoot`
   + `TempDirTestFixtureImpl` + `runInEdtAndWait`) — covers TC-24.
-- [ ] Add TC-40 + TC-62 cases to `LuaCompletionTest` (light `BasePlatformTestCase`,
+- [x] Add TC-40 + TC-62 cases to `LuaCompletionTest` (light `BasePlatformTestCase`,
   `myFixture.completeBasic()`) — covers TC-40, TC-62.
-- [ ] Add TC-39 case to `LuaCompletionTest` — covers TC-39.
-- [ ] Add a key-caching assertion (TC-25p) near `GlobalSymbolRankingService` tests — covers §2.5.5.
-- [ ] Add TC-25 (Enter-between) to the enter-handler test (real-flow `myFixture.type("\n")`) —
+- [x] Add TC-39 case to `LuaCompletionTest` — covers TC-39.
+- [x] Add a key-caching assertion (TC-25p) near `GlobalSymbolRankingService` tests — covers §2.5.5.
+- [x] Add TC-25 (Enter-between) to the enter-handler test (real-flow `myFixture.type("\n")`) —
   covers TC-25.
 - [ ] Run `human-verification-checklists.md`.
 
