@@ -47,11 +47,11 @@ explicit precondition gate.
 ### Phase 2: Escaped, correct doc HTML [Must]
 - **Goal**: #35 (escape + link-only-simple) and #57 (`local <name> : <type>`).
 - **Tasks**:
-  - [ ] Add `renderTypeText`, `isSimpleIdentifier` private helpers to
+  - [x] Add `renderTypeText`, `isSimpleIdentifier` private helpers to
     `LuaCatsDocumentationRenderer` — realizes design §3.2/§3.3.
-  - [ ] Replace the `buildTypeLink(x.text)` call sites listed in design §1 (renderer lines 112,
-    135, 202, 214, 246, 266, 282, 367, 386, 434) with `renderTypeText(...)` per §3.2.
-  - [ ] Split `buildVariableSignature` (lines 199–219): `classTag != null` → `class`; else
+  - [x] Replace the `buildTypeLink(x.text)` type-text call sites listed in design §1 with
+    `renderTypeText(...)` per §3.2 (declaration-name links at 105/131/248 kept as `buildTypeLink`).
+  - [x] Split `buildVariableSignature`: `classTag != null` → `class`; else
     `typeTag != null` → `local <varName> : <renderTypeText(...)>` — realizes design §3.2 (#57).
 - **Exit criteria**: TC-02a (`table<string, integer>` renders escaped, no raw `<`), TC-02b
   (`---@type Player` renders `local m : ` + linked `Player`, not `class Player`), TC-02c (simple
@@ -131,7 +131,7 @@ explicit precondition gate.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Lexer containment + dead-state removal | done | Must |
-| Phase 2: Escaped, correct doc HTML | todo | Must |
+| Phase 2: Escaped, correct doc HTML | done | Must |
 | Phase 3: Inheritance rendering | todo | Should |
 | Phase 4: Alias values | todo | Should |
 | Phase 5: Direct-children getters | todo | Should |

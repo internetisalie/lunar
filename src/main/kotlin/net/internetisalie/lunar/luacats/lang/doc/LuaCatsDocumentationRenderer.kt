@@ -14,6 +14,7 @@ import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
 import net.internetisalie.lunar.lang.syntax.LuaHighlight
 import net.internetisalie.lunar.luacats.lang.psi.*
+import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsHighlight
 
 object LuaCatsDocumentationRenderer {
     // Three-block structure constants
@@ -109,7 +110,7 @@ object LuaCatsDocumentationRenderer {
                 append(" ")
                 append(codeFragment(LuaHighlight.OPERATORS, ":"))
                 append(" ")
-                append(buildTypeLink(parentTypes.text))
+                append(renderTypeText(parentTypes.text))
             }
 
             if (isDeprecated) append("</s>")
@@ -132,7 +133,7 @@ object LuaCatsDocumentationRenderer {
             val argType = tag.argType
             if (argType != null) {
                 append(" : ")
-                append(buildTypeLink(argType.text))
+                append(renderTypeText(argType.text))
             }
 
             if (isDeprecated) append("</s>")
@@ -199,20 +200,28 @@ object LuaCatsDocumentationRenderer {
             if (enumTag != null) {
                 append(codeFragment(LuaHighlight.KEYWORD, "enum"))
                 append(" ")
-                append(buildTypeLink(enumTag.argName.text))
-            } else if (classTag != null || typeTag != null) {
+                append(renderTypeText(enumTag.argName.text))
+            } else if (classTag != null) {
                 append(codeFragment(LuaHighlight.KEYWORD, "class"))
                 append(" ")
-                val className = classTag?.argType?.text ?: typeTag?.argType?.text ?: element.attNameList.firstOrNull()?.text ?: "Unknown"
-                append(buildTypeLink(className))
+                val className = classTag.argType.text
+                append(renderTypeText(className))
 
                 // Check for parent types
-                if (classTag?.parentTypes != null) {
+                val parentTypes = classTag.parentTypes
+                if (parentTypes != null) {
                     append(" ")
                     append(codeFragment(LuaHighlight.OPERATORS, ":"))
                     append(" ")
-                    append(buildTypeLink(classTag.parentTypes!!.text))
+                    append(renderTypeText(parentTypes.text))
                 }
+            } else if (typeTag != null) {
+                val varName = element.attNameList.firstOrNull()?.text ?: "variable"
+                append(codeFragment(LuaHighlight.KEYWORD, "local"))
+                append(" ")
+                append(codeFragment(LuaHighlight.VAR_LOCAL, varName))
+                append(codeFragment(LuaHighlight.OPERATORS, " : "))
+                append(renderTypeText(typeTag.argType.text))
             } else {
                 val name = element.attNameList.firstOrNull()?.text ?: "variable"
                 append("<b>").append(name).append("</b>")
@@ -243,7 +252,7 @@ object LuaCatsDocumentationRenderer {
                     .append(" ")
                     .append(codeFragment(LuaHighlight.OPERATORS, ":"))
                     .append(" ")
-                    .append(buildTypeLink(argType.text))
+                    .append(renderTypeText(argType.text))
             }
         }
         sb.append(codeFragment(LuaHighlight.OPERATORS, ">"))
@@ -263,7 +272,7 @@ object LuaCatsDocumentationRenderer {
                 sb.append(codeFragment(LuaHighlight.OPERATORS, "..."))
             }
             sb.append(codeFragment(LuaHighlight.OPERATORS, ": "))
-            sb.append(buildTypeLink(it.argType.text))
+            sb.append(renderTypeText(it.argType.text))
         }
     }
 
@@ -279,7 +288,7 @@ object LuaCatsDocumentationRenderer {
                 sb.append(codeFragment(LuaHighlight.OPERATORS, ", "))
             }
             returnCount++
-            sb.append(buildTypeLink(it.argType.text))
+            sb.append(renderTypeText(it.argType.text))
         }
     }
 
@@ -364,7 +373,7 @@ object LuaCatsDocumentationRenderer {
             val desc = tag.description?.text ?: ""
 
             sb.append("<p><code>").append(name).append("</code>")
-            sb.append(" <span style='color: #808080;'>(").append(buildTypeLink(type)).append(")</span>")
+            sb.append(" <span style='color: #808080;'>(").append(renderTypeText(type)).append(")</span>")
             if (desc.isNotEmpty()) {
                 sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(desc))
             }
@@ -383,7 +392,7 @@ object LuaCatsDocumentationRenderer {
             val name = tag.argName?.text
             val desc = tag.returnDescription?.text ?: ""
 
-            sb.append("<p><span style='color: #808080;'>").append(buildTypeLink(type)).append("</span>")
+            sb.append("<p><span style='color: #808080;'>").append(renderTypeText(type)).append("</span>")
             if (name != null) {
                 sb.append(" <code>").append(name).append("</code>")
             }
@@ -431,7 +440,7 @@ object LuaCatsDocumentationRenderer {
         val type = tag.argType.text
 
         sb.append("<p><code>").append(name).append("</code>")
-        sb.append(" <span style='color: #808080;'>(").append(buildTypeLink(type)).append(")</span>")
+        sb.append(" <span style='color: #808080;'>(").append(renderTypeText(type)).append(")</span>")
         if (tag.description != null) {
             sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(tag.description!!.text))
         }
@@ -497,6 +506,21 @@ object LuaCatsDocumentationRenderer {
         val desc = tag.description?.text ?: "This item is deprecated"
         sb.append("<p>").append(LuaDocumentationRenderer.markdownDescription(desc)).append("</p>")
         sb.append(SECTION_END)
+    }
+
+    private val SIMPLE_IDENTIFIER = Regex("^[\\p{L}_][\\p{L}\\p{N}_.]*$")
+
+    private fun isSimpleIdentifier(text: String): Boolean = SIMPLE_IDENTIFIER.matches(text)
+
+    // Escapes structured type text (codeFragment wraps via HtmlChunk.text, which HTML-escapes) and
+    // hyperlinks only simple dotted identifiers, whose names form a valid psi_element:// href.
+    private fun renderTypeText(rawType: String): String {
+        val trimmed = rawType.trim()
+        return if (isSimpleIdentifier(trimmed)) {
+            buildTypeLink(trimmed)
+        } else {
+            codeFragment(LuaCatsHighlight.TYPE, rawType)
+        }
     }
 
     private fun lookupParentComment(project: Project, parentTypeName: String): LuaCatsComment? {

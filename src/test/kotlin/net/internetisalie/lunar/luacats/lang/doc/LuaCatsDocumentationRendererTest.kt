@@ -163,6 +163,73 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
             }
         }
     }
+    @Test
+    fun testStructuredTypeIsHtmlEscaped() {
+        // TC-02a (#35): table<string, integer> must render as escaped code, not a raw <table
+        // tag or an unescaped angle bracket, and must not produce a psi_element://table< href.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val doc = renderLocalVarDoc(
+                    """
+                    ---@type table<string, integer>
+                    local <caret>m = {}
+                    """.trimIndent(),
+                )
+                assertContains(doc, "table&lt;string, integer&gt;")
+                assertTrue(!doc.contains("<table"), "Doc contains an unescaped <table: $doc")
+                assertTrue(!doc.contains("psi_element://table<"), "Doc has a broken psi_element href: $doc")
+            }
+        }
+    }
+
+    @Test
+    fun testTypeLocalRendersAsLocalNotClass() {
+        // TC-02b (#57): ---@type Player local renders `local m : ` + linked Player, not `class Player`.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val doc = renderLocalVarDoc(
+                    """
+                    ---@type Player
+                    local <caret>m = {}
+                    """.trimIndent(),
+                )
+                assertContains(doc, "local")
+                assertContains(doc, "Player")
+                assertTrue(!doc.contains("class Player"), "Doc still renders 'class Player': $doc")
+                assertTrue(doc.contains("psi_element://Player"), "Simple type Player not hyperlinked: $doc")
+            }
+        }
+    }
+
+    @Test
+    fun testSimpleParamTypeIsHyperlinked() {
+        // TC-02c (#35): a simple identifier param type is hyperlinked; HTML stays well-formed.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                configureByText("""
+                    ---@param a Player
+                    function <caret>f(a) end
+                """.trimIndent())
+
+                val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
+                val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
+                val doc = LuaCatsDocumentationRenderer.renderDoc(element!!)
+                assertNotNull(doc)
+                assertContains(doc!!, "psi_element://Player")
+                assertTrue(!doc.contains("<Player"), "Doc contains an unescaped <Player: $doc")
+            }
+        }
+    }
+
+    private fun renderLocalVarDoc(code: String): String {
+        configureByText(code)
+        val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
+        val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
+        val doc = LuaCatsDocumentationRenderer.renderDoc(element!!)
+        assertNotNull(doc)
+        return doc!!
+    }
+
     private fun assertContains(text: String, substring: String) {
         assertTrue(text.contains(substring), "Expected to find '$substring' in '$text'")
     }
