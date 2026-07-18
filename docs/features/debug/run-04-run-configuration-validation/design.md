@@ -73,7 +73,7 @@ existence, edit-time `checkConfiguration()`) is captured in [risks-and-gaps.md](
 - **Input → Output**: `(executor: Executor, options: LuaRunConfigurationOptions)` →
   `ProcessHandler` on success, or throws `ExecutionException` on any failing check.
 - **Steps** (exact order, `run/LuaRunConfiguration.kt:228-260`):
-  1. `val interpreter = interpreter ?: throw ExecutionException("Interpreter is not defined")`
+  1. `val interpreter = interpreter ?: throw ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")`
      — the getter yields null when `options.interpreter` is null/empty (RUN-04-01).
   2. `val commandLine = newLuaInterpreterCommandLine(interpreter) ?: throw ExecutionException("Interpreter is not found")`
      (RUN-04-02).
@@ -101,7 +101,7 @@ assets are located by exact filename (`"lua"`, `"debug.lua"`) via VFS, not parse
 
 ### Example 1: Run with no interpreter (RUN-04-01)
 User presses **Run** → platform calls `getState(...).startProcess()` → `interpreter` getter
-returns null → `ExecutionException("Interpreter is not defined")` propagates → platform shows
+returns null → `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")` propagates → platform shows
 the run-error dialog; no process spawned.
 
 ### Example 2: Debug with a valid interpreter (happy path + RUN-04-03)

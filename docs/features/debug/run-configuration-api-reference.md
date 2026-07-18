@@ -64,7 +64,7 @@ runConfig.interpreter = interpreter
 - `UNKNOWN_PRODUCT` - Unknown interpreter
 
 **Notes**:
-- If null, execution throws `ExecutionException("Interpreter is not defined")`
+- If null, execution throws `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")`
 - Automatically found from project/application settings if not set
 - Can be manually set to override defaults
 
@@ -396,7 +396,7 @@ const val ID = "LuaRunConfiguration"
 
 1. **No Interpreter Defined**:
    ```kotlin
-   throw ExecutionException("Interpreter is not defined")
+   throw ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")
    ```
 
 2. **Interpreter Not Found**:

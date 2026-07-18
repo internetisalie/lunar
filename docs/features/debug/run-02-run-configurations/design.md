@@ -150,7 +150,7 @@ non-trivial logic (command-line assembly + debug env injection).
 ### 3.1 Command-line assembly (`CommandLineState.startProcess`)
 - **Input → Output**: `LuaRunConfiguration` state + `Executor` → `ProcessHandler`.
 - **Steps** (exact order; `run/LuaRunConfiguration.kt:226-279`):
-  1. `interpreter = this.interpreter ?: throw ExecutionException("Interpreter is not defined")`.
+  1. `interpreter = this.interpreter ?: throw ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")`.
   2. `commandLine = newLuaInterpreterCommandLine(interpreter) ?: throw ExecutionException("Interpreter is not found")`.
   3. `commandLine.withParameters(ParametersListUtil.parse(interpreterArguments.orEmpty()))`.
   4. `scriptName = options.scriptName.orEmpty()`; if non-empty → `withParameters(scriptName)`;
@@ -227,7 +227,7 @@ Config with no script → `startProcess` appends `-v -i` → an interactive inte
 runs in the console.
 
 ## 6. Edge Cases
-- **No interpreter** → `ExecutionException("Interpreter is not defined")` (TC 5).
+- **No interpreter** → `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")` (TC 5).
 - **Interpreter path not executable** → `newLuaInterpreterCommandLine` returns null →
   `ExecutionException("Interpreter is not found")`.
 - **Plugin dir / preloader missing under Debug** → `ExecutionException` with the

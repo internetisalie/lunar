@@ -58,7 +58,7 @@ folders:
 > covers options round-tripping, **not** `startProcess()` validation. These tasks are therefore
 > **unchecked** (see [risks-and-gaps.md](risks-and-gaps.md), Gap 2.1).
 
-- [ ] Add a `startProcess()` validation test: no interpreter → `ExecutionException("Interpreter is not defined")` — covers TC #1.
+- [ ] Add a `startProcess()` validation test: no interpreter → `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")` — covers TC #1.
 - [ ] Add a test: unresolvable interpreter → `ExecutionException("Interpreter is not found")` — covers TC #2.
 - [ ] Add a test (or VNC manual check): Debug launch without `debug.lua` → locating `ExecutionException` — covers TC #3.
 - [ ] Add a test: empty script → command line contains `-v -i` — covers TC #4.

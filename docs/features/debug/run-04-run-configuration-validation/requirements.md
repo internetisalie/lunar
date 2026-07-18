@@ -49,7 +49,7 @@ debug-target check (`DEBUG-06`) and part of the `RUN`/`DEBUG` epic.
 
 | ID | Requirement | Priority | Description |
 |----|-------------|----------|-------------|
-| RUN-04-01 | **Interpreter-defined check** | M | When no interpreter is configured, `startProcess()` aborts with `ExecutionException("Interpreter is not defined")`. |
+| RUN-04-01 | **Interpreter-defined check** | M | When no interpreter is configured, `startProcess()` aborts with `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")`. |
 | RUN-04-02 | **Interpreter-resolvable check** | M | When an interpreter is configured but no command line can be built from it, `startProcess()` aborts with `ExecutionException("Interpreter is not found")`. |
 | RUN-04-03 | **Debug preloader availability** | M | Under the Debug executor only, abort with `ExecutionException("Failed to locate plugin directory")` / `"Failed to locate debugger preloader"` when the bundled `lua` directory or `debug.lua` is absent. |
 | RUN-04-04 | **Empty-script fallback** | S | An empty/blank script name is not an error; the launch proceeds in interactive mode (`-v -i`). |
@@ -61,7 +61,7 @@ debug-target check (`DEBUG-06`) and part of the `RUN`/`DEBUG` epic.
 ### RUN-04-01: Interpreter-defined check
 The `interpreter` getter returns `null` when `options.interpreter` is `null` **or** empty
 (`LuaRunConfiguration.kt:170-175`). `startProcess()` does
-`val interpreter = interpreter ?: throw ExecutionException("Interpreter is not defined")`
+`val interpreter = interpreter ?: throw ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")`
 (`LuaRunConfiguration.kt:229-230`). This is the first statement of `startProcess()`, so it
 fires before any command line is constructed.
 
@@ -105,14 +105,14 @@ A **Run** (non-debug) launch skips this block entirely.
 
 | # | Requirement | Given (input) | When (action) | Then (expected) |
 |---|-------------|---------------|---------------|-----------------|
-| 1 | RUN-04-01 | A `LuaRunConfiguration` with `options.interpreter = ""` (or null) | `getState(runExecutor, env).startProcess()` is invoked | Throws `ExecutionException` with message `"Interpreter is not defined"`; no process handler created |
+| 1 | RUN-04-01 | A `LuaRunConfiguration` with `options.interpreter = ""` (or null) | `getState(runExecutor, env).startProcess()` is invoked | Throws `ExecutionException` with message `"No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain."`; no process handler created |
 | 2 | RUN-04-02 | A `LuaRunConfiguration` whose interpreter path resolves to an `UNKNOWN_PRODUCT` interpreter for which `newLuaInterpreterCommandLine` returns null | `startProcess()` is invoked | Throws `ExecutionException` with message `"Interpreter is not found"` |
 | 3 | RUN-04-03 | A valid interpreter, launched under `DefaultDebugExecutor` (id = `Debug`), with the bundled `lua/debug.lua` preloader absent | `startProcess()` is invoked | Throws `ExecutionException` (`"Failed to locate plugin directory"` or `"Failed to locate debugger preloader"`) |
 | 4 | RUN-04-04 | A valid interpreter and empty `scriptName`, run (non-debug) | `startProcess()` is invoked | No exception; command line contains `-v -i` (interactive) |
 | 5 | RUN-04-06 | Any of the failing conditions in #1–#3 | `startProcess()` throws | The IDE shows a run-error notification and aborts; the host IDE does not crash |
 
 ## Acceptance Criteria
-- [x] RUN-04-01: launching with no interpreter aborts with `"Interpreter is not defined"`.
+- [x] RUN-04-01: launching with no interpreter aborts with `"No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain."`.
 - [x] RUN-04-02: launching with an unresolvable interpreter aborts with `"Interpreter is not found"`.
 - [x] RUN-04-03: debug launch without the bundled preloader aborts with a locating error.
 - [x] RUN-04-04 / RUN-04-05: empty script and empty source path are handled as fallbacks, not errors.

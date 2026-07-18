@@ -120,7 +120,7 @@ interpreter starts an interactive REPL.
 ## Behavior Rules
 - Command-line argument order is fixed: interpreter args → script (or `-v -i`) → program
   args (design §3.1).
-- A `null` interpreter aborts launch with `ExecutionException("Interpreter is not defined")`;
+- A `null` interpreter aborts launch with `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")`;
   an interpreter whose executable cannot be located aborts with `"Interpreter is not found"`.
 - Debug-only env vars are injected **only** under the Debug executor; the Run executor
   produces no `mobdebug` env.
@@ -135,7 +135,7 @@ interpreter starts an interactive REPL.
 | 2 | RUN-02-01 | A fresh project | Instantiate `LuaRunConfigurationType()` | `id == "LuaRunConfiguration"`, display name `"Lua"`, exactly one factory |
 | 3 | RUN-02-09 | `options.interpreter = ""` | Read `LuaRunConfiguration.interpreter` | Returns `null` |
 | 4 | RUN-02-09 | `options.interpreter = "/usr/bin/lua"` (unregistered) | Read `interpreter` | Returns a `LuaInterpreter` with `path="/usr/bin/lua"`, `product=UNKNOWN_PRODUCT` |
-| 5 | RUN-02-04 | A config with no interpreter set | Build the state and call `startProcess` | Throws `ExecutionException("Interpreter is not defined")` |
+| 5 | RUN-02-04 | A config with no interpreter set | Build the state and call `startProcess` | Throws `ExecutionException("No Lua runtime is configured. Add one under Settings | Languages & Frameworks | Lua | Toolchain.")` |
 | 6 | RUN-02-08 | A config with empty `scriptName`, valid interpreter | Build the command line | Parameters include `-v -i` and no script path |
 | 7 | RUN-02-04 | A config with `scriptName="main.lua"`, `interpreterArguments="-W"`, `programArguments="a b"` | Build the command line | Parameter list is `[-W, main.lua, a, b]` in that order |
 | 8 | RUN-02-07 | A config launched with the Debug executor | Inspect the command line environment | Contains `LUNAR_DEBUGGER_PACKAGE=mobdebug`, `LUA_INIT` starting with `@`, and `LUNAR_LUA_PATH_TEMPLATE` |
