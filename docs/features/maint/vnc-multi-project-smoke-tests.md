@@ -15,9 +15,10 @@ folders:
 > installed on the VM, then bound via Settings ▸ Toolchain ▸ **Auto-Discover** (all Health ✓ OK).
 > **Checklist B (Go+Lua): PASS.** **Checklist A (multi-rock): A1/A2/A4/A5 PASS** (discovery,
 > dependency forest with inter-rock deps, dependency-ordered workspace build across both rockspecs,
-> no crashes); **A3 (Run Test Matrix): action present but gated on a provisioned *environment*
-> (greyed without one — needs Provision Version Matrix); its rockspec-spanning fix (BUG-377) is
-> unit-tested. Not run live (needs an env + spec files).**
+> no crashes); **A3 (Run Test Matrix): PASS after provisioning** — native-built env `lua-5.4.7` enabled it; the
+> matrix ran with BUG-377's **Rockspec column** and launches one matrix *per rockspec* (2 rocks → 2
+> failure notifications), confirming it no longer drops all-but-first. Test cells FAIL only because
+> busted can't resolve the un-built rock modules (env, not a plugin defect).**
 
 Two cross-cutting live-IDE smoke tests that the per-feature checklists never covered:
 Lunar's behaviour in a **multi-rock workspace** (≥2 rockspecs — ROCKS-09/10, re-verify after
@@ -36,7 +37,7 @@ each with a Lua module.
 | :- | :--- | :--- | :--- |
 | A1 | Open the 2-rockspec project | Both rocks discovered; project view marks rock source root(s), not just the first | PASS — both rockspecs discovered in tree (rock icons); root marked *rock source root* |
 | A2 | Open **LuaRocks Dependencies** tool window | Lists **both** rocks (the rockspec forest), each with its dependency subtree | PASS — after Auto-Discover, the forest shows **both** rocks: rock_a→lua and rock_b→lua+**rock_a** (inter-rock dep resolved); window titled distinct from Packages (BUG-366 ✓) |
-| A3 | Add Configuration → **Lua Tests** (Run Test Matrix) | Matrix offers/expands across **both** rockspecs (BUG-377 — a Rockspec column distinguishes rows), not just the first | GATED — Run Test Matrix action present but disabled without a provisioned *environment* (greyed under Tools ▸ Lua Toolchain until Provision Version Matrix); BUG-377 rockspec-spanning is unit-tested |
+| A3 | Add Configuration → **Lua Tests** (Run Test Matrix) | Matrix offers/expands across **both** rockspecs (BUG-377 — a Rockspec column distinguishes rows), not just the first | PASS (env-degenerate results) — *Provision Version Matrix* native-built `lua-5.4.7`, enabling Run Test Matrix; it ran and produced the BUG-377 **Rockspec column** (Environment=`lua-5.4.7`). Each invocation launches one matrix **per rockspec** (2 rocks → 2 failure notifications) — no longer all-but-first. Cells FAIL because busted can't resolve the un-built rock modules (env, not a plugin defect) |
 | A4 | Trigger a workspace build (Makefile/Build) | Dependency-ordered; the build task is **cancellable** (MAINT-32 `stream` + kill-on-cancel), no orphan process | PASS — Build Workspace ran `luarocks make` across **both** rockspecs dependency-ordered (*Building rock_a (1/2)…*), streamed (MAINT-32); failed at rock_a on a luarocks global-tree write-perm error (env, not a plugin defect) |
 | A5 | Check `idea.log` | No `net.internetisalie.*` stack trace | PASS — no `net.internetisalie.*` exceptions through discovery / tool-window open / refresh |
 
