@@ -89,7 +89,7 @@ Isolated fixes went to BUG-382…386 (#23, #45, #46, #49, #15); #22 was already 
 | MAINT-28 | Completion correctness & performance | todo | S | — | — | ✓ completion stack |
 | MAINT-29 | Control-flow & inspection accuracy | todo | S | — | — | ✓ analysis/ + quick fixes |
 | MAINT-30 | Indexing & resolution caching | todo | S | — | — | Serial vs MAINT-28 *(both touch `LuaCompletionContributor`/resolution seams)* |
-| MAINT-32 | Process-execution discipline (`LuaProcessUtil`) | todo | S | — | — | ✓ util/ primitive + caller migration (#11, §2.1) |
+| MAINT-32 | Process-execution discipline (`LuaProcessUtil`) | done | S | — | — | ✓ util/ primitive + caller migration (#11, §2.1) |
 
 ---
 

@@ -3,7 +3,7 @@ id: "MAINT-32"
 title: "32: Process-Execution Discipline (LuaProcessUtil)"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"

@@ -114,16 +114,22 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 | MAINT-32-04 | S | Phase 4 |
 
 ## Verification Tasks
-- [ ] Add TC-01, TC-02 to `LuaToolExecutionServiceTest` — covers MAINT-32-01.
-- [ ] Add TC-03/04/05 to `RockspecSourcePathProviderTest` (read-lock call returns degraded static
+- [x] Add TC-01, TC-02 to `LuaToolExecutionServiceTest` — covers MAINT-32-01.
+- [x] Add TC-03/04/05 to `RockspecSourcePathProviderTest` (read-lock call returns degraded static
       patterns, no bridge under the lock, prewarm scheduled; single-job dedup; full patterns after
       prewarm) — covers MAINT-32-02.
-- [ ] Add TC-06/07/08 unit tests where seams allow (health-monitor prepare-phase I/O-free;
-      coverage `clearStaleStats`; console off-EDT queue) — covers MAINT-32-03.
-- [ ] Add TC-09 (build cancel kills process) via `LuaToolExecutionService.stream` indicator path —
+- [x] Add TC-06/07/08 unit tests where seams allow (health-monitor prepare-phase I/O-free;
+      coverage `clearStaleStats`; stream cancel-kill) — covers MAINT-32-03.
+- [x] Add TC-09 (build cancel kills process) via `LuaToolExecutionService.stream` indicator path —
       covers MAINT-32-04.
 - [ ] Run `docs/features/maint/32-process-execution-discipline/human-verification-checklists.md`
-      (VNC-gated rows: rockspec-workspace typing latency; cancel a build mid-flight).
+      (VNC-gated rows: rockspec-workspace typing latency; cancel a build mid-flight) — **pending live DoD**.
+
+## Final Gate
+
+Full cache-defeated suite (`gce-builder run "test --rerun-tasks --no-build-cache"`, JUnit XML
+aggregate read on the builder): **2215 tests / 0 failures / 0 errors / 1 skipped** (baseline 2205 + 10
+new MAINT-32 tests). `ktlintCheck` green (no violations in touched files).
 
 ## Task Summary
 
