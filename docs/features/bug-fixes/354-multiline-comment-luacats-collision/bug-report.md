@@ -42,3 +42,7 @@ Open a Lua file in the plugin environment and paste the following snippet:
   - **LuaCATS Classification**: In `LuaLexer.getTokenType()`, if a merged `SHORTCOMMENT` starts with `---` (three dashes), the entire merged comment block is classified as `LuaLazyElementTypes.LUACATS_COMMENT`.
   - **Backwards Compatibility Break**: A decorative header starting with `-------` starts with `---`, so the entire merged block (including subsequent lines starting with only `--`) gets classified as a LuaCATS comment. The LuaCATS parser expects `DASHES` (`---+`) at the start of each line, failing on `-- Scheduling` which only starts with `--`.
   - **Proposed Fix**: The check `text.startsWith("---")` in `LuaLexer.getTokenType()` should be updated to ensure that *every* line in the merged comment token starts with the LuaCATS `---` prefix. If any line in the block starts with only `--` (two dashes), the entire block should fall back to a regular Lua comment.
+
+## Resolution
+
+**Fixed** — `fe91301f` fix(lexer): ensure all lines in a merged comment start with `---` for LuaCATS (marked done in `418d68d8`).

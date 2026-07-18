@@ -18,7 +18,7 @@ folders:
 > MAINT-23, TYPE-10, REDIS-06, ROCKS-16, TOOLING-08) and Wave 19 (codebase-review remediation,
 > MAINT-24 through 32) both shipped and released (v0.19.0 / v0.19.1). Those two completed waves are
 > removed from this roadmap and live in git history. **Remaining work is all post-MVP:** the **AI
-> epic (Wave 20)** and the **Wave 21 follow-ons** — TARGET-07/08 (post-MVP stub/library coverage)
+> epic (Wave 21)** and the **Wave 20 follow-ons** — TARGET-07/08 (post-MVP stub/library coverage)
 > and MAINT-21 (deferred, externally blocked on the unreleased 2026.2 platform).
 
 ## How an agent uses this
@@ -53,22 +53,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 ---
 
-## Wave 20 — AI integration  *(AI epic)*
-
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
-| AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
-| AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(done; debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
-| AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
-
----
-
-## Wave 21 — Post-MVP follow-ons  *(non-gating)*
+## Wave 20 — Post-MVP follow-ons  *(non-gating)*
 
 > Also the consolidated loose backlog (folded in 2026-07-18) so the roadmap is the single source:
 > the standalone **REDIS-07** feature, designed-but-unshipped UIs (**BUG-381 / BUG-388**), and the
-> unreconciled older bug reports (**BUG-354/355/358/359/360**). Bugs also live under `docs/features/bug-fixes/`.
+> two still-open older bugs (**BUG-358 / BUG-359**). Bugs also live under `docs/features/bug-fixes/`.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -78,4 +67,16 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ redis/ → `docs/features/redis/07-database-datasource-integration/`: reuse an IntelliJ Database-plugin Redis data source as a connection source (vs a hand-entered connection) |
 | BUG-381 | Ephemeral Redis/Valkey provisioning **UI** | planned | S | provisioning capability *(built, done)* | — | ✓ Docker/local-binary provisioning is implemented end-to-end but has **no UI entry point** (unreachable without hand-editing XML); fully planned (design + impl-plan, 3 phases) → `docs/features/bug-fixes/381-.../` |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ UX polish: convey inherited/no-default via `GRAYED_ATTRIBUTES` in a `ColoredListCellRenderer` instead of a parenthetical → `docs/features/bug-fixes/388-.../` |
-| BUG-triage | Reconcile older bug reports (354/355/358/359/360) | todo | C | — | — | ✓ status ambiguous — reports lack resolution notes; verify each vs current code (354/355 LuaCATS parse, 358 reformat-readonly TransactionGuard, 359 package.path-nil false positive, 360 container-UID → likely env-only) and mark resolved-via-absorption or schedule. (356/363/365/366/367/368/369 already confirmed fixed) |
+| BUG-358 / 359 | Two still-open older bugs | todo | C | — | — | ✓ **BUG-358** reformatting a read-only file throws a TransactionGuard write-unsafe exception; **BUG-359** false-positive `nil value is not assignable to string` on `package.path`. Reconciled 2026-07-18 — 354/355 fixed, 360 closed (env/harness), 356/363/365/366/367/368/369 fixed-via-features |
+
+
+---
+
+## Wave 21 — AI integration  *(AI epic)*
+
+| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
+| AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
+| AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(done; debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
+| AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |

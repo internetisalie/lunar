@@ -33,3 +33,7 @@ folders:
   - `docker/docker-entrypoint.sh`
 - **Other Notes**:
   - Rebuilding the image locally with `docker-helper.sh build` passes the host user's actual UID/GID to the build arguments. However, dynamic runtime mapping in the entrypoint or container setup is needed to ensure alignment when running prebuilt images.
+
+## Resolution
+
+**Closed — environment/harness, not a plugin defect.** The failure is a container-vs-host UID mismatch on a bind-mount. Mitigated by the docker harness building the container user with the host `HOST_UID`/`HOST_GID` (docker-helper) and by using container-owned scratch projects (see the `verify-in-ide` skill). No plugin code change is warranted.

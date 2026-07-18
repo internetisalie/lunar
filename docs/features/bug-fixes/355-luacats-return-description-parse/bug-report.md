@@ -47,3 +47,7 @@ all `@return <type> @<description>`.
 ## 4. Other Notes
 - Surfaced during VNC verification of the `rocks` project; widespread across annotated rocks files using
   the EmmyLua description style.
+
+## Resolution
+
+**Fixed** — `a593e4c5` fix(parser): tolerate EmmyLua-style `@`-prefixed return descriptions.
