@@ -215,10 +215,12 @@ class LuaCompletionContributor : CompletionContributor() {
                         // Add symbols in expression contexts
                         addSymbolCompletions(position, result)
                         
-                        // Only add expression keywords if there's no prefix AND we're not at statement start
-                        // (expression keywords like nil, true, false should only appear when explicitly starting an expression)
-                        val prevLeaf = PsiTreeUtil.prevVisibleLeaf(position)
-                        val hasPrefix = prevLeaf != null && prevLeaf.node.elementType == LuaElementTypes.IDENTIFIER
+                        // Only add expression keywords if there's no typed prefix AND we're not at
+                        // statement start (nil/true/false should only appear when explicitly starting
+                        // an expression). #62: read the platform's authoritative typed prefix — the
+                        // dummy identifier merges into the caret leaf, so prevVisibleLeaf(position)
+                        // cannot see the user's own prefix.
+                        val hasPrefix = result.prefixMatcher.prefix.isNotEmpty()
                         if (!hasPrefix && !isStatementStart) {
                             addKeywords(result, EXPRESSION_KEYWORDS)
                         }

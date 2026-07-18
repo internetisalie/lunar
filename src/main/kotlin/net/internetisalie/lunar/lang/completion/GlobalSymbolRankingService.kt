@@ -101,7 +101,7 @@ class GlobalSymbolRankingService(private val project: Project) {
                 // Exit both loops if limit reached
                 if (result.size >= MAX_CANDIDATES) break@outer
 
-                val name = extractFuncDeclName(funcDecl) ?: continue
+                val name = extractGlobalFuncName(funcDecl) ?: continue
 
                 // Apply visibility rules
                 if (suppressUnderscore && name.startsWith("_")) {
@@ -206,14 +206,19 @@ class GlobalSymbolRankingService(private val project: Project) {
     }
 
     /**
-     * Extract the simple name from a LuaFuncDecl.
-     * Handles nested function names (e.g., "a.b.c" for function a.b.c() end).
-     * For completion purposes, returns the first identifier only.
+     * Extract the standalone-global name from a [LuaFuncDecl], or null to skip it (#40).
+     *
+     * A `function Class:method()` decl is stub-keyed as `"Class:method"` and a `function M.fn()` /
+     * `function a.b.c()` decl as `"M.fn"` / `"a.b.c"`; their base identifier is a *receiver*
+     * (`Class` / `M` / `a`), not a standalone global — offering it leaks the receiver into global
+     * completion. Only a bare `function name()` (no `:method` separator, empty `.property` path)
+     * is a real project global.
      */
-    private fun extractFuncDeclName(funcDecl: LuaFuncDecl): String? {
+    private fun extractGlobalFuncName(funcDecl: LuaFuncDecl): String? {
         val funcName = funcDecl.funcName ?: return null
-        val identifier = funcName.nameRef.identifier ?: return null
-        return identifier.text
+        if (funcName.funcNameMethod != null) return null
+        if (funcName.funcNamePropertyList.isNotEmpty()) return null
+        return funcName.nameRef.identifier?.text
     }
 
     /**

@@ -142,6 +142,34 @@ class LuaCompletionTest : IndexedDocumentTest() {
         assertTrue(!strings.contains("while"), "Completion should NOT contain 'while' when typing a prefix")
     }
 
+    // MAINT-28 TC-40 (#40): a `function Class:method()` receiver must not leak into global
+    // completion, while a bare `function name()` global is still offered.
+    @Test
+    fun `TC-40 method receiver excluded from globals while bare global offered`() {
+        // Two `ledg`-prefixed globals so a popup shows (a single match auto-inserts → null lookups).
+        doTest(
+            "function Account:deposit() end\nfunction ledger() end\nfunction ledgerClose() end\nledg<caret>",
+            "ledger",
+        )
+    }
+
+    @Test
+    fun `TC-40 method receiver Account not offered as a global function`() {
+        doNotContainTest("function Account:deposit() end\nfunction ledger() end\nAcc<caret>", "Account")
+    }
+
+    // MAINT-28 TC-62 (#62): a real typed prefix suppresses the expression-keyword literals; an
+    // empty prefix at an expression start still offers them.
+    @Test
+    fun `TC-62 typed prefix suppresses expression keyword true`() {
+        doNotContainTest("local x = tr<caret>", "true")
+    }
+
+    @Test
+    fun `TC-62 empty prefix offers expression keywords`() {
+        doTest("local x = <caret>", "true", "false", "nil")
+    }
+
     @Test
     fun `test global variable completion`() {
         configureByText("global_var = 20\n\ndo\n    <caret>\nend")

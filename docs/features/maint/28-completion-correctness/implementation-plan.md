@@ -31,10 +31,10 @@ ships an independently verifiable, real-flow-tested behavior. No new production 
 - **Goal**: method receivers stop leaking into global completion; the expression-keyword gate
   suppresses keywords only when a real typed prefix exists.
 - **Tasks**:
-  - [ ] Replace `GlobalSymbolRankingService.extractFuncDeclName` (`:213-217`) with
+  - [x] Replace `GlobalSymbolRankingService.extractFuncDeclName` (`:213-217`) with
     `extractGlobalFuncName` per design §3.2 (skip `funcName.funcNameMethod != null` and
     `funcName.funcNamePropertyList.isNotEmpty()`); update the caller at `:104`.
-  - [ ] In `LuaCompletionContributor` (`:220-223`): delete the shadowing `prevLeaf` local, compute
+  - [x] In `LuaCompletionContributor` (`:220-223`): delete the shadowing `prevLeaf` local, compute
     `hasPrefix = result.prefixMatcher.prefix.isNotEmpty()` — realizes design §3.5.
 - **Exit criteria**: TC-40 (method receiver absent from globals) and TC-62 (keyword suppression
   by real prefix) pass via `completeBasic()`.
@@ -100,7 +100,7 @@ note — engine-only tests hid #24 for a full wave.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Original-file discipline (#24) | done | Must |
-| Phase 2: Ranking accuracy (#40, #62) | todo | Should |
+| Phase 2: Ranking accuracy (#40, #62) | done | Should |
 | Phase 3: Single symbol pass (#39) | todo | Should |
 | Phase 4: Session cost — key caching (§2.5.5) | todo | Should |
 | Phase 5: Enter-between-blocks guard (#25) | todo | Could |
