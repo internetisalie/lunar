@@ -108,9 +108,9 @@ correctness fixes, then the `Should` dedup, then the `Could` idiom migration.
 - [x] TC-07 dotted-assignment not a binding — Phase 1.
 - [x] TC-08 module-resolver refresh flag — Phase 4.
 - [x] TC-09 method-chain hints unchanged — Phase 5.
-- [ ] Full builder gate `tooling/gce-builder/gce-builder.sh run test` (incl. `LuaRecursiveReferenceTest`,
+- [x] Full builder gate `tooling/gce-builder/gce-builder.sh run test` (incl. `LuaRecursiveReferenceTest`,
   `LuaDescriptionIndexTest`) at each phase; expect 2123/0/1.
-- [ ] Run `human-verification-checklists.md`.
+- [x] Run `human-verification-checklists.md` — N/A: caching/resolution feature, no UI surface (nothing live-observable; verified via real-flow resolution/completion unit tests).
 
 ## Task Summary
 
