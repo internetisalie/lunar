@@ -49,6 +49,9 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
 
     private val notifiedDeletedEnvIds = mutableSetOf<String>()
 
+    @Volatile
+    private var watchSet: LuaHealthWatchSet = LuaHealthWatchSet.EMPTY
+
     private val revalidationQueue: MergingUpdateQueue = MergingUpdateQueue(
         "lunar.toolchain.health",
         MERGE_WINDOW_MS,
@@ -60,11 +63,13 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
     )
 
     fun start() {
+        rebuildWatchSet()
         VirtualFileManager.getInstance().addAsyncFileListener(HealthFileListener(), this)
         project.messageBus.connect(this).subscribe(
             LuaToolchainListener.TOPIC,
             object : LuaToolchainListener {
                 override fun toolchainChanged(event: LuaToolchainEvent) {
+                    rebuildWatchSet()
                     refreshBannersOnEdt()
                 }
             }
@@ -193,6 +198,17 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
         }
     }
 
+    private fun rebuildWatchSet() {
+        watchSet = buildWatchSet()
+    }
+
+    @org.jetbrains.annotations.TestOnly
+    fun rebuildWatchSetNow() = rebuildWatchSet()
+
+    @org.jetbrains.annotations.TestOnly
+    fun prepareChangeNow(events: List<VFileEvent>): Boolean =
+        HealthFileListener().prepareChange(events) != null
+
     private fun buildWatchSet(): LuaHealthWatchSet {
         val exactPaths = LuaToolchainRegistry.getInstance().tools()
             .map { canonicalize(it.path) }.toSet()
@@ -211,8 +227,8 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
 
     private inner class HealthFileListener : AsyncFileListener {
         override fun prepareChange(events: List<VFileEvent>): AsyncFileListener.ChangeApplier? {
-            val watchSet = buildWatchSet()
-            val matched = events.any { matchesWatchedEvent(it, watchSet) }
+            val currentWatchSet = watchSet
+            val matched = events.any { matchesWatchedEvent(it, currentWatchSet) }
             if (!matched) return null
             return object : AsyncFileListener.ChangeApplier {
                 override fun afterVfsChange() {

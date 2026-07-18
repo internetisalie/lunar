@@ -182,6 +182,27 @@ class LuaToolHealthMonitorTest : BasePlatformTestCase() {
         assertTrue(envBalloons.first().content.contains("lua54"))
     }
 
+    // MAINT-32-03 TC-06: prepareChange reads the pre-computed @Volatile watchSet, not a fresh
+    // buildWatchSet() — so no File.canonicalPath I/O runs on the listener path. Proven by mutating
+    // the registry AFTER the rebuild: a fresh build would no longer match, the cached field still does.
+    @Test
+    fun testPrepareChangeUsesPrecomputedWatchSetWithoutIo() {
+        val (tool, binary) = registerUsableBinary("lua")
+        val monitor = LuaToolHealthMonitor.getInstance(project)
+        monitor.rebuildWatchSetNow()
+
+        val virtualBinary = com.intellij.openapi.vfs.LocalFileSystem.getInstance()
+            .refreshAndFindFileByIoFile(binary) ?: error("binary not in VFS")
+        val deleteEvent = com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent(this, virtualBinary)
+
+        LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
+        assertTrue(
+            "prepareChange must match via the cached watchSet, not a recomputed one",
+            monitor.prepareChangeNow(listOf(deleteEvent)),
+        )
+        assertTrue(binary.delete())
+    }
+
     // TC-TOOLING-07-09: registry reads are pure (no event); revalidation write fires exactly one, dedups a repeat.
     @Test
     fun testWritePathPurityAndTopicFiring() {

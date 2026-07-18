@@ -160,6 +160,24 @@ class LuaToolExecutionServiceTest : BasePlatformTestCase() {
         assertNull("read-lock offload must not log a softAssertBackgroundThread error", logged.get())
     }
 
+    // MAINT-32 TC-08: stream() kills the process on indicator cancel (the path WorkspaceBuildRunner migrates onto).
+    fun testStreamCancelledViaIndicatorDestroysProcess() {
+        val listener = RecordingListener()
+        val indicator = EmptyProgressIndicator()
+        val canceller = Thread {
+            Thread.sleep(200)
+            indicator.cancel()
+        }
+        val started = System.currentTimeMillis()
+        canceller.start()
+        val result = onPooledThread {
+            service.stream(sh("sleep 5"), listener, LuaExecTimeout.INSTALL, indicator = indicator)
+        }
+        val elapsed = System.currentTimeMillis() - started
+        assertEquals(LuaExecOutcome.CANCELLED, result.outcome)
+        assertTrue("expected prompt cancellation, took ${elapsed}ms", elapsed < 4_000)
+    }
+
     // TC 23
     fun testCaptureWritesStdin() {
         val result = onPooledThread {

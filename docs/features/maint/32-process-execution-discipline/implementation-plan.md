@@ -66,15 +66,19 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 - **Goal**: Console spawn, coverage file I/O, and health-monitor prepare-phase I/O all leave their
   fast/EDT path.
 - **Tasks**:
-  - [ ] Wrap `LuaConsoleAction.actionPerformed` process start in `newProjectBackgroundTask`; marshal
+  - [x] Wrap `LuaConsoleAction.actionPerformed` process start in `newProjectBackgroundTask`; marshal
         failure notification via `invokeLater` — realizes design §2.3, §3.3.
-  - [ ] Extract `LuaCoverageProgramRunner` stats-file cleanup to `clearStaleStats(workDir)` run off
+  - [x] Extract `LuaCoverageProgramRunner` stats-file cleanup to `clearStaleStats(workDir)` run off
         the EDT before `state.execute` — realizes design §2.4, §3.4.
-  - [ ] Add `@Volatile watchSet` + `rebuildWatchSet()` to `LuaToolHealthMonitor`; call from `start()`
+  - [x] Add `@Volatile watchSet` + `rebuildWatchSet()` to `LuaToolHealthMonitor`; call from `start()`
         and `toolchainChanged`; make `prepareChange` read the field — realizes design §2.5, §3.5.
         Reuse the existing `LuaHealthWatchSet.EMPTY` (`LuaHealthWatchSet.kt:20`) as the initial value —
         no new constant needed.
 - **Exit criteria**: TC-06, TC-07, TC-08 green; `LuaToolHealthMonitorTest` (if present) still green.
+- **Deviation (test seams only)**: `LuaToolHealthMonitor` gained `@TestOnly rebuildWatchSetNow()` +
+  `prepareChangeNow(events)`; `LuaCoverageProgramRunner.clearStaleStats` is `@VisibleForTesting internal`;
+  TC-08 (stream-cancel kills the process) was added to `LuaToolExecutionServiceTest` since it locks the
+  kill-on-cancel path Phase 4's `WorkspaceBuildRunner` migrates onto. No production-behavior change.
 
 ### Phase 4: Cancellable build + install [Should]
 - **Goal**: `luarocks make` is killed on cancel; the install task is cancellable.
@@ -116,5 +120,5 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 |-------|--------|----------|
 | Phase 1: Primitive verify-and-fence | done | Must |
 | Phase 2: Rockspec bridge off the read lock | done | Must |
-| Phase 3: Caller migrations | todo | Should |
+| Phase 3: Caller migrations | done | Should |
 | Phase 4: Cancellable build + install | todo | Should |

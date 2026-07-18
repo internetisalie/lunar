@@ -5,8 +5,10 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import net.internetisalie.lunar.util.newProjectBackgroundTask
 
 /**
  * Tools-menu action that opens an interactive Lua REPL (RUN-03). Reports a notification when no
@@ -15,11 +17,13 @@ import com.intellij.openapi.project.Project
 class LuaConsoleAction : DumbAwareAction() {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
-        try {
-            LuaConsoleRunner(project).initAndRun()
-        } catch (failure: ExecutionException) {
-            notifyFailure(project, failure.message)
-        }
+        newProjectBackgroundTask("Starting Lua Console", project) {
+            try {
+                LuaConsoleRunner(project).initAndRun()
+            } catch (failure: ExecutionException) {
+                ApplicationManager.getApplication().invokeLater { notifyFailure(project, failure.message) }
+            }
+        }.queue()
     }
 
     override fun update(event: AnActionEvent) {

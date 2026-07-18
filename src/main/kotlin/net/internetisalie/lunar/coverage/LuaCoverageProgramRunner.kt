@@ -17,6 +17,7 @@ import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import net.internetisalie.lunar.rocks.browser.InstallRequest
 import net.internetisalie.lunar.rocks.browser.LuaRocksInstallCommand
 import net.internetisalie.lunar.rocks.browser.LuaRocksInstallExecutor
+import com.intellij.openapi.application.ApplicationManager
 import java.io.File
 
 class LuaCoverageProgramRunner : GenericProgramRunner<RunnerSettings>() {
@@ -51,10 +52,7 @@ class LuaCoverageProgramRunner : GenericProgramRunner<RunnerSettings>() {
         val config = environment.runProfile as LuaTestRunConfiguration
         val workDir = if (!config.workingDirectory.isNullOrEmpty()) config.workingDirectory else project.basePath
         if (workDir != null) {
-            val statsFile = File(workDir, "luacov.stats.out")
-            if (statsFile.exists()) {
-                statsFile.delete()
-            }
+            ApplicationManager.getApplication().executeOnPooledThread { clearStaleStats(workDir) }.get()
         }
 
         val executionResult = state.execute(environment.executor, this) ?: return null
@@ -64,5 +62,10 @@ class LuaCoverageProgramRunner : GenericProgramRunner<RunnerSettings>() {
         }
 
         return RunContentBuilder(executionResult, environment).showRunContent(environment.contentToReuse)
+    }
+
+    @org.jetbrains.annotations.VisibleForTesting
+    internal fun clearStaleStats(workDir: String) {
+        File(workDir, "luacov.stats.out").takeIf { it.exists() }?.delete()
     }
 }
