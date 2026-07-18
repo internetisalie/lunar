@@ -35,7 +35,7 @@ or under the read lock is the *enabling defect* behind several P1s. Harden `LuaP
 | MAINT-32-01 | Hardened primitive | M | Full | `LuaToolExecutionService` (the surviving primitive; `LuaProcessUtil` confirmed deleted): EDT soft-assert, cancellable wait, read-lock offload to a pooled thread. Verify-and-fence + regression tests TC-01/TC-02. |
 | MAINT-32-02 | Bridge off the lock | M | Full | `RockspecSourcePathProvider` `CachedValue` guard widened from `isDispatchThread` to `isReadAccessAllowed`: read-lock callers get degraded static patterns + a deduplicated off-read-lock prewarm that runs `RockspecBridge.read` outside any read action; full derived patterns land on a later pass (#11). TC-03/04/05. |
 | MAINT-32-03 | Caller migration | S | Full | Console spawn wrapped in `newProjectBackgroundTask` (failure marshalled via `invokeLater`); coverage `clearStaleStats` runs off the EDT before `state.execute`; health-monitor `prepareChange` reads a pre-computed `@Volatile watchSet` (no `File.canonicalPath` on the listener path). Rocks-environment I/O confirmed mooted (§9). TC-06/07/08. |
-| MAINT-32-04 | Cancellable builds | S | Not Implemented | Indicator-aware `waitFor` + kill-on-cancel in build/install tasks (§2.1) |
+| MAINT-32-04 | Cancellable builds | S | Full | `WorkspaceBuildRunner.executeMake` migrated onto `LuaToolExecutionService.stream(..., indicator)` (kill-on-cancel via `destroyProcess()`); `LuaRocksInstallExecutor` install task flipped to cancellable (`Task.Backgroundable(..., true)`), indicator threaded into `capture`. TC-08/TC-09. |
 
 **Verification:** thread-assertion tests where feasible; the EDT-freeze cases are
 `verify-in-ide` DoD gates (type in a rockspec workspace; cancel a build mid-flight).

@@ -1,16 +1,20 @@
 package net.internetisalie.lunar.rocks.build
 
-import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.ConfigurationTypeUtil
-import com.intellij.execution.process.ProcessHandlerFactory
+import com.intellij.execution.process.ProcessEvent
+import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.rocks.run.LuaRocksRunConfiguration
 import net.internetisalie.lunar.rocks.run.LuaRocksRunConfigurationType
+import net.internetisalie.lunar.toolchain.exec.LuaExecOutcome
+import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
+import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
 object WorkspaceBuildRunner {
 
@@ -40,7 +44,7 @@ object WorkspaceBuildRunner {
             indicator.text = "Building ${rock.packageName}"
             console.print("\n==> Building ${rock.packageName} (${i + 1}/${order.size}) …\n", ConsoleViewContentType.SYSTEM_OUTPUT)
 
-            val exitCode = executeMake(project, rock, exe, console)
+            val exitCode = executeMake(project, rock, exe, console, indicator)
             if (exitCode != 0) {
                 return BuildOutcome(builtCount = i, failedRock = rock, exitCode = exitCode)
             }
@@ -52,7 +56,8 @@ object WorkspaceBuildRunner {
         project: Project,
         rock: WorkspaceRock,
         exe: String,
-        console: ConsoleView
+        console: ConsoleView,
+        indicator: ProgressIndicator,
     ): Int {
         val configType = ConfigurationTypeUtil.findConfigurationType(LuaRocksRunConfigurationType::class.java)
         val factory = configType.configurationFactories.firstOrNull()
@@ -62,17 +67,14 @@ object WorkspaceBuildRunner {
         }
 
         val cmd = config.buildCommandLine(exe)
-        val handler = try {
-            ProcessHandlerFactory.getInstance().createColoredProcessHandler(cmd)
-        } catch (e: ExecutionException) {
-            console.print("Execution failed: ${e.message}\n", ConsoleViewContentType.ERROR_OUTPUT)
-            return -1
+        val result = LuaToolExecutionService.getInstance()
+            .stream(cmd, ConsolePrintingListener(console), LuaExecTimeout.INSTALL, colored = true, indicator = indicator)
+        return if (result.outcome == LuaExecOutcome.COMPLETED) result.exitCode else -1
+    }
+
+    private class ConsolePrintingListener(private val console: ConsoleView) : ProcessListener {
+        override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+            console.print(event.text, ConsoleViewContentType.getConsoleViewType(outputType))
         }
-
-        console.attachToProcess(handler)
-        handler.startNotify()
-        handler.waitFor()
-
-        return handler.exitCode ?: -1
     }
 }

@@ -67,6 +67,9 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
         }
     }
 
+    private fun <T> runOffEdt(body: () -> T): T =
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread<T>(body).get()
+
     private fun resetToolchain() {
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
         LuaToolchainProjectSettings.getInstance(project).loadState(LuaToolchainProjectState())
@@ -104,12 +107,14 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
 
         val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         try {
-            val outcome = WorkspaceBuildRunner.run(
-                project,
-                listOf(rockA, rockB, rockC),
-                console,
-                EmptyProgressIndicator()
-            )
+            val outcome = runOffEdt {
+                WorkspaceBuildRunner.run(
+                    project,
+                    listOf(rockA, rockB, rockC),
+                    console,
+                    EmptyProgressIndicator(),
+                )
+            }
 
             assertEquals(3, outcome.builtCount)
             assertNull(outcome.failedRock)
@@ -143,12 +148,14 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
 
         val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         try {
-            val outcome = WorkspaceBuildRunner.run(
-                project,
-                listOf(rockA, rockB, rockC),
-                console,
-                EmptyProgressIndicator()
-            )
+            val outcome = runOffEdt {
+                WorkspaceBuildRunner.run(
+                    project,
+                    listOf(rockA, rockB, rockC),
+                    console,
+                    EmptyProgressIndicator(),
+                )
+            }
 
             assertEquals(1, outcome.builtCount)
             assertEquals(rockB, outcome.failedRock)
@@ -166,6 +173,54 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
         }
     }
 
+    // MAINT-32-04 TC-09 (unit half): cancelling the indicator during rock 1 kills the make process
+    // and stops the topo loop before rock 2 (the live no-orphan-process confirmation is VNC-gated).
+    @Test
+    fun testCancelDuringBuildStopsBeforeNextRock() {
+        val sleeper = File.createTempFile("fake-luarocks-sleep", ".sh").apply {
+            writeText(
+                """
+                #!/bin/sh
+                echo "started ${'$'}@" >> "${logFile.absolutePath}"
+                sleep 5
+                exit 0
+                """.trimIndent(),
+            )
+            setExecutable(true)
+        }
+        resetToolchain()
+        bindLuaRocks(sleeper.absolutePath)
+
+        val dirA = Files.createDirectories(tempDir.resolve("a"))
+        val dirB = Files.createDirectories(tempDir.resolve("b"))
+        val specA = Files.createFile(dirA.resolve("a-1.0-1.rockspec"))
+        val specB = Files.createFile(dirB.resolve("b-1.0-1.rockspec"))
+        val rockA = WorkspaceRock("a", specA, emptyList())
+        val rockB = WorkspaceRock("b", specB, listOf("a"))
+
+        val indicator = EmptyProgressIndicator()
+        Thread {
+            Thread.sleep(400)
+            indicator.cancel()
+        }.start()
+
+        val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
+        try {
+            val started = System.currentTimeMillis()
+            val outcome = runOffEdt { WorkspaceBuildRunner.run(project, listOf(rockA, rockB), console, indicator) }
+            val elapsed = System.currentTimeMillis() - started
+
+            assertNotNull("cancelled build reports a failed rock", outcome.failedRock)
+            assertEquals(rockA, outcome.failedRock)
+            assertTrue("cancel must kill the process promptly, took ${elapsed}ms", elapsed < 4_000)
+            val logLines = if (logFile.exists()) logFile.readLines() else emptyList()
+            assertFalse("rock B must not start after cancel", logLines.any { it.contains("make $specB") })
+        } finally {
+            console.dispose()
+            sleeper.delete()
+        }
+    }
+
     /** Null branch: no luarocks resolves → FAIL outcome (exit -1), no launch attempted. */
     @Test
     fun testNoLuaRocksResolvedFailsFast() {
@@ -176,12 +231,14 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
 
         val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         try {
-            val outcome = WorkspaceBuildRunner.run(
-                project,
-                listOf(rockA),
-                console,
-                EmptyProgressIndicator()
-            )
+            val outcome = runOffEdt {
+                WorkspaceBuildRunner.run(
+                    project,
+                    listOf(rockA),
+                    console,
+                    EmptyProgressIndicator(),
+                )
+            }
 
             assertEquals(0, outcome.builtCount)
             assertEquals(rockA, outcome.failedRock)

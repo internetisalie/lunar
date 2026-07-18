@@ -83,15 +83,21 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 ### Phase 4: Cancellable build + install [Should]
 - **Goal**: `luarocks make` is killed on cancel; the install task is cancellable.
 - **Tasks**:
-  - [ ] Migrate `WorkspaceBuildRunner.executeMake` onto `LuaToolExecutionService.stream(cmd,
+  - [x] Migrate `WorkspaceBuildRunner.executeMake` onto `LuaToolExecutionService.stream(cmd,
         listener, INSTALL, colored=true, indicator)`; delete the manual `handler.waitFor()` —
         realizes design §2.6, §3.6.
-  - [ ] In `LuaRocksInstallExecutor`: flip `Task.Backgroundable(project, job.title, false)` → `true`
+  - [x] In `LuaRocksInstallExecutor`: flip `Task.Backgroundable(project, job.title, false)` → `true`
         (`:53`), change `run(indicator) = execute(job)` → `execute(job, indicator)` (`:54`), change
         `execute(job: Job)` → `execute(job: Job, indicator: ProgressIndicator)` (`:58`), and pass
         `indicator = indicator` into `capture(command, LuaExecTimeout.INSTALL, indicator = indicator)`
         (`:62`) — realizes design §2.7, §3.6.
 - **Exit criteria**: TC-09 green; `WorkspaceBuildRunnerTest` / install tests (if present) still green.
+- **Deviation (test correction)**: migrating `executeMake` to `stream` (which soft-asserts a background
+  thread) surfaced that the three existing `WorkspaceBuildRunnerTest` cases called `run` on the EDT —
+  production only ever invokes `run` from a `Task.Backgroundable` (off the EDT). They now invoke it on a
+  pooled thread (`runOffEdt`), matching production; behavior assertions (exit 0/2, topo-stop) are
+  unchanged. `executeMake` carries `indicator` as a 4th param — the design §2.7/§3.6 lifecycle-handle
+  carve-out (not counted against the 3-arg cap).
 
 ## Requirement → Phase Coverage
 
@@ -121,4 +127,4 @@ mandatory — never gate on an isolated `--tests` pattern (isolated-tests-masks-
 | Phase 1: Primitive verify-and-fence | done | Must |
 | Phase 2: Rockspec bridge off the read lock | done | Must |
 | Phase 3: Caller migrations | done | Should |
-| Phase 4: Cancellable build + install | todo | Should |
+| Phase 4: Cancellable build + install | done | Should |

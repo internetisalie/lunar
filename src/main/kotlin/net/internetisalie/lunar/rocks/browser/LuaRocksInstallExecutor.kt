@@ -50,16 +50,16 @@ class LuaRocksInstallExecutor(private val project: Project) {
     }
 
     private fun runInBackground(job: Job) {
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, job.title, false) {
-            override fun run(indicator: ProgressIndicator) = execute(job)
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, job.title, true) {
+            override fun run(indicator: ProgressIndicator) = execute(job, indicator)
         })
     }
 
-    private fun execute(job: Job) {
+    private fun execute(job: Job, indicator: ProgressIndicator) {
         val exe = LuaRocksEnvironment.resolveExecutable(project) ?: return finish(false, NOT_CONFIGURED, job.onDone)
         val command = GeneralCommandLine(exe, *job.args.toTypedArray())
             .withWorkDirectory(job.treeRoot.parent?.toString())
-        val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.INSTALL)
+        val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.INSTALL, indicator = indicator)
         if (output.exitCode == 0) {
             LuaRocksSearchCache.invalidateAll()
             finish(true, "LuaRocks: ${job.successLabel}", job.onDone)
