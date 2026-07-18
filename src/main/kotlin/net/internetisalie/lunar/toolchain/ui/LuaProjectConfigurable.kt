@@ -390,7 +390,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     private fun inheritLabel(kindId: String): String {
-        val inherited = LuaToolResolver.getInstance().resolve(null, kindId) ?: return "none"
+        val inherited = LuaToolResolver.getInstance().resolve(null, kindId) ?: return "nothing resolved"
         return toolLabel(inherited.path, inherited.version)
     }
 

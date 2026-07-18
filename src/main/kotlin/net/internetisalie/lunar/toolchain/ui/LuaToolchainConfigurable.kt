@@ -134,7 +134,7 @@ class LuaToolchainConfigurable : BoundSearchableConfigurable(
         }
 
     private fun bindingLabel(kindId: String, item: LuaBindingItem): String = when (item) {
-        LuaBindingItem.Inherit -> "Inherit (none)"
+        LuaBindingItem.Inherit -> "No default"
         is LuaBindingItem.Tool -> LuaProjectConfigurable.toolLabel(item.tool.path, item.tool.version)
     }
 
