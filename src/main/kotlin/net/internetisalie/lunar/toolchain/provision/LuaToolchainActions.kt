@@ -55,7 +55,7 @@ class LuaRecreateToolchainAction : DumbAwareAction("Recreate Environment") {
         val confirmed = Messages.showYesNoDialog(
             targetProject,
             "Delete and rebuild the environment at ${manifest.request.rootDir}?",
-            "Recreate Lua Toolchain",
+            "Recreate Environment",
             Messages.getQuestionIcon(),
         ) == Messages.YES
         if (confirmed) {
@@ -86,7 +86,7 @@ class LuaRemoveToolchainAction : DumbAwareAction("Remove Environment") {
             targetProject,
             "Remove the Lua toolchain environment at ${environment.rootDir}?\n" +
                 "\"Delete\" also removes the directory from disk.",
-            "Remove Lua Toolchain",
+            "Remove Environment",
             "Delete",
             "Unbind Only",
             Messages.getCancelButton(),

@@ -177,3 +177,17 @@ status-bar `"Lua Environment"` / `"No Lua env"` / `"Add environment…"` strings
   [[../370-provision-dialog-raw-kind-labels/bug-report|BUG-370]] and
   [[../373-lls-kind-missing-from-registry/bug-report|BUG-373]] — worth a single coordinated wording
   pass once the vocabulary is ratified.
+
+
+## 8. Resolution (2026-07-18)
+
+**Done.** Owner ratified the §5 vocabulary as-is; the §6 string sweep landed **10 literal changes across 5 files** (all `interpreter`→`runtime` user-visible, plus the two `Environment`→`Environment variables` run-config disambiguations and the two Recreate/Remove dialog-title alignments):
+- `run/LuaRunConfiguration.kt` — `Runtime` / `Runtime arguments` / `Environment variables`
+- `run/test/LuaTestRunConfiguration.kt` — `Runtime` / `Runtime is not defined` / `Environment variables`
+- `rocks/init/LuaRocksGeneratorPeer.kt` — `group("Runtime")`
+- `toolchain/ui/LuaRuntimeComboBox.kt` — `Unknown Runtime`
+- `toolchain/provision/LuaToolchainActions.kt` — dialog titles `Recreate Environment` / `Remove Environment`
+
+Docs: one tester-facing checklist label updated (`run-02 human-verification-checklists.md`, "Interpreter arguments"→"Runtime arguments"). String-only, no class/action-id renames, no LuaBundle migration (deferred per §6.2). Gate: full cache-defeated suite **2224/0/1 unchanged** (zero test impact, as predicted — no test pinned any changed literal).
+
+**Out of scope / observed:** the RUN-04/RUN-02/api-reference docs still quote `ExecutionException("Interpreter is not defined")` for the **main** `LuaRunConfiguration` — a different code path that MAINT-24 already superseded with "No Lua runtime is configured…"; that is pre-existing MAINT-24 doc drift, not this chore.

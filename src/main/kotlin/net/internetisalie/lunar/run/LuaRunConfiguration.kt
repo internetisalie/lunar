@@ -361,12 +361,12 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
         )
 
         myPanel = FormBuilder.createFormBuilder()
-            .addLabeledComponent("Interpreter", interpreterField)
+            .addLabeledComponent("Runtime", interpreterField)
             .addLabeledComponent("Script file", scriptPathField)
             .addLabeledComponent("Working directory", workingDirectoryField)
             .addLabeledComponent("Source path templates", sourcePathField)
-            .addLabeledComponent("Environment", environmentVariablesField)
-            .addLabeledComponent("Interpreter arguments", interpreterArgumentsField)
+            .addLabeledComponent("Environment variables", environmentVariablesField)
+            .addLabeledComponent("Runtime arguments", interpreterArgumentsField)
             .addLabeledComponent("Program arguments", programArgumentsField)
             .addLabeledComponent("Debug port", debugPortField)
             .panel

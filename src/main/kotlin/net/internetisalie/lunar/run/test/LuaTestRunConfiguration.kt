@@ -256,7 +256,7 @@ class LuaTestRunConfiguration(project: Project, factory: ConfigurationFactory?, 
 
     override fun checkConfiguration() {
         if (options.interpreter.isNullOrEmpty()) {
-            throw RuntimeConfigurationException("Interpreter is not defined")
+            throw RuntimeConfigurationException("Runtime is not defined")
         }
         if (options.testTarget.isNullOrEmpty()) {
             throw RuntimeConfigurationException("Test target is not defined")
@@ -291,10 +291,10 @@ class LuaTestSettingsEditor(private val project: Project) : SettingsEditor<LuaTe
             .addLabeledComponent("Test framework", frameworkCombo)
             .addLabeledComponent("Target type", targetTypeCombo)
             .addLabeledComponent("Test target", testTargetField)
-            .addLabeledComponent("Interpreter", interpreterField)
+            .addLabeledComponent("Runtime", interpreterField)
             .addLabeledComponent("Working directory", workingDirectoryField)
             .addLabeledComponent("Extra arguments", extraArgsField)
-            .addLabeledComponent("Environment", environmentVariablesField)
+            .addLabeledComponent("Environment variables", environmentVariablesField)
             .panel
     }
 

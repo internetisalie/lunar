@@ -174,7 +174,7 @@ private class LuaRuntimeListCellRenderer : ColoredListCellRenderer<Any>() {
             null -> append("No interpreter selected", SimpleTextAttributes.ERROR_ATTRIBUTES)
             is LuaRegisteredTool -> renderTool(value)
             else -> {
-                append("Unknown Interpreter ", SimpleTextAttributes.ERROR_ATTRIBUTES)
+                append("Unknown Runtime ", SimpleTextAttributes.ERROR_ATTRIBUTES)
                 append(value.toString(), SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
             }
         }

@@ -42,7 +42,7 @@ Mark each item `[x]` when verified; note the IDE build and date.
          `./?.lua;./lib/?.lua` and confirm the expand control opens a multi-line view.
    - [ ] **Environment** — the env-vars field with a browse button; add `FOO=bar` and
          confirm it is accepted.
-   - [ ] **Interpreter arguments** — a raw command-line field; enter `-W`.
+   - [ ] **Runtime arguments** — a raw command-line field; enter `-W`.
    - [ ] **Program arguments** — a raw command-line field; enter `--flag value`.
 4. [ ] Set a recognizable configuration **name** (e.g. `RUN-02 manual check`).
 5. [ ] Click **Apply**, then **OK**.

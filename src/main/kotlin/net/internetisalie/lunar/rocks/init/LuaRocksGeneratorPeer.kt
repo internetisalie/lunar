@@ -65,7 +65,7 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
                 row { cell(libraryButton) }
                 row { cell(applicationButton) }
             }
-            group("Interpreter") {
+            group("Runtime") {
                 row("Runtime:") { cell(kindCombo) }
                 row("Lua version:") { cell(versionCombo) }
                 row { cell(provisionCheck) }
