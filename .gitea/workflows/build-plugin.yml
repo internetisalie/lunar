@@ -158,7 +158,7 @@ jobs:
           curl -fsS --retry 3 --retry-connrefused \
             -X POST "${UNITRACK_URL}/api/v1/ingest" \
             -H "Authorization: Bearer ${UNITRACK_TOKEN}" \
-            -F "project=lunar" \
+            -F "project=lunar/lunar" \
             -F "branch=${GITHUB_REF_NAME}" \
             -F "commit=${GITHUB_SHA}" \
             -F "ciProvider=gitea" \
