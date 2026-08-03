@@ -64,7 +64,10 @@ folders:
   Treat every non-zero floor as a backlog item, not a settled fact — BUG-389 is the first example
   of the corpus doing exactly this.
 
-### Risk 1.5: The sweep may not scale to a very large tree at all *(dormant — KOReader deferred)*
+### Risk 1.5: The sweep may not scale to a very large tree at all *(RESOLVED — it scales, but too slowly)*
+> **2026-08-03**: DR-06 ran KOReader's 477 files end-to-end. `copyDirectoryToProject` and indexing
+> were never the bottleneck and nothing broke — the cost is the per-file highlight pass, at
+> 1.28 s/file. The design holds at 3× the current tree; only the time budget fails.
 - **Impact**: Risk 1.1 covers *highlighting* cost. The copy-and-index cost of
   `copyDirectoryToProject` over a tree ~10× the current 291 files is untested; the 63.5 s datum
   says nothing about it. If it does not scale, Phase 5 cannot land as designed.
@@ -140,14 +143,32 @@ folders:
   deliberately ships no fixes, so that the ratchet's floor and the fixes are reviewable apart.
 - **TBD: Unresolved qualified-name references** — a natural third defect metric (`a.b.c` that
   resolves to nothing), deferred to keep Phase 1 small.
-- **TBD: KOReader (deferred 2026-08-03)** — the LuaJIT/FFI shape is still the biggest gap in the
-  corpus, but it does not fit the current budgets. DR-01 measured 42 s (luacheck, 132 files) and
-  92 s (luarocks, 159 files) *with* the highlight pass; KOReader's Lua tree is roughly an order of
-  magnitude larger, which blows the 10-minute ceiling on its own, and its submodule tree strains
-  the ~50 MB rsync budget that every builder run pays. Revisit by pinning a narrow subtree
-  (`frontend/` alone, say) rather than the whole repo, and re-measure — Risks 1.2 and 1.5 and
-  DR-04/DR-06 exist for exactly that. Nothing in the design is KOReader-specific, so this is a
-  manifest row plus a `@Test`, not rework.
+- **TBD: KOReader — MEASURED and parked on runtime alone (2026-08-03)**. Admitted at `v2026.07.2`
+  (`f1371f25`), swept once end-to-end, then reverted. The estimates this was originally deferred on
+  were half wrong, so the real numbers are recorded here rather than re-guessed later:
+
+  | | Estimated at deferral | Measured |
+  |---|---|---|
+  | Checkout size | "strains the ~50 MB rsync budget" | **12 MB** pruned; 23 MB corpus total — comfortable (**DR-04 resolved: PASS**) |
+  | Lua tree | "roughly an order of magnitude larger" | **572 `.lua`**, 477 indexed under `frontend,plugins` — 3× luarocks, not 10× |
+  | Sweep time | (unknown) | **609 s = 10.2 min alone**; 1.28 s/file, the worst rate in the corpus. Four-project total **14 m 39 s** vs the 10-minute ceiling (**DR-06 resolved: FAIL**) |
+
+  So size was never the obstacle; **runtime is**, and narrowing to `frontend` alone (354 files)
+  projects to ~12 min total, still over. Parked rather than narrowed: a subtree that still breaches
+  the budget buys nothing but lost coverage.
+
+  It earned its keep in one run regardless — it found **BUG-393** (three LDoc annotation
+  constructs reported as syntax errors), a defect class no other corpus project reaches, since
+  none of them use LDoc.
+
+  Its `require`s also proved the metric needs `moduleRoot`: KOReader names modules relative to
+  `frontend/` (`require("ui/uimanager")` → `frontend/ui/uimanager.lua`), so **3444 of 4528**
+  read unresolved — an artifact of a layout the manifest could not describe, not a defect.
+  The manifest's 7th column now exists for this (§4.1), covered by
+  `LuaSourcePathModuleResolutionTest`, so re-admitting KOReader is a manifest row and a `@Test`.
+
+  **To revisit**, the runtime ceiling is the only thing to decide: either raise it deliberately
+  (the sweep is opt-in, builder-only, and never runs in CI) or cut the highlight pass's cost.
 - **TBD: More project shapes** — a Neovim config tree and an OpenResty service were considered
   and deferred; with KOReader parked, the corpus covers build tooling, a library with a
   hand-written parser, and a global-heavy 5.1 application — but no LuaJIT/FFI shape.
@@ -159,9 +180,9 @@ folders:
 | MAINT-33-00-DR-01 | Measure `openFileInEditor` + `doHighlighting()` cost per file over one corpus project; project the four-project runtime | Risk 1.1 | todo |
 | MAINT-33-00-DR-02 | Confirm `getInspectionToolId()` is actually *populated* for `LocalInspectionTool` infos in a headless fixture, and measure how many land in `unattributed` on one corpus project | Gap 2.1 residual | todo |
 | MAINT-33-00-DR-03 | Record ZeroBrane's `LuaUndeclaredVariable` count before baselining; decide keep-vs-exclude | Gap 2.2 | todo |
-| MAINT-33-00-DR-04 | Confirm KOReader's on-disk size after a submodule-less depth-1 fetch and binary pruning, against the ~50 MB budget | Risk 1.2 | **deferred** with KOReader |
+| MAINT-33-00-DR-04 | Confirm KOReader's on-disk size after a submodule-less depth-1 fetch and binary pruning, against the ~50 MB budget | Risk 1.2 | **done 2026-08-03 — PASS**: 12 MB pruned, 23 MB corpus total |
 | MAINT-33-00-DR-05 | Dump the `FileTypeManager` registrations visible inside the sweep fixture; derive the ignore list of groups unclaimed purely by fixture artefact | Gap 2.3 | todo |
-| MAINT-33-00-DR-06 | Measure `copyDirectoryToProject` + indexing cost for a KOReader-sized tree (~10× the current 291 files) | Risk 1.5 | **deferred** with KOReader |
+| MAINT-33-00-DR-06 | Measure `copyDirectoryToProject` + indexing cost for a KOReader-sized tree (~10× the current 291 files) | Risk 1.5 | **done 2026-08-03 — FAIL**: 477 files swept in 609 s; four-project total 14 m 39 s vs the 10-minute ceiling. It scales (no failure, no blow-up), it is simply too slow to admit |
 | MAINT-33-00-DR-07 | Confirm the two derived inspection ids (`LuaTypeAssignability`, `LuaReturnTypeMismatch`) against the first recorded baseline, rather than trusting `InspectionProfileEntry.getShortName`'s suffix-stripping blind | Gap 2.4 | todo |
 
 ## Test Case Gaps
