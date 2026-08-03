@@ -10,6 +10,22 @@ folders:
 
 # BUG-390: StackOverflowError — the type graph's cycle guard is reset by every `LazyValueElement` hop
 
+> **RESOLVED 2026-08-03.** `ValueNode` gained `writeWith(visited)`, which `LazyValueElement`
+> overrides to forward the guard into `compute` and `VariableElement` overrides to continue via
+> `resolveWrite(visited)`. `resolveWrite`'s `when` collapsed to a single `is ValueNode ->
+> it.writeWith(visited)` branch — the old `is VariableElement` special case sitting above a generic
+> `is ValueNode -> it.write` is exactly what let the lazy hop escape, so removing the split makes
+> the defect harder to reintroduce. `LuaTypeGraph.lazyValue` and its one caller
+> (`LuaTypesVisitor.seedSubscriptElement`) thread the set through.
+>
+> Verified on the corpus: `highlightFailures` fell from **131 files to 1** (luacheck 41→0,
+> luarocks 59→1, ZeroBrane 31→0). The survivor is a different defect in a different file — see
+> BUG-392. Regression test: `LuaTypeGraphCycleGuardTest`.
+>
+> **Consequence worth noting:** with a third of files no longer aborting mid-highlight, the
+> inspection counts rose sharply (ZeroBrane `LuaUndeclaredVariable` 1009 → 3202). The earlier
+> false-positive figures were under-reported, not improved.
+
 `VariableElement.resolveWrite` carries a `visited` set to break cycles, but the set is **dropped**
 whenever resolution passes through a lazy node. Any write-cycle that routes through a subscript
 seed therefore recurses until the stack is exhausted, taking down whatever triggered it.
@@ -62,8 +78,10 @@ VariableElement.getWrite                         (LuaTypeNodes.kt:84)
     set.
   - So every hop through a lazy node forgets everything seen so far, and a cycle
     `variable → lazy subscript → same variable` never terminates.
-- `resolveRead` has the identical shape (`:117` guards, and the same `ValueNode` branch drops the
-  set), so it is very likely affected the same way; only the write path is proven by this trace.
+- `resolveRead` (`:117`) has the same *shape*, but is **not** currently reachable: `UseElement` is
+  the only `UseNode` implementation and it holds its type outright, so there is no lazy hop to
+  escape the guard. Latent, not live — an earlier draft of this report overstated it as "very
+  likely affected". Any future lazy `UseNode` must override a `readWith` the same way.
 - Origin: the lazy-subscript seeding was introduced so a later-added seed edge into the receiver
   would be visible after traversal (`LuaTypesVisitor.kt:722-723`). The laziness is what defeats the
   guard — the cycle is only reachable once resolution is deferred past the point where `visited`
@@ -76,7 +94,7 @@ VariableElement.getWrite                         (LuaTypeNodes.kt:84)
   forwarding it into `compute`), or hold the recursion guard outside the call chain — a
   per-resolution `ThreadLocal`/context object that lazy nodes join rather than reset. The first is
   narrower and keeps the guard explicit; the second also covers any future lazy node type.
-- Apply the same fix to `resolveRead` (`:117`) rather than only the write path.
+- `resolveRead` needs no change today (see §3); revisit only if a lazy `UseNode` is ever added.
 - **Regression test**: a unit test is possible without the corpus — construct a variable whose
   subscript seed resolves back to itself and assert `write == LuaGraphType.Undefined` instead of
   overflowing. Add it alongside the existing type-graph tests, then re-run the corpus gate.
