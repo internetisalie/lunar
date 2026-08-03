@@ -108,9 +108,35 @@ therefore *not* the trigger on its own:
 - table constructor with a trailing comma before `}` then `):` chaining
 - multi-line call arguments
 
+Also ruled out, by scaling probes (all parse clean):
+
+- concatenation chains of 5/10/20/40/**80** operands — not a chain-length or right-recursion limit
+- 2/4/8/**16** `]] .. x .. [[` splices in one long string
+- 3/6/12/**24** chained `:m(1)` calls — not a left-recursion or `MAX_RECURSION_LEVEL` limit
+- 1/2/4/8 splices inside a table constructor inside a chained call — i.e. the real *shape*,
+  synthesised at several sizes
+
 The trigger appears to require a **combination** of the chained call, the table-constructor
-argument and the spliced long string, not any single construct — which is consistent with a
-pin/backtracking interaction rather than a lexing fault.
+argument and the spliced long string, not any single construct — and, importantly, **synthetic
+reconstructions of that shape do not reproduce it**. Only the literal 22 lines fail. That is
+consistent with a pin/backtracking interaction sensitive to something in the concrete token
+sequence rather than to structure or size.
+
+### Where to pick this up
+
+Text-level reduction has plateaued; the next step needs visibility *inside* the parser rather than
+more black-box probes. Two concrete options, in order of expected value:
+
+1. **Step the generated parser** on the 22-line reproducer (the repo has a `jdb-debugger` skill).
+   Break in `LuaParser.funcBody` / `GeneratedParserUtilBase.consumeToken` at the failing offset and
+   read why `'('` is rejected when the current token is `LuaTokenType.(` — that answers it directly,
+   where every black-box probe so far has not.
+2. **Regenerate the parser with Grammar-Kit tracing** and diff the rule-entry log around the
+   failure. `.claude/skills/generate-parser/scripts/generate.sh` is headless.
+
+Until then the corpus baseline is the gate: luarocks `parseErrors=1`, with
+`parseErrorFile=src/luarocks/cmd.lua:439:LuaTokenType.( expected, got '('` recording the exact
+site.
 
 ### Second symptom in the same file
 
