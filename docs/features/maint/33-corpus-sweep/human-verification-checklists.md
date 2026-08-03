@@ -105,7 +105,7 @@ gate behaves correctly for a human running it, and that it is genuinely inert fo
   1. Push the branch and open the Gitea Actions run for `build-plugin.yml`.
 - **Expected**: the `build` job passes; no corpus test appears in the uploaded test report; no
   attempt to read `test/corpus` (which does not exist in a CI checkout).
-- **Result**: ☑ **Pass** (2026-08-03, by inspection) — `build-plugin.yml:85` runs `./gradlew test … -PexcludeExternalFixtureTests` with no `-PwithCorpus`, and `grep -r corpus .github/workflows/` returns 0 matches, so CI cannot reach `test/corpus`. Verified by reading the workflow rather than by pushing, since nothing is pushed yet.
+- **Result**: ☑ **Pass** (2026-08-03, by inspection) — `.gitea/workflows/build-plugin.yml:128` runs `./gradlew test … -PexcludeExternalFixtureTests` with no `-PwithCorpus`, and `grep -rn corpus .gitea/workflows/` returns 0 matches, so CI cannot reach `test/corpus`. **Check `.gitea/workflows/`, not `.github/workflows/`** — both exist and Gitea prefers `.gitea/`, so the `.github/` copy is inert. This result was first recorded against the `.github/` file by mistake; re-verified against the executing one, same conclusion. Its other two Gradle invocations (`buildPlugin` at :123, `koverXmlReport -x test -x integrationTest` at :138) also pass no corpus flag.
 
 ### Scenario 3.3: Recording round-trip
 - **Steps**:
