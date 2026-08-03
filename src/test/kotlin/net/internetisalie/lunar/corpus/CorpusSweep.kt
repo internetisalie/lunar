@@ -26,7 +26,12 @@ object CorpusSweep {
 
     private const val SYMBOLS_PER_INSPECTION = 10
 
-    internal data class FileTally(val parseErrors: Int, val requires: Int, val unresolved: Int)
+    internal data class FileTally(
+        val parseErrors: Int,
+        val requires: Int,
+        val unresolved: Int,
+        val errorSites: List<String> = emptyList(),
+    )
 
     private data class SweptFile(val path: String, val file: VirtualFile, val tally: FileTally)
 
@@ -39,7 +44,9 @@ object CorpusSweep {
             parseErrors = swept.sumOf { it.tally.parseErrors },
             requires = swept.sumOf { it.tally.requires },
             unresolvedRequires = swept.sumOf { it.tally.unresolved },
-            parseErrorFiles = swept.filter { it.tally.parseErrors > 0 }.map { it.path },
+            parseErrorFiles = swept
+                .filter { it.tally.parseErrors > 0 }
+                .flatMap { file -> file.tally.errorSites.map { "${file.path}:$it" } },
             inspectionHits = sink.hits,
             symbolHits = topSymbols(sink.symbols),
             ballast = ballast(checkoutDir, entry),
@@ -188,6 +195,19 @@ object CorpusSweep {
             parseErrors = PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).size,
             requires = requireReferences.size,
             unresolved = requireReferences.count { it.resolve() == null },
+            errorSites = describeParseErrors(psiFile),
         )
+    }
+
+    /**
+     * `line:description` for each `PsiErrorElement`, so a parse regression is locatable from the
+     * baseline diff alone instead of needing a bisect over the file (BUG-392 needed exactly that).
+     */
+    private fun describeParseErrors(psiFile: PsiFile): List<String> {
+        val document = psiFile.viewProvider.document
+        return PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).map { error ->
+            val line = document?.getLineNumber(error.textOffset)?.plus(1) ?: 0
+            "$line:${error.errorDescription}"
+        }
     }
 }

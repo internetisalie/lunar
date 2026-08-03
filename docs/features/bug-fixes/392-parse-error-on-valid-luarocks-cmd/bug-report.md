@@ -48,13 +48,69 @@ All 104 files under `luarocks/src` are accepted by the reference parser; Lunar r
   default — already reported `parseErrors=1` for this same file. It reproduces at both levels, so
   it is not a level-gated construct being rejected.
 - **Corpus pin**: luarocks `990ec6ca` (v3.12.2), file is 810 lines.
-- **Leading suspect, unconfirmed**: `cmd.lua` is Teal-generated and contains a dense run of
-  long-bracket strings concatenated across lines ~455-475, of the form
-  `]] .. basename .. [[ completion bash > ~/.local/share/...]] .. basename .. [[`, with shell
-  snippets containing `(`, `~`, `$` and `/` inside the brackets. Long-bracket lexing is a plausible
-  culprit, and `LuaLongStringAnnotator`/`LuaLongCommentAnnotator` already exist as separate
-  handling for that token class. This is a hypothesis from reading the file, **not** from the
-  reported error offset.
+### Located: `cmd.lua:439`, inside `get_parser`
+
+The error is a **zero-length `ERROR_ELEMENT`** emitted between the function name and its parameter
+list, with a `BLOCK` node opening before the `(`:
+
+```
+LuaTokenType.local      :: local
+LuaTokenType.function   :: function
+LuaTokenType.IDENTIFIER :: get_parser
+ERROR_ELEMENT           ::              <- empty, at offset 14578
+BLOCK                   ::
+LuaTokenType.(          :: (            <- the token the parser said was missing
+LuaTokenType.IDENTIFIER :: description
+```
+
+So `funcBody ::= '(' [parList] ')' block END` (`lua.bnf:311`) failed its `'('` against a token that
+*is* `LuaTokenType.(`, immediately adjacent. `localFuncDecl` carries `pin = 2` (`lua.bnf:176-177`),
+so the rule is already committed at that point and the failure cannot roll back — an empty error
+node plus premature `BLOCK` entry is the signature of a pinned rule committing and then failing
+inside. That places the defect in the SYNTAX-18 pin scheme rather than in the lexer.
+
+### Minimal reproducer (22 lines, `luac -p` clean)
+
+```lua
+local function get_parser(description, cmd_modules)
+   help_max_width(80):
+   add_help_command():
+   add_complete_command({
+      help_max_width = 100,
+      summary = "Output a shell completion script.",
+      description = [[
+
+Enabling completions for Bash:
+
+   Add the following line to your ~/.bashrc:
+      source <(]] .. basename .. [[ completion bash)
+   Add the following line to your ~/.config/fish/config.fish:
+      ]] .. basename .. [[ completion fish | source
+   or save the completion script to the local completion directory:
+      ]] .. basename .. [[ completion fish > ~/.config/fish/completions/]] .. basename .. [[.fish
+]], }):
+   command_target("command"):
+   require_command(false)
+
+end
+```
+
+### Ruled out by reduction
+
+Delta-debugging from the 92-line `get_parser` (every valid single-chunk deletion tested against
+the real parser) plateaued at the above. Each of these reproduces **clean** in isolation and is
+therefore *not* the trigger on its own:
+
+- escaped quotes in strings, including the exact `" (\"" .. x .. "\")"` from line 430
+- trailing-colon method chaining across lines (`f(1):\n g(2):\n h(3)`) — also accepted by `luac`
+- long-bracket concatenation `[[a]] .. b .. [[c]]`, with newlines, with `<(`, with `>`/`~`/`$`
+- a `|` inside a long string; two, three and four `]] .. x .. [[` splices; a splice ending `.fish`
+- table constructor with a trailing comma before `}` then `):` chaining
+- multi-line call arguments
+
+The trigger appears to require a **combination** of the chained call, the table-constructor
+argument and the spliced long string, not any single construct — which is consistent with a
+pin/backtracking interaction rather than a lexing fault.
 
 ### Second symptom in the same file
 
@@ -85,13 +141,17 @@ error fixes both.
 
 ## 4. Other Notes
 
-- **First step should be to get the offset.** The sweep currently records only the *file* for a
-  parse error (`parseErrorFile=`), not where in it. Extending that to `path:offset` — or printing
-  `PsiErrorElement.errorDescription` — would point straight at the construct and is a small change
-  to `CorpusSweep.tally`. Worth doing regardless: it makes every future parse regression
-  self-locating instead of requiring a bisect.
-- Once the offset is known, reduce to a minimal snippet and add it to
-  `TestLuaParsingExhaustive`, which is exactly the home for "this construct must parse" cases.
-- **Not** related to SYNTAX-18 (parser error recovery). That feature is `done` and deliberately
-  uses pins with zero `recoverWhile`; this is a plain parse failure on valid input, not a recovery
-  behaviour.
+- **Done — the sweep now self-locates.** `CorpusSweep.tally` records
+  `path:line:errorDescription` per `PsiErrorElement`, so every future parse regression points at
+  its own construct instead of needing a bisect. That change is what located this one.
+- **Likely IS a SYNTAX-18 pin interaction** — an earlier draft of this report asserted the
+  opposite, before the token dump existed. The evidence in §3 (a zero-length error node between the
+  function name and its `(`, with `BLOCK` opening early, under `localFuncDecl`'s `pin = 2`) points
+  at the pin scheme, not at lexing. `lua.bnf:145-151` records that pins were chosen over
+  `recoverWhile` precisely because `recoverWhile` "destroys sibling backtracking"; this looks like
+  the pin doing something adjacent on a rule whose prefix is shared with `localVarDecl`
+  (`LOCAL …`). Worth re-reading that comment's reasoning against this case.
+- **Suggested next step**: reduce further with the same delta-debug harness (the reproducer is in
+  §3 and each round costs ~25 s), then add the minimal case to `TestLuaParsingExhaustive` — the
+  home for "this construct must parse". Until then the corpus baseline is the gate: `parseErrors=1`
+  on luarocks, with the file and line recorded.
