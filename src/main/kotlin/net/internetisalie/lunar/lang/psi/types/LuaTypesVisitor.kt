@@ -725,7 +725,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val varElement = PsiTreeUtil.getParentOfType(o, LuaVar::class.java) ?: return
         val receiverNode = firstNode(unwrapExpression(varElement.firstChild)) as? ValueNode ?: return
         elementNodes[o] = listOf(
-            graph.lazyValue(o) { arrayElementType(receiverNode.write) ?: LuaGraphType.Undefined },
+            graph.lazyValue(o) { visited ->
+                arrayElementType(receiverNode.writeWith(visited)) ?: LuaGraphType.Undefined
+            },
         )
     }
 

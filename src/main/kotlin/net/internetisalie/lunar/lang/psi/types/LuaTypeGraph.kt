@@ -68,8 +68,11 @@ class LuaTypeGraph {
      * TYPE-10 §3.4: creates a [ValueNode] whose type is computed lazily by [compute] at read time.
      * Used for array-subscript element types so a receiver seeded *after* the subscript is visited
      * is still observed (the snapshot is read only after the full traversal + `checkTypes()`).
+     *
+     * [compute] receives the caller's cycle-guard set and **must** thread it into any further
+     * graph walk (BUG-390) — resolving a node through its plain `write` restarts the guard.
      */
-    fun lazyValue(element: PsiElement, compute: () -> LuaGraphType): ValueNode {
+    fun lazyValue(element: PsiElement, compute: (MutableSet<VariableNode>) -> LuaGraphType): ValueNode {
         val node = LazyValueElement(element, compute)
         _nodes += node
         return node

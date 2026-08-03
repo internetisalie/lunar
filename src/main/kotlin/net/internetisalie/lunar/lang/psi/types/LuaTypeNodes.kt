@@ -18,6 +18,16 @@ sealed interface TypeNode {
  */
 interface ValueNode : TypeNode {
     val write: LuaGraphType
+
+    /**
+     * [write], resolved while carrying the caller's cycle-guard set (BUG-390).
+     *
+     * A node that can re-enter the graph — [LazyValueElement], whose `compute` walks back to a
+     * receiver — **must** override this and pass [visited] onward. Resolving through plain [write]
+     * instead starts a fresh guard, so a cycle that routes through a lazy node never terminates.
+     * The default is correct only for nodes that hold a type outright and cannot recurse.
+     */
+    fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = write
 }
 
 /**
@@ -62,9 +72,14 @@ internal class ValueElement(
  */
 internal class LazyValueElement(
     override val element: PsiElement,
-    private val compute: () -> LuaGraphType,
+    private val compute: (MutableSet<VariableNode>) -> LuaGraphType,
 ) : ValueNode {
-    override val write: LuaGraphType get() = compute()
+    override val write: LuaGraphType get() = compute(mutableSetOf())
+
+    // BUG-390: forwarding the caller's guard is the whole point of this override. Without it the
+    // hop through compute() restarts with an empty set and a variable → subscript → same-variable
+    // cycle recurses until the stack is exhausted.
+    override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = compute(visited)
 }
 
 /** Immutable typed constraint. Created by [LuaTypeGraph.use]. */
@@ -84,6 +99,8 @@ internal class VariableElement(
     override val write: LuaGraphType get() = resolveWrite(mutableSetOf())
     override val read: LuaGraphType get() = resolveRead(mutableSetOf())
 
+    override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = resolveWrite(visited)
+
     private fun resolveWrite(visited: MutableSet<VariableNode>): LuaGraphType {
         if (!visited.add(this)) return LuaGraphType.Undefined
 
@@ -98,11 +115,11 @@ internal class VariableElement(
         }
 
         upSet.forEach {
-            val type = when (it) {
-                is VariableElement -> it.resolveWrite(visited)
-                is ValueNode -> it.write
-                else -> LuaGraphType.Undefined
-            }
+            // One branch, deliberately: VariableElement overrides writeWith to continue the walk
+            // with this guard, and every other ValueNode either forwards it (LazyValueElement) or
+            // holds a type outright. Re-splitting this into a `is VariableElement` special case is
+            // what let BUG-390's lazy hop escape the guard.
+            val type = if (it is ValueNode) it.writeWith(visited) else LuaGraphType.Undefined
             flatten(type)
         }
 
