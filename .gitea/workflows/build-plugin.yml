@@ -131,11 +131,18 @@ jobs:
       # the build/release. Reuses the coverage data the test step produced (Kover instruments
       # the `test` task), so `-x test` avoids a second run. Needs repo secret UNITRACK_TOKEN
       # (INGEST-scoped) + var UNITRACK_URL (https://unitrack.internetisalie.net).
+      #
+      # EVERY Test task must be excluded, not just `test`: koverXmlReport depends on all of them,
+      # so an omission silently RUNS that suite here. `redisIntegrationTest` was missing, so each
+      # CI build spun up Redis containers for ~2 min — the opposite of "avoids a second run", and
+      # a Docker dependency on a step that is meant to be pure reporting. It never broke a build
+      # only because of `continue-on-error`.
       - name: Kover XML coverage report (JaCoCo format)
         if: always()
         continue-on-error: true
         run: >-
-          ./gradlew koverXmlReport -x test -x integrationTest --no-daemon --stacktrace
+          ./gradlew koverXmlReport -x test -x integrationTest -x redisIntegrationTest
+          --no-daemon --stacktrace
           -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
 
       - name: Ingest into UniTrack
