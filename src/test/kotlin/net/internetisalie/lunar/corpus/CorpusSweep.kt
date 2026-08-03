@@ -11,6 +11,7 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import net.internetisalie.lunar.lang.LuaRequireReference
+import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import java.io.File
 
@@ -188,7 +189,13 @@ object CorpusSweep {
     }
 
     private fun tally(psiFile: PsiFile): FileTally {
-        val requireReferences = PsiTreeUtil.findChildrenOfType(psiFile, LuaTerminalExpr::class.java)
+        // Both hosts, deliberately: `require("m")` anchors its reference on the LuaTerminalExpr,
+        // `require "m"` on the enclosing LuaArgs (BUG-389 — a reference cannot hang on a bare leaf).
+        // Collecting only the former is exactly the blind spot that made this metric report 3
+        // recognised requires across 132 luacheck files, and would have hidden the fix as well.
+        val requireHosts = PsiTreeUtil.findChildrenOfType(psiFile, LuaTerminalExpr::class.java) +
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaArgs::class.java)
+        val requireReferences = requireHosts
             .flatMap { it.references.asIterable() }
             .filterIsInstance<LuaRequireReference>()
         return FileTally(

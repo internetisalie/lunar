@@ -1,8 +1,8 @@
 commit=483ef0dcb593f9599ff27715472425e39a0588e8
 files=72
 parseErrors=0
-requires=8
-unresolvedRequires=8
+requires=19
+unresolvedRequires=19
 inspection.LuaGlobalCreation=182
 inspection.LuaReturnTypeMismatch=112
 inspection.LuaShadowingVariable=214

@@ -1,14 +1,14 @@
 commit=cc089e3f65acdd1ef8716cc73a3eca24a6b845e4
 files=132
 parseErrors=3
-requires=3
+requires=152
 unresolvedRequires=3
 inspection.LuaGlobalCreation=14
 inspection.LuaLanguageLevel=17
 inspection.LuaReturnTypeMismatch=46
 inspection.LuaShadowingVariable=10
 inspection.LuaSuspiciousConcatenation=5
-inspection.LuaTypeAssignability=449
+inspection.LuaTypeAssignability=462
 inspection.LuaUndeclaredVariable=615
 inspection.LuaUnreachableCode=1
 inspection.LuaUnusedLocal=27

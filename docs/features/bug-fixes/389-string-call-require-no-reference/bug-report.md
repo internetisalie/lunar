@@ -10,6 +10,33 @@ folders:
 
 # BUG-389: `require "mod"` (string-call form) contributes no reference — no Go to Definition
 
+> **RESOLVED 2026-08-03.** `LuaRequireReferenceContributor` now recognises both shapes the grammar
+> admits: the `LuaTerminalExpr` inside `require(...)`, and the enclosing `LuaArgs` for the
+> paren-less `require "mod"` / `require [[mod]]`.
+>
+> **The anchor is `LuaArgs`, not the STRING leaf** — a first attempt hung the reference on the leaf
+> itself and failed every test: `LeafPsiElement.getReferences()` returns empty without ever
+> consulting the provider registry, so a `PsiReferenceContributor` cannot reach a bare token. The
+> composite parent is the anchor, with the range narrowed to the string. The two branches are
+> mutually exclusive (in the parenthesized form `LuaArgs.getString()` is null), so exactly one
+> reference is contributed per call.
+>
+> **Measured on the corpus:** luacheck `requires` **3 → 152**, with `unresolvedRequires` unchanged
+> at **3** — the 149 newly-recognised references all resolve to real files, so this is working
+> navigation rather than a larger count. ZeroBrane 8 → 19 (all unresolved, correctly: it loads its
+> tree through custom loaders). luarocks is unchanged at 606, as it uses the parenthesized form.
+>
+> The corpus ratchet behaved exactly as designed here: `requires` is identity-checked, so the jump
+> failed the gate with a re-record prompt instead of silently accepting a floor that a resolution
+> fix had made meaningless.
+>
+> **The sweep had the same blind spot as the bug.** `CorpusSweep.tally` collected references from
+> `LuaTerminalExpr` only, so the fix was invisible to the metric that found the defect — the first
+> full run after the fix passed green and reported no change. Now fixed to collect from both hosts.
+>
+> Regression test: `LuaRequireStringCallReferenceTest` (6 cases, incl. `print "x"` staying inert and
+> a guard that only one reference is contributed per call).
+
 Lua's paren-less call sugar `require "mod"` / `require [[mod]]` produces **no**
 `LuaRequireReference`, so Go to Definition, Ctrl-click, Find Usages and everything else built on
 that reference silently do nothing on the module name. Only `require("mod")` works.
