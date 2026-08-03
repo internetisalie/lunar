@@ -14,11 +14,18 @@ data class CorpusEntry(
     val commit: String,
     val roots: List<String>,
     val luaLevel: LuaLanguageLevel,
+    /**
+     * The subdirectory module names resolve against, when the project puts its Lua tree on
+     * `package.path` rather than requiring from the checkout root — KOReader's
+     * `require("ui/uimanager")` means `frontend/ui/uimanager.lua`. Null means "resolve from the
+     * checkout root", which is what every currently-pinned project does.
+     */
+    val moduleRoot: String?,
 )
 
 /**
- * Reads the corpus manifest. Columns are name, url, commit, roots, prune; the sweep needs only
- * name/commit/roots — the url and prune columns are `fetch-corpus.sh`'s business.
+ * Reads the corpus manifest. Columns are name, url, commit, roots, prune, luaLevel, moduleRoot;
+ * the sweep needs all but url and prune, which are `fetch-corpus.sh`'s business.
  */
 object CorpusManifest {
 
@@ -56,6 +63,7 @@ object CorpusManifest {
             roots = columns[3].split(',').filter { it.isNotBlank() },
             // Defaults to the same level as LuaProjectSettings, so omitting the column is a no-op.
             luaLevel = if (level.isEmpty()) LuaLanguageLevel.LUA54 else LuaLanguageLevel.valueOf(level),
+            moduleRoot = columns.getOrNull(6)?.trim()?.takeIf { it.isNotEmpty() },
         )
     }
 }

@@ -59,7 +59,7 @@ Parent epic: [MAINT](../requirements.md).
 | MAINT-33-05 | **Opt-In Execution** | M | Excluded from the default `test` task; enabled by `-PwithCorpus`; baselines rewritten by `-PrecordCorpusBaseline`; never runs in CI. |
 | MAINT-33-06 | **Inspection-Hit Metric** | S | Per-inspection warning counts across the corpus, gated like the other defect metrics. |
 | MAINT-33-07 | **Ballast Inventory** | S | Inventory non-`.lua` files by extension/filename and flag those no registered Lunar file type claims. |
-| MAINT-33-08 | **Corpus Expansion** | S | Add ZeroBrane Studio with its own baseline. (KOReader deferred to future work — its size and submodule tree exceed the rsync and runtime budgets DR-01 measured.) |
+| MAINT-33-08 | **Corpus Expansion** | S | Add ZeroBrane Studio with its own baseline. (KOReader admitted, measured and parked 2026-08-03 — it fits on disk at 12 MB, but sweeps in 10.2 min, pushing the corpus to 14 m 39 s against the 10-minute ceiling. It found BUG-393 on that one run. See risks-and-gaps "Technical Debt & Future Work" for the measurements.) |
 | MAINT-33-09 | **Index Timing** | C | Record wall-clock for the sweep per project as an advisory (ungated) metric. |
 | MAINT-33-10 | **Per-Symbol Breakdown** | S | For each inspection, record the symbols it fired on most often (capped per inspection), so a missing-definitions problem is distinguishable from a resolution defect. Reported, never gated. |
 
@@ -77,6 +77,7 @@ The manifest is a TSV at `tooling/corpus/corpus.tsv`, one row per project, colum
 | `roots` | Comma-separated subdirectories to index. Narrower than the checkout, so vendored/build trees never enter the measurement. |
 | `prune` | Comma-separated directories deleted after checkout. **Binaries only.** Optional. |
 | `luaLevel` | The `LuaLanguageLevel` the sweep pins for this project (e.g. `LUA51`). Optional; defaults to `LUA54`, matching `LuaProjectSettings.kt:46`. Required for the inspection metric to be comparable — see MAINT-33-06. |
+| `moduleRoot` | The subdirectory module names resolve against, put on the project's `package.path` for the sweep. Optional; defaults to null, meaning "resolve from the checkout root" — which is what all three pinned projects do. Needed when a project names modules relative to a subtree (KOReader's `require("ui/uimanager")` means `frontend/ui/uimanager.lua`); without it, every such require reads unresolved and the metric measures the manifest's ignorance rather than the resolver. The patterns must point at the **on-disk checkout**, not the copied fixture tree: `LuaModuleFileResolver.findByPath` consults `LocalFileSystem` only, while `copyDirectoryToProject` materialises into `temp://`. |
 
 Blank lines and `#` comments are skipped. Rows have ≥4 columns; `prune` is optional.
 

@@ -2,6 +2,7 @@ package net.internetisalie.lunar.corpus
 
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Rule
@@ -216,6 +217,22 @@ class BaselineRatchetTest {
         )
         assertEquals(LuaLanguageLevel.LUA54, CorpusManifest.entry(repoRoot, "plain").luaLevel)
         assertEquals(LuaLanguageLevel.LUA51, CorpusManifest.entry(repoRoot, "pinned").luaLevel)
+    }
+
+    /**
+     * The optional 7th column. Omitting it means "modules resolve from the checkout root", which is
+     * what every currently-pinned project does — so the default must stay null rather than "".
+     */
+    @Test
+    fun manifestModuleRootDefaultsAndParses() {
+        val repoRoot = manifestRoot(
+            "plain\thttps://example.invalid/x.git\tdeadbeef\tsrc",
+            "levelonly\thttps://example.invalid/y.git\tcafebabe\tsrc\t\tLUA51",
+            "rooted\thttps://example.invalid/z.git\tf00d\tfrontend\t\tLUA51\tfrontend",
+        )
+        assertNull(CorpusManifest.entry(repoRoot, "plain").moduleRoot)
+        assertNull(CorpusManifest.entry(repoRoot, "levelonly").moduleRoot)
+        assertEquals("frontend", CorpusManifest.entry(repoRoot, "rooted").moduleRoot)
     }
 
     /** TC 9 — the guard refuses an absent corpus instead of measuring nothing. */

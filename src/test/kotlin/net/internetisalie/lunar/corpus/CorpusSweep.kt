@@ -13,6 +13,7 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import net.internetisalie.lunar.lang.LuaRequireReference
 import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
 
 /**
@@ -37,6 +38,7 @@ object CorpusSweep {
     private data class SweptFile(val path: String, val file: VirtualFile, val tally: FileTally)
 
     fun run(fixture: CodeInsightTestFixture, entry: CorpusEntry, checkoutDir: File): CorpusMetrics {
+        applyModuleRoot(fixture, entry, checkoutDir)
         val swept = entry.roots.flatMap { sweepRoot(fixture, entry.name, it) }.sortedBy { it.path }
         val sink = inspectionHits(fixture, swept)
         return CorpusMetrics(
@@ -52,6 +54,22 @@ object CorpusSweep {
             symbolHits = topSymbols(sink.symbols),
             ballast = ballast(checkoutDir, entry),
         )
+    }
+
+    /**
+     * Puts the project's declared [CorpusEntry.moduleRoot] on `package.path`, so a project whose
+     * modules are named relative to a subtree (`require("ui/uimanager")` → `frontend/ui/uimanager.lua`)
+     * is measured for real resolution failures rather than for a layout the sweep never described.
+     *
+     * The patterns point at the **on-disk checkout**, not the copied fixture tree: resolution runs
+     * through `LuaModuleFileResolver.findByPath`, which consults `LocalFileSystem` only, while
+     * `copyDirectoryToProject` materialises into the in-memory `temp://` filesystem. Pointing at
+     * `temp://` paths would silently resolve nothing.
+     */
+    private fun applyModuleRoot(fixture: CodeInsightTestFixture, entry: CorpusEntry, checkoutDir: File) {
+        val moduleRoot = entry.moduleRoot ?: return
+        val base = File(checkoutDir, moduleRoot).canonicalPath
+        LuaProjectSettings.getInstance(fixture.project).state.sourcePath = "$base/?.lua;$base/?/init.lua"
     }
 
     /**
