@@ -46,6 +46,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-30`](30-resolution-caching/requirements.md) | **Indexing & Resolution Caching** | **S** | **Not Implemented** | Declaration-only file-bindings index (#20), `CachedValuesManager`/`ResolveCache` adoption (#21, §2.5.2), copy-paste consolidation (§2.5.3), idiom migration (§2.5.4). |
 | [`MAINT-31`](31-dead-code-sweep/requirements.md) | **Dead-Code Sweep** | **C** | **Done** | Execute review §3: ~1,000+ zero-reference lines (4 whole files, cycle-costing no-ops, dead declarations). Schedule **first** among the remediation features — shrinks every later diff. |
 | [`MAINT-32`](32-process-execution-discipline/requirements.md) | **Process-Execution Discipline** | **S** | **Not Implemented** | Review §2.1 "fix once at the primitive": harden `LuaProcessUtil` (EDT assertion, cancellable, no blocking under the read lock), take the rockspec bridge off the read lock (#11), migrate the EDT/fast-path I/O callers, make builds cancellable. |
+| [`MAINT-33`](33-corpus-sweep/requirements.md) | **Corpus Sweep** | **S** | **Not Implemented** | Regression ratchet over pinned real-world Lua projects (luacheck, luarocks; KOReader + ZeroBrane in Phase 5): parse errors, unresolved `require`s, inspection hits and non-Lua ballast measured headlessly and gated against committed baselines. Opt-in via `-PwithCorpus`, builder-only. Phase 1 prototyped; found BUG-389 on its first run. |
 
 ---
 
