@@ -48,8 +48,70 @@ class BaselineRatchetTest {
                 "LuaTypeAssignability" to 2,
                 CorpusMetrics.UNATTRIBUTED to 0,
             ),
+        ).copy(
+            symbolHits = mapOf("LuaUndeclaredVariable.wx" to 812, "LuaUndeclaredVariable.ide.config" to 9),
+            ballast = mapOf(
+                "tl" to BallastGroup(117, claimed = false),
+                "rockspec" to BallastGroup(53, claimed = true),
+                ".luacov" to BallastGroup(1, claimed = false),
+            ),
         )
         assertEquals(original, CorpusBaseline.parse(CorpusBaseline.render(original)))
+    }
+
+    /**
+     * The group key may contain or begin with a dot, so the inverse parse must be positional —
+     * `ballast.unclaimed..luacov` is flag `unclaimed`, key `.luacov`, and a naive `split('.')`
+     * mangles it.
+     */
+    @Test
+    fun ballastKeyInverseParse() {
+        val rendered = CorpusBaseline.render(
+            metrics().copy(
+                ballast = mapOf(
+                    ".luacov" to BallastGroup(1, claimed = false),
+                    "config.ld" to BallastGroup(2, claimed = true),
+                ),
+            ),
+        )
+        assertTrue(
+            "Expected a doubled dot for the dotfile key, got:\n$rendered",
+            rendered.contains("ballast.unclaimed..luacov=1"),
+        )
+        val parsed = CorpusBaseline.parse(rendered).ballast
+        assertEquals(BallastGroup(1, claimed = false), parsed[".luacov"])
+        assertEquals(BallastGroup(2, claimed = true), parsed["config.ld"])
+    }
+
+    /**
+     * The symbol breakdown is diagnostic, not a defect count. It must round-trip (including a
+     * symbol containing dots, e.g. `ide.config`) but never move the gate.
+     */
+    @Test
+    fun symbolBreakdownIsReportedNeverGated() {
+        val comparison = CorpusBaseline.compare(
+            metrics().copy(symbolHits = emptyMap()),
+            metrics().copy(symbolHits = mapOf("LuaUndeclaredVariable.wx" to 812)),
+        )
+        assertTrue(comparison.regressions.isEmpty())
+        assertTrue(comparison.improvements.isEmpty())
+    }
+
+    @Test
+    fun symbolKeyWithDotsRoundTrips() {
+        val original = metrics().copy(symbolHits = mapOf("LuaUndeclaredVariable.ide.config" to 9))
+        assertEquals(original.symbolHits, CorpusBaseline.parse(CorpusBaseline.render(original)).symbolHits)
+    }
+
+    /** Ballast is a discovery signal, not a defect count — a new unclaimed group must not fail. */
+    @Test
+    fun ballastIsReportedNeverGated() {
+        val comparison = CorpusBaseline.compare(
+            metrics().copy(ballast = emptyMap()),
+            metrics().copy(ballast = mapOf("tl" to BallastGroup(117, claimed = false))),
+        )
+        assertTrue(comparison.regressions.isEmpty())
+        assertTrue(comparison.improvements.isEmpty())
     }
 
     @Test
@@ -74,6 +136,35 @@ class BaselineRatchetTest {
         )
         assertEquals(
             listOf("inspection.LuaUndeclaredVariable: baseline 7 → observed 8"),
+            comparison.regressions,
+        )
+    }
+
+    /**
+     * BUG-390 makes the counts non-reproducible, so while any file fails to highlight the
+     * per-inspection keys must be advisory — a flaky gate is worse than no gate.
+     */
+    @Test
+    fun inspectionHitsAreAdvisoryWhileHighlightsFail() {
+        val withFailures = { n: Int ->
+            metrics(inspectionHits = mapOf("LuaUndeclaredVariable" to n, CorpusMetrics.HIGHLIGHT_FAILURES to 42))
+        }
+        val comparison = CorpusBaseline.compare(withFailures(7), withFailures(8))
+        assertTrue(
+            "Inspection counts must not gate while highlights fail; got ${comparison.regressions}",
+            comparison.regressions.isEmpty(),
+        )
+    }
+
+    /** …but the failure count itself is always gated: it is the thing that has to come down. */
+    @Test
+    fun highlightFailureIncreaseIsAlwaysRegression() {
+        val comparison = CorpusBaseline.compare(
+            metrics(inspectionHits = mapOf(CorpusMetrics.HIGHLIGHT_FAILURES to 42)),
+            metrics(inspectionHits = mapOf(CorpusMetrics.HIGHLIGHT_FAILURES to 43)),
+        )
+        assertEquals(
+            listOf("inspection.highlightFailures: baseline 42 → observed 43"),
             comparison.regressions,
         )
     }

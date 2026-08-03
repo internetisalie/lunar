@@ -50,34 +50,46 @@ custom class system, a config-style tree, an embedded/host-API dialect.
 | `parseErrors` | **yes** | `PsiErrorElement`s — syntax the parser cannot represent. |
 | `requires` | identity | `require(...)` calls the reference contributor recognised. |
 | `unresolvedRequires` | **yes** | Of those, how many resolve to nothing. |
+| `inspection.<toolId>` | **yes** | Warnings per inspection, attributed by `HighlightInfo.getInspectionToolId()`. The false-positive floor. |
+| `inspection.unattributed` | **yes** | Null-id highlights (annotators), net of parse errors. |
+| `inspection.highlightFailures` | **yes** | Files whose highlight pass threw — see BUG-390. |
+| `ballast.<claimed\|unclaimed>.<key>` | no | Every file the sweep did not index, grouped and marked. |
 
 `parseErrorFile=` lines list the offending files so a regression is triageable from the baseline
-diff alone.
+diff alone. Wall-clock is printed per project as an advisory `elapsedMs=` line and deliberately
+never baselined. Not yet measured: unresolved qualified-name references.
 
-Not yet measured, in rough priority order: inspection hit counts (the false-positive rate is
-probably the highest-value signal here), indexing wall-clock, and unresolved qualified-name
-references.
+**Identity-checked** means any change fails with a re-record prompt, not just an increase.
+`requires` is identity-checked rather than gated because recognised-require coverage may
+legitimately *rise* when a resolution bug is fixed (BUG-389 takes luacheck from 3 to ~155),
+leaving the old `unresolvedRequires` floor incomparable rather than merely stale.
 
 ## The ballast is a second signal
 
-A pinned real project also inventories what the Lua ecosystem expects an IDE to understand. From
-the first two checkouts alone:
+A pinned real project also inventories what the Lua ecosystem expects an IDE to understand — and
+unlike the defect metrics, this one is reported rather than gated: a new unclaimed group is a
+discovery, not a regression.
+
+Measured across the three pinned projects (2026-08-03):
 
 | Ballast | Count | Status |
 |---|---|---|
-| `*.rockspec` | 84 | Supported (SCHEMA-02) — and a real validation corpus for it |
-| `.luacheckrc` | 22 | Supported (SCHEMA-03), incl. deeply nested ones |
-| `.busted` | 2 | Supported (SCHEMA-04) |
-| `*.tl` + `tlconfig.lua` | 118 | **Unsupported** — luarocks core is being ported to Teal |
-| `config.ld` | 1 | **Unsupported** — LDoc config, plain Lua syntax |
+| `*.tl` | 117 | **Unsupported** — Teal; luarocks core is being ported to it |
+| `*_config.luacheckrc` | 18 | **Unsupported** — `plugin.xml` registers the *exact* name `.luacheckrc` only, so `myproject.luacheckrc` gets nothing |
+| `config.ld` (`ld`) | 1 | **Unsupported** — LDoc config, plain Lua syntax |
 | `.luacov` | 1 | **Unsupported** — luacov *config*; we claim only `luacov.report.out` |
+| `*.rockspec` | 85 | Supported (SCHEMA-02) — and a real validation corpus for it |
+| `.luacheckrc` / `.busted` | 4 / 2 | Supported (SCHEMA-03 / -04) |
 
-`plugin.xml` currently claims `extensions="lua;rockspec"` and `fileNames=".luacheckrc;.busted"`.
-The three unsupported entries above are all Lua-syntax files, so association is close to free.
+Read `unclaimed` with care: a group is currently marked claimed only when *every* member is, so a
+single outlier flips a large group (luacheck's 54 `.rockspec` report unclaimed while luarocks' 31
+report claimed). See risks Gap 2.3 — the fix is to record an unclaimed *count* per group.
 
-Worth turning into a measured metric rather than a one-off observation: have the sweep inventory
-non-`.lua` files by extension and flag the ones no registered file type claims, so every corpus
-addition surfaces integration candidates automatically.
+`plugin.xml` claims `extensions="lua;rockspec"` and `fileNames=".luacheckrc;.busted"`. Every
+unsupported entry above is a Lua-syntax file, so association is close to free.
+
+Groups unclaimed purely because the headless fixture lacks the bundled Markdown/YAML plugins
+(`md`, `yml`, `sh`, `png`, …) are noise, not findings.
 
 ## Note on `test/luacheck`
 

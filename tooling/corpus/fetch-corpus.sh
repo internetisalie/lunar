@@ -38,6 +38,11 @@ fetch_one() {
   for victim in ${prune//,/ }; do
     rm -rf "${dest:?}/$victim"
   done
+  # Symlinks are never needed by a read-only corpus, and they are an rsync landmine: the builder
+  # pushes test/ with `rsync -aL` (dereferencing), so a self-referential link loops until it hits
+  # the 40-level limit and aborts the whole sync. ZeroBrane ships exactly that — its macOS app
+  # bundle links Contents/ZeroBraneStudio back to its own ancestor.
+  find "${dest:?}" -type l -delete
   printf '%s\n' "$commit" > "$stamp"
   log "$name → $(find "$dest" -name '*.lua' | wc -l) .lua files, $(du -sh "$dest" | cut -f1)"
 }

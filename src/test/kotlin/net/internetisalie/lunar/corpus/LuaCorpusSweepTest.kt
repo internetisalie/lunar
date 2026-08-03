@@ -54,6 +54,9 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
     @Test
     fun testLuarocksCorpus() = sweepAndRatchet("luarocks")
 
+    @Test
+    fun testZerobraneCorpus() = sweepAndRatchet("zerobrane")
+
     private fun sweepAndRatchet(name: String) {
         val repoRoot = File(testDataPath)
         val entry = CorpusManifest.entry(repoRoot, name)
@@ -63,7 +66,7 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = entry.luaLevel
 
         val startedAt = System.nanoTime()
-        val observed = CorpusSweep.run(myFixture, entry)
+        val observed = CorpusSweep.run(myFixture, entry, CorpusManifest.checkoutDir(repoRoot, name))
         val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
         report(name, observed, elapsedMs)
 
@@ -84,6 +87,9 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         )
         observed.inspectionHits.toSortedMap().forEach { (id, count) ->
             println("[corpus:$name] inspection $id=$count")
+        }
+        observed.ballast.toSortedMap().filterValues { !it.claimed }.forEach { (key, group) ->
+            println("[corpus:$name] unclaimed ballast $key=${group.count}")
         }
         observed.parseErrorFiles.forEach { println("[corpus:$name] parse errors in $it") }
     }

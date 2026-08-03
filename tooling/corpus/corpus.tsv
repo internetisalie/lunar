@@ -18,3 +18,4 @@
 # name<TAB>url<TAB>commit<TAB>roots<TAB>prune<TAB>luaLevel  (roots/prune comma-separated)
 luacheck	https://github.com/lunarmodules/luacheck.git	cc089e3f65acdd1ef8716cc73a3eca24a6b845e4	src,spec		LUA51
 luarocks	https://github.com/luarocks/luarocks.git	990ec6ca3b097c7160fe925cfca4b8e57cfe5685	src,spec	win32	LUA51
+zerobrane	https://github.com/pkulchenko/ZeroBraneStudio.git	483ef0dcb593f9599ff27715472425e39a0588e8	src,interpreters,api,cfg	bin	LUA51
