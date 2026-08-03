@@ -2,6 +2,25 @@
 
 ## [0.20] — Terminology & settings-label polish
 
+### Correctness fixes found by sweeping real-world Lua projects (MAINT-33)
+A new opt-in regression ratchet (`-PwithCorpus`) sweeps pinned checkouts of luacheck, luarocks and
+ZeroBrane Studio — 363 files — and gates parse errors, `require` resolution and inspection counts
+against committed baselines. It surfaced four defects on its first runs:
+- **Long strings opening on a blank line broke parsing** (BUG-392). `[[` followed by two or more
+  newlines lexed as three tokens instead of one, so any file containing such a string reported a
+  spurious syntax error — typically pointing at an unrelated line far away. Also resolves a
+  highlighting failure in the same files. The corpus now parses clean apart from luacheck's
+  intentionally-malformed test samples.
+- **Globals assigned in one file were reported undeclared in another** (BUG-391). A plain top-level
+  `X = ...` is now resolved project-wide, as Lua semantics require. On ZeroBrane this removed 1387
+  false `LuaUndeclaredVariable` errors (3202 → 1815).
+- **`require "mod"` had no Go to Definition** (BUG-389). The paren-less string-call form now
+  contributes a reference like `require("mod")`; navigation and completion no longer disagree.
+  On luacheck, recognised requires rose 3 → 152 with no increase in unresolved ones.
+- **`StackOverflowError` while inferring types through self-referential tables** (BUG-390). The
+  cycle guard was dropped at each lazy node. This aborted highlighting on 131 of 363 corpus files,
+  which had been silently suppressing diagnostics in those files rather than preventing them.
+
 ### Terminology unification (BUG-378)
 - **interpreter → runtime** across all user-visible strings: the Lua run/test configuration editors
   label the field **Runtime** and **Runtime arguments** (was "Interpreter"), and the no-runtime

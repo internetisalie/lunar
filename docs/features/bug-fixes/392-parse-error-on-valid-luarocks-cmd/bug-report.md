@@ -10,6 +10,30 @@ folders:
 
 # BUG-392: Parser reports an error in valid Lua (`luarocks/src/luarocks/cmd.lua`)
 
+> **RESOLVED 2026-08-03.** A long string whose opening bracket is followed by a **blank line**
+> (`[[` + two or more newlines) lexed as three tokens instead of one, leaking its body into the
+> token stream as tokens the grammar has no rule for.
+>
+> `lua.flex`'s `XLONGSTRING_BEGIN` state returns `NL_BEFORE_LONGSTRING` for a newline **without
+> leaving the state** (`lua.flex:170`), so a run of *n* leading newlines yields *n* such tokens.
+> `LongStringMergingLexerAdapter` consumed at most one (`if`, not `while`), ending the merged
+> `STRING` at `[[\n` and emitting the rest as raw `LONGSTRING` / `LONGSTRING_END`. One word in
+> `LuaLexer.kt:127` fixes it.
+>
+> **Both symptoms had this one root cause** — §5 had recorded that as an untested hypothesis.
+> Measured on the corpus: luarocks `parseErrors` **1 → 0** and `highlightFailures` **1 → 0**; the
+> corpus now has no parse errors outside luacheck's deliberately-malformed `spec/samples/`, and no
+> highlight failures at all. luacheck `LuaTypeAssignability` fell **462 → 449** as a bonus — those
+> long strings were not typing as strings either.
+>
+> luarocks' `LuaTypeAssignability` (1767 → 1893) and `LuaReturnTypeMismatch` (223 → 233) **rose**,
+> for the same reason they rose after BUG-390: `cmd.lua` had been aborting mid-highlight, so its
+> warnings were never counted. The failure was hiding diagnostics, not preventing them.
+>
+> Regression tests: `LuaLongStringBlankLineTest` (the verbatim reproducer + a single-token lexer
+> assertion), four lexer cases in `TestLuaLexer.long strings`, and
+> `TestLuaParsingExhaustive.testLongStringOpeningOnBlankLine` (8 cases).
+
 Lunar produces a `PsiErrorElement` in a file that the reference Lua implementation parses without
 complaint. It is the **only** genuine parse failure anywhere in the MAINT-33 corpus — every other
 parse error in the corpus is in luacheck's deliberately-malformed `spec/samples/`.
@@ -21,15 +45,26 @@ tooling/corpus/fetch-corpus.sh
 tooling/gce-builder/gce-builder.sh run "test --tests *Corpus* -PwithCorpus"
 ```
 
-`src/test/resources/corpus/luarocks.baseline` records `parseErrors=1` with
-`parseErrorFile=src/luarocks/cmd.lua`.
+`src/test/resources/corpus/luarocks.baseline` recorded `parseErrors=1` with
+`parseErrorFile=src/luarocks/cmd.lua:439`.
+
+Minimal, independent of luarocks entirely:
+
+```lua
+s = [[
+
+]]
+```
+
+`[[` followed by one newline was always fine — and was covered by an existing test
+(`TestLuaLexer` "opening-newline"). Two newlines was the defect, and nothing covered it.
 
 ## 2. Expected vs Actual Behavior
 
 - **Expected**: no error element. The file is valid Lua.
 - **Actual**: one `PsiErrorElement`.
 
-**Reference cross-check** (this is what makes it a defect rather than a judgement call):
+**Reference cross-check** (this is what made it a defect rather than a judgement call):
 
 ```
 $ luac -p test/corpus/luarocks/src/luarocks/cmd.lua   # Lua 5.4.7
@@ -38,146 +73,102 @@ $ for f in $(find test/corpus/luarocks/src -name '*.lua'); do luac -p "$f" || ec
    reference-rejected files: 0
 ```
 
-All 104 files under `luarocks/src` are accepted by the reference parser; Lunar rejects one.
+All 104 files under `luarocks/src` are accepted by the reference parser; Lunar rejected one.
 
-## 3. Context / Environment
+## 3. Root Cause
 
-- **Confidence**: high — reference-validated, reproducible, isolated to a single file.
-- **Not a language-level artefact.** The corpus currently pins luarocks to `LUA51`, but the first
-  baseline — recorded before the `luaLevel` manifest column existed, i.e. under the `LUA54`
-  default — already reported `parseErrors=1` for this same file. It reproduces at both levels, so
-  it is not a level-gated construct being rejected.
-- **Corpus pin**: luarocks `990ec6ca` (v3.12.2), file is 810 lines.
-### Located: `cmd.lua:439`, inside `get_parser`
+The lexer splits a long string into `LONGSTRING_BEGIN` / `NL_BEFORE_LONGSTRING` / `LONGSTRING`* /
+`LONGSTRING_END`, and `LongStringMergingLexerAdapter` re-merges them into the single
+`LuaElementTypes.STRING` the grammar expects. Only that merged type is ever exposed — every
+consumer (`LuaParserDefinition`, `LuaSyntaxHighlighter`, the TODO indexer, Find Usages) constructs
+`LuaLexer()`, and nothing reads the raw flex lexer. So the merge function is the whole contract.
 
-The error is a **zero-length `ERROR_ELEMENT`** emitted between the function name and its parameter
-list, with a `BLOCK` node opening before the `(`:
+`lua.flex:168-171`:
 
 ```
-LuaTokenType.local      :: local
-LuaTokenType.function   :: function
-LuaTokenType.IDENTIFIER :: get_parser
-ERROR_ELEMENT           ::              <- empty, at offset 14578
-BLOCK                   ::
-LuaTokenType.(          :: (            <- the token the parser said was missing
-LuaTokenType.IDENTIFIER :: description
+<XLONGSTRING_BEGIN>
+{
+    {nl}     { return NL_BEFORE_LONGSTRING; }
+    .        { yypushback(yytext().length()); yybegin(XLONGSTRING); return advance(); }
+}
 ```
 
-So `funcBody ::= '(' [parList] ')' block END` (`lua.bnf:311`) failed its `'('` against a token that
-*is* `LuaTokenType.(`, immediately adjacent. `localFuncDecl` carries `pin = 2` (`lua.bnf:176-177`),
-so the rule is already committed at that point and the failure cannot roll back — an empty error
-node plus premature `BLOCK` entry is the signature of a pinned rule committing and then failing
-inside. That places the defect in the SYNTAX-18 pin scheme rather than in the lexer.
+The `{nl}` rule does not `yybegin` anywhere, so the lexer stays in `XLONGSTRING_BEGIN` and emits
+one `NL_BEFORE_LONGSTRING` per leading newline. The merge consumed exactly one:
 
-### Minimal reproducer (22 lines, `luac -p` clean)
-
-```lua
-local function get_parser(description, cmd_modules)
-   help_max_width(80):
-   add_help_command():
-   add_complete_command({
-      help_max_width = 100,
-      summary = "Output a shell completion script.",
-      description = [[
-
-Enabling completions for Bash:
-
-   Add the following line to your ~/.bashrc:
-      source <(]] .. basename .. [[ completion bash)
-   Add the following line to your ~/.config/fish/config.fish:
-      ]] .. basename .. [[ completion fish | source
-   or save the completion script to the local completion directory:
-      ]] .. basename .. [[ completion fish > ~/.config/fish/completions/]] .. basename .. [[.fish
-]], }):
-   command_target("command"):
-   require_command(false)
-
-end
+```kotlin
+if (delegate.tokenType == LuaTokenTypes.NL_BEFORE_LONGSTRING) { delegate.advance() }
 ```
 
-### Ruled out by reduction
+so for `[[\n\nbody]]` it returned a `STRING` covering just `[[\n`, then stopped. The second newline
+surfaced as `NL_BEFORE_LONGSTRING` — which `LuaSyntax.WhiteSpaceTokens` classifies as whitespace,
+so it vanished silently — and `body` and `]]` reached the parser as bare `LONGSTRING` and
+`LONGSTRING_END` tokens that appear nowhere in `lua.bnf`.
 
-Delta-debugging from the 92-line `get_parser` (every valid single-chunk deletion tested against
-the real parser) plateaued at the above. Each of these reproduces **clean** in isolation and is
-therefore *not* the trigger on its own:
+The fix is `if` → `while` (`LuaLexer.kt:127`). The flex state machine is left alone deliberately:
+making `{nl}` switch to `XLONGSTRING` would be more faithful to Lua's skip-one-leading-newline
+rule, but it changes generated code for no observable gain, since a tolerant merge produces an
+identical token stream for every consumer.
 
-- escaped quotes in strings, including the exact `" (\"" .. x .. "\")"` from line 430
-- trailing-colon method chaining across lines (`f(1):\n g(2):\n h(3)`) — also accepted by `luac`
-- long-bracket concatenation `[[a]] .. b .. [[c]]`, with newlines, with `<(`, with `>`/`~`/`$`
-- a `|` inside a long string; two, three and four `]] .. x .. [[` splices; a splice ending `.fish`
-- table constructor with a trailing comma before `}` then `):` chaining
-- multi-line call arguments
+### Why the reported error was 92 lines away from the defect
 
-Also ruled out, by scaling probes (all parse clean):
+The recorded symptom was a **zero-length `ERROR_ELEMENT` between the function name and its `(`**,
+with the message `LuaTokenType.( expected, got '('` — a token apparently rejected for being
+exactly what was demanded. That was an artifact, and reading it literally cost most of the
+investigation.
 
-- concatenation chains of 5/10/20/40/**80** operands — not a chain-length or right-recursion limit
-- 2/4/8/**16** `]] .. x .. [[` splices in one long string
-- 3/6/12/**24** chained `:m(1)` calls — not a left-recursion or `MAX_RECURSION_LEVEL` limit
-- 1/2/4/8 splices inside a table constructor inside a chained call — i.e. the real *shape*,
-  synthesised at several sizes
+`funcBody`'s generated section is **unpinned** (`LuaParser.java:489,495`):
 
-The trigger appears to require a **combination** of the chained call, the table-constructor
-argument and the spliced long string, not any single construct — and, importantly, **synthetic
-reconstructions of that shape do not reproduce it**. Only the literal 22 lines fail. That is
-consistent with a pin/backtracking interaction sensitive to something in the concrete token
-sequence rather than to structure or size.
-
-### Where to pick this up
-
-Text-level reduction has plateaued; the next step needs visibility *inside* the parser rather than
-more black-box probes. Two concrete options, in order of expected value:
-
-1. **Step the generated parser** on the 22-line reproducer (the repo has a `jdb-debugger` skill).
-   Break in `LuaParser.funcBody` / `GeneratedParserUtilBase.consumeToken` at the failing offset and
-   read why `'('` is rejected when the current token is `LuaTokenType.(` — that answers it directly,
-   where every black-box probe so far has not.
-2. **Regenerate the parser with Grammar-Kit tracing** and diff the rule-entry log around the
-   failure. `.claude/skills/generate-parser/scripts/generate.sh` is headless.
-
-Until then the corpus baseline is the gate: luarocks `parseErrors=1`, with
-`parseErrorFile=src/luarocks/cmd.lua:439:LuaTokenType.( expected, got '('` recording the exact
-site.
-
-### Second symptom in the same file
-
-After BUG-390 was fixed, corpus-wide `highlightFailures` fell from 131 files to **one** — and that
-one is `cmd.lua` again, failing differently:
-
-```
-[corpus] highlight failed on src/luarocks/cmd.lua: TestLoggerAssertionError
+```java
+Marker marker_ = enter_section_(builder_);
+result_ = consumeToken(builder_, LPAREN);
+...
+exit_section_(builder_, marker_, null, result_);
 ```
 
-`TestLoggerAssertionError` is the platform test framework failing on an ERROR-level log, so
-something logs an error while highlighting this file. The Lunar frames on that stack, once each
-(not recursion):
+so any failure *inside* it — here, the loose `LONGSTRING` tokens 400 characters later — rolls the
+builder back to the section start. Only then does the pinned `localFuncDecl` report, at the
+rolled-back position, against the variants collected there. And `got '('` prints
+`builder.getTokenText()` (`GeneratedParserUtilBase.java:784`), the token **text**, so the message
+never asserted anything about the token's type.
 
-```
-LuaShadowingVariableInspection.inspectIdentifier (LuaShadowingVariableInspection.kt:67)
-  → LuaFunctionExtKt.processDeclarations        (LuaFunctionExt.kt:110)
-    → LuaResolveUtil.scopeCrawlUp               (LuaResolveUtil.kt:19)
-```
+Both facts had to be established before the error location could be discarded as noise. Dumping
+the PSI tree of the reproducer — rather than probing the reported position — showed the split
+`STRING` / `long string` / `long string end bracket` sequence immediately.
 
-Neither site contains an explicit `LOG.error`, so the log originates in the platform — the message
-text was not captured and is the first thing to retrieve.
+## 4. Hypotheses tested and refuted
 
-**Whether the two symptoms share a root cause is unproven.** What is established is that the
-corpus's only parse-error file is also its only highlight-failure file, which makes a malformed PSI
-tripping the scope crawl the obvious hypothesis to test first — and if it holds, fixing the parse
-error fixes both.
+Recorded because each was asserted at some point in this investigation and each was wrong.
 
-## 4. Other Notes
+- **"A SYNTAX-18 pin interaction."** Asserted in an earlier revision of this report on the strength
+  of the zero-length error node under `localFuncDecl`'s `pin = 2`. **Wrong.** The pins are
+  innocent; `pin = 2` only explains why the rule could not roll back and therefore had to report
+  *something*, not why anything failed. `lua.bnf:145-151`'s reasoning about `recoverWhile` was
+  never implicated.
+- **Grammar-Kit parser tracing.** Proposed as a next step. **No such thing exists** — the complete
+  `KnownAttribute` set in Grammar-Kit 2023.3.2 has no tracing or debug attribute, and
+  `JavaParserGenerator` emits no logging. Regeneration would not have helped, and was never needed
+  anyway: `parserUtilClass` already routes every primitive through the project's own
+  `LuaParserUtil`.
+- **`MAX_RECURSION_LEVEL` exhaustion.** `funcBody` opens with `recursion_guard_`, which fails
+  silently without consuming — the exact observed signature. Probed directly by raising
+  `-Dgrammar.kit.gpub.max.level` from 1000 to 100000: **byte-identical failure**. Refuted.
+- **A duplicate `IElementType` instance** (same name, failing `==`), given `nextTokenIsFast` is
+  reference identity. Plausible, and consistent with the repo's known registry-size hazard, but
+  moot once rollback explained the position.
+- Ruled out earlier by delta debugging, each parsing clean in isolation: escaped quotes; trailing
+  colon method chaining; long-bracket concatenation; `|`/`<(`/`>`/`~`/`$` inside long strings;
+  trailing comma before `}`; multi-line call arguments; concatenation chains to 80 operands; 16
+  splices in one string; 24 chained `:m(1)` calls.
 
-- **Done — the sweep now self-locates.** `CorpusSweep.tally` records
-  `path:line:errorDescription` per `PsiErrorElement`, so every future parse regression points at
-  its own construct instead of needing a bisect. That change is what located this one.
-- **Likely IS a SYNTAX-18 pin interaction** — an earlier draft of this report asserted the
-  opposite, before the token dump existed. The evidence in §3 (a zero-length error node between the
-  function name and its `(`, with `BLOCK` opening early, under `localFuncDecl`'s `pin = 2`) points
-  at the pin scheme, not at lexing. `lua.bnf:145-151` records that pins were chosen over
-  `recoverWhile` precisely because `recoverWhile` "destroys sibling backtracking"; this looks like
-  the pin doing something adjacent on a rule whose prefix is shared with `localVarDecl`
-  (`LOCAL …`). Worth re-reading that comment's reasoning against this case.
-- **Suggested next step**: reduce further with the same delta-debug harness (the reproducer is in
-  §3 and each round costs ~25 s), then add the minimal case to `TestLuaParsingExhaustive` — the
-  home for "this construct must parse". Until then the corpus baseline is the gate: `parseErrors=1`
-  on luarocks, with the file and line recorded.
+The reduction plateaued at 22 lines with the note that *"synthetic reconstructions of that shape do
+not reproduce it"*. That was true and was the most useful clue in the report — the trigger was not
+the shape at all, but a two-character detail (`[[` then a blank line) that every synthetic rewrite
+happened to normalise away.
+
+## 5. Other Notes
+
+- **The corpus's self-locating parse errors are what made this tractable.** `CorpusSweep.tally`
+  records `path:line:errorDescription`, which pinned the file and line on the first run.
+- **The corpus also proved the fix**, across 363 files of third-party Lua, in a way no unit test
+  could: two metrics to zero, one improved, and the rest unmoved.
