@@ -27,7 +27,7 @@ folders:
 - **Impact**: `cmd_sync` (`gce-builder.sh:120-126`) pushes the whole dereferenced `test/` tree on
   **every** `run`, not just corpus runs. An unpruned KOReader checkout would tax every build in
   the repo, including ones unrelated to this feature.
-- **Likelihood**: medium — KOReader is by far the largest candidate.
+- **Likelihood**: low now that KOReader is deferred — ZeroBrane is a few MB. Returns to medium whenever KOReader is revisited.
 - **Mitigation**: `.git` stripping plus binaries-only pruning keeps the current corpus at 5.1 MB.
   Phase 5 must check `du -sh test/corpus` against the ~50 MB budget before recording baselines,
   and KOReader is fetched **without submodules**. If it cannot fit, pin a subset of its Lua tree
@@ -42,6 +42,19 @@ folders:
   just the build status. Phase 2 additionally proves the ratchet can fail by inverting assertions,
   so a passing gate means something.
 
+### Risk 1.6: A corpus checkout can break the builder sync outright *(hit 2026-08-03, mitigated)*
+- **Impact**: `cmd_sync` pushes `test/` with `rsync -aLz` — dereferencing. ZeroBrane ships a
+  **recursive symlink** (`zbstudio/ZeroBraneStudio.app/Contents/ZeroBraneStudio` → its own
+  ancestor), which rsync follows until it hits "Too many levels of symbolic links (40)" and aborts
+  the entire sync. Every builder run in the repo fails, not just corpus ones.
+- **Likelihood**: was certain once ZeroBrane was added; now mitigated.
+- **Mitigation**: `fetch-corpus.sh` runs `find "$dest" -type l -delete` after pruning. A read-only
+  corpus never needs symlinks, so this is general — it protects future additions too.
+- **How it presented — worth remembering**: the wrapper still exited 0, the log's last line was the
+  rsync error, and `build/test-results/` held the *previous* run's XMLs. Checking test counts alone
+  would have reported a passing run that never started. Same false-green shape as Risk 1.3, via a
+  different route; always confirm the results timestamp is fresh.
+
 ### Risk 1.4: The ratchet ossifies a defect
 - **Impact**: baselining a floor makes existing defects invisible. `unresolvedRequires=12` on
   luarocks records twelve real failures as "acceptable" forever.
@@ -51,7 +64,7 @@ folders:
   Treat every non-zero floor as a backlog item, not a settled fact — BUG-389 is the first example
   of the corpus doing exactly this.
 
-### Risk 1.5: The sweep may not scale to a KOReader-sized tree at all
+### Risk 1.5: The sweep may not scale to a very large tree at all *(dormant — KOReader deferred)*
 - **Impact**: Risk 1.1 covers *highlighting* cost. The copy-and-index cost of
   `copyDirectoryToProject` over a tree ~10× the current 291 files is untested; the 63.5 s datum
   says nothing about it. If it does not scale, Phase 5 cannot land as designed.
@@ -69,7 +82,24 @@ folders:
 - **Residual**: whether the id is reliably *populated* for `LocalInspectionTool`-produced infos in
   a headless fixture is an empirical question, now DR-02 (narrowed).
 
-### Gap 2.3: Whether the fixture's file-type registry makes `claimed` meaningful
+### Gap 2.3: ~~Whether the fixture's file-type registry makes `claimed` meaningful~~ — MEASURED, DR-05 outcome
+
+- **Resolution (2026-08-03)**: the registry is fine — Lunar's own registrations are visible in the
+  fixture (`.lua`, `.busted` and the exact name `.luacheckrc` all report claimed). The fixture
+  artefact predicted here (bundled Markdown/YAML plugins absent) is real but small: `md`, `yml`,
+  `sh`, `png` report unclaimed and are noise, as expected.
+- **What actually broke the signal is §3.4 step 4's own rule**, not the registry. "A group is
+  `claimed` iff **every** file in it is claimed" lets a single outlier flip a large group:
+  luarocks' 31 `.rockspec` report **claimed**, while luacheck's 54 report **unclaimed** — same
+  extension, opposite verdicts, and the second is wrong as an integration signal.
+- **Proposed refinement (deferred)**: record the unclaimed *count* per group rather than a boolean,
+  so `tl=117 (117 unclaimed)` reads as a gap and `rockspec=54 (1 unclaimed)` plainly does not. That
+  is a baseline-format change and a re-record; the metric is ungated, so it can wait.
+- **Genuine finding meanwhile**: `luacheckrc=18` unclaimed is **not** an artefact. `plugin.xml:100`
+  registers the exact name `.luacheckrc` only, so luacheck's own `*_config.luacheckrc` spec
+  fixtures — and any user's `myproject.luacheckrc` — get no support. Worth its own bug.
+
+### Gap 2.3a: original question (retained for context)
 - **Question**: a `BasePlatformTestCase` `FileTypeManager` holds platform core types plus the
   plugin under test, not the bundled Markdown/YAML/etc. plugins of a real IDE. luarocks alone
   contributes 70 `md`, 14 `rock`, 13 `q`, 4 `zip`, 4 `c`, 3 `sh`, 2 `yml` — most will report
@@ -110,9 +140,17 @@ folders:
   deliberately ships no fixes, so that the ratchet's floor and the fixes are reviewable apart.
 - **TBD: Unresolved qualified-name references** — a natural third defect metric (`a.b.c` that
   resolves to nothing), deferred to keep Phase 1 small.
+- **TBD: KOReader (deferred 2026-08-03)** — the LuaJIT/FFI shape is still the biggest gap in the
+  corpus, but it does not fit the current budgets. DR-01 measured 42 s (luacheck, 132 files) and
+  92 s (luarocks, 159 files) *with* the highlight pass; KOReader's Lua tree is roughly an order of
+  magnitude larger, which blows the 10-minute ceiling on its own, and its submodule tree strains
+  the ~50 MB rsync budget that every builder run pays. Revisit by pinning a narrow subtree
+  (`frontend/` alone, say) rather than the whole repo, and re-measure — Risks 1.2 and 1.5 and
+  DR-04/DR-06 exist for exactly that. Nothing in the design is KOReader-specific, so this is a
+  manifest row plus a `@Test`, not rework.
 - **TBD: More project shapes** — a Neovim config tree and an OpenResty service were considered
-  and deferred; the four chosen projects already cover build tooling, a library with a
-  hand-written parser, LuaJIT/FFI, and a global-heavy 5.1 application.
+  and deferred; with KOReader parked, the corpus covers build tooling, a library with a
+  hand-written parser, and a global-heavy 5.1 application — but no LuaJIT/FFI shape.
 
 ## Pre-Implementation De-risking Tasks
 
@@ -121,9 +159,9 @@ folders:
 | MAINT-33-00-DR-01 | Measure `openFileInEditor` + `doHighlighting()` cost per file over one corpus project; project the four-project runtime | Risk 1.1 | todo |
 | MAINT-33-00-DR-02 | Confirm `getInspectionToolId()` is actually *populated* for `LocalInspectionTool` infos in a headless fixture, and measure how many land in `unattributed` on one corpus project | Gap 2.1 residual | todo |
 | MAINT-33-00-DR-03 | Record ZeroBrane's `LuaUndeclaredVariable` count before baselining; decide keep-vs-exclude | Gap 2.2 | todo |
-| MAINT-33-00-DR-04 | Confirm KOReader's on-disk size after a submodule-less depth-1 fetch and binary pruning, against the ~50 MB budget | Risk 1.2 | todo |
+| MAINT-33-00-DR-04 | Confirm KOReader's on-disk size after a submodule-less depth-1 fetch and binary pruning, against the ~50 MB budget | Risk 1.2 | **deferred** with KOReader |
 | MAINT-33-00-DR-05 | Dump the `FileTypeManager` registrations visible inside the sweep fixture; derive the ignore list of groups unclaimed purely by fixture artefact | Gap 2.3 | todo |
-| MAINT-33-00-DR-06 | Measure `copyDirectoryToProject` + indexing cost for a KOReader-sized tree (~10× the current 291 files); the 63.5 s datum covers copy+parse only at current scale | Risk 1.5 | todo |
+| MAINT-33-00-DR-06 | Measure `copyDirectoryToProject` + indexing cost for a KOReader-sized tree (~10× the current 291 files) | Risk 1.5 | **deferred** with KOReader |
 | MAINT-33-00-DR-07 | Confirm the two derived inspection ids (`LuaTypeAssignability`, `LuaReturnTypeMismatch`) against the first recorded baseline, rather than trusting `InspectionProfileEntry.getShortName`'s suffix-stripping blind | Gap 2.4 | todo |
 
 ## Test Case Gaps

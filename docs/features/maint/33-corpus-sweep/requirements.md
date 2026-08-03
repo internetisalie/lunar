@@ -35,7 +35,7 @@ Parent epic: [MAINT](../requirements.md).
   file inventory across each corpus project.
 - A ratchet gate: fail on regression, report improvements, hard-fail if the checkout drifted.
 - Opt-in execution on the builder, excluded from the routine `test` loop and from CI.
-- Expansion of the corpus from 2 to 4 projects (KOReader, ZeroBrane Studio).
+- Expansion of the corpus from 2 to 3 projects (ZeroBrane Studio). KOReader is deferred — see risks-and-gaps "Technical Debt & Future Work".
 
 ### Out of Scope
 - Fixing anything the sweep finds. Findings are filed as separate `BUG-*` reports (BUG-389 is the
@@ -59,8 +59,9 @@ Parent epic: [MAINT](../requirements.md).
 | MAINT-33-05 | **Opt-In Execution** | M | Excluded from the default `test` task; enabled by `-PwithCorpus`; baselines rewritten by `-PrecordCorpusBaseline`; never runs in CI. |
 | MAINT-33-06 | **Inspection-Hit Metric** | S | Per-inspection warning counts across the corpus, gated like the other defect metrics. |
 | MAINT-33-07 | **Ballast Inventory** | S | Inventory non-`.lua` files by extension/filename and flag those no registered Lunar file type claims. |
-| MAINT-33-08 | **Corpus Expansion** | S | Add KOReader and ZeroBrane Studio, each with its own baseline. |
+| MAINT-33-08 | **Corpus Expansion** | S | Add ZeroBrane Studio with its own baseline. (KOReader deferred to future work — its size and submodule tree exceed the rsync and runtime budgets DR-01 measured.) |
 | MAINT-33-09 | **Index Timing** | C | Record wall-clock for the sweep per project as an advisory (ungated) metric. |
+| MAINT-33-10 | **Per-Symbol Breakdown** | S | For each inspection, record the symbols it fired on most often (capped per inspection), so a missing-definitions problem is distinguishable from a resolution defect. Reported, never gated. |
 
 ## Detailed Specifications
 
@@ -110,8 +111,10 @@ resolution bug is fixed; see MAINT-33-04.
 
 ### MAINT-33-04: Ratchet Gate
 
-Gated metrics (a rise fails the build): `parseErrors`, `unresolvedRequires`, and each
-per-inspection count from MAINT-33-06.
+Gated metrics (a rise fails the build): `parseErrors`, `unresolvedRequires`, `highlightFailures`,
+and — **only while `highlightFailures` is zero on both sides** — each per-inspection count from
+MAINT-33-06. See design §3.2 step 2: BUG-390 makes those counts non-reproducible run to run, so
+gating them today would be flaky.
 
 Identity-checked metrics (any change fails, with a "re-record" instruction): `commit`, `files`,
 `requires`. These are facts about the corpus or about recognition coverage, not defect counts; a
@@ -184,10 +187,11 @@ the ignore list; until then the inventory is recorded but not read as a finding 
 | 10 | MAINT-33-05 | No Gradle properties | `./gradlew test` | No `*Corpus*` test executes; suite result unchanged |
 | 11 | MAINT-33-05 | `-PwithCorpus -PrecordCorpusBaseline` | `./gradlew test --tests *Corpus*` | `src/test/resources/corpus/{luacheck,luarocks}.baseline` written, and their content echoed to stdout |
 | 12 | MAINT-33-06 | luacheck corpus, baseline `LuaUndeclaredVariable=N` | Sweep observes `N+1` | Test fails naming `LuaUndeclaredVariable` |
-| 13 | MAINT-33-07 | luarocks corpus | Run the sweep | `ballast.unclaimed.tl=117` (whole-checkout count — 107 of them live *inside* `src/`, and are ballast because they are not `.lua`) and `ballast.unclaimed.ld=1` (`config.ld`); `tlconfig.lua` lands in `ballast.claimed.lua=1` — ballast because it is outside `roots`, claimed because `plugin.xml:99` registers `lua` |
-| 13b | MAINT-33-07 | luacheck corpus | Run the sweep | `ballast.claimed.rockspec=53` (whole-checkout count; 5 sit inside `spec/`), `ballast.claimed..luacheckrc` and `ballast.claimed..busted` present (claimed via `plugin.xml:99-100`); `ballast.unclaimed..luacov=1`; **`ballast.claimed.lua=3`** — `bin/luacheck.lua`, `build/bin/luacheck.lua` and `scripts/unicode_data_to_printability_module.lua`, all outside the `src,spec` roots. The `lua` group is per-project: luarocks has 1 (`tlconfig.lua`), luacheck has 3 |
-| 14 | MAINT-33-08 | KOReader corpus, fetched without submodules | Run the sweep | Sweep completes; a baseline is recorded; its `unresolvedRequires` floor is per-project, not shared |
+| 13 | MAINT-33-07 | luarocks corpus | Run the sweep | `ballast.unclaimed.tl=117` (whole-checkout count — 107 of them live *inside* `src/`, and are ballast because they are not `.lua`), `ballast.unclaimed.ld=1` (`config.ld`), `ballast.claimed.rockspec=31`, and `ballast.claimed.lua=1` (`tlconfig.lua` — ballast because it is outside `roots`, claimed because `plugin.xml:99` registers `lua`) |
+| 13b | MAINT-33-07 | luacheck corpus | Run the sweep | `ballast.claimed..luacheckrc=3` and `ballast.claimed..busted=1` (exact names, `plugin.xml:100`); `ballast.claimed.lua=3` (`bin/`, `build/bin/`, `scripts/` — outside the roots; the `lua` group is per-project, 1 for luarocks); `ballast.unclaimed.luacheckrc=18` — luacheck's `*_config.luacheckrc` fixtures, genuinely unsupported since only the exact name is registered; `ballast.unclaimed.rockspec=54` — **a false signal from the all-members rule**, see risks Gap 2.3 |
+| 14 | MAINT-33-08 | ZeroBrane Studio corpus (wxLua IDE, global-heavy 5.1) | Run the sweep | Sweep completes; a baseline is recorded; its floors are per-project, never a threshold shared with luacheck/luarocks |
 | 15 | MAINT-33-06 | luacheck corpus, manifest `luaLevel=LUA51` | Run the sweep | `LuaProjectSettings.getInstance(project).state.languageLevel == LuaLanguageLevel.LUA51` during the sweep; the recorded `inspection.LuaLanguageLevel` count is the 5.1 one, not the LUA54-default one |
+| 17 | MAINT-33-10 | ZeroBrane corpus, whose `LuaUndeclaredVariable` count is 1009 | Run the sweep | `symbol.LuaUndeclaredVariable.*` keys are recorded, at most 10 per inspection, and their sum is ≤ the inspection's own count; a symbol containing dots (`ide.config`) round-trips intact |
 | 16 | MAINT-33-09 | Any corpus project | Run the sweep | An advisory `[corpus:<name>] elapsedMs=<n>` line is printed; **no** `elapsed` key appears in the baseline and no comparison gates on it |
 
 ## Acceptance Criteria
@@ -200,7 +204,7 @@ the ignore list; until then the inventory is recorded but not read as a finding 
 - [ ] MAINT-33-06: TC 15 — the pinned `luaLevel` is in effect during the sweep.
 - [ ] MAINT-33-07: TC 13 and TC 13b — the inventory reports Teal, `ld` and `.luacov` as unclaimed
       and `rockspec`/`.luacheckrc`/`.busted` as claimed, with DR-05's ignore list applied.
-- [ ] MAINT-33-08: KOReader and ZeroBrane Studio have recorded baselines.
+- [ ] MAINT-33-08: ZeroBrane Studio has a recorded baseline.
 - [ ] MAINT-33-09: TC 16 — timing is printed as advisory output and never enters a baseline.
 - [ ] The full unit suite is green on the builder with and without `-PwithCorpus`.
 

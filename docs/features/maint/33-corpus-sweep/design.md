@@ -154,7 +154,6 @@ No production code ships. Everything lives in the test source set, `tooling/`, a
       override fun getTestDataPath(): String = System.getProperty("user.dir")
       @Test fun testLuacheckCorpus()
       @Test fun testLuarocksCorpus()
-      @Test fun testKoreaderCorpus()          // MAINT-33-08
       @Test fun testZerobraneCorpus()         // MAINT-33-08
 
       private fun sweepAndRatchet(name: String)   // calls CorpusGuards (§2.4a)
@@ -260,8 +259,19 @@ No production code ships. Everything lives in the test source set, `tooling/`, a
 - **Steps**:
   1. **Identity checks (caller, hard fail)**: `commit`, then `files`, then `requires`. Any
      mismatch fails with a specific message and the comparison is not attempted.
-  2. Build the gated pair list: `parseErrors`, `unresolvedRequires`, and one entry per key in
-     `baseline.inspectionHits ∪ observed.inspectionHits` (missing key ⇒ 0).
+  2. Build the gated pair list: `parseErrors`, `unresolvedRequires`, and — **conditionally** — one
+     entry per key in `baseline.inspectionHits ∪ observed.inspectionHits` (missing key ⇒ 0).
+     The condition (added 2026-08-03 after measurement, superseding the unconditional rule):
+     per-inspection keys are gated **only when both sides report `highlightFailures == 0`**.
+     While any file fails to highlight, only `highlightFailures` itself is gated and the rest are
+     advisory.
+     *Why:* BUG-390's `StackOverflowError` is stack-depth dependent, so which files abort
+     mid-highlight varies between runs and every count moves with them. Measured across two runs of
+     identical code: luarocks `LuaTypeAssignability` 1252 → 1280, `LuaUnusedLocal` 69 → 80,
+     `LuaShadowingVariable` 7 → 17. Gating those would make the corpus flaky, and a flaky gate gets
+     switched off — which costs more than the metric is worth. `highlightFailures` stays gated
+     because it is the number that must come down; when it reaches zero the full gate turns itself
+     back on with no further change.
   3. `regressions` = pairs where `observed > baseline`; `improvements` = pairs where
      `observed < baseline`. Both rendered as `"<metric>: baseline <b> → observed <o>"`.
   4. Print every improvement with a re-record instruction. Fail iff `regressions` is non-empty,
@@ -527,7 +537,7 @@ echoed baseline into `src/test/resources/corpus/` → commit. Later runs gate ag
 | Corpus legitimately re-pinned | `commit` identity check fails first, before any misleading metric delta. |
 | A metric improves | Printed as `IMPROVED`, does not fail — a fix and its baseline update may land in separate commits. |
 | Deliberately-malformed corpus files | Expected and baselined (`parseErrorFile` list); they form a non-zero floor. |
-| KOReader fetched without submodules | Its unresolved-`require` floor is inherently high; floors are **per project**, never a shared threshold. |
+| A project with an inherently high unresolved-`require` floor (ZeroBrane loads much of its tree via custom loaders) | Floors are **per project**, never a shared threshold. |
 | `PsiManager.findFile` returns null | File skipped and excluded from `files`; keeps `files` consistent with what was actually measured. |
 | Corpus grows past the rsync budget | Binary pruning + `.git` stripping; Risk 1.2. |
 
