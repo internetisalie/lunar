@@ -259,6 +259,21 @@ tasks {
                 isFailOnNoMatchingTests = false
             }
         }
+        // Corpus sweeps index whole pinned third-party projects (~300 files) and are far slower
+        // than the routine loop, so they are opt-in: `./gradlew test -PwithCorpus`. They also need
+        // the corpus fetched (tooling/corpus/fetch-corpus.sh) into the out-of-repo test/ tree,
+        // which a CI checkout does not have.
+        if (!project.hasProperty("withCorpus")) {
+            filter {
+                excludeTestsMatching("*Corpus*")
+                isFailOnNoMatchingTests = false
+            }
+        }
+        // Rewrite the recorded baselines instead of gating on them, for when a sweep legitimately
+        // moves (corpus re-pinned, or the plugin got better).
+        if (project.hasProperty("recordCorpusBaseline")) {
+            systemProperty("lunar.corpus.record", "true")
+        }
     }
 
     val integrationTest by intellijPlatformTesting.testIdeUi.registering {

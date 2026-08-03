@@ -1,0 +1,14 @@
+commit=990ec6ca3b097c7160fe925cfca4b8e57cfe5685
+files=159
+parseErrors=1
+requires=606
+unresolvedRequires=12
+inspection.LuaGlobalCreation=2
+inspection.LuaReturnTypeMismatch=117
+inspection.LuaShadowingVariable=17
+inspection.LuaSuspiciousConcatenation=56
+inspection.LuaTypeAssignability=1280
+inspection.LuaUndeclaredVariable=136
+inspection.LuaUnusedLocal=80
+inspection.highlightFailures=59
+parseErrorFile=src/luarocks/cmd.lua

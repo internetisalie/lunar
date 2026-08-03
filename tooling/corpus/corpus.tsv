@@ -1,0 +1,20 @@
+# Lunar corpus fixtures — real-world Lua projects swept by LuaCorpusSweepTest.
+#
+# Each row is a pinned upstream checkout fetched by fetch-corpus.sh into test/corpus/<name>.
+# Pin to release tags (resolved to their commit SHA), never to a moving branch: the sweep is a
+# ratchet against a recorded baseline, so the tree must be byte-identical across runs.
+#
+# NB: test/luacheck is a DIFFERENT tree — a clone of the internal glimmer/luacheck fork with
+# commits that do not exist upstream. It belongs to LuaRecursiveReferenceTest; do not conflate
+# the two.
+#
+# The optional 5th column deletes non-Lua ballast after checkout so the builder rsync stays cheap
+# (luarocks/win32 alone is 11 MB of vendored Windows binaries).
+#
+# The optional 6th column pins the Lua language level the sweep runs under. It matters beyond the
+# LuaLanguageLevel inspection: the level selects which stdlib globals are known, so an unpinned
+# level would make every inspection count a function of LuaProjectSettings' LUA54 default.
+#
+# name<TAB>url<TAB>commit<TAB>roots<TAB>prune<TAB>luaLevel  (roots/prune comma-separated)
+luacheck	https://github.com/lunarmodules/luacheck.git	cc089e3f65acdd1ef8716cc73a3eca24a6b845e4	src,spec		LUA51
+luarocks	https://github.com/luarocks/luarocks.git	990ec6ca3b097c7160fe925cfca4b8e57cfe5685	src,spec	win32	LUA51
