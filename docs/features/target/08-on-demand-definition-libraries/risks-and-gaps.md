@@ -44,7 +44,27 @@ title: "Risks & Gaps"
 - **Resolved by**: scoped out; documented in Future Work.
 
 ## Technical Debt & Future Work
-- **TBD: Browsable / searchable catalog** — a Plugins-page-style browse+install UI over a larger catalog, and/or auto-suggesting libraries from a project's unresolved `require` calls. Deferred; the graduation trigger below.
+- **TBD: Browsable / searchable catalog** — a Plugins-page-style browse+install UI over a larger catalog. Deferred; the graduation trigger below.
+- **TBD: Addon auto-detection — the follow-up that turns TARGET-08 from a capability into a fix
+  (flagged 2026-08-03, needs investigation).** TARGET-08 ships enablement, not improvement: nothing
+  changes for a project until a user ticks a library. The MAINT-33 corpus quantifies what that
+  leaves on the table — **1507 of 1569 (96%)** `LuaUndeclaredVariable` hits across luarocks and
+  luacheck are busted globals (`describe`, `it`, `before_each`, `after_each`, `finally`,
+  `lazy_setup`, `lazy_teardown`, `pending`); per project, luarocks 937/954 and luacheck 570/615.
+  These are `level="ERROR"` and `enabledByDefault`, so any project with a busted suite opens as a
+  wall of red until someone finds the setting.
+  - **Investigate, do not assume**: detection signal (unresolved `require "busted"`? a `spec/`
+    tree? a `.busted` config? the rockspec's `test_dependencies`?), and what auto-detection *does*
+    once it fires — silently enable (surprising, and it triggers a network fetch), suggest via a
+    notification/banner, or offer a quick fix on the first false positive.
+  - **A cheaper alternative exists and should be priced first**: teaching `LuaUndeclaredVariable`
+    about test-framework globals directly, the way stdlib globals already work. That removes the
+    same 96% with no catalog, no fetch, and no UI — but it hard-codes a framework list into an
+    inspection rather than deriving it from definitions, so it trades correctness-by-construction
+    for immediacy. The two are not mutually exclusive.
+  - **Measurement caveat**: the corpus probably *cannot* verify either fix as-is — the sweep runs
+    headless with no network and no enable list, so the `LuaUndeclaredVariable` floor will not move
+    unless the fixture pre-seeds a cached definition tree. Establish that before claiming a number.
 - **TBD: Arbitrary user-supplied definition sources** — direct git/URL/local-path entries beyond the bundled catalog.
 - **TBD: Cache management** — eviction, "clear cache", size reporting.
 - **TBD: Auto-update** — catalog versions are pinned; bumping is a plugin update in v1.
