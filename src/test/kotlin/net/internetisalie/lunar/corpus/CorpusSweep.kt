@@ -96,18 +96,24 @@ object CorpusSweep {
      */
     private fun ballast(checkoutDir: File, entry: CorpusEntry): Map<String, BallastGroup> {
         val rootPaths = entry.roots.map { File(checkoutDir, it).canonicalPath }
-        val counts = mutableMapOf<String, Int>()
-        val unclaimed = mutableSetOf<String>()
+        val groups = mutableMapOf<String, BallastGroup>()
         checkoutDir.walkTopDown()
             .onEnter { it.name != ".git" }
             .filter { it.isFile && it.name != ".corpus-sha" }
             .filterNot { it.extension == "lua" && rootPaths.any { root -> it.canonicalPath.startsWith("$root/") } }
             .forEach { file ->
                 val key = groupKey(file.name)
-                counts[key] = (counts[key] ?: 0) + 1
-                if (!isClaimed(file.name)) unclaimed += key
+                val running = groups[key] ?: BallastGroup(0, 0)
+                // Counted per member, never flagged for the group: one unrecognised file must not
+                // hide its claimed siblings. `groupKey` files an extensionless `rockspec` under the
+                // same key as `*.rockspec`, which is exactly how that used to happen.
+                groups[key] = if (isClaimed(file.name)) {
+                    running.copy(claimed = running.claimed + 1)
+                } else {
+                    running.copy(unclaimed = running.unclaimed + 1)
+                }
             }
-        return counts.mapValues { (key, count) -> BallastGroup(count, key !in unclaimed) }
+        return groups
     }
 
     /**

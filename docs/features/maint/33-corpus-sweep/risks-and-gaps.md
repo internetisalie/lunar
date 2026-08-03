@@ -143,20 +143,28 @@ folders:
   deliberately ships no fixes, so that the ratchet's floor and the fixes are reviewable apart.
 - **TBD: Unresolved qualified-name references** — a natural third defect metric (`a.b.c` that
   resolves to nothing), deferred to keep Phase 1 small.
-- **OPEN: the ballast `claimed` flag is all-or-nothing, and it hides groups (DR-05 residual).**
-  `CorpusSweep.ballast` marks a group claimed only when **every** member is claimed, so a single
-  unrecognised file flips the whole group. On luacheck that turns 54 `.rockspec` files into
-  `ballast.unclaimed.rockspec=54`, which reads as "Lunar claims no rockspecs" when it claims all
-  but one. This is what fails verification Scenario 4.1.
-  - **Impact**: reporting only — ballast is advisory and ungated (§3.2), so no gate is wrong and no
-    baseline is unsafe. But MAINT-33-07 exists to surface *integration candidates*, and a rule that
-    can hide 54 claimed files with one outlier undermines exactly that.
-  - **Fix**: count unclaimed members rather than flipping the group — `ballast.<key>` with a
-    claimed/unclaimed split, or a `claimed=53/54` form. Changes the baseline format, so it costs a
-    re-record of all three projects.
-  - **Also**: Scenario 4.1's expected `claimed.rockspec=53` does not match the observed total of
-    54 either, so the checklist's expected values were projected rather than measured. Re-derive
-    them from a recorded baseline when fixing the rule.
+- **RESOLVED 2026-08-03: the ballast `claimed` flag was all-or-nothing and hid groups (DR-05
+  residual).** `CorpusSweep.ballast` marked a group claimed only when **every** member was claimed,
+  so one unrecognised file flipped the whole group. That is what failed verification Scenario 4.1.
+  - **The outlier was `luacheck/spec/folder/rockspec`** — a file literally named `rockspec`, with no
+    extension. `groupKey` returns the whole filename when there is no dot and the bare extension
+    otherwise, so extensionless `rockspec` collides with the `*.rockspec` extension group: 53 real
+    rockspecs + 1 extensionless file = the observed 54, all reported unclaimed. Lunar claims
+    `.rockspec` perfectly well (`plugin.xml:99`, `extensions="lua;rockspec"`); the inventory was
+    misreporting it.
+  - **Scenario 4.1's expected `claimed.rockspec=53` was right all along** — an earlier revision of
+    this file wrongly called it "projected rather than measured". It was measured; the
+    implementation was wrong.
+  - **Fix**: `BallastGroup` now carries `claimed`/`unclaimed` *counts* rather than a flag, and a
+    mixed group renders both rows under the same key (`ballast.claimed.rockspec=53` +
+    `ballast.unclaimed.rockspec=1`). No key renaming, so groups with a uniform disposition render
+    exactly as before; parsing folds the two rows instead of letting the later win. Regression test:
+    `BaselineRatchetTest.mixedBallastGroupReportsBothDispositions`.
+  - **Impact was reporting-only** — ballast is advisory and ungated (§3.2), so no gate was ever
+    wrong and no baseline was unsafe.
+  - **Still open (small)**: the key namespace itself still conflates "whole filename" with
+    "extension", so an extensionless `foo` and a `*.foo` group share a key. Now visible rather than
+    silently destructive, but a future `groupKey` could separate the two namespaces.
 
 - **TBD: KOReader — MEASURED and parked on runtime alone (2026-08-03)**. Admitted at `v2026.07.2`
   (`f1371f25`), swept once end-to-end, then reverted. The estimates this was originally deferred on

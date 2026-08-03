@@ -88,8 +88,8 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         observed.inspectionHits.toSortedMap().forEach { (id, count) ->
             println("[corpus:$name] inspection $id=$count")
         }
-        observed.ballast.toSortedMap().filterValues { !it.claimed }.forEach { (key, group) ->
-            println("[corpus:$name] unclaimed ballast $key=${group.count}")
+        observed.ballast.toSortedMap().filterValues { it.unclaimed > 0 }.forEach { (key, group) ->
+            println("[corpus:$name] unclaimed ballast $key=${group.unclaimed}")
         }
         observed.parseErrorFiles.forEach { println("[corpus:$name] parse errors in $it") }
     }

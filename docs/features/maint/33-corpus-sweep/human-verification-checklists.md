@@ -12,18 +12,19 @@ folders:
 This feature ships no UI, so these are operator checks rather than IDE scenarios: they confirm the
 gate behaves correctly for a human running it, and that it is genuinely inert for everyone else.
 
-> **Run 2026-08-03 — 11 Pass, 1 Fail.** Evidence is recorded inline per scenario rather than
-> asserted: counts come from `build/test-results/test/*.xml` on the builder, never from a
-> `BUILD SUCCESSFUL` banner (Risk 1.3).
+> **Run 2026-08-03 — 12 Pass, 0 Fail** (initially 11/1; see 4.1). Evidence is recorded inline per
+> scenario rather than asserted: counts come from `build/test-results/test/*.xml` on the builder,
+> never from a `BUILD SUCCESSFUL` banner (Risk 1.3).
 >
 > - **2.3 and 2.4 were verified via their automated equivalents**, not the operator steps. Both are
 >   `BaselineRatchetTest` cases asserting the same messages against a synthetic `repoRoot`; the
 >   scenarios are marked accordingly rather than claimed as hand-run.
 > - **3.2 was verified by inspection** of `build-plugin.yml`, not by pushing — nothing is pushed yet.
-> - **4.1 FAILS.** The ballast inventory disagrees with this checklist on luacheck's `.rockspec`
->   group: expected `claimed=53`, actual `unclaimed=54`. It is a reporting-actionability defect in
->   an *advisory, ungated* metric, not a gate failure — recorded as the DR-05 residual in
->   risks-and-gaps rather than silently accepted.
+> - **4.1 failed on the first run and the code was fixed, not the expectation.** The inventory
+>   reported `ballast.unclaimed.rockspec=54` where this checklist specified `claimed=53`. Root cause:
+>   `spec/folder/rockspec` is extensionless, so `groupKey` filed it under the same key as the 53 real
+>   `*.rockspec`, and the all-or-nothing `claimed` flag let one file hide all 53. `BallastGroup` now
+>   carries per-member counts. The checklist's `53` was right; the implementation was wrong.
 
 ## 1. Provisioning
 
@@ -132,7 +133,7 @@ gate behaves correctly for a human running it, and that it is genuinely inert fo
   (`md`, `yml`, … — unclaimed only because the fixture lacks the bundled plugins) are excluded from
   interpretation. Each remaining unclaimed group has either a filed feature or a written rationale
   for ignoring it.
-- **Result**: ☒ **FAIL** (2026-08-03) — the inventory is produced and is largely actionable (luarocks `ballast.unclaimed.tl=117`, `ballast.unclaimed.ld=1`, `ballast.claimed.lua=1`; luacheck `ballast.claimed.lua=3`, `ballast.unclaimed..luacov=1` all match). But this scenario expects luacheck `ballast.claimed.rockspec=53` and the baseline records **`ballast.unclaimed.rockspec=54`** — wrong disposition *and* wrong count. Cause: `CorpusSweep.ballast` marks a group claimed only when **every** member is claimed, so one unrecognised file flips all 54 `.rockspec` to unclaimed and hides them. See the DR-05 residual in risks-and-gaps; the expected `53` also looks projected rather than measured.
+- **Result**: ☑ **Pass** (2026-08-03, after fixing the ballast rule) — luarocks `ballast.unclaimed.tl=117`, `ballast.unclaimed.ld=1` (`config.ld`), `ballast.claimed.lua=1` (`tlconfig.lua`), `ballast.claimed.rockspec=31`; luacheck `ballast.claimed.lua=3`, `ballast.unclaimed..luacov=1`, `ballast.claimed..luacheckrc`/`ballast.claimed..busted`, and **`ballast.claimed.rockspec=53`** as specified. This scenario originally FAILED with `ballast.unclaimed.rockspec=54`: `spec/folder/rockspec` is extensionless, so `groupKey` filed it under the same key as the 53 real `*.rockspec`, and the all-or-nothing `claimed` flag let that one file hide all 53. `BallastGroup` now carries per-member counts, so the group reports `claimed=53` **and** `unclaimed=1`. The expected `53` in this checklist was correct all along.
 
 ### Scenario 4.2: Non-zero floors are triaged, not accepted
 - **Steps**:

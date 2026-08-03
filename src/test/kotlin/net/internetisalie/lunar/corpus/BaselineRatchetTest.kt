@@ -52,9 +52,9 @@ class BaselineRatchetTest {
         ).copy(
             symbolHits = mapOf("LuaUndeclaredVariable.wx" to 812, "LuaUndeclaredVariable.ide.config" to 9),
             ballast = mapOf(
-                "tl" to BallastGroup(117, claimed = false),
-                "rockspec" to BallastGroup(53, claimed = true),
-                ".luacov" to BallastGroup(1, claimed = false),
+                "tl" to BallastGroup(claimed = 0, unclaimed = 117),
+                "rockspec" to BallastGroup(claimed = 53, unclaimed = 1),
+                ".luacov" to BallastGroup(claimed = 0, unclaimed = 1),
             ),
         )
         assertEquals(original, CorpusBaseline.parse(CorpusBaseline.render(original)))
@@ -70,8 +70,8 @@ class BaselineRatchetTest {
         val rendered = CorpusBaseline.render(
             metrics().copy(
                 ballast = mapOf(
-                    ".luacov" to BallastGroup(1, claimed = false),
-                    "config.ld" to BallastGroup(2, claimed = true),
+                    ".luacov" to BallastGroup(claimed = 0, unclaimed = 1),
+                    "config.ld" to BallastGroup(claimed = 2, unclaimed = 0),
                 ),
             ),
         )
@@ -80,8 +80,8 @@ class BaselineRatchetTest {
             rendered.contains("ballast.unclaimed..luacov=1"),
         )
         val parsed = CorpusBaseline.parse(rendered).ballast
-        assertEquals(BallastGroup(1, claimed = false), parsed[".luacov"])
-        assertEquals(BallastGroup(2, claimed = true), parsed["config.ld"])
+        assertEquals(BallastGroup(claimed = 0, unclaimed = 1), parsed[".luacov"])
+        assertEquals(BallastGroup(claimed = 2, unclaimed = 0), parsed["config.ld"])
     }
 
     /**
@@ -104,12 +104,38 @@ class BaselineRatchetTest {
         assertEquals(original.symbolHits, CorpusBaseline.parse(CorpusBaseline.render(original)).symbolHits)
     }
 
+    /**
+     * A mixed group reports BOTH dispositions. luacheck's `spec/folder/rockspec` is extensionless,
+     * so `groupKey` files it under the same `rockspec` key as 53 real `*.rockspec` — under the old
+     * all-or-nothing flag that one file turned the group unclaimed and hid all 53, reading as
+     * "Lunar claims no rockspecs".
+     */
+    @Test
+    fun mixedBallastGroupReportsBothDispositions() {
+        val rendered = CorpusBaseline.render(
+            metrics().copy(ballast = mapOf("rockspec" to BallastGroup(claimed = 53, unclaimed = 1))),
+        )
+        assertTrue(
+            "The claimed majority must stay visible, got:\n$rendered",
+            rendered.contains("ballast.claimed.rockspec=53"),
+        )
+        assertTrue(
+            "The unclaimed outlier must stay visible, got:\n$rendered",
+            rendered.contains("ballast.unclaimed.rockspec=1"),
+        )
+        // Two rows, one key: parsing must fold rather than let the later row win.
+        assertEquals(
+            BallastGroup(claimed = 53, unclaimed = 1),
+            CorpusBaseline.parse(rendered).ballast["rockspec"],
+        )
+    }
+
     /** Ballast is a discovery signal, not a defect count — a new unclaimed group must not fail. */
     @Test
     fun ballastIsReportedNeverGated() {
         val comparison = CorpusBaseline.compare(
             metrics().copy(ballast = emptyMap()),
-            metrics().copy(ballast = mapOf("tl" to BallastGroup(117, claimed = false))),
+            metrics().copy(ballast = mapOf("tl" to BallastGroup(claimed = 0, unclaimed = 117))),
         )
         assertTrue(comparison.regressions.isEmpty())
         assertTrue(comparison.improvements.isEmpty())

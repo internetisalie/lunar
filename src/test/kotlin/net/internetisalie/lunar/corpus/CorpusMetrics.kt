@@ -49,12 +49,17 @@ data class CorpusMetrics(
 }
 
 /**
- * One ballast group: how many files share the key, and whether the IDE claims that file name.
+ * One ballast group: how many of its files the IDE claims, and how many it does not.
  *
- * A group is [claimed] only when *every* member is claimed — the conservative direction, since the
- * inventory exists to surface integration candidates.
+ * Split per member rather than flagged for the whole group. An all-or-nothing flag let a single
+ * unrecognised file hide every claimed sibling: luacheck's `spec/folder/rockspec` — extensionless,
+ * so [CorpusSweep.groupKey] files it under the same `rockspec` key as 53 real `*.rockspec` — turned
+ * the whole group unclaimed, reading as "Lunar claims no rockspecs" when it claims all but one.
+ * That defeats the point of an inventory whose job is surfacing integration candidates.
  */
-data class BallastGroup(val count: Int, val claimed: Boolean)
+data class BallastGroup(val claimed: Int, val unclaimed: Int) {
+    val count: Int get() = claimed + unclaimed
+}
 
 /** A ratchet verdict: what got worse (fails the test) and what got better (prompts a re-record). */
 data class CorpusComparison(
@@ -98,9 +103,11 @@ object CorpusBaseline {
         metrics.symbolHits.toSortedMap().forEach { (key, count) ->
             appendLine("$SYMBOL_PREFIX$key=$count")
         }
+        // Up to two lines per key: a group with a mixed disposition reports both, so a claimed
+        // majority is never hidden by one unclaimed sibling.
         metrics.ballast.toSortedMap().forEach { (key, group) ->
-            val flag = if (group.claimed) "claimed" else "unclaimed"
-            appendLine("$BALLAST_PREFIX$flag.$key=${group.count}")
+            if (group.claimed > 0) appendLine("${BALLAST_PREFIX}claimed.$key=${group.claimed}")
+            if (group.unclaimed > 0) appendLine("${BALLAST_PREFIX}unclaimed.$key=${group.unclaimed}")
         }
         metrics.parseErrorFiles.forEach { appendLine("parseErrorFile=$it") }
     }
@@ -129,11 +136,19 @@ object CorpusBaseline {
             symbolHits = rows
                 .filter { it.first.startsWith(SYMBOL_PREFIX) }
                 .associate { it.first.removePrefix(SYMBOL_PREFIX) to it.second.toInt() },
+            // Folded, not associated: a mixed group contributes a claimed *and* an unclaimed row
+            // under the same key, and `associate` would keep only the last.
             ballast = rows
                 .filter { it.first.startsWith(BALLAST_PREFIX) }
-                .associate { (key, value) ->
+                .fold(mutableMapOf<String, BallastGroup>()) { acc, (key, value) ->
                     val (groupKey, claimed) = parseBallastKey(key)
-                    groupKey to BallastGroup(value.toInt(), claimed)
+                    val running = acc[groupKey] ?: BallastGroup(0, 0)
+                    acc[groupKey] = if (claimed) {
+                        running.copy(claimed = running.claimed + value.toInt())
+                    } else {
+                        running.copy(unclaimed = running.unclaimed + value.toInt())
+                    }
+                    acc
                 },
         )
     }
