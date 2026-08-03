@@ -109,6 +109,27 @@ class TestLuaParsingExhaustive : BaseDocumentTest() {
         cases.forEach { doTest(it) }
     }
 
+    /**
+     * BUG-392. A long string opening on a blank line lexed as `[[\n` plus loose body tokens, so
+     * any construct containing one failed to parse. Reference Lua accepts every case here.
+     */
+    @Test
+    fun testLongStringOpeningOnBlankLine() {
+        val cases = listOf(
+            "s = [[\n\n]]",
+            "s = [[\n\nbody]]",
+            "s = [[\n\n\n\nbody\n]]",
+            "s = [=[\n\nbody]=]",
+            "s = --[[\n\ncomment\n]]\n1",
+            "t = { description = [[\n\ntext]], }",
+            "f({ d = [[\n\na]] .. x .. [[b]] })",
+            // The luarocks cmd.lua shape this was found in: a chained call whose table argument
+            // holds a spliced long string that opens on a blank line.
+            "local function p()\n  a(1):b({ d = [[\n\nx]] .. y .. [[z]], }):c(false)\nend",
+        )
+        cases.forEach { doTest(it) }
+    }
+
     @Test
     fun testValidAmbiguities() {
         val cases = listOf(

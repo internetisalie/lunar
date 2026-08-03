@@ -102,6 +102,30 @@ class TestLuaLexer {
                     Token(0, "[[Lin[=[inside]=]ks]]", LuaElementTypes.STRING),
                 ),
             ),
+            // BUG-392: the lexer stays in XLONGSTRING_BEGIN across a run of newlines, emitting one
+            // NL_BEFORE_LONGSTRING each. The merge used to consume only the first, ending the
+            // STRING at `[[\n` and leaking the body as tokens the grammar cannot parse.
+            TestCase(
+                "opening-blank-line",
+                "[[\n\nLinks]]",
+                listOf(
+                    Token(0, "[[\n\nLinks]]", LuaElementTypes.STRING),
+                ),
+            ),
+            TestCase(
+                "only-blank-lines",
+                "[[\n\n]]",
+                listOf(
+                    Token(0, "[[\n\n]]", LuaElementTypes.STRING),
+                ),
+            ),
+            TestCase(
+                "many-opening-newlines",
+                "[=[\n\n\n\nLinks]=]",
+                listOf(
+                    Token(0, "[=[\n\n\n\nLinks]=]", LuaElementTypes.STRING),
+                ),
+            ),
         )
     }
 

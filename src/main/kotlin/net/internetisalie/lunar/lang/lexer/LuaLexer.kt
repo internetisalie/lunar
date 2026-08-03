@@ -123,8 +123,12 @@ class LongStringMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(o
 
             delegate.advance()
 
-            // Consume the leading newline
-            if (delegate.tokenType == LuaTokenTypes.NL_BEFORE_LONGSTRING) {
+            // Consume the leading newlines. `lua.flex`'s XLONGSTRING_BEGIN state returns
+            // NL_BEFORE_LONGSTRING *without leaving the state*, so `[[` followed by a blank line
+            // yields one such token per newline, not one in total. Stopping after the first ends
+            // the merged STRING at `[[\n` and leaks the body as raw LONGSTRING / LONGSTRING_END
+            // tokens the grammar has no rule for (BUG-392).
+            while (delegate.tokenType == LuaTokenTypes.NL_BEFORE_LONGSTRING) {
                 delegate.advance()
             }
 
