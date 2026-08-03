@@ -10,6 +10,31 @@ folders:
 
 # BUG-391: Globals assigned in one project file are reported undeclared in another
 
+> **RESOLVED 2026-08-03.** Root cause was narrower than this report first guessed: the data was
+> already indexed. `LuaNameReference` Phase 2 resolves external names through platform library files
+> and files reachable by `require` **from the current file** only — but a Lua global is visible
+> everywhere once assigned, regardless of `require`.
+>
+> Fixed by adding `LuaGlobalAssignmentIndex` + `LuaGlobalAssignmentNavigation`, siblings of the
+> existing NAV-12 `LuaMemberFieldIndex`/`Navigation` pair which already handled the dotted
+> `receiver.field = value` case. Consulted as the final fallback in the bare-name branch.
+>
+> Two constraints keep it from over-reaching: only **file-scope** assignments are indexed (a nested
+> one may write to an enclosing local, and an indexer must not attempt scope resolution), and names
+> also declared `local` at file scope are excluded (`local x` then `x = 2` is a local write). It is
+> consulted for **read** uses only — a write target must keep resolving to nothing, since it is the
+> site that creates the global.
+>
+> **Measured on the corpus:** ZeroBrane `LuaUndeclaredVariable` **3202 → 1815** (−43%), luacheck
+> 624 → 615, and luacheck `LuaTypeAssignability` 462 → 449 as a knock-on. `ID` and `ide` vanish from
+> the per-symbol breakdown entirely; what remains is `wx` (1441), `wxstc` (254), `wxaui` (50),
+> `bit` (47), `jit` (3), `winapi` (9) — all genuine missing-definitions cases, not resolution
+> failures. The estimate in §3 below (391 warnings) was low by 3.5x because the per-symbol
+> breakdown caps at ten symbols per inspection, hiding the long tail of other project globals.
+>
+> Regression test: `LuaCrossFileGlobalResolutionTest` (7 cases, 4 of them proving the fix does not
+> over-reach).
+
 `LuaUndeclaredVariable` flags uses of a global that is plainly assigned at top level in another
 file of the *same* project — a file Lunar has indexed. The result is a wall of false errors in any
 codebase that shares state through globals, which is a normal Lua idiom.

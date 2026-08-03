@@ -18,11 +18,13 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaIndexExpr
+import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.lang.psi.LuaVarList
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaResolveUtil
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVarSuffix
+import net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaNameReference(element: PsiElement, textRange: TextRange) :
@@ -109,7 +111,31 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
             results.add(PsiElementResolveResult(decl))
         }
 
+        // BUG-391: a bare global assigned at file scope anywhere in the project. The queries above
+        // reach only platform libraries and files this one `require`s, but a Lua global is visible
+        // everywhere once assigned — sharing an application object through a global is idiomatic,
+        // and without this every such use was reported undeclared.
+        //
+        // READ uses only. A write target (`x = 1`) must keep resolving to nothing: it is the site
+        // that *creates* the global, so letting it resolve — to itself, or to a later assignment of
+        // the same name — would make `x = 1` look already-declared. That silently suppressed the
+        // "Create local variable" intention and stopped LuaGlobalCreationInspection seeing a
+        // creation at all.
+        if (!isBareWriteTarget(element)) {
+            LuaGlobalAssignmentNavigation.find(project, referenceName, scope).forEach { target ->
+                if (target != element && target.parent != element) {
+                    results.add(PsiElementResolveResult(target))
+                }
+            }
+        }
+
         return results.distinctBy { it.element }.toTypedArray()
+    }
+
+    /** `x` in `x = 1` — the assignment target itself, as opposed to a read of `x`. */
+    private fun isBareWriteTarget(element: PsiElement): Boolean {
+        val luaVar = element.parent as? LuaVar ?: return false
+        return luaVar.varSuffixList.isEmpty() && luaVar.parent is LuaVarList
     }
 
     private fun getQualifiedName(element: PsiElement): String? {

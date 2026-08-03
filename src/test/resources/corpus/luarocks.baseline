@@ -86,4 +86,4 @@ ballast.claimed.txt=1
 ballast.unclaimed.windows=1
 ballast.unclaimed.yml=2
 ballast.claimed.zip=4
-parseErrorFile=src/luarocks/cmd.lua
+parseErrorFile=src/luarocks/cmd.lua:439:LuaTokenType.( expected, got '('
