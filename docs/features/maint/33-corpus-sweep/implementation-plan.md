@@ -13,6 +13,17 @@ Phase 1 exists as a working prototype (built and run on the builder, 2 tests / 0
 baselines recorded). It is listed here as a phase because it still needs the full-suite gate and
 the review that the prototype skipped — not because it is unwritten.
 
+> **All six phases shipped (2026-08-03); the feature is `done`.** The task checkboxes below were
+> never ticked as work proceeded and are deliberately left as authored rather than back-filled —
+> ticking forty boxes retrospectively would assert a per-item verification that did not happen.
+> What *was* verified, with evidence, is recorded in
+> [human-verification-checklists.md](human-verification-checklists.md) (run 2026-08-03: 11 pass,
+> 1 fail) and in the DR table in [risks-and-gaps.md](risks-and-gaps.md).
+>
+> Two Phase 5 tasks were **consciously dropped, not completed**: pinning KOReader and adding
+> `testKoreaderCorpus`. KOReader was admitted, swept once and reverted on sweep time — see the
+> KOReader entry in risks-and-gaps. TC 14 (KOReader sweep) is therefore not covered.
+
 ## Phases
 
 ### Phase 1: Provisioning + Defect Sweep + Ratchet [Must]

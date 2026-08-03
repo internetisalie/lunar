@@ -143,6 +143,21 @@ folders:
   deliberately ships no fixes, so that the ratchet's floor and the fixes are reviewable apart.
 - **TBD: Unresolved qualified-name references** — a natural third defect metric (`a.b.c` that
   resolves to nothing), deferred to keep Phase 1 small.
+- **OPEN: the ballast `claimed` flag is all-or-nothing, and it hides groups (DR-05 residual).**
+  `CorpusSweep.ballast` marks a group claimed only when **every** member is claimed, so a single
+  unrecognised file flips the whole group. On luacheck that turns 54 `.rockspec` files into
+  `ballast.unclaimed.rockspec=54`, which reads as "Lunar claims no rockspecs" when it claims all
+  but one. This is what fails verification Scenario 4.1.
+  - **Impact**: reporting only — ballast is advisory and ungated (§3.2), so no gate is wrong and no
+    baseline is unsafe. But MAINT-33-07 exists to surface *integration candidates*, and a rule that
+    can hide 54 claimed files with one outlier undermines exactly that.
+  - **Fix**: count unclaimed members rather than flipping the group — `ballast.<key>` with a
+    claimed/unclaimed split, or a `claimed=53/54` form. Changes the baseline format, so it costs a
+    re-record of all three projects.
+  - **Also**: Scenario 4.1's expected `claimed.rockspec=53` does not match the observed total of
+    54 either, so the checklist's expected values were projected rather than measured. Re-derive
+    them from a recorded baseline when fixing the rule.
+
 - **TBD: KOReader — MEASURED and parked on runtime alone (2026-08-03)**. Admitted at `v2026.07.2`
   (`f1371f25`), swept once end-to-end, then reverted. The estimates this was originally deferred on
   were half wrong, so the real numbers are recorded here rather than re-guessed later:
@@ -181,7 +196,7 @@ folders:
 | MAINT-33-00-DR-02 | Confirm `getInspectionToolId()` is actually *populated* for `LocalInspectionTool` infos in a headless fixture, and measure how many land in `unattributed` on one corpus project | Gap 2.1 residual | todo |
 | MAINT-33-00-DR-03 | Record ZeroBrane's `LuaUndeclaredVariable` count before baselining; decide keep-vs-exclude | Gap 2.2 | todo |
 | MAINT-33-00-DR-04 | Confirm KOReader's on-disk size after a submodule-less depth-1 fetch and binary pruning, against the ~50 MB budget | Risk 1.2 | **done 2026-08-03 — PASS**: 12 MB pruned, 23 MB corpus total |
-| MAINT-33-00-DR-05 | Dump the `FileTypeManager` registrations visible inside the sweep fixture; derive the ignore list of groups unclaimed purely by fixture artefact | Gap 2.3 | todo |
+| MAINT-33-00-DR-05 | Dump the `FileTypeManager` registrations visible inside the sweep fixture; derive the ignore list of groups unclaimed purely by fixture artefact | Gap 2.3 | **residual — see below** |
 | MAINT-33-00-DR-06 | Measure `copyDirectoryToProject` + indexing cost for a KOReader-sized tree (~10× the current 291 files) | Risk 1.5 | **done 2026-08-03 — FAIL**: 477 files swept in 609 s; four-project total 14 m 39 s vs the 10-minute ceiling. It scales (no failure, no blow-up), it is simply too slow to admit |
 | MAINT-33-00-DR-07 | Confirm the two derived inspection ids (`LuaTypeAssignability`, `LuaReturnTypeMismatch`) against the first recorded baseline, rather than trusting `InspectionProfileEntry.getShortName`'s suffix-stripping blind | Gap 2.4 | todo |
 

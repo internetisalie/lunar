@@ -3,7 +3,7 @@ id: "MAINT-33"
 title: "33: Corpus Sweep — Regression Ratchet Across Pinned Real-World Lua Projects"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -35,7 +35,8 @@ Parent epic: [MAINT](../requirements.md).
   file inventory across each corpus project.
 - A ratchet gate: fail on regression, report improvements, hard-fail if the checkout drifted.
 - Opt-in execution on the builder, excluded from the routine `test` loop and from CI.
-- Expansion of the corpus from 2 to 3 projects (ZeroBrane Studio). KOReader is deferred — see risks-and-gaps "Technical Debt & Future Work".
+- Expansion of the corpus from 2 to 3 projects (ZeroBrane Studio). KOReader was admitted, measured
+  and parked on sweep time — see risks-and-gaps "Technical Debt & Future Work" for the numbers.
 
 ### Out of Scope
 - Fixing anything the sweep finds. Findings are filed as separate `BUG-*` reports (BUG-389 is the
