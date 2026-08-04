@@ -65,3 +65,41 @@ package.path = "..."..package.path
        configured file — it would not catch a duplicate that only appears after a document change.
   - This reproduction has the **string literal on the left** of the concat (`"..."..package.path`),
     whereas BUG-353 had `package.path` on the left (`package.path .. ";…"`). Both forms flag.
+
+## 4. Root cause (established 2026-08-04) — this is BUG-397, not its own defect
+
+Still reproduces after the TARGET-08 scope work. Probed directly:
+
+```
+highlights = [nil value is not assignable to string]
+rhs  '"..."..package.path'  -> String     ← the concat is inferred correctly
+lhs  'package.path'         -> Undefined  ← the assignment target has no type at all
+resolveGlobal("package")    -> [loaded, searchers, path, cpath, preloaded, loadlib, searchpath]
+```
+
+So the RHS is fine and the **LHS is `Undefined`**: assigning a `String` into a slot the engine
+believes is nothing produces "nil value is not assignable to string". The information needed is
+already reachable — `resolveGlobal("package")` returns the members, `path` among them — but
+`LuaTypesVisitor.visitNameRef` deliberately does **not** consult it, so the type engine stays
+file-local for free globals. That restraint is [[397-free-globals-untyped-for-the-engine|BUG-397]],
+recorded in `visitNameRef`'s KDoc. **Fixing BUG-397 fixes this; there is nothing separate to fix.**
+
+Two things fall out of that and should not be lost:
+
+- **`DuplicateNilAssignabilityTest` currently pins the false positive as expected behaviour.** It
+  asserts the message is surfaced *exactly once* — the duplicate-reporting concern — which requires
+  it to be surfaced at all. When BUG-397 lands, that assertion must be inverted to zero, or it will
+  fail and read as a regression when it is the fix.
+- **The earlier BUG-397 evidence was wrong on one of its four items.** The reverted experiment was
+  recorded as regressing four suites, one being "a genuine nil-assignability error stopped being
+  reported". It was not genuine — it was *this* false positive disappearing. BUG-397's real
+  regression budget is three suites, and one of its effects is closing this bug.
+
+**Secondary finding, unrelated to the fix but worth knowing:** `resolveType("package")` returns
+null, and so do `math` and `io`. `LuaClassNameIndex` is a stub index over `LuaLocalVarDecl`, but the
+stdlib stubs declare their classes on a bare **global assignment** (`---@class package` above
+`package = {}`), which is not a stubbed PSI type — so no stdlib `---@class` is nominally resolvable.
+`string` and `table` *appear* to resolve only because `resolveType` checks `LuaPrimitiveType.PRIMITIVES`
+first and those names collide with primitives. Nothing here depends on that path today (members come
+through the graph), but any future feature reaching for the nominal type of a stdlib class will find
+nothing.
