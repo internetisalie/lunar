@@ -37,7 +37,9 @@ import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 import net.internetisalie.lunar.lang.psi.LuaStatement
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
+import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
+import net.internetisalie.lunar.lang.psi.types.VariableNode
 import net.internetisalie.lunar.settings.LuaEditorOptions
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
@@ -84,6 +86,35 @@ class LuaCompletionContributor : CompletionContributor() {
             PsiDocumentManager.getInstance(context.project).commitDocument(context.document)
             LuaKeywordBlockCloser.closeIfNeeded(context.editor, file, context.tailOffset)
         }
+
+        /**
+         * BUG-395: the members of a global the current file never declares — a bundled stdlib stub's
+         * `table`, a definition library's `assert`, a project-wide `Lib = {}`.
+         *
+         * The type graph is built one file at a time, so such a receiver has no in-file node and the
+         * member list came back empty. [LuaTypeManager.resolveGlobal] finds the declaring file and
+         * hands back its type; materializing it into a scratch graph keeps the borrowed member nodes
+         * off the declaring file's graph, where a write here must never land.
+         */
+        private fun crossFileGlobalMembers(receiver: PsiElement): Map<String, VariableNode> {
+            val nameRef = bareNameOf(receiver) ?: return emptyMap()
+            val global = LuaTypeManager.getInstance(nameRef.project).resolveGlobal(nameRef.text, nameRef)
+                ?: return emptyMap()
+            return LuaGraphType.materialize(global, nameRef).getMembers()
+        }
+
+        /**
+         * The receiver as a single unqualified name, or null if it is anything else.
+         *
+         * `findReceiverExpr` hands back whichever expression ends at the caret's `.`/`:`, and that is
+         * a bare [LuaNameRef] for `table.` but a wrapping expression for `table:`. Requiring the same
+         * text range keeps the wrapper case working while still rejecting a qualified receiver — only
+         * a bare name can be a global.
+         */
+        private fun bareNameOf(receiver: PsiElement): LuaNameRef? =
+            receiver as? LuaNameRef
+                ?: PsiTreeUtil.findChildOfType(receiver, LuaNameRef::class.java)
+                    ?.takeIf { it.textRange == receiver.textRange }
 
         private fun addSymbolCompletions(position: PsiElement, result: CompletionResultSet) {
             val processor = LuaCompletionScopeProcessor()
@@ -271,7 +302,14 @@ class LuaCompletionContributor : CompletionContributor() {
                     val snapshot = LuaTypesSnapshot.forFile(receiverExpr.containingFile)
                     val type = snapshot.getValueType(receiverExpr)
 
-                    val members = type.getMembers()
+                    // Undefined means this file's scope never bound the receiver at all — the shape a
+                    // global declared somewhere else has. Anything the file *did* bind keeps its own
+                    // members, so an empty local table never picks up a same-named global's (BUG-395).
+                    val members = if (type == LuaGraphType.Undefined) {
+                        crossFileGlobalMembers(receiverExpr)
+                    } else {
+                        type.getMembers()
+                    }
                     for ((name, memberNode) in members) {
                         val memberType = memberNode.write
                         // If it's a colon completion, only show functions

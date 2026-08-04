@@ -133,7 +133,7 @@ internal class VariableElement(
     private fun resolveRead(visited: MutableSet<VariableNode>): LuaGraphType {
         if (!visited.add(this)) return LuaGraphType.Any
 
-        return downSet.asSequence()
+        val demands = downSet.asSequence()
             .map {
                 when (it) {
                     is VariableElement -> it.resolveRead(visited)
@@ -142,7 +142,30 @@ internal class VariableElement(
                 }
             }
             .filter { it != LuaGraphType.Any }
-            .firstOrNull() ?: LuaGraphType.Any
+            .toList()
+
+        // BUG-395: member demands accumulate. Each `x.f` records a separate one-member Table
+        // constraint, so taking only the first would describe `x` by whichever member happened to be
+        // written first — a stdlib stub declaring ten `function table.<name>` produced a `table` with
+        // exactly one member. Every other kind of demand keeps first-wins.
+        val tables = demands.filterIsInstance<LuaGraphType.Table>()
+        if (tables.size > 1) return mergeTableDemands(tables)
+        return demands.firstOrNull() ?: LuaGraphType.Any
+    }
+
+    private fun mergeTableDemands(tables: List<LuaGraphType.Table>): LuaGraphType.Table {
+        val members = LinkedHashMap<String, VariableNode>()
+        val superTypes = mutableListOf<LuaGraphType>()
+        tables.forEach { table ->
+            table.localMembers.forEach { (name, node) -> members.putIfAbsent(name, node) }
+            table.superTypes.forEach { if (it !in superTypes) superTypes.add(it) }
+        }
+        return LuaGraphType.Table(
+            className = tables.firstNotNullOfOrNull { it.className },
+            localMembers = members,
+            superTypes = superTypes,
+            isExact = tables.all { it.isExact },
+        )
     }
 }
 

@@ -1,5 +1,7 @@
 package net.internetisalie.lunar.lang.psi.types
 
+import com.intellij.psi.PsiElement
+
 /**
  * Graph-internal type representation. Not exposed outside the inference engine.
  * IDE consumers always receive [LuaType] via [LuaTypes.getValueType].
@@ -101,6 +103,19 @@ sealed class LuaGraphType {
     }
 
     companion object {
+        /**
+         * Converts [type] into a graph type inside a throwaway graph anchored at [anchor].
+         *
+         * For consumers that need a graph type but own no graph of their own — a completion provider
+         * reading a type resolved out of *another* file (BUG-395). The scratch graph is seeded with
+         * one node because [fromLuaType] anchors the member nodes it creates on an existing one.
+         */
+        fun materialize(type: LuaType, anchor: PsiElement): LuaGraphType {
+            val graph = LuaTypeGraph()
+            graph.variable(anchor)
+            return fromLuaType(type, graph)
+        }
+
         /**
          * Convert a [LuaType] to its graph equivalent.
          * Creates internal variable nodes for structural types (functions, tables).

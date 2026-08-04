@@ -29,6 +29,17 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     private var scope: LuaScope = LuaScope.root(rootReturnNodes)
 
     /**
+     * BUG-395: the globals this file declares, by name. Every write to a file-scope global (a bare
+     * `X = …`, a `function X.y()`) shares one node here, so `X = {}` and `function X.y()` describe a
+     * single type instead of two unrelated ones — and so the snapshot can publish that type to other
+     * files, which is what makes a library's members reachable at all.
+     */
+    private val globalNodes: MutableMap<String, VariableNode> = mutableMapOf()
+
+    private fun globalNode(name: String, anchor: PsiElement): VariableNode =
+        globalNodes.getOrPut(name) { graph.variable(anchor) }
+
+    /**
      * `self` binding for the next [visitFunctionBody] call (COMP-04-09): the receiver's type node
      * plus a distinct PSI anchor for the injected `self` node. Set immediately before the call and
      * consumed (cleared) inside it, so the function keeps its ≤3 parameters instead of threading a
@@ -165,11 +176,69 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             repeat(8) { rootReturnNodes.add(graph.variable(file)) }
         }
 
+        declareFileGlobals(file)
         super.visitFile(file)
 
         val firstRet = rootReturnNodes.firstOrNull()?.write ?: LuaGraphType.Any
         fileReturnType = if (firstRet == LuaGraphType.Undefined) LuaGraphType.Any else firstRet
     }
+
+    /**
+     * BUG-395: binds every file-scope global into the **root** scope before the tree is walked.
+     *
+     * Lua globals are not order-dependent — `function table.concat()` in a stub file writes to the
+     * same `table` its earlier `table = {}` created — but a single forward pass only learns a global
+     * exists when it first meets a write, so the two ended up on unrelated nodes and the members were
+     * stranded. Declaring in the root scope (blocks push children off it) also means the file's own
+     * locals still shadow a same-named global, since [LuaScope.lookup] walks upward.
+     */
+    private fun declareFileGlobals(file: PsiFile) {
+        val topLevel = (file as? LuaFile)?.getBlockList()?.flatMap { it.statementList } ?: return
+        val fileLocals = fileScopeLocalNames(topLevel)
+        globalWriteTargets(topLevel).forEach { (name, anchor) ->
+            if (name !in fileLocals) scope.declare(name, globalNode(name, anchor))
+        }
+    }
+
+    /** File-scope statements that write a global, as name → the PSI anchor for its node. */
+    private fun globalWriteTargets(topLevel: List<PsiElement>): Map<String, PsiElement> {
+        val targets = linkedMapOf<String, PsiElement>()
+        topLevel.forEach { statement ->
+            when (statement) {
+                is LuaAssignmentStatement -> statement.varList.varList.forEach { target ->
+                    // A dotted target (`a.b = …`) writes a member, not the global itself.
+                    val nameRef = target.nameRef?.takeIf { target.varSuffixList.isEmpty() }
+                    if (nameRef != null) targets.putIfAbsent(nameRef.text, nameRef)
+                }
+                is LuaFuncDecl -> {
+                    val funcName = statement.node.findChildByType(LuaElementTypes.FUNC_NAME)?.psi as? LuaFuncName
+                    funcName?.nameRef?.let { targets.putIfAbsent(it.text, it) }
+                }
+                else -> Unit
+            }
+        }
+        return targets
+    }
+
+    /** Names a file declares `local` at file scope — a write to those is a local write, not a global. */
+    private fun fileScopeLocalNames(topLevel: List<PsiElement>): Set<String> {
+        val names = mutableSetOf<String>()
+        topLevel.forEach { statement ->
+            // SYNTAX-18: a partially-parsed decl may lack its nameRef, and the generated getter is
+            // @NotNull — reading it through the AST node keeps a broken file from logging an error.
+            when (statement) {
+                is LuaLocalVarDecl -> statement.attNameList.forEach { attName ->
+                    localName(attName)?.let { names += it }
+                }
+                is LuaLocalFuncDecl -> localName(statement)?.let { names += it }
+                else -> Unit
+            }
+        }
+        return names
+    }
+
+    private fun localName(declaration: PsiElement): String? =
+        declaration.node.findChildByType(LuaElementTypes.NAME_REF)?.psi?.text
 
     override fun visitBlock(o: LuaBlock) {
         val previousScope = scope
@@ -481,7 +550,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val funcName = o.node.findChildByType(LuaElementTypes.FUNC_NAME)?.psi as? LuaFuncName ?: return
         val baseName = funcName.nameRef.text
         val baseVar = scope.lookup(baseName) ?: run {
-            val fresh = graph.variable(funcName.nameRef)
+            // Not in scope means a global written from a nested block; share the file's node for it
+            // so its members join the same type (BUG-395).
+            val fresh = globalNode(baseName, funcName.nameRef)
             scope.declare(baseName, fresh)
             fresh
         }
@@ -756,6 +827,18 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         }
     }
 
+    /**
+     * Binds a name to the node its scope holds — and, deliberately, to nothing otherwise.
+     *
+     * BUG-395: it is tempting to fall back to [LuaTypeManager.resolveGlobal] here, so that every free
+     * global (`table`, `redis`, a project-wide `Lib`) is typed for *all* consumers rather than just
+     * for completion. That was tried and reverted: giving the checker types it never had before turns
+     * previously-unchecked calls into checked ones, and four suites regressed at once — `table.sort`'s
+     * comparator inferred `boolean | any`, `redis.register_function`'s table form grew two spurious
+     * argument errors, `redis.pcall`'s reply lost its `err` arm, and a real nil-assignability error
+     * stopped being reported. Typing free globals engine-wide is worth doing, but it is its own piece
+     * of work with its own regression budget — BUG-397, not this fix.
+     */
     override fun visitNameRef(o: LuaNameRef) {
         super.visitNameRef(o)
         val boundNode = scope.lookup(o.text) ?: return
@@ -814,7 +897,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     fun buildSnapshot(contextFile: PsiFile? = null): LuaTypesSnapshot =
-        LuaTypesSnapshot(graph, elementNodes.toMap(), fileReturnType, contextFile)
+        LuaTypesSnapshot(graph, elementNodes.toMap(), fileReturnType, contextFile, globalNodes.toMap())
 
     private fun visitFunctionBody(
         element: PsiElement,

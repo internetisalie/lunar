@@ -34,6 +34,17 @@ interface LuaTypes {
 
     /** Returns the inferred return type of the file. */
     fun getFileReturnType(): LuaGraphType
+
+    /**
+     * BUG-395: the type this file gives the **global** [name], or [LuaGraphType.Undefined] if the
+     * file declares no such global.
+     *
+     * Distinct from [getValueType], which is keyed on a PSI element and so can only answer about
+     * *this* file's own references. A global is the one thing a file publishes to every other file,
+     * so it needs a name-keyed query — that is what
+     * [LuaTypeManager.resolveGlobal] reads to type a global assigned somewhere else.
+     */
+    fun getGlobalType(name: String): LuaGraphType
 }
 
 /**
@@ -47,12 +58,19 @@ class LuaTypesSnapshot(
     private val fileReturnType: LuaGraphType = LuaGraphType.Any,
     /** The file this snapshot was built for — the context handle for nominal type resolution. */
     private val contextFile: PsiFile? = null,
+    /** File-scope globals this file declares, by name (BUG-395). */
+    private val globalNodes: Map<String, VariableNode> = emptyMap(),
 ) : LuaTypes {
 
     override fun getFileReturnType(): LuaGraphType = fileReturnType
 
-    override fun getValueType(element: PsiElement): LuaGraphType {
-        val node = elementNodes[element]?.firstOrNull() ?: return LuaGraphType.Undefined
+    override fun getValueType(element: PsiElement): LuaGraphType =
+        typeOf(elementNodes[element]?.firstOrNull())
+
+    override fun getGlobalType(name: String): LuaGraphType = typeOf(globalNodes[name])
+
+    private fun typeOf(node: TypeNode?): LuaGraphType {
+        if (node == null) return LuaGraphType.Undefined
         return when (node) {
             is VariableNode -> {
                 val write = node.write

@@ -1,8 +1,10 @@
 package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValue
@@ -10,7 +12,9 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
+import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
+import net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.path.resolveModuleCandidates
@@ -44,8 +48,20 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             /* trackValue = */ false,
         )
 
+    private val globalCache: CachedValue<MutableMap<String, LuaType?>> =
+        CachedValuesManager.getManager(project).createCachedValue(
+            {
+                CachedValueProvider.Result.create(
+                    java.util.Collections.synchronizedMap(mutableMapOf<String, LuaType?>()),
+                    PsiModificationTracker.getInstance(project),
+                )
+            },
+            /* trackValue = */ false,
+        )
+
     private val resolvingModules = ThreadLocal.withInitial { mutableSetOf<String>() }
     private val resolvingTypes = ThreadLocal.withInitial { mutableSetOf<String>() }
+    private val resolvingGlobals = ThreadLocal.withInitial { mutableSetOf<String>() }
 
     override fun resolveType(name: String, context: PsiElement): LuaType? {
         LuaPrimitiveType.PRIMITIVES[name]?.let { return it }
@@ -81,6 +97,45 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         } finally {
             active.remove(moduleName)
         }
+    }
+
+    /**
+     * BUG-395. Keyed on the name alone (a Lua global is one namespace project-wide) and cached until
+     * the next PSI modification, because this runs for *every* unbound name reference the type
+     * visitor meets — `print`, `pairs`, `table` — and each miss would otherwise re-query the index.
+     *
+     * [GlobalSearchScope.allScope] rather than `projectScope` is the whole point: library files
+     * (bundled stdlib, definition libraries, LuaRocks trees) live outside project scope, which is
+     * exactly why their members never appeared.
+     */
+    override fun resolveGlobal(name: String, context: PsiElement): LuaType? {
+        if (DumbService.isDumb(project)) return null
+        val cache = globalCache.value
+        if (cache.containsKey(name)) return cache[name]
+        if (!resolvingGlobals.get().add(name)) return null // Break reentrant cycles
+        return try {
+            doResolveGlobal(name, context).also { cache[name] = it }
+        } finally {
+            resolvingGlobals.get().remove(name)
+        }
+    }
+
+    private fun doResolveGlobal(name: String, context: PsiElement): LuaType? {
+        val declaringFiles = FileBasedIndex.getInstance()
+            .getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, GlobalSearchScope.allScope(project))
+        val here = context.containingFile?.originalFile
+        return declaringFiles.asSequence()
+            .mapNotNull { PsiManager.getInstance(project).findFile(it) as? LuaFile }
+            .filter { it != here }
+            .firstNotNullOfOrNull { globalTypeIn(it, name) }
+    }
+
+    /** The type [file] gives the global [name], or null if it declares it without a useful type. */
+    private fun globalTypeIn(file: LuaFile, name: String): LuaType? {
+        val snapshot = LuaTypesSnapshot.forFile(file)
+        val graphType = snapshot.getGlobalType(name)
+        if (graphType == LuaGraphType.Undefined || graphType == LuaGraphType.Any) return null
+        return snapshot.graphTypeToLuaType(graphType)
     }
 
     private fun getModuleType(psiFile: LuaFile, context: PsiElement): LuaType? {
