@@ -81,7 +81,7 @@ title: "Risks & Gaps"
 |----|--------|----------|--------|
 | TARGET-00-DR-01 | Choose the v1 curated set (recommend: `love2d`, `busted`, `luassert`, `openresty`) and confirm each LuaCATS repo has a tagged release whose extracted tree yields completion for a sample symbol. | Risk 1.2, Gap 2.1 | **done 2026-08-03 — premise FALSIFIED, see DR-01 findings below** |
 | TARGET-00-DR-02 | For each chosen entry, resolve the exact tarball URL(s), sha256, byte size, and `rootPrefix`; populate `lunar-definitions-catalog.json`. | Risk 1.1 | **done 2026-08-03** — data below |
-| TARGET-00-DR-03 | **Prove completion/resolution through an injected `SyntheticLibrary` in a light fixture** (review N1): pre-seed a temp dir with a `---@meta` `.lua` file, register it via `LuaDefinitionLibraryProvider`, and assert a symbol from it completes/resolves (`completeBasic`/`multiResolve`). Capture the exact `VfsRootAccess.allowRootAccess` + refresh plumbing required and fold it into TC 6. If intractable headless, downgrade TC 6 to a VNC real-flow DoD. | Risk 1.4 | todo |
+| TARGET-00-DR-03 | **done 2026-08-03 — see DR-03 findings below.** Prove completion/resolution through an injected `SyntheticLibrary` in a light fixture (review N1): pre-seed a temp dir with a `---@meta` `.lua` file, register it via `LuaDefinitionLibraryProvider`, and assert a symbol from it completes/resolves (`completeBasic`/`multiResolve`). Capture the exact `VfsRootAccess.allowRootAccess` + refresh plumbing required and fold it into TC 6. If intractable headless, downgrade TC 6 to a VNC real-flow DoD. | Risk 1.4 | todo |
 | TARGET-00-DR-03 | Spike the online fetch path once (busted) end-to-end: download → verify → extract → register → resolve a symbol; confirm no EDT block and the balloon fires on a forced offline run. | Risk 1.1, TARGET-08-07 | todo |
 
 ## Test Case Gaps
@@ -156,3 +156,46 @@ Every addon is `<repo>-<sha>/library/*.lua` plus a `config.json` sibling. The de
 `after_each async before_each describe done expose file finally insulate it lazy_setup
 lazy_teardown pending randomize setup teardown` — covering **all eight** symbols behind the
 1507 `LuaUndeclaredVariable` false positives measured in luarocks and luacheck (see TARGET-09).
+
+
+## DR-03 findings (2026-08-03) — Risk 1.4 was real, and half the assumption is false
+
+Run as `Dr03SyntheticLibraryResolutionSpikeTest`, a throwaway provider rather than Phase 4's, so a
+failure could not be confounded by unwritten code. It is kept as the working precedent TC 6 needs.
+
+### The fixture plumbing TC 6 requires (this was the unknown)
+
+Three steps, in order. Omitting the third silently empties the index and fails every assertion:
+
+1. `VfsRootAccess.allowRootAccess(testRootDisposable, <dir>)` — light fixtures refuse reads outside
+   the project tree. Note the import is `com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess`, not
+   the `testFramework` one.
+2. Register through the EP (`AdditionalLibraryRootsProvider.EP_NAME.point.registerExtension(...)`)
+   and then announce it: `ProjectRootManagerEx.makeRootsChange(EmptyRunnable, false, true)` inside a
+   write action. Registration alone does nothing — the platform caches its root set.
+3. **`IndexingTestUtil.waitUntilIndexesAreReady(project)`.** This is the step nothing in the repo
+   did. `isInLibrary` flips to `true` *immediately* after step 2, which makes it look like the tree
+   is available; the stub index is still empty until the rescan scheduled by the roots change has
+   actually run.
+
+### What is proven
+
+- ✅ `ProjectFileIndex.isInLibrary` returns true for a file under the registered root.
+- ✅ The definition **is** stub-indexed: `LuaGlobalDeclarationIndex` finds `dr03_probe` under
+  `GlobalSearchScope.allScope`. So resolution through a `SyntheticLibrary` genuinely works, and
+  TARGET-08-04 needs no per-feature indexer work — the design is right about that.
+
+### What is NOT true — a Phase 4 work item the design does not account for
+
+- ❌ **Completion does not surface a library symbol**, even with the index populated. Empty in both
+  statement and expression position.
+- **Cause**: `GlobalSymbolRankingService` searches `GlobalSearchScope.projectScope(project)`
+  (`GlobalSymbolRankingService.kt:110` and `:180`), and project scope excludes library files by
+  definition. Nothing about the fixture is at fault.
+- **Consequence**: the design's "with **no other code change**" claim (requirements Overview) holds
+  for *resolution* but not for *completion*, and TC 6 as written ("completion resolves a busted
+  symbol") cannot pass until the scope is widened — `allScope`, or project ∪ libraries. Verify
+  whether that service is the only consumer before changing it; widening a ranking scope affects
+  every global completion, not just definition libraries.
+- The spike deliberately does **not** assert the current completion behaviour: encoding today's
+  wrong answer would lock the defect in and turn the eventual fix into a test failure.
