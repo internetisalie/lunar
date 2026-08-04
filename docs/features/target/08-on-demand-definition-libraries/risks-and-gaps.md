@@ -53,10 +53,38 @@ title: "Risks & Gaps"
   `lazy_setup`, `lazy_teardown`, `pending`); per project, luarocks 937/954 and luacheck 570/615.
   These are `level="ERROR"` and `enabledByDefault`, so any project with a busted suite opens as a
   wall of red until someone finds the setting.
-  - **Investigate, do not assume**: detection signal (unresolved `require "busted"`? a `spec/`
-    tree? a `.busted` config? the rockspec's `test_dependencies`?), and what auto-detection *does*
-    once it fires — silently enable (surprising, and it triggers a network fetch), suggest via a
-    notification/banner, or offer a quick fix on the first false positive.
+  - **The detection signal does not need inventing — the addons declare it (found 2026-08-04).**
+    Every entry in the catalog is a **LuaLS addon**, and each ships a `config.json` manifest at its
+    repo root carrying the trigger LuaLS itself matches on:
+
+    | Entry | `config.json` |
+    |---|---|
+    | luassert | `"words": ["require[%s%(\"']+luassert[%)\"']"]` |
+    | busted | `"settings": {"Lua.workspace.library": ["${3rd}/luassert/library"]}` |
+    | love2d | `"name": "LÖVE"`, `"words": ["love%.%w+"]`, `"Lua.runtime.version": "LuaJIT"`, `"Lua.runtime.special": {"love.filesystem.load": "loadfile"}` |
+
+    So the original open question — *unresolved `require`? a `spec/` tree? a `.busted` config? the
+    rockspec's `test_dependencies`?* — is answered upstream, per addon, by its author. Detection
+    becomes "match each catalog entry's `words` against project sources", not a hand-rolled
+    heuristic per framework. What auto-detection *does* once it fires (silently enable vs suggest vs
+    quick-fix) remains genuinely open and still needs deciding.
+  - **`rootPrefix` currently discards `config.json`.** Extraction keeps `<repo>/library` only, so
+    the manifest never reaches disk — the cache holds `busted-<sha>/busted.lua` and nothing else.
+    **Retaining it is the cheap prerequisite for everything below and should land first**; it is
+    close to free now and is the input each item needs.
+  - **Three things in the manifest are already hand-derived in our catalog, and can drift:**
+    - `requires` — DR-01 discovered busted→luassert *by hand* and the catalog schema grew a bespoke
+      field for it. Busted declares it itself via `Lua.workspace.library`'s `${3rd}/<id>/library`.
+      A pin bump can silently change upstream's answer while ours stays put.
+    - `displayName` — we hand-wrote "LÖVE (love2d)"; the manifest says `"name": "LÖVE"`.
+    - **Runtime version** — love2d declares `Lua.runtime.version: "LuaJIT"`, and we ignore it.
+      Lunar has a first-class target/language-level concept, so enabling love2d today leaves the
+      project on whatever target it had. That is a semantic mismatch, not cosmetics.
+  - **Price the pattern translation before planning.** `words` are **Lua patterns, not regexes** —
+    `love%.%w+` is not valid Java regex. Translating the subset in use (`%a %d %l %s %u %w %x`, `-`
+    as a lazy quantifier, `%1`–`%9` back-references, anchors) is bounded and well-understood but is
+    real work needing its own tests. Running them through a Lua interpreter instead is not viable on
+    an IDE code path. Budget this explicitly rather than meeting it mid-implementation.
   - **A cheaper alternative exists and should be priced first**: teaching `LuaUndeclaredVariable`
     about test-framework globals directly, the way stdlib globals already work. That removes the
     same 96% with no catalog, no fetch, and no UI — but it hard-codes a framework list into an
