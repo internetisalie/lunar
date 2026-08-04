@@ -238,7 +238,10 @@ class LuaCrossFileCompletionProvider : CompletionProvider<CompletionParameters>(
             .withTypeText(sourceFile)
             .withIcon(icon)
 
-        val targetFile = symbol.sourceVirtualFile
+        // BUG-394: a library global has nothing to import — `print` is ambient, and a definition
+        // library's `@meta` file is not a module anyone can require. Attaching the handler anyway
+        // inserted a `require` of the stub's absolute path, jar suffix and all.
+        val targetFile = symbol.sourceVirtualFile?.takeUnless { symbol.isLibrary }
         if (targetFile != null) {
             builder = builder.withInsertHandler(
                 LuaAutoImportInsertHandler(

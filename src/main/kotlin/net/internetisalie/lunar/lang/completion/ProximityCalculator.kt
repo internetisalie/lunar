@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.completion
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.PsiFile
 import java.io.File
 
@@ -12,6 +13,16 @@ import java.io.File
  * - Recency weighting for recently modified files
  * - @class-specific boost handling
  */
+/**
+ * True when [file] is library content — a bundled stdlib stub, a definition library, a LuaRocks
+ * tree. Shared by the two things BUG-394's widened search scope has to get right about such a
+ * symbol: it ranks below every project symbol, and it must never be offered an auto-import.
+ */
+internal fun isLibraryFile(file: PsiFile): Boolean {
+    val virtualFile = file.virtualFile ?: return false
+    return ProjectFileIndex.getInstance(file.project).isInLibrary(virtualFile)
+}
+
 object ProximityCalculator {
 
     /**
@@ -27,6 +38,15 @@ object ProximityCalculator {
         symbolFile: PsiFile,
         isClassType: Boolean = false
     ): Double {
+        // BUG-394: library symbols are ranked strictly below every project symbol. Widening the
+        // search scope brought the stdlib and every enabled definition library into completion, and
+        // a user's own globals should still come first. The recency bonus is skipped for them too:
+        // it means "a file you have been working in", and a definition library extracted an hour ago
+        // would otherwise outrank the project's own code on the strength of its mtime.
+        if (isLibraryFile(symbolFile)) {
+            return LIBRARY_WEIGHT + if (isClassType) LIBRARY_CLASS_BOOST else 0.0
+        }
+
         val proximityWeight = calculateProximityWeight(currentFile, symbolFile)
         val recencyBonus = calculateRecencyBonus(symbolFile)
         var combinedWeight = proximityWeight + recencyBonus
@@ -62,7 +82,7 @@ object ProximityCalculator {
         }
 
         // Different module/directory
-        return 0.5
+        return DIFFERENT_MODULE_WEIGHT
     }
 
     /**
@@ -95,4 +115,13 @@ object ProximityCalculator {
             else -> 0.0
         }
     }
+
+    /**
+     * Weights for library content (BUG-394). Sized so that a library symbol — even a `@class`, which
+     * carries a boost — stays below [DIFFERENT_MODULE_WEIGHT], the *lowest* weight any project file
+     * can score. Project code first, always.
+     */
+    private const val LIBRARY_WEIGHT = 0.3
+    private const val LIBRARY_CLASS_BOOST = 0.1
+    private const val DIFFERENT_MODULE_WEIGHT = 0.5
 }

@@ -40,6 +40,13 @@ class GlobalSymbolRankingService(private val project: Project) {
         val proximityWeight: Double,
         val isClassType: Boolean = false,
         val sourceVirtualFile: VirtualFile? = null,
+        /**
+         * BUG-394: true for a symbol declared in library content. Such a symbol must not be offered
+         * an auto-import — there is nothing to `require`. Widening the search scope without this
+         * made completing `print` insert
+         * `require("…/plugins-test/lunar/lib/lunar-0.18.0.jar!/runtime/standard/lua-5.4/builtin")`.
+         */
+        val isLibrary: Boolean = false,
     )
 
     // §2.5.5: StubIndex.getAllKeys was scanned on every completion invocation (twice per session).
@@ -107,7 +114,13 @@ class GlobalSymbolRankingService(private val project: Project) {
         val result = mutableListOf<GlobalSymbolCompletion>()
         val settings = LuaProjectSettings.getInstance(project)
         val suppressUnderscore = settings.suppressUnderscorePrefixedGlobals
-        val scope = GlobalSearchScope.projectScope(project)
+        // BUG-394: allScope, not projectScope — project scope excludes library files by
+        // construction, so nothing from the bundled stdlib stubs, a definition library or a
+        // LuaRocks tree ever reached completion. `print` lives in `builtin.lua` and went through
+        // exactly this path, so the whole standard library was missing from the caret where a user
+        // is most likely to look for it. Library symbols are ranked below every project symbol —
+        // see ProximityCalculator — so widening the search does not cost the existing ordering.
+        val scope = GlobalSearchScope.allScope(project)
 
         val allFuncKeys = funcKeyCache.value
 
@@ -145,11 +158,8 @@ class GlobalSymbolRankingService(private val project: Project) {
                 }
 
                 // Calculate proximity and recency weight
-                val weight = ProximityCalculator.calculateWeight(
-                    currentFile,
-                    funcDecl.containingFile ?: continue,
-                    isClassType = false
-                )
+                val declaringFile = funcDecl.containingFile ?: continue
+                val weight = ProximityCalculator.calculateWeight(currentFile, declaringFile, isClassType = false)
 
                 result.add(
                     GlobalSymbolCompletion(
@@ -157,7 +167,8 @@ class GlobalSymbolRankingService(private val project: Project) {
                         psiElement = funcDecl,
                         proximityWeight = weight,
                         isClassType = false,
-                        sourceVirtualFile = funcDecl.containingFile?.virtualFile,
+                        sourceVirtualFile = declaringFile.virtualFile,
+                        isLibrary = isLibraryFile(declaringFile),
                     )
                 )
             }
@@ -177,7 +188,13 @@ class GlobalSymbolRankingService(private val project: Project) {
         val result = mutableListOf<GlobalSymbolCompletion>()
         val settings = LuaProjectSettings.getInstance(project)
         val suppressUnderscore = settings.suppressUnderscorePrefixedGlobals
-        val scope = GlobalSearchScope.projectScope(project)
+        // BUG-394: allScope, not projectScope — project scope excludes library files by
+        // construction, so nothing from the bundled stdlib stubs, a definition library or a
+        // LuaRocks tree ever reached completion. `print` lives in `builtin.lua` and went through
+        // exactly this path, so the whole standard library was missing from the caret where a user
+        // is most likely to look for it. Library symbols are ranked below every project symbol —
+        // see ProximityCalculator — so widening the search does not cost the existing ordering.
+        val scope = GlobalSearchScope.allScope(project)
 
         val allClassKeys = classKeyCache.value
 
@@ -215,11 +232,8 @@ class GlobalSymbolRankingService(private val project: Project) {
                 }
 
                 // Calculate proximity and recency weight (with class boost)
-                val weight = ProximityCalculator.calculateWeight(
-                    currentFile,
-                    classElement.containingFile ?: continue,
-                    isClassType = true
-                )
+                val declaringFile = classElement.containingFile ?: continue
+                val weight = ProximityCalculator.calculateWeight(currentFile, declaringFile, isClassType = true)
 
                 result.add(
                     GlobalSymbolCompletion(
@@ -227,7 +241,8 @@ class GlobalSymbolRankingService(private val project: Project) {
                         psiElement = classElement,
                         proximityWeight = weight,
                         isClassType = true,
-                        sourceVirtualFile = classElement.containingFile?.virtualFile,
+                        sourceVirtualFile = declaringFile.virtualFile,
+                        isLibrary = isLibraryFile(declaringFile),
                     )
                 )
             }

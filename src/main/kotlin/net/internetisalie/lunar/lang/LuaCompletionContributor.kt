@@ -270,12 +270,19 @@ class LuaCompletionContributor : CompletionContributor() {
         )
 
         // Cross-file completion provider (COMP-03).
-        // BUG-398: excluded after `.`/`:` — a member position. This provider offers project-wide
-        // globals and `---@class`-carrying locals, none of which can follow a dot, so `assert.` was
-        // answered with the *declaring file's locals* alongside the receiver's real members.
+        //
+        // Excluded from two carets where a global is not a valid completion at all:
+        //  - after `.`/`:` — a member position. This provider offers project-wide globals and
+        //    `---@class`-carrying locals, none of which can follow a dot, so `assert.` was answered
+        //    with the *declaring file's locals* alongside the receiver's real members (BUG-398).
+        //  - after `goto` — a label position, served by `LuaLabelReference`'s variants. Harmless
+        //    while the provider had nothing to offer a fresh fixture; once BUG-394 let library
+        //    symbols through, `goto <caret>` started listing the entire Lua standard library.
         extend(
             CompletionType.BASIC,
-            psiElement().withElementType(LuaElementTypes.IDENTIFIER).andNot(psiElement().afterLeaf(".", ":")),
+            psiElement().withElementType(LuaElementTypes.IDENTIFIER)
+                .andNot(psiElement().afterLeaf(".", ":"))
+                .andNot(psiElement().afterLeaf("goto")),
             LuaCrossFileCompletionProvider()
         )
 
