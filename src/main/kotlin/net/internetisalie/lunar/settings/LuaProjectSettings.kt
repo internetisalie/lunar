@@ -1,9 +1,11 @@
 package net.internetisalie.lunar.settings
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.util.SimpleModificationTracker
+import com.intellij.psi.PsiManager
 import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Transient
 import net.internetisalie.lunar.lang.LuaLanguageLevel
@@ -76,6 +78,14 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         var rockspecIncludeGlobs: MutableList<String> = mutableListOf()
         var rockspecExcludeGlobs: MutableList<String> = mutableListOf()
 
+        /**
+         * TARGET-08-02: ids of the community definition libraries enabled for this project, keyed
+         * to `lunar-definitions-catalog.json`. Stored in `.idea/lunar.xml` so a team shares the
+         * choice via VCS. An id the current plugin build no longer carries is ignored rather than
+         * rejected — the catalog ships with the plugin and can outlive or predate a project file.
+         */
+        var enabledDefinitionLibraries: MutableList<String> = mutableListOf()
+
         var showAutoImportHints: Boolean = true
         var autoImportStyle: AutoImportStyle = AutoImportStyle.AUTO_DETECT
 
@@ -144,6 +154,39 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
     fun setTargetAndNotify(newTarget: Target) {
         state.setTarget(newTarget)
         project?.messageBus?.syncPublisher(LuaSettingsChangedListener.TOPIC)?.onSettingsChanged()
+    }
+
+    val enabledDefinitionLibraries: List<String>
+        get() = state.enabledDefinitionLibraries
+
+    /**
+     * TARGET-08-02/-05. Replaces the enabled set and refreshes so newly-enabled definitions resolve
+     * without an IDE restart.
+     *
+     * **Callable from any thread.** The refresh itself is marshalled to the EDT: it publishes
+     * [LuaSettingsChangedListener.TOPIC], whose subscriber runs `PlatformLibraryIndex.reload()` —
+     * a `WriteAction` documented EDT-only at `PlatformLibraryProvider.kt:133`. Publishing
+     * synchronously would run it on the caller's thread, and TARGET-08-03 completes its fetch on a
+     * pooled thread. The state write itself is synchronous, so a caller that reads back
+     * [enabledDefinitionLibraries] immediately sees the new value.
+     *
+     * Routed through the topic rather than calling `reload()` directly, as the design sketched,
+     * because `LuaSettingsChangeListener` already performs that reload *and* restarts the daemon —
+     * duplicating half of it would drift from the other half. It does **not** drop resolve caches,
+     * which TARGET-08-05 and design §3.3 require for newly-registered roots to become resolvable,
+     * so that step is added here rather than assumed.
+     *
+     * The list is copied, not aliased — callers hand in UI-owned collections that keep mutating.
+     */
+    fun setEnabledDefinitionLibrariesAndNotify(ids: List<String>) {
+        val normalized = ids.distinct()
+        if (normalized == state.enabledDefinitionLibraries) return
+        state.enabledDefinitionLibraries = normalized.toMutableList()
+        val target = project ?: return
+        ApplicationManager.getApplication().invokeLater({
+            target.messageBus.syncPublisher(LuaSettingsChangedListener.TOPIC).onSettingsChanged()
+            PsiManager.getInstance(target).dropResolveCaches()
+        }, target.disposed)
     }
 
     val suppressUnderscorePrefixedGlobals: Boolean

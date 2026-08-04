@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-08: On-demand LuaLS / LuaCATS Definition Libraries"
-status: "planned"
+status: "in_progress"
 priority: "low"
 vf_icon: 🔵
 ---
@@ -53,16 +53,26 @@ Parent epic: [[features/target/requirements|TARGET]].
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| TARGET-08-01 | **Bundled catalog model** | M | A typed, validated model of the bundled catalog JSON listing each library's id, display name, pinned tarball URL(s), sha256, size, rootPrefix, license and attribution URL. |
-| TARGET-08-02 | **Per-project enable list** | M | The set of enabled catalog library ids is persisted in `lunar.xml` and read back per project. |
-| TARGET-08-03 | **On-demand fetch + cache** | M | Enabling a library that is not yet cached downloads its tarball off-EDT, verifies size + SHA-256, and extracts it into a per-user cache keyed by library id + version. An already-cached library is reused with no network. |
-| TARGET-08-04 | **Library-root registration** | M | Each enabled + fetched library tree is exposed as a `SyntheticLibrary` source root via an `AdditionalLibraryRootsProvider`, so the indexer and LuaCATS parser see its `@meta` definitions. |
-| TARGET-08-05 | **Index refresh on change** | M | Changing the enable list refreshes the additional-library roots and drops resolve caches so newly-enabled definitions become resolvable without an IDE restart. |
-| TARGET-08-06 | **Settings UI** | S | A project `Configurable` lists the catalog with an enable checkbox per row, a fetched/not-fetched status column, and the license + attribution URL for enabled rows. |
-| TARGET-08-07 | **Offline / failure handling** | M | A fetch with no network (or a hash/size mismatch, or an unsupported archive) surfaces an error balloon via the tools notification group and does not add the failing library to the effective (fetched) set. |
-| TARGET-08-08 | **Attribution surfaced** | S | The license string and attribution URL of every enabled library are shown read-only in the settings UI. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| TARGET-08-01 | **Bundled catalog model** | M | **Full** | A typed, validated model of the bundled catalog JSON listing each library's id, display name, pinned tarball URL(s), sha256, size, rootPrefix, license and attribution URL. **Plus `requires`** — DR-01 found `busted` depends on `luassert`, which the original field list could not express. |
+| TARGET-08-02 | **Per-project enable list** | M | **Full** | The set of enabled catalog library ids is persisted in `lunar.xml` and read back per project. |
+| TARGET-08-03 | **On-demand fetch + cache** | M | **Blocked** | Enabling a library that is not yet cached downloads its tarball off-EDT, verifies size + SHA-256, and extracts it into a per-user cache keyed by library id + version. An already-cached library is reused with no network. **Blocked on a decision** — see DR finding #2: GitHub archive checksums are not a stable pin. |
+| TARGET-08-04 | **Library-root registration** | M | Not Implemented | Each enabled + fetched library tree is exposed as a `SyntheticLibrary` source root via an `AdditionalLibraryRootsProvider`, so the indexer and LuaCATS parser see its `@meta` definitions. |
+| TARGET-08-05 | **Index refresh on change** | M | Not Implemented | Changing the enable list refreshes the additional-library roots and drops resolve caches so newly-enabled definitions become resolvable without an IDE restart. |
+| TARGET-08-06 | **Settings UI** | S | Not Implemented | A project `Configurable` lists the catalog with an enable checkbox per row, a fetched/not-fetched status column, and the license + attribution URL for enabled rows. |
+| TARGET-08-07 | **Offline / failure handling** | M | Not Implemented | A fetch with no network (or a hash/size mismatch, or an unsupported archive) surfaces an error balloon via the tools notification group and does not add the failing library to the effective (fetched) set. |
+| TARGET-08-08 | **Attribution surfaced** | S | Not Implemented | The license string and attribution URL of every enabled library are shown read-only in the settings UI. |
+
+### Implementation Status (2026-08-03)
+
+**Infrastructure the later phases reuse — all verified present**, so no phase is blocked on
+building a dependency: `LuaArtifactDownloader` and `LuaArchiveExtractor`
+(`toolchain/provision/`), `LuaRocksLibraryProvider` (`rocks/library/`, the model for
+TARGET-08-04), and `PlatformLibraryIndex.reload()` — which lives **inside**
+`project/PlatformLibraryProvider.kt:105`, not in a file of its own. Three
+`additionalLibraryRootsProvider` extensions are already registered in `plugin.xml:512-514`;
+TARGET-08-04 adds a fourth.
 
 ---
 

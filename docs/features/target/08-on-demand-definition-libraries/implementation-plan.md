@@ -16,15 +16,15 @@ Sequenced from [design.md](design.md). Each phase leaves the build green and is 
 ### Phase 1: Catalog model, loader & bundled data [Must]
 - **Goal**: parse the bundled catalog into a validated model.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.definitions.LuaDefinitionCatalog` + `LuaDefinitionEntry` — realizes design §2.1.
-  - [ ] Create `net.internetisalie.lunar.definitions.LuaDefinitionCatalogLoader` (parse-once cache, explicit field validation, `LuaProvisionException` on corruption) — realizes design §2.2, §3.1.
-  - [ ] Add bundled resource `src/main/resources/definitions/lunar-definitions-catalog.json` with the v1 curated set (data from DR-01/DR-02) — realizes design §4.1.
+  - [x] Create `net.internetisalie.lunar.definitions.LuaDefinitionCatalog` + `LuaDefinitionEntry` — realizes design §2.1.
+  - [x] Create `net.internetisalie.lunar.definitions.LuaDefinitionCatalogLoader` (parse-once cache, explicit field validation, `LuaProvisionException` on corruption) — realizes design §2.2, §3.1.
+  - [x] Add bundled resource `src/main/resources/definitions/lunar-definitions-catalog.json` with the v1 curated set (data from DR-01/DR-02) — realizes design §4.1.
 - **Exit criteria**: `LuaDefinitionCatalogLoader.load()` returns the catalog with a `love2d` entry; a JSON missing `sha256` throws `LuaProvisionException` (TC 1, 2).
 
 ### Phase 2: Per-project enable list [Must]
 - **Goal**: persist and read the enabled ids.
 - **Tasks**:
-  - [ ] Add `enabledDefinitionLibraries: MutableList<String>` to `LuaProjectSettings.State`; add `setEnabledDefinitionLibrariesAndRefresh(ids)` to `LuaProjectSettings` (calls `PlatformLibraryIndex.reload()` + `PsiManager.dropResolveCaches()` via `invokeLater`) — realizes design §2.5, §3.3.
+  - [x] Add `enabledDefinitionLibraries: MutableList<String>` to `LuaProjectSettings.State`; add `setEnabledDefinitionLibrariesAndRefresh(ids)` to `LuaProjectSettings` (calls `PlatformLibraryIndex.reload()` + `PsiManager.dropResolveCaches()` via `invokeLater`) — realizes design §2.5, §3.3.
 - **Exit criteria**: setting the list and re-reading it round-trips through `lunar.xml` in a `BasePlatformTestCase` (TC 3).
 
 ### Phase 3: Fetcher (download + extract + cache) [Must]

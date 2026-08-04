@@ -1,0 +1,61 @@
+{
+  "catalogVersion": 1,
+  "libraries": [
+    {
+      "id": "busted",
+      "displayName": "busted (test framework)",
+      "version": "5ed85d0e016a5eb5eca097aa52905eedf1b180f1",
+      "urls": [
+        "https://github.com/LuaCATS/busted/archive/5ed85d0e016a5eb5eca097aa52905eedf1b180f1.tar.gz"
+      ],
+      "sha256": "c33499e7be61511ac48f4815777c3df55322d0ee61fd92c223921999e5543ce8",
+      "size": 2040,
+      "rootPrefix": "busted-5ed85d0e016a5eb5eca097aa52905eedf1b180f1/library",
+      "license": "MIT",
+      "attributionUrl": "https://github.com/LuaCATS/busted",
+      "requires": ["luassert"]
+    },
+    {
+      "id": "luassert",
+      "displayName": "luassert (assertions)",
+      "version": "d3528bb679302cbfdedefabb37064515ab95f7b9",
+      "urls": [
+        "https://github.com/LuaCATS/luassert/archive/d3528bb679302cbfdedefabb37064515ab95f7b9.tar.gz"
+      ],
+      "sha256": "236ee34400c553924803a0ce155d3b7d6f0fe4e5577f5eb34b91f96e9f42cea5",
+      "size": 7965,
+      "rootPrefix": "luassert-d3528bb679302cbfdedefabb37064515ab95f7b9/library",
+      "license": "MIT",
+      "attributionUrl": "https://github.com/LuaCATS/luassert",
+      "requires": []
+    },
+    {
+      "id": "love2d",
+      "displayName": "LÖVE (love2d)",
+      "version": "c630dd883cda128a19d850bd5e3911110b271609",
+      "urls": [
+        "https://github.com/LuaCATS/love2d/archive/c630dd883cda128a19d850bd5e3911110b271609.tar.gz"
+      ],
+      "sha256": "851a6a080cdeaad1e1601553bafc43879aaf466fe0f1b458932d181a98e7250e",
+      "size": 97126,
+      "rootPrefix": "love2d-c630dd883cda128a19d850bd5e3911110b271609/library",
+      "license": "MIT",
+      "attributionUrl": "https://github.com/LuaCATS/love2d",
+      "requires": []
+    },
+    {
+      "id": "openresty",
+      "displayName": "OpenResty",
+      "version": "17f581b2e6f2d3a30ab0e6564eb2eb40426db6b5",
+      "urls": [
+        "https://github.com/LuaCATS/openresty/archive/17f581b2e6f2d3a30ab0e6564eb2eb40426db6b5.tar.gz"
+      ],
+      "sha256": "974abe8078c0a2e0d2fc3cdc635b53aa7eea4c3a96c6793e66fe13ad5e9eb47a",
+      "size": 86612,
+      "rootPrefix": "openresty-17f581b2e6f2d3a30ab0e6564eb2eb40426db6b5/library",
+      "license": "MIT",
+      "attributionUrl": "https://github.com/LuaCATS/openresty",
+      "requires": []
+    }
+  ]
+}

@@ -79,8 +79,8 @@ title: "Risks & Gaps"
 
 | ID | Action | Resolves | Status |
 |----|--------|----------|--------|
-| TARGET-00-DR-01 | Choose the v1 curated set (recommend: `love2d`, `busted`, `luassert`, `openresty`) and confirm each LuaCATS repo has a tagged release whose extracted tree yields completion for a sample symbol. | Risk 1.2, Gap 2.1 | todo |
-| TARGET-00-DR-02 | For each chosen entry, resolve the exact tarball URL(s), sha256, byte size, and `rootPrefix`; populate `lunar-definitions-catalog.json`. | Risk 1.1 | todo |
+| TARGET-00-DR-01 | Choose the v1 curated set (recommend: `love2d`, `busted`, `luassert`, `openresty`) and confirm each LuaCATS repo has a tagged release whose extracted tree yields completion for a sample symbol. | Risk 1.2, Gap 2.1 | **done 2026-08-03 — premise FALSIFIED, see DR-01 findings below** |
+| TARGET-00-DR-02 | For each chosen entry, resolve the exact tarball URL(s), sha256, byte size, and `rootPrefix`; populate `lunar-definitions-catalog.json`. | Risk 1.1 | **done 2026-08-03** — data below |
 | TARGET-00-DR-03 | **Prove completion/resolution through an injected `SyntheticLibrary` in a light fixture** (review N1): pre-seed a temp dir with a `---@meta` `.lua` file, register it via `LuaDefinitionLibraryProvider`, and assert a symbol from it completes/resolves (`completeBasic`/`multiResolve`). Capture the exact `VfsRootAccess.allowRootAccess` + refresh plumbing required and fold it into TC 6. If intractable headless, downgrade TC 6 to a VNC real-flow DoD. | Risk 1.4 | todo |
 | TARGET-00-DR-03 | Spike the online fetch path once (busted) end-to-end: download → verify → extract → register → resolve a symbol; confirm no EDT block and the balloon fires on a forced offline run. | Risk 1.1, TARGET-08-07 | todo |
 
@@ -91,3 +91,59 @@ title: "Risks & Gaps"
 ## See Also
 - Requirements: [requirements.md](requirements.md)
 - Design: [design.md](design.md)
+
+## DR-01 / DR-02 findings (2026-08-03) — four deltas from the design
+
+Measured against the live upstream, not assumed. Each of these changes what Phase 1 must build.
+
+### 1. Nothing upstream is tagged — pin by commit SHA
+`git ls-remote --tags` returns **zero tags** for all four candidate repos (`LuaCATS/love2d`,
+`busted`, `luassert`, `openresty`) **and** for `LuaLS/LLS-Addons`. The design's "pinned to a
+versioned tarball URL … resolved from a release tag" is not achievable: these are rolling repos.
+
+**Resolution**: pin the **commit SHA**, exactly as `tooling/corpus/corpus.tsv` already does for the
+corpus ("pin to release tags resolved to their commit SHA, never a moving branch" — same intent,
+one fewer indirection). `https://github.com/LuaCATS/<id>/archive/<sha>.tar.gz` returns 200. The
+`version` field therefore carries the short SHA, not a semver; the requirements' "single pinned
+version" contract is preserved, its *spelling* is not.
+
+### 2. GitHub archive checksums are not a stable pin  ⚠ open risk
+`codeload` tarballs are **generated on demand**, and GitHub has changed their compression before
+(Jan 2023), silently invalidating every published archive sha256 worldwide. A catalog that hard-fails
+on sha256 mismatch would break every user at once, through no change of ours — the failure mode is
+"every library stops fetching", not a soft degrade.
+- **Not resolved.** Options: (a) accept and treat a mismatch as a fetch failure with a clear message
+  and a plugin-update path; (b) hash the **extracted tree** rather than the archive; (c) mirror the
+  tarballs somewhere we control (the fleet's tier2 registry or a release asset). (b) is the most
+  robust and costs an extra extract-before-verify step; (c) reintroduces a distribution obligation
+  the "bundle nothing" stance exists to avoid.
+- Must be decided before Phase 3 (the fetcher), not before Phase 1.
+
+### 3. Entries have inter-dependencies — the model needs to carry them
+`busted/config.json` declares `"Lua.workspace.library": ["${3rd}/luassert/library"]`. Enabling
+busted alone leaves `assert` / `spy` / `stub` / `mock` unresolved, because its own definitions
+open with `assert = require("luassert")`. The catalog model in design §2.1 has no dependency field.
+**Resolution**: add `requires: [id, …]` to `LuaDefinitionEntry`, resolved transitively at enable
+time. `${3rd}` is a LuaLS placeholder for its third-party addon dir and must NOT be interpreted as
+a path by us.
+
+### 4. Definitions live under `library/`, not the archive root
+Every addon is `<repo>-<sha>/library/*.lua` plus a `config.json` sibling. The design's `rootPrefix`
+("top-level archive dir to strip") conflates two things: the SHA-named wrapper dir, and the
+`library/` subdir that is the actual root to register. Registering the archive root would index
+`config.json` as project content and miss nothing useful.
+**Resolution**: `rootPrefix` names the path **to register**, i.e. `<repo>-<sha>/library`.
+
+### Resolved catalog data (DR-02)
+
+| id | commit | size | `.lua` | sha256 |
+|----|--------|------|--------|--------|
+| love2d | `c630dd883cda128a19d850bd5e3911110b271609` | 97126 | 20 | `851a6a080cdeaad1e1601553bafc43879aaf466fe0f1b458932d181a98e7250e` |
+| busted | `5ed85d0e016a5eb5eca097aa52905eedf1b180f1` | 2040 | 1 | `c33499e7be61511ac48f4815777c3df55322d0ee61fd92c223921999e5543ce8` |
+| luassert | `d3528bb679302cbfdedefabb37064515ab95f7b9` | 7965 | 7 | `236ee34400c553924803a0ce155d3b7d6f0fe4e5577f5eb34b91f96e9f42cea5` |
+| openresty | `17f581b2e6f2d3a30ab0e6564eb2eb40426db6b5` | 86612 | 73 | `974abe8078c0a2e0d2fc3cdc635b53aa7eea4c3a96c6793e66fe13ad5e9eb47a` |
+
+**The busted entry is validated against the corpus**: its single `library/busted.lua` defines
+`after_each async before_each describe done expose file finally insulate it lazy_setup
+lazy_teardown pending randomize setup teardown` — covering **all eight** symbols behind the
+1507 `LuaUndeclaredVariable` false positives measured in luarocks and luacheck (see TARGET-09).
