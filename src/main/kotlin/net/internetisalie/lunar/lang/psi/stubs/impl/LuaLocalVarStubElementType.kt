@@ -29,10 +29,17 @@ class LuaLocalVarStubElementType(debugName: String) :
         val aliasName = aliasTag?.argName?.text
         val aliasTarget = aliasTag?.argType?.text
         
-        val fields = catsComment?.getFieldTagList()?.associate { 
-            val desc = it.fieldDescriptor
-            val fName = desc.argName?.text ?: desc.argType?.text ?: ""
-            val fType = it.argType.text
+        // BUG-401: `---@field beta? number` declares a member named `beta`, typed `number | nil`.
+        // Keeping the marker in the key produced a member literally called `beta?`, which no member
+        // lookup can ever match — so every optional field on a stubbed class was silently
+        // unreachable. `materializeClass`'s AST branch already stripped it; the stub path, which is
+        // the one a hosted class actually takes, never did.
+        val fields = catsComment?.getFieldTagList()?.associate { tag ->
+            val descriptor = tag.fieldDescriptor
+            val declared = descriptor.argName?.text ?: descriptor.argType?.text ?: ""
+            val isOptional = declared.endsWith("?")
+            val fName = if (isOptional) declared.removeSuffix("?") else declared
+            val fType = if (isOptional) "(${tag.argType.text}) | nil" else tag.argType.text
             fName to fType
         } ?: emptyMap()
         

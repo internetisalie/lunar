@@ -62,30 +62,19 @@ class LuaUnhostedClassResolutionTest : BasePlatformTestCase() {
     @Test
     fun testBareClassWithFieldsResolves() {
         val typeManager = LuaTypeManagerImpl(project)
+        // Explicit newlines and NO trailing declaration: a `local` after the comment would give the
+        // tag a stub host, routing resolution through LuaClassNameIndex and never exercising the
+        // un-hosted path this test exists for.
         myFixture.addFileToProject(
             "defs.lua",
-            """
-            ---@meta
-
-            ---@class Bare
-            ---@field alpha string
-            ---@field beta? number
-
-            local unrelated = 1
-            """.trimIndent(),
+            "---@meta\n\n---@class Bare\n---@field alpha string\n---@field beta? number\n",
         )
         val usage = myFixture.configureByText("consumer.lua", "local x = 1\n")
 
         runReadAction {
             val bare = typeManager.resolveType("Bare", usage) as? LuaClassType
             assertNotNull("a bare `---@class` with no host declaration must resolve", bare)
-            // `beta?`, not `beta`: the optional marker is not stripped. That is **pre-existing and
-            // shared with the hosted path** — this code is `materializeClass`'s AST branch verbatim,
-            // whose `removeSuffix("?")` guard never fires because the `?` is not where it looks. A
-            // member named `beta?` can never be accessed by name. Asserted as-is rather than quietly
-            // fixed here: it is not BUG-400's subject, and hiding it in a passing test is how it
-            // survived this long. Filed as BUG-401.
-            assertEquals(setOf("alpha", "beta?"), bare!!.getMembers().keys)
+            assertEquals(setOf("alpha", "beta"), bare!!.getMembers().keys)
         }
     }
 
@@ -95,17 +84,8 @@ class LuaUnhostedClassResolutionTest : BasePlatformTestCase() {
         val typeManager = LuaTypeManagerImpl(project)
         myFixture.addFileToProject(
             "defs.lua",
-            """
-            ---@meta
-
-            ---@class BareParent
-            ---@field inherited string
-
-            ---@class BareChild : BareParent
-            ---@field own number
-
-            local unrelated = 1
-            """.trimIndent(),
+            "---@meta\n\n---@class BareParent\n---@field inherited string\n\n" +
+                "---@class BareChild : BareParent\n---@field own number\n",
         )
         val usage = myFixture.configureByText("consumer.lua", "local x = 1\n")
 
