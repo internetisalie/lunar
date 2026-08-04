@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-08: On-demand LuaLS / LuaCATS Definition Libraries"
-status: "in_progress"
+status: "done"
 priority: "low"
 vf_icon: 🔵
 ---
@@ -133,14 +133,14 @@ If fetch fails (no network, hash/size mismatch, unsupported archive), an ERROR b
 
 ## Acceptance Criteria
 
-- [ ] The bundled catalog JSON parses into a typed model; a missing required field is a corrupt-catalog error (TC 1, 2).
-- [ ] The enable list round-trips through `lunar.xml` (TC 3).
-- [ ] An already-cached library is reused with zero network calls; an uncached one is fetched off-EDT with size + SHA-256 verification (TC 4).
+- [x] The bundled catalog JSON parses into a typed model; a missing required field is a corrupt-catalog error (TC 1, 2). *`LuaDefinitionCatalogLoaderTest`.*
+- [x] The enable list round-trips through `lunar.xml` (TC 3). *`LuaDefinitionEnableListTest`.*
+- [x] An already-cached library is reused with zero network calls; an uncached one is fetched off-EDT with size + SHA-256 verification (TC 4). *`LuaDefinitionLibraryFetcherTest`.*
 - [x] Each enabled + cached library is exposed as a `SyntheticLibrary` root and its `@meta` API becomes completable/resolvable (TC 5, 6). *TC 6 verified live in GoLand 2026-08-04 — `assert.` completes `is_true` and the rest of luassert's API through the registered root.*
-- [ ] Changing the enable list refreshes roots and drops resolve caches without an IDE restart (TC 7); no libraries enabled → no roots (TC 7b).
-- [ ] A fetch failure (offline / hash mismatch) surfaces a balloon and contributes no root (TC 8).
-- [ ] The settings UI lists the catalog with enable checkboxes, status, license, and attribution link (TC 9).
-- [ ] Real-flow DoD: with `love2d` enabled and fetched, a `.lua` file using the love2d API gets completion + resolution + hover in GoLand (VNC-verified).
+- [x] Changing the enable list refreshes roots and drops resolve caches without an IDE restart (TC 7); no libraries enabled → no roots (TC 7b). *`LuaDefinitionLibraryProviderTest`.*
+- [x] A fetch failure (offline / hash mismatch) surfaces a balloon and contributes no root (TC 8). *`LuaDefinitionLibraryEnablerTest`.*
+- [x] The settings UI lists the catalog with enable checkboxes, status, license, and attribution link (TC 9). *`LuaDefinitionLibraryEnablerTest` — the `Configurable` is a thin shell over it.*
+- [ ] **NOT RUN** — Real-flow DoD: with `love2d` enabled and fetched, a `.lua` file using the love2d API gets completion + resolution + hover in GoLand (VNC-verified). *The feature was closed on the owner's call 2026-08-04 with this outstanding. The equivalent flow **was** verified live for `busted`/`luassert` (TC 6: `assert.` completes `is_true` and the rest of luassert's API), so the mechanism is proven end-to-end; what love2d adds is **scale** — ~100 files and hundreds of globals against `GlobalSymbolRankingService`'s `MAX_CANDIDATES = 500` cap, which BUG-394 deliberately left untouched. If library symbols ever appear to go missing in a large addon, look there first.*
 
 ---
 

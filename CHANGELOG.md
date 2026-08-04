@@ -1,5 +1,47 @@
 # Change Log
 
+## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
+
+### On-demand LuaLS / LuaCATS definition libraries (TARGET-08)
+Type definitions for community Lua libraries can now be enabled per project under
+**Settings ▸ Languages & Frameworks ▸ Lua ▸ Definition Libraries**. Nothing ships with the plugin:
+each library is downloaded from its upstream project on demand, cached per user, and registered as
+a library root so its `@meta` annotations resolve and complete. The catalog is pinned by commit and
+checksum, licences and attribution links are shown for every entry before you opt in, and a library
+enabled while offline stays enabled and retries on the next apply.
+
+With `busted` enabled, `assert.` completes `is_true`, `are_equal`, `are_same` and the rest of the
+luassert API — including members inherited through its `---@class` parents.
+
+### The Lua standard library now completes (BUG-394)
+**Typing `pri` did not offer `print`.** Global completion searched project files only, and every
+stdlib symbol lives in a bundled stub outside that scope — so the entire standard library was
+missing from the caret you are most likely to use it at, along with anything from a definition
+library or a LuaRocks tree. Library symbols now appear, ranked below your own code, and are never
+offered a spurious `require` on acceptance.
+
+### Members of anything outside the current file (BUG-395, BUG-398, BUG-399)
+Member completion after `.` or `:` was built one file at a time, so a receiver defined anywhere
+else offered nothing at all. Three defects, all fixed:
+- **`table.` completed nothing.** A file did not publish its globals — `table = {}` and
+  `function table.concat()` landed on unrelated types — and only the first member of a table was
+  ever recorded, so a stub declaring ten functions described one. `table.` now completes
+  `concat`, `insert`, `move`, `pack`, `remove`, `sort`, `unpack` with signatures.
+- **A `---@class` named apart from its local had no members.** LuaCATS libraries routinely write
+  `---@class luassert.internal` on `local internal = {}`, and members declared against the variable
+  were not found — so the class materialized empty and anything inheriting from it inherited
+  nothing. A module whose exported type the stub builder could not summarize also lost its type
+  outright, which made the same `require` resolve differently from one caret to the next.
+- **A `---@class` in a library file could not resolve at all**, for the same project-scope reason
+  as BUG-394.
+
+Completion is also now quiet where it should be: a member caret after `.` no longer lists
+project-wide globals, and `goto` offers labels rather than the standard library.
+
+### Definition-libraries settings page no longer stalls the UI thread (BUG-396)
+Opening the page performed filesystem work on the EDT. The catalog renders immediately and the
+fetched/not-fetched column fills in from a background thread.
+
 ## [0.20] — Terminology & settings-label polish
 
 ### Correctness fixes found by sweeping real-world Lua projects (MAINT-33)
