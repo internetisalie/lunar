@@ -192,6 +192,48 @@ folders:
 
   **To revisit**, the runtime ceiling is the only thing to decide: either raise it deliberately
   (the sweep is opt-in, builder-only, and never runs in CI) or cut the highlight pass's cost.
+
+- **RECOMMENDED REPLACEMENT: Penlight — the LDoc coverage at an eighth of the cost (measured
+  2026-08-04).** KOReader's one durable contribution was reaching LDoc annotations, which no other
+  pinned project uses. That does not require an application of KOReader's size; it requires a
+  project *documented with LDoc*. Candidates were fetched and counted rather than reasoned about:
+
+  | Project | `.lua` | `@param[opt=` | `@func` | backtick in `@param` | LDoc tags |
+  |---|---|---|---|---|---|
+  | **Penlight** | 115 (39 in `lua/`) | **14** | **47** | **21** | **1077** (917 in `lua/`) |
+  | ldoc | 75 | 9 | 0 | 1 | 120 |
+  | busted | 98 | 0 | 0 | 0 | 7 |
+  | luasocket | 58 | 0 | 0 | 0 | 0 |
+
+  Penlight carries **all three constructs BUG-393 was found through**, all of them inside `lua/`,
+  and 917 LDoc tags in 39 library files. ldoc — which dogfoods its own format — has an eighth the
+  tag density and none of the `@func` usage.
+
+  Proposed manifest row (tag `1.15.0` → `e0bc8f7fce3b6a4fdef3660066f5006bf8456b32`):
+
+  ```
+  penlight<TAB>https://github.com/lunarmodules/Penlight.git<TAB>e0bc8f7f…<TAB>lua,spec<TAB>docs<TAB>LUA51<TAB>lua
+  ```
+
+  - **`roots = lua,spec` → 57 files ≈ 73 s** at the measured 1.28 s/file, taking the corpus to
+    roughly 5 m 45 s against the 10-minute ceiling. KOReader was 477 files and 609 s. Same defect
+    class, **~8× cheaper**, and no ceiling decision to make.
+  - **`prune = docs`** — 1.3 MB of generated HTML, the bulk of the checkout; the Lua tree is 504 KB.
+  - **`moduleRoot = lua`** — Penlight names modules `pl.utils` → `lua/pl/utils.lua`, so the 7th
+    column added for KOReader finally has a user, and `LuaSourcePathModuleResolutionTest` covers it.
+  - **`LUA51`**, matching the rest of the corpus; Penlight supports 5.1–5.4 via `pl/compat.lua`.
+  - Incidental coverage: it is written in the paren-less `require 'pl.utils'` form throughout, which
+    is BUG-389's path, and `pl.class` gives dense OOP/metatable/`__index` material for the type
+    engine.
+
+  **What is genuinely lost, and why that is acceptable:** Penlight is a *library*; KOReader is an
+  *application*, with a deep require graph, global state and UI widget hierarchies. That shape is
+  not unrepresented though — ZeroBrane Studio is a GUI application and luarocks is build tooling.
+  What was unrepresented was LDoc, and that is exactly what Penlight restores. Scale itself was
+  never the coverage; it was the cost.
+
+  **Not yet wired in**: adding the row requires a baseline recorded from a builder run, and the
+  ratchet must not be given a floor nobody has looked at.
 - **TBD: More project shapes** — a Neovim config tree and an OpenResty service were considered
   and deferred; with KOReader parked, the corpus covers build tooling, a library with a
   hand-written parser, and a global-heavy 5.1 application — but no LuaJIT/FFI shape.
