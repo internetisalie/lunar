@@ -95,11 +95,12 @@ Two things fall out of that and should not be lost:
   reported". It was not genuine — it was *this* false positive disappearing. BUG-397's real
   regression budget is three suites, and one of its effects is closing this bug.
 
-**Secondary finding, unrelated to the fix but worth knowing:** `resolveType("package")` returns
+**Secondary finding — filed separately as BUG-400, and NOT part of this bug:** `resolveType("package")` returns
 null, and so do `math` and `io`. `LuaClassNameIndex` is a stub index over `LuaLocalVarDecl`, but the
 stdlib stubs declare their classes on a bare **global assignment** (`---@class package` above
 `package = {}`), which is not a stubbed PSI type — so no stdlib `---@class` is nominally resolvable.
 `string` and `table` *appear* to resolve only because `resolveType` checks `LuaPrimitiveType.PRIMITIVES`
-first and those names collide with primitives. Nothing here depends on that path today (members come
-through the graph), but any future feature reaching for the nominal type of a stdlib class will find
-nothing.
+first and those names collide with primitives. **Nothing in this bug's chain uses that path** — the
+member types come through the graph, which is why BUG-397 alone closes this one. Measured separately:
+`resolveType` is null for `package`, `io`, `os`, `debug`, `coroutine` and `utf8`, and `---@type package`
+completes nothing. Filed as **BUG-400**.
