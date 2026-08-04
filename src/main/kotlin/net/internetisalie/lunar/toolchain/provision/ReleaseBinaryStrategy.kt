@@ -24,7 +24,7 @@ interface LuaArtifactFetcher {
 /** Production fetcher: verifies + caches via [LuaArtifactDownloader] (mandatory SHA-256 check). */
 class DownloaderFetcher(private val downloader: LuaArtifactDownloader = LuaArtifactDownloader()) : LuaArtifactFetcher {
     override fun fetch(asset: LuaFeedAsset, indicator: ProgressIndicator): Path =
-        downloader.fetch(listOf(asset.url), asset.sha256, asset.size, indicator)
+        downloader.fetch(ArtifactPin(listOf(asset.url), asset.sha256, asset.size), indicator)
 }
 
 /**

@@ -23,6 +23,12 @@ object LuaArchiveExtractor {
     fun extract(archive: Path, targetDir: Path, rootPrefix: String?, indicator: ProgressIndicator) {
         val decompressor = decompressorFor(archive)
         if (rootPrefix != null) decompressor.removePrefixPath(rootPrefix)
+        // `Decompressor` blocks `..` traversal itself but defaults escaping symlinks to ALLOW, so an
+        // archive could plant `foo -> /home/you/.ssh` inside the extracted tree. That was moot while
+        // every caller verified a SHA-256 before extracting; TARGET-08 fetches definition trees under
+        // ArtifactVerification.ADVISORY, which makes this the real control. Costs the toolchain path
+        // nothing — no legitimate Lua distribution or LuaCATS addon links outside its own root.
+        decompressor.escapingSymlinkPolicy(Decompressor.EscapingSymlinkPolicy.DISALLOW)
         decompressor.entryFilter {
             indicator.checkCanceled()
             true

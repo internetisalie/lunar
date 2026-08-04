@@ -30,8 +30,19 @@ Sequenced from [design.md](design.md). Each phase leaves the build green and is 
 ### Phase 3: Fetcher (download + extract + cache) [Must]
 - **Goal**: resolve/fetch an entry's on-disk cache off-EDT.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.definitions.LuaDefinitionLibraryFetcher` (`cacheDir`/`isCached`/`ensureCached`), injecting `LuaArtifactDownloader` + `cacheRoot`; reuse `LuaArchiveExtractor`; error → balloon on `notification.group.lunar.tools` — realizes design §2.3, §3.2.
-- **Exit criteria**: a pre-seeded cache dir is returned with zero downloader calls (TC 4); a throwing downloader yields `null` + no cache dir + an error balloon request (TC 8).
+  - [x] Create `net.internetisalie.lunar.definitions.LuaDefinitionLibraryFetcher` (`cacheDir`/`isCached`/`ensureCached`), injecting `LuaArtifactDownloader` + `cacheRoot`; reuse `LuaArchiveExtractor`; error → balloon on `notification.group.lunar.tools` — realizes design §2.3, §3.2.
+- **Exit criteria**: a pre-seeded cache dir is returned with zero downloader calls (TC 4); a throwing downloader yields `null` + no cache dir (TC 8).
+- **Amended 2026-08-03 — the balloon is NOT this phase's.** This task text said "error → balloon on
+  `notification.group.lunar.tools`", contradicting design §3.2 (review N3), which deliberately
+  reassigns user-facing reporting to the *caller* so the fetcher stays a pure, testable function.
+  The design wins: `ensureCached` returns `null` and logs; Phase 5's `apply()` balloons.
+  **TARGET-08-07 is therefore Partial after Phase 3** — its detection half is done, its
+  notification half lands with the settings UI.
+- **Amended — seam, not a concrete downloader.** The task text named a `LuaArtifactDownloader`
+  constructor injection (design §2.3 orders it `downloader, cacheRoot`). Implemented instead as
+  `LuaDefinitionLibraryFetcher(cacheRoot, source: LuaDefinitionArchiveSource)`: injecting the
+  concrete class would have required opening a final, security-relevant shared class purely to be
+  mocked. The seam keeps it final and the production path still routes through it.
 
 ### Phase 4: Library-root provider + registration [Must]
 - **Goal**: expose enabled+cached trees as `SyntheticLibrary` roots so `@meta` defs are indexed.

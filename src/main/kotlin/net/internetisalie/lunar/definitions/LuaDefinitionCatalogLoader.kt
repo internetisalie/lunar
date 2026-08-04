@@ -59,6 +59,14 @@ object LuaDefinitionCatalogLoader {
         libraries.groupingBy { it.id }.eachCount().forEach { (id, count) ->
             if (count > 1) corrupt("duplicate library id '$id'")
         }
+        // ADVISORY verification's whole safety argument is that the URL identifies immutable
+        // content by embedding the pinned commit SHA. Left unchecked that is a comment, not an
+        // invariant — one mirror added without the SHA and the rationale is silently void.
+        libraries.forEach { entry ->
+            if (entry.urls.none { it.contains(entry.version) }) {
+                corrupt("library '${entry.id}' has a URL that does not pin version '${entry.version}'")
+            }
+        }
         // An unresolvable `requires` silently reproduces the half-enabled library the field exists
         // to prevent (busted without luassert), so a typo is corruption, not a runtime surprise.
         val ids = libraries.mapTo(mutableSetOf()) { it.id }

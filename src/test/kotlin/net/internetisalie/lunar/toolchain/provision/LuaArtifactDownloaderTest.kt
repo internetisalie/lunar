@@ -34,12 +34,48 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         return Triple(file.toUri().toString(), sha256Of(file), file.fileSize())
     }
 
+    /**
+     * ADVISORY keeps a pin-mismatched file instead of failing. Without this, flipping
+     * `LuaArtifactDownloader.verify()` to throw under ADVISORY — or flipping the definition source
+     * back to STRICT — is an undetectable change to the one deliberate security-posture decision
+     * in TARGET-08.
+     */
+    fun testAdvisoryKeepsMismatchedFileInsteadOfFailing() {
+        val fixtures = createTempDirectory("lunar-dl-src")
+        val cacheDir = createTempDirectory("lunar-dl-cache")
+        val (url, _, size) = writePayload(fixtures, "defs.tar.gz", "definition-bytes")
+        val wrongSha = "0".repeat(64)
+
+        val result = LuaArtifactDownloader(cacheDir).fetch(
+            ArtifactPin(listOf(url), wrongSha, size),
+            indicator,
+            ArtifactVerification.ADVISORY,
+        )
+
+        assertEquals("definition-bytes", result.readText())
+        assertTrue("the mismatched file must be cached, not discarded", result.exists())
+    }
+
+    /** The same mismatch under STRICT must still fail — ADVISORY is opt-in, never the default. */
+    fun testSameMismatchStillFailsUnderStrictDefault() {
+        val fixtures = createTempDirectory("lunar-dl-src")
+        val cacheDir = createTempDirectory("lunar-dl-cache")
+        val (url, _, size) = writePayload(fixtures, "defs.tar.gz", "definition-bytes")
+        val wrongSha = "0".repeat(64)
+
+        val failure = runCatching {
+            LuaArtifactDownloader(cacheDir).fetch(ArtifactPin(listOf(url), wrongSha, size), indicator)
+        }.exceptionOrNull()
+
+        assertTrue("STRICT must reject a hash mismatch", failure is LuaProvisionException)
+    }
+
     fun testFetchesFromSingleSourceVerifiesAndCaches() {
         val fixtures = createTempDirectory("lunar-dl-src")
         val cacheDir = createTempDirectory("lunar-dl-cache")
         val (url, sha, size) = writePayload(fixtures, "lua-5.4.8.tar.gz", "lua-source-bytes")
 
-        val result = LuaArtifactDownloader(cacheDir).fetch(listOf(url), sha, size, indicator)
+        val result = LuaArtifactDownloader(cacheDir).fetch(ArtifactPin(listOf(url), sha, size), indicator)
 
         assertEquals(cacheDir.resolve("lua-5.4.8.tar.gz"), result)
         assertEquals("lua-source-bytes", result.readText())
@@ -52,7 +88,7 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         val (url, sha, size) = writePayload(fixtures, "artifact.zip", "cached-bytes")
         cacheDir.resolve("artifact.zip").writeText("cached-bytes")
 
-        val result = LuaArtifactDownloader(cacheDir).fetch(listOf(url), sha, size, indicator)
+        val result = LuaArtifactDownloader(cacheDir).fetch(ArtifactPin(listOf(url), sha, size), indicator)
 
         assertEquals(cacheDir.resolve("artifact.zip"), result)
         assertEquals("cached-bytes", result.readText())
@@ -65,7 +101,7 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         val (url, sha, size) = writePayload(fixtures, "artifact.zip", "fresh-correct-bytes")
         cacheDir.resolve("artifact.zip").writeText("stale-tampered-bytes")
 
-        val result = LuaArtifactDownloader(cacheDir).fetch(listOf(url), sha, size, indicator)
+        val result = LuaArtifactDownloader(cacheDir).fetch(ArtifactPin(listOf(url), sha, size), indicator)
 
         assertEquals("fresh-correct-bytes", result.readText())
     }
@@ -79,9 +115,7 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         badFile.writeText("wrong-payload-different-hash")
 
         val result = LuaArtifactDownloader(cacheDir).fetch(
-            listOf(badFile.toUri().toString(), good.first),
-            good.second,
-            good.third,
+            ArtifactPin(listOf(badFile.toUri().toString(), good.first), good.second, good.third),
             indicator,
         )
 
@@ -98,9 +132,7 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
 
         val failure = runCatching {
             LuaArtifactDownloader(cacheDir).fetch(
-                listOf(badA.toUri().toString(), badB.toUri().toString()),
-                impossibleSha,
-                9L,
+                ArtifactPin(listOf(badA.toUri().toString(), badB.toUri().toString()), impossibleSha, 9L),
                 indicator,
             )
         }.exceptionOrNull()
@@ -120,7 +152,7 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         fileDir.createDirectories()
         val (url, sha, size) = writePayload(fileDir, "download", "rocks-win-bytes")
 
-        val result = LuaArtifactDownloader(cacheDir).fetch(listOf(url), sha, size, indicator)
+        val result = LuaArtifactDownloader(cacheDir).fetch(ArtifactPin(listOf(url), sha, size), indicator)
 
         assertEquals(cacheDir.resolve("luarocks-3.1-win64.zip"), result)
     }

@@ -78,7 +78,7 @@ class SourceBuildStrategy(
         if (item.kindId == "luajit") return
         buildDir.createDirectories()
         val source = sourceOf(item.kindId, resolved)
-        val archive = downloader.fetch(source.urls, source.sha256, source.size, context.indicator)
+        val archive = downloader.fetch(ArtifactPin(source.urls, source.sha256, source.size), context.indicator)
         LuaArchiveExtractor.extract(archive, buildDir, source.rootPrefix, context.indicator)
         if (item.kindId == "lua") patchLuaconfFile(buildDir, resolved.version, context.rootDir)
     }

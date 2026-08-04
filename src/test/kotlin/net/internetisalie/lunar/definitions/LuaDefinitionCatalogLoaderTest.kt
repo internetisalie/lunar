@@ -26,7 +26,7 @@ class LuaDefinitionCatalogLoaderTest {
             "id" to "\"$id\"",
             "displayName" to "\"Busted\"",
             "version" to "\"5ed85d0e\"",
-            "urls" to "[\"https://example.invalid/$id.tar.gz\"]",
+            "urls" to "[\"https://example.invalid/$id/archive/5ed85d0e.tar.gz\"]",
             "sha256" to "\"c33499e7\"",
             "size" to "2040",
             "rootPrefix" to "\"$id-5ed85d0e/library\"",
@@ -117,6 +117,18 @@ class LuaDefinitionCatalogLoaderTest {
         assertContains(failure.message.orEmpty(), "ghost")
     }
 
+    /**
+     * ADVISORY verification's safety argument is that the URL identifies immutable content by
+     * embedding the pinned commit SHA. Unchecked, that is a comment rather than an invariant, and
+     * one added mirror would silently void it.
+     */
+    @Test
+    fun urlNotPinningTheVersionThrows() {
+        val json = catalogJson(entryJson().replace("/archive/5ed85d0e.tar.gz", "/archive/main.tar.gz"))
+        val failure = assertFailsWith<LuaProvisionException> { LuaDefinitionCatalogLoader.parse(json) }
+        assertContains(failure.message.orEmpty(), "does not pin version")
+    }
+
     /** The version field must actually gate, or its stated purpose is fiction. */
     @Test
     fun unsupportedCatalogVersionThrows() {
@@ -140,7 +152,7 @@ class LuaDefinitionCatalogLoaderTest {
 
     @Test
     fun emptyUrlListThrows() {
-        val json = catalogJson(entryJson().replace("""["https://example.invalid/busted.tar.gz"]""", "[]"))
+        val json = catalogJson(entryJson().replace("""["https://example.invalid/busted/archive/5ed85d0e.tar.gz"]""", "[]"))
         val failure = assertFailsWith<LuaProvisionException> { LuaDefinitionCatalogLoader.parse(json) }
         assertContains(failure.message.orEmpty(), "urls")
     }
