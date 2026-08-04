@@ -4,6 +4,7 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
@@ -138,22 +139,22 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         return snapshot.graphTypeToLuaType(graphType)
     }
 
+    /**
+     * The type a module file exports, from its stub if that can answer and from live analysis if not.
+     *
+     * BUG-398: live analysis used to run *only* when the file had no stub at all, so a stub whose
+     * `exportedTypeString` was empty — anything the stub builder's narrow `return <local>` / `@type`
+     * extraction does not recognise — returned null and the module lost its type outright. Whether a
+     * file is stubbed or AST-backed depends on nothing more than whether something happened to load
+     * its AST first, so the same `require` resolved differently from one caret to the next.
+     */
     private fun getModuleType(psiFile: LuaFile, context: PsiElement): LuaType? {
-        val stub = psiFile.stub
-        if (stub != null) {
-            val exportedTypeString = stub.exportedTypeString
-            if (exportedTypeString != null) {
-                return TypeParser.parse(exportedTypeString, context)
-            }
-        } else {
-            // Fallback: use live analysis if stub is not available
-            val snapshot = LuaTypesSnapshot.forFile(psiFile)
-            val graphType = snapshot.getFileReturnType()
-            if (graphType != LuaGraphType.Any && graphType != LuaGraphType.Undefined) {
-                return snapshot.graphTypeToLuaType(graphType)
-            }
-        }
-        return null
+        psiFile.stub?.exportedTypeString?.let { return TypeParser.parse(it, context) }
+
+        val snapshot = LuaTypesSnapshot.forFile(psiFile)
+        val graphType = snapshot.getFileReturnType()
+        if (graphType == LuaGraphType.Any || graphType == LuaGraphType.Undefined) return null
+        return snapshot.graphTypeToLuaType(graphType)
     }
 
     // MAINT-30-03 (§2.5): resolution over the single canonical candidate sequence; the terminal keeps
@@ -215,28 +216,43 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         LuaImplicitFields.collect(name, decls, membersMap)
         // Method-aware members: `function Class:m` / `function Class.fn` declarations are not
         // captured as @field/implicit members, so resolveMember would miss them otherwise.
-        collectMethodMembers(name, membersMap)
+        collectMethodMembers(name, decls, membersMap)
         return LuaClassType(name, superTypes, membersMap)
     }
 
     /**
-     * Enumerate every `function <className>:method` and `function <className>.fn` declaration
-     * project-wide via [LuaGlobalDeclarationIndex] key iteration, reading from stubs only, and
-     * add them as function-typed members. The result is memoized by the caller (materializeClass
-     * is cached in [typeCache], invalidated on PSI modification).
+     * Enumerate every `function <receiver>:method` / `function <receiver>.fn` declaration and add it
+     * as a function-typed member, reading from stubs only. The result is memoized by the caller
+     * (materializeClass is cached in [typeCache], invalidated on PSI modification).
+     *
+     * BUG-398: the receiver is not always the class name — see [classReceiverNames]. A match on the
+     * class name is honoured project-wide, because a class name is a global namespace; a match on a
+     * declaring local's name is confined to that local's own file, where the variable exists.
      */
-    private fun collectMethodMembers(className: String, membersMap: MutableMap<String, LuaTypeMember>) {
-        val scope = GlobalSearchScope.projectScope(project)
-        val colonPrefix = "$className:"
-        val dotPrefix = "$className."
+    private fun collectMethodMembers(
+        className: String,
+        decls: Collection<LuaLocalVarDecl>,
+        membersMap: MutableMap<String, LuaTypeMember>,
+    ) {
         val allKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
+        addMethodsOf(MethodScan(className, className, null), allKeys, membersMap)
+        decls.forEach { decl ->
+            val localName = declaredName(decl)?.takeIf { it != className } ?: return@forEach
+            addMethodsOf(MethodScan(className, localName, decl.containingFile), allKeys, membersMap)
+        }
+    }
+
+    /** One receiver name to scan for, and the file it is confined to (null = project-wide). */
+    private data class MethodScan(val className: String, val receiver: String, val onlyIn: PsiFile?)
+
+    private fun addMethodsOf(
+        scan: MethodScan,
+        allKeys: Collection<String>,
+        membersMap: MutableMap<String, LuaTypeMember>,
+    ) {
+        val scope = GlobalSearchScope.projectScope(project)
         for (key in allKeys) {
-            val isColon = key.startsWith(colonPrefix)
-            val isDot = key.startsWith(dotPrefix)
-            if (!isColon && !isDot) continue
-            val memberName = key.substring(className.length + 1)
-            // Skip nested qualifiers (e.g. "Foo.bar.baz" when collecting members of "Foo")
-            if (memberName.contains('.') || memberName.contains(':')) continue
+            val memberName = memberNameOf(key, scan.receiver) ?: continue
             if (membersMap.containsKey(memberName)) continue
 
             val decls = StubIndex.getElements(
@@ -246,10 +262,16 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                 scope,
                 LuaFuncDecl::class.java,
             )
-            val decl = decls.firstOrNull() ?: continue
-            val fnType = funcTypeFromStub(className, decl)
+            val decl = decls.firstOrNull { scan.onlyIn == null || it.containingFile == scan.onlyIn } ?: continue
+            val fnType = funcTypeFromStub(scan.className, decl)
             membersMap[memberName] = LuaTypeMember(memberName, fnType, sourceElement = decl)
         }
+    }
+
+    /** `Receiver.m` / `Receiver:m` → `m`; null for a non-match or a nested qualifier (`Foo.bar.baz`). */
+    private fun memberNameOf(key: String, receiver: String): String? {
+        if (!key.startsWith("$receiver.") && !key.startsWith("$receiver:")) return null
+        return key.substring(receiver.length + 1).takeIf { !it.contains('.') && !it.contains(':') }
     }
 
     private fun funcTypeFromStub(className: String, decl: LuaFuncDecl): LuaType {

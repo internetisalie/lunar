@@ -269,10 +269,13 @@ class LuaCompletionContributor : CompletionContributor() {
             }
         )
 
-        // Cross-file completion provider (COMP-03)
+        // Cross-file completion provider (COMP-03).
+        // BUG-398: excluded after `.`/`:` — a member position. This provider offers project-wide
+        // globals and `---@class`-carrying locals, none of which can follow a dot, so `assert.` was
+        // answered with the *declaring file's locals* alongside the receiver's real members.
         extend(
             CompletionType.BASIC,
-            psiElement().withElementType(LuaElementTypes.IDENTIFIER),
+            psiElement().withElementType(LuaElementTypes.IDENTIFIER).andNot(psiElement().afterLeaf(".", ":")),
             LuaCrossFileCompletionProvider()
         )
 

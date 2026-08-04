@@ -52,9 +52,8 @@ class LuaGlobalMemberCompletionTest : BasePlatformTestCase() {
      * luassert's returns a `---@class` local. So the global's type arrives through a `require`, not
      * from a table literal — the case that has to work for a definition library to be useful.
      *
-     * Only the class's **own** members are asserted. Its `---@class luassert : luassert.internal`
-     * parent contributes nothing here, and that gap is not this fix's: it sits in how a module's
-     * exported type is materialized, upstream of anything BUG-395 touches. Filed separately.
+     * The inherited `luassert.internal` members (`True`, `are`) are asserted too: they were missing
+     * until BUG-398, because the parent class is named apart from the local that carries it.
      */
     @Test
     fun globalBoundToARequiredModuleCompletesThatModulesMembers() {
@@ -76,7 +75,37 @@ class LuaGlobalMemberCompletionTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
         myFixture.addFileToProject("busted.lua", "---@meta\nassert = require(\"luassert\")\n")
-        assertCompletes("assert.<caret>", "unregister")
+        assertCompletes("assert.<caret>", "unregister", "True", "are")
+    }
+
+    /**
+     * BUG-398's other half: after a `.` only members are valid, but the cross-file provider ran
+     * regardless and answered with project-wide globals and `---@class`-carrying locals — so
+     * `assert.` offered `internal` and `luassert`, the declaring file's own locals, as if they were
+     * members of `assert`.
+     */
+    @Test
+    fun aMemberCaretOffersNoCrossFileGlobals() {
+        // Two members, deliberately: a lookup with exactly one match auto-inserts it and
+        // `lookupElementStrings` comes back null, which would read as an empty list either way.
+        myFixture.addFileToProject(
+            "luassert.lua",
+            """
+            ---@meta
+            ---@class luassert
+            local luassert = {}
+            function luassert.unregister(n) end
+            function luassert.register(n) end
+            return luassert
+            """.trimIndent(),
+        )
+        myFixture.addFileToProject("busted.lua", "---@meta\nassert = require(\"luassert\")\n")
+        val found = completionsFor("assert.<caret>")
+        assertEquals(
+            "nothing but the receiver's members may follow a dot. Found: $found",
+            setOf("register", "unregister"),
+            found.toSet(),
+        )
     }
 
     /** A file-local declaration must still win over the cross-file global of the same name. */

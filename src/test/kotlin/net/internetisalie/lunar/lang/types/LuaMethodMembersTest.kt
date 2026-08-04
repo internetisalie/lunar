@@ -84,4 +84,92 @@ class LuaMethodMembersTest : BasePlatformTestCase() {
             assertTrue("dot function should resolve as a member", util!!.resolveMember("format")?.type is LuaFunctionType)
         }
     }
+
+    /**
+     * BUG-398: the class name and the local holding it need not match. LuaCATS libraries routinely
+     * separate them — luassert writes `---@class luassert.internal` on `local internal = {}` — and
+     * the methods are then declared against the *variable*, so a class-name-only scan of the
+     * declaration index found nothing and the class materialized with no members at all.
+     */
+    @Test
+    fun testMethodsDeclaredAgainstTheLocalRatherThanTheClassName() {
+        val typeManager = LuaTypeManagerImpl(project)
+        val usage = myFixture.configureByText(
+            "luassert.lua",
+            """
+            ---@class luassert.internal
+            local internal = {}
+
+            function internal.True(value) end
+
+            internal.are = internal
+            """.trimIndent(),
+        )
+
+        runReadAction {
+            val internal = typeManager.resolveType("luassert.internal", usage) as? LuaClassType
+            assertNotNull("luassert.internal should be a class type", internal)
+            assertTrue(
+                "a method declared as `function internal.True` must be a member of the class the " +
+                    "local carries. Found: ${internal!!.getMembers().keys}",
+                internal.resolveMember("True")?.type is LuaFunctionType,
+            )
+            assertNotNull(
+                "an implicit field assigned as `internal.are = …` must be a member too",
+                internal.resolveMember("are"),
+            )
+        }
+    }
+
+    /** Inheriting from such a class must inherit its members — what BUG-398 actually cost. */
+    @Test
+    fun testMembersOfAParentNamedApartFromItsLocalAreInherited() {
+        val typeManager = LuaTypeManagerImpl(project)
+        val usage = myFixture.configureByText(
+            "luassert.lua",
+            """
+            ---@class luassert.internal
+            local internal = {}
+            function internal.True(value) end
+
+            ---@class luassert : luassert.internal
+            local luassert = {}
+            function luassert.unregister(namespace) end
+            """.trimIndent(),
+        )
+
+        runReadAction {
+            val luassert = typeManager.resolveType("luassert", usage) as? LuaClassType
+            assertNotNull("luassert should be a class type", luassert)
+            assertEquals(
+                setOf("True", "unregister"),
+                luassert!!.getMembers().keys,
+            )
+        }
+    }
+
+    /** The confinement that keeps the widened match honest: a same-named local elsewhere is not mine. */
+    @Test
+    fun testALocalOfTheSameNameInAnotherFileDoesNotContributeMembers() {
+        val typeManager = LuaTypeManagerImpl(project)
+        myFixture.addFileToProject("other.lua", "local internal = {}\nfunction internal.NotMine() end\n")
+        val usage = myFixture.configureByText(
+            "mine.lua",
+            """
+            ---@class Mine
+            local internal = {}
+            function internal.Mine() end
+            """.trimIndent(),
+        )
+
+        runReadAction {
+            val mine = typeManager.resolveType("Mine", usage) as? LuaClassType
+            assertNotNull("Mine should be a class type", mine)
+            assertEquals(
+                "only the declaring file's `internal` contributes. Found: ${mine!!.getMembers().keys}",
+                setOf("Mine"),
+                mine.getMembers().keys,
+            )
+        }
+    }
 }
