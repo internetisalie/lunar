@@ -830,14 +830,23 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     /**
      * Binds a name to the node its scope holds — and, deliberately, to nothing otherwise.
      *
-     * BUG-395: it is tempting to fall back to [LuaTypeManager.resolveGlobal] here, so that every free
-     * global (`table`, `redis`, a project-wide `Lib`) is typed for *all* consumers rather than just
-     * for completion. That was tried and reverted: giving the checker types it never had before turns
-     * previously-unchecked calls into checked ones, and four suites regressed at once — `table.sort`'s
-     * comparator inferred `boolean | any`, `redis.register_function`'s table form grew two spurious
-     * argument errors, `redis.pcall`'s reply lost its `err` arm, and a real nil-assignability error
-     * stopped being reported. Typing free globals engine-wide is worth doing, but it is its own piece
-     * of work with its own regression budget — BUG-397, not this fix.
+     * BUG-397 is the fallback that belongs here: [LuaTypeManager.resolveGlobal] would type every free
+     * global (`table`, `redis`, `package`, a project-wide `Lib`) for *all* consumers rather than only
+     * for completion, and would close BUG-359 as a side effect. It has been tried twice and reverted
+     * twice. The mechanism is now understood and recorded rather than left as three mystery failures:
+     *
+     * **Binding the receiver displaces a better-informed member path.** With `redis` unbound,
+     * [visitIndexExpr] returned early at its `firstNode(...) ?: return` and `redis.pcall`'s type came
+     * from the stub-derived route, which reads `---@return any|{ err: string }` as a Layer-1
+     * [LuaUnionType] with both arms intact. Bind `redis` and the member instead flows through a graph
+     * `Table` constraint, where [LuaTypeAlgebra.canonicalize] collapses `any | X` to `Any` outright
+     * (`simplify` returns null the moment any arm is `Any`) — so the `{ err: string }` arm, and with
+     * it `reply.err`, is gone. The same displacement explains `redis.register_function`'s table form
+     * growing arity errors and `table.sort`'s comparator inferring `boolean | any`.
+     *
+     * So the fix is not "wire the fallback"; it is deciding which of two paths owns member typing on a
+     * cross-file receiver, and whether `any | <structural>` should keep its structural arms. Both are
+     * engine changes with their own blast radius — see BUG-397.
      */
     override fun visitNameRef(o: LuaNameRef) {
         super.visitNameRef(o)

@@ -9,7 +9,9 @@ import com.intellij.util.indexing.ID
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
+import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
@@ -79,17 +81,29 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
             return result
         }
 
+        /**
+         * SYNTAX-18: read the bound name through the AST node, not the generated getter.
+         * `LuaLocalFuncDecl.getNameRef()` is declared `@NotNull` but returns null for a partially
+         * parsed decl — `local function repeat(...)`, where a keyword sits in the name slot — and the
+         * platform *logs an error* rather than returning null, which surfaces as a
+         * `TestLoggerAssertionError` in any test that indexes such a file.
+         */
         private fun fileScopeLocalNames(topLevel: List<Any?>): Set<String> {
             val names = mutableSetOf<String>()
             topLevel.forEach { stmt ->
                 when (stmt) {
-                    is LuaLocalVarDecl -> stmt.attNameList.forEach { names += it.nameRef.identifier.text }
-                    is LuaLocalFuncDecl -> names += stmt.nameRef.identifier.text
+                    is LuaLocalVarDecl -> stmt.attNameList.forEach { attName ->
+                        boundName(attName)?.let { names += it }
+                    }
+                    is LuaLocalFuncDecl -> boundName(stmt)?.let { names += it }
                     else -> Unit
                 }
             }
             return names
         }
+
+        private fun boundName(declaration: PsiElement): String? =
+            declaration.node.findChildByType(LuaElementTypes.NAME_REF)?.psi?.text
     }
 
     companion object {
