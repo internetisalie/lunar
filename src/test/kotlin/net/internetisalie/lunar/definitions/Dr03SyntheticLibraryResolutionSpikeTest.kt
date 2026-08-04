@@ -15,6 +15,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import java.io.File
@@ -117,7 +118,20 @@ class Dr03SyntheticLibraryResolutionSpikeTest : BasePlatformTestCase() {
             indexed.isNotEmpty(),
         )
 
-        // Step 3 — completion is NOT asserted here, deliberately. It returns nothing for this
+        // Step 3 — a reference in PROJECT code must actually resolve into the library file.
+        // Index presence alone does not prove that, and "resolution works" was claimed on it.
+        myFixture.configureByText(LuaFileType, "dr03_probe('x')\n")
+        val resolved = runReadAction {
+            val reference = myFixture.file.findReferenceAt(2)
+            reference?.resolve()?.containingFile?.virtualFile?.path
+        }
+        assertNotNull("a project-file reference must resolve into the definition library", resolved)
+        assertTrue(
+            "expected resolution into the synthetic library tree, got $resolved",
+            resolved!!.contains("lunar-dr03"),
+        )
+
+        // Step 4 — completion is NOT asserted here, deliberately. It returns nothing for this
         // symbol even with the index populated, because `GlobalSymbolRankingService` searches
         // `GlobalSearchScope.projectScope` (:110, :180), which excludes library files by
         // definition. That is a Phase 4 work item recorded in risks-and-gaps, not a fixture

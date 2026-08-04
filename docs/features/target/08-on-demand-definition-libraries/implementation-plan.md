@@ -47,9 +47,21 @@ Sequenced from [design.md](design.md). Each phase leaves the build green and is 
 ### Phase 4: Library-root provider + registration [Must]
 - **Goal**: expose enabled+cached trees as `SyntheticLibrary` roots so `@meta` defs are indexed.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.definitions.LuaDefinitionLibraryProvider` (`AdditionalLibraryRootsProvider`, `getAdditionalProjectLibraries`, `getRootsToWatch`, inner `DefinitionLibrary : SyntheticLibrary`) — realizes design §2.4, §3.5.
-  - [ ] Register `<additionalLibraryRootsProvider>` in `plugin.xml` — realizes design §7.
-- **Exit criteria**: with `busted` enabled + a pre-seeded `@meta` file, the provider returns one `SyntheticLibrary` over the cache dir (TC 5), completion resolves a busted symbol (TC 6), and no enabled libraries → empty (TC 7b); enable-list change triggers `reload()` + `dropResolveCaches()` (TC 7).
+  - [x] Create `net.internetisalie.lunar.definitions.LuaDefinitionLibraryProvider` (`AdditionalLibraryRootsProvider`, `getAdditionalProjectLibraries`, `getRootsToWatch`, inner `DefinitionLibrary : SyntheticLibrary`) — realizes design §2.4, §3.5.
+  - [x] Register `<additionalLibraryRootsProvider>` in `plugin.xml` — realizes design §7.
+- **Exit criteria**: with `busted` enabled + a pre-seeded `@meta` file, the provider returns one `SyntheticLibrary` over the cache dir (TC 5), and no enabled libraries → empty (TC 7b); enable-list change triggers `reload()` + `dropResolveCaches()` (TC 7). **TC 6 is not met** — see the amendment below.
+- **Amended 2026-08-03 — TC 6 is NOT met; TARGET-08-04 is Partial, not Full.** DR-03 proved a
+  registered root is indexed and a project-file reference *resolves* into it. Completion does not
+  work, for two **pre-existing** reasons outside this feature, which an earlier revision of this
+  note wrongly merged into one:
+  - **BUG-395 blocks TC 6.** TC 6 is `assert.` — *member* completion. That caret is served only by
+    `LuaCompletionContributor.kt:249-283`, reading `LuaTypesSnapshot…getMembers()`; it never
+    consults `GlobalSymbolRankingService`, and the member path is structurally file-local
+    (`LuaTypesVisitor.visitNameRef:761`). `string.` does not complete either.
+  - **BUG-394** is the separate bare-identifier case: `GlobalSymbolRankingService` searches
+    `GlobalSearchScope.projectScope` (`:110`, `:180`), which excludes library files. Real, and
+    confirmed to affect `print` too — but **widening that scope would not have made TC 6 pass**.
+  Both are carved out rather than fixed here: each changes completion behaviour project-wide.
 
 ### Phase 5: Settings UI [Should]
 - **Goal**: enable/disable + attribution UI.

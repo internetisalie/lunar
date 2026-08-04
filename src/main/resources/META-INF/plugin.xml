@@ -512,6 +512,8 @@
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.project.PlatformLibraryProvider"/>
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.lang.library.LuaLibraryProvider"/>
     <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.rocks.library.LuaRocksLibraryProvider"/>
+    <!-- TARGET-08-04: enabled + fetched community definition libraries (LuaCATS @meta trees). -->
+    <additionalLibraryRootsProvider implementation="net.internetisalie.lunar.definitions.LuaDefinitionLibraryProvider"/>
     <projectViewNodeDecorator implementation="net.internetisalie.lunar.rocks.view.LuaRockSourceRootDecorator"/>
 
     <!-- Options -->

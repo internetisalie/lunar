@@ -4,6 +4,7 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.vfs.VfsUtil
 import net.internetisalie.lunar.toolchain.provision.ArtifactPin
 import net.internetisalie.lunar.toolchain.provision.ArtifactVerification
 import net.internetisalie.lunar.toolchain.provision.LuaArchiveExtractor
@@ -31,7 +32,8 @@ fun interface LuaDefinitionArchiveSource {
  * Because `version` is the upstream commit SHA, a re-pinned entry lands in a different directory
  * and the old one is simply never consulted again.
  *
- * Performs blocking I/O — call only from a background task, never the EDT. Touches no PSI/VFS.
+ * Performs blocking I/O — call only from a background task, never the EDT. Touches no PSI, and the
+ * VFS only to refresh a freshly-extracted tree (see [verifyExtracted]).
  */
 class LuaDefinitionLibraryFetcher(
     private val cacheRoot: Path = defaultCacheRoot(),
@@ -87,7 +89,15 @@ class LuaDefinitionLibraryFetcher(
      * "fetch failed" in the UI and nothing whatsoever in `idea.log`.
      */
     private fun verifyExtracted(entry: LuaDefinitionEntry, target: Path): Path? {
-        if (isCached(entry)) return target
+        if (isCached(entry)) {
+            // The VFS has not seen these files yet, and nothing downstream refreshes: the provider
+            // resolves with `refreshIfNeeded = false` because it runs on the EDT, and
+            // PlatformLibraryIndex.reload() rebuilds the index, not the VFS. Without this a
+            // just-fetched library contributes no root until some unrelated refresh happens to
+            // notice it. Safe here — this method only ever runs on the fetch background task.
+            VfsUtil.markDirtyAndRefresh(false, true, true, VfsUtil.findFileByIoFile(target.toFile(), true))
+            return target
+        }
         LOG.warn(
             "Definition library '${entry.id}' extracted no files: rootPrefix " +
                 "'${entry.rootPrefix}' matched nothing in the archive. The pinned prefix is " +
