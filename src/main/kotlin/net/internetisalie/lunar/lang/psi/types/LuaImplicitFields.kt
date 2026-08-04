@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.lang.psi.types
 
+import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
@@ -54,13 +55,17 @@ object LuaImplicitFields {
 
     private const val SELF = "self"
 
+    /**
+     * [receivers] are the names the class is written through (see [classReceiverNames]); [files] are
+     * the files to scan, which the caller derives from wherever the class is declared. Taking both
+     * rather than the declarations themselves is what lets BUG-400's un-hosted `---@class` — declared
+     * above a bare global assignment, with no `LuaLocalVarDecl` anywhere — use this too.
+     */
     fun collect(
-        className: String,
-        classDecls: Collection<LuaLocalVarDecl>,
+        receivers: Set<String>,
+        files: Collection<PsiFile>,
         into: MutableMap<String, LuaTypeMember>,
     ) {
-        val receivers = classReceiverNames(className, classDecls)
-        val files = classDecls.mapNotNull { it.containingFile }.distinct()
         for (file in files) {
             val assignments = PsiTreeUtil.findChildrenOfType(file, LuaAssignmentStatement::class.java)
             for (assignment in assignments) {

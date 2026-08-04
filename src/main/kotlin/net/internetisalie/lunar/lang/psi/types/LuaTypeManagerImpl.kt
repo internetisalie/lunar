@@ -12,7 +12,9 @@ import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
+import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
+import net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex
 import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex
@@ -22,6 +24,8 @@ import net.internetisalie.lunar.lang.path.resolveModuleCandidates
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.stubs.LuaFileStub
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.ConcurrentHashMap
 
@@ -180,6 +184,14 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         if (classDecls.isNotEmpty()) {
             return materializeClass(name, classDecls).also { typeCache.value[name] = it }
         }
+        // BUG-400: a `---@class` with no stubbed host. LuaCATS tags are not stubbed — they ride a host
+        // declaration's stub — and the bundled stdlib stubs declare their classes above a bare global
+        // assignment (`---@class package` over `package = {}`), which is not a stubbed PSI type. So
+        // LuaClassNameIndex never sees them and `package`, `io`, `os`, `debug`, `coroutine` and `utf8`
+        // all resolved to nothing. The file-based LuaCatsTypeNameIndex reads the tag directly and was
+        // built for exactly this; it was already wired to Go-to-Class and quick-doc, but not here.
+        materializeUnhostedClass(name, project)?.let { return it.also { type -> typeCache.value[name] = type } }
+
         val aliasDecls = StubIndex.getElements(LuaAliasIndex.KEY, name, project, scope, LuaLocalVarDecl::class.java)
         if (aliasDecls.isNotEmpty()) {
             return materializeAlias(name, aliasDecls.first()).also { typeCache.value[name] = it }
@@ -223,11 +235,71 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                 }
             }
         }
-        LuaImplicitFields.collect(name, decls, membersMap)
+        LuaImplicitFields.collect(classReceiverNames(name, decls), decls.mapNotNull { it.containingFile }.distinct(), membersMap)
         // Method-aware members: `function Class:m` / `function Class.fn` declarations are not
         // captured as @field/implicit members, so resolveMember would miss them otherwise.
         collectMethodMembers(name, decls, membersMap)
         return LuaClassType(name, superTypes, membersMap)
+    }
+
+    /**
+     * Builds the class for a `---@class` that has no host declaration to hang a stub on (BUG-400).
+     *
+     * The receiver is the class name itself — `package = {}` binds `package`, so there is no separate
+     * local to also match, which is why this needs none of [classReceiverNames]' machinery. Members
+     * come from the same three places a hosted class uses: `@field` tags on the tag's own comment,
+     * implicit `Name.field = …` assignments in the declaring files, and `function Name.fn()` decls.
+     */
+    private fun materializeUnhostedClass(name: String, project: Project): LuaType? {
+        val tags = catsClassTags(name, project)
+        if (tags.isEmpty()) return null
+
+        val membersMap = mutableMapOf<String, LuaTypeMember>()
+        val superTypes = mutableListOf<LuaType>()
+        tags.forEach { tag ->
+            val parts = declaredParts(tag) ?: return@forEach
+            parts.members.forEach { (memberName, member) -> membersMap.putIfAbsent(memberName, member) }
+            parts.superTypes.forEach { if (it !in superTypes) superTypes.add(it) }
+        }
+        LuaImplicitFields.collect(setOf(name), tags.mapNotNull { it.containingFile }.distinct(), membersMap)
+        addMethodsOf(
+            MethodScan(name, name, null),
+            StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project),
+            membersMap,
+        )
+        return LuaClassType(name, superTypes, membersMap)
+    }
+
+    /** Every `---@class <name>` tag in the project, found through the file-based tag index. */
+    private fun catsClassTags(name: String, project: Project): List<LuaCatsClassTag> {
+        val psiManager = PsiManager.getInstance(project)
+        val scope = GlobalSearchScope.allScope(project)
+        return FileBasedIndex.getInstance()
+            .getContainingFiles(LuaCatsTypeNameIndex.KEY, name, scope)
+            .mapNotNull { psiManager.findFile(it) as? LuaFile }
+            .flatMap { PsiTreeUtil.findChildrenOfType(it, LuaCatsClassTag::class.java) }
+            .filter { it.argType?.text?.trim() == name }
+    }
+
+    private data class DeclaredParts(val members: Map<String, LuaTypeMember>, val superTypes: List<LuaType>)
+
+    /** The `@field` members and `: Parent` supertypes declared alongside [tag]. */
+    private fun declaredParts(tag: LuaCatsClassTag): DeclaredParts? {
+        val cats = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java) ?: return null
+        val members = mutableMapOf<String, LuaTypeMember>()
+        cats.getFieldTagList().forEach { field ->
+            val descriptor = field.fieldDescriptor
+            var fieldName = descriptor.argName?.text ?: descriptor.argType?.text ?: ""
+            var fieldType = field.argType.text
+            if (fieldName.endsWith("?")) {
+                fieldName = fieldName.removeSuffix("?")
+                fieldType = "($fieldType) | nil"
+            }
+            members[fieldName] = LuaTypeMember(fieldName, LuaTypeReference(fieldType, tag), sourceElement = field)
+        }
+        val superTypes = tag.parentTypes?.argTypeList.orEmpty()
+            .map { LuaTypeReference(it.text.trim(), tag) }
+        return DeclaredParts(members, superTypes)
     }
 
     /**
