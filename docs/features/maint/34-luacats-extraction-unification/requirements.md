@@ -67,61 +67,97 @@ This generalizes beyond BUG-401: `configureByText` is the dominant fixture idiom
 
 ## Scope
 
-**In scope** — the duplicated PSI→string extraction and its consumers:
+**In scope** — the duplicated *nominal-layer* PSI→string extraction and its consumers. Counts below
+are exhaustive for the nominal layer and were re-verified by grep, not estimated:
 
-- `@field` name + type (3 copies: `LuaLocalVarStubElementType.kt:37`, `LuaTypeManagerImpl.kt:220`,
-  `LuaTypeManagerImpl.kt:290`).
-- `@class` parent types (3 copies: `LuaLocalVarStubElementType.kt:26` + `LuaTypeManagerImpl.kt:212`,
-  `LuaTypeManagerImpl.kt:231`, `LuaTypeManagerImpl.kt:300`).
-- `@param` / `@return` (3 copies: `LuaFuncStubElementType.kt:24`, `LuaLocalFuncStubElementType.kt:23`,
-  `LuaTypeManagerImpl.kt:368`).
-- `@alias` target (2 copies: `LuaLocalVarStubElementType.kt:30`, `LuaTypeManagerImpl.kt:388`).
+- `@field` name + type — **3 copies**: `LuaLocalVarStubElementType.kt:37`,
+  `LuaTypeManagerImpl.kt:220`, `LuaTypeManagerImpl.kt:290`.
+- `@class` parent types — **4 copies**: `LuaLocalVarStubElementType.kt:26` (+ its re-split at
+  `LuaTypeManagerImpl.kt:212`), `LuaTypeManagerImpl.kt:231`, `LuaTypeManagerImpl.kt:300`, and
+  `LuaCatsDocumentationRenderer.parentClassNames:534-535` (which additionally strips generics via
+  `parentClassName:531-532`). The renderer's copy is folded in under MAINT-34-07 as a *display*
+  variant, not deleted — stripping `<…>` for doc lookup is deliberate.
+- `@param` / `@return` — **3 copies in the nominal layer**: `LuaFuncStubElementType.kt:24`,
+  `LuaLocalFuncStubElementType.kt:23` (byte-identical to each other), `LuaTypeManagerImpl.kt:368`.
+- `@alias` target — **2 copies**: `LuaLocalVarStubElementType.kt:30`, `LuaTypeManagerImpl.kt:388`.
 - A parity harness that asserts both paths agree, permanently.
 
 **Out of scope**:
 
+- **The graph layer's own `@param`/`@return` readers** — `LuaTypeGraphBridge.kt:114` and `:164`,
+  `LuaTypesVisitor.kt:917` and `:938`. These read the same tags but for `LuaGraphType`, with
+  different semantics (positional parameter binding, multi-value returns), so they are *not*
+  copies of the nominal rule and folding them in would change behaviour. Named here so their
+  existence is a recorded decision rather than an oversight.
 - Stubbing the LuaCATS comment itself. That is the "correct but heavy" fix noted in the agent
   guide (lazy-parseable element + the `IElementType` registry size limit) and would subsume this
   feature; it is not undertaken here.
-- Making `Base<string, number>` *resolve* as a supertype. MAINT-34-02 only guarantees the parent
-  name arrives intact; whether the type engine can then resolve a parameterized parent is a
-  separate question, measured by DR-01 and deliberately not fixed here.
-- Any behavioural change to what the tags *mean*. This is a refactor plus two defect fixes that
-  fall out of it (BUG-402, and closing the class of defect BUG-401 belonged to).
+- Making `Base<string, number>` *resolve* as a supertype — see MAINT-34-02's honest payoff
+  statement below and DR-01.
+- Any behavioural change to what the tags *mean*, including `LuaTypeMember.sourceElement`, which
+  this feature preserves exactly (design §2, §4.1).
 
 ## Requirements
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
 | MAINT-34-01 | Shared `@field` extraction | **M** | Not Implemented | One function returns the member name (optional marker stripped) and type string (widened with `nil` when optional). All three consumers call it. |
-| MAINT-34-02 | Shared `@class` parent extraction | **M** | Not Implemented | One function returns parents as a `List<String>` from `parentTypes.argTypeList`. The stub stores the **list**, never a joined string; `materializeClass`'s `split(',')` is deleted. Fixes BUG-402. |
+| MAINT-34-02 | Shared `@class` parent extraction | **M** | Not Implemented | One function returns parents as a `List<String>` from `parentTypes.argTypeList`. The stub stores the **list**, never a joined string; `materializeClass`'s `split(',')` is deleted. Fixes BUG-402. **Payoff, stated honestly:** this guarantees the parent *name* arrives whole and that the two paths agree. It does **not** by itself make `Base<string, number>` resolve — `LuaClassNameIndex` is keyed on the plain class name. Where the parent is non-generic (the overwhelming majority) inheritance is repaired outright; where it is generic, the fix converts two nonsense names into one correct-but-possibly-unresolved name. See DR-01. |
 | MAINT-34-03 | Shared `@param` / `@return` extraction | **S** | Not Implemented | One function each; both func-stub builders and `funcTypeFromStub`'s AST fallback call them. |
 | MAINT-34-04 | Shared `@alias` target extraction | **S** | Not Implemented | One function; stub builder and `materializeAlias` call it. |
-| MAINT-34-05 | Stub↔AST parity harness | **M** | Not Implemented | A test that builds each fixture **both** ways (`addFileToProject` → stub, `configureByText` → AST) and asserts identical members and supertypes. Table-driven over the tag corpus in Test Cases. |
+| MAINT-34-05 | Stub↔AST parity harness | **M** | Not Implemented | A test that materializes each case **both** ways (`addFileToProject` → stub arm, `configureByText` → AST arm) with **arm-distinct class names**, asserts the branch each arm actually took, then asserts identical members and supertypes. One test method per case. See Test Cases for the substitution rule and why arm-distinct names are mandatory. |
 | MAINT-34-06 | Stub version bump | **M** | Not Implemented | `LuaFileElementType.getStubVersion()` 3 → 4, because MAINT-34-02 changes the serialized shape of the parents field. |
-| MAINT-34-07 | Doc renderer uses the shared accessors | **C** | Not Implemented | `LuaCatsDocumentationRenderer.buildFieldTag` calls a `displayName` variant from the same component, so its deliberate difference (docs *should* show `beta?`) sits next to the engine's rule instead of being a fourth private copy. |
+| MAINT-34-07 | Doc renderer uses the shared accessors | **C** | Not Implemented | `LuaCatsDocumentationRenderer.buildFieldTag:439-450` calls a `fieldDisplayName` variant, and `parentClassNames:534-535` is rebuilt on `parentTypeNames` + a `simpleParentName` display variant. Both renderer behaviours are **kept** (docs should show `beta?`, and should strip `<…>` for parent lookup); the point is that these deliberate differences live beside the engine's rule instead of being private copies that drift. |
 
 ## Test Cases
 
-The corpus below is used **twice** by MAINT-34-05 — once stub-backed, once AST-backed — and both
-runs must produce the identical result. Cases marked † are the ones that have already regressed.
+Each case below is materialized **twice** by MAINT-34-05 — once stub-backed, once AST-backed —
+and both runs must produce the identical result. Cases marked † have already regressed.
 
-| TC | Input | Expected members | Expected supertypes |
-| :-- | :-- | :-- | :-- |
-| TC-1 † | `---@class C`<br>`---@field a string`<br>`---@field b? number` | `{a, b}`, `b` typed `(number) \| nil` | `[]` |
-| TC-2 † | `---@class C : Base<string, number>` | `{}` | `["Base<string, number>"]` (**exactly 1**) |
-| TC-3 | `---@class C : A, B` | `{}` | `["A", "B"]` |
-| TC-4 | `---@class C`<br>`---@field [string] number` | `{[string]}` | `[]` |
-| TC-5 | `---@class C`<br>`---@field private p string`<br>`---@field public q number` | `{p, q}` | `[]` |
-| TC-6 | `---@alias Handler fun(x: string): number` | — | alias target `fun(x: string): number` |
-| TC-7 | `---@param x string`<br>`---@return boolean`<br>`function f(x) end` | param `x`→`string` | return `boolean` |
-| TC-8 | `---@class C : Base`<br>`---@field own number`<br>with `---@class Base`/`---@field inherited string` | `{own, inherited}` | `["Base"]` |
+**Every identifier that must differ between the two arms is written with a trailing `__`.** The
+harness replaces each `__` with `<arm><caseIndex>` (`S1`/`A1`, `S2`/`A2`, …), so the stub arm and
+the AST arm declare *different* classes. This is mandatory, not cosmetic: `doResolveType`
+(`LuaTypeManagerImpl.kt:181-185`) searches `allScope` and hands **every** matching declaration to
+`materializeClass`, so two same-named fixtures in one project are merged into a single blended
+result and neither arm exists any more. `typeCache` is keyed on the name alone (`:34`, `:185`),
+which would additionally make the second resolution a cache hit and the comparison a tautology.
 
-TC-2 is the acceptance test for BUG-402: it fails on `main` today on the stub side only.
+**Every class case carries a host declaration** (`local C__ = {}`). Without a stubbed host there is
+no `LuaLocalVarDecl`, no `LuaClassNameIndex` entry, and resolution falls through to
+`materializeUnhostedClass` (`:253`) — a third path that is neither arm.
+
+| TC | Source (`__` → arm suffix) | Expected `getMembers().keys` | Expected supertype names | Extra |
+| :-- | :-- | :-- | :-- | :-- |
+| TC-1 † | `---@class C__`<br>`---@field a string`<br>`---@field b? number`<br>`local C__ = {}` | `{a, b}` | `[]` | member `b`'s type name contains `nil` |
+| TC-2 † | `---@class C__ : Base<string, number>`<br>`local C__ = {}` | `{}` | `["Base<string, number>"]` — **size exactly 1** | — |
+| TC-3 | `---@class C__ : A__, B__`<br>`local C__ = {}` | `{}` | `["A__", "B__"]` (substituted) | parents intentionally undeclared; only the *names* are asserted |
+| TC-4 | `---@class C__`<br>`---@field [string] number`<br>`local C__ = {}` | `{[string]}` | `[]` | — |
+| TC-5 | `---@class C__`<br>`---@field private p string`<br>`---@field public q number`<br>`local C__ = {}` | `{p, q}` | `[]` | the scope keyword must not leak into either name |
+| TC-7 | `---@class C__`<br>`local C__ = {}`<br><br>`---@param x string`<br>`---@return boolean`<br>`function C__.f(x) end` | `{f}` | `[]` | `f`'s type is a `LuaFunctionType`; parameter `x` typed `string`, return typed `boolean` |
+| TC-8 | `---@class Base__`<br>`---@field inherited string`<br>`local Base__ = {}`<br><br>`---@class C__ : Base__`<br>`---@field own number`<br>`local C__ = {}` | `{own, inherited}` | `["Base__"]` (substituted) | parent declared in the **same file** as the child, in both arms |
+
+TC-7 is expressed as a class member deliberately: it exercises `@param`/`@return` through
+`funcTypeFromStub` (`:361`), which is the nominal-layer consumer this feature unifies, and so needs
+no second case model.
+
+Two cases sit outside the table because they are not class materialization:
+
+| TC | Source (`__` → arm suffix) | Expectation |
+| :-- | :-- | :-- |
+| TC-6 | `---@alias Handler__ fun(x: string): number`<br>`local Handler__ = nil` | `resolveType` yields a `LuaAliasType` whose target type name is `fun(x: string): number`, identically in both arms |
+| TC-9 | — | `LuaParserDefinition.FILE.stubVersion == 4` — the acceptance check for MAINT-34-06. Assert through the **singleton**; instantiating `LuaFileElementType()` in a test violates the "element types must be static singletons" rule (the `IElementType` registry has a hard size limit) |
+| TC-10 | Two files, each `---@meta` + `---@class Shared__ : P__` with **no** host declaration | The un-hosted path (`materializeUnhostedClass`) yields **2** supertype references named `P__` — duplicates accumulate, matching today. Not a parity case: with no host there is no stub arm |
+
+TC-2 is the acceptance test for BUG-402: on `main` today it fails on the stub arm only, producing
+2 supertypes instead of 1.
 
 ## Definition of Done
 
-- All seven requirements implemented; MAINT-34-05's harness green in both directions.
+- All seven requirements implemented; MAINT-34-05's harness green in both arms for every case,
+  with the per-arm branch assertions in place.
+- `LuaTypeMember.sourceElement` unchanged: still the `@field` tag on the AST path and the host
+  declaration on the stub path (verified by a test over `LuaOverrideLineMarkerProvider`'s
+  navigation targets, which consume it at `LuaOverrideLineMarkerProvider.kt:64`).
 - Full suite green via `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"` —
   never an isolated `--tests` pattern (isolated-tests-masks-full-suite lesson).
 - BUG-402 closed with TC-2 as its regression test.

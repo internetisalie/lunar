@@ -15,8 +15,9 @@ Sequenced from [`design.md`](design.md). Baseline is `main` @ `440dfe0f` (2336 p
 stub serialization and every type-resolution consumer, so the **full** suite is mandatory and an
 isolated `--tests` pattern is never the gate (isolated-tests-masks-full-suite lesson).
 
-Phase 1 comes first deliberately: the harness must be able to **fail** on TC-2 before anything is
-refactored, otherwise the refactor has no witness.
+Phase 0 is a short de-risking pass that changes no production code. **Phase 1 — the parity
+harness — comes before any refactoring**, deliberately: it must be able to *fail* on TC-2 against
+today's code, otherwise the refactor has no witness.
 
 ## Phases
 
@@ -24,7 +25,10 @@ refactored, otherwise the refactor has no witness.
 - **Goal**: Answer DR-01 and DR-02 before they can distort the refactor's scope.
 - **Tasks**:
   - [ ] DR-01 — probe whether `resolveType("Base<string, number>")` yields a class once the name
-        arrives intact. Record the answer in `risks-and-gaps.md`; file a follow-up if it is "no".
+        arrives intact, **starting from the existing answer pattern**:
+        `LuaCatsDocumentationRenderer.parentClassName:531-532` already strips `<…>` with
+        `substringBefore('<')` before looking a parent up, so the repo has solved this once for
+        quick-doc. Record the answer in `risks-and-gaps.md`; file a follow-up if it is "no".
   - [ ] DR-02 — probe quick-doc for `---@field [string] number`. Confirm or drop the "Unknown"
         claim in `design.md` §4.4.
 - **Verification**: both answers written down; no production code changed.
@@ -32,8 +36,15 @@ refactored, otherwise the refactor has no witness.
 ### Phase 1: Parity harness [Must]
 - **Goal**: MAINT-34-05 — make the divergence visible and permanently detectable.
 - **Tasks**:
-  - [ ] Add `LuaCatsStubAstParityTest` with the `ParityCase` table (design §5) covering TC-1…TC-8.
-  - [ ] Assert the **branch** each arm actually took before asserting members/supertypes.
+  - [ ] Add `LuaCatsStubAstParityTest` on `IndexedBasePlatformTestCase`, one test method per case,
+        with the `__`→`<arm><index>` substitution rule (design §5.1-5.2) covering TC-1…TC-5, TC-7, TC-8.
+  - [ ] Assert `decls.size == 1` **and** the branch each arm took, before asserting anything else
+        (design §5.3).
+  - [ ] Add the TC-6 (alias) and TC-9 (`getStubVersion`) methods (design §5.4). TC-9 asserts `3`
+        at this phase and flips to `4` in Phase 3.
+  - [ ] Add the `sourceElement` regression check (design §5.5).
+  - [ ] Add TC-10, the un-hosted multi-tag supertype case — the only coverage of
+        `materializeUnhostedClass`'s accumulate-duplicates behaviour, which §4.2 preserves.
   - [ ] Confirm TC-2 **fails on the stub arm** at this commit — that failure is the BUG-402 witness.
         Temporarily `@Ignore` only TC-2 so the phase can land green, with the ignore's message
         naming BUG-402 and MAINT-34-02.
@@ -42,10 +53,16 @@ refactored, otherwise the refactor has no witness.
 ### Phase 2: `LuaCatsDeclarations` + `@field` unification [Must]
 - **Goal**: MAINT-34-01.
 - **Tasks**:
-  - [ ] Create `luacats/lang/psi/LuaCatsDeclarations.kt` with `FieldMember`, `fieldMember`,
-        `fieldMembers`, `fieldDisplayName` (design §2, §2.1).
+  - [ ] Create `luacats/lang/psi/LuaCatsDeclarations.kt` with `FieldMember` (**including its
+        `tag` field**), `fieldMember`, `fieldMembers`, `fieldDisplayName` (design §2, §2.1).
+  - [ ] Redefine the private `DeclaredParts` (`LuaTypeManagerImpl.kt:284`) to the extraction-output
+        shape and update **both** consumers — `materializeClass` and `materializeUnhostedClass`
+        (design §4.1, §4.2), preserving last-wins and first-wins respectively.
+  - [ ] Add the new `hostedParts(decl)` helper; rename the existing `declaredParts(tag)` to
+        `unhostedParts(tag)` and update its caller at `:260`.
   - [ ] Route `LuaLocalVarStubElementType.createStub` (`:37`) through it.
-  - [ ] Route `materializeClass`'s AST branch (`:220`) and `declaredParts` (`:290`) through it.
+  - [ ] Route `materializeClass`'s AST branch (`:220`) and `unhostedParts` (formerly `declaredParts`,
+        `:290`) through it.
   - [ ] Add direct unit tests for `fieldMember` covering the optional, keyed and scoped forms.
 - **Verification**: full suite green; parity TC-1, TC-4, TC-5 green on both arms.
 
@@ -53,11 +70,15 @@ refactored, otherwise the refactor has no witness.
 - **Goal**: MAINT-34-02 and -06 — closes BUG-402.
 - **Tasks**:
   - [ ] Add `parentTypeNames` (design §2.2).
-  - [ ] `luacatsExtends: String?` → `luacatsParents: List<String>` across the six sites in
-        design §3; update `LuaStubSerializationTest:57,73`.
+  - [ ] `luacatsExtends: String?` → `luacatsParents: List<String>` across the sites in design §3;
+        update `LuaStubSerializationTest:57,73`.
+  - [ ] Convert **both** `LuaLocalVarStubImpl(...)` constructions (`LuaLocalVarStubElementType.kt:46`
+        and `:84`) to named arguments — parameter 7 becomes type-identical to parameter 2 (`names`),
+        so a transposition would otherwise compile silently (design §3).
   - [ ] Delete `LuaTypeManagerImpl.kt:212`'s `split(',')`.
   - [ ] Bump `LuaFileElementType.getStubVersion()` 3 → 4.
   - [ ] Un-`@Ignore` parity TC-2; it must now pass on **both** arms.
+  - [ ] Flip TC-9's expectation to `4`.
 - **Verification**: full suite green; TC-2 and TC-3 green both arms; BUG-402 marked done.
 
 ### Phase 4: `@param` / `@return` / `@alias` [Should]
@@ -66,7 +87,7 @@ refactored, otherwise the refactor has no witness.
   - [ ] Add `paramTypes`, `returnTypeName`, `aliasTarget` (design §2.3).
   - [ ] Route `LuaFuncStubElementType:24`, `LuaLocalFuncStubElementType:23`,
         `funcTypeFromStub:368-371`, `materializeAlias:388` through them.
-  - [ ] Extend the parity harness with TC-6 and TC-7.
+  - [ ] TC-6 and TC-7 (added in Phase 1) must now pass on both arms — they exercise these paths.
 - **Verification**: full suite green; TC-6, TC-7 green both arms.
 
 ### Phase 5: Doc renderer + corpus re-baseline [Could]
@@ -74,6 +95,8 @@ refactored, otherwise the refactor has no witness.
 - **Tasks**:
   - [ ] `LuaCatsDocumentationRenderer.buildFieldTag:439-450` → `fieldDisplayName` (only if DR-02
         confirmed a real gap; otherwise this is a pure de-duplication and stays a `Could`).
+  - [ ] `LuaCatsDocumentationRenderer.parentClassNames:534-535` rebuilt on `parentTypeNames` plus a
+        `simpleParentName` display variant that keeps the `substringBefore('<')` strip.
   - [ ] Re-run the MAINT-33 corpus (`-PwithCorpus`) and re-commit baselines if Phase 3 shifted
         inspection counts.
 - **Verification**: full suite green; corpus baselines committed with the delta explained.
@@ -83,6 +106,8 @@ refactored, otherwise the refactor has no witness.
 - Requirements MAINT-34-01…-06 implemented (-07 is `Could` and may be deferred).
 - `git grep -n "split(','\)" src/main/kotlin/net/internetisalie/lunar/lang/psi/types/` returns
   nothing for parent types.
-- Parity harness green on both arms for TC-1…TC-8, with branch assertions in place.
+- Parity harness green on both arms for TC-1…TC-9, with the `decls.size == 1` and per-arm branch
+  assertions in place, plus the `sourceElement` regression check.
+- `human-verification-checklists.md` run and recorded.
 - Full suite green (`--rerun --no-build-cache`), ktlint clean, doc linters clean.
 - BUG-402 closed; roadmap and `requirements.md` statuses updated.
