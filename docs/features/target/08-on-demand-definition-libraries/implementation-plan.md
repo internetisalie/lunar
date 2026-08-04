@@ -78,6 +78,19 @@ Sequenced from [design.md](design.md). Each phase leaves the build green and is 
     even once the module resolves.
   - Chase BUG-399 on the DR-03 harness, not over VNC — a 5-minute screenshot round-trip is the wrong
     loop for a scope question that a light fixture with a real registered root can answer directly.
+- **Amended 2026-08-04 (same day) — BUG-399 fixed; TC 6 PASSES live. TARGET-08-04 is Full.**
+  Moving to the harness was the right call and immediately corrected two misreadings from the VNC
+  pass: `require` into a library root **does** resolve (the harness test passes first try), and the
+  red squiggle / Ctrl+B miss were not evidence — Ctrl+B missed on a `require("main")` that resolves
+  fine, so that signal was worthless. The real defect was the second one, read out of the code
+  rather than the screen: `doResolveType` and `collectMethodMembers` were `projectScope`-bound, so a
+  library `---@class` never materialized. Both now use `allScope`. Re-verified live: `assert.`
+  completes `is_true`, `are_equal`, `are_same`, `add_formatter` and the rest of luassert's API,
+  with signatures, and the session log shows no plugin stack traces and no slow-op violations.
+  **The standing lesson:** a light fixture's project is entirely in project scope, so it cannot
+  observe a projectScope-vs-allScope defect at all. Any feature whose value depends on library
+  content needs a registered-root test (`LuaLibraryModuleResolutionTest`) — three green unit suites
+  said this worked when it did not.
 
 ### Phase 5: Settings UI [Should]
 - **Goal**: enable/disable + attribution UI.

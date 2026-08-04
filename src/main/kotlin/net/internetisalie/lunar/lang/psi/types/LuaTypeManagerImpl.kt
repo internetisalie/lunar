@@ -164,8 +164,18 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             .firstNotNullOfOrNull { getModuleType(it, context) }
             ?: LuaPrimitiveType.ANY
 
+    /**
+     * BUG-399: searched under [GlobalSearchScope.allScope], not `projectScope`.
+     *
+     * A `---@class` declared in a library file — a bundled stdlib stub, a definition library, a
+     * LuaRocks tree — is invisible to project scope by construction, so the class simply did not
+     * exist as far as the type manager was concerned and every member of it went missing. This is
+     * only observable with a real registered library root: inside a light fixture's own project
+     * everything is in project scope, which is why the unit tests for BUG-395 and BUG-398 passed
+     * while the live IDE showed nothing.
+     */
     private fun doResolveType(name: String, project: Project): LuaType? {
-        val scope = GlobalSearchScope.projectScope(project)
+        val scope = GlobalSearchScope.allScope(project)
         val classDecls = StubIndex.getElements(LuaClassNameIndex.KEY, name, project, scope, LuaLocalVarDecl::class.java)
         if (classDecls.isNotEmpty()) {
             return materializeClass(name, classDecls).also { typeCache.value[name] = it }
@@ -250,7 +260,9 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         allKeys: Collection<String>,
         membersMap: MutableMap<String, LuaTypeMember>,
     ) {
-        val scope = GlobalSearchScope.projectScope(project)
+        // allScope, for the same reason doResolveType uses it: `function Class.method` declarations
+        // in a library file are a class's members just as much as a project file's are (BUG-399).
+        val scope = GlobalSearchScope.allScope(project)
         for (key in allKeys) {
             val memberName = memberNameOf(key, scan.receiver) ?: continue
             if (membersMap.containsKey(memberName)) continue
