@@ -5,6 +5,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import net.internetisalie.lunar.toolchain.provision.ArtifactPin
 import net.internetisalie.lunar.toolchain.provision.ArtifactVerification
 import net.internetisalie.lunar.toolchain.provision.LuaArchiveExtractor
@@ -42,6 +43,14 @@ class LuaDefinitionLibraryFetcher(
 
     /** Where [entry] lives once fetched. The directory need not exist. */
     fun cacheDir(entry: LuaDefinitionEntry): Path = cacheRoot.resolve("${entry.id}-${entry.version}")
+
+    /**
+     * The cached tree for [entry] as the VFS sees it, or null. **EDT-safe** — no disk I/O, so this
+     * is what UI and the roots provider must use; [isCached] hits the real filesystem and belongs
+     * to the background fetch path only.
+     */
+    fun cachedRoot(entry: LuaDefinitionEntry): VirtualFile? =
+        VfsUtil.findFile(cacheDir(entry), false)?.takeIf { it.isDirectory && it.children.isNotEmpty() }
 
     /** "Cached" means the directory exists and is non-empty — a half-extracted tree is not cached. */
     fun isCached(entry: LuaDefinitionEntry): Boolean {

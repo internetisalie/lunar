@@ -182,6 +182,18 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         val normalized = ids.distinct()
         if (normalized == state.enabledDefinitionLibraries) return
         state.enabledDefinitionLibraries = normalized.toMutableList()
+        notifyDefinitionRootsChanged()
+    }
+
+    /**
+     * Refreshes roots and drops resolve caches without changing the enable list.
+     *
+     * Needed because the list is written *before* anything is on disk: TARGET-08-03 fetches
+     * afterwards on a background task, and at that point the ids are unchanged, so
+     * [setEnabledDefinitionLibrariesAndNotify] would correctly short-circuit and the newly cached
+     * trees would never become roots. Callable from any thread; the refresh is marshalled.
+     */
+    fun notifyDefinitionRootsChanged() {
         val target = project ?: return
         ApplicationManager.getApplication().invokeLater({
             target.messageBus.syncPublisher(LuaSettingsChangedListener.TOPIC).onSettingsChanged()

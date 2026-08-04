@@ -66,9 +66,22 @@ Sequenced from [design.md](design.md). Each phase leaves the build green and is 
 ### Phase 5: Settings UI [Should]
 - **Goal**: enable/disable + attribution UI.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.definitions.ui.LuaDefinitionLibrariesConfigurable` (+ panel) with a per-row checkbox, status, license, attribution `HyperlinkLabel`; `apply()` persists + dispatches fetch off-EDT via `newProjectBackgroundTask` — realizes design §2.6, §3.4.
-  - [ ] Register `<projectConfigurable>` under `LuaProjectConfigurable` in `plugin.xml` — realizes design §7.
+  - [x] Create `net.internetisalie.lunar.definitions.ui.LuaDefinitionLibrariesConfigurable` (+ panel) with a per-row checkbox, status, license, attribution `HyperlinkLabel`; `apply()` persists + dispatches fetch off-EDT via `newProjectBackgroundTask` — realizes design §2.6, §3.4.
+  - [x] Register `<projectConfigurable>` under `LuaProjectConfigurable` in `plugin.xml` — realizes design §7.
 - **Exit criteria**: the settings page lists the catalog with checkboxes, status, license, and a working attribution link (TC 9); toggling a checkbox fetches off-EDT and refreshes roots.
+- **Amended 2026-08-03 — logic lives outside Swing.** All page behaviour is in
+  `LuaDefinitionLibraryEnabler` (rows, apply, fetch dispatch, failure reporting), unit-tested
+  headlessly; the `Configurable` only builds components and reads checkbox state. Balloons go
+  through design §3.2's `LuaProvisionNotifier` seam rather than `NotificationGroupManager` directly,
+  which is what makes them assertable — `testApplyBalloonsOnFailure` was mutation-checked (removing
+  the report call turns it red).
+- **STILL OUTSTANDING for a `done` status** — neither is code:
+  1. **No live verification.** `human-verification-checklists.md` is entirely `⬜` and this is an
+     inherently visual requirement (the roadmap's DoD gate wants a real-flow run for anything
+     surfacing through a platform extension point). Run the `verify-in-ide` skill.
+  2. **The online-fetch DR spike has not been run** — one end-to-end download → verify → extract →
+     register → resolve against the real network. Every automated test here pre-seeds the cache or
+     injects a throwing source, deliberately, so nothing has exercised the live path once.
 
 ## Requirement → Phase Coverage
 

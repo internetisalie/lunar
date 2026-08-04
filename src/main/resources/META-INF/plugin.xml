@@ -585,6 +585,14 @@
             displayName="Redis Connections"
             nonDefaultProject="true"/>
 
+    <!-- TARGET-08-06: enable/disable community definition libraries, with attribution. -->
+    <projectConfigurable
+            parentId="net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable"
+            instance="net.internetisalie.lunar.definitions.ui.LuaDefinitionLibrariesConfigurable"
+            id="net.internetisalie.lunar.definitions.ui.LuaDefinitionLibrariesConfigurable"
+            displayName="Definition Libraries"
+            nonDefaultProject="true"/>
+
     <configurationType
             implementation="net.internetisalie.lunar.run.LuaRunConfigurationType"/>
     <configurationType

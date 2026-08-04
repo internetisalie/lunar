@@ -5,7 +5,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
 import com.intellij.openapi.roots.SyntheticLibrary
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.settings.LuaProjectSettings
@@ -52,9 +51,7 @@ class LuaDefinitionLibraryProvider(
         // `isCached` does a real `listDirectoryEntries()` opendir per enabled library per call,
         // allocating ~100 Paths for love2d and discarding them. `SyntheticLibrary`'s own javadoc
         // says implementations must be cheap here.
-        return catalog.withDependencies(enabled)
-            .mapNotNull { VfsUtil.findFile(fetcher.cacheDir(it), false) }
-            .filter { it.isDirectory && it.children.isNotEmpty() }
+        return catalog.withDependencies(enabled).mapNotNull { fetcher.cachedRoot(it) }
     }
 
     /**
