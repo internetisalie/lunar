@@ -107,17 +107,26 @@ one fewer indirection). `https://github.com/LuaCATS/<id>/archive/<sha>.tar.gz` r
 `version` field therefore carries the short SHA, not a semver; the requirements' "single pinned
 version" contract is preserved, its *spelling* is not.
 
-### 2. GitHub archive checksums are not a stable pin  ⚠ open risk
+### 2. The tarball sha256 pins the wrong layer — verify, but never hard-fail
 `codeload` tarballs are **generated on demand**, and GitHub has changed their compression before
-(Jan 2023), silently invalidating every published archive sha256 worldwide. A catalog that hard-fails
-on sha256 mismatch would break every user at once, through no change of ours — the failure mode is
-"every library stops fetching", not a soft degrade.
-- **Not resolved.** Options: (a) accept and treat a mismatch as a fetch failure with a clear message
-  and a plugin-update path; (b) hash the **extracted tree** rather than the archive; (c) mirror the
-  tarballs somewhere we control (the fleet's tier2 registry or a release asset). (b) is the most
-  robust and costs an extra extract-before-verify step; (c) reintroduces a distribution obligation
-  the "bundle nothing" stance exists to avoid.
-- Must be decided before Phase 3 (the fetcher), not before Phase 1.
+(Jan 2023), silently invalidating every published archive sha256 worldwide.
+
+An earlier revision of this file called that a blocker for Phase 3. It is not, for two reasons:
+
+1. **The commit SHA already pins the content.** A git commit hash *is* a content hash of the tree,
+   so `archive/<sha>.tar.gz` always contains the same files — only the gzip framing can differ. The
+   tarball sha256 is a second, weaker pin on a *regenerated artifact*, i.e. it hashes the packaging
+   rather than the payload. That is exactly why it is fragile.
+2. **Nothing here is executed.** These are `---@meta` type stubs; Lunar indexes and parses them and
+   the cache dir never joins `package.path`. The worst case of an unexpected tree is wrong
+   completions, not code execution — unlike the `lua-language-server` binary TOOLING-04 fetches,
+   where a checksum is a genuine safety control. Transport integrity is already covered by HTTPS.
+
+**Resolution for Phase 3**: keep `sha256`/`size` as an *advisory* integrity check — log a warning
+on mismatch and proceed — rather than refusing to register the library. A hard failure would break
+fetching for every user simultaneously the next time GitHub changes its archive format, in exchange
+for preventing an outcome that is not a security event. If a hard pin is ever wanted, hash the
+**extracted tree**, which is stable, instead of the archive.
 
 ### 3. Entries have inter-dependencies — the model needs to carry them
 `busted/config.json` declares `"Lua.workspace.library": ["${3rd}/luassert/library"]`. Enabling
