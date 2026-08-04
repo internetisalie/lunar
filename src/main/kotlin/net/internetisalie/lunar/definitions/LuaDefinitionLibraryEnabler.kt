@@ -32,11 +32,24 @@ class LuaDefinitionLibraryEnabler(
         val fetched: Boolean,
     )
 
-    /** Every catalog entry, with its current enabled/fetched state. Empty if the catalog is unreadable. */
+    /**
+     * Every catalog entry with its enabled flag, and **no disk access** — the catalog is a parsed
+     * bundled resource, so this is safe to call while building UI on the EDT.
+     *
+     * [Row.fetched] is left false here; ask [fetchedIds] for that, off the EDT. Splitting them is
+     * the whole point: `VfsUtil.findFile` is itself a prohibited slow operation on the EDT
+     * (BUG-396), so a settings page cannot learn cache state synchronously.
+     */
     fun rows(): List<Row> {
         val enabled = LuaProjectSettings.getInstance(project).enabledDefinitionLibraries.toSet()
         val catalog = runCatching { LuaDefinitionCatalogLoader.load() }.getOrNull() ?: return emptyList()
-        return catalog.libraries.map { Row(it, it.id in enabled, fetcher.cachedRoot(it) != null) }
+        return catalog.libraries.map { Row(it, it.id in enabled, fetched = false) }
+    }
+
+    /** Which catalog ids have a cached tree. **Touches disk — never call on the EDT.** */
+    fun fetchedIds(): Set<String> {
+        val catalog = runCatching { LuaDefinitionCatalogLoader.load() }.getOrNull() ?: return emptySet()
+        return catalog.libraries.filter { fetcher.isCached(it) }.mapTo(mutableSetOf()) { it.id }
     }
 
     /**
@@ -49,11 +62,13 @@ class LuaDefinitionLibraryEnabler(
     fun apply(enabledIds: List<String>) {
         val settings = LuaProjectSettings.getInstance(project)
         settings.setEnabledDefinitionLibrariesAndNotify(enabledIds)
-
-        val missing = missingEntries(enabledIds)
-        if (missing.isEmpty()) return
+        if (enabledIds.isEmpty()) return
+        // `missingEntries` stats the cache, so it runs INSIDE the background task, not here —
+        // `apply()` is called on the EDT (BUG-396).
         ProgressManager.getInstance().run(
             newProjectBackgroundTask("Lua: fetching definition libraries", project) { indicator ->
+                val missing = missingEntries(enabledIds)
+                if (missing.isEmpty()) return@newProjectBackgroundTask
                 val failures = fetchAll(missing, indicator)
                 // The enable list is unchanged by now, so a setter call would short-circuit; the
                 // roots still have to be refreshed because the trees only just landed on disk.
@@ -63,11 +78,14 @@ class LuaDefinitionLibraryEnabler(
         )
     }
 
-    /** Enabled entries (plus dependencies) with no cache yet — what an apply actually has to fetch. */
+    /**
+     * Enabled entries (plus dependencies) with no cache yet — what an apply actually has to fetch.
+     * **Touches disk — never call on the EDT.**
+     */
     fun missingEntries(enabledIds: List<String>): List<LuaDefinitionEntry> {
         if (enabledIds.isEmpty()) return emptyList()
         val catalog = runCatching { LuaDefinitionCatalogLoader.load() }.getOrNull() ?: return emptyList()
-        return catalog.withDependencies(enabledIds).filterNot { fetcher.cachedRoot(it) != null }
+        return catalog.withDependencies(enabledIds).filterNot { fetcher.isCached(it) }
     }
 
     /** Fetches each entry, returning the ids that failed. Cancellation propagates (never a failure). */

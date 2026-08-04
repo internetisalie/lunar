@@ -63,21 +63,27 @@ class LuaDefinitionLibraryEnablerTest : BasePlatformTestCase() {
         assertEquals(LuaDefinitionCatalogLoader.load().libraries.size, rows.size)
         rows.forEach {
             assertFalse("${it.entry.id}: nothing enabled yet", it.enabled)
-            assertFalse("${it.entry.id}: nothing fetched yet", it.fetched)
             assertTrue("${it.entry.id}: license must be shown", it.entry.license.isNotBlank())
             assertTrue("${it.entry.id}: attribution must be shown", it.entry.attributionUrl.isNotBlank())
         }
     }
 
-    fun testRowsReflectEnabledAndFetchedState() {
-        seedCache("luassert")
+    fun testRowsReflectEnabledState() {
         settings.state.enabledDefinitionLibraries = mutableListOf("busted")
-
         val rows = enabler().rows().associateBy { it.entry.id }
         assertTrue("busted is enabled", rows.getValue("busted").enabled)
-        assertFalse("busted is not fetched", rows.getValue("busted").fetched)
         assertFalse("luassert is not enabled", rows.getValue("luassert").enabled)
-        assertTrue("luassert is fetched", rows.getValue("luassert").fetched)
+    }
+
+    /**
+     * BUG-396: cache state is reported by a separate, disk-touching call so the settings page can
+     * do it off the EDT. `rows()` must NOT report it — a `rows()` that quietly stats the cache is
+     * exactly the defect, and it only ever surfaced in a running IDE.
+     */
+    fun testRowsDoNotReportFetchedStateAndFetchedIdsDoes() {
+        seedCache("luassert")
+        assertTrue("rows() must not claim anything is fetched", enabler().rows().none { it.fetched })
+        assertEquals(setOf("luassert"), enabler().fetchedIds())
     }
 
     /** Dependencies must be fetched too, or busted lands without luassert and half-resolves. */

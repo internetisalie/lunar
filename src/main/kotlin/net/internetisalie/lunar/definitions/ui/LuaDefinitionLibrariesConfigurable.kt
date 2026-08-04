@@ -1,11 +1,13 @@
 package net.internetisalie.lunar.definitions.ui
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
 import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.ui.JBUI
 import net.internetisalie.lunar.definitions.LuaDefinitionLibraryEnabler
 import net.internetisalie.lunar.settings.LuaProjectSettings
@@ -25,6 +27,7 @@ class LuaDefinitionLibrariesConfigurable(private val project: Project) : Configu
 
     private val enabler = LuaDefinitionLibraryEnabler(project)
     private val checkBoxes = LinkedHashMap<String, JBCheckBox>()
+    private val statusLabels = LinkedHashMap<String, JBLabel>()
 
     override fun getDisplayName(): String = "Definition Libraries"
 
@@ -43,9 +46,14 @@ class LuaDefinitionLibrariesConfigurable(private val project: Project) : Configu
                 cell(box)
                 // TARGET-08-08: license + attribution are shown for every row, not just enabled
                 // ones, so the obligation is visible before the user opts in.
-                cell(JBLabel(if (entry.fetched) "Fetched" else "Not fetched").apply {
+                // Deliberately a placeholder: learning whether a library is cached costs disk
+                // access, and `createComponent` runs on the EDT where that is a prohibited slow
+                // operation (BUG-396). `loadStatuses()` fills these in from a pooled thread.
+                val status = JBLabel(CHECKING).apply {
                     foreground = JBUI.CurrentTheme.Label.disabledForeground()
-                })
+                }
+                statusLabels[entry.entry.id] = status
+                cell(status)
                 cell(JBLabel(entry.entry.license).apply {
                     foreground = JBUI.CurrentTheme.Label.disabledForeground()
                 })
@@ -55,6 +63,24 @@ class LuaDefinitionLibrariesConfigurable(private val project: Project) : Configu
                     },
                 )
             }
+        }
+    }
+
+    /**
+     * Fills in the Fetched/Not fetched column off the EDT, then updates the labels back on it.
+     *
+     * The page is fully usable while this runs — the checkboxes carry the decision; the status is
+     * advisory. Guarded by [project] disposal so a settings page closed mid-scan cannot touch a
+     * dead component tree.
+     */
+    private fun loadStatuses() {
+        AppExecutorUtil.getAppExecutorService().execute {
+            val fetched = runCatching { enabler.fetchedIds() }.getOrElse { emptySet() }
+            ApplicationManager.getApplication().invokeLater({
+                statusLabels.forEach { (id, label) ->
+                    label.text = if (id in fetched) "Fetched" else "Not fetched"
+                }
+            }, project.disposed)
         }
     }
 
@@ -69,7 +95,13 @@ class LuaDefinitionLibrariesConfigurable(private val project: Project) : Configu
     }
 
     override fun reset() {
+        loadStatuses()
         val enabled = LuaProjectSettings.getInstance(project).enabledDefinitionLibraries.toSet()
         checkBoxes.forEach { (id, box) -> box.isSelected = id in enabled }
+    }
+
+    private companion object {
+        /** Shown until the off-EDT cache scan reports back. */
+        const val CHECKING = "checking…"
     }
 }
