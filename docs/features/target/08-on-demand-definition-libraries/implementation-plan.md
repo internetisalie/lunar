@@ -62,6 +62,22 @@ Sequenced from [design.md](design.md). Each phase leaves the build green and is 
     `GlobalSearchScope.projectScope` (`:110`, `:180`), which excludes library files. Real, and
     confirmed to affect `print` too — but **widening that scope would not have made TC 6 pass**.
   Both are carved out rather than fixed here: each changes completion behaviour project-wide.
+- **Amended 2026-08-04 — BUG-395 and BUG-398 are fixed; TC 6 re-run live and still fails, now on
+  BUG-399.** What the VNC run established, in order:
+  - The member path works in a real IDE. `table.` completes `concat/insert/move/pack/remove/sort/
+    unpack` with signatures, where before the fix it completed nothing at all.
+  - The library roots are registered and indexed: both appear under *External Libraries ▸ Lua
+    Definition Libraries*, `luassert.lua` is findable in Search Everywhere, and **Ctrl+B on `assert`
+    offers two declarations** — the stdlib `function assert(v, message)` and busted's
+    `assert = require("luassert")`. So `resolveGlobal` reaches the library.
+  - It breaks one step later: `require("luassert")` in a project file is red-squiggled unresolved
+    (`require("main")` beside it is not), and `local la = require("luassert")` then `la.` completes
+    nothing. `doResolveModule` falls back to `ANY`, `globalTypeIn` discards `Any`, `assert.` gets
+    nothing. Filed as **BUG-399**, with a second blocker behind it: `doResolveType` /
+    `collectMethodMembers` are `projectScope`-bound, so a library `---@class` cannot materialize
+    even once the module resolves.
+  - Chase BUG-399 on the DR-03 harness, not over VNC — a 5-minute screenshot round-trip is the wrong
+    loop for a scope question that a light fixture with a real registered root can answer directly.
 
 ### Phase 5: Settings UI [Should]
 - **Goal**: enable/disable + attribution UI.
