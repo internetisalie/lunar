@@ -43,72 +43,87 @@ internal object ParseOracle {
 
     fun judge(source: CharSequence, level: LuaLanguageLevel): Verdict
 
-    /** `luac` for [level]: system package, else a provisioned env (§2.0a). Throws with the remedy. */
+    /** The pinned `test/luac/<version>/luac` for [level]. Throws with the remedy (§2.0). */
     fun requireBinary(level: LuaLanguageLevel): File
 }
 ```
 
-### 2.0 The oracle is a provisioned dependency, not a runtime maybe
+### 2.0 The oracle is built from pinned source — there is no apt path
 
-`luac` is **owned by this feature** (MAINT-35-00): `lua5.1`–`lua5.4` are added to
-`builder-bootstrap.sh:11`, `startup-script.sh:20-22` and `.gitea/workflows/build-plugin.yml:116`,
-alongside the `lua5.4`/`lua-socket`/`fontconfig` those files already install for other tests. All
-four are packaged on Debian 13 (verified: `5.1.5-11`, `5.2.4-3+b3`, `5.3.6-2+b4`, `5.4.7-1+b2`).
+**One source, no fallbacks**: `luac` is compiled from an official PUC Lua tarball, pinned by version
+and **sha256**, cached under the out-of-repo `test/luac/<version>/luac`. Exactly like the corpus
+itself is pinned by commit — same discipline, same reason.
 
-**This deletes an entire subsystem from an earlier draft of this design.** That draft treated a
-missing `luac` as a normal runtime state and built machinery to survive it: a nullable
-`oracleDisagreements`, a four-case comparison table, an `Unavailable` verdict threaded through every
-layer, a skip-vs-fail rule for CI, and a top-rated risk (R1) devoted to the possibility that the gate
-would silently disable itself. All of that was the cost of *not owning a dependency that is one apt
-package away*. Owning it makes the tolerance unnecessary, and fail-fast strictly safer than any
-tolerance could be: a gate that cannot run is louder than a gate that runs empty.
+- **`tooling/corpus/luac.tsv`** — `luaLevel<TAB>version<TAB>url<TAB>sha256`, e.g.
+  `LUA51<TAB>5.1.5<TAB>https://www.lua.org/ftp/lua-5.1.5.tar.gz<TAB><sha256>`.
+- **`tooling/corpus/fetch-luac.sh`** — downloads, **refuses on checksum mismatch**, builds, copies
+  `src/luac` to `test/luac/<version>/luac`, writes a `.luac-sha` stamp so re-runs are a no-op.
+  Mirrors `fetch-corpus.sh` exactly.
+- `requireBinary(level)` resolves **one** path: `test/luac/<pinned version>/luac`. No `PATH` search,
+  no candidate list, no system binary — ever.
 
-So `requireBinary` **throws** when the binary is absent, before any file is judged, with the remedy
-in the message:
+#### Why not apt
+
+An earlier draft installed `lua5.1`–`lua5.4` via apt and searched `PATH` for `luac5.1`. That is a
+heavy assumption dressed up as a simple one:
+
+- **Unpinned inside a ratchet.** apt gives whatever the distro release carries — today `5.1.5-11`,
+  `5.2.4-3+b3`, `5.3.6-2+b4`, `5.4.7-1+b2`. A distro bump silently changes the oracle, and therefore
+  the verdicts a *ratchet* treats as ground truth. MAINT-33 pins corpus checkouts to commit SHAs for
+  exactly this reason; pinning the corpus while floating the judge is incoherent.
+- **Distro-coupled.** Debian-only; the `luac5.1` binary-name convention is Debian's, not upstream's.
+- **Not upstream.** Debian's builds are patched (`-11`, `+b3`, `+b2` are Debian revisions). Ground
+  truth should be unmodified PUC Lua.
+- **Two machines, two oracles.** The worst property: with a `PATH` search a baseline recorded where
+  apt supplied `5.4.7-1+b2` could be validated where a source build supplied `5.4.7`, and the gate
+  would look uniform while judging by different rules. Probing for an installed binary *before*
+  building our own is therefore not a harmless optimisation — it reintroduces precisely the
+  non-determinism the pinning exists to remove.
+
+The one thing still taken from the system is a **C compiler** (`build-essential`), which
+`builder-bootstrap.sh`, `startup-script.sh` and `.gitea/workflows/build-plugin.yml` must install —
+none does today, and `gcc`'s presence on the builder is as accidental as `luac5.1`'s was. A compiler
+is a different class of dependency: it does not decide the oracle's verdicts.
+
+#### Why not our own provisioner either
+
+`PucLuaBuildRecipe.kt:115-126` already compiles `luac.c` and installs `bin/luac`, and using it would
+dogfood TOOLING-04. It is deliberately **not** used: a judge must not share failure modes with the
+thing it judges. If provisioning broke, the oracle would break with it, and a red gate could not
+distinguish "the parser regressed" from "the provisioner did". `fetch-luac.sh` is short and
+independent. Dogfooding the provisioner remains worth doing — as its own test, not as ground truth
+for this one.
+
+#### Fail-fast
+
+`requireBinary` **throws** when the pinned binary is absent, before any file is judged:
 
 ```
-No luac for LUA51. The parse oracle is a provisioned dependency of MAINT-35.
-Install it:  apt-get install lua5.1     (see tooling/gce-builder/builder-bootstrap.sh)
+No luac for LUA51 at test/luac/5.1.5/luac.
+The parse oracle is built from pinned source, not installed from a package.
+Run:  tooling/corpus/fetch-luac.sh
 ```
 
-### 2.0a Two sources, in order — and we already build the second one
-
-`luac` resolution has two sources, tried in order:
-
-1. **System package** — `luac5.1`–`luac5.4` on `PATH`, provisioned by MAINT-35-00. Fast, no compile.
-2. **A provisioned environment's `bin/luac`** — because **Lunar builds `luac` itself**.
-   `PucLuaBuildRecipe.kt:115-126` compiles `luac.c` and copies it to `<prefix>/bin/luac`;
-   `:144` marks it executable; `LuaProvisionEngine.kt:203` records it as an `extraBinary` in the env
-   manifest. Every source-built environment therefore already carries a version-exact `luac`.
-
-Source 2 is what covers **`LUA55`**, which Debian does not package — and which the native provisioner
-*defaults to*. An earlier draft instead made `fetch-corpus.sh` reject a `LUA55` row, which was the
-wrong instinct twice over: it declared a level unsupportable while our own toolchain was already
-building a `luac` for it, and it treated "apt cannot supply this" as "this cannot be supplied".
-
-A side benefit worth naming: source 2 **dogfoods TOOLING-04**. If the provisioner ever emits a
-`luac` that cannot parse valid Lua, the oracle turns that product defect into a test failure.
+`LUA55` needs no special case: lua.org publishes 5.5 tarballs, so it is one more `luac.tsv` row.
 
 ### 2.1 Version matching is the whole correctness of the oracle
 
 `luac5.4` accepts `local a = 1 // 2`; `luac5.1` rejects it — **verified on the builder, both
-directions**. Judging a `LUA51` corpus with whatever `luac` happens to be first on `PATH` therefore
-invents disagreements (or hides them). The mapping is explicit, and resolution is by *versioned*
-name only — a bare `luac` is never used, because its version is unknowable without running it:
+directions**. Judging a `LUA51` corpus with the wrong version invents disagreements (or hides them).
+With §2.0's pinning the mapping is a table lookup in `luac.tsv`, not a `PATH` search:
 
-| `LuaLanguageLevel` | binary candidates, in order |
+| `LuaLanguageLevel` | pinned build |
 | :-- | :-- |
-| `LUA50` | *(none)* — `requireBinary` throws "no packaged luac for 5.0". `LuaLanguageLevel` really does declare `LUA50` (`lang/LuaLanguageLevel.kt:20`), so an exhaustive `when` must cover it. |
-| `LUA51` | `luac5.1`, `luac51` |
-| `LUA52` | `luac5.2`, `luac52` |
-| `LUA53` | `luac5.3`, `luac53` |
-| `LUA54` | `luac5.4`, `luac54` |
-| `LUA55` | `luac5.5`, `luac55` — **not packaged on Debian**; resolved from a provisioned env's `bin/luac` (§2.0a) |
+| `LUA50` | *(none)* — `requireBinary` throws. `LuaLanguageLevel` declares `LUA50` (`lang/LuaLanguageLevel.kt:20`), so the exhaustive `when` must cover it; PUC 5.0 is not a supported target. |
+| `LUA51` | `test/luac/5.1.5/luac` |
+| `LUA52` | `test/luac/5.2.4/luac` |
+| `LUA53` | `test/luac/5.3.6/luac` |
+| `LUA54` | `test/luac/5.4.7/luac` |
+| `LUA55` | `test/luac/5.5.x/luac` — same mechanism |
 
-`requireBinary` resolves via an **exhaustive** `when` over all six constants — no `else` — so a future
-level fails to compile rather than silently resolving to nothing. Each candidate is looked up on
-`PATH`. After MAINT-35-00 the builder carries `luac5.1`–`luac5.4` from its bootstrap, and all four
-current corpus rows are `LUA51`, so the oracle covers the whole corpus.
+`requireBinary` resolves via an **exhaustive** `when` over all six constants — no `else` — so a new
+level fails to compile rather than silently resolving to nothing. Exact point versions and their
+sha256s are recorded in `luac.tsv` when Phase 1 lands (DR-03).
 
 ### 2.2 Invocation
 

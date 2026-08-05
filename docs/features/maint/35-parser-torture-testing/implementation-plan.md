@@ -36,17 +36,18 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 ### Phase 1: Own the dependency, then build the oracle [Must]
 - **Goal**: MAINT-35-00, -01, -03, -03a.
 - **Tasks**:
-  - [ ] **MAINT-35-00 first**: add `lua5.1 lua5.2 lua5.3 lua5.4` to `builder-bootstrap.sh:11`,
-        `startup-script.sh:20-22` and `.gitea/workflows/build-plugin.yml:116`, beside the `lua5.4`
-        and `lua-socket` already there. All four are packaged on Debian 13 (verified).
-  - [ ] Verify on a **fresh** builder (`gce-builder.sh create`, or re-run the bootstrap) that
-        `luac5.1`–`luac5.4` are present without any manual `apt-get`. This is the whole point of the
-        requirement: today's `luac5.1` is an accident of `luarocks`' dependency graph.
-  - [ ] `requireBinary` **throws** with the apt remedy when absent (design §2.0); there is no
-        `Unavailable` verdict and no nullable metric.
-  - [ ] resolve `luac` from a provisioned env when apt cannot supply the level (MAINT-35-03a, design §2.0a).
+  - [ ] **MAINT-35-00 first**: `tooling/corpus/luac.tsv` (level, version, url, sha256) and
+        `tooling/corpus/fetch-luac.sh` — download, **verify sha256**, build, cache
+        `test/luac/<version>/luac`, stamp. Mirrors `fetch-corpus.sh`. DR-03 records the exact point
+        versions and checksums.
+  - [ ] Add **`build-essential`** to `builder-bootstrap.sh:11`, `startup-script.sh:20-22` and
+        `.gitea/workflows/build-plugin.yml:116`. None has it today; `gcc`'s presence on the builder
+        is as accidental as `luac5.1`'s was. This is the *only* system dependency.
+  - [ ] Verify on a **fresh** builder that `fetch-luac.sh` produces working binaries with no system
+        `luac` present — and that `requireBinary` never consults `PATH`.
+  - [ ] `requireBinary` **throws** naming the expected path and `fetch-luac.sh` (design §2.0).
   - [ ] Add `ParseOracle` with `Verdict`, `judge`, `binaryFor` (design §2).
-  - [ ] Versioned-name resolution only; never a bare `luac`.
+  - [ ] Resolution is a `luac.tsv` lookup to one pinned path — never `PATH`, never a system binary.
   - [ ] `luac -p -` over **stdin** (not a temp file — design §2.2), `ProcessBuilder`, 10 s timeout,
         `destroyForcibly()` → `NotJudged("timeout")`.
   - [ ] Every `judge` call runs **off the EDT** via `executeOnPooledThread` (design §2.2a); `judge`
@@ -54,9 +55,9 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
   - [ ] Unit tests in **`net.internetisalie.lunar.corpus.ParseOracleTest`** — the name must **not**
         contain `Corpus`, or `-PwithCorpus` hides it from the routine suite. Covers TC-1, TC-2, TC-3,
         TC-4 (the 5.1-vs-5.4 `//` pair, which is what proves the version match is real), TC-8.
-  - [ ] No skip logic: MAINT-35-00 puts `luac5.1`–`luac5.4` in CI too, so `ParseOracleTest` asserts
-        real verdicts everywhere. TC-8 asserts the **throw** — that an unprovisioned level fails
-        fast with the apt remedy — using a level the environment genuinely lacks (`LUA50`).
+  - [ ] No skip logic: CI runs `fetch-luac.sh` like the builder does, so `ParseOracleTest` asserts
+        real verdicts everywhere. TC-8 asserts the **throw** using `LUA50`, which is pinned nowhere.
+  - [ ] TC-9: `fetch-luac.sh` refuses a checksum mismatch and installs nothing.
 - **Verification**: full suite green; TC-3 and TC-4 disagree with each other by level, as expected.
 
 ### Phase 2: `LexerInvariants` [Must]
@@ -110,9 +111,8 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 ## Definition of Done
 
 - MAINT-35-00…-05 and -07 implemented (-06 and -03a are `Should`).
-- A **fresh builder** provisioned only by `builder-bootstrap.sh` runs the corpus gate green with no
-  manual `apt-get` — the check that MAINT-35-00 actually landed.
+- A **fresh builder** runs `fetch-luac.sh` + the corpus gate green with **no system `luac`
+  installed** — the check that MAINT-35-00 actually landed and that `PATH` is never consulted.
 - The ratchet gates `oracleDisagreements`, `lexerRoundTripFailures` and `crashes`.
 - **No disagreement recorded into a baseline without a filed bug ID.**
-- An unavailable oracle is absent from the baseline and printed, never `0` (TC-8, TC-9).
 - Full suite green and corpus ratchet green, run separately; ktlint and doc linters clean.
