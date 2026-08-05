@@ -49,13 +49,14 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
     private fun sweep(repoRoot: File, member: TortureMember): TortureMetrics {
         val root = TortureManifest.checkoutDir(repoRoot, member.name)
         val judged = inputsUnder(root).map { input ->
-            judge(repoRoot, member, input.relativeTo(root).path, decode(input))
+            judge(repoRoot, member, TortureInput(input.relativeTo(root).path, input.readBytes()))
         }
         return TortureMetrics(
             sha256 = member.sha256,
             files = judged.size,
             parseErrors = judged.count { it.parseErrors > 0 },
             oracleDisagreements = judged.count { it.falseReject },
+            oracleFalseAccepts = judged.count { it.falseAccept },
             oracleSites = oracleSites(judged),
             oracleTimeouts = judged.count { it.oracle is ParseOracle.Verdict.NotJudged },
             lexerRoundTripFailures = judged.count { it.roundTripFailed },
@@ -77,13 +78,20 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
             .sortedBy { it.relativeTo(root).path }
             .toList()
 
+    /** One input: its path for reporting, and the **bytes**, which both sides must agree on. */
+    private class TortureInput(val path: String, val bytes: ByteArray)
+
     /**
      * ISO-8859-1, never UTF-8. A fuzz corpus contains invalid UTF-8 by construction, and a lossy
      * decode would substitute U+FFFD — breaking the round-trip invariant at the *decode* rather than
      * at the lexer, and manufacturing failures that look like lexer defects. ISO-8859-1 is total:
      * every byte maps to exactly one character and back.
+     *
+     * This decode is for **Lunar's** side only. The oracle is handed the raw bytes via
+     * `ParseOracle.judgeBytes`, because the general `judge` re-encodes to UTF-8 — which changed 657
+     * of the 1 696 inputs, so the two sides were being asked about different bytes.
      */
-    private fun decode(input: File): String = String(input.readBytes(), Charsets.ISO_8859_1)
+    private fun decode(input: ByteArray): String = String(input, Charsets.ISO_8859_1)
 
     private data class Judged(
         val path: String,
@@ -99,7 +107,12 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
          */
         val falseReject get() = oracle == ParseOracle.Verdict.Accept && parseErrors > 0
 
-        /** Lunar accepts and PUC does not; diagnostic only, for the level-superset reason. */
+        /**
+         * Lunar accepts and PUC does not. Counted, never gated — but **not** for the project
+         * corpus's level-superset reason, which does not apply to a single-level fuzz corpus. See
+         * [TortureMetrics.oracleFalseAccepts]: what this measures is Lunar's deliberate parser
+         * leniency, and it is 364 of 1 696.
+         */
         val falseAccept get() = oracle is ParseOracle.Verdict.Reject && parseErrors == 0
     }
 
@@ -107,18 +120,19 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
      * A crashed input is excluded from the oracle comparison: it is neither an accept nor a reject,
      * and reporting `parseErrors = 0` for it would score a crash as a false accept.
      */
-    private fun judge(repoRoot: File, member: TortureMember, path: String, source: String): Judged {
+    private fun judge(repoRoot: File, member: TortureMember, input: TortureInput): Judged {
+        val source = decode(input.bytes)
         val lex = LexerInvariants.check(source)
         val parsed = runCatching { parseErrorsIn(source) }
         val crash = lex.crash?.let { "lex:$it" }
             ?: parsed.exceptionOrNull()?.let { "parse:${it::class.java.simpleName}" }
         return Judged(
-            path = path,
+            path = input.path,
             parseErrors = parsed.getOrDefault(0),
             roundTripFailed = lex.roundTripFailed,
             unmergedTokens = lex.unmergedTokens,
             crash = crash,
-            oracle = if (crash != null) null else ParseOracle.judge(repoRoot, source, member.luaLevel),
+            oracle = if (crash != null) null else ParseOracle.judgeBytes(repoRoot, input.bytes, member.luaLevel),
         )
     }
 
@@ -146,6 +160,7 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
         )
         println(
             "[torture:$name] oracleDisagreements=${observed.oracleDisagreements} " +
+                "oracleFalseAccepts=${observed.oracleFalseAccepts} " +
                 "oracleTimeouts=${observed.oracleTimeouts} " +
                 "lexerRoundTripFailures=${observed.lexerRoundTripFailures} " +
                 "unmergedTokens=${observed.unmergedTokens}",

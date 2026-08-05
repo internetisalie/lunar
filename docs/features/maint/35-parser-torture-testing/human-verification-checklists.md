@@ -35,6 +35,7 @@ path, `PATH` is never consulted, and a missing binary throws before any file is 
 | 2.1 | `mv test/luac/5.1.5 /tmp/`, re-run a `LUA51` sweep | Throws naming the path *and* `tooling/corpus/fetch-luac.py`; **no metrics are produced at all** |
 | 2.2 | Restore the directory | Green |
 | 2.3 | Replace the binary with a script that exits 0 unconditionally | `assertDiscriminates` fails: "accepted malformed Lua … makes oracleDisagreements structurally zero" |
+| 2.4 | Put a *different* binary at the resolved path (stale build, distro copy) | `requireBinary` fails on the `.luac-sha` stamp before judging anything |
 
 > 2.3 is the scenario that matters most. A gate that keeps reporting success once its oracle stops
 > discriminating is worse than no gate. `requireBinary` alone cannot see this — only judging a
@@ -67,12 +68,20 @@ path, `PATH` is never consulted, and a missing binary throws before any file is 
 | 5.1 | Corrupt a `sha256` in `luac.json`, delete that version's directory, run `fetch-luac.py` | Non-zero exit naming both digests; **no binary and no `.luac-sha` stamp** written |
 | 5.2 | On a machine with no `test/luac/` at all, run `fetch-luac.py` | All five versions build; each reports its own version |
 
+## Scenario 6: The oracle judges the bytes the sweep read
+
+| # | Step | Expected |
+| :-- | :-- | :-- |
+| 6.1 | Feed a torture input that is not valid UTF-8 through both `judgeBytes` and the UTF-8 `judge` | luac receives **different bytes** on the second path — 657 of 1 696 inputs re-encode |
+| 6.2 | Compare verdicts across all 657 | identical today; the torture sweep uses `judgeBytes` so it cannot drift |
+
 ## Sign-off
 
 | Scenario | Result | Date | Notes |
 | :-- | :-- | :-- | :-- |
 | 1 — false reject caught | ☑ **Pass** | 2026-08-05 | Agent-run. `while` → `if` on `NL_BEFORE_LONGSTRING`, luarocks: `oracleDisagreements` **0 → 1**, ratchet **failed**, site named as `falseReject:src/luarocks/cmd.lua` — the exact file BUG-392 was found in. `unmergedTokens` 8 fired independently; `lexerRoundTripFailures` stayed **0**, confirming again which invariant does the work |
-| 2 — non-judging oracle fails loudly | ☑ **Pass — automated** | 2026-08-05 | 2.1 = `ParseOracleTest.testMissingBinaryNamesTheFetchScript`; 2.3 = `testDiscriminationCheckPassesForAPinnedBinary` plus `CorpusSweep.run`'s `assertDiscriminates` call. The operator forms (moving the directory, substituting a stub binary) were **not** run separately |
+| 2 — non-judging oracle fails loudly | ☑ **Pass — automated, failure path included** | 2026-08-05 | 2.1 = `testMissingBinaryNamesTheFetchScript`; 2.3 = `testAnAlwaysAcceptingOracleIsRefused`, which stages a real `exit 0` stub at the resolved path and asserts the refusal; 2.4 = `testABinaryWithTheWrongStampIsRefused`. The first sign-off cited only `testDiscriminationCheckPassesForAPinnedBinary` — a **success-path** test — for the row this document calls the one that matters most; the failure path had never fired |
 | 3 — lexer invariants live | ☑ **Pass** | 2026-08-05 | Mutation-proved: `unmergedTokens` 1 with `LuaTokenTypes.LONGCOMMENT` listed, 0 without; round-trip green throughout, and three separate adapter mutations failed to falsify it |
 | 4 — version matching real | ☑ **Pass — automated** | 2026-08-05 | `ParseOracleTest.testIntegerDivisionDiscriminatesByLevel` + `testPinnedVersionsComeFromTheManifest` |
 | 5 — provisioning refuses unverified input | ☑ **Pass** | 2026-08-05 | 5.1 = `ParseOracleTest.testChecksumMismatchInstallsNothing` (drives the real script via a `file://` entry). 5.2 run on the builder with `LUNAR_LUAC_ROOT=/tmp/luac-fresh`: five builds, `luac -v` correct for each |
+| 6 — oracle judges the same bytes | ☑ **Pass** | 2026-08-05 | Agent-run over all 657 inputs whose UTF-8 re-encoding differs, against the pinned 5.1.5: **0 verdict flips** (the reviewer independently widened this with a randomised probe, same result). Latent, not live — but the sweep now passes raw bytes, because "never UTF-8" was only true of the decode, not of what reached luac |

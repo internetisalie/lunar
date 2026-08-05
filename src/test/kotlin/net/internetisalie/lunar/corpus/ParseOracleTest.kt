@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.corpus
 
+import com.google.gson.JsonParser
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaLanguageLevel
@@ -143,6 +144,57 @@ class ParseOracleTest : BasePlatformTestCase() {
     fun testDiscriminationCheckPassesForAPinnedBinary() {
         ParseOracle.assertDiscriminates(repoRoot, LuaLanguageLevel.LUA51)
         ParseOracle.assertDiscriminates(repoRoot, LuaLanguageLevel.LUA54)
+    }
+
+    /**
+     * The **failure** path of that check, which is the half that matters and which nothing exercised
+     * — the human checklist called it "the scenario that matters most" and then signed it off
+     * against a success-path test.
+     *
+     * A stub that exits 0 for every input is the exact shape a vacuous gate takes: every metric
+     * reads 0, the ratchet stays green, and nothing is being measured.
+     */
+    fun testAnAlwaysAcceptingOracleIsRefused() {
+        val fakeRoot = stagedOracle("#!/bin/sh\nexit 0\n")
+        val failure = runCatching { ParseOracle.assertDiscriminates(fakeRoot, LuaLanguageLevel.LUA51) }
+            .exceptionOrNull()
+        assertNotNull("an always-accepting oracle must be refused", failure)
+        assertTrue(
+            "the message must name the vacuity, was: ${failure?.message}",
+            failure?.message.orEmpty().contains("accepted malformed Lua"),
+        )
+    }
+
+    /**
+     * Existence is not identity. Before this check `requireBinary` trusted whatever sat at the
+     * resolved path — a stale build from an earlier pin, or a hand-copied distro binary, both of
+     * which judge differently while the gate looks uniform.
+     */
+    fun testABinaryWithTheWrongStampIsRefused() {
+        val fakeRoot = stagedOracle("#!/bin/sh\nexit 0\n", stamp = "not-the-pinned-digest")
+        val failure = runCatching { ParseOracle.requireBinary(fakeRoot, LuaLanguageLevel.LUA51) }
+            .exceptionOrNull()
+        assertNotNull("an unstamped binary must be refused", failure)
+        assertTrue(
+            "the message must send the reader to the fetch script, was: ${failure?.message}",
+            failure?.message.orEmpty().contains("fetch-luac.py"),
+        )
+    }
+
+    /** A throwaway repo root holding the real manifest and a stand-in `luac` for LUA51. */
+    private fun stagedOracle(script: String, stamp: String? = null): File {
+        val root = FileUtil.createTempDirectory("lunar-luac-stub", null)
+        val manifest = File(root, MANIFEST_PATH)
+        manifest.parentFile.mkdirs()
+        File(repoRoot, MANIFEST_PATH).copyTo(manifest)
+        val pinned = JsonParser.parseString(manifest.readText())
+            .asJsonObject.getAsJsonArray("builds")
+            .map { it.asJsonObject }
+            .first { it.get("level").asString == "LUA51" }
+        val dir = File(root, "test/luac/${pinned.get("version").asString}").apply { mkdirs() }
+        File(dir, "luac").apply { writeText(script); setExecutable(true) }
+        File(dir, ".luac-sha").writeText((stamp ?: pinned.get("sha256").asString) + "\n")
+        return root
     }
 
     /** R5a — luac echoes invalid bytes back on stderr; decoding must not throw. */

@@ -161,11 +161,18 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 - **Verification**: 1 696 inputs in **5.7 s** — against MAINT-33's 10-minute ceiling, this is the
   cheapest member by two orders of magnitude, so R7 does not bite. **0** round-trip failures, **0**
   unmerged tokens, **0** crashes, **0** timeouts.
-- **What it found on the first run**: exactly one false reject — **BUG-411**, `\v` and `\f` missing
-  from `lua.flex`'s whitespace set, where PUC dispatches on `isspace()`. Verified accepted by all
-  five pinned oracles. Filed rather than fixed inline: the fix needs a lexer regeneration, which
-  belongs in its own commit. The baseline records `oracleDisagreements=1` **with** that bug ID, as
-  the DoD requires.
+- **What it found on the first run**: one false reject — **BUG-411**, `\v` and `\f` missing from
+  `lua.flex`'s whitespace set, where PUC dispatches on `isspace()`. Verified accepted by all five
+  pinned oracles. Filed rather than fixed inline: the fix needs a lexer regeneration, which belongs
+  in its own commit. The baseline records `oracleDisagreements=1` **with** that bug ID, as the DoD
+  requires.
+- **And 364 false accepts, which this phase originally failed to notice.** `oracleSites` caps at 20,
+  so the baseline showed 19 of them and no count existed anywhere; the phase then described the
+  member as having "exactly one disagreement". Phase 7 adds `oracleFalseAccepts` to both ratchets.
+  Still **not gated**: the project corpus justifies that direction by level-agnosticism, which does
+  not apply to a single-level fuzz corpus, but what it actually measures — Lunar accepting a lone
+  `9`, or `\t\t\t\td` — is the parser's deliberate IDE-facing leniency, which a better recovery
+  strategy moves either way. Counted so it is visible; tracked as BUG-409's class.
 
 ### Phase 6: Adversarial review remediation [Must] — **DONE 2026-08-05**
 - **Goal**: close the 18 findings from the review of Phases 0–4. The review was run *after* the
@@ -209,6 +216,47 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 - **Verification**: full suite **2373 / 0** (1 skipped); corpus ratchet green on all four members;
   gate proved to fail via the BUG-392 reintroduction; ktlint clean; `lint_docs` + `lint_planning`
   0 errors.
+
+### Phase 7: Second adversarial review remediation [Must] — **DONE 2026-08-05**
+- **Goal**: close the review of Phases 5 & 6. Two High, one Medium-High, four Medium, three Low.
+- **Tasks**:
+  - [x] **The torture sweep was disagreeing with the oracle 365 times, not once.** 364 false accepts
+        were neither counted nor mentioned — `oracleSites` caps at 20, so the baseline recorded 19 of
+        them and no total existed. `oracleFalseAccepts` added to **both** ratchets; re-recorded
+        baselines carry `364` (torture) and `2` (luacheck), which independently reproduces the
+        reviewer's arithmetic. Still ungated, but now for the *right* reason, stated in the field's
+        KDoc: the project corpus's level-superset argument does not apply to a single-level fuzz
+        corpus, and what the number actually measures is Lunar's deliberate IDE-facing leniency.
+  - [x] **`oracleTimeouts` gated on both ratchets.** It was rendered, baselined and explicitly
+        asserted *not* to gate — but a `NotJudged` verdict cannot be a disagreement, so every
+        timeout silently lowers `oracleDisagreements`. Ungated, the gate went quiet exactly as the
+        oracle became less trustworthy: the state the DoD says cannot exist. The old test asserting
+        it was diagnostic is rewritten, not deleted, so the reversal is legible.
+  - [x] **The oracle was not judging the bytes the sweep read.** `judge` encodes UTF-8; the torture
+        inputs are decoded ISO-8859-1 precisely because they are not valid UTF-8, so 657 of 1 696
+        reached luac re-encoded. `judgeBytes` added and used by the torture path. Measured: **0
+        verdict flips** today — the defect was in the claim, not yet in the numbers.
+  - [x] `LuaTortureCorpusTest.judge` reduced to 3 args via `TortureInput` — the contract cap, broken
+        again in Phase 5 twenty minutes after Phase 6 fixed the same violation in `CorpusSweep`.
+  - [x] `ParseOracle.run` destroys the child and deletes the temp file in a `finally`, so the
+        interrupt path (`judge`'s `cancel(true)`) cleans up as well as the timeout path;
+        `deleteOnExit` backstops the one path an interrupt cannot reach.
+  - [x] **`requireBinary` verifies the `.luac-sha` stamp.** Existence was the only check, so a stale
+        build or a hand-copied distro binary at the resolved path was trusted — the exact skew the
+        pinning exists to prevent. `TortureManifest.assertFetched` already did this for its corpus.
+  - [x] **The anti-vacuity check's failure path now fires.** `testAnAlwaysAcceptingOracleIsRefused`
+        stages a real `exit 0` stub; `testABinaryWithTheWrongStampIsRefused` covers the new check.
+        The checklist row for "the scenario that matters most" had been signed off against a
+        success-path test.
+  - [x] `tortureRatchetGatesEachInvariantSeparately` now moves **every** gated key —
+        `lexerRoundTripFailures` could have been deleted from `gated` with nothing going red.
+  - [x] TC-7 renamed to `deeplyNestedInputDoesNotCrashTheLexer`: it never parses, so it could not
+        reach BUG-390's type-engine `StackOverflowError`. The parse half is `tallyGuarded` /
+        `LuaTortureCorpusTest.judge`, and the doc now says so.
+  - [x] `ParseOracle.resolved` is a `ConcurrentHashMap`; the requirements' "no production change"
+        now names the one deliberate exception instead of contradicting the diff.
+- **Verification**: full suite green; all five ratchets green after re-recording (delta is **one
+  added line per baseline**, nothing changed); ktlint clean; doc linters 0 errors.
 
 ## Definition of Done
 

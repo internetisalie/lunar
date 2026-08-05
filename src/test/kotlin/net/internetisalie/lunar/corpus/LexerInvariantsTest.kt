@@ -99,9 +99,18 @@ class LexerInvariantsTest {
         assertRoundTrips("empty", "")
     }
 
-    /** TC-7 — deep nesting must not blow the stack. BUG-390's failure mode was StackOverflowError. */
+    /**
+     * TC-7's **lexer half** only.
+     *
+     * Named for what it does: this lexes 5 000 nested parens and never parses them, so it cannot
+     * reach BUG-390's `StackOverflowError`, which happens in the type engine well past the lexer.
+     * The claim that it covers BUG-390 was wrong. The parse half of crash-freedom is
+     * `CorpusSweep.tallyGuarded` / `LuaTortureCorpusTest.judge`, which wrap a real parse in
+     * `runCatching` and gate the result as `crash.parse:<Class>`; the torture member exercises it
+     * over 1 696 hostile inputs every corpus run.
+     */
     @Test
-    fun deeplyNestedInputDoesNotCrash() {
+    fun deeplyNestedInputDoesNotCrashTheLexer() {
         val deep = "local x = " + "(".repeat(5_000) + "1" + ")".repeat(5_000) + "\n"
         val result = LexerInvariants.check(deep)
         assertNull("deep nesting crashed the lexer: ${result.crash}", result.crash)

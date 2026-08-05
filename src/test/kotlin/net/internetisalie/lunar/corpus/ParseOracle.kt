@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.concurrency.ThreadingAssertions
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
@@ -50,15 +51,20 @@ internal object ParseOracle {
         resolved.getOrPut(repoRoot to level) { resolveBinary(repoRoot, level) }
 
     /**
-     * Memoised: [judge] is called once per corpus file (419 of them in the largest member) and the
-     * resolution reads and parses `luac.json` — file I/O the sweep would otherwise do on the EDT,
-     * once per file, to compute a constant. Keyed on the root as well as the level, so a test that
-     * points at a different tree is not answered from another tree's cache.
+     * Memoised: [judgeBytes] is called once per corpus file (1 696 of them in the torture member)
+     * and the resolution reads and parses `luac.json` — file I/O the sweep would otherwise do once
+     * per file to compute a constant. Keyed on the root as well as the level, so a test that points
+     * at a different tree is not answered from another tree's cache.
+     *
+     * Concurrent because this is a shared `object`, not because a race is known: every current
+     * caller resolves on its own thread before dispatching to the pool. The first resolution still
+     * happens on whatever thread called in — the EDT, for the sweep — which is one small read, not
+     * the per-file I/O it replaced.
      */
-    private val resolved = mutableMapOf<Pair<File, LuaLanguageLevel>, File>()
+    private val resolved = ConcurrentHashMap<Pair<File, LuaLanguageLevel>, File>()
 
     private fun resolveBinary(repoRoot: File, level: LuaLanguageLevel): File {
-        val version = pinnedVersion(repoRoot, level)
+        val build = pinnedBuild(repoRoot, level)
             ?: error(
                 // `level.name`, not `$level`: LuaLanguageLevel overrides toString() to a display
                 // form ("Lua 5.0"), and the manifest is keyed on the enum constant. The error must
@@ -66,7 +72,7 @@ internal object ParseOracle {
                 "No pinned luac for ${level.name}. The parse oracle is built from source, not " +
                     "installed from a package, and ${level.name} has no entry in $MANIFEST_PATH.",
             )
-        val binary = File(repoRoot, "test/luac/$version/luac")
+        val binary = File(repoRoot, "test/luac/${build.version}/luac")
         if (!binary.isFile) {
             error(
                 "No luac for ${level.name} at ${binary.path}.\n" +
@@ -74,18 +80,42 @@ internal object ParseOracle {
                     "Run:  tooling/corpus/fetch-luac.py",
             )
         }
+        assertStamped(binary, build)
         return binary
     }
 
+    /**
+     * The binary must carry the digest of the tarball it was built from.
+     *
+     * Existence was the only check, which left the oracle trusting whatever sat at the resolved
+     * path — a stale build from a previous pin, or a hand-copied distro binary. `TortureManifest`
+     * already re-checks its corpus pin at test time for the same reason; the judge is the component
+     * that can least afford not to.
+     */
+    private fun assertStamped(binary: File, build: PinnedBuild) {
+        val stamp = File(binary.parentFile, ".luac-sha").takeIf { it.isFile }?.readText()?.trim()
+        check(stamp == build.sha256) {
+            "The luac at ${binary.path} is not the pinned build (stamp ${stamp ?: "absent"}, " +
+                "expected ${build.sha256}).\nDelete ${binary.parentFile.path} and re-run: " +
+                "tooling/corpus/fetch-luac.py"
+        }
+    }
+
+    /** One `luac.json` entry: which upstream release answers for a level, and its tarball digest. */
+    private data class PinnedBuild(val version: String, val sha256: String)
+
     /** The version pinned for [level], or null when the level is deliberately unpinned (LUA50). */
-    fun pinnedVersion(repoRoot: File, level: LuaLanguageLevel): String? {
+    fun pinnedVersion(repoRoot: File, level: LuaLanguageLevel): String? =
+        pinnedBuild(repoRoot, level)?.version
+
+    private fun pinnedBuild(repoRoot: File, level: LuaLanguageLevel): PinnedBuild? {
         val manifest = File(repoRoot, MANIFEST_PATH)
         require(manifest.isFile) { "Manifest not found: ${manifest.path}" }
         return JsonParser.parseString(manifest.readText())
             .asJsonObject.getAsJsonArray("builds")
             .map { it.asJsonObject }
             .firstOrNull { it.get("level").asString == level.name }
-            ?.get("version")?.asString
+            ?.let { PinnedBuild(it.get("version").asString, it.get("sha256").asString) }
     }
 
     /**
@@ -97,7 +127,20 @@ internal object ParseOracle {
      * and `ThreadingAssertions` exists to catch. The pooled task only spawns a process and takes no
      * read lock, so blocking on it cannot deadlock.
      */
-    fun judge(repoRoot: File, source: CharSequence, level: LuaLanguageLevel): Verdict {
+    fun judge(repoRoot: File, source: CharSequence, level: LuaLanguageLevel): Verdict =
+        judgeBytes(repoRoot, source.toString().toByteArray(), level)
+
+    /**
+     * Judges the **exact bytes** [source], for callers that hold them.
+     *
+     * Not a convenience overload — a correctness one. [judge] encodes UTF-8, which is right for the
+     * project sweep (its input came from the platform already decoded) and wrong for the torture
+     * sweep, whose inputs are decoded ISO-8859-1 precisely because they are not valid UTF-8. Going
+     * through `judge` there re-encoded 657 of 1 696 inputs, so PUC was judging different bytes from
+     * the ones Lunar lexed. Measured on those 657 plus a 4 000-case randomised probe: zero verdict
+     * flips today — latent, not live, but the comparison was not the one the gate claims to make.
+     */
+    fun judgeBytes(repoRoot: File, source: ByteArray, level: LuaLanguageLevel): Verdict {
         val binary = requireBinary(repoRoot, level)
         val pending = ApplicationManager.getApplication().executeOnPooledThread<Verdict> { run(binary, source) }
         // The in-process wait is the backstop for the in-`run` one, not a duplicate of it: if `run`
@@ -106,6 +149,10 @@ internal object ParseOracle {
         return try {
             pending.get(TIMEOUT_SECONDS * 2, TimeUnit.SECONDS)
         } catch (expired: TimeoutException) {
+            // `cancel(true)` interrupts the pooled thread; it does not kill the child. What kills
+            // the child is `run`'s own finally block, which the interrupt unwinds `waitFor` into.
+            // An interrupt cannot reach a thread blocked in the stdin write, so state that limit
+            // rather than implying the cancel is sufficient on every path.
             pending.cancel(true)
             Verdict.NotJudged("oracle did not return within ${TIMEOUT_SECONDS * 2}s: ${expired.javaClass.simpleName}")
         }
@@ -149,26 +196,31 @@ internal object ParseOracle {
      *
      * A failed write is therefore swallowed, not propagated: the child exiting early *is* the
      * verdict, and the exit code still carries it.
+     *
+     * Cleanup is unconditional, in a `finally`, covering the interrupt path as well as the timeout
+     * one: `judge`'s `cancel(true)` unwinds `waitFor` with an `InterruptedException`, and without
+     * this the child and the temp file would both outlive the sweep. `deleteOnExit` is the backstop
+     * for the one path an interrupt cannot reach — a thread blocked writing stdin.
      */
-    private fun run(binary: File, source: CharSequence): Verdict {
+    private fun run(binary: File, source: ByteArray): Verdict {
         ThreadingAssertions.softAssertBackgroundThread()
         val diagnostics = File.createTempFile("lunar-luac", ".err")
+        diagnostics.deleteOnExit()
+        // `-p` is parse-only and writes no output file; `-` reads the source from stdin, which
+        // avoids a temp source file and keeps absolute paths out of luac's diagnostics.
+        val process = ProcessBuilder(binary.path, "-p", "-")
+            .redirectErrorStream(true)
+            .redirectOutput(diagnostics)
+            .start()
         try {
-            // `-p` is parse-only and writes no output file; `-` reads the source from stdin, which
-            // avoids a temp source file and keeps absolute paths out of luac's diagnostics.
-            val process = ProcessBuilder(binary.path, "-p", "-")
-                .redirectErrorStream(true)
-                .redirectOutput(diagnostics)
-                .start()
-            runCatching { process.outputStream.use { it.write(source.toString().toByteArray()) } }
-
+            runCatching { process.outputStream.use { it.write(source) } }
             if (!process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                process.destroyForcibly()
                 // Never Reject: a hung oracle is not evidence about the input.
                 return Verdict.NotJudged("timeout after ${TIMEOUT_SECONDS}s")
             }
             return if (process.exitValue() == 0) Verdict.Accept else Verdict.Reject(firstLineOf(diagnostics))
         } finally {
+            process.destroyForcibly()
             diagnostics.delete()
         }
     }

@@ -85,6 +85,7 @@ object CorpusSweep {
             // language level and defers enforcement to LuaLanguageLevelInspection, so "luac rejects,
             // Lunar accepts" has a systematic false positive (DR-01) and is diagnostic only.
             oracleDisagreements = swept.count { it.falseReject },
+            oracleFalseAccepts = swept.count { it.falseAccept },
             oracleSites = oracleSites(swept),
             oracleTimeouts = swept.count { it.tally.oracle is ParseOracle.Verdict.NotJudged },
             lexerRoundTripFailures = swept.count { it.tally.roundTripFailed },

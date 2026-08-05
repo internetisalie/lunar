@@ -73,6 +73,7 @@ class BaselineRatchetTest {
     fun renderParseRoundTripCarriesTheOracleAndLexerFields() {
         val original = metrics().copy(
             oracleDisagreements = 3,
+            oracleFalseAccepts = 11,
             oracleSites = listOf("falseAccept:src/b.lua", "falseReject:spec/a.lua"),
             oracleTimeouts = 1,
             lexerRoundTripFailures = 2,
@@ -124,13 +125,19 @@ class BaselineRatchetTest {
         )
     }
 
-    /** Diagnostic fields must never gate — a timeout is not a defect claim about the input. */
+    /**
+     * Genuinely diagnostic fields must never gate.
+     *
+     * `oracleTimeouts` used to be asserted here and has been **moved to the gated set** — it was
+     * never diagnostic: an unjudged input cannot be a disagreement, so a timeout quietly lowers
+     * `oracleDisagreements`. See [timeoutsAreGatedOnBothRatchets].
+     */
     @Test
     fun diagnosticFieldsDoNotGate() {
         val base = metrics()
-        val noisier = base.copy(oracleTimeouts = 9, oracleSites = listOf("falseAccept:x.lua"))
+        val noisier = base.copy(oracleSites = listOf("falseAccept:x.lua"), oracleFalseAccepts = 400)
         assertTrue(
-            "oracleTimeouts/oracleSites must not gate",
+            "oracleSites/oracleFalseAccepts must not gate",
             CorpusBaseline.compare(base, noisier).regressions.isEmpty(),
         )
     }
@@ -429,20 +436,78 @@ class BaselineRatchetTest {
         )
     }
 
-    /** Each invariant gates independently — a new crash class must not net out against a fixed one. */
+    /**
+     * Each invariant gates independently — a new crash class must not net out against a fixed one.
+     *
+     * Every gated key appears here, deliberately: a regression test that moves only one of them
+     * leaves the others free to be deleted from `gated` with nothing going red, which is how
+     * `lexerRoundTripFailures` sat untested through a review.
+     */
     @Test
     fun tortureRatchetGatesEachInvariantSeparately() {
         val baseline = temp.newFile("torture-invariants.baseline")
         baseline.writeText(TortureBaseline.render(torture(crashes = mapOf("lex:StackOverflowError" to 2))))
-        val observed = torture(unmergedTokens = 1, crashes = mapOf("parse:IllegalStateException" to 1))
+        val observed = torture(
+            oracleDisagreements = 2,
+            lexerRoundTripFailures = 5,
+            unmergedTokens = 1,
+            crashes = mapOf("parse:IllegalStateException" to 1),
+        ).copy(oracleTimeouts = 3)
         val regressions = TortureBaseline.compare(TortureBaseline.parse(baseline.readText()), observed).regressions
         assertEquals(
             listOf(
+                "oracleDisagreements: baseline 1 → observed 2",
+                "oracleTimeouts: baseline 0 → observed 3",
+                "lexerRoundTripFailures: baseline 0 → observed 5",
                 "unmergedTokens: baseline 0 → observed 1",
                 "crash.parse:IllegalStateException: baseline 0 → observed 1",
             ),
             regressions,
         )
+    }
+
+    /**
+     * A timeout is not neutral: an unjudged input cannot be a disagreement, so every timeout
+     * silently *lowers* `oracleDisagreements`. Ungated, the gate would go quiet exactly as the
+     * oracle became less trustworthy — which is the state the DoD says cannot exist.
+     */
+    @Test
+    fun timeoutsAreGatedOnBothRatchets() {
+        val corpusBaseline = temp.newFile("timeouts.baseline")
+        corpusBaseline.writeText(CorpusBaseline.render(metrics()))
+        val corpusFailure = runCatching {
+            CorpusGuards.assertRatchet(corpusBaseline, metrics().copy(oracleTimeouts = 1))
+        }.exceptionOrNull()
+        assertTrue(
+            "a corpus timeout must regress the ratchet, got: ${corpusFailure?.message}",
+            corpusFailure?.message.orEmpty().contains("oracleTimeouts: baseline 0 → observed 1"),
+        )
+
+        val tortureBaselineFile = temp.newFile("torture-timeouts.baseline")
+        tortureBaselineFile.writeText(TortureBaseline.render(torture()))
+        val tortureFailure = runCatching {
+            TortureBaseline.assertRatchet(tortureBaselineFile, torture().copy(oracleTimeouts = 1))
+        }.exceptionOrNull()
+        assertTrue(
+            "a torture timeout must regress the ratchet, got: ${tortureFailure?.message}",
+            tortureFailure?.message.orEmpty().contains("oracleTimeouts: baseline 0 → observed 1"),
+        )
+    }
+
+    /**
+     * False accepts are counted and baselined but **never** gated — on either ratchet. The number
+     * exists so the direction is visible (the torture member has 364 of them against a 20-site cap);
+     * gating it would gate Lunar's deliberate parser leniency.
+     */
+    @Test
+    fun falseAcceptsAreCarriedButNeverGated() {
+        val corpusBaseline = temp.newFile("accepts.baseline")
+        corpusBaseline.writeText(CorpusBaseline.render(metrics().copy(oracleFalseAccepts = 2)))
+        CorpusGuards.assertRatchet(corpusBaseline, metrics().copy(oracleFalseAccepts = 400))
+
+        val tortureBaselineFile = temp.newFile("torture-accepts.baseline")
+        tortureBaselineFile.writeText(TortureBaseline.render(torture().copy(oracleFalseAccepts = 364)))
+        TortureBaseline.assertRatchet(tortureBaselineFile, torture().copy(oracleFalseAccepts = 900))
     }
 
     /**

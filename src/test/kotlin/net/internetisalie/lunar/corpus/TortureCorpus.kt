@@ -81,7 +81,21 @@ internal data class TortureMetrics(
     val files: Int,
     val parseErrors: Int,
     val oracleDisagreements: Int,
+    /**
+     * Lunar accepts and PUC does not. **Counted and baselined, not gated.**
+     *
+     * 364 of 1 696 on the first sweep — 21%, against one false reject. The project corpus explains
+     * that direction by level-agnosticism, and for a single-level fuzz corpus that explanation does
+     * not hold: the witnesses are things like a lone `9` or `\t\t\t\td`, invalid at every level.
+     * What it actually measures is Lunar's deliberate parser leniency, which exists so the IDE can
+     * offer something useful inside a half-typed file — a design property, and one a better
+     * recovery strategy can move in either direction. Gating it would gate that design. Leaving it
+     * *uncounted* was the real defect: `oracleSites` caps at 20, so the number was invisible. The
+     * class is tracked as BUG-409.
+     */
+    val oracleFalseAccepts: Int = 0,
     val oracleSites: List<String> = emptyList(),
+    /** **Gated**, for the reason [CorpusMetrics.oracleTimeouts] gives: a timeout hides a disagreement. */
     val oracleTimeouts: Int = 0,
     val lexerRoundTripFailures: Int = 0,
     val unmergedTokens: Int = 0,
@@ -109,6 +123,7 @@ internal object TortureBaseline {
         appendLine("parseErrors=${metrics.parseErrors}")
         metrics.crashes.toSortedMap().forEach { (key, count) -> appendLine("$CRASH_PREFIX$key=$count") }
         appendLine("oracleDisagreements=${metrics.oracleDisagreements}")
+        appendLine("oracleFalseAccepts=${metrics.oracleFalseAccepts}")
         appendLine("oracleTimeouts=${metrics.oracleTimeouts}")
         appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
         appendLine("unmergedTokens=${metrics.unmergedTokens}")
@@ -129,6 +144,7 @@ internal object TortureBaseline {
             files = scalars.getValue("files").toInt(),
             parseErrors = scalars.getValue("parseErrors").toInt(),
             oracleDisagreements = scalars.getValue("oracleDisagreements").toInt(),
+            oracleFalseAccepts = scalars["oracleFalseAccepts"]?.toInt() ?: 0,
             oracleSites = rows.filter { it.first == ORACLE_SITE_KEY }.map { it.second },
             oracleTimeouts = scalars["oracleTimeouts"]?.toInt() ?: 0,
             lexerRoundTripFailures = scalars["lexerRoundTripFailures"]?.toInt() ?: 0,
@@ -151,6 +167,7 @@ internal object TortureBaseline {
         val crashKeys = (baseline.crashes.keys + observed.crashes.keys).sorted()
         val gated = listOf(
             Triple("oracleDisagreements", baseline.oracleDisagreements, observed.oracleDisagreements),
+            Triple("oracleTimeouts", baseline.oracleTimeouts, observed.oracleTimeouts),
             Triple(
                 "lexerRoundTripFailures",
                 baseline.lexerRoundTripFailures,

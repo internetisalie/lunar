@@ -39,9 +39,20 @@ data class CorpusMetrics(
      * superset of any single level and defers enforcement to `LuaLanguageLevelInspection` (DR-01).
      */
     val oracleDisagreements: Int = 0,
+    /**
+     * MAINT-35-02 — the reverse direction: Lunar accepts and `luac` does not. **Counted and
+     * baselined, deliberately not gated** (design §2.3, DR-01). Recorded because `oracleSites` is
+     * capped at 20, so before this the count was simply invisible — the torture member has 364 of
+     * them and the baseline showed 19.
+     */
+    val oracleFalseAccepts: Int = 0,
     /** Diagnostic, capped at 20 in `CorpusSweep.run`: `falseReject:<path>` / `falseAccept:<path>`. */
     val oracleSites: List<String> = emptyList(),
-    /** Diagnostic. A timing-out oracle judges nothing, so a non-zero value is a loud warning. */
+    /**
+     * **Gated.** A `NotJudged` verdict is not neutral: an unjudged file cannot be a disagreement, so
+     * every timeout silently *reduces* `oracleDisagreements`. Ungated, a slow or wedged oracle would
+     * make the gate quieter exactly as it became less trustworthy.
+     */
     val oracleTimeouts: Int = 0,
     /** MAINT-35-04 — token texts did not reconstitute the source. **Gated.** */
     val lexerRoundTripFailures: Int = 0,
@@ -133,6 +144,7 @@ object CorpusBaseline {
         }
         metrics.crashes.toSortedMap().forEach { (key, count) -> appendLine("$CRASH_PREFIX$key=$count") }
         appendLine("oracleDisagreements=${metrics.oracleDisagreements}")
+        appendLine("oracleFalseAccepts=${metrics.oracleFalseAccepts}")
         appendLine("oracleTimeouts=${metrics.oracleTimeouts}")
         appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
         appendLine("unmergedTokens=${metrics.unmergedTokens}")
@@ -183,6 +195,7 @@ object CorpusBaseline {
                     acc
                 },
             oracleDisagreements = scalars["oracleDisagreements"]?.toInt() ?: 0,
+            oracleFalseAccepts = scalars["oracleFalseAccepts"]?.toInt() ?: 0,
             oracleSites = rows.filter { it.first == ORACLE_SITE_KEY }.map { it.second },
             oracleTimeouts = scalars["oracleTimeouts"]?.toInt() ?: 0,
             lexerRoundTripFailures = scalars["lexerRoundTripFailures"]?.toInt() ?: 0,
@@ -228,6 +241,7 @@ object CorpusBaseline {
             Triple("parseErrors", baseline.parseErrors, observed.parseErrors),
             Triple("unresolvedRequires", baseline.unresolvedRequires, observed.unresolvedRequires),
             Triple("oracleDisagreements", baseline.oracleDisagreements, observed.oracleDisagreements),
+            Triple("oracleTimeouts", baseline.oracleTimeouts, observed.oracleTimeouts),
             Triple(
                 "lexerRoundTripFailures",
                 baseline.lexerRoundTripFailures,
