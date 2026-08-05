@@ -44,7 +44,7 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
         requirement: today's `luac5.1` is an accident of `luarocks`' dependency graph.
   - [ ] `requireBinary` **throws** with the apt remedy when absent (design §2.0); there is no
         `Unavailable` verdict and no nullable metric.
-  - [ ] `fetch-corpus.sh` rejects a `LUA55` row — Debian packages no `lua5.5` (MAINT-35-03a).
+  - [ ] resolve `luac` from a provisioned env when apt cannot supply the level (MAINT-35-03a, design §2.0a).
   - [ ] Add `ParseOracle` with `Verdict`, `judge`, `binaryFor` (design §2).
   - [ ] Versioned-name resolution only; never a bare `luac`.
   - [ ] `luac -p -` over **stdin** (not a temp file — design §2.2), `ProcessBuilder`, 10 s timeout,

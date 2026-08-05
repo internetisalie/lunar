@@ -43,7 +43,7 @@ internal object ParseOracle {
 
     fun judge(source: CharSequence, level: LuaLanguageLevel): Verdict
 
-    /** `luac` for [level]. Throws with the apt remedy when absent — see §2.0. */
+    /** `luac` for [level]: system package, else a provisioned env (§2.0a). Throws with the remedy. */
     fun requireBinary(level: LuaLanguageLevel): File
 }
 ```
@@ -103,7 +103,7 @@ name only — a bare `luac` is never used, because its version is unknowable wit
 | `LUA52` | `luac5.2`, `luac52` |
 | `LUA53` | `luac5.3`, `luac53` |
 | `LUA54` | `luac5.4`, `luac54` |
-| `LUA55` | `luac5.5`, `luac55` — **not packaged on Debian**; rejected at fetch time (§2.0) |
+| `LUA55` | `luac5.5`, `luac55` — **not packaged on Debian**; resolved from a provisioned env's `bin/luac` (§2.0a) |
 
 `requireBinary` resolves via an **exhaustive** `when` over all six constants — no `else` — so a future
 level fails to compile rather than silently resolving to nothing. Each candidate is looked up on
