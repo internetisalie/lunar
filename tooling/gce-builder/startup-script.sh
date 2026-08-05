@@ -18,7 +18,8 @@ if ! command -v git >/dev/null || ! command -v rsync >/dev/null || ! command -v 
   # lua5.4 + lua-socket: the debug-harness integration test execs an interpreter (sync wires
   # ~/bin/lua -> it) and its mobdebug bootstrap requires LuaSocket for the DBGp TCP connection.
   apt-get install -y --no-install-recommends \
-    git rsync wget ca-certificates python3 tar fontconfig fonts-dejavu-core lua5.4 lua-socket
+    git rsync wget ca-certificates python3 tar fontconfig fonts-dejavu-core lua5.4 lua-socket \
+    build-essential
   fc-cache -f >/dev/null 2>&1 || true
 fi
 

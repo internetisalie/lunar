@@ -9,6 +9,7 @@ apt-get update -y
 apt-get install -y --no-install-recommends \
   git rsync wget curl ca-certificates python3 tar unzip \
   fontconfig fonts-dejavu-core lua5.4 lua-socket \
+  build-essential \
   gcc-mingw-w64-x86-64
 fc-cache -f >/dev/null 2>&1 || true
 

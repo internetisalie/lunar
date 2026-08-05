@@ -1,0 +1,56 @@
+{
+  "$comment": [
+    "Pinned PUC Lua builds for the MAINT-35 parse oracle, one per LuaLanguageLevel.",
+    "",
+    "fetch-luac.py downloads each tarball, REFUSES on a sha256 mismatch, builds it and caches",
+    "test/luac/<version>/luac. ParseOracle resolves exactly that path and never consults PATH.",
+    "",
+    "Why not a distro package: apt gives whatever the release carries (Debian ships 5.1.5-11,",
+    "5.4.8-x — patched, and floating with the distro). MAINT-33 pins every corpus checkout to a",
+    "commit SHA so the sweep is reproducible; pinning the corpus while letting the JUDGE drift is",
+    "incoherent. Worse, a PATH search lets two machines judge by different binaries while the gate",
+    "looks uniform.",
+    "",
+    "Checksums are lua.org's own published values (from the FTP index page — there are no .sha256",
+    "sidecars), each verified against the downloaded artefact on 2026-08-05. A self-computed digest",
+    "would only pin what we happened to download; it says nothing about authenticity.",
+    "",
+    "Policy: pin the newest patch of each series. The grammar does not move within a patch series,",
+    "so an older patch is churn without benefit.",
+    "",
+    "LUA50 is deliberately absent — PUC 5.0 is not a supported target, and requireBinary throws.",
+    "See docs/features/maint/35-parser-torture-testing/."
+  ],
+  "builds": [
+    {
+      "level": "LUA51",
+      "version": "5.1.5",
+      "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
+      "sha256": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333"
+    },
+    {
+      "level": "LUA52",
+      "version": "5.2.4",
+      "url": "https://www.lua.org/ftp/lua-5.2.4.tar.gz",
+      "sha256": "b9e2e4aad6789b3b63a056d442f7b39f0ecfca3ae0f1fc0ae4e9614401b69f4b"
+    },
+    {
+      "level": "LUA53",
+      "version": "5.3.6",
+      "url": "https://www.lua.org/ftp/lua-5.3.6.tar.gz",
+      "sha256": "fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60"
+    },
+    {
+      "level": "LUA54",
+      "version": "5.4.8",
+      "url": "https://www.lua.org/ftp/lua-5.4.8.tar.gz",
+      "sha256": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae"
+    },
+    {
+      "level": "LUA55",
+      "version": "5.5.1",
+      "url": "https://www.lua.org/ftp/lua-5.5.1.tar.gz",
+      "sha256": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce"
+    }
+  ]
+}
