@@ -57,6 +57,14 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
     @Test
     fun testZerobraneCorpus() = sweepAndRatchet("zerobrane")
 
+    /**
+     * Penlight carries the LDoc constructs BUG-393 was found through, at an eighth of KOReader's
+     * sweep cost (57 indexed files/~73 s against 477/609 s) — which is why KOReader was measured and
+     * parked rather than admitted (MAINT-33 risks-and-gaps).
+     */
+    @Test
+    fun testPenlightCorpus() = sweepAndRatchet("penlight")
+
     private fun sweepAndRatchet(name: String) {
         val repoRoot = File(testDataPath)
         val entry = CorpusManifest.entry(repoRoot, name)

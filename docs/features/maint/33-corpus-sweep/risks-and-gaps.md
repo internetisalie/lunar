@@ -193,7 +193,8 @@ folders:
   **To revisit**, the runtime ceiling is the only thing to decide: either raise it deliberately
   (the sweep is opt-in, builder-only, and never runs in CI) or cut the highlight pass's cost.
 
-- **RECOMMENDED REPLACEMENT: Penlight — the LDoc coverage at an eighth of the cost (measured
+- **ADMITTED 2026-08-04 — Penlight is now in the corpus** (`1.15.0` @ `e0bc8f7f`, baseline committed).
+  Original recommendation: **Penlight — the LDoc coverage at an eighth of the cost (measured
   2026-08-04).** KOReader's one durable contribution was reaching LDoc annotations, which no other
   pinned project uses. That does not require an application of KOReader's size; it requires a
   project *documented with LDoc*. Candidates were fetched and counted rather than reasoned about:
