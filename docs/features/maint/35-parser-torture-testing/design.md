@@ -54,46 +54,48 @@ internal object ParseOracle {
 and **sha256**, cached under the out-of-repo `test/luac/<version>/luac`. Exactly like the corpus
 itself is pinned by commit — same discipline, same reason.
 
-- **`tooling/corpus/luac.properties`** — key/value, **not** TSV:
+- **`tooling/corpus/luac.json`** — JSON, matching `corpus.json` (BUG-407):
 
-  ```properties
-  # Pinned PUC Lua builds for the parse oracle. One block per language level.
-  LUA51.version = 5.1.5
-  LUA51.url     = https://www.lua.org/ftp/lua-5.1.5.tar.gz
-  LUA51.sha256  = <recorded by DR-03>
+  ```json
+  { "oracles": [
+      { "luaLevel": "LUA51", "version": "5.1.5",
+        "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz", "sha256": "<recorded by DR-03>" }
+  ] }
   ```
 
-  Read on the Kotlin side with `java.util.Properties` (stdlib, no dependency) and on the shell side
-  with `grep '^LUA51\.url' | cut -d= -f2-`. **Not TSV, deliberately** — see below.
-- **`tooling/corpus/fetch-luac.sh`** — downloads, **refuses on checksum mismatch**, builds, copies
+  Parsed by a **library on both sides** — stdlib `json` in the fetcher, Gson in Kotlin (already
+  imported by 8 production files, platform-provided). No new dependency, and nothing hand-parses.
+  An earlier draft proposed `.properties`; that was rejected once `corpus.tsv` migrated, because
+  reading it from the shell means `grep`/`cut`, which is hand-parsing with its own escape rules —
+  the same class of defect BUG-407 was.
+- **`tooling/corpus/fetch-luac.py`** — downloads, **refuses on checksum mismatch**, builds, copies
   `src/luac` to `test/luac/<version>/luac`, writes a `.luac-sha` stamp so re-runs are a no-op.
-  Mirrors `fetch-corpus.sh` exactly.
+  Mirrors `fetch-corpus.py` exactly.
 - `requireBinary(level)` resolves **one** path: `test/luac/<pinned version>/luac`. No `PATH` search,
   no candidate list, no system binary — ever.
 
-#### Why not TSV
+#### Why not TSV (BUG-407)
 
 `corpus.tsv` is the existing convention and the obvious thing to copy. It is also **broken**, which
 is why this feature does not copy it (BUG-407):
 
-`fetch-corpus.sh:50` reads rows with `while IFS=$'\t' read -r name url commit roots prune lualevel`.
-Tab is IFS *whitespace*, so bash collapses runs of tabs into a single delimiter and **every column
-after an empty field shifts left**. Measured against the live manifest:
+The shell fetcher read rows with `while IFS=$'\t' read -r name url commit roots prune lualevel`.
+Tab is IFS *whitespace*, so bash collapsed runs of tabs into a single delimiter and **every column
+after an empty field shifted left**. Measured against the manifest as it then stood:
 
 ```
 luacheck   roots=[src,spec]  prune=[LUA51]  level=[]
 penlight   roots=[lua,spec]  prune=[LUA51]  level=[lua]
 ```
 
-`prune` then feeds `rm -rf "${dest:?}/$victim"`. It is harmless only because `LUA51` happens not to
-name a directory. Meanwhile `CorpusManifest.kt:57` splits the same bytes on `'\t'` *without*
-collapsing, so the two parsers genuinely disagree about one file — shell binds 6 positional fields,
-Kotlin reads 7.
+`prune` then fed `rm -rf "${dest:?}/$victim"` — harmless only because `LUA51` happened not to name a
+directory. Meanwhile the Kotlin side split the same bytes *without* collapsing, so the two parsers
+genuinely disagreed about one file: shell bound 6 positional fields, Kotlin read 7.
 
-The format's costs are structural, not incidental: an invisible delimiter, positional arity that two
+The format's costs were structural, not incidental: an invisible delimiter, positional arity that two
 hand-rolled parsers must agree on, no escaping, and empty fields that cannot be represented safely.
-A key/value file has none of those — order-independent, empty values impossible to misparse, one
-stdlib reader on the JVM side and a `grep` on the shell side.
+**Fixed under BUG-407 by migrating to `corpus.json` + `fetch-corpus.py`**, library-parsed on both
+sides. This feature follows that choice rather than re-deriving it.
 
 #### Why not apt
 
@@ -123,7 +125,7 @@ is a different class of dependency: it does not decide the oracle's verdicts.
 `PucLuaBuildRecipe.kt:115-126` already compiles `luac.c` and installs `bin/luac`, and using it would
 dogfood TOOLING-04. It is deliberately **not** used: a judge must not share failure modes with the
 thing it judges. If provisioning broke, the oracle would break with it, and a red gate could not
-distinguish "the parser regressed" from "the provisioner did". `fetch-luac.sh` is short and
+distinguish "the parser regressed" from "the provisioner did". `fetch-luac.py` is short and
 independent. Dogfooding the provisioner remains worth doing — as its own test, not as ground truth
 for this one.
 
@@ -134,16 +136,16 @@ for this one.
 ```
 No luac for LUA51 at test/luac/5.1.5/luac.
 The parse oracle is built from pinned source, not installed from a package.
-Run:  tooling/corpus/fetch-luac.sh
+Run:  tooling/corpus/fetch-luac.py
 ```
 
-`LUA55` needs no special case: lua.org publishes 5.5 tarballs, so it is one more `luac.properties` block.
+`LUA55` needs no special case: lua.org publishes 5.5 tarballs, so it is one more `luac.json` block.
 
 ### 2.1 Version matching is the whole correctness of the oracle
 
 `luac5.4` accepts `local a = 1 // 2`; `luac5.1` rejects it — **verified on the builder, both
 directions**. Judging a `LUA51` corpus with the wrong version invents disagreements (or hides them).
-With §2.0's pinning the mapping is a lookup in `luac.properties`, not a `PATH` search:
+With §2.0's pinning the mapping is a lookup in `luac.json`, not a `PATH` search:
 
 | `LuaLanguageLevel` | pinned build |
 | :-- | :-- |
@@ -156,7 +158,7 @@ With §2.0's pinning the mapping is a lookup in `luac.properties`, not a `PATH` 
 
 `requireBinary` resolves via an **exhaustive** `when` over all six constants — no `else` — so a new
 level fails to compile rather than silently resolving to nothing. Exact point versions and their
-sha256s are recorded in `luac.properties` when Phase 1 lands (DR-03).
+sha256s are recorded in `luac.json` when Phase 1 lands (DR-03).
 
 ### 2.2 Invocation
 
@@ -424,9 +426,9 @@ corpus; the main sweep reads `psiFile.text`, already decoded by the platform —
 
 ### 5.3 Fetch
 
-- **`tooling/corpus/torture.properties`** — `<name>.url` / `.sha256` / `.luaLevel`, same reasoning as §2.0.
+- **`tooling/corpus/torture.json`** — `<name>.url` / `.sha256` / `.luaLevel`, same reasoning as §2.0.
 - **`tooling/corpus/fetch-torture.sh`** — downloads, verifies sha256 (**refusing on mismatch**),
-  unpacks to `test/corpus-torture/<name>/`, writes a `.corpus-sha` stamp like `fetch-corpus.sh`.
+  unpacks to `test/corpus-torture/<name>/`, writes a `.corpus-sha` stamp like `fetch-corpus.py`.
 
 ## 6. Verification
 

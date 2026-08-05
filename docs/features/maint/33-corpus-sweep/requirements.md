@@ -68,7 +68,7 @@ Parent epic: [MAINT](../requirements.md).
 
 ### MAINT-33-01: Pinned Provisioning
 
-The manifest is a TSV at `tooling/corpus/corpus.tsv`, one row per project, columns:
+The manifest is JSON at `tooling/corpus/corpus.json`, one entry per project (was positional TSV until 2026-08-05 — see BUG-407), fields:
 
 | Column | Meaning |
 |---|---|

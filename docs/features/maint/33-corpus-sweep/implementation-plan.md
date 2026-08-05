@@ -66,7 +66,7 @@ the review that the prototype skipped — not because it is unwritten.
   - [ ] Extend `CorpusMetrics` with `inspectionHits` and the `inspection.*` baseline keys, incl. the `unattributed` reserved key — realizes design §2.3, §4.2
   - [ ] Enable all **ten** §3.3 tool instances (the single table — not "the eight") in `LuaCorpusSweepTest.setUp`
   - [ ] Extend `CorpusBaseline.compare` to gate every `inspection.*` key — realizes design §3.2 step 2
-  - [ ] Widen `fetch-corpus.sh:45`'s `while IFS=$'\t' read -r name url commit roots prune` to take a sixth `luaLevel` variable — without it the 6th column folds into `prune` and `${prune//,/ }` word-splits it into a spurious `rm -rf "$dest/LUA51"` (harmless today, but it silently drops the prune contract)
+  - [x] ~~Widen `fetch-corpus.sh:45`'s `while IFS=$'\t' read` to take a sixth `luaLevel` variable~~ — **superseded by BUG-407 (2026-08-05)**. This task correctly described the defect (`prune` absorbing the level, and the spurious `rm -rf "$dest/LUA51"`) and was never done; it also under-diagnosed it, since widening the `read` would not have stopped IFS-whitespace collapsing. Fixed instead by dropping positional TSV: `corpus.json` + `fetch-corpus.py`, library-parsed on both sides
   - [ ] Extend `BaselineRatchetTest.renderParseRoundTrip` to cover the `inspection.*` and `unattributed` keys (deferred from Phase 2)
   - [ ] Re-record both baselines
 - **Exit criteria**: TC 12 and TC 15 pass; sweep runtime recorded and within the §NFR budget.

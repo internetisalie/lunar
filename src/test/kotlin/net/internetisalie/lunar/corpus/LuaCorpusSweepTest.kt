@@ -22,7 +22,7 @@ import java.io.File
  *
  * Excluded from the routine `test` loop (it indexes ~300 third-party files); opt in with
  * `-PwithCorpus`, and re-record a moved baseline with `-PrecordCorpusBaseline`. Needs the corpus
- * fetched first — `tooling/corpus/fetch-corpus.sh`.
+ * fetched first — `tooling/corpus/fetch-corpus.py`.
  */
 @RunWith(JUnit4::class)
 class LuaCorpusSweepTest : BasePlatformTestCase() {

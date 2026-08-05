@@ -36,17 +36,17 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 ### Phase 1: Own the dependency, then build the oracle [Must]
 - **Goal**: MAINT-35-00, -01, -03, -03a.
 - **Tasks**:
-  - [ ] **MAINT-35-00 first**: `tooling/corpus/luac.properties` (`<LEVEL>.version/.url/.sha256` — key/value, not TSV; see design §2.0 and BUG-407) and
-        `tooling/corpus/fetch-luac.sh` — download, **verify sha256**, build, cache
-        `test/luac/<version>/luac`, stamp. Mirrors `fetch-corpus.sh`. DR-03 records the exact point versions and checksums.
+  - [ ] **MAINT-35-00 first**: `tooling/corpus/luac.json` (`<LEVEL>.version/.url/.sha256` — key/value, not TSV; see design §2.0 and BUG-407) and
+        `tooling/corpus/fetch-luac.py` — download, **verify sha256**, build, cache
+        `test/luac/<version>/luac`, stamp. Mirrors `fetch-corpus.py`. DR-03 records the exact point versions and checksums.
   - [ ] Add **`build-essential`** to `builder-bootstrap.sh:11`, `startup-script.sh:20-22` and
         `.gitea/workflows/build-plugin.yml:116`. None has it today; `gcc`'s presence on the builder
         is as accidental as `luac5.1`'s was. This is the *only* system dependency.
-  - [ ] Verify on a **fresh** builder that `fetch-luac.sh` produces working binaries with no system
+  - [ ] Verify on a **fresh** builder that `fetch-luac.py` produces working binaries with no system
         `luac` present — and that `requireBinary` never consults `PATH`.
-  - [ ] `requireBinary` **throws** naming the expected path and `fetch-luac.sh` (design §2.0).
+  - [ ] `requireBinary` **throws** naming the expected path and `fetch-luac.py` (design §2.0).
   - [ ] Add `ParseOracle` with `Verdict`, `judge`, `binaryFor` (design §2).
-  - [ ] Resolution is a `luac.properties` lookup to one pinned path — never `PATH`, never a system binary.
+  - [ ] Resolution is a `luac.json` lookup to one pinned path — never `PATH`, never a system binary.
   - [ ] `luac -p -` over **stdin** (not a temp file — design §2.2), `ProcessBuilder`, 10 s timeout,
         `destroyForcibly()` → `NotJudged("timeout")`.
   - [ ] Every `judge` call runs **off the EDT** via `executeOnPooledThread` (design §2.2a); `judge`
@@ -54,9 +54,9 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
   - [ ] Unit tests in **`net.internetisalie.lunar.corpus.ParseOracleTest`** — the name must **not**
         contain `Corpus`, or `-PwithCorpus` hides it from the routine suite. Covers TC-1, TC-2, TC-3,
         TC-4 (the 5.1-vs-5.4 `//` pair, which is what proves the version match is real), TC-8.
-  - [ ] No skip logic: CI runs `fetch-luac.sh` like the builder does, so `ParseOracleTest` asserts
+  - [ ] No skip logic: CI runs `fetch-luac.py` like the builder does, so `ParseOracleTest` asserts
         real verdicts everywhere. TC-8 asserts the **throw** using `LUA50`, which is pinned nowhere.
-  - [ ] TC-9: `fetch-luac.sh` refuses a checksum mismatch and installs nothing.
+  - [ ] TC-9: `fetch-luac.py` refuses a checksum mismatch and installs nothing.
 - **Verification**: full suite green; TC-3 and TC-4 disagree with each other by level, as expected.
 
 ### Phase 2: `LexerInvariants` [Must]
@@ -99,7 +99,7 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 ### Phase 5: Torture corpus [Should]
 - **Goal**: MAINT-35-06.
 - **Tasks**:
-  - [ ] `tooling/corpus/torture.properties` + `fetch-torture.sh` with sha256 verification.
+  - [ ] `tooling/corpus/torture.json` + `fetch-torture.sh` with sha256 verification.
   - [ ] `LuaTortureCorpusTest` — name contains `Corpus` so `-PwithCorpus` governs it with no build
         change (`build.gradle.kts:266` guard, `excludeTestsMatching` at `:268`); file name matches class name.
   - [ ] Decode inputs ISO-8859-1, not UTF-8 (design §5).
@@ -110,7 +110,7 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 ## Definition of Done
 
 - MAINT-35-00…-05 and -07 implemented (-06 and -03a are `Should`).
-- A **fresh builder** runs `fetch-luac.sh` + the corpus gate green with **no system `luac`
+- A **fresh builder** runs `fetch-luac.py` + the corpus gate green with **no system `luac`
   installed** — the check that MAINT-35-00 actually landed and that `PATH` is never consulted.
 - The ratchet gates `oracleDisagreements`, `lexerRoundTripFailures` and `crashes`.
 - **No disagreement recorded into a baseline without a filed bug ID.**

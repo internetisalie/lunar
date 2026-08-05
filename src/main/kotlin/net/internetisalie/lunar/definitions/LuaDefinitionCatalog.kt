@@ -44,7 +44,7 @@ data class LuaDefinitionCatalog(
  *
  * [version] carries the upstream **commit SHA**, not a semver: neither the LuaCATS org repos nor
  * `LuaLS/LLS-Addons` publish a single tag (DR-01), so a commit is the only reproducible pin
- * available — the same choice `tooling/corpus/corpus.tsv` makes for the corpus.
+ * available — the same choice `tooling/corpus/corpus.json` makes for the corpus.
  *
  * [rootPrefix] is the path *to register* inside the extracted archive, not merely a wrapper dir to
  * strip. Addons put their `.lua` definitions in a `<repo>-<sha>/library` directory beside a

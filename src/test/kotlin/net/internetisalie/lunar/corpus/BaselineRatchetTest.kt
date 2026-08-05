@@ -2,6 +2,7 @@ package net.internetisalie.lunar.corpus
 
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -219,15 +220,30 @@ class BaselineRatchetTest {
     }
 
     @Test
-    fun malformedManifestRowThrows() {
-        val repoRoot = manifestRoot("short\thttps://example.invalid/x.git\tdeadbeef")
+    fun malformedManifestEntryThrows() {
+        // No "roots": the sweep cannot index anything, so the manifest is refused rather than
+        // silently measuring zero files.
+        val repoRoot = manifestRoot("""{"name":"short","url":"https://example.invalid/x.git","commit":"deadbeef"}""")
         val failure = runCatching { CorpusManifest.load(repoRoot) }.exceptionOrNull()
-        assertTrue("Expected a malformed-row failure, got $failure", failure is IllegalArgumentException)
+        assertNotNull("Expected a malformed-entry failure", failure)
+    }
+
+    /** BUG-407: an empty optional value must not shift any other field. */
+    @Test
+    fun emptyOptionalDoesNotShiftOtherFields() {
+        val repoRoot = manifestRoot(
+            """{"name":"gap","url":"https://example.invalid/x.git","commit":"deadbeef",""" +
+                """"roots":["src"],"prune":[],"luaLevel":"LUA51","moduleRoot":"lua"}""",
+        )
+        val entry = CorpusManifest.entry(repoRoot, "gap")
+        assertEquals(listOf("src"), entry.roots)
+        assertEquals(LuaLanguageLevel.LUA51, entry.luaLevel)
+        assertEquals("lua", entry.moduleRoot)
     }
 
     @Test
     fun duplicateManifestNameThrows() {
-        val row = "dup\thttps://example.invalid/x.git\tdeadbeef\tsrc"
+        val row = """{"name":"dup","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}"""
         val failure = runCatching { CorpusManifest.entry(manifestRoot(row, row), "dup") }.exceptionOrNull()
         assertTrue(
             "A duplicate must not be reported as absent; got: ${failure?.message}",
@@ -238,23 +254,24 @@ class BaselineRatchetTest {
     @Test
     fun manifestLuaLevelDefaultsAndParses() {
         val repoRoot = manifestRoot(
-            "plain\thttps://example.invalid/x.git\tdeadbeef\tsrc",
-            "pinned\thttps://example.invalid/y.git\tcafebabe\tsrc\t\tLUA51",
+            """{"name":"plain","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
+            """{"name":"pinned","url":"https://example.invalid/y.git","commit":"cafebabe","roots":["src"],"luaLevel":"LUA51"}""",
         )
         assertEquals(LuaLanguageLevel.LUA54, CorpusManifest.entry(repoRoot, "plain").luaLevel)
         assertEquals(LuaLanguageLevel.LUA51, CorpusManifest.entry(repoRoot, "pinned").luaLevel)
     }
 
     /**
-     * The optional 7th column. Omitting it means "modules resolve from the checkout root", which is
-     * what every currently-pinned project does — so the default must stay null rather than "".
+     * The optional `moduleRoot`. Omitting it means "modules resolve from the checkout root", which
+     * is what every currently-pinned project does — so the default must stay null rather than "".
      */
     @Test
     fun manifestModuleRootDefaultsAndParses() {
         val repoRoot = manifestRoot(
-            "plain\thttps://example.invalid/x.git\tdeadbeef\tsrc",
-            "levelonly\thttps://example.invalid/y.git\tcafebabe\tsrc\t\tLUA51",
-            "rooted\thttps://example.invalid/z.git\tf00d\tfrontend\t\tLUA51\tfrontend",
+            """{"name":"plain","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
+            """{"name":"levelonly","url":"https://example.invalid/y.git","commit":"cafebabe","roots":["src"],"luaLevel":"LUA51"}""",
+            """{"name":"rooted","url":"https://example.invalid/z.git","commit":"f00d","roots":["frontend"],""" +
+                """"luaLevel":"LUA51","moduleRoot":"frontend"}""",
         )
         assertNull(CorpusManifest.entry(repoRoot, "plain").moduleRoot)
         assertNull(CorpusManifest.entry(repoRoot, "levelonly").moduleRoot)
@@ -264,12 +281,12 @@ class BaselineRatchetTest {
     /** TC 9 — the guard refuses an absent corpus instead of measuring nothing. */
     @Test
     fun absentCorpusFailsWithFetchInstruction() {
-        val repoRoot = manifestRoot("ghost\thttps://example.invalid/x.git\tdeadbeef\tsrc")
+        val repoRoot = manifestRoot("""{"name":"ghost","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""")
         val entry = CorpusManifest.entry(repoRoot, "ghost")
         val failure = runCatching { CorpusGuards.assertCorpusFetched(repoRoot, entry) }.exceptionOrNull()
         assertTrue(
             "Expected the fetch instruction, got: ${failure?.message}",
-            failure?.message.orEmpty().contains("tooling/corpus/fetch-corpus.sh"),
+            failure?.message.orEmpty().contains("tooling/corpus/fetch-corpus.py"),
         )
     }
 
@@ -300,12 +317,12 @@ class BaselineRatchetTest {
         )
     }
 
-    /** A synthetic repo root holding only `tooling/corpus/corpus.tsv` — no checkout, no fixture. */
-    private fun manifestRoot(vararg rows: String): File {
+    /** A synthetic repo root holding only `tooling/corpus/corpus.json` — no checkout, no fixture. */
+    private fun manifestRoot(vararg entries: String): File {
         val repoRoot = temp.newFolder()
-        val manifest = File(repoRoot, "tooling/corpus/corpus.tsv")
+        val manifest = File(repoRoot, "tooling/corpus/corpus.json")
         manifest.parentFile.mkdirs()
-        manifest.writeText(rows.joinToString("\n", postfix = "\n"))
+        manifest.writeText(entries.joinToString(",\n", prefix = "{\"corpora\":[", postfix = "]}"))
         return repoRoot
     }
 }

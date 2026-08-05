@@ -25,14 +25,14 @@ N defects first". A large count is not a reason to weaken the gate; it is the fi
 
 ### MAINT-35-00-DR-03 — Pin the PUC Lua tarballs [Must]
 
-`luac.properties` needs an exact version + sha256 per level. lua.org publishes the tarballs and their
+`luac.json` needs an exact version + sha256 per level. lua.org publishes the tarballs and their
 checksums; the values must be recorded from the real artefacts, not assumed.
 
 **Action**: for 5.1.5, 5.2.4, 5.3.6, 5.4.7 (and 5.5.x when a corpus row needs it) record URL and
 sha256, and confirm each builds a working `luac` on the builder with `build-essential` alone.
 
-**Why it gates Phase 1**: the whole point of MAINT-35-00 is that the oracle is pinned. A `luac.properties`
-with a guessed checksum is worse than no pin — `fetch-luac.sh` would refuse to build, or worse,
+**Why it gates Phase 1**: the whole point of MAINT-35-00 is that the oracle is pinned. A `luac.json`
+with a guessed checksum is worse than no pin — `fetch-luac.py` would refuse to build, or worse,
 someone would "fix" it by removing the check.
 
 ### MAINT-35-00-DR-02 — Is the upstream torture corpus stable enough to pin? [Should]

@@ -1,0 +1,69 @@
+{
+  "$comment": [
+    "Lunar corpus fixtures — real-world Lua projects swept by LuaCorpusSweepTest.",
+    "",
+    "Each entry is a pinned upstream checkout fetched by fetch-corpus.py into test/corpus/<name>.",
+    "Pin to release tags (resolved to their commit SHA), never to a moving branch: the sweep is a",
+    "ratchet against a recorded baseline, so the tree must be byte-identical across runs.",
+    "",
+    "NB: test/luacheck is a DIFFERENT tree — a clone of the internal glimmer/luacheck fork with",
+    "commits that do not exist upstream. It belongs to LuaRecursiveReferenceTest; do not conflate",
+    "the two.",
+    "",
+    "Was corpus.tsv until 2026-08-05. Positional TSV was read by two hand-rolled parsers that",
+    "drifted: the shell bound 6 fields with IFS-whitespace collapsing (so every column after an",
+    "empty one shifted left, and `prune` became the language level, feeding an rm -rf), while the",
+    "Kotlin read 7 by index. JSON is parsed by a library on both sides — Python's stdlib `json` and",
+    "the platform's Gson — so no schema knowledge is hand-written anywhere. See BUG-407.",
+    "",
+    "Fields:",
+    "  name       directory under test/corpus/, and the baseline file name",
+    "  url        upstream clone URL",
+    "  commit     pinned SHA (a tag tip, resolved)",
+    "  roots      subdirectories the sweep indexes — narrower than the checkout, so vendored and",
+    "             build trees never enter the measurement",
+    "  prune      optional; deleted after checkout so the builder rsync stays cheap",
+    "             (luarocks/win32 alone is 11 MB of vendored Windows binaries)",
+    "  luaLevel   the Lua language level the sweep runs under. It matters beyond the",
+    "             LuaLanguageLevel inspection: the level selects which stdlib globals are known, so",
+    "             an unpinned level would make every inspection count a function of",
+    "             LuaProjectSettings' LUA54 default.",
+    "  moduleRoot optional; the subdirectory module names resolve against, put on package.path for",
+    "             the sweep. Omit when requires are relative to the checkout root, as all four below",
+    "             are. It exists for projects that name modules relative to a subtree — KOReader's",
+    "             require(\"ui/uimanager\") means frontend/ui/uimanager.lua."
+  ],
+  "corpora": [
+    {
+      "name": "luacheck",
+      "url": "https://github.com/lunarmodules/luacheck.git",
+      "commit": "cc089e3f65acdd1ef8716cc73a3eca24a6b845e4",
+      "roots": ["src", "spec"],
+      "luaLevel": "LUA51"
+    },
+    {
+      "name": "luarocks",
+      "url": "https://github.com/luarocks/luarocks.git",
+      "commit": "990ec6ca3b097c7160fe925cfca4b8e57cfe5685",
+      "roots": ["src", "spec"],
+      "prune": ["win32"],
+      "luaLevel": "LUA51"
+    },
+    {
+      "name": "zerobrane",
+      "url": "https://github.com/pkulchenko/ZeroBraneStudio.git",
+      "commit": "483ef0dcb593f9599ff27715472425e39a0588e8",
+      "roots": ["src", "interpreters", "api", "cfg"],
+      "prune": ["bin"],
+      "luaLevel": "LUA51"
+    },
+    {
+      "name": "penlight",
+      "url": "https://github.com/lunarmodules/Penlight.git",
+      "commit": "e0bc8f7fce3b6a4fdef3660066f5006bf8456b32",
+      "roots": ["lua", "spec"],
+      "luaLevel": "LUA51",
+      "moduleRoot": "lua"
+    }
+  ]
+}

@@ -18,11 +18,11 @@ internal object CorpusGuards {
     internal fun assertCorpusFetched(repoRoot: File, entry: CorpusEntry) {
         val onDisk = CorpusManifest.checkedOutCommit(repoRoot, entry.name)
         assertNotNull(
-            "Corpus '${entry.name}' is not fetched. Run: tooling/corpus/fetch-corpus.sh",
+            "Corpus '${entry.name}' is not fetched. Run: tooling/corpus/fetch-corpus.py",
             onDisk,
         )
         assertEquals(
-            "Corpus '${entry.name}' is at the wrong commit. Re-run: tooling/corpus/fetch-corpus.sh",
+            "Corpus '${entry.name}' is at the wrong commit. Re-run: tooling/corpus/fetch-corpus.py",
             entry.commit,
             onDisk,
         )

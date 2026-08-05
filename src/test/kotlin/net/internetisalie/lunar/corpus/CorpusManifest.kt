@@ -1,10 +1,12 @@
 package net.internetisalie.lunar.corpus
 
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import java.io.File
 
 /**
- * One pinned third-party project from `tooling/corpus/corpus.tsv`.
+ * One pinned third-party project from `tooling/corpus/corpus.json`.
  *
  * [roots] are the subdirectories the sweep indexes — deliberately narrower than the checkout, so
  * that vendored/build trees never enter the measurement.
@@ -24,46 +26,62 @@ data class CorpusEntry(
 )
 
 /**
- * Reads the corpus manifest. Columns are name, url, commit, roots, prune, luaLevel, moduleRoot;
- * the sweep needs all but url and prune, which are `fetch-corpus.sh`'s business.
+ * Reads the corpus manifest. The sweep needs every field but `url` and `prune`, which are
+ * `fetch-corpus.py`'s business.
+ *
+ * BUG-407: this was positional TSV, parsed by hand here *and* in `fetch-corpus.sh`. The two drifted
+ * — the shell bound six fields with IFS-whitespace collapsing, so every column after an empty one
+ * shifted left and `prune` became the language level, which then fed an `rm -rf`. Both hand-rolled
+ * parsers are gone: Gson here (already used in eight production files, platform-provided), stdlib
+ * `json` in the fetcher.
  */
 object CorpusManifest {
 
     const val CORPUS_DIR = "test/corpus"
 
-    fun load(repoRoot: File): List<CorpusEntry> =
-        File(repoRoot, "tooling/corpus/corpus.tsv")
-            .readLines()
-            .filterNot { it.isBlank() || it.startsWith("#") }
-            .map(::parseRow)
+    private const val MANIFEST_PATH = "tooling/corpus/corpus.json"
+
+    fun load(repoRoot: File): List<CorpusEntry> {
+        val manifest = File(repoRoot, MANIFEST_PATH)
+        require(manifest.isFile) { "No corpus manifest at $MANIFEST_PATH" }
+        return JsonParser.parseString(manifest.readText())
+            .asJsonObject
+            .getAsJsonArray("corpora")
+            .map { parseEntry(it.asJsonObject) }
+    }
 
     fun entry(repoRoot: File, name: String): CorpusEntry {
         val matches = load(repoRoot).filter { it.name == name }
         // Distinguished deliberately: a bare singleOrNull would report a duplicate as absent,
-        // sending the reader to fetch-corpus.sh for a manifest problem.
-        require(matches.size <= 1) { "Duplicate corpus entry '$name' in tooling/corpus/corpus.tsv" }
+        // sending the reader to fetch-corpus.py for a manifest problem.
+        require(matches.size <= 1) { "Duplicate corpus entry '$name' in $MANIFEST_PATH" }
         return matches.singleOrNull()
-            ?: error("No corpus entry named '$name' in tooling/corpus/corpus.tsv")
+            ?: error("No corpus entry named '$name' in $MANIFEST_PATH")
     }
 
-    /** The commit actually on disk, stamped by `fetch-corpus.sh`; null when the corpus is absent. */
+    /** The commit actually on disk, stamped by `fetch-corpus.py`; null when the corpus is absent. */
     fun checkedOutCommit(repoRoot: File, name: String): String? =
         File(repoRoot, "$CORPUS_DIR/$name/.corpus-sha").takeIf { it.isFile }?.readText()?.trim()
 
     /** `<repoRoot>/test/corpus/<name>` — the whole checkout, wider than the indexed [roots]. */
     fun checkoutDir(repoRoot: File, name: String): File = File(repoRoot, "$CORPUS_DIR/$name")
 
-    private fun parseRow(row: String): CorpusEntry {
-        val columns = row.split('\t')
-        require(columns.size >= 4) { "Malformed corpus.tsv row: $row" }
-        val level = columns.getOrNull(5)?.trim().orEmpty()
+    private fun parseEntry(entry: JsonObject): CorpusEntry {
+        val name = entry.required("name")
         return CorpusEntry(
-            name = columns[0],
-            commit = columns[2],
-            roots = columns[3].split(',').filter { it.isNotBlank() },
-            // Defaults to the same level as LuaProjectSettings, so omitting the column is a no-op.
-            luaLevel = if (level.isEmpty()) LuaLanguageLevel.LUA54 else LuaLanguageLevel.valueOf(level),
-            moduleRoot = columns.getOrNull(6)?.trim()?.takeIf { it.isNotEmpty() },
+            name = name,
+            commit = entry.required("commit"),
+            roots = entry.getAsJsonArray("roots")?.map { it.asString }
+                ?: error("Corpus entry '$name' declares no roots"),
+            // Defaults to the same level as LuaProjectSettings, so omitting the key is a no-op.
+            luaLevel = entry.get("luaLevel")?.asString?.takeIf { it.isNotBlank() }
+                ?.let { LuaLanguageLevel.valueOf(it) }
+                ?: LuaLanguageLevel.LUA54,
+            moduleRoot = entry.get("moduleRoot")?.asString?.trim()?.takeIf { it.isNotEmpty() },
         )
     }
+
+    private fun JsonObject.required(key: String): String =
+        get(key)?.asString?.takeIf { it.isNotBlank() }
+            ?: error("Corpus entry is missing required key '$key' in $MANIFEST_PATH")
 }

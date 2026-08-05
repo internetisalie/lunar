@@ -261,7 +261,7 @@ tasks {
         }
         // Corpus sweeps index whole pinned third-party projects (~300 files) and are far slower
         // than the routine loop, so they are opt-in: `./gradlew test -PwithCorpus`. They also need
-        // the corpus fetched (tooling/corpus/fetch-corpus.sh) into the out-of-repo test/ tree,
+        // the corpus fetched (tooling/corpus/fetch-corpus.py) into the out-of-repo test/ tree,
         // which a CI checkout does not have.
         if (!project.hasProperty("withCorpus")) {
             filter {
