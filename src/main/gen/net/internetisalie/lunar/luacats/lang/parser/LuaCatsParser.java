@@ -147,6 +147,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   //     | overloadTag
   //     | packageTag
   //     | paramTag
+  //     | ldocParamTag
   //     | privateTag
   //     | protectedTag
   //     | returnTag
@@ -174,6 +175,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     if (!result_) result_ = overloadTag(builder_, level_ + 1);
     if (!result_) result_ = packageTag(builder_, level_ + 1);
     if (!result_) result_ = paramTag(builder_, level_ + 1);
+    if (!result_) result_ = ldocParamTag(builder_, level_ + 1);
     if (!result_) result_ = privateTag(builder_, level_ + 1);
     if (!result_) result_ = protectedTag(builder_, level_ + 1);
     if (!result_) result_ = returnTag(builder_, level_ + 1);
@@ -431,7 +433,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // (NAME | NUMBER | STRING | SYMBOL | TEXT)+
+  // (NAME | NUMBER | STRING | SYMBOL | TEXT | CODE)+
   public static boolean description(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "description")) return false;
     boolean result_;
@@ -446,7 +448,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return result_;
   }
 
-  // NAME | NUMBER | STRING | SYMBOL | TEXT
+  // NAME | NUMBER | STRING | SYMBOL | TEXT | CODE
   private static boolean description_0(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "description_0")) return false;
     boolean result_;
@@ -455,6 +457,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     if (!result_) result_ = consumeToken(builder_, STRING);
     if (!result_) result_ = consumeToken(builder_, SYMBOL);
     if (!result_) result_ = consumeToken(builder_, TEXT);
+    if (!result_) result_ = consumeToken(builder_, CODE);
     return result_;
   }
 
@@ -988,6 +991,18 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     result_ = consumeToken(builder_, ",");
     result_ = result_ && genericTypeParam(builder_, level_ + 1);
     exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  /* ********************************************************** */
+  // '@param' description
+  public static boolean ldocParamTag(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "ldocParamTag")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, LDOC_PARAM_TAG, "<ldoc param tag>");
+    result_ = consumeToken(builder_, "@param");
+    result_ = result_ && description(builder_, level_ + 1);
+    exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
 

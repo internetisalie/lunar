@@ -69,6 +69,46 @@ Each of the three doc comments reports a parse error.
 `:408` but was **not** reported. Worth understanding before fixing — it suggests the trigger is
 contextual rather than purely the token.
 
+## 3a. Resolution (2026-08-04)
+
+**Fixed. Two of the three reported constructs were real; the third was not.**
+
+Reproduced first, with `LuaCatsLdocToleranceTest` over the §1 snippets:
+
+| Construct | Reproduced? | Error observed |
+|---|---|---|
+| `@param[opt=false] explicit boolean` | **yes** | `'...' or NAME expected, got '['` |
+| `` @param array … `array` … `` | **yes** | ``DASHES, NAME, NUMBER, STRING, SYMBOL or zzz expected, got '`array`'`` |
+| `@func callback(v1, v2)` | **no** | parses clean on current code |
+
+`@func` never reaches the parser as a tag: it is absent from the `TAG` regex, so `<COMMENT_START>`'s
+`.` rule emits `@` as TEXT and switches to `COMMENT_DATA`, where the rest of the line is TEXT — i.e.
+prose, which is the desired behaviour already. The report's "(empty description)" entry was an
+artefact of how the original sweep surfaced the error, not a third defect. A `@return` backtick was
+also checked and is fine, because `TAG_RETURN` has no `{CODE}` rule so no CODE token is produced.
+
+**The fix, in `luacats.bnf`:**
+
+1. `description` now accepts `CODE`. `TAG_PARAM` *does* lex backtick spans (`luacats.flex:190`), so
+   the rule was refusing a token its own lexer produces.
+2. A new `ldocParamTag ::= '@param' description`, listed after `paramTag` in `anyTag`. A well-formed
+   LuaCATS `@param` still matches `paramTag` and yields real PSI; anything else falls through to
+   prose instead of erroring.
+
+**Why a separate rule rather than an alternative inside `paramTag`.** The obvious shape —
+`paramTag ::= '@param' (paramSpec | description)` — was implemented first and rejected: it makes
+`LuaCatsParamTag.getArgType()` `@Nullable`, which broke eight call sites across the type engine,
+the stub builders and the doc renderer. A sibling element type keeps that contract `@NotNull` and
+confines the change.
+
+Recovering the *name and type* from `@param[opt=false] name type` is not possible without a lexer
+change: `=` is not a token in the `TAG_PARAM` state, so everything from `=` onward is already TEXT
+before the parser runs. Prose is the honest representation; that was not attempted here.
+
+**Verification**: `LuaCatsLdocToleranceTest` (5 cases, including a regression guard that well-formed
+tags still parse into real PSI). Full suite 2341 tests / 0 failures; ktlint clean. The parser and
+lexer were regenerated headlessly and `src/main/gen` committed.
+
 ## 4. Other Notes
 
 - **Priority is a judgement call.** These are false errors on valid input, which is normally

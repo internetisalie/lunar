@@ -38,6 +38,9 @@ public interface LuaCatsComment extends PsiElement {
   List<LuaCatsGenericTag> getGenericTagList();
 
   @NotNull
+  List<LuaCatsLdocParamTag> getLdocParamTagList();
+
+  @NotNull
   List<LuaCatsMetaTag> getMetaTagList();
 
   @NotNull

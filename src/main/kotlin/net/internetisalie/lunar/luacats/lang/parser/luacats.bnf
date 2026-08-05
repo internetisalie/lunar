@@ -69,6 +69,7 @@ private anyTag ::=
     | overloadTag
     | packageTag
     | paramTag
+    | ldocParamTag
     | privateTag
     | protectedTag
     | returnTag
@@ -141,6 +142,16 @@ packageTag ::= '@package' description?
 
 paramTag ::= '@param' ((<<ArgName NAME>> <<ArgSymbol ('?')>>?) | <<ArgSymbol ('...')>>) <<ArgType type>> description?
 
+// BUG-393: LDoc's `@param[opt=false] name type ...` is not a LuaCATS `@param` and must not be a
+// syntax error. It is a SEPARATE element type rather than an alternative inside `paramTag`, so
+// `LuaCatsParamTag.getArgType()` stays `@NotNull` for the eight consumers that rely on it — an
+// alternative would have made it `@Nullable` across the type engine and the doc renderer.
+// Ordering matters: `anyTag` tries `paramTag` first, so a well-formed tag still yields real PSI and
+// only the shapes we do not model fall through to here. `=` is not a token in the TAG_PARAM lexer
+// state (`luacats.flex:187-193`), so everything past it is already TEXT — there is nothing further
+// to model, and prose is the honest representation.
+ldocParamTag ::= '@param' description
+
 privateTag ::= '@private' description?
 protectedTag ::= '@protected' description?
 
@@ -197,5 +208,8 @@ namedType ::= NAME
 
 /// Explanatory Text
 
-description ::= (NAME | NUMBER | STRING | SYMBOL | TEXT)+
+// BUG-393: CODE belongs here. The TAG_PARAM lexer state emits a backtick code span as CODE
+// (`luacats.flex:190`), so prose like "must match the type of `array`" produced a token the
+// description rule refused — a syntax error on ordinary documentation.
+description ::= (NAME | NUMBER | STRING | SYMBOL | TEXT | CODE)+
 returnDescription ::= (NAME | NUMBER | STRING | (!(',' returnTypeDescriptor) SYMBOL) | TEXT)+

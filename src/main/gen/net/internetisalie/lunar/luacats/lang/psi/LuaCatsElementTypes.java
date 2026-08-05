@@ -43,6 +43,7 @@ public interface LuaCatsElementTypes {
   IElementType GENERIC_TYPE = new LuaCatsElementType("GENERIC_TYPE");
   IElementType GENERIC_TYPE_PARAM = new LuaCatsElementType("GENERIC_TYPE_PARAM");
   IElementType GENERIC_TYPE_PARAMS = new LuaCatsElementType("GENERIC_TYPE_PARAMS");
+  IElementType LDOC_PARAM_TAG = new LuaCatsElementType("LDOC_PARAM_TAG");
   IElementType LITERAL_TABLE_TYPE = new LuaCatsElementType("LITERAL_TABLE_TYPE");
   IElementType LITERAL_TYPE = new LuaCatsElementType("LITERAL_TYPE");
   IElementType META_TAG = new LuaCatsElementType("META_TAG");
@@ -194,6 +195,9 @@ public interface LuaCatsElementTypes {
       }
       else if (type == GENERIC_TYPE_PARAMS) {
         return new LuaCatsGenericTypeParamsImpl(node);
+      }
+      else if (type == LDOC_PARAM_TAG) {
+        return new LuaCatsLdocParamTagImpl(node);
       }
       else if (type == LITERAL_TABLE_TYPE) {
         return new LuaCatsLiteralTableTypeImpl(node);

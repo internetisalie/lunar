@@ -89,6 +89,12 @@ public class LuaCatsCommentImpl extends LuaCatsBaseElement implements LuaCatsCom
 
   @Override
   @NotNull
+  public List<LuaCatsLdocParamTag> getLdocParamTagList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsLdocParamTag.class);
+  }
+
+  @Override
+  @NotNull
   public List<LuaCatsMetaTag> getMetaTagList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsMetaTag.class);
   }

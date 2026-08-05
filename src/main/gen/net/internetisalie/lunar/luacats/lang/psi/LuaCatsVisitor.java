@@ -143,6 +143,10 @@ public class LuaCatsVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitLdocParamTag(@NotNull LuaCatsLdocParamTag o) {
+    visitPsiElement(o);
+  }
+
   public void visitLiteralTableType(@NotNull LuaCatsLiteralTableType o) {
     visitPsiElement(o);
   }

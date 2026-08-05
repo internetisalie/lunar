@@ -58,6 +58,9 @@ class LuaCatsLazyCommentImpl(text: CharSequence?) : LazyParseablePsiElement(LuaL
 
     override fun getGenericTagList(): List<LuaCatsGenericTag> = delegate { it.genericTagList }
 
+    /** BUG-393: LDoc `@param[opt=...]` prose, kept as PSI so it is documentation, not a syntax error. */
+    override fun getLdocParamTagList(): List<LuaCatsLdocParamTag> = delegate { it.ldocParamTagList }
+
     override fun getMetaTagList(): List<LuaCatsMetaTag> = delegate { it.metaTagList }
 
     override fun getModuleTagList(): List<LuaCatsModuleTag> = delegate { it.moduleTagList }
