@@ -2,6 +2,30 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### 0.21.1 — LDoc doc comments no longer report false syntax errors (BUG-393)
+
+`---` comments written in [LDoc](https://lunarmodules.github.io/ldoc/) style marked otherwise-clean
+Lua as broken. Two constructs were at fault:
+
+- A backtick code span in a description — `--- @param array Lua table (must match `array`)` —
+  produced a token the description rule refused, although the lexer emits it.
+- `--- @param[opt=false] explicit boolean`, LDoc's bracketed optional-parameter modifier, hit the
+  `@param` rule's demand for a name or `...`.
+
+Both now degrade to documentation rather than a syntax error: a well-formed LuaCATS tag still parses
+into real structure, and shapes Lunar does not model become prose. `@func` and `@tparam` were already
+inert and unaffected.
+
+**Known limitation (BUG-406).** This is *tolerance*, not LDoc support. LDoc's `@param <name>
+<description>` has no type slot where LuaCATS's `@param <name> <type>` does, and the two are not yet
+distinguished — so the first word of an LDoc description is read as the parameter's type
+(`@param array Lua table …` infers the type `Lua`). Type-aware inspections on LDoc-annotated code
+should be treated with suspicion until that is fixed.
+
+Internal: Penlight 1.15.0 joins the regression corpus, replacing the parked KOReader as the
+LDoc-bearing member at an eighth of the sweep cost.
+
+
 ### On-demand LuaLS / LuaCATS definition libraries (TARGET-08)
 Type definitions for community Lua libraries can now be enabled per project under
 **Settings ▸ Languages & Frameworks ▸ Lua ▸ Definition Libraries**. Nothing ships with the plugin:
