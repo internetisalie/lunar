@@ -26,10 +26,17 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
         design — the level-agnostic parse; one real, filed as **BUG-409**). Recorded in
         `risks-and-gaps.md`; the design consequence (gate false rejects only) is folded into §2.3
         and MAINT-35-02.
-  - [ ] DR-02 — confirm squeek502's minimized corpus is published as a stable, checksummable release
-        asset; record URL + sha256, or drop MAINT-35-06 to `Could`.
+  - [x] **DR-02 — done 2026-08-05.** `squeek502/fuzzing-lua` **v0.2.0** carries one asset,
+        `fuzzing-lua-data.tar.gz` (181 282 bytes). Stable and checksummable; MAINT-35-06 stands.
+  - [x] **DR-03 — done 2026-08-05.** All five tarballs downloaded, digests **matched against
+        lua.org's published sha256** (not just self-computed), and each built a working `luac` on the
+        builder with the C toolchain alone. Two guessed pins corrected: 5.4.7 → **5.4.8**, 5.5.x →
+        **5.5.1**. Version discrimination re-verified on the *built* binaries: `1 // 2` rejected by
+        5.1.5/5.2.4, accepted by 5.3.6/5.4.8/5.5.1. `luac -p -` reads stdin on every version.
   - [ ] *(moved to Phase 1 as MAINT-35-00 — provisioning is a requirement, not a de-risking chore)*
-- **Verification**: answers written into `risks-and-gaps.md`. No production or test code kept.
+- **Verification**: all three answers written into `risks-and-gaps.md`. No production or test code
+  kept — the tarballs and builds live in scratch, and Phase 1's `fetch-luac.py` recreates them from
+  the recorded pins.
 
 > **DR-01 already paid for Phase 0.** It corrected a `Must` requirement before any code was written
 > (both directions gated → false rejects only), found BUG-409, and hit design risk R5 in its first

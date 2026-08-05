@@ -59,7 +59,8 @@ itself is pinned by commit — same discipline, same reason.
   ```json
   { "oracles": [
       { "luaLevel": "LUA51", "version": "5.1.5",
-        "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz", "sha256": "<recorded by DR-03>" }
+        "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
+        "sha256": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333" }
   ] }
   ```
 
@@ -153,12 +154,12 @@ With §2.0's pinning the mapping is a lookup in `luac.json`, not a `PATH` search
 | `LUA51` | `test/luac/5.1.5/luac` |
 | `LUA52` | `test/luac/5.2.4/luac` |
 | `LUA53` | `test/luac/5.3.6/luac` |
-| `LUA54` | `test/luac/5.4.7/luac` |
-| `LUA55` | `test/luac/5.5.x/luac` — same mechanism |
+| `LUA54` | `test/luac/5.4.8/luac` |
+| `LUA55` | `test/luac/5.5.1/luac` — same mechanism |
 
 `requireBinary` resolves via an **exhaustive** `when` over all six constants — no `else` — so a new
-level fails to compile rather than silently resolving to nothing. Exact point versions and their
-sha256s are recorded in `luac.json` when Phase 1 lands (DR-03).
+level fails to compile rather than silently resolving to nothing. Exact point versions and their sha256s are **recorded in DR-03** (all five verified against lua.org's
+published digests and built on the builder): 5.1.5, 5.2.4, 5.3.6, 5.4.8, 5.5.1.
 
 ### 2.2 Invocation
 

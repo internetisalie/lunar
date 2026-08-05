@@ -73,7 +73,46 @@ sha256, and confirm each builds a working `luac` on the builder with `build-esse
 with a guessed checksum is worse than no pin — `fetch-luac.py` would refuse to build, or worse,
 someone would "fix" it by removing the check.
 
+#### ANSWERED 2026-08-05
+
+lua.org publishes a sha256 per tarball **on the FTP index page itself** (no `.sha256` sidecar files;
+`lua-X.Y.Z.tar.gz.sha256` and `checksums.html` both 404). Each tarball was downloaded and its digest
+compared against the published value — **all five match**. That cross-check matters: a self-computed
+digest pins *what I downloaded*, it says nothing about authenticity.
+
+| level | version | sha256 (upstream == downloaded) | builds | `1 // 2` |
+| :-- | :-- | :-- | :-- | :-- |
+| `LUA51` | **5.1.5** | `2640fc56…95333` | ✓ | REJECT |
+| `LUA52` | **5.2.4** | `b9e2e4aa…69f4b` | ✓ | REJECT |
+| `LUA53` | **5.3.6** | `fc5fd69b…66d60` | ✓ | ACCEPT |
+| `LUA54` | **5.4.8** | `4f18ddae…0629ae` | ✓ | ACCEPT |
+| `LUA55` | **5.5.1** | `1c4b4068…373dce` | ✓ | ACCEPT |
+
+All five built on the builder with the C toolchain alone (`make linux`), and each reports its own
+version from `luac -v`. **Two pins in the design were guesses and are corrected**: `5.4.7` → **5.4.8**
+and `5.5.x` → **5.5.1**, both now the newest of their series. Policy: pin the newest patch of each
+series — the grammar does not change within a patch series, so an older patch is churn without
+benefit.
+
+Verified on the **built** binaries, not the apt ones:
+
+- **TC-3/TC-4 discrimination is real**: `1 // 2` is rejected by 5.1.5 and 5.2.4, accepted by 5.3.6,
+  5.4.8 and 5.5.1 — the integer-division operator arrived in 5.3, exactly as the version-matching
+  requirement assumes.
+- **`luac -p -` reads stdin on every version**, including 5.5.1. This re-confirms §2.2 on the
+  binaries that will actually ship, not just on Debian's.
+
+#### MAINT-35-00-DR-02 — ANSWERED 2026-08-05
+
+`squeek502/fuzzing-lua` has two GitHub releases; the latest, **v0.2.0** (2020-06-07), carries a
+single asset: **`fuzzing-lua-data.tar.gz`, 181 282 bytes**. Stable, addressable and checksummable, so
+MAINT-35-06 can pin it the same way. Its size is negligible against MAINT-33's corpus budget. The
+release is five years old and unlikely to be re-uploaded, which is the failure mode a checksum pin
+guards anyway.
+
 ### MAINT-35-00-DR-02 — Is the upstream torture corpus stable enough to pin? [Should]
+
+> **Answered — see the summary under DR-03.**
 
 MAINT-35-06 pins squeek502's *minimized* corpus by **archive sha256**, because it is a release asset
 rather than a git tree — a weaker pin than the commit SHAs `corpus.tsv` uses, and one that breaks if
