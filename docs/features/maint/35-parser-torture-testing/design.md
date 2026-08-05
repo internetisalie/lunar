@@ -11,7 +11,7 @@ folders:
 
 ## 1. Architecture
 
-Two new test-only objects and four new metrics on the existing MAINT-33 pipeline. No production
+Two new test-only objects and five new metrics on the existing MAINT-33 pipeline. No production
 code changes; **no `plugin.xml` registration, extension point, service or index is added or
 changed** by this feature.
 
@@ -22,7 +22,7 @@ CorpusSweep.run(fixture, entry, checkoutDir)
         ├─ NEW LexerInvariants.check(psiFile.text)      → roundTripFailed, lex crash
         └─ NEW ParseOracle.judge(psiFile.text, level)   → Verdict          (off-EDT, §2.2a)
              │
-             └─► FileTally(+3) ─► run() aggregates, caps oracleSites ─► CorpusMetrics (4 new fields)
+             └─► FileTally(+3) ─► run() aggregates, caps oracleSites ─► CorpusMetrics (5 new fields)
                                                 └─► CorpusBaseline.render/parse/compare  (§4.3, §4.4)
                                                        └─► CorpusGuards.assertRatchet
 ```
@@ -37,15 +37,43 @@ internal object ParseOracle {
     sealed interface Verdict {
         object Accept : Verdict
         data class Reject(val message: String) : Verdict
-        data class Unavailable(val reason: String) : Verdict
+        /** Only ever a per-file TIMEOUT — never "no binary", which fails fast instead. */
+        data class NotJudged(val reason: String) : Verdict
     }
 
     fun judge(source: CharSequence, level: LuaLanguageLevel): Verdict
 
-    /** `luac` binaries by level, resolved once per JVM. Null when none matches. */
-    fun binaryFor(level: LuaLanguageLevel): File?
+    /** `luac` for [level]. Throws with the apt remedy when absent — see §2.0. */
+    fun requireBinary(level: LuaLanguageLevel): File
 }
 ```
+
+### 2.0 The oracle is a provisioned dependency, not a runtime maybe
+
+`luac` is **owned by this feature** (MAINT-35-00): `lua5.1`–`lua5.4` are added to
+`builder-bootstrap.sh:11`, `startup-script.sh:20-22` and `.gitea/workflows/build-plugin.yml:116`,
+alongside the `lua5.4`/`lua-socket`/`fontconfig` those files already install for other tests. All
+four are packaged on Debian 13 (verified: `5.1.5-11`, `5.2.4-3+b3`, `5.3.6-2+b4`, `5.4.7-1+b2`).
+
+**This deletes an entire subsystem from an earlier draft of this design.** That draft treated a
+missing `luac` as a normal runtime state and built machinery to survive it: a nullable
+`oracleDisagreements`, a four-case comparison table, an `Unavailable` verdict threaded through every
+layer, a skip-vs-fail rule for CI, and a top-rated risk (R1) devoted to the possibility that the gate
+would silently disable itself. All of that was the cost of *not owning a dependency that is one apt
+package away*. Owning it makes the tolerance unnecessary, and fail-fast strictly safer than any
+tolerance could be: a gate that cannot run is louder than a gate that runs empty.
+
+So `requireBinary` **throws** when the binary is absent, before any file is judged, with the remedy
+in the message:
+
+```
+No luac for LUA51. The parse oracle is a provisioned dependency of MAINT-35.
+Install it:  apt-get install lua5.1     (see tooling/gce-builder/builder-bootstrap.sh)
+```
+
+`LUA55` is the one level Debian does not package. No corpus row uses it, and rather than reintroduce
+tolerance for a case that does not exist, `fetch-corpus.sh` **rejects a `LUA55` row at fetch time**
+(MAINT-35-03a) — the error surfaces when someone adds such a row, which is when it can be acted on.
 
 ### 2.1 Version matching is the whole correctness of the oracle
 
@@ -56,18 +84,17 @@ name only — a bare `luac` is never used, because its version is unknowable wit
 
 | `LuaLanguageLevel` | binary candidates, in order |
 | :-- | :-- |
-| `LUA50` | *(none)* — `Unavailable("no luac for 5.0")`. `LuaLanguageLevel` really does declare `LUA50` (`lang/LuaLanguageLevel.kt:20`); PUC ships no `luac5.0` on any supported distro, so it is handled explicitly rather than left to an `else`. |
+| `LUA50` | *(none)* — `requireBinary` throws "no packaged luac for 5.0". `LuaLanguageLevel` really does declare `LUA50` (`lang/LuaLanguageLevel.kt:20`), so an exhaustive `when` must cover it. |
 | `LUA51` | `luac5.1`, `luac51` |
 | `LUA52` | `luac5.2`, `luac52` |
 | `LUA53` | `luac5.3`, `luac53` |
 | `LUA54` | `luac5.4`, `luac54` |
-| `LUA55` | `luac5.5`, `luac55` |
+| `LUA55` | `luac5.5`, `luac55` — **not packaged on Debian**; rejected at fetch time (§2.0) |
 
-`binaryFor` is an **exhaustive** `when` over all six constants — no `else` — so a future level fails
-to compile rather than silently resolving to nothing. Each candidate is looked up on `PATH`. Builder state at time of writing: `luac5.1` and `luac5.4`
-present, `5.2`/`5.3`/`5.5` absent — so `LUA52`/`LUA53`/`LUA55` yield `Unavailable` until provisioned
-(Phase 0 task). All four current corpus rows are `LUA51`, so the oracle is live for the whole corpus
-on day one.
+`requireBinary` resolves via an **exhaustive** `when` over all six constants — no `else` — so a future
+level fails to compile rather than silently resolving to nothing. Each candidate is looked up on
+`PATH`. After MAINT-35-00 the builder carries `luac5.1`–`luac5.4` from its bootstrap, and all four
+current corpus rows are `LUA51`, so the oracle covers the whole corpus.
 
 ### 2.2 Invocation
 
@@ -81,7 +108,7 @@ stdin removes temp-file creation, cleanup and path leakage into `stderr` (diagno
 `stdin:1:` instead of an absolute path, which also keeps the baseline machine-independent).
 
 Timeout: 10 s per invocation, `destroyForcibly()` on expiry, counted as
-`Unavailable("timeout")` — never as `Reject`, because a hung oracle is not evidence about the input.
+`NotJudged("timeout")` — never as `Reject`, because a hung oracle is not evidence about the input.
 
 ### 2.2a Threading — stated, because it is not obvious
 
@@ -112,19 +139,11 @@ For each swept file, with `lunarAccepts = (parseErrors == 0)`:
 | Reject | rejects | agree |
 | Accept | rejects | **disagreement — false reject** (Lunar rejects valid Lua; BUG-392's class) |
 | Reject | accepts | **disagreement — false accept** (Lunar admits invalid Lua) |
-| Unavailable | — | not counted; reason printed once per level |
+| `NotJudged` (timeout) | — | not counted as agreement or disagreement; increments the diagnostic `oracleTimeouts` |
 
-**When is `oracleDisagreements` null?** Exactly one rule, because MAINT-35-03 and R1 both rest on it:
-
-> `oracleDisagreements` is null **if and only if `binaryFor(level) == null`** — i.e. no `luac`
-> matching the corpus entry's level exists on `PATH`. It is a property of the *environment*, decided
-> once per sweep before any file is judged.
-
-A per-file `Unavailable` (a **timeout**, §2.2) does **not** null the metric. Nulling on any
-`Unavailable` would let one slow file disable the gate for the whole member and, via §4.4 row 2,
-turn the next run red for an unrelated reason. Per-file timeouts are instead counted into a
-diagnostic `oracleTimeouts` scalar and printed; if that number is ever non-zero the sweep says so
-loudly, because a timing-out oracle is judging nothing.
+There is no "oracle absent" row: a missing binary fails the sweep before it starts (§2.0). The only
+`NotJudged` cause is a per-file timeout, which is diagnostic — a timing-out oracle is judging
+nothing, so `oracleTimeouts` being non-zero is reported loudly, but it never disables the gate.
 
 Both directions count toward `oracleDisagreements`. They are recorded separately in the diagnostic
 list (`falseReject:<path>` / `falseAccept:<path>`) because they have different severities: a false
@@ -207,8 +226,9 @@ the new `CorpusMetrics` fields alongside the existing `sumOf` calls.
 ### 4.2 New fields
 
 ```kotlin
-val oracleDisagreements: Int? = null,             // null == oracle unavailable, NOT zero
+val oracleDisagreements: Int = 0,                 // plain Int — §2.0 removes the "absent" state
 val oracleSites: List<String> = emptyList(),      // "falseReject:<path>" / "falseAccept:<path>"
+val oracleTimeouts: Int = 0,                      // diagnostic; a timing-out oracle judges nothing
 val lexerRoundTripFailures: Int = 0,
 val crashes: Map<String, Int> = emptyMap(),       // "lex:<Class>" / "parse:<Class>" → count
 ```
@@ -222,7 +242,7 @@ val crashes: Map<String, Int> = emptyMap(),       // "lex:<Class>" / "parse:<Cla
 
 | Field | Rendered as | Notes |
 | :-- | :-- | :-- |
-| `oracleDisagreements` | `oracleDisagreements=<n>` | **Omitted entirely when null** |
+| `oracleDisagreements` | `oracleDisagreements=<n>` | always rendered |
 | `lexerRoundTripFailures` | `lexerRoundTripFailures=<n>` | always rendered |
 | `crashes` | `crash.<key>=<n>`, one line each, sorted | new `CRASH_PREFIX = "crash."` |
 | `oracleSites` | `oracleSite=<entry>`, repeated, sorted | new `ORACLE_SITE_KEY`. **Capped at 20 — but the cap is applied in `CorpusSweep.run`, never in `render`** (see below). |
@@ -247,31 +267,15 @@ strips prefixed keys before reading scalars — otherwise they are parsed as sca
 **`BaselineRatchetTest.renderParseRoundTrip` (`:44-60`) asserts `original == parse(render(original))`
 over the whole data class**, so every field above must round-trip or an existing green test fails.
 
-### 4.4 `compare` — the null case cannot use the numeric pipeline (TC-9)
+### 4.4 `compare`
 
-`compare` (`:173`) builds `gated: List<Triple<String, Int, Int>>` and formats it through
-`describe(Triple<String,Int,Int>)` (`:203`). A null oracle is **not** a numeric delta and cannot be
-expressed there, so it is handled as an explicit pre-check *before* the triple list is built:
+`oracleDisagreements` is an ordinary numeric delta and joins the existing `gated` `Triple` list with
+no special handling. `describe()` (`CorpusMetrics.kt:202-203`) is untouched.
 
-```kotlin
-val oracleRegression: String? = when {
-    baseline.oracleDisagreements != null && observed.oracleDisagreements == null ->
-        "oracle unavailable — baseline recorded ${baseline.oracleDisagreements}"
-    else -> null
-}
-```
-
-and prepended to `regressions`. The four cases, stated exhaustively so none is left to inference:
-
-| baseline | observed | outcome |
-| :-- | :-- | :-- |
-| number | number | ordinary gated delta via the existing pipeline |
-| number | **null** | **regression** — the message above (TC-9) |
-| null | number | **not** a regression; printed as `[corpus] IMPROVED (oracle now available: <n>)` so it prompts a re-record, exactly like an improved count |
-| null | null | identity; no output |
-
-The `null → number` row matters: it is what happens the first time a level's `luac` is installed,
-and treating it as a regression would punish fixing the environment.
+An earlier draft carried a four-case table here for a nullable metric (number→null = regression,
+null→number = improvement, …). §2.0 removed the nullable state, so the table went with it. Recording
+that this simplification was *earned* rather than overlooked: the complexity existed only because
+the oracle was treated as an environmental accident instead of a dependency the feature installs.
 
 ### 4.5 What is gated, and how
 
@@ -280,7 +284,7 @@ one throughout: an increase is a regression, a decrease prints `[corpus] IMPROVE
 
 | Field | Gated? | How |
 | :-- | :-- | :-- |
-| `oracleDisagreements` | **yes** | appended to `compare`'s `gated` `Triple` list as an ordinary numeric delta, plus the null pre-check of §4.4 |
+| `oracleDisagreements` | **yes** | appended to `compare`'s `gated` `Triple` list as an ordinary numeric delta |
 | `lexerRoundTripFailures` | **yes** | appended to the same `gated` list |
 | `crashes` | **yes, per key** | one `Triple` per key across `baseline.keys + observed.keys`, exactly as `inspectionHits` does at `CorpusMetrics.kt:187-195` — a key present on one side counts 0 on the other, so a crash that *starts* happening is a movement rather than a silent no-op. Per-key, not on the sum: a new `StackOverflowError` appearing while an `AssertionError` disappears must not net to zero. |
 | `oracleSites` | no — diagnostic | locatability, like `parseErrorFiles` |
@@ -309,7 +313,7 @@ internal data class TortureMetrics(
     val sha256: String,
     val files: Int,
     val parseErrors: Int,          // §2.3 needs it: lunarAccepts = (parseErrors == 0)
-    val oracleDisagreements: Int?,
+    val oracleDisagreements: Int,
     val oracleSites: List<String>,
     val oracleTimeouts: Int,
     val lexerRoundTripFailures: Int,

@@ -26,34 +26,37 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
         diff against the recorded `parseErrors`. Record the disagreement count and a sample.
   - [ ] DR-02 — confirm squeek502's minimized corpus is published as a stable, checksummable release
         asset; record URL + sha256, or drop MAINT-35-06 to `Could`.
-  - [ ] **Provision `lua5.1`** (which carries `luac5.1`) in all three paths — `builder-bootstrap.sh:11`,
-        `startup-script.sh:20-22`, `.gitea/workflows/build-plugin.yml:116`. It is present on the
-        builder today only as a transitive dependency of a hand-installed `lua-check`; a VM
-        re-create would strip it and red the gate (R8). This is a task, not a confirmation.
+  - [ ] *(moved to Phase 1 as MAINT-35-00 — provisioning is a requirement, not a de-risking chore)*
 - **Verification**: both answers written into `risks-and-gaps.md`. No production or test code kept.
 
 > **Phase 0 gates the plan.** If DR-01 returns a large disagreement count, those are defects to file
 > before any baseline is recorded — see the DoD. Baselining a disagreement as expected converts a
 > live bug into a permanent one.
 
-### Phase 1: `ParseOracle` [Must]
-- **Goal**: MAINT-35-01 and -03.
+### Phase 1: Own the dependency, then build the oracle [Must]
+- **Goal**: MAINT-35-00, -01, -03, -03a.
 - **Tasks**:
+  - [ ] **MAINT-35-00 first**: add `lua5.1 lua5.2 lua5.3 lua5.4` to `builder-bootstrap.sh:11`,
+        `startup-script.sh:20-22` and `.gitea/workflows/build-plugin.yml:116`, beside the `lua5.4`
+        and `lua-socket` already there. All four are packaged on Debian 13 (verified).
+  - [ ] Verify on a **fresh** builder (`gce-builder.sh create`, or re-run the bootstrap) that
+        `luac5.1`–`luac5.4` are present without any manual `apt-get`. This is the whole point of the
+        requirement: today's `luac5.1` is an accident of `luarocks`' dependency graph.
+  - [ ] `requireBinary` **throws** with the apt remedy when absent (design §2.0); there is no
+        `Unavailable` verdict and no nullable metric.
+  - [ ] `fetch-corpus.sh` rejects a `LUA55` row — Debian packages no `lua5.5` (MAINT-35-03a).
   - [ ] Add `ParseOracle` with `Verdict`, `judge`, `binaryFor` (design §2).
   - [ ] Versioned-name resolution only; never a bare `luac`.
   - [ ] `luac -p -` over **stdin** (not a temp file — design §2.2), `ProcessBuilder`, 10 s timeout,
-        `destroyForcibly()` → `Unavailable("timeout")`.
+        `destroyForcibly()` → `NotJudged("timeout")`.
   - [ ] Every `judge` call runs **off the EDT** via `executeOnPooledThread` (design §2.2a); `judge`
         asserts it is not on the EDT.
   - [ ] Unit tests in **`net.internetisalie.lunar.corpus.ParseOracleTest`** — the name must **not**
         contain `Corpus`, or `-PwithCorpus` hides it from the routine suite. Covers TC-1, TC-2, TC-3,
         TC-4 (the 5.1-vs-5.4 `//` pair, which is what proves the version match is real), TC-8.
-  - [ ] **Skip-vs-fail rule, because CI has no `luac5.1`**: `.gitea/workflows/build-plugin.yml:116`
-        installs `lua5.4` only, so TC-1…TC-3 would be `Unavailable` there. Each such test asserts on
-        `Verdict` when the binary resolves and is **skipped with a printed reason** when it does not
-        (`Assume`-style), so CI stays green while the builder — which Phase 0 provisions — really
-        exercises them. TC-8 is the inverse and always runs: it asserts `Unavailable` for a level
-        with no binary.
+  - [ ] No skip logic: MAINT-35-00 puts `luac5.1`–`luac5.4` in CI too, so `ParseOracleTest` asserts
+        real verdicts everywhere. TC-8 asserts the **throw** — that an unprovisioned level fails
+        fast with the apt remedy — using a level the environment genuinely lacks (`LUA50`).
 - **Verification**: full suite green; TC-3 and TC-4 disagree with each other by level, as expected.
 
 ### Phase 2: `LexerInvariants` [Must]
@@ -68,21 +71,21 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 ### Phase 3: Wire into the corpus [Must]
 - **Goal**: MAINT-35-02 and -07.
 - **Tasks**:
-  - [ ] Add the **four** fields to `CorpusMetrics` (design §4.2) — `oracleDisagreements` (`Int?`),
+  - [ ] Add the **five** fields to `CorpusMetrics` (design §4.2) — `oracleDisagreements` (plain `Int`), `oracleTimeouts`,
         `oracleSites`, `lexerRoundTripFailures`, `crashes`.
   - [ ] `CorpusBaseline.render`/`parse` per the key table in design §4.3, **including** the new
         `CRASH_PREFIX`/`ORACLE_SITE_KEY` entries in `parse`'s `filterNot` chain (`CorpusMetrics.kt:120-125`)
         and the 20-entry `oracleSites` cap **applied in `run`, not in `render`** (design §4.3) —
         a render-time cap breaks `renderParseRoundTrip`.
-  - [ ] `compare`: the four-case null table in design §4.4 as a pre-check before the `Triple`
-        pipeline, **plus** the gating table in §4.5 — `lexerRoundTripFailures` appended to `gated`,
+  - [ ] `compare`: `oracleDisagreements` is an ordinary numeric delta (design §4.4), **plus** the
+        gating table in §4.5 — `lexerRoundTripFailures` appended to `gated`,
         and `crashes` gated **per key** in the `inspectionHits` style (`CorpusMetrics.kt:187-195`).
-  - [ ] `oracleDisagreements` is null **iff `binaryFor(level) == null`** (design §2.3); a per-file
-        timeout increments the diagnostic `oracleTimeouts` and must never null the metric.
+  - [ ] `oracleDisagreements` is a plain `Int`; a per-file timeout increments the diagnostic
+        `oracleTimeouts` and is neither an agreement nor a disagreement (design §2.3).
   - [ ] Plumb `FileTally`'s three new fields through `CorpusSweep.run` (design §4.1).
   - [ ] Call the oracle and invariants from `CorpusSweep.run`.
-  - [ ] Extend `BaselineRatchetTest` for all four fields **and** TC-9, including the `crashes` map
-        round-trip and the null→number IMPROVED row.
+  - [ ] Extend `BaselineRatchetTest` for all five fields **and** TC-9, including the `crashes` map
+        round-trip.
 - **Verification**: full suite green; corpus ratchet run separately.
 
 ### Phase 4: Record baselines, file what the oracle finds [Must]
@@ -106,7 +109,9 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 
 ## Definition of Done
 
-- MAINT-35-01…-05 and -07 implemented (-06 is `Should`).
+- MAINT-35-00…-05 and -07 implemented (-06 and -03a are `Should`).
+- A **fresh builder** provisioned only by `builder-bootstrap.sh` runs the corpus gate green with no
+  manual `apt-get` — the check that MAINT-35-00 actually landed.
 - The ratchet gates `oracleDisagreements`, `lexerRoundTripFailures` and `crashes`.
 - **No disagreement recorded into a baseline without a filed bug ID.**
 - An unavailable oracle is absent from the baseline and printed, never `0` (TC-8, TC-9).

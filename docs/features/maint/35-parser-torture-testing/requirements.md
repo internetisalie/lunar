@@ -63,13 +63,15 @@ Each is chosen because a **defect this repo actually shipped** would have been c
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| MAINT-35-01 | Version-matched parse oracle | **M** | Not Implemented | A test-only helper resolves a `luac` matching the input's declared `LuaLanguageLevel` and returns Accept / Reject / Unavailable. Version matching is mandatory, not advisory — `luac5.4` accepts `1 // 2` and `luac5.1` rejects it, so an unmatched oracle manufactures disagreements. |
+| MAINT-35-00 | **Provision the oracle** | **M** | Not Implemented | `lua5.1`–`lua5.4` (which carry `luac5.1`–`luac5.4`) are added to **all three** provisioning paths: `tooling/gce-builder/builder-bootstrap.sh:11`, `tooling/gce-builder/startup-script.sh:20-22`, `.gitea/workflows/build-plugin.yml:116`. All four are packaged on Debian 13 (verified). The oracle is a **dependency of the feature**, owned like `lua-socket` or `fontconfig` already are — not an environmental accident to be tolerated at runtime. |
+| MAINT-35-01 | Version-matched parse oracle | **M** | Not Implemented | A test-only helper resolves a `luac` matching the input's declared `LuaLanguageLevel` and returns Accept / Reject. Version matching is mandatory, not advisory — `luac5.4` accepts `1 // 2` and `luac5.1` rejects it, so an unmatched oracle manufactures disagreements. |
 | MAINT-35-02 | Oracle applied across the corpus | **M** | Not Implemented | Every swept corpus file is judged. New gated metric `oracleDisagreements`; the offending paths are recorded diagnostically so a regression is locatable. |
-| MAINT-35-03 | Unavailable oracle is loud, never silent | **M** | Not Implemented | If no matching `luac` exists the metric is **absent** from the baseline and the reason is printed. A missing oracle must never render as `oracleDisagreements=0`. |
+| MAINT-35-03 | A missing oracle fails fast | **M** | Not Implemented | If a sweep needs a `luac` its environment does not have, it **fails immediately** with the exact remedy (`apt-get install lua5.1`) — before any file is judged. It never degrades to a partial or absent metric. This replaces an earlier design in which the metric was nullable and the ratchet tolerated absence; owning the dependency (MAINT-35-00) makes tolerance unnecessary, and fail-fast strictly safer than a gate that can silently disable itself. |
+| MAINT-35-03a | Unprovisionable levels are rejected at manifest time | **S** | Not Implemented | Debian packages no `lua5.5`, so a corpus row declaring `LUA55` has no possible oracle. `fetch-corpus.sh` rejects such a row when it is added, rather than letting the sweep discover it later. No current row uses `LUA55`; all four are `LUA51`. |
 | MAINT-35-04 | Lexer round-trip invariant | **M** | Not Implemented | For every input, concatenating each token's text in order must reproduce the source **byte for byte**. Gated count. |
 | MAINT-35-05 | Crash-freedom invariant | **M** | Not Implemented | Lexing and parsing any input must not throw — including `StackOverflowError`, which is why `Throwable` is caught rather than `Exception`. Both sites are recorded in one gated map keyed `lex:<Class>` / `parse:<Class>`; only the class name is kept, never the message (paths would churn the baseline). |
 | MAINT-35-06 | Pinned torture corpus | **S** | Not Implemented | squeek502's minimized lexer corpus, pinned by release asset + checksum, swept by -04/-05 and judged by -01. Opt-in with the rest of the corpus. |
-| MAINT-35-07 | Baseline round-trip for the new metrics | **M** | Not Implemented | `CorpusBaseline.render`/`parse`/`compare` carry all four new fields, and `BaselineRatchetTest.renderParseRoundTrip` — which asserts `original == parse(render(original))` over the whole data class — stays green. Includes the four-case null-oracle table, so an absent oracle never reads as zero and a newly-available one reads as an improvement, not a regression. |
+| MAINT-35-07 | Baseline round-trip for the new metrics | **M** | Not Implemented | `CorpusBaseline.render`/`parse`/`compare` carry all five new fields, and `BaselineRatchetTest.renderParseRoundTrip` — which asserts `original == parse(render(original))` over the whole data class — stays green. `oracleDisagreements` is a plain `Int`: with MAINT-35-00 owning the dependency there is no absent state to encode. |
 
 ## Test Cases
 
@@ -82,12 +84,16 @@ Each is chosen because a **defect this repo actually shipped** would have been c
 | TC-5 | BUG-392's fixture: `[[` followed by two blank lines then a body | oracle Accept; Lunar 0 errors. This is the regression that motivated the feature |
 | TC-6 | any input, e.g. `--[==[ x ]==] local y = "a\z\n b"` | round-trip: concatenated token texts `==` the source exactly |
 | TC-7 | a deeply self-referential table/subscript chain (BUG-390's shape) | no throwable escapes lex or parse |
-| TC-8 | a level with no installed `luac` (e.g. LUA53 when absent) | metric **absent** from the rendered baseline; reason printed; **not** recorded as 0 |
-| TC-9 | a baseline containing `oracleDisagreements=0` compared against an observed run where the oracle was unavailable | comparison must not read as "no regression" — it must fail or explicitly report unavailability |
+| TC-8 | a sweep at a level whose `luac` is not installed | **fails immediately**, before judging any file, with a message naming the missing binary and the `apt-get install` that fixes it |
+| TC-9 | a `corpus.tsv` row declaring `LUA55` | `fetch-corpus.sh` rejects the row, naming `LUA55` as having no packaged `luac` (MAINT-35-03a) |
 
 ## Definition of Done
 
 - All `Must` requirements implemented; TC-1…TC-9 green.
+- **The oracle is provisioned, not assumed** — a fresh builder from `builder-bootstrap.sh` runs the
+  corpus gate green with no manual `apt-get`.
+- A missing oracle fails fast with an actionable message; there is no state in which the gate
+  silently judges nothing (TC-8).
 - The corpus ratchet gates `oracleDisagreements`, `lexerRoundTripFailures` and `crashes` (per key), per design §4.5.
 - Baselines re-recorded for all four corpus members, with any disagreements the oracle finds either
   fixed or filed as bugs before recording — **a disagreement must not be baselined as expected
