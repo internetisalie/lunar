@@ -33,6 +33,22 @@ data class CorpusMetrics(
      * group is a discovery, not a regression.
      */
     val ballast: Map<String, BallastGroup> = emptyMap(),
+    /**
+     * MAINT-35-02 — files where `luac` accepts at the pinned level and Lunar does not. **Gated.**
+     * Only this direction: the reverse has a systematic false positive, because Lunar parses a
+     * superset of any single level and defers enforcement to `LuaLanguageLevelInspection` (DR-01).
+     */
+    val oracleDisagreements: Int = 0,
+    /** Diagnostic, capped at 20 in `CorpusSweep.run`: `falseReject:<path>` / `falseAccept:<path>`. */
+    val oracleSites: List<String> = emptyList(),
+    /** Diagnostic. A timing-out oracle judges nothing, so a non-zero value is a loud warning. */
+    val oracleTimeouts: Int = 0,
+    /** MAINT-35-04 — token texts did not reconstitute the source. **Gated.** */
+    val lexerRoundTripFailures: Int = 0,
+    /** MAINT-35-04 — internal tokens escaped the merge; BUG-392's signature. **Gated.** */
+    val unmergedTokens: Int = 0,
+    /** MAINT-35-05 — `lex:<Class>` / `parse:<Class>` → count. **Gated per key.** */
+    val crashes: Map<String, Int> = emptyMap(),
 ) {
     companion object {
         /** Reserved key for highlights whose originating inspection cannot be identified. */
@@ -87,6 +103,12 @@ object CorpusBaseline {
     /** Key prefix for the per-symbol breakdown: `symbol.<toolId>.<symbol>`. */
     const val SYMBOL_PREFIX = "symbol."
 
+    /** Key prefix for crash counts: `crash.lex:<Class>` / `crash.parse:<Class>` (MAINT-35-05). */
+    const val CRASH_PREFIX = "crash."
+
+    /** Repeated diagnostic key for oracle disagreement sites (MAINT-35-02). */
+    const val ORACLE_SITE_KEY = "oracleSite"
+
     fun file(repoRoot: File, name: String): File =
         File(repoRoot, "src/test/resources/corpus/$name.baseline")
 
@@ -109,7 +131,15 @@ object CorpusBaseline {
             if (group.claimed > 0) appendLine("${BALLAST_PREFIX}claimed.$key=${group.claimed}")
             if (group.unclaimed > 0) appendLine("${BALLAST_PREFIX}unclaimed.$key=${group.unclaimed}")
         }
+        metrics.crashes.toSortedMap().forEach { (key, count) -> appendLine("$CRASH_PREFIX$key=$count") }
+        appendLine("oracleDisagreements=${metrics.oracleDisagreements}")
+        appendLine("oracleTimeouts=${metrics.oracleTimeouts}")
+        appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
+        appendLine("unmergedTokens=${metrics.unmergedTokens}")
         metrics.parseErrorFiles.forEach { appendLine("parseErrorFile=$it") }
+        // Already capped at construction (CorpusSweep.run), never here: a render-time cap is lossy
+        // and would break BaselineRatchetTest.renderParseRoundTrip.
+        metrics.oracleSites.forEach { appendLine("$ORACLE_SITE_KEY=$it") }
     }
 
     fun parse(text: String): CorpusMetrics {
@@ -119,6 +149,8 @@ object CorpusBaseline {
             .toList()
         val scalars = rows
             .filterNot { it.first == "parseErrorFile" }
+            .filterNot { it.first == ORACLE_SITE_KEY }
+            .filterNot { it.first.startsWith(CRASH_PREFIX) }
             .filterNot { it.first.startsWith(INSPECTION_PREFIX) }
             .filterNot { it.first.startsWith(SYMBOL_PREFIX) }
             .filterNot { it.first.startsWith(BALLAST_PREFIX) }
@@ -150,6 +182,14 @@ object CorpusBaseline {
                     }
                     acc
                 },
+            oracleDisagreements = scalars["oracleDisagreements"]?.toInt() ?: 0,
+            oracleSites = rows.filter { it.first == ORACLE_SITE_KEY }.map { it.second },
+            oracleTimeouts = scalars["oracleTimeouts"]?.toInt() ?: 0,
+            lexerRoundTripFailures = scalars["lexerRoundTripFailures"]?.toInt() ?: 0,
+            unmergedTokens = scalars["unmergedTokens"]?.toInt() ?: 0,
+            crashes = rows
+                .filter { it.first.startsWith(CRASH_PREFIX) }
+                .associate { it.first.removePrefix(CRASH_PREFIX) to it.second.toInt() },
         )
     }
 
@@ -181,10 +221,22 @@ object CorpusBaseline {
         val stable = baseline.inspectionHits[CorpusMetrics.HIGHLIGHT_FAILURES].orZero() == 0 &&
             observed.inspectionHits[CorpusMetrics.HIGHLIGHT_FAILURES].orZero() == 0
         val gatedInspectionIds = if (stable) inspectionIds else listOf(CorpusMetrics.HIGHLIGHT_FAILURES)
+        // Crashes gate PER KEY, like inspections: a new StackOverflowError appearing while an
+        // AssertionError disappears must not net to zero.
+        val crashKeys = (baseline.crashes.keys + observed.crashes.keys).sorted()
         val gated = listOf(
             Triple("parseErrors", baseline.parseErrors, observed.parseErrors),
             Triple("unresolvedRequires", baseline.unresolvedRequires, observed.unresolvedRequires),
-        ) + gatedInspectionIds.map { id ->
+            Triple("oracleDisagreements", baseline.oracleDisagreements, observed.oracleDisagreements),
+            Triple(
+                "lexerRoundTripFailures",
+                baseline.lexerRoundTripFailures,
+                observed.lexerRoundTripFailures,
+            ),
+            Triple("unmergedTokens", baseline.unmergedTokens, observed.unmergedTokens),
+        ) + crashKeys.map { key ->
+            Triple("$CRASH_PREFIX$key", baseline.crashes[key] ?: 0, observed.crashes[key] ?: 0)
+        } + gatedInspectionIds.map { id ->
             // A key present on one side only counts as 0 on the other, so an inspection that
             // starts (or stops) firing is a movement rather than a silent no-op.
             Triple(

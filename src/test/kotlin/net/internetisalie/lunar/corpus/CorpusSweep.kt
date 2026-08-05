@@ -13,6 +13,7 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import net.internetisalie.lunar.lang.LuaRequireReference
 import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
+import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
 
@@ -33,13 +34,40 @@ object CorpusSweep {
         val requires: Int,
         val unresolved: Int,
         val errorSites: List<String> = emptyList(),
+        /** MAINT-35-04: token texts did not reconstitute the source. */
+        val roundTripFailed: Boolean = false,
+        /** MAINT-35-04: internal `LONGSTRING*`/`LONGCOMMENT*` tokens escaped the merge (BUG-392). */
+        val unmergedTokens: Int = 0,
+        /** MAINT-35-05: `lex:<Class>` or `parse:<Class>`, else null. */
+        val crash: String? = null,
+        /** MAINT-35-02: PUC's verdict, or null when the file was not judged. */
+        val oracle: ParseOracle.Verdict? = null,
     )
 
-    private data class SweptFile(val path: String, val file: VirtualFile, val tally: FileTally)
+    private data class SweptFile(val path: String, val file: VirtualFile, val tally: FileTally) {
+        private val lunarAccepts get() = tally.parseErrors == 0
 
-    fun run(fixture: CodeInsightTestFixture, entry: CorpusEntry, checkoutDir: File): CorpusMetrics {
+        /** `luac` accepts at the pinned level and Lunar does not — a defect with no confound. */
+        val falseReject get() = tally.oracle == ParseOracle.Verdict.Accept && !lunarAccepts
+
+        /** Lunar accepts and `luac` does not — diagnostic; see the level-superset note above. */
+        val falseAccept get() = tally.oracle is ParseOracle.Verdict.Reject && lunarAccepts
+    }
+
+    /** Mirrors SYMBOLS_PER_INSPECTION's intent: the baseline must stay reviewable. */
+    private const val ORACLE_SITES_CAP = 20
+
+    fun run(
+        fixture: CodeInsightTestFixture,
+        entry: CorpusEntry,
+        checkoutDir: File,
+        repoRoot: File,
+    ): CorpusMetrics {
         applyModuleRoot(fixture, entry, checkoutDir)
-        val swept = entry.roots.flatMap { sweepRoot(fixture, entry.name, it) }.sortedBy { it.path }
+        // Fail fast before judging anything: an oracle that is absent must never be discovered
+        // halfway through a sweep, and must never degrade to "no disagreements" (MAINT-35-03).
+        ParseOracle.requireBinary(repoRoot, entry.luaLevel)
+        val swept = entry.roots.flatMap { sweepRoot(fixture, entry, it, repoRoot) }.sortedBy { it.path }
         val sink = inspectionHits(fixture, swept)
         return CorpusMetrics(
             commit = entry.commit,
@@ -53,6 +81,18 @@ object CorpusSweep {
             inspectionHits = sink.hits,
             symbolHits = topSymbols(sink.symbols),
             ballast = ballast(checkoutDir, entry),
+            // MAINT-35-02: only FALSE REJECTS are gated. Lunar parses a superset of any single
+            // language level and defers enforcement to LuaLanguageLevelInspection, so "luac rejects,
+            // Lunar accepts" has a systematic false positive (DR-01) and is diagnostic only.
+            oracleDisagreements = swept.count { it.falseReject },
+            oracleSites = swept.filter { it.falseReject || it.falseAccept }
+                .map { "${if (it.falseReject) "falseReject" else "falseAccept"}:${it.path}" }
+                .sorted()
+                .take(ORACLE_SITES_CAP),
+            oracleTimeouts = swept.count { it.tally.oracle is ParseOracle.Verdict.NotJudged },
+            lexerRoundTripFailures = swept.count { it.tally.roundTripFailed },
+            unmergedTokens = swept.sumOf { it.tally.unmergedTokens },
+            crashes = swept.mapNotNull { it.tally.crash }.groupingBy { it }.eachCount(),
         )
     }
 
@@ -128,15 +168,17 @@ object CorpusSweep {
 
     private fun sweepRoot(
         fixture: CodeInsightTestFixture,
-        corpusName: String,
+        entry: CorpusEntry,
         root: String,
+        repoRoot: File,
     ): List<SweptFile> {
+        val corpusName = entry.name
         val copied = fixture.copyDirectoryToProject("${CorpusManifest.CORPUS_DIR}/$corpusName/$root", root)
         val psiManager = PsiManager.getInstance(fixture.project)
         return collectLuaFiles(copied).mapNotNull { luaFile ->
             val psiFile = psiManager.findFile(luaFile) ?: return@mapNotNull null
             val relativePath = VfsUtilCore.getRelativePath(luaFile, copied) ?: luaFile.name
-            SweptFile("$root/$relativePath", luaFile, tally(psiFile))
+            SweptFile("$root/$relativePath", luaFile, tallyGuarded(repoRoot, psiFile, entry.luaLevel))
         }
     }
 
@@ -210,6 +252,32 @@ object CorpusSweep {
             true
         }
         return found
+    }
+
+    /**
+     * MAINT-35-05, parse half. The parse happens *inside* [tally] — `findChildrenOfType` forces
+     * `calcTreeElement()` — so wrapping the body is what captures a parser crash. `psiFile.text`
+     * is safe to read first: `PsiFileImpl.getText()` returns the view provider's contents and never
+     * builds the tree, so it cannot throw here.
+     *
+     * A crashed file is deliberately **excluded from the oracle comparison**: it is neither an
+     * accept nor a reject. Reporting `parseErrors = 0` would make `lunarAccepts` true and score it
+     * as a false accept, conflating a crash with a semantic disagreement.
+     */
+    private fun tallyGuarded(repoRoot: File, psiFile: PsiFile, level: LuaLanguageLevel): FileTally {
+        val source = psiFile.text
+        val lex = LexerInvariants.check(source)
+        val parsed = runCatching { tally(psiFile) }
+        val crash = lex.crash?.let { "lex:$it" }
+            ?: parsed.exceptionOrNull()?.let { "parse:${it::class.java.simpleName}" }
+
+        val base = parsed.getOrNull() ?: FileTally(parseErrors = 0, requires = 0, unresolved = 0)
+        return base.copy(
+            roundTripFailed = lex.roundTripFailed,
+            unmergedTokens = lex.unmergedTokens,
+            crash = crash,
+            oracle = if (crash != null) null else ParseOracle.judge(repoRoot, source, level),
+        )
     }
 
     private fun tally(psiFile: PsiFile): FileTally {

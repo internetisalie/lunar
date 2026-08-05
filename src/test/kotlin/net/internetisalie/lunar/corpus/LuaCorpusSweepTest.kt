@@ -74,7 +74,7 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = entry.luaLevel
 
         val startedAt = System.nanoTime()
-        val observed = CorpusSweep.run(myFixture, entry, CorpusManifest.checkoutDir(repoRoot, name))
+        val observed = CorpusSweep.run(myFixture, entry, CorpusManifest.checkoutDir(repoRoot, name), repoRoot)
         val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
         report(name, observed, elapsedMs)
 

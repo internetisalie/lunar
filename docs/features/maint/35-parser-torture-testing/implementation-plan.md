@@ -92,25 +92,29 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
         The false claim is corrected in requirements and design.
 - **Verification**: full suite green.
 
-### Phase 3: Wire into the corpus [Must]
+### Phase 3: Wire into the corpus [Must] — **DONE 2026-08-05**
 - **Goal**: MAINT-35-02 and -07.
 - **Tasks**:
-  - [ ] Add the **five** fields to `CorpusMetrics` (design §4.2) — `oracleDisagreements` (plain `Int`), `oracleTimeouts`,
+  - [x] Add the **five** fields to `CorpusMetrics` (design §4.2) — `oracleDisagreements` (plain `Int`), `oracleTimeouts`,
         `oracleSites`, `lexerRoundTripFailures`, `crashes`.
-  - [ ] `CorpusBaseline.render`/`parse` per the key table in design §4.3, **including** the new
+  - [x] `CorpusBaseline.render`/`parse` per the key table in design §4.3, **including** the new
         `CRASH_PREFIX`/`ORACLE_SITE_KEY` entries in `parse`'s `filterNot` chain (`CorpusMetrics.kt:120-125`)
         and the 20-entry `oracleSites` cap **applied in `run`, not in `render`** (design §4.3) —
         a render-time cap breaks `renderParseRoundTrip`.
-  - [ ] `compare`: `oracleDisagreements` is an ordinary numeric delta (design §4.4), **plus** the
+  - [x] `compare`: `oracleDisagreements` is an ordinary numeric delta (design §4.4), **plus** the
         gating table in §4.5 — `lexerRoundTripFailures` appended to `gated`,
         and `crashes` gated **per key** in the `inspectionHits` style (`CorpusMetrics.kt:187-195`).
-  - [ ] `oracleDisagreements` is a plain `Int`; a per-file timeout increments the diagnostic
+  - [x] `oracleDisagreements` is a plain `Int`; a per-file timeout increments the diagnostic
         `oracleTimeouts` and is neither an agreement nor a disagreement (design §2.3).
-  - [ ] Plumb `FileTally`'s three new fields through `CorpusSweep.run` (design §4.1).
-  - [ ] Call the oracle and invariants from `CorpusSweep.run`.
-  - [ ] Extend `BaselineRatchetTest` for all five fields **and** TC-9, including the `crashes` map
+  - [x] Plumb `FileTally`'s three new fields through `CorpusSweep.run` (design §4.1).
+  - [x] Call the oracle and invariants from `CorpusSweep.run`.
+  - [x] Extend `BaselineRatchetTest` for all five fields **and** TC-9, including the `crashes` map
         round-trip.
-- **Verification**: full suite green; corpus ratchet run separately.
+- **Verification**: full suite **2366 / 0**, ktlint clean. The corpus ratchet itself is **not yet
+  re-recorded** — that is Phase 4, which must file what the oracle finds before baselining it.
+- **Note**: `RockspecSourcePathProviderTest` failed once during this gate and passed three re-runs
+  plus the next full suite unchanged. Filed as **BUG-410** rather than left as folklore; nothing in
+  this phase touches `rocks/`.
 
 ### Phase 4: Record baselines, file what the oracle finds [Must]
 - **Goal**: turn Phase 0's findings into either fixes or filed defects.

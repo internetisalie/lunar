@@ -62,6 +62,80 @@ class BaselineRatchetTest {
     }
 
     /**
+     * MAINT-35-07. Every new field must survive render→parse, or this existing assertion breaks
+     * the moment a field is added without a serializer.
+     *
+     * `oracleSites` is capped at construction (`CorpusSweep.run`), never at render — a render-time
+     * cap is lossy and would fail exactly this test, and its truncation marker would parse back as
+     * a fake disagreement site.
+     */
+    @Test
+    fun renderParseRoundTripCarriesTheOracleAndLexerFields() {
+        val original = metrics().copy(
+            oracleDisagreements = 3,
+            oracleSites = listOf("falseAccept:src/b.lua", "falseReject:spec/a.lua"),
+            oracleTimeouts = 1,
+            lexerRoundTripFailures = 2,
+            unmergedTokens = 7,
+            crashes = mapOf("lex:StackOverflowError" to 1, "parse:IllegalStateException" to 4),
+        )
+        assertEquals(original, CorpusBaseline.parse(CorpusBaseline.render(original)))
+    }
+
+    /** A field absent from an older baseline reads as zero rather than throwing. */
+    @Test
+    fun olderBaselinesWithoutTheNewFieldsStillParse() {
+        val legacy = CorpusBaseline.render(metrics())
+            .lineSequence()
+            .filterNot { it.startsWith("oracle") || it.startsWith("lexer") || it.startsWith("unmerged") }
+            .joinToString("\n")
+        val parsed = CorpusBaseline.parse(legacy)
+        assertEquals(0, parsed.oracleDisagreements)
+        assertEquals(0, parsed.lexerRoundTripFailures)
+        assertEquals(0, parsed.unmergedTokens)
+        assertTrue(parsed.crashes.isEmpty())
+    }
+
+    /** The three new gated counters must actually gate. */
+    @Test
+    fun newCountersAreGated() {
+        val base = metrics()
+        for (worse in listOf(
+            base.copy(oracleDisagreements = 1),
+            base.copy(lexerRoundTripFailures = 1),
+            base.copy(unmergedTokens = 1),
+        )) {
+            assertTrue(
+                "a rise must be a regression: $worse",
+                CorpusBaseline.compare(base, worse).regressions.isNotEmpty(),
+            )
+        }
+    }
+
+    /** Crashes gate PER KEY: one appearing while another vanishes must not net to zero. */
+    @Test
+    fun crashesGatePerKeyNotOnTheSum() {
+        val base = metrics().copy(crashes = mapOf("parse:IllegalStateException" to 1))
+        val swapped = metrics().copy(crashes = mapOf("lex:StackOverflowError" to 1))
+        val regressions = CorpusBaseline.compare(base, swapped).regressions
+        assertTrue(
+            "a new crash class must be a regression even at an equal total: $regressions",
+            regressions.any { it.contains("StackOverflowError") },
+        )
+    }
+
+    /** Diagnostic fields must never gate — a timeout is not a defect claim about the input. */
+    @Test
+    fun diagnosticFieldsDoNotGate() {
+        val base = metrics()
+        val noisier = base.copy(oracleTimeouts = 9, oracleSites = listOf("falseAccept:x.lua"))
+        assertTrue(
+            "oracleTimeouts/oracleSites must not gate",
+            CorpusBaseline.compare(base, noisier).regressions.isEmpty(),
+        )
+    }
+
+    /**
      * The group key may contain or begin with a dot, so the inverse parse must be positional —
      * `ballast.unclaimed..luacov` is flag `unclaimed`, key `.luacov`, and a naive `split('.')`
      * mangles it.
