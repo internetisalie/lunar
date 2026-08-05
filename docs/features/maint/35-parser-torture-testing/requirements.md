@@ -33,8 +33,16 @@ Each is chosen because a **defect this repo actually shipped** would have been c
 | Check | Would have caught |
 | :-- | :-- |
 | Differential accept/reject vs `luac -p` | **BUG-392** — valid Lua rejected; found by a human reading a baseline |
-| Lexer round-trip (token texts concatenate to the source) | **BUG-392** again, at the lexer, directly: the long-string merge dropped a token run |
+| Lexer round-trip (token texts concatenate to the source) | text *loss or duplication* — an adapter that skips a token or emits overlapping ranges. **Not BUG-392**: proved by mutation, see below |
+| Unmerged internal tokens (`LONGSTRING*`/`LONGCOMMENT*` escaping the merge) | **BUG-392** — the long-string merge stopped after the first newline and leaked internal tokens the grammar has no rule for |
 | Crash-freedom under lex/parse | **BUG-390** — `StackOverflowError` from the defeated cycle guard |
+
+> **Correction (2026-08-05, Phase 2).** An earlier version of this table claimed the round-trip
+> would have caught BUG-392. **It would not**, and that was established by reintroducing the defect
+> (`while` → `if` in `LongStringMergingLexerAdapter`) and watching every round-trip assertion stay
+> green while the real regression test `LuaLongStringBlankLineTest` failed. BUG-392 **re-partitioned**
+> characters rather than losing them, and a concatenation check cannot see a moved boundary. The
+> `unmergedTokens` invariant was added for exactly that gap and does fail under the same mutation.
 
 ## Scope
 
@@ -68,8 +76,8 @@ Each is chosen because a **defect this repo actually shipped** would have been c
 | MAINT-35-02 | Oracle applied across the corpus | **M** | Not Implemented | Every swept corpus file is judged. **`oracleDisagreements` gates false rejects only** — `luac` accepts at the corpus's pinned level and Lunar does not. False *accepts* are reported diagnostically, not gated: Lunar's parser is deliberately level-agnostic and defers level enforcement to `LuaLanguageLevelInspection`, so that direction has a systematic false positive (DR-01, design §2.3). Offending paths recorded in `oracleSites` so a regression is locatable. |
 | MAINT-35-03 | A missing oracle fails fast | **M** | **Full** | If a sweep needs a `luac` that has not been built, it **fails immediately** with the exact remedy (`tooling/corpus/fetch-luac.py`) — before any file is judged. It never degrades to a partial or absent metric. This replaces an earlier design in which the metric was nullable and the ratchet tolerated absence; owning the dependency (MAINT-35-00) makes tolerance unnecessary, and fail-fast strictly safer than a gate that can silently disable itself. |
 | MAINT-35-03a | *(withdrawn)* | — | — | Existed only to route around apt's missing `lua5.5`. With MAINT-35-00 building from lua.org tarballs, 5.5 is one more `luac.json` block and needs no special case. Note for the record: Lunar's own provisioner *does* build `luac` (`PucLuaBuildRecipe.kt:115-126`), and it is deliberately **not** used as the oracle — a judge must not share failure modes with the code it judges. |
-| MAINT-35-04 | Lexer round-trip invariant | **M** | Not Implemented | For every input, concatenating each token's text in order must reproduce the source **byte for byte**. Gated count. |
-| MAINT-35-05 | Crash-freedom invariant | **M** | Not Implemented | Lexing and parsing any input must not throw — including `StackOverflowError`, which is why `Throwable` is caught rather than `Exception`. Both sites are recorded in one gated map keyed `lex:<Class>` / `parse:<Class>`; only the class name is kept, never the message (paths would churn the baseline). |
+| MAINT-35-04 | Lexer round-trip + merge invariants | **M** | **Full** | For every input: (a) concatenating each token's text must reproduce the source **byte for byte**, and (b) **no internal `LONGSTRING*`/`LONGCOMMENT*` token may escape the merging adapters**. Two gated counts, because they catch different defects — (a) sees lost text, (b) sees a moved boundary. BUG-392 was (b); mutation shows (a) alone misses it entirely. |
+| MAINT-35-05 | Crash-freedom invariant | **M** | **Partial** | Lexing and parsing any input must not throw — including `StackOverflowError`, which is why `Throwable` is caught rather than `Exception`. Both sites are recorded in one gated map keyed `lex:<Class>` / `parse:<Class>`; only the class name is kept, never the message (paths would churn the baseline). |
 | MAINT-35-06 | Pinned torture corpus | **S** | Not Implemented | squeek502's minimized lexer corpus, pinned by release asset + checksum in `torture.json`, swept by -04/-05 and judged by -01. Opt-in with the rest of the corpus. |
 | MAINT-35-07 | Baseline round-trip for the new metrics | **M** | Not Implemented | `CorpusBaseline.render`/`parse`/`compare` carry all five new fields, and `BaselineRatchetTest.renderParseRoundTrip` — which asserts `original == parse(render(original))` over the whole data class — stays green. `oracleDisagreements` is a plain `Int`: with MAINT-35-00 owning the dependency there is no absent state to encode. |
 
@@ -82,7 +90,7 @@ Each is chosen because a **defect this repo actually shipped** would have been c
 | TC-3 | `local a = 1 // 2` at **LUA51** | oracle Reject (verified: `luac5.1` rejects); Lunar accepts by design → **not** a disagreement, recorded as a diagnostic false accept (DR-01) |
 | TC-4 | the same `1 // 2` at **LUA54** | oracle Accept (verified: `luac5.4` accepts) — locks that the version match is real and not incidental |
 | TC-5 | BUG-392's fixture: `[[` followed by two blank lines then a body | oracle Accept; Lunar 0 errors. This is the regression that motivated the feature |
-| TC-6 | any input, e.g. `--[==[ x ]==] local y = "a\z\n b"` | round-trip: concatenated token texts `==` the source exactly |
+| TC-6 | any input, e.g. `--[==[ x ]==] local y = "a\z\n b"` | round-trip: concatenated token texts `==` the source exactly, **and** `unmergedTokens == 0` |
 | TC-7 | a deeply self-referential table/subscript chain (BUG-390's shape) | no throwable escapes lex or parse |
 | TC-8 | a sweep at a level whose pinned `luac` has not been built | **fails immediately**, before judging any file, naming the expected path and `fetch-luac.py` |
 | TC-9 | `fetch-luac.py` against a tarball whose sha256 does not match | **refuses to build**, leaving no `test/luac/<version>/luac` — an unverified oracle is never installed |

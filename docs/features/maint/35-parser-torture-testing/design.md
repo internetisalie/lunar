@@ -265,9 +265,20 @@ roundTripFailed = rebuilt.toString() != source.toString()
 
 The `LuaLexer()` / `start` / `tokenType` / `tokenText` / `advance` idiom is the one already used by
 `TestLuaLexer.kt:17-27`. `LuaLexer` — **not** `_LuaLexer` — is deliberate: the merging adapters are
-what the parser, highlighter and TODO indexer all consume, so a merge bug is exactly what this
-invariant must catch. BUG-392 lived in `LongStringMergingLexerAdapter`, and a raw-flex round-trip
-would have passed while the real token stream was broken.
+what the parser, highlighter and TODO indexer all consume.
+
+**What the round-trip does and does not catch.** It sees text *lost or duplicated*. It does **not**
+see a mis-placed boundary: re-partitioning the same characters into more tokens concatenates
+identically. Established by mutation — reintroducing BUG-392 (`while` → `if`) left every round-trip
+assertion green while `LuaLongStringBlankLineTest` failed. The design previously claimed otherwise.
+
+### 3.1a Unmerged internal tokens — the boundary invariant
+
+`LONGSTRING_BEGIN`, `LONGSTRING`, `LONGSTRING_END`, `NL_BEFORE_LONGSTRING`, `LONGCOMMENT_BEGIN` and
+`LONGCOMMENT_END` exist only *inside* the merging adapters; the parser has no rule for any of them.
+So counting how many survive into the merged stream is a direct check that every merge ran to
+completion — and it is BUG-392's exact signature, since that defect leaked `LONGSTRING`/
+`LONGSTRING_END` into the parser. Verified to fail under the reintroduced defect.
 
 Note the read-then-advance order: `MergingLexerAdapterBase.getTokenType()` locates the token lazily,
 so reading before the first `advance()` is correct and no leading `advance()` is wanted here.

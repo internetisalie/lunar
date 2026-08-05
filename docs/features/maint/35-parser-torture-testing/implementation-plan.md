@@ -77,13 +77,19 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
   - [x] TC-9: `fetch-luac.py` refuses a checksum mismatch and installs nothing.
 - **Verification**: full suite green; TC-3 and TC-4 disagree with each other by level, as expected.
 
-### Phase 2: `LexerInvariants` [Must]
+### Phase 2: `LexerInvariants` [Must] — **DONE 2026-08-05**
 - **Goal**: MAINT-35-04 and -05.
 - **Tasks**:
-  - [ ] Add `LexerInvariants.check` over `LuaLexer` (not `_LuaLexer` — design §3.1).
-  - [ ] Catch `Throwable`, record the class name only.
-  - [ ] Unit tests: TC-6 (round-trip incl. long strings and `\z`), TC-7 (BUG-390's shape).
-  - [ ] Regression assertion: BUG-392's fixture round-trips (TC-5's lexer half).
+  - [x] `LexerInvariants.check` over `LuaLexer` (not `_LuaLexer` — design §3.1).
+  - [x] Catch `Throwable`, record the class name only.
+  - [x] Unit tests: TC-6, TC-7 (BUG-390's shape: 5 000-deep nesting), invalid-Lua and
+        line-ending cases. 7 tests, all green.
+  - [x] **Added `unmergedTokens`, which the plan did not have.** Mutation showed the round-trip
+        does **not** catch BUG-392: reintroducing the defect (`while` → `if`) left every round-trip
+        assertion green while `LuaLongStringBlankLineTest` failed, because the defect re-partitioned
+        characters rather than losing them. Counting internal `LONGSTRING*`/`LONGCOMMENT*` tokens
+        that escape the merge is BUG-392's actual signature, and it fails under the same mutation.
+        The false claim is corrected in requirements and design.
 - **Verification**: full suite green.
 
 ### Phase 3: Wire into the corpus [Must]
