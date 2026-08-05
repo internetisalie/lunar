@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.indexing.FileBasedIndex
+import net.internetisalie.lunar.lang.indexing.DescriptionRecord
 import net.internetisalie.lunar.lang.indexing.LuaDescriptionIndex
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,11 +26,11 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
         val representsValues = index.getValues(LuaDescriptionIndex.KEY, "represents", scope)
         assertEquals(1, representsValues.size)
-        val parts = representsValues.first().split('\t')
-        assertEquals(3, parts.size)
-        assertEquals("Vector", parts[0])
-        assertEquals(fileUrl, parts[1])
-        val offset = parts[2].toInt()
+        val records = DescriptionRecord.parseAll(representsValues.first())
+        assertEquals(1, records.size)
+        assertEquals("Vector", records[0].ownerName)
+        assertEquals(fileUrl, records[0].fileUrl)
+        val offset = records[0].offset
         val expectedOffset = file.text.indexOf("local Vector")
         assertEquals(expectedOffset, offset)
 
@@ -70,13 +71,10 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
         assertEquals(1, representsValues.size)
         val value = representsValues.first()
         assertTrue(value.contains("|"))
-        val records = value.split('|')
+        val records = DescriptionRecord.parseAll(value)
         assertEquals(2, records.size)
-
-        val record1 = records[0].split('\t')
-        val record2 = records[1].split('\t')
-        assertEquals("Vector", record1[0])
-        assertEquals("Matrix", record2[0])
+        assertEquals("Vector", records[0].ownerName)
+        assertEquals("Matrix", records[1].ownerName)
     }
 
     @Test
@@ -93,7 +91,7 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
         val values = index.getValues(LuaDescriptionIndex.KEY, "player", scope)
         assertEquals(1, values.size)
-        val parts = values.first().split('\t')
+        val parts = DescriptionRecord.parseAll(values.first()).map { listOf(it.ownerName, it.fileUrl, it.offset.toString()) }.first()
         assertEquals("setPlayerName", parts[0])
         assertEquals(fileUrl, parts[1])
         val expectedOffset = file.text.indexOf("function setPlayerName")
@@ -115,7 +113,7 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
         val values = index.getValues(LuaDescriptionIndex.KEY, "coordinate", scope)
         assertEquals(1, values.size)
-        val parts = values.first().split('\t')
+        val parts = DescriptionRecord.parseAll(values.first()).map { listOf(it.ownerName, it.fileUrl, it.offset.toString()) }.first()
         assertEquals("getX", parts[0])
         assertEquals(fileUrl, parts[1])
         val expectedOffset = file.text.indexOf("local function getX")

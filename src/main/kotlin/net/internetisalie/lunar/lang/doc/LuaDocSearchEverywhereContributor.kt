@@ -18,6 +18,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.Processor
 import com.intellij.util.indexing.FileBasedIndex
+import net.internetisalie.lunar.lang.indexing.DescriptionRecord
 import net.internetisalie.lunar.lang.indexing.LuaDescriptionIndex
 import net.internetisalie.lunar.lang.psi.LuaCommentOwner
 import net.internetisalie.lunar.lang.psi.LuaFile
@@ -85,14 +86,14 @@ class LuaDocSearchEverywhereContributor(
             val seen = hashSetOf<String>()
             for (key in matchingKeys) {
                 for (value in index.getValues(LuaDescriptionIndex.KEY, key, scope)) {
-                    for (record in value.split('|')) {
+                    // BUG-408: the record format is owned by DescriptionRecord, never hand-split
+                    // here — a tab or `|` in a file path used to change the arity and silently drop
+                    // the entry.
+                    for (record in DescriptionRecord.parseAll(value)) {
                         ProgressManager.checkCanceled()
-                        val parts = record.split('\t')
-                        if (parts.size != 3) continue
-                        val name = parts[0]
-                        val fileUrl = parts[1]
-                        val offsetStr = parts[2]
-                        val offset = offsetStr.toIntOrNull() ?: continue
+                        val name = record.ownerName
+                        val fileUrl = record.fileUrl
+                        val offset = record.offset
                         val dedupKey = "$name:$fileUrl"
                         if (!seen.add(dedupKey)) continue
 

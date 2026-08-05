@@ -30,7 +30,9 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
     override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
     override fun getValueExternalizer(): DataExternalizer<String> = myExternalizer
     override fun getIndexer(): DataIndexer<String, String, FileContent> = myIndexer
-    override fun getVersion(): Int = 2
+    // BUG-408 changed the record encoding (separators are now percent-escaped), so previously
+    // written values decode differently. Bumped to force a rebuild.
+    override fun getVersion(): Int = 3
 
     override fun dependsOnFileContent(): Boolean = true
     override fun indexDirectories(): Boolean = false
@@ -81,8 +83,7 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
                     else -> null
                 } ?: owner.text
 
-                val ownerName = rawName.take(50).replace(Regex("[\t|\n\r]"), " ")
-                val value = "$ownerName\t$fileUrl\t${owner.textOffset}"
+                val value = DescriptionRecord(rawName.take(50), fileUrl, owner.textOffset).encode()
 
                 for (token in tokens) {
                     result.merge(token, value) { existing, new -> "$existing|$new" }
@@ -95,5 +96,68 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
 
     companion object {
         val KEY: ID<String, String> = LuaDescriptionIndexName
+    }
+}
+
+/**
+ * One indexed description: the declaration's name, the file it lives in, and its offset.
+ *
+ * BUG-408: the record format lives here and **only** here. It was previously interpolated at the
+ * writer (`"$ownerName\t$fileUrl\t$offset"`) and hand-split at every reader, which is the shape
+ * that made BUG-407 dangerous — a delimiter in the payload silently changes the arity, and nothing
+ * owns the contract.
+ *
+ * `ownerName` was already sanitised; **`fileUrl` was not**, and a tab, `|`, newline or carriage
+ * return is legal in a POSIX filename (verified: `we\tird.lua` creates fine). Such a file produced a
+ * record of the wrong arity, which the reader dropped via `if (parts.size != 3) continue` — so its
+ * documentation vanished from Search Everywhere with no error anywhere.
+ *
+ * Sanitising the URL is not an option: it has to round-trip or the file cannot be reopened. The
+ * separators are therefore **escaped**, not replaced.
+ */
+data class DescriptionRecord(val ownerName: String, val fileUrl: String, val offset: Int) {
+
+    fun encode(): String =
+        listOf(escape(ownerName), escape(fileUrl), offset.toString()).joinToString(FIELD)
+
+    companion object {
+        private const val FIELD = "\t"
+        private const val RECORD = "|"
+
+        /**
+         * Percent-escapes the two separators plus the line breaks that would corrupt a record.
+         *
+         * `%` is escaped **first** and unescaped **last**, so the mapping is a bijection: without
+         * that, a path containing the literal text `%09` would decode into a tab.
+         */
+        private fun escape(raw: String): String = raw
+            .replace("%", "%25")
+            .replace("\t", "%09")
+            .replace("\n", "%0A")
+            .replace("\r", "%0D")
+            .replace("|", "%7C")
+
+        private fun unescape(encoded: String): String = encoded
+            .replace("%7C", "|")
+            .replace("%0D", "\r")
+            .replace("%0A", "\n")
+            .replace("%09", "\t")
+            .replace("%25", "%")
+
+        /** Joins several records into one index value. */
+        fun join(records: List<DescriptionRecord>): String =
+            records.joinToString(RECORD) { it.encode() }
+
+        /**
+         * Every record in an index value. Malformed records are skipped rather than throwing: an
+         * index built by an older plugin version is data we do not control.
+         */
+        fun parseAll(value: String): List<DescriptionRecord> =
+            value.split(RECORD).mapNotNull { record ->
+                val parts = record.split(FIELD)
+                if (parts.size != 3) return@mapNotNull null
+                val offset = parts[2].toIntOrNull() ?: return@mapNotNull null
+                DescriptionRecord(unescape(parts[0]), unescape(parts[1]), offset)
+            }
     }
 }
