@@ -3,7 +3,7 @@ id: "MAINT-35"
 title: "35: Lexer/Parser Torture Testing (differential oracle + invariants)"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"
@@ -78,7 +78,7 @@ Each is chosen because a **defect this repo actually shipped** would have been c
 | MAINT-35-03a | *(withdrawn)* | — | — | Existed only to route around apt's missing `lua5.5`. With MAINT-35-00 building from lua.org tarballs, 5.5 is one more `luac.json` block and needs no special case. Note for the record: Lunar's own provisioner *does* build `luac` (`PucLuaBuildRecipe.kt:115-126`), and it is deliberately **not** used as the oracle — a judge must not share failure modes with the code it judges. |
 | MAINT-35-04 | Lexer round-trip + merge invariants | **M** | **Full** | For every input: (a) concatenating each token's text must reproduce the source **byte for byte**, and (b) **no internal `LONGSTRING*`/`LONGCOMMENT*` token may escape the merging adapters**. Two gated counts, because they catch different defects — (a) sees lost text, (b) sees a moved boundary. BUG-392 was (b); mutation shows (a) alone misses it entirely — and three separate adapter-level mutations failed to falsify (a) at all, which is structural: `MergingLexerAdapterBase` derives a merged token's end from the delegate's next start, so (a) guards `_LuaLexer` beneath the adapters rather than the adapters themselves. |
 | MAINT-35-05 | Crash-freedom invariant | **M** | **Full** | Lexing and parsing any input must not throw — including `StackOverflowError`, which is why `Throwable` is caught rather than `Exception`. Both sites are recorded in one gated map keyed `lex:<Class>` / `parse:<Class>`; only the class name is kept, never the message (paths would churn the baseline). |
-| MAINT-35-06 | Pinned torture corpus | **S** | Not Implemented | squeek502's minimized lexer corpus, pinned by release asset + checksum in `torture.json`, swept by -04/-05 and judged by -01. Opt-in with the rest of the corpus. |
+| MAINT-35-06 | Pinned torture corpus | **S** | **Full** | squeek502's minimized lexer corpus (fuzzing-lua v0.2.0), pinned by release asset + sha256 in `torture.json`, swept by -04/-05 and judged by -01. Opt-in with the rest of the corpus. Its own `TortureMetrics`/`TortureBaseline`, because `CorpusGuards.assertIdentity` checks `commit` and `requires` and a torture member has neither. 1 696 inputs in 5.7 s; **found BUG-411 on the first run** — the one false reject across the whole corpus. |
 | MAINT-35-07 | Baseline round-trip for the new metrics | **M** | **Full** | `CorpusBaseline.render`/`parse`/`compare` carry all five new fields, and `BaselineRatchetTest.renderParseRoundTrip` — which asserts `original == parse(render(original))` over the whole data class — stays green. `oracleDisagreements` is a plain `Int`: with MAINT-35-00 owning the dependency there is no absent state to encode. |
 
 ## Test Cases
@@ -94,6 +94,8 @@ Each is chosen because a **defect this repo actually shipped** would have been c
 | TC-7 | a deeply self-referential table/subscript chain (BUG-390's shape) | no throwable escapes lex or parse |
 | TC-8 | a sweep at a level whose pinned `luac` has not been built | **fails immediately**, before judging any file, naming the expected path and `fetch-luac.py` |
 | TC-9 | `fetch-luac.py` against a tarball whose sha256 does not match | **refuses to build**, leaving no `test/luac/<version>/luac` — an unverified oracle is never installed |
+| TC-10 | the pinned fuzz corpus (1 696 extensionless, mostly-invalid inputs) | swept without a single round-trip failure, unmerged token, crash or timeout; every disagreement either fixed or filed. Measured 2026-08-05: one false reject → **BUG-411** |
+| TC-11 | a torture archive whose sha256 does not match the pin | `fetch-torture.py` **refuses to unpack**; a stale checkout is caught again at test time by `TortureManifest.assertFetched` |
 
 ## Definition of Done
 

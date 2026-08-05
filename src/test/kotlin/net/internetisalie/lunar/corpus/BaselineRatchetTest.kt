@@ -391,6 +391,95 @@ class BaselineRatchetTest {
         )
     }
 
+    // --- MAINT-35-06: the torture ratchet is a separate type and needs its own proof it can fail ---
+
+    private fun torture(
+        oracleDisagreements: Int = 1,
+        lexerRoundTripFailures: Int = 0,
+        unmergedTokens: Int = 0,
+        crashes: Map<String, Int> = emptyMap(),
+    ) = TortureMetrics(
+        sha256 = "608dbf8400825cb38a3b8c0a13907e650bb49880ae6759df7578c46f0444156e",
+        files = 1696,
+        parseErrors = 1269,
+        oracleDisagreements = oracleDisagreements,
+        oracleSites = listOf("falseReject:output/fuzz_strings/a6cec286", "falseAccept:corpus/fuzz_llex/01a2ddbd"),
+        lexerRoundTripFailures = lexerRoundTripFailures,
+        unmergedTokens = unmergedTokens,
+        crashes = crashes,
+    )
+
+    @Test
+    fun tortureRenderParseRoundTrip() {
+        val original = torture(lexerRoundTripFailures = 2, unmergedTokens = 7, crashes = mapOf("lex:X" to 1))
+            .copy(oracleTimeouts = 3)
+        assertEquals(original, TortureBaseline.parse(TortureBaseline.render(original)))
+    }
+
+    @Test
+    fun tortureRatchetFailsOnAWorseDisagreementCount() {
+        val baseline = temp.newFile("torture.baseline")
+        baseline.writeText(TortureBaseline.render(torture()))
+        val failure = runCatching {
+            TortureBaseline.assertRatchet(baseline, torture(oracleDisagreements = 2))
+        }.exceptionOrNull()
+        assertTrue(
+            "Expected a regression, got: ${failure?.message}",
+            failure?.message.orEmpty().contains("oracleDisagreements: baseline 1 → observed 2"),
+        )
+    }
+
+    /** Each invariant gates independently — a new crash class must not net out against a fixed one. */
+    @Test
+    fun tortureRatchetGatesEachInvariantSeparately() {
+        val baseline = temp.newFile("torture-invariants.baseline")
+        baseline.writeText(TortureBaseline.render(torture(crashes = mapOf("lex:StackOverflowError" to 2))))
+        val observed = torture(unmergedTokens = 1, crashes = mapOf("parse:IllegalStateException" to 1))
+        val regressions = TortureBaseline.compare(TortureBaseline.parse(baseline.readText()), observed).regressions
+        assertEquals(
+            listOf(
+                "unmergedTokens: baseline 0 → observed 1",
+                "crash.parse:IllegalStateException: baseline 0 → observed 1",
+            ),
+            regressions,
+        )
+    }
+
+    /**
+     * `parseErrors` is deliberately **not** gated for a fuzz corpus: most of its inputs are invalid
+     * Lua on purpose, so the count describes the corpus rather than the parser, and better error
+     * recovery can move it either way. The oracle's verdict on that count is what is gated.
+     */
+    @Test
+    fun tortureRatchetDoesNotGateRawParseErrors() {
+        val baseline = temp.newFile("torture-parse.baseline")
+        baseline.writeText(TortureBaseline.render(torture()))
+        TortureBaseline.assertRatchet(baseline, torture().copy(parseErrors = 1400))
+    }
+
+    @Test
+    fun tortureRatchetRefusesADifferentArchive() {
+        val baseline = temp.newFile("torture-pin.baseline")
+        baseline.writeText(TortureBaseline.render(torture()))
+        val failure = runCatching {
+            TortureBaseline.assertRatchet(baseline, torture().copy(sha256 = "deadbeef"))
+        }.exceptionOrNull()
+        assertTrue(
+            "Expected the re-record instruction, got: ${failure?.message}",
+            failure?.message.orEmpty().contains("different torture archive"),
+        )
+    }
+
+    @Test
+    fun tortureMissingBaselineIsNeverTreatedAsPassing() {
+        val absent = File(temp.root, "torture-not-recorded.baseline")
+        val failure = runCatching { TortureBaseline.assertRatchet(absent, torture()) }.exceptionOrNull()
+        assertTrue(
+            "Expected the record instruction, got: ${failure?.message}",
+            failure?.message.orEmpty().contains("-PrecordCorpusBaseline"),
+        )
+    }
+
     /** A synthetic repo root holding only `tooling/corpus/corpus.json` — no checkout, no fixture. */
     private fun manifestRoot(vararg entries: String): File {
         val repoRoot = temp.newFolder()

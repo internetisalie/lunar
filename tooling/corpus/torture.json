@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "MAINT-35-06. Pinned fuzzer corpora, swept by the lexer invariants and judged by the parse",
+    "oracle. Pinned by ARCHIVE sha256 rather than a commit SHA (as corpus.json uses), because these",
+    "are GitHub release assets rather than git trees — a weaker pin, and the reason the checksum is",
+    "mandatory: it is the only thing that would notice an asset re-uploaded in place.",
+    "luaLevel selects which pinned luac judges the member; 5.1 is squeek502's fuzz target."
+  ],
+  "members": [
+    {
+      "name": "fuzzing-lua",
+      "url": "https://github.com/squeek502/fuzzing-lua/releases/download/v0.2.0/fuzzing-lua-data.tar.gz",
+      "sha256": "608dbf8400825cb38a3b8c0a13907e650bb49880ae6759df7578c46f0444156e",
+      "luaLevel": "LUA51"
+    }
+  ]
+}

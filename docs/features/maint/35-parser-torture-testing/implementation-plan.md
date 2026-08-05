@@ -138,16 +138,34 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 - **Verification**: corpus ratchet green **before** recording (the new counters were already clean)
   and again after; full suite 2366 / 0. No disagreement baselined without a bug ID.
 
-### Phase 5: Torture corpus [Should]
+### Phase 5: Torture corpus [Should] — **DONE 2026-08-05**
 - **Goal**: MAINT-35-06.
 - **Tasks**:
-  - [ ] `tooling/corpus/torture.json` + `fetch-torture.sh` with sha256 verification.
-  - [ ] `LuaTortureCorpusTest` — name contains `Corpus` so `-PwithCorpus` governs it with no build
-        change (`build.gradle.kts:266` guard, `excludeTestsMatching` at `:268`); file name matches class name.
-  - [ ] Decode inputs ISO-8859-1, not UTF-8 (design §5).
-  - [ ] Record `torture-<name>.baseline`.
-- **Verification**: corpus ratchet green including the torture member; sweep time recorded against
-  MAINT-33's 10-minute corpus ceiling.
+  - [x] `tooling/corpus/torture.json` + `fetch-torture.py` with sha256 verification. **Python, not
+        the `.sh` the design named**: BUG-407's root cause was a hand-rolled parser in a shell
+        script, and reading a JSON manifest with `cut` would repeat it in a new format. Pinned to
+        squeek502/fuzzing-lua **v0.2.0**, `fuzzing-lua-data.tar.gz`, 181 282 bytes,
+        sha256 `608dbf84…4156e` (DR-02).
+  - [x] `LuaTortureCorpusTest` — name contains `Corpus` so `-PwithCorpus` governs it with no build
+        change (`build.gradle.kts:266` guard, `excludeTestsMatching` at `:270`); file name matches class name.
+  - [x] Decode inputs ISO-8859-1, not UTF-8 (design §5). Total by construction, so a fuzz corpus's
+        invalid UTF-8 cannot break the round-trip at the *decode* and masquerade as a lexer defect.
+  - [x] `TortureMetrics`/`TortureBaseline` rather than reusing `CorpusMetrics` — design §5.1's
+        reasoning holds: `assertIdentity` identity-checks `commit` and `requires`, and a torture
+        member has neither. `parseErrors` is recorded but **not gated**: a fuzz corpus is mostly
+        invalid Lua on purpose, so the count describes the corpus, not the parser.
+  - [x] Record `torture-fuzzing-lua.baseline`, and prove the new ratchet can fail — six unit tests
+        in `BaselineRatchetTest` (routine suite, no fixture) covering round-trip, each gated
+        invariant separately, the ungated `parseErrors`, the pin identity check and the absent
+        baseline.
+- **Verification**: 1 696 inputs in **5.7 s** — against MAINT-33's 10-minute ceiling, this is the
+  cheapest member by two orders of magnitude, so R7 does not bite. **0** round-trip failures, **0**
+  unmerged tokens, **0** crashes, **0** timeouts.
+- **What it found on the first run**: exactly one false reject — **BUG-411**, `\v` and `\f` missing
+  from `lua.flex`'s whitespace set, where PUC dispatches on `isspace()`. Verified accepted by all
+  five pinned oracles. Filed rather than fixed inline: the fix needs a lexer regeneration, which
+  belongs in its own commit. The baseline records `oracleDisagreements=1` **with** that bug ID, as
+  the DoD requires.
 
 ### Phase 6: Adversarial review remediation [Must] — **DONE 2026-08-05**
 - **Goal**: close the 18 findings from the review of Phases 0–4. The review was run *after* the
