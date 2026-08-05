@@ -9,10 +9,16 @@ import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
  *
  * Each was chosen because a defect this repo shipped would have been caught by it:
  *
- * - **Round-trip** — catches text being *lost or duplicated*: an adapter that skips a token, or
- *   emits overlapping ranges. It does **not** catch a mis-placed boundary, because re-partitioning
- *   the same characters concatenates identically. That was established by mutation, not assumed —
- *   see [unmergedTokens].
+ * - **Round-trip** — catches text being *lost or duplicated*. It does **not** catch a mis-placed
+ *   boundary, because re-partitioning the same characters concatenates identically.
+ *
+ *   Be precise about what it guards, because three attempts to falsify it failed: `while` → `if` in
+ *   either merging adapter, and a dropped `advance()`, all left it green. That is structural —
+ *   `MergingLexerAdapterBase` derives a merged token's end from the delegate's *next* start, so
+ *   merged tokens are contiguous by construction and no adapter-level defect can lose a character.
+ *   The round-trip therefore guards the layer **beneath** the adapters: `_LuaLexer`, where a `.flex`
+ *   edit genuinely can drop or overlap text. It cannot be mutation-proved without regenerating the
+ *   lexer, and it is not what catches merge bugs — [unmergedTokens] is.
  * - **Unmerged internal tokens** → BUG-392, the boundary defect the round-trip misses. The merging
  *   adapters exist to turn `LONGSTRING_BEGIN`/`LONGSTRING`/`LONGSTRING_END`/`NL_BEFORE_LONGSTRING`
  *   runs into one `STRING`. If any of those internal types survives into the merged stream, the
@@ -38,6 +44,12 @@ internal object LexerInvariants {
     /**
      * Types the merging adapters must always consume. Any of these reaching the parser means a
      * merge terminated early — BUG-392's exact signature.
+     *
+     * `LuaTokenTypes.LONGCOMMENT` belongs here despite the name: it is the long-comment **body**
+     * emitted by the flex lexer, the exact analogue of `LuaTokenTypes.LONGSTRING`. What
+     * `LongCommentMergingLexerAdapter` returns is the *different* object
+     * `LuaElementTypes.LONGCOMMENT` (`src/main/gen/.../LuaElementTypes.java:100`), which is what the
+     * grammar knows. Omitting it left BUG-392's long-comment twin uncovered.
      */
     private val INTERNAL_TOKENS = setOf(
         LuaTokenTypes.LONGSTRING_BEGIN,
@@ -45,6 +57,7 @@ internal object LexerInvariants {
         LuaTokenTypes.LONGSTRING_END,
         LuaTokenTypes.NL_BEFORE_LONGSTRING,
         LuaTokenTypes.LONGCOMMENT_BEGIN,
+        LuaTokenTypes.LONGCOMMENT,
         LuaTokenTypes.LONGCOMMENT_END,
     )
 

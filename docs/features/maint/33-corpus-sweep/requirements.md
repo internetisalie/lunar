@@ -177,7 +177,7 @@ the ignore list; until then the inventory is recorded but not read as a finding 
 
 | # | Requirement | Given (input) | When (action) | Then (expected) |
 |---|-------------|---------------|---------------|-----------------|
-| 1 | MAINT-33-01 | Empty `test/corpus/` | Run `tooling/corpus/fetch-corpus.sh` | `test/corpus/luacheck` and `test/corpus/luarocks` exist, contain no `.git`, and each `.corpus-sha` equals the manifest `commit` |
+| 1 | MAINT-33-01 | Empty `test/corpus/` | Run `tooling/corpus/fetch-corpus.py` | `test/corpus/luacheck` and `test/corpus/luarocks` exist, contain no `.git`, and each `.corpus-sha` equals the manifest `commit` |
 | 2 | MAINT-33-01 | Corpus already at the pin | Re-run the fetch script | No network fetch; both projects logged as "already at <sha> — skipping"; exit 0 |
 | 3 | MAINT-33-01 | Manifest row for luarocks with `prune=win32` | Run the fetch script | `test/corpus/luarocks/win32` absent; `src` and `spec` present |
 | 4 | MAINT-33-02 | luacheck v1.2.0 corpus | Run the sweep | `parseErrors=3`; `parseErrorFile` lines are exactly `spec/samples/compound_operators.lua` and `spec/samples/utf8_error.lua` |
@@ -185,7 +185,7 @@ the ignore list; until then the inventory is recorded but not read as a finding 
 | 6 | MAINT-33-04 | Baseline `parseErrors=3`, sweep observes 4 | Run the gating sweep | Test fails; message contains `parseErrors: baseline 3 → observed 4` |
 | 7 | MAINT-33-04 | Baseline `parseErrors=3`, sweep observes 2 | Run the gating sweep | Test **passes**; stdout contains `IMPROVED` and the re-record instruction |
 | 8 | MAINT-33-04 | A baseline file whose `commit=` differs from the observed metrics' — i.e. the checkout is stamped at the manifest's pin, and only the *recorded baseline* is stale | Call `CorpusGuards.assertRatchet` | Fails with "recorded against a different corpus commit; re-record it". Note the manifest is **not** re-pinned: that would trip `assertCorpusFetched` first, with a different message |
-| 9 | MAINT-33-04 | `test/corpus/luacheck` absent | Run the gating sweep | Test fails with the `tooling/corpus/fetch-corpus.sh` instruction |
+| 9 | MAINT-33-04 | `test/corpus/luacheck` absent | Run the gating sweep | Test fails with the `tooling/corpus/fetch-corpus.py` instruction |
 | 10 | MAINT-33-05 | No Gradle properties | `./gradlew test` | No `*Corpus*` test executes; suite result unchanged |
 | 11 | MAINT-33-05 | `-PwithCorpus -PrecordCorpusBaseline` | `./gradlew test --tests *Corpus*` | `src/test/resources/corpus/{luacheck,luarocks}.baseline` written, and their content echoed to stdout |
 | 12 | MAINT-33-06 | luacheck corpus, baseline `LuaUndeclaredVariable=N` | Sweep observes `N+1` | Test fails naming `LuaUndeclaredVariable` |
@@ -198,7 +198,7 @@ the ignore list; until then the inventory is recorded but not read as a finding 
 
 ## Acceptance Criteria
 
-- [ ] MAINT-33-01: `fetch-corpus.sh` provisions every manifest row reproducibly, stamps it, and is a no-op on re-run.
+- [ ] MAINT-33-01: `fetch-corpus.py` provisions every manifest row reproducibly, stamps it, and is a no-op on re-run.
 - [ ] MAINT-33-02/03: A sweep over luacheck and luarocks produces the counts in TC 4 and TC 5.
 - [ ] MAINT-33-04: TC 6, 7, 8 and 9 each behave as specified.
 - [ ] MAINT-33-05: `./gradlew test` with no properties runs zero corpus tests; CI is unaffected.

@@ -13,7 +13,6 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import net.internetisalie.lunar.lang.LuaRequireReference
 import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
-import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
 
@@ -57,17 +56,18 @@ object CorpusSweep {
     /** Mirrors SYMBOLS_PER_INSPECTION's intent: the baseline must stay reviewable. */
     private const val ORACLE_SITES_CAP = 20
 
-    fun run(
-        fixture: CodeInsightTestFixture,
-        entry: CorpusEntry,
-        checkoutDir: File,
-        repoRoot: File,
-    ): CorpusMetrics {
+    /** What every per-file step needs beyond the fixture: which corpus, and where the repo is. */
+    private data class SweepContext(val entry: CorpusEntry, val repoRoot: File)
+
+    fun run(fixture: CodeInsightTestFixture, entry: CorpusEntry, repoRoot: File): CorpusMetrics {
+        val checkoutDir = CorpusManifest.checkoutDir(repoRoot, entry.name)
+        val context = SweepContext(entry, repoRoot)
         applyModuleRoot(fixture, entry, checkoutDir)
-        // Fail fast before judging anything: an oracle that is absent must never be discovered
-        // halfway through a sweep, and must never degrade to "no disagreements" (MAINT-35-03).
-        ParseOracle.requireBinary(repoRoot, entry.luaLevel)
-        val swept = entry.roots.flatMap { sweepRoot(fixture, entry, it, repoRoot) }.sortedBy { it.path }
+        // Fail fast before judging anything: an oracle that is absent — or that answers Accept to
+        // everything — must never be discovered halfway through a sweep, and must never degrade to
+        // "no disagreements" (MAINT-35-03).
+        ParseOracle.assertDiscriminates(repoRoot, entry.luaLevel)
+        val swept = entry.roots.flatMap { sweepRoot(fixture, context, it) }.sortedBy { it.path }
         val sink = inspectionHits(fixture, swept)
         return CorpusMetrics(
             commit = entry.commit,
@@ -85,15 +85,26 @@ object CorpusSweep {
             // language level and defers enforcement to LuaLanguageLevelInspection, so "luac rejects,
             // Lunar accepts" has a systematic false positive (DR-01) and is diagnostic only.
             oracleDisagreements = swept.count { it.falseReject },
-            oracleSites = swept.filter { it.falseReject || it.falseAccept }
-                .map { "${if (it.falseReject) "falseReject" else "falseAccept"}:${it.path}" }
-                .sorted()
-                .take(ORACLE_SITES_CAP),
+            oracleSites = oracleSites(swept),
             oracleTimeouts = swept.count { it.tally.oracle is ParseOracle.Verdict.NotJudged },
             lexerRoundTripFailures = swept.count { it.tally.roundTripFailed },
             unmergedTokens = swept.sumOf { it.tally.unmergedTokens },
             crashes = swept.mapNotNull { it.tally.crash }.groupingBy { it }.eachCount(),
         )
+    }
+
+    /**
+     * Disagreement sites, **gated direction first**, capped so the baseline stays reviewable.
+     *
+     * The order is load-bearing, not cosmetic. A plain `.sorted().take(20)` sorts `falseAccept`
+     * ahead of `falseReject` alphabetically, so the moment a corpus produced more than 20 sites the
+     * cap would discard exactly the direction that fails the build — leaving `oracleDisagreements`
+     * non-zero with nothing in the baseline saying where.
+     */
+    private fun oracleSites(swept: List<SweptFile>): List<String> {
+        val rejects = swept.filter { it.falseReject }.map { "falseReject:${it.path}" }.sorted()
+        val accepts = swept.filter { it.falseAccept }.map { "falseAccept:${it.path}" }.sorted()
+        return (rejects + accepts).take(ORACLE_SITES_CAP)
     }
 
     /**
@@ -168,17 +179,16 @@ object CorpusSweep {
 
     private fun sweepRoot(
         fixture: CodeInsightTestFixture,
-        entry: CorpusEntry,
+        context: SweepContext,
         root: String,
-        repoRoot: File,
     ): List<SweptFile> {
-        val corpusName = entry.name
+        val corpusName = context.entry.name
         val copied = fixture.copyDirectoryToProject("${CorpusManifest.CORPUS_DIR}/$corpusName/$root", root)
         val psiManager = PsiManager.getInstance(fixture.project)
         return collectLuaFiles(copied).mapNotNull { luaFile ->
             val psiFile = psiManager.findFile(luaFile) ?: return@mapNotNull null
             val relativePath = VfsUtilCore.getRelativePath(luaFile, copied) ?: luaFile.name
-            SweptFile("$root/$relativePath", luaFile, tallyGuarded(repoRoot, psiFile, entry.luaLevel))
+            SweptFile("$root/$relativePath", luaFile, tallyGuarded(context, psiFile))
         }
     }
 
@@ -263,8 +273,13 @@ object CorpusSweep {
      * A crashed file is deliberately **excluded from the oracle comparison**: it is neither an
      * accept nor a reject. Reporting `parseErrors = 0` would make `lunarAccepts` true and score it
      * as a false accept, conflating a crash with a semantic disagreement.
+     *
+     * The oracle judges `psiFile.text` re-encoded as UTF-8, **not** the on-disk bytes. That is the
+     * comparison the gate wants: the question is whether luac accepts the same characters Lunar's
+     * parser saw, so both sides must be fed one decoded form. Feeding luac the raw bytes would let a
+     * decoding difference masquerade as a parser disagreement.
      */
-    private fun tallyGuarded(repoRoot: File, psiFile: PsiFile, level: LuaLanguageLevel): FileTally {
+    private fun tallyGuarded(context: SweepContext, psiFile: PsiFile): FileTally {
         val source = psiFile.text
         val lex = LexerInvariants.check(source)
         val parsed = runCatching { tally(psiFile) }
@@ -276,7 +291,7 @@ object CorpusSweep {
             roundTripFailed = lex.roundTripFailed,
             unmergedTokens = lex.unmergedTokens,
             crash = crash,
-            oracle = if (crash != null) null else ParseOracle.judge(repoRoot, source, level),
+            oracle = if (crash != null) null else ParseOracle.judge(context.repoRoot, source, context.entry.luaLevel),
         )
     }
 

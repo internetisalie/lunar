@@ -2,9 +2,11 @@ package net.internetisalie.lunar.corpus
 
 import com.google.gson.JsonParser
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.util.concurrency.ThreadingAssertions
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import java.io.File
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * PUC Lua as ground truth: does `luac -p` accept the same input Lunar's parser accepts?
@@ -44,7 +46,18 @@ internal object ParseOracle {
      * oracle that silently disappears is the one failure a ratchet cannot survive: it would report
      * success while measuring nothing.
      */
-    fun requireBinary(repoRoot: File, level: LuaLanguageLevel): File {
+    fun requireBinary(repoRoot: File, level: LuaLanguageLevel): File =
+        resolved.getOrPut(repoRoot to level) { resolveBinary(repoRoot, level) }
+
+    /**
+     * Memoised: [judge] is called once per corpus file (419 of them in the largest member) and the
+     * resolution reads and parses `luac.json` — file I/O the sweep would otherwise do on the EDT,
+     * once per file, to compute a constant. Keyed on the root as well as the level, so a test that
+     * points at a different tree is not answered from another tree's cache.
+     */
+    private val resolved = mutableMapOf<Pair<File, LuaLanguageLevel>, File>()
+
+    private fun resolveBinary(repoRoot: File, level: LuaLanguageLevel): File {
         val version = pinnedVersion(repoRoot, level)
             ?: error(
                 // `level.name`, not `$level`: LuaLanguageLevel overrides toString() to a display
@@ -86,34 +99,85 @@ internal object ParseOracle {
      */
     fun judge(repoRoot: File, source: CharSequence, level: LuaLanguageLevel): Verdict {
         val binary = requireBinary(repoRoot, level)
-        return onPooledThread { run(binary, source) }
+        val pending = ApplicationManager.getApplication().executeOnPooledThread<Verdict> { run(binary, source) }
+        // The in-process wait is the backstop for the in-`run` one, not a duplicate of it: if `run`
+        // itself ever wedges, an uncaught TimeoutException here would abort the whole sweep and
+        // leak the thread. Degrade to NotJudged instead — the same shape as any other non-verdict.
+        return try {
+            pending.get(TIMEOUT_SECONDS * 2, TimeUnit.SECONDS)
+        } catch (expired: TimeoutException) {
+            pending.cancel(true)
+            Verdict.NotJudged("oracle did not return within ${TIMEOUT_SECONDS * 2}s: ${expired.javaClass.simpleName}")
+        }
     }
 
-    private fun <T> onPooledThread(body: () -> T): T =
-        ApplicationManager.getApplication()
-            .executeOnPooledThread<T>(body)
-            .get(TIMEOUT_SECONDS * 2, TimeUnit.SECONDS)
+    /** Valid at every pinned level; rejected at every pinned level. Neither uses level-specific syntax. */
+    private const val KNOWN_GOOD = "local sanity = 1\n"
+    private const val KNOWN_BAD = "local sanity = = 1\n"
 
+    /**
+     * Proves the pinned binary **discriminates** before a sweep trusts a single one of its verdicts.
+     *
+     * `requireBinary` alone only proves a file exists at the resolved path. The failure it cannot
+     * see is an oracle that answers `Accept` to everything: `oracleDisagreements` would then be
+     * structurally 0, the ratchet would stay green, and the gate would be measuring nothing while
+     * reporting success — the one failure mode a ratchet cannot survive (MAINT-35-03). Two spawns
+     * per corpus member is the whole cost.
+     */
+    fun assertDiscriminates(repoRoot: File, level: LuaLanguageLevel) {
+        val onValid = judge(repoRoot, KNOWN_GOOD, level)
+        check(onValid == Verdict.Accept) {
+            "The ${level.name} oracle rejected valid Lua ($onValid). It cannot be used as ground truth."
+        }
+        val onInvalid = judge(repoRoot, KNOWN_BAD, level)
+        check(onInvalid is Verdict.Reject) {
+            "The ${level.name} oracle accepted malformed Lua ($onInvalid). An oracle that accepts " +
+                "everything makes oracleDisagreements structurally zero and the gate vacuous."
+        }
+    }
+
+    /**
+     * Diagnostics are redirected to a **file**, never read from a pipe, and stdin is written before
+     * any wait. Both were defects here:
+     *
+     * - Reading `errorStream` to EOF *before* `waitFor` made the timeout unreachable — a hung child
+     *   never closes the stream, so the read blocked forever and `destroyForcibly` was dead code.
+     * - Writing the whole source into a pipe assumed luac reads all of it. It does not: it aborts at
+     *   the first syntax error, and the write then fails with EPIPE. Measured against the shipped
+     *   5.1.5 binary: fine at 50 kB, **broken pipe at 100 kB and 900 kB**. Latent only because every
+     *   current corpus reject is under 1 kB.
+     *
+     * A failed write is therefore swallowed, not propagated: the child exiting early *is* the
+     * verdict, and the exit code still carries it.
+     */
     private fun run(binary: File, source: CharSequence): Verdict {
-        // `-p` is parse-only and writes no output file; `-` reads the source from stdin, which
-        // avoids a temp file and keeps absolute paths out of luac's diagnostics.
-        val process = ProcessBuilder(binary.path, "-p", "-").redirectErrorStream(false).start()
-        process.outputStream.use { it.write(source.toString().toByteArray()) }
+        ThreadingAssertions.softAssertBackgroundThread()
+        val diagnostics = File.createTempFile("lunar-luac", ".err")
+        try {
+            // `-p` is parse-only and writes no output file; `-` reads the source from stdin, which
+            // avoids a temp source file and keeps absolute paths out of luac's diagnostics.
+            val process = ProcessBuilder(binary.path, "-p", "-")
+                .redirectErrorStream(true)
+                .redirectOutput(diagnostics)
+                .start()
+            runCatching { process.outputStream.use { it.write(source.toString().toByteArray()) } }
 
-        // luac echoes the offending token back, so its stderr is NOT always valid UTF-8 (risk R5a,
-        // hit within five minutes of DR-01). Decode replacing: the message is diagnostic only.
-        val stderr = process.errorStream.readBytes().toString(Charsets.UTF_8)
-        process.inputStream.readBytes()
-
-        if (!process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-            process.destroyForcibly()
-            // Never Reject: a hung oracle is not evidence about the input.
-            return Verdict.NotJudged("timeout after ${TIMEOUT_SECONDS}s")
-        }
-        return if (process.exitValue() == 0) {
-            Verdict.Accept
-        } else {
-            Verdict.Reject(stderr.trim().lineSequence().firstOrNull().orEmpty())
+            if (!process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+                // Never Reject: a hung oracle is not evidence about the input.
+                return Verdict.NotJudged("timeout after ${TIMEOUT_SECONDS}s")
+            }
+            return if (process.exitValue() == 0) Verdict.Accept else Verdict.Reject(firstLineOf(diagnostics))
+        } finally {
+            diagnostics.delete()
         }
     }
+
+    /**
+     * luac echoes the offending token back, so its diagnostics are NOT always valid UTF-8 (risk R5a,
+     * hit within five minutes of DR-01). Decoding replaces rather than throws: the text is
+     * diagnostic only and is never baselined.
+     */
+    private fun firstLineOf(diagnostics: File): String =
+        diagnostics.readBytes().toString(Charsets.UTF_8).trim().lineSequence().firstOrNull().orEmpty()
 }

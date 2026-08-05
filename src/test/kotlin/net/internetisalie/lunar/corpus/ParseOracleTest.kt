@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.corpus
 
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import java.io.File
@@ -87,9 +88,109 @@ class ParseOracleTest : BasePlatformTestCase() {
         assertNull(ParseOracle.pinnedVersion(repoRoot, LuaLanguageLevel.LUA50))
     }
 
+    /**
+     * TC-8's other branch — the level *is* pinned but the binary was never built.
+     *
+     * Distinct from [testUnpinnedLevelFailsFastWithTheRemedy], which exercises the no-manifest-entry
+     * message and leaves this one untested. This is the branch a fresh checkout actually hits, so it
+     * is the one that has to name `fetch-luac.py`.
+     */
+    fun testMissingBinaryNamesTheFetchScript() {
+        val emptyRoot = FileUtil.createTempDirectory("lunar-luac-missing", null)
+        File(emptyRoot, "tooling/corpus").mkdirs()
+        File(repoRoot, MANIFEST_PATH).copyTo(File(emptyRoot, MANIFEST_PATH))
+
+        val failure = runCatching { ParseOracle.requireBinary(emptyRoot, LuaLanguageLevel.LUA51) }
+            .exceptionOrNull()
+        assertNotNull("an unbuilt oracle must throw, not judge nothing", failure)
+        val message = failure?.message.orEmpty()
+        assertTrue("the error must name the remedy; was: $message", message.contains("fetch-luac.py"))
+        assertTrue("the error must name the path it looked at; was: $message", message.contains("test/luac/5.1.5"))
+    }
+
+    /**
+     * TC-9 — a checksum mismatch installs nothing.
+     *
+     * Driven through the real script with a `file://` entry, so it needs neither the network nor the
+     * real pins. Asserting on the **absence of the stamp** is the point: the stamp is what makes a
+     * later run skip the build, so a mismatch that stamped anyway would bless an unverified binary
+     * permanently.
+     */
+    fun testChecksumMismatchInstallsNothing() {
+        val work = FileUtil.createTempDirectory("lunar-luac-tc9", null)
+        val tarball = File(work, "decoy.tar.gz").apply { writeText("not a lua tarball") }
+        val manifest = File(work, "luac.json")
+        val wrongDigest = "0".repeat(64)
+        manifest.writeText(
+            """{"builds":[{"level":"LUA51","version":"5.1.5",""" +
+                """"url":"${tarball.toURI()}","sha256":"$wrongDigest"}]}""",
+        )
+        val luacRoot = File(work, "out")
+
+        val exit = runFetchScript(manifest, luacRoot)
+        assertTrue("a sha256 mismatch must fail the script; exit was $exit", exit != 0)
+        assertFalse("no binary may be installed", File(luacRoot, "5.1.5/luac").exists())
+        assertFalse(
+            "no stamp may be written — it would make the next run skip the build",
+            File(luacRoot, "5.1.5/.luac-sha").exists(),
+        )
+    }
+
+    /**
+     * MAINT-35-03's real content: the oracle must be shown to *discriminate*, not merely to exist.
+     * An always-accepting binary passes `requireBinary` and makes the whole gate vacuous.
+     */
+    fun testDiscriminationCheckPassesForAPinnedBinary() {
+        ParseOracle.assertDiscriminates(repoRoot, LuaLanguageLevel.LUA51)
+        ParseOracle.assertDiscriminates(repoRoot, LuaLanguageLevel.LUA54)
+    }
+
     /** R5a — luac echoes invalid bytes back on stderr; decoding must not throw. */
     fun testInvalidUtf8InputDoesNotBreakTheOracle() {
         val verdict = judge("local ÿþ = 1\n", LuaLanguageLevel.LUA51)
-        assertTrue("expected a verdict, not an exception; got $verdict", verdict is ParseOracle.Verdict)
+        assertFalse("a decodable verdict was expected, got $verdict", verdict is ParseOracle.Verdict.NotJudged)
+    }
+
+    /**
+     * A source far larger than a pipe buffer, rejected on its **first line**. luac exits without
+     * draining stdin, so writing the rest raises EPIPE — measured against the shipped 5.1.5 binary:
+     * fine at 50 kB, broken pipe at 100 kB. The early exit *is* the verdict, so the failed write
+     * must be swallowed rather than propagated.
+     */
+    fun testEarlyRejectionOfALargeSourceStillYieldsAVerdict() {
+        val large = "local = = =\n" + FILLER.repeat(50_000)
+        assertTrue("expected a Reject", judge(large, LuaLanguageLevel.LUA51) is ParseOracle.Verdict.Reject)
+    }
+
+    /**
+     * The same size, accepted — the other half of the pair, proving the whole 1.1 MB really reached
+     * luac rather than the write being lost.
+     *
+     * Comment filler, deliberately: `local a = 1` repeated hits PUC's *200 locals per function*
+     * limit at line 201 and is rejected for a reason that has nothing to do with size (established
+     * by running it, after it failed this test).
+     */
+    fun testLargeValidSourceIsAccepted() {
+        val large = FILLER.repeat(50_000) + "local a = 1\n"
+        assertEquals(ParseOracle.Verdict.Accept, judge(large, LuaLanguageLevel.LUA51))
+    }
+
+    private fun runFetchScript(manifest: File, luacRoot: File): Int {
+        val script = File(repoRoot, "tooling/corpus/fetch-luac.py")
+        val builder = ProcessBuilder("python3", script.path).redirectErrorStream(true)
+        builder.environment()["LUNAR_LUAC_MANIFEST"] = manifest.path
+        builder.environment()["LUNAR_LUAC_ROOT"] = luacRoot.path
+        val process = builder.start()
+        val output = process.inputStream.readBytes().toString(Charsets.UTF_8)
+        val exit = process.waitFor()
+        println("[fetch-luac] $output")
+        return exit
+    }
+
+    private companion object {
+        const val MANIFEST_PATH = "tooling/corpus/luac.json"
+
+        /** 23 bytes; ×50 000 is ~1.1 MB, two orders of magnitude past a 64 KB pipe buffer. */
+        const val FILLER = "-- filler comment line\n"
     }
 }

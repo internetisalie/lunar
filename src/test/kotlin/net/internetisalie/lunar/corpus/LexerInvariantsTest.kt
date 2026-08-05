@@ -36,6 +36,9 @@ class LexerInvariantsTest {
      * every round-trip assertion green, because re-partitioning the same characters concatenates
      * identically. `unmergedTokens` is the assertion that actually fails — the leaked
      * `LONGSTRING`/`LONGSTRING_END` tokens are internal types the grammar has no rule for.
+     *
+     * No adapter-level mutation falsifies the round-trip; see `LexerInvariants` for why that is
+     * structural rather than a gap in these fixtures.
      */
     @Test
     fun bug392LongStringOnBlankLineIsFullyMerged() {
@@ -43,6 +46,38 @@ class LexerInvariantsTest {
         assertRoundTrips("BUG-392 many blanks", "local s = [[\n\n\n\n  body\n]]\n")
         assertRoundTrips("BUG-392 levelled", "local s = [==[\n\n  body\n]==]\n")
         assertRoundTrips("long comment on blank line", "--[[\n\n  body\n]]\nlocal a = 1\n")
+    }
+
+    /**
+     * BUG-392's long-comment twin. `LongCommentMergingLexerAdapter` consumes a *run* of
+     * `LuaTokenTypes.LONGCOMMENT` body tokens; truncating that loop to a single `if` leaks the rest
+     * into the merged stream.
+     *
+     * Mutation-proved, not assumed: `while` → `if` at `LuaLexer.kt:160` leaves every round-trip
+     * assertion green (the same characters re-partitioned concatenate identically) and fails only
+     * on `unmergedTokens`. That is also why `LuaTokenTypes.LONGCOMMENT` had to be added to
+     * `INTERNAL_TOKENS` — without it this mutation was invisible.
+     */
+    @Test
+    fun multiLineLongCommentBodyIsFullyMerged() {
+        assertRoundTrips("multi-line body", "--[[\n  line one\n  line two\n  line three\n]]\nlocal a = 1\n")
+        assertRoundTrips("levelled multi-line body", "--[==[\n  one\n  two\n]==]\nlocal a = 1\n")
+        assertRoundTrips("long comment holding brackets", "--[[\n  not ]] the end? yes it is\n")
+    }
+
+    /**
+     * The case that makes `LuaTokenTypes.LONGCOMMENT` in `INTERNAL_TOKENS` load-bearing rather than
+     * decorative.
+     *
+     * With a *closing* bracket present, truncating the body run also strands `LONGCOMMENT_END`,
+     * which was already listed — so the omission was invisible. Unterminated, there is no
+     * `LONGCOMMENT_END` to strand and the leaked body token is the only evidence. Measured under the
+     * `while` → `if` mutation: **1 unmerged with the body type listed, 0 without it** — this test
+     * red, then green, from that one line of `INTERNAL_TOKENS`.
+     */
+    @Test
+    fun unterminatedLongCommentBodyIsFullyMerged() {
+        assertRoundTrips("unterminated long comment", "--[[\n  one\n  two\n  three\n")
     }
 
     /** Whitespace and line endings are tokens too — dropping them would break the round-trip. */

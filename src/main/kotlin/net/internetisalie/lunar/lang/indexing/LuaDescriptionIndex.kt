@@ -83,10 +83,15 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
                     else -> null
                 } ?: owner.text
 
-                val value = DescriptionRecord(rawName.take(50), fileUrl, owner.textOffset).encode()
+                val record = DescriptionRecord(rawName.take(50), fileUrl, owner.textOffset)
 
                 for (token in tokens) {
-                    result.merge(token, value) { existing, new -> "$existing|$new" }
+                    // Concatenation goes through `join` as well as `encode`: hand-writing the
+                    // separator here is what let the record format live in two places, which is the
+                    // shape BUG-408 was.
+                    result.merge(token, DescriptionRecord.join(listOf(record))) { existing, new ->
+                        DescriptionRecord.concat(existing, new)
+                    }
                 }
             }
             
@@ -147,6 +152,9 @@ data class DescriptionRecord(val ownerName: String, val fileUrl: String, val off
         /** Joins several records into one index value. */
         fun join(records: List<DescriptionRecord>): String =
             records.joinToString(RECORD) { it.encode() }
+
+        /** Appends one already-encoded index value to another, using the same separator as [join]. */
+        fun concat(first: String, second: String): String = first + RECORD + second
 
         /**
          * Every record in an index value. Malformed records are skipped rather than throwing: an

@@ -91,11 +91,10 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
         val values = index.getValues(LuaDescriptionIndex.KEY, "player", scope)
         assertEquals(1, values.size)
-        val parts = DescriptionRecord.parseAll(values.first()).map { listOf(it.ownerName, it.fileUrl, it.offset.toString()) }.first()
-        assertEquals("setPlayerName", parts[0])
-        assertEquals(fileUrl, parts[1])
-        val expectedOffset = file.text.indexOf("function setPlayerName")
-        assertEquals(expectedOffset, parts[2].toInt())
+        val record = DescriptionRecord.parseAll(values.first()).first()
+        assertEquals("setPlayerName", record.ownerName)
+        assertEquals(fileUrl, record.fileUrl)
+        assertEquals(file.text.indexOf("function setPlayerName"), record.offset)
     }
 
     @Test
@@ -113,11 +112,10 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
         val values = index.getValues(LuaDescriptionIndex.KEY, "coordinate", scope)
         assertEquals(1, values.size)
-        val parts = DescriptionRecord.parseAll(values.first()).map { listOf(it.ownerName, it.fileUrl, it.offset.toString()) }.first()
-        assertEquals("getX", parts[0])
-        assertEquals(fileUrl, parts[1])
-        val expectedOffset = file.text.indexOf("local function getX")
-        assertEquals(expectedOffset, parts[2].toInt())
+        val record = DescriptionRecord.parseAll(values.first()).first()
+        assertEquals("getX", record.ownerName)
+        assertEquals(fileUrl, record.fileUrl)
+        assertEquals(file.text.indexOf("local function getX"), record.offset)
     }
 
     @Test

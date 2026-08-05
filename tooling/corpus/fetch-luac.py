@@ -26,7 +26,9 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
-MANIFEST = SCRIPT_DIR / "luac.json"
+# Overridable so the refusal path can be tested without touching the real pins or the network
+# (ParseOracleTest.testChecksumMismatchInstallsNothing points it at a local file:// entry).
+MANIFEST = Path(os.environ.get("LUNAR_LUAC_MANIFEST", SCRIPT_DIR / "luac.json"))
 LUAC_ROOT = Path(os.environ.get("LUNAR_LUAC_ROOT", REPO_ROOT / "test" / "luac"))
 
 # PUC's makefile targets, newest naming first. 5.4+ has `make linux`; older releases want an
@@ -80,7 +82,9 @@ def build_one(entry: dict) -> None:
             )
 
         with tarfile.open(tarball) as archive:
-            archive.extractall(work)
+            # Explicit filter: Python 3.14 rejects an unfiltered extractall, and "data" is the
+            # right policy for a source tarball — no absolute paths, no device nodes, no metadata.
+            archive.extractall(work, filter="data")
         src = work / f"lua-{version}"
 
         for target in MAKE_TARGETS:
@@ -92,15 +96,20 @@ def build_one(entry: dict) -> None:
         else:
             die(f"{version}: no make target succeeded ({', '.join(MAKE_TARGETS)}). Is cc installed?")
 
+        # Prove the artefact runs BEFORE installing it — a copied file is not a working compiler.
+        # Order matters: verifying after the copy left a stamped, therefore trusted, binary behind
+        # when die() fired, and the next run would report "already built — skipping" over it.
+        staged = src / "src" / "luac"
+        check = subprocess.run([str(staged), "-v"], capture_output=True, text=True, errors="replace")
+        if check.returncode != 0 or version not in check.stdout + check.stderr:
+            die(f"{version}: built binary does not report its own version: {check.stdout}{check.stderr}")
+
+        # Stamp last, so an interruption between copy and stamp re-does the build rather than
+        # blessing a half-installed one.
         dest.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src / "src" / "luac", binary)
+        shutil.copy2(staged, binary)
         binary.chmod(0o755)
         stamp.write_text(expected + "\n")
-
-    # Prove the artefact runs before claiming success — a copied file is not a working compiler.
-    check = subprocess.run([str(binary), "-v"], capture_output=True, text=True, errors="replace")
-    if check.returncode != 0 or version not in check.stdout + check.stderr:
-        die(f"{version}: built binary does not report its own version: {check.stdout}{check.stderr}")
     log(f"{version} -> {binary}")
 
 

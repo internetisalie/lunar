@@ -74,7 +74,7 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = entry.luaLevel
 
         val startedAt = System.nanoTime()
-        val observed = CorpusSweep.run(myFixture, entry, CorpusManifest.checkoutDir(repoRoot, name), repoRoot)
+        val observed = CorpusSweep.run(myFixture, entry, repoRoot)
         val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
         report(name, observed, elapsedMs)
 
@@ -93,6 +93,17 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
                 "requires=${observed.requires} unresolvedRequires=${observed.unresolvedRequires} " +
                 "elapsedMs=$elapsedMs",
         )
+        // The oracle's own liveness, printed because it is otherwise invisible: `oracleDisagreements
+        // = 0` reads identically whether the judge found nothing or judged nothing. `assertDiscriminates`
+        // is what *enforces* it; these lines are what let a reader confirm it from the log.
+        println(
+            "[corpus:$name] oracleDisagreements=${observed.oracleDisagreements} " +
+                "oracleTimeouts=${observed.oracleTimeouts} " +
+                "lexerRoundTripFailures=${observed.lexerRoundTripFailures} " +
+                "unmergedTokens=${observed.unmergedTokens}",
+        )
+        observed.oracleSites.forEach { println("[corpus:$name] oracle site $it") }
+        observed.crashes.toSortedMap().forEach { (key, count) -> println("[corpus:$name] crash $key=$count") }
         observed.inspectionHits.toSortedMap().forEach { (id, count) ->
             println("[corpus:$name] inspection $id=$count")
         }

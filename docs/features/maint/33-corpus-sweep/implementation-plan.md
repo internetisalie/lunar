@@ -29,7 +29,7 @@ the review that the prototype skipped — not because it is unwritten.
 ### Phase 1: Provisioning + Defect Sweep + Ratchet [Must]
 - **Goal**: luacheck and luarocks are swept and gated on the builder; `./gradlew test` is unchanged.
 - **Tasks**:
-  - [x] Create `tooling/corpus/corpus.tsv` pinning luacheck `cc089e3f` and luarocks `990ec6ca` — realizes design §4.1
+  - [x] Create `tooling/corpus/corpus.tsv` (migrated to `corpus.json` by BUG-407) pinning luacheck `cc089e3f` and luarocks `990ec6ca` — realizes design §4.1
   - [x] Create `tooling/corpus/fetch-corpus.sh` implementing the §3.5 idempotency algorithm — realizes design §2.5
   - [x] Create `net.internetisalie.lunar.corpus.CorpusManifest` (+ `CorpusEntry`) — realizes design §2.1
   - [x] Create `net.internetisalie.lunar.corpus.CorpusSweep` implementing the §3.1 tally — realizes design §2.2

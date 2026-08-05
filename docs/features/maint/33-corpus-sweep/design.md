@@ -39,8 +39,8 @@ No existing component sweeps a corpus or maintains a metric baseline; nothing is
 ### Target State
 
 ```
-tooling/corpus/corpus.tsv          pins (name, url, commit, roots, prune)
-tooling/corpus/fetch-corpus.sh     → test/corpus/<name>/  (+ .corpus-sha, no .git)
+tooling/corpus/corpus.json         pins (name, url, commit, roots, prune)
+tooling/corpus/fetch-corpus.py     → test/corpus/<name>/  (+ .corpus-sha, no .git)
                                           │
 src/test/kotlin/.../corpus/               ▼
   CorpusManifest.kt   reads the manifest + the on-disk stamp
@@ -185,7 +185,7 @@ No production code ships. Everything lives in the test source set, `tooling/`, a
   The extraction also updates the KDoc link at `CorpusMetrics.kt:61`, which currently points at
   `[LuaCorpusSweepTest.assertRatchet]`.
 
-### 2.5 `tooling/corpus/fetch-corpus.sh`
+### 2.5 `tooling/corpus/fetch-corpus.py`
 
 - **Responsibility**: materialise every manifest row idempotently (§3.5).
 - **Contract**: exit 0 on success; non-zero with a message on a malformed row, a failed fetch, or
@@ -227,7 +227,7 @@ No production code ships. Everything lives in the test source set, `tooling/`, a
 
   | TC | Arrange | Act | Assert |
   |---|---|---|---|
-  | 9 | A temp dir containing `tooling/corpus/corpus.tsv` with one row, and **no** `test/corpus/<name>/` | `CorpusGuards.assertCorpusFetched(tempRoot, entry)` | Fails; message names `tooling/corpus/fetch-corpus.sh` (`LuaCorpusSweepTest.kt:49-52`) |
+  | 9 | A temp dir containing `tooling/corpus/corpus.json` with one entry, and **no** `test/corpus/<name>/` | `CorpusGuards.assertCorpusFetched(tempRoot, entry)` | Fails; message names `tooling/corpus/fetch-corpus.py` (`LuaCorpusSweepTest.kt:49-52`) |
   | 8 | A temp baseline file whose `commit=` differs from the `CorpusMetrics` passed in — no checkout needed, since `assertRatchet` reads only the baseline file and the observed metrics | `CorpusGuards.assertRatchet(tempBaseline, handBuiltMetrics)` | Fails with "recorded against a different corpus commit; re-record it" (`LuaCorpusSweepTest.kt:75-79`) |
 
   TC 8 deliberately does **not** re-pin the manifest: with `.corpus-sha` still matching the
@@ -445,9 +445,16 @@ totals are whole-checkout counts (`tl=117`, not 10; `rockspec=53`, not 48).
 
 ## 4. External Data & Parsing
 
-### 4.1 `tooling/corpus/corpus.tsv`
+### 4.1 `tooling/corpus/corpus.json`
 
-- **Format**: tab-separated, `#`-comment and blank lines skipped, ≥4 columns per row. Columns 4
+> **Superseded by BUG-407 (2026-08-05).** The format below is the original tab-separated one.
+> It was migrated to JSON because the two hand-rolled parsers disagreed: `IFS=$'\t'` is
+> *whitespace* to bash, so consecutive tabs collapse and every column after an empty field
+> shifted left. Both sides now read through a library — stdlib `json` in `fetch-corpus.py`,
+> Gson in `CorpusManifest.kt` — and the field names below survive as JSON keys. The failure
+> handling and defaults in this section still hold.
+
+- **Format (historical)**: tab-separated, `#`-comment and blank lines skipped, ≥4 columns per row. Columns 4
   (`prune`) and 5 (`luaLevel`) are optional.
   ```
   # name	url	commit	roots	prune	luaLevel
@@ -524,14 +531,14 @@ ratchet resumes from the new floor.
 
 ### Example 3: a new corpus project
 
-Append a row → `fetch-corpus.sh` → add a `@Test` → run with `-PrecordCorpusBaseline` → copy the
+Append an entry → `fetch-corpus.py` → add a `@Test` → run with `-PrecordCorpusBaseline` → copy the
 echoed baseline into `src/test/resources/corpus/` → commit. Later runs gate against it.
 
 ## 6. Edge Cases
 
 | Case | Handling |
 |---|---|
-| Corpus not fetched | `assertCorpusFetched` fails naming `tooling/corpus/fetch-corpus.sh` (TC 9). |
+| Corpus not fetched | `assertCorpusFetched` fails naming `tooling/corpus/fetch-corpus.py` (TC 9). |
 | Corpus at the wrong SHA | Same assertion, distinct message — a stale tree is never measured. |
 | Baseline file absent during a gating run | Fail with the record command; never auto-create. |
 | Corpus legitimately re-pinned | `commit` identity check fails first, before any misleading metric delta. |
