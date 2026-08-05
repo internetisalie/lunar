@@ -71,9 +71,23 @@ No luac for LUA51. The parse oracle is a provisioned dependency of MAINT-35.
 Install it:  apt-get install lua5.1     (see tooling/gce-builder/builder-bootstrap.sh)
 ```
 
-`LUA55` is the one level Debian does not package. No corpus row uses it, and rather than reintroduce
-tolerance for a case that does not exist, `fetch-corpus.sh` **rejects a `LUA55` row at fetch time**
-(MAINT-35-03a) — the error surfaces when someone adds such a row, which is when it can be acted on.
+### 2.0a Two sources, in order — and we already build the second one
+
+`luac` resolution has two sources, tried in order:
+
+1. **System package** — `luac5.1`–`luac5.4` on `PATH`, provisioned by MAINT-35-00. Fast, no compile.
+2. **A provisioned environment's `bin/luac`** — because **Lunar builds `luac` itself**.
+   `PucLuaBuildRecipe.kt:115-126` compiles `luac.c` and copies it to `<prefix>/bin/luac`;
+   `:144` marks it executable; `LuaProvisionEngine.kt:203` records it as an `extraBinary` in the env
+   manifest. Every source-built environment therefore already carries a version-exact `luac`.
+
+Source 2 is what covers **`LUA55`**, which Debian does not package — and which the native provisioner
+*defaults to*. An earlier draft instead made `fetch-corpus.sh` reject a `LUA55` row, which was the
+wrong instinct twice over: it declared a level unsupportable while our own toolchain was already
+building a `luac` for it, and it treated "apt cannot supply this" as "this cannot be supplied".
+
+A side benefit worth naming: source 2 **dogfoods TOOLING-04**. If the provisioner ever emits a
+`luac` that cannot parse valid Lua, the oracle turns that product defect into a test failure.
 
 ### 2.1 Version matching is the whole correctness of the oracle
 
