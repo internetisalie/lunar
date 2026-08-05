@@ -23,6 +23,44 @@ recorded `parseErrors`. Record the count and a representative sample.
 **Why it gates the plan**: the number decides whether Phase 4 is "record a clean baseline" or "file
 N defects first". A large count is not a reason to weaken the gate; it is the finding.
 
+#### ANSWERED 2026-08-05 — and it changes the design
+
+Ran `luac5.1 -p` over all 419 indexed files in the four members and diffed against each baseline's
+recorded `parseErrorFile` entries:
+
+| member | files | luac rejects | Lunar rejects | agree | **false reject** | **false accept** |
+| :-- | --: | --: | --: | --: | --: | --: |
+| luacheck | 132 | 4 | 2 | 2 | **0** | **2** |
+| luarocks | 159 | 0 | 0 | 0 | 0 | 0 |
+| zerobrane | 72 | 0 | 0 | 0 | 0 | 0 |
+| penlight | 56 | 0 | 0 | 0 | 0 | 0 |
+
+**False rejects: zero across 419 files.** That is BUG-392's direction — Lunar rejecting valid Lua —
+and it is clean. Phase 4 therefore has no backlog to file in the direction that motivated the
+feature.
+
+The two false accepts are **different in kind**, which is the finding:
+
+1. `src/luacheck/vendor/sha1/lua53_ops.lua` — Lua 5.3 bitwise operators (`<<`, `&`, `|`, `>>`, `~`)
+   in a corpus pinned at `LUA51`. `luac5.1` rejects at `:4`. Lunar accepts **by design**: the parser
+   is level-agnostic and level violations are reported by `LuaLanguageLevelInspection`, which fires
+   17 times on this member. Not a defect — **a false positive of the oracle**.
+2. `spec/samples/python_code.lua` — literally `from __future__ import braces`. `luac5.1` rejects
+   with `'=' expected near '__future__'`. Lunar reports **0 parse errors**, parsing it as four
+   separate `EXPR_STATEMENT`s each wrapping a bare `NAME_REF` (probed, PSI dumped). Lua permits only
+   assignments and calls as statements, so a bare name is a syntax error. **A real defect — filed as
+   BUG-409.**
+
+**Design consequence (blocking, folded into design §2.3).** `oracleDisagreements` as specified —
+"both directions count" — would gate on a metric with a *systematic* false positive, because Lunar
+deliberately parses a superset of any single language level. A gate that is known-flaky gets
+disabled, which is the reasoning `CorpusMetrics.compare` already applies to inspection counts. So:
+
+> **Gate on false rejects. Report false accepts diagnostically.**
+
+False rejects have no such confound: if `luac` accepts a file at the corpus's pinned level and Lunar
+does not, that is a defect with no legitimate explanation.
+
 ### MAINT-35-00-DR-03 — Pin the PUC Lua tarballs [Must]
 
 `luac.json` needs an exact version + sha256 per level. lua.org publishes the tarballs and their
@@ -54,6 +92,7 @@ addressable, vendor a snapshot into the out-of-repo `test/` tree instead, or dro
 | R2 | **Version skew invents disagreements.** `luac5.4` accepts `1 // 2`, `luac5.1` rejects it — verified both ways. Any `PATH`-resolved binary has an unknowable version. | High if unmanaged | High | The oracle is built from a **pinned tarball + sha256** per level and resolved by table lookup to one path; `PATH` is never consulted. TC-3/TC-4 assert the same input gets opposite verdicts at the two levels. |
 | R3 | **Disagreements get baselined as expected**, converting live defects into permanent ones — exactly the failure MAINT-33 already has with `parseErrors`, reproduced one layer up. | Medium | **High** | Phase 4 forbids recording a disagreement without a filed bug ID, and the DoD repeats it. |
 | R4 | **Process-spawn cost.** One `luac` per file across **419** corpus files (baselines sum to 419). | Certain | Low | ~10 ms/spawn ≈ 4 s, against a corpus budget already measured in minutes. **Batching is NOT the fallback** — verified: `luac5.1 -p ok.lua bad.lua ok2.lua` aborts at the first reject and reports only that file, so it cannot produce the per-file verdicts MAINT-35-02 requires. If cost ever matters, the fallback is to judge only files whose `parseErrors` differ from the previous run. |
+| R5a | **`luac`'s own stderr is not always valid UTF-8.** Confirmed in DR-01's first run: decoding it strictly threw `UnicodeDecodeError` on luacheck's `utf8_error.lua`, because `luac` echoes the offending token back. | **Certain** | Medium | `ParseOracle` decodes process output with a replacing decoder. The `Reject(message)` payload is diagnostic only — it is never compared or baselined — so replacement characters are harmless. |
 | R5 | **The fuzz corpus is not valid UTF-8** and a lossy decode breaks the round-trip invariant at the decode rather than the lexer, producing false failures that look like lexer bugs. | High | Medium | Inputs decoded ISO-8859-1 (design §5), which is byte-preserving for round-trip purposes. |
 | R6 | **`luac -p` is a parser, not a lexer.** It rejects some inputs the *lexer* handles fine (valid tokens, invalid grammar), so it cannot judge the lexer in isolation. | Certain | Low | Accepted: the oracle judges the parser. The lexer is judged by the oracle-free round-trip and crash invariants, which need no reference implementation. Stated so nobody later mistakes the oracle for lexer-level ground truth. |
 | R7 | **Corpus runtime ceiling.** MAINT-33 parked KOReader for pushing the sweep past 10 minutes; this feature adds work to every file plus a new member. | Medium | Medium | Phase 5 records sweep time against the ceiling. If exceeded, the torture member is the first thing to park — it is a `Should`. |

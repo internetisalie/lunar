@@ -209,9 +209,24 @@ There is no "oracle absent" row: a missing binary fails the sweep before it star
 `NotJudged` cause is a per-file timeout, which is diagnostic — a timing-out oracle is judging
 nothing, so `oracleTimeouts` being non-zero is reported loudly, but it never disables the gate.
 
-Both directions count toward `oracleDisagreements`. They are recorded separately in the diagnostic
-list (`falseReject:<path>` / `falseAccept:<path>`) because they have different severities: a false
-reject is a visible red squiggle on good code, a false accept is silent under-reporting.
+**Only false rejects are gated.** `oracleDisagreements` counts the *Accept/rejects* row alone;
+false accepts are recorded in the diagnostic `oracleSites` list and reported, never gated.
+
+This is DR-01's finding, not a hedge. Lunar's parser is deliberately **level-agnostic** — it parses
+a superset of any single language level and defers enforcement to `LuaLanguageLevelInspection`. So a
+file using Lua 5.3 operators in a `LUA51`-pinned corpus is rejected by `luac5.1` and accepted by
+Lunar *by design*, and DR-01 found exactly that case (`vendor/sha1/lua53_ops.lua`, against 17
+`LuaLanguageLevel` inspection hits on the same member). Gating on that direction would bake a
+systematic false positive into a ratchet, and a known-flaky gate gets disabled — the same reasoning
+`CorpusMetrics.compare` already applies to per-inspection counts.
+
+False rejects carry no such confound: if `luac` accepts a file at the corpus's own pinned level and
+Lunar does not, there is no legitimate explanation. That is also BUG-392's direction, which is the
+defect this feature exists to catch. DR-01 measured it at **0 across 419 files**, so the gate starts
+from a true zero rather than from a baselined backlog.
+
+The false-accept direction still earns its keep diagnostically: it found **BUG-409** on its first
+run — `from __future__ import braces` parses clean because Lunar admits a bare name as a statement.
 
 ## 3. `LexerInvariants` (MAINT-35-04, -05)
 

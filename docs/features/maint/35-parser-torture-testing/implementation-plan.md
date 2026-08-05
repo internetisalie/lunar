@@ -22,12 +22,20 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
 ### Phase 0: De-risk [Must]
 - **Goal**: find out what the oracle actually says before building anything around it.
 - **Tasks**:
-  - [ ] DR-01 — throwaway harness: run `luac5.1 -p` over every file in all four corpus members and
-        diff against the recorded `parseErrors`. Record the disagreement count and a sample.
+  - [x] **DR-01 — done 2026-08-05.** 419 files judged: **0 false rejects**, 2 false accepts (one by
+        design — the level-agnostic parse; one real, filed as **BUG-409**). Recorded in
+        `risks-and-gaps.md`; the design consequence (gate false rejects only) is folded into §2.3
+        and MAINT-35-02.
   - [ ] DR-02 — confirm squeek502's minimized corpus is published as a stable, checksummable release
         asset; record URL + sha256, or drop MAINT-35-06 to `Could`.
   - [ ] *(moved to Phase 1 as MAINT-35-00 — provisioning is a requirement, not a de-risking chore)*
-- **Verification**: both answers written into `risks-and-gaps.md`. No production or test code kept.
+- **Verification**: answers written into `risks-and-gaps.md`. No production or test code kept.
+
+> **DR-01 already paid for Phase 0.** It corrected a `Must` requirement before any code was written
+> (both directions gated → false rejects only), found BUG-409, and hit design risk R5 in its first
+> five minutes — `luac`'s stderr carries non-UTF-8 bytes when it echoes an invalid token, so the
+> harness needed `errors="replace"`. The real `ParseOracle` must decode `luac` output tolerantly for
+> the same reason.
 
 > **Phase 0 gates the plan.** If DR-01 returns a large disagreement count, those are defects to file
 > before any baseline is recorded — see the DoD. Baselining a disagreement as expected converts a
