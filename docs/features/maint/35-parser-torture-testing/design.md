@@ -1,0 +1,381 @@
+---
+id: "MAINT-35-DESIGN"
+title: "Technical Design"
+type: "design"
+parent_id: "MAINT-35"
+folders:
+  - "[[features/maint/35-parser-torture-testing/requirements|requirements]]"
+---
+
+# Technical Design: MAINT-35 — Lexer/Parser Torture Testing
+
+## 1. Architecture
+
+Two new test-only objects and four new metrics on the existing MAINT-33 pipeline. No production
+code changes; **no `plugin.xml` registration, extension point, service or index is added or
+changed** by this feature.
+
+```
+CorpusSweep.run(fixture, entry, checkoutDir)
+   └─ per file: tally(psiFile, entry.luaLevel)          ← §4.1
+        ├─ (existing) parseErrors / requires / unresolvedRequires   ─ wrapped in runCatching{Throwable}
+        ├─ NEW LexerInvariants.check(psiFile.text)      → roundTripFailed, lex crash
+        └─ NEW ParseOracle.judge(psiFile.text, level)   → Verdict          (off-EDT, §2.2a)
+             │
+             └─► FileTally(+3) ─► run() aggregates, caps oracleSites ─► CorpusMetrics (4 new fields)
+                                                └─► CorpusBaseline.render/parse/compare  (§4.3, §4.4)
+                                                       └─► CorpusGuards.assertRatchet
+```
+
+## 2. `ParseOracle` (MAINT-35-01, -03)
+
+**File**: `src/test/kotlin/net/internetisalie/lunar/corpus/ParseOracle.kt`
+
+```kotlin
+internal object ParseOracle {
+
+    sealed interface Verdict {
+        object Accept : Verdict
+        data class Reject(val message: String) : Verdict
+        data class Unavailable(val reason: String) : Verdict
+    }
+
+    fun judge(source: CharSequence, level: LuaLanguageLevel): Verdict
+
+    /** `luac` binaries by level, resolved once per JVM. Null when none matches. */
+    fun binaryFor(level: LuaLanguageLevel): File?
+}
+```
+
+### 2.1 Version matching is the whole correctness of the oracle
+
+`luac5.4` accepts `local a = 1 // 2`; `luac5.1` rejects it — **verified on the builder, both
+directions**. Judging a `LUA51` corpus with whatever `luac` happens to be first on `PATH` therefore
+invents disagreements (or hides them). The mapping is explicit, and resolution is by *versioned*
+name only — a bare `luac` is never used, because its version is unknowable without running it:
+
+| `LuaLanguageLevel` | binary candidates, in order |
+| :-- | :-- |
+| `LUA50` | *(none)* — `Unavailable("no luac for 5.0")`. `LuaLanguageLevel` really does declare `LUA50` (`lang/LuaLanguageLevel.kt:20`); PUC ships no `luac5.0` on any supported distro, so it is handled explicitly rather than left to an `else`. |
+| `LUA51` | `luac5.1`, `luac51` |
+| `LUA52` | `luac5.2`, `luac52` |
+| `LUA53` | `luac5.3`, `luac53` |
+| `LUA54` | `luac5.4`, `luac54` |
+| `LUA55` | `luac5.5`, `luac55` |
+
+`binaryFor` is an **exhaustive** `when` over all six constants — no `else` — so a future level fails
+to compile rather than silently resolving to nothing. Each candidate is looked up on `PATH`. Builder state at time of writing: `luac5.1` and `luac5.4`
+present, `5.2`/`5.3`/`5.5` absent — so `LUA52`/`LUA53`/`LUA55` yield `Unavailable` until provisioned
+(Phase 0 task). All four current corpus rows are `LUA51`, so the oracle is live for the whole corpus
+on day one.
+
+### 2.2 Invocation
+
+`luac -p -` — parse-only, reading the source from **stdin**. Exit 0 = Accept; non-zero =
+`Reject(stderr)`.
+
+Stdin, not a temp file. An earlier draft claimed "`luac` reads paths, not stdin, on 5.1"; that is
+**false** — verified on the builder, `printf 'local a = 1\n' | luac5.1 -p -` and the same under
+`luac5.4` both exit 0. `luac.c` maps the filename `-` to `luaL_loadfile(L, NULL)` in both. Using
+stdin removes temp-file creation, cleanup and path leakage into `stderr` (diagnostics read
+`stdin:1:` instead of an absolute path, which also keeps the baseline machine-independent).
+
+Timeout: 10 s per invocation, `destroyForcibly()` on expiry, counted as
+`Unavailable("timeout")` — never as `Reject`, because a hung oracle is not evidence about the input.
+
+### 2.2a Threading — stated, because it is not obvious
+
+`LuaCorpusSweepTest` extends `BasePlatformTestCase`, whose `runInDispatchThread()` defaults to
+`true`, so **the sweep body runs on the EDT**. Spawning 419 processes synchronously there would put
+blocking I/O on the EDT, which the engineering contract forbids.
+
+Therefore every `ParseOracle.judge` call is made **off the EDT**, using the repo's existing helper
+shape — `ApplicationManager.getApplication().executeOnPooledThread<T> { … }.get(timeout, SECONDS)`,
+exactly as `LuaToolExecutionServiceTest.kt:21-22` does for the same reason. `ParseOracle.judge`
+asserts it is not on the EDT and fails loudly if it is.
+
+This supersedes an earlier draft of this section, which used `ProcessBuilder` *because* it evades
+`ThreadingAssertions.softAssertBackgroundThread()`. That reasoning was backwards: the assertion was
+detecting a real contract violation, and the fix is to move the work off the EDT, not to pick a
+primitive that does not check. `ProcessBuilder` is still what runs the command — the production
+`LuaToolExecutionService` is deliberately **not** reused, because it is an `@Service(APP)` whose
+timeout/cancellation semantics are tuned for user-facing runs; but that is now a preference, not a
+workaround.
+
+### 2.3 Comparison rule (MAINT-35-02)
+
+For each swept file, with `lunarAccepts = (parseErrors == 0)`:
+
+| oracle | lunar | outcome |
+| :-- | :-- | :-- |
+| Accept | accepts | agree |
+| Reject | rejects | agree |
+| Accept | rejects | **disagreement — false reject** (Lunar rejects valid Lua; BUG-392's class) |
+| Reject | accepts | **disagreement — false accept** (Lunar admits invalid Lua) |
+| Unavailable | — | not counted; reason printed once per level |
+
+**When is `oracleDisagreements` null?** Exactly one rule, because MAINT-35-03 and R1 both rest on it:
+
+> `oracleDisagreements` is null **if and only if `binaryFor(level) == null`** — i.e. no `luac`
+> matching the corpus entry's level exists on `PATH`. It is a property of the *environment*, decided
+> once per sweep before any file is judged.
+
+A per-file `Unavailable` (a **timeout**, §2.2) does **not** null the metric. Nulling on any
+`Unavailable` would let one slow file disable the gate for the whole member and, via §4.4 row 2,
+turn the next run red for an unrelated reason. Per-file timeouts are instead counted into a
+diagnostic `oracleTimeouts` scalar and printed; if that number is ever non-zero the sweep says so
+loudly, because a timing-out oracle is judging nothing.
+
+Both directions count toward `oracleDisagreements`. They are recorded separately in the diagnostic
+list (`falseReject:<path>` / `falseAccept:<path>`) because they have different severities: a false
+reject is a visible red squiggle on good code, a false accept is silent under-reporting.
+
+## 3. `LexerInvariants` (MAINT-35-04, -05)
+
+**File**: `src/test/kotlin/net/internetisalie/lunar/corpus/LexerInvariants.kt`
+
+```kotlin
+internal object LexerInvariants {
+
+    /** [crash] is the throwable's class name, or null when the lex completed. */
+    data class Result(val roundTripFailed: Boolean, val crash: String?)
+
+    /** Lexes [source] with the production [LuaLexer] stack. Never throws. */
+    fun check(source: CharSequence): Result
+}
+```
+
+**Scope: lexing only.** An earlier draft had this same signature also perform a parse via
+`PsiFileFactory`, which is unimplementable — `PsiFileFactory.getInstance(project)` needs a `Project`
+and the signature has none. The parse half of MAINT-35-05 is therefore **not** here; it is captured
+in `CorpusSweep`, which already holds a parsed `PsiFile` (§4.1). One `crash` slot is correct for one
+crash site.
+
+### 3.1 Round-trip
+
+```kotlin
+val lexer = LuaLexer()
+lexer.start(source)
+val rebuilt = StringBuilder()
+while (lexer.tokenType != null) {
+    rebuilt.append(lexer.tokenText)
+    lexer.advance()
+}
+roundTripFailed = rebuilt.toString() != source.toString()
+```
+
+The `LuaLexer()` / `start` / `tokenType` / `tokenText` / `advance` idiom is the one already used by
+`TestLuaLexer.kt:17-27`. `LuaLexer` — **not** `_LuaLexer` — is deliberate: the merging adapters are
+what the parser, highlighter and TODO indexer all consume, so a merge bug is exactly what this
+invariant must catch. BUG-392 lived in `LongStringMergingLexerAdapter`, and a raw-flex round-trip
+would have passed while the real token stream was broken.
+
+Note the read-then-advance order: `MergingLexerAdapterBase.getTokenType()` locates the token lazily,
+so reading before the first `advance()` is correct and no leading `advance()` is wanted here.
+
+### 3.2 Crash-freedom (lex half)
+
+The whole loop runs inside `runCatching { }` catching **`Throwable`**, not `Exception`, because
+BUG-390's failure mode was `StackOverflowError`. Only the throwable's class name is recorded — never
+the message, which can carry absolute paths and would churn the baseline across machines.
+
+## 4. Metrics and baseline (MAINT-35-07)
+
+### 4.1 Where the data comes from (MAINT-35-04, -05)
+
+`CorpusSweep.tally(psiFile)` (`CorpusSweep.kt:215`) already holds the parsed `PsiFile` for every
+swept file, so both new checks hang off it rather than re-reading anything:
+
+- **source text** = `psiFile.text`. Not `VfsUtilCore.loadText`, not the on-disk bytes: `psiFile.text`
+  is *by definition* the text the lexer and parser saw, which is what a round-trip must compare
+  against. It also makes the main-corpus encoding question moot — the platform has already decoded.
+- **parse crash** = the existing `tally` body is wrapped in `runCatching { }` catching `Throwable`.
+  On a throw the file yields `crash = "parse:<Class>"` and is **excluded from the oracle comparison
+  entirely** — it is neither an accept nor a reject. Feeding it in as `parseErrors = 0` would make
+  `lunarAccepts` true and score a crashed file as a *false accept* (§2.3), conflating a crash with a
+  semantic disagreement. `requires`/`unresolved` are carried as 0 for that file, which is honest
+  (nothing was counted) and safe: `CorpusGuards.assertIdentity:68-73` identity-checks the `requires`
+  **total**, so a newly-crashing file changes it and the ratchet reports
+  "Recognised require count changed" — a deliberate, loud failure rather than a silent one.
+- **lex crash / round-trip** = `LexerInvariants.check(psiFile.text)`; a lex crash is recorded as
+  `lex:<Class>`.
+
+`FileTally` (`CorpusSweep.kt:31`) gains three fields — `roundTripFailed: Boolean`,
+`crash: String?`, `oracle: ParseOracle.Verdict` — and `CorpusSweep.run` (`:40`) aggregates them into
+the new `CorpusMetrics` fields alongside the existing `sumOf` calls.
+
+### 4.2 New fields
+
+```kotlin
+val oracleDisagreements: Int? = null,             // null == oracle unavailable, NOT zero
+val oracleSites: List<String> = emptyList(),      // "falseReject:<path>" / "falseAccept:<path>"
+val lexerRoundTripFailures: Int = 0,
+val crashes: Map<String, Int> = emptyMap(),       // "lex:<Class>" / "parse:<Class>" → count
+```
+
+`crashes` is one map spanning both sites (§4.1), keyed by prefix, rather than two fields.
+
+### 4.3 Baseline format — exact keys
+
+`CorpusBaseline` (`CorpusMetrics.kt:76`) already defines `INSPECTION_PREFIX`, `SYMBOL_PREFIX` and
+`BALLAST_PREFIX` at `:82-88`. Three additions, in the same style:
+
+| Field | Rendered as | Notes |
+| :-- | :-- | :-- |
+| `oracleDisagreements` | `oracleDisagreements=<n>` | **Omitted entirely when null** |
+| `lexerRoundTripFailures` | `lexerRoundTripFailures=<n>` | always rendered |
+| `crashes` | `crash.<key>=<n>`, one line each, sorted | new `CRASH_PREFIX = "crash."` |
+| `oracleSites` | `oracleSite=<entry>`, repeated, sorted | new `ORACLE_SITE_KEY`. **Capped at 20 — but the cap is applied in `CorpusSweep.run`, never in `render`** (see below). |
+| `oracleTimeouts` | `oracleTimeouts=<n>` | diagnostic scalar (§2.3); rendered always, gated never |
+
+**The cap is applied at construction, not at render.** A render-time cap is lossy, and
+`BaselineRatchetTest.renderParseRoundTrip` (`:44-60`) asserts `original == parse(render(original))`
+over the whole data class — so a 25-site metrics object would render 20 and parse back as 20 ≠ 25,
+breaking an existing green test. A truncation marker would be worse: it carries the `oracleSite`
+key, so `parse` would read it back as a **fake disagreement site** indistinguishable from a real one.
+
+The prior art is already in this pipeline and is exactly this shape: `SYMBOLS_PER_INSPECTION = 10`
+is applied by `topSymbols(...)` at **construction** (`CorpusSweep.kt:54`), so `CorpusMetrics.symbolHits`
+is already capped by the time `render` sees it and the round-trip is lossless. `oracleSites` is
+capped the same way — sorted then truncated to 20 inside `run` — and the full count remains visible
+because `oracleDisagreements` is the *uncapped* number.
+
+`parse` (`:115`) must add `oracleSite` and `crash.` to the `filterNot` chain at `:120-125` that
+strips prefixed keys before reading scalars — otherwise they are parsed as scalars and
+`renderParseRoundTrip` breaks.
+
+**`BaselineRatchetTest.renderParseRoundTrip` (`:44-60`) asserts `original == parse(render(original))`
+over the whole data class**, so every field above must round-trip or an existing green test fails.
+
+### 4.4 `compare` — the null case cannot use the numeric pipeline (TC-9)
+
+`compare` (`:173`) builds `gated: List<Triple<String, Int, Int>>` and formats it through
+`describe(Triple<String,Int,Int>)` (`:203`). A null oracle is **not** a numeric delta and cannot be
+expressed there, so it is handled as an explicit pre-check *before* the triple list is built:
+
+```kotlin
+val oracleRegression: String? = when {
+    baseline.oracleDisagreements != null && observed.oracleDisagreements == null ->
+        "oracle unavailable — baseline recorded ${baseline.oracleDisagreements}"
+    else -> null
+}
+```
+
+and prepended to `regressions`. The four cases, stated exhaustively so none is left to inference:
+
+| baseline | observed | outcome |
+| :-- | :-- | :-- |
+| number | number | ordinary gated delta via the existing pipeline |
+| number | **null** | **regression** — the message above (TC-9) |
+| null | number | **not** a regression; printed as `[corpus] IMPROVED (oracle now available: <n>)` so it prompts a re-record, exactly like an improved count |
+| null | null | identity; no output |
+
+The `null → number` row matters: it is what happens the first time a level's `luac` is installed,
+and treating it as a regression would punish fixing the environment.
+
+### 4.5 What is gated, and how
+
+Restoring a rule an earlier draft stated and a later edit dropped. Ratchet direction is the existing
+one throughout: an increase is a regression, a decrease prints `[corpus] IMPROVED`.
+
+| Field | Gated? | How |
+| :-- | :-- | :-- |
+| `oracleDisagreements` | **yes** | appended to `compare`'s `gated` `Triple` list as an ordinary numeric delta, plus the null pre-check of §4.4 |
+| `lexerRoundTripFailures` | **yes** | appended to the same `gated` list |
+| `crashes` | **yes, per key** | one `Triple` per key across `baseline.keys + observed.keys`, exactly as `inspectionHits` does at `CorpusMetrics.kt:187-195` — a key present on one side counts 0 on the other, so a crash that *starts* happening is a movement rather than a silent no-op. Per-key, not on the sum: a new `StackOverflowError` appearing while an `AssertionError` disappears must not net to zero. |
+| `oracleSites` | no — diagnostic | locatability, like `parseErrorFiles` |
+| `oracleTimeouts` | no — diagnostic | printed; a non-zero value is a loud warning, not a gate |
+
+## 5. Torture corpus (MAINT-35-06)
+
+squeek502 publishes **minimized** lexer corpora as release assets. They are not a Lua project:
+no `require`s, no inspections worth counting, no commit, and the files have no extension.
+
+**File**: `src/test/kotlin/net/internetisalie/lunar/corpus/LuaTortureCorpusTest.kt`
+**Class**: `LuaTortureCorpusTest` — file and class name **must match**, and both must contain
+`Corpus`, because that is what makes `build.gradle.kts:266`'s guard and its
+`excludeTestsMatching("*Corpus*")` at `:268` govern the test with no build change. Naming it
+`LuaTortureTest` would let it escape the filter and fail in CI, where no corpus is fetched.
+
+### 5.1 It needs its own metrics type
+
+`CorpusMetrics` cannot be reused: `CorpusGuards.assertIdentity` (`CorpusGuards.kt:53-74`)
+identity-checks `commit`, `files` **and** `requires`, and a torture member has no commit (it is
+pinned by sha256) and no requires. Forcing a sha256 into `commit` would be a lie the ratchet then
+enforces. So:
+
+```kotlin
+internal data class TortureMetrics(
+    val sha256: String,
+    val files: Int,
+    val parseErrors: Int,          // §2.3 needs it: lunarAccepts = (parseErrors == 0)
+    val oracleDisagreements: Int?,
+    val oracleSites: List<String>,
+    val oracleTimeouts: Int,
+    val lexerRoundTripFailures: Int,
+    val crashes: Map<String, Int>,
+)
+```
+
+with its own `render`/`parse`/`compare` in `TortureBaseline`, deliberately mirroring
+`CorpusBaseline`'s key style (§4.3) and its null-oracle rule (§4.4). Identity check: `sha256` and
+`files` must match, or the baseline is refused.
+
+`parseErrors` is present deliberately: §2.3's comparison is defined as
+`lunarAccepts = (parseErrors == 0)`, so dropping the field would leave the oracle nothing to compare
+against. Gating and null-handling follow §4.4/§4.5 unchanged.
+
+**Getting a Lua `PsiFile` from an extensionless input.** The torture files have no extension, so
+nothing in the platform will type them as Lua. The test builds the PSI explicitly:
+
+```kotlin
+PsiFileFactory.getInstance(project)
+    .createFileFromText("torture-$index.lua", LuaFileType, text)
+```
+
+— the same call `LuaElementFactory.kt:43` uses. The synthetic `.lua` name is what selects the
+language; the on-disk name is irrelevant.
+
+### 5.2 Input discovery
+
+```kotlin
+File(tortureRoot).walkTopDown()
+    .onEnter { it.name != ".git" }            // prune the DIRECTORY, not just dot-files
+    .filter { it.isFile && !it.name.startsWith(".") }
+    .sortedBy { it.relativeTo(tortureRoot).path }
+```
+
+`onEnter` is the prior art at `CorpusSweep.kt:101` and is required: a dot-*file* filter does not
+prune a `.git` **directory** — `walkTopDown` descends into it and its contents (`config`, `HEAD`,
+loose objects) are not dot-named, so they would be swept as inputs. Sorting by relative path makes
+the baseline deterministic. Every remaining file is an input regardless of extension — the corpus is
+deliberately extensionless.
+
+Inputs are read as **bytes decoded ISO-8859-1**, not UTF-8: a fuzz corpus contains invalid UTF-8 by
+construction, and a lossy decode would break the round-trip invariant at the decode rather than at
+the lexer, manufacturing failures that look like lexer bugs. (This rule is specific to the torture
+corpus; the main sweep reads `psiFile.text`, already decoded by the platform — §4.1.)
+
+### 5.3 Fetch
+
+- **`tooling/corpus/torture.tsv`** — `name<TAB>url<TAB>sha256<TAB>luaLevel`.
+- **`tooling/corpus/fetch-torture.sh`** — downloads, verifies sha256 (**refusing on mismatch**),
+  unpacks to `test/corpus-torture/<name>/`, writes a `.corpus-sha` stamp like `fetch-corpus.sh`.
+
+## 6. Verification
+
+- `test --tests *LuaTortureCorpus* -PwithCorpus`, then the full corpus ratchet, then the full suite.
+- Run the corpus gate and the full suite as **separate invocations**. Combining them
+  (`test -PwithCorpus --rerun --no-build-cache`) wedged the Gradle daemon on 2026-08-04 — two live
+  workers, load 0.00, twenty minutes of silence, recovered only by `pkill -9`.
+
+## De-risking
+
+Two de-risking tasks are tracked in [`risks-and-gaps.md`](risks-and-gaps.md) — DR-01 measures what
+the oracle says about today's corpus, DR-02 confirms the upstream torture asset is stably
+checksummable. Neither blocks a requirement: MAINT-35-01…-05 stand on the existing corpus alone, and
+MAINT-35-06 is a `Should`.
+
+## Open Questions
+
+None.
