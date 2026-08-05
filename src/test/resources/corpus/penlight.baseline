@@ -50,3 +50,7 @@ ballast.claimed.lua=58
 ballast.unclaimed.md=13
 ballast.claimed.rockspec=25
 ballast.unclaimed.yml=3
+oracleDisagreements=0
+oracleTimeouts=0
+lexerRoundTripFailures=0
+unmergedTokens=0

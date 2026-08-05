@@ -85,3 +85,7 @@ ballast.claimed.txt=1
 ballast.unclaimed.windows=1
 ballast.unclaimed.yml=2
 ballast.claimed.zip=4
+oracleDisagreements=0
+oracleTimeouts=0
+lexerRoundTripFailures=0
+unmergedTokens=0

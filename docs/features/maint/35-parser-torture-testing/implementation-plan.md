@@ -116,13 +116,20 @@ either — the full suite is the gate (isolated-tests-masks-full-suite lesson).
   plus the next full suite unchanged. Filed as **BUG-410** rather than left as folklore; nothing in
   this phase touches `rocks/`.
 
-### Phase 4: Record baselines, file what the oracle finds [Must]
+### Phase 4: Record baselines, file what the oracle finds [Must] — **DONE 2026-08-05**
 - **Goal**: turn Phase 0's findings into either fixes or filed defects.
 - **Tasks**:
-  - [ ] For every disagreement: file a BUG row with the file, the two verdicts and a reduction.
-  - [ ] Only then re-record the four baselines with `-PrecordCorpusBaseline`.
-  - [ ] State in the commit how many disagreements were baselined and under which bug IDs.
-- **Verification**: corpus ratchet green; no disagreement baselined without a bug ID.
+  - [x] **Nothing new to file.** The gated metric — false rejects — is **0 on all four members**,
+        419 files. The two false accepts are diagnostic and already accounted for: one is the
+        by-design level-superset parse, the other is **BUG-409** (filed during Phase 0).
+  - [x] Baselines re-recorded. **No existing metric moved** — the diff is 18 added lines and zero
+        changed ones, so the new checks were additive rather than a re-baseline of old numbers.
+  - [x] Confirmed the oracle actually ran rather than passing vacuously: `oracleSites` records
+        exactly the two known false accepts, reproduced independently by the shipped code against
+        the pinned 5.1.5 build. An inert oracle would have left that list empty while every gated
+        counter still read 0.
+- **Verification**: corpus ratchet green **before** recording (the new counters were already clean)
+  and again after; full suite 2366 / 0. No disagreement baselined without a bug ID.
 
 ### Phase 5: Torture corpus [Should]
 - **Goal**: MAINT-35-06.

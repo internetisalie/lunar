@@ -79,6 +79,12 @@ ballast.unclaimed.sh=5
 ballast.unclaimed.toml=1
 ballast.unclaimed.yaml=1
 ballast.unclaimed.yml=5
+oracleDisagreements=0
+oracleTimeouts=0
+lexerRoundTripFailures=0
+unmergedTokens=0
 parseErrorFile=spec/samples/compound_operators.lua:2:<expr> expected, got '='
 parseErrorFile=spec/samples/utf8_error.lua:2:Empty element parsed in 'root' at offset 20
 parseErrorFile=spec/samples/utf8_error.lua:2:<statement> or LuaTokenType.return expected, got 'о'
+oracleSite=falseAccept:spec/samples/python_code.lua
+oracleSite=falseAccept:src/luacheck/vendor/sha1/lua53_ops.lua

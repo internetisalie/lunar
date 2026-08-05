@@ -76,3 +76,7 @@ ballast.unclaimed.rc=1
 ballast.unclaimed.sh=7
 ballast.claimed.txt=1
 ballast.claimed.xml=1
+oracleDisagreements=0
+oracleTimeouts=0
+lexerRoundTripFailures=0
+unmergedTokens=0
