@@ -2,6 +2,32 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### 0.21.2 — Documented declarations could vanish from Search Everywhere (BUG-408)
+
+A declaration's doc comment was indexed as three tab-separated fields joined by `|`, split back
+apart by hand at the reader. Neither delimiter was escaped, and the file URL was not sanitised — so
+any project path containing a tab or a `|` changed the record's arity, and the reader dropped the
+entry rather than mis-reading it. The documentation was simply absent from Search Everywhere's Lua
+doc results, with nothing to indicate it had been discarded.
+
+The record format now lives in one place and escapes both delimiters, so a path can no longer alter
+the shape of a record. The index version was bumped, so affected entries reappear after the next
+re-index; no action is required.
+
+Internal: the corpus manifest moved from tab-separated text to JSON (BUG-407) — the same class of
+defect, in the tooling that was supposed to catch defects like it. Two hand-rolled parsers disagreed
+about a row with an empty field, and one of them fed the difference to `rm -rf`.
+
+Internal: the regression corpus gained a differential parse oracle and two lexer invariants
+(MAINT-35). Every swept file is now judged by the matching PUC Lua `luac -p`, built from a pinned,
+checksummed tarball rather than a distro package, so "Lunar reports a syntax error here" is checked
+against an independent implementation instead of against last week's number. A pinned corpus of
+1 696 minimized fuzzer inputs runs alongside it. This found BUG-411 on its first pass — vertical tab
+and form feed are not treated as whitespace, so a file containing either reports a syntax error that
+PUC Lua does not — and put a number on how much more permissive Lunar's parser is than PUC's, which
+had never been measured.
+
+
 ### 0.21.1 — LDoc doc comments no longer report false syntax errors (BUG-393)
 
 `---` comments written in [LDoc](https://lunarmodules.github.io/ldoc/) style marked otherwise-clean
