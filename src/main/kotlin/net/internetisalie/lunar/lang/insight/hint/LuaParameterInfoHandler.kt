@@ -7,6 +7,7 @@ import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.*
+import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDeclaredType
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHandler.LuaParameterInfoCandidate> {
@@ -137,7 +138,14 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                             types.add(null)
                         }
                         params.addAll(comment.paramTagList.map { it.argName?.text ?: "..." })
-                        types.addAll(comment.paramTagList.map { it.argType.text })
+                        // BUG-406: a null type renders the parameter untyped. LDoc's
+                        // `@param name description` has no type slot, so the grammar takes the first
+                        // prose word — `array: Lua` — and only resolution can tell the two apart.
+                        types.addAll(
+                            comment.paramTagList.map {
+                                it.argType.text.takeIf { _ -> LuaCatsDeclaredType.isType(it, comment) }
+                            },
+                        )
                         candidates.add(LuaParameterInfoCandidate(name, params, types, isMethod))
                     } else {
                         val params = mutableListOf<String>()

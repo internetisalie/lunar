@@ -275,8 +275,12 @@ object LuaCatsDocumentationRenderer {
             } else {
                 sb.append(codeFragment(LuaHighlight.OPERATORS, "..."))
             }
-            sb.append(codeFragment(LuaHighlight.OPERATORS, ": "))
-            sb.append(renderTypeText(it.argType.text))
+            // BUG-406: an LDoc `@param name description` has no type slot, so the grammar takes the
+            // first prose word as the type. Show a type only when it is one.
+            if (LuaCatsDeclaredType.isType(it, comment)) {
+                sb.append(codeFragment(LuaHighlight.OPERATORS, ": "))
+                sb.append(renderTypeText(it.argType.text))
+            }
         }
     }
 
@@ -374,10 +378,17 @@ object LuaCatsDocumentationRenderer {
         tags.forEach { tag ->
             val name = if (tag.argName != null) tag.argName!!.text else "..."
             val type = tag.argType.text
-            val desc = tag.description?.text ?: ""
+            val declared = LuaCatsDeclaredType.isType(tag, comment)
+            // BUG-406: when the "type" is really the first word of an LDoc description, it is put
+            // back at the front of that description rather than dropped — the tag's prose has to
+            // survive intact, or the fix would lose documentation instead of mis-labelling it.
+            val prose = tag.description?.text.orEmpty()
+            val desc = (if (declared) prose else "$type $prose").trim()
 
             sb.append("<p><code>").append(name).append("</code>")
-            sb.append(" <span style='color: #808080;'>(").append(renderTypeText(type)).append(")</span>")
+            if (declared) {
+                sb.append(" <span style='color: #808080;'>(").append(renderTypeText(type)).append(")</span>")
+            }
             if (desc.isNotEmpty()) {
                 sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(desc))
             }
