@@ -82,7 +82,23 @@ jobs:
       - name: Unit tests (excludes :integrationTest and out-of-repo fixture tests)
         # `test` does not trigger :integrationTest (a separate task). -PexcludeExternalFixtureTests
         # skips the two tests that read the out-of-repo test/ fixture tree, which a CI checkout lacks.
-        run: ./gradlew test --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
+        #
+        # --rerun: the SUITE MUST ACTUALLY EXECUTE. The actions/cache step above restores
+        # ~/.gradle/caches, and with it Gradle's build cache — so on unchanged inputs `:test`
+        # is served FROM-CACHE and this job reports a full pass having run nothing. Measured
+        # on the Gitea lane, where a run "passed" 2375 tests in 78s doing exactly that.
+        #
+        # It matters more here than anywhere: this job feeds the `release` job below, so a
+        # cache-served suite would publish a GitHub Release on tests that never ran.
+        #
+        # In principle caching is sound — identical inputs, identical result. In practice
+        # several of this suite's inputs are NOT declared to Gradle: sandbox.home,
+        # path.to.build.plugin, the out-of-repo test/ fixture tree, and ~/bin/lua. The cache
+        # key can match while the environment differs.
+        #
+        # Scoped to this task rather than --no-build-cache, which would also stop compile
+        # being served from cache — the thing the actions/cache step exists to make fast.
+        run: ./gradlew test --rerun --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
 
       - name: Upload plugin artifact
         if: success()
