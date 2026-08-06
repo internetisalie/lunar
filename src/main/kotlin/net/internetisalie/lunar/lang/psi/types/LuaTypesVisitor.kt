@@ -160,7 +160,11 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             if (i == exprs.size - 1) {
                 result.addAll(nodes)
             } else {
-                nodes.firstOrNull()?.let { result.add(it) } ?: result.add(graph.nil(expr))
+                nodes.firstOrNull()?.let { result.add(it) }
+                    // Undefined, not nil: an RHS the engine cannot model is unknown, and a
+                    // manufactured Nil would become a variable's sole — hence CERTAIN —
+                    // reaching definition (BUG-416; the mechanism is BUG-359's).
+                    ?: result.add(graph.value(expr, LuaGraphType.Undefined))
             }
         }
         return result
@@ -443,8 +447,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val right = o.right
         val op = o.node.findChildByType(LuaElementTypes.BIN_OP)?.text ?: ""
 
-        val leftNode = firstNode(unwrapExpression(left)) ?: graph.nil(left)
-        val rightNode = firstNode(unwrapExpression(right)) ?: graph.nil(right ?: o)
+        // Undefined, not nil: these feed DIRECT operator edges, where a value is treated as
+        // certain — a manufactured Nil here is a manufactured error (BUG-359 / BUG-416).
+        val leftNode = firstNode(unwrapExpression(left)) ?: graph.value(left, LuaGraphType.Undefined)
+        val rightNode = firstNode(unwrapExpression(right)) ?: graph.value(right ?: o, LuaGraphType.Undefined)
 
         val resType = when (op) {
             "+", "-", "*", "/", "//", "^", "%" -> {
@@ -475,7 +481,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         super.visitUnOpExpr(o)
         val op = o.unOp.text
         val right = o.right
-        val rightNode = firstNode(unwrapExpression(right)) ?: graph.nil(right ?: o)
+        // Undefined, not nil — same reasoning as visitBinOpExpr (BUG-416).
+        val rightNode = firstNode(unwrapExpression(right)) ?: graph.value(right ?: o, LuaGraphType.Undefined)
 
         val resType = when (op) {
             "#" -> {
@@ -501,7 +508,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val key = field.identifier?.text
             val valExpr = field.exprList.lastOrNull()
             if (key != null && valExpr != null) {
-                val valNode = firstNode(unwrapExpression(valExpr)) ?: graph.nil(valExpr)
+                // Undefined, not nil: an unmodeled field initializer must not declare the
+                // member to be nil — that is the placeholder misreading of BUG-416.
+                val valNode = firstNode(unwrapExpression(valExpr)) ?: graph.value(valExpr, LuaGraphType.Undefined)
                 val memberNode = graph.variable(field)
                 graph.addEdge(valNode, memberNode)
                 localMembers[key] = memberNode
@@ -672,7 +681,12 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val argNodes = argExprs.map { argExpr ->
             val unwrapped = unwrapExpression(argExpr)
             val nodes = getNodes(unwrapped)
-            val node = nodes.firstOrNull() ?: graph.nil(argExpr)
+            // Undefined, not nil: a node-less argument is an expression the engine has no opinion
+            // about (a free global's placeholder member, an unmodeled construct), and encoding "no
+            // information" as "exactly nil" is BUG-359's mechanism at the call-arg site — it turns
+            // every such argument into a manufactured "nil value is not assignable to …" (BUG-416).
+            // A literal `nil` argument is unaffected; it gets a real Nil node from its own visit.
+            val node = nodes.firstOrNull() ?: graph.value(argExpr, LuaGraphType.Undefined)
             LuaGraphType.Function.Parameter(
                 graph.variable(argExpr).apply {
                     graph.addEdge(node, this)
@@ -875,7 +889,12 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 ?: LuaGraphType.Undefined
         }
         if (declared == LuaGraphType.Undefined) return false
-        val seed = graph.value(o, declared)
+        // A member DECLARED as exactly `nil` is the declare-now-fill-later placeholder —
+        // `ide = { frame = nil }` (zerobrane main.lua:64) means "exists later, type unknown", not
+        // "always nil". Seeding it as Nil made every later use an error (959× on one member,
+        // BUG-416). Node-less is the honest reading: pre-BUG-397 behaviour, no claim either way.
+        if (declared == LuaGraphType.Nil) return false
+        val seed = graph.value(o, declared, declaredOrigin = true)
         declarationTypedNodes.add(seed)
         elementNodes[o] = listOf(seed)
         return true
@@ -985,7 +1004,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val name = o.text
         if (freeGlobalSeeds.containsKey(name)) return freeGlobalSeeds[name]
         val globalType = LuaTypeManager.getInstance(o.project).resolveGlobal(name, o)
-        val seed = globalType?.let { graph.value(o, LuaGraphType.fromLuaType(it, graph)) }
+        val seed = globalType?.let { graph.value(o, LuaGraphType.fromLuaType(it, graph), declaredOrigin = true) }
         seed?.let { declarationTypedNodes.add(it) }
         freeGlobalSeeds[name] = seed
         return seed

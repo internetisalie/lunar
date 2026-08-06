@@ -55,8 +55,8 @@ class LuaTypeGraph {
      * Creates a [ValueNode] asserting that [element] produces a value of [type].
      * Typical uses: literal expressions, return values, @type annotations.
      */
-    fun value(element: PsiElement, type: LuaGraphType): ValueNode {
-        val node = ValueElement(element, type)
+    fun value(element: PsiElement, type: LuaGraphType, declaredOrigin: Boolean = false): ValueNode {
+        val node = ValueElement(element, type, declaredOrigin)
         _nodes += node
         return node
     }
@@ -117,7 +117,9 @@ class LuaTypeGraph {
             to is VariableElement -> propagateDownward(from, to)
             from is VariableElement -> propagateUpward(from, to)
             from is ValueNode && to is UseNode -> {
-                checkCompatibility(from.write, to.read, from.element, to.element)
+                // A direct value→use edge is the expression's own value meeting its own demand —
+                // `nil .. "x"` — so a Nil here is CERTAIN, not one reaching definition among many.
+                checkCompatibility(from.write, to.read, from.element, to.element, certain = true)
             }
         }
     }
@@ -228,7 +230,12 @@ class LuaTypeGraph {
                 break
             }
 
-            val initialErrorCount = _errors.size
+            // Progress = new edges OR new pairs EXAMINED — deliberately not the error count.
+            // Errors-as-progress coupled convergence to diagnostics: suppressing a false positive
+            // (BUG-416) silently ended iteration early, and the whole inspection profile of a
+            // corpus member flipped (LuaUndeclaredVariable 829 → 1647). A suppressed check still
+            // consumes its pair, so pair growth is the suppression-independent signal.
+            val initialCheckedCount = checkedPairs.size
             val initialEdgeCount = _nodes.sumOf { (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size } ?: 0 }
 
             val currentNodes = _nodes.toList()
@@ -236,6 +243,12 @@ class LuaTypeGraph {
                 if (node is VariableElement) {
                     val currentDownSet = node.downSet.toList()
                     val currentUpSet = node.upSet.toList()
+                    // BUG-416: a value reaching a use through a variable is one REACHING DEFINITION.
+                    // With several of them, a Nil among the writes is optionality — the branch that
+                    // did not run — and flagging it produced 959 false positives on one corpus
+                    // member. With exactly one, the variable can hold nothing else, and a Nil is
+                    // certain (`local nothing = nil; count(nothing)` stays an error).
+                    val certain = currentUpSet.count { it is ValueNode && !it.declaredOrigin } == 1
                     for (useNode in currentDownSet) {
                         if (useNode !is UseNode) continue
                         for (valueNode in currentUpSet) {
@@ -243,7 +256,13 @@ class LuaTypeGraph {
 
                             val pair = Pair(valueNode, useNode)
                             if (checkedPairs.add(pair)) {
-                                checkCompatibility(valueNode.write, useNode.read, valueNode.element, useNode.element)
+                                checkCompatibility(
+                                    valueNode.write,
+                                    useNode.read,
+                                    valueNode.element,
+                                    useNode.element,
+                                    certain = certain,
+                                )
                             }
                         }
                     }
@@ -251,7 +270,7 @@ class LuaTypeGraph {
             }
 
             val finalEdgeCount = _nodes.sumOf { (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size } ?: 0 }
-            if (finalEdgeCount > initialEdgeCount || _errors.size > initialErrorCount) {
+            if (finalEdgeCount > initialEdgeCount || checkedPairs.size > initialCheckedCount) {
                 changed = true
             }
         } while (changed)
@@ -263,6 +282,7 @@ class LuaTypeGraph {
         valueElement: PsiElement,
         useElement: PsiElement,
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>> = mutableSetOf(),
+        certain: Boolean = false,
     ) {
         if (valueType == LuaGraphType.Any || useType == LuaGraphType.Any) return
         if (valueType == LuaGraphType.Undefined || useType == LuaGraphType.Undefined) return
@@ -277,16 +297,35 @@ class LuaTypeGraph {
             // runtime, so no assignability error is ever justified, and only the arms that
             // structurally match the use contribute constraints to it.
             val gradual = LuaGraphType.Any in valueType.types
-            // Value(Union(A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
-            if (!gradual && !isCompatible(valueType, useType, CompatContext())) {
+            // A `nil` arm is optionality, not evidence (BUG-416). Reading an absent table field
+            // *is* `nil` in Lua, so every branch-dependent value is `T | nil` and demanding the
+            // nil arm match the use flagged idiomatic code 1 801 times across one corpus member.
+            // The nil arm forgives only itself: the informative arms must still all fit.
+            // A `nil` arm is optionality, not evidence (BUG-416). Reading an absent table field
+            // *is* `nil` in Lua, so every branch-dependent value is `T | nil` and demanding the
+            // nil arm match the use flagged idiomatic code 1 801 times across one corpus member.
+            // The nil arm forgives only itself: the informative arms must still all fit.
+            val informative = valueType.types.filter { it != LuaGraphType.Nil }
+            // Value(Union(nil | A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
+            if (!gradual && informative.isNotEmpty() &&
+                !informative.all { isCompatible(it, useType, CompatContext()) }
+            ) {
                 addError(ElementError(useElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
+                return
+            }
+            // Forgiving a nil arm must not ENABLE anything: this pair used to error-and-return, and
+            // falling through to the structural loop below would wire member edges on pairs that
+            // never propagated before. Suppressing the error is the entire fix.
+            if (!gradual && informative.size < valueType.types.size &&
+                !isCompatible(valueType, useType, CompatContext())
+            ) {
                 return
             }
             // If compatible, still propagate structural constraints to the use
             for (member in valueType.types) {
                 if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
                     if (gradual && !isCompatible(member, useType, CompatContext())) continue
-                    checkCompatibility(member, useType, valueElement, useElement, visited)
+                    checkCompatibility(member, useType, valueElement, useElement, visited, certain)
                 }
             }
             return
@@ -304,7 +343,7 @@ class LuaTypeGraph {
                     // Propagate structural constraints to compatible members
                     if (isCompatible(valueType, member, CompatContext())) {
                         if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
-                            checkCompatibility(valueType, member, valueElement, useElement, visited)
+                            checkCompatibility(valueType, member, valueElement, useElement, visited, certain)
                         }
                     }
                 }
@@ -339,12 +378,19 @@ class LuaTypeGraph {
         if (valueType is LuaGraphType.Array && useType is LuaGraphType.Array) {
             // Arrays are invariant in Phase 1 for simplicity, or covariant?
             // Let's use structural matching if needed, but for now just element types.
-            checkCompatibility(valueType.elementType, useType.elementType, valueElement, useElement, visited)
+            checkCompatibility(valueType.elementType, useType.elementType, valueElement, useElement, visited, certain)
             return
         }
 
         if (valueType == LuaGraphType.Nil && useType != LuaGraphType.Nil) {
-            addError(ElementError(useElement, "nil value is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
+            // BUG-416: only a CERTAIN nil is a defect — a literal operand (`nil .. s`) or a
+            // variable whose sole reaching definition is nil. A Nil arriving as one of several
+            // reaching definitions is the not-yet-assigned branch of ordinary Lua, and reporting
+            // it flagged a shipped IDE 959 times.
+            if (certain) {
+                val message = "nil value is not assignable to ${useType.displayName()}"
+                addError(ElementError(useElement, message, ErrorSeverity.ERROR))
+            }
             return
         }
 

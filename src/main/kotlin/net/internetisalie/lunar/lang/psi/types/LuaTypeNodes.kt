@@ -20,6 +20,14 @@ interface ValueNode : TypeNode {
     val write: LuaGraphType
 
     /**
+     * True for values that state a DECLARATION rather than a runtime write — a `---@type`/`@param`
+     * annotation, a cross-file declared-type seed. The certainty rule (BUG-416) counts reaching
+     * definitions, and a declared bound is not one: `---@type string` + `local x = nil` has exactly
+     * one reaching definition (the nil), and it must stay certain despite the annotation value.
+     */
+    val declaredOrigin: Boolean get() = false
+
+    /**
      * [write], resolved while carrying the caller's cycle-guard set (BUG-390).
      *
      * A node that can re-enter the graph — [LazyValueElement], whose `compute` walks back to a
@@ -62,6 +70,7 @@ interface VariableNode : ValueNode, UseNode {
 internal class ValueElement(
     override val element: PsiElement,
     override val write: LuaGraphType,
+    override val declaredOrigin: Boolean = false,
 ) : ValueNode
 
 /**

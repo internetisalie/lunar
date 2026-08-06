@@ -26,7 +26,7 @@ object LuaTypeGraphBridge {
      */
     fun typeToValueNode(luaType: LuaType, element: PsiElement, graph: LuaTypeGraph): ValueNode {
         val graphType = LuaGraphType.fromLuaType(luaType, graph)
-        return graph.value(element, graphType)
+        return graph.value(element, graphType, declaredOrigin = true)
     }
 
     private fun resolveTypeWithGenerics(
@@ -79,7 +79,7 @@ object LuaTypeGraphBridge {
 
         // Create a ValueNode edge so that the annotation type flows as a value to readers
         // of this variable (e.g., when assigning tags to other, other receives the union type).
-        graph.addEdge(graph.value(element, graphType), variable)
+        graph.addEdge(graph.value(element, graphType, declaredOrigin = true), variable)
 
         // Create a UseNode constraint that represents the variable's declared type.
         // The constraint validates that values flowing into this variable are assignable to the declared type.
@@ -125,10 +125,10 @@ object LuaTypeGraphBridge {
             // For generics, we must inject both a source and a sink so that the variable's
             // 'write' type becomes Generic, triggering instantiation at call sites.
             if (graphType is LuaGraphType.Generic) {
-                graph.addEdge(graph.value(context, graphType), paramNode)
+                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), paramNode)
             } else {
                 // Also inject the type as a source so it propagates
-                graph.addEdge(graph.value(context, graphType), paramNode)
+                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), paramNode)
             }
 
             // Create a UseNode constraint that represents the parameter's declared type
@@ -171,10 +171,10 @@ object LuaTypeGraphBridge {
             // For generics, we must inject both a source and a sink so that the variable's
             // 'write' type becomes Generic, triggering instantiation at call sites.
             if (graphType is LuaGraphType.Generic) {
-                graph.addEdge(graph.value(context, graphType), retNode)
+                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), retNode)
             } else {
                 // Also inject the type as a source so it propagates
-                graph.addEdge(graph.value(context, graphType), retNode)
+                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), retNode)
             }
 
             // Create a UseNode constraint that represents the return type requirement

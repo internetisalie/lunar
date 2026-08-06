@@ -3,7 +3,7 @@ id: "BUG-416"
 title: "A possibly-nil value reaching a table slot reports an assignability error, 1801 times on one project"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -88,3 +88,42 @@ calls. **Not established either way**; check before treating it as a defect.
 - The corpus is the scale check, not the gate: zerobrane's `LuaTypeAssignability` should fall
   substantially. Its current baseline is un-validated (BUG-415) and must not be treated as a floor
   to protect.
+
+## Outcome (2026-08-06)
+
+The fix landed in a different place than planned, because the failing fixtures kept correcting the
+plan: errors arrive at `checkCompatibility` **per reaching definition**, not as materialized unions,
+so the union rule alone was nearly irrelevant. The delivered semantics:
+
+- **Certainty by provenance and count.** A direct value→use edge (`nil .. "x"`) is the expression's
+  own value — certain, still an error. A value reaching a use through a variable is one reaching
+  definition: with several, a nil among them is optionality (no error); with exactly one
+  *non-declared* write, it is certain (`local nothing = nil; count(nothing)` keeps its error).
+  Declared bounds (`---@type` values, cross-file seeds) are excluded from the count — an annotation
+  states what a variable should be, not what was written — which is what keeps
+  `---@type string` + `local x = nil` an error (the `Nil → non-nil` engine contract).
+- **The union informative-arms rule** for materialized unions (`and`/`or` builds one), with a gate
+  so forgiveness never newly enables structural propagation.
+- **"No information" is `Undefined`, never `Nil`**: the declared `frame = nil` placeholder seeds
+  nothing, and six unmodeled-expression fallbacks stop manufacturing certain nils (BUG-359's
+  mechanism, which the certainty rule would otherwise promote).
+- **Incidental hardening**: `checkTypes` convergence no longer counts errors as progress —
+  suppressing a diagnostic silently ended fixed-point iteration early.
+
+Six fixtures, each mutation-proved: M1 (union rule), M2 (certainty), M3 (placeholder seed) each
+killed exactly the tests claiming to cover them. The three `PrimitiveTypeCompatibilityTest`
+`Nil → non-nil` contract tests went red on the first certainty design and drove the declared-origin
+refinement.
+
+Corpus (all four members re-recorded): `LuaTypeAssignability` luacheck 502 → 378, luarocks
+1 778 → **419 (−76 %)**, penlight 506 → 257, zerobrane 2 594 → **993 (−62 %)**;
+`LuaReturnTypeMismatch` roughly halved everywhere. `LuaUndeclaredVariable` is byte-identical on
+three members — the fix provably does not touch resolution.
+
+**Found while verifying: BUG-417.** zerobrane's undeclared count would not stabilise across
+variants; six probe cycles established that `LuaUndeclaredVariableInspection`'s results depend on
+whether the type inspection ran in the same pass (1 954 alone vs 843/1 563 with it), pre-existing,
+file-scoped, user-visible. The 959 bare-`nil` shape's "investigate first" instinct in this report
+was right for the wrong reason — the investigation's real yield was the contamination.
+
+Full suite 2 411 / 0 (1 skipped); ktlint and doc linters clean.
