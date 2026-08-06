@@ -77,6 +77,20 @@ an "annotate this" intention — a hypothesis presented as a suggestion, not an 
 This subsumes the severity question: with the rule in place, what remains *is* contract violation
 with certain evidence, for which ERROR severity is defensible.
 
+## Presentation of the hypothesis tier
+
+Demoted inferred-vs-inferred conflicts get a **spelling-class squiggle**, not silence. The platform
+mechanism is proven and available: the spellchecker's typo underline is a *custom severity*
+registered through the `SeveritiesProvider` EP (`SpellCheckerSeveritiesProvider.java:18` —
+`TYPO = INFORMATION.myVal + 5`, own `TextAttributesKey`, own name/colour in settings); Grazie does
+the same for grammar. Lunar registers a `TYPE HYPOTHESIS` severity near that rank: faint dotted
+underline, no error-stripe weight, own inspection-popup identity, carries the "annotate this"
+intention. By the BUG-417 precedence mechanics it sits below every other severity and therefore
+cannot bury another inspection's output; whether ERROR ranges hide it is acceptable for a
+hypothesis, and is verified rather than assumed when implemented. The invisible
+`ProblemHighlightType.INFORMATION` (fix-only, no squiggle) is the fallback if even that proves
+noisy on real corpora.
+
 ## Probe first — the prediction is a prediction
 
 Three of three bug reports this week carried premises that measurement refuted, and the two code
