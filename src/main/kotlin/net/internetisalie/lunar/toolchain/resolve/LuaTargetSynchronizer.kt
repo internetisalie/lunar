@@ -45,7 +45,21 @@ class LuaTargetSynchronizer(private val project: Project) : Disposable {
         )
     }
 
-    fun ensureSynchronized() = recompute()
+    /**
+     * Recomputes the target from the effective runtime, **ignoring the debounce guard**.
+     *
+     * BUG-404: [lastAppliedRuntimeId] memoises "the runtime id has not changed since we last applied
+     * it", which is not the same claim as "the applied target reflects the runtime". While a
+     * platform target is pinned the two diverge with the runtime id untouched, so on un-pin the
+     * guard suppressed exactly the recompute that was needed — and kept suppressing it, which is why
+     * re-running Auto-Discover did not recover either. The guard belongs to the *event* path, where
+     * it debounces a stream; both callers of this method (project startup, and the settings panel's
+     * Auto branch) are explicit "make it so" requests, and neither is hot.
+     */
+    fun ensureSynchronized() {
+        lastAppliedRuntimeId = UNINITIALIZED
+        recompute()
+    }
 
     @org.jetbrains.annotations.TestOnly
     internal fun resetGuardForTest() {

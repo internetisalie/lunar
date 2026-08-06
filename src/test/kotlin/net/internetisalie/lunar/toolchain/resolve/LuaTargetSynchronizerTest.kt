@@ -120,6 +120,40 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         }
     }
 
+    /**
+     * BUG-404. Un-pinning a platform target back to *Auto* must reflow to the runtime.
+     *
+     * The guard is deliberately **not** reset anywhere in this test. Every other helper here calls
+     * `resetGuardForTest()`, which is precisely why this was never caught: `lastAppliedRuntimeId`
+     * memoises "the runtime id has not changed", and while a target is pinned the applied target
+     * diverges from the runtime *without* the runtime id moving. On un-pin the guard then suppresses
+     * exactly the recompute that was needed, and the project stays on the pinned platform — stuck,
+     * not stale, which is why re-running Auto-Discover did not recover it either.
+     */
+    fun `test un-pinning to auto reflows to the runtime`() {
+        val runtime = runtimeInfo(LuaPlatform.STANDARD, "5.4.7", LuaLanguageLevel.LUA54)
+        val tool = seedTool("lua", usable = true, runtime = runtime)
+        settings.setBinding("lua", tool.id)
+
+        synchronizer.onEvent(event(LuaToolchainChange.TOOL_REGISTERED, kindId = "lua"))
+        assertProjectTarget(LuaPlatform.STANDARD, "5.4", LuaLanguageLevel.LUA54)
+
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            val projectSettings = LuaProjectSettings.getInstance(project)
+            projectSettings.state.explicitTarget = true
+            projectSettings.setTargetAndNotify(PlatformVersionRegistry.resolveTarget(LuaPlatform.REDIS, "7+"))
+        }
+        assertProjectTarget(LuaPlatform.REDIS, "7+", LuaLanguageLevel.LUA51)
+
+        // Exactly what LuaProjectConfigurable.applyTarget's Auto branch does.
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            LuaProjectSettings.getInstance(project).state.explicitTarget = false
+        }
+        synchronizer.ensureSynchronized()
+
+        assertProjectTarget(LuaPlatform.STANDARD, "5.4", LuaLanguageLevel.LUA54)
+    }
+
     private fun pinExplicitTarget(platform: LuaPlatform, versionLabel: String) {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
