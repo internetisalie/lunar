@@ -80,12 +80,18 @@ moves by 45 without a code change will eventually be re-recorded to silence it.
    another trigger: run it on the builder as part of the release checklist, or teach
    `build-plugin.yml` to fetch the corpus for tag builds only. Decide deliberately — today's answer
    is "whenever someone remembers", which is how this happened.
-3. ~~**Explain the 45-count drift.**~~ **Explained 2026-08-06 — it is BUG-417.** The undeclared
+3. ~~**Explain the 45-count drift.**~~ **Mostly explained 2026-08-06 — the large component is
+   BUG-417** (the contamination regime). The undeclared
    inspection's results depend on whether the type inspection ran in the same pass (measured: 1 954
    alone vs 843/1 563 with it, file-scoped). The drift and the regime flips are that coupling
    reacting to timing and error-profile changes. Until BUG-417 is fixed, the per-inspection keys of
    inspections that share a pass with the type engine are **not comparable across code changes** —
    treat them as advisory in review even though the ratchet still gates them mechanically.
+   The residual ±3 was tracked as **BUG-418** and closed same-day by measurement: it was
+   invocation-shape dependence, not randomness — identical invocations are byte-identical, and the
+   gate shape reproduces the recorded baseline exactly. This item is now fully explained: the large
+   component was BUG-417, the residue is deterministic cross-member JVM state, and the only hazard
+   (member-alone runs vs full-run baselines) is documented at the point of use.
 
 ## Test strategy
 

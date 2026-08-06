@@ -41,7 +41,14 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        anchor = myFixture.addFileToProject("dist.lua", "")
+        // A real, narrow element — not the file. BUG-417 made the graph refuse errors anchored on
+        // an element spanning its whole file (they bury every other inspection's results), and a
+        // bare PsiFile anchor is exactly that; production code always anchors at expressions.
+        val file = myFixture.addFileToProject("dist.lua", "local anchor = 1\n")
+        anchor = com.intellij.psi.util.PsiTreeUtil.findChildOfType(
+            file,
+            net.internetisalie.lunar.lang.psi.LuaNameRef::class.java,
+        )!!
     }
 
     /** A single-field exact table whose one field is a required (non-nil) Number. */

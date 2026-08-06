@@ -3,7 +3,7 @@ id: "BUG-417"
 title: "Whether a name reports as undeclared depends on whether the type inspection ran in the same pass"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -84,3 +84,41 @@ assumed.
   report undeclared regardless of whether the type inspection is enabled alongside.
 - Corpus baselines re-recorded once fixed; expect `LuaUndeclaredVariable` ≈ 1 954 on zerobrane and
   movements on every member.
+
+## Outcome (2026-08-06) — the hypothesis above was wrong; the mechanism is simpler
+
+The ResolveCache hypothesis was **refuted by instrumentation**: on a contaminated file the
+inspection's own counters showed the visitor ran and would have registered all 126 problems
+(`visited=2635 readUse=1505 unresolvedFiring=126`) while `doHighlighting` returned zero — the loss
+is *after* registration, not in resolution. Ranged inspection of the emitted infos found it:
+
+**Five assignability errors anchored at range `0–43946` — the entire file.** `fromLuaType` anchors
+synthetic member/parameter nodes at `graph.firstNodeElement()`, which for a file's graph is the file
+itself; a failed check between synthetic nodes therefore produced a *file-wide ERROR highlight*, and
+the platform hides lower-severity infos under an ERROR range. One buried file = every other
+inspection's results gone. All 124 `wx` refs in `filetree.lua` sat inside those five ranges.
+
+### Fix
+
+- `reportIncompatible` anchors a compatibility failure at the use element when it is a real
+  element, else the value element, **else drops the error** — a diagnostic spanning the whole file
+  has no user-actionable location and is strictly worse than silence.
+- `addError` refuses any file-wide error as a safety net for every other emission site.
+- `LuaTypeErrorAnchoringTest` pins all three behaviours (re-anchor, drop, leave-narrow-alone).
+
+### Verification
+
+zerobrane, 72 files, per-file undeclared counts with vs without the type inspection: **70 of 72
+files at exact parity**; totals 1 948 vs 1 954. The residual 6 are refs inside *narrow,
+correctly-anchored* ERROR ranges — the platform's by-design severity precedence, which applies to
+any inspection pair in any IntelliJ plugin, and structurally cannot be the file-wide class (the
+`addError` net forbids it). Whole-sweep: `LuaUndeclaredVariable` 843 → **1 947** with the inspection
+enabled, converging on the uncontaminated value.
+
+### Follow-up worth its own decision, not taken here
+
+Inference-based `LuaTypeAssignability` reports at **ERROR** severity. Even correctly anchored, an
+ERROR from a still-maturing inference engine takes precedence over other inspections' warnings and
+carries more UI weight than its false-positive rate earns (BUG-415 sampling; BUG-416's 72%). LuaLS
+presents these as warnings. Dropping the severity is a one-line policy change with corpus-visible
+effects — decide it deliberately, separately.

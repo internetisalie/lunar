@@ -193,8 +193,36 @@ class LuaTypeGraph {
     val errors: List<ElementError> get() = _errors.toList()
 
     internal fun addError(error: ElementError) {
+        // BUG-417: an error spanning the whole file has no user-actionable location — and worse,
+        // the platform hides lower-severity infos under an ERROR range, so ONE file-wide type error
+        // silently buried every other inspection's results in the file (measured: filetree.lua,
+        // five file-wide errors, all 126 undeclared-variable warnings gone). The compatibility
+        // sites re-anchor to the value element first; this is the safety net for everything else.
+        if (isFileWide(error.element)) return
         if (_errors.any { it.element == error.element && it.message == error.message }) return
         _errors += error
+    }
+
+    /** True when [element]'s range covers its whole containing file (or is the file itself). */
+    private fun isFileWide(element: PsiElement): Boolean {
+        val file = element.containingFile ?: return true
+        if (element == file) return true
+        val range = element.textRange ?: return true
+        return file.textLength > 0 && range.length >= file.textLength
+    }
+
+    /**
+     * Reports a compatibility failure at the most useful anchor (BUG-417): the use site when it is
+     * a real element, else the value site, else nowhere — see [addError] for why a file-wide error
+     * is worse than no error.
+     */
+    private fun reportIncompatible(useElement: PsiElement, valueElement: PsiElement, message: String) {
+        val anchor = when {
+            !isFileWide(useElement) -> useElement
+            !isFileWide(valueElement) -> valueElement
+            else -> return
+        }
+        addError(ElementError(anchor, message, ErrorSeverity.ERROR))
     }
 
     /**
@@ -310,7 +338,7 @@ class LuaTypeGraph {
             if (!gradual && informative.isNotEmpty() &&
                 !informative.all { isCompatible(it, useType, CompatContext()) }
             ) {
-                addError(ElementError(useElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
+                reportIncompatible(useElement, valueElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}")
                 return
             }
             // Forgiving a nil arm must not ENABLE anything: this pair used to error-and-return, and
@@ -356,7 +384,7 @@ class LuaTypeGraph {
             } else {
                 "${valueType.displayName()} is not assignable to union ${useType.displayName()}"
             }
-            addError(ElementError(useElement, message, ErrorSeverity.ERROR))
+            reportIncompatible(useElement, valueElement, message)
             return
         }
 
@@ -389,12 +417,12 @@ class LuaTypeGraph {
             // it flagged a shipped IDE 959 times.
             if (certain) {
                 val message = "nil value is not assignable to ${useType.displayName()}"
-                addError(ElementError(useElement, message, ErrorSeverity.ERROR))
+                reportIncompatible(useElement, valueElement, message)
             }
             return
         }
 
-        addError(ElementError(useElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
+        reportIncompatible(useElement, valueElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}")
     }
 
     private fun isCompatible(

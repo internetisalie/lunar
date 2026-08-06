@@ -23,6 +23,12 @@ import java.io.File
  * Excluded from the routine `test` loop (it indexes ~300 third-party files); opt in with
  * `-PwithCorpus`, and re-record a moved baseline with `-PrecordCorpusBaseline`. Needs the corpus
  * fetched first — `tooling/corpus/fetch-corpus.py`.
+ *
+ * **Gate with the full `'*Corpus*'` filter, never a single member** (BUG-418). Counts are
+ * byte-deterministic per invocation shape, but cross-member JVM state shifts them by a few counts —
+ * deterministically — so a member-alone run reads ±2 off a baseline recorded by the full run and
+ * can fail as a phantom regression. Member-alone runs are for diagnosis; the ratchet's contract is
+ * that recording and verification share the invocation shape.
  */
 @RunWith(JUnit4::class)
 class LuaCorpusSweepTest : BasePlatformTestCase() {
