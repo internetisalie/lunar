@@ -504,10 +504,28 @@ class BaselineRatchetTest {
         val corpusBaseline = temp.newFile("accepts.baseline")
         corpusBaseline.writeText(CorpusBaseline.render(metrics().copy(oracleFalseAccepts = 2)))
         CorpusGuards.assertRatchet(corpusBaseline, metrics().copy(oracleFalseAccepts = 400))
+    }
 
-        val tortureBaselineFile = temp.newFile("torture-accepts.baseline")
-        tortureBaselineFile.writeText(TortureBaseline.render(torture().copy(oracleFalseAccepts = 364)))
-        TortureBaseline.assertRatchet(tortureBaselineFile, torture().copy(oracleFalseAccepts = 900))
+    /**
+     * BUG-409 **reversed** this for the torture ratchet, and the two now differ deliberately.
+     *
+     * The project corpus still cannot gate the direction: its false accepts are the level-superset
+     * case (`lua53_ops.lua`), which has no allowlist and a systematic false positive. The torture
+     * corpus can, because every survivor is enumerated in `torture-<name>.expected-accepts` and
+     * `oracleFalseAccepts` counts only what that list does not forgive — so a rise is a real
+     * regression rather than corpus noise.
+     */
+    @Test
+    fun tortureFalseAcceptsAreGatedUnlikeTheProjectCorpus() {
+        val baseline = temp.newFile("torture-accepts.baseline")
+        baseline.writeText(TortureBaseline.render(torture().copy(oracleFalseAccepts = 0)))
+        val failure = runCatching {
+            TortureBaseline.assertRatchet(baseline, torture().copy(oracleFalseAccepts = 1))
+        }.exceptionOrNull()
+        assertTrue(
+            "an unallowlisted false accept must fail the build, got: ${failure?.message}",
+            failure?.message.orEmpty().contains("oracleFalseAccepts: baseline 0 → observed 1"),
+        )
     }
 
     /**

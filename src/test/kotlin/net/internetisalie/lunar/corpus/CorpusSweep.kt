@@ -13,6 +13,7 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import net.internetisalie.lunar.lang.LuaRequireReference
 import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
+import net.internetisalie.lunar.lang.syntax.LuaSyntaxDiagnostics
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
 
@@ -41,10 +42,16 @@ object CorpusSweep {
         val crash: String? = null,
         /** MAINT-35-02: PUC's verdict, or null when the file was not judged. */
         val oracle: ParseOracle.Verdict? = null,
+        /** BUG-409: syntax errors Lunar reports without a `PsiErrorElement` (`LuaSyntaxDiagnostics`). */
+        val invalidStatements: Int = 0,
     )
 
     private data class SweptFile(val path: String, val file: VirtualFile, val tally: FileTally) {
-        private val lunarAccepts get() = tally.parseErrors == 0
+        // BUG-409: "the parser built no error elements" is not "Lunar considers this valid Lua".
+        // `exprStatement ::= expr` is deliberately permissive for error recovery, and the narrowing
+        // is enforced by an annotator — so an oracle that counts only PsiErrorElements scores a file
+        // Lunar rejects with four visible errors as accepted, and invents a disagreement.
+        private val lunarAccepts get() = tally.parseErrors == 0 && tally.invalidStatements == 0
 
         /** `luac` accepts at the pinned level and Lunar does not — a defect with no confound. */
         val falseReject get() = tally.oracle == ParseOracle.Verdict.Accept && !lunarAccepts
@@ -308,6 +315,7 @@ object CorpusSweep {
             .filterIsInstance<LuaRequireReference>()
         return FileTally(
             parseErrors = PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).size,
+            invalidStatements = LuaSyntaxDiagnostics.invalidStatements(psiFile).size,
             requires = requireReferences.size,
             unresolved = requireReferences.count { it.resolve() == null },
             errorSites = describeParseErrors(psiFile),

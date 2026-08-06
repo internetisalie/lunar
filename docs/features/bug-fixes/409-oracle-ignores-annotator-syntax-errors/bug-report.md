@@ -3,7 +3,7 @@ id: "BUG-409"
 title: "The parse oracle ignores annotator-level syntax errors, so Lunar looks more permissive than it is"
 type: "bug"
 parent_id: "BUG"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -128,3 +128,44 @@ per-input allowlist is stable by construction.
 
 Changing `lua.bnf`. The permissive `exprStatement` is load-bearing for error recovery, and the
 diagnostic it needs already exists and already works.
+
+## Outcome (2026-08-06)
+
+**Step 1** — `LuaSyntaxDiagnostics` owns the rule; `LuaStandaloneExpressionAnnotator` and both
+sweeps consult it, so the annotator and the oracle cannot drift about what "valid Lua" means.
+
+**Step 2** — acceptance became `parseErrors == 0 && invalidStatements == 0`. Measured effect:
+
+| | before | after |
+| :-- | --: | --: |
+| torture `oracleFalseAccepts` | 364 | **26** |
+| luacheck `oracleFalseAccepts` | 2 | **1** |
+
+**338 of 364 (93%)** were the artefact. luacheck's remaining site is `lua53_ops.lua`, the by-design
+level-agnostic parse; `python_code.lua` — this bug's own witness — is gone. No new false rejects
+appeared on any project member, which was the regression guard.
+
+**Step 3** — the surviving 26 are enumerated in `torture-fuzzing-lua.expected-accepts` with PUC's
+reason per entry, and they turn out to be one coherent class:
+
+| `luac` reason | count |
+| :-- | --: |
+| `unfinished long comment near '<eof>'` | 19 |
+| `unfinished string near '<eof>'` | 5 |
+| `unfinished long string near '<eof>'` | 1 |
+| `nesting of [[...]] is deprecated` | 1 |
+
+Unterminated constructs — exactly the leniency an editor must have while a `--[[` is being typed.
+`oracleFalseAccepts` now counts only unlisted inputs and is **gated at 0**.
+
+Both halves are mutation-proved: removing one allowlist entry fails the build with
+`oracleFalseAccepts: baseline 0 → observed 1`, and adding an entry that is no longer a false accept
+fails with *"the allowlist has rotted"*.
+
+Incidental: `ParseOracle` now strips luac's own absolute path from its message, which would otherwise
+churn every recorded reason across machines.
+
+**Caveat, tracked as BUG-415.** Gating required re-recording the four project baselines, which had
+gone stale when BUG-397's type-engine change landed without the (opt-in, non-CI) corpus sweep being
+run. zerobrane's `LuaTypeAssignability` moved 846 → 2594. Those recorded values are an unvalidated
+snapshot of post-BUG-397 behaviour and are **not** endorsed here.

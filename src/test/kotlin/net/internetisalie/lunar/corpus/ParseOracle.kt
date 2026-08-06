@@ -230,6 +230,12 @@ internal object ParseOracle {
      * hit within five minutes of DR-01). Decoding replaces rather than throws: the text is
      * diagnostic only and is never baselined.
      */
-    private fun firstLineOf(diagnostics: File): String =
-        diagnostics.readBytes().toString(Charsets.UTF_8).trim().lineSequence().firstOrNull().orEmpty()
+    private fun firstLineOf(diagnostics: File): String {
+        val line = diagnostics.readBytes().toString(Charsets.UTF_8).trim().lineSequence().firstOrNull().orEmpty()
+        // luac prefixes its own absolute path ("/home/builder/lunar/test/luac/5.1.5/luac: stdin:1: …").
+        // That is an artefact of where the binary happens to live, not part of the verdict, and it
+        // would churn any recorded message across machines — BUG-409's allowlist records these.
+        val marker = line.indexOf("stdin:")
+        return if (marker >= 0) line.substring(marker) else line
+    }
 }
