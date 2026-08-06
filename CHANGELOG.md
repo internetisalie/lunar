@@ -2,6 +2,34 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### 0.21.3 — Free globals are now typed for the whole engine, not just completion (BUG-397, closes BUG-359)
+
+The type engine deliberately refused to look up a free global — `table`, `redis`, `package`, or a
+project-wide `Lib` declared in another file — for anything except member completion. Hover, inlay
+hints and inspections all saw `Undefined`, and the un-typed `package.path` read in
+`package.path = package.path .. "..."` degraded to a `nil` operand, producing the long-standing
+false positive "nil value is not assignable to string" (BUG-359).
+
+The restraint existed because two earlier attempts to wire the lookup in regressed the engine:
+binding the receiver displaced a better-informed member path, and the union algebra collapsed
+`any | { err: string }` to `any` on the way through. Both root causes are now fixed instead of
+avoided: a union keeping an `any` arm preserves its structural arms (so `redis.pcall`'s error-table
+arm survives to the call site) and is never itself an assignability error, and declared types are
+authoritative — a declaration-typed callee contributes its return type but is not arity-checked,
+so `redis.register_function`'s `@overload` table form stays clean.
+
+Free globals and their members now type everywhere a declaring assignment is indexable:
+`package.path` reads `string` off the stdlib stub, `local reply = redis.pcall(...)` carries
+`any | { err: string }` with both arms intact, and a bare `redis` reference exposes its declared
+members to every consumer. Chained access resolves hop by hop through declared types
+(`Config.db.name`); an undeclared link leaves the rest of the chain untyped rather than guessing.
+
+One scoping note: this covers globals declared by assignment (`redis = {}`, `package.path = ""` —
+which is how every stdlib library table is declared). A global declared only as a bare function
+(`function print(...) end` — most of the base library's free functions) is not yet indexed by the
+global-assignment index, so `print`, `pairs`, `type` and friends still infer nothing. That is the
+natural follow-up, not a regression — they were equally untyped before.
+
 ### 0.21.2 — Documented declarations could vanish from Search Everywhere (BUG-408)
 
 A declaration's doc comment was indexed as three tab-separated fields joined by `|`, split back

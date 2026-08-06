@@ -24,9 +24,35 @@ class LuaTypeAlgebraTest {
     }
 
     @Test
-    fun `TC-TYPE-09-P1-02 any absorbs the union`() {
+    fun `TC-TYPE-09-P1-02 any absorbs scalar members`() {
         val result = LuaTypeAlgebra.canonicalize(listOf(LuaGraphType.String, LuaGraphType.Any))
         assertEquals(LuaGraphType.Any, result)
+
+        val manyScalars = LuaTypeAlgebra.canonicalize(
+            listOf(LuaGraphType.Number, LuaGraphType.Nil, LuaGraphType.Boolean, LuaGraphType.Any),
+        )
+        assertEquals(LuaGraphType.Any, manyScalars)
+    }
+
+    @Test
+    fun `BUG-397 any preserves structural arms`() {
+        val errTable = LuaGraphType.Table(localMembers = emptyMap())
+        val result = LuaTypeAlgebra.canonicalize(listOf(LuaGraphType.Any, errTable))
+
+        assertTrue("Expected a Union, got $result", result is LuaGraphType.Union)
+        assertEquals(setOf<LuaGraphType>(LuaGraphType.Any, errTable), (result as LuaGraphType.Union).types)
+    }
+
+    @Test
+    fun `BUG-397 any absorbs scalars but keeps every structural arm`() {
+        val table = LuaGraphType.Table(localMembers = emptyMap())
+        val array = LuaGraphType.Array(LuaGraphType.String)
+        val result = LuaTypeAlgebra.canonicalize(
+            listOf(LuaGraphType.String, table, LuaGraphType.Any, array, LuaGraphType.Nil),
+        )
+
+        assertTrue("Expected a Union, got $result", result is LuaGraphType.Union)
+        assertEquals(setOf(LuaGraphType.Any, table, array), (result as LuaGraphType.Union).types)
     }
 
     @Test

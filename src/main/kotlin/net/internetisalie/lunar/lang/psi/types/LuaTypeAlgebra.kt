@@ -11,9 +11,10 @@ object LuaTypeAlgebra {
     /**
      * Produces the canonical type for a union of [members].
      *
-     * Nested unions are flattened, `Any` short-circuits, `Undefined` is dropped (unless alone),
-     * duplicates collapse, members are sorted by display name, and a single member collapses
-     * to itself. `nil` is a normal distinct member and is never dropped.
+     * Nested unions are flattened, `Any` absorbs scalar members but structural arms survive
+     * beside it (BUG-397), `Undefined` is dropped (unless alone), duplicates collapse, members
+     * are sorted by display name, and a single member collapses to itself. `nil` is a normal
+     * distinct member and is never dropped.
      */
     fun canonicalize(members: Collection<LuaGraphType>): LuaGraphType {
         val flattened = flatten(members)
@@ -33,12 +34,27 @@ object LuaTypeAlgebra {
         return result
     }
 
-    /** Returns simplified members, or `null` to signal the union reduces to [LuaGraphType.Any]. */
+    /**
+     * Returns simplified members, or `null` to signal the union reduces to [LuaGraphType.Any].
+     *
+     * An `Any` arm absorbs every scalar member, but structural arms (tables, arrays, functions)
+     * survive beside it: `---@return any|{ err: string }` promises a narrowable shape, and
+     * collapsing it to `any` is what erased `reply.err` in the reverted BUG-397 attempts. A union
+     * that keeps an `Any` arm is *gradual* — [LuaTypeGraph] never reports an assignability error
+     * against it, so the preserved arms only ever add information.
+     */
     private fun simplify(members: List<LuaGraphType>): List<LuaGraphType>? {
-        if (members.any { it is LuaGraphType.Any }) return null
+        if (members.any { it is LuaGraphType.Any }) {
+            val structural = members.filter { it.isStructural() }
+            if (structural.isEmpty()) return null
+            return listOf(LuaGraphType.Any) + structural
+        }
         val withoutUndefined = members.filter { it != LuaGraphType.Undefined }
         return withoutUndefined.ifEmpty { members }
     }
+
+    private fun LuaGraphType.isStructural(): Boolean =
+        this is LuaGraphType.Table || this is LuaGraphType.Array || this is LuaGraphType.Function
 
     private fun sortedDistinct(members: List<LuaGraphType>): Set<LuaGraphType> {
         val deduped = LinkedHashSet(members)

@@ -47,6 +47,20 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      */
     private var pendingSelf: SelfBinding? = null
 
+    /**
+     * Declaration-typed seeds (BUG-397): member seeds from [seedDeclaredMember] and free-global
+     * seeds from [freeGlobalSeed]. A node in this set carries a *declared* type read off another
+     * file; it contributes values but never raises call demands — [visitFuncCall] flows a
+     * declaration-typed callee's declared return into the call results and skips the call-demand
+     * check, exactly matching the pre-BUG-397 "stub calls are not checked" contract — and
+     * [visitIndexExpr] resolves its members through the declared route rather than a graph
+     * `Table` constraint (annotations are authoritative; inference fills unannotated slots).
+     */
+    private val declarationTypedNodes: MutableSet<TypeNode> = mutableSetOf()
+
+    /** Memoized [freeGlobalSeed] per name — one node per global, shared by every reference. */
+    private val freeGlobalSeeds: MutableMap<String, TypeNode?> = mutableMapOf()
+
     private data class SelfBinding(val receiver: VariableNode, val anchor: PsiElement)
 
     /**
@@ -632,6 +646,17 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
         val calleeNodeRef = firstNode(calleeUnwrapped) ?: return
 
+        // BUG-397: a declaration-typed callee (a free global like `print`, or a free-global
+        // member like `redis.pcall`) contributes its declared return to the call results but
+        // raises no call demand — stub calls were never arity/param-checked before the callee
+        // had a node, and starting to check them is what regressed `redis.register_function`'s
+        // `@overload` table form in the reverted attempts. Also keeps call-site argument nodes
+        // out of the shared seed's parameter nodes (one seed serves every call in the file).
+        if (calleeNodeRef in declarationTypedNodes) {
+            seedDeclarationTypedCallResult(calleeNodeRef, nameAndArgs.methodExpr?.nameRef?.text, callResultNodes)
+            return
+        }
+
         var calleeNode = calleeNodeRef
         val methodExpr = nameAndArgs.methodExpr
         if (methodExpr != null) {
@@ -674,6 +699,28 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         }
 
         graph.addEdge(calleeNode, graph.use(o, callDemand))
+    }
+
+    /**
+     * Flows a declaration-typed callee's declared returns into [callResultNodes] (BUG-397).
+     * For a `:` method call the callee seed holds the *receiver*; the method's function type is
+     * projected out of the seed's declared members. A non-function (or missing) declared type
+     * seeds nothing, leaving the results [LuaGraphType.Undefined] exactly as before.
+     */
+    private fun seedDeclarationTypedCallResult(
+        calleeNode: TypeNode,
+        methodName: String?,
+        callResultNodes: List<VariableNode>,
+    ) {
+        val write = (calleeNode as? ValueNode)?.write ?: return
+        val funcType = if (methodName == null) {
+            write as? LuaGraphType.Function
+        } else {
+            write.getMembers()[methodName]?.write as? LuaGraphType.Function
+        } ?: return
+        funcType.returns.forEachIndexed { index, returnNode ->
+            callResultNodes.getOrNull(index)?.let { graph.addEdge(returnNode, it) }
+        }
     }
 
     /** The per-argument expression list for a call (string / exprList / tableConstructor form). */
@@ -768,7 +815,22 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         if (nameRef != null) {
             val varElement = PsiTreeUtil.getParentOfType(o, LuaVar::class.java)
             if (varElement != null) {
-                val receiverNode = firstNode(unwrapExpression(varElement.firstChild)) ?: return
+                val receiverNode = firstNode(unwrapExpression(varElement.firstChild))
+                // A declaration-typed receiver resolves members through the declared route first
+                // (annotations are authoritative); the graph constraint is the fallback for its
+                // undeclared members and for ordinary in-file receivers.
+                val declarationTyped = receiverNode == null || receiverNode in declarationTypedNodes
+                if (declarationTyped) {
+                    if (seedDeclaredMember(o, varElement, nameRef)) return
+                    // The graph path below anchors EVERY suffix on the bare receiver, so letting
+                    // a later suffix of a declaration-typed chain fall through would resolve
+                    // `A.b.c` as `A.c` — checking `c` against A's declared members and wiring
+                    // bi-directional edges into the shared seed's member nodes (false positives
+                    // + cross-chain pollution; adversarial-review F1/F2). An undeclared chain
+                    // member stays node-less instead, exactly as before BUG-397.
+                    if (varElement.varSuffixList.firstOrNull()?.indexExpr != o) return
+                }
+                if (receiverNode == null) return
                 val memberNode = graph.variable(o)
                 val tableConstraint = LuaGraphType.Table(localMembers = mapOf(nameRef.text to memberNode))
                 graph.addEdge(receiverNode, graph.use(o, tableConstraint))
@@ -777,6 +839,54 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         } else if (o.expr != null) {
             seedSubscriptElement(o)
         }
+    }
+
+    /**
+     * BUG-397 Phase 2: a member access whose receiver is a *free global* — unbound in every scope,
+     * so the graph path above has no receiver node — is typed from the receiver's cross-file
+     * declaration via [LuaTypeManager.resolveGlobal], the same source member completion uses
+     * (BUG-395). `package.path` reads `string` off the stdlib stub instead of falling into the
+     * `graph.nil` fallbacks (which is what manufactured BUG-359's "nil value is not assignable to
+     * string" on the concat), and `redis.pcall` carries its declared function type.
+     *
+     * Deliberately **typing, not checking**: the seed is a [ValueNode] with no use constraint, and
+     * [visitFuncCall] flows a seeded callee's declared *return* into the call results without
+     * raising the call-demand check — the twice-reverted wire-up regressed precisely because the
+     * checker started checking stub calls it previously skipped (arity on `redis.register_function`'s
+     * `@overload` table form). An unresolvable receiver seeds nothing, keeping today's behavior for
+     * genuinely undefined names. A chain (`A.b.c`) resolves each suffix against the previous
+     * suffix's declared type; an undeclared link leaves the rest of the chain node-less — it must
+     * NOT fall back to the bare-receiver-anchored graph path, which would resolve `A.b.c` as `A.c`
+     * (adversarial-review F1/F2).
+     */
+    private fun seedDeclaredMember(o: LuaIndexExpr, varElement: LuaVar, nameRef: LuaNameRef): Boolean {
+        val suffixes = varElement.varSuffixList
+        val index = suffixes.indexOfFirst { it.indexExpr == o }
+        if (index < 0) return false
+        val declared = if (index == 0) {
+            val receiverName = (unwrapExpression(varElement.firstChild) as? LuaNameRef)?.text ?: return false
+            declaredMemberType(receiverName, nameRef.text, o)
+        } else {
+            // A later suffix chains through the PREVIOUS suffix's declared type (visited just
+            // before this one), never through the bare receiver — `A.b.c` reads `c` off `A.b`.
+            val previous = suffixes[index - 1].indexExpr?.let { firstNode(it) } ?: return false
+            if (previous !in declarationTypedNodes) return false
+            (previous as? ValueNode)?.write?.getMembers()?.get(nameRef.text)?.write
+                ?: LuaGraphType.Undefined
+        }
+        if (declared == LuaGraphType.Undefined) return false
+        val seed = graph.value(o, declared)
+        declarationTypedNodes.add(seed)
+        elementNodes[o] = listOf(seed)
+        return true
+    }
+
+    /** The declared type of `<receiverName>.<memberName>` per the receiver's cross-file global. */
+    private fun declaredMemberType(receiverName: String, memberName: String, context: PsiElement): LuaGraphType {
+        val globalType = LuaTypeManager.getInstance(context.project).resolveGlobal(receiverName, context)
+            ?: return LuaGraphType.Undefined
+        val member = globalType.getMembers()[memberName] ?: return LuaGraphType.Undefined
+        return LuaGraphType.fromLuaType(member.type, graph)
     }
 
     /**
@@ -830,28 +940,55 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     /**
      * Binds a name to the node its scope holds — and, deliberately, to nothing otherwise.
      *
-     * BUG-397 is the fallback that belongs here: [LuaTypeManager.resolveGlobal] would type every free
-     * global (`table`, `redis`, `package`, a project-wide `Lib`) for *all* consumers rather than only
-     * for completion, and would close BUG-359 as a side effect. It has been tried twice and reverted
-     * twice. The mechanism is now understood and recorded rather than left as three mystery failures:
+     * BUG-397: an unbound name falls back to its cross-file declaration via
+     * [LuaTypeManager.resolveGlobal], so every free global (`table`, `redis`, `package`, a
+     * project-wide `Lib`) is typed for *all* consumers — hover, inlays, inspections — not only for
+     * completion. This wire-up was tried twice before and reverted twice, because **binding the
+     * receiver displaced a better-informed member path**: with `redis` unbound, [visitIndexExpr]
+     * returned early and `redis.pcall`'s type came from the stub-derived route with its
+     * `---@return any|{ err: string }` union intact; bound, the member flowed through a graph
+     * `Table` constraint where [LuaTypeAlgebra.canonicalize] collapsed `any | X` to `Any` (killing
+     * `reply.err`), `redis.register_function`'s `@overload` table form grew arity errors, and
+     * `table.sort`'s comparator degraded. Landing it required settling two ownership rules first:
      *
-     * **Binding the receiver displaces a better-informed member path.** With `redis` unbound,
-     * [visitIndexExpr] returned early at its `firstNode(...) ?: return` and `redis.pcall`'s type came
-     * from the stub-derived route, which reads `---@return any|{ err: string }` as a Layer-1
-     * [LuaUnionType] with both arms intact. Bind `redis` and the member instead flows through a graph
-     * `Table` constraint, where [LuaTypeAlgebra.canonicalize] collapses `any | X` to `Any` outright
-     * (`simplify` returns null the moment any arm is `Any`) — so the `{ err: string }` arm, and with
-     * it `reply.err`, is gone. The same displacement explains `redis.register_function`'s table form
-     * growing arity errors and `table.sort`'s comparator inferring `boolean | any`.
+     * 1. **`any | <structural>` keeps its structural arms** ([LuaTypeAlgebra.canonicalize]), and a
+     *    union keeping an `Any` arm is gradual — never an assignability error (Phase 1).
+     * 2. **Declared types are authoritative; graph inference fills unannotated slots.** A seed in
+     *    [declarationTypedNodes] contributes values but never raises call demands, and
+     *    [visitIndexExpr] resolves its members through the declared route (Phase 2).
      *
-     * So the fix is not "wire the fallback"; it is deciding which of two paths owns member typing on a
-     * cross-file receiver, and whether `any | <structural>` should keep its structural arms. Both are
-     * engine changes with their own blast radius — see BUG-397.
+     * With those in place the fallback displaces nothing: it only adds types where there were
+     * none. `FreeGlobalMemberTypingTest` characterizes the three historical regression shapes.
      */
     override fun visitNameRef(o: LuaNameRef) {
         super.visitNameRef(o)
-        val boundNode = scope.lookup(o.text) ?: return
-        elementNodes[o] = listOf(boundNode)
+        val boundNode = scope.lookup(o.text)
+        if (boundNode != null) {
+            elementNodes[o] = listOf(boundNode)
+            return
+        }
+        // Seed only value positions (a bare `redis`, a receiver `package` in `package.path`, both
+        // LuaVar-wrapped). Member names, func-decl properties and method names are also LuaNameRefs
+        // and must not be mistaken for a read of a same-named global.
+        if (o.parent is LuaVar) {
+            freeGlobalSeed(o)?.let { elementNodes[o] = listOf(it) }
+        }
+    }
+
+    /**
+     * The declaration-typed seed for the free global [o] names, or null if no other file declares
+     * it — in which case the reference stays node-less and every downstream fallback behaves
+     * exactly as before BUG-397 (a genuinely undefined name still reads as `nil`/`Undefined`).
+     * Memoized per name so all references — and [visitIndexExpr]'s member routing — share one node.
+     */
+    private fun freeGlobalSeed(o: LuaNameRef): TypeNode? {
+        val name = o.text
+        if (freeGlobalSeeds.containsKey(name)) return freeGlobalSeeds[name]
+        val globalType = LuaTypeManager.getInstance(o.project).resolveGlobal(name, o)
+        val seed = globalType?.let { graph.value(o, LuaGraphType.fromLuaType(it, graph)) }
+        seed?.let { declarationTypedNodes.add(it) }
+        freeGlobalSeeds[name] = seed
+        return seed
     }
 
     /**

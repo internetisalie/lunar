@@ -10,6 +10,15 @@ folders:
 
 # BUG-359: False positive "nil value is not assignable to string" on `package.path` concat assignment
 
+> **CLOSED 2026-08-05 — fixed by BUG-397 Phase 2, as §4 predicted.** One correction to §4's probe
+> reading: the error was not produced by the `Undefined` assignment LHS. The un-noded **RHS read**
+> of `package.path` fell into `visitBinOpExpr`'s `graph.nil` operand fallback, so a *Nil value* met
+> the concat's *String use* — that pair is the message. With BUG-397 typing free-global members
+> from their cross-file declaration, the read is `string` and the concat checks clean. Regression
+> coverage: `FreeGlobalMemberTypingTest.testPackagePathConcatAssignReportsNothing` (cross-file) and
+> `DuplicateNilAssignabilityTest.testPackagePathConcatAssignNotFlagged` (bundled stdlib stub),
+> inverted to zero per the landing note below.
+
 This is the dedicated reproduction for **BUG-353 Problem 1**, which was left open with the note
 "*Did not reproduce in the containerized GoLand … needs its own reproduction before planning.*"
 It reproduces in the local IDE on the test project. See [[353-package-path-member-resolution]].

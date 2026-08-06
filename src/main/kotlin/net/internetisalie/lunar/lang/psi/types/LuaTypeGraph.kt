@@ -273,14 +273,19 @@ class LuaTypeGraph {
 
         // Union distributive rules
         if (valueType is LuaGraphType.Union) {
+            // A union keeping an `Any` arm is gradual (BUG-397): the value may be anything at
+            // runtime, so no assignability error is ever justified, and only the arms that
+            // structurally match the use contribute constraints to it.
+            val gradual = LuaGraphType.Any in valueType.types
             // Value(Union(A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
-            if (!isCompatible(valueType, useType, CompatContext())) {
+            if (!gradual && !isCompatible(valueType, useType, CompatContext())) {
                 addError(ElementError(useElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}", ErrorSeverity.ERROR))
                 return
             }
             // If compatible, still propagate structural constraints to the use
             for (member in valueType.types) {
                 if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
+                    if (gradual && !isCompatible(member, useType, CompatContext())) continue
                     checkCompatibility(member, useType, valueElement, useElement, visited)
                 }
             }
@@ -380,7 +385,10 @@ class LuaTypeGraph {
         // Depth grows ONLY on union-member recursion (distribution nesting); structural/array/
         // function recursion reuses ctx unchanged.
         val result = when {
-            value is LuaGraphType.Union -> value.types.all { isCompatible(it, use, ctx.deeper()) }
+            // A gradual union (Any arm, BUG-397) is compatible with everything — the Any arm
+            // means the value may be exactly the use type at runtime.
+            value is LuaGraphType.Union ->
+                LuaGraphType.Any in value.types || value.types.all { isCompatible(it, use, ctx.deeper()) }
             use is LuaGraphType.Union -> use.types.any { isCompatible(value, it, ctx.deeper()) }
             value is LuaGraphType.Array && use is LuaGraphType.Array -> isCompatible(value.elementType, use.elementType, ctx)
             value is LuaGraphType.Table && use is LuaGraphType.Table -> isNominallyCompatible(value, use, mutableSetOf()) || isStructurallyCompatible(value, use, ctx)
