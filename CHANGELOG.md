@@ -2,7 +2,7 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
-### 0.21.3 — Free globals are now typed for the whole engine, not just completion (BUG-397, closes BUG-359)
+### Free globals are now typed for the whole engine, not just completion (BUG-397, closes BUG-359)
 
 The type engine deliberately refused to look up a free global — `table`, `redis`, `package`, or a
 project-wide `Lib` declared in another file — for anything except member completion. Hover, inlay
@@ -30,7 +30,7 @@ which is how every stdlib library table is declared). A global declared only as 
 global-assignment index, so `print`, `pairs`, `type` and friends still infer nothing. That is the
 natural follow-up, not a regression — they were equally untyped before.
 
-### 0.21.3 — Un-pinning a platform target left the project on the old one (BUG-404)
+### Un-pinning a platform target left the project on the old one (BUG-404)
 
 Setting **Platform target** back to *Auto (from runtime)* dropped the pin from `.idea/lunar.xml` but
 left everything else on the old target: language level, standard library, the External Libraries node
@@ -41,7 +41,7 @@ The synchronizer memoised "the runtime has not changed since we last applied it"
 conclude "the applied target reflects the runtime". Pinning is exactly the case that separates those
 two claims, so un-pinning suppressed the one recalculation that was needed.
 
-### 0.21.3 — LDoc `@param` descriptions are no longer read as types (BUG-406)
+### LDoc `@param` descriptions are no longer read as types (BUG-406)
 
 [LDoc](https://lunarmodules.github.io/ldoc/) writes `@param <name> <description>` with no type slot,
 where LuaCATS writes `@param <name> <type> <description>`. The first word of an LDoc description was
@@ -55,7 +55,7 @@ known limitation recorded against 0.21.1 — which overstated the problem: type-
 never affected, because the inference engine already ignored a `@param` type it could not resolve.
 
 
-### 0.21.2 — Documented declarations could vanish from Search Everywhere (BUG-408)
+### Documented declarations could vanish from Search Everywhere (BUG-408)
 
 A declaration's doc comment was indexed as three tab-separated fields joined by `|`, split back
 apart by hand at the reader. Neither delimiter was escaped, and the file URL was not sanitised — so
@@ -81,7 +81,7 @@ PUC Lua does not — and put a number on how much more permissive Lunar's parser
 had never been measured.
 
 
-### 0.21.1 — LDoc doc comments no longer report false syntax errors (BUG-393)
+### LDoc doc comments no longer report false syntax errors (BUG-393)
 
 `---` comments written in [LDoc](https://lunarmodules.github.io/ldoc/) style marked otherwise-clean
 Lua as broken. Two constructs were at fault:
