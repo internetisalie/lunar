@@ -30,6 +30,31 @@ which is how every stdlib library table is declared). A global declared only as 
 global-assignment index, so `print`, `pairs`, `type` and friends still infer nothing. That is the
 natural follow-up, not a regression — they were equally untyped before.
 
+### 0.21.3 — Un-pinning a platform target left the project on the old one (BUG-404)
+
+Setting **Platform target** back to *Auto (from runtime)* dropped the pin from `.idea/lunar.xml` but
+left everything else on the old target: language level, standard library, the External Libraries node
+and the disabled Version combo. Re-running Auto-Discover did not help — the state was stuck rather
+than stale, and the only escape was editing `.idea/lunar.xml` by hand.
+
+The synchronizer memoised "the runtime has not changed since we last applied it" and used that to
+conclude "the applied target reflects the runtime". Pinning is exactly the case that separates those
+two claims, so un-pinning suppressed the one recalculation that was needed.
+
+### 0.21.3 — LDoc `@param` descriptions are no longer read as types (BUG-406)
+
+[LDoc](https://lunarmodules.github.io/ldoc/) writes `@param <name> <description>` with no type slot,
+where LuaCATS writes `@param <name> <type> <description>`. The first word of an LDoc description was
+therefore shown as the parameter's type — `@param array Lua table of values` rendered as
+`array: Lua` in quick documentation and parameter info.
+
+A declared type is now shown only when it resolves, or when no prose follows it; otherwise the word
+returns to the front of the description, where it belongs. Real types are untouched, including class
+names declared elsewhere and structural forms such as `string[]` and `string|nil`. This closes the
+known limitation recorded against 0.21.1 — which overstated the problem: type-aware inspections were
+never affected, because the inference engine already ignored a `@param` type it could not resolve.
+
+
 ### 0.21.2 — Documented declarations could vanish from Search Everywhere (BUG-408)
 
 A declaration's doc comment was indexed as three tab-separated fields joined by `|`, split back
