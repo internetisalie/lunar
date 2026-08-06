@@ -3,7 +3,7 @@ id: "AI-01"
 title: "01: MCP Server Integration"
 type: "feature"
 status: "todo"
-priority: "high"
+priority: "low"
 parent_id: "AI"
 folders:
   - "[[features/ai/01-mcp-server/requirements|requirements]]"

@@ -126,9 +126,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 ## Wave 22 — AI integration  *(AI epic)*
 
+> **Deprioritised to `low` / `C` on 2026-08-06.** AI work does not precede quality work. The epic stays planned and its dependency edges stand; it is simply not the next thing picked up while MAINT and BUG items remain open.
+
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| AI-01 | MCP Server Integration | todo | M | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
-| AI-02 | Semantic Context Toolset | todo | S | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
+| AI-01 | MCP Server Integration | todo | C | `com.intellij.mcpServer` bundled plugin (optional dep) | AI-02, AI-03 | Serial: registration foundation |
+| AI-02 | Semantic Context Toolset | todo | C | AI-01 *(lunar-mcp.xml infra)* | — | after 01 |
 | AI-03 | Debugger Toolset | todo | C | AI-01; **MAINT-24** *(done; debugger hardening — formerly "MobDebug hardening, unscheduled MAINT"; scoped 2026-07-17)*; REDIS-02 *(soft, LDB binding)* | — | after 01 + hardening |
-| AI-04 | LuaCATS Annotation Generator | todo | S | — *(type engine done)* | — | ✓ (engine-only, no MCP) |
+| AI-04 | LuaCATS Annotation Generator | todo | C | — *(type engine done)* | — | ✓ (engine-only, no MCP) |

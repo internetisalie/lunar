@@ -3,7 +3,7 @@ id: "AI"
 title: "AI: AI-Assisted Development"
 type: "epic"
 status: "todo"
-priority: "high"
+priority: "low"
 folders:
   - "[[features]]"
 ---

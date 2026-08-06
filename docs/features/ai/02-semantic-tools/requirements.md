@@ -3,7 +3,7 @@ id: "AI-02"
 parent_id: "AI"
 type: "feature"
 status: "todo"
-priority: "high"
+priority: "low"
 folders:
   - "[[features/ai/requirements|requirements]]"
 title: "AI-02: Semantic Context Toolset"

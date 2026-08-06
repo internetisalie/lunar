@@ -3,7 +3,7 @@ id: "AI-03"
 parent_id: "AI"
 type: "feature"
 status: "todo"
-priority: "medium"
+priority: "low"
 folders:
   - "[[features/ai/requirements|requirements]]"
 title: "AI-03: Debugger Toolset"
