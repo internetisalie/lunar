@@ -115,7 +115,11 @@ any inspection pair in any IntelliJ plugin, and structurally cannot be the file-
 `addError` net forbids it). Whole-sweep: `LuaUndeclaredVariable` 843 → **1 947** with the inspection
 enabled, converging on the uncontaminated value.
 
-### Follow-up worth its own decision, not taken here
+### Follow-up worth its own decision, not taken here — **superseded by BUG-419**
+
+> The severity question below was the symptom axis. BUG-419 files the real rule: incompatibility is
+> reported only on unknown-free provenance, a user-declared demand, and certain flow — after which
+> ERROR severity is defensible for what remains.
 
 Inference-based `LuaTypeAssignability` reports at **ERROR** severity. Even correctly anchored, an
 ERROR from a still-maturing inference engine takes precedence over other inspections' warnings and
