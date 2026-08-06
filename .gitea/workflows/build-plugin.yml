@@ -2,10 +2,19 @@ name: Build Plugin
 
 # Builds the distributable plugin and runs the unit-test suite on every code push / PR.
 #
-# On a `v*` tag push a second `release` job runs — gated on `build` (so a red build can't cut a
+# TWO build lanes, selected by ref, because they run on runners with different capabilities:
+#
+#   build          branch pushes + PRs -> the `lunar-ci` pool (one n2-standard-4 VM per job).
+#                  Faster and uncontended, but its executor implements no Actions step engine,
+#                  so that job is written without `uses:`, step-level `if:`, or `${{ }}`.
+#   build-release  `v*` tags -> ubuntu-latest, unchanged. Keeps setup-java / cache /
+#                  upload-artifact, which the pool does not run.
+#
+# On a `v*` tag push a `release` job runs — gated on `build-release` (so a red build can't cut a
 # release) — that publishes a Gitea Release with the SAME artifact the build already tested (it
 # downloads it; there is no second buildPlugin). The release job self-selects via its `if:` on the
-# tag ref.
+# tag ref. Keeping the tag lane on the shared runner is what preserves that property: artifact
+# actions are inert on the pool, so there would be nothing for `release` to download.
 #
 # The env-fragile :integrationTest (launches a real GoLand via IDE-Starter, needs a license +
 # display) is intentionally NOT run here — it stays on the local gce-builder. Parser/lexer
@@ -68,9 +77,169 @@ jobs:
             emit false
           fi
 
+  # Routine gate for branch pushes and PRs, on the lunar-ci pool (one n2-standard-4 VM
+  # per job) instead of the shared dind pool, whose jobs land on tier2 compute4/compute5
+  # (4 and 8 vCPU) with no reservation — the same workload measured 6.8m on a quiet node
+  # and 46m on a busy one.
+  #
+  # That pool's executor is NOT a general Actions runner and this job is written against
+  # its constraints (verified in glimmer-gitea-runner, not assumed):
+  #
+  #   - `uses:` is a stated non-goal — every action step is skipped with a warning.
+  #     actions/checkout below is kept anyway, for the same reason sim keeps its own:
+  #     it is inert HERE but removing it breaks this job on any runner that honours it.
+  #     The source still arrives — the executor does its own git init/fetch/checkout
+  #     FETCH_HEAD into /workspace (runner_k8s.go:675).
+  #   - step-level `if:` is REJECTED, failing the job at the top of the script. There is
+  #     none here; see "Report test result" for how the always()-style behaviour is kept.
+  #   - `${{ }}` is NOT evaluated: the executor builds a shell script, not an act
+  #     context. Repo/org variables and secrets arrive as plain env instead, which is
+  #     what $UNITRACK_URL / $UNITRACK_TOKEN below rely on.
+  #   - `env:` is set at JOB level, never per step. sim measured step-level env being
+  #     dropped (its run #134: 18 skips and a GREEN job); GGR-011 now claims it is
+  #     honoured. The two disagree, and job level works either way.
+  #
+  # TAG BUILDS DO NOT COME HERE — see build-release. Splitting them is what keeps the
+  # release path (which needs upload/download-artifact to publish the exact bytes it
+  # tested) entirely off this executor, where artifact actions are inert.
   build:
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    if: ${{ needs.changes.outputs.code == 'true' && !startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: lunar-ci
+    env:
+      # The pool mounts a node-local hostPath at /cache (ci.cacheHostPath) that outlives
+      # the job pod, so a second job landing on the same VM inside its idle window
+      # resolves warm. This replaces actions/cache, which is inert here.
+      GRADLE_USER_HOME: /cache/lunar/gradle
+    steps:
+      # Inert on this pool (see above); kept for portability to runners that honour it.
+      - uses: actions/checkout@v4
+
+      - name: Verify toolchain
+        # No apt-get here, unlike build-release. The JDK, fonts and Lua toolchain are
+        # baked into the lunar-ci job image (tooling/ci-image/Dockerfile) because
+        # setup-java is an action and actions do not run on this pool — and because
+        # apt-getting them on a freshly provisioned VM would repeat that cost on every
+        # single job.
+        #
+        # This step is the runtime counterpart to the image's own build-time checks: it
+        # catches the pool pointing at a stale or wrong image, and fails in two lines
+        # instead of somewhere deep in a Gradle stack trace.
+        run: |
+          java -version
+          "$HOME/bin/lua" -v
+          fc-match sans >/dev/null && echo "fontconfig ok"
+          # Make the cache observable. ci.cacheHostPath mounts a node-local hostPath at
+          # /cache that outlives the job pod, so a job landing on a VM still inside its
+          # idle window should find this already populated — that is the whole reason a
+          # per-VM pool is not permanently cold. Without printing it there is no way to
+          # tell a warm run from a cold one after the fact, which is exactly the question
+          # asked of the first few runs.
+          echo "GRADLE_USER_HOME=${GRADLE_USER_HOME}"
+          if [ -d "${GRADLE_USER_HOME}" ]; then
+            echo "gradle cache: WARM ($(du -sh "${GRADLE_USER_HOME}" 2>/dev/null | cut -f1))"
+          else
+            echo "gradle cache: COLD (no ${GRADLE_USER_HOME} yet)"
+          fi
+
+      # No -PpluginVersion, and no version-derivation step. This lane never builds a tag,
+      # so the derived value was always just gradle.properties' own pluginVersion —
+      # passing it back in is a no-op (build.gradle.kts: version = pluginVersion).
+      - name: Build plugin (compile + verifyPlugin + distributable zip)
+        run: ./gradlew buildPlugin --no-daemon --stacktrace
+
+      - name: Unit tests (excludes :integrationTest and out-of-repo fixture tests)
+        # Failure is RECORDED, not propagated, so the coverage + analytics steps below
+        # still run on a red build — that is what `if: always()` bought on the standard
+        # runner, and step-level `if:` is rejected here. The job is failed deliberately
+        # by the final step; `continue-on-error` is NOT used, as that would mark the step
+        # succeeded and let a genuine test failure through as a green build.
+        #
+        # --rerun: the SUITE MUST ACTUALLY EXECUTE. Without it Gradle serves `:test`
+        # FROM-CACHE whenever its declared inputs are unchanged, and the job reports a
+        # full pass having run nothing — observed on this pool's second run, which
+        # "passed" 2375 tests in 78s and ingested them into UniTrack as a real result.
+        #
+        # In principle that is safe, because identical inputs imply an identical result.
+        # In practice several of this suite's inputs are NOT declared to Gradle:
+        # sandbox.home, path.to.build.plugin, the out-of-repo test/ fixture tree, and
+        # ~/bin/lua. The cache key can match while the environment differs, which is
+        # exactly how a cached green hides a real failure — already recorded against the
+        # gce-builder on deletion-heavy changes.
+        #
+        # Scoped to this task on purpose: --no-build-cache would also stop COMPILE being
+        # served from cache, and on a fresh checkout that is the only thing making it
+        # fast (UP-TO-DATE cannot help — /workspace/build is new every job).
+        run: |
+          ./gradlew test --rerun --no-daemon --stacktrace -PexcludeExternalFixtureTests \
+            || touch /tmp/lunar-tests-failed
+
+      - name: Kover XML coverage report (JaCoCo format)
+        continue-on-error: true
+        # Reuses the coverage data the test step produced. EVERY Test task must be
+        # excluded, not just `test`: koverXmlReport depends on all of them, so an
+        # omission silently RUNS that suite here.
+        run: >-
+          ./gradlew koverXmlReport -x test -x integrationTest -x redisIntegrationTest
+          --no-daemon --stacktrace -PexcludeExternalFixtureTests
+
+      - name: Ingest into UniTrack
+        continue-on-error: true
+        # $UNITRACK_URL (org variable) and $UNITRACK_TOKEN (secret) arrive as plain env
+        # on this executor — task.Vars and task.Secrets are injected directly, precisely
+        # so a native job needs no per-repo `env:` wiring. The ${{ }} form used in
+        # build-release would not be evaluated here.
+        #
+        # POSIX sh, NOT bash. The job script runs under `/bin/sh -ec` (executor.go:271),
+        # which is dash on a Debian-based image, and build-release's version of this step
+        # is bash-only: it uses an array (args=(), "${args[@]}") and `shopt -s nullglob`.
+        # Its `shell: bash` declaration cannot rescue it either — `shell:` is a REJECTED
+        # field on this executor unless it is `sh`. So the argument list is built with
+        # `set --`/"$@", the POSIX equivalent, and the glob is guarded by an existence
+        # test instead of nullglob.
+        #
+        # Every conditional is a full `if`, never `[ … ] && …`: under `set -e` a compound
+        # whose final command returns non-zero aborts the whole script, so the shorthand
+        # would turn "no coverage file" into a dead job rather than a skipped upload.
+        run: |
+          set --
+          for f in build/test-results/test/TEST-*.xml; do
+            if [ -e "$f" ]; then set -- "$@" -F "junit=@${f}"; fi
+          done
+          cov=build/reports/kover/report.xml
+          if [ -e "$cov" ]; then set -- "$@" -F "jacoco=@${cov}"; fi
+          if [ "$#" -eq 0 ]; then echo "no test reports — nothing to ingest"; exit 0; fi
+          git ls-files > sources.txt
+          curl -fsS --retry 3 --retry-connrefused \
+            -X POST "${UNITRACK_URL}/api/v1/ingest" \
+            -H "Authorization: Bearer ${UNITRACK_TOKEN}" \
+            -F "project=lunar/lunar" \
+            -F "branch=${GITHUB_REF_NAME}" \
+            -F "commit=${GITHUB_SHA}" \
+            -F "ciProvider=gitea" \
+            -F "buildName=${GITHUB_WORKFLOW} #${GITHUB_RUN_NUMBER}" \
+            -F "buildUrl=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            "$@" \
+            -F "sourceManifest=@sources.txt"
+
+      # The deferred verdict from the test step. Last, so coverage and analytics have
+      # already been collected from the failing run — the point of doing it this way.
+      - name: Report test result
+        run: |
+          if [ -f /tmp/lunar-tests-failed ]; then
+            echo "::error::unit tests failed — see the Unit tests step above"
+            exit 1
+          fi
+          echo "unit tests passed"
+
+  # The RELEASE lane, and the only lane that produces a published artifact. Stays on the
+  # shared runner because it depends on three things the lunar-ci executor does not
+  # implement: setup-java, actions/cache, and above all upload-artifact — which is how
+  # the release job below publishes the exact zip this job tested rather than rebuilding
+  # it. Tag builds are rare, so their slower runner costs nothing worth optimising.
+  build-release:
+    needs: changes
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +294,12 @@ jobs:
       - name: Unit tests (excludes :integrationTest and out-of-repo fixture tests)
         # `test` does not trigger :integrationTest (a separate task). -PexcludeExternalFixtureTests
         # skips the two tests that read the out-of-repo test/ fixture tree, which a CI checkout lacks.
-        run: ./gradlew test --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
+        #
+        # --rerun for the same reason as the `build` job above, and it matters MORE here:
+        # this is the lane that cuts a release. A `:test` served FROM-CACHE would let a
+        # tag be published on a suite that never executed. Scoped to this task, so
+        # compile is still cache-served.
+        run: ./gradlew test --rerun --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
 
       # UniTrack test-analytics ingest (glimmer-docs G-014/G-015). Non-fatal — never breaks
       # the build/release. Reuses the coverage data the test step produced (Kover instruments
@@ -198,7 +372,7 @@ jobs:
   # it reuses the EXACT zip the build tested (download-artifact) rather than rebuilding — so the
   # released bytes are what the suite validated. Marketplace publish (publishPlugin) stays dormant.
   release:
-    needs: build
+    needs: build-release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     # Releases + asset upload fall under `contents: write`; declare it so we don't depend on the
