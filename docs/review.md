@@ -26,27 +26,25 @@ systemic patterns worth fixing once rather than per-site.
 
 ---
 
-> **Remediation status (verified 2026-07-17, `main` @ `3cef0672`).** Every numbered finding was
-> re-checked against the current source. Tally: **5 fixed** (#13, #42, #43, #51, #55), **4 moot**
-> — cited code since deleted (#4, #10, #12, #65), **6 partial** (#11, #24, #27, #41, #53, #71),
-> **57 still present**. Rows below carry inline ✅ FIXED / 🗑 MOOT / ◑ PARTIAL markers;
-> an **unmarked row is still present as of the verification date**. The fixes cluster where
-> waves rebuilt code wholesale (TOOLING-05/06/07, REDIS-02 debugger rework, ROCKS-06,
-> BUG-379); none of the review's "Suggested execution order" passes has been executed as such.
+> **✅ CLOSED (verified 2026-08-06).** Every finding in §1–§3 has been remediated or retired. The
+> per-row ✅ FIXED / 🗑 MOOT / ◑ PARTIAL markers below are a **historical snapshot taken 2026-07-17**
+> (`main` @ `3cef0672`), when the tally was 5 fixed / 4 moot / 6 partial / 57 open. They are **not**
+> current status — do not read an unmarked row as open work.
 
-> **All open findings are now tracked work (planned 2026-07-17, roadmap Wave 19 — MVP-gating).** Coalesced by
-> root cause into nine MAINT features — **MAINT-24** debugger/test-runner (#5–#7, #16–#18, #26,
-> #27b, #52–#54, #56, #59, §2.2, §2.5.7) · **MAINT-25** type-graph immutability (#1–#3, #14, #47,
-> #58, §2.5.1) · **MAINT-26** luacheck (#28–#31, #60, #61, §2.5.6) · **MAINT-27** LuaCATS
-> (#19, #35–#38, #57, #66, #67, #72) · **MAINT-28** completion (#24, #25, #39, #40, #62) ·
-> **MAINT-29** control-flow/inspections (#8, #9, #32–#34, #68, #69) · **MAINT-30**
-> indexing/resolution caching (#20, #21, §2.5.2–2.5.4) · **MAINT-31** dead-code sweep (§3, #63) ·
-> **MAINT-32** process-execution discipline (#11, §2.1) — plus absorption into already-planned
-> features: **ROCKS-16** (#48, #64, #70, #71b) and **TOOLING-08** (#41, #44, #50); isolated fixes
-> filed as **BUG-382** (#23), **BUG-383** (#45), **BUG-384** (#46), **BUG-385** (#49),
-> **BUG-386** (#15); #22 was already **BUG-361**. Perf items (§2.5.5) split across their owning
-> clusters. Roadmap: **Wave 19** (MVP-gating; MAINT-31 first; MAINT-24 unblocks AI-03; MAINT-25 serialized
-> after TYPE-10).
+> **How it was closed.** The 57 open + 6 partial findings were coalesced by root cause into nine
+> MAINT features (roadmap Wave 19, MVP-gating) plus five isolated bugs, **all now `done`**:
+> **MAINT-24** debugger/test-runner (#5–#7, #16–#18, #26, #27b, #52–#54, #56, #59, §2.2, §2.5.7) ·
+> **MAINT-25** type-graph immutability (#1–#3, #14, #47, #58, §2.5.1) · **MAINT-26** luacheck
+> (#28–#31, #60, #61, §2.5.6) · **MAINT-27** LuaCATS (#19, #35–#38, #57, #66, #67, #72) ·
+> **MAINT-28** completion (#24, #25, #39, #40, #62) · **MAINT-29** control-flow/inspections
+> (#8, #9, #32–#34, #68, #69) · **MAINT-30** indexing/resolution caching (#20, #21, §2.5.2–2.5.4) ·
+> **MAINT-31** dead-code sweep (§3, #63) · **MAINT-32** process-execution discipline (#11, §2.1) ·
+> **ROCKS-16** (#48, #64, #70, #71b) · **TOOLING-08** (#41, #44, #50) ·
+> **BUG-382** (#23), **BUG-383** (#45), **BUG-384** (#46), **BUG-385** (#49), **BUG-386** (#15);
+> #22 was **BUG-361**. Perf items (§2.5.5) split across their owning clusters. Shipped in
+> 0.19 / 0.19.1.
+
+> **A second pass covering this review's blind spot is in [§4](#4-era-attribution--second-pass-2026-08-06).**
 
 ## 1. Bugs (prioritized)
 
@@ -374,3 +372,104 @@ All confirmed zero-reference by repo-wide search (production and, unless noted, 
    platform caching (`ResolveCache`/`CachedValuesManager`, §2.5.2), dedup (§2.5.3),
    `LuaProcessUtil` discipline (§2.1). These overlap naturally with the existing Wave 12
    backlog and should be cross-referenced when planned.
+
+---
+
+## 4. Era attribution & second pass (2026-08-06)
+
+The July review asserted a two-strata codebase without measuring it. This section measures it,
+then reviews the stratum the measurement shows the first pass missed.
+
+### 4.1 Measuring the strata
+
+`docs/engineering-contract.md` was added **2026-05-25** (`091e0dd6`). Blaming every surviving line
+of `src/main/kotlin` against that date, and against the start of the intensive development period:
+
+| Era | Surviving lines | Share |
+|-----|-----------------|-------|
+| Legacy (< 2026-04) | 5,461 | 11.4% |
+| 2026-04-01 → contract (pre-contract) | 7,715 | 16.1% |
+| Post-contract | 34,635 | 72.4% |
+| **Total** | **47,811** | |
+
+**The two-strata claim holds quantitatively.** Files §1–§3 cited are **48.8%** pre-contract code
+(101 files, 16,801 lines); files it did not cite are **16.1%** (444 files, 31,010 lines). The
+first pass found the old code — the concentration is 3×, not noise.
+
+Reproduce with:
+
+```bash
+CUT=$(date -d 2026-05-25 +%s)
+git blame --line-porcelain -- <file> | awk -v c=$CUT '/^author-time /{t=$2} /^\t/{n++; if (t < c) old++} END{print old, n}'
+```
+
+### 4.2 The residue
+
+Sixteen files carry ≥100 surviving pre-contract lines yet are named nowhere in §1–§3. Four are
+declarative tables and were re-checked clean: `lang/syntax/LuaSyntax.kt`,
+`lang/syntax/LuaHighlight.kt` (all `TextAttributesKey`s are `val` — it does **not** have
+`LuaCatsHighlight`'s mutable-singleton defect from §2.2), `lang/syntax/LuaColorSettingsPage.kt`,
+and `lang/format/LuaCodeStyleSettings.kt` (`@JvmField var` is the required
+`CustomCodeStyleSettings` idiom, not a contract violation).
+
+The remaining twelve were reviewed in full. Findings continue the §1 numbering.
+
+> **Tracked work (filed 2026-08-06).** The three P1s are isolated and independently testable, so
+> each is its own bug: **BUG-412** (#74), **BUG-413** (#75), **BUG-414** (#73, which also carries
+> #82 and #87 as same-file/same-subsystem work). Findings **#76–#92** are coalesced into
+> **MAINT-36** — they concentrate in the same twelve files, and splitting them further would
+> produce seventeen one-line diffs. Not yet placed in a roadmap wave.
+
+### 4.3 P1 — wrong output, threading violations
+
+| # | Location | Issue | Fix |
+|---|----------|-------|-----|
+| 73 | `run/LuaDebugVariable.kt:84-130` | **(verified)** `computeSourcePosition` performs `XDebuggerUtil.findContextElement`, a full `processDeclarations` scope walk and `createPositionByElement` **with no read action**, from a platform callback that is not guaranteed to hold one. Contract rule 1 outright. Mirror image of #87 below, in the same subsystem. | Wrap the PSI walk in `runReadAction { }` (or suspend `readAction { }`); return the position through the `XNavigatable` callback. |
+| 74 | `lang/syntax/LuaLiterals.kt:133-146` | **(verified)** `longBracketLevel` stops at the first level *absent* from the value rather than max-present + 1. For a value containing `]=]` but not `]]` it returns 0, so `encodeLong` emits `[[]=]]]` — the `]]` scanner closes early and the trailing `]` is a syntax error. Reachable from `LuaStringConversionIntention`: "convert to long string" on `local s = "]=]"` produces broken Lua. Destructive intention (cf. #8, #9). **Confirmed against PUC Lua:** `luac -p` on the emitted `local s = [[]=]]]` → *"unexpected symbol near ']'"*. `"]==]"` fails the same way. | Scan for the highest `]=*]` present and use that level + 1; add a round-trip property test over `extractLuaString ∘ encodeLuaString`. |
+| 75 | `lang/insight/LuaDocGenerator.kt:134-145` | **(verified)** `inferTypeByName` matches unanchored substrings, so the `x`/`y` alternatives make **any** name containing those letters a `number` (`body`, `key`, `proxy`, `myList`), and the `is` alternative fires before the `list` one — `list` infers `boolean`, never `any[]`. **Confirmed by executing the branch table:** `list`→`boolean`, `body`/`key`/`proxy`/`syntax`→`number`. Every generated `---@param` line is affected. | Match whole words / suffixes on the split identifier, drop the single-letter alternatives, and order the table longest-pattern-first. |
+
+### 4.4 P2 — wrong results, latent defects
+
+| # | Location | Issue | Fix |
+|---|----------|-------|-----|
+| 76 | `lang/psi/types/LuaTypeGraphBridge.kt:114-122` | When a `@param` tag's name matches no AST parameter, `astIndex` silently falls back to the **tag's own position** — so `---@param typo string` on `function f(a, b)` types `a` as `string`. The KDoc directly above claims such tags "are silently ignored". A misspelled parameter name yields a wrong inferred type instead of no type. | Skip the tag when `indexOf` returns -1 (and let the LuaCATS inspection flag the mismatch), or drop the doc claim if positional fallback is intended. |
+| 77 | `lang/psi/types/LuaStructuredTypes.kt:54-71` | `isAssignableToInternal` seeds `visited` with `this.name` on entry, then the union branch recurses **on `this`** with the same set — the guard trips immediately and every arm returns false. `LuaClassType.isAssignableTo(LuaUnionType)` is therefore **always false**. Currently latent: nothing outside `lang/psi/types/` calls Layer-1 `isAssignableTo`, so no inspection surfaces it yet — but the API reads as working. | Test union membership without re-entering the cycle guard (check arms directly), or pass a copy of `visited` per arm. Same shared-set flaw makes diamond inheritance lose the second path in `resolveMemberInternal:32-48`. |
+| 78 | `lang/doc/LuaDocumentationTargetProvider.kt:45-56` | The global `@class`/`@alias` name lookup (`findTypeElement`) runs **before** reference resolution, so any identifier that happens to share a name with a type declared anywhere in the project documents that type instead of the thing under the caret — hovering `local config = {}` shows an unrelated `---@class config` from another file. Precedence, not scoping. | Resolve the reference first; fall back to the project-wide type index only when resolution yields nothing. |
+| 79 | `run/LuaDebugRunner.kt:78` | `log.error("Failed to create debug session", e)` on an `ExecutionException` — an expected user-facing failure (bad interpreter, port in use) raised as an **IDE fatal error report**, on top of the notification the same handler already shows. Identical pattern to #13/#14, missed because the file was never cited. | `log.warn`; keep the notification. |
+| 80 | `run/LuaValue.kt:27-34,125` | `LuaValue` is a `data class` whose `psiElement: PsiElement?` participates in `equals`/`hashCode`, and it is used as the **key type** of `LuaTable.named`. Debug-session-lifetime tables therefore retain hard `PsiElement` references (contract rule 4, §2.3), and key equality touches PSI that a reparse can invalidate. | Exclude `psiElement` from the data-class contract (constructor-private + explicit `equals`), or key `named` on `String`; hold PSI as a `SmartPsiElementPointer` if it is needed at all. |
+
+### 4.5 P3 — dead code, perf, contract compliance
+
+| # | Location | Issue |
+|---|----------|-------|
+| 81 | `lang/psi/types/LuaTypeGraphBridge.kt:127-132,173-178` | Both arms of `if (graphType is LuaGraphType.Generic)` are byte-identical, twice, each with a comment explaining a distinction the code does not make. Collapse to the single `addEdge`. |
+| 82 | `run/LuaDebugVariable.kt:39,41,132-138` | `isIndex` is `false` at every construction site and `parent` is never read — both exist only for the commented-out `evaluationExpression` block. Delete all three, or restore the feature. |
+| 83 | `lang/insight/LuaDocGenerator.kt:44,74-84,104,111` | `indent` is threaded through `createTemplate` → `buildFuncTemplate`/`buildLocalFuncTemplate`/`buildClassTemplate` → `buildSignatureTemplate` and never used (`template.setToIndent(true)` does the work). `buildFuncTemplate` and `buildLocalFuncTemplate` are identical modulo the receiver type. |
+| 84 | `run/LuaValue.kt:52-57` | `compareTo` uses `LuaValueKind.entries.indexOf(kind)` — allocating the entries list and scanning it — where `kind.ordinal` is free. It is the comparator behind `LuaTable.pairs()`'s sort, so it runs O(n log n) times per table expansion. |
+| 85 | `lang/psi/types/TypeParser.kt:12-25` | `parse` builds a throwaway `LuaFile` (`---@type $typeString\nlocal _`) per call, with no cache, for every non-simple annotation on every type-graph build (`LuaTypeGraphBridge:42`). Cache on the type string, or parse the LuaCATS type PSI already present in the source comment instead of re-lexing a synthetic file. |
+| 86 | `lang/psi/LuaFileElementType.kt:33-82` | The stub builder walks the whole file (`findChildrenOfType`), calls `.text` per candidate to test `startsWith("return")` (use the element type), and for each root return walks `prevSibling` **to the start of the file** without stopping at the first match — O(n²) on return-heavy files, paid on every index pass. |
+| 87 | `run/LuaStackFrame.kt:59-85` | `computeChildren` wraps its `LuaDebugVariable`/`LuaDebugValue` construction in `runReadAction` although nothing in the block touches PSI or VFS — a pointless lock acquisition. The subsystem has the read action exactly where it isn't needed and omits it where it is (#73). |
+| 88 | `lang/psi/LuaFunctionExt.kt:18,59,95` | Three near-identical `processDeclarations` implementations differing only in the receiver type and whether the declaration itself is executed last. §2.5.3 copy-paste, uncited. |
+| 89 | `run/LuaValue.kt:123-165` | `LuaTable` exposes public `MutableList`/`MutableMap` fields, populated from the DBGp connection thread and read from the EDT during frame expansion (cf. #18), and declares a secondary no-arg constructor that only restates the primary's defaults. |
+| 90 | `lang/doc/LuaDocumentationTargetProvider.kt:47,142,168` | Three null checks on `PsiElement.text`, which is non-null; `arrayListOf` used for immutable single-element returns (`:59,67`); the `parent?.parent is LuaIndexExpr` member-segment predicate is inlined twice (`:45`, `:151`) rather than shared. |
+| 91 | `run/LuaDebugVariable.kt:59` | Numeric table keys render through `toInt()`, so `t[1.5]` and `t[2^31]` display as `[1]` and a wrapped negative. Format the `LuaValue` instead. |
+| 92 | Contract sweep across the residue | **Wildcard imports** (rule "never emit"): `TypeParser.kt:9`, `LuaDocGenerator.kt:10`, `LuaFileElementType.kt:12` (which also wildcard-imports its own package), `LuaDocumentationTargetProvider.kt:27`, `LuaDebugVariable.kt:27`. **Parameter cap (max 3):** `LuaTypeGraphBridge.injectTypeAnnotation` (5), `injectParamAnnotations` (5), `injectReturnAnnotations` (4), `LuaStackFrame`'s primary constructor (6). **30-logic-line cap:** `LuaDocumentationTargetProvider.resolveDocumentationTarget:99-175` (~50, and mixes PSI traversal with orchestration), `LuaFileElementType.extractExportedType:33-82` (~40, same). Fully-qualified inline type names instead of imports in `LuaFileElementType` and `LuaDocumentationTargetProvider`. |
+
+### 4.6 Reading of the second pass
+
+The residue is smaller and milder than §1's haul — three P1s across 2,475 lines, versus nineteen
+across the first pass's surface — which is consistent with the first pass having correctly
+prioritised the worst of the stratum rather than having sampled it. But it is not empty, and the
+misses are not random: **#73, #79, #80 and #87 are all the same four systemic patterns §2 already
+named** (missing read action, `Logger.error` for expected failures, hard PSI retention, threading
+discipline in `run/`), landing in files the reviewers happened not to open. A pattern-driven grep
+would have caught them where a file-driven review did not.
+
+Two conclusions worth carrying forward:
+
+1. **Era attribution is cheap and should gate future review scoping.** One `git blame` pass ranks
+   the whole tree by risk before a reviewer reads anything.
+2. **§2's systemic patterns deserve enforcement, not re-review.** `Logger.error` on a caught
+   `ExecutionException`, PSI access outside a read action, and `PsiElement` in a `data class` are
+   all mechanically detectable; a lint/detekt rule closes them permanently, whereas a third review
+   pass would just find the next few files nobody opened.
