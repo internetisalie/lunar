@@ -74,6 +74,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-423 | Arithmetic and concatenation operands ignore Lua's string↔number coercion | todo | C | — | — | ✓ |
 | BUG-424 | Operator metamethods are unmodelled — the largest false-positive class (655 of 661) | todo | **M** | — | BUG-423 | ✓ |
+| BUG-425 | A function signature declared outside the file under analysis never reaches the type graph | todo | **M** | — | BUG-419 | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 
