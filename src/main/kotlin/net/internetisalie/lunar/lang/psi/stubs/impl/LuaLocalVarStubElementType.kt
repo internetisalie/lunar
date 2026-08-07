@@ -8,6 +8,7 @@ import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.impl.LuaLocalVarDeclImpl
 import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
 import net.internetisalie.lunar.lang.psi.stubs.LuaLocalVarStub
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 
 class LuaLocalVarStubElementType(debugName: String) :
     IStubElementType<LuaLocalVarStub, LuaLocalVarDecl>(debugName, LuaLanguage) {
@@ -29,19 +30,13 @@ class LuaLocalVarStubElementType(debugName: String) :
         val aliasName = aliasTag?.argName?.text
         val aliasTarget = aliasTag?.argType?.text
         
-        // BUG-401: `---@field beta? number` declares a member named `beta`, typed `number | nil`.
-        // Keeping the marker in the key produced a member literally called `beta?`, which no member
-        // lookup can ever match — so every optional field on a stubbed class was silently
-        // unreachable. `materializeClass`'s AST branch already stripped it; the stub path, which is
-        // the one a hosted class actually takes, never did.
-        val fields = catsComment?.getFieldTagList()?.associate { tag ->
-            val descriptor = tag.fieldDescriptor
-            val declared = descriptor.argName?.text ?: descriptor.argType?.text ?: ""
-            val isOptional = declared.endsWith("?")
-            val fName = if (isOptional) declared.removeSuffix("?") else declared
-            val fType = if (isOptional) "(${tag.argType.text}) | nil" else tag.argType.text
-            fName to fType
-        } ?: emptyMap()
+        // MAINT-34-01: read through the one shared extractor rather than a private copy of the
+        // rule. This branch and `materializeClass`'s were copy-paste siblings, and BUG-401 is what
+        // that costs — the stub kept `---@field beta? number`'s marker in the member key, producing
+        // a `beta?` no lookup could match, while the AST branch had always stripped it.
+        val fields = catsComment
+            ?.let { LuaCatsDeclarations.fieldMembers(it).associate { field -> field.name to field.typeName } }
+            ?: emptyMap()
         
         return LuaLocalVarStubImpl(parentStub, names, type, className, aliasName, aliasTarget, extendsType, fields)
     }

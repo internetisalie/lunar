@@ -101,7 +101,7 @@ are exhaustive for the nominal layer and were re-verified by grep, not estimated
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| MAINT-34-01 | Shared `@field` extraction | **M** | Not Implemented | One function returns the member name (optional marker stripped) and type string (widened with `nil` when optional). All three consumers call it. |
+| MAINT-34-01 | Shared `@field` extraction | **M** | Full | One function returns the member name (optional marker stripped) and type string (widened with `nil` when optional). All three consumers call it. |
 | MAINT-34-02 | Shared `@class` parent extraction | **M** | Not Implemented | One function returns parents as a `List<String>` from `parentTypes.argTypeList`. The stub stores the **list**, never a joined string; `materializeClass`'s `split(',')` is deleted. Fixes BUG-402. **Payoff, stated honestly:** this guarantees the parent *name* arrives whole and that the two paths agree. It does **not** by itself make `Base<string, number>` resolve — `LuaClassNameIndex` is keyed on the plain class name. Where the parent is non-generic (the overwhelming majority) inheritance is repaired outright; where it is generic, the fix converts two nonsense names into one correct-but-possibly-unresolved name. See DR-01. |
 | MAINT-34-03 | Shared `@param` / `@return` extraction | **S** | Not Implemented | One function each; both func-stub builders and `funcTypeFromStub`'s AST fallback call them. |
 | MAINT-34-04 | Shared `@alias` target extraction | **S** | Not Implemented | One function; stub builder and `materializeAlias` call it. |

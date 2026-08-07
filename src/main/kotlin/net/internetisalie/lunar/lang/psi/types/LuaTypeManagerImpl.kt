@@ -26,6 +26,7 @@ import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.stubs.LuaFileStub
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.ConcurrentHashMap
 
@@ -204,36 +205,22 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
         for (decl in decls) {
-            val stub = decl.stub
-            if (stub != null) {
-                stub.luacatsFields.forEach { (fName, fTypeStr) ->
-                    membersMap[fName] = LuaTypeMember(fName, LuaTypeReference(fTypeStr, decl), sourceElement = decl)
-                }
-                stub.luacatsExtends?.split(',')?.forEach {
-                    val extendedType = it.trim()
-                    if (extendedType.isNotEmpty()) {
-                        superTypes.add(LuaTypeReference(extendedType, decl))
-                    }
-                }
-            } else {
-                val cats = net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl)
-                cats?.getFieldTagList()?.forEach {
-                    val desc = it.fieldDescriptor
-                    var fName = desc.argName?.text ?: desc.argType?.text ?: ""
-                    var fTypeStr = it.argType.text
-                    val isOptional = fName.endsWith("?")
-                    if (isOptional) {
-                        fName = fName.removeSuffix("?")
-                        fTypeStr = "($fTypeStr) | nil"
-                    }
-                    membersMap[fName] = LuaTypeMember(fName, LuaTypeReference(fTypeStr, decl), sourceElement = it)
-                }
-                cats?.getClassTagList()?.firstOrNull()?.parentTypes?.let { parentTypes ->
-                    parentTypes.argTypeList.forEach { parentType ->
-                        superTypes.add(LuaTypeReference(parentType.text.trim(), decl))
-                    }
-                }
+            val parts = hostedParts(decl)
+            // Last write wins, as it always has here — deliberately unlike materializeUnhostedClass,
+            // which merges several tags for one name and so keeps first-wins.
+            parts.members.forEach { member ->
+                membersMap[member.name] = LuaTypeMember(
+                    member.name,
+                    LuaTypeReference(member.typeName, decl),
+                    // The tag on the AST path, the host declaration on the stub path (which has no
+                    // PSI). Preserved exactly: LuaOverrideLineMarkerProvider uses sourceElement as
+                    // gutter navigation targets, so collapsing this to `decl` would silently
+                    // regress override navigation — and the parity harness compares names and types
+                    // only, so it would not catch that.
+                    sourceElement = member.tag ?: decl,
+                )
             }
+            parts.superTypeNames.forEach { superTypes.add(LuaTypeReference(it, decl)) }
         }
         LuaImplicitFields.collect(classReceiverNames(name, decls), decls.mapNotNull { it.containingFile }.distinct(), membersMap)
         // Method-aware members: `function Class:m` / `function Class.fn` declarations are not
@@ -257,9 +244,30 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
         tags.forEach { tag ->
-            val parts = declaredParts(tag) ?: return@forEach
-            parts.members.forEach { (memberName, member) -> membersMap.putIfAbsent(memberName, member) }
-            parts.superTypes.forEach { if (it !in superTypes) superTypes.add(it) }
+            val parts = unhostedParts(tag) ?: return@forEach
+            // Two different merge rules, and both are pre-existing behaviour rather than a choice
+            // made here. WITHIN one comment a repeated `@field` name is last-wins, because the old
+            // code accumulated into a map before returning; ACROSS tags it is first-wins, via the
+            // putIfAbsent below, because several `---@class Same` tags merge into one class.
+            // Collapsing these into a single putIfAbsent per member reads more simply and silently
+            // flips the within-comment case — exactly the drift this feature exists to remove.
+            val perComment = LinkedHashMap<String, LuaTypeMember>()
+            parts.members.forEach { member ->
+                perComment[member.name] = LuaTypeMember(
+                    member.name,
+                    LuaTypeReference(member.typeName, tag),
+                    sourceElement = member.tag ?: tag,
+                )
+            }
+            perComment.forEach { (memberName, member) -> membersMap.putIfAbsent(memberName, member) }
+            // The dropped `if (it !in superTypes)` guard was dead code, so dropping it preserves
+            // behaviour rather than changing it: LuaTypeReference has no equals override, so `!in`
+            // compared identity, and a fresh reference was constructed per tag on every call — the
+            // same object was never re-added. Two `---@class Same` tags that both declare `: P`
+            // accumulate two `P` references today and must continue to (locked by TC-10).
+            // Substituting a name comparison here would look like a tidy-up and be a silent
+            // behaviour change, which is the exact class of drift this feature exists to remove.
+            parts.superTypeNames.forEach { superTypes.add(LuaTypeReference(it, tag)) }
         }
         LuaImplicitFields.collect(setOf(name), tags.mapNotNull { it.containingFile }.distinct(), membersMap)
         addMethodsOf(
@@ -281,25 +289,55 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             .filter { it.argType?.text?.trim() == name }
     }
 
-    private data class DeclaredParts(val members: Map<String, LuaTypeMember>, val superTypes: List<LuaType>)
+    /**
+     * Extraction output — names and type strings, not built engine types — so that the hosted and
+     * un-hosted paths can share one shape and each apply its own merge rule to it.
+     */
+    private data class DeclaredParts(
+        val members: List<LuaCatsDeclarations.FieldMember>,
+        val superTypeNames: List<String>,
+    )
 
-    /** The `@field` members and `: Parent` supertypes declared alongside [tag]. */
-    private fun declaredParts(tag: LuaCatsClassTag): DeclaredParts? {
-        val cats = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java) ?: return null
-        val members = mutableMapOf<String, LuaTypeMember>()
-        cats.getFieldTagList().forEach { field ->
-            val descriptor = field.fieldDescriptor
-            var fieldName = descriptor.argName?.text ?: descriptor.argType?.text ?: ""
-            var fieldType = field.argType.text
-            if (fieldName.endsWith("?")) {
-                fieldName = fieldName.removeSuffix("?")
-                fieldType = "($fieldType) | nil"
-            }
-            members[fieldName] = LuaTypeMember(fieldName, LuaTypeReference(fieldType, tag), sourceElement = field)
+    /**
+     * What [decl] declares, from whichever source is available.
+     *
+     * This is the whole of the stub/AST fork now: a stub is a serialized snapshot with no PSI, so
+     * the fork cannot be deleted — but with extraction living in [LuaCatsDeclarations] the two arms
+     * can only differ in provenance, not in what a tag means.
+     */
+    private fun hostedParts(decl: LuaLocalVarDecl): DeclaredParts {
+        val stub = decl.stub
+        if (stub != null) {
+            return DeclaredParts(
+                members = stub.luacatsFields.map { (n, t) -> LuaCatsDeclarations.FieldMember(n, t, tag = null) },
+                // Still re-split here because the stub still stores a joined string; MAINT-34-02
+                // changes the stored shape to a list and deletes this. Keeping the split for now is
+                // what keeps this phase behaviour-preserving — BUG-402 stays witnessed by TC-2.
+                superTypeNames = stub.luacatsExtends?.split(',')
+                    ?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
+            )
         }
-        val superTypes = tag.parentTypes?.argTypeList.orEmpty()
-            .map { LuaTypeReference(it.text.trim(), tag) }
-        return DeclaredParts(members, superTypes)
+        val cats = net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl)
+            ?: return DeclaredParts(emptyList(), emptyList())
+        return DeclaredParts(
+            members = LuaCatsDeclarations.fieldMembers(cats),
+            superTypeNames = cats.getClassTagList().firstOrNull()?.parentTypes?.argTypeList
+                .orEmpty().map { it.text.trim() },
+        )
+    }
+
+    /**
+     * The `@field` members and `: Parent` supertypes declared alongside [tag].
+     *
+     * Named apart from [hostedParts] deliberately: Kotlin would accept `declaredParts(decl)` and
+     * `declaredParts(tag)` as an overload pair, so a half-applied rename would compile.
+     */
+    private fun unhostedParts(tag: LuaCatsClassTag): DeclaredParts? {
+        val cats = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java) ?: return null
+        return DeclaredParts(
+            LuaCatsDeclarations.fieldMembers(cats),
+            tag.parentTypes?.argTypeList.orEmpty().map { it.text.trim() },
+        )
     }
 
     /**

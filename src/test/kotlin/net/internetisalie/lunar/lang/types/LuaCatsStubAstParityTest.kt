@@ -360,6 +360,36 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
     }
 
     /**
+     * The un-hosted path merges by two different rules, and neither was covered by any test.
+     *
+     * WITHIN one comment a repeated `@field` is **last-wins** (the extraction used to accumulate
+     * into a map before returning); ACROSS tags it is **first-wins** (`putIfAbsent`, because several
+     * `---@class Same` tags merge into one class). Writing the natural-looking single
+     * `putIfAbsent`-per-member loop silently turns the first rule into first-wins — which is what
+     * MAINT-34's own refactor did on its first draft, with the full suite staying green.
+     *
+     * Only the within-comment half is asserted, and deliberately so: the across-tags half depends on
+     * which declaring file `FileBasedIndex` yields first, which is not a guaranteed order, so
+     * asserting it would buy a flaky test rather than coverage. One file keeps this deterministic,
+     * and it is the half the refactor actually flipped.
+     */
+    @Test
+    fun testUnhostedDuplicateFieldInOneCommentIsLastWins() {
+        myFixture.addFileToProject("dup_a.lua", "---@meta\n---@class DupU\n---@field a string\n---@field a number\n")
+        val usage = myFixture.configureByText("dupconsumer.lua", "local x = 1\n")
+
+        runReadAction {
+            val dup = LuaTypeManagerImpl(project).resolveType("DupU", usage) as? LuaClassType
+            assertNotNull("DupU must resolve through the un-hosted path", dup)
+            assertEquals(
+                "within one comment a repeated @field is last-wins",
+                "number",
+                dup!!.resolveMember("a")?.type?.name,
+            )
+        }
+    }
+
+    /**
      * §5.5: `sourceElement` is asymmetric BY DESIGN and load-bearing.
      *
      * `LuaOverrideLineMarkerProvider` uses it as gutter navigation targets, so collapsing the AST
