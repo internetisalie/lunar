@@ -105,6 +105,63 @@ assignability errors (997 zerobrane / 478 luarocks / 376 luacheck / 317 penlight
 alone is small because most residual stems are stub-resolved (`io.open`-style). If the probe says
 otherwise, the fix order changes — follow the numbers, not this paragraph.
 
+### Probe result, 2026-08-07 — prediction confirmed, and the fix ORDER changes
+
+Throwaway instrumentation on `reportIncompatible` (the funnel all assignability messages reach),
+classifying every emission across all four corpus members. Reverted after measuring.
+
+| member | errors | demand declared | demand inferred | value has `Undefined` arm | flow certain | **survives the rule** |
+| :-- | --: | --: | --: | --: | --: | --: |
+| zerobrane | 4 452 | 3 (0.1 %) | 4 449 (99.9 %) | **0** | 1 468 (33.0 %) | **3** |
+| luarocks | 922 | 0 | 922 (100 %) | **0** | 265 (28.7 %) | **0** |
+| luacheck | 950 | 0 | 950 (100 %) | **0** | 25 (2.6 %) | **0** |
+| penlight | 1 109 | 0 | 1 109 (100 %) | **0** | 188 (17.0 %) | **0** |
+| **total** | **7 433** | **3 (0.04 %)** | **7 430** | **0** | — | **3** |
+
+Counts are graph-level `reportIncompatible` emissions, *before* the inspection layer's file-wide-anchor
+drop and dedup — so they are not comparable to the 997/478/376/317 baselines. The **ratios** are the
+finding.
+
+**1. Defect 3 is the whole thing.** 7 430 of 7 433 emissions check an inferred demand against an
+inferred value. The prediction said "the majority"; it is 99.96 %. On un-annotated real-world Lua the
+assignability inspection is, essentially in its entirety, the engine arguing with itself.
+
+**2. Defect 2 has ZERO exposure — because defect 1 masks it.** No emission anywhere carried an
+`Undefined` union arm, and the reason is structural rather than lucky:
+`VariableElement.resolveWrite`'s `flatten` drops `Undefined` (`else if (type != Undefined)`) *before*
+a union can form, so "union carrying an `Undefined` arm" is currently **unreachable**. Defect 2 is
+real as written, but it is downstream of defect 1.
+
+**This inverts the implementation order.** Fixing (1) in isolation — making unknowns viral and
+represented — would *create* the defect-2 exposure that measures zero today, converting silent
+erasure into new false positives. (1) and (2) are one change, not two, and (2) is dead code until
+(1) lands.
+
+**3. Defect 1 is pervasive but its payoff is now small.** Dropped `Undefined` writes: 6.7 M
+(zerobrane), 20.0 M (luarocks), 0.7 M (luacheck), 1.5 M (penlight) — counted per `flatten` call, so
+repeated resolutions inflate it and it is an intensity signal, not a site count. Yet with (3) in
+place only 3 emissions survive corpus-wide, so (1) can affect at most those 3. It remains a
+correctness fix — an unknown write dropped can make a flow look certain when it is not — but its
+*corpus* value is now near zero, which is the opposite of how the report weighted it.
+
+### Revised fix order
+
+1. **Defect 3 first, alone.** Gate emission on `UseNode.declaredDemand` (annotation/stub injection
+   sites in `LuaTypeGraphBridge` mark it; the usage-synthesized demands in `LuaTypesVisitor` do not).
+   This delivers 100 % of the measured benefit and is the smallest change of the three.
+2. **Defects 1 + 2 together, afterwards**, on correctness grounds rather than corpus impact, and
+   only with (2) in place to catch what (1) makes reachable.
+3. Certainty (c) is not a discriminator on its own — it ranges 2.6 %–33 % across members and, with
+   (3) gating, applies to a handful of emissions.
+
+### The blast radius is the real decision
+
+The rule as specified takes assignability output from **7 433 to 3** corpus-wide. That is not
+"removing false positives" — it is switching the inspection off for code without annotations, and
+leaving it on for code with them. That may be exactly right (it is LuaLS's behaviour, and the
+report's own thesis), but it is a product decision about what the inspection is *for*, and it is
+much larger than "fix a false-positive source" implies. Decide it deliberately.
+
 ## Verification
 
 - Fixtures for each defect, red before / green after, mutation-proved (defect 1's fixture must show
