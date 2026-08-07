@@ -130,9 +130,27 @@ private fun escapeShort(value: String, delimiter: Char): String {
     return result.toString()
 }
 
+/**
+ * The smallest long-bracket level at which [value] can be wrapped without closing early.
+ *
+ * BUG-412: this searched [value] alone, which misses the case where the value only *starts* a
+ * closing sequence and the closer's own leading `]` finishes it. `"]=]"` contains no `]]`, so
+ * level 0 was chosen and `[[` + `]=]` + `]]` lexed as the string `]=` followed by a stray `]` —
+ * a registered, enabled-by-default intention emitting invalid Lua over valid source.
+ *
+ * Searching `value + "]"` covers both cases at once: a closer occurring wholly inside the value,
+ * and one formed by the value's tail meeting the closer's first character. Those are the only two
+ * possibilities, because every character of the closer after its leading `]` is `=`, so an
+ * overlap can only consume that one `]`.
+ *
+ * Note the answer is **not** monotonic in the level, so "highest level present, plus one" is wrong
+ * in both directions — verified against `luac 5.4.8`: `x]=` is valid at level 0, *invalid* at
+ * level 1 and valid again at level 2, while `abc]` contains no `]=*]` at all yet still cannot use
+ * level 0. Taking the first level that passes this test is what keeps it correct.
+ */
 fun longBracketLevel(value: String): Int {
     var level = 0
-    while (value.contains("]" + "=".repeat(level) + "]")) {
+    while ((value + "]").contains("]" + "=".repeat(level) + "]")) {
         level++
     }
     return level
