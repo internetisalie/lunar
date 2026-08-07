@@ -31,10 +31,15 @@ data class LuaRedisExecContext(
  * `command()` calls suspend and honour cancellation inside [RespClient]. Decomposed into ≤30-line
  * helpers (engineering-contract §3).
  */
-class LuaRedisScriptExecutor(private val cache: LuaRedisScriptShaCache = LuaRedisScriptShaCache) {
-
+class LuaRedisScriptExecutor(
+    private val cache: LuaRedisScriptShaCache = LuaRedisScriptShaCache,
+) {
     /** Executes [scriptBody] against [client] under [context], returning the decoded reply (design §3.8). */
-    suspend fun execute(client: RespClient, context: LuaRedisExecContext, scriptBody: String): RespValue {
+    suspend fun execute(
+        client: RespClient,
+        context: LuaRedisExecContext,
+        scriptBody: String,
+    ): RespValue {
         if (context.readOnly) enforceReadOnlyVersionGate(client)
         return when (context.execMode) {
             LuaRedisExecMode.EVAL -> runEval(client, context, scriptBody)
@@ -44,12 +49,20 @@ class LuaRedisScriptExecutor(private val cache: LuaRedisScriptShaCache = LuaRedi
         }
     }
 
-    private suspend fun runEval(client: RespClient, context: LuaRedisExecContext, scriptBody: String): RespValue {
+    private suspend fun runEval(
+        client: RespClient,
+        context: LuaRedisExecContext,
+        scriptBody: String,
+    ): RespValue {
         val command = evalCommand(context.readOnly)
         return client.command(evalArgs(command, scriptBody, context))
     }
 
-    private suspend fun runEvalSha(client: RespClient, context: LuaRedisExecContext, scriptBody: String): RespValue {
+    private suspend fun runEvalSha(
+        client: RespClient,
+        context: LuaRedisExecContext,
+        scriptBody: String,
+    ): RespValue {
         val sha = sha1Hex(scriptBody)
         ensureLoaded(client, context.connectionId, sha, scriptBody)
         val command = evalShaCommand(context.readOnly)
@@ -69,11 +82,21 @@ class LuaRedisScriptExecutor(private val cache: LuaRedisScriptShaCache = LuaRedi
         return client.command(evalArgs(evalShaCommand(context.readOnly), sha, context))
     }
 
-    private suspend fun ensureLoaded(client: RespClient, connectionId: String, sha: String, scriptBody: String) {
+    private suspend fun ensureLoaded(
+        client: RespClient,
+        connectionId: String,
+        sha: String,
+        scriptBody: String,
+    ) {
         if (!cache.isLoaded(connectionId, sha)) loadScript(client, connectionId, sha, scriptBody)
     }
 
-    private suspend fun loadScript(client: RespClient, connectionId: String, sha: String, scriptBody: String) {
+    private suspend fun loadScript(
+        client: RespClient,
+        connectionId: String,
+        sha: String,
+        scriptBody: String,
+    ) {
         val reply = client.command("SCRIPT", "LOAD", scriptBody)
         if (reply is RespValue.Error) {
             throw RespException.Protocol("SCRIPT LOAD failed: ${reply.klass} ${reply.message}".trim())
@@ -93,7 +116,11 @@ class LuaRedisScriptExecutor(private val cache: LuaRedisScriptShaCache = LuaRedi
         return SemanticVersion.parse(info.version)
     }
 
-    private fun evalArgs(command: String, script: String, context: LuaRedisExecContext): List<ByteArray> {
+    private fun evalArgs(
+        command: String,
+        script: String,
+        context: LuaRedisExecContext,
+    ): List<ByteArray> {
         val parts = mutableListOf(command, script, context.keys.size.toString())
         parts.addAll(context.keys)
         parts.addAll(context.argv)

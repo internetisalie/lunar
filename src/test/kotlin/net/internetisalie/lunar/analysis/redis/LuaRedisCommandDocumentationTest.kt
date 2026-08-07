@@ -22,7 +22,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRedisCommandDocumentationTest : BasePlatformTestCase() {
-
     override fun tearDown() {
         try {
             setStandardTarget("5.4")
@@ -51,9 +50,12 @@ class LuaRedisCommandDocumentationTest : BasePlatformTestCase() {
         val result = docTarget.computeDocumentation()
         assertNotNull("Documentation result must not be null for GET", result)
 
-        val getInfo = RedisCommandSpecService.getInstance().specFor(
-            LuaProjectSettings.getInstance(project).state.getTarget(),
-        ).lookup("GET") ?: error("GET not found in bundled spec")
+        val getInfo =
+            RedisCommandSpecService
+                .getInstance()
+                .specFor(
+                    LuaProjectSettings.getInstance(project).state.getTarget(),
+                ).lookup("GET") ?: error("GET not found in bundled spec")
         val html = RedisCommandDocumentationTarget.buildDocHtml(getInfo)
         assertTrue(
             "Expected GET summary in HTML (was: '$html')",
@@ -125,16 +127,18 @@ class LuaRedisCommandDocumentationTest : BasePlatformTestCase() {
     // -------------------------------------------------------------------------
 
     private fun setRedisTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
-            "No Redis version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
+                "No Redis version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.REDIS, version))
     }
 
     private fun setStandardTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
-            "No STANDARD version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
+                "No STANDARD version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.STANDARD, version))
     }
 }

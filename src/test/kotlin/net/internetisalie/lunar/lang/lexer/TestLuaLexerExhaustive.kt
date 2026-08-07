@@ -7,7 +7,6 @@ import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-
 /**
  * Exhaustive lexer tests based on Lua 5.4 language specification.
  * Tests all token types, operators, literals, and edge cases.
@@ -23,16 +22,24 @@ class TestLuaLexerExhaustive {
             lexer.start(input)
             for (token in expected) {
                 lexer.advance()
-                assertEquals(token.offset, lexer.tokenStart, "${name}: unexpected offset at token $token")
-                assertEquals(token.elementType, lexer.tokenType, "${name}: unexpected element type for '${lexer.tokenText}'")
-                assertEquals(token.contents, lexer.tokenText, "${name}: unexpected contents")
+                assertEquals(token.offset, lexer.tokenStart, "$name: unexpected offset at token $token")
+                assertEquals(
+                    token.elementType,
+                    lexer.tokenType,
+                    "$name: unexpected element type for '${lexer.tokenText}'",
+                )
+                assertEquals(token.contents, lexer.tokenText, "$name: unexpected contents")
             }
             lexer.advance()
-            assertEquals(null, lexer.tokenType, "${name}: more unconsumed tokens, found '${lexer.tokenText}'")
+            assertEquals(null, lexer.tokenType, "$name: more unconsumed tokens, found '${lexer.tokenText}'")
         }
     }
 
-    data class Token(val offset: Int, val contents: String?, val elementType: IElementType?)
+    data class Token(
+        val offset: Int,
+        val contents: String?,
+        val elementType: IElementType?,
+    )
 
     fun execute(vararg cases: TestCase) {
         cases.forEach { it.execute() }
@@ -176,7 +183,11 @@ class TestLuaLexerExhaustive {
             TestCase("hex float with frac and exp", "0x1.8p+1", listOf(Token(0, "0x1.8p+1", LuaElementTypes.NUMBER))),
             TestCase("hex float leading dot", "0X.5p-3", listOf(Token(0, "0X.5p-3", LuaElementTypes.NUMBER))),
             TestCase("hex float without exp", "0x0.1E", listOf(Token(0, "0x0.1E", LuaElementTypes.NUMBER))),
-            TestCase("hex float large", "0X1.921FB54442D18P+1", listOf(Token(0, "0X1.921FB54442D18P+1", LuaElementTypes.NUMBER))),
+            TestCase(
+                "hex float large",
+                "0X1.921FB54442D18P+1",
+                listOf(Token(0, "0X1.921FB54442D18P+1", LuaElementTypes.NUMBER)),
+            ),
         )
     }
 
@@ -225,8 +236,16 @@ class TestLuaLexerExhaustive {
         execute(
             TestCase("zero separator", "[[hello]]", listOf(Token(0, "[[hello]]", LuaElementTypes.STRING))),
             TestCase("one separator", "[=[hello]=]", listOf(Token(0, "[=[hello]=]", LuaElementTypes.STRING))),
-            TestCase("multi separator", "[====[hello]====]", listOf(Token(0, "[====[hello]====]", LuaElementTypes.STRING))),
-            TestCase("with newline", "[[\nhello\nworld\n]]", listOf(Token(0, "[[\nhello\nworld\n]]", LuaElementTypes.STRING))),
+            TestCase(
+                "multi separator",
+                "[====[hello]====]",
+                listOf(Token(0, "[====[hello]====]", LuaElementTypes.STRING)),
+            ),
+            TestCase(
+                "with newline",
+                "[[\nhello\nworld\n]]",
+                listOf(Token(0, "[[\nhello\nworld\n]]", LuaElementTypes.STRING)),
+            ),
         )
     }
 
@@ -251,26 +270,46 @@ class TestLuaLexerExhaustive {
         execute(
             TestCase("empty", "--", listOf(Token(0, "--", LuaElementTypes.SHORTCOMMENT))),
             TestCase("with text", "-- hello", listOf(Token(0, "-- hello", LuaElementTypes.SHORTCOMMENT))),
-            TestCase("with newline", "-- comment\n", listOf(
-                Token(0, "-- comment", LuaElementTypes.SHORTCOMMENT),
-                Token(10, "\n", TokenType.WHITE_SPACE),
-            )),
+            TestCase(
+                "with newline",
+                "-- comment\n",
+                listOf(
+                    Token(0, "-- comment", LuaElementTypes.SHORTCOMMENT),
+                    Token(10, "\n", TokenType.WHITE_SPACE),
+                ),
+            ),
         )
     }
 
     @Test
     fun `comments - long comments`() {
         execute(
-            TestCase("zero separator", "--[[ comment ]]", listOf(Token(0, "--[[ comment ]]", LuaElementTypes.LONGCOMMENT))),
-            TestCase("one separator", "--[=[ comment ]=]", listOf(Token(0, "--[=[ comment ]=]", LuaElementTypes.LONGCOMMENT))),
-            TestCase("multi-line", "--[[\nline1\nline2\n]]", listOf(Token(0, "--[[\nline1\nline2\n]]", LuaElementTypes.LONGCOMMENT))),
+            TestCase(
+                "zero separator",
+                "--[[ comment ]]",
+                listOf(Token(0, "--[[ comment ]]", LuaElementTypes.LONGCOMMENT)),
+            ),
+            TestCase(
+                "one separator",
+                "--[=[ comment ]=]",
+                listOf(Token(0, "--[=[ comment ]=]", LuaElementTypes.LONGCOMMENT)),
+            ),
+            TestCase(
+                "multi-line",
+                "--[[\nline1\nline2\n]]",
+                listOf(Token(0, "--[[\nline1\nline2\n]]", LuaElementTypes.LONGCOMMENT)),
+            ),
         )
     }
 
     @Test
     fun `comments - LuaCats documentation`() {
         execute(
-            TestCase("single line", "--- Documentation", listOf(Token(0, "--- Documentation", LuaLazyElementTypes.LUACATS_COMMENT))),
+            TestCase(
+                "single line",
+                "--- Documentation",
+                listOf(Token(0, "--- Documentation", LuaLazyElementTypes.LUACATS_COMMENT)),
+            ),
         )
     }
 
@@ -279,21 +318,33 @@ class TestLuaLexerExhaustive {
     @Test
     fun `whitespace - various types`() {
         execute(
-            TestCase("space", "x y", listOf(
-                Token(0, "x", LuaElementTypes.IDENTIFIER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, "y", LuaElementTypes.IDENTIFIER),
-            )),
-            TestCase("tab", "x\ty", listOf(
-                Token(0, "x", LuaElementTypes.IDENTIFIER),
-                Token(1, "\t", TokenType.WHITE_SPACE),
-                Token(2, "y", LuaElementTypes.IDENTIFIER),
-            )),
-            TestCase("newline", "x\ny", listOf(
-                Token(0, "x", LuaElementTypes.IDENTIFIER),
-                Token(1, "\n", TokenType.WHITE_SPACE),
-                Token(2, "y", LuaElementTypes.IDENTIFIER),
-            )),
+            TestCase(
+                "space",
+                "x y",
+                listOf(
+                    Token(0, "x", LuaElementTypes.IDENTIFIER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, "y", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
+            TestCase(
+                "tab",
+                "x\ty",
+                listOf(
+                    Token(0, "x", LuaElementTypes.IDENTIFIER),
+                    Token(1, "\t", TokenType.WHITE_SPACE),
+                    Token(2, "y", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
+            TestCase(
+                "newline",
+                "x\ny",
+                listOf(
+                    Token(0, "x", LuaElementTypes.IDENTIFIER),
+                    Token(1, "\n", TokenType.WHITE_SPACE),
+                    Token(2, "y", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
         )
     }
 
@@ -302,81 +353,117 @@ class TestLuaLexerExhaustive {
     @Test
     fun `complex - assignment`() {
         execute(
-            TestCase("simple assignment", "x = 5", listOf(
-                Token(0, "x", LuaElementTypes.IDENTIFIER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, "=", LuaElementTypes.ASSIGN),
-                Token(3, " ", TokenType.WHITE_SPACE),
-                Token(4, "5", LuaElementTypes.NUMBER),
-            )),
-            TestCase("function call", "print(42)", listOf(
-                Token(0, "print", LuaElementTypes.IDENTIFIER),
-                Token(5, "(", LuaElementTypes.LPAREN),
-                Token(6, "42", LuaElementTypes.NUMBER),
-                Token(8, ")", LuaElementTypes.RPAREN),
-            )),
+            TestCase(
+                "simple assignment",
+                "x = 5",
+                listOf(
+                    Token(0, "x", LuaElementTypes.IDENTIFIER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, "=", LuaElementTypes.ASSIGN),
+                    Token(3, " ", TokenType.WHITE_SPACE),
+                    Token(4, "5", LuaElementTypes.NUMBER),
+                ),
+            ),
+            TestCase(
+                "function call",
+                "print(42)",
+                listOf(
+                    Token(0, "print", LuaElementTypes.IDENTIFIER),
+                    Token(5, "(", LuaElementTypes.LPAREN),
+                    Token(6, "42", LuaElementTypes.NUMBER),
+                    Token(8, ")", LuaElementTypes.RPAREN),
+                ),
+            ),
         )
     }
 
     @Test
     fun `complex - operators mix`() {
         execute(
-            TestCase("arithmetic", "1 + 2 * 3", listOf(
-                Token(0, "1", LuaElementTypes.NUMBER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, "+", LuaElementTypes.PLUS),
-                Token(3, " ", TokenType.WHITE_SPACE),
-                Token(4, "2", LuaElementTypes.NUMBER),
-                Token(5, " ", TokenType.WHITE_SPACE),
-                Token(6, "*", LuaElementTypes.MULT),
-                Token(7, " ", TokenType.WHITE_SPACE),
-                Token(8, "3", LuaElementTypes.NUMBER),
-            )),
+            TestCase(
+                "arithmetic",
+                "1 + 2 * 3",
+                listOf(
+                    Token(0, "1", LuaElementTypes.NUMBER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, "+", LuaElementTypes.PLUS),
+                    Token(3, " ", TokenType.WHITE_SPACE),
+                    Token(4, "2", LuaElementTypes.NUMBER),
+                    Token(5, " ", TokenType.WHITE_SPACE),
+                    Token(6, "*", LuaElementTypes.MULT),
+                    Token(7, " ", TokenType.WHITE_SPACE),
+                    Token(8, "3", LuaElementTypes.NUMBER),
+                ),
+            ),
         )
     }
 
     @Test
     fun `complex - bitwise operators`() {
         execute(
-            TestCase("bitwise and", "a & b", listOf(
-                Token(0, "a", LuaElementTypes.IDENTIFIER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, "&", LuaElementTypes.AMP),
-                Token(3, " ", TokenType.WHITE_SPACE),
-                Token(4, "b", LuaElementTypes.IDENTIFIER),
-            )),
-            TestCase("bitwise or", "a | b", listOf(
-                Token(0, "a", LuaElementTypes.IDENTIFIER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, "|", LuaElementTypes.PIPE),
-                Token(3, " ", TokenType.WHITE_SPACE),
-                Token(4, "b", LuaElementTypes.IDENTIFIER),
-            )),
-            TestCase("bitwise not", "~a", listOf(
-                Token(0, "~", LuaElementTypes.NEG),
-                Token(1, "a", LuaElementTypes.IDENTIFIER),
-            )),
-            TestCase("left shift", "a << 2", listOf(
-                Token(0, "a", LuaElementTypes.IDENTIFIER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, "<<", LuaElementTypes.BSL),
-                Token(4, " ", TokenType.WHITE_SPACE),
-                Token(5, "2", LuaElementTypes.NUMBER),
-            )),
-            TestCase("right shift", "a >> 1", listOf(
-                Token(0, "a", LuaElementTypes.IDENTIFIER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, ">>", LuaElementTypes.BSR),
-                Token(4, " ", TokenType.WHITE_SPACE),
-                Token(5, "1", LuaElementTypes.NUMBER),
-            )),
-            TestCase("integer division", "a // b", listOf(
-                Token(0, "a", LuaElementTypes.IDENTIFIER),
-                Token(1, " ", TokenType.WHITE_SPACE),
-                Token(2, "//", LuaElementTypes.INTDIV),
-                Token(4, " ", TokenType.WHITE_SPACE),
-                Token(5, "b", LuaElementTypes.IDENTIFIER),
-            )),
+            TestCase(
+                "bitwise and",
+                "a & b",
+                listOf(
+                    Token(0, "a", LuaElementTypes.IDENTIFIER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, "&", LuaElementTypes.AMP),
+                    Token(3, " ", TokenType.WHITE_SPACE),
+                    Token(4, "b", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
+            TestCase(
+                "bitwise or",
+                "a | b",
+                listOf(
+                    Token(0, "a", LuaElementTypes.IDENTIFIER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, "|", LuaElementTypes.PIPE),
+                    Token(3, " ", TokenType.WHITE_SPACE),
+                    Token(4, "b", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
+            TestCase(
+                "bitwise not",
+                "~a",
+                listOf(
+                    Token(0, "~", LuaElementTypes.NEG),
+                    Token(1, "a", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
+            TestCase(
+                "left shift",
+                "a << 2",
+                listOf(
+                    Token(0, "a", LuaElementTypes.IDENTIFIER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, "<<", LuaElementTypes.BSL),
+                    Token(4, " ", TokenType.WHITE_SPACE),
+                    Token(5, "2", LuaElementTypes.NUMBER),
+                ),
+            ),
+            TestCase(
+                "right shift",
+                "a >> 1",
+                listOf(
+                    Token(0, "a", LuaElementTypes.IDENTIFIER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, ">>", LuaElementTypes.BSR),
+                    Token(4, " ", TokenType.WHITE_SPACE),
+                    Token(5, "1", LuaElementTypes.NUMBER),
+                ),
+            ),
+            TestCase(
+                "integer division",
+                "a // b",
+                listOf(
+                    Token(0, "a", LuaElementTypes.IDENTIFIER),
+                    Token(1, " ", TokenType.WHITE_SPACE),
+                    Token(2, "//", LuaElementTypes.INTDIV),
+                    Token(4, " ", TokenType.WHITE_SPACE),
+                    Token(5, "b", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
         )
     }
 
@@ -402,38 +489,46 @@ class TestLuaLexerExhaustive {
     @Test
     fun `edge cases - consecutive operators`() {
         execute(
-            TestCase("concat operators", "a..b", listOf(
-                Token(0, "a", LuaElementTypes.IDENTIFIER),
-                Token(1, "..", LuaElementTypes.CONCAT),
-                Token(3, "b", LuaElementTypes.IDENTIFIER),
-            )),
+            TestCase(
+                "concat operators",
+                "a..b",
+                listOf(
+                    Token(0, "a", LuaElementTypes.IDENTIFIER),
+                    Token(1, "..", LuaElementTypes.CONCAT),
+                    Token(3, "b", LuaElementTypes.IDENTIFIER),
+                ),
+            ),
         )
     }
 
     @Test
     fun `edge cases - mixed content`() {
         execute(
-            TestCase("function simple", "function add(a, b) return a + b end", listOf(
-                Token(0, "function", LuaElementTypes.FUNCTION),
-                Token(8, " ", TokenType.WHITE_SPACE),
-                Token(9, "add", LuaElementTypes.IDENTIFIER),
-                Token(12, "(", LuaElementTypes.LPAREN),
-                Token(13, "a", LuaElementTypes.IDENTIFIER),
-                Token(14, ",", LuaElementTypes.COMMA),
-                Token(15, " ", TokenType.WHITE_SPACE),
-                Token(16, "b", LuaElementTypes.IDENTIFIER),
-                Token(17, ")", LuaElementTypes.RPAREN),
-                Token(18, " ", TokenType.WHITE_SPACE),
-                Token(19, "return", LuaElementTypes.RETURN),
-                Token(25, " ", TokenType.WHITE_SPACE),
-                Token(26, "a", LuaElementTypes.IDENTIFIER),
-                Token(27, " ", TokenType.WHITE_SPACE),
-                Token(28, "+", LuaElementTypes.PLUS),
-                Token(29, " ", TokenType.WHITE_SPACE),
-                Token(30, "b", LuaElementTypes.IDENTIFIER),
-                Token(31, " ", TokenType.WHITE_SPACE),
-                Token(32, "end", LuaElementTypes.END),
-            )),
+            TestCase(
+                "function simple",
+                "function add(a, b) return a + b end",
+                listOf(
+                    Token(0, "function", LuaElementTypes.FUNCTION),
+                    Token(8, " ", TokenType.WHITE_SPACE),
+                    Token(9, "add", LuaElementTypes.IDENTIFIER),
+                    Token(12, "(", LuaElementTypes.LPAREN),
+                    Token(13, "a", LuaElementTypes.IDENTIFIER),
+                    Token(14, ",", LuaElementTypes.COMMA),
+                    Token(15, " ", TokenType.WHITE_SPACE),
+                    Token(16, "b", LuaElementTypes.IDENTIFIER),
+                    Token(17, ")", LuaElementTypes.RPAREN),
+                    Token(18, " ", TokenType.WHITE_SPACE),
+                    Token(19, "return", LuaElementTypes.RETURN),
+                    Token(25, " ", TokenType.WHITE_SPACE),
+                    Token(26, "a", LuaElementTypes.IDENTIFIER),
+                    Token(27, " ", TokenType.WHITE_SPACE),
+                    Token(28, "+", LuaElementTypes.PLUS),
+                    Token(29, " ", TokenType.WHITE_SPACE),
+                    Token(30, "b", LuaElementTypes.IDENTIFIER),
+                    Token(31, " ", TokenType.WHITE_SPACE),
+                    Token(32, "end", LuaElementTypes.END),
+                ),
+            ),
         )
     }
 }

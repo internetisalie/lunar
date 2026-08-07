@@ -20,9 +20,10 @@ data class DependencySpec(
             val match = NAME.matchEntire(raw.trim()) ?: return null
             val packageName = match.groupValues[1]
             val remainder = match.groupValues[2]
-            val constraints = remainder
-                .split(',')
-                .mapNotNull { VersionConstraint.parse(it) }
+            val constraints =
+                remainder
+                    .split(',')
+                    .mapNotNull { VersionConstraint.parse(it) }
             return DependencySpec(packageName, constraints, raw)
         }
     }

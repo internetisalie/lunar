@@ -14,7 +14,6 @@ import net.internetisalie.lunar.redis.run.LuaRedisRunConfigurationType
  * `bannerText` copy is asserted so the fork/sync consequence wording is pinned.
  */
 class TestLuaLdbSyncGuard : BasePlatformTestCase() {
-
     private fun configWith(mode: LuaRedisDebugMode): LuaRedisRunConfiguration {
         val type = LuaRedisRunConfigurationType.getInstance()
         val factory = type.configurationFactories[0]

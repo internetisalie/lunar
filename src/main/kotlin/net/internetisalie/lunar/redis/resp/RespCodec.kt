@@ -12,7 +12,6 @@ import java.io.PushbackInputStream
  * (engineering-contract THREADING; risks-and-gaps Risk 1.1 / epic RISK-R09).
  */
 object RespCodec {
-
     private const val CR = '\r'.code
     private const val LF = '\n'.code
     private const val COLON = ':'.code.toByte()
@@ -114,15 +113,18 @@ object RespCodec {
         return RespValue.Null
     }
 
-    private fun readBool(input: PushbackInputStream): Boolean {
-        return when (val token = readLine(input)) {
+    private fun readBool(input: PushbackInputStream): Boolean =
+        when (val token = readLine(input)) {
             "t" -> true
             "f" -> false
             else -> throw RespException.Protocol("invalid boolean token '$token'")
         }
-    }
 
-    private fun writeHeader(buffer: ByteArrayOutputStream, marker: Char, count: Int) {
+    private fun writeHeader(
+        buffer: ByteArrayOutputStream,
+        marker: Char,
+        count: Int,
+    ) {
         buffer.write(marker.code)
         buffer.write(count.toString().toByteArray(UTF_8))
         writeTerminator(buffer)
@@ -149,7 +151,10 @@ object RespCodec {
     }
 
     /** Read exactly [length] bytes, looping until satisfied so a fragmented stream reassembles. */
-    private fun readExactly(input: PushbackInputStream, length: Int): ByteArray {
+    private fun readExactly(
+        input: PushbackInputStream,
+        length: Int,
+    ): ByteArray {
         val payload = ByteArray(length)
         var filled = 0
         while (filled < length) {
@@ -171,11 +176,9 @@ object RespCodec {
         if (lf != LF) throw RespException.Protocol("expected LF after CR, got byte $lf")
     }
 
-    private fun String.toLongOrThrow(): Long =
-        toLongOrNull() ?: throw RespException.Protocol("invalid integer '$this'")
+    private fun String.toLongOrThrow(): Long = toLongOrNull() ?: throw RespException.Protocol("invalid integer '$this'")
 
-    private fun String.toIntOrThrow(): Int =
-        toIntOrNull() ?: throw RespException.Protocol("invalid length '$this'")
+    private fun String.toIntOrThrow(): Int = toIntOrNull() ?: throw RespException.Protocol("invalid length '$this'")
 
     private fun String.toDoubleOrThrow(): Double =
         toDoubleOrNull() ?: throw RespException.Protocol("invalid double '$this'")

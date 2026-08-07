@@ -32,7 +32,6 @@ class LuaRedisDebugProcess(
     private val executionResult: ExecutionResult,
     config: LuaRedisRunConfiguration,
 ) : XDebugProcess(session) {
-
     private val sessionScope =
         LunarCoroutineScopeService.getInstance(session.project).scope.childScope("RedisLdbSession")
     private val controller = LuaLdbController(session, sessionScope, config)
@@ -68,9 +67,10 @@ class LuaRedisDebugProcess(
         sessionScope.launch { controller.abort() }
     }
 
-    override fun runToPosition(position: XSourcePosition, context: XSuspendContext?) {
-        throw UnsupportedOperationException("Run to position is not supported by the Redis Lua debugger")
-    }
+    override fun runToPosition(
+        position: XSourcePosition,
+        context: XSuspendContext?,
+    ): Unit = throw UnsupportedOperationException("Run to position is not supported by the Redis Lua debugger")
 
     override fun doGetProcessHandler(): ProcessHandler? = executionResult.processHandler
 

@@ -10,7 +10,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaTypeAlgebraTest {
-
     @Test
     fun `TC-TYPE-09-P1-01 flattens nested unions`() {
         val nested = LuaGraphType.Union(setOf(LuaGraphType.Number, LuaGraphType.String))
@@ -28,9 +27,10 @@ class LuaTypeAlgebraTest {
         val result = LuaTypeAlgebra.canonicalize(listOf(LuaGraphType.String, LuaGraphType.Any))
         assertEquals(LuaGraphType.Any, result)
 
-        val manyScalars = LuaTypeAlgebra.canonicalize(
-            listOf(LuaGraphType.Number, LuaGraphType.Nil, LuaGraphType.Boolean, LuaGraphType.Any),
-        )
+        val manyScalars =
+            LuaTypeAlgebra.canonicalize(
+                listOf(LuaGraphType.Number, LuaGraphType.Nil, LuaGraphType.Boolean, LuaGraphType.Any),
+            )
         assertEquals(LuaGraphType.Any, manyScalars)
     }
 
@@ -47,9 +47,10 @@ class LuaTypeAlgebraTest {
     fun `BUG-397 any absorbs scalars but keeps every structural arm`() {
         val table = LuaGraphType.Table(localMembers = emptyMap())
         val array = LuaGraphType.Array(LuaGraphType.String)
-        val result = LuaTypeAlgebra.canonicalize(
-            listOf(LuaGraphType.String, table, LuaGraphType.Any, array, LuaGraphType.Nil),
-        )
+        val result =
+            LuaTypeAlgebra.canonicalize(
+                listOf(LuaGraphType.String, table, LuaGraphType.Any, array, LuaGraphType.Nil),
+            )
 
         assertTrue("Expected a Union, got $result", result is LuaGraphType.Union)
         assertEquals(setOf(LuaGraphType.Any, table, array), (result as LuaGraphType.Union).types)

@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test
  * production reads it: `LuaProjectSettings.getInstance(project).state.setTarget(Target(platform, …))`.
  */
 class LuaValkeyPortabilityInspectionTest : BaseDocumentTest() {
-
     @BeforeEach
     fun setupInspection() {
         myFixture.enableInspections(LuaValkeyPortabilityInspection())
@@ -98,13 +97,15 @@ class LuaValkeyPortabilityInspectionTest : BaseDocumentTest() {
     }
 
     private fun setTarget(platform: LuaPlatform) {
-        val version = PlatformVersionRegistry.defaultVersion(platform)
-            ?: throw IllegalStateException("No default version for $platform")
+        val version =
+            PlatformVersionRegistry.defaultVersion(platform)
+                ?: throw IllegalStateException("No default version for $platform")
         LuaProjectSettings.getInstance(myFixture.project).state.setTarget(Target(platform, version))
     }
 
     private fun portabilityWarnings(): List<String> =
-        myFixture.doHighlighting(HighlightSeverity.WARNING)
+        myFixture
+            .doHighlighting(HighlightSeverity.WARNING)
             .mapNotNull { it.description }
             .filter { it.contains("Valkey-only") }
 }

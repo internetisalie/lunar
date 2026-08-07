@@ -11,7 +11,6 @@ import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
  * [COMMON_TOOL_KIND_IDS].
  */
 object LuaToolKindClassifier {
-
     enum class Tier { COMMON, ADVANCED, PLATFORM_SERVER }
 
     /** COMMON kind ids beyond the runtime; single source of truth (design §2.1). */
@@ -24,16 +23,16 @@ object LuaToolKindClassifier {
      * 3. id in [COMMON_TOOL_KIND_IDS] → [Tier.COMMON].
      * 4. otherwise → [Tier.ADVANCED].
      */
-    fun tierOf(kind: LuaToolKind): Tier = when {
-        kind.capabilities.isEmpty() -> Tier.PLATFORM_SERVER
-        kind.isRuntime -> Tier.COMMON
-        kind.id in COMMON_TOOL_KIND_IDS -> Tier.COMMON
-        else -> Tier.ADVANCED
-    }
+    fun tierOf(kind: LuaToolKind): Tier =
+        when {
+            kind.capabilities.isEmpty() -> Tier.PLATFORM_SERVER
+            kind.isRuntime -> Tier.COMMON
+            kind.id in COMMON_TOOL_KIND_IDS -> Tier.COMMON
+            else -> Tier.ADVANCED
+        }
 
     /** The kinds a bindings UI may show: COMMON + ADVANCED, runtime-first, platform servers excluded. */
-    fun bindable(): List<LuaToolKind> =
-        byTier().filterKeys { it != Tier.PLATFORM_SERVER }.values.flatten()
+    fun bindable(): List<LuaToolKind> = byTier().filterKeys { it != Tier.PLATFORM_SERVER }.values.flatten()
 
     /** Ordered tiers: runtime-first within COMMON, then the declared tools, advanced in registry order. */
     fun byTier(): Map<Tier, List<LuaToolKind>> {
@@ -43,7 +42,7 @@ object LuaToolKindClassifier {
         return linkedMapOf(
             Tier.COMMON to (runtimeKinds + commonTools),
             Tier.ADVANCED to all.filter { tierOf(it) == Tier.ADVANCED },
-            Tier.PLATFORM_SERVER to all.filter { tierOf(it) == Tier.PLATFORM_SERVER }
+            Tier.PLATFORM_SERVER to all.filter { tierOf(it) == Tier.PLATFORM_SERVER },
         )
     }
 }

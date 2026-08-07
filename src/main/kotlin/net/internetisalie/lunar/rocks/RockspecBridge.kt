@@ -33,9 +33,16 @@ object RockspecBridge {
     private val log = logger<RockspecBridge>()
     private const val ENV_LUA_PATH_TEMPLATE = "LUNAR_LUA_PATH_TEMPLATE"
 
-    fun read(project: Project, rockspecPath: Path): RockspecData? {
-        val interpreter = LuaToolResolver.getInstance().resolveRuntime(project)?.path
-            ?.takeIf { it.isNotBlank() }
+    fun read(
+        project: Project,
+        rockspecPath: Path,
+    ): RockspecData? {
+        val interpreter =
+            LuaToolResolver
+                .getInstance()
+                .resolveRuntime(project)
+                ?.path
+                ?.takeIf { it.isNotBlank() }
         if (interpreter == null) {
             // Expected, benign condition — callers invoke this once per discovered rockspec, so a
             // WARN here floods the log on rockspec-heavy projects (BUG-380). The single actionable
@@ -43,11 +50,12 @@ object RockspecBridge {
             log.debug("Rockspec bridge skipped for $rockspecPath: no Lua runtime is configured")
             return null
         }
-        val command = GeneralCommandLine(
-            interpreter,
-            LuaRocksBridgeFiles.rockspecScript().toString(),
-            rockspecPath.toString(),
-        ).withEnvironment(ENV_LUA_PATH_TEMPLATE, LuaRocksBridgeFiles.luaPathTemplate())
+        val command =
+            GeneralCommandLine(
+                interpreter,
+                LuaRocksBridgeFiles.rockspecScript().toString(),
+                rockspecPath.toString(),
+            ).withEnvironment(ENV_LUA_PATH_TEMPLATE, LuaRocksBridgeFiles.luaPathTemplate())
 
         val output = captureOffEdt(command)
         if (output.exitCode != 0 || output.stdout.isBlank()) {
@@ -73,13 +81,17 @@ object RockspecBridge {
     }
 
     /** Parses one bridge stdout payload. Visible for unit testing the real JSON shape. */
-    fun parse(stdout: String, rockspecPath: Path): RockspecData? {
-        val root = try {
-            JsonParser.parseString(stdout)
-        } catch (e: JsonSyntaxException) {
-            log.warn("Rockspec bridge emitted invalid JSON for $rockspecPath: ${e.message}")
-            return null
-        }
+    fun parse(
+        stdout: String,
+        rockspecPath: Path,
+    ): RockspecData? {
+        val root =
+            try {
+                JsonParser.parseString(stdout)
+            } catch (e: JsonSyntaxException) {
+                log.warn("Rockspec bridge emitted invalid JSON for $rockspecPath: ${e.message}")
+                return null
+            }
         if (!root.isJsonObject) {
             log.warn("Rockspec bridge output for $rockspecPath was not a JSON object")
             return null
@@ -91,7 +103,7 @@ object RockspecBridge {
             return null
         }
         val version = obj.get("version")?.takeIf { it.isJsonPrimitive }?.asString
-        
+
         val buildObj = obj.get("build")?.takeIf { it.isJsonObject }?.asJsonObject
         val buildType = buildObj?.get("type")?.takeIf { it.isJsonPrimitive }?.asString
         val modulesObj = buildObj?.get("modules")?.takeIf { it.isJsonObject }?.asJsonObject
@@ -100,12 +112,13 @@ object RockspecBridge {
         modulesObj?.entrySet()?.forEach { (name, value) ->
             when {
                 value.isJsonPrimitive -> luaModules[name] = value.asString
-                value.isJsonArray -> cModules[name] =
-                    value.asJsonArray.filter { it.isJsonPrimitive }.map { it.asString }
+                value.isJsonArray ->
+                    cModules[name] =
+                        value.asJsonArray.filter { it.isJsonPrimitive }.map { it.asString }
                 else -> Unit
             }
         }
-        
+
         return RockspecData(
             packageName,
             version,
@@ -120,20 +133,24 @@ object RockspecBridge {
      * Reads the `dependencies` value as a list of constraint strings. The standard shape is a JSON
      * array; a platform-mapped table comes through as an object whose values are flattened.
      */
-    private fun readDependencies(element: com.google.gson.JsonElement?): List<String> = when {
-        element == null || element.isJsonNull -> emptyList()
-        element.isJsonArray -> element.asJsonArray
-            .filter { it.isJsonPrimitive }
-            .map { it.asString }
-        element.isJsonObject -> element.asJsonObject.entrySet()
-            .flatMap { entry ->
-                val value = entry.value
-                when {
-                    value.isJsonPrimitive -> listOf(value.asString)
-                    value.isJsonArray -> value.asJsonArray.filter { it.isJsonPrimitive }.map { it.asString }
-                    else -> emptyList()
-                }
-            }
-        else -> emptyList()
-    }
+    private fun readDependencies(element: com.google.gson.JsonElement?): List<String> =
+        when {
+            element == null || element.isJsonNull -> emptyList()
+            element.isJsonArray ->
+                element.asJsonArray
+                    .filter { it.isJsonPrimitive }
+                    .map { it.asString }
+            element.isJsonObject ->
+                element.asJsonObject
+                    .entrySet()
+                    .flatMap { entry ->
+                        val value = entry.value
+                        when {
+                            value.isJsonPrimitive -> listOf(value.asString)
+                            value.isJsonArray -> value.asJsonArray.filter { it.isJsonPrimitive }.map { it.asString }
+                            else -> emptyList()
+                        }
+                    }
+            else -> emptyList()
+        }
 }

@@ -12,7 +12,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class MemberFieldQuickDocTest : IndexedBasePlatformTestCase() {
-
     @Test
     fun testPackagePathQuickDocResolvesToDocumentedField() {
         myFixture.addFileToProject(
@@ -30,8 +29,9 @@ class MemberFieldQuickDocTest : IndexedBasePlatformTestCase() {
         myFixture.addFileToProject("setup.lua", "package.path = package.path\n")
         myFixture.configureByText("test.lua", "local p = package.pa<caret>th\n")
 
-        val targets = LuaDocumentationTargetProvider()
-            .documentationTargets(myFixture.file, myFixture.caretOffset)
+        val targets =
+            LuaDocumentationTargetProvider()
+                .documentationTargets(myFixture.file, myFixture.caretOffset)
         assertTrue("quick documentation must resolve for package.path", targets.isNotEmpty())
 
         val navigatable = targets.first().navigatable as? PsiElement

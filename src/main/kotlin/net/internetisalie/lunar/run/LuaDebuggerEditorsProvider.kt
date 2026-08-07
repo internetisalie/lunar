@@ -31,19 +31,13 @@ class LuaDebuggerEditorsProvider : XDebuggerEditorsProviderBase() {
         project: Project,
         text: String,
         context: PsiElement?,
-        isPhysical: Boolean
-    ): PsiFile {
-        return LuaElementFactory.createExpressionCodeFragment(project, text, context, true)
-    }
+        isPhysical: Boolean,
+    ): PsiFile = LuaElementFactory.createExpressionCodeFragment(project, text, context, true)
 
-    override fun getFileType(): FileType {
-        return LuaFileType
-    }
+    override fun getFileType(): FileType = LuaFileType
 
     override fun getSupportedLanguages(
         project: Project,
-        sourcePosition: XSourcePosition?
-    ): MutableCollection<Language> {
-        return mutableSetOf(LuaLanguage)
-    }
+        sourcePosition: XSourcePosition?,
+    ): MutableCollection<Language> = mutableSetOf(LuaLanguage)
 }

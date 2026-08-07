@@ -39,16 +39,12 @@ class LuaStackFrame(
         project: Project?,
         controller: LuaDebuggerController,
         position: XSourcePosition?,
-        index: Int
+        index: Int,
     ) : this(project, controller, position, null, index, null)
 
-    override fun getSourcePosition(): XSourcePosition? {
-        return position
-    }
+    override fun getSourcePosition(): XSourcePosition? = position
 
-    override fun getEvaluator(): XDebuggerEvaluator {
-        return LuaDebuggerEvaluator(controller)
-    }
+    override fun getEvaluator(): XDebuggerEvaluator = LuaDebuggerEvaluator(controller)
 
     override fun computeChildren(node: XCompositeNode) {
         if (entry == null) return
@@ -57,65 +53,69 @@ class LuaStackFrame(
         val upvalues: MutableList<LuaDebugVariable> = mutableListOf()
 
         ApplicationManager.getApplication().runReadAction {
-            locals.addAll(entry.locals.variables.map {
-                LuaDebugVariable(
-                    it.name,
-                    LuaDebugValue(
-                        it.value,
-                        it.displayValue ?: "",
-                        AllIcons.Nodes.Variable,
-                    ),
-                    true,
-                    project
-                )
-            })
+            locals.addAll(
+                entry.locals.variables.map {
+                    LuaDebugVariable(
+                        it.name,
+                        LuaDebugValue(
+                            it.value,
+                            it.displayValue ?: "",
+                            AllIcons.Nodes.Variable,
+                        ),
+                        true,
+                        project,
+                    )
+                },
+            )
 
-            upvalues.addAll(entry.upvalues.variables.map {
-                LuaDebugVariable(
-                    it.name,
-                    LuaDebugValue(
-                        it.value,
-                        it.displayValue ?: "",
-                        AllIcons.Nodes.Variable,
-                    ),
-                    false,
-                    project
-                )
-            })
+            upvalues.addAll(
+                entry.upvalues.variables.map {
+                    LuaDebugVariable(
+                        it.name,
+                        LuaDebugValue(
+                            it.value,
+                            it.displayValue ?: "",
+                            AllIcons.Nodes.Variable,
+                        ),
+                        false,
+                        project,
+                    )
+                },
+            )
         }
 
         val xValues = XValueChildrenList()
 
         if (locals.isNotEmpty()) {
-            xValues.addTopGroup(object : XValueGroup("Locals") {
-                override fun isAutoExpand(): Boolean {
-                    return true
-                }
+            xValues.addTopGroup(
+                object : XValueGroup("Locals") {
+                    override fun isAutoExpand(): Boolean = true
 
-                override fun computeChildren(node: XCompositeNode) {
-                    val xValues = XValueChildrenList()
+                    override fun computeChildren(node: XCompositeNode) {
+                        val xValues = XValueChildrenList()
 
-                    for (v in locals) xValues.add(v.name, v)
-                    node.addChildren(xValues, true)
-                    node.setAlreadySorted(false)
-                }
-            })
+                        for (v in locals) xValues.add(v.name, v)
+                        node.addChildren(xValues, true)
+                        node.setAlreadySorted(false)
+                    }
+                },
+            )
         }
 
         if (upvalues.isNotEmpty()) {
-            xValues.addTopGroup(object : XValueGroup("Upvalues") {
-                override fun isAutoExpand(): Boolean {
-                    return true
-                }
+            xValues.addTopGroup(
+                object : XValueGroup("Upvalues") {
+                    override fun isAutoExpand(): Boolean = true
 
-                override fun computeChildren(node: XCompositeNode) {
-                    val xValues = XValueChildrenList()
+                    override fun computeChildren(node: XCompositeNode) {
+                        val xValues = XValueChildrenList()
 
-                    for (v in upvalues) xValues.add(v.name, v)
-                    node.addChildren(xValues, true)
-                    node.setAlreadySorted(false)
-                }
-            })
+                        for (v in upvalues) xValues.add(v.name, v)
+                        node.addChildren(xValues, true)
+                        node.setAlreadySorted(false)
+                    }
+                },
+            )
         }
 
         node.addChildren(xValues, true)

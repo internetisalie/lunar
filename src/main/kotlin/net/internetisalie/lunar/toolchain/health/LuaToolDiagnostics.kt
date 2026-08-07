@@ -21,8 +21,10 @@ private const val PREFIX = "[TOOLCHAIN-DIAG]"
  * production calls use a single argument while TC-08 can capture lines without reading the IDE log.
  */
 object LuaToolDiagnostics {
-
-    fun logSnapshot(project: Project?, emit: (String) -> Unit = LOG::info) {
+    fun logSnapshot(
+        project: Project?,
+        emit: (String) -> Unit = LOG::info,
+    ) {
         val registry = LuaToolchainRegistry.getInstance()
         val tools = registry.tools()
         val globalBindings = registry.globalBindings()
@@ -50,7 +52,7 @@ object LuaToolDiagnostics {
         project: Project?,
         tools: List<LuaRegisteredTool>,
         projectSettings: LuaToolchainProjectSettings?,
-        emit: (String) -> Unit
+        emit: (String) -> Unit,
     ) {
         val kindCount = LuaToolKindRegistry.all().size
         val envCount = projectSettings?.environments()?.size ?: 0
@@ -58,29 +60,43 @@ object LuaToolDiagnostics {
         emit("$PREFIX snapshot project='$projectLabel' kinds=$kindCount tools=${tools.size} envs=$envCount")
     }
 
-    private fun emitToolLine(tool: LuaRegisteredTool, emit: (String) -> Unit) {
+    private fun emitToolLine(
+        tool: LuaRegisteredTool,
+        emit: (String) -> Unit,
+    ) {
         val version = tool.version ?: "-"
         val env = tool.environmentId ?: "-"
         emit(
             "$PREFIX tool id=${tool.id.take(8)} kind=${tool.kindId} path=${tool.path} " +
                 "origin=${tool.origin} version=$version env=$env " +
-                "health=${formatHealth(tool.health)}"
+                "health=${formatHealth(tool.health)}",
         )
     }
 
-    private fun emitBindingLines(bindings: Map<String, String>, scope: String, emit: (String) -> Unit) {
+    private fun emitBindingLines(
+        bindings: Map<String, String>,
+        scope: String,
+        emit: (String) -> Unit,
+    ) {
         bindings.entries.sortedBy { it.key }.forEach { (kindId, toolId) ->
             emit("$PREFIX binding scope=$scope kind=$kindId toolId=${toolId.take(8)}")
         }
     }
 
-    private fun emitEnvLine(env: LuaEnvironmentState, activeId: String?, emit: (String) -> Unit) {
+    private fun emitEnvLine(
+        env: LuaEnvironmentState,
+        activeId: String?,
+        emit: (String) -> Unit,
+    ) {
         val active = env.id == activeId
         val toolList = env.toolIds.joinToString(",") { it.take(8) }
         emit("$PREFIX env id=${env.id.take(8)} name='${env.name}' root=${env.rootDir} active=$active tools=[$toolList]")
     }
 
-    private fun emitResolveLines(project: Project, emit: (String) -> Unit) {
+    private fun emitResolveLines(
+        project: Project,
+        emit: (String) -> Unit,
+    ) {
         val resolver = LuaToolResolver.getInstance()
         LuaToolKindRegistry.all().sortedBy { it.id }.forEach { kind ->
             val tool = resolver.resolve(project, kind.id)
@@ -93,11 +109,12 @@ object LuaToolDiagnostics {
     }
 
     private fun formatHealth(health: LuaToolHealth): String {
-        val probe = when (health.probeOk) {
-            true -> "true"
-            false -> "false"
-            null -> "-"
-        }
+        val probe =
+            when (health.probeOk) {
+                true -> "true"
+                false -> "false"
+                null -> "-"
+            }
         val mtime = health.probedAtMtime?.toString() ?: "-"
         val reason = health.reason?.let { "\"$it\"" } ?: "\"-\""
         return "[exists=${health.fileExists} exec=${health.executable} probe=$probe mtime=$mtime reason=$reason]"

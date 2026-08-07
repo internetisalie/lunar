@@ -47,14 +47,16 @@ class LuaSettingsNotificationTest : BasePlatformTestCase() {
         val listener = LuaSettingsChangeListener.getInstance(project)
         assertNotNull(listener)
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            LuaProjectSettings.getInstance(project)
+            LuaProjectSettings
+                .getInstance(project)
                 .setTargetAndNotify(Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4")))
         }
     }
 
     fun testGetSupportLibrariesReturnsPlatformLibraryForValidTarget() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            LuaProjectSettings.getInstance(project)
+            LuaProjectSettings
+                .getInstance(project)
                 .setTargetAndNotify(Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4")))
         }
 
@@ -67,7 +69,8 @@ class LuaSettingsNotificationTest : BasePlatformTestCase() {
 
     fun testGetSupportLibrariesEmptyContractHolds() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            LuaProjectSettings.getInstance(project)
+            LuaProjectSettings
+                .getInstance(project)
                 .setTargetAndNotify(Target(LuaPlatform.LUAJIT, VersionEntry("2.0", "luajit-2.0")))
         }
 

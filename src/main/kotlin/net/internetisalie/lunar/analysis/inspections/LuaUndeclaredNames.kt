@@ -14,7 +14,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * (standard global, allowlisted, or underscore-suppressed).
  */
 object LuaUndeclaredNames {
-
     /** True iff [ref]'s name resolves to nothing and is not an exempt global. */
     fun isUnresolvedNonGlobal(ref: LuaNameRef): Boolean {
         val name = ref.identifier.text
@@ -24,7 +23,10 @@ object LuaUndeclaredNames {
         return reference.multiResolve(false).isEmpty()
     }
 
-    private fun isExemptGlobal(ref: LuaNameRef, name: String): Boolean {
+    private fun isExemptGlobal(
+        ref: LuaNameRef,
+        name: String,
+    ): Boolean {
         val settings = LuaProjectSettings.getInstance(ref.project)
         val level = settings.state.languageLevel
         if (LuaStandardGlobals.contains(name, level)) return true

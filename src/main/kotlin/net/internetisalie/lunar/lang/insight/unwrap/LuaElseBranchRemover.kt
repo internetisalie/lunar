@@ -14,11 +14,12 @@ import net.internetisalie.lunar.lang.psi.LuaIfStatement
  * drift). The removed branch body is reported for the preview highlight. Design §2.5 / §3.3.
  */
 class LuaElseBranchRemover : LuaUnwrapper("Remove 'else' branch") {
+    override fun isApplicableTo(e: PsiElement): Boolean = e is LuaIfStatement && LuaBlockStructure.hasElseOrElseIf(e)
 
-    override fun isApplicableTo(e: PsiElement): Boolean =
-        e is LuaIfStatement && LuaBlockStructure.hasElseOrElseIf(e)
-
-    override fun doUnwrap(element: PsiElement, context: Context) {
+    override fun doUnwrap(
+        element: PsiElement,
+        context: Context,
+    ) {
         val ifStmt = element as? LuaIfStatement ?: return
         val branches = LuaBlockStructure.ifBranches(ifStmt)
         if (branches.size < 2) return
@@ -29,10 +30,16 @@ class LuaElseBranchRemover : LuaUnwrapper("Remove 'else' branch") {
         deleteLastBranch(ifStmt, branches.last())
     }
 
-    private fun deleteLastBranch(ifStmt: LuaIfStatement, branch: LuaIfBranch) {
-        val keyword = ifStmt.node.getChildren(null).lastOrNull {
-            it.elementType == LuaElementTypes.ELSEIF || it.elementType == LuaElementTypes.ELSE
-        }?.psi ?: return
+    private fun deleteLastBranch(
+        ifStmt: LuaIfStatement,
+        branch: LuaIfBranch,
+    ) {
+        val keyword =
+            ifStmt.node
+                .getChildren(null)
+                .lastOrNull {
+                    it.elementType == LuaElementTypes.ELSEIF || it.elementType == LuaElementTypes.ELSE
+                }?.psi ?: return
         val from = keyword.prevSibling as? PsiWhiteSpace ?: keyword
         ifStmt.deleteChildRange(from, branch.body)
     }

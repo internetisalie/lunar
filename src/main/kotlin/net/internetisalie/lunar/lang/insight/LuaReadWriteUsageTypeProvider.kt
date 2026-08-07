@@ -21,7 +21,6 @@ import net.internetisalie.lunar.lang.psi.LuaVarList
  * used by NAV-10 inspection logic.
  */
 class LuaReadWriteUsageTypeProvider : UsageTypeProvider {
-
     override fun getUsageType(element: PsiElement): UsageType? {
         val nameRef = PsiTreeUtil.getParentOfType(element, LuaNameRef::class.java, false) ?: return null
         return if (isWriteTarget(nameRef)) UsageType.WRITE else UsageType.READ

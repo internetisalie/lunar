@@ -8,7 +8,7 @@ fun LuaNumericForStatement.processDeclarations(
     processor: PsiScopeProcessor,
     state: ResolveState,
     lastParent: PsiElement?,
-    place: PsiElement
+    place: PsiElement,
 ): Boolean {
     // Loop variable is only visible in the loop body (block)
     val block = block
@@ -26,7 +26,7 @@ fun LuaGenericForStatement.processDeclarations(
     processor: PsiScopeProcessor,
     state: ResolveState,
     lastParent: PsiElement?,
-    place: PsiElement
+    place: PsiElement,
 ): Boolean {
     // Loop variables are only visible in the loop body (block)
     val block = block
@@ -39,4 +39,3 @@ fun LuaGenericForStatement.processDeclarations(
     // Then process loop body (recursive call to process inner variables)
     return block?.processDeclarations(processor, state, lastParent, place) ?: true
 }
-

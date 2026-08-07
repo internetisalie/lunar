@@ -22,7 +22,10 @@ import kotlin.coroutines.coroutineContext
 enum class RespProtocol { RESP2, RESP3 }
 
 /** Connect/read socket timeouts in milliseconds (design §2.3). */
-data class RespTimeouts(val connectMs: Int = 5_000, val readMs: Int = 30_000)
+data class RespTimeouts(
+    val connectMs: Int = 5_000,
+    val readMs: Int = 30_000,
+)
 
 /**
  * Endpoint + handshake inputs for [RespClient.open] (design §3.1).
@@ -59,20 +62,19 @@ class RespClient private constructor(
     val protocol: RespProtocol,
     private val indicator: ProgressIndicator?,
 ) : Disposable {
-
     private val output: OutputStream = socket.getOutputStream()
     private val input: PushbackInputStream =
         PushbackInputStream(CancellationAwareInputStream(socket.getInputStream(), indicator))
     private val commandMutex = Mutex()
 
     /** Send one command (raw bulk args) and suspend until its reply is decoded (design §3.3). */
-    suspend fun command(args: List<ByteArray>): RespValue = commandMutex.withLock {
-        exchange(args, op = "command")
-    }
+    suspend fun command(args: List<ByteArray>): RespValue =
+        commandMutex.withLock {
+            exchange(args, op = "command")
+        }
 
     /** UTF-8 convenience overload for [command]. */
-    suspend fun command(vararg args: String): RespValue =
-        command(args.map { it.toByteArray(Charsets.UTF_8) })
+    suspend fun command(vararg args: String): RespValue = command(args.map { it.toByteArray(Charsets.UTF_8) })
 
     /**
      * Read the next reply block on this connection **without sending a command** (REDIS-02 design §11
@@ -81,11 +83,15 @@ class RespClient private constructor(
      * in-flight [command]. Used by the LDB transport to drain a trailing out-of-band reply block; it
      * does not disturb [command]'s one-write→one-read contract (no write is performed here).
      */
-    suspend fun readReply(): RespValue = commandMutex.withLock {
-        readOne(op = "readReply")
-    }
+    suspend fun readReply(): RespValue =
+        commandMutex.withLock {
+            readOne(op = "readReply")
+        }
 
-    private suspend fun exchange(args: List<ByteArray>, op: String): RespValue {
+    private suspend fun exchange(
+        args: List<ByteArray>,
+        op: String,
+    ): RespValue {
         coroutineContext.ensureActive()
         indicator?.checkCanceled()
         return withContext(Dispatchers.IO) {
@@ -105,7 +111,10 @@ class RespClient private constructor(
         }
     }
 
-    private inline fun decodeGuarded(op: String, block: () -> RespValue): RespValue =
+    private inline fun decodeGuarded(
+        op: String,
+        block: () -> RespValue,
+    ): RespValue =
         try {
             block()
         } catch (timeout: SocketTimeoutException) {
@@ -132,16 +141,17 @@ class RespClient private constructor(
             endpoint: RespEndpoint,
             timeouts: RespTimeouts = RespTimeouts(),
             indicator: ProgressIndicator? = null,
-        ): RespClient = withContext(Dispatchers.IO) {
-            indicator?.checkCanceled()
-            val socket = connectSocket(endpoint, timeouts, indicator)
-            try {
-                RespHandshake(socket, endpoint, indicator).negotiate()
-            } catch (failure: Throwable) {
-                closeQuietly(socket)
-                throw failure
+        ): RespClient =
+            withContext(Dispatchers.IO) {
+                indicator?.checkCanceled()
+                val socket = connectSocket(endpoint, timeouts, indicator)
+                try {
+                    RespHandshake(socket, endpoint, indicator).negotiate()
+                } catch (failure: Throwable) {
+                    closeQuietly(socket)
+                    throw failure
+                }
             }
-        }
 
         private fun connectSocket(
             endpoint: RespEndpoint,
@@ -175,7 +185,10 @@ class RespClient private constructor(
          * Build a client around an already-open [socket] with a negotiated [protocol]. Package-visible
          * to [RespHandshake]; exposed as `internal` so the socket + protocol are wired in one place.
          */
-        internal fun attach(socket: Socket, protocol: RespProtocol, indicator: ProgressIndicator?): RespClient =
-            RespClient(socket, protocol, indicator)
+        internal fun attach(
+            socket: Socket,
+            protocol: RespProtocol,
+            indicator: ProgressIndicator?,
+        ): RespClient = RespClient(socket, protocol, indicator)
     }
 }

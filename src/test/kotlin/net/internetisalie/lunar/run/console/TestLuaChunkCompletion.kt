@@ -7,7 +7,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TestLuaChunkCompletion : BaseDocumentTest() {
-
     private fun isComplete(text: String): Boolean =
         runInEdtAndGet {
             LuaChunkCompletion.isComplete(myFixture.project, text)

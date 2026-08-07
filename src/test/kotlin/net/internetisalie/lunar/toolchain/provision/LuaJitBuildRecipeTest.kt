@@ -15,12 +15,15 @@ class LuaJitBuildRecipeTest {
     private val buildDir = Path.of("/p/.lua/.build/luajit-v2.1")
     private val prefix = Path.of("/p/.lua")
 
-    private fun toolchain() = LuaCompilerProbe.Toolchain(
-        Path.of("/usr/bin/gcc"), Path.of("/usr/bin/ar"), Path.of("/usr/bin/ranlib"), Path.of("/usr/bin/make"),
-    )
+    private fun toolchain() =
+        LuaCompilerProbe.Toolchain(
+            Path.of("/usr/bin/gcc"),
+            Path.of("/usr/bin/ar"),
+            Path.of("/usr/bin/ranlib"),
+            Path.of("/usr/bin/make"),
+        )
 
-    private fun plan(os: LuaOs) =
-        LuaJitBuildRecipe.plan(LuaBuildRecipeInput("v2.1", os, toolchain(), buildDir, prefix))
+    private fun plan(os: LuaOs) = LuaJitBuildRecipe.plan(LuaBuildRecipeInput("v2.1", os, toolchain(), buildDir, prefix))
 
     @Test
     fun linuxStepsAreFullCloneCheckoutAndMakePrefix() {
@@ -45,7 +48,12 @@ class LuaJitBuildRecipeTest {
         assertTrue(plan.installCopies.contains(src.resolve("libluajit.a") to prefix.resolve("lib/libluajit-5.1.a")))
         assertTrue(plan.installCopies.contains(src.resolve("libluajit.so") to prefix.resolve("lib/libluajit-5.1.so.2")))
         for (header in listOf("lua.h", "lauxlib.h", "lualib.h", "luaconf.h", "lua.hpp", "luajit.h")) {
-            assertTrue("header $header copied", plan.installCopies.contains(src.resolve(header) to prefix.resolve("include/$header")))
+            assertTrue(
+                "header $header copied",
+                plan.installCopies.contains(
+                    src.resolve(header) to prefix.resolve("include/$header"),
+                ),
+            )
         }
         assertEquals(listOf(prefix.resolve("bin/lua")), plan.executables)
     }

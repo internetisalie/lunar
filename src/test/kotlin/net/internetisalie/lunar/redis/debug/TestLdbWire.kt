@@ -10,9 +10,7 @@ import kotlin.test.assertEquals
  * TC-LDB-SYNC-2 (`SCRIPT DEBUG YES|SYNC`).
  */
 class TestLdbWire {
-
-    private fun tokens(command: LdbCommand): List<String> =
-        LdbWire.encode(command).map { it.toString(Charsets.UTF_8) }
+    private fun tokens(command: LdbCommand): List<String> = LdbWire.encode(command).map { it.toString(Charsets.UTF_8) }
 
     /** TC-LDB-ENC-1: each command encodes to its RESP array-of-bulk token vector. */
     @Test

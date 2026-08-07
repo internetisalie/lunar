@@ -24,31 +24,35 @@ class LuaExecutionStack(
     private val project: Project,
     private val controller: LuaDebuggerController,
     private val topFrame: LuaStackFrame?,
-    private val stack: LuaRemoteStack
+    private val stack: LuaRemoteStack,
 ) : XExecutionStack(LuaBundle.message("debug.stack.thread.main")) {
+    override fun getTopFrame(): XStackFrame? = topFrame
 
-    override fun getTopFrame(): XStackFrame? {
-        return topFrame
-    }
-
-    override fun computeStackFrames(firstFrameIndex: Int, container: XStackFrameContainer) {
+    override fun computeStackFrames(
+        firstFrameIndex: Int,
+        container: XStackFrameContainer,
+    ) {
         val entries = stack.entries.drop(firstFrameIndex)
-        val frames = entries.map {
-            if (it.frame.file == "=[C]") LuaStackFrame(
-                project,
-                controller,
-                null,
-                it.frame.index
-            )
-            else LuaStackFrame(
-                project,
-                controller,
-                LuaPosition.createLocalPosition(it.frame.virtualFile, it.frame.line),
-                it.frame.name,
-                it.frame.index,
-                it,
-            )
-        }
+        val frames =
+            entries.map {
+                if (it.frame.file == "=[C]") {
+                    LuaStackFrame(
+                        project,
+                        controller,
+                        null,
+                        it.frame.index,
+                    )
+                } else {
+                    LuaStackFrame(
+                        project,
+                        controller,
+                        LuaPosition.createLocalPosition(it.frame.virtualFile, it.frame.line),
+                        it.frame.name,
+                        it.frame.index,
+                        it,
+                    )
+                }
+            }
 
         container.addStackFrames(frames, true)
     }

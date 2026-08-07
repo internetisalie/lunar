@@ -5,7 +5,10 @@ package net.internetisalie.lunar.toolchain.provision
  * @param kindId the [net.internetisalie.lunar.toolchain] kind id (`lua`, `luarocks`, `luacheck`, …).
  * @param versionSpec a feed version spec or alias (`5.4`, `latest`, `3.13.0`, …).
  */
-data class LuaProvisionItem(val kindId: String, val versionSpec: String)
+data class LuaProvisionItem(
+    val kindId: String,
+    val versionSpec: String,
+)
 
 /**
  * Immutable description of one provisioning job (design §2.1).

@@ -13,13 +13,13 @@ import net.internetisalie.lunar.redis.resp.RespValue
  * and `showReply` paths to confirm the console builds and renders without throwing.
  */
 class TestRespReplyTreeConsole : BasePlatformTestCase() {
-
     /** TC-CON-2: the error line carries the server error **class** tag. */
     fun testErrorLineShowsClassTag() {
-        val error = RespValue.Error(
-            "WRONGTYPE",
-            "Operation against a key holding the wrong kind of value",
-        )
+        val error =
+            RespValue.Error(
+                "WRONGTYPE",
+                "Operation against a key holding the wrong kind of value",
+            )
         val line = RespReplyTreeConsole.formatError(error)
 
         assertTrue("line must carry the WRONGTYPE class tag: $line", line.contains("WRONGTYPE"))

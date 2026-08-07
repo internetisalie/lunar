@@ -11,7 +11,6 @@ import kotlin.test.assertEquals
  * TC-LDB-DEC-3 (compile error). Blocks are RESP arrays of bulk status lines (design §4.1).
  */
 class TestLdbReplyParser {
-
     private fun block(vararg lines: String): RespValue.Array =
         RespValue.Array(lines.map { RespValue.Bulk(it.toByteArray(Charsets.UTF_8)) })
 

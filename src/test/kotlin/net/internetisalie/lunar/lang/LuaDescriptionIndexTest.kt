@@ -11,13 +11,16 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaDescriptionIndexTest : BasePlatformTestCase() {
-
     @Test
     fun testIndexerWithClassDescription() {
-        val file = myFixture.configureByText("test.lua", """
-            ---@class Vector Represents a 2D vector
-            local Vector = {}
-        """.trimIndent())
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@class Vector Represents a 2D vector
+                local Vector = {}
+                """.trimIndent(),
+            )
 
         val fileUrl = file.virtualFile.url
         val scope = GlobalSearchScope.allScope(project)
@@ -41,10 +44,13 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
     @Test
     fun testIndexerDeduplicatesWithinSameComment() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a vector with a vector
             local Vector = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val scope = GlobalSearchScope.allScope(project)
         val index = FileBasedIndex.getInstance()
@@ -56,13 +62,16 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
     @Test
     fun testIndexerMergesSameFileCollisions() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
 
             ---@class Matrix Represents a 2D matrix
             local Matrix = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val scope = GlobalSearchScope.allScope(project)
         val index = FileBasedIndex.getInstance()
@@ -79,11 +88,15 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
     @Test
     fun testIndexerWithFuncDescription() {
-        val file = myFixture.configureByText("test.lua", """
-            ---@param name string The name of the player
-            function setPlayerName(name)
-            end
-        """.trimIndent())
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@param name string The name of the player
+                function setPlayerName(name)
+                end
+                """.trimIndent(),
+            )
 
         val fileUrl = file.virtualFile.url
         val scope = GlobalSearchScope.allScope(project)
@@ -99,12 +112,16 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
 
     @Test
     fun testIndexerWithLocalFuncDescription() {
-        val file = myFixture.configureByText("test.lua", """
-            ---@return number The coordinate value
-            local function getX()
-                return 0
-            end
-        """.trimIndent())
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@return number The coordinate value
+                local function getX()
+                    return 0
+                end
+                """.trimIndent(),
+            )
 
         val fileUrl = file.virtualFile.url
         val scope = GlobalSearchScope.allScope(project)

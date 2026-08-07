@@ -12,7 +12,6 @@ import com.intellij.openapi.application.runReadAction
  * `projectScope`, which excludes library files by construction.
  */
 class LuaLibraryModuleResolutionTest : LibraryRootTestCase() {
-
     /** A library tree shaped like the real luassert. */
     private fun registerLuassertShapedLibrary() {
         registerLibraryRoot(
@@ -40,10 +39,15 @@ class LuaLibraryModuleResolutionTest : LibraryRootTestCase() {
     fun testRequireResolvesIntoALibraryRoot() {
         registerLuassertShapedLibrary()
         myFixture.configureByText("consumer.lua", "local m = require(\"libmod\")\n")
-        val resolved = runReadAction {
-            myFixture.file.findReferenceAt(myFixture.file.text.indexOf("libmod\"") + 1)
-                ?.resolve()?.containingFile?.virtualFile?.path
-        }
+        val resolved =
+            runReadAction {
+                myFixture.file
+                    .findReferenceAt(myFixture.file.text.indexOf("libmod\"") + 1)
+                    ?.resolve()
+                    ?.containingFile
+                    ?.virtualFile
+                    ?.path
+            }
         assertNotNull("require must resolve into the definition-library root", resolved)
         assertTrue("expected resolution into the library tree, got $resolved", resolved!!.contains(TEMP_PREFIX))
     }

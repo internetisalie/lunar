@@ -21,7 +21,10 @@ import kotlin.io.path.listDirectoryEntries
  * or a subclass — [LuaArtifactDownloader] is deliberately left final rather than opened for testing.
  */
 fun interface LuaDefinitionArchiveSource {
-    fun fetch(entry: LuaDefinitionEntry, indicator: ProgressIndicator): Path
+    fun fetch(
+        entry: LuaDefinitionEntry,
+        indicator: ProgressIndicator,
+    ): Path
 }
 
 /**
@@ -40,7 +43,6 @@ class LuaDefinitionLibraryFetcher(
     private val cacheRoot: Path = defaultCacheRoot(),
     private val source: LuaDefinitionArchiveSource = downloadingSource(),
 ) {
-
     /** Where [entry] lives once fetched. The directory need not exist. */
     fun cacheDir(entry: LuaDefinitionEntry): Path = cacheRoot.resolve("${entry.id}-${entry.version}")
 
@@ -70,7 +72,10 @@ class LuaDefinitionLibraryFetcher(
      *
      * Cancellation is **not** a failure: [ProcessCanceledException] propagates untouched.
      */
-    fun ensureCached(entry: LuaDefinitionEntry, indicator: ProgressIndicator): Path? {
+    fun ensureCached(
+        entry: LuaDefinitionEntry,
+        indicator: ProgressIndicator,
+    ): Path? {
         if (isCached(entry)) return cacheDir(entry)
         val target = cacheDir(entry)
         return try {
@@ -97,7 +102,10 @@ class LuaDefinitionLibraryFetcher(
      * re-pin) yields an empty tree with no exception at all. Returning null unlogged would leave
      * "fetch failed" in the UI and nothing whatsoever in `idea.log`.
      */
-    private fun verifyExtracted(entry: LuaDefinitionEntry, target: Path): Path? {
+    private fun verifyExtracted(
+        entry: LuaDefinitionEntry,
+        target: Path,
+    ): Path? {
         if (isCached(entry)) {
             // The VFS has not seen these files yet, and nothing downstream refreshes: the provider
             // resolves with `refreshIfNeeded = false` because it runs on the EDT, and

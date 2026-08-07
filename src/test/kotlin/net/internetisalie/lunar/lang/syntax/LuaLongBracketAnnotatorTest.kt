@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test
  * token (e.g. `[==` or `--[=` at EOF, typed mid-keystroke).
  */
 class LuaLongBracketAnnotatorTest : BaseDocumentTest() {
-
     // ── BUG-386: truncated tokens must not throw ─────────────────────────────────
 
     @Test

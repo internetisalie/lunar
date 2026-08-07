@@ -9,7 +9,6 @@ package net.internetisalie.lunar.lang.insight.hint
  * the live Redis `keys`/`keys[1]:` surface is covered by human-verification-checklists.
  */
 class LambdaParamInferenceInlayTest : LuaInlayHintsTestCase() {
-
     fun testSeededLambdaParamShowsTypeHint_TC9() {
         doLuaTestProvider(
             "test.lua",

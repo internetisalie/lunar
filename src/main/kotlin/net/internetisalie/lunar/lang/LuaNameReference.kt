@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.lang
 
-import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.resolve.ResolveCache
@@ -8,32 +7,35 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.elementType
-import org.jetbrains.annotations.VisibleForTesting
-import java.util.concurrent.atomic.AtomicInteger
-import net.internetisalie.lunar.lang.LuaIcons.FILE
 import net.internetisalie.lunar.lang.indexing.*
+import net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaIndexExpr
-import net.internetisalie.lunar.lang.psi.LuaVar
-import net.internetisalie.lunar.lang.psi.LuaVarList
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaResolveUtil
-import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.lang.psi.LuaVarList
 import net.internetisalie.lunar.lang.psi.LuaVarSuffix
-import net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation
 import net.internetisalie.lunar.project.PlatformLibraryIndex
+import org.jetbrains.annotations.VisibleForTesting
+import java.util.concurrent.atomic.AtomicInteger
 
-class LuaNameReference(element: PsiElement, textRange: TextRange) :
-    PsiReferenceBase<PsiElement?>(element, textRange), PsiPolyVariantReference {
+class LuaNameReference(
+    element: PsiElement,
+    textRange: TextRange,
+) : PsiReferenceBase<PsiElement?>(element, textRange),
+    PsiPolyVariantReference {
     private val name = element.text.substring(textRange.startOffset, textRange.endOffset)
 
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         val hostElement = myElement ?: return ResolveResult.EMPTY_ARRAY
-        return ResolveCache.getInstance(hostElement.project)
+        return ResolveCache
+            .getInstance(hostElement.project)
             .resolveWithCaching(this, RESOLVER, /* needToPreventRecursion = */ false, incompleteCode)
     }
 
@@ -57,15 +59,17 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
 
         // === PHASE 2: External Resolution (unchanged) ===
         // Only proceed if local resolution failed
-        val platformQuery = VirtualFilesQuery(
-            GlobalSearchScope.allScope(element.project),
-            PlatformLibraryIndex.getPackageFiles(element.project),
-        )
-        val requiresQuery = RequiredFilesQuery(
-            ProjectScope.getProjectScope(element.project),
-            PathConfiguration.getProjectSourcePathPatterns(element.project),
-            (element.containingFile as? LuaFile)?.let { fileRequires(it) } ?: emptyList(),
-        )
+        val platformQuery =
+            VirtualFilesQuery(
+                GlobalSearchScope.allScope(element.project),
+                PlatformLibraryIndex.getPackageFiles(element.project),
+            )
+        val requiresQuery =
+            RequiredFilesQuery(
+                ProjectScope.getProjectScope(element.project),
+                PathConfiguration.getProjectSourcePathPatterns(element.project),
+                (element.containingFile as? LuaFile)?.let { fileRequires(it) } ?: emptyList(),
+            )
 
         val importedResults = queryFiles(platformQuery, requiresQuery)
 
@@ -87,9 +91,16 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
             // The bare-name lookups below treat the short name as a *receiver* (the declaration index
             // is keyed by receiver), so a bare "path" lookup for `package.path` would pull in every
             // `path.*` function of an unrelated module. Restrict member segments to the qualified name.
-            StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, qualifiedName, project, scope, LuaFuncDecl::class.java).forEach { decl ->
-                results.add(PsiElementResolveResult(decl))
-            }
+            StubIndex
+                .getElements(
+                    LuaGlobalDeclarationIndex.KEY,
+                    qualifiedName,
+                    project,
+                    scope,
+                    LuaFuncDecl::class.java,
+                ).forEach { decl ->
+                    results.add(PsiElementResolveResult(decl))
+                }
             // NAV-12: a dotted field assignment `receiver.field = value` (not stubbed) is reachable by
             // its qualified name through the member-field index — keyed by the full name, so it never
             // collides with an unrelated `path.*` module.
@@ -99,17 +110,38 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
             return results.distinctBy { it.element }.toTypedArray()
         }
 
-        StubIndex.getElements(LuaClassNameIndex.KEY, referenceName, project, scope, LuaLocalVarDecl::class.java).forEach { decl ->
-            results.add(PsiElementResolveResult(decl))
-        }
+        StubIndex
+            .getElements(
+                LuaClassNameIndex.KEY,
+                referenceName,
+                project,
+                scope,
+                LuaLocalVarDecl::class.java,
+            ).forEach { decl ->
+                results.add(PsiElementResolveResult(decl))
+            }
 
-        StubIndex.getElements(LuaAliasIndex.KEY, referenceName, project, scope, LuaLocalVarDecl::class.java).forEach { decl ->
-            results.add(PsiElementResolveResult(decl))
-        }
+        StubIndex
+            .getElements(
+                LuaAliasIndex.KEY,
+                referenceName,
+                project,
+                scope,
+                LuaLocalVarDecl::class.java,
+            ).forEach { decl ->
+                results.add(PsiElementResolveResult(decl))
+            }
 
-        StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, referenceName, project, scope, LuaFuncDecl::class.java).forEach { decl ->
-            results.add(PsiElementResolveResult(decl))
-        }
+        StubIndex
+            .getElements(
+                LuaGlobalDeclarationIndex.KEY,
+                referenceName,
+                project,
+                scope,
+                LuaFuncDecl::class.java,
+            ).forEach { decl ->
+                results.add(PsiElementResolveResult(decl))
+            }
 
         // BUG-391: a bare global assigned at file scope anywhere in the project. The queries above
         // reach only platform libraries and files this one `require`s, but a Lua global is visible
@@ -168,8 +200,12 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
                             // System.out.println("  Reconstructed qualified name: $result")
                             return result
                         }
-                    } else break
-                } else break
+                    } else {
+                        break
+                    }
+                } else {
+                    break
+                }
             }
         }
         return null
@@ -180,7 +216,8 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         referenceName: String,
         filesQueryResult: FilesQueryResult,
     ) {
-        val psiFile = PsiManager.getInstance(element.project).findFile(filesQueryResult.packageFile.virtualFile) ?: return
+        val psiFile =
+            PsiManager.getInstance(element.project).findFile(filesQueryResult.packageFile.virtualFile) ?: return
         filesQueryResult.bindings.forEach { binding ->
             if (binding.name != referenceName) return@forEach
             val targetElement = psiFile.findElementAt(binding.textOffset) ?: return@forEach
@@ -206,11 +243,19 @@ class LuaNameReference(element: PsiElement, textRange: TextRange) :
         return resolved === element || declarationIdentifier(resolved) === element
     }
 
-    private fun declarationIdentifier(decl: PsiElement): PsiElement? = when (decl) {
-        is LuaFuncDecl -> decl.funcName.funcNameMethod?.nameRef?.identifier ?: decl.funcName.nameRef.identifier
-        is LuaLocalVarDecl -> decl.attNameList.firstOrNull()?.nameRef?.identifier
-        else -> null
-    }
+    private fun declarationIdentifier(decl: PsiElement): PsiElement? =
+        when (decl) {
+            is LuaFuncDecl ->
+                decl.funcName.funcNameMethod
+                    ?.nameRef
+                    ?.identifier ?: decl.funcName.nameRef.identifier
+            is LuaLocalVarDecl ->
+                decl.attNameList
+                    .firstOrNull()
+                    ?.nameRef
+                    ?.identifier
+            else -> null
+        }
 
     override fun getVariants(): Array<Any> {
         // Code completion: return empty for now

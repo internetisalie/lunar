@@ -15,7 +15,6 @@ import org.junit.Test
  * Sanitising the URL is not available: it must round-trip or the file cannot be reopened.
  */
 class LuaDescriptionRecordTest {
-
     private fun roundTrip(record: DescriptionRecord) {
         val parsed = DescriptionRecord.parseAll(record.encode())
         assertEquals("exactly one record for '${record.fileUrl}'", 1, parsed.size)
@@ -55,10 +54,11 @@ class LuaDescriptionRecordTest {
 
     @Test
     fun multipleRecordsSurviveJoinAndParse() {
-        val records = listOf(
-            DescriptionRecord("Vector", "file:///src/we\tird.lua", 1),
-            DescriptionRecord("Matrix", "file:///src/pipe|d.lua", 2),
-        )
+        val records =
+            listOf(
+                DescriptionRecord("Vector", "file:///src/we\tird.lua", 1),
+                DescriptionRecord("Matrix", "file:///src/pipe|d.lua", 2),
+            )
         assertEquals(records, DescriptionRecord.parseAll(DescriptionRecord.join(records)))
     }
 

@@ -1,7 +1,7 @@
 package net.internetisalie.lunar.lang.types
 
-import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.lang.psi.types.ErrorSeverity
+import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -20,47 +20,57 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class MultiReturnValueTest : IndexedBasePlatformTestCase() {
-
     // =========================================================================
     // Multi-return declarations
     // =========================================================================
 
     @Test
     fun testMultiReturnBasic() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@return number
-            ---@return string
-            local function f()
-                return 1, "hi"
-            end
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@return number
+                ---@return string
+                local function f()
+                    return 1, "hi"
+                end
 
-            local a, b = f()
-            """.trimIndent(),
-        )
+                local a, b = f()
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         val errors = snapshot.getErrors()
-        assertTrue("Should have no errors, but got: ${errors.map { it.message }}", errors.filter { it.severity != ErrorSeverity.WEAK_WARNING }.isEmpty())
+        assertTrue(
+            "Should have no errors, but got: ${errors.map { it.message }}",
+            errors
+                .filter {
+                    it.severity !=
+                        ErrorSeverity.WEAK_WARNING
+                }.isEmpty(),
+        )
     }
 
     @Test
     fun testMultiReturnMismatch() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@return number
-            ---@return string
-            local function f()
-                return 1, 2 -- Error: 2nd return should be string
-            end
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@return number
+                ---@return string
+                local function f()
+                    return 1, 2 -- Error: 2nd return should be string
+                end
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         val errors = snapshot.getErrors()
         val messages = errors.map { it.message }
-        assertTrue("Expected type error but got: $messages",
-            messages.any { it.contains("number") && it.contains("string") })
+        assertTrue(
+            "Expected type error but got: $messages",
+            messages.any { it.contains("number") && it.contains("string") },
+        )
     }
 
     // =========================================================================
@@ -69,22 +79,23 @@ class MultiReturnValueTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testMultiValueAssignment() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@return number
-            ---@return string
-            local function f() return 1, "a" end
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@return number
+                ---@return string
+                local function f() return 1, "a" end
 
-            local n, s = 0, ""
-            ---@type number
-            n = 0
-            ---@type string
-            s = ""
+                local n, s = 0, ""
+                ---@type number
+                n = 0
+                ---@type string
+                s = ""
 
-            n, s = f() -- OK
-            """.trimIndent(),
-        )
+                n, s = f() -- OK
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         val errors = snapshot.getErrors().filter { it.severity != ErrorSeverity.WEAK_WARNING }
         assertTrue("Should have no errors in multi-assignment, but got: ${errors.map { it.message }}", errors.isEmpty())
@@ -92,23 +103,26 @@ class MultiReturnValueTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testMultiValueAssignmentError() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@return number
-            ---@return string
-            local function f() return 1, "a" end
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@return number
+                ---@return string
+                local function f() return 1, "a" end
 
-            local n, s
-            ---@type string
-            n = ""
-            n, s = f() -- Error: n is string, but f() returns number first
-            """.trimIndent(),
-        )
+                local n, s
+                ---@type string
+                n = ""
+                n, s = f() -- Error: n is string, but f() returns number first
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         val errors = snapshot.getErrors()
         assertFalse("Should have type mismatch error", errors.isEmpty())
-        assertTrue("Error should mention number is not assignable to string, but got: ${errors.map { it.message }}",
-            errors.any { it.message.contains("number") && it.message.contains("string") })
+        assertTrue(
+            "Error should mention number is not assignable to string, but got: ${errors.map { it.message }}",
+            errors.any { it.message.contains("number") && it.message.contains("string") },
+        )
     }
 }

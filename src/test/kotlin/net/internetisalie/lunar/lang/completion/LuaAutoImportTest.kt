@@ -15,7 +15,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaAutoImportTest : IndexedBasePlatformTestCase() {
-
     /** Point the source path at the directory holding [file] so the resolver can match it. */
     private fun configureSourcePathFor(file: VirtualFile) {
         val dir = file.parent.path
@@ -72,19 +71,22 @@ class LuaAutoImportTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testNameFromClassAnnotation() {
-        val target = myFixture.addFileToProject(
-            "builder.lua",
-            """
-            ---@class Builder
-            local Builder = {}
-            return Builder
-            """.trimIndent(),
-        ).virtualFile
+        val target =
+            myFixture
+                .addFileToProject(
+                    "builder.lua",
+                    """
+                    ---@class Builder
+                    local Builder = {}
+                    return Builder
+                    """.trimIndent(),
+                ).virtualFile
         val current = myFixture.configureByText("main.lua", "") as net.internetisalie.lunar.lang.psi.LuaFile
 
-        val name = runReadAction {
-            LuaImportNameResolver().resolve(target, LuaExportStyle.RETURN_STYLE, current, project)
-        }
+        val name =
+            runReadAction {
+                LuaImportNameResolver().resolve(target, LuaExportStyle.RETURN_STYLE, current, project)
+            }
         assertEquals("Builder", name)
     }
 
@@ -93,9 +95,10 @@ class LuaAutoImportTest : IndexedBasePlatformTestCase() {
         val target = myFixture.addFileToProject("json-utils.lua", "return {}").virtualFile
         val current = myFixture.configureByText("main.lua", "") as net.internetisalie.lunar.lang.psi.LuaFile
 
-        val name = runReadAction {
-            LuaImportNameResolver().resolve(target, LuaExportStyle.RETURN_STYLE, current, project)
-        }
+        val name =
+            runReadAction {
+                LuaImportNameResolver().resolve(target, LuaExportStyle.RETURN_STYLE, current, project)
+            }
         assertEquals("json_utils", name)
     }
 
@@ -104,23 +107,26 @@ class LuaAutoImportTest : IndexedBasePlatformTestCase() {
         val target = myFixture.addFileToProject("globals.lua", "function g() end").virtualFile
         val current = myFixture.configureByText("main.lua", "") as net.internetisalie.lunar.lang.psi.LuaFile
 
-        val name = runReadAction {
-            LuaImportNameResolver().resolve(target, LuaExportStyle.GLOBAL_STYLE, current, project)
-        }
+        val name =
+            runReadAction {
+                LuaImportNameResolver().resolve(target, LuaExportStyle.GLOBAL_STYLE, current, project)
+            }
         assertNull(name)
     }
 
     @Test
     fun testNameConflictGetsSuffix() {
         val target = myFixture.addFileToProject("config.lua", "return {}").virtualFile
-        val current = myFixture.configureByText(
-            "main.lua",
-            "local config = 1",
-        ) as net.internetisalie.lunar.lang.psi.LuaFile
+        val current =
+            myFixture.configureByText(
+                "main.lua",
+                "local config = 1",
+            ) as net.internetisalie.lunar.lang.psi.LuaFile
 
-        val name = runReadAction {
-            LuaImportNameResolver().resolve(target, LuaExportStyle.RETURN_STYLE, current, project)
-        }
+        val name =
+            runReadAction {
+                LuaImportNameResolver().resolve(target, LuaExportStyle.RETURN_STYLE, current, project)
+            }
         assertEquals("config2", name)
     }
 
@@ -128,28 +134,31 @@ class LuaAutoImportTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testDuplicateDetectedDoubleQuotes() {
-        val file = myFixture.configureByText(
-            "main.lua",
-            """local m = require("net.http")""",
-        ) as net.internetisalie.lunar.lang.psi.LuaFile
+        val file =
+            myFixture.configureByText(
+                "main.lua",
+                """local m = require("net.http")""",
+            ) as net.internetisalie.lunar.lang.psi.LuaFile
         assertTrue(runReadAction { LuaDeduplicationChecker.isAlreadyRequired(file, "net.http") })
     }
 
     @Test
     fun testNoDuplicateForDifferentPath() {
-        val file = myFixture.configureByText(
-            "main.lua",
-            """local m = require("net.http")""",
-        ) as net.internetisalie.lunar.lang.psi.LuaFile
+        val file =
+            myFixture.configureByText(
+                "main.lua",
+                """local m = require("net.http")""",
+            ) as net.internetisalie.lunar.lang.psi.LuaFile
         assertFalse(runReadAction { LuaDeduplicationChecker.isAlreadyRequired(file, "net.ws") })
     }
 
     @Test
     fun testDuplicateDetectedNoParenForm() {
-        val file = myFixture.configureByText(
-            "main.lua",
-            """require "json"""",
-        ) as net.internetisalie.lunar.lang.psi.LuaFile
+        val file =
+            myFixture.configureByText(
+                "main.lua",
+                """require "json"""",
+            ) as net.internetisalie.lunar.lang.psi.LuaFile
         assertTrue(runReadAction { LuaDeduplicationChecker.isAlreadyRequired(file, "json") })
     }
 }

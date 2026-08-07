@@ -29,8 +29,10 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  * label-only `LuaNameDeclElement`).
  */
 class LuaIdentifierTokenizer : Tokenizer<LuaNameRef>() {
-
-    override fun tokenize(element: LuaNameRef, consumer: TokenConsumer) {
+    override fun tokenize(
+        element: LuaNameRef,
+        consumer: TokenConsumer,
+    ) {
         if (!isDeclarationName(element)) return
         val name = element.text
         if (name.isEmpty() || LuaSpellcheckSuppressions.isSuppressed(name, element.project)) return

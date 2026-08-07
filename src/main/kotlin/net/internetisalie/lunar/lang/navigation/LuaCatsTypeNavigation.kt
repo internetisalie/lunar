@@ -24,8 +24,11 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
  * icon is derived from the resolved tag kind rather than stored in the index.
  */
 object LuaCatsTypeNavigation {
-
-    fun processNames(processor: Processor<in String>, scope: GlobalSearchScope, filter: IdFilter?) {
+    fun processNames(
+        processor: Processor<in String>,
+        scope: GlobalSearchScope,
+        filter: IdFilter?,
+    ) {
         FileBasedIndex.getInstance().processAllKeys(LuaCatsTypeNameIndex.KEY, processor, scope, filter)
     }
 

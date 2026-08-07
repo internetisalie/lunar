@@ -1,7 +1,9 @@
 package net.internetisalie.lunar.rocks.deps
 
 /** A relational operator usable in a LuaRocks dependency constraint. */
-enum class ConstraintOp(val token: String) {
+enum class ConstraintOp(
+    val token: String,
+) {
     EQ("=="),
     NE("~="),
     LT("<"),
@@ -18,16 +20,20 @@ enum class ConstraintOp(val token: String) {
  * component the constraint pins must equal the candidate's, while trailing candidate components are
  * unconstrained (so `~> 1.2` matches `1.2.0` and `1.2.99` but not `1.3.0`).
  */
-data class VersionConstraint(val op: ConstraintOp, val version: LuaRocksVersion) {
-    fun isSatisfiedBy(candidate: LuaRocksVersion): Boolean = when (op) {
-        ConstraintOp.EQ -> candidate.compareTo(version) == 0
-        ConstraintOp.NE -> candidate.compareTo(version) != 0
-        ConstraintOp.LT -> candidate < version
-        ConstraintOp.LE -> candidate <= version
-        ConstraintOp.GT -> candidate > version
-        ConstraintOp.GE -> candidate >= version
-        ConstraintOp.COMPATIBLE -> isCompatibleWith(candidate)
-    }
+data class VersionConstraint(
+    val op: ConstraintOp,
+    val version: LuaRocksVersion,
+) {
+    fun isSatisfiedBy(candidate: LuaRocksVersion): Boolean =
+        when (op) {
+            ConstraintOp.EQ -> candidate.compareTo(version) == 0
+            ConstraintOp.NE -> candidate.compareTo(version) != 0
+            ConstraintOp.LT -> candidate < version
+            ConstraintOp.LE -> candidate <= version
+            ConstraintOp.GT -> candidate > version
+            ConstraintOp.GE -> candidate >= version
+            ConstraintOp.COMPATIBLE -> isCompatibleWith(candidate)
+        }
 
     private fun isCompatibleWith(candidate: LuaRocksVersion): Boolean =
         version.components.indices.all { i ->
@@ -36,10 +42,16 @@ data class VersionConstraint(val op: ConstraintOp, val version: LuaRocksVersion)
 
     companion object {
         // Two-character operators must be tested before one-character ones.
-        private val OPERATORS: List<ConstraintOp> = listOf(
-            ConstraintOp.EQ, ConstraintOp.NE, ConstraintOp.LE, ConstraintOp.GE,
-            ConstraintOp.COMPATIBLE, ConstraintOp.LT, ConstraintOp.GT,
-        )
+        private val OPERATORS: List<ConstraintOp> =
+            listOf(
+                ConstraintOp.EQ,
+                ConstraintOp.NE,
+                ConstraintOp.LE,
+                ConstraintOp.GE,
+                ConstraintOp.COMPATIBLE,
+                ConstraintOp.LT,
+                ConstraintOp.GT,
+            )
 
         /**
          * Parses one constraint piece, e.g. `>= 2.0`, `~> 2.1`, or a bare `1.4` (treated as `==`).

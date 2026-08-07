@@ -41,8 +41,9 @@ private const val MERGE_WINDOW_MS = 500
  * on environment-root deletion, and marshals banner refreshes to the EDT.
  */
 @Service(Service.Level.PROJECT)
-class LuaToolHealthMonitor(private val project: Project) : Disposable {
-
+class LuaToolHealthMonitor(
+    private val project: Project,
+) : Disposable {
     @Volatile
     var runtimeBannerDismissed: Boolean = false
         private set
@@ -52,15 +53,16 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
     @Volatile
     private var watchSet: LuaHealthWatchSet = LuaHealthWatchSet.EMPTY
 
-    private val revalidationQueue: MergingUpdateQueue = MergingUpdateQueue(
-        "lunar.toolchain.health",
-        MERGE_WINDOW_MS,
-        true,
-        null,
-        this,
-        null,
-        Alarm.ThreadToUse.POOLED_THREAD
-    )
+    private val revalidationQueue: MergingUpdateQueue =
+        MergingUpdateQueue(
+            "lunar.toolchain.health",
+            MERGE_WINDOW_MS,
+            true,
+            null,
+            this,
+            null,
+            Alarm.ThreadToUse.POOLED_THREAD,
+        )
 
     fun start() {
         rebuildWatchSet()
@@ -72,7 +74,7 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
                     rebuildWatchSet()
                     refreshBannersOnEdt()
                 }
-            }
+            },
         )
     }
 
@@ -118,7 +120,7 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
     private fun checkAndWriteTool(
         tool: LuaRegisteredTool,
         deadRoots: List<LuaEnvironmentState>,
-        newlyBroken: MutableList<String>
+        newlyBroken: MutableList<String>,
     ) {
         val kind = LuaToolKindRegistry.findById(tool.kindId)
         if (kind == null) {
@@ -128,7 +130,8 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
         val checked = LuaToolHealthChecker.check(tool, kind)
         val result = applyEnvReasonOverride(tool, checked, deadRoots)
         val previousUsable = tool.isUsable
-        LuaToolchainRegistry.getInstance()
+        LuaToolchainRegistry
+            .getInstance()
             .updateToolCheck(tool.id, result.health, result.version, result.luaVersion, result.runtime)
         val newUsable = isResultUsable(result)
         if (previousUsable && !newUsable) newlyBroken.add(kind.displayName)
@@ -137,7 +140,7 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
     private fun applyEnvReasonOverride(
         tool: LuaRegisteredTool,
         result: LuaToolCheckResult,
-        deadRoots: List<LuaEnvironmentState>
+        deadRoots: List<LuaEnvironmentState>,
     ): LuaToolCheckResult {
         val envId = tool.environmentId ?: return result
         if (result.health.fileExists) return result
@@ -148,7 +151,7 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
 
     private fun collectDeadEnvNotifications(
         envs: List<LuaEnvironmentState>,
-        deadRoots: List<LuaEnvironmentState>
+        deadRoots: List<LuaEnvironmentState>,
     ): List<LuaEnvironmentState> {
         synchronized(notifiedDeletedEnvIds) {
             val liveIds = (envs - deadRoots.toSet()).map { it.id }.toSet()
@@ -161,7 +164,7 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
 
     private fun marshalUiUpdates(
         newlyBroken: List<String>,
-        deadEnvs: List<LuaEnvironmentState>
+        deadEnvs: List<LuaEnvironmentState>,
     ) {
         ApplicationManager.getApplication().invokeLater {
             EditorNotifications.getInstance(project).updateAllNotifications()
@@ -174,19 +177,20 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
         val names = displayNames.joinToString(", ")
         warnBalloon(
             "Lua tool(s) became unavailable: $names. " +
-                "Check Settings > Languages & Frameworks > Lua > Toolchain."
+                "Check Settings > Languages & Frameworks > Lua > Toolchain.",
         )
     }
 
     private fun notifyDeletedEnv(env: LuaEnvironmentState) {
         warnBalloon(
             "Lua environment '${env.name}' was deleted from disk (${env.rootDir}). " +
-                "Its tools are unavailable."
+                "Its tools are unavailable.",
         )
     }
 
     private fun warnBalloon(message: String) {
-        NotificationGroupManager.getInstance()
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP)
             .createNotification(message, NotificationType.WARNING)
             .notify(project)
@@ -206,14 +210,21 @@ class LuaToolHealthMonitor(private val project: Project) : Disposable {
     fun rebuildWatchSetNow() = rebuildWatchSet()
 
     @org.jetbrains.annotations.TestOnly
-    fun prepareChangeNow(events: List<VFileEvent>): Boolean =
-        HealthFileListener().prepareChange(events) != null
+    fun prepareChangeNow(events: List<VFileEvent>): Boolean = HealthFileListener().prepareChange(events) != null
 
     private fun buildWatchSet(): LuaHealthWatchSet {
-        val exactPaths = LuaToolchainRegistry.getInstance().tools()
-            .map { canonicalize(it.path) }.toSet()
-        val envRoots = LuaToolchainProjectSettings.getInstance(project).environments()
-            .map { canonicalize(it.rootDir) }.toSet()
+        val exactPaths =
+            LuaToolchainRegistry
+                .getInstance()
+                .tools()
+                .map { canonicalize(it.path) }
+                .toSet()
+        val envRoots =
+            LuaToolchainProjectSettings
+                .getInstance(project)
+                .environments()
+                .map { canonicalize(it.rootDir) }
+                .toSet()
         val binDirs = envRoots.map { "$it/bin" }.toSet()
         return LuaHealthWatchSet(exactPaths, envRoots, binDirs)
     }

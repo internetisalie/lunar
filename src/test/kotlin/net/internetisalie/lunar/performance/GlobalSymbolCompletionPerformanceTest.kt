@@ -1,18 +1,13 @@
 package net.internetisalie.lunar.performance
 
-import com.intellij.codeInsight.completion.CodeCompletionHandlerBase
-import com.intellij.codeInsight.completion.CompletionType
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiFile
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.testFramework.EdtTestUtil
-import com.intellij.util.TimeoutUtil
 import net.internetisalie.lunar.IndexedDocumentTest
 import org.junit.jupiter.api.Test
 import java.io.File
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -43,7 +38,6 @@ import kotlin.test.assertTrue
  * 5. Report feasibility and provide fallback guidance
  */
 class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
-
     /**
      * Generate a Lua module with N global functions.
      *
@@ -54,11 +48,10 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
      * ... (3 more)
      * ```
      */
-    private fun generateGlobalSymbolModule(count: Int): String {
-        return (0 until count).joinToString("\n") { i ->
+    private fun generateGlobalSymbolModule(count: Int): String =
+        (0 until count).joinToString("\n") { i ->
             "function global_func_$i() end"
         }
-    }
 
     /**
      * Generate a @class declaration module.
@@ -76,20 +69,20 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
      * ...
      * ```
      */
-    private fun generateClassSymbolModule(count: Int): String {
-        return (0 until count).joinToString("\n\n") { i ->
+    private fun generateClassSymbolModule(count: Int): String =
+        (0 until count).joinToString("\n\n") { i ->
             "---@class MyClass_$i\nlocal MyClass_$i = {}"
         }
-    }
 
     /**
      * Generate a consumer module that requires other modules.
      * This simulates the scenario where phase 1 + phase 2 complete.
      */
     private fun generateConsumerModule(requiredModules: Int): String {
-        val requires = (0 until requiredModules).joinToString("\n") { i ->
-            "local mod_$i = require('module_$i')"
-        }
+        val requires =
+            (0 until requiredModules).joinToString("\n") { i ->
+                "local mod_$i = require('module_$i')"
+            }
         return """
             $requires
             
@@ -98,7 +91,7 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
             
             -- Completion point
             <>
-        """.trimIndent()
+            """.trimIndent()
     }
 
     /**
@@ -126,15 +119,16 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
                 StubIndex.getInstance().forceRebuild(Throwable("Benchmark setup: forcing stub index rebuild"))
             }
         }
-        
+
         // Wait for smart mode (index completion) before measuring
         // This ensures index queries are safe per engineering contract
         DumbService.getInstance(myFixture.project).waitForSmartMode()
 
         // Measure Phase 1 baseline (keyword/local completion)
-        result.phase1Time = measureCompletionTime {
-            invokeCompletion(consumerFile)
-        }
+        result.phase1Time =
+            measureCompletionTime {
+                invokeCompletion(consumerFile)
+            }
 
         // Record results (totalSymbols already set in constructor)
         result.classSymbols = min(100, symbolCount / 10)
@@ -156,7 +150,7 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
             System.err.println("⚠️ Exception during completion: ${e.javaClass.simpleName}: ${e.message}")
             throw e
         }
-        return (System.nanoTime() - start) / 1_000_000  // Convert to milliseconds
+        return (System.nanoTime() - start) / 1_000_000 // Convert to milliseconds
     }
 
     /**
@@ -166,17 +160,17 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
     private fun invokeCompletion(file: PsiFile) {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             myFixture.editor.caretModel.moveToOffset(
-                file.text.indexOf("<>")
+                file.text.indexOf("<>"),
             )
             myFixture.completeBasic()
             val strings = myFixture.lookupElementStrings ?: emptyList()
             assertNotNull(strings, "Completion should return results")
-            
+
             // Sanity check: at least some generated symbols should appear
             // (This validates that indexing is working and completion is functional)
             assertTrue(
                 strings.any { it.startsWith("global_func_") || it.startsWith("MyClass_") },
-                "Completion should include generated global functions and classes. Found: ${strings.take(10)}"
+                "Completion should include generated global functions and classes. Found: ${strings.take(10)}",
             )
         }
     }
@@ -227,12 +221,12 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
     @Test
     fun `summary report`() {
         val outputLines = mutableListOf<String>()
-        
+
         fun logLine(msg: String) {
             println(msg)
             outputLines.add(msg)
         }
-        
+
         logLine("\n" + "=".repeat(70))
         logLine("DR-02 PERFORMANCE BENCHMARK SUMMARY (Phase 1 + Phase 2 Combined)")
         logLine("=".repeat(70))
@@ -246,24 +240,29 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
         logLine("├─────────┼──────────────┼──────────────┼───────────────┤")
 
         for (result in results) {
-            val target = when (result.totalSymbols) {
-                500 -> "<200"
-                1000 -> "<250"
-                5000 -> "<400"
-                10000 -> "<600"
-                else -> "unknown"
-            }
-            val status = when {
-                result.totalSymbols == 1000 && result.phase1Time < 250 -> "✅ PASS"
-                result.totalSymbols == 5000 && result.phase1Time < 400 -> "✅ PASS"
-                result.totalSymbols == 10000 && result.phase1Time < 600 -> "✅ PASS"
-                else -> "ℹ️  INFO"
-            }
+            val target =
+                when (result.totalSymbols) {
+                    500 -> "<200"
+                    1000 -> "<250"
+                    5000 -> "<400"
+                    10000 -> "<600"
+                    else -> "unknown"
+                }
+            val status =
+                when {
+                    result.totalSymbols == 1000 && result.phase1Time < 250 -> "✅ PASS"
+                    result.totalSymbols == 5000 && result.phase1Time < 400 -> "✅ PASS"
+                    result.totalSymbols == 10000 && result.phase1Time < 600 -> "✅ PASS"
+                    else -> "ℹ️  INFO"
+                }
             logLine(
                 String.format(
                     "│ %7d │ %12d │ %-12s │ %-13s │",
-                    result.totalSymbols, result.phase1Time, target, status
-                )
+                    result.totalSymbols,
+                    result.phase1Time,
+                    target,
+                    status,
+                ),
             )
         }
         logLine("└─────────┴──────────────┴──────────────┴───────────────┘")
@@ -287,7 +286,7 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
         logLine("   3. If combined > 250ms: optimize GlobalSymbolRankingService or fallback to functions-only")
 
         logLine("=".repeat(70) + "\n")
-        
+
         // Write results to file for capture
         try {
             val resultsFile = File("/tmp/dr02-benchmark-results.txt")
@@ -299,7 +298,9 @@ class GlobalSymbolCompletionPerformanceTest : IndexedDocumentTest() {
 
         // Gate: If combined at 1000 exceeds 250ms significantly, warn
         if (results[1].phase1Time >= 250) {
-            System.err.println("⚠️  WARNING: Combined completion at 1000 symbols exceeded 250ms. Performance optimization may be needed.")
+            System.err.println(
+                "⚠️  WARNING: Combined completion at 1000 symbols exceeded 250ms. Performance optimization may be needed.",
+            )
         }
     }
 

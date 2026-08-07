@@ -15,7 +15,6 @@ import java.nio.file.Path
  * (in-place install refresh + cache invalidate + single row event), plus the staleness drop (§6).
  */
 class LuaRocksBrowserModelTest {
-
     private val tree: Path = Path.of("/proj/lua_modules")
 
     // ── Fakes ────────────────────────────────────────────────────────────────
@@ -23,8 +22,14 @@ class LuaRocksBrowserModelTest {
     private class RecordingListener : LuaRocksBrowserModel.Listener {
         val states = mutableListOf<BrowserState>()
         val rowChanges = mutableListOf<Int>()
-        override fun onState(state: BrowserState) { states += state }
-        override fun onRowChanged(index: Int) { rowChanges += index }
+
+        override fun onState(state: BrowserState) {
+            states += state
+        }
+
+        override fun onRowChanged(index: Int) {
+            rowChanges += index
+        }
     }
 
     private class FakeBackend(
@@ -35,20 +40,37 @@ class LuaRocksBrowserModelTest {
         val backgroundTasks = ArrayDeque<() -> Unit>()
         val edtActions = ArrayDeque<() -> Unit>()
         var popular: List<PopularEntry> = emptyList()
+
         override fun resolveTree(): Path? = treeRoot
-        override fun search(query: String, treeRoot: Path?): List<LuaRockPackage> = searchResult()
+
+        override fun search(
+            query: String,
+            treeRoot: Path?,
+        ): List<LuaRockPackage> = searchResult()
+
         override fun listInstalled(treeRoot: Path): List<InstalledRockRow> = installedResult()
+
         override fun fetchPopular(): List<PopularEntry> = popular
-        override fun runInBackground(task: () -> Unit) { backgroundTasks += task }
-        override fun onEdt(action: () -> Unit) { edtActions += action }
+
+        override fun runInBackground(task: () -> Unit) {
+            backgroundTasks += task
+        }
+
+        override fun onEdt(action: () -> Unit) {
+            edtActions += action
+        }
+
         fun drain() {
             while (backgroundTasks.isNotEmpty()) backgroundTasks.removeFirst().invoke()
             while (edtActions.isNotEmpty()) edtActions.removeFirst().invoke()
         }
     }
 
-    private fun pkg(name: String, version: String = "1.0-1", installed: Boolean = false) =
-        LuaRockPackage(name, version, "rockspec", "https://luarocks.org", "", installed)
+    private fun pkg(
+        name: String,
+        version: String = "1.0-1",
+        installed: Boolean = false,
+    ) = LuaRockPackage(name, version, "rockspec", "https://luarocks.org", "", installed)
 
     // ── Tests ────────────────────────────────────────────────────────────────
 
@@ -94,10 +116,11 @@ class LuaRocksBrowserModelTest {
 
     @Test
     fun `an installed rock with a newer search version is flagged hasUpdate`() {
-        val results = listOf(
-            pkg("inspect", "3.1.2-0", installed = true),
-            pkg("inspect", "3.1.3-0", installed = true),
-        )
+        val results =
+            listOf(
+                pkg("inspect", "3.1.2-0", installed = true),
+                pkg("inspect", "3.1.3-0", installed = true),
+            )
         val backend = FakeBackend(tree, { results })
         val listener = RecordingListener()
         val model = LuaRocksBrowserModel(backend, listener)
@@ -136,9 +159,10 @@ class LuaRocksBrowserModelTest {
 
     @Test
     fun `blank query renders a non-empty popular list as Results`() {
-        val backend = FakeBackend(tree, { emptyList() }).apply {
-            popular = listOf(PopularEntry("luafilesystem", "51572"), PopularEntry("dkjson", "32931"))
-        }
+        val backend =
+            FakeBackend(tree, { emptyList() }).apply {
+                popular = listOf(PopularEntry("luafilesystem", "51572"), PopularEntry("dkjson", "32931"))
+            }
         val listener = RecordingListener()
         val model = LuaRocksBrowserModel(backend, listener)
         model.runMarketplaceSearch("")
@@ -177,6 +201,13 @@ class LuaRocksBrowserModelTest {
 
         val results = listener.states.filterIsInstance<BrowserState.Results>()
         assertEquals(1, results.size)
-        assertEquals("second", results.single().rows.single().pkg.name)
+        assertEquals(
+            "second",
+            results
+                .single()
+                .rows
+                .single()
+                .pkg.name,
+        )
     }
 }

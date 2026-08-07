@@ -26,7 +26,10 @@ data class LuaProvisionResult(
  * application registry / project settings.
  */
 interface LuaProvisionResultSink {
-    fun register(project: Project, result: LuaProvisionResult)
+    fun register(
+        project: Project,
+        result: LuaProvisionResult,
+    )
 }
 
 /**
@@ -36,19 +39,27 @@ interface LuaProvisionResultSink {
  * activated via TOOLING-02. Re-registration is idempotent, so a skip-all run may re-run it.
  */
 class RegistryProvisionResultSink : LuaProvisionResultSink {
-    override fun register(project: Project, result: LuaProvisionResult) {
+    override fun register(
+        project: Project,
+        result: LuaProvisionResult,
+    ) {
         val registry = LuaToolchainRegistry.getInstance()
-        val toolIds = result.components.map { component ->
-            val toolId = UUID.randomUUID().toString()
-            registry.registerProvisioned(toolFor(component, result.environmentId, toolId))
-            toolId
-        }
+        val toolIds =
+            result.components.map { component ->
+                val toolId = UUID.randomUUID().toString()
+                registry.registerProvisioned(toolFor(component, result.environmentId, toolId))
+                toolId
+            }
         LuaToolchainProjectSettings.getInstance(project).upsertEnvironmentAndActivate(
             LuaEnvironmentState(result.environmentId, result.environmentName, result.rootDir, toolIds.toMutableList()),
         )
     }
 
-    private fun toolFor(component: LuaProvisionedComponent, environmentId: String, toolId: String): LuaRegisteredTool =
+    private fun toolFor(
+        component: LuaProvisionedComponent,
+        environmentId: String,
+        toolId: String,
+    ): LuaRegisteredTool =
         LuaRegisteredTool(
             id = toolId,
             kindId = component.kindId,
@@ -58,6 +69,13 @@ class RegistryProvisionResultSink : LuaProvisionResultSink {
             runtime = null,
             origin = Origin.PROVISIONED,
             environmentId = environmentId,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = null, probedAtMtime = null, reason = null),
+            health =
+                LuaToolHealth(
+                    fileExists = true,
+                    executable = true,
+                    probeOk = null,
+                    probedAtMtime = null,
+                    reason = null,
+                ),
         )
 }

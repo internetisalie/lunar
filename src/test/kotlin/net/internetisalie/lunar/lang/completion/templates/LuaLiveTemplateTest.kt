@@ -7,7 +7,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.LuaFile
 
 class LuaLiveTemplateTest : BasePlatformTestCase() {
-
     fun testLiveTemplatesLoaded() {
         val templates = TemplateSettings.getInstance().templates
         val luaTemplates = templates.filter { it.groupName == "Lua" }
@@ -17,10 +16,22 @@ class LuaLiveTemplateTest : BasePlatformTestCase() {
         val templateNames = luaTemplates.map { it.key }
         assertContainsElements(
             templateNames,
-            "fun", "fori", "forp", "loc",
-            "if", "ifel", "lfun", "while",
-            "repeat", "forip", "req", "mod",
-            "surr_if", "surr_for", "surr_do", "surr_fn",
+            "fun",
+            "fori",
+            "forp",
+            "loc",
+            "if",
+            "ifel",
+            "lfun",
+            "while",
+            "repeat",
+            "forip",
+            "req",
+            "mod",
+            "surr_if",
+            "surr_for",
+            "surr_do",
+            "surr_fn",
         )
     }
 
@@ -62,7 +73,10 @@ class LuaLiveTemplateTest : BasePlatformTestCase() {
         assertContextAtCaret("local x = 1\nif<caret>", expectedInCode = true)
     }
 
-    private fun assertContextAtCaret(source: String, expectedInCode: Boolean) {
+    private fun assertContextAtCaret(
+        source: String,
+        expectedInCode: Boolean,
+    ) {
         myFixture.configureByText("a.lua", source)
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             val offset = myFixture.caretOffset

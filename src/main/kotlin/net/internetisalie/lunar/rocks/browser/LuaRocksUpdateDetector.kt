@@ -9,12 +9,14 @@ import net.internetisalie.lunar.rocks.deps.LuaRocksVersion
  * to a zero-valued [LuaRocksVersion], so two malformed versions compare equal (no spurious update).
  */
 object LuaRocksUpdateDetector {
-
     /**
      * `true` when [latestAvailable] is a strictly greater version than [installedVersion];
      * `false` when [latestAvailable] is null or not greater (design §3.2).
      */
-    fun hasUpdate(installedVersion: String, latestAvailable: String?): Boolean {
+    fun hasUpdate(
+        installedVersion: String,
+        latestAvailable: String?,
+    ): Boolean {
         if (latestAvailable == null) return false
         val installed = LuaRocksVersion.parse(installedVersion)
         val latest = LuaRocksVersion.parse(latestAvailable)
@@ -25,8 +27,9 @@ object LuaRocksUpdateDetector {
      * The maximum version across [rows] (caller-scoped to one package name), or `null` when empty.
      * Used to compute the update target for the Update button (design §3.2).
      */
-    fun latestOf(rows: List<LuaRockRow>): String? = rows
-        .map { LuaRocksVersion.parse(it.pkg.version) }
-        .maxOrNull()
-        ?.raw
+    fun latestOf(rows: List<LuaRockRow>): String? =
+        rows
+            .map { LuaRocksVersion.parse(it.pkg.version) }
+            .maxOrNull()
+            ?.raw
 }

@@ -19,8 +19,15 @@ import net.internetisalie.lunar.lang.psi.LuaStatement
 
 /** The three positions an auto-import may be inserted at; keeps `when` exhaustive. */
 sealed class InsertionAnchor
-data class AfterLastRequire(val element: PsiElement) : InsertionAnchor()
-data class AfterHeaderComments(val element: PsiElement) : InsertionAnchor()
+
+data class AfterLastRequire(
+    val element: PsiElement,
+) : InsertionAnchor()
+
+data class AfterHeaderComments(
+    val element: PsiElement,
+) : InsertionAnchor()
+
 data object AtFileStart : InsertionAnchor()
 
 /**
@@ -30,8 +37,11 @@ data object AtFileStart : InsertionAnchor()
  * document. Must be called inside a WriteCommandAction on the EDT.
  */
 object LuaImportInserter {
-
-    fun insert(editor: Editor, file: LuaFile, importStatement: String) {
+    fun insert(
+        editor: Editor,
+        file: LuaFile,
+        importStatement: String,
+    ) {
         val document = editor.document
         val documentManager = PsiDocumentManager.getInstance(file.project)
         // Reflect any text the completion framework already inserted before our handler ran.
@@ -47,11 +57,15 @@ object LuaImportInserter {
         documentManager.commitDocument(document)
     }
 
-    private fun positionFor(anchor: InsertionAnchor, statement: String): Pair<Int, String> = when (anchor) {
-        is AfterLastRequire -> anchor.element.textRange.endOffset to "\n$statement"
-        is AfterHeaderComments -> anchor.element.textRange.endOffset to "\n\n$statement"
-        AtFileStart -> 0 to "$statement\n"
-    }
+    private fun positionFor(
+        anchor: InsertionAnchor,
+        statement: String,
+    ): Pair<Int, String> =
+        when (anchor) {
+            is AfterLastRequire -> anchor.element.textRange.endOffset to "\n$statement"
+            is AfterHeaderComments -> anchor.element.textRange.endOffset to "\n\n$statement"
+            AtFileStart -> 0 to "$statement\n"
+        }
 
     private fun resolveAnchor(file: LuaFile): InsertionAnchor {
         val statements = file.getBlockList().firstOrNull()?.statementList ?: emptyList()
@@ -87,19 +101,23 @@ object LuaImportInserter {
      * True when a statement's value is a `require(...)` call, covering both the
      * `local x = require(...)` (local-var-decl) and bare `require(...)` (expr) forms.
      */
-    private fun LuaStatement.isRequireStatement(): Boolean =
-        valueExpressions().any { it.isRequireCall() }
+    private fun LuaStatement.isRequireStatement(): Boolean = valueExpressions().any { it.isRequireCall() }
 
-    private fun LuaStatement.valueExpressions(): List<LuaExpr> = when (this) {
-        is LuaExprStatement -> listOfNotNull(expr)
-        is LuaLocalVarDecl -> exprList?.exprList ?: emptyList()
-        is LuaAssignmentStatement -> exprList.exprList
-        else -> emptyList()
-    }
+    private fun LuaStatement.valueExpressions(): List<LuaExpr> =
+        when (this) {
+            is LuaExprStatement -> listOfNotNull(expr)
+            is LuaLocalVarDecl -> exprList?.exprList ?: emptyList()
+            is LuaAssignmentStatement -> exprList.exprList
+            else -> emptyList()
+        }
 
     private fun LuaExpr.isRequireCall(): Boolean {
         val call = this as? LuaFuncCall ?: return false
-        return call.varOrExp?.`var`?.nameRef?.identifier?.text == "require"
+        return call.varOrExp
+            ?.`var`
+            ?.nameRef
+            ?.identifier
+            ?.text == "require"
     }
 
     private val log = logger<LuaImportInserter>()

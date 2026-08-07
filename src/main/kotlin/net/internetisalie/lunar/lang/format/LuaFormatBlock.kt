@@ -40,25 +40,30 @@ class LuaFormatBlock(
     // down from the enclosing BLOCK / FIELD_LIST so the `=` columns line up across a run.
     private val assignAlignment: Alignment? = null,
 ) : AbstractBlock(
-    node,
-    wrap,
-    alignment,
-) {
+        node,
+        wrap,
+        alignment,
+    ) {
     override fun buildChildren(): List<Block> {
         val blocks = mutableListOf<Block>()
         addChildBlocks(blocks, myNode)
         return blocks.toList()
     }
 
-    fun addChildBlocks(collected: MutableList<Block>, node: ASTNode) {
+    fun addChildBlocks(
+        collected: MutableList<Block>,
+        node: ASTNode,
+    ) {
         // Blocks that return the same Alignment object will be aligned together.
-        val listAlignment = when (node.elementType) {
-            LuaElementTypes.NAME_LIST,
-            LuaElementTypes.EXPR_LIST ->
-                if (listHasMultipleItems(node)) Alignment.createAlignment() else null
+        val listAlignment =
+            when (node.elementType) {
+                LuaElementTypes.NAME_LIST,
+                LuaElementTypes.EXPR_LIST,
+                ->
+                    if (listHasMultipleItems(node)) Alignment.createAlignment() else null
 
-            else -> null
-        }
+                else -> null
+            }
 
         // FORMAT-04: a shared wrap for the items of an argument / table list.
         val itemWrap = itemWrap(node)
@@ -87,24 +92,29 @@ class LuaFormatBlock(
                     childAlignment,
                     spacer,
                     assignAlignments[child],
-                )
+                ),
             )
         }
     }
 
     // FORMAT-04: WRAP_AS_NEEDED/ALWAYS/NONE wrap shared across an argument or table item list.
-    private fun itemWrap(node: ASTNode): Wrap? = when {
-        node.elementType == LuaElementTypes.EXPR_LIST &&
-            node.treeParent?.elementType == LuaElementTypes.ARGS ->
-            Wrap.createWrap(wrapType(spacer.luaSettings.WRAP_ARGUMENTS), true)
+    private fun itemWrap(node: ASTNode): Wrap? =
+        when {
+            node.elementType == LuaElementTypes.EXPR_LIST &&
+                node.treeParent?.elementType == LuaElementTypes.ARGS ->
+                Wrap.createWrap(wrapType(spacer.luaSettings.WRAP_ARGUMENTS), true)
 
-        node.elementType == LuaElementTypes.FIELD_LIST ->
-            Wrap.createWrap(wrapType(spacer.luaSettings.WRAP_TABLE_CONSTRUCTOR), true)
+            node.elementType == LuaElementTypes.FIELD_LIST ->
+                Wrap.createWrap(wrapType(spacer.luaSettings.WRAP_TABLE_CONSTRUCTOR), true)
 
-        else -> null
-    }
+            else -> null
+        }
 
-    private fun childWrap(parent: ASTNode, child: ASTNode, itemWrap: Wrap?): Wrap? {
+    private fun childWrap(
+        parent: ASTNode,
+        child: ASTNode,
+        itemWrap: Wrap?,
+    ): Wrap? {
         if (itemWrap == null) return null
         return when (parent.elementType) {
             LuaElementTypes.EXPR_LIST -> if (child.elementType != LuaElementTypes.COMMA) itemWrap else null
@@ -113,23 +123,25 @@ class LuaFormatBlock(
         }
     }
 
-    private fun wrapType(setting: Int): WrapType = when (setting) {
-        CommonCodeStyleSettings.DO_NOT_WRAP -> WrapType.NONE
-        CommonCodeStyleSettings.WRAP_ALWAYS -> WrapType.ALWAYS
-        else -> WrapType.CHOP_DOWN_IF_LONG
-    }
+    private fun wrapType(setting: Int): WrapType =
+        when (setting) {
+            CommonCodeStyleSettings.DO_NOT_WRAP -> WrapType.NONE
+            CommonCodeStyleSettings.WRAP_ALWAYS -> WrapType.ALWAYS
+            else -> WrapType.CHOP_DOWN_IF_LONG
+        }
 
     // FORMAT-05: map each assignment-statement / table-field child to the shared `=` alignment
     // for its run, so the threaded `assignAlignment` lines the `=` columns up.
-    private fun assignAlignmentGroups(node: ASTNode): Map<ASTNode, Alignment> = when {
-        node.elementType == LuaElementTypes.BLOCK && spacer.luaSettings.ALIGN_CONSECUTIVE_ASSIGNMENTS ->
-            consecutiveAssignmentGroups(node)
+    private fun assignAlignmentGroups(node: ASTNode): Map<ASTNode, Alignment> =
+        when {
+            node.elementType == LuaElementTypes.BLOCK && spacer.luaSettings.ALIGN_CONSECUTIVE_ASSIGNMENTS ->
+                consecutiveAssignmentGroups(node)
 
-        node.elementType == LuaElementTypes.FIELD_LIST && spacer.luaSettings.ALIGN_TABLE_FIELDS ->
-            tableFieldGroup(node)
+            node.elementType == LuaElementTypes.FIELD_LIST && spacer.luaSettings.ALIGN_TABLE_FIELDS ->
+                tableFieldGroup(node)
 
-        else -> emptyMap()
-    }
+            else -> emptyMap()
+        }
 
     private fun consecutiveAssignmentGroups(block: ASTNode): Map<ASTNode, Alignment> {
         val groups = HashMap<ASTNode, Alignment>()
@@ -162,9 +174,15 @@ class LuaFormatBlock(
     }
 
     private fun tableFieldGroup(fieldList: ASTNode): Map<ASTNode, Alignment> {
-        val fields = fieldList.children()
-            .filter { it.elementType == LuaElementTypes.FIELD && it.findChildByType(LuaElementTypes.ASSIGN) != null }
-            .toList()
+        val fields =
+            fieldList
+                .children()
+                .filter {
+                    it.elementType == LuaElementTypes.FIELD &&
+                        it.findChildByType(
+                            LuaElementTypes.ASSIGN,
+                        ) != null
+                }.toList()
         if (fields.size < 2) return emptyMap()
         val alignment = Alignment.createAlignment(true)
         return fields.associateWith { alignment }
@@ -176,11 +194,12 @@ class LuaFormatBlock(
         return node.findChildByType(LuaElementTypes.ASSIGN) != null
     }
 
-    private fun listHasMultipleItems(node: ASTNode): Boolean {
-        return node.children().filter {
-            it.elementType != LuaElementTypes.COMMA && it.elementType != TokenType.WHITE_SPACE
-        }.count() > 1
-    }
+    private fun listHasMultipleItems(node: ASTNode): Boolean =
+        node
+            .children()
+            .filter {
+                it.elementType != LuaElementTypes.COMMA && it.elementType != TokenType.WHITE_SPACE
+            }.count() > 1
 
     // Calculate the indent relative to this block's parent
     override fun getIndent(): Indent? {
@@ -193,15 +212,21 @@ class LuaFormatBlock(
             LuaElementTypes.BLOCK -> Indent.getNormalIndent()
             LuaElementTypes.LABEL -> Indent.getAbsoluteLabelIndent()
             LuaElementTypes.NAME_LIST -> {
-                if (listHasMultipleItems(node)) Indent.getContinuationIndent()
-                else Indent.getNoneIndent()
+                if (listHasMultipleItems(node)) {
+                    Indent.getContinuationIndent()
+                } else {
+                    Indent.getNoneIndent()
+                }
             }
 
             LuaElementTypes.NAME_REF -> Indent.getNoneIndent()
             LuaElementTypes.VAR_LIST -> Indent.getContinuationWithoutFirstIndent()
             LuaElementTypes.VAR ->
-                if (node.treeParent.elementType == LuaElementTypes.VAR_LIST) Indent.getContinuationWithoutFirstIndent()
-                else Indent.getNoneIndent()
+                if (node.treeParent.elementType == LuaElementTypes.VAR_LIST) {
+                    Indent.getContinuationWithoutFirstIndent()
+                } else {
+                    Indent.getNoneIndent()
+                }
 
             LuaElementTypes.EXPR_LIST -> Indent.getContinuationIndent()
             LuaElementTypes.FIELD -> Indent.getNormalIndent()
@@ -209,21 +234,21 @@ class LuaFormatBlock(
         }
     }
 
-    override fun getSpacing(left: Block?, right: Block): Spacing? {
-        return spacer.getSpacing(
+    override fun getSpacing(
+        left: Block?,
+        right: Block,
+    ): Spacing? =
+        spacer.getSpacing(
             this,
             left as? LuaFormatBlock,
             right as LuaFormatBlock,
-        );
-    }
+        )
 
-    override fun isLeaf(): Boolean {
-        return myNode.firstChildNode == null;
-    }
+    override fun isLeaf(): Boolean = myNode.firstChildNode == null
 
     // Calculate a new first child's default indent relative to this block
-    override fun getChildIndent(): Indent? {
-        return when (node.elementType) {
+    override fun getChildIndent(): Indent? =
+        when (node.elementType) {
             is IFileElementType -> Indent.getNoneIndent()
             LuaElementTypes.BLOCK -> Indent.getNoneIndent() // block is already indented
             LuaElementTypes.TABLE_CONSTRUCTOR -> Indent.getNormalIndent()
@@ -233,7 +258,6 @@ class LuaFormatBlock(
             LuaElementTypes.VAR_LIST -> this.indent
             else -> Indent.getNoneIndent()
         }
-    }
 }
 
 class LuaFormattingModelBuilder : FormattingModelBuilder {
@@ -249,7 +273,7 @@ class LuaFormattingModelBuilder : FormattingModelBuilder {
                     null,
                     LuaSpacingBuilder(codeStyleSettings),
                 ),
-                codeStyleSettings
+                codeStyleSettings,
             )
     }
 }
@@ -258,93 +282,99 @@ class LuaSpacingBuilder(
     val settings: CodeStyleSettings,
 ) {
     private val spacingBuilder: SpacingBuilder = SpacingBuilder(settings, LuaLanguage)
-    val luaSettings: LuaCodeStyleSettings = LuaCodeStyleSettings.getInstance(settings)
-        ?: LuaCodeStyleSettings(settings)
+    val luaSettings: LuaCodeStyleSettings =
+        LuaCodeStyleSettings.getInstance(settings)
+            ?: LuaCodeStyleSettings(settings)
     val commonSettings = settings.getCommonSettings(LuaLanguage)
 
     fun getSpacing(
         parent: LuaFormatBlock,
         left: LuaFormatBlock?,
-        right: LuaFormatBlock
+        right: LuaFormatBlock,
     ): Spacing? {
-
         when {
             // Single space between consecutive unary minus
             left.hasElementType(LuaElementTypes.MINUS)
-                -> if (right.hasElementType(LuaElementTypes.MINUS)) return SINGLE_SPACING
+            -> if (right.hasElementType(LuaElementTypes.MINUS)) return SINGLE_SPACING
 
             // Single space after unary NOT (a keyword operator: `not x`),
             // no space after symbolic unary operators (`-x`, `#t`, `~x`).
             // The operator is the left `unOp` node; test ITS child, not the right operand.
             left.hasElementType(LuaElementTypes.UN_OP)
-                -> return if (left?.node?.findChildByType(LuaElementTypes.NOT) != null) SINGLE_SPACING else NO_SPACING
+            -> return if (left?.node?.findChildByType(LuaElementTypes.NOT) != null) SINGLE_SPACING else NO_SPACING
 
             // Single newline after LuaCATS comment before CommentOwner,
             // double newline after freestanding LuaCATS comment
             left.hasElementType(LuaLazyElementTypes.LUACATS_COMMENT)
-                -> return if (right.hasElementType(
+            -> return if (right.hasElementType(
                     LuaElementTypes.BLOCK,
                     LuaElementTypes.FUNC_DECL,
                     LuaElementTypes.LOCAL_VAR_DECL,
                     LuaElementTypes.LOCAL_FUNC_DECL,
                 )
-            ) NEWLINE_SPACING
-            else STANZA_SPACING
+            ) {
+                NEWLINE_SPACING
+            } else {
+                STANZA_SPACING
+            }
 
             // No spacing before parenthesized args
             // Single spacing before tableConstructor or string args
             right.hasElementType(LuaElementTypes.ARGS)
-                -> return if (right.node.firstChildNode.elementType == LuaElementTypes.LPAREN) NO_SPACING
-            else SINGLE_SPACING
+            -> return if (right.node.firstChildNode.elementType == LuaElementTypes.LPAREN) {
+                NO_SPACING
+            } else {
+                SINGLE_SPACING
+            }
 
             // No spacing inside empty parens
             right.hasElementType(LuaElementTypes.RPAREN, LuaElementTypes.LPAREN) ||
-                    left.hasElementType(LuaElementTypes.LPAREN)
-                -> return NO_SPACING
+                left.hasElementType(LuaElementTypes.LPAREN)
+            -> return NO_SPACING
 
             // Only 1 newline before block end, and at least one space
             right.hasElementType(
                 LuaElementTypes.END,
                 LuaElementTypes.ELSEIF,
                 LuaElementTypes.ELSE,
-                LuaElementTypes.UNTIL
+                LuaElementTypes.UNTIL,
             )
-                -> return Spacing.createDependentLFSpacing(1, 1, right.node.psi.parent.textRange, false, 0)
+            -> return Spacing.createDependentLFSpacing(1, 1, right.node.psi.parent.textRange, false, 0)
 
             // No spacing between parens and arg/param lists
             left.hasElementType(LuaElementTypes.LPAREN) &&
-                    right.hasElementType(LuaElementTypes.PAR_LIST)
-                -> return NO_SPACING
+                right.hasElementType(LuaElementTypes.PAR_LIST)
+            -> return NO_SPACING
 
             // No spacing between anonymous function and param list
             left.hasElementType(LuaElementTypes.FUNCTION) &&
-                    right.hasElementType(LuaElementTypes.LPAREN)
-                -> return NO_SPACING
+                right.hasElementType(LuaElementTypes.LPAREN)
+            -> return NO_SPACING
 
             // Only 1 newline after field sep, and at least one space
             right.hasElementType(LuaElementTypes.FIELD) &&
-                    left.hasElementType(LuaElementTypes.FIELD_SEP)
-                -> return Spacing.createDependentLFSpacing(1, 1, right.node.psi.parent.textRange, false, 0)
+                left.hasElementType(LuaElementTypes.FIELD_SEP)
+            -> return Spacing.createDependentLFSpacing(1, 1, right.node.psi.parent.textRange, false, 0)
 
             // FORMAT-03: separate functions by a settings-driven number of blank lines,
             // capping existing runs at KEEP_BLANK_LINES_IN_CODE.
             left.hasElementType(LuaElementTypes.FUNC_DECL) ||
-                    left.hasElementType(LuaElementTypes.LOCAL_FUNC_DECL)
-                -> return Spacing.createSpacing(
-                    0,
-                    0,
-                    commonSettings.BLANK_LINES_AROUND_METHOD + 1,
-                    true,
-                    commonSettings.KEEP_BLANK_LINES_IN_CODE,
-                )
+                left.hasElementType(LuaElementTypes.LOCAL_FUNC_DECL)
+            -> return Spacing.createSpacing(
+                0,
+                0,
+                commonSettings.BLANK_LINES_AROUND_METHOD + 1,
+                true,
+                commonSettings.KEEP_BLANK_LINES_IN_CODE,
+            )
 
             // No spacing between fields a . b. c -> a.b.c
             right.hasElementType(LuaElementTypes.INDEX_EXPR, LuaElementTypes.METHOD_EXPR)
-                -> return NO_SPACING
+            -> return NO_SPACING
 
             right.hasElementType(LuaElementTypes.NAME_REF) &&
-                    anyOf(left?.node?.elementType, LuaElementTypes.DOT, LuaElementTypes.COLON)
-                -> return NO_SPACING
+                anyOf(left?.node?.elementType, LuaElementTypes.DOT, LuaElementTypes.COLON)
+            -> return NO_SPACING
         }
 
         // FORMAT-03-02: between statements that are already on separate lines, keep the line
@@ -363,25 +393,33 @@ class LuaSpacingBuilder(
 
     init {
         spacingBuilder.around(LuaElementTypes.ASSIGN).spaceIf(commonSettings.SPACE_AROUND_ASSIGNMENT_OPERATORS)
-        spacingBuilder.around(LuaSyntax.LogicalBinaryOperatorTokens)
+        spacingBuilder
+            .around(LuaSyntax.LogicalBinaryOperatorTokens)
             .spaceIf(commonSettings.SPACE_AROUND_LOGICAL_OPERATORS)
         spacingBuilder.around(LuaElementTypes.EQ).spaceIf(commonSettings.SPACE_AROUND_EQUALITY_OPERATORS)
-        spacingBuilder.around(LuaSyntax.RelationalBinaryOperatorTokens)
+        spacingBuilder
+            .around(LuaSyntax.RelationalBinaryOperatorTokens)
             .spaceIf(commonSettings.SPACE_AROUND_RELATIONAL_OPERATORS)
-        spacingBuilder.around(LuaSyntax.BitwiseBinaryOperatorTokens)
+        spacingBuilder
+            .around(LuaSyntax.BitwiseBinaryOperatorTokens)
             .spaceIf(commonSettings.SPACE_AROUND_BITWISE_OPERATORS)
-        spacingBuilder.around(LuaSyntax.AdditiveBinaryOperatorTokens)
+        spacingBuilder
+            .around(LuaSyntax.AdditiveBinaryOperatorTokens)
             .spaceIf(commonSettings.SPACE_AROUND_ADDITIVE_OPERATORS)
-        spacingBuilder.around(LuaSyntax.MultiplicativeBinaryOperatorTokens)
+        spacingBuilder
+            .around(LuaSyntax.MultiplicativeBinaryOperatorTokens)
             .spaceIf(commonSettings.SPACE_AROUND_MULTIPLICATIVE_OPERATORS)
         spacingBuilder.around(LuaSyntax.ShiftBinaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_SHIFT_OPERATORS)
         spacingBuilder.around(LuaSyntax.UnaryOperatorTokens).spaceIf(commonSettings.SPACE_AROUND_UNARY_OPERATOR)
         spacingBuilder.after(LuaElementTypes.COMMA).spaceIf(commonSettings.SPACE_AFTER_COMMA)
-        spacingBuilder.withinPair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN)
+        spacingBuilder
+            .withinPair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN)
             .spaceIf(commonSettings.SPACE_WITHIN_PARENTHESES)
-        spacingBuilder.withinPair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK)
+        spacingBuilder
+            .withinPair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK)
             .spaceIf(commonSettings.SPACE_WITHIN_BRACKETS)
-        spacingBuilder.withinPair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY)
+        spacingBuilder
+            .withinPair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY)
             .spaceIf(commonSettings.SPACE_WITHIN_BRACES)
 
         spacingBuilder.around(LuaSyntax.KeywordTokens).spaces(1)
@@ -395,8 +433,12 @@ class LuaSpacingBuilder(
     }
 }
 
-fun LuaFormatBlock?.hasElementType(vararg elementTypes: IElementType?): Boolean {
-    return elementTypes.any { it == this?.node?.elementType }
-}
+fun LuaFormatBlock?.hasElementType(vararg elementTypes: IElementType?): Boolean =
+    elementTypes.any {
+        it == this?.node?.elementType
+    }
 
-fun <T> anyOf(want: T, vararg gots: T) = gots.any { it == want }
+fun <T> anyOf(
+    want: T,
+    vararg gots: T,
+) = gots.any { it == want }

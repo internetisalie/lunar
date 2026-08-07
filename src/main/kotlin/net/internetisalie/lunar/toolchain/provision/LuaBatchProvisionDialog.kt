@@ -20,8 +20,9 @@ import javax.swing.JComponent
  * version-matrix flow (design §2.13). Request derivation is the pure [LuaBatchDerivation.toRequests]
  * (design §3.10). EDT-only; reads only the bundled feed.
  */
-class LuaBatchProvisionDialog(private val targetProject: Project) : DialogWrapper(targetProject) {
-
+class LuaBatchProvisionDialog(
+    private val targetProject: Project,
+) : DialogWrapper(targetProject) {
     private val feed: LuaToolchainFeed = LuaToolchainFeedLoader.load()
     private val platform = LuaHostPlatform.current()
 
@@ -34,7 +35,8 @@ class LuaBatchProvisionDialog(private val targetProject: Project) : DialogWrappe
         baseDirField.text = "${targetProject.guessProjectDir()?.path.orEmpty()}/.lua-matrix"
         baseDirField.addBrowseFolderListener(
             targetProject,
-            FileChooserDescriptorFactory.createSingleFolderDescriptor()
+            FileChooserDescriptorFactory
+                .createSingleFolderDescriptor()
                 .withTitle("Matrix Base Directory")
                 .withDescription("Directory under which one environment is provisioned per row"),
         )
@@ -48,11 +50,14 @@ class LuaBatchProvisionDialog(private val targetProject: Project) : DialogWrappe
     }
 
     override fun createCenterPanel(): JComponent {
-        val tablePanel = ToolbarDecorator.createDecorator(rowTable)
-            .setAddAction { tableModel.addRow(defaultRow()) }
-            .setRemoveAction { removeSelectedRow() }
-            .createPanel()
-        return FormBuilder.createFormBuilder()
+        val tablePanel =
+            ToolbarDecorator
+                .createDecorator(rowTable)
+                .setAddAction { tableModel.addRow(defaultRow()) }
+                .setRemoveAction { removeSelectedRow() }
+                .createPanel()
+        return FormBuilder
+            .createFormBuilder()
             .addLabeledComponent("Base directory:", baseDirField)
             .addLabeledComponentFillVertically("Versions:", tablePanel)
             .panel
@@ -75,8 +80,13 @@ class LuaBatchProvisionDialog(private val targetProject: Project) : DialogWrappe
     private fun kindColumn(): ColumnInfo<LuaBatchRow, String> =
         object : ColumnInfo<LuaBatchRow, String>("Runtime") {
             override fun valueOf(row: LuaBatchRow): String = row.kindId
+
             override fun isCellEditable(row: LuaBatchRow): Boolean = true
-            override fun setValue(row: LuaBatchRow, value: String) {
+
+            override fun setValue(
+                row: LuaBatchRow,
+                value: String,
+            ) {
                 replaceRow(row, row.copy(kindId = value))
             }
         }
@@ -84,13 +94,21 @@ class LuaBatchProvisionDialog(private val targetProject: Project) : DialogWrappe
     private fun versionColumn(): ColumnInfo<LuaBatchRow, String> =
         object : ColumnInfo<LuaBatchRow, String>("Version") {
             override fun valueOf(row: LuaBatchRow): String = row.versionSpec
+
             override fun isCellEditable(row: LuaBatchRow): Boolean = true
-            override fun setValue(row: LuaBatchRow, value: String) {
+
+            override fun setValue(
+                row: LuaBatchRow,
+                value: String,
+            ) {
                 replaceRow(row, row.copy(versionSpec = value))
             }
         }
 
-    private fun replaceRow(oldRow: LuaBatchRow, newRow: LuaBatchRow) {
+    private fun replaceRow(
+        oldRow: LuaBatchRow,
+        newRow: LuaBatchRow,
+    ) {
         val index = tableModel.items.indexOf(oldRow)
         if (index >= 0) tableModel.setItem(index, newRow)
     }

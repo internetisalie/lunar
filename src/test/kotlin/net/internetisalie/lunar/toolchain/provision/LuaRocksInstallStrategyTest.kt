@@ -26,24 +26,41 @@ import kotlin.io.path.writeText
  */
 class LuaRocksInstallStrategyTest : BasePlatformTestCase() {
     private val indicator: ProgressIndicator by lazy { EmptyProgressIndicator() }
-    private val busted = LuaFeedRock(rockName = "busted", pinnedVersion = "2.2.0-1", binName = "busted", needsCToolchain = true)
+    private val busted =
+        LuaFeedRock(rockName = "busted", pinnedVersion = "2.2.0-1", binName = "busted", needsCToolchain = true)
 
-    private fun result(exitCode: Int, stderr: String = "", outcome: LuaExecOutcome = LuaExecOutcome.COMPLETED) =
-        LuaExecResult(ProcessOutput("", stderr, exitCode, false, false), outcome)
+    private fun result(
+        exitCode: Int,
+        stderr: String = "",
+        outcome: LuaExecOutcome = LuaExecOutcome.COMPLETED,
+    ) = LuaExecResult(ProcessOutput("", stderr, exitCode, false, false), outcome)
 
-    private inner class CannedInstaller(private val canned: LuaExecResult) : LuaRockInstaller {
+    private inner class CannedInstaller(
+        private val canned: LuaExecResult,
+    ) : LuaRockInstaller {
         var lastCommand: GeneralCommandLine? = null
 
-        override fun run(cmd: GeneralCommandLine, indicator: ProgressIndicator): LuaExecResult {
+        override fun run(
+            cmd: GeneralCommandLine,
+            indicator: ProgressIndicator,
+        ): LuaExecResult {
             lastCommand = cmd
             return canned
         }
     }
 
     private fun feed(): LuaToolchainFeed =
-        LuaToolchainFeed(1, mapOf("busted" to LuaFeedKind(emptyMap(), listOf(LuaFeedVersion("1.0", null, null, emptyList(), busted)))))
+        LuaToolchainFeed(
+            1,
+            mapOf(
+                "busted" to LuaFeedKind(emptyMap(), listOf(LuaFeedVersion("1.0", null, null, emptyList(), busted))),
+            ),
+        )
 
-    private fun context(platform: LuaHostPlatform, rootDir: Path): LuaProvisionContext =
+    private fun context(
+        platform: LuaHostPlatform,
+        rootDir: Path,
+    ): LuaProvisionContext =
         LuaProvisionContext(
             project = project,
             request = LuaProvisionRequest("env", rootDir.toString(), listOf(LuaProvisionItem("busted", "1.0"))),
@@ -83,9 +100,13 @@ class LuaRocksInstallStrategyTest : BasePlatformTestCase() {
         assertEquals(
             listOf(
                 "$root/bin/luarocks.exe",
-                "--lua-dir", root,
-                "--tree", root,
-                "install", "busted", "2.2.0-1",
+                "--lua-dir",
+                root,
+                "--tree",
+                root,
+                "install",
+                "busted",
+                "2.2.0-1",
             ),
             argv.map { it.replace('\\', '/') },
         )
@@ -96,7 +117,9 @@ class LuaRocksInstallStrategyTest : BasePlatformTestCase() {
         writeWrapper(rootDir, "busted.bat")
         val installer = CannedInstaller(result(exitCode = 0))
 
-        LuaRocksInstallStrategy(installer).provision(context(LuaHostPlatform(LuaOs.WINDOWS, LuaArch.X86_64), rootDir), LuaProvisionItem("busted", "1.0"))
+        LuaRocksInstallStrategy(
+            installer,
+        ).provision(context(LuaHostPlatform(LuaOs.WINDOWS, LuaArch.X86_64), rootDir), LuaProvisionItem("busted", "1.0"))
 
         val cmd = installer.lastCommand ?: error("installer was not invoked")
         assertEquals("$rootDir/luarocks-config.lua", cmd.environment["LUAROCKS_CONFIG"])
@@ -109,24 +132,42 @@ class LuaRocksInstallStrategyTest : BasePlatformTestCase() {
         val rootDir = createTempDirectory("lunar-rock-ok")
         writeWrapper(rootDir, "busted")
 
-        val component = LuaRocksInstallStrategy(CannedInstaller(result(exitCode = 0)))
-            .provision(context(LuaHostPlatform(LuaOs.LINUX, LuaArch.X86_64), rootDir), LuaProvisionItem("busted", "1.0"))
+        val component =
+            LuaRocksInstallStrategy(CannedInstaller(result(exitCode = 0)))
+                .provision(
+                    context(LuaHostPlatform(LuaOs.LINUX, LuaArch.X86_64), rootDir),
+                    LuaProvisionItem("busted", "1.0"),
+                )
 
         assertEquals("luarocks-install", component.strategyId)
         assertEquals(rootDir.resolve("bin/busted"), component.primaryBinary)
         assertTrue(component.extraBinaries.isEmpty())
-        val expected = LuaIdentifiersHash.compute(
-            LuaIdentifiersHashInput("busted", "1.0", "luarocks-install", LuaOs.LINUX, LuaArch.X86_64, rootDir.toString(), "rock=busted@2.2.0-1", ""),
-        )
+        val expected =
+            LuaIdentifiersHash.compute(
+                LuaIdentifiersHashInput(
+                    "busted",
+                    "1.0",
+                    "luarocks-install",
+                    LuaOs.LINUX,
+                    LuaArch.X86_64,
+                    rootDir.toString(),
+                    "rock=busted@2.2.0-1",
+                    "",
+                ),
+            )
         assertEquals(expected, component.identifiersHash)
     }
 
     fun testExitZeroWithoutWrapperThrowsNoWrapper() {
         val rootDir = createTempDirectory("lunar-rock-nowrap")
-        val ex = runCatching {
-            LuaRocksInstallStrategy(CannedInstaller(result(exitCode = 0)))
-                .provision(context(LuaHostPlatform(LuaOs.LINUX, LuaArch.X86_64), rootDir), LuaProvisionItem("busted", "1.0"))
-        }.exceptionOrNull()
+        val ex =
+            runCatching {
+                LuaRocksInstallStrategy(CannedInstaller(result(exitCode = 0)))
+                    .provision(
+                        context(LuaHostPlatform(LuaOs.LINUX, LuaArch.X86_64), rootDir),
+                        LuaProvisionItem("busted", "1.0"),
+                    )
+            }.exceptionOrNull()
 
         assertTrue(ex is LuaProvisionException)
         assertEquals("install succeeded but no busted wrapper", ex?.message)
@@ -154,7 +195,10 @@ class LuaRocksInstallStrategyTest : BasePlatformTestCase() {
         assertTrue("20-line tail must be included", message.contains("rock repository unreachable"))
     }
 
-    private fun writeWrapper(rootDir: Path, name: String) {
+    private fun writeWrapper(
+        rootDir: Path,
+        name: String,
+    ) {
         val bin = rootDir.resolve("bin").also { it.createDirectories() }
         bin.resolve(name).writeText("#!/bin/sh\n")
     }

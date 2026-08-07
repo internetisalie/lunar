@@ -9,7 +9,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * asserting the selected text after each ladder step (TC-01..TC-08 + DR-01 fuzz).
  */
 class LuaWordSelectionTest : BasePlatformTestCase() {
-
     private fun configure(source: String) {
         myFixture.configureByText("a.lua", source)
     }
@@ -29,7 +28,10 @@ class LuaWordSelectionTest : BasePlatformTestCase() {
 
     private fun shrinkLadder(maxSteps: Int = 15): List<String> = walk(maxSteps, ::shrinkOnce)
 
-    private fun walk(maxSteps: Int, step: () -> String?): List<String> {
+    private fun walk(
+        maxSteps: Int,
+        step: () -> String?,
+    ): List<String> {
         val rungs = mutableListOf<String>()
         repeat(maxSteps) {
             val selected = step() ?: return rungs
@@ -46,7 +48,13 @@ class LuaWordSelectionTest : BasePlatformTestCase() {
         for (rung in listOf("x", "x, y", "(x, y)", "print(x, y)", "local a = print(x, y)")) {
             assertTrue("expected rung '$rung', got $ladder", ladder.contains(rung))
         }
-        assertTrue("expected enclosing function rung, got $ladder", ladder.any { it.startsWith("local function") && it.endsWith("end") })
+        assertTrue(
+            "expected enclosing function rung, got $ladder",
+            ladder.any {
+                it.startsWith("local function") &&
+                    it.endsWith("end")
+            },
+        )
     }
 
     // TC-08 (shrink) — Ctrl+Shift+W walks the ladder back down through the same rungs.
@@ -110,14 +118,15 @@ class LuaWordSelectionTest : BasePlatformTestCase() {
 
     // DR-01 — malformed literals / comments must never throw during the editor action.
     fun testMalformedLiteralsAndCommentsDoNotThrow() {
-        val cases = listOf(
-            "local s = \"ab<caret>c", // unterminated short string
-            "local s = [<caret>[", // unterminated long string opener
-            "--<caret>[", // truncated long-comment opener
-            "-<caret>-", // bare short comment, no text
-            "local s = \"<caret>\"", // empty string
-            "local s = [[<caret>]]", // empty long string
-        )
+        val cases =
+            listOf(
+                "local s = \"ab<caret>c", // unterminated short string
+                "local s = [<caret>[", // unterminated long string opener
+                "--<caret>[", // truncated long-comment opener
+                "-<caret>-", // bare short comment, no text
+                "local s = \"<caret>\"", // empty string
+                "local s = [[<caret>]]", // empty long string
+            )
         for (source in cases) {
             configure(source)
             extendLadder() // must complete without throwing

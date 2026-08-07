@@ -11,7 +11,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * read only the first and concluded Lunar had accepted input it in fact rejects with visible errors.
  */
 class LuaSyntaxDiagnosticsTest : BasePlatformTestCase() {
-
     private fun counts(source: String): Pair<Int, Int> {
         myFixture.configureByText("t.lua", source)
         return Pair(

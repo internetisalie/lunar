@@ -13,11 +13,13 @@ import kotlin.test.assertTrue
  * MobDebug breakpoint/evaluator tests configure a Lua file — no `!!` in the tested code path.
  */
 class TestLuaLdbBreakpointType : BaseDocumentTest() {
-
     private val breakpointType = LuaLdbBreakpointType()
 
     /** True where [line] (0-based) of [text] holds a statement, false for blank/comment lines. */
-    private fun canPutAt(text: String, line: Int): Boolean {
+    private fun canPutAt(
+        text: String,
+        line: Int,
+    ): Boolean {
         val psiFile = myFixture.configureByText(LuaFileType, text)
         val project = myFixture.project
         val virtualFile = psiFile.virtualFile

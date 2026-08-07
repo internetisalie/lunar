@@ -11,14 +11,13 @@ import kotlin.test.assertTrue
  * (TC 6, 7). Pure registry reads — no fixture needed.
  */
 class LuaToolKindClassifierTest {
-
     @Test
     fun testCommonTierIsRuntimeFirstThenDeclaredTools() {
         val common = LuaToolKindClassifier.byTier()[LuaToolKindClassifier.Tier.COMMON].orEmpty().map { it.id }
         // runtimes first (lua, luajit, tarantool), then the declared common tools in declaration order
         assertEquals(
             listOf("lua", "luajit", "tarantool", "luarocks", "luacheck", "stylua", "busted"),
-            common
+            common,
         )
     }
 
@@ -42,7 +41,7 @@ class LuaToolKindClassifierTest {
         assertTrue(LuaToolKindRegistry.all().any { it.id == "valkey-server" })
         assertEquals(
             LuaToolKindClassifier.Tier.PLATFORM_SERVER,
-            LuaToolKindClassifier.tierOf(LuaToolKindRegistry.findById("redis-server")!!)
+            LuaToolKindClassifier.tierOf(LuaToolKindRegistry.findById("redis-server")!!),
         )
     }
 

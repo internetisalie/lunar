@@ -14,9 +14,10 @@ import com.intellij.psi.impl.cache.impl.OccurrenceConsumer
  * re-lexes `---` into inner LuaCats tokens and never counts the outer comment. Range matching is done
  * separately by [LuaTodoIndexPatternBuilder]. (EDITOR-03-04)
  */
-class LuaTodoFilterLexer(delegate: Lexer, consumer: OccurrenceConsumer) :
-    BaseFilterLexer(delegate, consumer) {
-
+class LuaTodoFilterLexer(
+    delegate: Lexer,
+    consumer: OccurrenceConsumer,
+) : BaseFilterLexer(delegate, consumer) {
     override fun advance() {
         val tokenType = delegate.tokenType
         if (tokenType != null && LUA_TODO_COMMENT_TOKENS.contains(tokenType)) {

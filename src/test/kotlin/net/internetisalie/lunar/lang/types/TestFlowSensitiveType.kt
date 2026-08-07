@@ -18,59 +18,67 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class TestFlowSensitiveType : BasePlatformTestCase() {
-
-    private fun typeOfXInBranch(source: String, branchIndex: Int): LuaGraphType {
+    private fun typeOfXInBranch(
+        source: String,
+        branchIndex: Int,
+    ): LuaGraphType {
         val file = myFixture.configureByText("test.lua", source)
         val snapshot = LuaTypesSnapshot.forFile(file)
-        val ifStatement = PsiTreeUtil.findChildOfType(file, LuaIfStatement::class.java)
-            ?: error("No if statement found")
+        val ifStatement =
+            PsiTreeUtil.findChildOfType(file, LuaIfStatement::class.java)
+                ?: error("No if statement found")
         val block = ifStatement.getBlockList()[branchIndex]
         val nameRef = nameRefNamed(block, "x") ?: error("No reference to x in branch $branchIndex")
         return snapshot.getValueType(nameRef)
     }
 
-    private fun nameRefNamed(root: PsiElement, name: String): LuaNameRef? =
-        PsiTreeUtil.findChildrenOfType(root, LuaNameRef::class.java).firstOrNull { it.text == name }
+    private fun nameRefNamed(
+        root: PsiElement,
+        name: String,
+    ): LuaNameRef? = PsiTreeUtil.findChildrenOfType(root, LuaNameRef::class.java).firstOrNull { it.text == name }
 
     // TC-1: type() equality, then branch -> string
     @Test
     fun testTypeofEqualityThenNarrowsToString() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number
-            local x
-            if type(x) == "string" then print(x) end
-            """.trimIndent(),
-            0,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number
+                local x
+                if type(x) == "string" then print(x) end
+                """.trimIndent(),
+                0,
+            )
         assertEquals("string", type.displayName())
     }
 
     // TC-2: type() equality, else branch -> number (original minus string)
     @Test
     fun testTypeofEqualityElseNarrowsToNumber() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number
-            local x
-            if type(x) == "string" then print(x) else print(x) end
-            """.trimIndent(),
-            1,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number
+                local x
+                if type(x) == "string" then print(x) else print(x) end
+                """.trimIndent(),
+                1,
+            )
         assertEquals("number", type.displayName())
     }
 
     // TC-3: type() inequality with "nil", then branch -> string|number (nil removed)
     @Test
     fun testTypeofInequalityNilThenRemovesNil() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number|nil
-            local x
-            if type(x) ~= "nil" then print(x) end
-            """.trimIndent(),
-            0,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number|nil
+                local x
+                if type(x) ~= "nil" then print(x) end
+                """.trimIndent(),
+                0,
+            )
         assertTrue("Expected a union, got ${type.displayName()}", type is LuaGraphType.Union)
         val members = (type as LuaGraphType.Union).types
         assertTrue("string missing", members.contains(LuaGraphType.String))
@@ -81,135 +89,144 @@ class TestFlowSensitiveType : BasePlatformTestCase() {
     // TC-4: type() inequality with "nil", else branch -> nil
     @Test
     fun testTypeofInequalityNilElseIsNil() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number|nil
-            local x
-            if type(x) ~= "nil" then print(x) else print(x) end
-            """.trimIndent(),
-            1,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number|nil
+                local x
+                if type(x) ~= "nil" then print(x) else print(x) end
+                """.trimIndent(),
+                1,
+            )
         assertEquals(LuaGraphType.Nil, type)
     }
 
     // TC-5: nil equality, then branch -> nil
     @Test
     fun testNilEqualityThenIsNil() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|nil
-            local x
-            if x == nil then print(x) end
-            """.trimIndent(),
-            0,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|nil
+                local x
+                if x == nil then print(x) end
+                """.trimIndent(),
+                0,
+            )
         assertEquals(LuaGraphType.Nil, type)
     }
 
     // TC-6: nil equality, else branch -> string
     @Test
     fun testNilEqualityElseIsString() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|nil
-            local x
-            if x == nil then print(x) else print(x) end
-            """.trimIndent(),
-            1,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|nil
+                local x
+                if x == nil then print(x) else print(x) end
+                """.trimIndent(),
+                1,
+            )
         assertEquals(LuaGraphType.String, type)
     }
 
     // TC-7: nil inequality, then branch -> string (nil removed)
     @Test
     fun testNilInequalityThenIsString() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|nil
-            local x
-            if x ~= nil then print(x) end
-            """.trimIndent(),
-            0,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|nil
+                local x
+                if x ~= nil then print(x) end
+                """.trimIndent(),
+                0,
+            )
         assertEquals(LuaGraphType.String, type)
     }
 
     // TC-8: nil inequality, else branch -> nil
     @Test
     fun testNilInequalityElseIsNil() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|nil
-            local x
-            if x ~= nil then print(x) else print(x) end
-            """.trimIndent(),
-            1,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|nil
+                local x
+                if x ~= nil then print(x) else print(x) end
+                """.trimIndent(),
+                1,
+            )
         assertEquals(LuaGraphType.Nil, type)
     }
 
     // TC-9 (DR-02): elseif chain, first elseif branch -> number
     @Test
     fun testElseifChainSecondBranchIsNumber() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number
-            local x
-            if type(x) == "string" then
-                print(x)
-            elseif type(x) == "number" then
-                print(x)
-            end
-            """.trimIndent(),
-            1,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number
+                local x
+                if type(x) == "string" then
+                    print(x)
+                elseif type(x) == "number" then
+                    print(x)
+                end
+                """.trimIndent(),
+                1,
+            )
         assertEquals("number", type.displayName())
     }
 
     // TC-10 (DR-02): elseif chain with else, else branch -> boolean
     @Test
     fun testElseifChainElseBranchIsBoolean() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number|boolean
-            local x
-            if type(x) == "string" then
-                print(x)
-            elseif type(x) == "number" then
-                print(x)
-            else
-                print(x)
-            end
-            """.trimIndent(),
-            2,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number|boolean
+                local x
+                if type(x) == "string" then
+                    print(x)
+                elseif type(x) == "number" then
+                    print(x)
+                else
+                    print(x)
+                end
+                """.trimIndent(),
+                2,
+            )
         assertEquals(LuaGraphType.Boolean, type)
     }
 
     // TC-11: uninferred local narrowed via type() guard -> string
     @Test
     fun testUninferredLocalNarrowsToString() {
-        val type = typeOfXInBranch(
-            """
-            local x = "hello"
-            if type(x) == "string" then print(x) end
-            """.trimIndent(),
-            0,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                local x = "hello"
+                if type(x) == "string" then print(x) end
+                """.trimIndent(),
+                0,
+            )
         assertEquals("string", type.displayName())
     }
 
     // TC-12: type() == "table" (not a member), else branch keeps original string|number
     @Test
     fun testTableGuardElseKeepsOriginalUnion() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number
-            local x
-            if type(x) == "table" then print(x) else print(x) end
-            """.trimIndent(),
-            1,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number
+                local x
+                if type(x) == "table" then print(x) else print(x) end
+                """.trimIndent(),
+                1,
+            )
         assertTrue("Expected a union, got ${type.displayName()}", type is LuaGraphType.Union)
         val members = (type as LuaGraphType.Union).types
         assertTrue("string missing", members.contains(LuaGraphType.String))
@@ -219,14 +236,15 @@ class TestFlowSensitiveType : BasePlatformTestCase() {
     // TC-13: non-guard conditional leaves x un-narrowed (string|number)
     @Test
     fun testNonGuardConditionalDoesNotNarrow() {
-        val type = typeOfXInBranch(
-            """
-            ---@type string|number
-            local x
-            if x > 5 then print(x) end
-            """.trimIndent(),
-            0,
-        )
+        val type =
+            typeOfXInBranch(
+                """
+                ---@type string|number
+                local x
+                if x > 5 then print(x) end
+                """.trimIndent(),
+                0,
+            )
         assertTrue("Expected a union, got ${type.displayName()}", type is LuaGraphType.Union)
         val members = (type as LuaGraphType.Union).types
         assertTrue("string missing", members.contains(LuaGraphType.String))
@@ -236,18 +254,21 @@ class TestFlowSensitiveType : BasePlatformTestCase() {
     // Acceptance criterion 2: narrowing must not leak past `end`.
     @Test
     fun testNarrowingDoesNotLeakAfterBlock() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type string|number
-            local x
-            if type(x) == "string" then print(x) end
-            local y = x
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type string|number
+                local x
+                if type(x) == "string" then print(x) end
+                local y = x
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
-        val afterRef = PsiTreeUtil.findChildrenOfType(file, LuaNameRef::class.java)
-            .lastOrNull { it.text == "x" } ?: error("No trailing reference to x")
+        val afterRef =
+            PsiTreeUtil
+                .findChildrenOfType(file, LuaNameRef::class.java)
+                .lastOrNull { it.text == "x" } ?: error("No trailing reference to x")
         val type = snapshot.getValueType(afterRef)
         assertTrue("Expected a union after the block, got ${type.displayName()}", type is LuaGraphType.Union)
         val members = (type as LuaGraphType.Union).types

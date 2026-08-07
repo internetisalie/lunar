@@ -16,7 +16,6 @@ import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
  * both the supertype and subtype scans share one source of truth for class identity.
  */
 object LuaHierarchyUtil {
-
     /**
      * The LuaCATS class name declared by [decl] (the `Name` in `---@class Name`), read from the stub
      * when available and falling back to the cats comment for AST-backed (in-edit) declarations.
@@ -24,14 +23,20 @@ object LuaHierarchyUtil {
     fun className(decl: LuaLocalVarDecl): String? {
         decl.stub?.luacatsClassName?.let { return it }
         val cats = LuaPsiImplUtil.getCatsComment(decl) ?: return null
-        return cats.classTagList.firstOrNull()?.argType?.text
+        return cats.classTagList
+            .firstOrNull()
+            ?.argType
+            ?.text
     }
 
     /**
      * Every `@class` declaration named [name] in the project, via [LuaClassNameIndex] (keyed on the
      * class name). Usually one; multiple partial declarations are possible.
      */
-    fun classDeclarations(project: Project, name: String): Collection<LuaLocalVarDecl> =
+    fun classDeclarations(
+        project: Project,
+        name: String,
+    ): Collection<LuaLocalVarDecl> =
         StubIndex.getElements(
             LuaClassNameIndex.KEY,
             name,
@@ -41,8 +46,10 @@ object LuaHierarchyUtil {
         )
 
     /** The first declaring [LuaLocalVarDecl] for class [name], or null if none is indexed. */
-    fun classDeclaration(project: Project, name: String): LuaLocalVarDecl? =
-        classDeclarations(project, name).firstOrNull()
+    fun classDeclaration(
+        project: Project,
+        name: String,
+    ): LuaLocalVarDecl? = classDeclarations(project, name).firstOrNull()
 
     /** All class names indexed in the project (the subtype-scan domain, per design §3.2). */
     fun allClassNames(project: Project): Collection<String> =

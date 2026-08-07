@@ -27,8 +27,9 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
  *   declaration position (camelCase/snake_case split + suppression)
  * - Everything else: EMPTY_TOKENIZER
  */
-class LuaSpellcheckingStrategy : SpellcheckingStrategy(), DumbAware {
-
+class LuaSpellcheckingStrategy :
+    SpellcheckingStrategy(),
+    DumbAware {
     private val stringTokenizer = LuaStringTokenizer()
     private val identifierTokenizer = LuaIdentifierTokenizer()
     private val catsCommentTokenizer = CatsProseTokenizer()
@@ -56,7 +57,10 @@ class LuaSpellcheckingStrategy : SpellcheckingStrategy(), DumbAware {
      * Design §3.5.
      */
     private class CatsProseTokenizer : Tokenizer<PsiElement>() {
-        override fun tokenize(element: PsiElement, consumer: TokenConsumer) {
+        override fun tokenize(
+            element: PsiElement,
+            consumer: TokenConsumer,
+        ) {
             val comment = element as? LuaCatsComment ?: return
             val descriptions = comment.getDescriptionList()
             for (desc in descriptions) {
@@ -65,21 +69,34 @@ class LuaSpellcheckingStrategy : SpellcheckingStrategy(), DumbAware {
             consumeInlineComments(comment, consumer)
         }
 
-        private fun consumeProse(desc: LuaCatsDescription, consumer: TokenConsumer) {
+        private fun consumeProse(
+            desc: LuaCatsDescription,
+            consumer: TokenConsumer,
+        ) {
             val text = desc.text
             if (text.isNotEmpty()) {
                 consumer.consumeToken(desc, text, false, 0, TextRange.allOf(text), PlainTextSplitter.getInstance())
             }
         }
 
-        private fun consumeInlineComments(comment: LuaCatsComment, consumer: TokenConsumer) {
+        private fun consumeInlineComments(
+            comment: LuaCatsComment,
+            consumer: TokenConsumer,
+        ) {
             var child = comment.firstChild
             while (child != null) {
                 val childType = child.node?.elementType
                 if (childType == LuaCatsElementTypes.COMMENT) {
                     val text = child.text
                     if (text.isNotEmpty()) {
-                        consumer.consumeToken(child, text, false, 0, TextRange.allOf(text), PlainTextSplitter.getInstance())
+                        consumer.consumeToken(
+                            child,
+                            text,
+                            false,
+                            0,
+                            TextRange.allOf(text),
+                            PlainTextSplitter.getInstance(),
+                        )
                     }
                 }
                 child = child.nextSibling

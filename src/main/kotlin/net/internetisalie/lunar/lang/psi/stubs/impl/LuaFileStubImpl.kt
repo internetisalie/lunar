@@ -7,9 +7,8 @@ import net.internetisalie.lunar.lang.psi.stubs.LuaFileStub
 
 class LuaFileStubImpl(
     file: LuaFile?,
-    override val exportedTypeString: String?
-) : PsiFileStubImpl<LuaFile>(file), LuaFileStub {
-    override fun getType(): IStubFileElementType<*> {
-        return net.internetisalie.lunar.lang.LuaParserDefinition.FILE
-    }
+    override val exportedTypeString: String?,
+) : PsiFileStubImpl<LuaFile>(file),
+    LuaFileStub {
+    override fun getType(): IStubFileElementType<*> = net.internetisalie.lunar.lang.LuaParserDefinition.FILE
 }

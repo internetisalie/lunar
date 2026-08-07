@@ -9,7 +9,6 @@ import net.internetisalie.lunar.platform.target.VersionEntry
  * REDIS-04 Phase 2 — command-spec service (AC-2): TC-SPEC-1, TC-SPEC-2.
  */
 class RedisCommandSpecServiceTest : BasePlatformTestCase() {
-
     private val service get() = RedisCommandSpecService.getInstance()
 
     /** TC-SPEC-1: bundled redis-7 spec loads with GET (arity 2); result is cached. */

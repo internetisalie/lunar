@@ -8,7 +8,6 @@ import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
  * configured Lua environment and true once an environment is registered.
  */
 class LuaEnvStatusBarWidgetFactoryTest : ToolchainSettingsTestCase() {
-
     private val factory = LuaEnvStatusBarWidgetFactory()
 
     fun `test isAvailable returns false when no environments configured BUG375`() {

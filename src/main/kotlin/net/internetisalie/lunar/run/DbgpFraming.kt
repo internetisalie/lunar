@@ -38,7 +38,10 @@ object DbgpFraming {
     }
 
     /** Reads exactly [byteCount] raw bytes then decodes UTF-8 (the DBGp length prefix is BYTES). */
-    fun readExactly(input: InputStream, byteCount: Int): String {
+    fun readExactly(
+        input: InputStream,
+        byteCount: Int,
+    ): String {
         require(byteCount >= 0) { "byteCount must be non-negative: $byteCount" }
         if (byteCount == 0) return ""
         val buf = ByteArray(byteCount)
@@ -52,7 +55,10 @@ object DbgpFraming {
     }
 
     /** Encodes [line] as UTF-8 bytes with a trailing newline and flushes. */
-    fun writeLine(output: OutputStream, line: String) {
+    fun writeLine(
+        output: OutputStream,
+        line: String,
+    ) {
         output.write((line + "\n").toByteArray(CHARSET))
         output.flush()
     }

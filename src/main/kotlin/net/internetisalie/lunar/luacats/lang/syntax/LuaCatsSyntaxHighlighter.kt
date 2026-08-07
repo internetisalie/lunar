@@ -35,11 +35,7 @@ class LuaCatsSyntaxHighlighter : SyntaxHighlighterBase() {
         // TODO: literals
     }
 
-    override fun getHighlightingLexer(): Lexer {
-        return LuaCatsLexer()
-    }
+    override fun getHighlightingLexer(): Lexer = LuaCatsLexer()
 
-    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> {
-        return pack(colors[tokenType])
-    }
+    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> = pack(colors[tokenType])
 }

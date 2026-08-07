@@ -16,14 +16,16 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
  * Each fixture is the minimal form of a shape the corpus measured, not an invented case.
  */
 class LuaNilUnionAssignabilityTest : BasePlatformTestCase() {
-
     private fun errorsIn(source: String): List<String> {
         var messages: List<String> = emptyList()
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
                 myFixture.configureByText("use.lua", source)
-                messages = LuaTypesSnapshot.forFile(myFixture.file).getErrors()
-                    .map { "${it.message}  @[${it.element.text.take(40)}]" }
+                messages =
+                    LuaTypesSnapshot
+                        .forFile(myFixture.file)
+                        .getErrors()
+                        .map { "${it.message}  @[${it.element.text.take(40)}]" }
             }
         }
         return messages
@@ -106,14 +108,15 @@ class LuaNilUnionAssignabilityTest : BasePlatformTestCase() {
             }
             """.trimIndent(),
         )
-        val complaints = errorsIn(
-            """
-            --- @param n number
-            local function count(n) return n end
+        val complaints =
+            errorsIn(
+                """
+                --- @param n number
+                local function count(n) return n end
 
-            count(ide.config)
-            """.trimIndent(),
-        ).filter { it.contains("is not assignable") }
+                count(ide.config)
+                """.trimIndent(),
+            ).filter { it.contains("is not assignable") }
         assertTrue(
             "a declared table passed where a number is required must still error, got none",
             complaints.isNotEmpty(),
@@ -122,18 +125,19 @@ class LuaNilUnionAssignabilityTest : BasePlatformTestCase() {
 
     /** A union whose non-nil arm genuinely mismatches must still error — nil forgives only itself. */
     fun testNonNilArmStillChecks() {
-        val complaints = errorsIn(
-            """
-            --- @param n number
-            local function count(n) return n end
+        val complaints =
+            errorsIn(
+                """
+                --- @param n number
+                local function count(n) return n end
 
-            local v = nil
-            if os.time() > 0 then
-                v = "text"
-            end
-            count(v)
-            """.trimIndent(),
-        ).filter { it.contains("is not assignable") }
+                local v = nil
+                if os.time() > 0 then
+                    v = "text"
+                end
+                count(v)
+                """.trimIndent(),
+            ).filter { it.contains("is not assignable") }
         assertTrue(
             "string | nil into a number slot must still error on the string arm, got none",
             complaints.isNotEmpty(),
@@ -142,15 +146,16 @@ class LuaNilUnionAssignabilityTest : BasePlatformTestCase() {
 
     /** An explicit, unconditional nil is not the placeholder pattern and stays an error. */
     fun testUnconditionalNilLocalStillChecks() {
-        val complaints = errorsIn(
-            """
-            --- @param n number
-            local function count(n) return n end
+        val complaints =
+            errorsIn(
+                """
+                --- @param n number
+                local function count(n) return n end
 
-            local nothing = nil
-            count(nothing)
-            """.trimIndent(),
-        ).filter { it.contains("nil value is not assignable") }
+                local nothing = nil
+                count(nothing)
+                """.trimIndent(),
+            ).filter { it.contains("nil value is not assignable") }
         assertTrue(
             "a local that is only ever nil must still error at a number slot, got none",
             complaints.isNotEmpty(),

@@ -20,7 +20,6 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
  * before.
  */
 object LuaParserUtil : GeneratedParserUtilBase() {
-
     private const val GLOBAL_TEXT = "global"
 
     /**
@@ -28,12 +27,13 @@ object LuaParserUtil : GeneratedParserUtilBase() {
      * `global <name>` (var), `global function` (func), `global *` (mode), `global <attrib> *`.
      * Any other follower (`.`, `(`, `=`, `:`, `[`, EOF, …) means `global` is a plain identifier.
      */
-    private val DECLARATION_FOLLOWERS = TokenSet.create(
-        LuaElementTypes.IDENTIFIER,
-        LuaElementTypes.FUNCTION,
-        LuaElementTypes.MULT,
-        LuaElementTypes.LT,
-    )
+    private val DECLARATION_FOLLOWERS =
+        TokenSet.create(
+            LuaElementTypes.IDENTIFIER,
+            LuaElementTypes.FUNCTION,
+            LuaElementTypes.MULT,
+            LuaElementTypes.LT,
+        )
 
     /**
      * Matches an `IDENTIFIER` whose text is exactly `global` that leads a Lua 5.5 declaration,
@@ -42,7 +42,10 @@ object LuaParserUtil : GeneratedParserUtilBase() {
      * statement) parse `global` as an ordinary name.
      */
     @JvmStatic
-    fun globalKeyword(builder: PsiBuilder, level: Int): Boolean {
+    fun globalKeyword(
+        builder: PsiBuilder,
+        level: Int,
+    ): Boolean {
         val tokenType = builder.tokenType
         // An earlier declaration alternative may have already remapped this position: a
         // remapCurrentToken is NOT undone on marker rollback, so accept the GLOBAL token directly.

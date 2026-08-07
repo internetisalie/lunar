@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import java.nio.file.Path
 
 class WorkspaceBuildGraphTest {
-
     @Test
     fun testTestCase1Chain() {
         val rockA = WorkspaceRock("A", Path.of("a.rockspec"), listOf("lua"))

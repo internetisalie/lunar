@@ -18,38 +18,39 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRecursiveVisitorCatsScanTest : BasePlatformTestCase() {
-
     @Test
     fun testVisitsEveryCatsCommentExactlyOnce() {
-        val file = myFixture.configureByText(
-            "visit.lua",
-            """
-            ---@class Foo
-            ---@field a string
-            local Foo = {}
+        val file =
+            myFixture.configureByText(
+                "visit.lua",
+                """
+                ---@class Foo
+                ---@field a string
+                local Foo = {}
 
-            ---@param x number
-            function Foo:bar(x)
-                ---@type table
-                local t = {}
-            end
+                ---@param x number
+                function Foo:bar(x)
+                    ---@type table
+                    local t = {}
+                end
 
-            do
-                ---@type number
-                local nested = 1
-            end
-            """.trimIndent(),
-        )
+                do
+                    ---@type number
+                    local nested = 1
+                end
+                """.trimIndent(),
+            )
 
         val visitCounts = mutableMapOf<LuaCatsComment, Int>()
-        val visitor = object : LuaRecursiveVisitor() {
-            override fun visitElement(element: PsiElement) {
-                if (element is LuaCatsComment) {
-                    visitCounts[element] = (visitCounts[element] ?: 0) + 1
+        val visitor =
+            object : LuaRecursiveVisitor() {
+                override fun visitElement(element: PsiElement) {
+                    if (element is LuaCatsComment) {
+                        visitCounts[element] = (visitCounts[element] ?: 0) + 1
+                    }
+                    super.visitElement(element)
                 }
-                super.visitElement(element)
             }
-        }
         file.accept(visitor)
 
         val allComments = PsiTreeUtil.findChildrenOfType(file, LuaCatsComment::class.java)

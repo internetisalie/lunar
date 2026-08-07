@@ -5,8 +5,8 @@ import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
-import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.lexer.LuaLexer
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test
  * Reduced from `luarocks/src/luarocks/cmd.lua:439`, which reference Lua accepts.
  */
 class LuaLongStringBlankLineTest : BaseDocumentTest() {
-
     private val luarocksCmdReproducer =
         """
         local function get_parser(description, cmd_modules)
@@ -48,10 +47,12 @@ class LuaLongStringBlankLineTest : BaseDocumentTest() {
 
     private fun assertParsesClean(code: String) {
         myFixture.configureByText(LuaFileType, code)
-        val errors = runReadAction {
-            PsiTreeUtil.findChildrenOfType(myFixture.file, PsiErrorElement::class.java)
-                .map { "@${it.textOffset}: ${it.errorDescription}" }
-        }
+        val errors =
+            runReadAction {
+                PsiTreeUtil
+                    .findChildrenOfType(myFixture.file, PsiErrorElement::class.java)
+                    .map { "@${it.textOffset}: ${it.errorDescription}" }
+            }
         Assertions.assertTrue(errors.isEmpty(), "Expected a clean parse, got: $errors\n\n$code")
     }
 

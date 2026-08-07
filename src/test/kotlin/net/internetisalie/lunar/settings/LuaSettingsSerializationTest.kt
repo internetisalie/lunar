@@ -18,8 +18,10 @@ import kotlin.test.assertTrue
  * loads without exception and the stale tags vanish on the next save.
  */
 class LuaSettingsSerializationTest {
-
-    private fun staleOption(name: String, value: String): Element =
+    private fun staleOption(
+        name: String,
+        value: String,
+    ): Element =
         Element("option").apply {
             setAttribute("name", name)
             setAttribute("value", value)
@@ -80,7 +82,8 @@ class LuaSettingsSerializationTest {
 
         // An old lunar.xml written before TOOLING-08 has no explicitTarget option → deserializes false.
         val legacy = XmlSerializer.serialize(LuaProjectSettings.State())
-        legacy.getChildren("option")
+        legacy
+            .getChildren("option")
             .filter { it.getAttributeValue("name") == "explicitTarget" }
             .forEach { legacy.removeContent(it) }
         assertFalse(XmlSerializer.deserialize(legacy, LuaProjectSettings.State::class.java).explicitTarget)
@@ -89,11 +92,12 @@ class LuaSettingsSerializationTest {
     /** TC 14: a project `lunar.xml` with stale (unbound) tags loads cleanly + current fields survive. */
     @Test
     fun projectStateToleratesStaleXmlTags() {
-        val current = LuaProjectSettings.State().apply {
-            languageLevel = net.internetisalie.lunar.lang.LuaLanguageLevel.LUA53
-            sourcePath = "/src/?.lua"
-            rocksServerUrl = "https://rocks.example"
-        }
+        val current =
+            LuaProjectSettings.State().apply {
+                languageLevel = net.internetisalie.lunar.lang.LuaLanguageLevel.LUA53
+                sourcePath = "/src/?.lua"
+                rocksServerUrl = "https://rocks.example"
+            }
         val element = XmlSerializer.serialize(current)
         // Inject the REAL legacy tags deleted in TOOLING-05 Phase 5 (TC 14): a `lunar.xml` written by
         // an older build still carries `interpreterMode`/`hererocksEnvs`/`explicitInterpreter`, which
@@ -104,7 +108,11 @@ class LuaSettingsSerializationTest {
         element.addContent(
             Element("option").apply {
                 setAttribute("name", "hererocksEnvs")
-                addContent(Element("list").apply { addContent(Element("HererocksEnvState").apply { setAttribute("id", "e1") }) })
+                addContent(
+                    Element(
+                        "list",
+                    ).apply { addContent(Element("HererocksEnvState").apply { setAttribute("id", "e1") }) },
+                )
             },
         )
         element.addContent(
@@ -217,8 +225,11 @@ class LuaSettingsSerializationTest {
         val restored = XmlSerializer.deserialize(element, LuaApplicationSettings.State::class.java)
 
         assertFalse(restored.enableTypeInference)
-        val optionNames = XmlSerializer.serialize(restored)
-            .getChildren("option").mapNotNull { it.getAttributeValue("name") }
+        val optionNames =
+            XmlSerializer
+                .serialize(restored)
+                .getChildren("option")
+                .mapNotNull { it.getAttributeValue("name") }
         assertFalse(optionNames.contains("interpreters"), "stale interpreters tag dropped")
         assertFalse(optionNames.contains("toolInventory"), "stale toolInventory tag dropped")
         assertFalse(optionNames.contains("globalToolBindings"), "stale globalToolBindings tag dropped")

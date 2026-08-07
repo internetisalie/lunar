@@ -15,13 +15,16 @@ internal class CancellationAwareInputStream(
     private val delegate: InputStream,
     private val indicator: ProgressIndicator?,
 ) : InputStream() {
-
     override fun read(): Int {
         indicator?.checkCanceled()
         return delegate.read()
     }
 
-    override fun read(destination: ByteArray, off: Int, len: Int): Int {
+    override fun read(
+        destination: ByteArray,
+        off: Int,
+        len: Int,
+    ): Int {
         indicator?.checkCanceled()
         return delegate.read(destination, off, len)
     }

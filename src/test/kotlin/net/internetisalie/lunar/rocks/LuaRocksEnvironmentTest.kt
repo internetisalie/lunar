@@ -15,7 +15,6 @@ import java.util.UUID
  * (project override → app default kind option → none) + `withServer` injection unchanged.
  */
 class LuaRocksEnvironmentTest : ToolchainSettingsTestCase() {
-
     override fun tearDown() {
         try {
             LuaProjectSettings.getInstance(project).state.rocksServerUrl = ""
@@ -63,23 +62,25 @@ class LuaRocksEnvironmentTest : ToolchainSettingsTestCase() {
     }
 
     private fun seedLuaRocksAt(path: String): LuaRegisteredTool {
-        val model = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "luarocks",
-            path = path,
-            version = "3.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(
-                fileExists = true,
-                executable = true,
-                probeOk = true,
-                probedAtMtime = 1L,
-                reason = null,
-            ),
-        )
+        val model =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "luarocks",
+                path = path,
+                version = "3.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         registry.registerProvisioned(model)
         return model
     }

@@ -13,7 +13,6 @@ import java.util.UUID
  * TOOLING-02 kind-scoped option; an empty registry yields `null` (no hardcoded default path).
  */
 class LuaCheckCommandLineTest : ToolchainSettingsTestCase() {
-
     fun `test TC1 resolves bound tool and merges configured plus default arguments`() {
         val luaCheck = seedToolAt("luacheck", "/tmp/tools/luacheck")
         settings.setBinding("luacheck", luaCheck.id)
@@ -43,24 +42,29 @@ class LuaCheckCommandLineTest : ToolchainSettingsTestCase() {
         assertEquals(listOf("--codes", "--std", "max"), dedupePairs(input))
     }
 
-    private fun seedToolAt(kindId: String, path: String): LuaRegisteredTool {
-        val model = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = kindId,
-            path = path,
-            version = "1.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(
-                fileExists = true,
-                executable = true,
-                probeOk = true,
-                probedAtMtime = 1L,
-                reason = null,
-            ),
-        )
+    private fun seedToolAt(
+        kindId: String,
+        path: String,
+    ): LuaRegisteredTool {
+        val model =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = kindId,
+                path = path,
+                version = "1.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         registry.registerProvisioned(model)
         return model
     }

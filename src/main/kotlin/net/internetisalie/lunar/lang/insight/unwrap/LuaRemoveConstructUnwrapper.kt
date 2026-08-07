@@ -9,10 +9,12 @@ import com.intellij.psi.PsiElement
  * `delete` makes the preview highlight the whole construct (§3.4 note). Design §2.6.
  */
 class LuaRemoveConstructUnwrapper : LuaUnwrapper("Remove enclosing block") {
-
     override fun isApplicableTo(e: PsiElement): Boolean = LuaConstruct.isConstruct(e)
 
-    override fun doUnwrap(element: PsiElement, context: Context) {
+    override fun doUnwrap(
+        element: PsiElement,
+        context: Context,
+    ) {
         context.addElementToExtract(element)
         context.delete(element)
     }

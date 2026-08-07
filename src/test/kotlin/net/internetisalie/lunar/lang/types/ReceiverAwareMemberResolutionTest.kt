@@ -16,7 +16,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class ReceiverAwareMemberResolutionTest : IndexedBasePlatformTestCase() {
-
     @Test
     fun testPackagePathResolvesToReceiverFieldNotUnrelatedModule() {
         myFixture.addFileToProject(

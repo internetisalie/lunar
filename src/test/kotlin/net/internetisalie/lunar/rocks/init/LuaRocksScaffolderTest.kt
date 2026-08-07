@@ -21,7 +21,6 @@ import java.nio.file.Files
  */
 @RunWith(JUnit4::class)
 class LuaRocksScaffolderTest : BasePlatformTestCase() {
-
     private lateinit var tempDir: File
     private lateinit var baseDir: VirtualFile
 
@@ -45,10 +44,11 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     /** TC-ROCKS-01-01: minimal single rock library — no options. */
     @Test
     fun testMinimalSingleRockLibrary() {
-        val settings = LuaRocksProjectSettings(
-            name = "my-lib",
-            type = RockType.LIBRARY,
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "my-lib",
+                type = RockType.LIBRARY,
+            )
         scaffold(settings)
 
         assertFileExists("my-lib-scm-1.rockspec")
@@ -67,11 +67,12 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     /** TC-ROCKS-01-02: single rock application with loader setup. */
     @Test
     fun testApplicationWithLoaderSetup() {
-        val settings = LuaRocksProjectSettings(
-            name = "my-app",
-            type = RockType.APPLICATION,
-            loaderSetup = true,
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "my-app",
+                type = RockType.APPLICATION,
+                loaderSetup = true,
+            )
         scaffold(settings)
 
         assertFileExists("my-app-scm-1.rockspec")
@@ -89,11 +90,12 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     /** TC-ROCKS-01-03: single rock library with busted configuration. */
     @Test
     fun testLibraryWithBustedConfig() {
-        val settings = LuaRocksProjectSettings(
-            name = "my-lib",
-            type = RockType.LIBRARY,
-            bustedConfig = true,
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "my-lib",
+                type = RockType.LIBRARY,
+                bustedConfig = true,
+            )
         scaffold(settings)
 
         assertFileExists("my-lib-scm-1.rockspec")
@@ -110,13 +112,14 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
     /** TC-ROCKS-01-04: single rock application with all options. */
     @Test
     fun testApplicationWithAllOptions() {
-        val settings = LuaRocksProjectSettings(
-            name = "my-app",
-            type = RockType.APPLICATION,
-            loaderSetup = true,
-            bustedConfig = true,
-            makefile = true,
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "my-app",
+                type = RockType.APPLICATION,
+                loaderSetup = true,
+                bustedConfig = true,
+                makefile = true,
+            )
         scaffold(settings)
 
         assertFileExists("my-app-scm-1.rockspec")
@@ -196,7 +199,10 @@ class LuaRocksScaffolderTest : BasePlatformTestCase() {
         assertFalse("Expected '$relativePath' to NOT exist under $tempDir", file.exists())
     }
 
-    private fun assertFileContains(relativePath: String, expected: String) {
+    private fun assertFileContains(
+        relativePath: String,
+        expected: String,
+    ) {
         val file = File(tempDir, relativePath)
         assertTrue("Expected file '$relativePath' to exist", file.exists())
         val content = file.readText()

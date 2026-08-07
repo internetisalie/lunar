@@ -15,7 +15,7 @@ enum class LuaToolchainChange {
     ENVIRONMENT_UPDATED,
     ENVIRONMENT_REMOVED,
     ACTIVE_ENVIRONMENT_CHANGED,
-    KIND_OPTION_CHANGED
+    KIND_OPTION_CHANGED,
 }
 
 data class LuaToolchainEvent(
@@ -24,16 +24,17 @@ data class LuaToolchainEvent(
     val kindId: String? = null,
     val toolId: String? = null,
     val environmentId: String? = null,
-    val optionKey: String? = null
+    val optionKey: String? = null,
 )
 
 interface LuaToolchainListener {
     fun toolchainChanged(event: LuaToolchainEvent)
 
     companion object {
-        val TOPIC: Topic<LuaToolchainListener> = Topic.create(
-            TOPIC_ID,
-            LuaToolchainListener::class.java
-        )
+        val TOPIC: Topic<LuaToolchainListener> =
+            Topic.create(
+                TOPIC_ID,
+                LuaToolchainListener::class.java,
+            )
     }
 }

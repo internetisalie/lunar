@@ -11,17 +11,17 @@ import org.junit.Test
  * No network, no running IDE — feeds raw strings to the internal parse helper.
  */
 class LuaRocksMetadataServiceParseTest {
-
     @Test
     fun `TC-ROCKS-02-05 parses standard porcelain show output`() {
-        val stdout = """
+        val stdout =
+            """
             package	inspect
             version	3.1.3-0
             summary	Human-readable representation of Lua tables
             license	MIT
             homepage	https://github.com/kikito/inspect.lua
             dependency	lua	>= 5.1
-        """.trimIndent()
+            """.trimIndent()
 
         val meta = LuaRocksMetadataService.parseShowOutput(stdout, "inspect")
 
@@ -35,12 +35,13 @@ class LuaRocksMetadataServiceParseTest {
 
     @Test
     fun `parses multiple dependencies`() {
-        val stdout = """
+        val stdout =
+            """
             package	foo
             version	1.0-1
             dependency	lua	>= 5.1
             dependency	luasocket	>= 3.0
-        """.trimIndent()
+            """.trimIndent()
 
         val meta = LuaRocksMetadataService.parseShowOutput(stdout, "foo")!!
         assertEquals(listOf("lua >= 5.1", "luasocket >= 3.0"), meta.dependencies)
@@ -48,12 +49,13 @@ class LuaRocksMetadataServiceParseTest {
 
     @Test
     fun `parses module entries`() {
-        val stdout = """
+        val stdout =
+            """
             package	foo
             version	1.0-1
             module	foo.core	foo/core.lua
             module	foo.util	foo/util.lua
-        """.trimIndent()
+            """.trimIndent()
 
         val meta = LuaRocksMetadataService.parseShowOutput(stdout, "foo")!!
         assertEquals(listOf("foo.core", "foo.util"), meta.modules)
@@ -61,12 +63,13 @@ class LuaRocksMetadataServiceParseTest {
 
     @Test
     fun `skips lines without a tab separator`() {
-        val stdout = """
+        val stdout =
+            """
             package	foo
             version	1.0-1
             this line has no tab
             summary	A summary
-        """.trimIndent()
+            """.trimIndent()
 
         val meta = LuaRocksMetadataService.parseShowOutput(stdout, "foo")!!
         assertEquals("A summary", meta.summary)
@@ -88,12 +91,13 @@ class LuaRocksMetadataServiceParseTest {
 
     @Test
     fun `handles empty detailed lines`() {
-        val stdout = """
+        val stdout =
+            """
             package	foo
             version	1.0-1
             detailed	First paragraph.
             detailed	Second paragraph.
-        """.trimIndent()
+            """.trimIndent()
 
         val meta = LuaRocksMetadataService.parseShowOutput(stdout, "foo")!!
         assertEquals("First paragraph.\nSecond paragraph.", meta.detailed)
@@ -101,13 +105,14 @@ class LuaRocksMetadataServiceParseTest {
 
     @Test
     fun `ignores unknown keys`() {
-        val stdout = """
+        val stdout =
+            """
             package	foo
             version	1.0-1
             namespace	bar
             labels	some-label
             command	foo	foo.lua
-        """.trimIndent()
+            """.trimIndent()
 
         // Must not throw; known fields still parsed
         val meta = LuaRocksMetadataService.parseShowOutput(stdout, "foo")!!
@@ -117,11 +122,12 @@ class LuaRocksMetadataServiceParseTest {
 
     @Test
     fun `dependency without label`() {
-        val stdout = """
+        val stdout =
+            """
             package	foo
             version	1.0-1
             dependency	lua
-        """.trimIndent()
+            """.trimIndent()
 
         val meta = LuaRocksMetadataService.parseShowOutput(stdout, "foo")!!
         assertEquals(listOf("lua"), meta.dependencies)

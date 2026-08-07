@@ -19,49 +19,69 @@ internal data class TortureMember(
 )
 
 internal object TortureManifest {
-
     const val TORTURE_DIR = "test/corpus-torture"
 
     private const val MANIFEST_PATH = "tooling/corpus/torture.json"
 
-    fun member(repoRoot: File, name: String): TortureMember {
+    fun member(
+        repoRoot: File,
+        name: String,
+    ): TortureMember {
         val manifest = File(repoRoot, MANIFEST_PATH)
         require(manifest.isFile) { "No torture manifest at $MANIFEST_PATH" }
-        val matches = JsonParser.parseString(manifest.readText())
-            .asJsonObject.getAsJsonArray("members")
-            .map { parseMember(it.asJsonObject) }
-            .filter { it.name == name }
+        val matches =
+            JsonParser
+                .parseString(manifest.readText())
+                .asJsonObject
+                .getAsJsonArray("members")
+                .map { parseMember(it.asJsonObject) }
+                .filter { it.name == name }
         // Same distinction as CorpusManifest.entry: a duplicate must not report as absent, which
         // would send the reader to the fetch script for a manifest problem.
         require(matches.size <= 1) { "Duplicate torture member '$name' in $MANIFEST_PATH" }
         return matches.singleOrNull() ?: error("No torture member named '$name' in $MANIFEST_PATH")
     }
 
-    fun checkoutDir(repoRoot: File, name: String): File = File(repoRoot, "$TORTURE_DIR/$name")
+    fun checkoutDir(
+        repoRoot: File,
+        name: String,
+    ): File = File(repoRoot, "$TORTURE_DIR/$name")
 
     /** The digest actually on disk, stamped by `fetch-torture.py`; null when the member is absent. */
-    fun fetchedDigest(repoRoot: File, name: String): String? =
-        File(checkoutDir(repoRoot, name), ".corpus-sha").takeIf { it.isFile }?.readText()?.trim()
+    fun fetchedDigest(
+        repoRoot: File,
+        name: String,
+    ): String? = File(checkoutDir(repoRoot, name), ".corpus-sha").takeIf { it.isFile }?.readText()?.trim()
 
     /** Refuses to measure a torture corpus that is absent or has drifted from its pin. */
-    fun assertFetched(repoRoot: File, member: TortureMember) {
-        val onDisk = fetchedDigest(repoRoot, member.name)
-            ?: error("Torture corpus '${member.name}' is not fetched. Run: tooling/corpus/fetch-torture.py")
+    fun assertFetched(
+        repoRoot: File,
+        member: TortureMember,
+    ) {
+        val onDisk =
+            fetchedDigest(repoRoot, member.name)
+                ?: error("Torture corpus '${member.name}' is not fetched. Run: tooling/corpus/fetch-torture.py")
         check(onDisk == member.sha256) {
             "Torture corpus '${member.name}' does not match its pin. Re-run: tooling/corpus/fetch-torture.py"
         }
     }
 
     private fun parseMember(entry: JsonObject): TortureMember {
-        val name = entry.get("name")?.asString?.takeIf { it.isNotBlank() }
-            ?: error("A torture member is missing 'name' in $MANIFEST_PATH")
+        val name =
+            entry.get("name")?.asString?.takeIf { it.isNotBlank() }
+                ?: error("A torture member is missing 'name' in $MANIFEST_PATH")
         return TortureMember(
             name = name,
-            sha256 = entry.get("sha256")?.asString?.takeIf { it.isNotBlank() }
-                ?: error("Torture member '$name' declares no sha256 — an unverified corpus is refused"),
-            luaLevel = entry.get("luaLevel")?.asString?.takeIf { it.isNotBlank() }
-                ?.let { LuaLanguageLevel.valueOf(it) }
-                ?: LuaLanguageLevel.LUA54,
+            sha256 =
+                entry.get("sha256")?.asString?.takeIf { it.isNotBlank() }
+                    ?: error("Torture member '$name' declares no sha256 — an unverified corpus is refused"),
+            luaLevel =
+                entry
+                    .get("luaLevel")
+                    ?.asString
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { LuaLanguageLevel.valueOf(it) }
+                    ?: LuaLanguageLevel.LUA54,
         )
     }
 }
@@ -81,30 +101,38 @@ internal object TortureManifest {
  * [staleEntries] makes it fail rather than rot.
  */
 internal object TortureExpectedAccepts {
-
-    fun file(repoRoot: File, name: String): File =
-        File(repoRoot, "src/test/resources/corpus/torture-$name.expected-accepts")
+    fun file(
+        repoRoot: File,
+        name: String,
+    ): File = File(repoRoot, "src/test/resources/corpus/torture-$name.expected-accepts")
 
     /** Paths only; the trailing `# reason` is for human readers, never for the comparison. */
-    fun load(repoRoot: File, name: String): Set<String> {
+    fun load(
+        repoRoot: File,
+        name: String,
+    ): Set<String> {
         val source = file(repoRoot, name).takeIf { it.isFile } ?: return emptySet()
-        return source.readLines()
+        return source
+            .readLines()
             .map { it.substringBefore('#').trim() }
             .filter { it.isNotEmpty() }
             .toSet()
     }
 
-    fun render(entries: List<Pair<String, String>>): String = buildString {
-        appendLine("# BUG-409: inputs PUC rejects and Lunar accepts, reviewed and expected.")
-        appendLine("# Generated by -PrecordCorpusBaseline. Anything NOT listed here fails the build.")
-        entries.sortedBy { it.first }.forEach { (path, reason) ->
-            appendLine("$path  # ${reason.ifBlank { "no message" }}")
+    fun render(entries: List<Pair<String, String>>): String =
+        buildString {
+            appendLine("# BUG-409: inputs PUC rejects and Lunar accepts, reviewed and expected.")
+            appendLine("# Generated by -PrecordCorpusBaseline. Anything NOT listed here fails the build.")
+            entries.sortedBy { it.first }.forEach { (path, reason) ->
+                appendLine("$path  # ${reason.ifBlank { "no message" }}")
+            }
         }
-    }
 
     /** Listed entries that are no longer false accepts — the allowlist has rotted and must be re-recorded. */
-    fun staleEntries(expected: Set<String>, observed: Set<String>): List<String> =
-        (expected - observed).sorted()
+    fun staleEntries(
+        expected: Set<String>,
+        observed: Set<String>,
+    ): List<String> = (expected - observed).sorted()
 }
 
 /**
@@ -149,39 +177,44 @@ internal data class TortureMetrics(
  * [CorpusBaseline] — a ratchet movement has to be legible in a review diff.
  */
 internal object TortureBaseline {
-
     /** Key prefix for crash counts, mirroring [CorpusBaseline.CRASH_PREFIX]. */
     const val CRASH_PREFIX = "crash."
 
     /** Repeated diagnostic key for disagreement sites. */
     const val ORACLE_SITE_KEY = "oracleSite"
 
-    fun file(repoRoot: File, name: String): File =
-        File(repoRoot, "src/test/resources/corpus/torture-$name.baseline")
+    fun file(
+        repoRoot: File,
+        name: String,
+    ): File = File(repoRoot, "src/test/resources/corpus/torture-$name.baseline")
 
-    fun render(metrics: TortureMetrics): String = buildString {
-        appendLine("sha256=${metrics.sha256}")
-        appendLine("files=${metrics.files}")
-        appendLine("parseErrors=${metrics.parseErrors}")
-        metrics.crashes.toSortedMap().forEach { (key, count) -> appendLine("$CRASH_PREFIX$key=$count") }
-        appendLine("oracleDisagreements=${metrics.oracleDisagreements}")
-        appendLine("oracleFalseAccepts=${metrics.oracleFalseAccepts}")
-        appendLine("expectedAccepts=${metrics.expectedAccepts}")
-        appendLine("oracleTimeouts=${metrics.oracleTimeouts}")
-        appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
-        appendLine("unmergedTokens=${metrics.unmergedTokens}")
-        metrics.oracleSites.forEach { appendLine("$ORACLE_SITE_KEY=$it") }
-    }
+    fun render(metrics: TortureMetrics): String =
+        buildString {
+            appendLine("sha256=${metrics.sha256}")
+            appendLine("files=${metrics.files}")
+            appendLine("parseErrors=${metrics.parseErrors}")
+            metrics.crashes.toSortedMap().forEach { (key, count) -> appendLine("$CRASH_PREFIX$key=$count") }
+            appendLine("oracleDisagreements=${metrics.oracleDisagreements}")
+            appendLine("oracleFalseAccepts=${metrics.oracleFalseAccepts}")
+            appendLine("expectedAccepts=${metrics.expectedAccepts}")
+            appendLine("oracleTimeouts=${metrics.oracleTimeouts}")
+            appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
+            appendLine("unmergedTokens=${metrics.unmergedTokens}")
+            metrics.oracleSites.forEach { appendLine("$ORACLE_SITE_KEY=$it") }
+        }
 
     fun parse(text: String): TortureMetrics {
-        val rows = text.lineSequence()
-            .filter { it.contains('=') && !it.startsWith("#") }
-            .map { it.substringBefore('=') to it.substringAfter('=') }
-            .toList()
-        val scalars = rows
-            .filterNot { it.first == ORACLE_SITE_KEY }
-            .filterNot { it.first.startsWith(CRASH_PREFIX) }
-            .toMap()
+        val rows =
+            text
+                .lineSequence()
+                .filter { it.contains('=') && !it.startsWith("#") }
+                .map { it.substringBefore('=') to it.substringAfter('=') }
+                .toList()
+        val scalars =
+            rows
+                .filterNot { it.first == ORACLE_SITE_KEY }
+                .filterNot { it.first.startsWith(CRASH_PREFIX) }
+                .toMap()
         return TortureMetrics(
             sha256 = scalars.getValue("sha256"),
             files = scalars.getValue("files").toInt(),
@@ -193,9 +226,10 @@ internal object TortureBaseline {
             oracleTimeouts = scalars["oracleTimeouts"]?.toInt() ?: 0,
             lexerRoundTripFailures = scalars["lexerRoundTripFailures"]?.toInt() ?: 0,
             unmergedTokens = scalars["unmergedTokens"]?.toInt() ?: 0,
-            crashes = rows
-                .filter { it.first.startsWith(CRASH_PREFIX) }
-                .associate { it.first.removePrefix(CRASH_PREFIX) to it.second.toInt() },
+            crashes =
+                rows
+                    .filter { it.first.startsWith(CRASH_PREFIX) }
+                    .associate { it.first.removePrefix(CRASH_PREFIX) to it.second.toInt() },
         )
     }
 
@@ -207,23 +241,28 @@ internal object TortureBaseline {
      * in either direction. What is gated is the oracle's verdict on that count — a file luac accepts
      * and Lunar rejects — plus the invariants, which hold for any input at all.
      */
-    fun compare(baseline: TortureMetrics, observed: TortureMetrics): CorpusComparison {
+    fun compare(
+        baseline: TortureMetrics,
+        observed: TortureMetrics,
+    ): CorpusComparison {
         val crashKeys = (baseline.crashes.keys + observed.crashes.keys).sorted()
-        val gated = listOf(
-            Triple("oracleDisagreements", baseline.oracleDisagreements, observed.oracleDisagreements),
-            // BUG-409: gated, because it now counts only what the reviewed allowlist does not
-            // forgive. A new false accept is a real regression, not corpus noise.
-            Triple("oracleFalseAccepts", baseline.oracleFalseAccepts, observed.oracleFalseAccepts),
-            Triple("oracleTimeouts", baseline.oracleTimeouts, observed.oracleTimeouts),
-            Triple(
-                "lexerRoundTripFailures",
-                baseline.lexerRoundTripFailures,
-                observed.lexerRoundTripFailures,
-            ),
-            Triple("unmergedTokens", baseline.unmergedTokens, observed.unmergedTokens),
-        ) + crashKeys.map { key ->
-            Triple("$CRASH_PREFIX$key", baseline.crashes[key] ?: 0, observed.crashes[key] ?: 0)
-        }
+        val gated =
+            listOf(
+                Triple("oracleDisagreements", baseline.oracleDisagreements, observed.oracleDisagreements),
+                // BUG-409: gated, because it now counts only what the reviewed allowlist does not
+                // forgive. A new false accept is a real regression, not corpus noise.
+                Triple("oracleFalseAccepts", baseline.oracleFalseAccepts, observed.oracleFalseAccepts),
+                Triple("oracleTimeouts", baseline.oracleTimeouts, observed.oracleTimeouts),
+                Triple(
+                    "lexerRoundTripFailures",
+                    baseline.lexerRoundTripFailures,
+                    observed.lexerRoundTripFailures,
+                ),
+                Triple("unmergedTokens", baseline.unmergedTokens, observed.unmergedTokens),
+            ) +
+                crashKeys.map { key ->
+                    Triple("$CRASH_PREFIX$key", baseline.crashes[key] ?: 0, observed.crashes[key] ?: 0)
+                }
         return CorpusComparison(
             regressions = gated.filter { it.third > it.second }.map(::describe),
             improvements = gated.filter { it.third < it.second }.map(::describe),
@@ -231,7 +270,10 @@ internal object TortureBaseline {
     }
 
     /** Identity-checks the pin and the input count, then gates the defect counters. */
-    fun assertRatchet(baselineFile: File, observed: TortureMetrics) {
+    fun assertRatchet(
+        baselineFile: File,
+        observed: TortureMetrics,
+    ) {
         check(baselineFile.isFile) {
             "No baseline at ${baselineFile.path}. Record one with -PwithCorpus -PrecordCorpusBaseline."
         }

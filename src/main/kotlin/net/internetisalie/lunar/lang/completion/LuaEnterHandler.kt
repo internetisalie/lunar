@@ -22,7 +22,7 @@ class LuaEnterHandler : EnterHandlerDelegateAdapter() {
         caretOffset: Ref<Int>,
         caretAdvance: Ref<Int>,
         dataContext: DataContext,
-        originalHandler: EditorActionHandler?
+        originalHandler: EditorActionHandler?,
     ): EnterHandlerDelegate.Result {
         if (file !is LuaFile) return EnterHandlerDelegate.Result.Continue
 
@@ -33,8 +33,9 @@ class LuaEnterHandler : EnterHandlerDelegateAdapter() {
         PsiDocumentManager.getInstance(file.project).commitDocument(document)
 
         val opener = file.findElementAt(offset - 1) ?: return EnterHandlerDelegate.Result.Continue
-        val terminatorType = LuaBlockPairs.terminatorByOpener[opener.node.elementType]
-            ?: return EnterHandlerDelegate.Result.Continue
+        val terminatorType =
+            LuaBlockPairs.terminatorByOpener[opener.node.elementType]
+                ?: return EnterHandlerDelegate.Result.Continue
 
         return completeBlock(editor, opener, terminatorType, offset)
     }
@@ -43,7 +44,7 @@ class LuaEnterHandler : EnterHandlerDelegateAdapter() {
         editor: Editor,
         opener: PsiElement,
         terminatorType: com.intellij.psi.tree.IElementType,
-        offset: Int
+        offset: Int,
     ): EnterHandlerDelegate.Result {
         // Balance check shared with LuaKeywordBlockCloser — SYNTAX-18: a pinned partial ancestor
         // may have had its terminator stolen by this opener's own node, so "owner has terminator"
@@ -62,7 +63,7 @@ class LuaEnterHandler : EnterHandlerDelegateAdapter() {
     override fun postProcessEnter(
         file: PsiFile,
         editor: Editor,
-        dataContext: DataContext
+        dataContext: DataContext,
     ): EnterHandlerDelegate.Result {
         if (file !is LuaFile) return EnterHandlerDelegate.Result.Continue
 
@@ -77,12 +78,18 @@ class LuaEnterHandler : EnterHandlerDelegateAdapter() {
         return reindentBody(file, document, editor, bodyLine, terminatorLine)
     }
 
-    private fun lineIsFreshTerminator(file: PsiFile, document: com.intellij.openapi.editor.Document, line: Int): Boolean {
+    private fun lineIsFreshTerminator(
+        file: PsiFile,
+        document: com.intellij.openapi.editor.Document,
+        line: Int,
+    ): Boolean {
         val start = document.getLineStartOffset(line)
         val end = document.getLineEndOffset(line)
         var leaf = file.findElementAt(start)
         while (leaf != null && leaf.textRange.startOffset < end && leaf.text.isBlank()) {
-            leaf = com.intellij.psi.util.PsiTreeUtil.nextLeaf(leaf)
+            leaf =
+                com.intellij.psi.util.PsiTreeUtil
+                    .nextLeaf(leaf)
         }
         val type = leaf?.node?.elementType ?: return false
         return type == LuaElementTypes.END || type == LuaElementTypes.UNTIL || type == LuaElementTypes.RCURLY
@@ -93,7 +100,7 @@ class LuaEnterHandler : EnterHandlerDelegateAdapter() {
         document: com.intellij.openapi.editor.Document,
         editor: Editor,
         bodyLine: Int,
-        terminatorLine: Int
+        terminatorLine: Int,
     ): EnterHandlerDelegate.Result {
         val csm = CodeStyleManager.getInstance(file.project)
         val bodyOffset = csm.adjustLineIndent(file, document.getLineStartOffset(bodyLine))

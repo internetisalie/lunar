@@ -16,16 +16,17 @@ object LuaProvisioningPlan {
     /** Kinds whose selected strategy set includes [SourceBuildStrategy.id]; drives §3.1 step 6 preflight. */
     val SOURCE_BUILD_KINDS: Set<String> = setOf("lua", "luajit", "luarocks")
 
-    private val STRATEGY_ORDER: Map<String, List<String>> = mapOf(
-        "lua" to listOf("source-build", "release-binary"),
-        "luajit" to listOf("source-build"),
-        "luarocks" to listOf("source-build", "release-binary"),
-        "luacheck" to listOf("release-binary", "luarocks-install"),
-        "stylua" to listOf("release-binary"),
-        "lua-language-server" to listOf("release-binary"),
-        "busted" to listOf("luarocks-install"),
-        "luacov" to listOf("luarocks-install"),
-    )
+    private val STRATEGY_ORDER: Map<String, List<String>> =
+        mapOf(
+            "lua" to listOf("source-build", "release-binary"),
+            "luajit" to listOf("source-build"),
+            "luarocks" to listOf("source-build", "release-binary"),
+            "luacheck" to listOf("release-binary", "luarocks-install"),
+            "stylua" to listOf("release-binary"),
+            "lua-language-server" to listOf("release-binary"),
+            "busted" to listOf("luarocks-install"),
+            "luacov" to listOf("luarocks-install"),
+        )
 
     /** The runtime kinds ordered first in §3.1 step 5. */
     val RUNTIME_KINDS: Set<String> = setOf("lua", "luajit")

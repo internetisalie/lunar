@@ -12,8 +12,9 @@ interface LuaControlFlow : ControlFlow {
 }
 
 class LuaControlFlowImpl(
-    instructions: Array<Instruction>
-) : ControlFlowImpl(instructions), LuaControlFlow {
+    instructions: Array<Instruction>,
+) : ControlFlowImpl(instructions),
+    LuaControlFlow {
     override fun isReachable(instruction: Instruction): Boolean {
         val start = instructions.firstOrNull() ?: return false
         val visited = mutableSetOf<Instruction>()
@@ -33,4 +34,3 @@ class LuaControlFlowImpl(
         return false
     }
 }
-

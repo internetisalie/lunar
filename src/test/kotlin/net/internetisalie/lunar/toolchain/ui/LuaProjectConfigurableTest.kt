@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.toolchain.ui
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.testFramework.EdtTestUtil
@@ -24,7 +23,6 @@ import javax.swing.JComponent
  * guard (TC 12). EP-registration assertions (TC 1/2) are owned by Phase 3.
  */
 class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
-
     fun testBindingComboAppliesFiresTopic_TC7() {
         seedTool(kindId = "luacheck")
         val toolB = seedTool(kindId = "luacheck")
@@ -64,8 +62,9 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
     }
 
     fun testResolvedRuntimeDisplayForBoundRuntime_TC9() {
-        val runtime = runtimeInfo(LuaPlatform.STANDARD, "5.4.6", LuaLanguageLevel.LUA54)
-            .copy(product = "Lua")
+        val runtime =
+            runtimeInfo(LuaPlatform.STANDARD, "5.4.6", LuaLanguageLevel.LUA54)
+                .copy(product = "Lua")
         val luaTool = seedTool(kindId = "lua", runtime = runtime)
 
         withConfigurable { _, panel ->
@@ -93,7 +92,7 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
                 override fun onSettingsChanged() {
                     fired = true
                 }
-            }
+            },
         )
 
         withConfigurable { configurable, panel ->
@@ -115,7 +114,7 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
                 override fun onSettingsChanged() {
                     settingsFired = true
                 }
-            }
+            },
         )
 
         withConfigurable { configurable, _ ->
@@ -161,8 +160,7 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
         }
     }
 
-    private fun combos(panel: JComponent): List<ComboBox<*>> =
-        UIUtil.findComponentsOfType(panel, ComboBox::class.java)
+    private fun combos(panel: JComponent): List<ComboBox<*>> = UIUtil.findComponentsOfType(panel, ComboBox::class.java)
 
     private fun labels(panel: JComponent) =
         UIUtil.findComponentsOfType(panel, com.intellij.ui.components.JBLabel::class.java)
@@ -175,7 +173,10 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
         (0 until combo.itemCount).any { combo.getItemAt(it) is LuaEnvironmentItem }
 
     @Suppress("UNCHECKED_CAST")
-    private fun bindingComboForTool(panel: JComponent, toolId: String): ComboBox<LuaBindingItem> =
+    private fun bindingComboForTool(
+        panel: JComponent,
+        toolId: String,
+    ): ComboBox<LuaBindingItem> =
         combos(panel).first { combo ->
             (0 until combo.itemCount).any {
                 val item = combo.getItemAt(it)
@@ -183,7 +184,10 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
             }
         } as ComboBox<LuaBindingItem>
 
-    private fun selectToolInCombo(combo: ComboBox<LuaBindingItem>, toolId: String) {
+    private fun selectToolInCombo(
+        combo: ComboBox<LuaBindingItem>,
+        toolId: String,
+    ) {
         for (i in 0 until combo.itemCount) {
             val item = combo.getItemAt(i)
             if (item is LuaBindingItem.Tool && item.tool.id == toolId) {
@@ -194,7 +198,10 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
         error("tool $toolId not in combo")
     }
 
-    private fun selectEnvironmentInCombo(combo: ComboBox<LuaEnvironmentItem>, envId: String) {
+    private fun selectEnvironmentInCombo(
+        combo: ComboBox<LuaEnvironmentItem>,
+        envId: String,
+    ) {
         for (i in 0 until combo.itemCount) {
             val item = combo.getItemAt(i)
             if (item is LuaEnvironmentItem.Env && item.env.id == envId) {
@@ -229,16 +236,15 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
     // The rocks-URL project-override field is the sole plain JBTextField (columns 40); the two
     // ExpandableTextFields are JBTextField subclasses, so filter to the exact class.
     private fun rocksUrlField(panel: JComponent): JBTextField =
-        UIUtil.findComponentsOfType(panel, JBTextField::class.java)
+        UIUtil
+            .findComponentsOfType(panel, JBTextField::class.java)
             .first { it::class.java == JBTextField::class.java }
 
     // Layout order (§2.3): the Luacheck group's args field precedes the Source & Completion
     // source-path field, so the two ExpandableTextFields appear in that fixed order.
-    private fun luacheckArgsField(panel: JComponent): ExpandableTextField =
-        expandableFields(panel)[0]
+    private fun luacheckArgsField(panel: JComponent): ExpandableTextField = expandableFields(panel)[0]
 
-    private fun sourcePathField(panel: JComponent): ExpandableTextField =
-        expandableFields(panel)[1]
+    private fun sourcePathField(panel: JComponent): ExpandableTextField = expandableFields(panel)[1]
 
     private fun assertNoInterpreterEraControls(panel: JComponent) {
         val texts = UIUtil.findComponentsOfType(panel, JBTextField::class.java).map { it.text }
@@ -248,9 +254,10 @@ class LuaProjectConfigurableTest : ToolchainSettingsTestCase() {
     }
 
     private fun assertNoPlatformCombo(panel: JComponent) {
-        val platformCombos = combos(panel).filter { combo ->
-            (0 until combo.itemCount).any { combo.getItemAt(it) is LuaPlatform }
-        }
+        val platformCombos =
+            combos(panel).filter { combo ->
+                (0 until combo.itemCount).any { combo.getItemAt(it) is LuaPlatform }
+            }
         assertTrue("Platform combo must be gone", platformCombos.isEmpty())
     }
 }

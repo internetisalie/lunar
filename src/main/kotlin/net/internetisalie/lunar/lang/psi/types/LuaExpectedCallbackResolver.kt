@@ -35,7 +35,11 @@ internal class LuaExpectedCallbackResolver(
     }
 
     /** Expected callback type for positional arg [index], or null if that slot is not a `fun(...)`. */
-    fun expectedCallbackAt(index: Int, calleeType: LuaFunctionType, selfOffset: Int): LuaFunctionType? {
+    fun expectedCallbackAt(
+        index: Int,
+        calleeType: LuaFunctionType,
+        selfOffset: Int,
+    ): LuaFunctionType? {
         val param = calleeType.params.getOrNull(index + selfOffset) ?: return null
         return extractFunctionType(param.type)
     }
@@ -63,11 +67,16 @@ internal class LuaExpectedCallbackResolver(
             ?: resolved.parent?.parent as? LuaFuncDecl
     }
 
-    private fun calleeNameRef(callee: PsiElement): LuaNameRef? = when (callee) {
-        is LuaNameRef -> callee
-        is LuaVar -> callee.varSuffixList.lastOrNull()?.indexExpr?.nameRef ?: callee.nameRef
-        else -> null
-    }
+    private fun calleeNameRef(callee: PsiElement): LuaNameRef? =
+        when (callee) {
+            is LuaNameRef -> callee
+            is LuaVar ->
+                callee.varSuffixList
+                    .lastOrNull()
+                    ?.indexExpr
+                    ?.nameRef ?: callee.nameRef
+            else -> null
+        }
 
     private fun functionTypeOf(decl: PsiElement): LuaFunctionType? {
         val declFile = decl.containingFile as? LuaFile ?: return null

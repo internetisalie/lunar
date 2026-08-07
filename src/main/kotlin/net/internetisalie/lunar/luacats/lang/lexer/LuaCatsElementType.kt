@@ -19,6 +19,8 @@ package net.internetisalie.lunar.luacats.lang.lexer
 import com.intellij.psi.tree.IElementType
 import net.internetisalie.lunar.lang.LuaLanguage
 
-class LuaCatsElementType(private val debugName: String) : IElementType(debugName, LuaLanguage) {
+class LuaCatsElementType(
+    private val debugName: String,
+) : IElementType(debugName, LuaLanguage) {
     override fun toString(): String = debugName
 }

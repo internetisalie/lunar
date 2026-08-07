@@ -7,4 +7,8 @@ package net.internetisalie.lunar.rocks.browser
  *
  * Mutated only on the EDT by [LuaRocksBrowserModel].
  */
-data class LuaRockRow(val pkg: LuaRockPackage, var installed: Boolean, val hasUpdate: Boolean = false)
+data class LuaRockRow(
+    val pkg: LuaRockPackage,
+    var installed: Boolean,
+    val hasUpdate: Boolean = false,
+)

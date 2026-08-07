@@ -23,7 +23,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaReadWriteAccessDetectorTest : BasePlatformTestCase() {
-
     private val detector = LuaReadWriteAccessDetector()
 
     // -------------------------------------------------------------------------
@@ -72,8 +71,16 @@ class LuaReadWriteAccessDetectorTest : BasePlatformTestCase() {
         val bVar = vars.firstOrNull { it.nameRef?.identifier?.text == "b" && it.varSuffixList.isEmpty() }
         assertNotNull("Expected LuaVar for 'a'", aVar)
         assertNotNull("Expected LuaVar for 'b'", bVar)
-        assertEquals("'a' in multi-assign should be Write", Access.Write, detector.getExpressionAccess(aVar!!.nameRef!!))
-        assertEquals("'b' in multi-assign should be Write", Access.Write, detector.getExpressionAccess(bVar!!.nameRef!!))
+        assertEquals(
+            "'a' in multi-assign should be Write",
+            Access.Write,
+            detector.getExpressionAccess(aVar!!.nameRef!!),
+        )
+        assertEquals(
+            "'b' in multi-assign should be Write",
+            Access.Write,
+            detector.getExpressionAccess(bVar!!.nameRef!!),
+        )
     }
 
     // -------------------------------------------------------------------------

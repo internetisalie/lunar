@@ -1,10 +1,9 @@
 package net.internetisalie.lunar.luacats.lang.doc
 
-import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiTreeUtil
@@ -48,11 +47,16 @@ object LuaCatsDocumentationRenderer {
      * @return HTML string for documentation popup, or null if element is not supported
      */
     fun renderDoc(element: PsiElement): String? {
-        val comment = when (element) {
-            is LuaCommentOwner -> element.catsComment
-            is LuaCatsClassTag, is LuaCatsAliasTag -> PsiTreeUtil.getParentOfType(element, LuaCatsComment::class.java)
-            else -> null
-        } ?: return null
+        val comment =
+            when (element) {
+                is LuaCommentOwner -> element.catsComment
+                is LuaCatsClassTag, is LuaCatsAliasTag ->
+                    PsiTreeUtil.getParentOfType(
+                        element,
+                        LuaCatsComment::class.java,
+                    )
+                else -> null
+            } ?: return null
 
         val definitionBlock = buildDefinitionBlock(element, comment) ?: return null
         val contentBlock = buildContentBlock(comment)
@@ -78,15 +82,22 @@ object LuaCatsDocumentationRenderer {
     }
 
     // Keep for compatibility with existing caller
-    fun render(sb: StringBuilder, element: PsiElement, comment: LuaCatsComment) {
+    fun render(
+        sb: StringBuilder,
+        element: PsiElement,
+        comment: LuaCatsComment,
+    ) {
         val doc = renderDoc(element)
         if (doc != null) {
             sb.append(doc)
         }
     }
 
-    private fun buildDefinitionBlock(element: PsiElement, comment: LuaCatsComment): String? {
-        return when (element) {
+    private fun buildDefinitionBlock(
+        element: PsiElement,
+        comment: LuaCatsComment,
+    ): String? =
+        when (element) {
             is LuaFuncDecl -> buildFunctionSignature(element, comment)
             is LuaLocalFuncDecl -> buildLocalFunctionSignature(element, comment)
             is LuaLocalVarDecl -> buildVariableSignature(element, comment)
@@ -94,10 +105,9 @@ object LuaCatsDocumentationRenderer {
             is LuaCatsAliasTag -> buildAliasTagSignature(element)
             else -> null
         }
-    }
 
-    private fun buildClassTagSignature(tag: LuaCatsClassTag): String {
-        return buildString {
+    private fun buildClassTagSignature(tag: LuaCatsClassTag): String =
+        buildString {
             append("<pre>")
             val comment = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java)
             val isDeprecated = comment?.deprecatedTagList?.isNotEmpty() == true
@@ -120,10 +130,9 @@ object LuaCatsDocumentationRenderer {
             if (isDeprecated) append("</s>")
             append("</pre>")
         }
-    }
 
-    private fun buildAliasTagSignature(tag: LuaCatsAliasTag): String {
-        return buildString {
+    private fun buildAliasTagSignature(tag: LuaCatsAliasTag): String =
+        buildString {
             append("<pre>")
             val comment = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java)
             val isDeprecated = comment?.deprecatedTagList?.isNotEmpty() == true
@@ -143,10 +152,12 @@ object LuaCatsDocumentationRenderer {
             if (isDeprecated) append("</s>")
             append("</pre>")
         }
-    }
 
-    private fun buildFunctionSignature(element: LuaFuncDecl, comment: LuaCatsComment): String {
-        return buildString {
+    private fun buildFunctionSignature(
+        element: LuaFuncDecl,
+        comment: LuaCatsComment,
+    ): String =
+        buildString {
             append("<pre>")
             val isDeprecated = comment.deprecatedTagList.isNotEmpty()
             if (isDeprecated) append("<s>")
@@ -167,10 +178,12 @@ object LuaCatsDocumentationRenderer {
             if (isDeprecated) append("</s>")
             append("</pre>")
         }
-    }
 
-    private fun buildLocalFunctionSignature(element: LuaLocalFuncDecl, comment: LuaCatsComment): String {
-        return buildString {
+    private fun buildLocalFunctionSignature(
+        element: LuaLocalFuncDecl,
+        comment: LuaCatsComment,
+    ): String =
+        buildString {
             append("<pre>")
             val isDeprecated = comment.deprecatedTagList.isNotEmpty()
             if (isDeprecated) append("<s>")
@@ -189,9 +202,11 @@ object LuaCatsDocumentationRenderer {
             if (isDeprecated) append("</s>")
             append("</pre>")
         }
-    }
 
-    private fun buildVariableSignature(element: LuaLocalVarDecl, comment: LuaCatsComment): String {
+    private fun buildVariableSignature(
+        element: LuaLocalVarDecl,
+        comment: LuaCatsComment,
+    ): String {
         val classTag = comment.classTagList.firstOrNull()
         val typeTag = comment.typeTagList.firstOrNull()
         val enumTag = comment.enumTagList.firstOrNull()
@@ -236,7 +251,10 @@ object LuaCatsDocumentationRenderer {
         }
     }
 
-    private fun buildFunctionSignatureTypeParams(comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildFunctionSignatureTypeParams(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         if (comment.genericTagList.isEmpty()) return
         sb.append(codeFragment(LuaHighlight.OPERATORS, "<"))
         var first = true
@@ -244,7 +262,8 @@ object LuaCatsDocumentationRenderer {
             val typeParamList = tag.genericTypeParams?.genericTypeParamList ?: return@forEach
             typeParamList.forEach { param ->
                 if (!first) {
-                    sb.append(codeFragment(LuaHighlight.OPERATORS, ","))
+                    sb
+                        .append(codeFragment(LuaHighlight.OPERATORS, ","))
                         .append(" ")
                 } else {
                     first = false
@@ -262,7 +281,10 @@ object LuaCatsDocumentationRenderer {
         sb.append(codeFragment(LuaHighlight.OPERATORS, ">"))
     }
 
-    private fun buildFunctionSignatureParams(comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildFunctionSignatureParams(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         var paramCount = 0
         comment.paramTagList.forEach {
             if (paramCount > 0) {
@@ -284,7 +306,10 @@ object LuaCatsDocumentationRenderer {
         }
     }
 
-    private fun buildFunctionSignatureReturns(comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildFunctionSignatureReturns(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         val descriptors = comment.returnTagList.flatMap { it.returnTypeDescriptorList }
         if (descriptors.isEmpty()) {
             sb.append("any")
@@ -309,7 +334,10 @@ object LuaCatsDocumentationRenderer {
         }
     }
 
-    private fun buildSectionsBlock(element: PsiElement, comment: LuaCatsComment): String {
+    private fun buildSectionsBlock(
+        element: PsiElement,
+        comment: LuaCatsComment,
+    ): String {
         val sb = StringBuilder()
 
         when (element) {
@@ -341,36 +369,57 @@ object LuaCatsDocumentationRenderer {
         return sb.toString()
     }
 
-    private fun buildStdlibSection(element: PsiElement, sb: StringBuilder) {
+    private fun buildStdlibSection(
+        element: PsiElement,
+        sb: StringBuilder,
+    ) {
         val virtualFile = element.containingFile.virtualFile ?: return
         val path = virtualFile.path
         if (!path.contains("platform/Lua")) return
 
-        val funcName = when (element) {
-            is LuaFuncDecl -> element.funcName.text
-            is LuaLocalFuncDecl -> element.nameRef.text
-            else -> return
-        }
+        val funcName =
+            when (element) {
+                is LuaFuncDecl -> element.funcName.text
+                is LuaLocalFuncDecl -> element.nameRef.text
+                else -> return
+            }
 
         val project = element.project
-        val languageLevel = net.internetisalie.lunar.settings.LuaProjectSettings.getInstance(project).state.getTarget().getImplicitLanguageLevel()
+        val languageLevel =
+            net.internetisalie.lunar.settings.LuaProjectSettings
+                .getInstance(
+                    project,
+                ).state
+                .getTarget()
+                .getImplicitLanguageLevel()
         val version = languageLevel.version
 
         // Handle special cases for URLs if any
         val manualUrl = "https://www.lua.org/manual/$version/manual.html#pdf-$funcName"
 
         buildSectionHeader("Manual:", sb)
-        sb.append("<p><a href=\"").append(manualUrl).append("\">").append(funcName).append("</a></p>")
+        sb
+            .append("<p><a href=\"")
+            .append(manualUrl)
+            .append("\">")
+            .append(funcName)
+            .append("</a></p>")
         sb.append(SECTION_END)
     }
 
-    private fun buildSectionHeader(title: String, sb: StringBuilder) {
+    private fun buildSectionHeader(
+        title: String,
+        sb: StringBuilder,
+    ) {
         sb.append(SECTION_HEADER_CELL)
         sb.append(title)
         sb.append(SECTION_SEPARATOR)
     }
 
-    private fun buildParamSection(comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildParamSection(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         val tags = comment.paramTagList
         if (tags.isEmpty()) return
 
@@ -397,7 +446,10 @@ object LuaCatsDocumentationRenderer {
         sb.append(SECTION_END)
     }
 
-    private fun buildReturnSection(comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildReturnSection(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         val descriptors = comment.returnTagList.flatMap { it.returnTypeDescriptorList }
         if (descriptors.isEmpty()) return
 
@@ -419,13 +471,18 @@ object LuaCatsDocumentationRenderer {
         sb.append(SECTION_END)
     }
 
-    private fun buildFieldsSection(element: PsiElement, comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildFieldsSection(
+        element: PsiElement,
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         val hasDirectFields = comment.fieldTagList.isNotEmpty()
-        val classTag = when (element) {
-            is LuaLocalVarDecl -> comment.classTagList.firstOrNull()
-            is LuaCatsClassTag -> element
-            else -> null
-        }
+        val classTag =
+            when (element) {
+                is LuaLocalVarDecl -> comment.classTagList.firstOrNull()
+                is LuaCatsClassTag -> element
+                else -> null
+            }
         val inheritedFields = classTag?.let { collectInheritedFieldTags(element.project, it) } ?: emptyList()
 
         if (!hasDirectFields && inheritedFields.isEmpty()) return
@@ -447,7 +504,10 @@ object LuaCatsDocumentationRenderer {
         }
     }
 
-    private fun buildFieldTag(tag: LuaCatsFieldTag, sb: StringBuilder) {
+    private fun buildFieldTag(
+        tag: LuaCatsFieldTag,
+        sb: StringBuilder,
+    ) {
         // `fieldDisplayName` keeps the optional marker (quick-doc shows `beta?`, as LuaLS does),
         // which is exactly where it differs from the engine's member name — a deliberate difference,
         // now adjacent to the engine's rule instead of being a private copy free to drift.
@@ -466,7 +526,10 @@ object LuaCatsDocumentationRenderer {
         sb.append("</p>")
     }
 
-    private fun buildEnumValuesSection(comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildEnumValuesSection(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         // Enums in LuaCATS often use ---| "value" # description
         // This is handled by the parser but we need to find where those values are stored.
         // Looking at LuaCatsComment.java, it has getTypeOptionList().
@@ -488,7 +551,10 @@ object LuaCatsDocumentationRenderer {
         sb.append(SECTION_END)
     }
 
-    private fun buildSeeSection(comment: LuaCatsComment, sb: StringBuilder) {
+    private fun buildSeeSection(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         val tags = comment.seeTagList
         if (tags.isEmpty()) return
 
@@ -503,7 +569,12 @@ object LuaCatsDocumentationRenderer {
             if (urlMatch != null) {
                 val url = urlMatch.groupValues[1]
                 val remainingDesc = urlMatch.groupValues[2].trim()
-                sb.append("<p><a href=\"").append(url).append("\">").append(url).append("</a>")
+                sb
+                    .append("<p><a href=\"")
+                    .append(url)
+                    .append("\">")
+                    .append(url)
+                    .append("</a>")
                 if (remainingDesc.isNotEmpty()) {
                     sb.append(" - ").append(LuaDocumentationRenderer.markdownDescription(remainingDesc))
                 }
@@ -518,7 +589,11 @@ object LuaCatsDocumentationRenderer {
         }
         sb.append(SECTION_END)
     }
-    private fun buildDeprecatedSection(comment: LuaCatsComment, sb: StringBuilder) {
+
+    private fun buildDeprecatedSection(
+        comment: LuaCatsComment,
+        sb: StringBuilder,
+    ) {
         val tag = comment.deprecatedTagList.firstOrNull() ?: return
 
         buildSectionHeader("<span style='color: #FF6B68;'>⚠ Deprecated:</span>", sb)
@@ -554,7 +629,8 @@ object LuaCatsDocumentationRenderer {
     private fun simpleParentName(declared: String): String = declared.substringBefore('<').trim()
 
     private fun parentClassNames(classTag: LuaCatsClassTag?): List<String> =
-        classTag?.let { LuaCatsDeclarations.parentTypeNames(it) }
+        classTag
+            ?.let { LuaCatsDeclarations.parentTypeNames(it) }
             .orEmpty()
             .map { simpleParentName(it) }
             .filter { it.isNotEmpty() }
@@ -564,16 +640,35 @@ object LuaCatsDocumentationRenderer {
      * falls back to the file-based [LuaCatsTypeNameIndex] so a bare `--- @class Parent` (no host
      * decl, absent from [LuaClassNameIndex]) is still found. Mirrors [LuaCatsTypeNavigation].
      */
-    private fun resolveClassComment(project: Project, className: String): LuaCatsComment? {
+    private fun resolveClassComment(
+        project: Project,
+        className: String,
+    ): LuaCatsComment? {
         val scope = GlobalSearchScope.allScope(project)
-        val stubDecl = StubIndex.getElements(LuaClassNameIndex.KEY, className, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+        val stubDecl =
+            StubIndex
+                .getElements(
+                    LuaClassNameIndex.KEY,
+                    className,
+                    project,
+                    scope,
+                    LuaLocalVarDecl::class.java,
+                ).firstOrNull()
         if (stubDecl != null) return stubDecl.catsComment
         return resolveBareClassComment(project, className, scope)
     }
 
-    private fun resolveBareClassComment(project: Project, className: String, scope: GlobalSearchScope): LuaCatsComment? {
+    private fun resolveBareClassComment(
+        project: Project,
+        className: String,
+        scope: GlobalSearchScope,
+    ): LuaCatsComment? {
         val psiManager = PsiManager.getInstance(project)
-        for (virtualFile in FileBasedIndex.getInstance().getContainingFiles(LuaCatsTypeNameIndex.KEY, className, scope)) {
+        for (virtualFile in FileBasedIndex.getInstance().getContainingFiles(
+            LuaCatsTypeNameIndex.KEY,
+            className,
+            scope,
+        )) {
             val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
             for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsClassTag::class.java)) {
                 if (tag.argType.text.trim() != className) continue
@@ -588,7 +683,10 @@ object LuaCatsDocumentationRenderer {
      * `visited` set is the cycle guard (`@class A : B`, `@class B : A` terminates) and
      * [INHERITANCE_DEPTH_CAP] is a hard depth ceiling against pathological chains.
      */
-    private fun collectInheritedFieldTags(project: Project, classTag: LuaCatsClassTag): List<LuaCatsFieldTag> {
+    private fun collectInheritedFieldTags(
+        project: Project,
+        classTag: LuaCatsClassTag,
+    ): List<LuaCatsFieldTag> {
         val visited = mutableSetOf(classTag.argType.text.trim())
         val queue = ArrayDeque(parentClassNames(classTag))
         val collected = mutableListOf<LuaCatsFieldTag>()

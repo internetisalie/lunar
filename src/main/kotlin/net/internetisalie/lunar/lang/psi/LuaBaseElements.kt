@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.psi
 
 import com.intellij.extapi.psi.ASTWrapperPsiElement
+import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.lang.Language
 import com.intellij.lang.PsiBuilderFactory
@@ -14,7 +15,6 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.stubs.IStubElementType
-import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.tree.ILazyParseableElementType
 import net.internetisalie.lunar.lang.LuaLabelReference
@@ -26,17 +26,21 @@ import net.internetisalie.lunar.luacats.lang.parser.LuaCatsParser
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 import net.internetisalie.lunar.luacats.lang.psi.impl.LuaCatsLazyCommentImpl
 
-open class LuaBaseElement(node: ASTNode) : ASTWrapperPsiElement(node) {
-    override fun toString(): String {
-        return this.node.elementType.toString()
-    }
+open class LuaBaseElement(
+    node: ASTNode,
+) : ASTWrapperPsiElement(node) {
+    override fun toString(): String = this.node.elementType.toString()
 
     override fun getReferences(): Array<PsiReference> {
         // Include this element's own reference (e.g. LuaNameReference from getReference()) alongside
         // contributed ones. The platform default does this; without it, findReferenceAt() —
         // and therefore Go to Declaration on locals — never sees the name reference, which lives
         // on the LuaNameRef composite rather than a registered contributor.
-        val contributed = com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry.getReferencesFromProviders(this)
+        val contributed =
+            com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry
+                .getReferencesFromProviders(
+                    this,
+                )
         val own = getReference()
         return if (own == null) contributed else arrayOf(own) + contributed
     }
@@ -46,7 +50,10 @@ open class LuaBaseElement(node: ASTNode) : ASTWrapperPsiElement(node) {
 
 interface LuaNameDeclElement : PsiNameIdentifierOwner
 
-abstract class LuaNameDeclElementImpl(node: ASTNode) : LuaBaseElement(node), LuaNameDeclElement {
+abstract class LuaNameDeclElementImpl(
+    node: ASTNode,
+) : LuaBaseElement(node),
+    LuaNameDeclElement {
     override fun getName(): String? = getNameIdentifier()?.text
 
     override fun getNameIdentifier(): PsiElement? = findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)
@@ -67,10 +74,11 @@ abstract class LuaNameDeclElementImpl(node: ASTNode) : LuaBaseElement(node), Lua
 
 interface LuaNameRefElement : PsiNamedElement
 
-abstract class LuaNameRefElementImpl(node: ASTNode) : LuaBaseElement(node), LuaNameRefElement {
-    override fun getName(): String? {
-        return findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)?.text
-    }
+abstract class LuaNameRefElementImpl(
+    node: ASTNode,
+) : LuaBaseElement(node),
+    LuaNameRefElement {
+    override fun getName(): String? = findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)?.text
 
     override fun setName(newName: String): PsiElement {
         val identifierNode = node.findChildByType(LuaElementTypes.IDENTIFIER)
@@ -84,7 +92,9 @@ abstract class LuaNameRefElementImpl(node: ASTNode) : LuaBaseElement(node), LuaN
     }
 }
 
-open class LuaNameRefBaseImpl(node: ASTNode) : LuaNameRefElementImpl(node) {
+open class LuaNameRefBaseImpl(
+    node: ASTNode,
+) : LuaNameRefElementImpl(node) {
     override fun getReference(): PsiReference? {
         val value = getName()
         if (value != null) {
@@ -97,7 +107,9 @@ open class LuaNameRefBaseImpl(node: ASTNode) : LuaNameRefElementImpl(node) {
 
 // Label Reference
 
-open class LuaLabelRefBaseImpl(node: ASTNode) : LuaNameRefElementImpl(node) {
+open class LuaLabelRefBaseImpl(
+    node: ASTNode,
+) : LuaNameRefElementImpl(node) {
     override fun getReference(): PsiReference? {
         val value = name ?: return null
         val range = TextRange(0, value.length)
@@ -108,7 +120,7 @@ open class LuaLabelRefBaseImpl(node: ASTNode) : LuaNameRefElementImpl(node) {
 // Comment Owner
 
 interface LuaCommentOwner : LuaCatsCommentOwner {
-    fun getComment() : PsiComment?
+    fun getComment(): PsiComment?
 }
 
 // Lazy Elements
@@ -117,65 +129,70 @@ object LuaLazyElementTypes {
     /**
      * LuaCats comment
      */
-    var LUACATS_COMMENT: ILazyParseableElementType = object : ILazyParseableElementType("LAZY_COMMENT") {
-        override fun getLanguage(): Language {
-            return LuaLanguage
-        }
+    var LUACATS_COMMENT: ILazyParseableElementType =
+        object : ILazyParseableElementType("LAZY_COMMENT") {
+            override fun getLanguage(): Language = LuaLanguage
 
-        override fun parseContents(chameleon: ASTNode): ASTNode? {
-            val parentElement = checkNotNull(chameleon.getTreeParent().getPsi())
-            val project = parentElement.getProject()
-            val parser: PsiParser = LuaCatsParser()
-            val lexer: Lexer = LuaCatsLexer()
+            override fun parseContents(chameleon: ASTNode): ASTNode? {
+                val parentElement = checkNotNull(chameleon.getTreeParent().getPsi())
+                val project = parentElement.getProject()
+                val parser: PsiParser = LuaCatsParser()
+                val lexer: Lexer = LuaCatsLexer()
 
-            val builder = PsiBuilderFactory.getInstance()
-                .createBuilder(project, chameleon, lexer, getLanguage(), chameleon.getText())
-            val root = parser.parse(this, builder)
-            return root.firstChildNode
-        }
+                val builder =
+                    PsiBuilderFactory
+                        .getInstance()
+                        .createBuilder(project, chameleon, lexer, getLanguage(), chameleon.getText())
+                val root = parser.parse(this, builder)
+                return root.firstChildNode
+            }
 
-        override fun createNode(text: CharSequence?): ASTNode {
-            return LuaCatsLazyCommentImpl(text)
+            override fun createNode(text: CharSequence?): ASTNode = LuaCatsLazyCommentImpl(text)
         }
-    }
 }
 
-
-abstract class LuaStatementImpl(node: ASTNode) : LuaBaseElement(node), LuaStatement {
+abstract class LuaStatementImpl(
+    node: ASTNode,
+) : LuaBaseElement(node),
+    LuaStatement {
     open fun accept(visitor: LuaVisitor) {
         visitor.visitStatement(this)
     }
 
     override fun accept(visitor: PsiElementVisitor) {
-        if (visitor is LuaVisitor) accept(visitor)
-        else super.accept(visitor)
+        if (visitor is LuaVisitor) {
+            accept(visitor)
+        } else {
+            super.accept(visitor)
+        }
     }
 }
 
-abstract class LuaStubbedStatementImpl<T : StubElement<*>> : StubBasedPsiElementBase<T>, LuaStatement {
+abstract class LuaStubbedStatementImpl<T : StubElement<*>> :
+    StubBasedPsiElementBase<T>,
+    LuaStatement {
     constructor(stub: T, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
     constructor(node: ASTNode) : super(node)
 
-    override fun getElementType(): IStubElementType<out T, *> {
-        return getElementTypeImpl() as IStubElementType<out T, *>
-    }
+    override fun getElementType(): IStubElementType<out T, *> = getElementTypeImpl() as IStubElementType<out T, *>
 
-    override fun toString(): String {
-        return elementType.toString()
-    }
+    override fun toString(): String = elementType.toString()
 
     open fun accept(visitor: LuaVisitor) {
         visitor.visitStatement(this)
     }
 
     override fun accept(visitor: PsiElementVisitor) {
-        if (visitor is LuaVisitor) accept(visitor)
-        else super.accept(visitor)
+        if (visitor is LuaVisitor) {
+            accept(visitor)
+        } else {
+            super.accept(visitor)
+        }
     }
 }
 
 // Block Owner
 
 interface LuaBlockParent : PsiElement {
-    fun getBlockList() : List<LuaBlock>
+    fun getBlockList(): List<LuaBlock>
 }

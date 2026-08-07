@@ -1,10 +1,14 @@
 package net.internetisalie.lunar.rocks.init
 
 object LuaRocksTemplates {
-
-    fun rockspec(name: String, type: RockType): String {
-        val buildSection = when (type) {
-            RockType.LIBRARY -> """
+    fun rockspec(
+        name: String,
+        type: RockType,
+    ): String {
+        val buildSection =
+            when (type) {
+                RockType.LIBRARY ->
+                    """
 build = {
    type = "builtin",
    modules = {
@@ -12,14 +16,15 @@ build = {
    },
 }
 """.trimStart()
-            RockType.APPLICATION -> """
+                RockType.APPLICATION ->
+                    """
 build = {
    type = "builtin",
    modules = { ["$name"] = "src/main.lua" },
    install = { bin = { ["$name"] = "src/main.lua" } },
 }
 """.trimStart()
-        }
+            }
         return """
 rockspec_format = "3.0"
 package = "$name"
@@ -37,7 +42,8 @@ dependencies = {
 $buildSection""".trimStart()
     }
 
-    fun setupLua(): String = """
+    fun setupLua(): String =
+        """
 -- setup.lua: prepend locally-installed rocks to the module search paths.
 local version = _VERSION:match("%d+%.%d+")
 package.path  = "lua_modules/share/lua/" .. version .. "/?.lua;"
@@ -45,23 +51,30 @@ package.path  = "lua_modules/share/lua/" .. version .. "/?.lua;"
 package.cpath = "lua_modules/lib/lua/"   .. version .. "/?.so;" .. package.cpath
 """.trimStart()
 
-    fun mainModule(name: String, type: RockType): String = when (type) {
-        RockType.LIBRARY -> """
+    fun mainModule(
+        name: String,
+        type: RockType,
+    ): String =
+        when (type) {
+            RockType.LIBRARY ->
+                """
 local $name = {}
 function $name.hello()
    return "hello from $name"
 end
 return $name
 """.trimStart()
-        RockType.APPLICATION -> """
+            RockType.APPLICATION ->
+                """
 local function main(...)
    print("hello from $name")
 end
 main(...)
 """.trimStart()
-    }
+        }
 
-    fun makefile(name: String): String = """
+    fun makefile(name: String): String =
+        """
 .PHONY: build test lint format coverage rocks clean
 
 build:
@@ -87,7 +100,8 @@ clean:
 	rm -rf lua_modules .luarocks luacov.stats.out luacov.report.out
 """.trimStart()
 
-    fun bustedSpec(name: String): String = """
+    fun bustedSpec(name: String): String =
+        """
 describe("$name", function()
    it("loads", function()
       assert.is_table(require("$name"))
@@ -95,7 +109,8 @@ describe("$name", function()
 end)
 """.trimStart()
 
-    fun gitignore(): String = """
+    fun gitignore(): String =
+        """
 /lua_modules/
 /.luarocks/
 *.src.rock

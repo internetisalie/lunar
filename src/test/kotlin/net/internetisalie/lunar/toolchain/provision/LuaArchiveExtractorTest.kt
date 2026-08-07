@@ -24,8 +24,9 @@ class LuaArchiveExtractorTest : BasePlatformTestCase() {
     private val indicator by lazy { EmptyProgressIndicator() }
 
     private fun fixture(name: String): Path {
-        val resourceUrl = javaClass.classLoader.getResource("toolchain/$name")
-            ?: error("Missing test fixture: toolchain/$name")
+        val resourceUrl =
+            javaClass.classLoader.getResource("toolchain/$name")
+                ?: error("Missing test fixture: toolchain/$name")
         return File(resourceUrl.toURI()).toPath()
     }
 
@@ -61,8 +62,9 @@ class LuaArchiveExtractorTest : BasePlatformTestCase() {
         val bogus = target.resolve("artifact.7z")
         Files.writeString(bogus, "not-an-archive")
 
-        val failure = runCatching { LuaArchiveExtractor.extract(bogus, target, null, indicator) }
-            .exceptionOrNull()
+        val failure =
+            runCatching { LuaArchiveExtractor.extract(bogus, target, null, indicator) }
+                .exceptionOrNull()
         assertTrue("unsupported format must raise LuaProvisionException", failure is LuaProvisionException)
     }
 }

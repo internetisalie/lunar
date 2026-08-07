@@ -11,14 +11,12 @@ import net.internetisalie.lunar.lang.schema.LuaSchemaFileProvider
  * injected; claiming the file needs only its name.
  */
 class BustedSchemaProvider : LuaSchemaFileProvider() {
-
     override fun getName(): String = PROVIDER_NAME
 
     override fun getSchemaFile(): VirtualFile? =
         JsonSchemaProviderFactory.getResourceFile(this::class.java, SCHEMA_RESOURCE_PATH)
 
-    override fun isAvailable(file: VirtualFile): Boolean =
-        file.name == BUSTED_NAME
+    override fun isAvailable(file: VirtualFile): Boolean = file.name == BUSTED_NAME
 
     companion object {
         private const val PROVIDER_NAME = "Busted Config"

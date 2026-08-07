@@ -18,14 +18,14 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaOptionalFieldTest : BasePlatformTestCase() {
-
     @Test
     fun testOptionalFieldIsNamedWithoutTheMarker() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "opts.lua",
-            "---@class Opts\n---@field required string\n---@field optional? number\nlocal Opts = {}\n",
-        )
+        val usage =
+            myFixture.configureByText(
+                "opts.lua",
+                "---@class Opts\n---@field required string\n---@field optional? number\nlocal Opts = {}\n",
+            )
 
         runReadAction {
             val opts = typeManager.resolveType("Opts", usage) as? LuaClassType
@@ -38,10 +38,11 @@ class LuaOptionalFieldTest : BasePlatformTestCase() {
     @Test
     fun testOptionalFieldTypeAdmitsNil() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "opts.lua",
-            "---@class Opts\n---@field optional? number\nlocal Opts = {}\n",
-        )
+        val usage =
+            myFixture.configureByText(
+                "opts.lua",
+                "---@class Opts\n---@field optional? number\nlocal Opts = {}\n",
+            )
 
         runReadAction {
             val opts = typeManager.resolveType("Opts", usage) as LuaClassType

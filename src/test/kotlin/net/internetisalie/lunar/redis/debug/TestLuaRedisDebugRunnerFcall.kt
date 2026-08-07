@@ -12,7 +12,6 @@ import net.internetisalie.lunar.redis.run.LuaRedisRunConfigurationType
  * REDIS-02's Debug support for EVAL/EVALSHA modes is preserved (design §3.11).
  */
 class TestLuaRedisDebugRunnerFcall : BasePlatformTestCase() {
-
     private fun newConfig(): LuaRedisRunConfiguration {
         val type = LuaRedisRunConfigurationType.getInstance()
         val factory = type.configurationFactories[0]

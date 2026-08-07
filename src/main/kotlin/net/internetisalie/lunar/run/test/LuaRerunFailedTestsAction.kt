@@ -10,9 +10,8 @@ import com.intellij.openapi.ui.ComponentContainer
 
 class LuaRerunFailedTestsAction(
     componentContainer: ComponentContainer,
-    consoleProperties: TestConsoleProperties
+    consoleProperties: TestConsoleProperties,
 ) : AbstractRerunFailedTestsAction(componentContainer) {
-
     init {
         init(consoleProperties)
     }
@@ -24,12 +23,14 @@ class LuaRerunFailedTestsAction(
     }
 
     private inner class MyTestRunProfile(
-        private val targetConfiguration: LuaTestRunConfiguration
+        private val targetConfiguration: LuaTestRunConfiguration,
     ) : MyRunProfile(targetConfiguration) {
-
         override fun getModules(): Array<Module> = Module.EMPTY_ARRAY
 
-        override fun getState(executor: Executor, env: ExecutionEnvironment): RunProfileState {
+        override fun getState(
+            executor: Executor,
+            env: ExecutionEnvironment,
+        ): RunProfileState {
             val targetProject = targetConfiguration.project
             val failedTestProxies = getFailedTests(targetProject)
             val failedTestNamesString = failedTestProxies.filter { it.isLeaf }.map { it.name }.joinToString(",")

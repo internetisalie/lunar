@@ -14,7 +14,6 @@ import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDocumentationRenderer
  * resolves to nothing — so a test asserting on inferred types would pass with the bug present.
  */
 class LdocUntypedParamTest : BasePlatformTestCase() {
-
     /**
      * Rendered documentation with markup stripped. Asserting on the raw HTML is what made the first
      * draft of these tests vacuous: `renderTypeText` wraps every type in `<font color=…>`, so
@@ -29,16 +28,17 @@ class LdocUntypedParamTest : BasePlatformTestCase() {
 
     /** The reported case: prose words must not be presented as types. */
     fun testLdocProseIsNotRenderedAsAType() {
-        val doc = renderDoc(
-            """
-            --- Search an array.
-            --- @param array Lua table of values to search
-            --- @param e a value
-            local function findValue(array, e)
-                return array[1] == e
-            end
-            """.trimIndent(),
-        )
+        val doc =
+            renderDoc(
+                """
+                --- Search an array.
+                --- @param array Lua table of values to search
+                --- @param e a value
+                local function findValue(array, e)
+                    return array[1] == e
+                end
+                """.trimIndent(),
+            )
         assertFalse("'Lua' is a description word, not a type:\n$doc", doc.contains("array ( Lua )"))
         assertFalse("'a' is a description word, not a type:\n$doc", doc.contains("e ( a )"))
         assertTrue("an untyped parameter must still be listed:\n$doc", doc.contains("array - Lua table of values"))
@@ -46,46 +46,49 @@ class LdocUntypedParamTest : BasePlatformTestCase() {
 
     /** Nothing may be lost: the words demoted from the type slot stay in the description. */
     fun testDemotedWordsSurviveInTheDescription() {
-        val doc = renderDoc(
-            """
-            --- Search an array.
-            --- @param array Lua table of values to search
-            local function findValue(array)
-                return array[1]
-            end
-            """.trimIndent(),
-        )
+        val doc =
+            renderDoc(
+                """
+                --- Search an array.
+                --- @param array Lua table of values to search
+                local function findValue(array)
+                    return array[1]
+                end
+                """.trimIndent(),
+            )
         assertTrue("the full description must survive:\n$doc", doc.contains("Lua table of values to search"))
     }
 
     /** A genuine LuaCATS primitive type must still render as a type. */
     fun testRealPrimitiveTypeStillRenders() {
-        val doc = renderDoc(
-            """
-            --- Greet someone.
-            --- @param name string the person's name
-            local function greet(name)
-                return name
-            end
-            """.trimIndent(),
-        )
+        val doc =
+            renderDoc(
+                """
+                --- Greet someone.
+                --- @param name string the person's name
+                local function greet(name)
+                    return name
+                end
+                """.trimIndent(),
+            )
         assertTrue("a real type must still render:\n$doc", doc.contains("name ( string )"))
     }
 
     /** A `@class`-declared name is resolvable, so it must still render as a type. */
     fun testDeclaredClassTypeStillRenders() {
-        val doc = renderDoc(
-            """
-            --- @class Builder
-            local Builder = {}
+        val doc =
+            renderDoc(
+                """
+                --- @class Builder
+                local Builder = {}
 
-            --- Build it.
-            --- @param b Builder the builder to use
-            local function build(b)
-                return b
-            end
-            """.trimIndent(),
-        )
+                --- Build it.
+                --- @param b Builder the builder to use
+                local function build(b)
+                    return b
+                end
+                """.trimIndent(),
+            )
         assertTrue("a declared class must still render:\n$doc", doc.contains("b ( Builder )"))
     }
 
@@ -96,30 +99,32 @@ class LdocUntypedParamTest : BasePlatformTestCase() {
      * unresolvable *and* followed by a description.
      */
     fun testUnresolvableNameWithNoDescriptionStaysAType() {
-        val doc = renderDoc(
-            """
-            --- Move it.
-            --- @param a Player
-            local function move(a)
-                return a
-            end
-            """.trimIndent(),
-        )
+        val doc =
+            renderDoc(
+                """
+                --- Move it.
+                --- @param a Player
+                local function move(a)
+                    return a
+                end
+                """.trimIndent(),
+            )
         assertTrue("an undeclared type with no description must survive:\n$doc", doc.contains("a ( Player )"))
     }
 
     /** Structural type syntax is unambiguous and must never be demoted. */
     fun testStructuralTypesStillRender() {
-        val doc = renderDoc(
-            """
-            --- Join things.
-            --- @param parts string[] the parts
-            --- @param sep string|nil the separator
-            local function join(parts, sep)
-                return parts, sep
-            end
-            """.trimIndent(),
-        )
+        val doc =
+            renderDoc(
+                """
+                --- Join things.
+                --- @param parts string[] the parts
+                --- @param sep string|nil the separator
+                local function join(parts, sep)
+                    return parts, sep
+                end
+                """.trimIndent(),
+            )
         assertTrue("an array type must still render:\n$doc", doc.contains("parts ( string[] )"))
         assertTrue("a union type must still render:\n$doc", doc.contains("sep ( string|nil )"))
     }

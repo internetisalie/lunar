@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.doc
 
 import com.intellij.codeInsight.navigation.targetPresentation
+import com.intellij.icons.AllIcons
 import com.intellij.model.Pointer
 import com.intellij.openapi.project.Project
 import com.intellij.platform.backend.documentation.DocumentationResult
@@ -18,9 +19,9 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.intellij.util.indexing.FileBasedIndex
-import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
 import net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex
+import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.indexing.dottedMemberName
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
@@ -35,10 +36,16 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
 class LuaDocumentationTargetProvider : DocumentationTargetProvider {
-    override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
+    override fun documentationTargets(
+        file: PsiFile,
+        offset: Int,
+    ): List<DocumentationTarget> {
         var element = file.findElementAt(offset) ?: return emptyList()
         val et = element.elementType
-        if (et == LuaElementTypes.IDENTIFIER || et == LuaCatsElementTypes.NAME || et == LuaCatsElementTypes.BUILTIN_TYPE) {
+        if (et == LuaElementTypes.IDENTIFIER ||
+            et == LuaCatsElementTypes.NAME ||
+            et == LuaCatsElementTypes.BUILTIN_TYPE
+        ) {
             // NAV-12-03: a dotted member field documents its `receiver.field = value` declaration.
             memberFieldDocumentationTarget(element)?.let { return listOf(it) }
 
@@ -46,7 +53,8 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             if (!isMemberSegment) {
                 val name = element.text
                 if (name != null) {
-                    val typeElement = findTypeElement(name, element.project, GlobalSearchScope.allScope(element.project))
+                    val typeElement =
+                        findTypeElement(name, element.project, GlobalSearchScope.allScope(element.project))
                     if (typeElement != null) {
                         return listOf(LuaCatsTypeDocumentationTarget(typeElement, name))
                     }
@@ -59,11 +67,12 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             return arrayListOf(LuaCatsDocumentationTarget(element))
         }
         if (element is LuaCatsClassTag || element is LuaCatsAliasTag) {
-            val name = when (element) {
-                is LuaCatsClassTag -> element.argType.text.trim()
-                is LuaCatsAliasTag -> element.argName.text.trim()
-                else -> ""
-            }
+            val name =
+                when (element) {
+                    is LuaCatsClassTag -> element.argType.text.trim()
+                    is LuaCatsAliasTag -> element.argName.text.trim()
+                    else -> ""
+                }
             return arrayListOf(LuaCatsTypeDocumentationTarget(element, name))
         }
         return emptyList()
@@ -100,33 +109,34 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         // First try resolving through reference (for call sites)
         val parent = element.parent
 
-        val resolvedElement = when {
-            parent is LuaNameRefElement -> {
-                val ref = parent.reference
-                var resolved = ref?.resolve()
+        val resolvedElement =
+            when {
+                parent is LuaNameRefElement -> {
+                    val ref = parent.reference
+                    var resolved = ref?.resolve()
 
-                // The reference might resolve to a name token or another leaf element
-                // Get the parent to get the actual declaration
-                if (resolved != null && resolved !is LuaCatsCommentOwner) {
-                    // First try to unwrap it to a declaration
-                    val commentOwner = findElementDocCommentOwner(resolved)
-                    if (commentOwner != null) {
-                        resolved = commentOwner
-                    } else {
-                        // If that fails, try the resolved element's parent directly
-                        // (in case it's already wrapped in a declaration)
-                        val p = resolved.parent
-                        if (p is LuaCatsCommentOwner) {
-                            resolved = p
+                    // The reference might resolve to a name token or another leaf element
+                    // Get the parent to get the actual declaration
+                    if (resolved != null && resolved !is LuaCatsCommentOwner) {
+                        // First try to unwrap it to a declaration
+                        val commentOwner = findElementDocCommentOwner(resolved)
+                        if (commentOwner != null) {
+                            resolved = commentOwner
+                        } else {
+                            // If that fails, try the resolved element's parent directly
+                            // (in case it's already wrapped in a declaration)
+                            val p = resolved.parent
+                            if (p is LuaCatsCommentOwner) {
+                                resolved = p
+                            }
                         }
                     }
+                    resolved
                 }
-                resolved
+                parent is PsiReference -> parent.resolve()
+                element is PsiReference -> element.resolve()
+                else -> null
             }
-            parent is PsiReference -> parent.resolve()
-            element is PsiReference -> element.resolve()
-            else -> null
-        }
 
         if (resolvedElement != null && resolvedElement is LuaCatsCommentOwner) {
             return resolvedElement
@@ -150,13 +160,37 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         // it has no documented declaration is correct; an arbitrary same-named symbol is not.
         val isMemberSegment = element.parent?.parent is LuaIndexExpr
         if (!isMemberSegment) {
-            val classDecl = StubIndex.getElements(LuaClassNameIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+            val classDecl =
+                StubIndex
+                    .getElements(
+                        LuaClassNameIndex.KEY,
+                        elementText,
+                        project,
+                        scope,
+                        LuaLocalVarDecl::class.java,
+                    ).firstOrNull()
             if (classDecl != null) return classDecl
 
-            val aliasDecl = StubIndex.getElements(LuaAliasIndex.KEY, elementText, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
+            val aliasDecl =
+                StubIndex
+                    .getElements(
+                        LuaAliasIndex.KEY,
+                        elementText,
+                        project,
+                        scope,
+                        LuaLocalVarDecl::class.java,
+                    ).firstOrNull()
             if (aliasDecl != null) return aliasDecl
 
-            val funcDecl = StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, elementText, project, scope, LuaFuncDecl::class.java).firstOrNull()
+            val funcDecl =
+                StubIndex
+                    .getElements(
+                        LuaGlobalDeclarationIndex.KEY,
+                        elementText,
+                        project,
+                        scope,
+                        LuaFuncDecl::class.java,
+                    ).firstOrNull()
             if (funcDecl != null) return funcDecl
         }
 
@@ -166,7 +200,14 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             if (topExpr != null) {
                 val fullName = topExpr.text
                 if (fullName != null && fullName != elementText) {
-                    return StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, fullName, project, scope, LuaFuncDecl::class.java).firstOrNull()
+                    return StubIndex
+                        .getElements(
+                            LuaGlobalDeclarationIndex.KEY,
+                            fullName,
+                            project,
+                            scope,
+                            LuaFuncDecl::class.java,
+                        ).firstOrNull()
                 }
             }
         }
@@ -182,10 +223,12 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             is LuaLocalFuncDecl -> owner
             is LuaLocalVarDecl -> {
                 val catsComment = owner.catsComment
-                if (catsComment != null && (
-                    catsComment.classTagList.isNotEmpty() ||
-                    catsComment.typeTagList.isNotEmpty() ||
-                    catsComment.enumTagList.isNotEmpty())
+                if (catsComment != null &&
+                    (
+                        catsComment.classTagList.isNotEmpty() ||
+                            catsComment.typeTagList.isNotEmpty() ||
+                            catsComment.enumTagList.isNotEmpty()
+                    )
                 ) {
                     owner
                 } else {
@@ -196,9 +239,15 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         }
     }
 
-    private fun findTypeElement(name: String, project: Project, scope: GlobalSearchScope): PsiElement? {
+    private fun findTypeElement(
+        name: String,
+        project: Project,
+        scope: GlobalSearchScope,
+    ): PsiElement? {
         val index = FileBasedIndex.getInstance()
-        val psiManager = com.intellij.psi.PsiManager.getInstance(project)
+        val psiManager =
+            com.intellij.psi.PsiManager
+                .getInstance(project)
         for (virtualFile in index.getContainingFiles(LuaCatsTypeNameIndex.KEY, name, scope)) {
             val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
             for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsClassTag::class.java)) {
@@ -214,7 +263,6 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
     }
 }
 
-
 internal class LuaCatsDocumentationTarget(
     val element: LuaCatsCommentOwner,
 ) : DocumentationTarget {
@@ -227,16 +275,14 @@ internal class LuaCatsDocumentationTarget(
         }
     }
 
-    override fun computePresentation(): TargetPresentation {
-        return targetPresentation(element)
-    }
+    override fun computePresentation(): TargetPresentation = targetPresentation(element)
 
     override val navigatable: Navigatable?
         get() = element as? Navigatable
 
     override fun computeDocumentation(): DocumentationResult? {
         return DocumentationResult.documentation(
-            LuaDocumentationRenderer.renderFullDocumentation(element) ?: return null
+            LuaDocumentationRenderer.renderFullDocumentation(element) ?: return null,
         )
     }
 }
@@ -268,24 +314,30 @@ internal class LuaFieldDocumentationTarget(
         get() = anchor as? Navigatable
 
     override fun computeDocumentation(): DocumentationResult? {
-        val typeText = comment.typeTagList.firstOrNull()?.argType?.text?.trim()
+        val typeText =
+            comment.typeTagList
+                .firstOrNull()
+                ?.argType
+                ?.text
+                ?.trim()
         val summary = LuaCatsSummary.getText(comment)
         if (typeText.isNullOrEmpty() && summary.isNullOrEmpty()) return null
 
-        val body = buildString {
-            append("<div class='definition'><pre>")
-            append(qualifiedName)
-            if (!typeText.isNullOrEmpty()) {
-                append(" : ")
-                append(typeText)
+        val body =
+            buildString {
+                append("<div class='definition'><pre>")
+                append(qualifiedName)
+                if (!typeText.isNullOrEmpty()) {
+                    append(" : ")
+                    append(typeText)
+                }
+                append("</pre></div>")
+                if (!summary.isNullOrEmpty()) {
+                    append("<div class='content'>")
+                    append(LuaDocumentationRenderer.markdownDescription(summary))
+                    append("</div>")
+                }
             }
-            append("</pre></div>")
-            if (!summary.isNullOrEmpty()) {
-                append("<div class='content'>")
-                append(LuaDocumentationRenderer.markdownDescription(summary))
-                append("</div>")
-            }
-        }
         return DocumentationResult.documentation(
             LuaDocumentationRenderer.DOC_COMMENT_HEADER + body + LuaDocumentationRenderer.DOC_COMMENT_FOOTER,
         )
@@ -306,8 +358,9 @@ internal class LuaCatsTypeDocumentationTarget(
     }
 
     override fun computePresentation(): TargetPresentation {
-        val icon = if (element is LuaCatsClassTag) com.intellij.icons.AllIcons.Nodes.Class else com.intellij.icons.AllIcons.Nodes.Type
-        return TargetPresentation.builder(typeName)
+        val icon = if (element is LuaCatsClassTag) AllIcons.Nodes.Class else AllIcons.Nodes.Type
+        return TargetPresentation
+            .builder(typeName)
             .icon(icon)
             .presentation()
     }
@@ -317,8 +370,7 @@ internal class LuaCatsTypeDocumentationTarget(
 
     override fun computeDocumentation(): DocumentationResult? {
         return DocumentationResult.documentation(
-            LuaDocumentationRenderer.renderFullDocumentation(element) ?: return null
+            LuaDocumentationRenderer.renderFullDocumentation(element) ?: return null,
         )
     }
 }
-

@@ -19,7 +19,6 @@ package net.internetisalie.lunar.luacats.lang.psi
  * branch).
  */
 object LuaCatsDeclarations {
-
     /**
      * A `@field`'s member name, the type string the engine should give it, and the tag it came from.
      *
@@ -30,11 +29,14 @@ object LuaCatsDeclarations {
      * targets, so collapsing the AST path onto the host declaration would silently regress override
      * navigation.
      */
-    data class FieldMember(val name: String, val typeName: String, val tag: LuaCatsFieldTag?)
+    data class FieldMember(
+        val name: String,
+        val typeName: String,
+        val tag: LuaCatsFieldTag?,
+    )
 
     /** Every `@field` declared on [comment], in declaration order. */
-    fun fieldMembers(comment: LuaCatsComment): List<FieldMember> =
-        comment.fieldTagList.map { fieldMember(it) }
+    fun fieldMembers(comment: LuaCatsComment): List<FieldMember> = comment.fieldTagList.map { fieldMember(it) }
 
     /**
      * The member [tag] declares.
@@ -77,7 +79,9 @@ object LuaCatsDeclarations {
      * unless the list is counted — which is why the parity harness compares per-element renderings.
      */
     fun parentTypeNames(tag: LuaCatsClassTag): List<String> =
-        tag.parentTypes?.argTypeList.orEmpty()
+        tag.parentTypes
+            ?.argTypeList
+            .orEmpty()
             .map { it.text.trim() }
             .filter { it.isNotEmpty() }
 
@@ -93,9 +97,16 @@ object LuaCatsDeclarations {
      * class name — a type-engine concern, not a tag-reading one.
      */
     fun returnTypeName(comment: LuaCatsComment): String? =
-        comment.returnTagList.flatMap { it.returnTypeDescriptorList }.firstOrNull()?.argType?.text
+        comment.returnTagList
+            .flatMap { it.returnTypeDescriptorList }
+            .firstOrNull()
+            ?.argType
+            ?.text
 
     /** The first `@alias`'s target type string, or null. */
     fun aliasTarget(comment: LuaCatsComment): String? =
-        comment.aliasTagList.firstOrNull()?.argType?.text
+        comment.aliasTagList
+            .firstOrNull()
+            ?.argType
+            ?.text
 }

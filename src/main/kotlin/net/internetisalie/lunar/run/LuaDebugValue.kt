@@ -38,7 +38,7 @@ class LuaDebugValue : XValue {
         this.identityValue = null
     }
 
-    constructor(luaValue: LuaValue, identityValue : String?, icon: Icon?) {
+    constructor(luaValue: LuaValue, identityValue: String?, icon: Icon?) {
         this.typeName = luaValue.typeName
         this.rawValue = luaValue
         this.displayValue = luaValue.psiElement?.text ?: luaValue.toDisplayString()
@@ -49,7 +49,7 @@ class LuaDebugValue : XValue {
     constructor(errorMessage: String?) : this(
         "error",
         "Error during evaluation: $errorMessage",
-        AllIcons.Nodes.ErrorMark
+        AllIcons.Nodes.ErrorMark,
     )
 
     val isString: Boolean
@@ -64,10 +64,13 @@ class LuaDebugValue : XValue {
     val isTable: Boolean
         get() = typeName == "table"
 
-    val raw : LuaValue
+    val raw: LuaValue
         get() = rawValue
 
-    override fun computePresentation(node: XValueNode, place: XValuePlace) {
+    override fun computePresentation(
+        node: XValueNode,
+        place: XValuePlace,
+    ) {
         val presentation: XValuePresentation = this.presentation
         node.setPresentation(icon, presentation, this.isTable)
     }
@@ -78,18 +81,20 @@ class LuaDebugValue : XValue {
             return
         }
 
-        val fields = rawValue.checkTable()?.pairs() ?: run {
-            node.addChildren(XValueChildrenList.EMPTY, true)
-            return
-        }
+        val fields =
+            rawValue.checkTable()?.pairs() ?: run {
+                node.addChildren(XValueChildrenList.EMPTY, true)
+                return
+            }
 
         val xValues = XValueChildrenList(fields.size)
         fields.forEach { field ->
-            val key = when (field.first.kind) {
-                LuaValueKind.String -> field.first.stringValue ?: "?"
-                LuaValueKind.Number -> "[" + (field.first.numberValue?.toInt() ?: 0) + "]"
-                else -> "[" + field.first.toDisplayString() + "]"
-            }
+            val key =
+                when (field.first.kind) {
+                    LuaValueKind.String -> field.first.stringValue ?: "?"
+                    LuaValueKind.Number -> "[" + (field.first.numberValue?.toInt() ?: 0) + "]"
+                    else -> "[" + field.first.toDisplayString() + "]"
+                }
             val debugValue = LuaDebugValue(field.second, null, AllIcons.Nodes.Field)
             xValues.add(key, debugValue)
         }

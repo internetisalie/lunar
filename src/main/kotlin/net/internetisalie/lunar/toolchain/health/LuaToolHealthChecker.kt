@@ -8,11 +8,10 @@ import net.internetisalie.lunar.toolchain.probe.LuaToolProbeResult
 import java.io.File
 
 object LuaToolHealthChecker {
-
     fun check(
         tool: LuaRegisteredTool,
         kind: LuaToolKind,
-        probe: LuaToolProbe = LuaToolProbe.getInstance()
+        probe: LuaToolProbe = LuaToolProbe.getInstance(),
     ): LuaToolCheckResult {
         val targetFile = File(tool.path)
         val fastResult = evaluateFastChecks(targetFile)
@@ -30,55 +29,76 @@ object LuaToolHealthChecker {
     private fun evaluateFastChecks(targetFile: File): LuaToolCheckResult? {
         if (!targetFile.exists()) {
             return LuaToolCheckResult(
-                health = LuaToolHealth(fileExists = false, executable = false, probeOk = null, probedAtMtime = null, reason = "Binary missing"),
+                health =
+                    LuaToolHealth(
+                        fileExists = false,
+                        executable = false,
+                        probeOk = null,
+                        probedAtMtime = null,
+                        reason = "Binary missing",
+                    ),
                 version = null,
                 luaVersion = null,
-                runtime = null
+                runtime = null,
             )
         }
         if (!targetFile.canExecute()) {
             return LuaToolCheckResult(
-                health = LuaToolHealth(fileExists = true, executable = false, probeOk = null, probedAtMtime = null, reason = "Permission denied"),
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = false,
+                        probeOk = null,
+                        probedAtMtime = null,
+                        reason = "Permission denied",
+                    ),
                 version = null,
                 luaVersion = null,
-                runtime = null
+                runtime = null,
             )
         }
         return null
     }
 
-    private fun isMtimeGateArmed(tool: LuaRegisteredTool, mtime: Long): Boolean =
+    private fun isMtimeGateArmed(
+        tool: LuaRegisteredTool,
+        mtime: Long,
+    ): Boolean =
         tool.health.probeOk == true &&
             tool.health.probedAtMtime == mtime &&
             tool.version != null
 
-    private fun buildProbeResult(probeResult: LuaToolProbeResult, mtime: Long): LuaToolCheckResult {
-        return if (probeResult.ok) {
+    private fun buildProbeResult(
+        probeResult: LuaToolProbeResult,
+        mtime: Long,
+    ): LuaToolCheckResult =
+        if (probeResult.ok) {
             LuaToolCheckResult(
-                health = LuaToolHealth(
-                    fileExists = true,
-                    executable = true,
-                    probeOk = true,
-                    probedAtMtime = mtime,
-                    reason = "OK ${probeResult.version}"
-                ),
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = mtime,
+                        reason = "OK ${probeResult.version}",
+                    ),
                 version = probeResult.version,
                 luaVersion = probeResult.luaVersion,
-                runtime = probeResult.runtime
+                runtime = probeResult.runtime,
             )
         } else {
             LuaToolCheckResult(
-                health = LuaToolHealth(
-                    fileExists = true,
-                    executable = true,
-                    probeOk = false,
-                    probedAtMtime = mtime,
-                    reason = probeResult.failure ?: "Not executable"
-                ),
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = false,
+                        probedAtMtime = mtime,
+                        reason = probeResult.failure ?: "Not executable",
+                    ),
                 version = null,
                 luaVersion = null,
-                runtime = null
+                runtime = null,
             )
         }
-    }
 }

@@ -24,9 +24,14 @@ class LuaCreateLocalVariableIntention : BaseIntentionAction() {
     private var variableName: String = ""
 
     override fun getFamilyName(): String = "Lua"
+
     override fun getText(): String = "Create local variable '$variableName'"
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean {
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean {
         if (file !is LuaFile) return false
         val ref = nameRefAt(editor, file) ?: return false
         if (!isSimpleWriteTarget(ref)) return false
@@ -35,18 +40,26 @@ class LuaCreateLocalVariableIntention : BaseIntentionAction() {
         return true
     }
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val ref = nameRefAt(editor, file) ?: return
         val assignment = PsiTreeUtil.getParentOfType(ref, LuaAssignmentStatement::class.java) ?: return
         WriteCommandAction.runWriteCommandAction(project, text, null, {
             val throwaway = LuaElementFactory.createFile(project, "local " + assignment.text)
-            val declaration = PsiTreeUtil.findChildOfType(throwaway, LuaStatement::class.java)
-                ?: return@runWriteCommandAction
+            val declaration =
+                PsiTreeUtil.findChildOfType(throwaway, LuaStatement::class.java)
+                    ?: return@runWriteCommandAction
             assignment.replace(declaration)
         })
     }
 
-    private fun nameRefAt(editor: Editor, file: PsiFile): LuaNameRef? {
+    private fun nameRefAt(
+        editor: Editor,
+        file: PsiFile,
+    ): LuaNameRef? {
         val offset = editor.caretModel.offset
         val here = PsiTreeUtil.getParentOfType(file.findElementAt(offset), LuaNameRef::class.java)
         if (here != null) return here

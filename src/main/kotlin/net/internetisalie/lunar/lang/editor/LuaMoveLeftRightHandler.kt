@@ -16,15 +16,15 @@ import net.internetisalie.lunar.lang.psi.LuaNameList
  * preserving the separators between them. Stateless. EDITOR-07-03. Design §2.2 / §3.2.
  */
 class LuaMoveLeftRightHandler : MoveElementLeftRightHandler() {
-
-    override fun getMovableSubElements(element: PsiElement): Array<PsiElement> = when (element) {
-        is LuaExprList -> movable(element.exprList)
-        is LuaFieldList -> movable(element.fieldList)
-        is LuaNameList -> movable(element.nameRefList)
-        is LuaLocalVarDecl -> movable(element.attNameList)
-        is LuaGlobalVarDecl -> movable(element.attNameList)
-        else -> PsiElement.EMPTY_ARRAY
-    }
+    override fun getMovableSubElements(element: PsiElement): Array<PsiElement> =
+        when (element) {
+            is LuaExprList -> movable(element.exprList)
+            is LuaFieldList -> movable(element.fieldList)
+            is LuaNameList -> movable(element.nameRefList)
+            is LuaLocalVarDecl -> movable(element.attNameList)
+            is LuaGlobalVarDecl -> movable(element.attNameList)
+            else -> PsiElement.EMPTY_ARRAY
+        }
 
     private fun movable(items: List<PsiElement>): Array<PsiElement> = items.toTypedArray()
 }

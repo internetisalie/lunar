@@ -7,19 +7,19 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaRecursiveReferenceTest : BasePlatformTestCase() {
-
-    override fun getTestDataPath(): String {
-        return System.getProperty("user.dir")
-    }
+    override fun getTestDataPath(): String = System.getProperty("user.dir")
 
     @Test
     fun testRecursiveLocalFunction() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             local function factorial(n)
                 if n == 0 then return 1 end
                 return n * <caret>factorial(n - 1)
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val element = myFixture.file.findElementAt(myFixture.caretOffset)!!.parent
         val reference = element.reference
@@ -33,12 +33,15 @@ class LuaRecursiveReferenceTest : BasePlatformTestCase() {
 
     @Test
     fun testRecursiveGlobalFunction() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             function factorial(n)
                 if n == 0 then return 1 end
                 return n * <caret>factorial(n - 1)
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val element = myFixture.file.findElementAt(myFixture.caretOffset)!!.parent
         val reference = element.reference
@@ -52,11 +55,14 @@ class LuaRecursiveReferenceTest : BasePlatformTestCase() {
 
     @Test
     fun testParameterShadowsFunction() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             local function f(f)
                 print(<caret>f)
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val element = myFixture.file.findElementAt(myFixture.caretOffset)!!.parent
         val reference = element.reference
@@ -71,12 +77,15 @@ class LuaRecursiveReferenceTest : BasePlatformTestCase() {
 
     @Test
     fun testLocalFunctionShadowsOuterLocal() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             local f = 1
             local function f()
                 print(<caret>f)
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val element = myFixture.file.findElementAt(myFixture.caretOffset)!!.parent
         val reference = element.reference
@@ -96,7 +105,8 @@ class LuaRecursiveReferenceTest : BasePlatformTestCase() {
 
         // Find "parse_subexpression" call at line 621 (1-based)
         // L621:       local operand = parse_subexpression(state, unary_priority)
-        val offset = myFixture.editor.document.getLineStartOffset(620) + 22 // Approximate offset for "parse_subexpression"
+        // Approximate offset for "parse_subexpression"
+        val offset = myFixture.editor.document.getLineStartOffset(620) + 22
         myFixture.editor.caretModel.moveToOffset(offset)
 
         val element = myFixture.file.findElementAt(myFixture.caretOffset)!!.parent

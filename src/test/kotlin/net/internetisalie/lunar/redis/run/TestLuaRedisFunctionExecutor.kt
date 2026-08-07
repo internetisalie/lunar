@@ -1,12 +1,12 @@
 package net.internetisalie.lunar.redis.run
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.coroutines.runBlocking
 import net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings
 import net.internetisalie.lunar.redis.connection.LuaRedisProvisioning
 import net.internetisalie.lunar.redis.connection.LuaRedisServerConnection
 import net.internetisalie.lunar.redis.resp.RespClient
 import net.internetisalie.lunar.redis.resp.RespValue
-import kotlinx.coroutines.runBlocking
 
 /**
  * Unit coverage of [LuaRedisFunctionExecutor] against a scripted in-process RESP server.
@@ -16,7 +16,6 @@ import kotlinx.coroutines.runBlocking
  * TC-DEPLOY-1, TC-CALL-1, TC-RO-1 from requirements.md.
  */
 class TestLuaRedisFunctionExecutor : BasePlatformTestCase() {
-
     private val servers = mutableListOf<ScriptedRespServer>()
 
     override fun tearDown() {
@@ -35,19 +34,23 @@ class TestLuaRedisFunctionExecutor : BasePlatformTestCase() {
         val server = scriptedServer(simpleReply("lib"))
         val config = newConfig(deployOnly = true, replaceOnLoad = true)
 
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertEquals(RespValue.Simple("lib"), reply)
         val cmds = server.requests
         assertEquals("expected HELLO then FUNCTION LOAD", 2, cmds.size)
-        assertTrue("FUNCTION LOAD REPLACE in request", cmds[1].contains("FUNCTION") && cmds[1].contains("LOAD") && cmds[1].contains("REPLACE"))
+        assertTrue(
+            "FUNCTION LOAD REPLACE in request",
+            cmds[1].contains("FUNCTION") && cmds[1].contains("LOAD") && cmds[1].contains("REPLACE"),
+        )
         assertFalse("no FCALL sent for deploy-only", cmds.any { it.contains("FCALL") })
     }
 
@@ -77,26 +80,29 @@ class TestLuaRedisFunctionExecutor : BasePlatformTestCase() {
      * keys=["k1"], argv=["a1"] → LOAD then FCALL f 1 k1 a1.
      */
     fun testFcallDeployAndCall_TC_CALL_1() {
-        val server = scriptedServer(
-            simpleReply("lib"),
-            bulkReply("result"),
-        )
-        val config = newConfig(
-            deployOnly = false,
-            replaceOnLoad = true,
-            functionName = "f",
-            keys = listOf("k1"),
-            argv = listOf("a1"),
-        )
+        val server =
+            scriptedServer(
+                simpleReply("lib"),
+                bulkReply("result"),
+            )
+        val config =
+            newConfig(
+                deployOnly = false,
+                replaceOnLoad = true,
+                functionName = "f",
+                keys = listOf("k1"),
+                argv = listOf("a1"),
+            )
 
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertEquals(RespValue.Bulk("result".toByteArray(Charsets.UTF_8)), reply)
         val cmds = server.requests
@@ -115,25 +121,28 @@ class TestLuaRedisFunctionExecutor : BasePlatformTestCase() {
      * A server write-error reply is surfaced verbatim (not blocked client-side).
      */
     fun testReadOnlyUsesFcallRo_TC_RO_1() {
-        val server = scriptedServer(
-            simpleReply("lib"),
-            errorReply("ERR Write commands are not allowed from read-only scripts"),
-        )
-        val config = newConfig(
-            deployOnly = false,
-            replaceOnLoad = false,
-            readOnly = true,
-            functionName = "f",
-        )
+        val server =
+            scriptedServer(
+                simpleReply("lib"),
+                errorReply("ERR Write commands are not allowed from read-only scripts"),
+            )
+        val config =
+            newConfig(
+                deployOnly = false,
+                replaceOnLoad = false,
+                readOnly = true,
+                functionName = "f",
+            )
 
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         val cmds = server.requests
         assertTrue("FCALL_RO sent for readOnly=true", cmds[2].contains("FCALL_RO"))
@@ -144,19 +153,21 @@ class TestLuaRedisFunctionExecutor : BasePlatformTestCase() {
      * LOAD error is surfaced immediately without attempting FCALL.
      */
     fun testLoadErrorSurfacedWithoutFcall() {
-        val server = scriptedServer(
-            errorReply("ERR Error loading shared library"),
-        )
+        val server =
+            scriptedServer(
+                errorReply("ERR Error loading shared library"),
+            )
         val config = newConfig(deployOnly = false, functionName = "f")
 
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisFunctionExecutor().execute(client, config, LIBRARY_BODY)
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertTrue("LOAD error surfaced", reply is RespValue.Error)
         val cmds = server.requests

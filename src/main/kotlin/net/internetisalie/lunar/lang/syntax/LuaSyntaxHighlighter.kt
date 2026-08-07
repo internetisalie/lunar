@@ -21,7 +21,6 @@ import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
 import com.intellij.psi.tree.IElementType
 import net.internetisalie.lunar.lang.lexer.LuaLexer
-import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 
@@ -61,11 +60,7 @@ class LuaSyntaxHighlighter : SyntaxHighlighterBase() {
         fillMap(colors, LuaSyntax.LabelTokens, LuaHighlight.LABEL)
     }
 
-    override fun getHighlightingLexer(): Lexer {
-        return LuaLexer()
-    }
+    override fun getHighlightingLexer(): Lexer = LuaLexer()
 
-    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> {
-        return pack(colors[tokenType])
-    }
+    override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> = pack(colors[tokenType])
 }

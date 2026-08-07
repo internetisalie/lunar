@@ -26,7 +26,6 @@ import java.io.File
  * can be large and can grow without anyone authoring per-file assertions.
  */
 object CorpusSweep {
-
     private const val SYMBOLS_PER_INSPECTION = 10
 
     internal data class FileTally(
@@ -46,7 +45,11 @@ object CorpusSweep {
         val invalidStatements: Int = 0,
     )
 
-    private data class SweptFile(val path: String, val file: VirtualFile, val tally: FileTally) {
+    private data class SweptFile(
+        val path: String,
+        val file: VirtualFile,
+        val tally: FileTally,
+    ) {
         // BUG-409: "the parser built no error elements" is not "Lunar considers this valid Lua".
         // `exprStatement ::= expr` is deliberately permissive for error recovery, and the narrowing
         // is enforced by an annotator — so an oracle that counts only PsiErrorElements scores a file
@@ -64,9 +67,16 @@ object CorpusSweep {
     private const val ORACLE_SITES_CAP = 20
 
     /** What every per-file step needs beyond the fixture: which corpus, and where the repo is. */
-    private data class SweepContext(val entry: CorpusEntry, val repoRoot: File)
+    private data class SweepContext(
+        val entry: CorpusEntry,
+        val repoRoot: File,
+    )
 
-    fun run(fixture: CodeInsightTestFixture, entry: CorpusEntry, repoRoot: File): CorpusMetrics {
+    fun run(
+        fixture: CodeInsightTestFixture,
+        entry: CorpusEntry,
+        repoRoot: File,
+    ): CorpusMetrics {
         val checkoutDir = CorpusManifest.checkoutDir(repoRoot, entry.name)
         val context = SweepContext(entry, repoRoot)
         applyModuleRoot(fixture, entry, checkoutDir)
@@ -82,9 +92,10 @@ object CorpusSweep {
             parseErrors = swept.sumOf { it.tally.parseErrors },
             requires = swept.sumOf { it.tally.requires },
             unresolvedRequires = swept.sumOf { it.tally.unresolved },
-            parseErrorFiles = swept
-                .filter { it.tally.parseErrors > 0 }
-                .flatMap { file -> file.tally.errorSites.map { "${file.path}:$it" } },
+            parseErrorFiles =
+                swept
+                    .filter { it.tally.parseErrors > 0 }
+                    .flatMap { file -> file.tally.errorSites.map { "${file.path}:$it" } },
             inspectionHits = sink.hits,
             symbolHits = topSymbols(sink.symbols),
             ballast = ballast(checkoutDir, entry),
@@ -125,7 +136,11 @@ object CorpusSweep {
      * `copyDirectoryToProject` materialises into the in-memory `temp://` filesystem. Pointing at
      * `temp://` paths would silently resolve nothing.
      */
-    private fun applyModuleRoot(fixture: CodeInsightTestFixture, entry: CorpusEntry, checkoutDir: File) {
+    private fun applyModuleRoot(
+        fixture: CodeInsightTestFixture,
+        entry: CorpusEntry,
+        checkoutDir: File,
+    ) {
         val moduleRoot = entry.moduleRoot ?: return
         val base = File(checkoutDir, moduleRoot).canonicalPath
         LuaProjectSettings.getInstance(fixture.project).state.sourcePath = "$base/?.lua;$base/?/init.lua"
@@ -141,10 +156,10 @@ object CorpusSweep {
             .groupBy { it.key.substringBefore('.') }
             .values
             .flatMap { perTool ->
-                perTool.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+                perTool
+                    .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
                     .take(SYMBOLS_PER_INSPECTION)
-            }
-            .associate { it.key to it.value }
+            }.associate { it.key to it.value }
 
     /**
      * MAINT-33-07. Ballast is the **complement of what the sweep indexes**: a file is ballast
@@ -153,10 +168,14 @@ object CorpusSweep {
      * parsed), and dropping the extension test would exclude the 107 `.tl` files that live inside
      * `luarocks/src` and are the whole Teal signal.
      */
-    private fun ballast(checkoutDir: File, entry: CorpusEntry): Map<String, BallastGroup> {
+    private fun ballast(
+        checkoutDir: File,
+        entry: CorpusEntry,
+    ): Map<String, BallastGroup> {
         val rootPaths = entry.roots.map { File(checkoutDir, it).canonicalPath }
         val groups = mutableMapOf<String, BallastGroup>()
-        checkoutDir.walkTopDown()
+        checkoutDir
+            .walkTopDown()
             .onEnter { it.name != ".git" }
             .filter { it.isFile && it.name != ".corpus-sha" }
             .filterNot { it.extension == "lua" && rootPaths.any { root -> it.canonicalPath.startsWith("$root/") } }
@@ -166,11 +185,12 @@ object CorpusSweep {
                 // Counted per member, never flagged for the group: one unrecognised file must not
                 // hide its claimed siblings. `groupKey` files an extensionless `rockspec` under the
                 // same key as `*.rockspec`, which is exactly how that used to happen.
-                groups[key] = if (isClaimed(file.name)) {
-                    running.copy(claimed = running.claimed + 1)
-                } else {
-                    running.copy(unclaimed = running.unclaimed + 1)
-                }
+                groups[key] =
+                    if (isClaimed(file.name)) {
+                        running.copy(claimed = running.claimed + 1)
+                    } else {
+                        running.copy(unclaimed = running.unclaimed + 1)
+                    }
             }
         return groups
     }
@@ -205,7 +225,10 @@ object CorpusSweep {
      * [CorpusMetrics.UNATTRIBUTED] **net of** that file's parse errors, because every
      * `PsiErrorElement` also yields a null-id ERROR info and is already gated by `parseErrors`.
      */
-    private fun inspectionHits(fixture: CodeInsightTestFixture, swept: List<SweptFile>): HitSink {
+    private fun inspectionHits(
+        fixture: CodeInsightTestFixture,
+        swept: List<SweptFile>,
+    ): HitSink {
         val sink = HitSink()
         val hits = sink.hits
         swept.forEach { entry ->
@@ -287,12 +310,16 @@ object CorpusSweep {
      * parser saw, so both sides must be fed one decoded form. Feeding luac the raw bytes would let a
      * decoding difference masquerade as a parser disagreement.
      */
-    private fun tallyGuarded(context: SweepContext, psiFile: PsiFile): FileTally {
+    private fun tallyGuarded(
+        context: SweepContext,
+        psiFile: PsiFile,
+    ): FileTally {
         val source = psiFile.text
         val lex = LexerInvariants.check(source)
         val parsed = runCatching { tally(psiFile) }
-        val crash = lex.crash?.let { "lex:$it" }
-            ?: parsed.exceptionOrNull()?.let { "parse:${it::class.java.simpleName}" }
+        val crash =
+            lex.crash?.let { "lex:$it" }
+                ?: parsed.exceptionOrNull()?.let { "parse:${it::class.java.simpleName}" }
 
         val base = parsed.getOrNull() ?: FileTally(parseErrors = 0, requires = 0, unresolved = 0)
         return base.copy(
@@ -308,11 +335,13 @@ object CorpusSweep {
         // `require "m"` on the enclosing LuaArgs (BUG-389 — a reference cannot hang on a bare leaf).
         // Collecting only the former is exactly the blind spot that made this metric report 3
         // recognised requires across 132 luacheck files, and would have hidden the fix as well.
-        val requireHosts = PsiTreeUtil.findChildrenOfType(psiFile, LuaTerminalExpr::class.java) +
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaArgs::class.java)
-        val requireReferences = requireHosts
-            .flatMap { it.references.asIterable() }
-            .filterIsInstance<LuaRequireReference>()
+        val requireHosts =
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaTerminalExpr::class.java) +
+                PsiTreeUtil.findChildrenOfType(psiFile, LuaArgs::class.java)
+        val requireReferences =
+            requireHosts
+                .flatMap { it.references.asIterable() }
+                .filterIsInstance<LuaRequireReference>()
         return FileTally(
             parseErrors = PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).size,
             invalidStatements = LuaSyntaxDiagnostics.invalidStatements(psiFile).size,

@@ -11,9 +11,11 @@ import kotlin.test.assertTrue
  * named `build-…` is NOT excluded), #10 (exclude glob), #11 (include allow-list).
  */
 class RockspecExclusionFilterTest {
-
-    private fun included(path: String, include: List<String> = emptyList(), exclude: List<String> = emptyList()) =
-        RockspecExclusionFilter.isIncluded(path, include, exclude)
+    private fun included(
+        path: String,
+        include: List<String> = emptyList(),
+        exclude: List<String> = emptyList(),
+    ) = RockspecExclusionFilter.isIncluded(path, include, exclude)
 
     // ---------------------------------------------------------------- TC #2
 

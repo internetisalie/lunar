@@ -13,8 +13,12 @@ import org.junit.Test
  * with the summary line ignored. TC10–TC12.
  */
 class LuaCheckInvokerClassifyTest {
-
-    private fun result(outcome: LuaExecOutcome, exitCode: Int, stdout: String = "", stderr: String = ""): LuaExecResult {
+    private fun result(
+        outcome: LuaExecOutcome,
+        exitCode: Int,
+        stdout: String = "",
+        stderr: String = "",
+    ): LuaExecResult {
         val output = ProcessOutput(stdout, stderr, exitCode, false, false)
         return LuaExecResult(output, outcome)
     }
@@ -36,11 +40,12 @@ class LuaCheckInvokerClassifyTest {
 
     @Test
     fun `test TC12 completed exit 1 parses problems and ignores the summary line`() {
-        val stdout = buildString {
-            appendLine("f.lua:1:7-7: (W211) unused variable 'x'")
-            appendLine("f.lua:2:1-3: (W113) accessing undefined variable 'foo'")
-            appendLine("Total: 2 warnings / 0 errors in 1 file")
-        }
+        val stdout =
+            buildString {
+                appendLine("f.lua:1:7-7: (W211) unused variable 'x'")
+                appendLine("f.lua:2:1-3: (W113) accessing undefined variable 'foo'")
+                appendLine("Total: 2 warnings / 0 errors in 1 file")
+            }
         val outcome = LuaCheckInvoker.classify(result(LuaExecOutcome.COMPLETED, 1, stdout = stdout), "f.lua")
         val problems = outcome as LuaCheckOutcome.Problems
         assertEquals(2, problems.problems.size)

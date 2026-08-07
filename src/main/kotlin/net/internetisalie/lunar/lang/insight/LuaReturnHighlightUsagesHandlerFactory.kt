@@ -20,21 +20,18 @@ import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
  * highlighting when the caret is on a `return` or `function` keyword.
  */
 class LuaReturnHighlightUsagesHandlerFactory : HighlightUsagesHandlerFactoryBase() {
-
     override fun createHighlightUsagesHandler(
         editor: Editor,
         file: PsiFile,
-        target: PsiElement
+        target: PsiElement,
     ): HighlightUsagesHandlerBase<PsiElement>? {
         if (!isReturnKeyword(target) && !isFunctionKeyword(target)) return null
         return LuaReturnHighlightHandler(editor, file, target)
     }
 
-    private fun isReturnKeyword(element: PsiElement): Boolean =
-        element.node.elementType == LuaElementTypes.RETURN
+    private fun isReturnKeyword(element: PsiElement): Boolean = element.node.elementType == LuaElementTypes.RETURN
 
-    private fun isFunctionKeyword(element: PsiElement): Boolean =
-        element.node.elementType == LuaElementTypes.FUNCTION
+    private fun isFunctionKeyword(element: PsiElement): Boolean = element.node.elementType == LuaElementTypes.FUNCTION
 }
 
 /**
@@ -47,14 +44,13 @@ class LuaReturnHighlightUsagesHandlerFactory : HighlightUsagesHandlerFactoryBase
 private class LuaReturnHighlightHandler(
     editor: Editor,
     file: PsiFile,
-    private val target: PsiElement
+    private val target: PsiElement,
 ) : HighlightUsagesHandlerBase<PsiElement>(editor, file) {
-
     override fun getTargets(): List<PsiElement> = listOf(target)
 
     override fun selectTargets(
         targets: List<PsiElement>,
-        selectionConsumer: Consumer<in List<PsiElement>>
+        selectionConsumer: Consumer<in List<PsiElement>>,
     ) {
         selectionConsumer.consume(targets)
     }
@@ -80,7 +76,7 @@ internal fun enclosingFunction(element: PsiElement): PsiElement? =
         LuaFuncDecl::class.java,
         LuaLocalFuncDecl::class.java,
         LuaFuncDef::class.java,
-        LuaFile::class.java
+        LuaFile::class.java,
     )
 
 /**
@@ -89,17 +85,19 @@ internal fun enclosingFunction(element: PsiElement): PsiElement? =
  */
 internal fun collectReturns(scope: PsiElement): List<PsiElement> {
     val returns = mutableListOf<PsiElement>()
-    scope.accept(object : PsiRecursiveElementVisitor() {
-        override fun visitElement(element: PsiElement) {
-            if (element.node.elementType == LuaElementTypes.RETURN &&
-                element.parent is LuaFinalStatement &&
-                enclosingFunction(element) === scope
-            ) {
-                returns.add(element)
+    scope.accept(
+        object : PsiRecursiveElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                if (element.node.elementType == LuaElementTypes.RETURN &&
+                    element.parent is LuaFinalStatement &&
+                    enclosingFunction(element) === scope
+                ) {
+                    returns.add(element)
+                }
+                super.visitElement(element)
             }
-            super.visitElement(element)
-        }
-    })
+        },
+    )
     return returns
 }
 
@@ -109,7 +107,8 @@ internal fun collectReturns(scope: PsiElement): List<PsiElement> {
  */
 private fun functionKeyword(scope: PsiElement): PsiElement? {
     if (scope is LuaFile) return null
-    return scope.node.getChildren(null)
+    return scope.node
+        .getChildren(null)
         .firstOrNull { it.elementType == LuaElementTypes.FUNCTION }
         ?.psi
 }

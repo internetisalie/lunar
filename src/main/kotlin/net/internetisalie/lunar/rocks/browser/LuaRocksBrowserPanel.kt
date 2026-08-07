@@ -30,9 +30,11 @@ import javax.swing.event.DocumentEvent
  * EDT-confined. All state flows through [LuaRocksBrowserModel]; this panel is its [Listener]. The
  * 300 ms search [Alarm] and the [PackageDetailPane] are parented to this [Disposable] (BUG-379).
  */
-class LuaRocksBrowserPanel(private val project: Project) :
-    JBPanel<LuaRocksBrowserPanel>(BorderLayout()), Disposable, LuaRocksBrowserModel.Listener {
-
+class LuaRocksBrowserPanel(
+    private val project: Project,
+) : JBPanel<LuaRocksBrowserPanel>(BorderLayout()),
+    Disposable,
+    LuaRocksBrowserModel.Listener {
     private val model = LuaRocksBrowserModel(ProjectBackend(project), this)
     private val detailPane = PackageDetailPane(project, model).also { Disposer.register(this, it) }
     private val searchField = SearchTextField(true)
@@ -75,27 +77,31 @@ class LuaRocksBrowserPanel(private val project: Project) :
     // ── Tab construction ───────────────────────────────────────────────────
 
     private fun buildMarketplaceTab(): Component {
-        searchField.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(e: DocumentEvent) = scheduleSearch()
-        })
-        val top = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-            border = JBUI.Borders.empty(2, 4)
-            add(searchField, BorderLayout.CENTER)
-        }
-        val left = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-            add(top, BorderLayout.NORTH)
-            add(ScrollPaneFactory.createScrollPane(marketList), BorderLayout.CENTER)
-        }
+        searchField.addDocumentListener(
+            object : DocumentAdapter() {
+                override fun textChanged(e: DocumentEvent) = scheduleSearch()
+            },
+        )
+        val top =
+            JBPanel<JBPanel<*>>(BorderLayout()).apply {
+                border = JBUI.Borders.empty(2, 4)
+                add(searchField, BorderLayout.CENTER)
+            }
+        val left =
+            JBPanel<JBPanel<*>>(BorderLayout()).apply {
+                add(top, BorderLayout.NORTH)
+                add(ScrollPaneFactory.createScrollPane(marketList), BorderLayout.CENTER)
+            }
         return splitter(left)
     }
 
-    private fun buildInstalledTab(): Component =
-        splitter(ScrollPaneFactory.createScrollPane(installedList))
+    private fun buildInstalledTab(): Component = splitter(ScrollPaneFactory.createScrollPane(installedList))
 
-    private fun splitter(left: Component): OnePixelSplitter = OnePixelSplitter(false, 0.38f).apply {
-        firstComponent = left as? javax.swing.JComponent
-        secondComponent = detailPane
-    }
+    private fun splitter(left: Component): OnePixelSplitter =
+        OnePixelSplitter(false, 0.38f).apply {
+            firstComponent = left as? javax.swing.JComponent
+            secondComponent = detailPane
+        }
 
     // ── Behavior ───────────────────────────────────────────────────────────
 

@@ -19,18 +19,23 @@ import net.internetisalie.lunar.lang.psi.LuaFile
  * `LuaCrossFileCompletionProvider`.
  */
 fun fileRequires(file: LuaFile): List<String> {
-    val cachedValue: CachedValue<List<String>> = CachedValuesManager.getManager(file.project)
-        .createCachedValue(
-            {
-                val record = FileBasedIndex.getInstance()
-                    .getValues(LuaFileBindingsIndexName, ForwardIndexer.KEY, GlobalSearchScope.fileScope(file))
-                    .firstOrNull()
-                CachedValueProvider.Result.create(
-                    record?.requires ?: emptyList(),
-                    PsiModificationTracker.MODIFICATION_COUNT,
-                )
-            },
-            /* trackValue = */ false,
-        )
+    val cachedValue: CachedValue<List<String>> =
+        CachedValuesManager
+            .getManager(file.project)
+            .createCachedValue(
+                {
+                    val record =
+                        FileBasedIndex
+                            .getInstance()
+                            .getValues(LuaFileBindingsIndexName, ForwardIndexer.KEY, GlobalSearchScope.fileScope(file))
+                            .firstOrNull()
+                    CachedValueProvider.Result.create(
+                        record?.requires ?: emptyList(),
+                        PsiModificationTracker.MODIFICATION_COUNT,
+                    )
+                },
+                // trackValue =
+                false,
+            )
     return cachedValue.value
 }

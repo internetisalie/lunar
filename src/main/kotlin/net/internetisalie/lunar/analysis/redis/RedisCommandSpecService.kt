@@ -27,7 +27,6 @@ import java.nio.charset.StandardCharsets
  */
 @Service(Service.Level.APP)
 class RedisCommandSpecService {
-
     private val cacheLock = Any()
     private val cache = mutableMapOf<String, RedisCommandSpec>()
 
@@ -46,25 +45,29 @@ class RedisCommandSpecService {
     private fun resourcePathFor(target: Target): String? {
         val platform = target.platform
         if (platform != LuaPlatform.REDIS && platform.name != "VALKEY") return null
-        val segment = when (target.version.pathSegment) {
-            "redis-5" -> "redis-5"
-            "redis-6" -> "redis-6"
-            "redis-7" -> "redis-7"
-            "valkey-7.2", "valkey-8" -> "valkey-8"
-            else -> return null
-        }
+        val segment =
+            when (target.version.pathSegment) {
+                "redis-5" -> "redis-5"
+                "redis-6" -> "redis-6"
+                "redis-7" -> "redis-7"
+                "valkey-7.2", "valkey-8" -> "valkey-8"
+                else -> return null
+            }
         return "commandspec/$segment.json"
     }
 
     /** Reads and parses one resource; [RedisCommandSpec.EMPTY] on any failure. */
     private fun loadSpec(resourcePath: String): RedisCommandSpec {
-        val stream = javaClass.classLoader.getResourceAsStream(resourcePath)
-            ?: return RedisCommandSpec.EMPTY
+        val stream =
+            javaClass.classLoader.getResourceAsStream(resourcePath)
+                ?: return RedisCommandSpec.EMPTY
         return stream.use { input ->
             runCatching {
-                val root = JsonParser.parseReader(
-                    InputStreamReader(input, StandardCharsets.UTF_8),
-                ).asJsonObject
+                val root =
+                    JsonParser
+                        .parseReader(
+                            InputStreamReader(input, StandardCharsets.UTF_8),
+                        ).asJsonObject
                 parseSpec(root)
             }.getOrElse { failure ->
                 LOG.warn("Failed to parse Redis command spec '$resourcePath'", failure)
@@ -84,7 +87,10 @@ class RedisCommandSpecService {
     }
 
     /** Parses one command entry defensively (design §4.1); `null` if malformed. */
-    private fun parseEntry(name: String, element: JsonElement): RedisCommandInfo? {
+    private fun parseEntry(
+        name: String,
+        element: JsonElement,
+    ): RedisCommandInfo? {
         if (!element.isJsonObject) {
             LOG.warn("Skipping non-object Redis command entry '$name'")
             return null

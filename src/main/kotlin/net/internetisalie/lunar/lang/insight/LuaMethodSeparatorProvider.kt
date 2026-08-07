@@ -1,9 +1,9 @@
 package net.internetisalie.lunar.lang.insight
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzerSettings
-import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
+import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.markup.SeparatorPlacement
 import com.intellij.psi.PsiComment
@@ -32,8 +32,11 @@ class LuaMethodSeparatorProvider : LineMarkerProvider {
         if (!hasPrecedingCode(declaration)) return null
 
         val info = LineMarkerInfo(element, element.textRange)
-        info.separatorColor = EditorColorsManager.getInstance().globalScheme
-            .getColor(CodeInsightColors.METHOD_SEPARATORS_COLOR)
+        info.separatorColor =
+            EditorColorsManager
+                .getInstance()
+                .globalScheme
+                .getColor(CodeInsightColors.METHOD_SEPARATORS_COLOR)
         info.separatorPlacement = SeparatorPlacement.TOP
         return info
     }

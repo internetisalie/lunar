@@ -41,17 +41,28 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
         override val id: String,
         private val kinds: Map<String, KindBehavior>,
     ) : LuaProvisioningStrategy {
-        data class KindBehavior(val hash: String, val onProvision: (() -> Unit)? = null)
+        data class KindBehavior(
+            val hash: String,
+            val onProvision: (() -> Unit)? = null,
+        )
 
         val provisionCalls = mutableMapOf<String, Int>()
 
-        override fun supports(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed) =
-            kinds.containsKey(item.kindId)
+        override fun supports(
+            item: LuaProvisionItem,
+            platform: LuaHostPlatform,
+            feed: LuaToolchainFeed,
+        ) = kinds.containsKey(item.kindId)
 
-        override fun identityHash(context: LuaProvisionContext, item: LuaProvisionItem): String =
-            behavior(item).hash
+        override fun identityHash(
+            context: LuaProvisionContext,
+            item: LuaProvisionItem,
+        ): String = behavior(item).hash
 
-        override fun provision(context: LuaProvisionContext, item: LuaProvisionItem): LuaProvisionedComponent {
+        override fun provision(
+            context: LuaProvisionContext,
+            item: LuaProvisionItem,
+        ): LuaProvisionedComponent {
             provisionCalls.merge(item.kindId, 1, Int::plus)
             val behavior = behavior(item)
             behavior.onProvision?.invoke()
@@ -69,7 +80,10 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
     private class SpySink : LuaProvisionResultSink {
         var registered: LuaProvisionResult? = null
 
-        override fun register(project: Project, result: LuaProvisionResult) {
+        override fun register(
+            project: Project,
+            result: LuaProvisionResult,
+        ) {
             registered = result
         }
     }
@@ -77,7 +91,11 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
     private class SpyNotifier : LuaProvisionNotifier {
         val messages = mutableListOf<Pair<String, NotificationType>>()
 
-        override fun notify(project: Project, message: String, type: NotificationType) {
+        override fun notify(
+            project: Project,
+            message: String,
+            type: NotificationType,
+        ) {
             messages += message to type
         }
     }
@@ -85,14 +103,19 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
     /** A feed whose every (kind, version) is provisionable (has a rock) so `resolveVersion` succeeds. */
     private fun feed(vararg kindToVersions: Pair<String, List<String>>): LuaToolchainFeed {
         val rock = LuaFeedRock("r", null, "tool", needsCToolchain = false)
-        val kinds = kindToVersions.associate { (kind, versions) ->
-            kind to LuaFeedKind(emptyMap(), versions.map { LuaFeedVersion(it, null, null, emptyList(), rock) })
-        }
+        val kinds =
+            kindToVersions.associate { (kind, versions) ->
+                kind to LuaFeedKind(emptyMap(), versions.map { LuaFeedVersion(it, null, null, emptyList(), rock) })
+            }
         return LuaToolchainFeed(1, kinds)
     }
 
     private fun job(vararg items: LuaProvisionItem): LuaProvisionJob =
-        LuaProvisionJob(project, LuaProvisionRequest("env", rootDir.toString(), items.toList()), EmptyProgressIndicator())
+        LuaProvisionJob(
+            project,
+            LuaProvisionRequest("env", rootDir.toString(), items.toList()),
+            EmptyProgressIndicator(),
+        )
 
     private fun engine(
         strategies: List<LuaProvisioningStrategy>,
@@ -155,23 +178,29 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
 
     fun testChangedRuntimeSpecRebuildsOnlyThatComponent() {
         val firstFeed = feed("lua" to listOf("5.4", "5.5"), "luarocks" to listOf("3.0"))
-        val first = release(
-            "lua" to FakeStrategy.KindBehavior("lua-hash-A"),
-            "luarocks" to FakeStrategy.KindBehavior("rocks-hash"),
-        )
+        val first =
+            release(
+                "lua" to FakeStrategy.KindBehavior("lua-hash-A"),
+                "luarocks" to FakeStrategy.KindBehavior("rocks-hash"),
+            )
         engine(listOf(first)).run(
-            job(LuaProvisionItem("lua", "5.4"), LuaProvisionItem("luarocks", "3.0")), platform, firstFeed,
+            job(LuaProvisionItem("lua", "5.4"), LuaProvisionItem("luarocks", "3.0")),
+            platform,
+            firstFeed,
         )
         assertEquals(1, first.provisionCalls["lua"])
         assertEquals(1, first.provisionCalls["luarocks"])
 
         // Re-run: lua's hash changed (spec 5.4 → 5.5), luarocks' hash unchanged.
-        val second = release(
-            "lua" to FakeStrategy.KindBehavior("lua-hash-B"),
-            "luarocks" to FakeStrategy.KindBehavior("rocks-hash"),
-        )
+        val second =
+            release(
+                "lua" to FakeStrategy.KindBehavior("lua-hash-B"),
+                "luarocks" to FakeStrategy.KindBehavior("rocks-hash"),
+            )
         engine(listOf(second)).run(
-            job(LuaProvisionItem("lua", "5.5"), LuaProvisionItem("luarocks", "3.0")), platform, firstFeed,
+            job(LuaProvisionItem("lua", "5.5"), LuaProvisionItem("luarocks", "3.0")),
+            platform,
+            firstFeed,
         )
 
         assertEquals("changed lua rebuilt", 1, second.provisionCalls["lua"])
@@ -181,16 +210,20 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
     // --- TC 14: mid-pipeline failure → ERROR, manifest keeps completed, nothing registered ---
 
     fun testMidPipelineFailureRegistersNothingButKeepsCompleted() {
-        val strategy = release(
-            "lua" to FakeStrategy.KindBehavior("ok-hash"),
-            "luarocks" to FakeStrategy.KindBehavior("boom", onProvision = { throw LuaProvisionException("build blew up") }),
-        )
+        val strategy =
+            release(
+                "lua" to FakeStrategy.KindBehavior("ok-hash"),
+                "luarocks" to
+                    FakeStrategy.KindBehavior("boom", onProvision = { throw LuaProvisionException("build blew up") }),
+            )
         val sink = SpySink()
         val notifier = SpyNotifier()
         val theFeed = feed("lua" to listOf("5.4"), "luarocks" to listOf("3.0"))
 
         engine(listOf(strategy), sink, notifier).run(
-            job(LuaProvisionItem("lua", "5.4"), LuaProvisionItem("luarocks", "3.0")), platform, theFeed,
+            job(LuaProvisionItem("lua", "5.4"), LuaProvisionItem("luarocks", "3.0")),
+            platform,
+            theFeed,
         )
 
         assertNull("nothing registered on failure", sink.registered)
@@ -204,17 +237,20 @@ class LuaToolProvisionerTest : BasePlatformTestCase() {
     // --- TC 19: cancellation keeps completed components, registers nothing ---
 
     fun testCancellationKeepsCompletedComponentsAndRegistersNothing() {
-        val strategy = release(
-            "lua" to FakeStrategy.KindBehavior("ok-hash"),
-            "luarocks" to FakeStrategy.KindBehavior("cxl", onProvision = { throw ProcessCanceledException() }),
-        )
+        val strategy =
+            release(
+                "lua" to FakeStrategy.KindBehavior("ok-hash"),
+                "luarocks" to FakeStrategy.KindBehavior("cxl", onProvision = { throw ProcessCanceledException() }),
+            )
         val sink = SpySink()
         val notifier = SpyNotifier()
         val theFeed = feed("lua" to listOf("5.4"), "luarocks" to listOf("3.0"))
 
         try {
             engine(listOf(strategy), sink, notifier).run(
-                job(LuaProvisionItem("lua", "5.4"), LuaProvisionItem("luarocks", "3.0")), platform, theFeed,
+                job(LuaProvisionItem("lua", "5.4"), LuaProvisionItem("luarocks", "3.0")),
+                platform,
+                theFeed,
             )
             fail("cancellation should propagate")
         } catch (_: ProcessCanceledException) {

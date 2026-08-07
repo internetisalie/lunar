@@ -17,9 +17,10 @@ abstract class IndexedBasePlatformTestCase : BasePlatformTestCase() {
         // Force index rebuild to ensure platform files are indexed
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             WriteAction.run<RuntimeException> {
-                StubIndex.getInstance().forceRebuild(Throwable("Indexed platform test setup: forcing stub index rebuild"))
+                StubIndex.getInstance().forceRebuild(
+                    Throwable("Indexed platform test setup: forcing stub index rebuild"),
+                )
             }
         }
     }
 }
-

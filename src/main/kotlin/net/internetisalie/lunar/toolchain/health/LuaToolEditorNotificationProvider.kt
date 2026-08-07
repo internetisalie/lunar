@@ -34,11 +34,12 @@ private const val LUACHECK_KIND_ID = "luacheck"
  * *intended* tool is unusable. Collection is I/O- and process-free — it reads cached registry state
  * and the inspection profile only, so it is safe on a read-compatible thread.
  */
-class LuaToolEditorNotificationProvider : EditorNotificationProvider, DumbAware {
-
+class LuaToolEditorNotificationProvider :
+    EditorNotificationProvider,
+    DumbAware {
     override fun collectNotificationData(
         project: Project,
-        file: VirtualFile
+        file: VirtualFile,
     ): Function<in FileEditor, out JComponent?>? {
         if (file.fileType != LuaFileType) return null
         return runCatching { computeBanner(project) }
@@ -77,7 +78,11 @@ class LuaToolEditorNotificationProvider : EditorNotificationProvider, DumbAware 
         return null
     }
 
-    private fun warningPanel(project: Project, fileEditor: FileEditor, message: String): EditorNotificationPanel =
+    private fun warningPanel(
+        project: Project,
+        fileEditor: FileEditor,
+        message: String,
+    ): EditorNotificationPanel =
         EditorNotificationPanel(fileEditor, EditorNotificationPanel.Status.Warning).apply {
             text = message
             createActionLabel("Configure toolchain") {
@@ -90,17 +95,25 @@ class LuaToolEditorNotificationProvider : EditorNotificationProvider, DumbAware 
         return runtimeKinds.sortedBy { it.id } + otherKinds.sortedBy { it.id }
     }
 
-    private fun engaged(project: Project, kind: LuaToolKind): Boolean {
+    private fun engaged(
+        project: Project,
+        kind: LuaToolKind,
+    ): Boolean {
         if (kind.id == LUACHECK_KIND_ID && isLuaCheckInspectionEnabled(project)) return true
         return explicitlySelected(project, kind.id)
     }
 
-    private fun explicitlySelected(project: Project, kindId: String): Boolean {
+    private fun explicitlySelected(
+        project: Project,
+        kindId: String,
+    ): Boolean {
         val settings = LuaToolchainProjectSettings.getInstance(project)
         if (kindId in settings.getState().bindings.keys) return true
         if (kindId in LuaToolchainRegistry.getInstance().globalBindings().keys) return true
         val activeToolIds = settings.activeEnvironment()?.toolIds ?: return false
-        return LuaToolchainRegistry.getInstance().tools()
+        return LuaToolchainRegistry
+            .getInstance()
+            .tools()
             .any { it.id in activeToolIds && it.kindId == kindId }
     }
 
@@ -109,7 +122,10 @@ class LuaToolEditorNotificationProvider : EditorNotificationProvider, DumbAware 
         return InspectionProjectProfileManager.getInstance(project).currentProfile.isToolEnabled(displayKey)
     }
 
-    private fun intendedTool(project: Project, kindId: String): LuaRegisteredTool? {
+    private fun intendedTool(
+        project: Project,
+        kindId: String,
+    ): LuaRegisteredTool? {
         val settings = LuaToolchainProjectSettings.getInstance(project)
         val registry = LuaToolchainRegistry.getInstance()
         environmentIntended(settings, registry, kindId)?.let { return it }
@@ -125,10 +141,11 @@ class LuaToolEditorNotificationProvider : EditorNotificationProvider, DumbAware 
     private fun environmentIntended(
         settings: LuaToolchainProjectSettings,
         registry: LuaToolchainRegistry,
-        kindId: String
+        kindId: String,
     ): LuaRegisteredTool? {
         val toolIds = settings.activeEnvironment()?.toolIds ?: return null
-        return toolIds.asSequence()
+        return toolIds
+            .asSequence()
             .mapNotNull { registry.tool(it) }
             .firstOrNull { it.kindId == kindId }
     }

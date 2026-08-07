@@ -18,7 +18,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
-
     @Test
     fun testLocalRequireResolution() {
         myFixture.addFileToProject(
@@ -31,14 +30,14 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             function lib.hello() return "world" end
             
             return lib
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.configureByText(
             "main.lua",
             """
             local mylib = require("mylib")
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.configureByFiles("main.lua", "mylib.lua")
@@ -81,14 +80,14 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             ---@class Bar
             local bar = {}
             return bar
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.configureByText(
             "main.lua",
             """
             local bar = require("foo.bar")
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.configureByFiles("main.lua", "foo/bar.lua")
@@ -115,7 +114,7 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             "main.lua",
             """
             local math = require("math")
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         val offset = myFixture.file.text.indexOf("\"math\"") + 1
@@ -127,7 +126,10 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
         assertNotNull("Should resolve math.lua from standard libraries", resolved)
         assertTrue(resolved is LuaFile)
         assertEquals("math.lua", (resolved as LuaFile).name)
-        assertTrue("math.lua should be resolved to external library", (resolved as LuaFile).virtualFile!!.path.contains("runtime/standard/lua-5.4"))
+        assertTrue(
+            "math.lua should be resolved to external library",
+            (resolved as LuaFile).virtualFile!!.path.contains("runtime/standard/lua-5.4"),
+        )
     }
 
     @Test
@@ -145,7 +147,7 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             function lib.calculate(name) return 42 end
             
             return lib
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         // Configure main file requiring it
@@ -155,7 +157,7 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             local mylib = require("mylib")
             local v = mylib.version
             local result = mylib.calculate("test")
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         // Make sure both are configured and indexed
@@ -166,8 +168,13 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
 
         // Find variables and check their types
         val varDecls = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaLocalVarDecl::class.java)
-        
-        val mylibVar = varDecls.first { it.text.contains("local mylib") }.attNameList.first().nameRef
+
+        val mylibVar =
+            varDecls
+                .first { it.text.contains("local mylib") }
+                .attNameList
+                .first()
+                .nameRef
         val mylibType = snapshot.getValueType(mylibVar)
 
         // `require("mylib")` returns the module's `lib` table, annotated `---@class MyLib` with a
@@ -193,7 +200,7 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             """
             local b = require("b")
             return { name = "a" }
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.addFileToProject(
@@ -201,7 +208,7 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             """
             local a = require("a")
             return { name = "b" }
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.configureByText(
@@ -209,16 +216,21 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
             """
             local a = require("a")
             local name = a.name
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.configureByFiles("main.lua", "a.lua", "b.lua")
 
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
         assertNotNull(snapshot)
-        
+
         val varDecls = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaLocalVarDecl::class.java)
-        val aVar = varDecls.first { it.text.contains("local a") }.attNameList.first().nameRef
+        val aVar =
+            varDecls
+                .first { it.text.contains("local a") }
+                .attNameList
+                .first()
+                .nameRef
         val aType = snapshot.getValueType(aVar)
         assertNotNull(aType)
     }
@@ -242,8 +254,10 @@ class LuaRequireTypeFlowTest : IndexedBasePlatformTestCase() {
         myFixture.configureByText("main.lua", "local dm = require(\"diskmod\")")
         myFixture.configureByFiles("main.lua", "diskmod.lua")
 
-        val requireDecl = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaLocalVarDecl::class.java)
-            .first { it.text.contains("require") }
+        val requireDecl =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaLocalVarDecl::class.java)
+                .first { it.text.contains("require") }
 
         var resolved = false
         EdtTestUtil.runInEdtAndWait<RuntimeException> {

@@ -24,7 +24,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRedisCommandInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaRedisCommandInspection())
@@ -161,24 +160,25 @@ class LuaRedisCommandInspectionTest : BasePlatformTestCase() {
     // -------------------------------------------------------------------------
 
     private fun setRedisTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
-            "No Redis version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
+                "No Redis version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.REDIS, version))
     }
 
     private fun setStandardTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
-            "No STANDARD version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
+                "No STANDARD version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.STANDARD, version))
     }
 
     private fun allWarningDescriptions(): List<String> =
         myFixture.doHighlighting(HighlightSeverity.WARNING).mapNotNull { it.description }
 
-    private fun arityWarnings(): List<String> =
-        allWarningDescriptions().filter { it.contains("expects at least") }
+    private fun arityWarnings(): List<String> = allWarningDescriptions().filter { it.contains("expects at least") }
 
     private fun unknownCommandWarnings(): List<String> =
         allWarningDescriptions().filter { it.contains("Unknown Redis command") }

@@ -9,8 +9,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.IndexedDocumentTest
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import javax.swing.Icon
 import org.junit.jupiter.api.Test
+import javax.swing.Icon
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -21,7 +21,6 @@ import kotlin.test.assertTrue
  * the stub index ([net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl.collectMethodMembers]).
  */
 class LuaOverrideLineMarkerTest : IndexedDocumentTest() {
-
     /** TC-NAV-05-01: a concrete super method → OverridingMethod gutter targeting `Base:greet`. */
     @Test
     fun testOverrideMarkerNavigatesToSuper() {
@@ -113,6 +112,13 @@ class LuaOverrideLineMarkerTest : IndexedDocumentTest() {
     }
 
     private fun methodNameOf(decl: LuaFuncDecl): String? =
-        decl.funcName.funcNameMethod?.nameRef?.identifier?.text
-            ?: decl.funcName.funcNamePropertyList.lastOrNull()?.nameRef?.identifier?.text
+        decl.funcName.funcNameMethod
+            ?.nameRef
+            ?.identifier
+            ?.text
+            ?: decl.funcName.funcNamePropertyList
+                .lastOrNull()
+                ?.nameRef
+                ?.identifier
+                ?.text
 }

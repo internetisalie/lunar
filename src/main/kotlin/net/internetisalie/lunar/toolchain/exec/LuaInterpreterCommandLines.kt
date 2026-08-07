@@ -15,12 +15,12 @@ import java.nio.file.Path
  * `startProcess`/console builders, already off the EDT.
  */
 object LuaInterpreterCommandLines {
-
     /** Builds a command line for a concrete interpreter binary (jar-aware). Never returns null. */
     fun forBinary(executable: Path): GeneralCommandLine {
-        val cmd = GeneralCommandLine(executable.toString())
-            .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-            .withWorkingDirectory(executable.parent)
+        val cmd =
+            GeneralCommandLine(executable.toString())
+                .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+                .withWorkingDirectory(executable.parent)
 
         if (executable.fileName.toString().endsWith(".jar", ignoreCase = true)) {
             cmd.exePath = "java"

@@ -17,13 +17,14 @@ class RockspecBridgeParseTest {
     @Test
     fun parsesRealBridgeOutput() {
         // Verbatim stdout from: lua rockspec.lua busted.rockspec (keys intentionally unordered).
-        val stdout = """
+        val stdout =
+            """
             {"description":{"summary":"Elegant Lua unit testing.","license":"MIT"},
              "source":{"url":"git://github.com/lunarmodules/busted"},
              "package":"busted","build":{"type":"builtin"},
              "dependencies":["lua >= 5.1","say >= 1.4-3","luassert >= 1.9.0","lua_cliargs = 3.0","penlight >= 1.13.1"],
              "version":"2.2.0-1"}
-        """.trimIndent()
+            """.trimIndent()
 
         val data = assertNotNull(RockspecBridge.parse(stdout, path))
         assertEquals("busted", data.packageName)

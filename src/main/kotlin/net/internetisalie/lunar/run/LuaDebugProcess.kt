@@ -50,9 +50,7 @@ class LuaDebugProcess(
     private var myClosing = false
     private lateinit var myExecutionConsole: ConsoleView
 
-    override fun getEditorsProvider(): XDebuggerEditorsProvider {
-        return LuaDebuggerEditorsProvider()
-    }
+    override fun getEditorsProvider(): XDebuggerEditorsProvider = LuaDebuggerEditorsProvider()
 
     override fun startStepOver(context: XSuspendContext?) {
         sessionScope.launch { controller.stepOver() }
@@ -77,14 +75,15 @@ class LuaDebugProcess(
         sessionScope.launch { controller.resume() }
     }
 
-    override fun runToPosition(position: XSourcePosition, context: XSuspendContext?) {
+    override fun runToPosition(
+        position: XSourcePosition,
+        context: XSuspendContext?,
+    ) {
         val pos = LuaPosition.createRemotePosition(position, controller.workingDirectory())
         sessionScope.launch { controller.runToCursor(pos) }
     }
 
-    override fun doGetProcessHandler(): ProcessHandler? {
-        return executionResult.processHandler
-    }
+    override fun doGetProcessHandler(): ProcessHandler? = executionResult.processHandler
 
     override fun createConsole(): ExecutionConsole {
         myExecutionConsole = executionResult.executionConsole as ConsoleView
@@ -92,21 +91,21 @@ class LuaDebugProcess(
         return myExecutionConsole
     }
 
-    override fun getBreakpointHandlers(): Array<XBreakpointHandler<*>?> {
-        return arrayOf(lineBreakpointHandler)
-    }
+    override fun getBreakpointHandlers(): Array<XBreakpointHandler<*>?> = arrayOf(lineBreakpointHandler)
 
     override fun sessionInitialized() {
         super.sessionInitialized()
 
         val processHandler = executionResult.processHandler
-        processHandler?.addProcessListener(object : ProcessListener {
-            override fun processTerminated(event: ProcessEvent) {
-                log.info("processTerminated event received (exitCode=${event.exitCode})")
-                myClosing = true
-                controller.terminated()
-            }
-        })
+        processHandler?.addProcessListener(
+            object : ProcessListener {
+                override fun processTerminated(event: ProcessEvent) {
+                    log.info("processTerminated event received (exitCode=${event.exitCode})")
+                    myClosing = true
+                    controller.terminated()
+                }
+            },
+        )
 
         sessionScope.launch {
             try {
@@ -136,9 +135,7 @@ class LuaDebugProcess(
 
     private val installedBreaks: MutableList<XBreakpoint<*>> = ArrayList()
 
-    override fun getEvaluator(): XDebuggerEvaluator? {
-        return session.currentStackFrame?.evaluator
-    }
+    override fun getEvaluator(): XDebuggerEvaluator? = session.currentStackFrame?.evaluator
 
     /** Drain breakpoints registered before the connection was ready; called inside the connect coroutine. */
     private suspend fun drainInstalledBreakpoints() {

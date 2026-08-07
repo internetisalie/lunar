@@ -68,8 +68,7 @@ internal class LuaFeedVersionResolver(
             .maxWithOrNull(compareBy(LuaFeedVersionComparator) { it.version })
     }
 
-    private fun findEntry(version: String): LuaFeedVersion? =
-        kind.versions.firstOrNull { it.version == version }
+    private fun findEntry(version: String): LuaFeedVersion? = kind.versions.firstOrNull { it.version == version }
 
     private fun isVisible(entry: LuaFeedVersion): Boolean = entry.gatedOn == null
 
@@ -97,11 +96,12 @@ internal class LuaFeedVersionResolver(
         }
 
     private fun unknown(spec: String): LuaProvisionException {
-        val known = kind.versions
-            .filter { isProvisionable(it) }
-            .map { it.version }
-            .sortedWith(LuaFeedVersionComparator.reversed())
-            .joinToString(", ")
+        val known =
+            kind.versions
+                .filter { isProvisionable(it) }
+                .map { it.version }
+                .sortedWith(LuaFeedVersionComparator.reversed())
+                .joinToString(", ")
         return LuaProvisionException("Unknown $kindId version '$spec'. Known: $known")
     }
 }

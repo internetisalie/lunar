@@ -17,6 +17,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.util.coroutines.childScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.internetisalie.lunar.redis.connection.LuaRedisCredentialStore
 import net.internetisalie.lunar.redis.connection.LuaRedisProvisioning
 import net.internetisalie.lunar.redis.connection.LuaRedisServerConnection
@@ -28,11 +33,6 @@ import net.internetisalie.lunar.redis.resp.RespEndpoint
 import net.internetisalie.lunar.redis.resp.RespException
 import net.internetisalie.lunar.redis.resp.RespValue
 import net.internetisalie.lunar.util.LunarCoroutineScopeService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.OutputStream
 
@@ -45,7 +45,9 @@ private val log = logger<LuaRedisRunProfileState>()
  * completing) cancels [sessionScope], disposing the client and stopping any session-launched server
  * (risks-and-gaps Risk 1.3). Never blocks the EDT — all real work runs on [sessionScope].
  */
-private class LuaRedisSessionProcessHandler(private val sessionScope: CoroutineScope) : ProcessHandler() {
+private class LuaRedisSessionProcessHandler(
+    private val sessionScope: CoroutineScope,
+) : ProcessHandler() {
     override fun destroyProcessImpl() {
         sessionScope.cancel()
         notifyProcessTerminated(0)
@@ -78,10 +80,12 @@ class LuaRedisRunProfileState(
     private val config: LuaRedisRunConfiguration,
     private val environment: ExecutionEnvironment,
 ) : RunProfileState {
-
     private val project: Project get() = environment.project
 
-    override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
+    override fun execute(
+        executor: Executor,
+        runner: ProgramRunner<*>,
+    ): ExecutionResult {
         val console = RespReplyTreeConsole(project)
         bindErrorLinkFilter(console)
 
@@ -101,15 +105,23 @@ class LuaRedisRunProfileState(
         console.addFilter(LuaRedisErrorLinkFilter(project, scriptUrl))
     }
 
-    private fun disposeConsoleOnTermination(processHandler: ProcessHandler, console: RespReplyTreeConsole) {
-        processHandler.addProcessListener(object : ProcessListener {
-            override fun processTerminated(event: ProcessEvent) {
-                Disposer.dispose(console)
-            }
-        })
+    private fun disposeConsoleOnTermination(
+        processHandler: ProcessHandler,
+        console: RespReplyTreeConsole,
+    ) {
+        processHandler.addProcessListener(
+            object : ProcessListener {
+                override fun processTerminated(event: ProcessEvent) {
+                    Disposer.dispose(console)
+                }
+            },
+        )
     }
 
-    private suspend fun runSession(console: RespReplyTreeConsole, processHandler: LuaRedisSessionProcessHandler) {
+    private suspend fun runSession(
+        console: RespReplyTreeConsole,
+        processHandler: LuaRedisSessionProcessHandler,
+    ) {
         var launcherStop: (() -> Unit)? = null
         var client: RespClient? = null
         try {
@@ -131,36 +143,51 @@ class LuaRedisRunProfileState(
     private fun resolveConnection(): LuaRedisServerConnection =
         config.connection ?: throw ExecutionException("No Redis connection selected")
 
-    private suspend fun launchIfNeeded(connection: LuaRedisServerConnection): net.internetisalie.lunar.redis.connection.LaunchedServer? {
+    private suspend fun launchIfNeeded(
+        connection: LuaRedisServerConnection,
+    ): net.internetisalie.lunar.redis.connection.LaunchedServer? {
         val provisioning = connection.provisioning
         if (provisioning is LuaRedisProvisioning.Remote) return null
         return LuaRedisServerLauncher(project).launch(provisioning)
     }
 
-    private suspend fun openClient(connection: LuaRedisServerConnection, host: String?, port: Int?): RespClient {
+    private suspend fun openClient(
+        connection: LuaRedisServerConnection,
+        host: String?,
+        port: Int?,
+    ): RespClient {
         val password = LuaRedisCredentialStore.getPassword(connection.id)
         val endpoint = endpointFor(connection, host, port, password)
         return RespClient.open(endpoint)
     }
 
-    private fun endpointFor(connection: LuaRedisServerConnection, host: String?, port: Int?, password: String?): RespEndpoint {
+    private fun endpointFor(
+        connection: LuaRedisServerConnection,
+        host: String?,
+        port: Int?,
+        password: String?,
+    ): RespEndpoint {
         val base = connection.toEndpoint(password)
         if (host == null || port == null) return base
         return base.copy(host = host, port = port)
     }
 
-    private suspend fun executeScript(client: RespClient, connection: LuaRedisServerConnection): RespValue {
+    private suspend fun executeScript(
+        client: RespClient,
+        connection: LuaRedisServerConnection,
+    ): RespValue {
         val scriptBody = readScriptBody()
         return if (config.execMode == LuaRedisExecMode.FCALL) {
             LuaRedisFunctionExecutor().execute(client, config, scriptBody)
         } else {
-            val context = LuaRedisExecContext(
-                connectionId = connection.id,
-                execMode = config.execMode,
-                readOnly = config.readOnly,
-                keys = config.keys,
-                argv = config.argv,
-            )
+            val context =
+                LuaRedisExecContext(
+                    connectionId = connection.id,
+                    execMode = config.execMode,
+                    readOnly = config.readOnly,
+                    keys = config.keys,
+                    argv = config.argv,
+                )
             LuaRedisScriptExecutor().execute(client, context, scriptBody)
         }
     }
@@ -168,21 +195,29 @@ class LuaRedisRunProfileState(
     private suspend fun readScriptBody(): String {
         val url = scriptFileUrl() ?: throw ExecutionException("Script path is not defined")
         return readAction {
-            val file = VirtualFileManager.getInstance().findFileByUrl(url)
-                ?: throw ExecutionException("Script file not found: $url")
+            val file =
+                VirtualFileManager.getInstance().findFileByUrl(url)
+                    ?: throw ExecutionException("Script file not found: $url")
             String(file.contentsToByteArray(), Charsets.UTF_8)
         }
     }
 
-    private suspend fun showReply(console: RespReplyTreeConsole, reply: RespValue) {
+    private suspend fun showReply(
+        console: RespReplyTreeConsole,
+        reply: RespValue,
+    ) {
         withContext(Dispatchers.EDT) { console.showReply(reply) }
     }
 
-    private suspend fun reportFailure(console: RespReplyTreeConsole, failure: Throwable) {
-        val message = when (failure) {
-            is RespException, is ExecutionException -> failure.message ?: failure.toString()
-            else -> failure.message ?: failure.toString()
-        }
+    private suspend fun reportFailure(
+        console: RespReplyTreeConsole,
+        failure: Throwable,
+    ) {
+        val message =
+            when (failure) {
+                is RespException, is ExecutionException -> failure.message ?: failure.toString()
+                else -> failure.message ?: failure.toString()
+            }
         log.info("Redis run failed: $message")
         withContext(Dispatchers.EDT) { console.showError(RespValue.Error("ERROR", message)) }
     }

@@ -11,11 +11,12 @@ import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 
 /** The Lua comment token kinds scanned for TODOs (SHEBANG excluded — design §6). Shared with [LuaTodoFilterLexer]. */
-internal val LUA_TODO_COMMENT_TOKENS: TokenSet = TokenSet.create(
-    LuaElementTypes.SHORTCOMMENT,
-    LuaElementTypes.LONGCOMMENT,
-    LuaLazyElementTypes.LUACATS_COMMENT,
-)
+internal val LUA_TODO_COMMENT_TOKENS: TokenSet =
+    TokenSet.create(
+        LuaElementTypes.SHORTCOMMENT,
+        LuaElementTypes.LONGCOMMENT,
+        LuaLazyElementTypes.LUACATS_COMMENT,
+    )
 
 /**
  * Surfaces `TODO` / `FIXME` (and any custom `TodoConfiguration` pattern) inside Lua comments to the
@@ -33,17 +34,16 @@ internal val LUA_TODO_COMMENT_TOKENS: TokenSet = TokenSet.create(
  * method parameter. See design §2.1, §3.1.
  */
 class LuaTodoIndexPatternBuilder : IndexPatternBuilder {
+    override fun getIndexingLexer(file: PsiFile): Lexer? = if (file is LuaFile) LuaLexer() else null
 
-    override fun getIndexingLexer(file: PsiFile): Lexer? =
-        if (file is LuaFile) LuaLexer() else null
-
-    override fun getCommentTokenSet(file: PsiFile): TokenSet? =
-        if (file is LuaFile) LUA_TODO_COMMENT_TOKENS else null
+    override fun getCommentTokenSet(file: PsiFile): TokenSet? = if (file is LuaFile) LUA_TODO_COMMENT_TOKENS else null
 
     override fun getCommentStartDelta(tokenType: IElementType): Int = fixedStartDelta(tokenType)
 
-    override fun getCommentStartDelta(tokenType: IElementType, tokenText: CharSequence): Int =
-        longBracketStartDelta(tokenType, tokenText)
+    override fun getCommentStartDelta(
+        tokenType: IElementType,
+        tokenText: CharSequence,
+    ): Int = longBracketStartDelta(tokenType, tokenText)
 
     override fun getCommentEndDelta(tokenType: IElementType): Int =
         if (tokenType == LuaElementTypes.LONGCOMMENT) LONG_BRACKET_MIN_TAIL else 0
@@ -60,7 +60,10 @@ class LuaTodoIndexPatternBuilder : IndexPatternBuilder {
      * Opening-bracket length for a `LONGCOMMENT`, read from the text so leveled brackets
      * (`--[==[`, delta 6) work as well as `--[[` (delta 4). Non-long or malformed text caps at 2.
      */
-    private fun longBracketStartDelta(tokenType: IElementType, tokenText: CharSequence): Int {
+    private fun longBracketStartDelta(
+        tokenType: IElementType,
+        tokenText: CharSequence,
+    ): Int {
         if (tokenType != LuaElementTypes.LONGCOMMENT) return fixedStartDelta(tokenType)
         if (!startsWithLongOpener(tokenText)) return SHORT_MARKER
         var level = 0

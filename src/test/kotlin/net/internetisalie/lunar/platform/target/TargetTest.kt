@@ -89,7 +89,6 @@ class TargetTest {
         assertEquals(LuaLanguageLevel.LUA51, target.getImplicitLanguageLevel())
     }
 
-
     @Test
     fun testPandocIsLua54() {
         val target = Target(LuaPlatform.PANDOC, VersionEntry("latest", "pandoc-latest"))
@@ -111,32 +110,71 @@ class TargetTest {
     @Test
     fun testGetLuacheckStdMappingTable() {
         // STANDARD
-        assertEquals("lua51", Target(LuaPlatform.STANDARD, VersionEntry("5.1", "lua-5.1", luacheckStd = "lua51")).getLuacheckStd())
-        assertEquals("lua52", Target(LuaPlatform.STANDARD, VersionEntry("5.2", "lua-5.2", luacheckStd = "lua52")).getLuacheckStd())
-        assertEquals("lua53", Target(LuaPlatform.STANDARD, VersionEntry("5.3", "lua-5.3", luacheckStd = "lua53")).getLuacheckStd())
-        assertEquals("lua54", Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4", luacheckStd = "lua54")).getLuacheckStd())
-        assertEquals("lua54", Target(LuaPlatform.STANDARD, VersionEntry("5.5", "lua-5.5", luacheckStd = "lua54")).getLuacheckStd())
+        assertEquals(
+            "lua51",
+            Target(LuaPlatform.STANDARD, VersionEntry("5.1", "lua-5.1", luacheckStd = "lua51")).getLuacheckStd(),
+        )
+        assertEquals(
+            "lua52",
+            Target(LuaPlatform.STANDARD, VersionEntry("5.2", "lua-5.2", luacheckStd = "lua52")).getLuacheckStd(),
+        )
+        assertEquals(
+            "lua53",
+            Target(LuaPlatform.STANDARD, VersionEntry("5.3", "lua-5.3", luacheckStd = "lua53")).getLuacheckStd(),
+        )
+        assertEquals(
+            "lua54",
+            Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4", luacheckStd = "lua54")).getLuacheckStd(),
+        )
+        assertEquals(
+            "lua54",
+            Target(LuaPlatform.STANDARD, VersionEntry("5.5", "lua-5.5", luacheckStd = "lua54")).getLuacheckStd(),
+        )
 
         // LUAJIT
-        assertEquals("luajit", Target(LuaPlatform.LUAJIT, VersionEntry("2.0", "luajit-2.0", luacheckStd = "luajit")).getLuacheckStd())
-        assertEquals("luajit", Target(LuaPlatform.LUAJIT, VersionEntry("2.1", "luajit-2.1", luacheckStd = "luajit")).getLuacheckStd())
+        assertEquals(
+            "luajit",
+            Target(LuaPlatform.LUAJIT, VersionEntry("2.0", "luajit-2.0", luacheckStd = "luajit")).getLuacheckStd(),
+        )
+        assertEquals(
+            "luajit",
+            Target(LuaPlatform.LUAJIT, VersionEntry("2.1", "luajit-2.1", luacheckStd = "luajit")).getLuacheckStd(),
+        )
 
         // REDIS
-        assertEquals("redis5", Target(LuaPlatform.REDIS, VersionEntry("5", "redis-5", luacheckStd = "redis5")).getLuacheckStd())
-        assertEquals("redis6", Target(LuaPlatform.REDIS, VersionEntry("6", "redis-6", luacheckStd = "redis6")).getLuacheckStd())
-        assertEquals("redis7", Target(LuaPlatform.REDIS, VersionEntry("7+", "redis-7", luacheckStd = "redis7")).getLuacheckStd())
+        assertEquals(
+            "redis5",
+            Target(LuaPlatform.REDIS, VersionEntry("5", "redis-5", luacheckStd = "redis5")).getLuacheckStd(),
+        )
+        assertEquals(
+            "redis6",
+            Target(LuaPlatform.REDIS, VersionEntry("6", "redis-6", luacheckStd = "redis6")).getLuacheckStd(),
+        )
+        assertEquals(
+            "redis7",
+            Target(LuaPlatform.REDIS, VersionEntry("7+", "redis-7", luacheckStd = "redis7")).getLuacheckStd(),
+        )
 
         // OMITTED (null)
-        assertEquals(null, Target(LuaPlatform.TARANTOOL, VersionEntry("2.10", "tarantool-2.10", luacheckStd = null)).getLuacheckStd())
-        assertEquals(null, Target(LuaPlatform.NGX, VersionEntry("latest", "ngx-latest", luacheckStd = null)).getLuacheckStd())
-        assertEquals(null, Target(LuaPlatform.PANDOC, VersionEntry("latest", "pandoc-latest", luacheckStd = null)).getLuacheckStd())
+        assertEquals(
+            null,
+            Target(LuaPlatform.TARANTOOL, VersionEntry("2.10", "tarantool-2.10", luacheckStd = null)).getLuacheckStd(),
+        )
+        assertEquals(
+            null,
+            Target(LuaPlatform.NGX, VersionEntry("latest", "ngx-latest", luacheckStd = null)).getLuacheckStd(),
+        )
+        assertEquals(
+            null,
+            Target(LuaPlatform.PANDOC, VersionEntry("latest", "pandoc-latest", luacheckStd = null)).getLuacheckStd(),
+        )
     }
 
     @Test
     fun testDefault() {
         val target = Target.default()
         assertEquals(LuaPlatform.STANDARD, target.platform)
-        assertEquals("5.4", target.version.label)  // TOOLING-08 #50: pinned to the documented 5.4
+        assertEquals("5.4", target.version.label) // TOOLING-08 #50: pinned to the documented 5.4
         assertEquals(LuaLanguageLevel.LUA54, target.getImplicitLanguageLevel())
     }
 }

@@ -22,7 +22,6 @@ import net.internetisalie.lunar.lang.syntax.LuaBlockPairs
  * no second WriteCommandAction is opened — see design §6.
  */
 object LuaKeywordBlockCloser {
-
     /**
      * Inserts the matching terminator (`end` or `until`) on the next line if the block whose
      * opener ends at [openerEndOffset] is not already balanced. Returns true if a terminator
@@ -30,10 +29,15 @@ object LuaKeywordBlockCloser {
      *
      * Caller contract: document must be committed before this call.
      */
-    fun closeIfNeeded(editor: Editor, file: PsiFile, openerEndOffset: Int): Boolean {
+    fun closeIfNeeded(
+        editor: Editor,
+        file: PsiFile,
+        openerEndOffset: Int,
+    ): Boolean {
         val opener = file.findElementAt(openerEndOffset - 1) ?: return false
-        val terminatorType = LuaBlockPairs.terminatorByOpener[opener.node.elementType]
-            ?: return false
+        val terminatorType =
+            LuaBlockPairs.terminatorByOpener[opener.node.elementType]
+                ?: return false
         if (!needsTerminator(opener, terminatorType)) return false
         val insertText = LuaBlockPairs.insertTextFor[terminatorType] ?: return false
         editor.document.insertString(openerEndOffset, "\n$insertText")
@@ -47,27 +51,40 @@ object LuaKeywordBlockCloser {
      * Shared with [net.internetisalie.lunar.lang.completion.LuaEnterHandler], which makes the
      * same balance decision on Enter.
      */
-    internal fun needsTerminator(opener: PsiElement, terminatorType: IElementType): Boolean {
+    internal fun needsTerminator(
+        opener: PsiElement,
+        terminatorType: IElementType,
+    ): Boolean {
         val owner = findOwner(opener, terminatorType) ?: return true
         if (owner.node.findChildByType(terminatorType) == null) return true
         val parentClass =
-            if (terminatorType == LuaElementTypes.RCURLY) LuaTableConstructor::class.java
-            else LuaBlockParent::class.java
+            if (terminatorType == LuaElementTypes.RCURLY) {
+                LuaTableConstructor::class.java
+            } else {
+                LuaBlockParent::class.java
+            }
         return generateSequence(PsiTreeUtil.getParentOfType(owner, parentClass, true)) {
             PsiTreeUtil.getParentOfType(it, parentClass, true)
         }.any { terminatorFor(it) == terminatorType && it.node.findChildByType(terminatorType) == null }
     }
 
-    private fun terminatorFor(block: PsiElement): IElementType = when (block) {
-        is LuaRepeatStatement -> LuaElementTypes.UNTIL
-        is LuaTableConstructor -> LuaElementTypes.RCURLY
-        else -> LuaElementTypes.END
-    }
+    private fun terminatorFor(block: PsiElement): IElementType =
+        when (block) {
+            is LuaRepeatStatement -> LuaElementTypes.UNTIL
+            is LuaTableConstructor -> LuaElementTypes.RCURLY
+            else -> LuaElementTypes.END
+        }
 
-    private fun findOwner(opener: PsiElement, terminatorType: IElementType): PsiElement? {
+    private fun findOwner(
+        opener: PsiElement,
+        terminatorType: IElementType,
+    ): PsiElement? {
         val parentClass =
-            if (terminatorType == LuaElementTypes.RCURLY) LuaTableConstructor::class.java
-            else LuaBlockParent::class.java
+            if (terminatorType == LuaElementTypes.RCURLY) {
+                LuaTableConstructor::class.java
+            } else {
+                LuaBlockParent::class.java
+            }
         return PsiTreeUtil.getParentOfType(opener, parentClass, false)
     }
 }

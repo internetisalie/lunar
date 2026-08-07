@@ -18,8 +18,9 @@ private const val NOTIFICATION_GROUP = "notification.group.lunar.tools"
  * Runs [LuaToolDiagnostics.logSnapshot] on a background thread so the IDE log receives the output
  * without blocking the EDT.
  */
-class LuaToolchainDiagnosticsAction : AnAction(), DumbAware {
-
+class LuaToolchainDiagnosticsAction :
+    AnAction(),
+    DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val targetProject = e.project ?: return
         try {
@@ -41,12 +42,12 @@ class LuaToolchainDiagnosticsAction : AnAction(), DumbAware {
     }
 
     private fun notifyDone(targetProject: Project) {
-        NotificationGroupManager.getInstance()
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP)
             .createNotification(
                 "Toolchain diagnostics written to idea.log",
-                NotificationType.INFORMATION
-            )
-            .notify(targetProject)
+                NotificationType.INFORMATION,
+            ).notify(targetProject)
     }
 }

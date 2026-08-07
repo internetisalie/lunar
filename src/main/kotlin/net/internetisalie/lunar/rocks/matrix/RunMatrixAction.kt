@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger
  * the aggregate notification.
  */
 class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
-
     override fun update(event: AnActionEvent) {
         val project = event.project
         event.presentation.isEnabled = project != null && environmentsOf(project).isNotEmpty()
@@ -52,11 +51,13 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
         }
     }
 
-    private fun environmentsOf(project: Project) =
-        LuaToolchainProjectSettings.getInstance(project).environments()
+    private fun environmentsOf(project: Project) = LuaToolchainProjectSettings.getInstance(project).environments()
 
     /** Shared per-run context: the request, the mutable rows, and a completion counter. */
-    private class MatrixRun(val project: Project, val request: MatrixRunner.Request) {
+    private class MatrixRun(
+        val project: Project,
+        val request: MatrixRunner.Request,
+    ) {
         val label: String = request.rockspec.fileName?.toString() ?: request.rockspec.toString()
         val rows: List<MatrixRow> = request.envs.map { MatrixRow(it, rockspecLabel = label) }
         val remaining = AtomicInteger(rows.size)
@@ -66,14 +67,16 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
         run.rows.forEach { row -> ProgressManager.getInstance().run(rowTask(run, row)) }
     }
 
-    private fun rowTask(run: MatrixRun, row: MatrixRow) =
-        object : Task.Backgroundable(run.project, "Running Lua matrix: ${run.label} / ${row.env.name}", true) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.checkCanceled()
-                MatrixRunner.runRow(run.request, MatrixRunner.processRunner, row)
-                onRowFinished(run)
-            }
+    private fun rowTask(
+        run: MatrixRun,
+        row: MatrixRow,
+    ) = object : Task.Backgroundable(run.project, "Running Lua matrix: ${run.label} / ${row.env.name}", true) {
+        override fun run(indicator: ProgressIndicator) {
+            indicator.checkCanceled()
+            MatrixRunner.runRow(run.request, MatrixRunner.processRunner, row)
+            onRowFinished(run)
         }
+    }
 
     private fun onRowFinished(run: MatrixRun) {
         val result = MatrixResult(run.rows)
@@ -84,13 +87,21 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
         }
     }
 
-    private fun publishTable(project: Project, result: MatrixResult) {
+    private fun publishTable(
+        project: Project,
+        result: MatrixResult,
+    ) {
         MatrixResultsToolWindow.MatrixResultsPanel.getInstance(project).setResult(result)
-        ToolWindowManager.getInstance(project)
-            .getToolWindow(MatrixResultsToolWindow.TOOL_WINDOW_ID)?.show(null)
+        ToolWindowManager
+            .getInstance(project)
+            .getToolWindow(MatrixResultsToolWindow.TOOL_WINDOW_ID)
+            ?.show(null)
     }
 
-    private fun notifyAggregate(project: Project, result: MatrixResult) {
+    private fun notifyAggregate(
+        project: Project,
+        result: MatrixResult,
+    ) {
         val summary = if (result.allPassed) "Test matrix passed" else "Test matrix had failures"
         val type = if (result.allPassed) NotificationType.INFORMATION else NotificationType.WARNING
         notify(project, summary, type)
@@ -100,8 +111,13 @@ class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
     internal fun allRockspecs(project: Project): List<Path> =
         LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths().map { it.rockspec }
 
-    private fun notify(project: Project, message: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
+    private fun notify(
+        project: Project,
+        message: String,
+        type: NotificationType,
+    ) {
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP)
             .createNotification(message, type)
             .notify(project)

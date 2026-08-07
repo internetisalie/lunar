@@ -27,12 +27,12 @@ private const val CONFIGURABLE_ID = "net.internetisalie.lunar.toolchain.ui.LuaTo
  * notify-firing mutators; the binding combos apply through [applyGlobalBindings] on the panel's
  * apply callback. The table auto-refreshes off the [LuaToolchainListener.TOPIC] subscription (§3.1).
  */
-class LuaToolchainConfigurable : BoundSearchableConfigurable(
-    displayName = "Toolchain",
-    helpTopic = "settings.lua.toolchain",
-    _id = CONFIGURABLE_ID
-) {
-
+class LuaToolchainConfigurable :
+    BoundSearchableConfigurable(
+        displayName = "Toolchain",
+        helpTopic = "settings.lua.toolchain",
+        _id = CONFIGURABLE_ID,
+    ) {
     private val registry: LuaToolchainRegistry
         get() = LuaToolchainRegistry.getInstance()
 
@@ -42,38 +42,41 @@ class LuaToolchainConfigurable : BoundSearchableConfigurable(
     private var luaRocksServerUrl = registry.kindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL)
 
     private val globalBindingCombos: Map<String, ComboBox<LuaBindingItem>> =
-        LuaToolKindClassifier.byTier()[LuaToolKindClassifier.Tier.COMMON].orEmpty()
+        LuaToolKindClassifier
+            .byTier()[LuaToolKindClassifier.Tier.COMMON]
+            .orEmpty()
             .associate { kind -> kind.id to newBindingCombo(kind.id) }
 
     override fun createPanel(): DialogPanel {
         subscribeToToolchainEvents()
-        val builtPanel = panel {
-            row {
-                cell(inventoryTable.component).resizableColumn()
-            }.resizableRow()
-            buildGlobalBindings(this)
-            group(LuaBundle.message("luacheck.name")) {
-                row(LuaBundle.message("luacheck.arguments")) {
-                    expandableTextField { it.joinToString(" ") }
-                        .bindText({ luacheckArguments }, { luacheckArguments = it })
-                        .gap(RightGap.SMALL)
-                        .onApply {
-                            registry.setKindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS, luacheckArguments)
-                        }
+        val builtPanel =
+            panel {
+                row {
+                    cell(inventoryTable.component).resizableColumn()
+                }.resizableRow()
+                buildGlobalBindings(this)
+                group(LuaBundle.message("luacheck.name")) {
+                    row(LuaBundle.message("luacheck.arguments")) {
+                        expandableTextField { it.joinToString(" ") }
+                            .bindText({ luacheckArguments }, { luacheckArguments = it })
+                            .gap(RightGap.SMALL)
+                            .onApply {
+                                registry.setKindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS, luacheckArguments)
+                            }
+                    }
+                }
+                group("LuaRocks") {
+                    row("Default server URL:") {
+                        textField()
+                            .bindText({ luaRocksServerUrl }, { luaRocksServerUrl = it })
+                            .gap(RightGap.SMALL)
+                            .comment("Empty = luarocks.org default. Overridable per project.")
+                            .onApply {
+                                registry.setKindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL, luaRocksServerUrl)
+                            }
+                    }
                 }
             }
-            group("LuaRocks") {
-                row("Default server URL:") {
-                    textField()
-                        .bindText({ luaRocksServerUrl }, { luaRocksServerUrl = it })
-                        .gap(RightGap.SMALL)
-                        .comment("Empty = luarocks.org default. Overridable per project.")
-                        .onApply {
-                            registry.setKindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL, luaRocksServerUrl)
-                        }
-                }
-            }
-        }
         resetGlobalBindings()
         return builtPanel
     }
@@ -133,14 +136,22 @@ class LuaToolchainConfigurable : BoundSearchableConfigurable(
             renderer = SimpleListCellRenderer.create("") { bindingLabel(kindId, it) }
         }
 
-    private fun bindingLabel(kindId: String, item: LuaBindingItem): String = when (item) {
-        LuaBindingItem.Inherit -> "No default"
-        is LuaBindingItem.Tool -> LuaProjectConfigurable.toolLabel(item.tool.path, item.tool.version)
-    }
+    private fun bindingLabel(
+        kindId: String,
+        item: LuaBindingItem,
+    ): String =
+        when (item) {
+            LuaBindingItem.Inherit -> "No default"
+            is LuaBindingItem.Tool -> LuaProjectConfigurable.toolLabel(item.tool.path, item.tool.version)
+        }
 
     private fun kindLabel(kindId: String): String =
-        (LuaToolKindClassifier.byTier()[LuaToolKindClassifier.Tier.COMMON].orEmpty()
-            .firstOrNull { it.id == kindId })?.displayName ?: kindId
+        (
+            LuaToolKindClassifier
+                .byTier()[LuaToolKindClassifier.Tier.COMMON]
+                .orEmpty()
+                .firstOrNull { it.id == kindId }
+        )?.displayName ?: kindId
 
     private fun subscribeToToolchainEvents() {
         val panelDisposable = disposable ?: return
@@ -151,10 +162,10 @@ class LuaToolchainConfigurable : BoundSearchableConfigurable(
                 override fun toolchainChanged(event: LuaToolchainEvent) {
                     ApplicationManager.getApplication().invokeLater(
                         { inventoryTable.refresh() },
-                        ModalityState.any()
+                        ModalityState.any(),
                     )
                 }
-            }
+            },
         )
     }
 }

@@ -5,7 +5,10 @@ package net.internetisalie.lunar.rocks.browser
  * `"<name> <constraint>"` string from `luarocks show`; [packageName] is the leading token used for
  * the click-to-search action (absorbs BUG-368's `\n`-joined deps).
  */
-data class DependencyRow(val raw: String) {
+data class DependencyRow(
+    val raw: String,
+) {
     val packageName: String get() = raw.substringBefore(' ').trim()
+
     override fun toString(): String = raw
 }

@@ -38,9 +38,17 @@ import javax.swing.JPanel
  * Commands offered as presets in the LuaRocks run-config editor (ROCKS-04-02). The combo box is
  * editable, so any other subcommand is also accepted verbatim.
  */
-val LUAROCKS_COMMANDS: List<String> = listOf(
-    "make", "build", "install", "test", "upload", "list", "show", "remove"
-)
+val LUAROCKS_COMMANDS: List<String> =
+    listOf(
+        "make",
+        "build",
+        "install",
+        "test",
+        "upload",
+        "list",
+        "show",
+        "remove",
+    )
 
 /** Subcommands for which a trailing `.rockspec` path is appended (ROCKS-04-03, design §3.1.6). */
 private val ROCKSPEC_COMMANDS = setOf("make", "build")
@@ -51,9 +59,13 @@ private const val LUAROCKS_NOT_CONFIGURED =
     "LuaRocks is not configured. Register or bind it under " +
         "Settings | Languages & Frameworks | Lua | Toolchain."
 
-class LuaRocksRunConfigurationType : ConfigurationTypeBase(
-    ID, "LuaRocks", "LuaRocks task run configuration",
-    NotNullLazyValue.createValue { LuaIcons.ROCKET }) {
+class LuaRocksRunConfigurationType :
+    ConfigurationTypeBase(
+        ID,
+        "LuaRocks",
+        "LuaRocks task run configuration",
+        NotNullLazyValue.createValue { LuaIcons.ROCKET },
+    ) {
     init {
         addFactory(LuaRocksRunConfigurationFactory(this))
     }
@@ -63,105 +75,139 @@ class LuaRocksRunConfigurationType : ConfigurationTypeBase(
     }
 }
 
-class LuaRocksRunConfigurationFactory(type: ConfigurationTypeBase) : ConfigurationFactory(type) {
-    override fun getId(): String {
-        return LuaRocksRunConfigurationType.ID
-    }
+class LuaRocksRunConfigurationFactory(
+    type: ConfigurationTypeBase,
+) : ConfigurationFactory(type) {
+    override fun getId(): String = LuaRocksRunConfigurationType.ID
 
-    override fun createTemplateConfiguration(project: Project): RunConfiguration {
-        return LuaRocksRunConfiguration(project, this, "LuaRocks")
-    }
+    override fun createTemplateConfiguration(project: Project): RunConfiguration =
+        LuaRocksRunConfiguration(project, this, "LuaRocks")
 
-    override fun getOptionsClass(): Class<out BaseState> {
-        return LuaRocksRunConfigurationOptions::class.java
-    }
+    override fun getOptionsClass(): Class<out BaseState> = LuaRocksRunConfigurationOptions::class.java
 }
 
 class LuaRocksRunConfigurationOptions : RunConfigurationOptions() {
-    private val myCommand: StoredProperty<String?> = string(DEFAULT_COMMAND).provideDelegate(
-        this, "command"
-    )
-    private val myArguments: StoredProperty<String?> = string("").provideDelegate(
-        this, "arguments"
-    )
-    private val myRockspecPath: StoredProperty<String?> = string("").provideDelegate(
-        this, "rockspecPath"
-    )
-    private val myGlobalFlags: StoredProperty<String?> = string("").provideDelegate(
-        this, "globalFlags"
-    )
+    private val myCommand: StoredProperty<String?> =
+        string(DEFAULT_COMMAND).provideDelegate(
+            this,
+            "command",
+        )
+    private val myArguments: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "arguments",
+        )
+    private val myRockspecPath: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "rockspecPath",
+        )
+    private val myGlobalFlags: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "globalFlags",
+        )
     private val myEnvironmentVariables: StoredProperty<MutableMap<String, String>> =
         map<String, String>().provideDelegate(
-            this, "environmentVariables"
+            this,
+            "environmentVariables",
         )
 
     // Pass parent env by default (ROCKS-04-08): the system C toolchain (cc/make/PATH) must
     // reach `luarocks build` for C-module compilation.
-    private val myEnvironmentProcess: StoredProperty<String?> = string("true").provideDelegate(
-        this, "environmentProcess"
-    )
-    private val myEnvironmentFile: StoredProperty<String?> = string("").provideDelegate(
-        this, "environmentFile"
-    )
+    private val myEnvironmentProcess: StoredProperty<String?> =
+        string("true").provideDelegate(
+            this,
+            "environmentProcess",
+        )
+    private val myEnvironmentFile: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "environmentFile",
+        )
 
     var command: String?
         get() = myCommand.getValue(this)
-        set(value) { myCommand.setValue(this, value) }
+        set(value) {
+            myCommand.setValue(this, value)
+        }
 
     var arguments: String?
         get() = myArguments.getValue(this)
-        set(value) { myArguments.setValue(this, value) }
+        set(value) {
+            myArguments.setValue(this, value)
+        }
 
     var rockspecPath: String?
         get() = myRockspecPath.getValue(this)
-        set(value) { myRockspecPath.setValue(this, value) }
+        set(value) {
+            myRockspecPath.setValue(this, value)
+        }
 
     var globalFlags: String?
         get() = myGlobalFlags.getValue(this)
-        set(value) { myGlobalFlags.setValue(this, value) }
+        set(value) {
+            myGlobalFlags.setValue(this, value)
+        }
 
     var environmentVariables: MutableMap<String, String>
         get() = myEnvironmentVariables.getValue(this)
-        set(value) { myEnvironmentVariables.setValue(this, value) }
+        set(value) {
+            myEnvironmentVariables.setValue(this, value)
+        }
 
     var environmentProcess: String?
         get() = myEnvironmentProcess.getValue(this)
-        set(value) { myEnvironmentProcess.setValue(this, value) }
+        set(value) {
+            myEnvironmentProcess.setValue(this, value)
+        }
 
     var environmentFile: String?
         get() = myEnvironmentFile.getValue(this)
-        set(value) { myEnvironmentFile.setValue(this, value) }
+        set(value) {
+            myEnvironmentFile.setValue(this, value)
+        }
 }
 
-class LuaRocksRunConfiguration(project: Project, factory: ConfigurationFactory?, name: String?) :
-    RunConfigurationBase<LuaRocksRunConfigurationOptions?>(project, factory, name) {
-
-    public override fun getOptions(): LuaRocksRunConfigurationOptions {
-        return super.getOptions() as LuaRocksRunConfigurationOptions
-    }
+class LuaRocksRunConfiguration(
+    project: Project,
+    factory: ConfigurationFactory?,
+    name: String?,
+) : RunConfigurationBase<LuaRocksRunConfigurationOptions?>(project, factory, name) {
+    public override fun getOptions(): LuaRocksRunConfigurationOptions =
+        super.getOptions() as LuaRocksRunConfigurationOptions
 
     var command: String?
         get() = options.command
-        set(value) { options.command = value }
+        set(value) {
+            options.command = value
+        }
 
     var arguments: String?
         get() = options.arguments
-        set(value) { options.arguments = value }
+        set(value) {
+            options.arguments = value
+        }
 
     var rockspecPath: String?
         get() = options.rockspecPath
-        set(value) { options.rockspecPath = value }
+        set(value) {
+            options.rockspecPath = value
+        }
 
     var globalFlags: String?
         get() = options.globalFlags
-        set(value) { options.globalFlags = value }
+        set(value) {
+            options.globalFlags = value
+        }
 
     var environmentVariables: EnvironmentVariablesData?
-        get() = EnvironmentVariablesData.create(
-            options.environmentVariables,
-            options.environmentProcess.toBoolean(),
-            options.environmentFile
-        )
+        get() =
+            EnvironmentVariablesData.create(
+                options.environmentVariables,
+                options.environmentProcess.toBoolean(),
+                options.environmentFile,
+            )
         set(value) {
             if (value != null) {
                 options.environmentVariables = value.envs.toMutableMap()
@@ -205,9 +251,7 @@ class LuaRocksRunConfiguration(project: Project, factory: ConfigurationFactory?,
         return commandLine
     }
 
-    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> {
-        return LuaRocksRunSettingsEditor(project)
-    }
+    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> = LuaRocksRunSettingsEditor(project)
 
     /**
      * Resolves the `luarocks` binary via the toolchain, assembles the command line, and injects
@@ -215,19 +259,25 @@ class LuaRocksRunConfiguration(project: Project, factory: ConfigurationFactory?,
      * resolution + PATH prepend can be asserted without launching a process.
      */
     fun resolveAndBuildCommandLine(): GeneralCommandLine {
-        val luarocksBinary = LuaRocksEnvironment.resolveExecutable(project)
-            ?: throw ExecutionException(LUAROCKS_NOT_CONFIGURED)
+        val luarocksBinary =
+            LuaRocksEnvironment.resolveExecutable(project)
+                ?: throw ExecutionException(LUAROCKS_NOT_CONFIGURED)
         val commandLine = buildCommandLine(luarocksBinary)
         LuaExecutionEnvironmentBuilder.getInstance(project).build().applyTo(commandLine)
         return commandLine
     }
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+    override fun getState(
+        executor: Executor,
+        environment: ExecutionEnvironment,
+    ): RunProfileState {
         return object : CommandLineState(environment) {
             override fun startProcess(): ProcessHandler {
                 val commandLine = resolveAndBuildCommandLine()
-                val processHandler = ProcessHandlerFactory.getInstance()
-                    .createColoredProcessHandler(commandLine)
+                val processHandler =
+                    ProcessHandlerFactory
+                        .getInstance()
+                        .createColoredProcessHandler(commandLine)
                 ProcessTerminatedListener.attach(processHandler)
                 return processHandler
             }
@@ -235,11 +285,14 @@ class LuaRocksRunConfiguration(project: Project, factory: ConfigurationFactory?,
     }
 }
 
-class LuaRocksRunSettingsEditor(project: Project) : SettingsEditor<LuaRocksRunConfiguration>() {
+class LuaRocksRunSettingsEditor(
+    project: Project,
+) : SettingsEditor<LuaRocksRunConfiguration>() {
     private val myPanel: JPanel
-    private val commandField = ComboBox(LUAROCKS_COMMANDS.toTypedArray()).apply {
-        isEditable = true
-    }
+    private val commandField =
+        ComboBox(LUAROCKS_COMMANDS.toTypedArray()).apply {
+            isEditable = true
+        }
     private val argumentsField = RawCommandLineEditor()
     private val rockspecField = TextFieldWithBrowseButton()
     private val globalFlagsField = RawCommandLineEditor()
@@ -248,16 +301,18 @@ class LuaRocksRunSettingsEditor(project: Project) : SettingsEditor<LuaRocksRunCo
     init {
         rockspecField.addBrowseFolderListener(
             project,
-            FileChooserDescriptorFactory.singleFileOrDir()
+            FileChooserDescriptorFactory.singleFileOrDir(),
         )
 
-        myPanel = FormBuilder.createFormBuilder()
-            .addLabeledComponent("Command", commandField)
-            .addLabeledComponent("Arguments", argumentsField)
-            .addLabeledComponent("Rockspec", rockspecField)
-            .addLabeledComponent("Global flags", globalFlagsField)
-            .addLabeledComponent("Environment", environmentVariablesField)
-            .panel
+        myPanel =
+            FormBuilder
+                .createFormBuilder()
+                .addLabeledComponent("Command", commandField)
+                .addLabeledComponent("Arguments", argumentsField)
+                .addLabeledComponent("Rockspec", rockspecField)
+                .addLabeledComponent("Global flags", globalFlagsField)
+                .addLabeledComponent("Environment", environmentVariablesField)
+                .panel
     }
 
     override fun resetEditorFrom(runConfiguration: LuaRocksRunConfiguration) {
@@ -277,7 +332,5 @@ class LuaRocksRunSettingsEditor(project: Project) : SettingsEditor<LuaRocksRunCo
         runConfiguration.environmentVariables = environmentVariablesField.data
     }
 
-    override fun createEditor(): JComponent {
-        return myPanel
-    }
+    override fun createEditor(): JComponent = myPanel
 }

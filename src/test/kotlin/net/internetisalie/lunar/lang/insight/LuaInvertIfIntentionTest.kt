@@ -7,10 +7,12 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaInvertIfIntentionTest : BasePlatformTestCase() {
-
     private val actionText = "Invert 'if' statement"
 
-    private fun invert(input: String, expected: String) {
+    private fun invert(
+        input: String,
+        expected: String,
+    ) {
         myFixture.configureByText("test.lua", input)
         val intention = myFixture.findSingleIntention(actionText)
         myFixture.launchAction(intention)

@@ -52,13 +52,14 @@ class LuaDebugVariable private constructor(
     override fun computeChildren(node: XCompositeNode) {
         if (value.isTable) {
             val fields = value.raw.checkTable()?.pairs() ?: return
-            val xValues = XValueChildrenList(fields.size);
+            val xValues = XValueChildrenList(fields.size)
             fields.forEach { field ->
-                val key = when (field.first.kind) {
-                    LuaValueKind.String -> field.first.stringValue ?: "?"
-                    LuaValueKind.Number -> "[" + (field.first.numberValue?.toInt() ?: 0) + "]"
-                    else -> "[" + field.first.toDisplayString() + "]"
-                }
+                val key =
+                    when (field.first.kind) {
+                        LuaValueKind.String -> field.first.stringValue ?: "?"
+                        LuaValueKind.Number -> "[" + (field.first.numberValue?.toInt() ?: 0) + "]"
+                        else -> "[" + field.first.toDisplayString() + "]"
+                    }
                 val debugValue = LuaDebugValue(field.second, null, AllIcons.Nodes.Field)
                 xValues.add(
                     LuaDebugVariable(
@@ -71,29 +72,36 @@ class LuaDebugVariable private constructor(
                     ),
                 )
             }
-            node.addChildren(xValues, true);
+            node.addChildren(xValues, true)
         } else {
             super.computeChildren(node)
         }
     }
 
-    override fun computePresentation(node: XValueNode, place: XValuePlace) {
+    override fun computePresentation(
+        node: XValueNode,
+        place: XValuePlace,
+    ) {
         value.computePresentation(node, place)
     }
 
     override fun computeSourcePosition(navigatable: XNavigatable) {
-        val project: Project = targetProject ?: run {
-            super.computeSourcePosition(navigatable)
-            return
-        }
+        val project: Project =
+            targetProject ?: run {
+                super.computeSourcePosition(navigatable)
+                return
+            }
 
         val debugSession: XDebugSession = XDebuggerManager.getInstance(project).currentSession ?: return
         val currentPosition: XSourcePosition = debugSession.currentPosition ?: return
 
-        val contextElement: PsiElement? = XDebuggerUtil.getInstance().findContextElement(
-            currentPosition.getFile(),
-            currentPosition.getOffset(), project, false,
-        )
+        val contextElement: PsiElement? =
+            XDebuggerUtil.getInstance().findContextElement(
+                currentPosition.getFile(),
+                currentPosition.getOffset(),
+                project,
+                false,
+            )
 
         if (contextElement == null) return
 
@@ -105,15 +113,34 @@ class LuaDebugVariable private constructor(
             val state = ResolveState.initial()
 
             // Process declarations in scope elements
-            val matchFound = when (current) {
-                is LuaBlock -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                is LuaFuncDef -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                is LuaFuncDecl -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                is LuaLocalFuncDecl -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                is LuaNumericForStatement -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                is LuaGenericForStatement -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                else -> false
-            }
+            val matchFound =
+                when (current) {
+                    is LuaBlock -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                    is LuaFuncDef -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                    is LuaFuncDecl -> !current.processDeclarations(processor, state, contextElement, contextElement)
+                    is LuaLocalFuncDecl ->
+                        !current.processDeclarations(
+                            processor,
+                            state,
+                            contextElement,
+                            contextElement,
+                        )
+                    is LuaNumericForStatement ->
+                        !current.processDeclarations(
+                            processor,
+                            state,
+                            contextElement,
+                            contextElement,
+                        )
+                    is LuaGenericForStatement ->
+                        !current.processDeclarations(
+                            processor,
+                            state,
+                            contextElement,
+                            contextElement,
+                        )
+                    else -> false
+                }
 
             if (matchFound) break
             current = current.parent

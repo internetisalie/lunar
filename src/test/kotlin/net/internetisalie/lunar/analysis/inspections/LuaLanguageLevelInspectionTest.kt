@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test
  * only the source of the diagnostics changed (annotator → enabled inspection).
  */
 class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
-
     @BeforeEach
     fun setupProject() {
         myFixture.enableInspections(LuaLanguageLevelInspection())
@@ -331,7 +330,12 @@ class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
 
     @Test
     fun noErrorsForRegularOperatorsInAllVersions() {
-        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+        for (level in listOf(
+            LuaLanguageLevel.LUA51,
+            LuaLanguageLevel.LUA52,
+            LuaLanguageLevel.LUA53,
+            LuaLanguageLevel.LUA54,
+        )) {
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local a = 1 + 2")
             var errors = getLanguageLevelErrors()
@@ -506,7 +510,12 @@ class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
 
     @Test
     fun unaryMinusAllowedInAllVersions() {
-        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+        for (level in listOf(
+            LuaLanguageLevel.LUA51,
+            LuaLanguageLevel.LUA52,
+            LuaLanguageLevel.LUA53,
+            LuaLanguageLevel.LUA54,
+        )) {
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local x = -5")
             val errors = getLanguageLevelErrors()
@@ -516,7 +525,12 @@ class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
 
     @Test
     fun notOperatorAllowedInAllVersions() {
-        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+        for (level in listOf(
+            LuaLanguageLevel.LUA51,
+            LuaLanguageLevel.LUA52,
+            LuaLanguageLevel.LUA53,
+            LuaLanguageLevel.LUA54,
+        )) {
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local x = not true")
             val errors = getLanguageLevelErrors()
@@ -526,7 +540,12 @@ class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
 
     @Test
     fun lengthOperatorAllowedInAllVersions() {
-        for (level in listOf(LuaLanguageLevel.LUA51, LuaLanguageLevel.LUA52, LuaLanguageLevel.LUA53, LuaLanguageLevel.LUA54)) {
+        for (level in listOf(
+            LuaLanguageLevel.LUA51,
+            LuaLanguageLevel.LUA52,
+            LuaLanguageLevel.LUA53,
+            LuaLanguageLevel.LUA54,
+        )) {
             setLanguageLevel(level)
             myFixture.configureByText(LuaFileType, "local x = #t")
             val errors = getLanguageLevelErrors()
@@ -720,11 +739,11 @@ class LuaLanguageLevelInspectionTest : BaseDocumentTest() {
         settings.state.languageLevel = level
     }
 
-    private fun getLanguageLevelErrors(): List<String> {
-        return myFixture.doHighlighting(HighlightSeverity.ERROR)
+    private fun getLanguageLevelErrors(): List<String> =
+        myFixture
+            .doHighlighting(HighlightSeverity.ERROR)
             .mapNotNull { it.description }
             .filter { desc ->
                 desc.contains("Lua 5") || desc.contains("feature")
             }
-    }
 }

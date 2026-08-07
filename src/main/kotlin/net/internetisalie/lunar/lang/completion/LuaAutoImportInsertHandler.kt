@@ -26,8 +26,10 @@ class LuaAutoImportInsertHandler(
     private val exportStyleDetector: LuaExportStyleDetector,
     private val importNameResolver: LuaImportNameResolver,
 ) : InsertHandler<LookupElement> {
-
-    override fun handleInsert(context: InsertionContext, item: LookupElement) {
+    override fun handleInsert(
+        context: InsertionContext,
+        item: LookupElement,
+    ) {
         val project = context.project
         val currentFile = context.file as? LuaFile ?: return
         if (!targetFile.isValid) return
@@ -36,15 +38,17 @@ class LuaAutoImportInsertHandler(
 
         val modulePath = runReadActionBlocking { modulePathResolver.resolve(targetFile, project) } ?: return
 
-        val alreadyRequired = runReadActionBlocking {
-            LuaDeduplicationChecker.isAlreadyRequired(currentFile, modulePath)
-        }
+        val alreadyRequired =
+            runReadActionBlocking {
+                LuaDeduplicationChecker.isAlreadyRequired(currentFile, modulePath)
+            }
         if (alreadyRequired) return
 
         val exportStyle = resolveExportStyle(project)
-        val localName = runReadActionBlocking {
-            importNameResolver.resolve(targetFile, exportStyle, currentFile, project)
-        }
+        val localName =
+            runReadActionBlocking {
+                importNameResolver.resolve(targetFile, exportStyle, currentFile, project)
+            }
         val importStatement = buildImportStatement(modulePath, exportStyle, localName)
 
         WriteCommandAction.runWriteCommandAction(
@@ -68,10 +72,11 @@ class LuaAutoImportInsertHandler(
         modulePath: String,
         exportStyle: LuaExportStyle,
         localName: String?,
-    ): String = when (exportStyle) {
-        LuaExportStyle.RETURN_STYLE ->
-            "local ${localName ?: modulePath.substringAfterLast('.')} = require(\"$modulePath\")"
-        LuaExportStyle.GLOBAL_STYLE ->
-            "require(\"$modulePath\")"
-    }
+    ): String =
+        when (exportStyle) {
+            LuaExportStyle.RETURN_STYLE ->
+                "local ${localName ?: modulePath.substringAfterLast('.')} = require(\"$modulePath\")"
+            LuaExportStyle.GLOBAL_STYLE ->
+                "require(\"$modulePath\")"
+        }
 }

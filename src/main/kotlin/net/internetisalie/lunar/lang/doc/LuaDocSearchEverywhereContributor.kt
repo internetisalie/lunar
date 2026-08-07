@@ -26,9 +26,8 @@ import net.internetisalie.lunar.lang.syntax.collectDescriptionText
 import javax.swing.ListCellRenderer
 
 class LuaDocSearchEverywhereContributor(
-    private val project: Project
+    private val project: Project,
 ) : SearchEverywhereContributor<LuaDocSearchItem> {
-
     override fun getSearchProviderId(): String = this::class.java.simpleName
 
     override fun getGroupName(): String = "Lua Documentation"
@@ -47,67 +46,74 @@ class LuaDocSearchEverywhereContributor(
     override fun fetchElements(
         pattern: String,
         progressIndicator: ProgressIndicator,
-        consumer: Processor<in LuaDocSearchItem>
+        consumer: Processor<in LuaDocSearchItem>,
     ) {
         if (project.isDisposed || DumbService.isDumb(project) || pattern.isBlank()) return
 
-        val tokens = pattern.trim().lowercase().split(Regex("[^a-zA-Z0-9_]+")).filter { it.length >= 2 }
+        val tokens =
+            pattern
+                .trim()
+                .lowercase()
+                .split(Regex("[^a-zA-Z0-9_]+"))
+                .filter { it.length >= 2 }
         if (tokens.isEmpty()) return
 
-        val task = Runnable {
-            if (DumbService.isDumb(project)) return@Runnable
-            val scope = try {
-                if (SearchEverywhereManager.getInstance(project).isEverywhere) {
-                    GlobalSearchScope.allScope(project)
-                } else {
-                    GlobalSearchScope.projectScope(project)
-                }
-            } catch (_: IllegalStateException) {
-                GlobalSearchScope.projectScope(project)
-            }
-
-            val index = FileBasedIndex.getInstance()
-            val firstToken = tokens[0]
-
-            val matchingKeys = mutableListOf<String>()
-            index.processAllKeys(
-                LuaDescriptionIndex.KEY,
-                Processor { key ->
-                    ProgressManager.checkCanceled()
-                    if (key.contains(firstToken)) {
-                        matchingKeys.add(key)
+        val task =
+            Runnable {
+                if (DumbService.isDumb(project)) return@Runnable
+                val scope =
+                    try {
+                        if (SearchEverywhereManager.getInstance(project).isEverywhere) {
+                            GlobalSearchScope.allScope(project)
+                        } else {
+                            GlobalSearchScope.projectScope(project)
+                        }
+                    } catch (_: IllegalStateException) {
+                        GlobalSearchScope.projectScope(project)
                     }
-                    true
-                },
-                scope,
-                null
-            )
 
-            val seen = hashSetOf<String>()
-            for (key in matchingKeys) {
-                for (value in index.getValues(LuaDescriptionIndex.KEY, key, scope)) {
-                    // BUG-408: the record format is owned by DescriptionRecord, never hand-split
-                    // here — a tab or `|` in a file path used to change the arity and silently drop
-                    // the entry.
-                    for (record in DescriptionRecord.parseAll(value)) {
+                val index = FileBasedIndex.getInstance()
+                val firstToken = tokens[0]
+
+                val matchingKeys = mutableListOf<String>()
+                index.processAllKeys(
+                    LuaDescriptionIndex.KEY,
+                    Processor { key ->
                         ProgressManager.checkCanceled()
-                        val name = record.ownerName
-                        val fileUrl = record.fileUrl
-                        val offset = record.offset
-                        val dedupKey = "$name:$fileUrl"
-                        if (!seen.add(dedupKey)) continue
-
-                        if (tokens.size > 1 && !descriptionContainsAllTokens(fileUrl, offset, tokens)) {
-                            continue
+                        if (key.contains(firstToken)) {
+                            matchingKeys.add(key)
                         }
+                        true
+                    },
+                    scope,
+                    null,
+                )
 
-                        if (!consumer.process(LuaDocSearchItem(project, name, fileUrl, offset))) {
-                            return@Runnable
+                val seen = hashSetOf<String>()
+                for (key in matchingKeys) {
+                    for (value in index.getValues(LuaDescriptionIndex.KEY, key, scope)) {
+                        // BUG-408: the record format is owned by DescriptionRecord, never hand-split
+                        // here — a tab or `|` in a file path used to change the arity and silently drop
+                        // the entry.
+                        for (record in DescriptionRecord.parseAll(value)) {
+                            ProgressManager.checkCanceled()
+                            val name = record.ownerName
+                            val fileUrl = record.fileUrl
+                            val offset = record.offset
+                            val dedupKey = "$name:$fileUrl"
+                            if (!seen.add(dedupKey)) continue
+
+                            if (tokens.size > 1 && !descriptionContainsAllTokens(fileUrl, offset, tokens)) {
+                                continue
+                            }
+
+                            if (!consumer.process(LuaDocSearchItem(project, name, fileUrl, offset))) {
+                                return@Runnable
+                            }
                         }
                     }
                 }
             }
-        }
 
         val app = ApplicationManager.getApplication()
         if (app.isUnitTestMode) {
@@ -122,14 +128,16 @@ class LuaDocSearchEverywhereContributor(
     private fun descriptionContainsAllTokens(
         fileUrl: String,
         declOffset: Int,
-        tokens: List<String>
+        tokens: List<String>,
     ): Boolean {
         val vFile = VirtualFileManager.getInstance().findFileByUrl(fileUrl) ?: return false
         return runReadActionBlocking {
-            val psiFile = PsiManager.getInstance(project).findFile(vFile) as? LuaFile ?: return@runReadActionBlocking false
+            val psiFile =
+                PsiManager.getInstance(project).findFile(vFile) as? LuaFile ?: return@runReadActionBlocking false
             val element = psiFile.findElementAt(declOffset) ?: return@runReadActionBlocking false
-            val owner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
-                ?: return@runReadActionBlocking false
+            val owner =
+                PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
+                    ?: return@runReadActionBlocking false
             val comment = owner.catsComment ?: return@runReadActionBlocking false
             val fullText = collectDescriptionText(comment)
             if (fullText.isBlank()) return@runReadActionBlocking false
@@ -141,23 +149,22 @@ class LuaDocSearchEverywhereContributor(
     override fun processSelectedItem(
         selected: LuaDocSearchItem,
         modifiers: Int,
-        searchText: String
+        searchText: String,
     ): Boolean {
         selected.navigate(true)
         return true
     }
 
-    override fun getElementsRenderer(): ListCellRenderer<in LuaDocSearchItem> {
-        return NavigationItemListCellRenderer()
-    }
+    override fun getElementsRenderer(): ListCellRenderer<in LuaDocSearchItem> = NavigationItemListCellRenderer()
 
     override fun dispose() {}
 
     class Factory : SearchEverywhereContributorFactory<LuaDocSearchItem> {
         override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<LuaDocSearchItem> {
-            val project = requireNotNull(initEvent.project) {
-                "LuaDocSearchEverywhereContributor requires a project context"
-            }
+            val project =
+                requireNotNull(initEvent.project) {
+                    "LuaDocSearchEverywhereContributor requires a project context"
+                }
             return LuaDocSearchEverywhereContributor(project)
         }
     }

@@ -28,23 +28,23 @@ import java.net.ServerSocket
  * Uses raw `docker run --rm -d -p <port>:6379 <image>` (consistent with [RedisIntegrationTest]).
  */
 class RedisFunctionsIntegrationTest {
-
     private val containers = mutableListOf<RunningContainer>()
 
     @Before
     fun assertDockerAvailable() {
-        val process = runCatching {
-            ProcessBuilder("docker", "version", "--format", "{{.Server.Version}}")
-                .redirectErrorStream(true)
-                .start()
-                .also { it.waitFor() }
-        }.getOrNull()
+        val process =
+            runCatching {
+                ProcessBuilder("docker", "version", "--format", "{{.Server.Version}}")
+                    .redirectErrorStream(true)
+                    .start()
+                    .also { it.waitFor() }
+            }.getOrNull()
         if (process?.exitValue() != 0) {
             fail(
                 "Docker environment check failed: Docker is not available on PATH or the Docker daemon " +
                     "is not running. The redisIntegrationTest task requires a running Docker daemon with " +
                     "access to 'redis:8' and 'valkey/valkey:8' images. " +
-                    "Install Docker and ensure the daemon is started before running this task."
+                    "Install Docker and ensure the daemon is started before running this task.",
             )
         }
     }
@@ -71,7 +71,10 @@ class RedisFunctionsIntegrationTest {
 
     // ── per-flavor suite ──────────────────────────────────────────────────────────────────────────
 
-    private fun runFunctionsSuite(container: RunningContainer, flavorLabel: String) {
+    private fun runFunctionsSuite(
+        container: RunningContainer,
+        flavorLabel: String,
+    ) {
         withClient(container.endpoint()) { client ->
             deployLibrary(client, flavorLabel, LIB_BODY_V1)
             verifyList(client, flavorLabel)
@@ -83,13 +86,18 @@ class RedisFunctionsIntegrationTest {
 
     // ── step helpers ──────────────────────────────────────────────────────────────────────────────
 
-    private fun deployLibrary(client: RespClient, flavorLabel: String, body: String) {
+    private fun deployLibrary(
+        client: RespClient,
+        flavorLabel: String,
+        body: String,
+    ) {
         val reply = runBlocking { client.command(buildLoadArgs(body, replace = true)) }
-        val libName = when (reply) {
-            is RespValue.Bulk -> reply.asString()
-            is RespValue.Simple -> reply.text
-            else -> null
-        }
+        val libName =
+            when (reply) {
+                is RespValue.Bulk -> reply.asString()
+                is RespValue.Simple -> reply.text
+                else -> null
+            }
         assertEquals(
             "$flavorLabel FUNCTION LOAD: expected library name '$LIB_NAME' in reply",
             LIB_NAME,
@@ -97,7 +105,10 @@ class RedisFunctionsIntegrationTest {
         )
     }
 
-    private fun verifyList(client: RespClient, flavorLabel: String) {
+    private fun verifyList(
+        client: RespClient,
+        flavorLabel: String,
+    ) {
         val reply = runBlocking { client.command("FUNCTION", "LIST") }
         val entries = LuaRedisFunctionListParser.parse(reply)
         val lib = entries.find { it.name == LIB_NAME }
@@ -113,18 +124,28 @@ class RedisFunctionsIntegrationTest {
         )
     }
 
-    private fun verifyFcall(client: RespClient, flavorLabel: String, body: String) {
+    private fun verifyFcall(
+        client: RespClient,
+        flavorLabel: String,
+        body: String,
+    ) {
         val reply = runBlocking { client.command("FCALL", FN_NAME, "0") }
         val expected = expectedReplyFor(body)
         assertEquals("$flavorLabel FCALL $FN_NAME: expected $expected", expected, reply)
     }
 
-    private fun verifyReplace(client: RespClient, flavorLabel: String) {
+    private fun verifyReplace(
+        client: RespClient,
+        flavorLabel: String,
+    ) {
         deployLibrary(client, flavorLabel, LIB_BODY_V2)
         verifyFcall(client, flavorLabel, LIB_BODY_V2)
     }
 
-    private fun verifyDelete(client: RespClient, flavorLabel: String) {
+    private fun verifyDelete(
+        client: RespClient,
+        flavorLabel: String,
+    ) {
         val delReply = runBlocking { client.command("FUNCTION", "DELETE", LIB_NAME) }
         val okText = (delReply as? RespValue.Simple)?.text
         assertEquals("$flavorLabel FUNCTION DELETE: expected +OK", "OK", okText)
@@ -141,11 +162,23 @@ class RedisFunctionsIntegrationTest {
 
     private fun startContainer(image: String): RunningContainer {
         val port = ServerSocket(0).use { it.localPort }
-        val process = ProcessBuilder(
-            "docker", "run", "--rm", "-d", "-p", "$port:6379", image,
-        ).redirectErrorStream(true).start()
+        val process =
+            ProcessBuilder(
+                "docker",
+                "run",
+                "--rm",
+                "-d",
+                "-p",
+                "$port:6379",
+                image,
+            ).redirectErrorStream(true).start()
         process.waitFor()
-        val containerId = process.inputStream.bufferedReader().readLine().orEmpty().trim()
+        val containerId =
+            process.inputStream
+                .bufferedReader()
+                .readLine()
+                .orEmpty()
+                .trim()
         if (containerId.isBlank()) {
             fail("Failed to start Docker container for image '$image': docker run produced no container id")
         }
@@ -155,21 +188,25 @@ class RedisFunctionsIntegrationTest {
         return container
     }
 
-    private fun waitForReady(endpoint: RespEndpoint, image: String) {
+    private fun waitForReady(
+        endpoint: RespEndpoint,
+        image: String,
+    ) {
         val deadline = System.currentTimeMillis() + READY_TIMEOUT_MS
         var lastError: Throwable? = null
         val shortTimeouts = RespTimeouts(connectMs = 500, readMs = 1_000)
         while (System.currentTimeMillis() < deadline) {
-            val pingResult = runCatching {
-                runBlocking {
-                    val client = RespClient.open(endpoint, shortTimeouts)
-                    try {
-                        client.command("PING")
-                    } finally {
-                        client.dispose()
+            val pingResult =
+                runCatching {
+                    runBlocking {
+                        val client = RespClient.open(endpoint, shortTimeouts)
+                        try {
+                            client.command("PING")
+                        } finally {
+                            client.dispose()
+                        }
                     }
                 }
-            }
             val reply = pingResult.getOrNull()
             if (reply is RespValue.Simple && reply.text == "PONG") return
             lastError = pingResult.exceptionOrNull()
@@ -183,7 +220,10 @@ class RedisFunctionsIntegrationTest {
 
     // ── helpers ───────────────────────────────────────────────────────────────────────────────────
 
-    private fun withClient(endpoint: RespEndpoint, block: (RespClient) -> Unit) {
+    private fun withClient(
+        endpoint: RespEndpoint,
+        block: (RespClient) -> Unit,
+    ) {
         val client = runBlocking { RespClient.open(endpoint) }
         try {
             block(client)
@@ -192,7 +232,10 @@ class RedisFunctionsIntegrationTest {
         }
     }
 
-    private fun buildLoadArgs(body: String, replace: Boolean): List<ByteArray> {
+    private fun buildLoadArgs(
+        body: String,
+        replace: Boolean,
+    ): List<ByteArray> {
         val parts = mutableListOf("FUNCTION", "LOAD")
         if (replace) parts.add("REPLACE")
         parts.add(body)
@@ -204,8 +247,10 @@ class RedisFunctionsIntegrationTest {
 
     // ── inner types ───────────────────────────────────────────────────────────────────────────────
 
-    private inner class RunningContainer(private val containerId: String, val port: Int) {
-
+    private inner class RunningContainer(
+        private val containerId: String,
+        val port: Int,
+    ) {
         fun endpoint(): RespEndpoint = RespEndpoint(host = "127.0.0.1", port = port)
 
         fun stop() {

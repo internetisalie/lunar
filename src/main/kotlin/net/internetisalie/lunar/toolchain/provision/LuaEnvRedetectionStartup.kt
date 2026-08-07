@@ -33,39 +33,63 @@ class LuaEnvRedetectionStartup : ProjectActivity {
         }
     }
 
-    private data class Orphan(val rootDir: Path, val manifest: LuaEnvManifest)
+    private data class Orphan(
+        val rootDir: Path,
+        val manifest: LuaEnvManifest,
+    )
 
     private fun detectOrphan(project: Project): Orphan? {
         val rootDir = guessEnvRoot(project) ?: return null
-        val registeredIds = LuaToolchainProjectSettings.getInstance(project).environments().map { it.id }.toSet()
+        val registeredIds =
+            LuaToolchainProjectSettings
+                .getInstance(project)
+                .environments()
+                .map { it.id }
+                .toSet()
         val manifest = LuaEnvRedetection.findOrphan(rootDir, registeredIds) ?: return null
         return Orphan(rootDir, manifest)
     }
 
-    private fun guessEnvRoot(project: Project): Path? =
-        project.guessProjectDir()?.toNioPath()?.resolve(ENV_DIR_NAME)
+    private fun guessEnvRoot(project: Project): Path? = project.guessProjectDir()?.toNioPath()?.resolve(ENV_DIR_NAME)
 
-    private fun offerReRegistration(project: Project, rootDir: Path, manifest: LuaEnvManifest) {
-        val notification = NotificationGroupManager.getInstance()
-            .getNotificationGroup(NOTIFICATION_GROUP)
-            .createNotification(
-                "Lunar environment '${manifest.environmentName}' found at $rootDir but not registered",
-                NotificationType.INFORMATION,
-            )
+    private fun offerReRegistration(
+        project: Project,
+        rootDir: Path,
+        manifest: LuaEnvManifest,
+    ) {
+        val notification =
+            NotificationGroupManager
+                .getInstance()
+                .getNotificationGroup(NOTIFICATION_GROUP)
+                .createNotification(
+                    "Lunar environment '${manifest.environmentName}' found at $rootDir but not registered",
+                    NotificationType.INFORMATION,
+                )
         notification.addAction(reRegisterAction(project, rootDir, manifest, notification))
         notification.notify(project)
     }
 
-    private fun reRegisterAction(project: Project, rootDir: Path, manifest: LuaEnvManifest, notification: Notification) =
-        object : NotificationAction("Re-register") {
-            override fun actionPerformed(event: AnActionEvent, ignored: Notification) {
-                ApplicationManager.getApplication().executeOnPooledThread {
-                    runCatching { RegistryProvisionResultSink().register(project, LuaEnvRedetection.toResult(rootDir, manifest)) }
-                        .onFailure { LOG.warn("Re-registration failed for $rootDir", it) }
-                }
-                notification.expire()
+    private fun reRegisterAction(
+        project: Project,
+        rootDir: Path,
+        manifest: LuaEnvManifest,
+        notification: Notification,
+    ) = object : NotificationAction("Re-register") {
+        override fun actionPerformed(
+            event: AnActionEvent,
+            ignored: Notification,
+        ) {
+            ApplicationManager.getApplication().executeOnPooledThread {
+                runCatching {
+                    RegistryProvisionResultSink().register(
+                        project,
+                        LuaEnvRedetection.toResult(rootDir, manifest),
+                    )
+                }.onFailure { LOG.warn("Re-registration failed for $rootDir", it) }
             }
+            notification.expire()
         }
+    }
 
     private companion object {
         private val LOG = Logger.getInstance(LuaEnvRedetectionStartup::class.java)

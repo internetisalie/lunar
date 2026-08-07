@@ -11,7 +11,6 @@ import net.internetisalie.lunar.lang.schema.LuaSchemaFileProvider
  * injected; claiming the file needs only its name.
  */
 class LuacheckrcSchemaProvider : LuaSchemaFileProvider() {
-
     override fun getName(): String = PROVIDER_NAME
 
     override fun getSchemaFile(): VirtualFile? =

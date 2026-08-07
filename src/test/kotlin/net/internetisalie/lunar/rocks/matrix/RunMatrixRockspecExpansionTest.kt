@@ -10,7 +10,6 @@ import java.nio.file.Path
  * each rockspec dimension independently.
  */
 class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
-
     private val rockspecA = Path.of("/p/a/a-1.0-1.rockspec")
     private val rockspecB = Path.of("/p/b/b-2.0-1.rockspec")
 
@@ -23,10 +22,11 @@ class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
 
     fun `test execute labels each row with the rockspec filename BUG377`() {
         val env1 = envWithLuarocks("E1")
-        val result = MatrixRunner.execute(
-            MatrixRunner.Request("test", rockspecA, listOf(env1)),
-            noopRunner,
-        )
+        val result =
+            MatrixRunner.execute(
+                MatrixRunner.Request("test", rockspecA, listOf(env1)),
+                noopRunner,
+            )
         assertEquals(1, result.rows.size)
         assertEquals("a-1.0-1.rockspec", result.rows[0].rockspecLabel)
     }
@@ -34,14 +34,16 @@ class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
     fun `test two rockspecs produce independent row sets BUG377`() {
         val env1 = envWithLuarocks("E1")
         val env2 = envWithLuarocks("E2")
-        val resultA = MatrixRunner.execute(
-            MatrixRunner.Request("test", rockspecA, listOf(env1, env2)),
-            noopRunner,
-        )
-        val resultB = MatrixRunner.execute(
-            MatrixRunner.Request("test", rockspecB, listOf(env1, env2)),
-            noopRunner,
-        )
+        val resultA =
+            MatrixRunner.execute(
+                MatrixRunner.Request("test", rockspecA, listOf(env1, env2)),
+                noopRunner,
+            )
+        val resultB =
+            MatrixRunner.execute(
+                MatrixRunner.Request("test", rockspecB, listOf(env1, env2)),
+                noopRunner,
+            )
 
         // rockspec A: 2 rows, all labelled with A's filename
         assertEquals(2, resultA.rows.size)
@@ -62,10 +64,11 @@ class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
 
     fun `test tableRows includes rockspec column BUG377`() {
         val env1 = envWithLuarocks("E1")
-        val result = MatrixRunner.execute(
-            MatrixRunner.Request("test", rockspecA, listOf(env1)),
-            noopRunner,
-        )
+        val result =
+            MatrixRunner.execute(
+                MatrixRunner.Request("test", rockspecA, listOf(env1)),
+                noopRunner,
+            )
         val rows = MatrixResultsToolWindow.tableRows(result)
         assertEquals(1, rows.size)
         // Row: [rockspec, env, status, exit]

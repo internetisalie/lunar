@@ -17,26 +17,21 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
-
     class TestSchemaProvider : LuaSchemaFileProvider() {
-        override fun isAvailable(file: VirtualFile): Boolean {
-            return file.extension == "testcfg" || file.extension == "testret"
-        }
+        override fun isAvailable(file: VirtualFile): Boolean =
+            file.extension == "testcfg" || file.extension == "testret"
 
         override fun getName(): String = "Test Lua Schema"
 
-        override fun getSchemaFile(): VirtualFile? {
-            return JsonSchemaProviderFactory.getResourceFile(
+        override fun getSchemaFile(): VirtualFile? =
+            JsonSchemaProviderFactory.getResourceFile(
                 TestSchemaProvider::class.java,
-                "/schema/test-config.schema.json"
+                "/schema/test-config.schema.json",
             )
-        }
     }
 
     class TestSchemaProviderFactory : JsonSchemaProviderFactory {
-        override fun getProviders(project: Project): List<JsonSchemaFileProvider> {
-            return listOf(TestSchemaProvider())
-        }
+        override fun getProviders(project: Project): List<JsonSchemaFileProvider> = listOf(TestSchemaProvider())
     }
 
     override fun setUp() {
@@ -52,7 +47,7 @@ class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
         ExtensionTestUtil.maskExtensions(
             JsonSchemaProviderFactory.EP_NAME,
             listOf(TestSchemaProviderFactory()),
-            testRootDisposable
+            testRootDisposable,
         )
 
         myFixture.enableInspections(LuaJsonSchemaComplianceInspection())
@@ -70,67 +65,85 @@ class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
     @Test
     fun testShapeA_AdditionalProperties() {
         // TC #1
-        myFixture.configureByText("test.testcfg", """
+        myFixture.configureByText(
+            "test.testcfg",
+            """
             name = "x"
             <warning descr="Property 'bogus' is not allowed">bogus</warning> = 1
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         myFixture.checkHighlighting(true, false, true)
     }
 
     @Test
     fun testShapeA_Enum() {
         // TC #2
-        myFixture.configureByText("test.testcfg", """
+        myFixture.configureByText(
+            "test.testcfg",
+            """
             name = "x"
             opts = { level = <warning descr="Value should be one of: \"low\", \"high\"">"mid"</warning> }
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         myFixture.checkHighlighting(true, false, true)
     }
 
     @Test
     fun testShapeA_ArrayPass() {
         // TC #3
-        myFixture.configureByText("test.testcfg", """
+        myFixture.configureByText(
+            "test.testcfg",
+            """
             name = "x"
             tags = { "a", "b" }
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         myFixture.checkHighlighting(true, false, true)
     }
 
     @Test
     fun testShapeA_ArrayTypeMismatch() {
         // TC #4
-        myFixture.configureByText("test.testcfg", """
+        myFixture.configureByText(
+            "test.testcfg",
+            """
             name = "x"
             tags = <warning descr="Incompatible types.___ Required: array. Actual: string.">"a"</warning>
-        """.trimIndent().replace("___", "\n"))
-        
+            """.trimIndent().replace("___", "\n"),
+        )
+
         myFixture.checkHighlighting(true, false, true)
     }
 
     @Test
     fun testShapeB_ReturnTable() {
         // TC #5
-        myFixture.configureByText("test.testret", """
+        myFixture.configureByText(
+            "test.testret",
+            """
             return {
                 name = "x",
                 <warning descr="Property 'bogus' is not allowed">bogus</warning> = 1
             }
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         myFixture.checkHighlighting(true, false, true)
     }
 
     @Test
     fun testShape_PlainLuaSafe() {
         // TC #6
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             name = 1
             bogus = 2
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         myFixture.checkHighlighting(true, false, true)
     }
@@ -144,13 +157,16 @@ class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
             """
             name = "x"
             op<caret>ts = { level = "low" }
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         val element = requireNotNull(PsiUtilBase.getElementAtCaret(myFixture.editor))
         val provider = DocumentationManager.getProviderFromElement(element)
         val doc = provider.generateDoc(element, element)
         assertNotNull("Quick-doc should be generated for the 'opts' key", doc)
-        assertTrue("Quick-doc should contain the schema description, was: $doc", doc!!.contains("Optional settings table"))
+        assertTrue(
+            "Quick-doc should contain the schema description, was: $doc",
+            doc!!.contains("Optional settings table"),
+        )
     }
 }

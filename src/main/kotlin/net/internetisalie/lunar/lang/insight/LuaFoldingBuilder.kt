@@ -18,11 +18,13 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
 const val PLACEHOLDER_TEXT: String = "..."
 
-class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
+class LuaFoldingBuilder :
+    FoldingBuilderEx(),
+    DumbAware {
     override fun buildFoldRegions(
         root: PsiElement,
         document: Document,
-        quick: Boolean
+        quick: Boolean,
     ): Array<FoldingDescriptor> {
         val descriptors = ArrayList<FoldingDescriptor>()
         root.accept(LuaFoldingVisitor(descriptors))
@@ -30,8 +32,10 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
         return descriptors.toTypedArray()
     }
 
-
-    private fun foldCustomRegions(root: PsiElement, descriptors: MutableList<FoldingDescriptor>) {
+    private fun foldCustomRegions(
+        root: PsiElement,
+        descriptors: MutableList<FoldingDescriptor>,
+    ) {
         val comments = PsiTreeUtil.findChildrenOfType(root, PsiComment::class.java)
         val stack = mutableListOf<PsiComment>()
         for (comment in comments) {
@@ -41,25 +45,25 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
             } else if (text.startsWith("--#endregion") || text.startsWith("-- #endregion")) {
                 if (stack.isNotEmpty()) {
                     val start = stack.removeAt(stack.size - 1)
-                    val descriptor = FoldingDescriptor(
-                        start.node,
-                        TextRange(start.textRange.startOffset, comment.textRange.endOffset)
-                    )
+                    val descriptor =
+                        FoldingDescriptor(
+                            start.node,
+                            TextRange(start.textRange.startOffset, comment.textRange.endOffset),
+                        )
                     descriptors.add(descriptor)
                 }
             }
         }
     }
 
-    override fun isCollapsedByDefault(node: ASTNode): Boolean {
-        return when (node.elementType) {
+    override fun isCollapsedByDefault(node: ASTNode): Boolean =
+        when (node.elementType) {
             LuaElementTypes.LONGCOMMENT,
             LuaElementTypes.STRING,
             LuaCatsElementTypes.COMMENT,
-                -> true
+            -> true
             else -> false
         }
-    }
 
     override fun getPlaceholderText(node: ASTNode): String? {
         val text = node.text
@@ -107,7 +111,7 @@ class LuaFoldingBuilder : FoldingBuilderEx(), DumbAware {
 const val NEWLINE = '\n'
 
 class LuaFoldingVisitor(
-    private val descriptors: MutableList<FoldingDescriptor>
+    private val descriptors: MutableList<FoldingDescriptor>,
 ) : LuaRecursiveVisitor() {
     // Track processed fold ranges (offset pairs) instead of objects to avoid duplicate folds
     // for the same text range (which may have multiple PSI representations)
@@ -115,48 +119,47 @@ class LuaFoldingVisitor(
 
     private fun foldBlocks(blocks: List<LuaBlock>) {
         if (blocks.isEmpty()) return
-        
+
         // For statements with multiple blocks (if/elseif/else), we only want ONE fold
         // spanning from the first keyword to END, not one fold per block
         val firstBlock = blocks.first()
         val lastBlock = blocks.last()
-        
+
         // Find the start: walk backwards from first block to find first keyword
         var start: PsiElement? = firstBlock.prevSibling
         while (start is PsiWhiteSpace) {
             start = start.prevSibling
         }
         if (start == null) start = firstBlock
-        
-        // Find the end: walk forwards from last block to find END keyword  
+
+        // Find the end: walk forwards from last block to find END keyword
         var end: PsiElement? = lastBlock.nextSibling
         while (end is PsiWhiteSpace) {
             end = end.nextSibling
         }
         if (end == null) end = lastBlock
-        
+
         val startOffset = start.textRange.startOffset
         val endOffset = end.textRange.endOffset
 
         descriptors.add(
             FoldingDescriptor(
                 firstBlock.node,
-                TextRange(startOffset, endOffset)
-            )
+                TextRange(startOffset, endOffset),
+            ),
         )
     }
-    
 
-    private fun foldTable(table : LuaTableConstructor) {
-        if (table.textLength<3) return
+    private fun foldTable(table: LuaTableConstructor) {
+        if (table.textLength < 3) return
         descriptors.add(
             FoldingDescriptor(
                 table.node,
                 TextRange(
                     table.textRange.startOffset,
-                    table.textRange.endOffset
-                )
-            )
+                    table.textRange.endOffset,
+                ),
+            ),
         )
     }
 
@@ -164,8 +167,8 @@ class LuaFoldingVisitor(
         descriptors.add(
             FoldingDescriptor(
                 node,
-                node.textRange
-            )
+                node.textRange,
+            ),
         )
     }
 
@@ -174,7 +177,7 @@ class LuaFoldingVisitor(
             FoldingDescriptor(
                 node,
                 node.textRange,
-            )
+            ),
         )
     }
 
@@ -202,8 +205,11 @@ class LuaFoldingVisitor(
             }
             element is PsiComment -> {
                 val text = element.text
-                if (!text.startsWith("--#region") && !text.startsWith("-- #region") && 
-                    !text.startsWith("--#endregion") && !text.startsWith("-- #endregion")) {
+                if (!text.startsWith("--#region") &&
+                    !text.startsWith("-- #region") &&
+                    !text.startsWith("--#endregion") &&
+                    !text.startsWith("-- #endregion")
+                ) {
                     // Don't fold region markers here - they're handled by foldCustomRegions
                     foldComment(element.node)
                 }
@@ -214,27 +220,34 @@ class LuaFoldingVisitor(
             }
         }
     }
-    
+
     private fun foldIfStatement(ifStmt: LuaIfStatement) {
         val children = ifStmt.node.getChildren(null)
         val ifKeyword = children.find { it.elementType == LuaElementTypes.IF }
         val endKeyword = children.findLast { it.elementType == LuaElementTypes.END }
-        
+
         if (ifKeyword != null && endKeyword != null) {
             val range = TextRange(ifKeyword.textRange.startOffset, endKeyword.textRange.endOffset)
-            if (ifStmt.node.text.substring(0, endKeyword.startOffset - ifStmt.textRange.startOffset).contains('\n')) {
+            if (ifStmt.node.text
+                    .substring(0, endKeyword.startOffset - ifStmt.textRange.startOffset)
+                    .contains('\n')
+            ) {
                 descriptors.add(FoldingDescriptor(ifStmt.node, range))
             }
         }
     }
-    
-    private fun foldStatementWithEnd(element: LuaBlockParent, node: ASTNode) {
+
+    private fun foldStatementWithEnd(
+        element: LuaBlockParent,
+        node: ASTNode,
+    ) {
         val children = node.getChildren(null)
-        val startNode = children.find { 
-            it.elementType in setOf(LuaElementTypes.WHILE, LuaElementTypes.FOR, LuaElementTypes.DO)
-        }
+        val startNode =
+            children.find {
+                it.elementType in setOf(LuaElementTypes.WHILE, LuaElementTypes.FOR, LuaElementTypes.DO)
+            }
         val endNode = children.findLast { it.elementType == LuaElementTypes.END }
-        
+
         if (startNode != null && endNode != null) {
             val range = TextRange(startNode.textRange.startOffset, endNode.textRange.endOffset)
             if (node.text.substring(0, endNode.startOffset - node.startOffset).contains('\n')) {
@@ -242,18 +255,22 @@ class LuaFoldingVisitor(
             }
         }
     }
-    
-    private fun foldFunctionDecl(element: LuaBlockParent, node: ASTNode) {
+
+    private fun foldFunctionDecl(
+        element: LuaBlockParent,
+        node: ASTNode,
+    ) {
         val children = node.getChildren(null)
         val endKeyword = children.findLast { it.elementType == LuaElementTypes.END } ?: return
-        
+
         val rParen = children.find { it.elementType == LuaElementTypes.RPAREN }
         if (rParen != null) {
             val range = TextRange(rParen.textRange.endOffset, endKeyword.textRange.startOffset)
-            val bodyText = node.text.substring(
-                rParen.textRange.endOffset - node.startOffset,
-                endKeyword.textRange.startOffset - node.startOffset
-            )
+            val bodyText =
+                node.text.substring(
+                    rParen.textRange.endOffset - node.startOffset,
+                    endKeyword.textRange.startOffset - node.startOffset,
+                )
             if (bodyText.contains('\n')) {
                 descriptors.add(FoldingDescriptor(node, range, null, PLACEHOLDER_TEXT))
             }
@@ -267,7 +284,7 @@ class LuaFoldingVisitor(
             }
         }
     }
-    
+
     private fun foldConsecutiveLuaCatsComments(comment: LuaCatsComment) {
         // Check if we've already created a fold for this range
         val startOffset = comment.textRange.startOffset
@@ -276,7 +293,7 @@ class LuaFoldingVisitor(
         if (processedFoldRanges.contains(rangeKey)) {
             return
         }
-        
+
         // Check if there's a doc comment before this one
         var prev = comment.prevSibling
         while (prev is PsiWhiteSpace) {
@@ -290,7 +307,7 @@ class LuaFoldingVisitor(
                 return
             }
         }
-        
+
         // Find the last consecutive doc comment
         var last: PsiElement = comment
         var next = comment.nextSibling
@@ -311,17 +328,15 @@ class LuaFoldingVisitor(
                 break
             }
         }
-        
+
         // Add fold from this comment to the last consecutive one
         val lastEndOffset = last.textRange.endOffset
         descriptors.add(
             FoldingDescriptor(
                 comment.node,
-                TextRange(startOffset, lastEndOffset)
-            )
+                TextRange(startOffset, lastEndOffset),
+            ),
         )
         processedFoldRanges.add(Pair(startOffset, lastEndOffset))
     }
-
 }
-

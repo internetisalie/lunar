@@ -9,7 +9,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaCatsTypeNameIndexTest : BasePlatformTestCase() {
-
     @Test
     fun testBareClassTagIsIndexed() {
         val file = myFixture.configureByText("t.lua", "--- @class MyType")

@@ -12,7 +12,6 @@ import net.internetisalie.lunar.toolchain.registry.LuaToolchainEvent
 import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
 
 class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
-
     private val synchronizer: LuaTargetSynchronizer
         get() = LuaTargetSynchronizer.getInstance(project)
 
@@ -20,7 +19,7 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         val luajitRuntime = runtimeInfo(LuaPlatform.LUAJIT, "2.1.0-beta3", LuaLanguageLevel.LUA51)
         val luajitTool = seedTool("luajit", usable = true, environmentId = "E", runtime = luajitRuntime)
         settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id))
+            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id)),
         )
         prepareBaseline()
 
@@ -49,7 +48,7 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         val luajitRuntime = runtimeInfo(LuaPlatform.LUAJIT, "2.1.0-beta3", LuaLanguageLevel.LUA51)
         val luajitTool = seedTool("luajit", usable = true, environmentId = "E", runtime = luajitRuntime)
         settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id))
+            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id)),
         )
         prepareBaseline()
 
@@ -61,7 +60,7 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         val luajitRuntime = runtimeInfo(LuaPlatform.LUAJIT, "2.1.0-beta3", LuaLanguageLevel.LUA51)
         val luajitTool = seedTool("luajit", usable = true, environmentId = "E", runtime = luajitRuntime)
         settings.upsertEnvironment(
-            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id))
+            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id)),
         )
         prepareBaseline()
 
@@ -92,7 +91,7 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         val luajitRuntime = runtimeInfo(LuaPlatform.LUAJIT, "2.1.0-beta3", LuaLanguageLevel.LUA51)
         val luajitTool = seedTool("luajit", usable = true, environmentId = "E", runtime = luajitRuntime)
         settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id))
+            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(luajitTool.id)),
         )
         prepareBaseline()
 
@@ -112,7 +111,7 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
                 val state = LuaProjectSettings.getInstance(project).state
                 state.explicitTarget = false
                 LuaProjectSettings.getInstance(project).setTargetAndNotify(
-                    PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4")
+                    PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4"),
                 )
             }
         } finally {
@@ -154,7 +153,10 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         assertProjectTarget(LuaPlatform.STANDARD, "5.4", LuaLanguageLevel.LUA54)
     }
 
-    private fun pinExplicitTarget(platform: LuaPlatform, versionLabel: String) {
+    private fun pinExplicitTarget(
+        platform: LuaPlatform,
+        versionLabel: String,
+    ) {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
             val settings = LuaProjectSettings.getInstance(project)
@@ -168,7 +170,7 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
             LuaProjectSettings.getInstance(project).setTargetAndNotify(
-                PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4")
+                PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4"),
             )
         }
         synchronizer.resetGuardForTest()
@@ -177,7 +179,7 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
     private fun assertProjectTarget(
         platform: LuaPlatform,
         versionLabel: String,
-        level: LuaLanguageLevel
+        level: LuaLanguageLevel,
     ) {
         val expected = PlatformVersionRegistry.resolveTarget(platform, versionLabel)
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
@@ -192,12 +194,13 @@ class LuaTargetSynchronizerTest : ToolchainSettingsTestCase() {
         change: LuaToolchainChange,
         kindId: String? = null,
         environmentId: String? = null,
-        optionKey: String? = null
-    ): LuaToolchainEvent = LuaToolchainEvent(
-        change = change,
-        project = project,
-        kindId = kindId,
-        environmentId = environmentId,
-        optionKey = optionKey
-    )
+        optionKey: String? = null,
+    ): LuaToolchainEvent =
+        LuaToolchainEvent(
+            change = change,
+            project = project,
+            kindId = kindId,
+            environmentId = environmentId,
+            optionKey = optionKey,
+        )
 }

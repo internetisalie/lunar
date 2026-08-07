@@ -13,17 +13,18 @@ import net.internetisalie.lunar.lang.syntax.LuaSyntax
  * (COMP-07-10). Referenced lazily so the singleton [com.intellij.psi.tree.IElementType]s are
  * resolved after platform registration.
  */
-internal val SUPPRESS: TokenSet = TokenSet.orSet(
-    LuaSyntax.CommentTokens,
-    LuaSyntax.StringLiteralTokens,
-    TokenSet.create(
-        LuaTokenTypes.LONGSTRING,
-        LuaTokenTypes.LONGSTRING_BEGIN,
-        LuaTokenTypes.LONGSTRING_END,
-        LuaTokenTypes.NUMBER,
-        LuaElementTypes.NUMBER,
-    ),
-)
+internal val SUPPRESS: TokenSet =
+    TokenSet.orSet(
+        LuaSyntax.CommentTokens,
+        LuaSyntax.StringLiteralTokens,
+        TokenSet.create(
+            LuaTokenTypes.LONGSTRING,
+            LuaTokenTypes.LONGSTRING_BEGIN,
+            LuaTokenTypes.LONGSTRING_END,
+            LuaTokenTypes.NUMBER,
+            LuaElementTypes.NUMBER,
+        ),
+    )
 
 /**
  * Returns true when the caret/selection start in [templateActionContext] sits in real Lua code,

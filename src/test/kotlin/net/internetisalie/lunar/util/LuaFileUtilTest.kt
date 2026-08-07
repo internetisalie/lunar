@@ -6,7 +6,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class LuaFileUtilTest : BasePlatformTestCase() {
-
     private lateinit var base: Path
 
     override fun setUp() {
@@ -28,8 +27,9 @@ class LuaFileUtilTest : BasePlatformTestCase() {
         Files.writeString(base.resolve("sub/b.lua"), "local b = 2")
         Files.writeString(base.resolve("c.txt"), "not lua")
 
-        val root = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(base)
-            ?: error("temp dir not found in VFS")
+        val root =
+            LocalFileSystem.getInstance().refreshAndFindFileByNioFile(base)
+                ?: error("temp dir not found in VFS")
         root.refresh(false, true)
 
         val found = LuaFileUtil.findLuaFilesInDir(root).map { it.name }.toSet()
@@ -44,8 +44,9 @@ class LuaFileUtilTest : BasePlatformTestCase() {
     fun testFindPsiFilesMapsAndSkipsUnmappable() {
         myFixture.configureByText("m.lua", "local x = 1")
         val luaVirtualFile = myFixture.file.virtualFile
-        val unmappableDir = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(base)
-            ?: error("temp dir not found in VFS")
+        val unmappableDir =
+            LocalFileSystem.getInstance().refreshAndFindFileByNioFile(base)
+                ?: error("temp dir not found in VFS")
 
         val psiFiles = LuaFileUtil.findPsiFiles(project, listOf(luaVirtualFile, unmappableDir))
 

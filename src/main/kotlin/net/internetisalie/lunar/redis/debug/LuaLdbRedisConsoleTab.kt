@@ -28,14 +28,14 @@ class LuaLdbRedisConsoleTab(
     private val controller: LuaLdbController,
     private val scope: CoroutineScope,
 ) : Disposable {
-
     private val replyConsole = RespReplyTreeConsole(project)
     private val input = JBTextField()
 
-    val component: JComponent = JPanel(BorderLayout()).apply {
-        add(input, BorderLayout.NORTH)
-        add(replyConsole.component, BorderLayout.CENTER)
-    }
+    val component: JComponent =
+        JPanel(BorderLayout()).apply {
+            add(input, BorderLayout.NORTH)
+            add(replyConsole.component, BorderLayout.CENTER)
+        }
 
     init {
         Disposer.register(this, replyConsole)

@@ -32,8 +32,9 @@ import java.nio.file.Path
  * is EDT-safe by construction.
  */
 @Service(Service.Level.PROJECT)
-class LuaExecutionEnvironmentBuilder(private val project: Project) : Disposable {
-
+class LuaExecutionEnvironmentBuilder(
+    private val project: Project,
+) : Disposable {
     @Volatile
     private var cachedPathPrependDirs: List<Path>? = null
 
@@ -51,11 +52,13 @@ class LuaExecutionEnvironmentBuilder(private val project: Project) : Disposable 
         cachedPathPrependDirs?.let { return it }
 
         val resolver = LuaToolResolver.getInstance()
-        val dirs = LuaToolKindRegistry.all()
-            .mapNotNull { resolver.resolve(project, it.id) }
-            .mapNotNull { tool -> tool.path.takeIf { it.isNotBlank() } }
-            .mapNotNull { runCatching { Path.of(it).parent }.getOrNull() }
-            .distinct()
+        val dirs =
+            LuaToolKindRegistry
+                .all()
+                .mapNotNull { resolver.resolve(project, it.id) }
+                .mapNotNull { tool -> tool.path.takeIf { it.isNotBlank() } }
+                .mapNotNull { runCatching { Path.of(it).parent }.getOrNull() }
+                .distinct()
 
         cachedPathPrependDirs = dirs
         return dirs
@@ -85,8 +88,9 @@ class LuaExecutionEnvironmentBuilder(private val project: Project) : Disposable 
     }
 
     private fun computeLuarocksConfig(): String? {
-        val environment = LuaToolchainProjectSettings.getInstance(project).activeEnvironment()
-            ?: return null
+        val environment =
+            LuaToolchainProjectSettings.getInstance(project).activeEnvironment()
+                ?: return null
         val configFile = File(environment.rootDir, "luarocks-config.lua")
         return if (configFile.isFile) configFile.path else null
     }

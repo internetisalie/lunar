@@ -14,7 +14,6 @@ data class LuaRocksProjectSettings(
     var loaderSetup: Boolean = false,
     var bustedConfig: Boolean = false,
     var makefile: Boolean = false,
-
     // --- Interpreter (TOOLING-05 §2.8: toolchain integration in the New Project wizard) --------------
     /**
      * The runtime kind id the new project targets (`"lua"` or `"luajit"`, [WizardRuntimeKinds]). With

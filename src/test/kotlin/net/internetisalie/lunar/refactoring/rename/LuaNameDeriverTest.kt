@@ -15,11 +15,11 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaNameDeriverTest : BasePlatformTestCase() {
-
     private fun firstExpr(rhs: String): LuaExpr {
         myFixture.configureByText("t.lua", "local x = $rhs")
         return runReadAction {
-            PsiTreeUtil.findChildrenOfType(myFixture.file, LuaExpr::class.java)
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaExpr::class.java)
                 .first { it.text == rhs }
         }
     }
@@ -49,9 +49,10 @@ class LuaNameDeriverTest : BasePlatformTestCase() {
     @Test
     fun testFieldAccess() {
         myFixture.configureByText("t.lua", "local x = cfg.timeout")
-        val index = runReadAction {
-            PsiTreeUtil.findChildrenOfType(myFixture.file, LuaIndexExpr::class.java).last()
-        }
+        val index =
+            runReadAction {
+                PsiTreeUtil.findChildrenOfType(myFixture.file, LuaIndexExpr::class.java).last()
+            }
         val expr = runReadAction { PsiTreeUtil.getParentOfType(index, LuaExpr::class.java, false)!! }
         assertEquals("timeout", runReadAction { LuaNameDeriver.baseName(expr) })
     }

@@ -19,7 +19,6 @@ import java.util.concurrent.TimeoutException
 
 @Service(Service.Level.APP)
 class LuaToolExecutionService {
-
     fun capture(
         cmd: GeneralCommandLine,
         timeout: LuaExecTimeout = LuaExecTimeout.COMMAND,
@@ -56,35 +55,44 @@ class LuaToolExecutionService {
         stdin: String?,
         indicator: ProgressIndicator?,
     ): LuaExecResult {
-        val handler = try {
-            CapturingProcessHandler(cmd)
-        } catch (failure: ExecutionException) {
-            return LuaExecResult(ProcessOutput("", failure.message ?: "", -1, false, false), LuaExecOutcome.START_FAILED)
-        }
+        val handler =
+            try {
+                CapturingProcessHandler(cmd)
+            } catch (failure: ExecutionException) {
+                return LuaExecResult(
+                    ProcessOutput("", failure.message ?: "", -1, false, false),
+                    LuaExecOutcome.START_FAILED,
+                )
+            }
         writeStdin(handler, stdin)
         val effectiveIndicator = indicator ?: ProgressManager.getInstance().progressIndicator
-        val output = try {
-            if (effectiveIndicator != null) {
-                handler.runProcessWithProgressIndicator(effectiveIndicator, millis, true)
-            } else {
-                handler.runProcess(millis, true)
+        val output =
+            try {
+                if (effectiveIndicator != null) {
+                    handler.runProcessWithProgressIndicator(effectiveIndicator, millis, true)
+                } else {
+                    handler.runProcess(millis, true)
+                }
+            } catch (_: TimeoutException) {
+                return LuaExecResult(ProcessOutput("", "", -1, true, false), LuaExecOutcome.TIMED_OUT)
             }
-        } catch (_: TimeoutException) {
-            return LuaExecResult(ProcessOutput("", "", -1, true, false), LuaExecOutcome.TIMED_OUT)
-        }
         return LuaExecResult(output, outcomeOf(output))
     }
 
-    private fun writeStdin(handler: CapturingProcessHandler, stdin: String?) {
+    private fun writeStdin(
+        handler: CapturingProcessHandler,
+        stdin: String?,
+    ) {
         if (stdin == null) return
         handler.processInput.use { it.write(stdin.toByteArray(Charsets.UTF_8)) }
     }
 
-    private fun outcomeOf(output: ProcessOutput): LuaExecOutcome = when {
-        output.isCancelled -> LuaExecOutcome.CANCELLED
-        output.isTimeout -> LuaExecOutcome.TIMED_OUT
-        else -> LuaExecOutcome.COMPLETED
-    }
+    private fun outcomeOf(output: ProcessOutput): LuaExecOutcome =
+        when {
+            output.isCancelled -> LuaExecOutcome.CANCELLED
+            output.isTimeout -> LuaExecOutcome.TIMED_OUT
+            else -> LuaExecOutcome.COMPLETED
+        }
 
     @TestOnly
     internal fun streamWithMillis(
@@ -95,20 +103,31 @@ class LuaToolExecutionService {
         indicator: ProgressIndicator? = null,
     ): LuaExecResult {
         ThreadingAssertions.softAssertBackgroundThread()
-        val handler = try {
-            createStreamHandler(cmd, colored)
-        } catch (failure: ExecutionException) {
-            return LuaExecResult(ProcessOutput("", failure.message ?: "", -1, false, false), LuaExecOutcome.START_FAILED)
-        }
+        val handler =
+            try {
+                createStreamHandler(cmd, colored)
+            } catch (failure: ExecutionException) {
+                return LuaExecResult(
+                    ProcessOutput("", failure.message ?: "", -1, false, false),
+                    LuaExecOutcome.START_FAILED,
+                )
+            }
         handler.addProcessListener(listener)
         handler.startNotify()
         return awaitStream(handler, millis, indicator)
     }
 
-    private fun createStreamHandler(cmd: GeneralCommandLine, colored: Boolean): ProcessHandler =
+    private fun createStreamHandler(
+        cmd: GeneralCommandLine,
+        colored: Boolean,
+    ): ProcessHandler =
         if (colored) ProcessHandlerFactory.getInstance().createColoredProcessHandler(cmd) else OSProcessHandler(cmd)
 
-    private fun awaitStream(handler: ProcessHandler, millis: Int, indicator: ProgressIndicator?): LuaExecResult {
+    private fun awaitStream(
+        handler: ProcessHandler,
+        millis: Int,
+        indicator: ProgressIndicator?,
+    ): LuaExecResult {
         var elapsed = 0
         while (!handler.waitFor(SLICE_MILLIS.toLong())) {
             if (indicator?.isCanceled == true) return destroyed(handler, LuaExecOutcome.CANCELLED)
@@ -118,7 +137,10 @@ class LuaToolExecutionService {
         return LuaExecResult(ProcessOutput("", "", handler.exitCode ?: -1, false, false), LuaExecOutcome.COMPLETED)
     }
 
-    private fun destroyed(handler: ProcessHandler, outcome: LuaExecOutcome): LuaExecResult {
+    private fun destroyed(
+        handler: ProcessHandler,
+        outcome: LuaExecOutcome,
+    ): LuaExecResult {
         handler.destroyProcess()
         handler.waitFor()
         val timeout = outcome == LuaExecOutcome.TIMED_OUT

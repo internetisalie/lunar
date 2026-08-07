@@ -1,14 +1,12 @@
 package net.internetisalie.lunar.toolchain.model
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class SemanticVersionTest {
-
     @Test
     fun testParseMajorMinorPatch() {
         val v = SemanticVersion.parse("3.9.2")

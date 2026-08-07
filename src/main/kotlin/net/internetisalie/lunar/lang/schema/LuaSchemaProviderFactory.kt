@@ -6,12 +6,10 @@ import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
 import com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory
 
 class LuaSchemaProviderFactory : JsonSchemaProviderFactory {
-    override fun getProviders(project: Project): List<JsonSchemaFileProvider> {
-        return EP_NAME.extensionList
-    }
+    override fun getProviders(project: Project): List<JsonSchemaFileProvider> = EP_NAME.extensionList
 
     companion object {
-        val EP_NAME: ExtensionPointName<LuaSchemaFileProvider> = 
+        val EP_NAME: ExtensionPointName<LuaSchemaFileProvider> =
             ExtensionPointName.create("net.internetisalie.lunar.schemaFileProvider")
     }
 }

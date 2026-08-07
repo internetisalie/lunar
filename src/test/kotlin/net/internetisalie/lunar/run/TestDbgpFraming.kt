@@ -12,7 +12,6 @@ import kotlin.test.assertNull
  * Socket-free coverage of [DbgpFraming] byte-accurate DBGp framing (MAINT-24-01, TC-01a/b/c).
  */
 class TestDbgpFraming {
-
     /** TC-01a: a 6-byte UTF-8 payload `café!` (5 chars, 6 bytes) is read whole by byte count. */
     @Test
     fun testReadExactlyReadsMultibytePayloadByByteCount() {

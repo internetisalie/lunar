@@ -40,7 +40,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
-
     private data class ParityCase(
         val id: String,
         val source: String,
@@ -55,7 +54,11 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
      * group reference there. `__` is chosen over `$` because the fixture idiom is the raw string,
      * where `$` would need `${'$'}`.
      */
-    private fun substitute(text: String, arm: String, index: Int) = text.replace("__", arm + index)
+    private fun substitute(
+        text: String,
+        arm: String,
+        index: Int,
+    ) = text.replace("__", arm + index)
 
     /**
      * Renders a list with per-element delimiters, and every assertion here compares rendered forms
@@ -71,7 +74,10 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
     private fun render(names: List<String>) = names.joinToString(", ", "[", "]") { "\"$it\"" }
 
     /** Resolves [case] on both arms and asserts they agree with expectations and each other. */
-    private fun assertParity(case: ParityCase, index: Int) {
+    private fun assertParity(
+        case: ParityCase,
+        index: Int,
+    ) {
         val stubSource = substitute(case.source, "S", index)
         val astSource = substitute(case.source, "A", index)
         val stubName = substitute(case.className, "S", index)
@@ -94,7 +100,13 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertEquals(
             "${case.id}: the two arms must expose the same members",
             render(stubType.getMembers().keys.sorted()),
-            render(astType.getMembers().keys.map { it.replace("A$index", "S$index") }.sorted()),
+            render(
+                astType
+                    .getMembers()
+                    .keys
+                    .map { it.replace("A$index", "S$index") }
+                    .sorted(),
+            ),
         )
         assertEquals(
             "${case.id}: the two arms must expose the same supertypes",
@@ -104,14 +116,20 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
     }
 
     /** Locates the declaration, asserts the arm took the branch it claims, then resolves. */
-    private fun resolveArm(case: ParityCase, name: String, arm: String, usage: com.intellij.psi.PsiFile): LuaClassType {
-        val decls = StubIndex.getElements(
-            LuaClassNameIndex.KEY,
-            name,
-            project,
-            GlobalSearchScope.allScope(project),
-            LuaLocalVarDecl::class.java,
-        )
+    private fun resolveArm(
+        case: ParityCase,
+        name: String,
+        arm: String,
+        usage: com.intellij.psi.PsiFile,
+    ): LuaClassType {
+        val decls =
+            StubIndex.getElements(
+                LuaClassNameIndex.KEY,
+                name,
+                project,
+                GlobalSearchScope.allScope(project),
+                LuaLocalVarDecl::class.java,
+            )
         assertEquals("${case.id}/$arm: expected exactly one declaration of $name", 1, decls.size)
         val stub = decls.first().stub
         if (arm == "STUB") {
@@ -125,7 +143,12 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         return resolved as LuaClassType
     }
 
-    private fun assertArm(case: ParityCase, index: Int, type: LuaClassType, arm: String) {
+    private fun assertArm(
+        case: ParityCase,
+        index: Int,
+        type: LuaClassType,
+        arm: String,
+    ) {
         val armOf = { s: String -> substitute(s, if (arm == "STUB") "S" else "A", index) }
         assertEquals(
             "${case.id}/$arm: members",
@@ -153,12 +176,13 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertParity(
             ParityCase(
                 id = "TC-1",
-                source = """
+                source =
+                    """
                     ---@class C__
                     ---@field a string
                     ---@field b? number
                     local C__ = {}
-                """.trimIndent(),
+                    """.trimIndent(),
                 className = "C__",
                 expectedMembers = setOf("a", "b"),
                 expectedSupertypes = emptyList(),
@@ -180,10 +204,11 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertParity(
             ParityCase(
                 id = "TC-2",
-                source = """
+                source =
+                    """
                     ---@class C__ : Base<string, number>
                     local C__ = {}
-                """.trimIndent(),
+                    """.trimIndent(),
                 className = "C__",
                 expectedMembers = emptySet(),
                 expectedSupertypes = listOf("Base<string, number>"),
@@ -198,10 +223,11 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertParity(
             ParityCase(
                 id = "TC-3",
-                source = """
+                source =
+                    """
                     ---@class C__ : A__, B__
                     local C__ = {}
-                """.trimIndent(),
+                    """.trimIndent(),
                 className = "C__",
                 expectedMembers = emptySet(),
                 expectedSupertypes = listOf("A__", "B__"),
@@ -216,11 +242,12 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertParity(
             ParityCase(
                 id = "TC-4",
-                source = """
+                source =
+                    """
                     ---@class C__
                     ---@field [string] number
                     local C__ = {}
-                """.trimIndent(),
+                    """.trimIndent(),
                 className = "C__",
                 expectedMembers = setOf("[string]"),
                 expectedSupertypes = emptyList(),
@@ -235,12 +262,13 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertParity(
             ParityCase(
                 id = "TC-5",
-                source = """
+                source =
+                    """
                     ---@class C__
                     ---@field private p string
                     ---@field public q number
                     local C__ = {}
-                """.trimIndent(),
+                    """.trimIndent(),
                 className = "C__",
                 expectedMembers = setOf("p", "q"),
                 expectedSupertypes = emptyList(),
@@ -258,14 +286,15 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertParity(
             ParityCase(
                 id = "TC-7",
-                source = """
+                source =
+                    """
                     ---@class C__
                     local C__ = {}
 
                     ---@param x string
                     ---@return boolean
                     function C__.f(x) end
-                """.trimIndent(),
+                    """.trimIndent(),
                 className = "C__",
                 expectedMembers = setOf("f"),
                 expectedSupertypes = emptyList(),
@@ -281,7 +310,8 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         assertParity(
             ParityCase(
                 id = "TC-8",
-                source = """
+                source =
+                    """
                     ---@class Base__
                     ---@field inherited string
                     local Base__ = {}
@@ -289,7 +319,7 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
                     ---@class C__ : Base__
                     ---@field own number
                     local C__ = {}
-                """.trimIndent(),
+                    """.trimIndent(),
                 className = "C__",
                 expectedMembers = setOf("own", "inherited"),
                 expectedSupertypes = listOf("Base__"),
@@ -301,21 +331,23 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
     /** TC-6: `@alias` — not a class, so it gets its own method rather than a [ParityCase]. */
     @Test
     fun testAliasTargetAgrees() {
-        val source = """
+        val source =
+            """
             ---@alias Handler__ fun(x: string): number
             local Handler__ = nil
-        """.trimIndent()
+            """.trimIndent()
         myFixture.addFileToProject("stub6.lua", substitute(source, "S", 6))
         val usage = myFixture.configureByText("ast6.lua", substitute(source, "A", 6))
 
-        val targets = listOf("S", "A").map { arm ->
-            runReadAction {
-                val name = substitute("Handler__", arm, 6)
-                val resolved = LuaTypeManagerImpl(project).resolveType(name, usage)
-                assertTrue("TC-6/$arm: $name must resolve to an alias, was $resolved", resolved is LuaAliasType)
-                (resolved as LuaAliasType).targetType.name
+        val targets =
+            listOf("S", "A").map { arm ->
+                runReadAction {
+                    val name = substitute("Handler__", arm, 6)
+                    val resolved = LuaTypeManagerImpl(project).resolveType(name, usage)
+                    assertTrue("TC-6/$arm: $name must resolve to an alias, was $resolved", resolved is LuaAliasType)
+                    (resolved as LuaAliasType).targetType.name
+                }
             }
-        }
         assertEquals("TC-6/STUB: alias target", "fun(x: string): number", targets[0])
         assertEquals("TC-6: the two arms must agree on the alias target", targets[0], targets[1])
     }
@@ -393,11 +425,12 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
      */
     @Test
     fun testSourceElementIsTagOnAstPathAndDeclOnStubPath() {
-        val source = """
+        val source =
+            """
             ---@class Src__
             ---@field a string
             local Src__ = {}
-        """.trimIndent()
+            """.trimIndent()
         myFixture.addFileToProject("stub99.lua", substitute(source, "S", 99))
         val usage = myFixture.configureByText("ast99.lua", substitute(source, "A", 99))
 

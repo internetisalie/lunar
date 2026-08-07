@@ -15,7 +15,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * `run/test/LuaTestRunConfigurationProducer`.
  */
 class LuaRedisRunConfigurationProducer : LazyRunConfigurationProducer<LuaRedisRunConfiguration>() {
-
     override fun getConfigurationFactory(): ConfigurationFactory =
         LuaRedisRunConfigurationType.getInstance().configurationFactories[0]
 
@@ -47,13 +46,22 @@ class LuaRedisRunConfigurationProducer : LazyRunConfigurationProducer<LuaRedisRu
     }
 
     private fun isRedisTarget(context: ConfigurationContext): Boolean =
-        LuaProjectSettings.getInstance(context.project).state.getTarget().platform == LuaPlatform.REDIS
+        LuaProjectSettings
+            .getInstance(context.project)
+            .state
+            .getTarget()
+            .platform == LuaPlatform.REDIS
 
-    private fun prefillConnection(configuration: LuaRedisRunConfiguration, context: ConfigurationContext) {
+    private fun prefillConnection(
+        configuration: LuaRedisRunConfiguration,
+        context: ConfigurationContext,
+    ) {
         if (!configuration.connectionId.isNullOrBlank()) return
         val firstConnection =
-            net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings.getInstance(context.project)
-                .connections().firstOrNull() ?: return
+            net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings
+                .getInstance(context.project)
+                .connections()
+                .firstOrNull() ?: return
         configuration.connectionId = firstConnection.id
     }
 }

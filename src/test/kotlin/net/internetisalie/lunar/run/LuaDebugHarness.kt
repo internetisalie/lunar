@@ -23,26 +23,30 @@ private val MOBDEBUG_DIR = File(PROJECT_ROOT, "src/main/lua")
  * @param script    Path to the Lua script to run.
  * @param observer  Observer to receive debug events.
  */
-fun startLuaDebugHarness(script: File, observer: LuaDebugObserver): LuaHarness {
+fun startLuaDebugHarness(
+    script: File,
+    observer: LuaDebugObserver,
+): LuaHarness {
     val serverSocket = ServerSocket(8172)
 
-    val process = ProcessBuilder(LUA_BIN, script.absolutePath)
-        .redirectErrorStream(true)
-        .apply {
-            environment()["LUA_INIT"] = "@${DEBUG_LUA.absolutePath}"
-            environment()["LUNAR_DEBUGGER_PACKAGE"] = "mobdebug"
-            // mobdebug is a directory module (init.lua), so expose both patterns
-            environment()["LUNAR_LUA_PATH_TEMPLATE"] =
-                "${MOBDEBUG_DIR.absolutePath}/?.lua;${MOBDEBUG_DIR.absolutePath}/?/init.lua"
-        }
-        .start()
+    val process =
+        ProcessBuilder(LUA_BIN, script.absolutePath)
+            .redirectErrorStream(true)
+            .apply {
+                environment()["LUA_INIT"] = "@${DEBUG_LUA.absolutePath}"
+                environment()["LUNAR_DEBUGGER_PACKAGE"] = "mobdebug"
+                // mobdebug is a directory module (init.lua), so expose both patterns
+                environment()["LUNAR_LUA_PATH_TEMPLATE"] =
+                    "${MOBDEBUG_DIR.absolutePath}/?.lua;${MOBDEBUG_DIR.absolutePath}/?/init.lua"
+            }.start()
 
-    val clientSocket: Socket = try {
-        serverSocket.soTimeout = 20_000
-        serverSocket.accept()
-    } finally {
-        serverSocket.close()
-    }
+    val clientSocket: Socket =
+        try {
+            serverSocket.soTimeout = 20_000
+            serverSocket.accept()
+        } finally {
+            serverSocket.close()
+        }
 
     val scope = CoroutineScope(SupervisorJob())
     val connection = LuaDebugConnection(clientSocket, observer, scope).also { it.start() }

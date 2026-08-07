@@ -18,12 +18,15 @@ enum class LuaExportStyle { RETURN_STYLE, GLOBAL_STYLE }
  * since most modules return a table).
  */
 class LuaExportStyleDetector {
-
-    fun detect(targetFile: VirtualFile, project: Project): LuaExportStyle {
+    fun detect(
+        targetFile: VirtualFile,
+        project: Project,
+    ): LuaExportStyle {
         if (DumbService.isDumb(project)) return LuaExportStyle.RETURN_STYLE
 
-        val psiFile = PsiManager.getInstance(project).findFile(targetFile) as? LuaFile
-            ?: return LuaExportStyle.GLOBAL_STYLE
+        val psiFile =
+            PsiManager.getInstance(project).findFile(targetFile) as? LuaFile
+                ?: return LuaExportStyle.GLOBAL_STYLE
 
         val stub = psiFile.stub
         if (stub != null && stub.exportedTypeString != null) {
@@ -33,9 +36,10 @@ class LuaExportStyleDetector {
     }
 
     private fun detectFromPsi(file: LuaFile): LuaExportStyle {
-        val hasRootReturn = file.getBlockList().any { block ->
-            block.statementList.any { it is LuaFinalStatement }
-        }
+        val hasRootReturn =
+            file.getBlockList().any { block ->
+                block.statementList.any { it is LuaFinalStatement }
+            }
         return if (hasRootReturn) LuaExportStyle.RETURN_STYLE else LuaExportStyle.GLOBAL_STYLE
     }
 }

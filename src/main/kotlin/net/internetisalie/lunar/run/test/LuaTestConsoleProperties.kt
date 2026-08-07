@@ -11,26 +11,21 @@ import com.intellij.execution.ui.ConsoleView
 
 class LuaTestConsoleProperties(
     val configuration: LuaTestRunConfiguration,
-    executor: Executor
-) : SMTRunnerConsoleProperties(configuration, "LuaTest", executor), SMCustomMessagesParsing {
-
+    executor: Executor,
+) : SMTRunnerConsoleProperties(configuration, "LuaTest", executor),
+    SMCustomMessagesParsing {
     init {
         setIdBasedTestTree(true)
         setPrintTestingStartedTime(true)
     }
 
-    override fun getTestLocator(): SMTestLocator {
-        return LuaTestLocator
-    }
+    override fun getTestLocator(): SMTestLocator = LuaTestLocator
 
     override fun createTestEventsConverter(
         testFrameworkName: String,
-        consoleProperties: TestConsoleProperties
-    ): OutputToGeneralTestEventsConverter {
-        return LuaTestOutputToEventsConverter(testFrameworkName, consoleProperties)
-    }
+        consoleProperties: TestConsoleProperties,
+    ): OutputToGeneralTestEventsConverter = LuaTestOutputToEventsConverter(testFrameworkName, consoleProperties)
 
-    override fun createRerunFailedTestsAction(consoleView: ConsoleView): AbstractRerunFailedTestsAction {
-        return LuaRerunFailedTestsAction(consoleView, this)
-    }
+    override fun createRerunFailedTestsAction(consoleView: ConsoleView): AbstractRerunFailedTestsAction =
+        LuaRerunFailedTestsAction(consoleView, this)
 }

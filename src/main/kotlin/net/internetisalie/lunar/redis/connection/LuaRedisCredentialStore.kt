@@ -13,7 +13,6 @@ import com.intellij.ide.passwordSafe.PasswordSafe
  * risks-and-gaps "Secret keying"). [SUBSYSTEM] is stable across releases — do not rename it.
  */
 object LuaRedisCredentialStore {
-
     /** Credential-store subsystem namespace. Stable — do not change. */
     const val SUBSYSTEM: String = "Lunar Redis"
 
@@ -28,7 +27,10 @@ object LuaRedisCredentialStore {
         PasswordSafe.instance.getPassword(attributesFor(connectionId))?.takeIf { it.isNotBlank() }
 
     /** Stores [password] for [connectionId]; a `null`/blank value clears the stored password. */
-    fun setPassword(connectionId: String, password: String?) {
+    fun setPassword(
+        connectionId: String,
+        password: String?,
+    ) {
         PasswordSafe.instance.setPassword(attributesFor(connectionId), password?.takeIf { it.isNotBlank() })
     }
 }

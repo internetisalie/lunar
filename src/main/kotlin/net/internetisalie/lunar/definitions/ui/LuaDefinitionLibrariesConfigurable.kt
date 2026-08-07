@@ -23,48 +23,53 @@ import javax.swing.JComponent
  * Layout runs on the EDT and is cheap; the fetch [apply] triggers is dispatched to a background
  * task by the enabler (engineering contract §1).
  */
-class LuaDefinitionLibrariesConfigurable(private val project: Project) : Configurable {
-
+class LuaDefinitionLibrariesConfigurable(
+    private val project: Project,
+) : Configurable {
     private val enabler = LuaDefinitionLibraryEnabler(project)
     private val checkBoxes = LinkedHashMap<String, JBCheckBox>()
     private val statusLabels = LinkedHashMap<String, JBLabel>()
 
     override fun getDisplayName(): String = "Definition Libraries"
 
-    override fun createComponent(): JComponent = panel {
-        row {
-            comment(
-                "Type definitions for community Lua libraries, fetched on demand. Nothing is " +
-                    "bundled with the plugin — each library is downloaded from its upstream " +
-                    "project and cached per user. Licenses are the upstream projects' own.",
-            )
-        }
-        enabler.rows().forEach { entry ->
+    override fun createComponent(): JComponent =
+        panel {
             row {
-                val box = JBCheckBox(entry.entry.displayName, entry.enabled)
-                checkBoxes[entry.entry.id] = box
-                cell(box)
-                // TARGET-08-08: license + attribution are shown for every row, not just enabled
-                // ones, so the obligation is visible before the user opts in.
-                // Deliberately a placeholder: learning whether a library is cached costs disk
-                // access, and `createComponent` runs on the EDT where that is a prohibited slow
-                // operation (BUG-396). `loadStatuses()` fills these in from a pooled thread.
-                val status = JBLabel(CHECKING).apply {
-                    foreground = JBUI.CurrentTheme.Label.disabledForeground()
-                }
-                statusLabels[entry.entry.id] = status
-                cell(status)
-                cell(JBLabel(entry.entry.license).apply {
-                    foreground = JBUI.CurrentTheme.Label.disabledForeground()
-                })
-                cell(
-                    HyperlinkLabel(entry.entry.attributionUrl).apply {
-                        setHyperlinkTarget(entry.entry.attributionUrl)
-                    },
+                comment(
+                    "Type definitions for community Lua libraries, fetched on demand. Nothing is " +
+                        "bundled with the plugin — each library is downloaded from its upstream " +
+                        "project and cached per user. Licenses are the upstream projects' own.",
                 )
             }
+            enabler.rows().forEach { entry ->
+                row {
+                    val box = JBCheckBox(entry.entry.displayName, entry.enabled)
+                    checkBoxes[entry.entry.id] = box
+                    cell(box)
+                    // TARGET-08-08: license + attribution are shown for every row, not just enabled
+                    // ones, so the obligation is visible before the user opts in.
+                    // Deliberately a placeholder: learning whether a library is cached costs disk
+                    // access, and `createComponent` runs on the EDT where that is a prohibited slow
+                    // operation (BUG-396). `loadStatuses()` fills these in from a pooled thread.
+                    val status =
+                        JBLabel(CHECKING).apply {
+                            foreground = JBUI.CurrentTheme.Label.disabledForeground()
+                        }
+                    statusLabels[entry.entry.id] = status
+                    cell(status)
+                    cell(
+                        JBLabel(entry.entry.license).apply {
+                            foreground = JBUI.CurrentTheme.Label.disabledForeground()
+                        },
+                    )
+                    cell(
+                        HyperlinkLabel(entry.entry.attributionUrl).apply {
+                            setHyperlinkTarget(entry.entry.attributionUrl)
+                        },
+                    )
+                }
+            }
         }
-    }
 
     /**
      * Fills in the Fetched/Not fetched column off the EDT, then updates the labels back on it.
@@ -84,8 +89,7 @@ class LuaDefinitionLibrariesConfigurable(private val project: Project) : Configu
         }
     }
 
-    private fun selectedIds(): List<String> =
-        checkBoxes.filterValues { it.isSelected }.keys.toList()
+    private fun selectedIds(): List<String> = checkBoxes.filterValues { it.isSelected }.keys.toList()
 
     override fun isModified(): Boolean =
         selectedIds().toSet() != LuaProjectSettings.getInstance(project).enabledDefinitionLibraries.toSet()

@@ -25,7 +25,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaTypesSnapshotCacheTest : IndexedBasePlatformTestCase() {
-
     override fun tearDown() {
         try {
             setTarget(LuaPlatform.STANDARD, "5.4")
@@ -34,7 +33,10 @@ class LuaTypesSnapshotCacheTest : IndexedBasePlatformTestCase() {
         }
     }
 
-    private fun setTarget(platform: LuaPlatform, label: String) {
+    private fun setTarget(
+        platform: LuaPlatform,
+        label: String,
+    ) {
         val version = requireNotNull(PlatformVersionRegistry.findVersion(platform, label))
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             LuaProjectSettings.getInstance(project).state.setTarget(Target(platform, version))
@@ -85,7 +87,9 @@ class LuaTypesSnapshotCacheTest : IndexedBasePlatformTestCase() {
             val document = myFixture.editor.document
             com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) {
                 document.setText("local a = \"s\"")
-                com.intellij.psi.PsiDocumentManager.getInstance(project).commitDocument(document)
+                com.intellij.psi.PsiDocumentManager
+                    .getInstance(project)
+                    .commitDocument(document)
             }
         }
 
@@ -104,15 +108,16 @@ class LuaTypesSnapshotCacheTest : IndexedBasePlatformTestCase() {
         // TC-06: a self-referential callee resolved during visitFuncCall re-enters forFile while the
         // snapshot is under construction. The inProgressSnapshot guard short-circuits before
         // CachedValuesManager, so the build completes without recursion.
-        val file = myFixture.configureByText(
-            "reentrant.lua",
-            """
-            local function f()
-                return f()
-            end
-            local y = f()
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "reentrant.lua",
+                """
+                local function f()
+                    return f()
+                end
+                local y = f()
+                """.trimIndent(),
+            )
         runReadAction {
             val snapshot = LuaTypesSnapshot.forFile(file)
             assertNotNull("Reentrant build must complete without recursion", snapshot)

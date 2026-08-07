@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.refactoring
 
+import com.intellij.codeInsight.PsiEquivalenceUtil
 import com.intellij.codeInsight.template.TemplateBuilderImpl
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationManager
@@ -9,7 +10,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Pass
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.codeInsight.PsiEquivalenceUtil
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.RefactoringActionHandler
@@ -34,8 +34,12 @@ import net.internetisalie.lunar.refactoring.rename.LuaNameDeriver
  * all equivalent occurrences in the block are replaced and the suggested name is committed.
  */
 class LuaIntroduceVariableHandler : RefactoringActionHandler {
-
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?, dataContext: DataContext?) {
+    override fun invoke(
+        project: Project,
+        editor: Editor?,
+        file: PsiFile?,
+        dataContext: DataContext?,
+    ) {
         if (editor == null || file == null) return
         val target = resolveTarget(editor, file)
         if (target == null) {
@@ -45,11 +49,18 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
         introduce(project, editor, target)
     }
 
-    override fun invoke(project: Project, elements: Array<out PsiElement>, dataContext: DataContext?) {
+    override fun invoke(
+        project: Project,
+        elements: Array<out PsiElement>,
+        dataContext: DataContext?,
+    ) {
         // Editor-driven refactoring only; the elements-array entry point is intentionally a no-op.
     }
 
-    private fun resolveTarget(editor: Editor, file: PsiFile): LuaExpr? {
+    private fun resolveTarget(
+        editor: Editor,
+        file: PsiFile,
+    ): LuaExpr? {
         val selectionModel = editor.selectionModel
         if (selectionModel.hasSelection()) {
             return resolveFromRange(file, selectionModel.selectionStart, selectionModel.selectionEnd)
@@ -59,7 +70,11 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
         return PsiTreeUtil.getParentOfType(leaf, LuaExpr::class.java)
     }
 
-    private fun resolveFromRange(file: PsiFile, start: Int, end: Int): LuaExpr? {
+    private fun resolveFromRange(
+        file: PsiFile,
+        start: Int,
+        end: Int,
+    ): LuaExpr? {
         val element = PsiTreeUtil.findElementOfClassAtRange(file, start, end, LuaExpr::class.java)
         if (element != null) return element
         // Selection does not match a single expression exactly: snap to the smallest enclosing one.
@@ -68,16 +83,24 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
         return enclosing.takeIf { it.textRange.startOffset <= start && it.textRange.endOffset >= end }
     }
 
-    private fun findAnchor(expr: LuaExpr): LuaStatement? =
-        PsiTreeUtil.getParentOfType(expr, LuaStatement::class.java)
+    private fun findAnchor(expr: LuaExpr): LuaStatement? = PsiTreeUtil.getParentOfType(expr, LuaStatement::class.java)
 
-    private fun collectOccurrences(target: LuaExpr, block: LuaBlock): List<LuaExpr> {
-        val matches = PsiTreeUtil.findChildrenOfType(block, LuaExpr::class.java)
-            .filter { it === target || PsiEquivalenceUtil.areElementsEquivalent(it, target) }
+    private fun collectOccurrences(
+        target: LuaExpr,
+        block: LuaBlock,
+    ): List<LuaExpr> {
+        val matches =
+            PsiTreeUtil
+                .findChildrenOfType(block, LuaExpr::class.java)
+                .filter { it === target || PsiEquivalenceUtil.areElementsEquivalent(it, target) }
         return matches.ifEmpty { listOf(target) }
     }
 
-    private fun introduce(project: Project, editor: Editor, target: LuaExpr) {
+    private fun introduce(
+        project: Project,
+        editor: Editor,
+        target: LuaExpr,
+    ) {
         val anchor = findAnchor(target)
         val block = anchor?.parent as? LuaBlock
         if (anchor == null || block == null) {
@@ -102,12 +125,17 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
         )
     }
 
-    private fun performIntroduce(project: Project, editor: Editor, context: IntroduceContext) {
+    private fun performIntroduce(
+        project: Project,
+        editor: Editor,
+        context: IntroduceContext,
+    ) {
         val exprText = context.target.text
         WriteCommandAction.runWriteCommandAction(project, RefactoringBundle.message("introduce.variable.title"), null, {
             val throwaway = LuaElementFactory.createFile(project, "local ${context.name} = $exprText")
-            val declaration = PsiTreeUtil.findChildOfType(throwaway, LuaStatement::class.java)
-                ?: return@runWriteCommandAction
+            val declaration =
+                PsiTreeUtil.findChildOfType(throwaway, LuaStatement::class.java)
+                    ?: return@runWriteCommandAction
             val block = context.block
             val inserted = block.addBefore(declaration, context.anchor)
             block.addAfter(LuaElementFactory.createNewLine(project), inserted)
@@ -118,24 +146,37 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
         })
     }
 
-    private fun replaceOccurrences(project: Project, context: IntroduceContext) {
+    private fun replaceOccurrences(
+        project: Project,
+        context: IntroduceContext,
+    ) {
         context.occurrences.forEach { occurrence ->
             val reference = LuaElementFactory.createExpression(project, context.name) ?: return@forEach
             occurrence.replace(reference)
         }
     }
 
-    private fun startInlineRename(project: Project, editor: Editor, file: PsiFile, name: String) {
+    private fun startInlineRename(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+        name: String,
+    ) {
         if (ApplicationManager.getApplication().isUnitTestMode) return
-        val declaration = PsiTreeUtil.collectElementsOfType(file, LuaNameRef::class.java)
-            .firstOrNull { it.identifier.text == name } ?: return
+        val declaration =
+            PsiTreeUtil
+                .collectElementsOfType(file, LuaNameRef::class.java)
+                .firstOrNull { it.identifier.text == name } ?: return
         val builder = TemplateBuilderImpl(file)
         builder.replaceElement(declaration.identifier, name)
         editor.caretModel.moveToOffset(declaration.textRange.startOffset)
         builder.run(editor, true)
     }
 
-    private fun suggestName(expr: LuaExpr, block: LuaBlock): String {
+    private fun suggestName(
+        expr: LuaExpr,
+        block: LuaBlock,
+    ): String {
         val base = baseNameFor(expr)
         return uniquify(base, expr, block)
     }
@@ -146,19 +187,28 @@ class LuaIntroduceVariableHandler : RefactoringActionHandler {
             else -> "value"
         }
 
-    private fun uniquify(base: String, target: LuaExpr, block: LuaBlock): String {
+    private fun uniquify(
+        base: String,
+        target: LuaExpr,
+        block: LuaBlock,
+    ): String {
         val targetRange = target.textRange
-        val taken = PsiTreeUtil.collectElementsOfType(block.containingFile, LuaNameRef::class.java)
-            .filterNot { targetRange.contains(it.textRange) }
-            .map { it.identifier.text }
-            .toSet()
+        val taken =
+            PsiTreeUtil
+                .collectElementsOfType(block.containingFile, LuaNameRef::class.java)
+                .filterNot { targetRange.contains(it.textRange) }
+                .map { it.identifier.text }
+                .toSet()
         if (base !in taken) return base
         var index = 1
         while ("$base$index" in taken) index++
         return "$base$index"
     }
 
-    private fun showCannotIntroduce(project: Project, editor: Editor) {
+    private fun showCannotIntroduce(
+        project: Project,
+        editor: Editor,
+    ) {
         CommonRefactoringUtil.showErrorHint(
             project,
             editor,

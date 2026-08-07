@@ -32,7 +32,6 @@ import net.internetisalie.lunar.lang.psi.LuaVarList
  * standard `_` ignored-variable idiom is respected.
  */
 class LuaUnusedLocalInspection : LocalInspectionTool() {
-
     @JvmField
     var checkParameters: Boolean = false
 
@@ -48,9 +47,17 @@ class LuaUnusedLocalInspection : LocalInspectionTool() {
 
     // TODO: Expose configuration UI for `checkParameters` toggle.
 
-    private class Declaration(val identifier: PsiElement, val anchor: PsiElement, val message: String)
+    private class Declaration(
+        val identifier: PsiElement,
+        val anchor: PsiElement,
+        val message: String,
+    )
 
-    override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
+    override fun checkFile(
+        file: PsiFile,
+        manager: InspectionManager,
+        isOnTheFly: Boolean,
+    ): Array<ProblemDescriptor>? {
         if (file !is LuaFile) return null
 
         val declarations = mutableListOf<Declaration>()
@@ -84,8 +91,7 @@ class LuaUnusedLocalInspection : LocalInspectionTool() {
                     LocalQuickFix.EMPTY_ARRAY,
                     ProblemHighlightType.LIKE_UNUSED_SYMBOL,
                 )
-            }
-            .toTypedArray()
+            }.toTypedArray()
     }
 
     private fun classify(

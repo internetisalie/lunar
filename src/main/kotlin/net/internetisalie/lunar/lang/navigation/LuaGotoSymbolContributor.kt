@@ -18,8 +18,11 @@ import net.internetisalie.lunar.lang.psi.LuaFuncDecl
  * (including bare tag comments) from the file-based [LuaCatsTypeNavigation].
  */
 class LuaGotoSymbolContributor : ChooseByNameContributorEx {
-
-    override fun processNames(processor: Processor<in String>, scope: GlobalSearchScope, filter: IdFilter?) {
+    override fun processNames(
+        processor: Processor<in String>,
+        scope: GlobalSearchScope,
+        filter: IdFilter?,
+    ) {
         StubIndex.getInstance().processAllKeys(LuaGlobalDeclarationIndex.KEY, processor, scope, filter)
         LuaCatsTypeNavigation.processNames(processor, scope, filter)
     }
@@ -41,9 +44,14 @@ class LuaGotoSymbolContributor : ChooseByNameContributorEx {
         scope: GlobalSearchScope,
         processor: Processor<in NavigationItem>,
     ): Boolean {
-        val elements = StubIndex.getElements(
-            LuaGlobalDeclarationIndex.KEY, name, project, scope, LuaFuncDecl::class.java,
-        )
+        val elements =
+            StubIndex.getElements(
+                LuaGlobalDeclarationIndex.KEY,
+                name,
+                project,
+                scope,
+                LuaFuncDecl::class.java,
+            )
         for (element in elements) {
             if (!processor.process(LuaNavigationItem(element, name, AllIcons.Nodes.Function))) return false
         }

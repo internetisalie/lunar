@@ -35,7 +35,6 @@ import kotlin.io.path.writeText
  * - https://plugins.jetbrains.com/docs/intellij/integration-tests-ui.html
  */
 class ProjectOpenIntegrationTest {
-
     @Test
     fun `validate lua project can be opened correctly`() {
         // Create a test project with Lua files

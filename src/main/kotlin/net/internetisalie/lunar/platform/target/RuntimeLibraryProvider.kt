@@ -13,8 +13,9 @@ import com.intellij.openapi.vfs.VirtualFile
  * If no resources are bundled for a target (e.g., future platforms), [getLibraryRoot] returns null.
  * Callers must handle null gracefully.
  */
-class RuntimeLibraryProvider(private val project: Project) {
-
+class RuntimeLibraryProvider(
+    private val project: Project,
+) {
     /**
      * Returns the VirtualFile directory root for the given target's libraries, or null if not found.
      *
@@ -23,7 +24,8 @@ class RuntimeLibraryProvider(private val project: Project) {
      */
     fun getLibraryRoot(target: Target): VirtualFile? {
         val path = target.getLibraryRootPath()
-        return RuntimeLibraryProvider::class.java.classLoader.getResource(path)
+        return RuntimeLibraryProvider::class.java.classLoader
+            .getResource(path)
             ?.let { VfsUtil.findFileByURL(it) }
     }
 

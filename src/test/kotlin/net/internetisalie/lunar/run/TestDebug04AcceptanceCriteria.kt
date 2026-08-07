@@ -22,7 +22,6 @@ import kotlin.test.assertTrue
  * mechanism for type recovery from the Mobdebug remote debugger.
  */
 class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
-
     /**
      * AC-1: Simple arithmetic: `2 + 3` → `5` (number)
      * Remote returns: `do local _={"5"}; return _; end`
@@ -35,7 +34,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
         ApplicationManager.getApplication().runReadAction {
             // Simulate what remote debugger returns for "2 + 3"
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "5")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(5.0, result.numberValue)
@@ -53,7 +52,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "100")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(100.0, result.numberValue)
@@ -71,7 +70,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "50")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(50.0, result.numberValue)
@@ -89,7 +88,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "42")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(42.0, result.numberValue)
@@ -107,7 +106,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "20")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(20.0, result.numberValue)
@@ -125,7 +124,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "\"hello world\"")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.String, result.kind)
             assertEquals("hello world", result.stringValue)
@@ -143,7 +142,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "{}")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Table, result.kind)
             assertNotNull(result.tableValue)
@@ -164,21 +163,21 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
         ApplicationManager.getApplication().runReadAction {
             // Test the table structure: {1, "text", true}
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "{1, \"text\", true}")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Table, result.kind)
             val table = result.tableValue
             assertNotNull(table)
             assertEquals(3, table.indexed.size)
-            
+
             // Element 1: number
             assertEquals(LuaValueKind.Number, table.indexed[0].kind)
             assertEquals(1.0, table.indexed[0].numberValue)
-            
+
             // Element 2: string
             assertEquals(LuaValueKind.String, table.indexed[1].kind)
             assertEquals("text", table.indexed[1].stringValue)
-            
+
             // Element 3: boolean
             assertEquals(LuaValueKind.Boolean, table.indexed[2].kind)
             assertEquals(true, table.indexed[2].boolValue)
@@ -196,24 +195,24 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "{a=1, b={c=2}}")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Table, result.kind)
             val outerTable = result.tableValue
             assertNotNull(outerTable)
             assertEquals(2, outerTable.named.size)
-            
+
             // Check a=1
             val aPair = outerTable.getByName("a")
             assertNotNull(aPair, "Expected 'a' field")
             assertEquals(LuaValueKind.Number, aPair.second.kind)
             assertEquals(1.0, aPair.second.numberValue)
-            
+
             // Check b={c=2}
             val bPair = outerTable.getByName("b")
             assertNotNull(bPair, "Expected 'b' field")
             assertEquals(LuaValueKind.Table, bPair.second.kind)
-            
+
             val innerTable = bPair.second.tableValue
             assertNotNull(innerTable)
             val cPair = innerTable.getByName("c")
@@ -234,7 +233,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "10")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(10.0, result.numberValue)
@@ -276,7 +275,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
             assertNotNull(trueResult)
             assertEquals(LuaValueKind.Boolean, trueResult.kind)
             assertEquals(true, trueResult.boolValue)
-            
+
             // Test false
             val falseResult = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "false")
             assertNotNull(falseResult)
@@ -294,7 +293,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "nil")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Nil, result.kind)
         }
@@ -310,7 +309,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "3.14")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(3.14, result.numberValue)
@@ -327,7 +326,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "-5")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(-5.0, result.numberValue)
@@ -348,7 +347,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
             assertNotNull(resultTrue)
             assertEquals(LuaValueKind.Boolean, resultTrue.kind)
             assertEquals(false, resultTrue.boolValue)
-            
+
             // Test `not false` → true
             val resultFalse = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "not false")
             assertNotNull(resultFalse)
@@ -367,7 +366,7 @@ class TestDebug04AcceptanceCriteria : BaseDocumentTest() {
 
         ApplicationManager.getApplication().runReadAction {
             val result = LuaDebugValueParser.parseStringAsLuaValue(myFixture.project, "#{1, 2, 3}")
-            
+
             assertNotNull(result)
             assertEquals(LuaValueKind.Number, result.kind)
             assertEquals(3.0, result.numberValue)

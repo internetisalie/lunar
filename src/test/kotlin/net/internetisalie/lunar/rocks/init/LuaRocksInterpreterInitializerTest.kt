@@ -20,7 +20,6 @@ import java.util.UUID
  * `HererocksProvisioner`/`InterpreterMode` symbol is referenced.
  */
 class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
-
     override fun tearDown() {
         try {
             LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
@@ -32,30 +31,39 @@ class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
     }
 
     private fun seedRuntime(path: String): LuaRegisteredTool {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "lua",
-            path = path,
-            version = "5.1.0",
-            luaVersion = "5.1",
-            runtime = LuaRuntimeInfo("Lua", "5.1.0", LuaLanguageLevel.LUA51, LuaPlatform.STANDARD, "Lua 5.1.0"),
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
-        )
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "lua",
+                path = path,
+                version = "5.1.0",
+                luaVersion = "5.1",
+                runtime = LuaRuntimeInfo("Lua", "5.1.0", LuaLanguageLevel.LUA51, LuaPlatform.STANDARD, "Lua 5.1.0"),
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         return tool
     }
 
     fun testExplicitPathBindsRegisteredRuntimeAndSetsTarget() {
         val tool = seedRuntime("/usr/bin/lua")
-        val settings = LuaRocksProjectSettings(
-            name = "lib",
-            kindId = WizardRuntimeKinds.LUA,
-            luaVersion = "5.1",
-            provisionEnvironment = false,
-            interpreterPath = "/usr/bin/lua",
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "lib",
+                kindId = WizardRuntimeKinds.LUA,
+                luaVersion = "5.1",
+                provisionEnvironment = false,
+                interpreterPath = "/usr/bin/lua",
+            )
 
         LuaRocksInterpreterInitializer.applySettings(project, settings)
 
@@ -75,12 +83,13 @@ class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
     }
 
     fun testProvisionSetsTargetWithoutBinding() {
-        val settings = LuaRocksProjectSettings(
-            name = "lib",
-            kindId = WizardRuntimeKinds.LUA,
-            luaVersion = "5.5",
-            provisionEnvironment = true,
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "lib",
+                kindId = WizardRuntimeKinds.LUA,
+                luaVersion = "5.5",
+                provisionEnvironment = true,
+            )
 
         LuaRocksInterpreterInitializer.applySettings(project, settings)
 
@@ -93,12 +102,13 @@ class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
     }
 
     fun testLuaJitKindMapsToLuaJitTarget() {
-        val settings = LuaRocksProjectSettings(
-            name = "lib",
-            kindId = WizardRuntimeKinds.LUAJIT,
-            luaVersion = "2.1",
-            provisionEnvironment = true,
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "lib",
+                kindId = WizardRuntimeKinds.LUAJIT,
+                luaVersion = "2.1",
+                provisionEnvironment = true,
+            )
 
         LuaRocksInterpreterInitializer.applySettings(project, settings)
 
@@ -109,12 +119,13 @@ class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
     }
 
     fun testScheduleProvisionActivatesEnvironment() {
-        val settings = LuaRocksProjectSettings(
-            name = "lib",
-            kindId = WizardRuntimeKinds.LUA,
-            luaVersion = "5.4",
-            provisionEnvironment = true,
-        )
+        val settings =
+            LuaRocksProjectSettings(
+                name = "lib",
+                kindId = WizardRuntimeKinds.LUA,
+                luaVersion = "5.4",
+                provisionEnvironment = true,
+            )
 
         LuaRocksInterpreterInitializer.scheduleProvision(project, "/tmp/wizard-proj", settings)
 

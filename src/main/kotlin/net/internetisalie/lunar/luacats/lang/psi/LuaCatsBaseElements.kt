@@ -8,8 +8,8 @@ interface LuaCatsCommentOwner : PsiElement {
     val catsComment: LuaCatsComment?
 }
 
-open class LuaCatsBaseElement(node: ASTNode) : ASTWrapperPsiElement(node) {
-    override fun toString(): String {
-        return this.node.elementType.toString()
-    }
+open class LuaCatsBaseElement(
+    node: ASTNode,
+) : ASTWrapperPsiElement(node) {
+    override fun toString(): String = this.node.elementType.toString()
 }

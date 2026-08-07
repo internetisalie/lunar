@@ -2,9 +2,7 @@ package net.internetisalie.lunar.rocks.init
 
 import kotlin.test.Test
 import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /**
  * Pure unit tests for [LuaRocksTemplates] — no IDE fixture required.
@@ -12,7 +10,6 @@ import kotlin.test.assertTrue
  * These tests verify that the generated file bodies match the spec (design §4).
  */
 class LuaRocksTemplatesTest {
-
     // ------------------------------------------------------------------ rockspec
 
     @Test

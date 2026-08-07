@@ -11,7 +11,6 @@ import org.junit.Test
  * Fully headless — no IDE platform required.
  */
 class LuaRocksSearchCacheTest {
-
     @After
     fun tearDown() {
         LuaRocksSearchCache.invalidateAll()

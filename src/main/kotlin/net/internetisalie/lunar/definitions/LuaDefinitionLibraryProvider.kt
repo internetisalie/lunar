@@ -31,8 +31,9 @@ class LuaDefinitionLibraryProvider(
     // parameter exists so tests can point the fetcher at a temp cache root.
     private val fetcher: LuaDefinitionLibraryFetcher = LuaDefinitionLibraryFetcher(),
 ) : AdditionalLibraryRootsProvider() {
-
-    private val catalogFailureLogged = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val catalogFailureLogged =
+        java.util.concurrent.atomic
+            .AtomicBoolean(false)
 
     override fun getAdditionalProjectLibraries(project: Project): Collection<SyntheticLibrary> {
         val roots = enabledRoots(project)
@@ -77,16 +78,22 @@ class LuaDefinitionLibraryProvider(
      * across root changes to decide whether anything moved, so an identity-based library would
      * force a rescan on every call.
      */
-    class DefinitionLibrary(private val roots: List<VirtualFile>) : SyntheticLibrary(), ItemPresentation {
+    class DefinitionLibrary(
+        private val roots: List<VirtualFile>,
+    ) : SyntheticLibrary(),
+        ItemPresentation {
         override fun getSourceRoots(): Collection<VirtualFile> = roots
+
         override fun getPresentableText(): String = "Lua Definition Libraries"
+
         override fun getIcon(unused: Boolean): Icon = LuaIcons.FILE
+
         // Compared as a SET: the platform diffs the collections it gets back to decide whether
         // roots moved, and ordering here follows catalog/dependency order, which is not a
         // meaningful difference. Order-sensitive equality would force spurious rescans.
         override fun hashCode(): Int = roots.toSet().hashCode()
-        override fun equals(other: Any?): Boolean =
-            other is DefinitionLibrary && other.roots.toSet() == roots.toSet()
+
+        override fun equals(other: Any?): Boolean = other is DefinitionLibrary && other.roots.toSet() == roots.toSet()
     }
 
     private companion object {

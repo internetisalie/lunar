@@ -17,20 +17,20 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaMethodMembersTest : BasePlatformTestCase() {
-
     @Test
     fun testColonMethodIsResolvableAsMember() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "builder.lua",
-            """
-            ---@class Builder
-            local Builder = {}
+        val usage =
+            myFixture.configureByText(
+                "builder.lua",
+                """
+                ---@class Builder
+                local Builder = {}
 
-            ---@return Builder
-            function Builder:setName(n) end
-            """.trimIndent(),
-        )
+                ---@return Builder
+                function Builder:setName(n) end
+                """.trimIndent(),
+            )
 
         runReadAction {
             val builder = typeManager.resolveType("Builder", usage)
@@ -45,16 +45,17 @@ class LuaMethodMembersTest : BasePlatformTestCase() {
     @Test
     fun testSelfReturnResolvesToReceiverClass() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "chain.lua",
-            """
-            ---@class Chain
-            local Chain = {}
+        val usage =
+            myFixture.configureByText(
+                "chain.lua",
+                """
+                ---@class Chain
+                local Chain = {}
 
-            ---@return self
-            function Chain:step() end
-            """.trimIndent(),
-        )
+                ---@return self
+                function Chain:step() end
+                """.trimIndent(),
+            )
 
         runReadAction {
             val chain = typeManager.resolveType("Chain", usage) as? LuaClassType
@@ -68,20 +69,24 @@ class LuaMethodMembersTest : BasePlatformTestCase() {
     @Test
     fun testDotFunctionIsResolvableAsMember() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "util.lua",
-            """
-            ---@class Util
-            local Util = {}
+        val usage =
+            myFixture.configureByText(
+                "util.lua",
+                """
+                ---@class Util
+                local Util = {}
 
-            function Util.format(s) end
-            """.trimIndent(),
-        )
+                function Util.format(s) end
+                """.trimIndent(),
+            )
 
         runReadAction {
             val util = typeManager.resolveType("Util", usage) as? LuaClassType
             assertNotNull("Util should be a class type", util)
-            assertTrue("dot function should resolve as a member", util!!.resolveMember("format")?.type is LuaFunctionType)
+            assertTrue(
+                "dot function should resolve as a member",
+                util!!.resolveMember("format")?.type is LuaFunctionType,
+            )
         }
     }
 
@@ -94,17 +99,18 @@ class LuaMethodMembersTest : BasePlatformTestCase() {
     @Test
     fun testMethodsDeclaredAgainstTheLocalRatherThanTheClassName() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "luassert.lua",
-            """
-            ---@class luassert.internal
-            local internal = {}
+        val usage =
+            myFixture.configureByText(
+                "luassert.lua",
+                """
+                ---@class luassert.internal
+                local internal = {}
 
-            function internal.True(value) end
+                function internal.True(value) end
 
-            internal.are = internal
-            """.trimIndent(),
-        )
+                internal.are = internal
+                """.trimIndent(),
+            )
 
         runReadAction {
             val internal = typeManager.resolveType("luassert.internal", usage) as? LuaClassType
@@ -125,18 +131,19 @@ class LuaMethodMembersTest : BasePlatformTestCase() {
     @Test
     fun testMembersOfAParentNamedApartFromItsLocalAreInherited() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "luassert.lua",
-            """
-            ---@class luassert.internal
-            local internal = {}
-            function internal.True(value) end
+        val usage =
+            myFixture.configureByText(
+                "luassert.lua",
+                """
+                ---@class luassert.internal
+                local internal = {}
+                function internal.True(value) end
 
-            ---@class luassert : luassert.internal
-            local luassert = {}
-            function luassert.unregister(namespace) end
-            """.trimIndent(),
-        )
+                ---@class luassert : luassert.internal
+                local luassert = {}
+                function luassert.unregister(namespace) end
+                """.trimIndent(),
+            )
 
         runReadAction {
             val luassert = typeManager.resolveType("luassert", usage) as? LuaClassType
@@ -153,14 +160,15 @@ class LuaMethodMembersTest : BasePlatformTestCase() {
     fun testALocalOfTheSameNameInAnotherFileDoesNotContributeMembers() {
         val typeManager = LuaTypeManagerImpl(project)
         myFixture.addFileToProject("other.lua", "local internal = {}\nfunction internal.NotMine() end\n")
-        val usage = myFixture.configureByText(
-            "mine.lua",
-            """
-            ---@class Mine
-            local internal = {}
-            function internal.Mine() end
-            """.trimIndent(),
-        )
+        val usage =
+            myFixture.configureByText(
+                "mine.lua",
+                """
+                ---@class Mine
+                local internal = {}
+                function internal.Mine() end
+                """.trimIndent(),
+            )
 
         runReadAction {
             val mine = typeManager.resolveType("Mine", usage) as? LuaClassType

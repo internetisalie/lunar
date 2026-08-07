@@ -4,22 +4,21 @@ import com.intellij.application.options.CodeStyle
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.CodeStyleSettings
-import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.LuaLanguage
-import kotlin.test.Test
 import org.junit.Ignore
+import kotlin.test.Test
 
 class TestLuaFormatBlock : BaseDocumentTest() {
-
     fun reformatText(fn: (CodeStyleSettings) -> Unit) {
         WriteCommandAction.writeCommandAction(myFixture.project).run<RuntimeException?> {
             val settings = CodeStyle.getSettings(myFixture.project)
             fn(settings)
 
             CodeStyleManager.getInstance(myFixture.project).reformatText(
-                myFixture.file, listOf(myFixture.file.textRange)
+                myFixture.file,
+                listOf(myFixture.file.textRange),
             )
         }
     }
@@ -27,11 +26,12 @@ class TestLuaFormatBlock : BaseDocumentTest() {
     @Test
     fun testDoBlock() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
              do
             print ""
              end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -41,18 +41,19 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             do
                 print ""
             end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testWhileBlock() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
              while true do
             print ""
              end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -62,18 +63,19 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             while true do
                 print ""
             end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testRepeatBlock() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
              repeat
             print ""
              until false
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -83,14 +85,15 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             repeat
                 print ""
             until false
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testIfBlock() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
              if false then
             print "1"
              elseif true then
@@ -99,7 +102,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
              else
             print "3"
              end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -114,18 +117,19 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             else
                 print "3"
             end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testNumericForBlock() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
              for a = 1, 2, 3 do
             print ""
              end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -135,18 +139,19 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             for a = 1, 2, 3 do
                 print ""
             end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testGenericForBlock() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
              for a in 1, 2, 3 do
             print ""
              end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -156,20 +161,21 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             for a in 1, 2, 3 do
                 print ""
             end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testFunctionBlock() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             function test(a, 
             b, 
             c)
             print ""
             end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -181,20 +187,21 @@ class TestLuaFormatBlock : BaseDocumentTest() {
                           c)
                 print ""
             end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Ignore
     fun testArgs() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             print(
             a,
             b,
             c
             )
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText { codeStyleSettings ->
@@ -209,19 +216,20 @@ class TestLuaFormatBlock : BaseDocumentTest() {
                 b,
                 c
             )
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testLabel() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             if restart then 
               ::start::
               goto start   
             end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -232,7 +240,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             ::start::
                 goto start
             end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
@@ -243,11 +251,12 @@ class TestLuaFormatBlock : BaseDocumentTest() {
         // rule that previously tested the operand instead of the operator,
         // collapsing `not b` into the distinct identifier `notb`.
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             local a = not b
             local c = -d
             local e = #f
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -257,18 +266,19 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             local a = not b
             local c = -d
             local e = #f
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testVarList() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             a,
             b,
             c = 1
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -278,7 +288,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
             a,
                     b,
                     c = 1
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
@@ -305,13 +315,14 @@ class TestLuaFormatBlock : BaseDocumentTest() {
     @Ignore
     fun testLocalVarDecl() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             local a,
             b,
             c = 1,
             2,
             3
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -323,7 +334,7 @@ class TestLuaFormatBlock : BaseDocumentTest() {
                   c = 1,
                       2,
                       3
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 }

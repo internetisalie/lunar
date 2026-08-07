@@ -16,7 +16,10 @@ object LuaFeedVersionComparator : Comparator<String> {
     private val splitPattern = Regex("[.-]")
     private val alphaNumericSplit = Regex("^([^0-9]*)([0-9]*)$")
 
-    override fun compare(left: String, right: String): Int {
+    override fun compare(
+        left: String,
+        right: String,
+    ): Int {
         val leftTokens = left.split(splitPattern)
         val rightTokens = right.split(splitPattern)
         val tokenCount = maxOf(leftTokens.size, rightTokens.size)
@@ -27,7 +30,10 @@ object LuaFeedVersionComparator : Comparator<String> {
         return 0
     }
 
-    private fun compareToken(left: String?, right: String?): Int {
+    private fun compareToken(
+        left: String?,
+        right: String?,
+    ): Int {
         val leftNumeric = left?.toLongOrNull()
         val rightNumeric = right?.toLongOrNull()
         return when {
@@ -45,7 +51,10 @@ object LuaFeedVersionComparator : Comparator<String> {
             else -> 0L.compareTo(presentNumeric)
         }
 
-    private fun compareNonNumeric(left: String, right: String): Int {
+    private fun compareNonNumeric(
+        left: String,
+        right: String,
+    ): Int {
         val leftMatch = alphaNumericSplit.find(left)?.destructured
         val rightMatch = alphaNumericSplit.find(right)?.destructured
         if (leftMatch == null || rightMatch == null) return left.compareTo(right)

@@ -22,7 +22,6 @@ import kotlin.test.assertTrue
  * resolution and stub indexing behave as in a running IDE.
  */
 class LuaCrossFileCompletionOriginalFileTest {
-
     private lateinit var myFixture: CodeInsightTestFixture
 
     @BeforeTest

@@ -17,7 +17,6 @@ import java.util.UUID
  * `capture` path pointed at a non-existent binary.
  */
 class LuaCheckAnnotatorTest : ToolchainSettingsTestCase() {
-
     private fun applyOutcome(outcome: LuaCheckOutcome): AnnotationHolderImpl {
         val file = myFixture.file
         val annotator = LuaCheckAnnotator()
@@ -30,7 +29,15 @@ class LuaCheckAnnotatorTest : ToolchainSettingsTestCase() {
 
     fun `test TC3 unused local range lands on the never-saved buffer`() {
         myFixture.configureByText("test.lua", "local x = 1\n")
-        val problem = Problem(lineStart = 0, lineEnd = 0, columnStart = 6, columnEnd = 6, message = "unused 'x'", file = "test.lua")
+        val problem =
+            Problem(
+                lineStart = 0,
+                lineEnd = 0,
+                columnStart = 6,
+                columnEnd = 6,
+                message = "unused 'x'",
+                file = "test.lua",
+            )
 
         val holder = applyOutcome(LuaCheckOutcome.Problems(listOf(problem)))
 
@@ -40,7 +47,15 @@ class LuaCheckAnnotatorTest : ToolchainSettingsTestCase() {
 
     fun `test TC4 problem beyond the buffer is clamped without IOOBE`() {
         myFixture.configureByText("test.lua", "local x = 1")
-        val problem = Problem(lineStart = 5, lineEnd = 5, columnStart = 0, columnEnd = 3, message = "stale line", file = "test.lua")
+        val problem =
+            Problem(
+                lineStart = 5,
+                lineEnd = 5,
+                columnStart = 0,
+                columnEnd = 3,
+                message = "stale line",
+                file = "test.lua",
+            )
 
         val holder = applyOutcome(LuaCheckOutcome.Problems(listOf(problem)))
 
@@ -51,17 +66,28 @@ class LuaCheckAnnotatorTest : ToolchainSettingsTestCase() {
 
     fun `test same line same message is deduplicated`() {
         myFixture.configureByText("test.lua", "local x = 1\nlocal y = 2\nlocal z = 3\n")
-        fun problem(line: Int, message: String) =
-            Problem(lineStart = line, lineEnd = line, columnStart = 0, columnEnd = 4, message = message, file = "test.lua")
-        val outcome = LuaCheckOutcome.Problems(
-            listOf(
-                problem(0, "unused 'x'"),
-                problem(0, "unused 'x'"),
-                problem(0, "other"),
-                problem(1, "unused 'x'"),
-                problem(2, "another"),
-            ),
+
+        fun problem(
+            line: Int,
+            message: String,
+        ) = Problem(
+            lineStart = line,
+            lineEnd = line,
+            columnStart = 0,
+            columnEnd = 4,
+            message = message,
+            file = "test.lua",
         )
+        val outcome =
+            LuaCheckOutcome.Problems(
+                listOf(
+                    problem(0, "unused 'x'"),
+                    problem(0, "unused 'x'"),
+                    problem(0, "other"),
+                    problem(1, "unused 'x'"),
+                    problem(2, "another"),
+                ),
+            )
 
         val holder = applyOutcome(outcome)
 
@@ -75,8 +101,11 @@ class LuaCheckAnnotatorTest : ToolchainSettingsTestCase() {
         myFixture.configureByText("test.lua", "local x = 1\n")
 
         val info = requireNotNull(LuaCheckAnnotator().collectInformation(myFixture.file))
-        val outcome = ApplicationManager.getApplication()
-            .executeOnPooledThread<LuaCheckOutcome> { LuaCheckInvoker.invoke(info) }.get()
+        val outcome =
+            ApplicationManager
+                .getApplication()
+                .executeOnPooledThread<LuaCheckOutcome> { LuaCheckInvoker.invoke(info) }
+                .get()
 
         val failure = outcome as LuaCheckOutcome.Failure
         assertEquals(FailureKind.LAUNCH_FAILED, failure.kind)
@@ -87,18 +116,29 @@ class LuaCheckAnnotatorTest : ToolchainSettingsTestCase() {
         assertEquals("Could not execute luacheck", holder.single().message)
     }
 
-    private fun seedToolAt(kindId: String, path: String): LuaRegisteredTool {
-        val model = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = kindId,
-            path = path,
-            version = "1.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
-        )
+    private fun seedToolAt(
+        kindId: String,
+        path: String,
+    ): LuaRegisteredTool {
+        val model =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = kindId,
+                path = path,
+                version = "1.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         registry.registerProvisioned(model)
         return model
     }

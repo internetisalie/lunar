@@ -38,12 +38,13 @@ class LuaApplicationSettingsPanel {
     private val addAdditionalCompletionsCheckBox =
         JBCheckBox(LuaBundle.message("application.addAdditionalCompletions"))
 
-    val mainPanel: JPanel = com.intellij.ui.dsl.builder.panel {
-        group("Editor Features") {
-            row { cell(enableTypeInference) }
-            row { cell(addAdditionalCompletionsCheckBox) }
+    val mainPanel: JPanel =
+        com.intellij.ui.dsl.builder.panel {
+            group("Editor Features") {
+                row { cell(enableTypeInference) }
+                row { cell(addAdditionalCompletionsCheckBox) }
+            }
         }
-    }
 
     fun apply(state: LuaApplicationSettings.State) {
         getData(state)

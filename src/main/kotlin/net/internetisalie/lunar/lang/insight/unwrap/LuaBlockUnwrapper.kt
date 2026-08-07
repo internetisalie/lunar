@@ -10,14 +10,18 @@ import net.internetisalie.lunar.lang.psi.LuaIfStatement
  * multi-branch `if` is collapsed by [LuaElseBranchRemover] instead, matching Java's `JavaIfUnwrapper`.
  * Design §2.3.
  */
-class LuaBlockUnwrapper(private val construct: LuaConstruct) : LuaUnwrapper(construct.unwrapDescription) {
-
+class LuaBlockUnwrapper(
+    private val construct: LuaConstruct,
+) : LuaUnwrapper(construct.unwrapDescription) {
     override fun isApplicableTo(e: PsiElement): Boolean {
         if (!construct.matches(e)) return false
         return construct != LuaConstruct.IF || !LuaBlockStructure.hasElseOrElseIf(e as LuaIfStatement)
     }
 
-    override fun doUnwrap(element: PsiElement, context: Context) {
+    override fun doUnwrap(
+        element: PsiElement,
+        context: Context,
+    ) {
         val body = LuaBlockStructure.primaryBody(element) ?: return
         context.extractBlockBody(body, element)
         context.delete(element)

@@ -14,22 +14,22 @@ import kotlin.test.assertTrue
  * label as `key = value`.
  */
 class TestRespReplyTreeModel {
-
     /** TC-CON-1: a nested array shapes into 3 children (leaf, expandable pair, expandable map). */
     @Test
     fun testNestedArrayShaping() {
-        val reply = RespValue.Array(
-            listOf(
-                RespValue.Bulk("a".toByteArray(Charsets.UTF_8)),
-                RespValue.Array(listOf(RespValue.Integer(1), RespValue.Integer(2))),
-                RespValue.Map(
-                    listOf(
-                        RespValue.Bulk("k".toByteArray(Charsets.UTF_8)) to
-                            RespValue.Bulk("v".toByteArray(Charsets.UTF_8)),
+        val reply =
+            RespValue.Array(
+                listOf(
+                    RespValue.Bulk("a".toByteArray(Charsets.UTF_8)),
+                    RespValue.Array(listOf(RespValue.Integer(1), RespValue.Integer(2))),
+                    RespValue.Map(
+                        listOf(
+                            RespValue.Bulk("k".toByteArray(Charsets.UTF_8)) to
+                                RespValue.Bulk("v".toByteArray(Charsets.UTF_8)),
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
 
         val root = RespReplyTreeModel.build(reply)
         assertTrue(root.expandable, "root array is expandable")

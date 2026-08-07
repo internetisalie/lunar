@@ -7,7 +7,6 @@ import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-
 class TestLuaLexer {
     data class TestCase(
         val name: String,
@@ -16,20 +15,23 @@ class TestLuaLexer {
     ) {
         fun execute() {
             val lexer = LuaLexer()
-            lexer.start(input) //, 0, input.length, _LuaLexer.YYINITIAL)
+            lexer.start(input) // , 0, input.length, _LuaLexer.YYINITIAL)
             for (token in expected) {
                 lexer.advance()
-                assertEquals(token.offset, lexer.tokenStart, "${name}: unexpected offset")
-                assertEquals(token.elementType, lexer.tokenType, "${name}: unexpected element type")
-                assertEquals(token.contents, lexer.tokenText, "${name}: unexpected contents")
+                assertEquals(token.offset, lexer.tokenStart, "$name: unexpected offset")
+                assertEquals(token.elementType, lexer.tokenType, "$name: unexpected element type")
+                assertEquals(token.contents, lexer.tokenText, "$name: unexpected contents")
             }
             lexer.advance()
-            assertEquals(null, lexer.tokenType, "${name}: more unconsumed tokens")
+            assertEquals(null, lexer.tokenType, "$name: more unconsumed tokens")
         }
-
     }
 
-    data class Token(val offset: Int, val contents: String?, val elementType: IElementType?)
+    data class Token(
+        val offset: Int,
+        val contents: String?,
+        val elementType: IElementType?,
+    )
 
     fun execute(vararg cases: TestCase) {
         cases.forEach { it.execute() }
@@ -215,11 +217,14 @@ class TestLuaLexer {
                 "merged mixed comments",
                 "----------------------------------------------------------------------------\n-- Scheduling\n--\n-- Tasks ready to be run are placed on a stack and it's possible to\n-- starve a coroutine.\n----------------------------------------------------------------------------\n",
                 listOf(
-                    Token(0, "----------------------------------------------------------------------------\n-- Scheduling\n--\n-- Tasks ready to be run are placed on a stack and it's possible to\n-- starve a coroutine.\n----------------------------------------------------------------------------", LuaElementTypes.SHORTCOMMENT),
+                    Token(
+                        0,
+                        "----------------------------------------------------------------------------\n-- Scheduling\n--\n-- Tasks ready to be run are placed on a stack and it's possible to\n-- starve a coroutine.\n----------------------------------------------------------------------------",
+                        LuaElementTypes.SHORTCOMMENT,
+                    ),
                     Token(261, "\n", TokenType.WHITE_SPACE),
                 ),
             ),
         )
     }
-
 }

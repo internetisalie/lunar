@@ -126,7 +126,7 @@ class PlatformVersionRegistryTest {
 
         val lua55 = PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, "5.5")
         assertNotNull(lua55)
-        assertEquals("lua54", lua55.luacheckStd)  // Fallback to lua54
+        assertEquals("lua54", lua55.luacheckStd) // Fallback to lua54
     }
 
     @Test

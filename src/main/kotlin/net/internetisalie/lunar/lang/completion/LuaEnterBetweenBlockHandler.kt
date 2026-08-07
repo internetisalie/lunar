@@ -25,7 +25,7 @@ class LuaEnterBetweenBlockHandler : EnterHandlerDelegateAdapter() {
         caretOffset: Ref<Int>,
         caretAdvance: Ref<Int>,
         dataContext: DataContext,
-        originalHandler: EditorActionHandler?
+        originalHandler: EditorActionHandler?,
     ): EnterHandlerDelegate.Result {
         if (file !is LuaFile) return EnterHandlerDelegate.Result.Continue
 
@@ -35,9 +35,10 @@ class LuaEnterBetweenBlockHandler : EnterHandlerDelegateAdapter() {
         PsiDocumentManager.getInstance(file.project).commitDocument(editor.document)
 
         val leaf = file.findElementAt(offset - 1) ?: return EnterHandlerDelegate.Result.Continue
-        val owner = PsiTreeUtil.getParentOfType(leaf, LuaBlockParent::class.java, false)
-            ?: PsiTreeUtil.getParentOfType(leaf, LuaTableConstructor::class.java, false)
-            ?: return EnterHandlerDelegate.Result.Continue
+        val owner =
+            PsiTreeUtil.getParentOfType(leaf, LuaBlockParent::class.java, false)
+                ?: PsiTreeUtil.getParentOfType(leaf, LuaTableConstructor::class.java, false)
+                ?: return EnterHandlerDelegate.Result.Continue
 
         val terminatorType = LuaBlockPairs.terminatorForOwner(owner)
         val terminator = owner.node.findChildByType(terminatorType) ?: return EnterHandlerDelegate.Result.Continue

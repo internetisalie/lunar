@@ -23,12 +23,14 @@ enum class DriftStatus {
  * Pure — no I/O, no retained state.
  */
 object LuaRedisFunctionDrift {
-
     /**
      * Returns [DriftStatus.UNKNOWN] when [serverCode] is null (server omitted `library_code`);
      * [DriftStatus.IN_SYNC] when the normalized SHA-1 hashes match; [DriftStatus.DRIFTED] otherwise.
      */
-    fun compare(serverCode: String?, localBody: String): DriftStatus {
+    fun compare(
+        serverCode: String?,
+        localBody: String,
+    ): DriftStatus {
         serverCode ?: return DriftStatus.UNKNOWN
         return if (sha1(norm(serverCode)) == sha1(norm(localBody))) DriftStatus.IN_SYNC else DriftStatus.DRIFTED
     }

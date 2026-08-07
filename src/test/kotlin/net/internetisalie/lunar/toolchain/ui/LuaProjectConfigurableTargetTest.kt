@@ -18,7 +18,6 @@ import javax.swing.JComponent
  * no-op on an explicit target (TC 4) is covered in [net.internetisalie.lunar.toolchain.resolve.LuaTargetSynchronizerTest].
  */
 class LuaProjectConfigurableTargetTest : ToolchainSettingsTestCase() {
-
     override fun tearDown() {
         try {
             // MAINT-23 lesson: restore the default target + clear the explicit pin so it does not leak.
@@ -26,7 +25,7 @@ class LuaProjectConfigurableTargetTest : ToolchainSettingsTestCase() {
                 val state = LuaProjectSettings.getInstance(project).state
                 state.explicitTarget = false
                 LuaProjectSettings.getInstance(project).setTargetAndNotify(
-                    PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4")
+                    PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4"),
                 )
             }
         } finally {
@@ -106,8 +105,7 @@ class LuaProjectConfigurableTargetTest : ToolchainSettingsTestCase() {
         }
     }
 
-    private fun combos(panel: JComponent): List<ComboBox<*>> =
-        UIUtil.findComponentsOfType(panel, ComboBox::class.java)
+    private fun combos(panel: JComponent): List<ComboBox<*>> = UIUtil.findComponentsOfType(panel, ComboBox::class.java)
 
     private fun platformCombo(panel: JComponent): ComboBox<*> =
         combos(panel).first { combo -> (0 until combo.itemCount).any { combo.getItemAt(it) is TargetItem } }
@@ -118,10 +116,15 @@ class LuaProjectConfigurableTargetTest : ToolchainSettingsTestCase() {
     private fun versionLabels(combo: ComboBox<*>): List<String> =
         (0 until combo.itemCount).mapNotNull { (combo.getItemAt(it) as? VersionEntry)?.label }
 
-    private fun selectPlatform(combo: ComboBox<*>, platform: LuaPlatform) =
-        selectPlatformItem(combo, TargetItem.Platform(platform))
+    private fun selectPlatform(
+        combo: ComboBox<*>,
+        platform: LuaPlatform,
+    ) = selectPlatformItem(combo, TargetItem.Platform(platform))
 
-    private fun selectPlatformItem(combo: ComboBox<*>, item: TargetItem) {
+    private fun selectPlatformItem(
+        combo: ComboBox<*>,
+        item: TargetItem,
+    ) {
         for (i in 0 until combo.itemCount) {
             if (combo.getItemAt(i) == item) {
                 combo.selectedIndex = i
@@ -131,7 +134,10 @@ class LuaProjectConfigurableTargetTest : ToolchainSettingsTestCase() {
         error("platform item $item not in combo")
     }
 
-    private fun selectVersion(combo: ComboBox<*>, label: String) {
+    private fun selectVersion(
+        combo: ComboBox<*>,
+        label: String,
+    ) {
         for (i in 0 until combo.itemCount) {
             if ((combo.getItemAt(i) as? VersionEntry)?.label == label) {
                 combo.selectedIndex = i

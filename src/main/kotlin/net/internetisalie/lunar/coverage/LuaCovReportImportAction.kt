@@ -14,20 +14,22 @@ import net.internetisalie.lunar.lang.LuaIcons
 /**
  * Action to import an external LuaCov report or stats file and load coverage overlays onto project files.
  */
-class LuaCovReportImportAction : DumbAwareAction(
-    "Import LuaCov Report...",
-    "Load coverage data from a luacov.report.out or luacov.stats.out file",
-    LuaIcons.COVERAGE
-) {
+class LuaCovReportImportAction :
+    DumbAwareAction(
+        "Import LuaCov Report...",
+        "Load coverage data from a luacov.report.out or luacov.stats.out file",
+        LuaIcons.COVERAGE,
+    ) {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val descriptor = object : FileChooserDescriptor(true, false, false, false, false, false) {
-            override fun isFileSelectable(file: VirtualFile?): Boolean {
-                if (file == null || file.isDirectory) return false
-                val name = file.name
-                return name.endsWith(".out") || name == "luacov.report.out" || name == "luacov.stats.out"
+        val descriptor =
+            object : FileChooserDescriptor(true, false, false, false, false, false) {
+                override fun isFileSelectable(file: VirtualFile?): Boolean {
+                    if (file == null || file.isDirectory) return false
+                    val name = file.name
+                    return name.endsWith(".out") || name == "luacov.report.out" || name == "luacov.stats.out"
+                }
             }
-        }
         descriptor.title = "Select LuaCov Report File"
         descriptor.description = "Select a luacov.report.out or luacov.stats.out file to load coverage data"
 

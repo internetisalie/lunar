@@ -31,7 +31,6 @@ class LuaProvisionDialog(
     private val targetProject: Project,
     private val initial: LuaProvisionRequest?,
 ) : DialogWrapper(targetProject) {
-
     private val feed: LuaToolchainFeed = LuaToolchainFeedLoader.load()
     private val platform = LuaHostPlatform.current()
 
@@ -41,9 +40,10 @@ class LuaProvisionDialog(
     private val runtimeVersionCombo = ComboBox<String>()
     private val includeLuaRocksBox = JBCheckBox("Include LuaRocks", true)
     private val luaRocksVersionCombo = versionCombo("luarocks")
-    private val toolBoxes = LuaToolCatalog.TOOL_KINDS.associateWith { kindId ->
-        JBCheckBox(kindDisplayName(kindId), false)
-    }
+    private val toolBoxes =
+        LuaToolCatalog.TOOL_KINDS.associateWith { kindId ->
+            JBCheckBox(kindDisplayName(kindId), false)
+        }
     private val toolVersionCombos = LuaToolCatalog.TOOL_KINDS.associateWith { versionCombo(it) }
 
     private var userEditedName = false
@@ -75,7 +75,9 @@ class LuaProvisionDialog(
         nameField.document.addDocumentListener(
             object : DocumentListener {
                 override fun insertUpdate(event: DocumentEvent) = flagEdit()
+
                 override fun removeUpdate(event: DocumentEvent) = flagEdit()
+
                 override fun changedUpdate(event: DocumentEvent) = flagEdit()
 
                 private fun flagEdit() {
@@ -100,7 +102,8 @@ class LuaProvisionDialog(
         rootDirField.text = "${targetProject.guessProjectDir()?.path.orEmpty()}/.lua"
         rootDirField.addBrowseFolderListener(
             targetProject,
-            FileChooserDescriptorFactory.createSingleFolderDescriptor()
+            FileChooserDescriptorFactory
+                .createSingleFolderDescriptor()
                 .withTitle("Environment Directory")
                 .withDescription("Select the toolchain environment directory"),
         )
@@ -161,10 +164,19 @@ class LuaProvisionDialog(
         panel {
             row("Name:") { cell(nameField).align(AlignX.FILL) }
             row("Root directory:") { cell(rootDirField).align(AlignX.FILL) }
-            row("Runtime:") { cell(runtimeCombo); cell(runtimeVersionCombo) }
-            row { cell(includeLuaRocksBox); cell(luaRocksVersionCombo) }
+            row("Runtime:") {
+                cell(runtimeCombo)
+                cell(runtimeVersionCombo)
+            }
+            row {
+                cell(includeLuaRocksBox)
+                cell(luaRocksVersionCombo)
+            }
             LuaToolCatalog.TOOL_KINDS.forEach { kindId ->
-                row { cell(toolBoxes.getValue(kindId)); cell(toolVersionCombos.getValue(kindId)) }
+                row {
+                    cell(toolBoxes.getValue(kindId))
+                    cell(toolVersionCombos.getValue(kindId))
+                }
             }
         }
 
@@ -182,7 +194,8 @@ class LuaProvisionDialog(
         }
 
     private fun existingEnvironmentNames(): Set<String> =
-        LuaToolchainProjectSettings.getInstance(targetProject)
+        LuaToolchainProjectSettings
+            .getInstance(targetProject)
             .environments()
             .filter { it.name != initial?.environmentName }
             .map { it.name }
@@ -229,5 +242,4 @@ class LuaProvisionDialog(
 }
 
 /** Returns the display name for [kindId], falling back to the raw id when unregistered (BUG-370). */
-internal fun kindDisplayName(kindId: String): String =
-    LuaToolKindRegistry.findById(kindId)?.displayName ?: kindId
+internal fun kindDisplayName(kindId: String): String = LuaToolKindRegistry.findById(kindId)?.displayName ?: kindId

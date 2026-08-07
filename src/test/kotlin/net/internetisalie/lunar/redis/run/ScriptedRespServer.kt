@@ -17,8 +17,9 @@ import kotlin.concurrent.thread
  * accept/serve loop on a daemon thread; the recorded [requests] let a test assert which commands were
  * (not) sent (e.g. TC-RO-1: no `EVAL_RO` after the version gate rejects).
  */
-class ScriptedRespServer(private val replies: List<ByteArray>) : Closeable {
-
+class ScriptedRespServer(
+    private val replies: List<ByteArray>,
+) : Closeable {
     private val serverSocket = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
     private val recordedRequests = mutableListOf<String>()
 
@@ -62,7 +63,10 @@ class ScriptedRespServer(private val replies: List<ByteArray>) : Closeable {
         return builder.toString()
     }
 
-    private fun readBulk(input: InputStream, builder: StringBuilder) {
+    private fun readBulk(
+        input: InputStream,
+        builder: StringBuilder,
+    ) {
         val marker = input.read()
         if (marker < 0) return
         builder.append(marker.toChar())
@@ -75,11 +79,15 @@ class ScriptedRespServer(private val replies: List<ByteArray>) : Closeable {
             read += n
         }
         builder.append(String(payload, Charsets.UTF_8))
-        input.read(); input.read() // trailing CRLF
+        input.read()
+        input.read() // trailing CRLF
         builder.append("\r\n")
     }
 
-    private fun readLineInto(input: InputStream, builder: StringBuilder): String {
+    private fun readLineInto(
+        input: InputStream,
+        builder: StringBuilder,
+    ): String {
         val line = StringBuilder()
         while (true) {
             val ch = input.read()

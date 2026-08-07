@@ -38,9 +38,7 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
 
     private var myState = State()
 
-    override fun getState(): State {
-        return myState
-    }
+    override fun getState(): State = myState
 
     override fun loadState(state: State) {
         myState = state
@@ -48,7 +46,9 @@ class LuaApplicationSettings : PersistentStateComponent<LuaApplicationSettings.S
 
     companion object {
         val instance: LuaApplicationSettings
-            get() = ApplicationManager.getApplication()
-                .getService(LuaApplicationSettings::class.java)
+            get() =
+                ApplicationManager
+                    .getApplication()
+                    .getService(LuaApplicationSettings::class.java)
     }
 }

@@ -11,10 +11,13 @@ class LuaNavigationTest : BaseDocumentTest() {
     @Test
     fun `test local variable navigation`() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            val file = configureByText("""
-                local data = {value = 42}
-                print(<caret>data)
-            """.trimIndent())
+            val file =
+                configureByText(
+                    """
+                    local data = {value = 42}
+                    print(<caret>data)
+                    """.trimIndent(),
+                )
 
             runReadAction {
                 val ref = myFixture.file.findReferenceAt(myFixture.caretOffset)
@@ -31,10 +34,13 @@ class LuaNavigationTest : BaseDocumentTest() {
     @Test
     fun `test multiple local variable navigation`() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            val file = configureByText("""
-                local x, y = 1, 2
-                print(x, <caret>y)
-            """.trimIndent())
+            val file =
+                configureByText(
+                    """
+                    local x, y = 1, 2
+                    print(x, <caret>y)
+                    """.trimIndent(),
+                )
 
             runReadAction {
                 val ref = myFixture.file.findReferenceAt(myFixture.caretOffset)
@@ -56,14 +62,17 @@ class LuaNavigationTest : BaseDocumentTest() {
     @Test
     fun `test local variable in nested function`() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            val file = configureByText("""
-                local function outer()
-                    local data = 42
-                    local function inner()
-                        print(<caret>data)
+            val file =
+                configureByText(
+                    """
+                    local function outer()
+                        local data = 42
+                        local function inner()
+                            print(<caret>data)
+                        end
                     end
-                end
-            """.trimIndent())
+                    """.trimIndent(),
+                )
 
             runReadAction {
                 val ref = myFixture.file.findReferenceAt(myFixture.caretOffset)
@@ -80,11 +89,14 @@ class LuaNavigationTest : BaseDocumentTest() {
     @Test
     fun `test function parameter navigation`() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            val file = configureByText("""
-                local function foo(param)
-                    print(<caret>param)
-                end
-            """.trimIndent())
+            val file =
+                configureByText(
+                    """
+                    local function foo(param)
+                        print(<caret>param)
+                    end
+                    """.trimIndent(),
+                )
 
             runReadAction {
                 val ref = myFixture.file.findReferenceAt(myFixture.caretOffset)
@@ -101,12 +113,14 @@ class LuaNavigationTest : BaseDocumentTest() {
     @Test
     fun `test self resolution in method`() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            configureByText("""
+            configureByText(
+                """
                 local obj = {}
                 function obj:method()
                     print(<caret>self)
                 end
-            """.trimIndent())
+                """.trimIndent(),
+            )
 
             runReadAction {
                 val ref = myFixture.file.findReferenceAt(myFixture.caretOffset)
@@ -120,12 +134,15 @@ class LuaNavigationTest : BaseDocumentTest() {
     @Test
     fun `test recursive function resolution`() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            val file = configureByText("""
-                function fib(n)
-                    if n <= 1 then return n end
-                    return <caret>fib(n-1)
-                end
-            """.trimIndent())
+            val file =
+                configureByText(
+                    """
+                    function fib(n)
+                        if n <= 1 then return n end
+                        return <caret>fib(n-1)
+                    end
+                    """.trimIndent(),
+                )
 
             runReadAction {
                 val ref = myFixture.file.findReferenceAt(myFixture.caretOffset)

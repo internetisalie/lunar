@@ -11,8 +11,11 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
  * owned by [LuaMissingBracketFixer]. Fires off the `FUNCTION` opener token. Design §3.2.
  */
 class LuaFunctionParenFixer : SmartEnterProcessorWithFixers.Fixer<LuaSmartEnterProcessor>() {
-
-    override fun apply(editor: Editor, processor: LuaSmartEnterProcessor, element: PsiElement) {
+    override fun apply(
+        editor: Editor,
+        processor: LuaSmartEnterProcessor,
+        element: PsiElement,
+    ) {
         if (element.node?.elementType != LuaElementTypes.FUNCTION) return
         val document = editor.document
         val caretLine = document.getLineNumber(editor.caretModel.offset)

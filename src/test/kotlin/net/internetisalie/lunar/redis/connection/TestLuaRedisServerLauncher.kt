@@ -19,7 +19,6 @@ import kotlinx.coroutines.runBlocking
  * for both resolution paths.
  */
 class TestLuaRedisServerLauncher : BasePlatformTestCase() {
-
     /** TC-LAUNCH-1: binary command line is `redis-server --port 12345 --save ""` (design §3.9). */
     fun testBinaryCommandLineAssembly() {
         val commandLine = buildBinaryCommandLine("/usr/bin/redis-server", 12345)
@@ -47,11 +46,12 @@ class TestLuaRedisServerLauncher : BasePlatformTestCase() {
      * throws [ExecutionException] whose message mentions both the Settings path and Docker (design §3.9).
      */
     fun testNeitherBinaryNorDockerThrowsExecutionException() {
-        val neitherAvailableSeams = LaunchSeams(
-            resolveToolPath = { _, _ -> null },
-            resolveDockerPath = { null },
-            allocatePort = { 12345 },
-        )
+        val neitherAvailableSeams =
+            LaunchSeams(
+                resolveToolPath = { _, _ -> null },
+                resolveDockerPath = { null },
+                allocatePort = { 12345 },
+            )
         val launcher = LuaRedisServerLauncher(myFixture.project, neitherAvailableSeams)
         val provisioning = LuaRedisProvisioning.LocalBinary("redis-server")
 

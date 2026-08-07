@@ -5,19 +5,20 @@ import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import net.internetisalie.lunar.lang.psi.impl.LuaFuncDeclImpl
 import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
+import net.internetisalie.lunar.lang.psi.impl.LuaFuncDeclImpl
 import net.internetisalie.lunar.lang.psi.stubs.LuaFuncStub
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 
-class LuaFuncStubElementType(debugName: String) :
-    IStubElementType<LuaFuncStub, LuaFuncDecl>(debugName, LuaLanguage) {
+class LuaFuncStubElementType(
+    debugName: String,
+) : IStubElementType<LuaFuncStub, LuaFuncDecl>(debugName, LuaLanguage) {
+    override fun createPsi(stub: LuaFuncStub): LuaFuncDecl = LuaFuncDeclImpl(stub, this)
 
-    override fun createPsi(stub: LuaFuncStub): LuaFuncDecl {
-        return LuaFuncDeclImpl(stub, this)
-    }
-
-    override fun createStub(psi: LuaFuncDecl, parentStub: StubElement<out com.intellij.psi.PsiElement>?): LuaFuncStub {
+    override fun createStub(
+        psi: LuaFuncDecl,
+        parentStub: StubElement<out com.intellij.psi.PsiElement>?,
+    ): LuaFuncStub {
         // SYNTAX-18: a pinned partial `function` decl may lack its funcName; the hand-stubbed
         // getter is @NotNull, so read the child off the node instead of throwing.
         val name = psi.node.findChildByType(LuaElementTypes.FUNC_NAME)?.text ?: ""
@@ -32,7 +33,10 @@ class LuaFuncStubElementType(debugName: String) :
 
     override fun getExternalId(): String = "lunar.func.decl"
 
-    override fun serialize(stub: LuaFuncStub, dataStream: StubOutputStream) {
+    override fun serialize(
+        stub: LuaFuncStub,
+        dataStream: StubOutputStream,
+    ) {
         dataStream.writeName(stub.name)
         dataStream.writeName(stub.luacatsReturnType)
         dataStream.writeInt(stub.luacatsParamTypes.size)
@@ -42,7 +46,10 @@ class LuaFuncStubElementType(debugName: String) :
         }
     }
 
-    override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?): LuaFuncStub {
+    override fun deserialize(
+        dataStream: StubInputStream,
+        parentStub: StubElement<*>?,
+    ): LuaFuncStub {
         val name = dataStream.readName()?.string
         val returnType = dataStream.readName()?.string
         val paramCount = dataStream.readInt()
@@ -55,8 +62,11 @@ class LuaFuncStubElementType(debugName: String) :
         return LuaFuncStubImpl(parentStub, name, returnType, paramTypes)
     }
 
-    override fun indexStub(stub: LuaFuncStub, sink: IndexSink) {
-        stub.name?.let { 
+    override fun indexStub(
+        stub: LuaFuncStub,
+        sink: IndexSink,
+    ) {
+        stub.name?.let {
             sink.occurrence(LuaGlobalDeclarationIndex.KEY, it)
             // If it's a dotted name like 'cjson.decode', also index the base 'cjson'
             // to allow basic resolution of the module/table global.

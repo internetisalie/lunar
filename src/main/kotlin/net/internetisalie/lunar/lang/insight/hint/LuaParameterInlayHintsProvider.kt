@@ -18,7 +18,10 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
         const val PROVIDER_ID = "lua.parameter.hints"
     }
 
-    override fun createCollector(file: PsiFile, editor: Editor): InlayHintsCollector? {
+    override fun createCollector(
+        file: PsiFile,
+        editor: Editor,
+    ): InlayHintsCollector? {
         val settings = LuaInlayHintsSettings.instance.state
 
         // Check large file threshold
@@ -28,7 +31,10 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
         }
 
         return object : SharedBypassCollector {
-            override fun collectFromElement(element: PsiElement, sink: InlayTreeSink) {
+            override fun collectFromElement(
+                element: PsiElement,
+                sink: InlayTreeSink,
+            ) {
                 if (file !is LuaFile) return
 
                 if (element is LuaFuncCall) {
@@ -36,7 +42,10 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 }
             }
 
-            private fun collectParameterHints(element: LuaFuncCall, sink: InlayTreeSink) {
+            private fun collectParameterHints(
+                element: LuaFuncCall,
+                sink: InlayTreeSink,
+            ) {
                 val nameAndArgs = element.nameAndArgsList.firstOrNull() ?: return
                 if (isStdlibCall(element, nameAndArgs)) return
 
@@ -44,25 +53,27 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 val functionType = resolveFunctionType(element, types) ?: return
 
                 val args = nameAndArgs.args
-                val argExprs = when {
-                    args.string != null -> listOf(args.string!!)
-                    args.exprList != null -> args.exprList?.exprList ?: emptyList()
-                    args.tableConstructor != null -> listOf(args.tableConstructor!!)
-                    else -> emptyList()
-                }
+                val argExprs =
+                    when {
+                        args.string != null -> listOf(args.string!!)
+                        args.exprList != null -> args.exprList?.exprList ?: emptyList()
+                        args.tableConstructor != null -> listOf(args.tableConstructor!!)
+                        else -> emptyList()
+                    }
 
                 if (argExprs.isEmpty()) return
 
                 val params = functionType.params
                 val isColonCall = nameAndArgs.methodExpr != null
 
-                val effectiveParams = if (isColonCall && params.isNotEmpty() && params[0].name == "self") {
-                    params.drop(1)
-                } else if (isColonCall && params.size > argExprs.size) {
-                    params.drop(1)
-                } else {
-                    params
-                }
+                val effectiveParams =
+                    if (isColonCall && params.isNotEmpty() && params[0].name == "self") {
+                        params.drop(1)
+                    } else if (isColonCall && params.size > argExprs.size) {
+                        params.drop(1)
+                    } else {
+                        params
+                    }
 
                 if (effectiveParams.size <= 1) return
 
@@ -76,7 +87,7 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                             InlineInlayPosition(argExpr.textRange.startOffset, true),
                             null,
                             null,
-                            HintFormat.default
+                            HintFormat.default,
                         ) {
                             text("$paramName:")
                         }
@@ -84,7 +95,10 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 }
             }
 
-            private fun resolveFunctionType(element: LuaFuncCall, types: LuaTypes): LuaFunctionType? {
+            private fun resolveFunctionType(
+                element: LuaFuncCall,
+                types: LuaTypes,
+            ): LuaFunctionType? {
                 val callee = LuaTypeInlayHintProvider.unwrapExpression(element.varOrExp) ?: element.varOrExp
                 val nameAndArgs = element.nameAndArgsList.firstOrNull() ?: return null
                 val methodExpr = nameAndArgs.methodExpr
@@ -96,7 +110,11 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 }
             }
 
-            private fun resolveMethodCall(callee: PsiElement, methodExpr: LuaMethodExpr, types: LuaTypes): LuaFunctionType? {
+            private fun resolveMethodCall(
+                callee: PsiElement,
+                methodExpr: LuaMethodExpr,
+                types: LuaTypes,
+            ): LuaFunctionType? {
                 val methodName = methodExpr.nameRef.text
                 val receiverGraphType = types.getValueType(callee)
                 val receiverType = types.graphTypeToLuaType(receiverGraphType)
@@ -113,14 +131,19 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 return extractFunctionType(declTypes.graphTypeToLuaType(declTypes.getValueType(funcDecl)))
             }
 
-            private fun resolveStandardCall(callee: PsiElement, types: LuaTypes): LuaFunctionType? {
+            private fun resolveStandardCall(
+                callee: PsiElement,
+                types: LuaTypes,
+            ): LuaFunctionType? {
                 val calleeGraphType = types.getValueType(callee)
                 val calleeType = types.graphTypeToLuaType(calleeGraphType)
                 val extracted = extractFunctionType(calleeType)
                 if (extracted != null) return extracted
 
                 val resolved = (callee as? LuaNameRef)?.reference?.resolve()
-                val decl = resolved?.parent as? LuaLocalFuncDecl ?: resolved as? LuaFuncDecl ?: resolved?.parent?.parent as? LuaFuncDecl
+                val decl =
+                    resolved?.parent as? LuaLocalFuncDecl ?: resolved as? LuaFuncDecl
+                        ?: resolved?.parent?.parent as? LuaFuncDecl
                 if (decl != null) {
                     val declFile = decl.containingFile as? LuaFile ?: return null
                     val declTypes = LuaTypesSnapshot.forFile(declFile)
@@ -129,7 +152,10 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 return null
             }
 
-            private fun resolveMemberFromType(type: LuaType, methodName: String): LuaTypeMember? {
+            private fun resolveMemberFromType(
+                type: LuaType,
+                methodName: String,
+            ): LuaTypeMember? {
                 if (type is LuaUnionType) {
                     val resolved = type.resolveMember(methodName)
                     if (resolved != null) return resolved
@@ -154,14 +180,18 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 return null
             }
 
-            private fun isStdlibCall(element: LuaFuncCall, nameAndArgs: LuaNameAndArgs): Boolean {
+            private fun isStdlibCall(
+                element: LuaFuncCall,
+                nameAndArgs: LuaNameAndArgs,
+            ): Boolean {
                 val methodExpr = nameAndArgs.methodExpr
                 val callee = LuaTypeInlayHintProvider.unwrapExpression(element.varOrExp) ?: element.varOrExp
-                val decl = if (methodExpr != null) {
-                    methodExpr.nameRef.reference?.resolve()
-                } else {
-                    getDeclaration(callee)
-                }
+                val decl =
+                    if (methodExpr != null) {
+                        methodExpr.nameRef.reference?.resolve()
+                    } else {
+                        getDeclaration(callee)
+                    }
                 return decl != null && isStdlibElement(decl)
             }
 
@@ -191,7 +221,8 @@ class LuaParameterInlayHintsProvider : InlayHintsProvider {
                 val file = decl.containingFile ?: return false
                 val virtualFile = file.virtualFile ?: return false
                 val platformLibraryFolder = PlatformLibraryIndex.getPlatformLibraryFolder(decl.project) ?: return false
-                return com.intellij.openapi.vfs.VfsUtil.isAncestor(platformLibraryFolder, virtualFile, false)
+                return com.intellij.openapi.vfs.VfsUtil
+                    .isAncestor(platformLibraryFolder, virtualFile, false)
             }
         }
     }

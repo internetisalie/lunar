@@ -19,7 +19,6 @@ import com.intellij.openapi.project.Project
 @State(name = "LunarRedisConnections", storages = [Storage("lunar-redis.xml")])
 @Service(Service.Level.PROJECT)
 class LuaRedisConnectionSettings : PersistentStateComponent<LuaRedisConnectionSettings.State> {
-
     /** Root persisted element: the ordered list of connections. */
     class State {
         var connections: MutableList<ConnectionState> = mutableListOf()
@@ -51,8 +50,7 @@ class LuaRedisConnectionSettings : PersistentStateComponent<LuaRedisConnectionSe
     fun connections(): List<LuaRedisServerConnection> = myState.connections.map { it.toModel() }
 
     /** Resolves a connection by its stable [id], or `null` when absent (design §2.5 seam). */
-    fun findById(id: String): LuaRedisServerConnection? =
-        myState.connections.firstOrNull { it.id == id }?.toModel()
+    fun findById(id: String): LuaRedisServerConnection? = myState.connections.firstOrNull { it.id == id }?.toModel()
 
     /** Inserts [connection], or replaces the existing entry with the same [LuaRedisServerConnection.id]. */
     fun upsert(connection: LuaRedisServerConnection) {
@@ -85,13 +83,14 @@ class LuaRedisConnectionSettings : PersistentStateComponent<LuaRedisConnectionSe
                 provisioning = provisioningOf(this),
             )
 
-        private fun provisioningOf(state: ConnectionState): LuaRedisProvisioning = when (state.provisioningKind) {
-            LuaRedisProvisioning.KIND_LOCAL_BINARY ->
-                LuaRedisProvisioning.LocalBinary(state.toolKindId ?: "redis-server")
-            LuaRedisProvisioning.KIND_DOCKER ->
-                LuaRedisProvisioning.Docker(state.dockerImage ?: "redis:8")
-            else -> LuaRedisProvisioning.Remote
-        }
+        private fun provisioningOf(state: ConnectionState): LuaRedisProvisioning =
+            when (state.provisioningKind) {
+                LuaRedisProvisioning.KIND_LOCAL_BINARY ->
+                    LuaRedisProvisioning.LocalBinary(state.toolKindId ?: "redis-server")
+                LuaRedisProvisioning.KIND_DOCKER ->
+                    LuaRedisProvisioning.Docker(state.dockerImage ?: "redis:8")
+                else -> LuaRedisProvisioning.Remote
+            }
 
         private fun LuaRedisServerConnection.toState(): ConnectionState {
             val state = ConnectionState()
@@ -106,7 +105,10 @@ class LuaRedisConnectionSettings : PersistentStateComponent<LuaRedisConnectionSe
             return state
         }
 
-        private fun applyProvisioning(state: ConnectionState, provisioning: LuaRedisProvisioning) {
+        private fun applyProvisioning(
+            state: ConnectionState,
+            provisioning: LuaRedisProvisioning,
+        ) {
             when (provisioning) {
                 is LuaRedisProvisioning.Remote -> {
                     state.provisioningKind = LuaRedisProvisioning.KIND_REMOTE

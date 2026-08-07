@@ -31,7 +31,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * (no I/O). All PSI elements are used transiently inside the callback.
  */
 class LuaRedisCommandCompletionContributor : CompletionContributor() {
-
     companion object {
         private const val COMMAND_PRIORITY = 90.0
 
@@ -40,7 +39,10 @@ class LuaRedisCommandCompletionContributor : CompletionContributor() {
          * (design §3.11). Parses dotted version components; missing components default to 0.
          * Valkey labels map to their Redis-compat baseline [7, 2].
          */
-        fun sinceLe(since: String, target: Target): Boolean {
+        fun sinceLe(
+            since: String,
+            target: Target,
+        ): Boolean {
             val sinceVec = parseDotted(since)
             val targetVec = targetVersionVec(target)
             return compareVectors(targetVec, sinceVec) >= 0
@@ -67,7 +69,10 @@ class LuaRedisCommandCompletionContributor : CompletionContributor() {
          * Compares two version vectors component-wise (missing components = 0).
          * Returns positive when [a] > [b], zero when equal, negative when [a] < [b].
          */
-        private fun compareVectors(a: IntArray, b: IntArray): Int {
+        private fun compareVectors(
+            a: IntArray,
+            b: IntArray,
+        ): Int {
             val len = maxOf(a.size, b.size)
             for (i in 0 until len) {
                 val diff = a.getOrElse(i) { 0 } - b.getOrElse(i) { 0 }
@@ -77,7 +82,10 @@ class LuaRedisCommandCompletionContributor : CompletionContributor() {
         }
 
         /** The `redis` namespace is valid for REDIS (and Valkey as compat alias). */
-        private fun namespaceMatchesPlatform(namespace: String, target: Target): Boolean {
+        private fun namespaceMatchesPlatform(
+            namespace: String,
+            target: Target,
+        ): Boolean {
             val platform = target.platform
             return when (namespace) {
                 "redis" -> platform == LuaPlatform.REDIS || platform == LuaPlatform.VALKEY
@@ -94,9 +102,10 @@ class LuaRedisCommandCompletionContributor : CompletionContributor() {
         ) {
             for (info: RedisCommandInfo in spec.commands.values) {
                 if (!sinceLe(info.since, target)) continue
-                val element = LookupElementBuilder
-                    .create(info.name)
-                    .withTailText(" ${info.summary}", true)
+                val element =
+                    LookupElementBuilder
+                        .create(info.name)
+                        .withTailText(" ${info.summary}", true)
                 result.addElement(PrioritizedLookupElement.withPriority(element, COMMAND_PRIORITY))
             }
         }

@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class TestLuaNumeralAnnotator : BaseDocumentTest() {
-
     // ==================== Valid numerals - no errors expected ====================
 
     @Test
@@ -125,12 +124,23 @@ class TestLuaNumeralAnnotator : BaseDocumentTest() {
 
     private fun assertNoErrors(code: String) {
         myFixture.configureByText(LuaFileType, code)
-        val errors = myFixture.doHighlighting(HighlightSeverity.ERROR)
-            .filter { it.description?.contains("exponent") == true || it.description?.contains("hexadecimal") == true }
-        Assertions.assertTrue(errors.isEmpty(), "Expected no numeral errors in: $code but got: ${errors.map { it.description }}")
+        val errors =
+            myFixture
+                .doHighlighting(HighlightSeverity.ERROR)
+                .filter {
+                    it.description?.contains("exponent") == true ||
+                        it.description?.contains("hexadecimal") == true
+                }
+        Assertions.assertTrue(
+            errors.isEmpty(),
+            "Expected no numeral errors in: $code but got: ${errors.map { it.description }}",
+        )
     }
 
-    private fun assertHasError(code: String, fragment: String) {
+    private fun assertHasError(
+        code: String,
+        fragment: String,
+    ) {
         myFixture.configureByText(LuaFileType, code)
         val errors = myFixture.doHighlighting(HighlightSeverity.ERROR)
         val match = errors.find { it.description?.contains(fragment) == true }

@@ -14,8 +14,6 @@ import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
 import net.internetisalie.lunar.toolchain.model.LuaToolHealth
 import net.internetisalie.lunar.toolchain.model.Origin
 import net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys
-import net.internetisalie.lunar.toolchain.registry.LuaToolchainEvent
-import net.internetisalie.lunar.toolchain.registry.LuaToolchainListener
 import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
@@ -34,26 +32,28 @@ import java.util.concurrent.atomic.AtomicReference
  * `test…$lambda$N` synthetic the scanner would reject (surfaces only in the full suite).
  */
 class LuaToolchainConfigurableTest : ToolchainSettingsTestCase() {
-
     fun testConsolidatedTreeRegistration_TC1() {
-        val appEp = applicationConfigurableEps().singleOrNull {
-            it.id == "net.internetisalie.lunar.toolchain.ui.LuaToolchainConfigurable"
-        }
+        val appEp =
+            applicationConfigurableEps().singleOrNull {
+                it.id == "net.internetisalie.lunar.toolchain.ui.LuaToolchainConfigurable"
+            }
         assertNotNull("Toolchain application configurable must be registered", appEp)
         assertEquals(APPLICATION_PARENT_ID, appEp?.parentId)
 
-        val projectEp = projectConfigurableEps().singleOrNull {
-            it.id == "net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable"
-        }
+        val projectEp =
+            projectConfigurableEps().singleOrNull {
+                it.id == "net.internetisalie.lunar.toolchain.ui.LuaProjectConfigurable"
+            }
         assertNotNull("Lua Project project configurable must be registered", projectEp)
         assertEquals(APPLICATION_PARENT_ID, projectEp?.parentId)
         assertTrue("Lua Project must be non-default-project", projectEp?.nonDefaultProject == true)
     }
 
     fun testLegacyConfigurablesAbsent_TC2() {
-        val registeredIds = (applicationConfigurableEps() + projectConfigurableEps())
-            .mapNotNull { it.id }
-            .toSet()
+        val registeredIds =
+            (applicationConfigurableEps() + projectConfigurableEps())
+                .mapNotNull { it.id }
+                .toSet()
         LEGACY_CONFIGURABLE_IDS.forEach { legacyId ->
             assertFalse("Legacy configurable must be removed: $legacyId", legacyId in registeredIds)
         }
@@ -83,13 +83,14 @@ class LuaToolchainConfigurableTest : ToolchainSettingsTestCase() {
     }
 
     fun testHealthCellMissing_TC4() {
-        val missing = LuaToolHealth(
-            fileExists = false,
-            executable = true,
-            probeOk = null,
-            probedAtMtime = null,
-            reason = "binary not found at /gone"
-        )
+        val missing =
+            LuaToolHealth(
+                fileExists = false,
+                executable = true,
+                probeOk = null,
+                probedAtMtime = null,
+                reason = "binary not found at /gone",
+            )
 
         val cell = healthCell(missing)
 
@@ -161,7 +162,11 @@ class LuaToolchainConfigurableTest : ToolchainSettingsTestCase() {
         assertFalse("Re-check must probe off the EDT", runner.name.contains("AWT-EventQueue"))
     }
 
-    private fun refreshToolOffEdt(toolId: String, probeThread: AtomicReference<Thread>, latch: CountDownLatch) {
+    private fun refreshToolOffEdt(
+        toolId: String,
+        probeThread: AtomicReference<Thread>,
+        latch: CountDownLatch,
+    ) {
         ApplicationManager.getApplication().executeOnPooledThread {
             probeThread.set(Thread.currentThread())
             registry.refreshTool(toolId)
@@ -173,15 +178,19 @@ class LuaToolchainConfigurableTest : ToolchainSettingsTestCase() {
         UIUtil.findComponentOfType(panel, ExpandableTextField::class.java)
             ?: error("luacheck arguments field not found")
 
-    private fun setLuacheckField(panel: DialogPanel, value: String) {
+    private fun setLuacheckField(
+        panel: DialogPanel,
+        value: String,
+    ) {
         luacheckField(panel).text = value
     }
 
     private fun readLuacheckField(panel: DialogPanel): String = luacheckField(panel).text
 
     private fun seedRuntimeTool(): LuaRegisteredTool {
-        val runtime = runtimeInfo(LuaPlatform.STANDARD, "5.4.6", LuaLanguageLevel.LUA54)
-            .copy(product = "Lua")
+        val runtime =
+            runtimeInfo(LuaPlatform.STANDARD, "5.4.6", LuaLanguageLevel.LUA54)
+                .copy(product = "Lua")
         val tool = seededModel(kindId = "lua", origin = Origin.DISCOVERED, runtime = runtime)
         registry.registerProvisioned(tool)
         return tool
@@ -196,7 +205,7 @@ class LuaToolchainConfigurableTest : ToolchainSettingsTestCase() {
     private fun seededModel(
         kindId: String,
         origin: Origin,
-        runtime: LuaRuntimeInfo?
+        runtime: LuaRuntimeInfo?,
     ): LuaRegisteredTool {
         val id = UUID.randomUUID().toString()
         return LuaRegisteredTool(
@@ -208,13 +217,14 @@ class LuaToolchainConfigurableTest : ToolchainSettingsTestCase() {
             runtime = runtime,
             origin = origin,
             environmentId = null,
-            health = LuaToolHealth(
-                fileExists = true,
-                executable = true,
-                probeOk = true,
-                probedAtMtime = 1L,
-                reason = null
-            )
+            health =
+                LuaToolHealth(
+                    fileExists = true,
+                    executable = true,
+                    probeOk = true,
+                    probedAtMtime = 1L,
+                    reason = null,
+                ),
         )
     }
 
@@ -227,11 +237,12 @@ class LuaToolchainConfigurableTest : ToolchainSettingsTestCase() {
     private companion object {
         const val APPLICATION_PARENT_ID = "net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
 
-        val LEGACY_CONFIGURABLE_IDS = listOf(
-            "net.internetisalie.lunar.tool.ui.LuaToolsConfigurable",
-            "net.internetisalie.lunar.rocks.run.LuaRocksSettingsConfigurable",
-            "net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel",
-            "net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable"
-        )
+        val LEGACY_CONFIGURABLE_IDS =
+            listOf(
+                "net.internetisalie.lunar.tool.ui.LuaToolsConfigurable",
+                "net.internetisalie.lunar.rocks.run.LuaRocksSettingsConfigurable",
+                "net.internetisalie.lunar.analysis.luacheck.LuaCheckSettingsPanel",
+                "net.internetisalie.lunar.settings.LuaProjectSettingsConfigurable",
+            )
     }
 }

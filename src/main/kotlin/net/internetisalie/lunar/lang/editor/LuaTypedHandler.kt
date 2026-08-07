@@ -20,7 +20,6 @@ import net.internetisalie.lunar.settings.LuaEditorOptions
  * realizing EDITOR-01-05 keystroke path (design §3.5).
  */
 class LuaTypedHandler : TypedHandlerDelegate() {
-
     private val bracketChars = setOf('(', '[', '{')
 
     /**
@@ -54,13 +53,22 @@ class LuaTypedHandler : TypedHandlerDelegate() {
      * function, repeat), scaffolds the matching terminator via [LuaKeywordBlockCloser].
      * Gated on [LuaEditorOptions.autoCloseKeywordBlocks]. Design §2.2, §3.5.
      */
-    override fun charTyped(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
+    override fun charTyped(
+        c: Char,
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Result {
         if (file !is LuaFile || c != ' ') return Result.CONTINUE
         if (!LuaEditorOptions.instance.autoCloseKeywordBlocks) return Result.CONTINUE
         return triggerKeywordBlockCloser(project, editor, file)
     }
 
-    private fun triggerKeywordBlockCloser(project: Project, editor: Editor, file: PsiFile): Result {
+    private fun triggerKeywordBlockCloser(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Result {
         PsiDocumentManager.getInstance(project).commitDocument(editor.document)
         val offset = editor.caretModel.offset
         if (offset < 2) return Result.CONTINUE

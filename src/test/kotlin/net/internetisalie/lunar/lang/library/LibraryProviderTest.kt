@@ -26,10 +26,11 @@ class LibraryProviderTest {
         val descriptor = LightProjectDescriptor()
         val factory = IdeaTestFixtureFactory.getFixtureFactory()
         val builder = factory.createLightFixtureBuilder(descriptor, "LibraryProviderTest")
-        fixture = factory.createCodeInsightFixture(
-            builder.fixture,
-            LightTempDirTestFixtureImpl(false)
-        )
+        fixture =
+            factory.createCodeInsightFixture(
+                builder.fixture,
+                LightTempDirTestFixtureImpl(false),
+            )
         fixture.setUp()
         project = fixture.project
     }

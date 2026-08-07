@@ -27,17 +27,18 @@ import kotlin.test.assertTrue
  * not globally. So with 1000 functions + 50 classes, we get ~500 functions + ~50 classes.
  */
 class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
-
     /**
      * Generate a test module with N global functions and classes.
      */
     private fun generateLargeSymbolModule(count: Int): String {
-        val functions = (0 until count).joinToString("\n") { i ->
-            "function global_func_$i() end"
-        }
-        val classes = (0 until min(50, count / 20)).joinToString("\n\n") { i ->
-            "---@class GlobalClass_$i\nlocal GlobalClass_$i = {}"
-        }
+        val functions =
+            (0 until count).joinToString("\n") { i ->
+                "function global_func_$i() end"
+            }
+        val classes =
+            (0 until min(50, count / 20)).joinToString("\n\n") { i ->
+                "---@class GlobalClass_$i\nlocal GlobalClass_$i = {}"
+            }
         return "$functions\n\n$classes"
     }
 
@@ -72,7 +73,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
         // Should be capped at ~500 functions + ~50 classes
         assertTrue(
             resultSize < 600,
-            "Should limit per-method to 500 (total ~550 with functions + classes), got $resultSize"
+            "Should limit per-method to 500 (total ~550 with functions + classes), got $resultSize",
         )
         assertTrue(resultSize > 0, "Should find some symbols")
         println("✅ Test 1 passed: $resultSize candidates with 1000 symbols (functions capped at 500)")
@@ -99,7 +100,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
         // Should be capped ~500 functions + ~250 classes (from 5000/20 = 250)
         assertTrue(
             resultSize < 800,
-            "Should limit per-method to 500 (total ~750 with functions + classes), got $resultSize"
+            "Should limit per-method to 500 (total ~750 with functions + classes), got $resultSize",
         )
 
         println("⏱️ Collection of 5000 symbols completed in ${elapsedMs}ms (target <200ms)")
@@ -127,7 +128,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
         // Should be capped ~500 functions + ~500 classes (from 10000/20 = 500, but also capped at 500)
         assertTrue(
             resultSize <= 1000,
-            "Should be ~500+500 (functions+classes), got $resultSize"
+            "Should be ~500+500 (functions+classes), got $resultSize",
         )
         println("🔥 Stress test: $resultSize candidates from 10000 symbols in ${elapsedMs}ms")
     }
@@ -142,7 +143,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
         val rankingService = GlobalSymbolRankingService.getInstance(myFixture.project)
         var firstSize = 0
         var secondSize = 0
-        
+
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             val luaFile = myFixture.file as net.internetisalie.lunar.lang.psi.LuaFile
             firstSize = rankingService.getProjectGlobalSymbols(luaFile, emptySet(), emptySet()).size
@@ -152,7 +153,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
         // Both should be capped consistently
         assertTrue(firstSize > 0, "Should find symbols")
         assertTrue(secondSize > 0, "Should find symbols on second call")
-        
+
         println("✅ Test 4 passed: Consistent limiting at $firstSize candidates")
     }
 
@@ -162,7 +163,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
     @Test
     fun `test performance baseline`() {
         val scales = listOf(100, 500, 1000, 2000)
-        
+
         println("\n📊 Performance Baseline (COMP-03-02 Phase 2.4):")
         println("┌─────────┬──────────┬──────────┐")
         println("│ Symbols │ Returned │ Time(ms) │")
@@ -174,7 +175,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
             val rankingService = GlobalSymbolRankingService.getInstance(myFixture.project)
             var resultSize = 0
             var elapsedMs = 0L
-            
+
             EdtTestUtil.runInEdtAndWait<RuntimeException> {
                 val startTime = System.nanoTime()
                 val luaFile = myFixture.file as net.internetisalie.lunar.lang.psi.LuaFile
@@ -185,7 +186,7 @@ class GlobalSymbolPerformanceOptimizationTest : IndexedDocumentTest() {
 
             println(String.format("│ %7d │ %8d │ %8d │", scale, resultSize, elapsedMs))
         }
-        
+
         println("└─────────┴──────────┴──────────┘")
         println("\nNote: Per-method limiting (500 functions, 500 classes)")
         println("      Total can be ~550-1000 depending on class/function ratio")

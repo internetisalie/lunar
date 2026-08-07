@@ -16,7 +16,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaUnreachableCodeInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaUnreachableCodeInspection())
@@ -27,17 +26,20 @@ class LuaUnreachableCodeInspectionTest : BasePlatformTestCase() {
         return myFixture.doHighlighting().filter { it.description == "Unreachable code" }
     }
 
-    private fun highlightedText(text: String, info: HighlightInfo): String =
-        text.substring(info.startOffset, info.endOffset)
+    private fun highlightedText(
+        text: String,
+        info: HighlightInfo,
+    ): String = text.substring(info.startOffset, info.endOffset)
 
     @Test
     fun testCodeAfterReturnFlagged() {
-        val text = """
+        val text =
+            """
             function test()
                 do return 1 end
                 print("unreachable")
             end
-        """.trimIndent()
+            """.trimIndent()
         val warnings = unreachable(text)
         assertEquals("Expected one warning, found: ${warnings.map { highlightedText(text, it) }}", 1, warnings.size)
         assertEquals("print(\"unreachable\")", highlightedText(text, warnings.single()))
@@ -46,36 +48,43 @@ class LuaUnreachableCodeInspectionTest : BasePlatformTestCase() {
     @Test
     fun testFileLevelUnreachableFlagged() {
         // checkFile path (owner = LuaFile): top-level dead code after a do-return.
-        val text = """
+        val text =
+            """
             do return end
             print("unreachable")
-        """.trimIndent()
+            """.trimIndent()
         val warnings = unreachable(text)
-        assertEquals("Expected one file-level warning, found: ${warnings.map { highlightedText(text, it) }}", 1, warnings.size)
+        assertEquals(
+            "Expected one file-level warning, found: ${warnings.map { highlightedText(text, it) }}",
+            1,
+            warnings.size,
+        )
         assertEquals("print(\"unreachable\")", highlightedText(text, warnings.single()))
     }
 
     @Test
     fun testReachableAfterBreakNotFlagged() {
-        val warnings = unreachable(
-            """
-            function test()
-                while true do break end
-                print("reachable")
-            end
-            """.trimIndent(),
-        )
+        val warnings =
+            unreachable(
+                """
+                function test()
+                    while true do break end
+                    print("reachable")
+                end
+                """.trimIndent(),
+            )
         assertTrue("Expected no warnings, found: $warnings", warnings.isEmpty())
     }
 
     @Test
     fun testDeadBranchAfterIfElseFlagged() {
-        val text = """
+        val text =
+            """
             function test(x)
                 if x then return 1 else return 2 end
                 print("unreachable")
             end
-        """.trimIndent()
+            """.trimIndent()
         val warnings = unreachable(text)
         assertEquals(1, warnings.size)
         assertEquals("print(\"unreachable\")", highlightedText(text, warnings.single()))
@@ -83,29 +92,39 @@ class LuaUnreachableCodeInspectionTest : BasePlatformTestCase() {
 
     @Test
     fun testSingleHeadOfDeadRun() {
-        val text = """
+        val text =
+            """
             function test()
                 do return end
                 print("a")
                 print("b")
                 print("c")
             end
-        """.trimIndent()
+            """.trimIndent()
         val warnings = unreachable(text)
-        assertEquals("Only the head of the dead run should be flagged, found: ${warnings.map { highlightedText(text, it) }}", 1, warnings.size)
+        assertEquals(
+            "Only the head of the dead run should be flagged, found: ${warnings.map { highlightedText(text, it) }}",
+            1,
+            warnings.size,
+        )
         assertEquals("print(\"a\")", highlightedText(text, warnings.single()))
     }
 
     @Test
     fun testGotoLabelKeepsTargetReachable() {
-        val text = """
+        val text =
+            """
             goto target
             print("skipped")
             ::target::
             print("reached")
-        """.trimIndent()
+            """.trimIndent()
         val warnings = unreachable(text)
-        assertEquals("Only the statement between goto and label is dead, found: ${warnings.map { highlightedText(text, it) }}", 1, warnings.size)
+        assertEquals(
+            "Only the statement between goto and label is dead, found: ${warnings.map { highlightedText(text, it) }}",
+            1,
+            warnings.size,
+        )
         assertEquals("print(\"skipped\")", highlightedText(text, warnings.single()))
     }
 
@@ -116,14 +135,18 @@ class LuaUnreachableCodeInspectionTest : BasePlatformTestCase() {
      */
     @Test
     fun testElseifWithoutElseKeepsFollowingCodeReachable() {
-        val warnings = unreachable(
-            """
-            local c1, c2 = false, false
-            if c1 then return elseif c2 then return end
-            print("r")
-            """.trimIndent(),
+        val warnings =
+            unreachable(
+                """
+                local c1, c2 = false, false
+                if c1 then return elseif c2 then return end
+                print("r")
+                """.trimIndent(),
+            )
+        assertTrue(
+            "print(\"r\") must stay reachable after an elseif chain with no else, found: $warnings",
+            warnings.isEmpty(),
         )
-        assertTrue("print(\"r\") must stay reachable after an elseif chain with no else, found: $warnings", warnings.isEmpty())
     }
 
     @Test
@@ -152,45 +175,55 @@ class LuaUnreachableCodeInspectionTest : BasePlatformTestCase() {
     fun testErrorCallNotTreatedAsTerminator() {
         // v1 scope: error() is an ordinary call node in the shipped CFG (no visitFuncCall override),
         // so code after it is reported reachable. Flagging it is INSP-04-C1 / DR-1 future work.
-        val warnings = unreachable(
-            """
-            function test()
-                error("boom")
-                print("after error")
-            end
-            """.trimIndent(),
-        )
+        val warnings =
+            unreachable(
+                """
+                function test()
+                    error("boom")
+                    print("after error")
+                end
+                """.trimIndent(),
+            )
         assertTrue("error() must not abrupt flow in v1, found: $warnings", warnings.isEmpty())
     }
 
     @Test
     fun testNestedDeadFunctionFlaggedOnceAtOwner() {
-        val text = """
+        val text =
+            """
             local function outer()
                 do return end
                 local function inner()
                     print("inner dead too")
                 end
             end
-        """.trimIndent()
+            """.trimIndent()
         val warnings = unreachable(text)
-        assertEquals("Dead nested function flagged once at its head, found: ${warnings.map { highlightedText(text, it) }}", 1, warnings.size)
+        assertEquals(
+            "Dead nested function flagged once at its head, found: ${warnings.map { highlightedText(text, it) }}",
+            1,
+            warnings.size,
+        )
         assertTrue(
-            "Head should be the inner-function declaration statement, was: '${highlightedText(text, warnings.single())}'",
+            "Head should be the inner-function declaration statement, was: '${highlightedText(
+                text,
+                warnings.single(),
+            )}'",
             highlightedText(text, warnings.single()).startsWith("local function inner()"),
         )
     }
 
     @Test
     fun testDeadCompoundLoopHighlightsWholeStatement() {
-        val text = """
+        val text =
+            """
             local function f()
                 do return end
                 for i = 1, 10 do
                     print(i)
                 end
             end
-        """.trimIndent()
+            """.trimIndent()
         val warnings = unreachable(text)
         assertEquals(1, warnings.size)
         val expected = "for i = 1, 10 do\n        print(i)\n    end"

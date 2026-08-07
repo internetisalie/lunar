@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class TestLuaPatternEscaper {
-
     @Test
     fun escapesEveryLuaMagicChar() {
         assertEquals("%(%)%.%%%+%-%*%?%[%]%^%$", LuaPatternEscaper.escape("().%+-*?[]^$"))

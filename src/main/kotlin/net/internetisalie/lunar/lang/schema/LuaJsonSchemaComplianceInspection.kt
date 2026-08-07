@@ -1,17 +1,21 @@
 package net.internetisalie.lunar.lang.schema
 
 import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElementVisitor
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
-import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
-import com.intellij.codeInspection.LocalInspectionToolSession
 import com.jetbrains.jsonSchema.impl.JsonComplianceCheckerOptions
-import net.internetisalie.lunar.lang.psi.LuaVisitor
+import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaVisitor
 
 class LuaJsonSchemaComplianceInspection : LocalInspectionTool() {
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+        session: LocalInspectionToolSession,
+    ): PsiElementVisitor {
         val file = holder.file
         if (file !is LuaFile) return PsiElementVisitor.EMPTY_VISITOR
 
@@ -25,7 +29,8 @@ class LuaJsonSchemaComplianceInspection : LocalInspectionTool() {
             override fun visitFile(file: com.intellij.psi.PsiFile) {
                 if (file !is LuaFile) return
                 val roots = LuaJsonLikePsiWalker.INSTANCE.getRoots(file)
-                val checker = JsonSchemaComplianceChecker(schemaObject, holder, LuaJsonLikePsiWalker.INSTANCE, session, options)
+                val checker =
+                    JsonSchemaComplianceChecker(schemaObject, holder, LuaJsonLikePsiWalker.INSTANCE, session, options)
                 for (root in roots) {
                     checker.annotate(root)
                 }

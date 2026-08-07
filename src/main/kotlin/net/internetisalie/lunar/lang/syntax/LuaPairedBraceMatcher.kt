@@ -7,26 +7,24 @@ import com.intellij.psi.tree.IElementType
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 
 class LuaPairedBraceMatcher : PairedBraceMatcher {
-    override fun getPairs(): Array<BracePair> {
-        return arrayOf(
+    override fun getPairs(): Array<BracePair> =
+        arrayOf(
             BracePair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN, false),
             BracePair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK, false),
             BracePair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY, false),
             BracePair(LuaElementTypes.REPEAT, LuaElementTypes.UNTIL, true),
             BracePair(LuaElementTypes.DO, LuaElementTypes.END, true),
             BracePair(LuaElementTypes.FUNCTION, LuaElementTypes.END, true),
-            BracePair(LuaElementTypes.IF, LuaElementTypes.END, true)
+            BracePair(LuaElementTypes.IF, LuaElementTypes.END, true),
         )
-    }
 
     override fun isPairedBracesAllowedBeforeType(
         lbraceType: IElementType,
-        contextType: IElementType?
-    ): Boolean {
-        return true
-    }
+        contextType: IElementType?,
+    ): Boolean = true
 
-    override fun getCodeConstructStart(file: PsiFile, openingBraceOffset: Int): Int {
-        return openingBraceOffset
-    }
+    override fun getCodeConstructStart(
+        file: PsiFile,
+        openingBraceOffset: Int,
+    ): Int = openingBraceOffset
 }

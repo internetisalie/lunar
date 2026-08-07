@@ -10,18 +10,18 @@ import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 
 class StyluaFormattingService : AsyncDocumentFormattingService() {
-
     override fun canFormat(psiFile: PsiFile): Boolean {
         if (psiFile.language !is LuaLanguage) return false
         val project = psiFile.project
         return LuaToolResolver.getInstance().resolve(project, "stylua") != null
     }
 
-    override fun getFeatures(): Set<FormattingService.Feature> {
-        return emptySet()
-    }
+    override fun getFeatures(): Set<FormattingService.Feature> = emptySet()
 
-    override fun prepareForFormatting(document: Document, formattingContext: FormattingContext) {
+    override fun prepareForFormatting(
+        document: Document,
+        formattingContext: FormattingContext,
+    ) {
         super.prepareForFormatting(document, formattingContext)
     }
 
@@ -35,23 +35,20 @@ class StyluaFormattingService : AsyncDocumentFormattingService() {
         val parentDir = ioFile.parentFile ?: return null
         val workingDirectory = parentDir.absolutePath
 
-        val config = StyluaExecutionConfig(
-            styluaPath = tool.path,
-            fileName = fileName,
-            workingDirectory = workingDirectory
-        )
+        val config =
+            StyluaExecutionConfig(
+                styluaPath = tool.path,
+                fileName = fileName,
+                workingDirectory = workingDirectory,
+            )
 
         return StyluaFormattingTask(
             request = request,
-            config = config
+            config = config,
         )
     }
 
-    override fun getNotificationGroupId(): String {
-        return "notification.group.lunar.stylua"
-    }
+    override fun getNotificationGroupId(): String = "notification.group.lunar.stylua"
 
-    override fun getName(): String {
-        return "StyLua"
-    }
+    override fun getName(): String = "StyLua"
 }

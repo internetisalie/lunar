@@ -21,14 +21,16 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaAutoImportIntegrationTest : IndexedBasePlatformTestCase() {
-
     private fun configureSourcePathFor(file: VirtualFile) {
         val dir = file.parent.path
         LuaProjectSettings.getInstance(project).state.sourcePath = "$dir/?.lua;$dir/?/init.lua"
     }
 
     /** Run [LuaImportInserter] inside a write command, like the production handler does. */
-    private fun runInsert(file: LuaFile, statement: String) {
+    private fun runInsert(
+        file: LuaFile,
+        statement: String,
+    ) {
         WriteCommandAction.runWriteCommandAction(project) {
             LuaImportInserter.insert(myFixture.editor, file, statement)
         }
@@ -39,15 +41,16 @@ class LuaAutoImportIntegrationTest : IndexedBasePlatformTestCase() {
     @Test
     fun testGroupedWithExistingRequires() {
         // TC-03-03: new import joins the existing leading require block.
-        val file = myFixture.configureByText(
-            "main.lua",
-            """
-            local a = require("mod.a")
-            local b = require("mod.b")
+        val file =
+            myFixture.configureByText(
+                "main.lua",
+                """
+                local a = require("mod.a")
+                local b = require("mod.b")
 
-            print(a)
-            """.trimIndent(),
-        ) as LuaFile
+                print(a)
+                """.trimIndent(),
+            ) as LuaFile
 
         runInsert(file, """local c = require("mod.c")""")
 
@@ -73,15 +76,16 @@ class LuaAutoImportIntegrationTest : IndexedBasePlatformTestCase() {
     @Test
     fun testInsertAfterHeaderComments() {
         // TC-03-04 (header): import goes after the leading comment block, before code.
-        val file = myFixture.configureByText(
-            "main.lua",
-            """
-            -- Copyright header
-            -- second line
+        val file =
+            myFixture.configureByText(
+                "main.lua",
+                """
+                -- Copyright header
+                -- second line
 
-            local x = 1
-            """.trimIndent(),
-        ) as LuaFile
+                local x = 1
+                """.trimIndent(),
+            ) as LuaFile
 
         runInsert(file, """local m = require("mod")""")
 
@@ -142,14 +146,15 @@ class LuaAutoImportIntegrationTest : IndexedBasePlatformTestCase() {
     @Test
     fun testNoDuplicateWhenAlreadyRequired() {
         // TC-03-06: selecting another symbol from an already-required module adds nothing.
-        val file = myFixture.configureByText(
-            "main.lua",
-            """
-            local m = require("mod")
+        val file =
+            myFixture.configureByText(
+                "main.lua",
+                """
+                local m = require("mod")
 
-            print(1)
-            """.trimIndent(),
-        ) as LuaFile
+                print(1)
+                """.trimIndent(),
+            ) as LuaFile
 
         // Dedup short-circuits before any write, so the document is unchanged.
         assertTrue(runReadActionDedup(file, "mod"))
@@ -164,19 +169,30 @@ class LuaAutoImportIntegrationTest : IndexedBasePlatformTestCase() {
         )
     }
 
-    private fun runReadActionDedup(file: LuaFile, path: String): Boolean =
+    private fun runReadActionDedup(
+        file: LuaFile,
+        path: String,
+    ): Boolean =
         com.intellij.openapi.application.runReadAction {
             LuaDeduplicationChecker.isAlreadyRequired(file, path)
         }
 
-    private fun runInsertIfNotDuplicate(file: LuaFile, path: String, statement: String) {
+    private fun runInsertIfNotDuplicate(
+        file: LuaFile,
+        path: String,
+        statement: String,
+    ) {
         if (!runReadActionDedup(file, path)) runInsert(file, statement)
     }
 
     /** Trigger completion at the caret and accept the lookup element named [itemName]. */
-    private fun acceptCompletion(file: VirtualFile, itemName: String) {
+    private fun acceptCompletion(
+        file: VirtualFile,
+        itemName: String,
+    ) {
         WriteAction.runAndWait<RuntimeException> {
-            com.intellij.psi.stubs.StubIndex.getInstance()
+            com.intellij.psi.stubs.StubIndex
+                .getInstance()
                 .forceRebuild(Throwable("auto-import test: index globals"))
         }
         myFixture.configureFromExistingVirtualFile(file)

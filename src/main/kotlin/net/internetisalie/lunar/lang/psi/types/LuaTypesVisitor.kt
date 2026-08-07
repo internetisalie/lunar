@@ -19,7 +19,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * Traverses a Lua PSI tree and builds a [LuaTypeGraph] and [LuaTypesSnapshot] for the file.
  */
 class LuaTypesVisitor : LuaRecursiveVisitor() {
-
     private val graph = LuaTypeGraph()
     private val elementNodes: MutableMap<PsiElement, List<TypeNode>> = mutableMapOf()
     private var fileReturnType: LuaGraphType = LuaGraphType.Any
@@ -36,8 +35,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      */
     private val globalNodes: MutableMap<String, VariableNode> = mutableMapOf()
 
-    private fun globalNode(name: String, anchor: PsiElement): VariableNode =
-        globalNodes.getOrPut(name) { graph.variable(anchor) }
+    private fun globalNode(
+        name: String,
+        anchor: PsiElement,
+    ): VariableNode = globalNodes.getOrPut(name) { graph.variable(anchor) }
 
     /**
      * `self` binding for the next [visitFunctionBody] call (COMP-04-09): the receiver's type node
@@ -61,7 +62,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     /** Memoized [freeGlobalSeed] per name — one node per global, shared by every reference. */
     private val freeGlobalSeeds: MutableMap<String, TypeNode?> = mutableMapOf()
 
-    private data class SelfBinding(val receiver: VariableNode, val anchor: PsiElement)
+    private data class SelfBinding(
+        val receiver: VariableNode,
+        val anchor: PsiElement,
+    )
 
     /**
      * TYPE-08: a type guard parsed from an `if`/`elseif` condition.
@@ -78,23 +82,25 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val anchor: PsiElement,
     )
 
-    private fun getNodes(element: PsiElement?): List<TypeNode> {
-        return elementNodes[element] ?: emptyList()
-    }
+    private fun getNodes(element: PsiElement?): List<TypeNode> = elementNodes[element] ?: emptyList()
 
-    private fun firstNode(element: PsiElement?): TypeNode? {
-        return getNodes(element).firstOrNull()
-    }
+    private fun firstNode(element: PsiElement?): TypeNode? = getNodes(element).firstOrNull()
 
-    private fun isRequireCall(callee: PsiElement?): Boolean {
-        return callee?.text == "require"
-    }
+    private fun isRequireCall(callee: PsiElement?): Boolean = callee?.text == "require"
 
     private fun extractModuleName(o: LuaFuncCall): String? {
         val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return null
         val args = nameAndArgs.args
-        val stringElement = args.string
-            ?: args.exprList?.exprList?.firstOrNull()?.let { unwrapExpression(it) }?.let { (it as? LuaTerminalExpr)?.string }
+        val stringElement =
+            args.string
+                ?: args.exprList
+                    ?.exprList
+                    ?.firstOrNull()
+                    ?.let {
+                        unwrapExpression(
+                            it,
+                        )
+                    }?.let { (it as? LuaTerminalExpr)?.string }
 
         return stringElement?.text?.trim('\"', '\'')
     }
@@ -108,13 +114,18 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      * (no inferable `__index` table) falls through to normal call handling. Returns true when the
      * call was fully handled.
      */
-    private fun handleSetMetatable(o: LuaFuncCall, resultNode: VariableNode): Boolean {
+    private fun handleSetMetatable(
+        o: LuaFuncCall,
+        resultNode: VariableNode,
+    ): Boolean {
         val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return false
         val argExprs = nameAndArgs.args.exprList?.exprList ?: return false
         if (argExprs.size < 2) return false
 
-        val tType = (firstNode(unwrapExpression(argExprs[0])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
-        val mtType = (firstNode(unwrapExpression(argExprs[1])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
+        val tType =
+            (firstNode(unwrapExpression(argExprs[0])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
+        val mtType =
+            (firstNode(unwrapExpression(argExprs[1])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
 
         val indexType = indexTableOf(mtType) ?: return false
         val augmented = tType.copy(superTypes = tType.superTypes + indexType)
@@ -132,7 +143,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         }
     }
 
-    private fun unwrapExpression(expr: PsiElement?, maxDepth: Int = 10): PsiElement? {
+    private fun unwrapExpression(
+        expr: PsiElement?,
+        maxDepth: Int = 10,
+    ): PsiElement? {
         var currentExpr = expr
         var depth = 0
         while (currentExpr != null && depth < maxDepth) {
@@ -142,7 +156,12 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val children = currentExpr.children.filter { it !is PsiWhiteSpace && it !is PsiComment }
             if (children.size == 1) {
                 val child = children[0]
-                if (child is LuaExpr || child is LuaNameRef || child is LuaVar || child is LuaPrefixExpr || child is LuaVarOrExp) {
+                if (child is LuaExpr ||
+                    child is LuaNameRef ||
+                    child is LuaVar ||
+                    child is LuaPrefixExpr ||
+                    child is LuaVarOrExp
+                ) {
                     currentExpr = child
                     continue
                 }
@@ -177,7 +196,15 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val typeStr = current.node.elementType.toString()
             val isCats = current is LuaCatsComment || typeStr.contains("LUACATS") || typeStr.contains("COMMENT")
             if (isCats) {
-                val comment = if (current is LuaCatsComment) current else PsiTreeUtil.findChildOfType(current, LuaCatsComment::class.java)
+                val comment =
+                    if (current is LuaCatsComment) {
+                        current
+                    } else {
+                        PsiTreeUtil.findChildOfType(
+                            current,
+                            LuaCatsComment::class.java,
+                        )
+                    }
                 if (comment != null) result.add(comment)
             } else if (current is PsiWhiteSpace || current is PsiComment) {
                 // Skip
@@ -223,11 +250,12 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val targets = linkedMapOf<String, PsiElement>()
         topLevel.forEach { statement ->
             when (statement) {
-                is LuaAssignmentStatement -> statement.varList.varList.forEach { target ->
-                    // A dotted target (`a.b = …`) writes a member, not the global itself.
-                    val nameRef = target.nameRef?.takeIf { target.varSuffixList.isEmpty() }
-                    if (nameRef != null) targets.putIfAbsent(nameRef.text, nameRef)
-                }
+                is LuaAssignmentStatement ->
+                    statement.varList.varList.forEach { target ->
+                        // A dotted target (`a.b = …`) writes a member, not the global itself.
+                        val nameRef = target.nameRef?.takeIf { target.varSuffixList.isEmpty() }
+                        if (nameRef != null) targets.putIfAbsent(nameRef.text, nameRef)
+                    }
                 is LuaFuncDecl -> {
                     val funcName = statement.node.findChildByType(LuaElementTypes.FUNC_NAME)?.psi as? LuaFuncName
                     funcName?.nameRef?.let { targets.putIfAbsent(it.text, it) }
@@ -245,9 +273,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             // SYNTAX-18: a partially-parsed decl may lack its nameRef, and the generated getter is
             // @NotNull — reading it through the AST node keeps a broken file from logging an error.
             when (statement) {
-                is LuaLocalVarDecl -> statement.attNameList.forEach { attName ->
-                    localName(attName)?.let { names += it }
-                }
+                is LuaLocalVarDecl ->
+                    statement.attNameList.forEach { attName ->
+                        localName(attName)?.let { names += it }
+                    }
                 is LuaLocalFuncDecl -> localName(statement)?.let { names += it }
                 else -> Unit
             }
@@ -256,7 +285,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     private fun localName(declaration: PsiElement): String? =
-        declaration.node.findChildByType(LuaElementTypes.NAME_REF)?.psi?.text
+        declaration.node
+            .findChildByType(LuaElementTypes.NAME_REF)
+            ?.psi
+            ?.text
 
     override fun visitBlock(o: LuaBlock) {
         val previousScope = scope
@@ -311,13 +343,17 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         }
     }
 
-    private fun injectNarrowedBinding(guard: TypeGuard, matchBranch: Boolean) {
+    private fun injectNarrowedBinding(
+        guard: TypeGuard,
+        matchBranch: Boolean,
+    ) {
         val originalNode = scope.lookup(guard.variableName) ?: return
-        val narrowedType = if (matchBranch == guard.isEquality) {
-            guard.narrowedType
-        } else {
-            subtractType(originalNode.write, guard.narrowedType)
-        }
+        val narrowedType =
+            if (matchBranch == guard.isEquality) {
+                guard.narrowedType
+            } else {
+                subtractType(originalNode.write, guard.narrowedType)
+            }
         val narrowedValue = graph.value(guard.anchor, narrowedType)
         val narrowedVar = graph.variable(guard.anchor)
         graph.addEdge(narrowedValue, narrowedVar)
@@ -325,11 +361,15 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     /** Removes [remove] from [original], delegating union subtraction to [LuaTypeAlgebra]. */
-    private fun subtractType(original: LuaGraphType, remove: LuaGraphType): LuaGraphType = when {
-        original == remove -> LuaGraphType.Undefined
-        original is LuaGraphType.Union -> LuaTypeAlgebra.subtractMember(original, remove)
-        else -> original
-    }
+    private fun subtractType(
+        original: LuaGraphType,
+        remove: LuaGraphType,
+    ): LuaGraphType =
+        when {
+            original == remove -> LuaGraphType.Undefined
+            original is LuaGraphType.Union -> LuaTypeAlgebra.subtractMember(original, remove)
+            else -> original
+        }
 
     /** Recognizes `type(v) == "name"` / `type(v) ~= "name"`. Returns null on no match (silent). */
     private fun tryParseTypeofGuard(condition: LuaExpr): TypeGuard? {
@@ -376,8 +416,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val nilSide = nilTerminalOf(left) ?: nilTerminalOf(right) ?: return null
         val nameSide = if (nilSide == left) right else left
 
-        val variableName = PsiTreeUtil.findChildOfType(nameSide, LuaNameRef::class.java)?.text
-            ?: (nameSide as? LuaNameRef)?.text ?: return null
+        val variableName =
+            PsiTreeUtil.findChildOfType(nameSide, LuaNameRef::class.java)?.text
+                ?: (nameSide as? LuaNameRef)?.text ?: return null
         return TypeGuard(variableName, LuaGraphType.Nil, isEquality = op == "==", anchor = binOp)
     }
 
@@ -421,22 +462,23 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     override fun visitTerminalExpr(o: LuaTerminalExpr) {
         super.visitTerminalExpr(o)
         val firstChildType = o.firstChild?.elementType
-        val graphType = when {
-            o.number != null -> LuaGraphType.Number
-            o.string != null -> LuaGraphType.String
-            firstChildType == LuaElementTypes.NIL -> LuaGraphType.Nil
-            firstChildType == LuaElementTypes.TRUE -> LuaGraphType.Boolean
-            firstChildType == LuaElementTypes.FALSE -> LuaGraphType.Boolean
-            firstChildType == LuaElementTypes.ELLIPSIS -> {
-                val bound = scope.lookup("...")
-                if (bound != null) {
-                    elementNodes[o] = listOf(bound)
-                    return
+        val graphType =
+            when {
+                o.number != null -> LuaGraphType.Number
+                o.string != null -> LuaGraphType.String
+                firstChildType == LuaElementTypes.NIL -> LuaGraphType.Nil
+                firstChildType == LuaElementTypes.TRUE -> LuaGraphType.Boolean
+                firstChildType == LuaElementTypes.FALSE -> LuaGraphType.Boolean
+                firstChildType == LuaElementTypes.ELLIPSIS -> {
+                    val bound = scope.lookup("...")
+                    if (bound != null) {
+                        elementNodes[o] = listOf(bound)
+                        return
+                    }
+                    LuaGraphType.Any
                 }
-                LuaGraphType.Any
+                else -> return
             }
-            else -> return
-        }
         val valueNode = graph.value(o, graphType)
         elementNodes[o] = listOf(valueNode)
     }
@@ -452,28 +494,29 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val leftNode = firstNode(unwrapExpression(left)) ?: graph.value(left, LuaGraphType.Undefined)
         val rightNode = firstNode(unwrapExpression(right)) ?: graph.value(right ?: o, LuaGraphType.Undefined)
 
-        val resType = when (op) {
-            "+", "-", "*", "/", "//", "^", "%" -> {
-                graph.addEdge(leftNode, graph.use(o, LuaGraphType.Number))
-                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
-                LuaGraphType.Number
+        val resType =
+            when (op) {
+                "+", "-", "*", "/", "//", "^", "%" -> {
+                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.Number))
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
+                    LuaGraphType.Number
+                }
+                ".." -> {
+                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.String))
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.String))
+                    LuaGraphType.String
+                }
+                "==", "~=", "<", ">", "<=", ">=" -> {
+                    LuaGraphType.Boolean
+                }
+                "and", "or" -> {
+                    // Simplified: result is one of the operands
+                    val leftType = (leftNode as? ValueNode)?.write ?: LuaGraphType.Any
+                    val rightType = (rightNode as? ValueNode)?.write ?: LuaGraphType.Any
+                    LuaGraphType.Union.create(setOf(leftType, rightType))
+                }
+                else -> LuaGraphType.Any
             }
-            ".." -> {
-                graph.addEdge(leftNode, graph.use(o, LuaGraphType.String))
-                graph.addEdge(rightNode, graph.use(o, LuaGraphType.String))
-                LuaGraphType.String
-            }
-            "==", "~=", "<", ">", "<=", ">=" -> {
-                LuaGraphType.Boolean
-            }
-            "and", "or" -> {
-                // Simplified: result is one of the operands
-                val leftType = (leftNode as? ValueNode)?.write ?: LuaGraphType.Any
-                val rightType = (rightNode as? ValueNode)?.write ?: LuaGraphType.Any
-                LuaGraphType.Union.create(setOf(leftType, rightType))
-            }
-            else -> LuaGraphType.Any
-        }
         elementNodes[o] = listOf(graph.value(o, resType))
     }
 
@@ -484,19 +527,28 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         // Undefined, not nil — same reasoning as visitBinOpExpr (BUG-416).
         val rightNode = firstNode(unwrapExpression(right)) ?: graph.value(right ?: o, LuaGraphType.Undefined)
 
-        val resType = when (op) {
-            "#" -> {
-                // # right implies right is string, table, or array (REDIS-04 §3.1b: #ARGV over string[])
-                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Union.create(setOf(LuaGraphType.String, LuaGraphType.Table(), LuaGraphType.Array(LuaGraphType.Any)))))
-                LuaGraphType.Number
+        val resType =
+            when (op) {
+                "#" -> {
+                    // # right implies right is string, table, or array (REDIS-04 §3.1b: #ARGV over string[])
+                    graph.addEdge(
+                        rightNode,
+                        graph.use(
+                            o,
+                            LuaGraphType.Union.create(
+                                setOf(LuaGraphType.String, LuaGraphType.Table(), LuaGraphType.Array(LuaGraphType.Any)),
+                            ),
+                        ),
+                    )
+                    LuaGraphType.Number
+                }
+                "-" -> {
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
+                    LuaGraphType.Number
+                }
+                "not" -> LuaGraphType.Boolean
+                else -> LuaGraphType.Any
             }
-            "-" -> {
-                graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
-                LuaGraphType.Number
-            }
-            "not" -> LuaGraphType.Boolean
-            else -> LuaGraphType.Any
-        }
         elementNodes[o] = listOf(graph.value(o, resType))
     }
 
@@ -527,12 +579,13 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val exprs = o.exprList?.exprList ?: emptyList()
         val rhsNodes = collectRhsNodes(exprs)
 
-        val varNodes = names.map { nameRef ->
-            val varNode = graph.variable(nameRef)
-            scope.declare(nameRef.text, varNode)
-            elementNodes[nameRef] = listOf(varNode)
-            varNode
-        }
+        val varNodes =
+            names.map { nameRef ->
+                val varNode = graph.variable(nameRef)
+                scope.declare(nameRef.text, varNode)
+                elementNodes[nameRef] = listOf(varNode)
+                varNode
+            }
         elementNodes[o] = varNodes
 
         graph.flowList(rhsNodes, varNodes)
@@ -549,7 +602,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     override fun visitLocalFuncDecl(o: LuaLocalFuncDecl) {
         val funcNode = graph.variable(o)
         // SYNTAX-18: a pinned partial decl may lack its nameRef; the stub getter is @NotNull.
-        o.node.findChildByType(LuaElementTypes.NAME_REF)?.psi?.let { scope.declare(it.text, funcNode) }
+        o.node
+            .findChildByType(LuaElementTypes.NAME_REF)
+            ?.psi
+            ?.let { scope.declare(it.text, funcNode) }
         elementNodes[o] = listOf(funcNode)
 
         visitFunctionBody(
@@ -572,13 +628,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         // SYNTAX-18: a pinned partial decl may lack its funcName; the stub getter is @NotNull.
         val funcName = o.node.findChildByType(LuaElementTypes.FUNC_NAME)?.psi as? LuaFuncName ?: return
         val baseName = funcName.nameRef.text
-        val baseVar = scope.lookup(baseName) ?: run {
-            // Not in scope means a global written from a nested block; share the file's node for it
-            // so its members join the same type (BUG-395).
-            val fresh = globalNode(baseName, funcName.nameRef)
-            scope.declare(baseName, fresh)
-            fresh
-        }
+        val baseVar =
+            scope.lookup(baseName) ?: run {
+                // Not in scope means a global written from a nested block; share the file's node for it
+                // so its members join the same type (BUG-395).
+                val fresh = globalNode(baseName, funcName.nameRef)
+                scope.declare(baseName, fresh)
+                fresh
+            }
 
         var calleeNode: VariableNode = baseVar
         funcName.funcNamePropertyList.forEach { prop ->
@@ -678,32 +735,35 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             }
         }
 
-        val argNodes = argExprs.map { argExpr ->
-            val unwrapped = unwrapExpression(argExpr)
-            val nodes = getNodes(unwrapped)
-            // Undefined, not nil: a node-less argument is an expression the engine has no opinion
-            // about (a free global's placeholder member, an unmodeled construct), and encoding "no
-            // information" as "exactly nil" is BUG-359's mechanism at the call-arg site — it turns
-            // every such argument into a manufactured "nil value is not assignable to …" (BUG-416).
-            // A literal `nil` argument is unaffected; it gets a real Nil node from its own visit.
-            val node = nodes.firstOrNull() ?: graph.value(argExpr, LuaGraphType.Undefined)
-            LuaGraphType.Function.Parameter(
-                graph.variable(argExpr).apply {
-                    graph.addEdge(node, this)
-                },
-            )
-        }
+        val argNodes =
+            argExprs.map { argExpr ->
+                val unwrapped = unwrapExpression(argExpr)
+                val nodes = getNodes(unwrapped)
+                // Undefined, not nil: a node-less argument is an expression the engine has no opinion
+                // about (a free global's placeholder member, an unmodeled construct), and encoding "no
+                // information" as "exactly nil" is BUG-359's mechanism at the call-arg site — it turns
+                // every such argument into a manufactured "nil value is not assignable to …" (BUG-416).
+                // A literal `nil` argument is unaffected; it gets a real Nil node from its own visit.
+                val node = nodes.firstOrNull() ?: graph.value(argExpr, LuaGraphType.Undefined)
+                LuaGraphType.Function.Parameter(
+                    graph.variable(argExpr).apply {
+                        graph.addEdge(node, this)
+                    },
+                )
+            }
 
-        val callDemand = LuaGraphType.Function(
-            params = argNodes,
-            returns = callResultNodes,
-        )
+        val callDemand =
+            LuaGraphType.Function(
+                params = argNodes,
+                returns = callResultNodes,
+            )
 
         // If the callee is a generic function template, instantiate it for this call site.
         if (calleeNode is ValueNode && calleeNode.write is LuaGraphType.Function) {
             val funcTemplate = calleeNode.write as LuaGraphType.Function
-            val isGeneric = funcTemplate.params.any { it.node.write is LuaGraphType.Generic } ||
-                            funcTemplate.returns.any { it.write is LuaGraphType.Generic }
+            val isGeneric =
+                funcTemplate.params.any { it.node.write is LuaGraphType.Generic } ||
+                    funcTemplate.returns.any { it.write is LuaGraphType.Generic }
 
             if (isGeneric) {
                 val instantiated = graph.instantiateGeneric(funcTemplate, o)
@@ -727,11 +787,12 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         callResultNodes: List<VariableNode>,
     ) {
         val write = (calleeNode as? ValueNode)?.write ?: return
-        val funcType = if (methodName == null) {
-            write as? LuaGraphType.Function
-        } else {
-            write.getMembers()[methodName]?.write as? LuaGraphType.Function
-        } ?: return
+        val funcType =
+            if (methodName == null) {
+                write as? LuaGraphType.Function
+            } else {
+                write.getMembers()[methodName]?.write as? LuaGraphType.Function
+            } ?: return
         funcType.returns.forEachIndexed { index, returnNode ->
             callResultNodes.getOrNull(index)?.let { graph.addEdge(returnNode, it) }
         }
@@ -754,7 +815,11 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      * `value → lambda-paramNode` edges are added; a direct `---@param` on a lambda parameter wins
      * ([isAlreadyAnnotated]). No-op when the callee has no resolvable `LuaFunctionType`.
      */
-    private fun propagateExpectedLambdaParams(o: LuaFuncCall, argExprs: List<PsiElement>, calleeUnwrapped: PsiElement?) {
+    private fun propagateExpectedLambdaParams(
+        o: LuaFuncCall,
+        argExprs: List<PsiElement>,
+        calleeUnwrapped: PsiElement?,
+    ) {
         val resolver = LuaExpectedCallbackResolver(o, calleeUnwrapped)
         val calleeType = resolver.resolveCalleeType() ?: return
         val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return
@@ -767,7 +832,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     /** TYPE-10 §3.1 step 3: positional, arity-clamped seeding of one lambda's parameter nodes. */
-    private fun seedLambdaParams(lambda: LuaFuncDef, expected: LuaFunctionType) {
+    private fun seedLambdaParams(
+        lambda: LuaFuncDef,
+        expected: LuaFunctionType,
+    ) {
         val lambdaParams = lambda.parList?.nameList?.nameRefList ?: emptyList()
         lambdaParams.forEachIndexed { i, nameRef ->
             val expectedParam = expected.params.getOrNull(i) ?: return
@@ -783,8 +851,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      * already has a non-`Undefined` `write` from the injected value edge, so the expected-type seed
      * must skip it. An un-annotated parameter's `write` is `Undefined` at propagation time.
      */
-    private fun isAlreadyAnnotated(paramNode: VariableNode): Boolean =
-        paramNode.write != LuaGraphType.Undefined
+    private fun isAlreadyAnnotated(paramNode: VariableNode): Boolean = paramNode.write != LuaGraphType.Undefined
 
     override fun visitAssignmentStatement(o: LuaAssignmentStatement) {
         super.visitAssignmentStatement(o)
@@ -793,10 +860,11 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val exprs = o.exprList.exprList
         val rhsNodes = collectRhsNodes(exprs)
 
-        val varNodes = vars.map { v ->
-            val unwrapped = unwrapExpression(v)
-            firstNode(unwrapped) as? VariableNode ?: graph.variable(v)
-        }
+        val varNodes =
+            vars.map { v ->
+                val unwrapped = unwrapExpression(v)
+                firstNode(unwrapped) as? VariableNode ?: graph.variable(v)
+            }
 
         val cats = getAllCatsComments(o)
         cats.forEach { cat ->
@@ -873,21 +941,30 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      * NOT fall back to the bare-receiver-anchored graph path, which would resolve `A.b.c` as `A.c`
      * (adversarial-review F1/F2).
      */
-    private fun seedDeclaredMember(o: LuaIndexExpr, varElement: LuaVar, nameRef: LuaNameRef): Boolean {
+    private fun seedDeclaredMember(
+        o: LuaIndexExpr,
+        varElement: LuaVar,
+        nameRef: LuaNameRef,
+    ): Boolean {
         val suffixes = varElement.varSuffixList
         val index = suffixes.indexOfFirst { it.indexExpr == o }
         if (index < 0) return false
-        val declared = if (index == 0) {
-            val receiverName = (unwrapExpression(varElement.firstChild) as? LuaNameRef)?.text ?: return false
-            declaredMemberType(receiverName, nameRef.text, o)
-        } else {
-            // A later suffix chains through the PREVIOUS suffix's declared type (visited just
-            // before this one), never through the bare receiver — `A.b.c` reads `c` off `A.b`.
-            val previous = suffixes[index - 1].indexExpr?.let { firstNode(it) } ?: return false
-            if (previous !in declarationTypedNodes) return false
-            (previous as? ValueNode)?.write?.getMembers()?.get(nameRef.text)?.write
-                ?: LuaGraphType.Undefined
-        }
+        val declared =
+            if (index == 0) {
+                val receiverName = (unwrapExpression(varElement.firstChild) as? LuaNameRef)?.text ?: return false
+                declaredMemberType(receiverName, nameRef.text, o)
+            } else {
+                // A later suffix chains through the PREVIOUS suffix's declared type (visited just
+                // before this one), never through the bare receiver — `A.b.c` reads `c` off `A.b`.
+                val previous = suffixes[index - 1].indexExpr?.let { firstNode(it) } ?: return false
+                if (previous !in declarationTypedNodes) return false
+                (previous as? ValueNode)
+                    ?.write
+                    ?.getMembers()
+                    ?.get(nameRef.text)
+                    ?.write
+                    ?: LuaGraphType.Undefined
+            }
         if (declared == LuaGraphType.Undefined) return false
         // A member DECLARED as exactly `nil` is the declare-now-fill-later placeholder —
         // `ide = { frame = nil }` (zerobrane main.lua:64) means "exists later, type unknown", not
@@ -901,9 +978,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     /** The declared type of `<receiverName>.<memberName>` per the receiver's cross-file global. */
-    private fun declaredMemberType(receiverName: String, memberName: String, context: PsiElement): LuaGraphType {
-        val globalType = LuaTypeManager.getInstance(context.project).resolveGlobal(receiverName, context)
-            ?: return LuaGraphType.Undefined
+    private fun declaredMemberType(
+        receiverName: String,
+        memberName: String,
+        context: PsiElement,
+    ): LuaGraphType {
+        val globalType =
+            LuaTypeManager.getInstance(context.project).resolveGlobal(receiverName, context)
+                ?: return LuaGraphType.Undefined
         val member = globalType.getMembers()[memberName] ?: return LuaGraphType.Undefined
         return LuaGraphType.fromLuaType(member.type, graph)
     }
@@ -924,21 +1006,24 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     private fun seedSubscriptElement(o: LuaIndexExpr) {
         val varElement = PsiTreeUtil.getParentOfType(o, LuaVar::class.java) ?: return
         val receiverNode = firstNode(unwrapExpression(varElement.firstChild)) as? ValueNode ?: return
-        elementNodes[o] = listOf(
-            graph.lazyValue(o) { visited ->
-                arrayElementType(receiverNode.writeWith(visited)) ?: LuaGraphType.Undefined
-            },
-        )
+        elementNodes[o] =
+            listOf(
+                graph.lazyValue(o) { visited ->
+                    arrayElementType(receiverNode.writeWith(visited)) ?: LuaGraphType.Undefined
+                },
+            )
     }
 
-    private fun arrayElementType(type: LuaGraphType): LuaGraphType? = when (type) {
-        is LuaGraphType.Array -> type.elementType
-        is LuaGraphType.Union -> type.types
-            .filterIsInstance<LuaGraphType.Array>()
-            .firstOrNull()
-            ?.elementType
-        else -> null
-    }
+    private fun arrayElementType(type: LuaGraphType): LuaGraphType? =
+        when (type) {
+            is LuaGraphType.Array -> type.elementType
+            is LuaGraphType.Union ->
+                type.types
+                    .filterIsInstance<LuaGraphType.Array>()
+                    .firstOrNull()
+                    ?.elementType
+            else -> null
+        }
 
     override fun visitFinalStatement(o: LuaFinalStatement) {
         super.visitFinalStatement(o)
@@ -1026,7 +1111,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             .filter { it.name == "global.lua" }
             .mapNotNull { psiManager.findFile(it) as? LuaFile }
             .forEach { stubFile ->
-                PsiTreeUtil.findChildrenOfType(stubFile, LuaAssignmentStatement::class.java)
+                PsiTreeUtil
+                    .findChildrenOfType(stubFile, LuaAssignmentStatement::class.java)
                     .forEach { seedGlobalAssignment(it) }
             }
     }
@@ -1072,7 +1158,10 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val allCats = (element as? LuaCommentOwner)?.catsComment?.let { listOf(it) } ?: getAllCatsComments(element)
         val returnDescriptors = allCats.flatMap { it.getReturnTagList() }.flatMap { it.returnTypeDescriptorList }
         val returnCount = returnDescriptors.size
-        val returnNodes: MutableList<VariableNode> = MutableList(maxOf(1, returnCount)) { graph.variable(element) }.toMutableList()
+        val returnNodes: MutableList<VariableNode> =
+            MutableList(maxOf(1, returnCount)) {
+                graph.variable(element)
+            }.toMutableList()
 
         val paramNodesMap: MutableMap<String, VariableNode> = mutableMapOf()
         val paramNodesList = mutableListOf<VariableNode>()
@@ -1093,31 +1182,34 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         try {
             val catsParams = allCats.flatMap { it.getParamTagList() }
 
-            val params = parList?.nameList?.nameRefList?.mapIndexed { index, nameRef ->
-                val astName = nameRef.text
-                val paramNode = graph.variable(nameRef)
-                funcScope.declare(astName, paramNode)
-                paramNodesMap[astName] = paramNode
-                paramNodesList.add(paramNode)
-                paramNamesList.add(astName)
-                elementNodes[nameRef] = listOf(paramNode)
+            val params =
+                parList?.nameList?.nameRefList?.mapIndexed { index, nameRef ->
+                    val astName = nameRef.text
+                    val paramNode = graph.variable(nameRef)
+                    funcScope.declare(astName, paramNode)
+                    paramNodesMap[astName] = paramNode
+                    paramNodesList.add(paramNode)
+                    paramNamesList.add(astName)
+                    elementNodes[nameRef] = listOf(paramNode)
 
-                val matchingCat = catsParams.find { it.argName?.text == astName }
-                    ?: catsParams.getOrNull(index)
+                    val matchingCat =
+                        catsParams.find { it.argName?.text == astName }
+                            ?: catsParams.getOrNull(index)
 
-                val paramName = matchingCat?.argName?.text ?: astName
-                val isOptional = matchingCat?.argSymbol?.text == "?"
+                    val paramName = matchingCat?.argName?.text ?: astName
+                    val isOptional = matchingCat?.argSymbol?.text == "?"
 
-                LuaGraphType.Function.Parameter(paramNode, paramName, isOptional, false)
-            } ?: emptyList()
+                    LuaGraphType.Function.Parameter(paramNode, paramName, isOptional, false)
+                } ?: emptyList()
 
             val hasVararg = parList?.node?.findChildByType(LuaElementTypes.ELLIPSIS) != null
-            val finalParams = if (hasVararg) {
-                val varargNode = graph.variable(element)
-                params + LuaGraphType.Function.Parameter(varargNode, "...", false, true)
-            } else {
-                params
-            }
+            val finalParams =
+                if (hasVararg) {
+                    val varargNode = graph.variable(element)
+                    params + LuaGraphType.Function.Parameter(varargNode, "...", false, true)
+                } else {
+                    params
+                }
 
             allCats.forEach { cats ->
                 LuaTypeGraphBridge.injectParamAnnotations(cats, paramNodesList, paramNamesList, graph, element)
@@ -1129,14 +1221,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 graph.addEdge(graph.value(element, funcType), funcNode)
             }
 
-            val block = when (element) {
-                is LuaLocalFuncDecl -> element.node.findChildByType(LuaElementTypes.BLOCK)?.psi as? LuaBlock
-                is LuaFuncDef -> element.node.findChildByType(LuaElementTypes.BLOCK)?.psi as? LuaBlock
-                is LuaFuncDecl -> element.node.findChildByType(LuaElementTypes.BLOCK)?.psi as? LuaBlock
-                else -> null
-            }
+            val block =
+                when (element) {
+                    is LuaLocalFuncDecl -> element.node.findChildByType(LuaElementTypes.BLOCK)?.psi as? LuaBlock
+                    is LuaFuncDef -> element.node.findChildByType(LuaElementTypes.BLOCK)?.psi as? LuaBlock
+                    is LuaFuncDecl -> element.node.findChildByType(LuaElementTypes.BLOCK)?.psi as? LuaBlock
+                    else -> null
+                }
             block?.let { visitBlock(it) }
-
         } finally {
             scope = previousScope
         }
@@ -1156,8 +1248,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             ThreadLocal.withInitial { mutableMapOf() }
 
         /** TYPE-10: the partially-built snapshot for [file] if it is under construction on this thread. */
-        internal fun inProgressSnapshot(file: PsiFile): LuaTypes? =
-            inProgressBuilds.get()[file]?.buildSnapshot(file)
+        internal fun inProgressSnapshot(file: PsiFile): LuaTypes? = inProgressBuilds.get()[file]?.buildSnapshot(file)
 
         /**
          * TYPE-08: maps `type()` return strings to a factory yielding a **fresh** graph type per
@@ -1165,16 +1256,17 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
          * instances per narrowing site so a later copy-on-augment (setmetatable) never leaks members
          * into the shared session singleton across files.
          */
-        private val TYPEOF_MAP: Map<String, () -> LuaGraphType> = mapOf(
-            "string" to { LuaGraphType.String },
-            "number" to { LuaGraphType.Number },
-            "boolean" to { LuaGraphType.Boolean },
-            "nil" to { LuaGraphType.Nil },
-            "table" to { LuaGraphType.Table() },
-            "function" to { LuaGraphType.Function(emptyList(), emptyList()) },
-            "thread" to { LuaGraphType.Any },
-            "userdata" to { LuaGraphType.Any },
-        )
+        private val TYPEOF_MAP: Map<String, () -> LuaGraphType> =
+            mapOf(
+                "string" to { LuaGraphType.String },
+                "number" to { LuaGraphType.Number },
+                "boolean" to { LuaGraphType.Boolean },
+                "nil" to { LuaGraphType.Nil },
+                "table" to { LuaGraphType.Table() },
+                "function" to { LuaGraphType.Function(emptyList(), emptyList()) },
+                "thread" to { LuaGraphType.Any },
+                "userdata" to { LuaGraphType.Any },
+            )
 
         internal fun buildSnapshot(file: PsiFile): LuaTypes {
             val visitor = LuaTypesVisitor()

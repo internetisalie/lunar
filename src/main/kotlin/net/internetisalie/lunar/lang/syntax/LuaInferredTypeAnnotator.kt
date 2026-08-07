@@ -20,12 +20,15 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
  * highlighting pass; guarded by [DumbService.isDumb] while indexes rebuild).
  */
 class LuaInferredTypeAnnotator : Annotator {
-
-    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
+    override fun annotate(
+        element: PsiElement,
+        holder: AnnotationHolder,
+    ) {
         if (element !is LuaNameRef) return
         if (DumbService.isDumb(element.project)) return
         val key = classify(element) ?: return
-        holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
+        holder
+            .newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
             .range(element.identifier)
             .textAttributes(key)
             .create()
@@ -40,25 +43,40 @@ class LuaInferredTypeAnnotator : Annotator {
     }
 
     /** Step 2: member name in `t.field` or `t:method()` → INFERRED_FIELD or INFERRED_METHOD. */
-    private fun classifyMember(ref: LuaNameRef, snap: LuaTypes): TextAttributesKey? {
+    private fun classifyMember(
+        ref: LuaNameRef,
+        snap: LuaTypes,
+    ): TextAttributesKey? {
         val recv = receiverOf(ref) ?: return null
         val recvType = snap.getValueType(recv)
         val memberWrite = recvType.getMembers()[ref.text]?.write ?: return null
-        return if (memberWrite is LuaGraphType.Function) LuaHighlight.INFERRED_METHOD
-        else LuaHighlight.INFERRED_FIELD
+        return if (memberWrite is LuaGraphType.Function) {
+            LuaHighlight.INFERRED_METHOD
+        } else {
+            LuaHighlight.INFERRED_FIELD
+        }
     }
 
     /** Step 3: ref in callee position whose inferred type is Function → INFERRED_LOCAL/GLOBAL_CALL. */
-    private fun classifyCall(ref: LuaNameRef, gt: LuaGraphType): TextAttributesKey? {
+    private fun classifyCall(
+        ref: LuaNameRef,
+        gt: LuaGraphType,
+    ): TextAttributesKey? {
         if (gt !is LuaGraphType.Function) return null
         if (!isCalleePosition(ref)) return null
         val target = ref.reference?.resolve()
-        return if (isLocalTarget(target)) LuaHighlight.INFERRED_LOCAL_CALL
-        else LuaHighlight.INFERRED_GLOBAL_CALL
+        return if (isLocalTarget(target)) {
+            LuaHighlight.INFERRED_LOCAL_CALL
+        } else {
+            LuaHighlight.INFERRED_GLOBAL_CALL
+        }
     }
 
     /** Step 4: ref whose inferred type is a named Table (or Union with named Table) that matches ref.text → INFERRED_CLASS. */
-    private fun classifyClassRef(ref: LuaNameRef, gt: LuaGraphType): TextAttributesKey? {
+    private fun classifyClassRef(
+        ref: LuaNameRef,
+        gt: LuaGraphType,
+    ): TextAttributesKey? {
         val className = extractClassName(gt) ?: return null
         return if (className == ref.text) LuaHighlight.INFERRED_CLASS else null
     }
@@ -116,9 +134,10 @@ class LuaInferredTypeAnnotator : Annotator {
      * members.  A `@class` annotation yields a Union containing the named Table — per AGENTS.md,
      * never use Union.displayName() for the class name.
      */
-    private fun extractClassName(gt: LuaGraphType): String? = when (gt) {
-        is LuaGraphType.Table -> gt.className
-        is LuaGraphType.Union -> gt.types.firstNotNullOfOrNull { extractClassName(it) }
-        else -> null
-    }
+    private fun extractClassName(gt: LuaGraphType): String? =
+        when (gt) {
+            is LuaGraphType.Table -> gt.className
+            is LuaGraphType.Union -> gt.types.firstNotNullOfOrNull { extractClassName(it) }
+            else -> null
+        }
 }

@@ -25,18 +25,21 @@ class LuaLineMarkerProvider : LineMarkerProvider {
             if (callVar.nameRef != nameRef) return null
 
             // Recursive call check
-            val enclosingFunc = PsiTreeUtil.getParentOfType(funcCall,
-                LuaFuncDecl::class.java,
-                LuaLocalFuncDecl::class.java,
-                LuaFuncDef::class.java
-            )
+            val enclosingFunc =
+                PsiTreeUtil.getParentOfType(
+                    funcCall,
+                    LuaFuncDecl::class.java,
+                    LuaLocalFuncDecl::class.java,
+                    LuaFuncDef::class.java,
+                )
 
             if (enclosingFunc != null) {
-                val funcName = when (enclosingFunc) {
-                    is LuaFuncDecl -> enclosingFunc.funcName.nameRef.identifier
-                    is LuaLocalFuncDecl -> enclosingFunc.nameRef.identifier
-                    else -> null // LuaFuncDef is anonymous
-                }
+                val funcName =
+                    when (enclosingFunc) {
+                        is LuaFuncDecl -> enclosingFunc.funcName.nameRef.identifier
+                        is LuaLocalFuncDecl -> enclosingFunc.nameRef.identifier
+                        else -> null // LuaFuncDef is anonymous
+                    }
 
                 if (funcName != null && element.text == funcName.text) {
                     val reference = nameRef.reference?.resolve()
@@ -48,7 +51,7 @@ class LuaLineMarkerProvider : LineMarkerProvider {
                             { LuaBundle.message("gutter.recursive.call") },
                             null,
                             GutterIconRenderer.Alignment.RIGHT,
-                            { LuaBundle.message("gutter.recursive.call") }
+                            { LuaBundle.message("gutter.recursive.call") },
                         )
                     }
                 }
@@ -65,7 +68,7 @@ class LuaLineMarkerProvider : LineMarkerProvider {
                     { LuaBundle.message("gutter.tail.call") },
                     null,
                     GutterIconRenderer.Alignment.RIGHT,
-                    { LuaBundle.message("gutter.tail.call") }
+                    { LuaBundle.message("gutter.tail.call") },
                 )
             }
         }

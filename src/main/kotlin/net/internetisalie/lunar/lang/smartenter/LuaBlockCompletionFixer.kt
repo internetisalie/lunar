@@ -14,8 +14,11 @@ import net.internetisalie.lunar.lang.syntax.LuaBlockPairs
  * so PSI-class matching is unreliable). Design §3.2.
  */
 class LuaBlockCompletionFixer : SmartEnterProcessorWithFixers.Fixer<LuaSmartEnterProcessor>() {
-
-    override fun apply(editor: Editor, processor: LuaSmartEnterProcessor, element: PsiElement) {
+    override fun apply(
+        editor: Editor,
+        processor: LuaSmartEnterProcessor,
+        element: PsiElement,
+    ) {
         val opener = element.node?.elementType ?: return
         if (opener !in LuaSmartEnterUtil.OPENERS) return
         val document = editor.document
@@ -25,14 +28,19 @@ class LuaBlockCompletionFixer : SmartEnterProcessorWithFixers.Fixer<LuaSmartEnte
         if (LuaSmartEnterUtil.alreadyTerminated(element, terminator)) return
         val lineEnd = document.getLineEndOffset(caretLine)
         // A param-less `function` needs its `()` first — defer to LuaFunctionParenFixer this pass.
-        if (opener == LuaElementTypes.FUNCTION && !LuaSmartEnterUtil.hasTokenBefore(element, LuaElementTypes.LPAREN, lineEnd)) return
+        if (opener == LuaElementTypes.FUNCTION &&
+            !LuaSmartEnterUtil.hasTokenBefore(element, LuaElementTypes.LPAREN, lineEnd)
+        ) {
+            return
+        }
 
         val separator = LuaBlockPairs.separatorByOpenerKeyword[opener]
-        val header = if (separator != null && !LuaSmartEnterUtil.hasTokenBefore(element, separator, lineEnd)) {
-            " " + LuaSmartEnterUtil.separatorText(separator)
-        } else {
-            ""
-        }
+        val header =
+            if (separator != null && !LuaSmartEnterUtil.hasTokenBefore(element, separator, lineEnd)) {
+                " " + LuaSmartEnterUtil.separatorText(separator)
+            } else {
+                ""
+            }
         val terminatorText = LuaSmartEnterUtil.terminatorText(terminator)
         if (terminator == LuaElementTypes.UNTIL) {
             val insert = "$header\n\n$terminatorText "

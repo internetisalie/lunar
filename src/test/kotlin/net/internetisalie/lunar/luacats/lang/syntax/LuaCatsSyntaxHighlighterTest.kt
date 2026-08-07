@@ -12,7 +12,6 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
  * transitively via [LuaCatsHighlight]) requires the platform application.
  */
 class LuaCatsSyntaxHighlighterTest : BasePlatformTestCase() {
-
     fun testTagTokenMapping() {
         val highlighter = LuaCatsSyntaxHighlighter()
         val keys = highlighter.getTokenHighlights(LuaCatsElementTypes.TAG)

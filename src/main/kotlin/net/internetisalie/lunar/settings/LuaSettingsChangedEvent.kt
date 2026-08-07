@@ -26,9 +26,10 @@ interface LuaSettingsChangedListener {
     fun onSettingsChanged()
 
     companion object {
-        val TOPIC: Topic<LuaSettingsChangedListener> = Topic.create(
-            "lua.settings.changed",
-            LuaSettingsChangedListener::class.java
-        )
+        val TOPIC: Topic<LuaSettingsChangedListener> =
+            Topic.create(
+                "lua.settings.changed",
+                LuaSettingsChangedListener::class.java,
+            )
     }
 }

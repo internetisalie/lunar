@@ -9,7 +9,9 @@ import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 
-open class LuaValueAdapter(private val element: PsiElement) : JsonValueAdapter {
+open class LuaValueAdapter(
+    private val element: PsiElement,
+) : JsonValueAdapter {
     override fun getDelegate(): PsiElement = element
 
     override fun isObject(): Boolean = asObject != null
@@ -20,11 +22,15 @@ open class LuaValueAdapter(private val element: PsiElement) : JsonValueAdapter {
 
     override fun isNumberLiteral(): Boolean = element is LuaTerminalExpr && element.number != null
 
-    override fun isBooleanLiteral(): Boolean = element is LuaTerminalExpr &&
-            (element.firstChild?.node?.elementType == LuaElementTypes.TRUE || 
-             element.firstChild?.node?.elementType == LuaElementTypes.FALSE)
+    override fun isBooleanLiteral(): Boolean =
+        element is LuaTerminalExpr &&
+            (
+                element.firstChild?.node?.elementType == LuaElementTypes.TRUE ||
+                    element.firstChild?.node?.elementType == LuaElementTypes.FALSE
+            )
 
-    override fun isNull(): Boolean = element is LuaTerminalExpr && 
+    override fun isNull(): Boolean =
+        element is LuaTerminalExpr &&
             element.firstChild?.node?.elementType == LuaElementTypes.NIL
 
     override fun getAsObject(): JsonObjectValueAdapter? {
@@ -42,15 +48,12 @@ open class LuaValueAdapter(private val element: PsiElement) : JsonValueAdapter {
     }
 
     companion object {
-        fun isObjectTable(table: LuaTableConstructor): Boolean {
-            return table.fieldList?.fieldList?.any { field ->
+        fun isObjectTable(table: LuaTableConstructor): Boolean =
+            table.fieldList?.fieldList?.any { field ->
                 field.identifier != null ||
-                (field.exprList.size > 1 && isStringKey(field.exprList.first()))
+                    (field.exprList.size > 1 && isStringKey(field.exprList.first()))
             } ?: false
-        }
 
-        fun isStringKey(expr: LuaExpr): Boolean {
-            return expr is LuaTerminalExpr && expr.string != null
-        }
+        fun isStringKey(expr: LuaExpr): Boolean = expr is LuaTerminalExpr && expr.string != null
     }
 }

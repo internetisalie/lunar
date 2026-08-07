@@ -25,7 +25,10 @@ class SourceBuildStrategyLuaJitSupportTest {
         return LuaToolchainFeed(1, mapOf("luajit" to LuaFeedKind(mapOf("latest" to "v2.1"), listOf(version))))
     }
 
-    private fun strategy(git: Boolean, make: Boolean): SourceBuildStrategy =
+    private fun strategy(
+        git: Boolean,
+        make: Boolean,
+    ): SourceBuildStrategy =
         SourceBuildStrategy(luaJitProbes = LuaJitToolProbes(gitOnPath = { git }, makeOnPath = { make }))
 
     @Test

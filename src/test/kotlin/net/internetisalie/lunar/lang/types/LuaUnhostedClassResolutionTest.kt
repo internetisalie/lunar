@@ -23,7 +23,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaUnhostedClassResolutionTest : BasePlatformTestCase() {
-
     /** The bundled stdlib shape, which is what actually regressed. */
     @Test
     fun testStdlibClassResolvesWithItsMembers() {

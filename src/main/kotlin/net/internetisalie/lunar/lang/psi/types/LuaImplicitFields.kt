@@ -27,7 +27,10 @@ import net.internetisalie.lunar.lang.psi.LuaVar
  * multi-name `local a, b = …` gives no way to say which name carries it, and guessing wider risks
  * pulling an unrelated variable's members in.
  */
-internal fun classReceiverNames(className: String, decls: Collection<LuaLocalVarDecl>): Set<String> =
+internal fun classReceiverNames(
+    className: String,
+    decls: Collection<LuaLocalVarDecl>,
+): Set<String> =
     buildSet {
         add(className)
         decls.forEach { decl -> declaredName(decl)?.let { add(it) } }
@@ -40,8 +43,12 @@ internal fun classReceiverNames(className: String, decls: Collection<LuaLocalVar
  * declared `@NotNull`, which logs an error rather than returning null.
  */
 internal fun declaredName(decl: LuaLocalVarDecl): String? =
-    decl.attNameList.firstOrNull()
-        ?.node?.findChildByType(LuaElementTypes.NAME_REF)?.psi?.text
+    decl.attNameList
+        .firstOrNull()
+        ?.node
+        ?.findChildByType(LuaElementTypes.NAME_REF)
+        ?.psi
+        ?.text
 
 /**
  * Discovers implicit class fields from assignments `ClassName.field = …` and
@@ -52,7 +59,6 @@ internal fun declaredName(decl: LuaLocalVarDecl): String? =
  * to avoid materialization-time reentrancy (see TYPE-02-DR-03).
  */
 object LuaImplicitFields {
-
     private const val SELF = "self"
 
     /**
@@ -90,7 +96,10 @@ object LuaImplicitFields {
     }
 
     /** Field name iff [luaVar] is a single `base.field` access matching the class context. */
-    private fun fieldNameFor(receivers: Set<String>, luaVar: LuaVar): String? {
+    private fun fieldNameFor(
+        receivers: Set<String>,
+        luaVar: LuaVar,
+    ): String? {
         val field = singleFieldSuffixName(luaVar) ?: return null
         val base = luaVar.nameRef?.text ?: return null
         return when {
@@ -108,7 +117,10 @@ object LuaImplicitFields {
     }
 
     /** True if [luaVar] sits inside a method `function <receiver>:m()` / `.m()`. */
-    private fun isInClassMethod(receivers: Set<String>, luaVar: LuaVar): Boolean {
+    private fun isInClassMethod(
+        receivers: Set<String>,
+        luaVar: LuaVar,
+    ): Boolean {
         val funcDecl = PsiTreeUtil.getParentOfType(luaVar, LuaFuncDecl::class.java) ?: return false
         val funcName = funcDecl.funcName
         if (funcName.nameRef.text !in receivers) return false
@@ -116,19 +128,21 @@ object LuaImplicitFields {
     }
 
     /** Maps an RHS expression's syntactic KIND to a type without any graph/resolve call. */
-    private fun lightInferType(rhs: LuaExpr?): LuaType = when (rhs) {
-        null -> LuaPrimitiveType.ANY
-        is LuaTableConstructor -> LuaPrimitiveType.TABLE
-        is LuaTerminalExpr -> terminalType(rhs)
-        is LuaFuncDef -> LuaPrimitiveType.FUNCTION
-        else -> LuaPrimitiveType.ANY
-    }
+    private fun lightInferType(rhs: LuaExpr?): LuaType =
+        when (rhs) {
+            null -> LuaPrimitiveType.ANY
+            is LuaTableConstructor -> LuaPrimitiveType.TABLE
+            is LuaTerminalExpr -> terminalType(rhs)
+            is LuaFuncDef -> LuaPrimitiveType.FUNCTION
+            else -> LuaPrimitiveType.ANY
+        }
 
-    private fun terminalType(terminal: LuaTerminalExpr): LuaType = when {
-        terminal.number != null -> LuaPrimitiveType.NUMBER
-        terminal.string != null -> LuaPrimitiveType.STRING
-        terminal.text == "true" || terminal.text == "false" -> LuaPrimitiveType.BOOLEAN
-        terminal.text == "nil" -> LuaPrimitiveType.NIL
-        else -> LuaPrimitiveType.ANY
-    }
+    private fun terminalType(terminal: LuaTerminalExpr): LuaType =
+        when {
+            terminal.number != null -> LuaPrimitiveType.NUMBER
+            terminal.string != null -> LuaPrimitiveType.STRING
+            terminal.text == "true" || terminal.text == "false" -> LuaPrimitiveType.BOOLEAN
+            terminal.text == "nil" -> LuaPrimitiveType.NIL
+            else -> LuaPrimitiveType.ANY
+        }
 }

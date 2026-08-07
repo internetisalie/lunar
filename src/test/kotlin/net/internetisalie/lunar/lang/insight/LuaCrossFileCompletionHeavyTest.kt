@@ -1,10 +1,10 @@
 package net.internetisalie.lunar.lang.insight
 
-import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.testFramework.builders.EmptyModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.TempDirTestFixtureImpl
+import com.intellij.testFramework.runInEdtAndWait
 import org.junit.jupiter.api.TestInfo
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -33,7 +33,6 @@ import kotlin.test.assertTrue
  * `helper_from_a` (reached transitively through module_b's require of module_a).
  */
 class LuaCrossFileCompletionHeavyTest {
-
     private lateinit var myFixture: CodeInsightTestFixture
 
     // Heavy-fixture module building, PSI/VFS writes and completion all require the EDT, so every

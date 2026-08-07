@@ -6,7 +6,6 @@ import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
 
 /** TOOLING-02-14 / TC 17: descriptor-driven env detection + recorded-dir dedupe (design §3.6). */
 class LuaEnvironmentDetectorTest : ToolchainSettingsTestCase() {
-
     fun testDetectsEnvShapedLayout() {
         myFixture.addFileToProject(".lua/bin/lua", "#!/bin/sh\n")
         myFixture.addFileToProject(".lua/bin/luarocks", "#!/bin/sh\n")
@@ -35,7 +34,7 @@ class LuaEnvironmentDetectorTest : ToolchainSettingsTestCase() {
 
         assertTrue(
             "recorded env dir must count as known",
-            LuaEnvironmentDetector.isKnownDirectory(project, detected)
+            LuaEnvironmentDetector.isKnownDirectory(project, detected),
         )
     }
 

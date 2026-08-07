@@ -84,7 +84,10 @@ data class CorpusMetrics(
  * the whole group unclaimed, reading as "Lunar claims no rockspecs" when it claims all but one.
  * That defeats the point of an inventory whose job is surfacing integration candidates.
  */
-data class BallastGroup(val claimed: Int, val unclaimed: Int) {
+data class BallastGroup(
+    val claimed: Int,
+    val unclaimed: Int,
+) {
     val count: Int get() = claimed + unclaimed
 }
 
@@ -101,7 +104,6 @@ private fun Int?.orZero(): Int = this ?: 0
  * text format chosen over JSON so that a ratchet movement is legible in a review diff.
  */
 object CorpusBaseline {
-
     /**
      * Key prefix for per-inspection counts. The remainder of the key is taken **whole**, including
      * any dots — tool ids are opaque strings, so the decomposition must be positional.
@@ -120,53 +122,59 @@ object CorpusBaseline {
     /** Repeated diagnostic key for oracle disagreement sites (MAINT-35-02). */
     const val ORACLE_SITE_KEY = "oracleSite"
 
-    fun file(repoRoot: File, name: String): File =
-        File(repoRoot, "src/test/resources/corpus/$name.baseline")
+    fun file(
+        repoRoot: File,
+        name: String,
+    ): File = File(repoRoot, "src/test/resources/corpus/$name.baseline")
 
-    fun render(metrics: CorpusMetrics): String = buildString {
-        appendLine("commit=${metrics.commit}")
-        appendLine("files=${metrics.files}")
-        appendLine("parseErrors=${metrics.parseErrors}")
-        appendLine("requires=${metrics.requires}")
-        appendLine("unresolvedRequires=${metrics.unresolvedRequires}")
-        // Sorted so a ratchet movement is a one-line diff, not a reordering.
-        metrics.inspectionHits.toSortedMap().forEach { (id, count) ->
-            appendLine("$INSPECTION_PREFIX$id=$count")
+    fun render(metrics: CorpusMetrics): String =
+        buildString {
+            appendLine("commit=${metrics.commit}")
+            appendLine("files=${metrics.files}")
+            appendLine("parseErrors=${metrics.parseErrors}")
+            appendLine("requires=${metrics.requires}")
+            appendLine("unresolvedRequires=${metrics.unresolvedRequires}")
+            // Sorted so a ratchet movement is a one-line diff, not a reordering.
+            metrics.inspectionHits.toSortedMap().forEach { (id, count) ->
+                appendLine("$INSPECTION_PREFIX$id=$count")
+            }
+            metrics.symbolHits.toSortedMap().forEach { (key, count) ->
+                appendLine("$SYMBOL_PREFIX$key=$count")
+            }
+            // Up to two lines per key: a group with a mixed disposition reports both, so a claimed
+            // majority is never hidden by one unclaimed sibling.
+            metrics.ballast.toSortedMap().forEach { (key, group) ->
+                if (group.claimed > 0) appendLine("${BALLAST_PREFIX}claimed.$key=${group.claimed}")
+                if (group.unclaimed > 0) appendLine("${BALLAST_PREFIX}unclaimed.$key=${group.unclaimed}")
+            }
+            metrics.crashes.toSortedMap().forEach { (key, count) -> appendLine("$CRASH_PREFIX$key=$count") }
+            appendLine("oracleDisagreements=${metrics.oracleDisagreements}")
+            appendLine("oracleFalseAccepts=${metrics.oracleFalseAccepts}")
+            appendLine("oracleTimeouts=${metrics.oracleTimeouts}")
+            appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
+            appendLine("unmergedTokens=${metrics.unmergedTokens}")
+            metrics.parseErrorFiles.forEach { appendLine("parseErrorFile=$it") }
+            // Already capped at construction (CorpusSweep.run), never here: a render-time cap is lossy
+            // and would break BaselineRatchetTest.renderParseRoundTrip.
+            metrics.oracleSites.forEach { appendLine("$ORACLE_SITE_KEY=$it") }
         }
-        metrics.symbolHits.toSortedMap().forEach { (key, count) ->
-            appendLine("$SYMBOL_PREFIX$key=$count")
-        }
-        // Up to two lines per key: a group with a mixed disposition reports both, so a claimed
-        // majority is never hidden by one unclaimed sibling.
-        metrics.ballast.toSortedMap().forEach { (key, group) ->
-            if (group.claimed > 0) appendLine("${BALLAST_PREFIX}claimed.$key=${group.claimed}")
-            if (group.unclaimed > 0) appendLine("${BALLAST_PREFIX}unclaimed.$key=${group.unclaimed}")
-        }
-        metrics.crashes.toSortedMap().forEach { (key, count) -> appendLine("$CRASH_PREFIX$key=$count") }
-        appendLine("oracleDisagreements=${metrics.oracleDisagreements}")
-        appendLine("oracleFalseAccepts=${metrics.oracleFalseAccepts}")
-        appendLine("oracleTimeouts=${metrics.oracleTimeouts}")
-        appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
-        appendLine("unmergedTokens=${metrics.unmergedTokens}")
-        metrics.parseErrorFiles.forEach { appendLine("parseErrorFile=$it") }
-        // Already capped at construction (CorpusSweep.run), never here: a render-time cap is lossy
-        // and would break BaselineRatchetTest.renderParseRoundTrip.
-        metrics.oracleSites.forEach { appendLine("$ORACLE_SITE_KEY=$it") }
-    }
 
     fun parse(text: String): CorpusMetrics {
-        val rows = text.lineSequence()
-            .filter { it.contains('=') && !it.startsWith("#") }
-            .map { it.substringBefore('=') to it.substringAfter('=') }
-            .toList()
-        val scalars = rows
-            .filterNot { it.first == "parseErrorFile" }
-            .filterNot { it.first == ORACLE_SITE_KEY }
-            .filterNot { it.first.startsWith(CRASH_PREFIX) }
-            .filterNot { it.first.startsWith(INSPECTION_PREFIX) }
-            .filterNot { it.first.startsWith(SYMBOL_PREFIX) }
-            .filterNot { it.first.startsWith(BALLAST_PREFIX) }
-            .toMap()
+        val rows =
+            text
+                .lineSequence()
+                .filter { it.contains('=') && !it.startsWith("#") }
+                .map { it.substringBefore('=') to it.substringAfter('=') }
+                .toList()
+        val scalars =
+            rows
+                .filterNot { it.first == "parseErrorFile" }
+                .filterNot { it.first == ORACLE_SITE_KEY }
+                .filterNot { it.first.startsWith(CRASH_PREFIX) }
+                .filterNot { it.first.startsWith(INSPECTION_PREFIX) }
+                .filterNot { it.first.startsWith(SYMBOL_PREFIX) }
+                .filterNot { it.first.startsWith(BALLAST_PREFIX) }
+                .toMap()
         return CorpusMetrics(
             commit = scalars.getValue("commit"),
             files = scalars.getValue("files").toInt(),
@@ -174,35 +182,40 @@ object CorpusBaseline {
             requires = scalars.getValue("requires").toInt(),
             unresolvedRequires = scalars.getValue("unresolvedRequires").toInt(),
             parseErrorFiles = rows.filter { it.first == "parseErrorFile" }.map { it.second },
-            inspectionHits = rows
-                .filter { it.first.startsWith(INSPECTION_PREFIX) }
-                .associate { it.first.removePrefix(INSPECTION_PREFIX) to it.second.toInt() },
-            symbolHits = rows
-                .filter { it.first.startsWith(SYMBOL_PREFIX) }
-                .associate { it.first.removePrefix(SYMBOL_PREFIX) to it.second.toInt() },
+            inspectionHits =
+                rows
+                    .filter { it.first.startsWith(INSPECTION_PREFIX) }
+                    .associate { it.first.removePrefix(INSPECTION_PREFIX) to it.second.toInt() },
+            symbolHits =
+                rows
+                    .filter { it.first.startsWith(SYMBOL_PREFIX) }
+                    .associate { it.first.removePrefix(SYMBOL_PREFIX) to it.second.toInt() },
             // Folded, not associated: a mixed group contributes a claimed *and* an unclaimed row
             // under the same key, and `associate` would keep only the last.
-            ballast = rows
-                .filter { it.first.startsWith(BALLAST_PREFIX) }
-                .fold(mutableMapOf<String, BallastGroup>()) { acc, (key, value) ->
-                    val (groupKey, claimed) = parseBallastKey(key)
-                    val running = acc[groupKey] ?: BallastGroup(0, 0)
-                    acc[groupKey] = if (claimed) {
-                        running.copy(claimed = running.claimed + value.toInt())
-                    } else {
-                        running.copy(unclaimed = running.unclaimed + value.toInt())
-                    }
-                    acc
-                },
+            ballast =
+                rows
+                    .filter { it.first.startsWith(BALLAST_PREFIX) }
+                    .fold(mutableMapOf<String, BallastGroup>()) { acc, (key, value) ->
+                        val (groupKey, claimed) = parseBallastKey(key)
+                        val running = acc[groupKey] ?: BallastGroup(0, 0)
+                        acc[groupKey] =
+                            if (claimed) {
+                                running.copy(claimed = running.claimed + value.toInt())
+                            } else {
+                                running.copy(unclaimed = running.unclaimed + value.toInt())
+                            }
+                        acc
+                    },
             oracleDisagreements = scalars["oracleDisagreements"]?.toInt() ?: 0,
             oracleFalseAccepts = scalars["oracleFalseAccepts"]?.toInt() ?: 0,
             oracleSites = rows.filter { it.first == ORACLE_SITE_KEY }.map { it.second },
             oracleTimeouts = scalars["oracleTimeouts"]?.toInt() ?: 0,
             lexerRoundTripFailures = scalars["lexerRoundTripFailures"]?.toInt() ?: 0,
             unmergedTokens = scalars["unmergedTokens"]?.toInt() ?: 0,
-            crashes = rows
-                .filter { it.first.startsWith(CRASH_PREFIX) }
-                .associate { it.first.removePrefix(CRASH_PREFIX) to it.second.toInt() },
+            crashes =
+                rows
+                    .filter { it.first.startsWith(CRASH_PREFIX) }
+                    .associate { it.first.removePrefix(CRASH_PREFIX) to it.second.toInt() },
         )
     }
 
@@ -223,7 +236,10 @@ object CorpusBaseline {
      * means the pinned tree moved or recognition coverage shifted, which makes every remaining
      * number incomparable rather than merely worse.
      */
-    fun compare(baseline: CorpusMetrics, observed: CorpusMetrics): CorpusComparison {
+    fun compare(
+        baseline: CorpusMetrics,
+        observed: CorpusMetrics,
+    ): CorpusComparison {
         val inspectionIds = (baseline.inspectionHits.keys + observed.inspectionHits.keys).sorted()
         // BUG-390 makes the inspection counts NON-REPRODUCIBLE: a StackOverflowError is
         // stack-depth dependent, so which files abort mid-highlight varies run to run, and every
@@ -231,34 +247,38 @@ object CorpusBaseline {
         // of identical code). Gating them would be flaky, and a flaky gate gets disabled, so the
         // per-inspection keys stay ADVISORY until a corpus highlights cleanly. `highlightFailures`
         // itself is always gated — it is the thing that must come down.
-        val stable = baseline.inspectionHits[CorpusMetrics.HIGHLIGHT_FAILURES].orZero() == 0 &&
-            observed.inspectionHits[CorpusMetrics.HIGHLIGHT_FAILURES].orZero() == 0
+        val stable =
+            baseline.inspectionHits[CorpusMetrics.HIGHLIGHT_FAILURES].orZero() == 0 &&
+                observed.inspectionHits[CorpusMetrics.HIGHLIGHT_FAILURES].orZero() == 0
         val gatedInspectionIds = if (stable) inspectionIds else listOf(CorpusMetrics.HIGHLIGHT_FAILURES)
         // Crashes gate PER KEY, like inspections: a new StackOverflowError appearing while an
         // AssertionError disappears must not net to zero.
         val crashKeys = (baseline.crashes.keys + observed.crashes.keys).sorted()
-        val gated = listOf(
-            Triple("parseErrors", baseline.parseErrors, observed.parseErrors),
-            Triple("unresolvedRequires", baseline.unresolvedRequires, observed.unresolvedRequires),
-            Triple("oracleDisagreements", baseline.oracleDisagreements, observed.oracleDisagreements),
-            Triple("oracleTimeouts", baseline.oracleTimeouts, observed.oracleTimeouts),
-            Triple(
-                "lexerRoundTripFailures",
-                baseline.lexerRoundTripFailures,
-                observed.lexerRoundTripFailures,
-            ),
-            Triple("unmergedTokens", baseline.unmergedTokens, observed.unmergedTokens),
-        ) + crashKeys.map { key ->
-            Triple("$CRASH_PREFIX$key", baseline.crashes[key] ?: 0, observed.crashes[key] ?: 0)
-        } + gatedInspectionIds.map { id ->
-            // A key present on one side only counts as 0 on the other, so an inspection that
-            // starts (or stops) firing is a movement rather than a silent no-op.
-            Triple(
-                "$INSPECTION_PREFIX$id",
-                baseline.inspectionHits[id] ?: 0,
-                observed.inspectionHits[id] ?: 0,
-            )
-        }
+        val gated =
+            listOf(
+                Triple("parseErrors", baseline.parseErrors, observed.parseErrors),
+                Triple("unresolvedRequires", baseline.unresolvedRequires, observed.unresolvedRequires),
+                Triple("oracleDisagreements", baseline.oracleDisagreements, observed.oracleDisagreements),
+                Triple("oracleTimeouts", baseline.oracleTimeouts, observed.oracleTimeouts),
+                Triple(
+                    "lexerRoundTripFailures",
+                    baseline.lexerRoundTripFailures,
+                    observed.lexerRoundTripFailures,
+                ),
+                Triple("unmergedTokens", baseline.unmergedTokens, observed.unmergedTokens),
+            ) +
+                crashKeys.map { key ->
+                    Triple("$CRASH_PREFIX$key", baseline.crashes[key] ?: 0, observed.crashes[key] ?: 0)
+                } +
+                gatedInspectionIds.map { id ->
+                    // A key present on one side only counts as 0 on the other, so an inspection that
+                    // starts (or stops) firing is a movement rather than a silent no-op.
+                    Triple(
+                        "$INSPECTION_PREFIX$id",
+                        baseline.inspectionHits[id] ?: 0,
+                        observed.inspectionHits[id] ?: 0,
+                    )
+                }
         return CorpusComparison(
             regressions = gated.filter { it.third > it.second }.map(::describe),
             improvements = gated.filter { it.third < it.second }.map(::describe),

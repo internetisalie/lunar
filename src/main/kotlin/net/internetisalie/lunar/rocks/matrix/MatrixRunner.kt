@@ -28,12 +28,17 @@ data class MatrixRow(
 enum class Status { PENDING, RUNNING, PASS, FAIL }
 
 /** Aggregated matrix outcome; passes iff every row passed and at least one row ran. */
-data class MatrixResult(val rows: List<MatrixRow>) {
+data class MatrixResult(
+    val rows: List<MatrixRow>,
+) {
     val allPassed: Boolean get() = rows.isNotEmpty() && rows.all { it.status == Status.PASS }
 }
 
 /** One row's captured process outcome (exit code + accumulated output). */
-data class RowOutcome(val exitCode: Int, val output: String)
+data class RowOutcome(
+    val exitCode: Int,
+    val output: String,
+)
 
 /**
  * Builds per-env `luarocks` command lines and aggregates their outcomes into a [MatrixResult]
@@ -49,17 +54,28 @@ object MatrixRunner {
 
     /** Executes one row's command line and returns its outcome. */
     fun interface RowRunner {
-        fun run(env: LuaEnvironmentState, command: GeneralCommandLine): RowOutcome
+        fun run(
+            env: LuaEnvironmentState,
+            command: GeneralCommandLine,
+        ): RowOutcome
     }
 
     /** Bundles a matrix request to keep [execute] within the argument tripwire. */
-    data class Request(val command: String, val rockspec: Path, val envs: List<LuaEnvironmentState>)
+    data class Request(
+        val command: String,
+        val rockspec: Path,
+        val envs: List<LuaEnvironmentState>,
+    )
 
     /**
      * Builds the `<env luarocks> <command> <rockspec>` command line for [env] (design §3.3/§3.6), or
      * `null` when [env] has no provisioned `luarocks` tool — the caller marks that row FAIL.
      */
-    fun commandLineFor(env: LuaEnvironmentState, command: String, rockspec: Path): GeneralCommandLine? {
+    fun commandLineFor(
+        env: LuaEnvironmentState,
+        command: String,
+        rockspec: Path,
+    ): GeneralCommandLine? {
         val luarocks = LuaToolResolver.getInstance().resolveIn(env, "luarocks")?.path ?: return null
         return GeneralCommandLine(luarocks, command, rockspec.toString())
     }
@@ -68,7 +84,11 @@ object MatrixRunner {
      * Executes a single [row] via [runner], mutating it in place with its outcome and status, and
      * returns the outcome. Honors cancellation via [ProgressManager.checkCanceled] before spawning.
      */
-    fun runRow(request: Request, runner: RowRunner, row: MatrixRow): RowOutcome {
+    fun runRow(
+        request: Request,
+        runner: RowRunner,
+        row: MatrixRow,
+    ): RowOutcome {
         ProgressManager.checkCanceled()
         row.status = Status.RUNNING
         val outcome = safeRun(request, runner, row)
@@ -84,16 +104,24 @@ object MatrixRunner {
      * Production callers run one [runRow] per env concurrently; this helper keeps aggregation
      * unit-testable in a single call.
      */
-    fun execute(request: Request, runner: RowRunner): MatrixResult {
+    fun execute(
+        request: Request,
+        runner: RowRunner,
+    ): MatrixResult {
         val label = request.rockspec.fileName?.toString() ?: request.rockspec.toString()
         val rows = request.envs.map { MatrixRow(it, rockspecLabel = label) }
         rows.forEach { runRow(request, runner, it) }
         return MatrixResult(rows)
     }
 
-    private fun safeRun(request: Request, runner: RowRunner, row: MatrixRow): RowOutcome {
-        val command = commandLineFor(row.env, request.command, request.rockspec)
-            ?: return RowOutcome(-1, "luarocks is not provisioned in ${row.env.name}")
+    private fun safeRun(
+        request: Request,
+        runner: RowRunner,
+        row: MatrixRow,
+    ): RowOutcome {
+        val command =
+            commandLineFor(row.env, request.command, request.rockspec)
+                ?: return RowOutcome(-1, "luarocks is not provisioned in ${row.env.name}")
         return try {
             runner.run(row.env, command)
         } catch (throwable: Throwable) {
@@ -103,15 +131,22 @@ object MatrixRunner {
     }
 
     /** The production [RowRunner]: streams the process via the exec service and captures output (design §3.3). */
-    val processRunner: RowRunner = RowRunner { _, command ->
-        val captured = StringBuilder()
-        val listener = object : ProcessListener {
-            override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                captured.append(event.text)
-            }
+    val processRunner: RowRunner =
+        RowRunner { _, command ->
+            val captured = StringBuilder()
+            val listener =
+                object : ProcessListener {
+                    override fun onTextAvailable(
+                        event: ProcessEvent,
+                        outputType: Key<*>,
+                    ) {
+                        captured.append(event.text)
+                    }
+                }
+            val result =
+                LuaToolExecutionService
+                    .getInstance()
+                    .stream(command, listener, LuaExecTimeout.COMMAND, colored = true)
+            RowOutcome(result.exitCode, captured.toString())
         }
-        val result = LuaToolExecutionService.getInstance()
-            .stream(command, listener, LuaExecTimeout.COMMAND, colored = true)
-        RowOutcome(result.exitCode, captured.toString())
-    }
 }

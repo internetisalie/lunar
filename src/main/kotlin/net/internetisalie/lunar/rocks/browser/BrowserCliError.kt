@@ -10,7 +10,9 @@ package net.internetisalie.lunar.rocks.browser
  *
  * [message] carries the trimmed CLI `stderr`, or the not-configured hint when the binary is unresolved.
  */
-class BrowserCliError(override val message: String) : Exception(message) {
+class BrowserCliError(
+    override val message: String,
+) : Exception(message) {
     companion object {
         /** Surfaced by the error card when no `luarocks` binary resolves (design §3.5). */
         const val LUAROCKS_NOT_CONFIGURED: String =

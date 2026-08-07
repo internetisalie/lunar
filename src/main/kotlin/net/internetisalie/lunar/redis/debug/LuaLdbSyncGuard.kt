@@ -20,30 +20,36 @@ import net.internetisalie.lunar.redis.run.LuaRedisRunConfiguration
  * takes the project as a parameter (contract §4).
  */
 object LuaLdbSyncGuard {
-
     /**
      * Pure decision (design §3.8): a confirmation is required only for SYNC against a `Remote`
      * (non-session-local) connection. FORKED is always safe; a session-local `LocalBinary`/`Docker`
      * server is disposable and ours, so no prompt.
      */
-    fun requiresConfirmation(config: LuaRedisRunConfiguration, connection: LuaRedisServerConnection): Boolean {
+    fun requiresConfirmation(
+        config: LuaRedisRunConfiguration,
+        connection: LuaRedisServerConnection,
+    ): Boolean {
         if (config.debugMode != LuaRedisDebugMode.SYNC) return false
         return connection.provisioning is LuaRedisProvisioning.Remote
     }
 
     /** Pure banner copy (design §2.13, §3.6): states the write/lifecycle consequence of [mode]. */
-    fun bannerText(mode: LuaRedisDebugMode): String = when (mode) {
-        LuaRedisDebugMode.FORKED ->
-            "Forked debug session: all writes are rolled back when the session ends."
-        LuaRedisDebugMode.SYNC ->
-            "SYNC debug session: the server event loop is BLOCKED while paused and writes are COMMITTED."
-    }
+    fun bannerText(mode: LuaRedisDebugMode): String =
+        when (mode) {
+            LuaRedisDebugMode.FORKED ->
+                "Forked debug session: all writes are rolled back when the session ends."
+            LuaRedisDebugMode.SYNC ->
+                "SYNC debug session: the server event loop is BLOCKED while paused and writes are COMMITTED."
+        }
 
     /**
      * Shows the sync-on-remote confirmation on the EDT (design §3.8); returns `true` on Yes. Marshals
      * onto [Dispatchers.EDT] since the caller runs on the session scope (off-EDT).
      */
-    suspend fun confirm(project: Project, connection: LuaRedisServerConnection): Boolean =
+    suspend fun confirm(
+        project: Project,
+        connection: LuaRedisServerConnection,
+    ): Boolean =
         withContext(Dispatchers.EDT) {
             Messages.showYesNoDialog(
                 project,

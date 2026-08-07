@@ -13,35 +13,55 @@ object LuaCheckInvoker {
     private val ANSI_PATTERN = Regex("\\[[;\\d]*m")
 
     fun invoke(info: LuaCheckAnnotator.Info): LuaCheckOutcome {
-        val cmd = newLuaCheckCommandLine(info.project, info.fileName, info.workDir, useStdin = true)
-            ?: return LuaCheckOutcome.NotApplicable
+        val cmd =
+            newLuaCheckCommandLine(info.project, info.fileName, info.workDir, useStdin = true)
+                ?: return LuaCheckOutcome.NotApplicable
 
-        val result = LuaToolExecutionService.getInstance()
-            .capture(cmd, LuaExecTimeout.FORMAT, stdin = info.documentText)
+        val result =
+            LuaToolExecutionService
+                .getInstance()
+                .capture(cmd, LuaExecTimeout.FORMAT, stdin = info.documentText)
         return classify(result, info.fileName)
     }
 
-    internal fun classify(result: LuaExecResult, fileName: String): LuaCheckOutcome = when (result.outcome) {
-        LuaExecOutcome.START_FAILED -> LuaCheckOutcome.Failure(FailureKind.LAUNCH_FAILED, "Could not execute luacheck")
-        LuaExecOutcome.TIMED_OUT ->
-            LuaCheckOutcome.Failure(FailureKind.TIMED_OUT, "luacheck did not respond within ${timeoutSeconds()}s")
-        LuaExecOutcome.CANCELLED -> LuaCheckOutcome.NotApplicable
-        LuaExecOutcome.COMPLETED -> completedOutcome(result, fileName)
-    }
+    internal fun classify(
+        result: LuaExecResult,
+        fileName: String,
+    ): LuaCheckOutcome =
+        when (result.outcome) {
+            LuaExecOutcome.START_FAILED ->
+                LuaCheckOutcome.Failure(
+                    FailureKind.LAUNCH_FAILED,
+                    "Could not execute luacheck",
+                )
+            LuaExecOutcome.TIMED_OUT ->
+                LuaCheckOutcome.Failure(FailureKind.TIMED_OUT, "luacheck did not respond within ${timeoutSeconds()}s")
+            LuaExecOutcome.CANCELLED -> LuaCheckOutcome.NotApplicable
+            LuaExecOutcome.COMPLETED -> completedOutcome(result, fileName)
+        }
 
-    private fun completedOutcome(result: LuaExecResult, fileName: String): LuaCheckOutcome {
+    private fun completedOutcome(
+        result: LuaExecResult,
+        fileName: String,
+    ): LuaCheckOutcome {
         if (result.exitCode >= FATAL_EXIT_CODE) {
-            val detail = result.stderr.lineSequence().firstOrNull { it.isNotBlank() }
-                ?: "luacheck exited with code ${result.exitCode}"
+            val detail =
+                result.stderr.lineSequence().firstOrNull { it.isNotBlank() }
+                    ?: "luacheck exited with code ${result.exitCode}"
             return LuaCheckOutcome.Failure(FailureKind.CRASHED, detail)
         }
         return LuaCheckOutcome.Problems(parseProblems(result.stdout, fileName))
     }
 
-    private fun parseProblems(stdout: String, fileName: String): List<Problem> =
-        stdout.lineSequence().mapNotNull { line -> problemFrom(line, fileName) }.toList()
+    private fun parseProblems(
+        stdout: String,
+        fileName: String,
+    ): List<Problem> = stdout.lineSequence().mapNotNull { line -> problemFrom(line, fileName) }.toList()
 
-    private fun problemFrom(line: String, fileName: String): Problem? {
+    private fun problemFrom(
+        line: String,
+        fileName: String,
+    ): Problem? {
         val match = LINE_PATTERN.find(line) ?: return null
         val lineGroup = match.groups[2] ?: return null
         val colStartGroup = match.groups[3] ?: return null

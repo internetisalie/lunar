@@ -21,7 +21,6 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
  * `nil`, or `function` operand is a runtime error (INSP-07).
  */
 class LuaSuspiciousConcatenationInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaSuspiciousConcatenation"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -32,7 +31,10 @@ class LuaSuspiciousConcatenationInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor {
         val types = LuaTypesSnapshot.forFile(holder.file)
         return object : LuaVisitor() {
             override fun visitBinOpExpr(o: LuaBinOpExpr) {
@@ -43,7 +45,11 @@ class LuaSuspiciousConcatenationInspection : LocalInspectionTool() {
         }
     }
 
-    private fun checkOperand(operand: LuaExpr, types: LuaTypes, holder: ProblemsHolder) {
+    private fun checkOperand(
+        operand: LuaExpr,
+        types: LuaTypes,
+        holder: ProblemsHolder,
+    ) {
         val graphType = resolveOperandType(operand, types)
         if (isConcatenable(graphType)) return
         holder.registerProblem(
@@ -59,7 +65,11 @@ class LuaSuspiciousConcatenationInspection : LocalInspectionTool() {
      * nodes). This helper mirrors the engine's `unwrapExpression` by descending through single-child
      * wrappers until it finds an element with a non-Undefined inferred type.
      */
-    private fun resolveOperandType(operand: PsiElement, types: LuaTypes, depth: Int = 0): LuaGraphType {
+    private fun resolveOperandType(
+        operand: PsiElement,
+        types: LuaTypes,
+        depth: Int = 0,
+    ): LuaGraphType {
         if (depth > 10) return LuaGraphType.Undefined
         val direct = types.getValueType(operand)
         if (direct != LuaGraphType.Undefined) return direct
@@ -68,16 +78,18 @@ class LuaSuspiciousConcatenationInspection : LocalInspectionTool() {
         return LuaGraphType.Undefined
     }
 
-    private fun isConcatenable(type: LuaGraphType): Boolean = when (type) {
-        LuaGraphType.String, LuaGraphType.Number -> true
-        LuaGraphType.Any, LuaGraphType.Undefined -> true
-        is LuaGraphType.Generic -> true
-        is LuaGraphType.Table -> type.getMembers().containsKey(CONCAT_METAMETHOD)
-        LuaGraphType.Nil, LuaGraphType.Boolean,
-        is LuaGraphType.Function,
-        is LuaGraphType.Array -> false
-        is LuaGraphType.Union -> type.types.any { isConcatenable(it) }
-    }
+    private fun isConcatenable(type: LuaGraphType): Boolean =
+        when (type) {
+            LuaGraphType.String, LuaGraphType.Number -> true
+            LuaGraphType.Any, LuaGraphType.Undefined -> true
+            is LuaGraphType.Generic -> true
+            is LuaGraphType.Table -> type.getMembers().containsKey(CONCAT_METAMETHOD)
+            LuaGraphType.Nil, LuaGraphType.Boolean,
+            is LuaGraphType.Function,
+            is LuaGraphType.Array,
+            -> false
+            is LuaGraphType.Union -> type.types.any { isConcatenable(it) }
+        }
 
     private companion object {
         private const val CONCAT_METAMETHOD = "__concat"

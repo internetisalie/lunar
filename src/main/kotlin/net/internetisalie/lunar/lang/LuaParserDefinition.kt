@@ -9,10 +9,8 @@ import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IFileElementType
-import com.intellij.psi.tree.IStubFileElementType
 import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.lexer.LuaLexer
-import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
 import net.internetisalie.lunar.lang.parser.LuaParser
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
@@ -22,29 +20,17 @@ import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsElementType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
 
 class LuaParserDefinition : ParserDefinition {
-    override fun createLexer(project: Project): Lexer {
-        return LuaLexer()
-    }
+    override fun createLexer(project: Project): Lexer = LuaLexer()
 
-    override fun createParser(project: Project): PsiParser {
-        return LuaParser()
-    }
+    override fun createParser(project: Project): PsiParser = LuaParser()
 
-    override fun getFileNodeType(): IFileElementType {
-        return FILE
-    }
+    override fun getFileNodeType(): IFileElementType = FILE
 
-    override fun getCommentTokens(): TokenSet {
-        return LuaSyntax.CommentTokens
-    }
+    override fun getCommentTokens(): TokenSet = LuaSyntax.CommentTokens
 
-    override fun getWhitespaceTokens(): TokenSet {
-        return LuaSyntax.WhiteSpaceTokens
-    }
+    override fun getWhitespaceTokens(): TokenSet = LuaSyntax.WhiteSpaceTokens
 
-    override fun getStringLiteralElements(): TokenSet {
-        return LuaSyntax.StringLiteralTokens
-    }
+    override fun getStringLiteralElements(): TokenSet = LuaSyntax.StringLiteralTokens
 
     override fun createElement(node: ASTNode): PsiElement {
         val type = node.elementType
@@ -54,9 +40,7 @@ class LuaParserDefinition : ParserDefinition {
         return LuaElementTypes.Factory.createElement(node)
     }
 
-    override fun createFile(viewProvider: FileViewProvider): PsiFile {
-        return LuaFile(viewProvider)
-    }
+    override fun createFile(viewProvider: FileViewProvider): PsiFile = LuaFile(viewProvider)
 
     companion object {
         val FILE = LuaFileElementType()

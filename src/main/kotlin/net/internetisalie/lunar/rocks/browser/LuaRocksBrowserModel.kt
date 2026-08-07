@@ -18,6 +18,7 @@ class LuaRocksBrowserModel(
 ) {
     interface Listener {
         fun onState(state: BrowserState)
+
         fun onRowChanged(index: Int)
     }
 
@@ -49,10 +50,11 @@ class LuaRocksBrowserModel(
 
     /** Loads the Installed tab; no tree → [BrowserState.NoTree] (design §3.3 Installed / §4.1). */
     fun loadInstalled() {
-        val treeRoot = backend.resolveTree() ?: run {
-            post(BrowserState.NoTree)
-            return
-        }
+        val treeRoot =
+            backend.resolveTree() ?: run {
+                post(BrowserState.NoTree)
+                return
+            }
         val id = beginRequest()
         backend.runInBackground { fetchInstalled(treeRoot, id) }
     }
@@ -69,26 +71,34 @@ class LuaRocksBrowserModel(
         flipRow(name, installed = false)
     }
 
-    private fun fetchSearch(query: String, treeRoot: Path?, id: Long) {
+    private fun fetchSearch(
+        query: String,
+        treeRoot: Path?,
+        id: Long,
+    ) {
         val outcome = runCatching { backend.search(query, treeRoot) }
         backend.onEdt { publishSearch(outcome, id) }
     }
 
-    private fun publishSearch(outcome: Result<List<LuaRockPackage>>, id: Long) {
+    private fun publishSearch(
+        outcome: Result<List<LuaRockPackage>>,
+        id: Long,
+    ) {
         if (id != requestId) return
         outcome
             .onSuccess { packages ->
                 marketplaceRows = buildRows(packages)
                 listener.onState(BrowserState.Results(marketplaceRows.toList()))
-            }
-            .onFailure { listener.onState(BrowserState.Error(messageOf(it))) }
+            }.onFailure { listener.onState(BrowserState.Error(messageOf(it))) }
     }
 
     /** Builds rows, flagging `hasUpdate` on an installed rock whose latest search version is newer (§3.2). */
     private fun buildRows(packages: List<LuaRockPackage>): MutableList<LuaRockRow> {
-        val latestByName = packages.groupBy { it.name }
-            .mapValues { (_, group) -> group.map { LuaRockRow(it, false) } }
-            .mapValues { (_, rows) -> LuaRocksUpdateDetector.latestOf(rows) }
+        val latestByName =
+            packages
+                .groupBy { it.name }
+                .mapValues { (_, group) -> group.map { LuaRockRow(it, false) } }
+                .mapValues { (_, rows) -> LuaRocksUpdateDetector.latestOf(rows) }
         return packages.mapTo(mutableListOf()) { pkg ->
             val hasUpdate = pkg.isInstalled && LuaRocksUpdateDetector.hasUpdate(pkg.version, latestByName[pkg.name])
             LuaRockRow(pkg, pkg.isInstalled, hasUpdate)
@@ -100,7 +110,10 @@ class LuaRocksBrowserModel(
         backend.onEdt { publishPopular(entries, id) }
     }
 
-    private fun publishPopular(entries: List<PopularEntry>, id: Long) {
+    private fun publishPopular(
+        entries: List<PopularEntry>,
+        id: Long,
+    ) {
         if (id != requestId) return
         if (entries.isEmpty()) {
             listener.onState(BrowserState.Idle)
@@ -113,19 +126,28 @@ class LuaRocksBrowserModel(
     private fun popularPackage(entry: PopularEntry): LuaRockPackage =
         LuaRockPackage(entry.name, entry.count ?: "", "popular", "", "")
 
-    private fun fetchInstalled(treeRoot: Path, id: Long) {
+    private fun fetchInstalled(
+        treeRoot: Path,
+        id: Long,
+    ) {
         val outcome = runCatching { backend.listInstalled(treeRoot) }
         backend.onEdt { publishInstalled(outcome, id) }
     }
 
-    private fun publishInstalled(outcome: Result<List<InstalledRockRow>>, id: Long) {
+    private fun publishInstalled(
+        outcome: Result<List<InstalledRockRow>>,
+        id: Long,
+    ) {
         if (id != requestId) return
         outcome
             .onSuccess { listener.onState(BrowserState.Installed(it)) }
             .onFailure { listener.onState(BrowserState.Error(messageOf(it))) }
     }
 
-    private fun flipRow(name: String, installed: Boolean) {
+    private fun flipRow(
+        name: String,
+        installed: Boolean,
+    ) {
         val index = marketplaceRows.indexOfFirst { it.pkg.name == name }
         if (index < 0) return
         marketplaceRows[index] = marketplaceRows[index].copy(installed = installed)

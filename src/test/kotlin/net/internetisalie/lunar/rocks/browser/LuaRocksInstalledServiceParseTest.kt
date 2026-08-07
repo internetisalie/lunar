@@ -8,13 +8,13 @@ import org.junit.Test
  * (design §4.1), skipping malformed short lines.
  */
 class LuaRocksInstalledServiceParseTest {
-
     @Test
     fun `TC-ROCKS-16-05 parses name and version per row`() {
-        val stdout = """
+        val stdout =
+            """
             inspect	3.1.3-0	installed	/proj/lua_modules/lib/luarocks/rocks-5.4
             luassert	1.9.0-1	installed	/proj/lua_modules/lib/luarocks/rocks-5.4
-        """.trimIndent()
+            """.trimIndent()
 
         val rows = LuaRocksInstalledService.parseInstalled(stdout)
 

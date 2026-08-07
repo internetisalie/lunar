@@ -7,7 +7,6 @@ package net.internetisalie.lunar.lang.psi.types
  * equivalent unions always yield identical shapes (TYPE-09-P1-02/03/04).
  */
 object LuaTypeAlgebra {
-
     /**
      * Produces the canonical type for a union of [members].
      *
@@ -61,11 +60,12 @@ object LuaTypeAlgebra {
         return deduped.sortedBy { it.displayName() }.toCollection(LinkedHashSet())
     }
 
-    private fun collapse(members: Set<LuaGraphType>): LuaGraphType = when (members.size) {
-        0 -> LuaGraphType.Undefined
-        1 -> members.first()
-        else -> LuaGraphType.Union(members)
-    }
+    private fun collapse(members: Set<LuaGraphType>): LuaGraphType =
+        when (members.size) {
+            0 -> LuaGraphType.Undefined
+            1 -> members.first()
+            else -> LuaGraphType.Union(members)
+        }
 
     /**
      * Removes [toRemove] from [union] and re-canonicalizes the remaining members (TYPE-08).
@@ -74,6 +74,8 @@ object LuaTypeAlgebra {
      * single remaining member collapses to itself. Used by flow-sensitive narrowing to compute the
      * complement type ("original type minus the guard type") for `else`/`elseif` branches.
      */
-    fun subtractMember(union: LuaGraphType.Union, toRemove: LuaGraphType): LuaGraphType =
-        canonicalize(union.types.filterNot { it == toRemove })
+    fun subtractMember(
+        union: LuaGraphType.Union,
+        toRemove: LuaGraphType,
+    ): LuaGraphType = canonicalize(union.types.filterNot { it == toRemove })
 }

@@ -6,30 +6,22 @@ import com.intellij.navigation.ItemPresentation
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import javax.swing.Icon
 
-class LuaLocalFunctionStructureViewTreeElement(private var myLocalFuncDecl : LuaLocalFuncDecl) : LuaStructureViewTreeElement(myLocalFuncDecl) {
-    override fun getPresentation(): ItemPresentation {
-        return object : ItemPresentation {
-            override fun getPresentableText(): String {
-                return myLocalFuncDecl.nameRef.identifier.text
-            }
+class LuaLocalFunctionStructureViewTreeElement(
+    private var myLocalFuncDecl: LuaLocalFuncDecl,
+) : LuaStructureViewTreeElement(myLocalFuncDecl) {
+    override fun getPresentation(): ItemPresentation =
+        object : ItemPresentation {
+            override fun getPresentableText(): String = myLocalFuncDecl.nameRef.identifier.text
 
-            override fun getIcon(open: Boolean): Icon {
-                return AllIcons.Nodes.Function
-            }
+            override fun getIcon(open: Boolean): Icon = AllIcons.Nodes.Function
         }
-    }
 
-    override fun getChildren(): Array<TreeElement> {
-        return TreeElementUtils
+    override fun getChildren(): Array<TreeElement> =
+        TreeElementUtils
             .getFuncBodyChildren(
                 myLocalFuncDecl.parList,
-                myLocalFuncDecl.block
-            )
-            .toTypedArray()
+                myLocalFuncDecl.block,
+            ).toTypedArray()
 
-    }
-
-    override fun getValue(): Any {
-        return myLocalFuncDecl
-    }
+    override fun getValue(): Any = myLocalFuncDecl
 }

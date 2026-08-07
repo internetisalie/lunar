@@ -7,13 +7,14 @@ import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 import net.internetisalie.lunar.toolchain.model.LanguageLevelRule
 import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
 import net.internetisalie.lunar.toolchain.model.LuaToolKind
-import net.internetisalie.lunar.toolchain.model.RuntimeProbeSpec
 import net.internetisalie.lunar.toolchain.model.SemanticVersion
 import java.nio.file.Path
 
 class LuaToolProbeImpl : LuaToolProbe {
-
-    override fun probe(kind: LuaToolKind, binaryPath: Path): LuaToolProbeResult {
+    override fun probe(
+        kind: LuaToolKind,
+        binaryPath: Path,
+    ): LuaToolProbeResult {
         ApplicationManager.getApplication()?.assertIsNonDispatchThread()
 
         val file = binaryPath.toFile()
@@ -23,14 +24,15 @@ class LuaToolProbeImpl : LuaToolProbe {
                 version = null,
                 luaVersion = null,
                 runtime = null,
-                failure = "Not executable"
+                failure = "Not executable",
             )
         }
 
-        val cmd = GeneralCommandLine(binaryPath.toString()).apply {
-            addParameters(kind.probe.args)
-            withWorkDirectory(file.parentFile)
-        }
+        val cmd =
+            GeneralCommandLine(binaryPath.toString()).apply {
+                addParameters(kind.probe.args)
+                withWorkDirectory(file.parentFile)
+            }
 
         // Preserve the exact per-kind probe timeout (kind.probe.timeoutMs), so the millis-based
         // capture is used here (as StyluaFormattingTask does). The two legacy exit-code sentinels
@@ -42,7 +44,7 @@ class LuaToolProbeImpl : LuaToolProbe {
                 version = null,
                 luaVersion = null,
                 runtime = null,
-                failure = "Timeout"
+                failure = "Timeout",
             )
         }
         if (result.outcome == LuaExecOutcome.START_FAILED) {
@@ -51,31 +53,40 @@ class LuaToolProbeImpl : LuaToolProbe {
                 version = null,
                 luaVersion = null,
                 runtime = null,
-                failure = "Not executable"
+                failure = "Not executable",
             )
         }
 
         val out = result.stdout.trim()
         val err = result.stderr.trim()
-        val merged = buildString {
-            if (out.isNotEmpty()) append(out)
-            if (out.isNotEmpty() && err.isNotEmpty()) append('\n')
-            if (err.isNotEmpty()) append(err)
-        }
+        val merged =
+            buildString {
+                if (out.isNotEmpty()) append(out)
+                if (out.isNotEmpty() && err.isNotEmpty()) append('\n')
+                if (err.isNotEmpty()) append(err)
+            }
 
         return interpret(merged, kind)
     }
 
-    fun interpret(merged: String, kind: LuaToolKind): LuaToolProbeResult {
-        val versionMatch = kind.probe.versionRegex.find(merged) ?: return LuaToolProbeResult(
-            ok = false,
-            version = null,
-            luaVersion = null,
-            runtime = null,
-            failure = getFirstNonBlankLine(merged)
-        )
+    fun interpret(
+        merged: String,
+        kind: LuaToolKind,
+    ): LuaToolProbeResult {
+        val versionMatch =
+            kind.probe.versionRegex.find(merged) ?: return LuaToolProbeResult(
+                ok = false,
+                version = null,
+                luaVersion = null,
+                runtime = null,
+                failure = getFirstNonBlankLine(merged),
+            )
         val version = versionMatch.groupValues[1]
-        val luaVersion = kind.probe.luaVersionRegex?.find(merged)?.groupValues?.get(1)
+        val luaVersion =
+            kind.probe.luaVersionRegex
+                ?.find(merged)
+                ?.groupValues
+                ?.get(1)
 
         val runtimeInfo = parseRuntime(merged, version, kind)
         if (kind.probe.runtime != null && runtimeInfo == null) {
@@ -84,7 +95,7 @@ class LuaToolProbeImpl : LuaToolProbe {
                 version = null,
                 luaVersion = null,
                 runtime = null,
-                failure = getFirstNonBlankLine(merged)
+                failure = getFirstNonBlankLine(merged),
             )
         }
 
@@ -94,7 +105,7 @@ class LuaToolProbeImpl : LuaToolProbe {
                 version = version,
                 luaVersion = luaVersion,
                 runtime = runtimeInfo,
-                failure = getFirstNonBlankLine(merged)
+                failure = getFirstNonBlankLine(merged),
             )
         }
 
@@ -103,46 +114,56 @@ class LuaToolProbeImpl : LuaToolProbe {
             version = version,
             luaVersion = luaVersion,
             runtime = runtimeInfo,
-            failure = null
+            failure = null,
         )
     }
 
-    private fun parseRuntime(merged: String, version: String, kind: LuaToolKind): LuaRuntimeInfo? {
+    private fun parseRuntime(
+        merged: String,
+        version: String,
+        kind: LuaToolKind,
+    ): LuaRuntimeInfo? {
         val runtimeSpec = kind.probe.runtime ?: return null
-        val bannerLine = merged.lineSequence()
-            .firstOrNull { kind.probe.versionRegex.containsMatchIn(it) }
-            ?: merged.lineSequence().firstOrNull() ?: ""
+        val bannerLine =
+            merged
+                .lineSequence()
+                .firstOrNull { kind.probe.versionRegex.containsMatchIn(it) }
+                ?: merged.lineSequence().firstOrNull() ?: ""
 
         val firstToken = bannerLine.trim().substringBefore(' ')
         if (firstToken != runtimeSpec.productToken) {
             return null
         }
 
-        val languageLevel = when (val rule = runtimeSpec.languageLevel) {
-            is LanguageLevelRule.Fixed -> rule.level
-            is LanguageLevelRule.ByVersionPrefix -> {
-                rule.prefixes.firstOrNull { version.startsWith(it.first) }?.second ?: rule.fallback
+        val languageLevel =
+            when (val rule = runtimeSpec.languageLevel) {
+                is LanguageLevelRule.Fixed -> rule.level
+                is LanguageLevelRule.ByVersionPrefix -> {
+                    rule.prefixes.firstOrNull { version.startsWith(it.first) }?.second ?: rule.fallback
+                }
             }
-        }
 
         return LuaRuntimeInfo(
             product = runtimeSpec.productToken,
             version = version,
             languageLevel = languageLevel,
             platform = runtimeSpec.platform,
-            banner = bannerLine
+            banner = bannerLine,
         )
     }
 
-    private fun isBelowMinVersion(version: String, minVersion: SemanticVersion?): Boolean {
+    private fun isBelowMinVersion(
+        version: String,
+        minVersion: SemanticVersion?,
+    ): Boolean {
         if (minVersion == null) return false
         val parsedVersion = SemanticVersion.parse(version) ?: return false
         return parsedVersion < minVersion
     }
 
-    private fun getFirstNonBlankLine(merged: String): String {
-        return merged.lineSequence()
+    private fun getFirstNonBlankLine(merged: String): String =
+        merged
+            .lineSequence()
             .map { it.trim() }
             .firstOrNull { it.isNotEmpty() } ?: "No output"
-    }
 }

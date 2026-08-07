@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class TestLuaAttributesParser : BaseDocumentTest() {
-
     private fun ensureNoErrors() {
         val errors = PsiTreeUtil.findChildrenOfType(myFixture.file, PsiErrorElement::class.java)
         Assertions.assertTrue(errors.isEmpty(), "Found parser errors: " + errors.joinToString { it.errorDescription })

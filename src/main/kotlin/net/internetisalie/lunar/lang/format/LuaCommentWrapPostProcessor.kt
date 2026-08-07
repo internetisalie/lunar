@@ -17,9 +17,16 @@ import net.internetisalie.lunar.lang.psi.LuaFile
  * never touched, and an over-long single token (e.g. a URL) is left on its own line.
  */
 class LuaCommentWrapPostProcessor : PostFormatProcessor {
-    override fun processElement(source: PsiElement, settings: CodeStyleSettings): PsiElement = source
+    override fun processElement(
+        source: PsiElement,
+        settings: CodeStyleSettings,
+    ): PsiElement = source
 
-    override fun processText(source: PsiFile, rangeToReformat: TextRange, settings: CodeStyleSettings): TextRange {
+    override fun processText(
+        source: PsiFile,
+        rangeToReformat: TextRange,
+        settings: CodeStyleSettings,
+    ): TextRange {
         if (source !is LuaFile) return rangeToReformat
         val luaSettings = LuaCodeStyleSettings.getInstance(settings) ?: return rangeToReformat
         if (!luaSettings.WRAP_LONG_COMMENTS) return rangeToReformat
@@ -58,8 +65,9 @@ class LuaCommentWrapPostProcessor : PostFormatProcessor {
         if (totalDelta != 0) {
             PsiDocumentManager.getInstance(source.project).commitDocument(document)
         }
-        val newEnd = (rangeToReformat.endOffset + totalDelta)
-            .coerceIn(rangeToReformat.startOffset, document.textLength)
+        val newEnd =
+            (rangeToReformat.endOffset + totalDelta)
+                .coerceIn(rangeToReformat.startOffset, document.textLength)
         return TextRange(rangeToReformat.startOffset, newEnd)
     }
 
@@ -67,7 +75,11 @@ class LuaCommentWrapPostProcessor : PostFormatProcessor {
      * Greedily packs the comment body into `<indent><dashes> <words>` lines no wider than the
      * right margin. Returns null when nothing needs wrapping (≤1 resulting line).
      */
-    private fun wrapComment(text: String, column: Int, rightMargin: Int): String? {
+    private fun wrapComment(
+        text: String,
+        column: Int,
+        rightMargin: Int,
+    ): String? {
         val dashes = text.takeWhile { it == '-' }
         val body = text.substring(dashes.length).trim()
         if (body.isEmpty()) return null

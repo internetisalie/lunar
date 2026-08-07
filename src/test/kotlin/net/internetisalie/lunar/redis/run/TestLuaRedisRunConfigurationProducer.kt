@@ -14,7 +14,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * [LuaPlatform.REDIS]; on a plain Lua target it returns `false` and never fabricates a config.
  */
 class TestLuaRedisRunConfigurationProducer : BasePlatformTestCase() {
-
     private fun setTarget(platform: LuaPlatform) {
         val version = PlatformVersionRegistry.getVersions(platform).first()
         LuaProjectSettings.getInstance(project).state.setTarget(Target(platform, version))

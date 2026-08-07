@@ -15,27 +15,36 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
-import java.nio.file.Files
 
 class LuaToolHealthCheckerTest {
+    private val stubKind =
+        LuaToolKind(
+            id = "lua",
+            displayName = "Lua",
+            binaryNames = listOf("lua"),
+            probe = ProbeSpec(args = listOf("-v"), versionRegex = Regex("""Lua\s+(\d+\.\d+(?:\.\d+)?)""")),
+            capabilities = emptySet(),
+        )
 
-    private val stubKind = LuaToolKind(
-        id = "lua",
-        displayName = "Lua",
-        binaryNames = listOf("lua"),
-        probe = ProbeSpec(args = listOf("-v"), versionRegex = Regex("""Lua\s+(\d+\.\d+(?:\.\d+)?)""")),
-        capabilities = emptySet()
-    )
-
-    private fun fakeProbe(invocations: MutableList<Int>, result: LuaToolProbeResult): LuaToolProbe =
+    private fun fakeProbe(
+        invocations: MutableList<Int>,
+        result: LuaToolProbeResult,
+    ): LuaToolProbe =
         object : LuaToolProbe {
-            override fun probe(kind: LuaToolKind, binaryPath: Path): LuaToolProbeResult {
+            override fun probe(
+                kind: LuaToolKind,
+                binaryPath: Path,
+            ): LuaToolProbeResult {
                 invocations.add(1)
                 return result
             }
         }
 
-    private fun toolWith(path: String, health: LuaToolHealth = pristineHealth(), version: String? = null): LuaRegisteredTool =
+    private fun toolWith(
+        path: String,
+        health: LuaToolHealth = pristineHealth(),
+        version: String? = null,
+    ): LuaRegisteredTool =
         LuaRegisteredTool(
             id = "test-id",
             kindId = "lua",
@@ -45,7 +54,7 @@ class LuaToolHealthCheckerTest {
             runtime = null,
             origin = Origin.MANUAL,
             environmentId = null,
-            health = health
+            health = health,
         )
 
     private fun pristineHealth(): LuaToolHealth =
@@ -53,11 +62,17 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-01: Fast-check — missing file produces "Binary missing" with zero probe invocations
     @Test
-    fun testFastCheck_missingFile_noProbeCalled(@TempDir tempDir: Path) {
+    fun testFastCheck_missingFile_noProbeCalled(
+        @TempDir tempDir: Path,
+    ) {
         val invocations = mutableListOf<Int>()
         val missingPath = tempDir.resolve("does-not-exist").toString()
         val tool = toolWith(missingPath)
-        val probe = fakeProbe(invocations, LuaToolProbeResult(ok = true, version = "1.0", luaVersion = null, runtime = null, failure = null))
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(ok = true, version = "1.0", luaVersion = null, runtime = null, failure = null),
+            )
 
         val result = LuaToolHealthChecker.check(tool, stubKind, probe)
 
@@ -74,7 +89,9 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-01: Fast-check — non-executable file produces "Permission denied" with zero probe invocations
     @Test
-    fun testFastCheck_nonExecutableFile_noProbeCalled(@TempDir tempDir: Path) {
+    fun testFastCheck_nonExecutableFile_noProbeCalled(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("notexec").toFile()
         targetFile.writeText("#!/bin/sh")
         targetFile.setExecutable(false)
@@ -84,7 +101,11 @@ class LuaToolHealthCheckerTest {
 
         val invocations = mutableListOf<Int>()
         val tool = toolWith(targetFile.absolutePath)
-        val probe = fakeProbe(invocations, LuaToolProbeResult(ok = true, version = "1.0", luaVersion = null, runtime = null, failure = null))
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(ok = true, version = "1.0", luaVersion = null, runtime = null, failure = null),
+            )
 
         val result = LuaToolHealthChecker.check(tool, stubKind, probe)
 
@@ -99,17 +120,20 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-02: Probe success — health and version populated from probe result
     @Test
-    fun testProbeSuccess(@TempDir tempDir: Path) {
+    fun testProbeSuccess(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("lua").toFile()
         targetFile.writeText("#!/bin/sh\necho 'Lua 1.1.0'")
         targetFile.setExecutable(true)
 
         val invocations = mutableListOf<Int>()
         val tool = toolWith(targetFile.absolutePath)
-        val probe = fakeProbe(
-            invocations,
-            LuaToolProbeResult(ok = true, version = "1.1.0", luaVersion = null, runtime = null, failure = null)
-        )
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(ok = true, version = "1.1.0", luaVersion = null, runtime = null, failure = null),
+            )
 
         val result = LuaToolHealthChecker.check(tool, stubKind, probe)
 
@@ -126,17 +150,26 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-02: Probe failure — version/luaVersion/runtime null; probeOk=false; probedAtMtime recorded
     @Test
-    fun testProbeFailure(@TempDir tempDir: Path) {
+    fun testProbeFailure(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("lua").toFile()
         targetFile.writeText("#!/bin/sh")
         targetFile.setExecutable(true)
 
         val invocations = mutableListOf<Int>()
         val tool = toolWith(targetFile.absolutePath)
-        val probe = fakeProbe(
-            invocations,
-            LuaToolProbeResult(ok = false, version = null, luaVersion = null, runtime = null, failure = "Not executable")
-        )
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(
+                    ok = false,
+                    version = null,
+                    luaVersion = null,
+                    runtime = null,
+                    failure = "Not executable",
+                ),
+            )
 
         val result = LuaToolHealthChecker.check(tool, stubKind, probe)
 
@@ -153,16 +186,19 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-02: Probe failure with null failure string falls back to "Not executable"
     @Test
-    fun testProbeFailure_nullFailureFallback(@TempDir tempDir: Path) {
+    fun testProbeFailure_nullFailureFallback(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("lua").toFile()
         targetFile.writeText("#!/bin/sh")
         targetFile.setExecutable(true)
 
         val tool = toolWith(targetFile.absolutePath)
-        val probe = fakeProbe(
-            mutableListOf(),
-            LuaToolProbeResult(ok = false, version = null, luaVersion = null, runtime = null, failure = null)
-        )
+        val probe =
+            fakeProbe(
+                mutableListOf(),
+                LuaToolProbeResult(ok = false, version = null, luaVersion = null, runtime = null, failure = null),
+            )
 
         val result = LuaToolHealthChecker.check(tool, stubKind, probe)
 
@@ -171,22 +207,29 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-03: mtime gate — stored probeOk=true + matching mtime + version → zero probe invocations
     @Test
-    fun testMtimeGate_cacheHit_noProbeCalled(@TempDir tempDir: Path) {
+    fun testMtimeGate_cacheHit_noProbeCalled(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("lua").toFile()
         targetFile.writeText("#!/bin/sh")
         targetFile.setExecutable(true)
         val mtime = targetFile.lastModified()
 
-        val cachedHealth = LuaToolHealth(
-            fileExists = true,
-            executable = true,
-            probeOk = true,
-            probedAtMtime = mtime,
-            reason = "OK 1.1.0"
-        )
+        val cachedHealth =
+            LuaToolHealth(
+                fileExists = true,
+                executable = true,
+                probeOk = true,
+                probedAtMtime = mtime,
+                reason = "OK 1.1.0",
+            )
         val invocations = mutableListOf<Int>()
         val tool = toolWith(targetFile.absolutePath, health = cachedHealth, version = "1.1.0")
-        val probe = fakeProbe(invocations, LuaToolProbeResult(ok = true, version = "1.1.0", luaVersion = null, runtime = null, failure = null))
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(ok = true, version = "1.1.0", luaVersion = null, runtime = null, failure = null),
+            )
 
         val result = LuaToolHealthChecker.check(tool, stubKind, probe)
 
@@ -197,25 +240,32 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-03: mtime gate — after touching file, exactly one probe invocation
     @Test
-    fun testMtimeGate_afterTouch_oneProbeInvocation(@TempDir tempDir: Path) {
+    fun testMtimeGate_afterTouch_oneProbeInvocation(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("lua").toFile()
         targetFile.writeText("#!/bin/sh")
         targetFile.setExecutable(true)
         val originalMtime = targetFile.lastModified()
 
-        val cachedHealth = LuaToolHealth(
-            fileExists = true,
-            executable = true,
-            probeOk = true,
-            probedAtMtime = originalMtime,
-            reason = "OK 1.1.0"
-        )
+        val cachedHealth =
+            LuaToolHealth(
+                fileExists = true,
+                executable = true,
+                probeOk = true,
+                probedAtMtime = originalMtime,
+                reason = "OK 1.1.0",
+            )
         val touchedMtime = originalMtime + 2000L
         targetFile.setLastModified(touchedMtime)
 
         val invocations = mutableListOf<Int>()
         val tool = toolWith(targetFile.absolutePath, health = cachedHealth, version = "1.1.0")
-        val probe = fakeProbe(invocations, LuaToolProbeResult(ok = true, version = "1.1.0", luaVersion = null, runtime = null, failure = null))
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(ok = true, version = "1.1.0", luaVersion = null, runtime = null, failure = null),
+            )
 
         LuaToolHealthChecker.check(tool, stubKind, probe)
 
@@ -224,22 +274,29 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-03: mtime gate does NOT arm for probeOk=false (failed probe re-probed every call)
     @Test
-    fun testMtimeGate_failedProbe_alwaysReprobes(@TempDir tempDir: Path) {
+    fun testMtimeGate_failedProbe_alwaysReprobes(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("lua").toFile()
         targetFile.writeText("#!/bin/sh")
         targetFile.setExecutable(true)
         val mtime = targetFile.lastModified()
 
-        val failedHealth = LuaToolHealth(
-            fileExists = true,
-            executable = true,
-            probeOk = false,
-            probedAtMtime = mtime,
-            reason = "Timeout"
-        )
+        val failedHealth =
+            LuaToolHealth(
+                fileExists = true,
+                executable = true,
+                probeOk = false,
+                probedAtMtime = mtime,
+                reason = "Timeout",
+            )
         val invocations = mutableListOf<Int>()
         val tool = toolWith(targetFile.absolutePath, health = failedHealth, version = null)
-        val probe = fakeProbe(invocations, LuaToolProbeResult(ok = false, version = null, luaVersion = null, runtime = null, failure = "Timeout"))
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(ok = false, version = null, luaVersion = null, runtime = null, failure = "Timeout"),
+            )
 
         LuaToolHealthChecker.check(tool, stubKind, probe)
         LuaToolHealthChecker.check(tool, stubKind, probe)
@@ -249,22 +306,29 @@ class LuaToolHealthCheckerTest {
 
     // TC-TOOLING-07-03: mtime gate does NOT arm when version is null (gate requires non-null version)
     @Test
-    fun testMtimeGate_nullVersion_doesNotArm(@TempDir tempDir: Path) {
+    fun testMtimeGate_nullVersion_doesNotArm(
+        @TempDir tempDir: Path,
+    ) {
         val targetFile = tempDir.resolve("lua").toFile()
         targetFile.writeText("#!/bin/sh")
         targetFile.setExecutable(true)
         val mtime = targetFile.lastModified()
 
-        val healthWithNullVersion = LuaToolHealth(
-            fileExists = true,
-            executable = true,
-            probeOk = true,
-            probedAtMtime = mtime,
-            reason = "OK null"
-        )
+        val healthWithNullVersion =
+            LuaToolHealth(
+                fileExists = true,
+                executable = true,
+                probeOk = true,
+                probedAtMtime = mtime,
+                reason = "OK null",
+            )
         val invocations = mutableListOf<Int>()
         val tool = toolWith(targetFile.absolutePath, health = healthWithNullVersion, version = null)
-        val probe = fakeProbe(invocations, LuaToolProbeResult(ok = true, version = "1.0", luaVersion = null, runtime = null, failure = null))
+        val probe =
+            fakeProbe(
+                invocations,
+                LuaToolProbeResult(ok = true, version = "1.0", luaVersion = null, runtime = null, failure = null),
+            )
 
         LuaToolHealthChecker.check(tool, stubKind, probe)
 

@@ -26,7 +26,6 @@ data class RespReplyNode(
  * REDIS-02). Pure — thread-agnostic.
  */
 object RespReplyTreeModel {
-
     /** Builds an immutable [RespReplyNode] tree for [reply] (design §3.5). */
     fun build(reply: RespValue): RespReplyNode = nodeFor(index = null, value = reply)
 
@@ -39,25 +38,39 @@ object RespReplyTreeModel {
         return swingNode
     }
 
-    private fun nodeFor(index: Int?, value: RespValue): RespReplyNode = when (value) {
-        is RespValue.Array -> arrayNode(index, value)
-        is RespValue.Map -> mapNode(index, value)
-        else -> RespReplyNode(labelFor(index, scalarText(value)), expandable = false, children = emptyList())
-    }
+    private fun nodeFor(
+        index: Int?,
+        value: RespValue,
+    ): RespReplyNode =
+        when (value) {
+            is RespValue.Array -> arrayNode(index, value)
+            is RespValue.Map -> mapNode(index, value)
+            else -> RespReplyNode(labelFor(index, scalarText(value)), expandable = false, children = emptyList())
+        }
 
-    private fun arrayNode(index: Int?, value: RespValue.Array): RespReplyNode {
-        val items = value.items
-            ?: return RespReplyNode(labelFor(index, "(nil)"), expandable = false, children = emptyList())
+    private fun arrayNode(
+        index: Int?,
+        value: RespValue.Array,
+    ): RespReplyNode {
+        val items =
+            value.items
+                ?: return RespReplyNode(labelFor(index, "(nil)"), expandable = false, children = emptyList())
         val children = items.mapIndexed { childIndex, item -> nodeFor(childIndex, item) }
         return RespReplyNode(labelFor(index, "[array ${items.size}]"), expandable = true, children = children)
     }
 
-    private fun mapNode(index: Int?, value: RespValue.Map): RespReplyNode {
+    private fun mapNode(
+        index: Int?,
+        value: RespValue.Map,
+    ): RespReplyNode {
         val children = value.entries.mapIndexed { childIndex, entry -> entryNode(childIndex, entry) }
         return RespReplyNode(labelFor(index, "[map ${value.entries.size}]"), expandable = true, children = children)
     }
 
-    private fun entryNode(index: Int, entry: Pair<RespValue, RespValue>): RespReplyNode {
+    private fun entryNode(
+        index: Int,
+        entry: Pair<RespValue, RespValue>,
+    ): RespReplyNode {
         val valueNode = nodeFor(index = null, value = entry.second)
         val keyText = scalarText(entry.first)
         return if (valueNode.expandable) {
@@ -67,20 +80,23 @@ object RespReplyTreeModel {
         }
     }
 
-    private fun labelFor(index: Int?, preview: String): String =
-        if (index == null) preview else "[$index] $preview"
+    private fun labelFor(
+        index: Int?,
+        preview: String,
+    ): String = if (index == null) preview else "[$index] $preview"
 
-    private fun scalarText(value: RespValue): String = when (value) {
-        is RespValue.Simple -> value.text
-        is RespValue.Error -> "(error) ${value.klass} ${value.message}".trim()
-        is RespValue.Integer -> value.value.toString()
-        is RespValue.Double -> value.value.toString()
-        is RespValue.Bool -> value.value.toString()
-        is RespValue.Bulk -> bulkPreview(value)
-        is RespValue.Array -> if (value.items == null) "(nil)" else "[array ${value.items.size}]"
-        is RespValue.Map -> "[map ${value.entries.size}]"
-        RespValue.Null -> "(nil)"
-    }
+    private fun scalarText(value: RespValue): String =
+        when (value) {
+            is RespValue.Simple -> value.text
+            is RespValue.Error -> "(error) ${value.klass} ${value.message}".trim()
+            is RespValue.Integer -> value.value.toString()
+            is RespValue.Double -> value.value.toString()
+            is RespValue.Bool -> value.value.toString()
+            is RespValue.Bulk -> bulkPreview(value)
+            is RespValue.Array -> if (value.items == null) "(nil)" else "[array ${value.items.size}]"
+            is RespValue.Map -> "[map ${value.entries.size}]"
+            RespValue.Null -> "(nil)"
+        }
 
     private fun bulkPreview(value: RespValue.Bulk): String {
         val bytes = value.bytes ?: return "(nil)"

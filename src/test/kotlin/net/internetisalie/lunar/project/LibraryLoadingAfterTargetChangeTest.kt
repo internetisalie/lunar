@@ -33,10 +33,11 @@ class LibraryLoadingAfterTargetChangeTest {
         val descriptor = LightProjectDescriptor()
         val factory = IdeaTestFixtureFactory.getFixtureFactory()
         val builder = factory.createLightFixtureBuilder(descriptor, "LibraryLoadingTest")
-        fixture = factory.createCodeInsightFixture(
-            builder.fixture,
-            LightTempDirTestFixtureImpl(false)
-        )
+        fixture =
+            factory.createCodeInsightFixture(
+                builder.fixture,
+                LightTempDirTestFixtureImpl(false),
+            )
         fixture.setUp()
         project = fixture.project
     }
@@ -68,16 +69,16 @@ class LibraryLoadingAfterTargetChangeTest {
 
             assertTrue(
                 initialRoot != updatedRoot,
-                "Library root should change when target changes"
+                "Library root should change when target changes",
             )
             assertTrue(
                 initialLevel != updatedLevel,
-                "Language level should change when target changes"
+                "Language level should change when target changes",
             )
 
             assertTrue(
                 updatedRoot.children.isNotEmpty(),
-                "Updated library should have files"
+                "Updated library should have files",
             )
         }
     }
@@ -101,7 +102,7 @@ class LibraryLoadingAfterTargetChangeTest {
 
             assertTrue(
                 initialLibFolder.path != redisLibFolder.path,
-                "Library folders should be different for different platforms"
+                "Library folders should be different for different platforms",
             )
         }
     }
@@ -125,7 +126,7 @@ class LibraryLoadingAfterTargetChangeTest {
 
             assertTrue(
                 initialPackages.isNotEmpty() && updatedPackages.isNotEmpty(),
-                "Both targets should provide library files"
+                "Both targets should provide library files",
             )
         }
     }

@@ -17,7 +17,6 @@ import kotlin.test.assertTrue
  * `REDIS` tag (legacy migration is unaffected).
  */
 class ValkeyTargetTest {
-
     // TC-REG-3: a serialized state with platform="VALKEY" versionLabel="7.2" round-trips
     // to Target(VALKEY, "7.2") deriving LUA51.
     @Test

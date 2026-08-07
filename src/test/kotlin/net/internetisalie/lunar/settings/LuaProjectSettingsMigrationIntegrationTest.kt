@@ -7,7 +7,6 @@ import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
 
 class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
-
     fun testScenario1StandardLua51() {
         val settings = LuaProjectSettings.getInstance(project)
         val state = LuaProjectSettings.State()
@@ -25,19 +24,19 @@ class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
         val settings = LuaProjectSettings.getInstance(project)
         val state = LuaProjectSettings.State()
         state.languageLevel = LuaLanguageLevel.LUA51
-        val redisVersion = PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, LuaLanguageLevel.LUA51.version)
-            ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.REDIS)!!
+        val redisVersion =
+            PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, LuaLanguageLevel.LUA51.version)
+                ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.REDIS)!!
         state.setTarget(Target(LuaPlatform.REDIS, redisVersion))
 
         settings.loadState(state)
-        
+
         val target = settings.state.getTarget()
         assertEquals(LuaPlatform.REDIS, target.platform)
         // Redis should use its default version (5) for LUA51
         assertEquals("5", target.version.label)
         assertEquals(LuaLanguageLevel.LUA51, settings.state.languageLevel)
     }
-
 
     fun testScenario3UnknownVersion() {
         val settings = LuaProjectSettings.getInstance(project)
@@ -59,8 +58,9 @@ class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
         val settings = LuaProjectSettings.getInstance(project)
         val state = LuaProjectSettings.State()
         state.languageLevel = LuaLanguageLevel.LUA51
-        val tarantoolVersion = PlatformVersionRegistry.findVersion(LuaPlatform.TARANTOOL, LuaLanguageLevel.LUA51.version)
-            ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.TARANTOOL)!!
+        val tarantoolVersion =
+            PlatformVersionRegistry.findVersion(LuaPlatform.TARANTOOL, LuaLanguageLevel.LUA51.version)
+                ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.TARANTOOL)!!
         state.setTarget(Target(LuaPlatform.TARANTOOL, tarantoolVersion))
 
         settings.loadState(state)
@@ -69,6 +69,4 @@ class LuaProjectSettingsMigrationIntegrationTest : BasePlatformTestCase() {
         assertEquals(LuaPlatform.TARANTOOL, target.platform)
         assertEquals("2.10", target.version.label)
     }
-
 }
-

@@ -5,7 +5,6 @@ import java.io.File
 import java.nio.file.Files
 
 class LuaCoverageProgramRunnerTest : BasePlatformTestCase() {
-
     // MAINT-32-03 TC-07: a stale luacov.stats.out is removed before the run.
     fun testClearStaleStatsDeletesExistingFile() {
         val workDir = Files.createTempDirectory("lunar_coverage").toFile()

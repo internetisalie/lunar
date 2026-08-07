@@ -29,15 +29,16 @@ data class LuaRocksVersion(
 
     companion object {
         /** Symbolic pre-release / source-control tokens, mapped to numeric deltas (from LuaRocks). */
-        private val DELTAS: Map<String, Double> = mapOf(
-            "dev" to 120000000.0,
-            "scm" to 110000000.0,
-            "cvs" to 100000000.0,
-            "rc" to -1000.0,
-            "pre" to -10000.0,
-            "beta" to -100000.0,
-            "alpha" to -1000000.0,
-        )
+        private val DELTAS: Map<String, Double> =
+            mapOf(
+                "dev" to 120000000.0,
+                "scm" to 110000000.0,
+                "cvs" to 100000000.0,
+                "rc" to -1000.0,
+                "pre" to -10000.0,
+                "beta" to -100000.0,
+                "alpha" to -1000000.0,
+            )
 
         private val REVISION = Regex("^(.*)-(\\d+)$")
         private val DIGITS = Regex("^\\d+")

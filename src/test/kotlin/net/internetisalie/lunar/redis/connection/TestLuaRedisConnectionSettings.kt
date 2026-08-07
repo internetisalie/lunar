@@ -15,7 +15,6 @@ import kotlin.test.assertNull
  * metadata persistence contract and the no-secret-in-XML invariant with a headless serializer.
  */
 class TestLuaRedisConnectionSettings {
-
     @Test
     fun upsertThenFindByIdRoundTripsAllScalarFields() {
         val settings = LuaRedisConnectionSettings()
@@ -37,7 +36,9 @@ class TestLuaRedisConnectionSettings {
         settings.upsert(sampleConnection())
 
         val element = XmlSerializer.serialize(settings.state)
-        val serializedXml = com.intellij.openapi.util.JDOMUtil.write(element)
+        val serializedXml =
+            com.intellij.openapi.util.JDOMUtil
+                .write(element)
         val restoredState = XmlSerializer.deserialize(element, LuaRedisConnectionSettings.State::class.java)
 
         val reloaded = LuaRedisConnectionSettings()
@@ -75,8 +76,12 @@ class TestLuaRedisConnectionSettings {
     @Test
     fun localBinaryAndDockerProvisioningRoundTrip() {
         val settings = LuaRedisConnectionSettings()
-        settings.upsert(sampleConnection().copy(id = "b1", provisioning = LuaRedisProvisioning.LocalBinary("redis-server")))
-        settings.upsert(sampleConnection().copy(id = "d1", provisioning = LuaRedisProvisioning.Docker("valkey/valkey:8")))
+        settings.upsert(
+            sampleConnection().copy(id = "b1", provisioning = LuaRedisProvisioning.LocalBinary("redis-server")),
+        )
+        settings.upsert(
+            sampleConnection().copy(id = "d1", provisioning = LuaRedisProvisioning.Docker("valkey/valkey:8")),
+        )
 
         val element = XmlSerializer.serialize(settings.state)
         val restoredState = XmlSerializer.deserialize(element, LuaRedisConnectionSettings.State::class.java)

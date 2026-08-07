@@ -16,7 +16,9 @@ import net.internetisalie.lunar.lang.psi.LuaWhileStatement
  * `LuaFuncDef` (`local f = function() … end`): hoisting a body out of an expression position would
  * produce invalid Lua (risks DR-02 → exclude). EDITOR-06.
  */
-enum class LuaConstruct(val unwrapDescription: String) {
+enum class LuaConstruct(
+    val unwrapDescription: String,
+) {
     IF("Unwrap 'if'"),
     WHILE("Unwrap 'while'"),
     FOR("Unwrap 'for'"),
@@ -24,13 +26,14 @@ enum class LuaConstruct(val unwrapDescription: String) {
     FUNCTION("Unwrap 'function'"),
     ;
 
-    fun matches(e: PsiElement): Boolean = when (this) {
-        IF -> e is LuaIfStatement
-        WHILE -> e is LuaWhileStatement
-        FOR -> e is LuaNumericForStatement || e is LuaGenericForStatement
-        DO -> e is LuaDoStatement
-        FUNCTION -> e is LuaFuncDecl || e is LuaLocalFuncDecl || e is LuaGlobalFuncDecl
-    }
+    fun matches(e: PsiElement): Boolean =
+        when (this) {
+            IF -> e is LuaIfStatement
+            WHILE -> e is LuaWhileStatement
+            FOR -> e is LuaNumericForStatement || e is LuaGenericForStatement
+            DO -> e is LuaDoStatement
+            FUNCTION -> e is LuaFuncDecl || e is LuaLocalFuncDecl || e is LuaGlobalFuncDecl
+        }
 
     companion object {
         /** True if [e] is any unwrappable/removable block construct (excludes expression-form `LuaFuncDef`). */

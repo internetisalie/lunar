@@ -14,10 +14,14 @@ import net.internetisalie.lunar.lang.syntax.getLuaStringDelimiterLength
  * strings so the platform default applies. EDITOR-04-02. Stateless. Design §2.1 / §3.1.
  */
 class LuaStringInteriorSelectioner : ExtendWordSelectionHandlerBase() {
-
     override fun canSelect(e: PsiElement): Boolean = e.node?.elementType == LuaElementTypes.STRING
 
-    override fun select(e: PsiElement, editorText: CharSequence, cursorOffset: Int, editor: Editor): List<TextRange>? {
+    override fun select(
+        e: PsiElement,
+        editorText: CharSequence,
+        cursorOffset: Int,
+        editor: Editor,
+    ): List<TextRange>? {
         val raw = e.text
         val delimiterLength = getLuaStringDelimiterLength(raw)
         if (delimiterLength == 0 || raw.length < 2 * delimiterLength) return null

@@ -10,8 +10,10 @@ import org.junit.Test
  * class name, so these run in the routine suite and in CI.
  */
 class LexerInvariantsTest {
-
-    private fun assertRoundTrips(label: String, source: String) {
+    private fun assertRoundTrips(
+        label: String,
+        source: String,
+    ) {
         val result = LexerInvariants.check(source)
         assertNull("$label: lexer threw ${result.crash}", result.crash)
         assertTrue("$label: tokens do not reconstitute the source", !result.roundTripFailed)

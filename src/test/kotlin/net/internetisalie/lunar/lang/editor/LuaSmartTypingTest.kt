@@ -16,7 +16,6 @@ import net.internetisalie.lunar.settings.LuaEditorOptions
  * caret position, not exact indent columns (known harness quirk; live-IDE columns checked manually).
  */
 class LuaSmartTypingTest : BasePlatformTestCase() {
-
     // --- TC-1: bracket auto-close (EDITOR-01-01) ---
 
     // TC-1: bracket auto-close delivered by platform + brace-matcher.
@@ -114,9 +113,10 @@ class LuaSmartTypingTest : BasePlatformTestCase() {
         PsiDocumentManager.getInstance(project).commitDocument(editor.document)
         val offset = editor.caretModel.offset
         val leaf = file.findElementAt(offset - 1) ?: return
-        val inserted = WriteCommandAction.runWriteCommandAction<Boolean>(project) {
-            LuaKeywordBlockCloser.closeIfNeeded(editor, file, leaf.textRange.endOffset)
-        }
+        val inserted =
+            WriteCommandAction.runWriteCommandAction<Boolean>(project) {
+                LuaKeywordBlockCloser.closeIfNeeded(editor, file, leaf.textRange.endOffset)
+            }
         if (inserted == true) {
             assertEquals("end scaffolded once", 1, countWord(editor.document.text, "end"))
         }
@@ -172,6 +172,8 @@ class LuaSmartTypingTest : BasePlatformTestCase() {
         super.tearDown()
     }
 
-    private fun countWord(text: String, word: String): Int =
-        Regex("\\b${Regex.escape(word)}\\b").findAll(text).count()
+    private fun countWord(
+        text: String,
+        word: String,
+    ): Int = Regex("\\b${Regex.escape(word)}\\b").findAll(text).count()
 }

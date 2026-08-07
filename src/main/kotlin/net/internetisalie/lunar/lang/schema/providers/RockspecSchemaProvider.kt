@@ -21,7 +21,6 @@ sealed class RockspecSchemaProvider(
     private val displayName: String,
     private val schemaResourcePath: String,
 ) : LuaSchemaFileProvider() {
-
     /** Provider for v3.0-and-below rockspecs (the LuaRocks default when `rockspec_format` is absent). */
     class V30 : RockspecSchemaProvider("Rockspec v3.0", "/jsonschema/rockspec-schema-v30.json") {
         override fun isAvailable(file: VirtualFile): Boolean = isRockspec(file) && !isFormat31(file)
@@ -61,9 +60,16 @@ sealed class RockspecSchemaProvider(
 
         /** The unquoted string assigned to the first top-level `rockspec_format = "…"`, or null. */
         private fun extractFormatValue(luaFile: LuaFile): String? {
-            val assignment = PsiTreeUtil.findChildrenOfType(luaFile, LuaAssignmentStatement::class.java)
-                .firstOrNull { it.varList.varList.firstOrNull()?.nameRef?.text == FORMAT_VARIABLE }
-                ?: return null
+            val assignment =
+                PsiTreeUtil
+                    .findChildrenOfType(luaFile, LuaAssignmentStatement::class.java)
+                    .firstOrNull {
+                        it.varList.varList
+                            .firstOrNull()
+                            ?.nameRef
+                            ?.text == FORMAT_VARIABLE
+                    }
+                    ?: return null
             val valueExpr = assignment.exprList.exprList.firstOrNull() as? LuaTerminalExpr
             val literal = valueExpr?.string?.text ?: return null
             return literal.trim('"', '\'')

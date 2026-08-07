@@ -19,11 +19,12 @@ object LuaRocksBridgeFiles {
     private val log = logger<LuaRocksBridgeFiles>()
 
     /** Classpath-relative resource names, mirrored to the extraction directory. */
-    private val RESOURCES = listOf(
-        "lua/rockspec.lua",
-        "lua/lunar/json.lua",
-        "lua/lunar/export.lua",
-    )
+    private val RESOURCES =
+        listOf(
+            "lua/rockspec.lua",
+            "lua/lunar/json.lua",
+            "lua/lunar/export.lua",
+        )
 
     @Volatile
     private var extractedDir: Path? = null
@@ -34,14 +35,16 @@ object LuaRocksBridgeFiles {
      */
     @Synchronized
     fun ensureExtracted(): Path {
-        val root = extractedDir
-            ?: Path.of(PathManager.getTempPath(), "lunar-rocks", "lua").also { extractedDir = it }
+        val root =
+            extractedDir
+                ?: Path.of(PathManager.getTempPath(), "lunar-rocks", "lua").also { extractedDir = it }
         for (resource in RESOURCES) {
             val target = root.resolve(resource.removePrefix("lua/"))
             if (Files.isRegularFile(target)) continue
             Files.createDirectories(target.parent)
-            val stream = javaClass.classLoader.getResourceAsStream(resource)
-                ?: error("Bundled bridge script not found on classpath: $resource")
+            val stream =
+                javaClass.classLoader.getResourceAsStream(resource)
+                    ?: error("Bundled bridge script not found on classpath: $resource")
             stream.use { Files.copy(it, target, StandardCopyOption.REPLACE_EXISTING) }
             log.debug("Extracted bridge script $resource -> $target")
         }

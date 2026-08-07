@@ -16,12 +16,13 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * `RockspecDependencyEditorTest`.
  */
 class LuaRocksRockspecDependencyServiceTest : BasePlatformTestCase() {
-
     fun `test applyTo writes the rock into the rockspec under a write command`() {
-        val rockspec: VirtualFile = myFixture.addFileToProject(
-            "demo-1.0-1.rockspec",
-            "package = \"demo\"\nversion = \"1.0-1\"\ndependencies = { \"lua >= 5.1\" }\n",
-        ).virtualFile
+        val rockspec: VirtualFile =
+            myFixture
+                .addFileToProject(
+                    "demo-1.0-1.rockspec",
+                    "package = \"demo\"\nversion = \"1.0-1\"\ndependencies = { \"lua >= 5.1\" }\n",
+                ).virtualFile
 
         LuaRocksRockspecDependencyService(project).applyTo(rockspec, "inspect", ">= 3.1")
 

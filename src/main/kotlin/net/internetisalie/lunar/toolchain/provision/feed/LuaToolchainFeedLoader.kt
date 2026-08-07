@@ -27,20 +27,23 @@ object LuaToolchainFeedLoader {
         spec: String,
         platform: LuaHostPlatform,
     ): LuaFeedVersion {
-        val kind = feed.kinds[kindId]
-            ?: throw LuaProvisionException("Unknown toolchain kind '$kindId' in feed.")
+        val kind =
+            feed.kinds[kindId]
+                ?: throw LuaProvisionException("Unknown toolchain kind '$kindId' in feed.")
         return LuaFeedVersionResolver(kindId, kind, platform).resolve(spec)
     }
 
     private fun parse(): LuaToolchainFeed {
-        val stream = LuaToolchainFeedLoader::class.java.getResourceAsStream(RESOURCE)
-            ?: throw LuaProvisionException("Corrupt toolchain feed: bundled resource '$RESOURCE' is missing.")
+        val stream =
+            LuaToolchainFeedLoader::class.java.getResourceAsStream(RESOURCE)
+                ?: throw LuaProvisionException("Corrupt toolchain feed: bundled resource '$RESOURCE' is missing.")
         return stream.use {
-            val root = runCatching {
-                JsonParser.parseReader(InputStreamReader(it, StandardCharsets.UTF_8)).asJsonObject
-            }.getOrElse { failure ->
-                throw LuaProvisionException("Corrupt toolchain feed: ${describe(failure)}", failure)
-            }
+            val root =
+                runCatching {
+                    JsonParser.parseReader(InputStreamReader(it, StandardCharsets.UTF_8)).asJsonObject
+                }.getOrElse { failure ->
+                    throw LuaProvisionException("Corrupt toolchain feed: ${describe(failure)}", failure)
+                }
             LuaFeedJsonParser.parseFeed(root)
         }
     }

@@ -9,7 +9,10 @@ import kotlin.test.assertTrue
 
 /** Covers TC-ROCKS-03-02 (unsatisfiable + violated) and TC-ROCKS-03-05 (missing dependency). */
 class VersionConflictEngineTest {
-    private fun node(name: String, version: String?): DependencyNode =
+    private fun node(
+        name: String,
+        version: String?,
+    ): DependencyNode =
         DependencyNode(name, isTransitive = true, resolvedVersion = version?.let { LuaRocksVersion.parse(it) })
 
     private fun constraint(piece: String) = VersionConstraint.parse(piece)!!
@@ -35,10 +38,11 @@ class VersionConflictEngineTest {
     @Test
     fun unsatisfiableConstraintSetIsFlaggedEvenWhenMissing() {
         val root = DependencyNode("project", isTransitive = false)
-        val lib = node("lib", null).apply {
-            requiredConstraints += constraint(">= 2.0")
-            requiredConstraints += constraint("< 1.5")
-        }
+        val lib =
+            node("lib", null).apply {
+                requiredConstraints += constraint(">= 2.0")
+                requiredConstraints += constraint("< 1.5")
+            }
         root.children += lib
         VersionConflictEngine.annotate(root)
         assertTrue(lib.conflicts.any { it.type == ConflictType.MISSING_DEPENDENCY })
@@ -59,10 +63,11 @@ class VersionConflictEngineTest {
     @Test
     fun equalVersionWithExclusiveUpperIsFlaggedUnsatisfiable() {
         val root = DependencyNode("project", isTransitive = false)
-        val lib = node("lib", null).apply {
-            requiredConstraints += constraint(">= 2.0")
-            requiredConstraints += constraint("< 2.0")
-        }
+        val lib =
+            node("lib", null).apply {
+                requiredConstraints += constraint(">= 2.0")
+                requiredConstraints += constraint("< 2.0")
+            }
         root.children += lib
         VersionConflictEngine.annotate(root)
         assertTrue(
@@ -74,10 +79,11 @@ class VersionConflictEngineTest {
     @Test
     fun equalVersionBothInclusiveIsSatisfiable() {
         val root = DependencyNode("project", isTransitive = false)
-        val lib = node("lib", "2.0").apply {
-            requiredConstraints += constraint(">= 2.0")
-            requiredConstraints += constraint("<= 2.0")
-        }
+        val lib =
+            node("lib", "2.0").apply {
+                requiredConstraints += constraint(">= 2.0")
+                requiredConstraints += constraint("<= 2.0")
+            }
         root.children += lib
         VersionConflictEngine.annotate(root)
         assertTrue(

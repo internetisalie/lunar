@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets
  * goes through the classloader directly to avoid VFS refresh events in tests.
  */
 object RedisSandboxAllowlist {
-
     /** Root names from Lua stdlib that the Redis sandbox blocks entirely (no stub). */
     private val BLOCKED_ROOTS = setOf("io", "require", "dofile", "loadfile", "print", "load")
 
@@ -44,7 +43,10 @@ object RedisSandboxAllowlist {
      * The actual resource scan uses the classloader to avoid VFS side-effects.
      */
     @Suppress("UNUSED_PARAMETER")
-    fun forTarget(project: Project, target: Target): Allowlist {
+    fun forTarget(
+        project: Project,
+        target: Target,
+    ): Allowlist {
         val key = target.version.pathSegment
         synchronized(cacheLock) {
             return cache.getOrPut(key) { computeAllowlist(target) }
@@ -53,9 +55,11 @@ object RedisSandboxAllowlist {
 
     private fun computeAllowlist(target: Target): Allowlist {
         val basePath = target.getLibraryRootPath()
-        val stubRoots = KNOWN_STUB_NAMES.filter { name ->
-            javaClass.classLoader.getResource("$basePath/$name.lua") != null
-        }.toSet()
+        val stubRoots =
+            KNOWN_STUB_NAMES
+                .filter { name ->
+                    javaClass.classLoader.getResource("$basePath/$name.lua") != null
+                }.toSet()
         val osMembers = parseOsMembers(basePath)
         return Allowlist(stubRoots, osMembers)
     }
@@ -68,11 +72,12 @@ object RedisSandboxAllowlist {
      */
     private fun parseOsMembers(basePath: String): Set<String> {
         val url = javaClass.classLoader.getResource("$basePath/os.lua") ?: return emptySet()
-        val content = runCatching {
-            url.openStream().use { stream ->
-                InputStreamReader(stream, StandardCharsets.UTF_8).readText()
-            }
-        }.getOrNull() ?: return emptySet()
+        val content =
+            runCatching {
+                url.openStream().use { stream ->
+                    InputStreamReader(stream, StandardCharsets.UTF_8).readText()
+                }
+            }.getOrNull() ?: return emptySet()
         val members = mutableSetOf<String>()
         for (line in content.lineSequence()) {
             val trimmed = line.trim()
@@ -98,8 +103,7 @@ object RedisSandboxAllowlist {
          * Returns `true` when accessing [rootName] at the top level is blocked in the sandbox.
          * A root is blocked when it is a known Lua stdlib name AND has no stub file.
          */
-        fun isBlockedRoot(rootName: String): Boolean =
-            rootName in BLOCKED_ROOTS && rootName !in stubRoots
+        fun isBlockedRoot(rootName: String): Boolean = rootName in BLOCKED_ROOTS && rootName !in stubRoots
 
         /**
          * Returns `true` when `os.<memberName>` is allowed in the sandbox.

@@ -11,7 +11,13 @@ data class WorkspaceRock(
 
 /** Result of ordering. */
 sealed interface BuildPlan {
-    data class Ordered(val rocks: List<WorkspaceRock>) : BuildPlan
-    data class Cycle(val packages: Set<String>) : BuildPlan
+    data class Ordered(
+        val rocks: List<WorkspaceRock>,
+    ) : BuildPlan
+
+    data class Cycle(
+        val packages: Set<String>,
+    ) : BuildPlan
+
     data object Empty : BuildPlan
 }

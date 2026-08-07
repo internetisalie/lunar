@@ -15,14 +15,18 @@ private const val RUNTIME_KIND_ID = "runtime-capability"
 
 @Service(Service.Level.APP)
 class LuaToolResolver {
-
     private val registry: LuaToolchainRegistry
         get() = LuaToolchainRegistry.getInstance()
 
-    fun resolve(project: Project?, kindId: String): LuaRegisteredTool? =
-        (resolveDetailed(project, kindId) as? LuaToolResolution.Resolved)?.tool
+    fun resolve(
+        project: Project?,
+        kindId: String,
+    ): LuaRegisteredTool? = (resolveDetailed(project, kindId) as? LuaToolResolution.Resolved)?.tool
 
-    fun resolveDetailed(project: Project?, kindId: String): LuaToolResolution {
+    fun resolveDetailed(
+        project: Project?,
+        kindId: String,
+    ): LuaToolResolution {
         val trace = SkipTrace()
         val matches: (LuaRegisteredTool) -> Boolean = { it.kindId == kindId }
         val settings = project?.let { LuaToolchainProjectSettings.getInstance(it) }
@@ -48,8 +52,10 @@ class LuaToolResolver {
         return LuaToolResolution.Unresolved(kindId, trace.entries())
     }
 
-    fun resolveIn(environment: LuaEnvironmentState, kindId: String): LuaRegisteredTool? =
-        tierEnvironment(environment, { it.kindId == kindId }, SkipTrace())
+    fun resolveIn(
+        environment: LuaEnvironmentState,
+        kindId: String,
+    ): LuaRegisteredTool? = tierEnvironment(environment, { it.kindId == kindId }, SkipTrace())
 
     fun resolveRuntime(project: Project?): LuaRegisteredTool? =
         (resolveRuntimeDetailed(project) as? LuaToolResolution.Resolved)?.tool
@@ -78,9 +84,11 @@ class LuaToolResolver {
     }
 
     fun resolveAll(project: Project?): Map<String, LuaRegisteredTool> =
-        LuaToolKindRegistry.all().mapNotNull { kind ->
-            resolve(project, kind.id)?.let { kind.id to it }
-        }.toMap()
+        LuaToolKindRegistry
+            .all()
+            .mapNotNull { kind ->
+                resolve(project, kind.id)?.let { kind.id to it }
+            }.toMap()
 
     fun notConfiguredMessage(kindId: String): String {
         val displayName = LuaToolKindRegistry.findById(kindId)?.displayName ?: kindId
@@ -91,7 +99,7 @@ class LuaToolResolver {
     private fun tierEnvironment(
         environment: LuaEnvironmentState,
         matches: (LuaRegisteredTool) -> Boolean,
-        trace: SkipTrace
+        trace: SkipTrace,
     ): LuaRegisteredTool? {
         for (toolId in environment.toolIds) {
             val tool = registry.tool(toolId)
@@ -109,14 +117,19 @@ class LuaToolResolver {
         return null
     }
 
-    private fun tierBound(boundId: String, bound: BoundTier, trace: SkipTrace): LuaRegisteredTool? {
+    private fun tierBound(
+        boundId: String,
+        bound: BoundTier,
+        trace: SkipTrace,
+    ): LuaRegisteredTool? {
         val tool = registry.tool(boundId)
-        val reason = when {
-            tool == null -> SkipReason.NOT_IN_INVENTORY
-            tool.kindId != bound.expectedKindId -> SkipReason.WRONG_KIND
-            !tool.isUsable -> SkipReason.UNUSABLE
-            else -> return tool
-        }
+        val reason =
+            when {
+                tool == null -> SkipReason.NOT_IN_INVENTORY
+                tool.kindId != bound.expectedKindId -> SkipReason.WRONG_KIND
+                !tool.isUsable -> SkipReason.UNUSABLE
+                else -> return tool
+            }
         trace.record(bound.tier, boundId, reason)
         return null
     }
@@ -124,7 +137,7 @@ class LuaToolResolver {
     private fun resolveBoundRuntime(
         tier: ResolutionSource,
         boundIdOf: (String) -> String?,
-        trace: SkipTrace
+        trace: SkipTrace,
     ): LuaToolResolution.Resolved? {
         for (kind in runtimeKinds()) {
             val boundId = boundIdOf(kind.id) ?: continue
@@ -139,12 +152,19 @@ class LuaToolResolver {
     private fun inventoryFallback(matches: (LuaRegisteredTool) -> Boolean): LuaRegisteredTool? =
         registry.tools().firstOrNull { matches(it) && it.isUsable }
 
-    private data class BoundTier(val tier: ResolutionSource, val expectedKindId: String)
+    private data class BoundTier(
+        val tier: ResolutionSource,
+        val expectedKindId: String,
+    )
 
     private class SkipTrace {
         private val skipped = mutableListOf<SkippedBinding>()
 
-        fun record(tier: ResolutionSource, toolId: String, reason: SkipReason) {
+        fun record(
+            tier: ResolutionSource,
+            toolId: String,
+            reason: SkipReason,
+        ) {
             skipped += SkippedBinding(tier, toolId, reason)
         }
 
@@ -152,7 +172,6 @@ class LuaToolResolver {
     }
 
     companion object {
-        fun getInstance(): LuaToolResolver =
-            ApplicationManager.getApplication().getService(LuaToolResolver::class.java)
+        fun getInstance(): LuaToolResolver = ApplicationManager.getApplication().getService(LuaToolResolver::class.java)
     }
 }

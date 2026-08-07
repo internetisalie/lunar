@@ -30,7 +30,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class ValkeyStubResourceTest : IndexedBasePlatformTestCase() {
-
     /**
      * Set the project target to `Target(VALKEY, "8")` and force the platform-library roots +
      * stub index to reload, so the bundled `runtime/valkey/valkey-8/` stubs are indexed and
@@ -67,7 +66,10 @@ class ValkeyStubResourceTest : IndexedBasePlatformTestCase() {
     }
 
     /** Resolve the member leaf of a `receiver.member(...)` call in [source] against the bundled stubs. */
-    private fun resolveCountForMember(source: String, member: String): Int {
+    private fun resolveCountForMember(
+        source: String,
+        member: String,
+    ): Int {
         setValkey8Target()
         myFixture.configureByText("test.lua", source)
         return runReadAction {

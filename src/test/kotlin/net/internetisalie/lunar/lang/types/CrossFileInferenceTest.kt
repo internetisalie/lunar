@@ -24,7 +24,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class CrossFileInferenceTest : IndexedBasePlatformTestCase() {
-
     // =========================================================================
     // Module require resolution
     // =========================================================================
@@ -36,17 +35,18 @@ class CrossFileInferenceTest : IndexedBasePlatformTestCase() {
             """
             ---@type string
             return "hello"
-            """.trimIndent()
+            """.trimIndent(),
         )
 
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local mylib = require("mylib")
-            ---@type string
-            local check = mylib
-            """.trimIndent()
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local mylib = require("mylib")
+                ---@type string
+                local check = mylib
+                """.trimIndent(),
+            )
 
         myFixture.configureByFiles("test.lua", "mylib.lua")
 
@@ -65,21 +65,29 @@ class CrossFileInferenceTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testInlayHintsExist() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local s = "hello"
-            local n = 100
-            local function f(x, y)
-                return x + y
-            end
-            """.trimIndent()
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local s = "hello"
+                local n = 100
+                local function f(x, y)
+                    return x + y
+                end
+                """.trimIndent(),
+            )
 
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertNotNull(snapshot)
         // verify inferred types
-        val sVar = PsiTreeUtil.findChildrenOfType(file, LuaLocalVarDecl::class.java).first { it.text.contains("local s") }.attNameList.first().nameRef
+        val sVar =
+            PsiTreeUtil
+                .findChildrenOfType(file, LuaLocalVarDecl::class.java)
+                .first {
+                    it.text.contains("local s")
+                }.attNameList
+                .first()
+                .nameRef
         assertEquals("string", snapshot.getValueType(sVar).displayName())
     }
 
@@ -98,17 +106,18 @@ class CrossFileInferenceTest : IndexedBasePlatformTestCase() {
             end
             ---@type string
             return "hi"
-            """.trimIndent()
+            """.trimIndent(),
         )
 
-        val file = myFixture.configureByText(
-            "test_early.lua",
-            """
-            local mod = require("early")
-            ---@type boolean
-            local check = mod -- Error: number | string not assignable to boolean
-            """.trimIndent()
-        )
+        val file =
+            myFixture.configureByText(
+                "test_early.lua",
+                """
+                local mod = require("early")
+                ---@type boolean
+                local check = mod -- Error: number | string not assignable to boolean
+                """.trimIndent(),
+            )
 
         myFixture.configureByFiles("test_early.lua", "early.lua")
 
@@ -116,7 +125,9 @@ class CrossFileInferenceTest : IndexedBasePlatformTestCase() {
         val errors = snapshot.getErrors()
 
         assertFalse("Should have errors for invalid assignment from early return module", errors.isEmpty())
-        assertTrue("Error should mention number | string and boolean, but got: ${errors.map { it.message }}",
-            errors.any { it.message.contains("number | string") && it.message.contains("boolean") })
+        assertTrue(
+            "Error should mention number | string and boolean, but got: ${errors.map { it.message }}",
+            errors.any { it.message.contains("number | string") && it.message.contains("boolean") },
+        )
     }
 }

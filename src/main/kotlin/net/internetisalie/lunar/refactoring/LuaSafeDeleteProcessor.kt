@@ -36,7 +36,6 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  * found" conflict dialog when any remain (REFACT-03-03).
  */
 class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
-
     // -------------------------------------------------------------------------
     // Delegation predicate
     // -------------------------------------------------------------------------
@@ -108,7 +107,10 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
     // Post-find preprocessing — pass all usages through unchanged
     // -------------------------------------------------------------------------
 
-    override fun preprocessUsages(project: Project, usages: Array<UsageInfo>): Array<UsageInfo> = usages
+    override fun preprocessUsages(
+        project: Project,
+        usages: Array<UsageInfo>,
+    ): Array<UsageInfo> = usages
 
     // -------------------------------------------------------------------------
     // Pre-deletion hook — nothing to normalise for Lua declarations
@@ -123,11 +125,17 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
 
     override fun isToSearchInComments(element: PsiElement): Boolean = false
 
-    override fun setToSearchInComments(element: PsiElement, enabled: Boolean) {}
+    override fun setToSearchInComments(
+        element: PsiElement,
+        enabled: Boolean,
+    ) {}
 
     override fun isToSearchForTextOccurrences(element: PsiElement): Boolean = false
 
-    override fun setToSearchForTextOccurrences(element: PsiElement, enabled: Boolean) {}
+    override fun setToSearchForTextOccurrences(
+        element: PsiElement,
+        enabled: Boolean,
+    ) {}
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -167,15 +175,20 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
      * [ReferencesSearch] can locate usages via [LuaNameReferenceSearcher].
      * Returns null if [element] is already a leaf (or an unrecognised node).
      */
-    private fun identifierLeafFor(element: PsiElement): PsiElement? = when (element) {
-        is LuaLocalVarDecl -> element.attNameList.firstOrNull()?.nameRef?.identifier
-        is LuaLocalFuncDecl -> element.nameRef.identifier
-        is LuaFuncDecl -> {
-            val funcName = element.funcName
-            funcName.funcNameMethod?.nameRef?.identifier ?: funcName.nameRef.identifier
+    private fun identifierLeafFor(element: PsiElement): PsiElement? =
+        when (element) {
+            is LuaLocalVarDecl ->
+                element.attNameList
+                    .firstOrNull()
+                    ?.nameRef
+                    ?.identifier
+            is LuaLocalFuncDecl -> element.nameRef.identifier
+            is LuaFuncDecl -> {
+                val funcName = element.funcName
+                funcName.funcNameMethod?.nameRef?.identifier ?: funcName.nameRef.identifier
+            }
+            else -> null
         }
-        else -> null
-    }
 
     private companion object {
         val findUsagesProvider = LuaFindUsagesProvider()

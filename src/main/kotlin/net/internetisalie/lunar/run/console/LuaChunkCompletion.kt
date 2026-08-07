@@ -25,23 +25,30 @@ import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
  * PsiErrorElement child AND the node ends before EOF, the chunk is incomplete.
  */
 object LuaChunkCompletion {
-    fun isComplete(project: Project, text: String): Boolean = runReadActionBlocking {
-        val file = PsiFileFactory.getInstance(project)
-            .createFileFromText("repl.lua", LuaFileType, text)
-        val errors = PsiTreeUtil.findChildrenOfType(file, PsiErrorElement::class.java)
+    fun isComplete(
+        project: Project,
+        text: String,
+    ): Boolean =
+        runReadActionBlocking {
+            val file =
+                PsiFileFactory
+                    .getInstance(project)
+                    .createFileFromText("repl.lua", LuaFileType, text)
+            val errors = PsiTreeUtil.findChildrenOfType(file, PsiErrorElement::class.java)
 
-        // Primary check: error whose range ends exactly at end-of-input.
-        val errorAtEof = errors.any { it.textRange.endOffset == text.length }
-        if (errorAtEof) return@runReadActionBlocking false
+            // Primary check: error whose range ends exactly at end-of-input.
+            val errorAtEof = errors.any { it.textRange.endOffset == text.length }
+            if (errorAtEof) return@runReadActionBlocking false
 
-        // Secondary check (SYNTAX-18): funcBody rollback places error before `(` rather than EOF.
-        // If any func-decl node has a direct PsiErrorElement child and ends before EOF, the
-        // function body was rolled back — the chunk is incomplete (the programmer is still typing).
-        val hasPartialFuncDecl = errors.any { err ->
-            val parent = err.parent ?: return@any false
-            parent.textRange.endOffset < text.length &&
-                (parent is LuaFuncDecl || parent is LuaLocalFuncDecl || parent is LuaGlobalFuncDecl)
+            // Secondary check (SYNTAX-18): funcBody rollback places error before `(` rather than EOF.
+            // If any func-decl node has a direct PsiErrorElement child and ends before EOF, the
+            // function body was rolled back — the chunk is incomplete (the programmer is still typing).
+            val hasPartialFuncDecl =
+                errors.any { err ->
+                    val parent = err.parent ?: return@any false
+                    parent.textRange.endOffset < text.length &&
+                        (parent is LuaFuncDecl || parent is LuaLocalFuncDecl || parent is LuaGlobalFuncDecl)
+                }
+            !hasPartialFuncDecl
         }
-        !hasPartialFuncDecl
-    }
 }

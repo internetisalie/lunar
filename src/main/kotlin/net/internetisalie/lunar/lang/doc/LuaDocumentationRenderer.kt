@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.lang.doc
 
-import com.intellij.codeInsight.documentation.DocumentationManagerProtocol
 import com.intellij.codeInsight.documentation.DocumentationManagerUtil
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.TextAttributesKey
@@ -26,31 +25,31 @@ import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 
 object LuaDocumentationRenderer {
-    val DOC_COMMENT_HEADER = """
-            <html>
-                <head>
-                    <style type="text/css">
-                        #error {
-                            background-color: #eeeeee;
-                            margin-bottom: 10px;
-                        }
-                        .body {
-                           text-indent: 20px;
-                           margin-bottom: 5px;
-                        }
-                    </style>
-                </head>
-                <body>
-            """.trimIndent()
+    val DOC_COMMENT_HEADER =
+        """
+        <html>
+            <head>
+                <style type="text/css">
+                    #error {
+                        background-color: #eeeeee;
+                        margin-bottom: 10px;
+                    }
+                    .body {
+                       text-indent: 20px;
+                       margin-bottom: 5px;
+                    }
+                </style>
+            </head>
+            <body>
+        """.trimIndent()
 
-    val DOC_COMMENT_FOOTER = """
-                </body>
-            </html>
-            """.trimIndent()
+    val DOC_COMMENT_FOOTER =
+        """
+            </body>
+        </html>
+        """.trimIndent()
 
-    fun renderHintDocumentation(element: PsiElement): String? {
-        return renderFullDocumentation(element)
-    }
+    fun renderHintDocumentation(element: PsiElement): String? = renderFullDocumentation(element)
 
     // Render the full documentation for the specified element.
     fun renderFullDocumentation(element: PsiElement): String? {
@@ -73,7 +72,10 @@ object LuaDocumentationRenderer {
         }
     }
 
-    fun renderCommentOwnerDocumentation(sb: StringBuilder, element: LuaCommentOwner) {
+    fun renderCommentOwnerDocumentation(
+        sb: StringBuilder,
+        element: LuaCommentOwner,
+    ) {
         val catsComment = element.catsComment
         if (catsComment != null) {
             LuaCatsDocumentationRenderer.render(sb, element, catsComment)
@@ -88,9 +90,13 @@ object LuaDocumentationRenderer {
     }
 
     fun highlightLuaCode(code: String): String {
-        val lexer = net.internetisalie.lunar.lang.lexer.LuaLexer()
+        val lexer =
+            net.internetisalie.lunar.lang.lexer
+                .LuaLexer()
         lexer.start(code)
-        val highlighter = net.internetisalie.lunar.lang.syntax.LuaSyntaxHighlighter()
+        val highlighter =
+            net.internetisalie.lunar.lang.syntax
+                .LuaSyntaxHighlighter()
         val sb = StringBuilder()
         while (lexer.tokenType != null) {
             val tokenType = lexer.tokenType!!
@@ -113,35 +119,50 @@ object LuaDocumentationRenderer {
 
         // Post-process to highlight Lua code blocks
         val regex = Regex("<pre><code class=\"language-lua\">([\\s\\S]*?)</code></pre>")
-        html = regex.replace(html) { matchResult ->
-            val escapedCode = matchResult.groupValues[1]
-            // Basic unescape (since Markdown library might have escaped it)
-            val code = escapedCode.replace("&quot;", "\"")
-                .replace("&apos;", "'")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&amp;", "&")
+        html =
+            regex.replace(html) { matchResult ->
+                val escapedCode = matchResult.groupValues[1]
+                // Basic unescape (since Markdown library might have escaped it)
+                val code =
+                    escapedCode
+                        .replace("&quot;", "\"")
+                        .replace("&apos;", "'")
+                        .replace("&lt;", "<")
+                        .replace("&gt;", ">")
+                        .replace("&amp;", "&")
 
-            "<pre><code>${highlightLuaCode(code)}</code></pre>"
-        }
+                "<pre><code>${highlightLuaCode(code)}</code></pre>"
+            }
 
         // Strip <body> and <html> wrappers if present
-        return html.removePrefix("<body>").removeSuffix("</body>")
-            .removePrefix("<html>").removeSuffix("</html>")
+        return html
+            .removePrefix("<body>")
+            .removeSuffix("</body>")
+            .removePrefix("<html>")
+            .removeSuffix("</html>")
             .trim()
     }
 }
 
 object LuaPlainDocumentationRenderer {
-    fun render(sb: StringBuilder, element: LuaCommentOwner, comment: PsiComment) {
+    fun render(
+        sb: StringBuilder,
+        element: LuaCommentOwner,
+        comment: PsiComment,
+    ) {
         when (element) {
             is LuaFuncDecl -> renderLuaFuncDecl(sb, element, comment)
             is LuaLocalFuncDecl -> renderLuaLocalFuncDecl(sb, element, comment)
         }
     }
 
-    private fun renderLuaFuncDecl(sb: StringBuilder, element: LuaFuncDecl, comment: PsiComment) {
-        sb.append("<pre>")
+    private fun renderLuaFuncDecl(
+        sb: StringBuilder,
+        element: LuaFuncDecl,
+        comment: PsiComment,
+    ) {
+        sb
+            .append("<pre>")
             .append("function ")
             .append(element.funcName.text)
         renderLuaParList(sb, element.parList)
@@ -149,8 +170,13 @@ object LuaPlainDocumentationRenderer {
         renderComment(sb, comment)
     }
 
-    private fun renderLuaLocalFuncDecl(sb: StringBuilder, element: LuaLocalFuncDecl, comment: PsiComment) {
-        sb.append("<pre>")
+    private fun renderLuaLocalFuncDecl(
+        sb: StringBuilder,
+        element: LuaLocalFuncDecl,
+        comment: PsiComment,
+    ) {
+        sb
+            .append("<pre>")
             .append(codeFragment(LuaHighlight.KEYWORD, "local function"))
             .append(" ")
             .append(codeFragment(LuaHighlight.VAR_LOCAL, element.nameRef.text))
@@ -159,7 +185,10 @@ object LuaPlainDocumentationRenderer {
         renderComment(sb, comment)
     }
 
-    private fun renderComment(sb: StringBuilder, comment: PsiComment) {
+    private fun renderComment(
+        sb: StringBuilder,
+        comment: PsiComment,
+    ) {
         val comments = mutableListOf<PsiComment>()
         var curr: PsiElement? = comment
 
@@ -185,22 +214,28 @@ object LuaPlainDocumentationRenderer {
         sb.append(LuaDocumentationRenderer.markdownDescription(text))
     }
 
-    private fun renderLuaParList(sb: StringBuilder, element: LuaParList?) {
-        sb.append(codeFragment(LuaHighlight.OPERATORS, "("))
+    private fun renderLuaParList(
+        sb: StringBuilder,
+        element: LuaParList?,
+    ) {
+        sb
+            .append(codeFragment(LuaHighlight.OPERATORS, "("))
             .append(element?.text)
             .append(codeFragment(LuaHighlight.OPERATORS, ")"))
     }
-
 }
 
-fun codeFragment(key: TextAttributesKey, text: String): String {
+fun codeFragment(
+    key: TextAttributesKey,
+    text: String,
+): String {
     val attributes = EditorColorsManager.getInstance().globalScheme.getAttributes(key)
     val fontColor = attributes?.foregroundColor
     if (fontColor == null) {
         return HtmlChunk.text(text).toString()
     }
     val fontHex = "#${GuiUtils.colorToHex(fontColor)}"
-    return "<font color=${fontHex}>${HtmlChunk.text(text)}</font>"
+    return "<font color=$fontHex>${HtmlChunk.text(text)}</font>"
 }
 
 fun buildTypeLink(typeName: String): String {

@@ -24,7 +24,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TestLuaRunConfiguration : BaseDocumentTest() {
-
     @AfterEach
     fun resetToolchain() {
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
@@ -32,24 +31,33 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
     }
 
     private fun seedRuntime(path: String): LuaRegisteredTool {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "lua",
-            path = path,
-            version = "5.4.0",
-            luaVersion = "5.4",
-            runtime = LuaRuntimeInfo("Lua", "5.4.0", LuaLanguageLevel.LUA54, LuaPlatform.STANDARD, "Lua 5.4.0"),
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
-        )
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "lua",
+                path = path,
+                version = "5.4.0",
+                luaVersion = "5.4",
+                runtime = LuaRuntimeInfo("Lua", "5.4.0", LuaLanguageLevel.LUA54, LuaPlatform.STANDARD, "Lua 5.4.0"),
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         return tool
     }
 
     @Test
     fun testOptionsPersistence() {
-        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "Test Config")
+        val config =
+            LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "Test Config")
         config.scriptName = "myscript.lua"
         config.workingDirectory = "/home/user/work"
         config.programArguments = "--arg1 val1"
@@ -113,14 +121,16 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
     /** TC-06a (#26): the editor writes the Source-path field back on Apply and reloads it. */
     @Test
     fun testSourcePathRoundTripsThroughEditor() {
-        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+        val config =
+            LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
         config.sourcePath = "foo;bar"
 
         val editor = LuaRunSettingsEditor(myFixture.project)
         try {
             editor.resetFrom(config)
 
-            val reapplied = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg2")
+            val reapplied =
+                LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg2")
             editor.applyTo(reapplied)
 
             assertEquals("foo;bar", reapplied.sourcePath)
@@ -132,7 +142,8 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
     /** TC-06b (#56): an empty working directory resolves to the project base path. */
     @Test
     fun testEmptyWorkingDirectoryFallsBackToBasePath() {
-        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+        val config =
+            LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
 
         config.workingDirectory = ""
         assertEquals(myFixture.project.basePath, config.effectiveWorkDirectory())
@@ -144,7 +155,8 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
     /** TC-08a (C1): the debug port round-trips through the editor and defaults to 8172. */
     @Test
     fun testDebugPortRoundTripsThroughEditor() {
-        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+        val config =
+            LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
         assertEquals(LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT, config.debugPort)
         config.debugPort = 9000
 
@@ -152,7 +164,8 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
         try {
             editor.resetFrom(config)
 
-            val reapplied = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg2")
+            val reapplied =
+                LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg2")
             editor.applyTo(reapplied)
 
             assertEquals(9000, reapplied.debugPort)
@@ -167,7 +180,8 @@ class TestLuaRunConfiguration : BaseDocumentTest() {
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
         LuaToolchainProjectSettings.getInstance(myFixture.project).loadState(LuaToolchainProjectState())
 
-        val config = LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
+        val config =
+            LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")
         assertNull(config.resolveInterpreter())
         assertFailsWith<RuntimeConfigurationException> { config.checkConfiguration() }
     }

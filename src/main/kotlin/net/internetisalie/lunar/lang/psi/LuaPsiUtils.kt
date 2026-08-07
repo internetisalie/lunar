@@ -25,7 +25,6 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.util.IncorrectOperationException
 
 object LuaPsiUtils {
-
     @JvmStatic
     fun nestingLevel(element: PsiElement): Int {
         var depth = 0
@@ -112,14 +111,16 @@ object LuaPsiUtils {
     }
 
     @JvmStatic
-    fun createRange(node: PsiElement): TextRange =
-        TextRange.from(node.textOffset, node.textLength)
+    fun createRange(node: PsiElement): TextRange = TextRange.from(node.textOffset, node.textLength)
 
     @JvmStatic
     fun nodeType(element: PsiElement): IElementType? = element.node?.elementType
 
     @JvmStatic
-    fun findNextSibling(start: PsiElement, ignoreType: IElementType): PsiElement? {
+    fun findNextSibling(
+        start: PsiElement,
+        ignoreType: IElementType,
+    ): PsiElement? {
         var current = start.nextSibling
 
         while (current != null) {
@@ -134,7 +135,10 @@ object LuaPsiUtils {
     }
 
     @JvmStatic
-    fun findPreviousSibling(start: PsiElement, ignoreType: IElementType): PsiElement? {
+    fun findPreviousSibling(
+        start: PsiElement,
+        ignoreType: IElementType,
+    ): PsiElement? {
         var current = start.prevSibling
 
         while (current != null) {
@@ -150,7 +154,10 @@ object LuaPsiUtils {
 
     @JvmStatic
     @Throws(IncorrectOperationException::class)
-    fun replaceElement(original: PsiElement, replacement: PsiElement): PsiElement {
+    fun replaceElement(
+        original: PsiElement,
+        replacement: PsiElement,
+    ): PsiElement {
         try {
             return original.replace(replacement)
         } catch (e: IncorrectOperationException) {

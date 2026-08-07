@@ -22,11 +22,12 @@ object LuaJitBuildRecipe {
     fun plan(input: LuaBuildRecipeInput): BuildPlan {
         val buildDir = input.buildDir
         val prefix = input.prefix
-        val steps = listOf(
-            BuildStep(listOf("git", "clone", REPO, buildDir.toString()), buildDir.parent),
-            BuildStep(listOf("git", "-C", buildDir.toString(), "checkout", input.version), buildDir.parent),
-            BuildStep(listOf("make", "PREFIX=$prefix"), buildDir, makeEnv(input.os)),
-        )
+        val steps =
+            listOf(
+                BuildStep(listOf("git", "clone", REPO, buildDir.toString()), buildDir.parent),
+                BuildStep(listOf("git", "-C", buildDir.toString(), "checkout", input.version), buildDir.parent),
+                BuildStep(listOf("make", "PREFIX=$prefix"), buildDir, makeEnv(input.os)),
+            )
         val binary = prefix.resolve("bin/lua")
         return BuildPlan(steps, installCopies(buildDir, prefix), listOf(binary))
     }
@@ -38,13 +39,17 @@ object LuaJitBuildRecipe {
         return mapOf("MACOSX_DEPLOYMENT_TARGET" to "11.0")
     }
 
-    private fun installCopies(buildDir: Path, prefix: Path): List<Pair<Path, Path>> {
+    private fun installCopies(
+        buildDir: Path,
+        prefix: Path,
+    ): List<Pair<Path, Path>> {
         val src = buildDir.resolve("src")
-        val copies = mutableListOf(
-            src.resolve("luajit") to prefix.resolve("bin/lua"),
-            src.resolve("libluajit.a") to prefix.resolve("lib/libluajit-5.1.a"),
-            src.resolve("libluajit.so") to prefix.resolve("lib/libluajit-5.1.so.2"),
-        )
+        val copies =
+            mutableListOf(
+                src.resolve("luajit") to prefix.resolve("bin/lua"),
+                src.resolve("libluajit.a") to prefix.resolve("lib/libluajit-5.1.a"),
+                src.resolve("libluajit.so") to prefix.resolve("lib/libluajit-5.1.so.2"),
+            )
         HEADERS.forEach { header -> copies += src.resolve(header) to prefix.resolve("include/$header") }
         return copies
     }

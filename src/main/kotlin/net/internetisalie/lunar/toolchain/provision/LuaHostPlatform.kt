@@ -12,7 +12,10 @@ enum class LuaArch { X86_64, AARCH64 }
  * The current host OS/arch pair. Drives strategy selection and feed asset matching.
  * See design §2.3.
  */
-data class LuaHostPlatform(val os: LuaOs, val arch: LuaArch) {
+data class LuaHostPlatform(
+    val os: LuaOs,
+    val arch: LuaArch,
+) {
     companion object {
         fun current(): LuaHostPlatform = LuaHostPlatform(currentOs(), currentArch())
 

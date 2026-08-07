@@ -7,5 +7,5 @@ data class LuaToolCheckResult(
     val health: LuaToolHealth,
     val version: String?,
     val luaVersion: String?,
-    val runtime: LuaRuntimeInfo?
+    val runtime: LuaRuntimeInfo?,
 )

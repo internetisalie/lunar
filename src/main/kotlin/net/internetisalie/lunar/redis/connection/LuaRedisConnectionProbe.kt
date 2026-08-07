@@ -12,8 +12,14 @@ sealed interface TestOutcome {
      * A successful probe. [flavor] is the detected server flavor (null when no `INFO server` body was
      * available), consumed by the REDIS-03 §7.3 mismatch warning at the connect site.
      */
-    data class Success(val summary: String, val flavor: ServerFlavor? = null) : TestOutcome
-    data class Failure(val message: String) : TestOutcome
+    data class Success(
+        val summary: String,
+        val flavor: ServerFlavor? = null,
+    ) : TestOutcome
+
+    data class Failure(
+        val message: String,
+    ) : TestOutcome
 }
 
 /**
@@ -23,18 +29,24 @@ sealed interface TestOutcome {
  * of truth for the `valkey_version` heuristic); [version] preserves the REDIS-01 display contract:
  * `redis_version` with `valkey_version` as fallback, else `"unknown"`. Pure parsing — no I/O.
  */
-data class RespServerInfo(val flavor: String, val version: String) {
+data class RespServerInfo(
+    val flavor: String,
+    val version: String,
+) {
     fun summary(): String = "Connected to $flavor $version"
 
     companion object {
         fun parse(body: String): RespServerInfo {
-            val fields = body.split("\r\n", "\n")
-                .filter { it.contains(':') }
-                .associate { it.substringBefore(':').trim() to it.substringAfter(':').trim() }
-            val flavor = when (LuaRedisServerFlavor.detect(body).flavor) {
-                ServerFlavor.VALKEY -> "Valkey"
-                ServerFlavor.REDIS -> "Redis"
-            }
+            val fields =
+                body
+                    .split("\r\n", "\n")
+                    .filter { it.contains(':') }
+                    .associate { it.substringBefore(':').trim() to it.substringAfter(':').trim() }
+            val flavor =
+                when (LuaRedisServerFlavor.detect(body).flavor) {
+                    ServerFlavor.VALKEY -> "Valkey"
+                    ServerFlavor.REDIS -> "Redis"
+                }
             val version = fields["redis_version"] ?: fields["valkey_version"] ?: "unknown"
             return RespServerInfo(flavor, version)
         }
@@ -66,12 +78,16 @@ suspend fun probe(endpoint: RespEndpoint): TestOutcome {
     }
 }
 
-private fun successFrom(reply: RespValue, client: RespClient): TestOutcome = when (reply) {
-    is RespValue.Error -> TestOutcome.Failure("${reply.klass} ${reply.message}".trim())
-    is RespValue.Bulk -> {
-        val body = reply.asString().orEmpty()
-        val info = RespServerInfo.parse(body)
-        TestOutcome.Success("${info.summary()} (${client.protocol})", LuaRedisServerFlavor.detect(body).flavor)
+private fun successFrom(
+    reply: RespValue,
+    client: RespClient,
+): TestOutcome =
+    when (reply) {
+        is RespValue.Error -> TestOutcome.Failure("${reply.klass} ${reply.message}".trim())
+        is RespValue.Bulk -> {
+            val body = reply.asString().orEmpty()
+            val info = RespServerInfo.parse(body)
+            TestOutcome.Success("${info.summary()} (${client.protocol})", LuaRedisServerFlavor.detect(body).flavor)
+        }
+        else -> TestOutcome.Success("Connected (${client.protocol})")
     }
-    else -> TestOutcome.Success("Connected (${client.protocol})")
-}

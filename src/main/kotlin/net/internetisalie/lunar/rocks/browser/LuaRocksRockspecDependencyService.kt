@@ -14,21 +14,29 @@ import net.internetisalie.lunar.rocks.LuaRocksTreeLocator
  * pure [RockspecDependencyEditor] to compute the new text; the write runs under a
  * `WriteCommandAction` (engineering-contract §1).
  */
-class LuaRocksRockspecDependencyService(private val project: Project) {
-
+class LuaRocksRockspecDependencyService(
+    private val project: Project,
+) {
     /**
      * Adds `"<name> <constraint>"` to the first discovered project rockspec's `dependencies`.
      * Returns `true` when a rockspec was found and updated (or already contained the dependency),
      * `false` when no project rockspec exists.
      */
-    fun addDependency(name: String, constraint: String?): Boolean {
+    fun addDependency(
+        name: String,
+        constraint: String?,
+    ): Boolean {
         val rockspec = resolveRockspecFile() ?: return false
         applyTo(rockspec, name, constraint)
         return true
     }
 
     /** Rewrites [rockspec]'s `dependencies` to include the rock, under a write command (testable core). */
-    fun applyTo(rockspec: VirtualFile, name: String, constraint: String?) {
+    fun applyTo(
+        rockspec: VirtualFile,
+        name: String,
+        constraint: String?,
+    ) {
         val entry = constraint?.takeIf { it.isNotBlank() }?.let { "$name $it" } ?: name
         val updated = RockspecDependencyEditor.addDependency(VfsUtil.loadText(rockspec), entry)
         WriteCommandAction.runWriteCommandAction(project) { VfsUtil.saveText(rockspec, updated) }

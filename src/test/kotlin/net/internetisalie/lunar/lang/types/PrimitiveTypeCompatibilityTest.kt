@@ -27,59 +27,62 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
-
     // =========================================================================
     // Same-type compatibility
     // =========================================================================
 
     @Test
     fun testStringToString() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type string
-            local x = "hello"
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type string
+                local x = "hello"
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("string → string should be compatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testNumberToNumber() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type number
-            local x = 42
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type number
+                local x = 42
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("number → number should be compatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testBooleanToBoolean() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type boolean
-            local x = true
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type boolean
+                local x = true
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("boolean → boolean should be compatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testNilToNil() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type nil
-            local x = nil
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type nil
+                local x = nil
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("nil → nil should be compatible", snapshot.getErrors().isEmpty())
     }
@@ -90,13 +93,14 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testStringToNumber() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type number
-            local x = "hello"
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type number
+                local x = "hello"
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("string → number should be incompatible", snapshot.getErrors().isEmpty())
         assertTrue(
@@ -107,65 +111,70 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testNumberToString() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type string
-            local x = 42
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type string
+                local x = 42
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("number → string should be incompatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testBooleanToString() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type string
-            local x = true
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type string
+                local x = true
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("boolean → string should be incompatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testBooleanToNumber() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type number
-            local x = false
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type number
+                local x = false
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("boolean → number should be incompatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testNumberToBoolean() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type boolean
-            local x = 42
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type boolean
+                local x = 42
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("number → boolean should be incompatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testStringToBoolean() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type boolean
-            local x = "hello"
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type boolean
+                local x = "hello"
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("string → boolean should be incompatible", snapshot.getErrors().isEmpty())
     }
@@ -176,13 +185,14 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testNilToString() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type string
-            local x = nil
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type string
+                local x = nil
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("nil → string should be incompatible", snapshot.getErrors().isEmpty())
         assertTrue(
@@ -193,26 +203,28 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testNilToNumber() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type number
-            local x = nil
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type number
+                local x = nil
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("nil → number should be incompatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testNilToBoolean() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type boolean
-            local x = nil
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type boolean
+                local x = nil
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("nil → boolean should be incompatible", snapshot.getErrors().isEmpty())
     }
@@ -223,27 +235,29 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testAnyToString() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type any
-            local x = "hello"
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type any
+                local x = "hello"
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("string → any should be compatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testStringToAny() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type string
-            local x
-            local y: any = x
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type string
+                local x
+                local y: any = x
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         // Note: This test verifies the top-type behavior; exact syntax depends on annotation support
     }
@@ -254,28 +268,30 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testCompatibleVariableAssignment() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local x = 42
-            ---@type number
-            local y = x
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local x = 42
+                ---@type number
+                local y = x
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("number → number variable assignment should be compatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testIncompatibleVariableAssignment() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local x = "hello"
-            ---@type number
-            local y = x
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local x = "hello"
+                ---@type number
+                local y = x
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("string → number variable assignment should be incompatible", snapshot.getErrors().isEmpty())
     }
@@ -286,47 +302,50 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testParameterTypeCheckCompatible() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@param x number
-            local function process(x)
-                return x
-            end
-            
-            process(42)
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@param x number
+                local function process(x)
+                    return x
+                end
+                
+                process(42)
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         // Parameter binding should have no errors (arguments will be checked in function signature phase)
     }
 
     @Test
     fun testReturnTypeCheckCompatible() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@return number
-            local function getValue()
-                return 42
-            end
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@return number
+                local function getValue()
+                    return 42
+                end
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("number → number return should be compatible", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testReturnTypeCheckIncompatible() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@return number
-            local function getValue()
-                return "hello"
-            end
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@return number
+                local function getValue()
+                    return "hello"
+                end
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertFalse("string → number return should be incompatible", snapshot.getErrors().isEmpty())
     }
@@ -337,48 +356,51 @@ class PrimitiveTypeCompatibilityTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testMultipleErrors() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type number
-            local x = "hello"
-            
-            ---@type boolean
-            local y = 42
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type number
+                local x = "hello"
+                
+                ---@type boolean
+                local y = 42
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertEquals("Should have two type errors", 2, snapshot.getErrors().size)
     }
 
     @Test
     fun testNoErrorsForValidFile() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type number
-            local x = 42
-            
-            ---@param value string
-            local function process(value)
-                local y = value
-                local z: string = y
-            end
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type number
+                local x = 42
+                
+                ---@param value string
+                local function process(value)
+                    local y = value
+                    local z: string = y
+                end
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("Well-typed file should have no errors", snapshot.getErrors().isEmpty())
     }
 
     @Test
     fun testErrorMessageContent() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@type number
-            local x = "hello"
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@type number
+                local x = "hello"
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         assertTrue("Error should exist", snapshot.getErrors().isNotEmpty())
         val error = snapshot.getErrors().first()

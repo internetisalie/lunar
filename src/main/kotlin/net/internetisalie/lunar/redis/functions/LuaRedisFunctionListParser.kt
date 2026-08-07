@@ -3,7 +3,10 @@ package net.internetisalie.lunar.redis.functions
 import net.internetisalie.lunar.redis.resp.RespValue
 
 /** An individual function registered within a Redis Function library (design §2.7). */
-data class RedisFunctionEntry(val name: String, val flags: Set<String>)
+data class RedisFunctionEntry(
+    val name: String,
+    val flags: Set<String>,
+)
 
 /** A Redis Function library as reported by `FUNCTION LIST [WITHCODE]` (design §2.7). */
 data class RedisLibraryEntry(
@@ -20,7 +23,6 @@ data class RedisLibraryEntry(
  * never throw (matching REDIS-04 §4.1 discipline). No `!!`.
  */
 object LuaRedisFunctionListParser {
-
     /**
      * Parses [reply] from `FUNCTION LIST [WITHCODE]` into library entries (design §3.8).
      *
@@ -63,13 +65,12 @@ object LuaRedisFunctionListParser {
      *
      * Keys are read via [bulkString]; any null key or odd-length array is silently skipped.
      */
-    private fun asPairs(v: RespValue): Map<String, RespValue> {
-        return when (v) {
+    private fun asPairs(v: RespValue): Map<String, RespValue> =
+        when (v) {
             is RespValue.Map -> buildFromMapEntries(v.entries)
             is RespValue.Array -> buildFromArrayPairs(v.items)
             else -> emptyMap()
         }
-    }
 
     private fun buildFromMapEntries(entries: List<Pair<RespValue, RespValue>>): Map<String, RespValue> {
         val result = mutableMapOf<String, RespValue>()
@@ -93,9 +94,10 @@ object LuaRedisFunctionListParser {
     }
 
     /** Reads [RespValue.Bulk.asString] or [RespValue.Simple.text]; else null. */
-    private fun RespValue.bulkString(): String? = when (this) {
-        is RespValue.Bulk -> asString()
-        is RespValue.Simple -> text
-        else -> null
-    }
+    private fun RespValue.bulkString(): String? =
+        when (this) {
+            is RespValue.Bulk -> asString()
+            is RespValue.Simple -> text
+            else -> null
+        }
 }

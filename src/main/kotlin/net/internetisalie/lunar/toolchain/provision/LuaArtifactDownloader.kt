@@ -34,7 +34,11 @@ enum class ArtifactVerification { STRICT, ADVISORY }
  * What identifies and verifies one downloadable artifact: its ordered mirror list and its size +
  * SHA-256 pin. A value object so [LuaArtifactDownloader.fetch] stays inside the 3-argument cap.
  */
-data class ArtifactPin(val urls: List<String>, val sha256: String, val size: Long)
+data class ArtifactPin(
+    val urls: List<String>,
+    val sha256: String,
+    val size: Long,
+)
 
 /**
  * Mirror-aware artifact acquisition with an on-disk cache and size + SHA-256 verification
@@ -48,7 +52,9 @@ data class ArtifactPin(val urls: List<String>, val sha256: String, val size: Lon
  * Runs only on the provisioning orchestrator's background task — it performs blocking I/O and
  * must never be invoked on the EDT. It touches no PSI/VFS, so no read/write action is needed.
  */
-class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
+class LuaArtifactDownloader(
+    private val cacheDir: Path = defaultCacheDir(),
+) {
     /** Bundles the verification inputs for a single artifact so helpers stay under the 3-arg cap. */
     private class FetchPlan(
         val pin: ArtifactPin,
@@ -77,7 +83,10 @@ class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
         return downloadFromMirrors(plan, indicator)
     }
 
-    private fun downloadFromMirrors(plan: FetchPlan, indicator: ProgressIndicator): Path {
+    private fun downloadFromMirrors(
+        plan: FetchPlan,
+        indicator: ProgressIndicator,
+    ): Path {
         cacheDir.createDirectories()
         val target = cacheDir.resolve(plan.cacheKey)
         val failures = mutableListOf<String>()
@@ -90,7 +99,11 @@ class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
     }
 
     /** Returns null on success, or the failure reason for this mirror. */
-    private fun attemptDownload(url: String, plan: FetchPlan, indicator: ProgressIndicator): String? {
+    private fun attemptDownload(
+        url: String,
+        plan: FetchPlan,
+        indicator: ProgressIndicator,
+    ): String? {
         val target = cacheDir.resolve(plan.cacheKey)
         val tmp = target.resolveSibling(target.fileName.toString() + ".part")
         return try {
@@ -108,7 +121,10 @@ class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
     }
 
     /** Enforces [FetchPlan.verification]: STRICT throws, ADVISORY logs and keeps the file. */
-    private fun verify(file: Path, plan: FetchPlan) {
+    private fun verify(
+        file: Path,
+        plan: FetchPlan,
+    ) {
         if (plan.verification == ArtifactVerification.STRICT) {
             verifyOrFail(file, plan.pin.sha256, plan.pin.size)
             return
@@ -125,7 +141,11 @@ class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
         )
     }
 
-    private fun verifyOrFail(file: Path, sha256: String, size: Long) {
+    private fun verifyOrFail(
+        file: Path,
+        sha256: String,
+        size: Long,
+    ) {
         val actualSize = file.fileSize()
         if (actualSize != size) {
             throw LuaProvisionException("size mismatch (expected $size, got $actualSize)")
@@ -136,18 +156,24 @@ class LuaArtifactDownloader(private val cacheDir: Path = defaultCacheDir()) {
         }
     }
 
-    private fun verifies(file: Path, pin: ArtifactPin): Boolean =
-        file.fileSize() == pin.size && sha256Of(file).equals(pin.sha256, ignoreCase = true)
+    private fun verifies(
+        file: Path,
+        pin: ArtifactPin,
+    ): Boolean = file.fileSize() == pin.size && sha256Of(file).equals(pin.sha256, ignoreCase = true)
 
-    private fun sha256Of(file: Path): String =
-        Files.asByteSource(file.toFile()).hash(Hashing.sha256()).toString()
+    private fun sha256Of(file: Path): String = Files.asByteSource(file.toFile()).hash(Hashing.sha256()).toString()
 
     /**
      * Cache key = the URL's last path segment, or its second-to-last when the last segment is
      * the literal `download` (the SourceForge `…/files/{ver}/{group}/{file}/download` pattern).
      */
     private fun cacheKey(url: String): String {
-        val segments = url.substringBefore('?').substringBefore('#').trimEnd('/').split('/')
+        val segments =
+            url
+                .substringBefore('?')
+                .substringBefore('#')
+                .trimEnd('/')
+                .split('/')
         val last = segments.lastOrNull().orEmpty()
         return if (last == "download" && segments.size >= 2) segments[segments.size - 2] else last
     }

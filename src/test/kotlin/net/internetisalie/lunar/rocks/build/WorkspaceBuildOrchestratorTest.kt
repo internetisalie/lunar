@@ -7,7 +7,6 @@ import org.junit.Test
 import java.nio.file.Path
 
 class WorkspaceBuildOrchestratorTest : IndexedBasePlatformTestCase() {
-
     override fun tearDown() {
         try {
             WorkspaceBuildOrchestrator.testDiscoverySeam = null
@@ -37,7 +36,7 @@ class WorkspaceBuildOrchestratorTest : IndexedBasePlatformTestCase() {
         WorkspaceBuildOrchestrator.testDiscoverySeam = {
             listOf(
                 DiscoveredRockspec(pathA, "a"),
-                DiscoveredRockspec(pathB, "b")
+                DiscoveredRockspec(pathB, "b"),
             )
         }
 
@@ -59,10 +58,19 @@ class WorkspaceBuildOrchestratorTest : IndexedBasePlatformTestCase() {
     @Test
     fun testKernelFixtureBuildOrder() {
         // 10 Kernel/v0 rockspecs with a topo-sort setup
-        val names = listOf(
-            "adt", "channels", "cmd", "meteor", "pipe",
-            "platform", "ramdisk", "runtime", "ssdpd", "utils"
-        )
+        val names =
+            listOf(
+                "adt",
+                "channels",
+                "cmd",
+                "meteor",
+                "pipe",
+                "platform",
+                "ramdisk",
+                "runtime",
+                "ssdpd",
+                "utils",
+            )
 
         WorkspaceBuildOrchestrator.testDiscoverySeam = {
             names.map { name -> DiscoveredRockspec(Path.of("rocks/$name/$name-1.0-1.rockspec"), name) }
@@ -70,18 +78,19 @@ class WorkspaceBuildOrchestratorTest : IndexedBasePlatformTestCase() {
 
         WorkspaceBuildOrchestrator.testBridgeReaderSeam = { _, path ->
             val specName = path.parent.fileName.toString()
-            val deps = when (specName) {
-                "channels" -> listOf("pipe")
-                "cmd" -> listOf("utils")
-                "meteor" -> listOf("platform")
-                "pipe" -> listOf("utils")
-                "ramdisk" -> listOf("platform")
-                "runtime" -> listOf("platform")
-                "ssdpd" -> listOf("channels")
-                "platform" -> listOf("utils")
-                "utils" -> listOf("adt")
-                else -> emptyList() // adt
-            }
+            val deps =
+                when (specName) {
+                    "channels" -> listOf("pipe")
+                    "cmd" -> listOf("utils")
+                    "meteor" -> listOf("platform")
+                    "pipe" -> listOf("utils")
+                    "ramdisk" -> listOf("platform")
+                    "runtime" -> listOf("platform")
+                    "ssdpd" -> listOf("channels")
+                    "platform" -> listOf("utils")
+                    "utils" -> listOf("adt")
+                    else -> emptyList() // adt
+                }
             RockspecData(specName, "1.0-1", deps, null, emptyMap(), emptyMap())
         }
 
@@ -93,10 +102,16 @@ class WorkspaceBuildOrchestratorTest : IndexedBasePlatformTestCase() {
         // Verify topological order constraints
         val indexByName = ordered.mapIndexed { idx, rock -> rock.packageName to idx }.toMap()
 
-        fun assertDependencyOrder(dep: String, target: String) {
+        fun assertDependencyOrder(
+            dep: String,
+            target: String,
+        ) {
             val depIdx = indexByName[dep] ?: error("Missing dependency rock $dep")
             val targetIdx = indexByName[target] ?: error("Missing target rock $target")
-            assertTrue("Dependency $dep (idx $depIdx) must be built before $target (idx $targetIdx)", depIdx < targetIdx)
+            assertTrue(
+                "Dependency $dep (idx $depIdx) must be built before $target (idx $targetIdx)",
+                depIdx < targetIdx,
+            )
         }
 
         assertDependencyOrder("pipe", "channels")

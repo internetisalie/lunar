@@ -17,26 +17,27 @@ import net.internetisalie.lunar.luacats.lang.psi.*
  * description nested inside a tag (`classTag ::= … description?`) no longer leaks into
  * [getDescriptionList], fixing the duplicate-summary and `isDocCommentEmpty` skew (MAINT-27 #38).
  */
-class LuaCatsLazyCommentImpl(text: CharSequence?) : LazyParseablePsiElement(LuaLazyElementTypes.LUACATS_COMMENT, text),
+class LuaCatsLazyCommentImpl(
+    text: CharSequence?,
+) : LazyParseablePsiElement(LuaLazyElementTypes.LUACATS_COMMENT, text),
     LuaCatsComment {
-    override fun toString(): String {
-        return "LuaCatsLazyCommentImpl(" + node.elementType + ")"
-    }
+    override fun toString(): String = "LuaCatsLazyCommentImpl(" + node.elementType + ")"
 
     fun accept(visitor: LuaCatsVisitor) {
         visitor.visitComment(this)
     }
 
     override fun accept(visitor: PsiElementVisitor) {
-        if (visitor is LuaCatsVisitor) accept(visitor)
-        else super.accept(visitor)
+        if (visitor is LuaCatsVisitor) {
+            accept(visitor)
+        } else {
+            super.accept(visitor)
+        }
     }
 
-    private fun innerComment(): LuaCatsComment? =
-        PsiTreeUtil.getChildOfType(this, LuaCatsComment::class.java)
+    private fun innerComment(): LuaCatsComment? = PsiTreeUtil.getChildOfType(this, LuaCatsComment::class.java)
 
-    private fun <T> delegate(select: (LuaCatsComment) -> List<T>): List<T> =
-        innerComment()?.let(select) ?: emptyList()
+    private fun <T> delegate(select: (LuaCatsComment) -> List<T>): List<T> = innerComment()?.let(select) ?: emptyList()
 
     override fun getAliasTagList(): List<LuaCatsAliasTag> = delegate { it.aliasTagList }
 

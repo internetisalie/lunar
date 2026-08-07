@@ -30,14 +30,18 @@ object LuaDefinitionCatalogLoader {
 
     /** Parses [json] without touching the cache — the seam tests use for corrupt-input cases. */
     fun parse(json: String): LuaDefinitionCatalog {
-        val root = runCatching { JsonParser.parseString(json).asJsonObject }
-            .getOrElse { failure -> throw LuaProvisionException("Corrupt definitions catalog: ${describe(failure)}", failure) }
+        val root =
+            runCatching { JsonParser.parseString(json).asJsonObject }
+                .getOrElse { failure ->
+                    throw LuaProvisionException("Corrupt definitions catalog: ${describe(failure)}", failure)
+                }
         return parseCatalog(root)
     }
 
     private fun read(): String {
-        val stream = LuaDefinitionCatalogLoader::class.java.getResourceAsStream(RESOURCE)
-            ?: throw LuaProvisionException("Corrupt definitions catalog: bundled resource '$RESOURCE' is missing.")
+        val stream =
+            LuaDefinitionCatalogLoader::class.java.getResourceAsStream(RESOURCE)
+                ?: throw LuaProvisionException("Corrupt definitions catalog: bundled resource '$RESOURCE' is missing.")
         return stream.use { InputStreamReader(it, StandardCharsets.UTF_8).readText() }
     }
 
@@ -71,7 +75,8 @@ object LuaDefinitionCatalogLoader {
         // to prevent (busted without luassert), so a typo is corruption, not a runtime surprise.
         val ids = libraries.mapTo(mutableSetOf()) { it.id }
         libraries.forEach { entry ->
-            entry.requires.firstOrNull { it !in ids }
+            entry.requires
+                .firstOrNull { it !in ids }
                 ?.let { corrupt("library '${entry.id}' requires unknown library '$it'") }
         }
         return LuaDefinitionCatalog(catalogVersion = version, libraries = libraries)
@@ -94,8 +99,7 @@ object LuaDefinitionCatalogLoader {
             requires = entry.optStringArray("requires") ?: emptyList(),
         )
 
-    private fun corrupt(detail: String): Nothing =
-        throw LuaProvisionException("Corrupt definitions catalog: $detail")
+    private fun corrupt(detail: String): Nothing = throw LuaProvisionException("Corrupt definitions catalog: $detail")
 
     private fun JsonObject.requirePresent(field: String) =
         get(field)?.takeUnless { it.isJsonNull } ?: corrupt("missing field '$field'")
@@ -127,7 +131,9 @@ object LuaDefinitionCatalogLoader {
         requirePresent(field).let { if (it.isJsonArray) it.asJsonArray else corrupt("field '$field' is not an array") }
 
     private fun JsonObject.requireStringArray(field: String): List<String> =
-        requireArray(field).map { runCatching { it.asString }.getOrElse { corrupt("field '$field' has a non-string element") } }
+        requireArray(
+            field,
+        ).map { runCatching { it.asString }.getOrElse { corrupt("field '$field' has a non-string element") } }
 
     private fun JsonObject.optStringArray(field: String): List<String>? =
         get(field)?.takeUnless { it.isJsonNull }?.let { _ -> requireStringArray(field) }

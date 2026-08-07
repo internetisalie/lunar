@@ -18,7 +18,6 @@ import kotlin.test.assertTrue
  * `PsiTreeUtil` walk, so simply invoking them realises the tag PSI.
  */
 class LuaCatsLazyCommentTest : BaseDocumentTest() {
-
     private fun catsComment(text: String): LuaCatsComment {
         configureByText(text)
         val owner = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaCommentOwner::class.java).first()
@@ -31,14 +30,20 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
     fun testAliasTagList() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@alias Mode "r"|"w"
-                    local m
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@alias Mode "r"|"w"
+                        local m
+                        """.trimIndent(),
+                    )
                 assertEquals(1, comment.aliasTagList.size)
-                assertEquals("Mode", comment.aliasTagList.first().argName.text)
+                assertEquals(
+                    "Mode",
+                    comment.aliasTagList
+                        .first()
+                        .argName.text,
+                )
             }
         }
     }
@@ -47,14 +52,20 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
     fun testSeeTagList() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@see http.get Fetches data
-                    local x
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@see http.get Fetches data
+                        local x
+                        """.trimIndent(),
+                    )
                 assertEquals(1, comment.seeTagList.size)
-                assertEquals("http.get", comment.seeTagList.first().argName.text)
+                assertEquals(
+                    "http.get",
+                    comment.seeTagList
+                        .first()
+                        .argName.text,
+                )
             }
         }
     }
@@ -63,12 +74,13 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
     fun testOverloadTagList() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@overload fun(x: string): string
-                    function f(x) end
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@overload fun(x: string): string
+                        function f(x) end
+                        """.trimIndent(),
+                    )
                 assertEquals(1, comment.overloadTagList.size)
             }
         }
@@ -78,16 +90,21 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
     fun testGenericTagList() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@generic T
-                    ---@param x T
-                    ---@return T
-                    function id(x) end
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@generic T
+                        ---@param x T
+                        ---@return T
+                        function id(x) end
+                        """.trimIndent(),
+                    )
                 assertEquals(1, comment.genericTagList.size)
-                val params = comment.genericTagList.first().genericTypeParams?.genericTypeParamList
+                val params =
+                    comment.genericTagList
+                        .first()
+                        .genericTypeParams
+                        ?.genericTypeParamList
                 assertNotNull(params, "Generic tag should expose type params")
                 assertEquals("T", params.first().argName.text)
             }
@@ -98,12 +115,13 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
     fun testVersionTagList() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@version >5.2
-                    local x
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@version >5.2
+                        local x
+                        """.trimIndent(),
+                    )
                 assertEquals(1, comment.versionTagList.size)
             }
         }
@@ -115,19 +133,24 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
         // A @param's trailing description is nested inside the paramTag, so it must NOT leak in.
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@param x number Some desc
-                    function f(x) end
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@param x number Some desc
+                        function f(x) end
+                        """.trimIndent(),
+                    )
                 assertEquals(
                     0,
                     comment.descriptionList.size,
                     "Top-level descriptionList must exclude the @param-nested description",
                 )
                 assertTrue(
-                    comment.paramTagList.first().description?.text?.contains("Some desc") == true,
+                    comment.paramTagList
+                        .first()
+                        .description
+                        ?.text
+                        ?.contains("Some desc") == true,
                     "The @param description should live on the param tag, not the comment",
                 )
             }
@@ -141,12 +164,13 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
         // the tag subtree).
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@param x number
-                    function f(x) end
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@param x number
+                        function f(x) end
+                        """.trimIndent(),
+                    )
                 assertEquals(0, comment.descriptionList.size)
             }
         }
@@ -156,17 +180,22 @@ class LuaCatsLazyCommentTest : BaseDocumentTest() {
     fun testParamTagList() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val comment = catsComment(
-                    """
-                    ---@param id number
-                    ---@param name string
-                    function f(id, name) end
-                    """.trimIndent(),
-                )
+                val comment =
+                    catsComment(
+                        """
+                        ---@param id number
+                        ---@param name string
+                        function f(id, name) end
+                        """.trimIndent(),
+                    )
                 assertEquals(2, comment.paramTagList.size)
                 assertEquals("id", comment.paramTagList[0].argName?.text)
                 assertEquals("number", comment.paramTagList[0].argType.text)
-                assertTrue(comment.paramTagList[1].argType.text.contains("string"))
+                assertTrue(
+                    comment.paramTagList[1]
+                        .argType.text
+                        .contains("string"),
+                )
             }
         }
     }

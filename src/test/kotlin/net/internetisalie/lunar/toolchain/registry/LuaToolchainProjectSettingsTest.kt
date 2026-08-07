@@ -8,22 +8,22 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
-
     @Test
     fun testStateRoundTripsDeepEqual_TC8() {
-        val original = LuaToolchainProjectState().apply {
-            bindings["luacheck"] = "tool-b"
-            environments.add(
-                LuaEnvironmentState(
-                    id = "env-1",
-                    name = "dev",
-                    rootDir = "/proj/.lua/env-1",
-                    toolIds = mutableListOf("tool-r", "tool-p")
+        val original =
+            LuaToolchainProjectState().apply {
+                bindings["luacheck"] = "tool-b"
+                environments.add(
+                    LuaEnvironmentState(
+                        id = "env-1",
+                        name = "dev",
+                        rootDir = "/proj/.lua/env-1",
+                        toolIds = mutableListOf("tool-r", "tool-p"),
+                    ),
                 )
-            )
-            activeEnvironmentId = "env-1"
-            kindOptions[LuaKindOptionKeys.LUACHECK_ARGUMENTS] = "--std max"
-        }
+                activeEnvironmentId = "env-1"
+                kindOptions[LuaKindOptionKeys.LUACHECK_ARGUMENTS] = "--std max"
+            }
 
         val element = XmlSerializer.serialize(original)
         val restored = XmlSerializer.deserialize(element, LuaToolchainProjectState::class.java)
@@ -47,7 +47,7 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
             LuaToolchainProjectState().apply {
                 environments.add(LuaEnvironmentState(id = "env-1", rootDir = "/proj/.lua"))
                 activeEnvironmentId = ""
-            }
+            },
         )
 
         assertNull(settings.activeEnvironment())
@@ -60,7 +60,7 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
             LuaToolchainProjectState().apply {
                 environments.add(LuaEnvironmentState(id = "env-1", rootDir = "/proj/.lua"))
                 activeEnvironmentId = "env-missing"
-            }
+            },
         )
 
         assertNull(settings.activeEnvironment())
@@ -74,7 +74,7 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
                 environments.add(LuaEnvironmentState(id = "env-1", name = "a", rootDir = "/proj/a"))
                 environments.add(LuaEnvironmentState(id = "env-2", name = "b", rootDir = "/proj/b"))
                 activeEnvironmentId = "env-2"
-            }
+            },
         )
 
         val active = settings.activeEnvironment()
@@ -90,7 +90,7 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
             LuaToolchainProjectState().apply {
                 environments.add(LuaEnvironmentState(id = "env-1", rootDir = "/proj/a"))
                 environments.add(LuaEnvironmentState(id = "env-2", rootDir = "/proj/b"))
-            }
+            },
         )
 
         assertEquals(listOf("env-1", "env-2"), settings.environments().map { it.id })
@@ -100,12 +100,19 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
     fun testUpsertAndActivateDirDedup_TC10() {
         val events = recordEvents()
 
-        val first = settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "", name = "first", rootDir = "/p/.lua", toolIds = mutableListOf("t1"))
-        )
-        val second = settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "other", name = "second", rootDir = "/p/./.lua", toolIds = mutableListOf("t2"))
-        )
+        val first =
+            settings.upsertEnvironmentAndActivate(
+                LuaEnvironmentState(id = "", name = "first", rootDir = "/p/.lua", toolIds = mutableListOf("t1")),
+            )
+        val second =
+            settings.upsertEnvironmentAndActivate(
+                LuaEnvironmentState(
+                    id = "other",
+                    name = "second",
+                    rootDir = "/p/./.lua",
+                    toolIds = mutableListOf("t2"),
+                ),
+            )
 
         assertEquals(first.id, second.id)
         assertEquals(1, settings.environments().size)
@@ -122,9 +129,9 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
                 listOf(
                     LuaToolchainChange.ENVIRONMENT_ADDED,
                     LuaToolchainChange.ACTIVE_ENVIRONMENT_CHANGED,
-                    LuaToolchainChange.ENVIRONMENT_UPDATED
+                    LuaToolchainChange.ENVIRONMENT_UPDATED,
                 ),
-                changes
+                changes,
             )
         }
     }
@@ -135,7 +142,7 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
             LuaToolchainProjectState().apply {
                 environments.add(LuaEnvironmentState(id = "e1", rootDir = "/p/e1"))
                 activeEnvironmentId = "e1"
-            }
+            },
         )
         val events = recordEvents()
 
@@ -155,7 +162,7 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
         settings.setBinding("luacheck", toolB.id)
 
         settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "envc", rootDir = "/p/envc", toolIds = mutableListOf(toolC.id))
+            LuaEnvironmentState(id = "envc", rootDir = "/p/envc", toolIds = mutableListOf(toolC.id)),
         )
         assertEquals(mapOf("luacheck" to toolB.id), settings.state.bindings)
 
@@ -163,7 +170,10 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
         assertEquals(mapOf("luacheck" to toolB.id), settings.state.bindings)
         assertEquals("", settings.state.activeEnvironmentId)
 
-        val fieldNames = LuaToolchainProjectState::class.java.declaredFields.map { it.name }.toSet()
+        val fieldNames =
+            LuaToolchainProjectState::class.java.declaredFields
+                .map { it.name }
+                .toSet()
         assertEquals(setOf("bindings", "environments", "activeEnvironmentId", "kindOptions"), fieldNames)
     }
 
@@ -188,8 +198,8 @@ class LuaToolchainProjectSettingsTest : ToolchainSettingsTestCase() {
             LuaEnvironmentState(
                 id = "envE",
                 rootDir = "/p/envE",
-                toolIds = mutableListOf(toolR.id, toolP.id)
-            )
+                toolIds = mutableListOf(toolR.id, toolP.id),
+            ),
         )
         val events = recordEvents()
 

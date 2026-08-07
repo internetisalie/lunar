@@ -13,10 +13,12 @@ import net.internetisalie.lunar.LuaBundle
 class LuaLdbExecutionStack(
     private val topFrame: LuaLdbStackFrame,
 ) : XExecutionStack(LuaBundle.message("debug.stack.thread.main")) {
-
     override fun getTopFrame(): XStackFrame = topFrame
 
-    override fun computeStackFrames(firstFrameIndex: Int, container: XStackFrameContainer) {
+    override fun computeStackFrames(
+        firstFrameIndex: Int,
+        container: XStackFrameContainer,
+    ) {
         container.addStackFrames(listOf(topFrame), true)
     }
 }

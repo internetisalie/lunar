@@ -46,12 +46,13 @@ import javax.swing.JPanel
  */
 enum class LuaRedisExecMode { EVAL, EVALSHA, FCALL }
 
-class LuaRedisRunConfigurationType : ConfigurationTypeBase(
-    ID,
-    "Redis Script",
-    "Run a Lua script against a Redis/Valkey server",
-    NotNullLazyValue.createValue { LuaIcons.ROCKET },
-) {
+class LuaRedisRunConfigurationType :
+    ConfigurationTypeBase(
+        ID,
+        "Redis Script",
+        "Run a Lua script against a Redis/Valkey server",
+        NotNullLazyValue.createValue { LuaIcons.ROCKET },
+    ) {
     init {
         addFactory(LuaRedisRunConfigurationFactory(this))
     }
@@ -64,7 +65,9 @@ class LuaRedisRunConfigurationType : ConfigurationTypeBase(
     }
 }
 
-class LuaRedisRunConfigurationFactory(type: ConfigurationTypeBase) : ConfigurationFactory(type) {
+class LuaRedisRunConfigurationFactory(
+    type: ConfigurationTypeBase,
+) : ConfigurationFactory(type) {
     override fun getId(): String = LuaRedisRunConfigurationType.ID
 
     override fun createTemplateConfiguration(project: Project): RunConfiguration =
@@ -134,19 +137,25 @@ class LuaRedisRunConfigurationOptions : RunConfigurationOptions() {
         set(value) = myDeployOnly.setValue(this, value)
 }
 
-class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?, name: String?) :
-    RunConfigurationBase<LuaRedisRunConfigurationOptions?>(project, factory, name) {
-
+class LuaRedisRunConfiguration(
+    project: Project,
+    factory: ConfigurationFactory?,
+    name: String?,
+) : RunConfigurationBase<LuaRedisRunConfigurationOptions?>(project, factory, name) {
     public override fun getOptions(): LuaRedisRunConfigurationOptions =
         super.getOptions() as LuaRedisRunConfigurationOptions
 
     var scriptPath: String?
         get() = options.scriptPath
-        set(value) { options.scriptPath = value }
+        set(value) {
+            options.scriptPath = value
+        }
 
     var connectionId: String?
         get() = options.connectionId
-        set(value) { options.connectionId = value }
+        set(value) {
+            options.connectionId = value
+        }
 
     /** Resolves the selected connection by id from the project settings, or `null` when absent (design §2.5 seam). */
     val connection: LuaRedisServerConnection?
@@ -157,49 +166,72 @@ class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?,
 
     var execMode: LuaRedisExecMode
         get() = runCatching { LuaRedisExecMode.valueOf(options.execMode ?: "EVAL") }.getOrDefault(LuaRedisExecMode.EVAL)
-        set(value) { options.execMode = value.name }
+        set(value) {
+            options.execMode = value.name
+        }
 
     /**
      * LDB debug session mode (design §2.9 / §11 amendment A2). Additive: only the Debug executor
      * (REDIS-02) reads it; the Run executor ignores it entirely, so Run behavior is unchanged.
      */
     var debugMode: LuaRedisDebugMode
-        get() = runCatching { LuaRedisDebugMode.valueOf(options.debugMode ?: "FORKED") }.getOrDefault(LuaRedisDebugMode.FORKED)
-        set(value) { options.debugMode = value.name }
+        get() =
+            runCatching {
+                LuaRedisDebugMode.valueOf(
+                    options.debugMode ?: "FORKED",
+                )
+            }.getOrDefault(LuaRedisDebugMode.FORKED)
+        set(value) {
+            options.debugMode = value.name
+        }
 
     var readOnly: Boolean
         get() = options.readOnly.toBoolean()
-        set(value) { options.readOnly = value.toString() }
+        set(value) {
+            options.readOnly = value.toString()
+        }
 
     /** KEYS as a read-only list; the `\n`-joined [LuaRedisRunConfigurationOptions.keysRaw] bridge (design §2.8). */
     var keys: List<String>
         get() = splitLines(options.keysRaw)
-        set(value) { options.keysRaw = joinLines(value) }
+        set(value) {
+            options.keysRaw = joinLines(value)
+        }
 
     /** ARGV as a read-only list; the `\n`-joined [LuaRedisRunConfigurationOptions.argvRaw] bridge (design §2.8). */
     var argv: List<String>
         get() = splitLines(options.argvRaw)
-        set(value) { options.argvRaw = joinLines(value) }
+        set(value) {
+            options.argvRaw = joinLines(value)
+        }
 
     /** Target function name for FCALL mode (REDIS-05 design §2.4). `null`/blank when unset. */
     var functionName: String?
         get() = options.functionName?.takeIf { it.isNotBlank() }
-        set(value) { options.functionName = value }
+        set(value) {
+            options.functionName = value
+        }
 
     /** Whether to pass `REPLACE` to `FUNCTION LOAD` (REDIS-05 design §2.4). Defaults to `true`. */
     var replaceOnLoad: Boolean
         get() = options.replaceOnLoad?.toBooleanStrictOrNull() ?: true
-        set(value) { options.replaceOnLoad = value.toString() }
+        set(value) {
+            options.replaceOnLoad = value.toString()
+        }
 
     /** When `true`, runs `FUNCTION LOAD` only without `FCALL`; a valid deploy run (REDIS-05 design §2.4). */
     var deployOnly: Boolean
         get() = options.deployOnly?.toBooleanStrictOrNull() ?: false
-        set(value) { options.deployOnly = value.toString() }
+        set(value) {
+            options.deployOnly = value.toString()
+        }
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> = LuaRedisSettingsEditor(project)
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
-        LuaRedisRunProfileState(this, environment)
+    override fun getState(
+        executor: Executor,
+        environment: ExecutionEnvironment,
+    ): RunProfileState = LuaRedisRunProfileState(this, environment)
 
     /**
      * Validates the configuration at edit time (design §3.7 / REDIS-05 §3.6).
@@ -248,10 +280,14 @@ class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?,
      * Throws [RuntimeConfigurationException] when the name is statically absent (TC-VALID-1).
      * Package-internal for direct testing without the VFS lookup path.
      */
-    internal fun checkFunctionRegistered(name: String, psiFile: PsiFile) {
-        val reg = ApplicationManager.getApplication().runReadAction<RegisteredNames> {
-            LuaRedisFunctionLibrary.registeredNames(psiFile)
-        }
+    internal fun checkFunctionRegistered(
+        name: String,
+        psiFile: PsiFile,
+    ) {
+        val reg =
+            ApplicationManager.getApplication().runReadAction<RegisteredNames> {
+                LuaRedisFunctionLibrary.registeredNames(psiFile)
+            }
         if (!reg.hasDynamic && name !in reg.names) {
             val registered = reg.names.sorted().joinToString(", ")
             throw RuntimeConfigurationException(
@@ -262,18 +298,25 @@ class LuaRedisRunConfiguration(project: Project, factory: ConfigurationFactory?,
 
     private companion object {
         fun splitLines(raw: String?): List<String> =
-            raw.orEmpty().split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+            raw
+                .orEmpty()
+                .split('\n')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
 
         fun joinLines(values: List<String>): String =
             values.map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n")
     }
 }
 
-class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaRedisRunConfiguration>() {
+class LuaRedisSettingsEditor(
+    private val project: Project,
+) : SettingsEditor<LuaRedisRunConfiguration>() {
     private val myPanel: JPanel
     private val scriptPathField = TextFieldWithBrowseButton()
     private val connectionCombo = ComboBox<LuaRedisConnectionItem>()
-    private val execModeCombo = ComboBox(arrayOf(LuaRedisExecMode.EVAL, LuaRedisExecMode.EVALSHA, LuaRedisExecMode.FCALL))
+    private val execModeCombo =
+        ComboBox(arrayOf(LuaRedisExecMode.EVAL, LuaRedisExecMode.EVALSHA, LuaRedisExecMode.FCALL))
     private val debugModeCombo = ComboBox(arrayOf(LuaRedisDebugMode.FORKED, LuaRedisDebugMode.SYNC))
     private val readOnlyCheckbox = JBCheckBox("Read-only (EVAL_RO / EVALSHA_RO / FCALL_RO)")
     private val keysField = RawCommandLineEditor()
@@ -288,25 +331,29 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
         debugModeCombo.renderer = SimpleListCellRenderer.create("") { debugModeLabel(it) }
         reloadConnections()
 
-        myPanel = FormBuilder.createFormBuilder()
-            .addLabeledComponent("Script", scriptPathField)
-            .addLabeledComponent("Connection", connectionCombo)
-            .addLabeledComponent("Execution mode", execModeCombo)
-            .addLabeledComponent("Debug mode", debugModeCombo)
-            .addComponent(readOnlyCheckbox)
-            .addLabeledComponent("KEYS (space-separated)", keysField)
-            .addLabeledComponent("ARGV (space-separated)", argvField)
-            .addSeparator()
-            .addLabeledComponent("Function name (FCALL)", functionNameField)
-            .addComponent(replaceOnLoadCheckbox)
-            .addComponent(deployOnlyCheckbox)
-            .addComponent(noWritesHintLabel)
-            .panel
+        myPanel =
+            FormBuilder
+                .createFormBuilder()
+                .addLabeledComponent("Script", scriptPathField)
+                .addLabeledComponent("Connection", connectionCombo)
+                .addLabeledComponent("Execution mode", execModeCombo)
+                .addLabeledComponent("Debug mode", debugModeCombo)
+                .addComponent(readOnlyCheckbox)
+                .addLabeledComponent("KEYS (space-separated)", keysField)
+                .addLabeledComponent("ARGV (space-separated)", argvField)
+                .addSeparator()
+                .addLabeledComponent("Function name (FCALL)", functionNameField)
+                .addComponent(replaceOnLoadCheckbox)
+                .addComponent(deployOnlyCheckbox)
+                .addComponent(noWritesHintLabel)
+                .panel
     }
 
     private fun reloadConnections() {
         connectionCombo.removeAllItems()
-        LuaRedisConnectionSettings.getInstance(project).connections()
+        LuaRedisConnectionSettings
+            .getInstance(project)
+            .connections()
             .forEach { connectionCombo.addItem(LuaRedisConnectionItem(it.id, it.name)) }
     }
 
@@ -346,22 +393,25 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
             return
         }
         val path = config.scriptPath?.takeIf { it.isNotBlank() } ?: return
-        val flags = ApplicationManager.getApplication().runReadAction<Set<String>> {
-            val vf = VfsUtil.findFileByIoFile(File(path), false) ?: return@runReadAction emptySet()
-            val psiFile = PsiManager.getInstance(project).findFile(vf) ?: return@runReadAction emptySet()
-            LuaRedisFunctionLibrary.registeredFlags(psiFile, name)
-        }
-        noWritesHintLabel.text = if ("no-writes" in flags) {
-            "'$name' declares no-writes; consider enabling read-only (FCALL_RO)"
-        } else {
-            ""
-        }
+        val flags =
+            ApplicationManager.getApplication().runReadAction<Set<String>> {
+                val vf = VfsUtil.findFileByIoFile(File(path), false) ?: return@runReadAction emptySet()
+                val psiFile = PsiManager.getInstance(project).findFile(vf) ?: return@runReadAction emptySet()
+                LuaRedisFunctionLibrary.registeredFlags(psiFile, name)
+            }
+        noWritesHintLabel.text =
+            if ("no-writes" in flags) {
+                "'$name' declares no-writes; consider enabling read-only (FCALL_RO)"
+            } else {
+                ""
+            }
     }
 
-    private fun debugModeLabel(mode: LuaRedisDebugMode): String = when (mode) {
-        LuaRedisDebugMode.FORKED -> "Forked"
-        LuaRedisDebugMode.SYNC -> "Sync (danger)"
-    }
+    private fun debugModeLabel(mode: LuaRedisDebugMode): String =
+        when (mode) {
+            LuaRedisDebugMode.FORKED -> "Forked"
+            LuaRedisDebugMode.SYNC -> "Sync (danger)"
+        }
 
     private fun selectConnection(connectionId: String?): LuaRedisConnectionItem? {
         val id = connectionId?.takeIf { it.isNotBlank() } ?: return null
@@ -374,6 +424,9 @@ class LuaRedisSettingsEditor(private val project: Project) : SettingsEditor<LuaR
 }
 
 /** Combo-box row for a connection: its stable id plus a display name. */
-data class LuaRedisConnectionItem(val id: String, val name: String) {
+data class LuaRedisConnectionItem(
+    val id: String,
+    val name: String,
+) {
     override fun toString(): String = name
 }

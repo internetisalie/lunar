@@ -6,7 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class TestLuaCatsLexer {
-
     companion object {
         private const val YYINITIAL: Int = _LuaCatsLexer.YYINITIAL
         private const val COMMENT_START: Int = _LuaCatsLexer.COMMENT_START
@@ -26,9 +25,16 @@ class TestLuaCatsLexer {
         private const val TAG_VERSION: Int = _LuaCatsLexer.TAG_VERSION
     }
 
-    data class Token(val contents: String?, val element: IElementType?)
+    data class Token(
+        val contents: String?,
+        val element: IElementType?,
+    )
 
-    private fun testLexer(input: String, state: Int, vararg expected: Token) {
+    private fun testLexer(
+        input: String,
+        state: Int,
+        vararg expected: Token,
+    ) {
         val lexer = _LuaCatsLexer(null)
         lexer.reset(input, 0, input.length, state)
         for (token in expected) {
@@ -44,17 +50,20 @@ class TestLuaCatsLexer {
     @Test
     fun testInitial() {
         testLexer(
-            "---", YYINITIAL,
+            "---",
+            YYINITIAL,
             Token("---", LuaCatsTokenTypes.LCATS_DASHES),
         )
 
         testLexer(
-            "   ", YYINITIAL,
+            "   ",
+            YYINITIAL,
             Token("   ", LuaCatsTokenTypes.LCATS_WHITESPACE),
         )
 
         testLexer(
-            "   ---", YYINITIAL,
+            "   ---",
+            YYINITIAL,
             Token("   ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("---", LuaCatsTokenTypes.LCATS_DASHES),
         )
@@ -63,40 +72,46 @@ class TestLuaCatsLexer {
     @Test
     fun testCommentStart() {
         testLexer(
-            "@async some text +-. ", COMMENT_START,
+            "@async some text +-. ",
+            COMMENT_START,
             Token("@async", LuaCatsTokenTypes.LCATS_TAG),
             Token(" some text +-. ", LuaCatsTokenTypes.LCATS_TEXT),
         )
 
         testLexer(
-            "@class Animal", COMMENT_START,
+            "@class Animal",
+            COMMENT_START,
             Token("@class", LuaCatsTokenTypes.LCATS_TAG),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("Animal", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "@cast x", COMMENT_START,
+            "@cast x",
+            COMMENT_START,
             Token("@cast", LuaCatsTokenTypes.LCATS_TAG),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("x", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "@deprecated something", COMMENT_START,
+            "@deprecated something",
+            COMMENT_START,
             Token("@deprecated", LuaCatsTokenTypes.LCATS_TAG),
             Token(" something", LuaCatsTokenTypes.LCATS_TEXT),
         )
 
         testLexer(
-            "@diagnostic something", COMMENT_START,
+            "@diagnostic something",
+            COMMENT_START,
             Token("@diagnostic", LuaCatsTokenTypes.LCATS_TAG),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("something", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "@enum (key) Direction", COMMENT_START,
+            "@enum (key) Direction",
+            COMMENT_START,
             Token("@enum", LuaCatsTokenTypes.LCATS_TAG),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("(key)", LuaCatsTokenTypes.LCATS_KEYWORD),
@@ -105,7 +120,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "@field height", COMMENT_START,
+            "@field height",
+            COMMENT_START,
             Token("@field", LuaCatsTokenTypes.LCATS_TAG),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("height", LuaCatsTokenTypes.LCATS_NAME),
@@ -115,21 +131,24 @@ class TestLuaCatsLexer {
     @Test
     fun testCommentData() {
         testLexer(
-            "This is some text 43.5 +-:?", COMMENT_DATA,
-            Token("This is some text 43.5 +-:?", LuaCatsTokenTypes.LCATS_TEXT)
+            "This is some text 43.5 +-:?",
+            COMMENT_DATA,
+            Token("This is some text 43.5 +-:?", LuaCatsTokenTypes.LCATS_TEXT),
         )
 
         testLexer(
-            "This \n", COMMENT_DATA,
+            "This \n",
+            COMMENT_DATA,
             Token("This ", LuaCatsTokenTypes.LCATS_TEXT),
-            Token("\n", LuaCatsTokenTypes.LCATS_WHITESPACE)
+            Token("\n", LuaCatsTokenTypes.LCATS_WHITESPACE),
         )
     }
 
     @Test
     fun testCast() {
         testLexer(
-            " x +boolean, +number, -?", TAG_CAST,
+            " x +boolean, +number, -?",
+            TAG_CAST,
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("x", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
@@ -149,7 +168,8 @@ class TestLuaCatsLexer {
     @Test
     fun testClass() {
         testLexer(
-            " (exact) Animal", TAG_CLASS,
+            " (exact) Animal",
+            TAG_CLASS,
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("(exact)", LuaCatsTokenTypes.LCATS_KEYWORD),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
@@ -157,7 +177,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "Dog: Animal, Lifeform", TAG_CLASS,
+            "Dog: Animal, Lifeform",
+            TAG_CLASS,
             Token("Dog", LuaCatsTokenTypes.LCATS_NAME),
             Token(":", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
@@ -168,7 +189,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "table<K, V>: { [K]: V }", TAG_CLASS,
+            "table<K, V>: { [K]: V }",
+            TAG_CLASS,
             Token("table", LuaCatsTokenTypes.LCATS_NAME),
             Token("<", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("K", LuaCatsTokenTypes.LCATS_NAME),
@@ -194,7 +216,8 @@ class TestLuaCatsLexer {
     @Test
     fun testDiagnostic() {
         testLexer(
-            "disable-next-line: unused-local", TAG_DIAGNOSTIC,
+            "disable-next-line: unused-local",
+            TAG_DIAGNOSTIC,
             Token("disable-next-line", LuaCatsTokenTypes.LCATS_KEYWORD),
             Token(":", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
@@ -205,12 +228,14 @@ class TestLuaCatsLexer {
     @Test
     fun testEnum() {
         testLexer(
-            "Direction", TAG_ENUM,
+            "Direction",
+            TAG_ENUM,
             Token("Direction", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "(key) Direction", TAG_ENUM,
+            "(key) Direction",
+            TAG_ENUM,
             Token("(key)", LuaCatsTokenTypes.LCATS_KEYWORD),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("Direction", LuaCatsTokenTypes.LCATS_NAME),
@@ -220,7 +245,8 @@ class TestLuaCatsLexer {
     @Test
     fun testField() {
         testLexer(
-            "height number? The height ", TAG_FIELD,
+            "height number? The height ",
+            TAG_FIELD,
             Token("height", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("number", LuaCatsTokenTypes.LCATS_NAME),
@@ -233,7 +259,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "private height number", TAG_FIELD,
+            "private height number",
+            TAG_FIELD,
             Token("private", LuaCatsTokenTypes.LCATS_KEYWORD),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("height", LuaCatsTokenTypes.LCATS_NAME),
@@ -242,7 +269,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "[string] integer Description", TAG_FIELD,
+            "[string] integer Description",
+            TAG_FIELD,
             Token("[", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("string", LuaCatsTokenTypes.LCATS_NAME),
             Token("]", LuaCatsTokenTypes.LCATS_SYMBOL),
@@ -256,11 +284,13 @@ class TestLuaCatsLexer {
     @Test
     fun testModule() {
         testLexer(
-            "'modname'", TAG_MODULE,
+            "'modname'",
+            TAG_MODULE,
             Token("'modname'", LuaCatsTokenTypes.LCATS_STRING),
         )
         testLexer(
-            """"sdfsd"""", TAG_MODULE,
+            """"sdfsd"""",
+            TAG_MODULE,
             Token(""""sdfsd"""", LuaCatsTokenTypes.LCATS_STRING),
         )
     }
@@ -268,7 +298,8 @@ class TestLuaCatsLexer {
     @Test
     fun testParam() {
         testLexer(
-            "username string The name", TAG_PARAM,
+            "username string The name",
+            TAG_PARAM,
             Token("username", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("string", LuaCatsTokenTypes.LCATS_NAME),
@@ -282,7 +313,8 @@ class TestLuaCatsLexer {
     @Test
     fun testOperator() {
         testLexer(
-            "add(Vector): Vector", TAG_OPERATOR,
+            "add(Vector): Vector",
+            TAG_OPERATOR,
             Token("add", LuaCatsTokenTypes.LCATS_NAME),
             Token("(", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("Vector", LuaCatsTokenTypes.LCATS_NAME),
@@ -293,14 +325,16 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "unm:integer", TAG_OPERATOR,
+            "unm:integer",
+            TAG_OPERATOR,
             Token("unm", LuaCatsTokenTypes.LCATS_NAME),
             Token(":", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("integer", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "call:string", TAG_OPERATOR,
+            "call:string",
+            TAG_OPERATOR,
             Token("call", LuaCatsTokenTypes.LCATS_NAME),
             Token(":", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("string", LuaCatsTokenTypes.LCATS_NAME),
@@ -310,7 +344,8 @@ class TestLuaCatsLexer {
     @Test
     fun testOverload() {
         testLexer(
-            "fun(objectID: integer): boolean", TAG_TYPE,
+            "fun(objectID: integer): boolean",
+            TAG_TYPE,
             Token("fun", LuaCatsTokenTypes.LCATS_KEYWORD),
             Token("(", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("objectID", LuaCatsTokenTypes.LCATS_NAME),
@@ -327,19 +362,22 @@ class TestLuaCatsLexer {
     @Test
     fun testReturn() {
         testLexer(
-            "boolean", TAG_RETURN,
+            "boolean",
+            TAG_RETURN,
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "boolean enabled", TAG_RETURN,
+            "boolean enabled",
+            TAG_RETURN,
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("enabled", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "boolean enabled|nil If the", TAG_RETURN,
+            "boolean enabled|nil If the",
+            TAG_RETURN,
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("enabled", LuaCatsTokenTypes.LCATS_NAME),
@@ -352,7 +390,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "boolean # If the", TAG_RETURN,
+            "boolean # If the",
+            TAG_RETURN,
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("#", LuaCatsTokenTypes.LCATS_SYMBOL),
@@ -360,7 +399,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "string ...", TAG_RETURN,
+            "string ...",
+            TAG_RETURN,
             Token("string", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("...", LuaCatsTokenTypes.LCATS_SYMBOL),
@@ -370,7 +410,8 @@ class TestLuaCatsLexer {
     @Test
     fun testSee() {
         testLexer(
-            "http.www:get", TAG_SEE,
+            "http.www:get",
+            TAG_SEE,
             Token("http.www", LuaCatsTokenTypes.LCATS_NAME),
             Token(":", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("get", LuaCatsTokenTypes.LCATS_NAME),
@@ -379,7 +420,9 @@ class TestLuaCatsLexer {
 
     @Test
     fun testSource() {
-        testLexer(" file:///C:/Users/me/Documents/program/myFile.c:10 ", TAG_SOURCE,
+        testLexer(
+            " file:///C:/Users/me/Documents/program/myFile.c:10 ",
+            TAG_SOURCE,
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("file:///C:/Users/me/Documents/program/myFile.c:10", LuaCatsTokenTypes.LCATS_STRING),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
@@ -388,17 +431,22 @@ class TestLuaCatsLexer {
 
     @Test
     fun testType() {
-        testLexer("boolean", TAG_TYPE,
+        testLexer(
+            "boolean",
+            TAG_TYPE,
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
         )
 
-        testLexer("string[]", TAG_TYPE,
+        testLexer(
+            "string[]",
+            TAG_TYPE,
             Token("string", LuaCatsTokenTypes.LCATS_NAME),
             Token("[]", LuaCatsTokenTypes.LCATS_SYMBOL),
         )
 
         testLexer(
-            "{ [string]: boolean }", TAG_TYPE,
+            "{ [string]: boolean }",
+            TAG_TYPE,
             Token("{", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("[", LuaCatsTokenTypes.LCATS_SYMBOL),
@@ -412,7 +460,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "table<userID, Player>", TAG_TYPE,
+            "table<userID, Player>",
+            TAG_TYPE,
             Token("table", LuaCatsTokenTypes.LCATS_NAME),
             Token("<", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("userID", LuaCatsTokenTypes.LCATS_NAME),
@@ -423,7 +472,8 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            """boolean|number|"yes"|"no"""", TAG_TYPE,
+            """boolean|number|"yes"|"no"""",
+            TAG_TYPE,
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
             Token("|", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("number", LuaCatsTokenTypes.LCATS_NAME),
@@ -434,14 +484,16 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "boolean|'123'", TAG_TYPE,
+            "boolean|'123'",
+            TAG_TYPE,
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
             Token("|", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("'123'", LuaCatsTokenTypes.LCATS_STRING),
         )
 
         testLexer(
-            "fun(objectID: integer): boolean", TAG_TYPE,
+            "fun(objectID: integer): boolean",
+            TAG_TYPE,
             Token("fun", LuaCatsTokenTypes.LCATS_KEYWORD),
             Token("(", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("objectID", LuaCatsTokenTypes.LCATS_NAME),
@@ -453,13 +505,13 @@ class TestLuaCatsLexer {
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("boolean", LuaCatsTokenTypes.LCATS_NAME),
         )
-
     }
 
     @Test
     fun testUnclosedBacktickDoesNotSpanNewline() {
         testLexer(
-            "x `unclosed\n", TAG_PARAM,
+            "x `unclosed\n",
+            TAG_PARAM,
             Token("x", LuaCatsTokenTypes.LCATS_NAME),
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("`", LuaCatsTokenTypes.LCATS_TEXT),
@@ -471,7 +523,8 @@ class TestLuaCatsLexer {
     @Test
     fun testUnclosedStringDoesNotSpanNewline() {
         testLexer(
-            "\"unterminated\n", TAG_TYPE,
+            "\"unterminated\n",
+            TAG_TYPE,
             Token("\"", LuaCatsTokenTypes.LCATS_TEXT),
             Token("unterminated", LuaCatsTokenTypes.LCATS_TEXT),
             Token("\n", LuaCatsTokenTypes.LCATS_WHITESPACE),
@@ -481,12 +534,14 @@ class TestLuaCatsLexer {
     @Test
     fun testUnicodeClassNameLexesAsSingleName() {
         testLexer(
-            "名前", TAG_CLASS,
+            "名前",
+            TAG_CLASS,
             Token("名前", LuaCatsTokenTypes.LCATS_NAME),
         )
 
         testLexer(
-            "Игрок", TAG_CLASS,
+            "Игрок",
+            TAG_CLASS,
             Token("Игрок", LuaCatsTokenTypes.LCATS_NAME),
         )
     }
@@ -494,7 +549,8 @@ class TestLuaCatsLexer {
     @Test
     fun testVersion() {
         testLexer(
-            ">5.2, JIT", TAG_VERSION,
+            ">5.2, JIT",
+            TAG_VERSION,
             Token(">", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("5.2", LuaCatsTokenTypes.LCATS_STRING),
             Token(",", LuaCatsTokenTypes.LCATS_SYMBOL),
@@ -503,9 +559,9 @@ class TestLuaCatsLexer {
         )
 
         testLexer(
-            "5.4", TAG_VERSION,
+            "5.4",
+            TAG_VERSION,
             Token("5.4", LuaCatsTokenTypes.LCATS_STRING),
         )
     }
-
 }

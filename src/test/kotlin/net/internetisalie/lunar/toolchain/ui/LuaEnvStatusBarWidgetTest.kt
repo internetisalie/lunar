@@ -10,7 +10,6 @@ import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
  * env updates `activeEnvironmentId` and fires [LuaToolchainChange.ACTIVE_ENVIRONMENT_CHANGED].
  */
 class LuaEnvStatusBarWidgetTest : ToolchainSettingsTestCase() {
-
     fun `test text shows the active environment name`() {
         settings.upsertEnvironmentAndActivate(
             LuaEnvironmentState(id = "B", name = "Lua 5.3", rootDir = "/p/b"),

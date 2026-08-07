@@ -32,7 +32,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class RedisAmbientTypingTest : IndexedBasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaUndeclaredVariableInspection())
@@ -169,9 +168,11 @@ class RedisAmbientTypingTest : IndexedBasePlatformTestCase() {
     fun testKeysUndeclaredOffRedisTarget() {
         setStandardTarget("5.4")
         myFixture.configureByText("test.lua", "local x = KEYS[1]")
-        val warnings = myFixture.doHighlighting()
-            .mapNotNull { it.description }
-            .filter { it.startsWith("Undeclared variable") }
+        val warnings =
+            myFixture
+                .doHighlighting()
+                .mapNotNull { it.description }
+                .filter { it.startsWith("Undeclared variable") }
         assertTrue(
             "KEYS must be flagged undeclared off a Redis target (no ambient-stub leakage), got: $warnings",
             warnings.contains("Undeclared variable 'KEYS'"),

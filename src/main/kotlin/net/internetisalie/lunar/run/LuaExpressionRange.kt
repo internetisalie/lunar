@@ -21,21 +21,28 @@ import net.internetisalie.lunar.lang.psi.LuaStatement
  * caret is selected, and a non-expression offset yields `null`.
  */
 object LuaExpressionRange {
-
     /** Widest enclosing [LuaExpr] text range at [offset] in [document], or `null` (design §2.6). */
-    fun atOffset(project: Project, document: Document, offset: Int, sideEffectsAllowed: Boolean): TextRange? {
+    fun atOffset(
+        project: Project,
+        document: Document,
+        offset: Int,
+        sideEffectsAllowed: Boolean,
+    ): TextRange? {
         val currentRange = Ref.create<TextRange?>(null)
         PsiDocumentManager.getInstance(project).commitAndRunReadAction {
             try {
-                val virtualFile = PsiDocumentManager.getInstance(project)
-                    .getPsiFile(document)
-                    ?.virtualFile ?: return@commitAndRunReadAction
-                val elementAtCursor: PsiElement = XDebuggerUtil.getInstance().findContextElement(
-                    virtualFile,
-                    offset,
-                    project,
-                    false,
-                ) ?: return@commitAndRunReadAction
+                val virtualFile =
+                    PsiDocumentManager
+                        .getInstance(project)
+                        .getPsiFile(document)
+                        ?.virtualFile ?: return@commitAndRunReadAction
+                val elementAtCursor: PsiElement =
+                    XDebuggerUtil.getInstance().findContextElement(
+                        virtualFile,
+                        offset,
+                        project,
+                        false,
+                    ) ?: return@commitAndRunReadAction
                 val expression = findExpression(elementAtCursor, sideEffectsAllowed)
                 if (expression != null) currentRange.set(expression.getSecond())
             } catch (_: IndexNotReadyException) {
@@ -44,7 +51,10 @@ object LuaExpressionRange {
         return currentRange.get()
     }
 
-    private fun findExpression(element: PsiElement?, allowMethodCalls: Boolean): Pair<PsiElement?, TextRange?>? {
+    private fun findExpression(
+        element: PsiElement?,
+        allowMethodCalls: Boolean,
+    ): Pair<PsiElement?, TextRange?>? {
         var expression: LuaExpr? = PsiTreeUtil.getParentOfType(element, LuaExpr::class.java)
 
         while (expression != null && expression.parent is LuaExpr) {

@@ -51,7 +51,10 @@ data class LuaEnvManifest(
             }
         }
 
-        fun write(rootDir: Path, manifest: LuaEnvManifest) {
+        fun write(
+            rootDir: Path,
+            manifest: LuaEnvManifest,
+        ) {
             val file = rootDir.resolve(FILE_NAME)
             Files.writeString(file, gson.toJson(manifest))
         }

@@ -10,11 +10,19 @@ import org.junit.Test
  * returns the same project rockspecs (one per `rocks/<name>/`), proving the single-scanner contract.
  */
 class LuaRocksTreeLocatorDelegationTest : IndexedBasePlatformTestCase() {
-
-    private val kernelRockNames = listOf(
-        "adt", "channels", "cmd", "meteor", "pipe",
-        "platform", "ramdisk", "runtime", "ssdpd", "utils",
-    )
+    private val kernelRockNames =
+        listOf(
+            "adt",
+            "channels",
+            "cmd",
+            "meteor",
+            "pipe",
+            "platform",
+            "ramdisk",
+            "runtime",
+            "ssdpd",
+            "utils",
+        )
 
     @Test
     fun testAllProjectRockspecsDelegatesToDiscovery() {
@@ -28,8 +36,11 @@ class LuaRocksTreeLocatorDelegationTest : IndexedBasePlatformTestCase() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
                 val viaLocator = LuaRocksTreeLocator.allProjectRockspecs(project)
-                val viaService = LuaRockspecDiscoveryService.getInstance(project)
-                    .discoverRockspecPaths().map { it.rockspec }
+                val viaService =
+                    LuaRockspecDiscoveryService
+                        .getInstance(project)
+                        .discoverRockspecPaths()
+                        .map { it.rockspec }
                 captured = viaLocator to viaService
             }
         }

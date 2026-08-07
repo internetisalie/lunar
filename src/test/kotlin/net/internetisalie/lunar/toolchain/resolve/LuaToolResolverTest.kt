@@ -6,7 +6,6 @@ import net.internetisalie.lunar.toolchain.model.LuaEnvironmentState
 import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
 
 class LuaToolResolverTest : ToolchainSettingsTestCase() {
-
     private val resolver: LuaToolResolver
         get() = LuaToolResolver.getInstance()
 
@@ -27,7 +26,7 @@ class LuaToolResolverTest : ToolchainSettingsTestCase() {
         settings.setBinding("luacheck", toolB.id)
         val toolC = seedTool("luacheck", usable = true)
         settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(toolC.id))
+            LuaEnvironmentState(id = "E", name = "E", rootDir = "/p/.lua", toolIds = mutableListOf(toolC.id)),
         )
 
         val active = resolver.resolveDetailed(project, "luacheck")
@@ -76,7 +75,7 @@ class LuaToolResolverTest : ToolchainSettingsTestCase() {
                 it.tier == ResolutionSource.PROJECT_BINDING &&
                     it.toolId == "B" &&
                     it.reason == SkipReason.NOT_IN_INVENTORY
-            }
+            },
         )
 
         val toolA = seedTool("luacheck", usable = true)
@@ -100,7 +99,7 @@ class LuaToolResolverTest : ToolchainSettingsTestCase() {
                 it.tier == ResolutionSource.PROJECT_BINDING &&
                     it.toolId == toolB.id &&
                     it.reason == SkipReason.UNUSABLE
-            }
+            },
         )
     }
 
@@ -109,12 +108,13 @@ class LuaToolResolverTest : ToolchainSettingsTestCase() {
         val toolP = seedTool("luarocks", usable = true)
         val toolB = seedTool("luacheck", usable = true)
         settings.setBinding("luacheck", toolB.id)
-        val environment = LuaEnvironmentState(
-            id = "E",
-            name = "E",
-            rootDir = "/p/.lua",
-            toolIds = mutableListOf(toolR.id, toolP.id)
-        )
+        val environment =
+            LuaEnvironmentState(
+                id = "E",
+                name = "E",
+                rootDir = "/p/.lua",
+                toolIds = mutableListOf(toolR.id, toolP.id),
+            )
 
         assertEquals(toolP.id, resolver.resolveIn(environment, "luarocks")?.id)
         assertNull(resolver.resolveIn(environment, "luacheck"))

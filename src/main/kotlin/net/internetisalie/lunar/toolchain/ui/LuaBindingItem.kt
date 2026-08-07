@@ -11,7 +11,9 @@ import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 sealed interface LuaBindingItem {
     data object Inherit : LuaBindingItem
 
-    data class Tool(val tool: LuaRegisteredTool) : LuaBindingItem
+    data class Tool(
+        val tool: LuaRegisteredTool,
+    ) : LuaBindingItem
 }
 
 /**
@@ -21,5 +23,7 @@ sealed interface LuaBindingItem {
 sealed interface LuaEnvironmentItem {
     data object None : LuaEnvironmentItem
 
-    data class Env(val env: LuaEnvironmentState) : LuaEnvironmentItem
+    data class Env(
+        val env: LuaEnvironmentState,
+    ) : LuaEnvironmentItem
 }

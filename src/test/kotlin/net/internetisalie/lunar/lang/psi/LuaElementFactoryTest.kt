@@ -11,7 +11,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaElementFactoryTest : BasePlatformTestCase() {
-
     @Test
     fun testCreateIdentifierProducesNamedElement() {
         runReadAction {

@@ -17,7 +17,6 @@ import kotlin.test.assertTrue
  * 4. Works correctly in various code contexts
  */
 class LuaEnterHandlerTest : BaseDocumentTest() {
-
     // ===== Test Case: Simple Auto-continuation =====
 
     @Test
@@ -34,7 +33,9 @@ class LuaEnterHandlerTest : BaseDocumentTest() {
     @Test
     fun testDocCommentMarkerDetection() {
         myFixture.configureByText(LuaFileType, "--- Documentation line")
-        val text = myFixture.editor.document.text.trim()
+        val text =
+            myFixture.editor.document.text
+                .trim()
 
         assertTrue(text.startsWith("---"), "Line should start with ---")
     }
@@ -43,23 +44,29 @@ class LuaEnterHandlerTest : BaseDocumentTest() {
 
     @Test
     fun testIndentationDetection() {
-        val testCases = listOf(
-            "    --- Nested" to 4,
-            "  --- Nested" to 2,
-            "\t--- Tabbed" to 1,
-            "--- No indent" to 0,
-        )
+        val testCases =
+            listOf(
+                "    --- Nested" to 4,
+                "  --- Nested" to 2,
+                "\t--- Tabbed" to 1,
+                "--- No indent" to 0,
+            )
 
         testCases.forEach { (line, expectedIndent) ->
             var indentCount = 0
             var i = 0
             while (i < line.length && (line[i] == ' ' || line[i] == '\t')) {
-                if (line[i] == ' ') indentCount += 1
-                else if (line[i] == '\t') indentCount += 1
+                if (line[i] == ' ') {
+                    indentCount += 1
+                } else if (line[i] == '\t') {
+                    indentCount += 1
+                }
                 i++
             }
-            assertTrue(indentCount == expectedIndent || line.substring(indentCount).startsWith("---"),
-                "Line should have correct indentation: $line")
+            assertTrue(
+                indentCount == expectedIndent || line.substring(indentCount).startsWith("---"),
+                "Line should have correct indentation: $line",
+            )
         }
     }
 
@@ -67,11 +74,12 @@ class LuaEnterHandlerTest : BaseDocumentTest() {
 
     @Test
     fun testDocCommentIdentification() {
-        val docComments = listOf(
-            "--- Documentation",
-            "  --- Indented documentation",
-            "\t--- Tabbed documentation",
-        )
+        val docComments =
+            listOf(
+                "--- Documentation",
+                "  --- Indented documentation",
+                "\t--- Tabbed documentation",
+            )
 
         docComments.forEach { comment ->
             val trimmed = comment.trim()
@@ -81,16 +89,19 @@ class LuaEnterHandlerTest : BaseDocumentTest() {
 
     @Test
     fun testRegularCommentIdentification() {
-        val regularComments = listOf(
-            "-- Regular comment",
-            "  -- Indented comment",
-            "\t-- Tabbed comment",
-        )
+        val regularComments =
+            listOf(
+                "-- Regular comment",
+                "  -- Indented comment",
+                "\t-- Tabbed comment",
+            )
 
         regularComments.forEach { comment ->
             val trimmed = comment.trim()
-            assertTrue(trimmed.startsWith("--") && !trimmed.startsWith("---"),
-                "Should identify regular comment: $comment")
+            assertTrue(
+                trimmed.startsWith("--") && !trimmed.startsWith("---"),
+                "Should identify regular comment: $comment",
+            )
         }
     }
 
@@ -106,18 +117,23 @@ class LuaEnterHandlerTest : BaseDocumentTest() {
 
     @Test
     fun testDocCommentPrefixWithVariousIndentations() {
-        val testCases = listOf(
-            "--- Doc" to true,
-            "  --- Doc" to true,
-            "\t--- Doc" to true,
-            "-- Comment" to false,
-            "  -- Comment" to false,
-        )
+        val testCases =
+            listOf(
+                "--- Doc" to true,
+                "  --- Doc" to true,
+                "\t--- Doc" to true,
+                "-- Comment" to false,
+                "  -- Comment" to false,
+            )
 
         testCases.forEach { (line, shouldMatch) ->
             val trimmed = line.trim()
             val isDocComment = trimmed.startsWith("---")
-            assertEquals(shouldMatch, isDocComment, "Line should${if (!shouldMatch) " not" else ""} be doc comment: $line")
+            assertEquals(
+                shouldMatch,
+                isDocComment,
+                "Line should${if (!shouldMatch) " not" else ""} be doc comment: $line",
+            )
         }
     }
 
@@ -148,7 +164,7 @@ class LuaEnterHandlerTest : BaseDocumentTest() {
             LuaFileType,
             """--- Documentation
 function test()
-end"""
+end""",
         )
         val text = myFixture.editor.document.text
 
@@ -163,7 +179,7 @@ end"""
             """function test()
     --- Inner documentation
     local x = 1
-end"""
+end""",
         )
         val text = myFixture.editor.document.text
 
@@ -177,14 +193,16 @@ end"""
             LuaFileType,
             """--- Documentation
 -- Regular comment
-local x = 1"""
+local x = 1""",
         )
         val text = myFixture.editor.document.text
         val lines = text.split("\n")
 
         assertTrue(lines[0].trim().startsWith("---"), "First line should be doc comment")
-        assertTrue(lines[1].trim().startsWith("--") && !lines[1].trim().startsWith("---"),
-            "Second line should be regular comment")
+        assertTrue(
+            lines[1].trim().startsWith("--") && !lines[1].trim().startsWith("---"),
+            "Second line should be regular comment",
+        )
     }
 
     // ===== Test Case: Empty Lines and Edge Cases =====
@@ -223,7 +241,7 @@ local x = 1"""
             LuaFileType,
             """--- Line 1
 --- Line 2
---- Line 3"""
+--- Line 3""",
         )
         val text = myFixture.editor.document.text
         val lines = text.split("\n")
@@ -240,7 +258,7 @@ local x = 1"""
             LuaFileType,
             """--- Documentation block
 --- with multiple lines
-local x = 1"""
+local x = 1""",
         )
         val text = myFixture.editor.document.text
         val lines = text.split("\n")
@@ -259,7 +277,7 @@ local x = 1"""
             LuaFileType,
             """    --- Line 1
     --- Line 2
-    --- Line 3"""
+    --- Line 3""",
         )
         val text = myFixture.editor.document.text
         val lines = text.split("\n")
@@ -290,13 +308,14 @@ local x = 1"""
 
     @Test
     fun testDocCommentPatternMatching() {
-        val validPatterns = listOf(
-            "--- ",
-            "---\t",
-            "--- text",
-            "  --- ",
-            "\t--- ",
-        )
+        val validPatterns =
+            listOf(
+                "--- ",
+                "---\t",
+                "--- text",
+                "  --- ",
+                "\t--- ",
+            )
 
         validPatterns.forEach { pattern ->
             val trimmed = pattern.trim()
@@ -306,12 +325,13 @@ local x = 1"""
 
     @Test
     fun testInvalidPatternDetection() {
-        val invalidPatterns = listOf(
-            "-- ",
-            "--text",
-            "  -- ",
-            "\t-- ",
-        )
+        val invalidPatterns =
+            listOf(
+                "-- ",
+                "--text",
+                "  -- ",
+                "\t-- ",
+            )
 
         invalidPatterns.forEach { pattern ->
             val trimmed = pattern.trim()

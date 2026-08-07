@@ -23,7 +23,6 @@ import com.intellij.openapi.components.Storage
     category = SettingsCategory.CODE,
 )
 class LuaEditorOptions : PersistentStateComponent<LuaEditorOptions.State> {
-
     class State {
         var autoCloseKeywordBlocks: Boolean = true
     }

@@ -17,22 +17,30 @@ class LuaDocSearchItem(
     private val project: Project,
     val symbolName: String,
     private val fileUrl: String,
-    private val declarationOffset: Int
+    private val declarationOffset: Int,
 ) : NavigationItem {
     override fun getName(): String = symbolName
 
     override fun getPresentation(): ItemPresentation? {
         val vFile = VirtualFileManager.getInstance().findFileByUrl(fileUrl) ?: return null
-        val relativePath = ProjectFileIndex.getInstance(project)
-            .getContentRootForFile(vFile)?.let { VfsUtilCore.getRelativePath(vFile, it) }
-            ?: vFile.name
+        val relativePath =
+            ProjectFileIndex
+                .getInstance(project)
+                .getContentRootForFile(vFile)
+                ?.let { VfsUtilCore.getRelativePath(vFile, it) }
+                ?: vFile.name
         return object : ItemPresentation {
             override fun getPresentableText(): String = symbolName
+
             override fun getLocationString(): String = relativePath
+
             override fun getIcon(unused: Boolean): Icon? {
                 return runReadActionBlocking {
-                    val element = PsiManager.getInstance(project).findFile(vFile)
-                        ?.findElementAt(declarationOffset) ?: return@runReadActionBlocking null
+                    val element =
+                        PsiManager
+                            .getInstance(project)
+                            .findFile(vFile)
+                            ?.findElementAt(declarationOffset) ?: return@runReadActionBlocking null
                     val owner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
                     owner?.getIcon(0)
                 }
@@ -42,16 +50,20 @@ class LuaDocSearchItem(
 
     override fun navigate(requestFocus: Boolean) {
         val vFile = VirtualFileManager.getInstance().findFileByUrl(fileUrl) ?: return
-        val owner = runReadActionBlocking {
-            val psiFile = PsiManager.getInstance(project).findFile(vFile)
-                ?: return@runReadActionBlocking null
-            val element = psiFile.findElementAt(declarationOffset)
-                ?: return@runReadActionBlocking null
-            PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
-        }
+        val owner =
+            runReadActionBlocking {
+                val psiFile =
+                    PsiManager.getInstance(project).findFile(vFile)
+                        ?: return@runReadActionBlocking null
+                val element =
+                    psiFile.findElementAt(declarationOffset)
+                        ?: return@runReadActionBlocking null
+                PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
+            }
         (owner as? Navigatable)?.navigate(requestFocus)
     }
 
     override fun canNavigate(): Boolean = true
+
     override fun canNavigateToSource(): Boolean = true
 }

@@ -15,7 +15,6 @@ import kotlin.test.assertTrue
  * in the human-verification checklist scenario 2.1.
  */
 class LuaRocksSearchServiceCommandTest {
-
     /**
      * TC 1 (partial): when a server is resolved, the search sub-command args contain
      * ["--server", url] *before* "search".

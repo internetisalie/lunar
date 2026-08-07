@@ -9,7 +9,10 @@ import net.internetisalie.lunar.lang.path.PathConfiguration
 import java.nio.file.Paths
 
 class LuaRockSourceRootDecorator : ProjectViewNodeDecorator {
-    override fun decorate(node: ProjectViewNode<*>, data: PresentationData) {
+    override fun decorate(
+        node: ProjectViewNode<*>,
+        data: PresentationData,
+    ) {
         val project = node.project ?: return
         val dir = node.virtualFile ?: return
         if (!dir.isDirectory || !dir.isValid) return
@@ -20,9 +23,13 @@ class LuaRockSourceRootDecorator : ProjectViewNodeDecorator {
         }
     }
 
-    private fun sourceRootDirs(project: Project, base: String): Set<String> {
+    private fun sourceRootDirs(
+        project: Project,
+        base: String,
+    ): Set<String> {
         val patterns = PathConfiguration.getProjectSourcePathPatterns(project)
-        return patterns.asSequence()
+        return patterns
+            .asSequence()
             .map { it.leadingPath }
             .map { Paths.get(it) }
             .filter { it.isAbsolute && it.startsWith(base) }

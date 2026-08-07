@@ -36,14 +36,17 @@ open class BaseDocumentTest {
 
         val factory = IdeaTestFixtureFactory.getFixtureFactory()
 
-        val lightFixtureBuilder = factory.createLightFixtureBuilder(
-            myProjectDescriptor, testInfo.displayName
-        )
+        val lightFixtureBuilder =
+            factory.createLightFixtureBuilder(
+                myProjectDescriptor,
+                testInfo.displayName,
+            )
 
-        myFixture = factory.createCodeInsightFixture(
-            lightFixtureBuilder.getFixture(),
-            LightTempDirTestFixtureImpl(false),
-        )
+        myFixture =
+            factory.createCodeInsightFixture(
+                lightFixtureBuilder.getFixture(),
+                LightTempDirTestFixtureImpl(false),
+            )
         myFixture.setUp()
         TemplateManagerImpl.setTemplateTesting(myFixture.testRootDisposable)
     }
@@ -53,7 +56,5 @@ open class BaseDocumentTest {
         myFixture.tearDown()
     }
 
-    fun configureByText(text: String) : PsiFile {
-        return myFixture.configureByText(luaFileName, text)
-    }
+    fun configureByText(text: String): PsiFile = myFixture.configureByText(luaFileName, text)
 }

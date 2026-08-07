@@ -1,11 +1,10 @@
 package net.internetisalie.lunar.lang.insight
 
+import com.intellij.psi.impl.DebugUtil
 import net.internetisalie.lunar.BaseDocumentTest
 import org.junit.jupiter.api.Test
-import com.intellij.psi.impl.DebugUtil
 
 class LuaCompletionPsiTest : BaseDocumentTest() {
-
     @Test
     fun `test l`() {
         configureByText("local a = 1\nl<caret>")

@@ -44,9 +44,15 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
     }
 
     /** The resolved return type names of one step plus the class name to carry forward. */
-    private data class StepType(val returnNames: List<String>, val nextReceiverClass: String?)
+    private data class StepType(
+        val returnNames: List<String>,
+        val nextReceiverClass: String?,
+    )
 
-    override fun createCollector(file: PsiFile, editor: Editor): InlayHintsCollector? {
+    override fun createCollector(
+        file: PsiFile,
+        editor: Editor,
+    ): InlayHintsCollector? {
         val settings = LuaInlayHintsSettings.instance.state
 
         // Check large file threshold
@@ -56,7 +62,10 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
         }
 
         return object : SharedBypassCollector {
-            override fun collectFromElement(element: PsiElement, sink: InlayTreeSink) {
+            override fun collectFromElement(
+                element: PsiElement,
+                sink: InlayTreeSink,
+            ) {
                 if (file !is LuaFile) return
                 if (element !is LuaFuncCall) return
 
@@ -67,7 +76,11 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
         }
     }
 
-    private fun collectChainHints(call: LuaFuncCall, document: Document, sink: InlayTreeSink) {
+    private fun collectChainHints(
+        call: LuaFuncCall,
+        document: Document,
+        sink: InlayTreeSink,
+    ) {
         val steps = call.nameAndArgsList
         if (steps.size < 2) return
 
@@ -94,7 +107,12 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
         }
     }
 
-    private fun emitHint(step: LuaNameAndArgs, returnNames: List<String>, receiverClass: String?, sink: InlayTreeSink) {
+    private fun emitHint(
+        step: LuaNameAndArgs,
+        returnNames: List<String>,
+        receiverClass: String?,
+        sink: InlayTreeSink,
+    ) {
         val hintText = formatReturnNames(returnNames, receiverClass) ?: return
         sink.addPresentation(
             InlineInlayPosition(step.textRange.endOffset, true),
@@ -107,7 +125,11 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
     }
 
     /** REQ-01/05: a step qualifies only when its call starts on a line after its receiver's start. */
-    private fun isMultiLineStep(step: LuaNameAndArgs, receiverStart: Int, document: Document): Boolean {
+    private fun isMultiLineStep(
+        step: LuaNameAndArgs,
+        receiverStart: Int,
+        document: Document,
+    ): Boolean {
         val stepLine = document.getLineNumber(step.textRange.startOffset)
         val receiverLine = document.getLineNumber(receiverStart)
         return stepLine > receiverLine
@@ -119,18 +141,23 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
      * so a copied receiver (`local b = Builder`) never resolves. Instead we look the method up by
      * its declared key `<class>:<method>` in the global-declaration stub index and read `---@return`.
      */
-    private fun resolveStepType(receiverClass: String?, methodName: String, file: LuaFile): StepType {
+    private fun resolveStepType(
+        receiverClass: String?,
+        methodName: String,
+        file: LuaFile,
+    ): StepType {
         if (receiverClass == null) return StepType(emptyList(), null)
 
         // MAINT-30-04 (§2.7): resolve the method through the type engine's resolveMember first
         // (the documented idiom). DR-03: resolveMember yields a single returnType, so it cannot
         // reproduce a multi-value `---@return A, B`; the stub path stays as the multi-return fallback
         // (priority C), giving output identical to the pre-migration path (TC-09).
-        val rawNames = memberReturnNames(receiverClass, methodName, file)
-            ?: findMethodDecl(file.project, receiverClass, methodName)?.let {
-                annotatedReturnNames(it) ?: inferredReturnNames(it)
-            }
-            ?: return StepType(emptyList(), receiverClass)
+        val rawNames =
+            memberReturnNames(receiverClass, methodName, file)
+                ?: findMethodDecl(file.project, receiverClass, methodName)?.let {
+                    annotatedReturnNames(it) ?: inferredReturnNames(it)
+                }
+                ?: return StepType(emptyList(), receiverClass)
 
         val resolvedNames = rawNames.map { if (it == "self") receiverClass else it }
         val nextClass = resolvedNames.firstOrNull { it !in UNRESOLVED_NAMES } ?: receiverClass
@@ -143,7 +170,11 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
      * multi-return list (DR-03: a single `LuaFunctionType.returnType` cannot represent it), so the
      * caller falls back to the stub path and preserves identical hint text.
      */
-    private fun memberReturnNames(receiverClass: String, methodName: String, file: LuaFile): List<String>? {
+    private fun memberReturnNames(
+        receiverClass: String,
+        methodName: String,
+        file: LuaFile,
+    ): List<String>? {
         val classType = LuaTypeManager.getInstance(file.project).resolveType(receiverClass, file) as? LuaClassType
         val funcType = classType?.resolveMember(methodName)?.type as? LuaFunctionType ?: return null
         if (multiReturnDecl(file.project, receiverClass, methodName)) return null
@@ -152,18 +183,28 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
     }
 
     /** True when the declared method has a multi-value `---@return A, B` (stub path owns those). */
-    private fun multiReturnDecl(project: Project, receiverClass: String, methodName: String): Boolean {
+    private fun multiReturnDecl(
+        project: Project,
+        receiverClass: String,
+        methodName: String,
+    ): Boolean {
         val decl = findMethodDecl(project, receiverClass, methodName) ?: return false
         return (annotatedReturnNames(decl)?.size ?: 0) > 1
     }
 
     /** Look up `function <class>:<method>` (or `.<method>`) via the global-declaration stub index. */
-    private fun findMethodDecl(project: Project, receiverClass: String, methodName: String): LuaFuncDecl? {
+    private fun findMethodDecl(
+        project: Project,
+        receiverClass: String,
+        methodName: String,
+    ): LuaFuncDecl? {
         val scope = GlobalSearchScope.allScope(project)
         for (separator in METHOD_SEPARATORS) {
             val key = "$receiverClass$separator$methodName"
-            StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, key, project, scope, LuaFuncDecl::class.java)
-                .firstOrNull()?.let { return it }
+            StubIndex
+                .getElements(LuaGlobalDeclarationIndex.KEY, key, project, scope, LuaFuncDecl::class.java)
+                .firstOrNull()
+                ?.let { return it }
         }
         return null
     }
@@ -171,7 +212,10 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
     /** Raw `---@return` type names, or null when the method has no return annotation. */
     private fun annotatedReturnNames(funcDecl: LuaFuncDecl): List<String>? {
         // Stub fast-path: index-loaded decls expose the first return type without de-stubbing.
-        funcDecl.stub?.luacatsReturnType?.takeIf { it.isNotBlank() }?.let { return listOf(it.trim()) }
+        funcDecl.stub
+            ?.luacatsReturnType
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return listOf(it.trim()) }
         val cats = funcDecl.catsComment ?: return null
         val tags = cats.getReturnTagList()
         if (tags.isEmpty()) return null
@@ -187,17 +231,24 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
     }
 
     /** Mirror [LuaTypeInlayHintProvider]'s graph-return mapping so multi-returns are preserved. */
-    private fun returnTypeNames(funcType: LuaGraphType.Function, declTypes: LuaTypes): List<String> {
-        val names = funcType.returns.map { node ->
-            val t = if (node.write != LuaGraphType.Undefined) node.write else node.read
-            declTypes.graphTypeToLuaType(t).name
-        }
+    private fun returnTypeNames(
+        funcType: LuaGraphType.Function,
+        declTypes: LuaTypes,
+    ): List<String> {
+        val names =
+            funcType.returns.map { node ->
+                val t = if (node.write != LuaGraphType.Undefined) node.write else node.read
+                declTypes.graphTypeToLuaType(t).name
+            }
         val lastSignificant = names.indexOfLast { it !in UNRESOLVED_NAMES }
         return if (lastSignificant >= 0) names.take(lastSignificant + 1) else emptyList()
     }
 
     /** REQ-03/04/09: join meaningful names, dropping a lone trivial primitive. */
-    private fun formatReturnNames(returnNames: List<String>, receiverClass: String?): String? {
+    private fun formatReturnNames(
+        returnNames: List<String>,
+        receiverClass: String?,
+    ): String? {
         val resolved = returnNames.map { if (it == "self") receiverClass ?: it else it }
         val meaningful = resolved.filterNot { it in UNRESOLVED_NAMES }
         if (meaningful.isEmpty()) return null
@@ -210,10 +261,11 @@ class LuaMethodChainInlayHintProvider : InlayHintsProvider {
      * class (`{ ... } | Builder`), so dig the first named class out of a union rather than using
      * the union's display text.
      */
-    private fun className(type: LuaGraphType): String? = when (type) {
-        is LuaGraphType.Table -> type.className
-        is LuaGraphType.Generic -> type.name
-        is LuaGraphType.Union -> type.types.firstNotNullOfOrNull { className(it) }
-        else -> type.displayName().takeIf { it !in UNRESOLVED_NAMES }
-    }
+    private fun className(type: LuaGraphType): String? =
+        when (type) {
+            is LuaGraphType.Table -> type.className
+            is LuaGraphType.Generic -> type.name
+            is LuaGraphType.Union -> type.types.firstNotNullOfOrNull { className(it) }
+            else -> type.displayName().takeIf { it !in UNRESOLVED_NAMES }
+        }
 }

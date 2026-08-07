@@ -1,7 +1,7 @@
 package net.internetisalie.lunar.lang.psi
 
-import com.intellij.psi.ResolveState
 import com.intellij.psi.PsiElement
+import com.intellij.psi.ResolveState
 import com.intellij.psi.scope.PsiScopeProcessor
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaBlock
@@ -26,7 +26,7 @@ fun LuaBlock.processDeclarations(
     processor: PsiScopeProcessor,
     state: ResolveState,
     lastParent: PsiElement?,
-    place: PsiElement
+    place: PsiElement,
 ): Boolean {
     // Iterate over all statements in the block in source order
     for (statement in statementList) {
@@ -39,14 +39,14 @@ fun LuaBlock.processDeclarations(
             is LuaLocalVarDecl -> {
                 // Process the local variable declaration statement
                 if (!processor.execute(statement, state)) {
-                    return false  // Processor found match, stop walk
+                    return false // Processor found match, stop walk
                 }
             }
 
             is LuaLocalFuncDecl -> {
                 // Process the local function declaration itself
                 if (!processor.execute(statement, state)) {
-                    return false  // Processor found match, stop walk
+                    return false // Processor found match, stop walk
                 }
             }
 
@@ -69,7 +69,7 @@ fun LuaBlock.processDeclarations(
                     val nameRef = varElement.nameRef
                     if (nameRef != null) {
                         if (!processor.execute(varElement, state)) {
-                            return false  // Processor found match, stop walk
+                            return false // Processor found match, stop walk
                         }
                     }
                 }
@@ -77,7 +77,7 @@ fun LuaBlock.processDeclarations(
         }
     }
 
-    return true  // Continue walk to parent scope
+    return true // Continue walk to parent scope
 }
 
 fun LuaBlock.processLabelDeclarations(

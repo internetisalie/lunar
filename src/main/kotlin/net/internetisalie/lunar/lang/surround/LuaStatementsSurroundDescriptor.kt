@@ -12,23 +12,28 @@ import net.internetisalie.lunar.lang.editor.LuaBlockStructure
  * seven templates in requirement-priority order (M → S → C). Design §2.2 / §3.4.
  */
 class LuaStatementsSurroundDescriptor : SurroundDescriptor {
-
-    override fun getElementsToSurround(file: PsiFile, startOffset: Int, endOffset: Int): Array<PsiElement> {
+    override fun getElementsToSurround(
+        file: PsiFile,
+        startOffset: Int,
+        endOffset: Int,
+    ): Array<PsiElement> {
         val block = LuaBlockStructure.enclosingBlock(file, startOffset, endOffset) ?: return PsiElement.EMPTY_ARRAY
-        return LuaBlockStructure.statementsInRange(block, startOffset, endOffset)
+        return LuaBlockStructure
+            .statementsInRange(block, startOffset, endOffset)
             .map { it as PsiElement }
             .toTypedArray()
     }
 
-    override fun getSurrounders(): Array<Surrounder> = arrayOf(
-        LuaIfSurrounder(),
-        LuaWhileSurrounder(),
-        LuaNumericForSurrounder(),
-        LuaGenericForSurrounder(),
-        LuaFunctionSurrounder(),
-        LuaDoSurrounder(),
-        LuaPcallSurrounder(),
-    )
+    override fun getSurrounders(): Array<Surrounder> =
+        arrayOf(
+            LuaIfSurrounder(),
+            LuaWhileSurrounder(),
+            LuaNumericForSurrounder(),
+            LuaGenericForSurrounder(),
+            LuaFunctionSurrounder(),
+            LuaDoSurrounder(),
+            LuaPcallSurrounder(),
+        )
 
     override fun isExclusive(): Boolean = false
 }

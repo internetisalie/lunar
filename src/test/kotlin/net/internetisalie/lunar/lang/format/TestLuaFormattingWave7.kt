@@ -18,13 +18,13 @@ import kotlin.test.assertTrue
  * via [CodeStyleManager.reformatText] and asserts the user-visible result.
  */
 class TestLuaFormattingWave7 : BaseDocumentTest() {
-
     private fun reformat(configure: (CodeStyleSettings) -> Unit = {}) {
         WriteCommandAction.writeCommandAction(myFixture.project).run<RuntimeException?> {
             val settings = CodeStyle.getSettings(myFixture.project)
             configure(settings)
             CodeStyleManager.getInstance(myFixture.project).reformatText(
-                myFixture.file, listOf(myFixture.file.textRange)
+                myFixture.file,
+                listOf(myFixture.file.textRange),
             )
         }
     }
@@ -32,8 +32,7 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
     private fun lua(settings: CodeStyleSettings): LuaCodeStyleSettings =
         settings.getCustomSettings(LuaCodeStyleSettings::class.java)
 
-    private fun common(settings: CodeStyleSettings): CommonCodeStyleSettings =
-        settings.getCommonSettings(LuaLanguage)
+    private fun common(settings: CodeStyleSettings): CommonCodeStyleSettings = settings.getCommonSettings(LuaLanguage)
 
     // --- FORMAT-03 Blank line management ---------------------------------------------------
 
@@ -44,13 +43,13 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
             """
             function a() end
             function b() end
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         reformat { common(it).BLANK_LINES_AROUND_METHOD = 2 }
 
         myFixture.checkResult(
-            "function a() end\n\n\nfunction b() end\n"
+            "function a() end\n\n\nfunction b() end\n",
         )
     }
 
@@ -58,14 +57,14 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
     fun testKeepMaxBlankLines() {
         myFixture.configureByText(
             LuaFileType,
-            "do\nlocal x = 1\n\n\n\n\nlocal y = 2\nend"
+            "do\nlocal x = 1\n\n\n\n\nlocal y = 2\nend",
         )
 
         reformat { common(it).KEEP_BLANK_LINES_IN_CODE = 1 }
 
         assertEquals(
             "do\n    local x = 1\n\n    local y = 2\nend\n",
-            myFixture.file.text
+            myFixture.file.text,
         )
     }
 
@@ -128,7 +127,7 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
     fun testAlignConsecutiveAssignments() {
         myFixture.configureByText(
             LuaFileType,
-            "x = 1\nabc = 2\nyy = 3"
+            "x = 1\nabc = 2\nyy = 3",
         )
 
         reformat { lua(it).ALIGN_CONSECUTIVE_ASSIGNMENTS = true }
@@ -140,7 +139,7 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
     fun testAlignmentBrokenByBlankLine() {
         myFixture.configureByText(
             LuaFileType,
-            "x = 1\nabc = 2\n\nzz = 3\nq = 4"
+            "x = 1\nabc = 2\n\nzz = 3\nq = 4",
         )
 
         reformat { lua(it).ALIGN_CONSECUTIVE_ASSIGNMENTS = true }
@@ -159,13 +158,13 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
     fun testAlignTableFields() {
         myFixture.configureByText(
             LuaFileType,
-            "local t = {\na = 1,\nbb = 2,\nccc = 3,\n}"
+            "local t = {\na = 1,\nbb = 2,\nccc = 3,\n}",
         )
 
         reformat { lua(it).ALIGN_TABLE_FIELDS = true }
 
         myFixture.checkResult(
-            "local t = {\n    a   = 1,\n    bb  = 2,\n    ccc = 3,\n}\n"
+            "local t = {\n    a   = 1,\n    bb  = 2,\n    ccc = 3,\n}\n",
         )
     }
 
@@ -175,7 +174,7 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
     fun testWrapLongComment() {
         myFixture.configureByText(
             LuaFileType,
-            "-- alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu"
+            "-- alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu",
         )
 
         reformat {
@@ -183,7 +182,10 @@ class TestLuaFormattingWave7 : BaseDocumentTest() {
             common(it).RIGHT_MARGIN = 30
         }
 
-        val lines = myFixture.file.text.trimEnd().lines()
+        val lines =
+            myFixture.file.text
+                .trimEnd()
+                .lines()
         assertTrue(lines.size > 1, "long comment should wrap: ${myFixture.file.text}")
         lines.forEach {
             assertTrue(it.startsWith("-- "), "each wrapped line keeps the comment prefix: '$it'")

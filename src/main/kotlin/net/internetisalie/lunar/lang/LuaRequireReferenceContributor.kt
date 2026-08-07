@@ -41,11 +41,12 @@ class LuaRequireReferenceContributor : PsiReferenceContributor() {
                     // Range is relative to the host element, which differs between the two shapes:
                     // the whole LuaTerminalExpr *is* the string, whereas under LuaArgs the string is
                     // one child among the call's argument syntax.
-                    val textRange = if (element === stringElement) {
-                        TextRange(0, element.textLength)
-                    } else {
-                        TextRange.from(stringElement.startOffsetInParent, stringElement.textLength)
-                    }
+                    val textRange =
+                        if (element === stringElement) {
+                            TextRange(0, element.textLength)
+                        } else {
+                            TextRange.from(stringElement.startOffsetInParent, stringElement.textLength)
+                        }
                     return arrayOf(LuaRequireReference(element, textRange, moduleName))
                 }
             },
@@ -66,15 +67,20 @@ class LuaRequireReferenceContributor : PsiReferenceContributor() {
          * null (the string lives inside `exprList`), so exactly one reference is contributed per
          * call — `exactlyOneReferenceIsContributedPerCall` locks that.
          */
-        fun requireArgumentString(element: PsiElement): PsiElement? = when (element) {
-            is LuaTerminalExpr -> element.string
-            is LuaArgs -> element.string
-            else -> null
-        }
+        fun requireArgumentString(element: PsiElement): PsiElement? =
+            when (element) {
+                is LuaTerminalExpr -> element.string
+                is LuaArgs -> element.string
+                else -> null
+            }
 
         fun isRequireCall(element: PsiElement): Boolean {
             val funcCall = PsiTreeUtil.getParentOfType(element, LuaFuncCall::class.java) ?: return false
-            return funcCall.varOrExp?.`var`?.nameRef?.identifier?.text == "require"
+            return funcCall.varOrExp
+                ?.`var`
+                ?.nameRef
+                ?.identifier
+                ?.text == "require"
         }
 
         /** Strips the quote or long-bracket delimiters; null when nothing is left. */

@@ -12,7 +12,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class MemberFieldIndexTest : IndexedBasePlatformTestCase() {
-
     @Test
     fun testIndexFindsQualifiedFieldDeclaration() {
         myFixture.addFileToProject(
@@ -28,11 +27,12 @@ class MemberFieldIndexTest : IndexedBasePlatformTestCase() {
         )
         myFixture.configureByText("use.lua", "local p = package.path\n")
 
-        val results = LuaMemberFieldNavigation.find(
-            project,
-            "package.path",
-            GlobalSearchScope.allScope(project),
-        )
+        val results =
+            LuaMemberFieldNavigation.find(
+                project,
+                "package.path",
+                GlobalSearchScope.allScope(project),
+            )
 
         // `package.path` is declared (and re-assigned) in several files; every hit must be the `path`
         // field identifier (never a `path.*` module function), and the stub declaration is among them.
@@ -42,7 +42,9 @@ class MemberFieldIndexTest : IndexedBasePlatformTestCase() {
             results.all { it.text == "path" },
         )
         assertTrue(
-            "the `package.lua` field declaration must be among the results; got ${results.map { it.containingFile.name }}",
+            "the `package.lua` field declaration must be among the results; got ${results.map {
+                it.containingFile.name
+            }}",
             results.any { it.containingFile.name == "package.lua" },
         )
     }
@@ -50,11 +52,12 @@ class MemberFieldIndexTest : IndexedBasePlatformTestCase() {
     @Test
     fun testUnknownNameResolvesToNothing() {
         myFixture.configureByText("use.lua", "local p = nope.nope\n")
-        val results = LuaMemberFieldNavigation.find(
-            project,
-            "nope.nope",
-            GlobalSearchScope.allScope(project),
-        )
+        val results =
+            LuaMemberFieldNavigation.find(
+                project,
+                "nope.nope",
+                GlobalSearchScope.allScope(project),
+            )
         assertTrue("unknown qualified field must resolve to nothing", results.isEmpty())
     }
 }

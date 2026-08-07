@@ -15,7 +15,6 @@ import org.junit.Test
  * #6 (cached identity), and the Phase-0 `FilenameIndex` spike (ROCKS-09-00-01).
  */
 class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
-
     // The include/exclude-glob tests mutate the PROJECT-level LuaProjectSettings. The light test
     // project (and its persistent settings) is shared across tests in a JVM run, so a leaked allow-list
     // (e.g. `a/**`) would silently filter out unrelated rockspecs in later tests such as
@@ -31,10 +30,19 @@ class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
         }
     }
 
-    private val kernelRockNames = listOf(
-        "adt", "channels", "cmd", "meteor", "pipe",
-        "platform", "ramdisk", "runtime", "ssdpd", "utils",
-    )
+    private val kernelRockNames =
+        listOf(
+            "adt",
+            "channels",
+            "cmd",
+            "meteor",
+            "pipe",
+            "platform",
+            "ramdisk",
+            "runtime",
+            "ssdpd",
+            "utils",
+        )
 
     private fun addKernelFixture() {
         for (name in kernelRockNames) {
@@ -62,9 +70,10 @@ class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
     @Test
     fun testFilenameIndexEnumeratesKernelRockspecs() {
         addKernelFixture()
-        val found = inEdtRead {
-            FilenameIndex.getAllFilesByExt(project, "rockspec", GlobalSearchScope.projectScope(project))
-        }
+        val found =
+            inEdtRead {
+                FilenameIndex.getAllFilesByExt(project, "rockspec", GlobalSearchScope.projectScope(project))
+            }
         assertEquals("FilenameIndex must enumerate all 10 Kernel/v0 rockspecs", 10, found.size)
     }
 
@@ -113,9 +122,10 @@ class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
     fun testRepeatedCallReturnsCachedIdentity() {
         addKernelFixture()
         val service = LuaRockspecDiscoveryService.getInstance(project)
-        val (first, second) = inEdtRead {
-            service.discoverRockspecPaths() to service.discoverRockspecPaths()
-        }
+        val (first, second) =
+            inEdtRead {
+                service.discoverRockspecPaths() to service.discoverRockspecPaths()
+            }
         assertSame("Repeated discovery with no edits must reuse the cached list", first, second)
     }
 
@@ -128,7 +138,14 @@ class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
         LuaProjectSettings.getInstance(project).state.rockspecExcludeGlobs = mutableListOf("vendor/**")
         val discovered = discover()
         assertEquals(1, discovered.size)
-        assertTrue(discovered.single().rockspec.toString().replace('\\', '/').endsWith("a/a-1.0-1.rockspec"))
+        assertTrue(
+            discovered
+                .single()
+                .rockspec
+                .toString()
+                .replace('\\', '/')
+                .endsWith("a/a-1.0-1.rockspec"),
+        )
     }
 
     // --------------------------------------------------- TC #11 (include allow-list override)
@@ -140,6 +157,13 @@ class LuaRockspecDiscoveryServiceTest : IndexedBasePlatformTestCase() {
         LuaProjectSettings.getInstance(project).state.rockspecIncludeGlobs = mutableListOf("a/**")
         val discovered = discover()
         assertEquals(1, discovered.size)
-        assertTrue(discovered.single().rockspec.toString().replace('\\', '/').endsWith("a/a-1.0-1.rockspec"))
+        assertTrue(
+            discovered
+                .single()
+                .rockspec
+                .toString()
+                .replace('\\', '/')
+                .endsWith("a/a-1.0-1.rockspec"),
+        )
     }
 }

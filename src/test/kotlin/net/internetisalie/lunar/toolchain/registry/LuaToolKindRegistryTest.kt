@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class LuaToolKindRegistryTest {
-
     @Test
     fun testLuaKindDescriptorCompleteness_TC21() {
         val luaKind = LuaToolKindRegistry.findById("lua")
@@ -37,9 +36,9 @@ class LuaToolKindRegistryTest {
                 "5.2" to LuaLanguageLevel.LUA52,
                 "5.3" to LuaLanguageLevel.LUA53,
                 "5.4" to LuaLanguageLevel.LUA54,
-                "5.5" to LuaLanguageLevel.LUA55
+                "5.5" to LuaLanguageLevel.LUA55,
             ),
-            byPrefix.prefixes
+            byPrefix.prefixes,
         )
     }
 
@@ -48,10 +47,20 @@ class LuaToolKindRegistryTest {
         val allKinds = LuaToolKindRegistry.all()
         assertEquals(11, allKinds.size)
 
-        val expectedIds = listOf(
-            "lua", "luajit", "tarantool", "luarocks", "luacheck", "stylua", "luacov", "busted",
-            "redis-server", "valkey-server", "lua-language-server",
-        )
+        val expectedIds =
+            listOf(
+                "lua",
+                "luajit",
+                "tarantool",
+                "luarocks",
+                "luacheck",
+                "stylua",
+                "luacov",
+                "busted",
+                "redis-server",
+                "valkey-server",
+                "lua-language-server",
+            )
         assertEquals(expectedIds, allKinds.map { it.id })
 
         for (id in expectedIds) {
@@ -168,7 +177,10 @@ class LuaToolKindRegistryTest {
         assertEquals("2.11.0-entrypoint", tarantoolMatch!!.groupValues[1])
 
         val luarocks = LuaToolKindRegistry.findById("luarocks")!!
-        val luarocksMatch = luarocks.probe.versionRegex.find("/usr/local/bin/luarocks 3.11.0\nLuaRocks main command-line interface")
+        val luarocksMatch =
+            luarocks.probe.versionRegex.find(
+                "/usr/local/bin/luarocks 3.11.0\nLuaRocks main command-line interface",
+            )
         assertNotNull(luarocksMatch)
         assertEquals("3.11.0", luarocksMatch!!.groupValues[1])
 
@@ -204,12 +216,18 @@ class LuaToolKindRegistryTest {
 
         // REDIS-01 §4.2: redis-server and valkey-server --version output (v=<version>)
         val redisServer = LuaToolKindRegistry.findById("redis-server")!!
-        val redisMatch = redisServer.probe.versionRegex.find("Redis server v=7.4.0 sha=00000000:0 malloc=libc bits=64 build=1234")
+        val redisMatch =
+            redisServer.probe.versionRegex.find(
+                "Redis server v=7.4.0 sha=00000000:0 malloc=libc bits=64 build=1234",
+            )
         assertNotNull(redisMatch)
         assertEquals("7.4.0", redisMatch!!.groupValues[1])
 
         val valkeyServer = LuaToolKindRegistry.findById("valkey-server")!!
-        val valkeyMatch = valkeyServer.probe.versionRegex.find("Valkey server v=8.0.0 sha=00000000:0 malloc=libc bits=64 build=1234")
+        val valkeyMatch =
+            valkeyServer.probe.versionRegex.find(
+                "Valkey server v=8.0.0 sha=00000000:0 malloc=libc bits=64 build=1234",
+            )
         assertNotNull(valkeyMatch)
         assertEquals("8.0.0", valkeyMatch!!.groupValues[1])
     }

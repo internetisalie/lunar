@@ -9,13 +9,13 @@ import com.jetbrains.jsonSchema.extension.JsonLikePsiWalker
 import com.jetbrains.jsonSchema.extension.adapters.JsonPropertyAdapter
 import com.jetbrains.jsonSchema.extension.adapters.JsonValueAdapter
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
+import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaExprList
+import net.internetisalie.lunar.lang.psi.LuaExprStatement
 import net.internetisalie.lunar.lang.psi.LuaField
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFinalStatement
-import net.internetisalie.lunar.lang.psi.LuaBlock
-import net.internetisalie.lunar.lang.psi.LuaExprStatement
 import net.internetisalie.lunar.lang.psi.LuaStatement
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
@@ -29,8 +29,10 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
         val parent = element.parent
         if (parent is LuaField) {
             if (parent.identifier == element) return ThreeState.YES
-            if (element is LuaExpr && parent.exprList.size > 1 &&
-                parent.exprList.first() == element && LuaValueAdapter.isStringKey(element)
+            if (element is LuaExpr &&
+                parent.exprList.size > 1 &&
+                parent.exprList.first() == element &&
+                LuaValueAdapter.isStringKey(element)
             ) {
                 return ThreeState.YES
             }
@@ -46,7 +48,9 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
         val stat = PsiTreeUtil.getParentOfType(element, LuaStatement::class.java)
         if (stat != null && stat.parent is LuaBlock && stat.parent?.parent is LuaFile) {
             if (stat is LuaAssignmentStatement &&
-                stat.varList.varList.firstOrNull()?.let { PsiTreeUtil.isAncestor(it, element, false) } == true
+                stat.varList.varList
+                    .firstOrNull()
+                    ?.let { PsiTreeUtil.isAncestor(it, element, false) } == true
             ) {
                 return true
             }
@@ -54,7 +58,9 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
         }
 
         val field = PsiTreeUtil.getParentOfType(element, LuaField::class.java)
-        return field != null && field.identifier == null && field.exprList.size == 1 &&
+        return field != null &&
+            field.identifier == null &&
+            field.exprList.size == 1 &&
             PsiTreeUtil.isAncestor(field.exprList.first(), element, false)
     }
 
@@ -80,14 +86,16 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
 
     override fun requiresNameQuotes(): Boolean = false
 
-    override fun isQuotedString(element: PsiElement): Boolean {
-        return element is LuaTerminalExpr && element.string != null
-    }
+    override fun isQuotedString(element: PsiElement): Boolean = element is LuaTerminalExpr && element.string != null
 
     override fun findElementToCheck(element: PsiElement): PsiElement? {
         var current: PsiElement? = element
         while (current != null && current !is LuaFile) {
-            if (current is LuaField || current is LuaTableConstructor || current is LuaAssignmentStatement || current is LuaExpr) {
+            if (current is LuaField ||
+                current is LuaTableConstructor ||
+                current is LuaAssignmentStatement ||
+                current is LuaExpr
+            ) {
                 return current
             }
             current = current.parent
@@ -98,8 +106,11 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
     override fun createValueAdapter(element: PsiElement): JsonValueAdapter? {
         if (element is LuaFile) return LuaFileObjectAdapter(element)
         if (element is LuaTableConstructor) {
-            return if (LuaValueAdapter.isObjectTable(element)) LuaObjectAdapter(element)
-            else LuaArrayAdapter(element)
+            return if (LuaValueAdapter.isObjectTable(element)) {
+                LuaObjectAdapter(element)
+            } else {
+                LuaArrayAdapter(element)
+            }
         }
         if (element is LuaExpr) return LuaValueAdapter(element)
         return null
@@ -125,7 +136,7 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
 
     override fun getPropertyNamesOfParentObject(
         originalPosition: PsiElement,
-        computedPosition: PsiElement?
+        computedPosition: PsiElement?,
     ): Set<String> {
         val parent = getParentPropertyAdapter(originalPosition)?.parentObject
         return parent?.propertyList?.mapNotNull { it.name }?.toSet() ?: emptySet()
@@ -136,12 +147,17 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
             return property.identifier ?: if (property.exprList.size > 1) property.exprList.first() else null
         }
         if (property is LuaAssignmentStatement) {
-            return property.varList.varList.firstOrNull()?.nameRef
+            return property.varList.varList
+                .firstOrNull()
+                ?.nameRef
         }
         return null
     }
 
-    override fun findPosition(element: PsiElement, forceLastTransition: Boolean): JsonPointerPosition? {
+    override fun findPosition(
+        element: PsiElement,
+        forceLastTransition: Boolean,
+    ): JsonPointerPosition? {
         val position = JsonPointerPosition()
 
         // When asked to include the last transition (quick-doc / completion on a key itself), add the
@@ -149,7 +165,10 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
         // `position == element && forceLastTransition` branch of YamlJsonPsiWalker.findPosition.
         if (forceLastTransition) {
             when (element) {
-                is LuaAssignmentStatement -> LuaAssignmentPropertyAdapter(element).name?.let { position.addPrecedingStep(it) }
+                is LuaAssignmentStatement ->
+                    LuaAssignmentPropertyAdapter(
+                        element,
+                    ).name?.let { position.addPrecedingStep(it) }
                 is LuaField -> LuaPropertyAdapter(element).name?.let { position.addPrecedingStep(it) }
             }
         }
@@ -158,7 +177,7 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
 
         while (current != null && current !is LuaFile) {
             val parent = current.parent
-            
+
             if (parent is LuaField) {
                 val propName = LuaPropertyAdapter(parent).name
                 if (propName != null) {
@@ -175,17 +194,17 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
                         }
                     }
                 }
-                current = parent.parent 
+                current = parent.parent
                 continue
             }
-            
+
             if (parent is LuaAssignmentStatement) {
                 val propName = LuaAssignmentPropertyAdapter(parent).name
                 if (propName != null) {
                     position.addPrecedingStep(propName)
                 }
             }
-            
+
             current = parent
         }
 
@@ -201,7 +220,7 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
     override fun getDefaultObjectValue(): String = "{}"
 
     override fun getDefaultArrayValue(): String = "{}"
-    
+
     override fun getRoots(file: PsiFile): Collection<PsiElement> {
         if (file !is LuaFile) return emptyList()
 
@@ -213,8 +232,10 @@ class LuaJsonLikePsiWalker : JsonLikePsiWalker {
 
     /** Shape B root: the table of a top-level `return { … }`, ignoring `return`s nested inside functions. */
     private fun topLevelReturnTable(file: LuaFile): LuaTableConstructor? {
-        val finalStmt = PsiTreeUtil.findChildrenOfType(file, LuaFinalStatement::class.java)
-            .lastOrNull { isTopLevelFinalStatement(it) } ?: return null
+        val finalStmt =
+            PsiTreeUtil
+                .findChildrenOfType(file, LuaFinalStatement::class.java)
+                .lastOrNull { isTopLevelFinalStatement(it) } ?: return null
         return finalStmt.exprList?.exprList?.firstOrNull() as? LuaTableConstructor
     }
 

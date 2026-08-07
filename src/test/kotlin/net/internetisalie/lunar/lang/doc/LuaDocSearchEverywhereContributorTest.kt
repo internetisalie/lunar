@@ -10,15 +10,17 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
-
     private val progressIndicator by lazy { EmptyProgressIndicator() }
 
     @Test
     fun testSingleWordPatternMatches() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()
@@ -31,10 +33,13 @@ class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
 
     @Test
     fun testMultiWordPatternMatches() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()
@@ -47,10 +52,13 @@ class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
 
     @Test
     fun testCaseInsensitiveSubstringMatches() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()
@@ -63,10 +71,13 @@ class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
 
     @Test
     fun testShortPatternReturnsEmpty() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()
@@ -78,10 +89,13 @@ class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
 
     @Test
     fun testDumbModeReturnsEmpty() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()
@@ -96,10 +110,14 @@ class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
 
     @Test
     fun testNavigationToDeclaration() {
-        val file = myFixture.configureByText("test.lua", """
-            ---@class Vector Represents a 2D vector
-            local Vector = {}
-        """.trimIndent())
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@class Vector Represents a 2D vector
+                local Vector = {}
+                """.trimIndent(),
+            )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()
@@ -110,17 +128,20 @@ class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
         val item = results[0]
 
         item.navigate(true)
-        
+
         val expectedOffset = file.text.indexOf("local Vector")
         assertEquals(expectedOffset, myFixture.caretOffset)
     }
 
     @Test
     fun testResultPresentationSnippetAndRelativePath() {
-        myFixture.addFileToProject("src/geom/vec.lua", """
+        myFixture.addFileToProject(
+            "src/geom/vec.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()
@@ -139,13 +160,16 @@ class LuaDocSearchEverywhereContributorTest : BasePlatformTestCase() {
 
     @Test
     fun testSameFileCollisionsReturned() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Vector Represents a 2D vector
             local Vector = {}
 
             ---@class Matrix Represents a 2D matrix
             local Matrix = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val contributor = LuaDocSearchEverywhereContributor(project)
         val processor = CommonProcessors.CollectProcessor<LuaDocSearchItem>()

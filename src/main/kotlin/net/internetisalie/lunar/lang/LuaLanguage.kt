@@ -2,7 +2,7 @@ package net.internetisalie.lunar.lang
 
 import com.intellij.lang.Language
 
-object  LuaLanguage : Language("Lua") {
+object LuaLanguage : Language("Lua") {
     @JvmStatic
     val INSTANCE = LuaLanguage
 

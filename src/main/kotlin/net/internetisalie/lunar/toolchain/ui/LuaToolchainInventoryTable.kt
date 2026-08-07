@@ -45,10 +45,15 @@ private const val EMPTY_TEXT = "No tools registered — use Add, Auto-Discover o
  * the configurable) drives the auto-refresh — the per-action [refresh] here is belt-and-braces.
  */
 class LuaToolchainInventoryTable {
-
-    private val model = ListTableModel<LuaRegisteredTool>(
-        KindColumn, NameColumn, PathColumn, VersionColumn, OriginColumn, HealthColumn
-    )
+    private val model =
+        ListTableModel<LuaRegisteredTool>(
+            KindColumn,
+            NameColumn,
+            PathColumn,
+            VersionColumn,
+            OriginColumn,
+            HealthColumn,
+        )
     private val table = TableView(model)
 
     val component: JComponent
@@ -56,13 +61,15 @@ class LuaToolchainInventoryTable {
     init {
         table.setShowGrid(false)
         table.emptyText.text = EMPTY_TEXT
-        component = ToolbarDecorator.createDecorator(table)
-            .setAddAction { addTool() }
-            .setRemoveAction { removeSelected() }
-            .addExtraAction(discoverButton())
-            .addExtraAction(provisionButton())
-            .addExtraAction(recheckButton())
-            .createPanel()
+        component =
+            ToolbarDecorator
+                .createDecorator(table)
+                .setAddAction { addTool() }
+                .setRemoveAction { removeSelected() }
+                .addExtraAction(discoverButton())
+                .addExtraAction(provisionButton())
+                .addExtraAction(recheckButton())
+                .createPanel()
         refresh()
     }
 
@@ -77,8 +84,10 @@ class LuaToolchainInventoryTable {
     private fun registry(): LuaToolchainRegistry = LuaToolchainRegistry.getInstance()
 
     private fun addTool() {
-        val descriptor = FileChooserDescriptorFactory.singleFile()
-            .withTitle("Select Lua Tool Binary")
+        val descriptor =
+            FileChooserDescriptorFactory
+                .singleFile()
+                .withTitle("Select Lua Tool Binary")
         val chosen = FileChooser.chooseFile(descriptor, component, null, null) ?: return
         val path = chosen.path
         pooled {
@@ -108,13 +117,18 @@ class LuaToolchainInventoryTable {
     }
 
     private fun showProjectChooser(candidates: List<Project>) {
-        val step = object : BaseListPopupStep<Project>("Choose Target Project", candidates) {
-            override fun getTextFor(value: Project): String = value.name
-            override fun onChosen(selectedValue: Project, finalChoice: Boolean): PopupStep<*>? {
-                provisionInto(selectedValue)
-                return FINAL_CHOICE
+        val step =
+            object : BaseListPopupStep<Project>("Choose Target Project", candidates) {
+                override fun getTextFor(value: Project): String = value.name
+
+                override fun onChosen(
+                    selectedValue: Project,
+                    finalChoice: Boolean,
+                ): PopupStep<*>? {
+                    provisionInto(selectedValue)
+                    return FINAL_CHOICE
+                }
             }
-        }
         JBPopupFactory.getInstance().createListPopup(step).showInFocusCenter()
     }
 
@@ -142,12 +156,14 @@ class LuaToolchainInventoryTable {
     private fun provisionButton(): AnAction =
         object : DumbAwareAction("Provision…", null, AllIcons.General.Add) {
             override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
             override fun update(e: AnActionEvent) {
                 val projects = openProjects()
                 e.presentation.isEnabled = projects.isNotEmpty()
                 e.presentation.description =
                     if (projects.isEmpty()) "No open project to provision into" else null
             }
+
             override fun actionPerformed(e: AnActionEvent) = provision()
         }
 
@@ -188,23 +204,29 @@ private object VersionColumn : ColumnInfo<LuaRegisteredTool, String>("Version") 
 }
 
 private object OriginColumn : ColumnInfo<LuaRegisteredTool, String>("Origin") {
-    override fun valueOf(item: LuaRegisteredTool): String = when (item.origin) {
-        Origin.DISCOVERED -> "Discovered"
-        Origin.MANUAL -> "Manual"
-        Origin.PROVISIONED -> "Provisioned"
-    }
+    override fun valueOf(item: LuaRegisteredTool): String =
+        when (item.origin) {
+            Origin.DISCOVERED -> "Discovered"
+            Origin.MANUAL -> "Manual"
+            Origin.PROVISIONED -> "Provisioned"
+        }
 }
 
-internal data class HealthCell(val text: String, val icon: Icon, val tooltip: String)
+internal data class HealthCell(
+    val text: String,
+    val icon: Icon,
+    val tooltip: String,
+)
 
 internal fun healthCell(health: LuaToolHealth): HealthCell {
-    val (text, icon) = when {
-        !health.fileExists -> "Missing" to AllIcons.General.Error
-        !health.executable -> "Not executable" to AllIcons.General.Error
-        health.probeOk == false -> "Probe failed" to AllIcons.General.Warning
-        health.probeOk == null -> "Not checked" to AllIcons.General.Note
-        else -> "OK" to AllIcons.General.InspectionsOK
-    }
+    val (text, icon) =
+        when {
+            !health.fileExists -> "Missing" to AllIcons.General.Error
+            !health.executable -> "Not executable" to AllIcons.General.Error
+            health.probeOk == false -> "Probe failed" to AllIcons.General.Warning
+            health.probeOk == null -> "Not checked" to AllIcons.General.Note
+            else -> "OK" to AllIcons.General.InspectionsOK
+        }
     return HealthCell(text, icon, health.reason ?: text)
 }
 
@@ -221,7 +243,7 @@ private object HealthRenderer : DefaultTableCellRenderer() {
         selected: Boolean,
         focused: Boolean,
         row: Int,
-        column: Int
+        column: Int,
     ): Component {
         val tool = value as? LuaRegisteredTool
         val cell = tool?.let { healthCell(it.health) }

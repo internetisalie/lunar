@@ -29,15 +29,20 @@ import net.internetisalie.lunar.redis.run.LuaRedisRunConfiguration
  * yielding a [LuaRedisDebugProcess]. Runs on the EDT (platform contract) and returns a descriptor.
  */
 class LuaRedisDebugRunner : GenericProgramRunner<RunnerSettings>() {
-
     override fun getRunnerId(): String = RUNNER_ID
 
-    override fun canRun(executorId: String, runProfile: RunProfile): Boolean =
+    override fun canRun(
+        executorId: String,
+        runProfile: RunProfile,
+    ): Boolean =
         executorId == DefaultDebugExecutor.EXECUTOR_ID &&
             runProfile is LuaRedisRunConfiguration &&
             runProfile.execMode != LuaRedisExecMode.FCALL
 
-    override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
+    override fun doExecute(
+        state: RunProfileState,
+        environment: ExecutionEnvironment,
+    ): RunContentDescriptor? {
         val executionResult = state.execute(environment.executor, this) ?: return null
         val config = environment.runProfile as? LuaRedisRunConfiguration ?: return null
         return try {
@@ -54,18 +59,24 @@ class LuaRedisDebugRunner : GenericProgramRunner<RunnerSettings>() {
         executionResult: ExecutionResult,
         config: LuaRedisRunConfiguration,
     ): RunContentDescriptor? =
-        XDebuggerManager.getInstance(environment.project)
-            .newSessionBuilder(object : XDebugProcessStarter() {
-                override fun start(session: XDebugSession): XDebugProcess =
-                    LuaRedisDebugProcess(session, executionResult, config)
-            })
-            .environment(environment)
+        XDebuggerManager
+            .getInstance(environment.project)
+            .newSessionBuilder(
+                object : XDebugProcessStarter() {
+                    override fun start(session: XDebugSession): XDebugProcess =
+                        LuaRedisDebugProcess(session, executionResult, config)
+                },
+            ).environment(environment)
             .startSession()
             .runContentDescriptor
 
-    private fun notifyFailure(project: Project, failure: ExecutionException) {
+    private fun notifyFailure(
+        project: Project,
+        failure: ExecutionException,
+    ) {
         val message = failure.message ?: "Failed to start the Redis Lua debugger."
-        NotificationGroupManager.getInstance()
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup("notification.group.lunar.debugger")
             .createNotification("Redis debug session failed", message, NotificationType.ERROR)
             .notify(project)

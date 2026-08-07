@@ -1,7 +1,7 @@
 package net.internetisalie.lunar.lang.psi
 
-import com.intellij.psi.ResolveState
 import com.intellij.psi.PsiElement
+import com.intellij.psi.ResolveState
 import com.intellij.psi.scope.PsiScopeProcessor
 
 /**
@@ -19,13 +19,13 @@ fun LuaFuncDef.processDeclarations(
     processor: PsiScopeProcessor,
     state: ResolveState,
     lastParent: PsiElement?,
-    place: PsiElement
+    place: PsiElement,
 ): Boolean {
     // 1. Process parameter list first (parameters are visible in body)
     val parList = parList
     if (parList != null) {
         if (!processor.execute(parList, state)) {
-            return false  // Processor found match, stop walk
+            return false // Processor found match, stop walk
         }
     }
 
@@ -35,7 +35,7 @@ fun LuaFuncDef.processDeclarations(
         return block.processDeclarations(processor, state, lastParent, place)
     }
 
-    return true  // Continue walk to parent scope
+    return true // Continue walk to parent scope
 }
 
 /**
@@ -60,7 +60,7 @@ fun LuaFuncDecl.processDeclarations(
     processor: PsiScopeProcessor,
     state: ResolveState,
     lastParent: PsiElement?,
-    place: PsiElement
+    place: PsiElement,
 ): Boolean {
     // 1. Process parameter list first (parameters are visible in body)
     val parList = parList
@@ -96,13 +96,13 @@ fun LuaLocalFuncDecl.processDeclarations(
     processor: PsiScopeProcessor,
     state: ResolveState,
     lastParent: PsiElement?,
-    place: PsiElement
+    place: PsiElement,
 ): Boolean {
     // 1. Process parameter list first (parameters are visible in body)
     val parList = parList
     if (parList != null) {
         if (!processor.execute(parList, state)) {
-            return false  // Processor found match, stop walk
+            return false // Processor found match, stop walk
         }
     }
 

@@ -22,7 +22,6 @@ internal class RespHandshake(
     private val endpoint: RespEndpoint,
     private val indicator: ProgressIndicator?,
 ) {
-
     private val output: OutputStream = socket.getOutputStream()
     private val input: PushbackInputStream =
         PushbackInputStream(CancellationAwareInputStream(socket.getInputStream(), indicator))

@@ -14,7 +14,6 @@ import kotlin.test.assertTrue
  * LUA_PATH / LUA_CPATH / LUAROCKS_CONFIG application semantics (TCs 14, 15, 21, 22).
  */
 class LuaLaunchEnvironmentTest {
-
     private val sep = File.pathSeparator
 
     private fun env(

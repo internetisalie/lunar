@@ -19,20 +19,29 @@ import java.util.concurrent.ConcurrentHashMap
  * (engineering-contract §2).
  */
 @Service(Service.Level.PROJECT)
-class LuaRedisFlavorWarning(private val project: Project) {
-
+class LuaRedisFlavorWarning(
+    private val project: Project,
+) {
     private val shownConnectionIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     /** Warns once for [connectionId] iff [detected] mismatches [target] (design §3.4). */
-    fun warnOnceIfMismatch(connectionId: String, detected: ServerFlavor, target: LuaPlatform) {
+    fun warnOnceIfMismatch(
+        connectionId: String,
+        detected: ServerFlavor,
+        target: LuaPlatform,
+    ) {
         if (!LuaRedisServerFlavor.mismatches(detected, target)) return
         if (!shownConnectionIds.add(connectionId)) return
         showMismatchNotification(detected, target)
     }
 
-    private fun showMismatchNotification(detected: ServerFlavor, target: LuaPlatform) {
+    private fun showMismatchNotification(
+        detected: ServerFlavor,
+        target: LuaPlatform,
+    ) {
         try {
-            NotificationGroupManager.getInstance()
+            NotificationGroupManager
+                .getInstance()
                 .getNotificationGroup(NOTIFICATION_GROUP)
                 .createNotification(MISMATCH_TITLE, mismatchContent(detected, target), NotificationType.WARNING)
                 .notify(project)
@@ -41,7 +50,10 @@ class LuaRedisFlavorWarning(private val project: Project) {
         }
     }
 
-    private fun mismatchContent(detected: ServerFlavor, target: LuaPlatform): String =
+    private fun mismatchContent(
+        detected: ServerFlavor,
+        target: LuaPlatform,
+    ): String =
         "Connected server is ${detected.name.lowercaseFlavor()} but the project target is " +
             "${target.label}. Consider switching the target platform so portability checks match."
 

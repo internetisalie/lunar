@@ -6,9 +6,15 @@ package net.internetisalie.lunar.toolchain.provision.feed
  * explicit null checks — no Gson reflection defaults are relied upon, so a missing
  * pin surfaces as a corrupt-feed error rather than a silent default.
  */
-data class LuaToolchainFeed(val feedVersion: Int, val kinds: Map<String, LuaFeedKind>)
+data class LuaToolchainFeed(
+    val feedVersion: Int,
+    val kinds: Map<String, LuaFeedKind>,
+)
 
-data class LuaFeedKind(val aliases: Map<String, String>, val versions: List<LuaFeedVersion>)
+data class LuaFeedKind(
+    val aliases: Map<String, String>,
+    val versions: List<LuaFeedVersion>,
+)
 
 data class LuaFeedVersion(
     val version: String,

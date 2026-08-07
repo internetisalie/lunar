@@ -19,7 +19,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * globals are not portable to Redis. Silent under a Valkey target or any non-Redis target.
  */
 class LuaValkeyPortabilityInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaValkeyPortability"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -30,8 +29,16 @@ class LuaValkeyPortabilityInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
-        val target = LuaProjectSettings.getInstance(holder.project).state.getTarget().platform
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor {
+        val target =
+            LuaProjectSettings
+                .getInstance(holder.project)
+                .state
+                .getTarget()
+                .platform
         if (target != LuaPlatform.REDIS) return PsiElementVisitor.EMPTY_VISITOR
         return object : LuaVisitor() {
             override fun visitNameRef(o: LuaNameRef) {

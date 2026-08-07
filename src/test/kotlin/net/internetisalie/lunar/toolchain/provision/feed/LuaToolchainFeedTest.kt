@@ -25,24 +25,38 @@ class LuaToolchainFeedTest {
     fun loadsRealResourceWithExpectedKinds() {
         val feed = feed()
         assertEquals(1, feed.feedVersion)
-        val expected = setOf("lua", "luajit", "luarocks", "stylua", "lua-language-server", "luacheck", "busted", "luacov")
+        val expected =
+            setOf("lua", "luajit", "luarocks", "stylua", "lua-language-server", "luacheck", "busted", "luacov")
         assertEquals(expected, feed.kinds.keys)
     }
 
     @Test
     fun shipsTheFullPucAndLuaRocksVersionSets() {
-        val lua = feed().kinds.getValue("lua").versions.map { it.version }.toSet()
-        val expectedLua = buildSet {
-            add("5.1")
-            (1..5).forEach { add("5.1.$it") }
-            (0..4).forEach { add("5.2.$it") }
-            (0..6).forEach { add("5.3.$it") }
-            (0..8).forEach { add("5.4.$it") }
-            add("5.5.0")
-        }
+        val lua =
+            feed()
+                .kinds
+                .getValue("lua")
+                .versions
+                .map { it.version }
+                .toSet()
+        val expectedLua =
+            buildSet {
+                add("5.1")
+                (1..5).forEach { add("5.1.$it") }
+                (0..4).forEach { add("5.2.$it") }
+                (0..6).forEach { add("5.3.$it") }
+                (0..8).forEach { add("5.4.$it") }
+                add("5.5.0")
+            }
         assertEquals(expectedLua, lua)
 
-        val luarocks = feed().kinds.getValue("luarocks").versions.map { it.version }.toSet()
+        val luarocks =
+            feed()
+                .kinds
+                .getValue("luarocks")
+                .versions
+                .map { it.version }
+                .toSet()
         assertTrue("luarocks 3.0.0 present", "3.0.0" in luarocks)
         assertTrue("luarocks 3.13.0 present", "3.13.0" in luarocks)
     }
@@ -63,7 +77,10 @@ class LuaToolchainFeedTest {
      * SHA-256 (pins are populated; PUC-Lua tarballs cross-checked against lua.org — the `TODO-PIN`
      * sentinel is no longer accepted).
      */
-    private fun assertPinValid(sha256: String, gitSource: Boolean = false) {
+    private fun assertPinValid(
+        sha256: String,
+        gitSource: Boolean = false,
+    ) {
         if (gitSource && sha256.isEmpty()) return
         assertTrue("sha256 must be a real 64-hex lowercase string, was '$sha256'", hexPin.matches(sha256))
     }
@@ -78,14 +95,20 @@ class LuaToolchainFeedTest {
         }
     }
 
-    private fun assertChainCloses(kindId: String, kind: LuaFeedKind, start: String, shipped: Set<String>) {
+    private fun assertChainCloses(
+        kindId: String,
+        kind: LuaFeedKind,
+        start: String,
+        shipped: Set<String>,
+    ) {
         var current = start
         val maxHops = kind.aliases.size + 1
         var hops = 0
         while (current !in shipped) {
-            current = requireNotNull(kind.aliases[current]) {
-                "$kindId alias chain from '$start' dead-ends at '$current' (not shipped, not an alias key)"
-            }
+            current =
+                requireNotNull(kind.aliases[current]) {
+                    "$kindId alias chain from '$start' dead-ends at '$current' (not shipped, not an alias key)"
+                }
             assertTrue("$kindId alias chain from '$start' cycles", ++hops <= maxHops)
         }
     }
@@ -132,7 +155,12 @@ class LuaToolchainFeedTest {
     fun luaJitGateIsOpenAndLatestResolvesOnPosix() {
         // The TOOLING-00-03 gate PASSED: the luajit entry ships un-gated (gatedOn == null) and its
         // git source is provisionable on POSIX, so `latest`/`^` resolve to the v2.1 ref.
-        val version = feed().kinds.getValue("luajit").versions.single()
+        val version =
+            feed()
+                .kinds
+                .getValue("luajit")
+                .versions
+                .single()
         assertEquals("v2.1", version.version)
         assertTrue("luajit v2.1 is un-gated (gate open)", version.gatedOn == null)
         assertEquals(listOf("git"), version.source?.urls)

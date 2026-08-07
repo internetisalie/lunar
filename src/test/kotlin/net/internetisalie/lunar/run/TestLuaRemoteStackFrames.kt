@@ -8,8 +8,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class TestLuaRemoteStackFrames : BaseDocumentTest() {
-
-    private val stackChunk = """
+    private val stackChunk =
+        """
         do
             local _ = {
                 { { "c", "stack.lua", 3, 5, "Lua", "local", "/home/mini/Documents/src/lua/test/stack.lua" }, { f = { 3, "3" } }, { d = { 1, "1" }, e = { 2, "2" }, _ENV = { { }, "table: 0x5e930bee3c50" } } },
@@ -20,7 +20,7 @@ class TestLuaRemoteStackFrames : BaseDocumentTest() {
             };
             return _;
         end
-    """.trimIndent()
+        """.trimIndent()
 
     /**
      * TC-05c (#53a): the C frame exposes `file == "=[C]"` (index-1 field), not `path` — this is the
@@ -51,7 +51,13 @@ class TestLuaRemoteStackFrames : BaseDocumentTest() {
             val entries = LuaRemoteStack.create(myFixture.file).entries
             assertEquals(5, entries.size)
             assertEquals(4, entries.drop(1).size)
-            assertEquals("b", entries.drop(1).first().frame.name)
+            assertEquals(
+                "b",
+                entries
+                    .drop(1)
+                    .first()
+                    .frame.name,
+            )
         }
     }
 
@@ -70,7 +76,8 @@ class TestLuaRemoteStackFrames : BaseDocumentTest() {
                 };
                 return _;
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         ApplicationManager.getApplication().runReadAction {
             val stackEntries = LuaRemoteStack.create(myFixture.file)
@@ -93,7 +100,12 @@ class TestLuaRemoteStackFrames : BaseDocumentTest() {
 
             val variableE = localsScopeB.getVariable("e")
             assertNotNull(variableE)
-            assertEquals("2", variableE.value.numberValue?.toInt().toString())
+            assertEquals(
+                "2",
+                variableE.value.numberValue
+                    ?.toInt()
+                    .toString(),
+            )
             assertEquals("2", variableE.displayValue)
         }
     }

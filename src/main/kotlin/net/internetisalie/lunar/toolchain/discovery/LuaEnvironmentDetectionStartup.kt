@@ -28,9 +28,10 @@ import java.nio.file.Path
 class LuaEnvironmentDetectionStartup : ProjectActivity {
     override suspend fun execute(project: Project) {
         try {
-            val detected = withContext(Dispatchers.IO) {
-                LuaEnvironmentDetector.detect(project)?.takeIf { shouldOfferAdopt(project, it) }
-            } ?: return
+            val detected =
+                withContext(Dispatchers.IO) {
+                    LuaEnvironmentDetector.detect(project)?.takeIf { shouldOfferAdopt(project, it) }
+                } ?: return
             offerAdopt(project, detected)
         } catch (throwable: Throwable) {
             LOG.warn("environment detection failed", throwable)
@@ -42,26 +43,39 @@ class LuaEnvironmentDetectionStartup : ProjectActivity {
      * Lunar-provisioned tree (a `.lunar-env.json` marker hands the re-registration prompt to
      * [net.internetisalie.lunar.toolchain.provision.LuaEnvRedetectionStartup]).
      */
-    internal fun shouldOfferAdopt(project: Project, directory: String): Boolean {
+    internal fun shouldOfferAdopt(
+        project: Project,
+        directory: String,
+    ): Boolean {
         if (LuaEnvironmentDetector.isKnownDirectory(project, directory)) return false
         return LuaEnvManifest.read(Path.of(directory)) == null
     }
 
-    private fun offerAdopt(project: Project, directory: String) {
-        val notification = NotificationGroupManager.getInstance()
-            .getNotificationGroup(NOTIFICATION_GROUP)
-            .createNotification(
-                "Lua environment detected at $directory",
-                NotificationType.INFORMATION
-            )
-        notification.addAction(object : NotificationAction("Adopt") {
-            override fun actionPerformed(event: AnActionEvent, ignored: Notification) {
-                newProjectBackgroundTask("Adopting Lua environment", project) {
-                    LuaEnvironmentAdopter.adopt(project, directory)
-                }.queue()
-                notification.expire()
-            }
-        })
+    private fun offerAdopt(
+        project: Project,
+        directory: String,
+    ) {
+        val notification =
+            NotificationGroupManager
+                .getInstance()
+                .getNotificationGroup(NOTIFICATION_GROUP)
+                .createNotification(
+                    "Lua environment detected at $directory",
+                    NotificationType.INFORMATION,
+                )
+        notification.addAction(
+            object : NotificationAction("Adopt") {
+                override fun actionPerformed(
+                    event: AnActionEvent,
+                    ignored: Notification,
+                ) {
+                    newProjectBackgroundTask("Adopting Lua environment", project) {
+                        LuaEnvironmentAdopter.adopt(project, directory)
+                    }.queue()
+                    notification.expire()
+                }
+            },
+        )
         notification.notify(project)
     }
 

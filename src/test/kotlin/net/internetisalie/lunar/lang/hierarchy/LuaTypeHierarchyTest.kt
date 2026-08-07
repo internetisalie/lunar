@@ -18,7 +18,6 @@ import kotlin.test.assertTrue
  * ([net.internetisalie.lunar.lang.indexing.LuaClassNameIndex]).
  */
 class LuaTypeHierarchyTest : IndexedDocumentTest() {
-
     private val source =
         """
         ---@class Base
@@ -78,7 +77,8 @@ class LuaTypeHierarchyTest : IndexedDocumentTest() {
             ?: error("No @class declaration indexed for $name")
 
     private fun childClassNames(structure: com.intellij.ide.hierarchy.HierarchyTreeStructure): List<String> =
-        structure.getChildElements(structure.rootElement)
+        structure
+            .getChildElements(structure.rootElement)
             .filterIsInstance<HierarchyNodeDescriptor>()
             .mapNotNull { it.psiElement as? LuaLocalVarDecl }
             .mapNotNull { LuaHierarchyUtil.className(it) }

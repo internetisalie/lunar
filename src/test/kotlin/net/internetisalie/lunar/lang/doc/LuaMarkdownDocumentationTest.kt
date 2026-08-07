@@ -10,19 +10,20 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class LuaMarkdownDocumentationTest : BaseDocumentTest() {
-
     @Test
     fun testPlainMarkdownRendering() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- This function performs a **complex** calculation.
                     ---
                     --- ### Usage
                     --- 1. Initialize the system.
                     --- 2. Call this function with a `config` table.
                     function <caret>do_magic(config) end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -44,14 +45,16 @@ class LuaMarkdownDocumentationTest : BaseDocumentTest() {
     fun testPlainMarkdownCodeBlock() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- Example usage:
                     --- ```lua
                     --- local x = 10
                     --- print(x)
                     --- ```
                     function <caret>code_test() end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -73,13 +76,15 @@ class LuaMarkdownDocumentationTest : BaseDocumentTest() {
     fun testContiguousComments() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- Line 1
                     --- Line 2
 
                     --- This should be separate
                     function <caret>separate_test() end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -96,11 +101,13 @@ class LuaMarkdownDocumentationTest : BaseDocumentTest() {
     fun testEscapeCharacters() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- This is not a \@param tag.
                     --- This is a \*literal star\*.
                     function <caret>escape_test() end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -118,11 +125,13 @@ class LuaMarkdownDocumentationTest : BaseDocumentTest() {
     fun testMarkdownLinks() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- This function is described at [Lua.org](https://lua.org).
                     --- Also visit https://lua-users.org for more info.
                     function <caret>link_test() end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -130,10 +139,16 @@ class LuaMarkdownDocumentationTest : BaseDocumentTest() {
 
                 assertNotNull(doc)
                 // Standard Markdown link
-                assertTrue(doc!!.contains("<a href=\"https://lua.org\">Lua.org</a>"), "Markdown link should be rendered")
+                assertTrue(
+                    doc!!.contains("<a href=\"https://lua.org\">Lua.org</a>"),
+                    "Markdown link should be rendered",
+                )
 
                 // Plain URL (might fail if not using GFM or autolink)
-                assertTrue(doc.contains("<a href=\"https://lua-users.org\">https://lua-users.org</a>"), "Plain URL should be autolinked")
+                assertTrue(
+                    doc.contains("<a href=\"https://lua-users.org\">https://lua-users.org</a>"),
+                    "Plain URL should be autolinked",
+                )
             }
         }
     }
@@ -142,10 +157,12 @@ class LuaMarkdownDocumentationTest : BaseDocumentTest() {
     fun testSeeUrlLink() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- @see https://www.lua.org/manual/5.4/
                     function <caret>see_test() end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -162,17 +179,22 @@ class LuaMarkdownDocumentationTest : BaseDocumentTest() {
     fun testParamDescriptionAutolink() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- @param p string More info at https://lua.org
                     function <caret>param_test(p) end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
                 val doc = LuaDocumentationRenderer.renderFullDocumentation(element!!)
 
                 assertNotNull(doc)
-                assertTrue(doc!!.contains("<a href=\"https://lua.org\">https://lua.org</a>"), "URL in @param description should be autolinked")
+                assertTrue(
+                    doc!!.contains("<a href=\"https://lua.org\">https://lua.org</a>"),
+                    "URL in @param description should be autolinked",
+                )
             }
         }
     }

@@ -19,8 +19,11 @@ import net.internetisalie.lunar.lang.psi.LuaFile
  * and the documentation provider so resolution and quick-doc agree.
  */
 object LuaMemberFieldNavigation {
-
-    fun find(project: Project, qualifiedName: String, scope: GlobalSearchScope): List<PsiElement> {
+    fun find(
+        project: Project,
+        qualifiedName: String,
+        scope: GlobalSearchScope,
+    ): List<PsiElement> {
         val index = FileBasedIndex.getInstance()
         val psiManager = PsiManager.getInstance(project)
         val results = mutableListOf<PsiElement>()

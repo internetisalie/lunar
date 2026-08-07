@@ -32,7 +32,6 @@ import java.io.File
  */
 @RunWith(JUnit4::class)
 class LuaCorpusSweepTest : BasePlatformTestCase() {
-
     override fun getTestDataPath(): String = System.getProperty("user.dir")
 
     override fun setUp() {
@@ -104,7 +103,11 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
     }
 
     /** Advisory output (MAINT-33-09). `elapsedMs` is printed only — never baselined, never gated. */
-    private fun report(name: String, observed: CorpusMetrics, elapsedMs: Long) {
+    private fun report(
+        name: String,
+        observed: CorpusMetrics,
+        elapsedMs: Long,
+    ) {
         println(
             "[corpus:$name] files=${observed.files} parseErrors=${observed.parseErrors} " +
                 "requires=${observed.requires} unresolvedRequires=${observed.unresolvedRequires} " +
@@ -130,7 +133,10 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         observed.parseErrorFiles.forEach { println("[corpus:$name] parse errors in $it") }
     }
 
-    private fun recordBaseline(baselineFile: File, observed: CorpusMetrics) {
+    private fun recordBaseline(
+        baselineFile: File,
+        observed: CorpusMetrics,
+    ) {
         baselineFile.parentFile.mkdirs()
         val rendered = CorpusBaseline.render(observed)
         baselineFile.writeText(rendered)

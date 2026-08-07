@@ -15,7 +15,7 @@ import net.internetisalie.lunar.platform.LuaPlatform
  */
 data class Target(
     val platform: LuaPlatform,
-    val version: VersionEntry
+    val version: VersionEntry,
 ) {
     /**
      * Derives the implicit Lua language level from this target.
@@ -35,8 +35,8 @@ data class Target(
      *
      * @return The corresponding LuaLanguageLevel
      */
-    fun getImplicitLanguageLevel(): LuaLanguageLevel {
-        return when {
+    fun getImplicitLanguageLevel(): LuaLanguageLevel =
+        when {
             platform == LuaPlatform.STANDARD && version.label == "5.1" -> LuaLanguageLevel.LUA51
             platform == LuaPlatform.STANDARD && version.label == "5.2" -> LuaLanguageLevel.LUA52
             platform == LuaPlatform.STANDARD && version.label == "5.3" -> LuaLanguageLevel.LUA53
@@ -48,9 +48,8 @@ data class Target(
             platform == LuaPlatform.TARANTOOL -> LuaLanguageLevel.LUA51
             platform == LuaPlatform.NGX -> LuaLanguageLevel.LUA51
             platform == LuaPlatform.PANDOC -> LuaLanguageLevel.LUA54
-            else -> LuaLanguageLevel.LUA54  // Default fallback
+            else -> LuaLanguageLevel.LUA54 // Default fallback
         }
-    }
 
     /**
      * Returns the library root path for this target in the unified runtime structure.
@@ -64,8 +63,7 @@ data class Target(
      *
      * @return The library root path
      */
-    fun getLibraryRootPath(): String =
-        "runtime/${platform.pathSegment}/${version.pathSegment}"
+    fun getLibraryRootPath(): String = "runtime/${platform.pathSegment}/${version.pathSegment}"
 
     /**
      * Returns the luacheck standard for this target, or null if not specified.
@@ -83,9 +81,10 @@ data class Target(
          * Lua 5.1. Falls back to the first registered version only if 5.4 is somehow absent.
          */
         fun default(): Target {
-            val defaultVersion = PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, "5.4")
-                ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.STANDARD)
-                ?: throw IllegalStateException("No default version found for STANDARD platform")
+            val defaultVersion =
+                PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, "5.4")
+                    ?: PlatformVersionRegistry.defaultVersion(LuaPlatform.STANDARD)
+                    ?: throw IllegalStateException("No default version found for STANDARD platform")
             return Target(LuaPlatform.STANDARD, defaultVersion)
         }
     }

@@ -17,7 +17,6 @@ import kotlin.test.assertTrue
  * unsupported element. Mirrors the threading pattern of `LuaCatsDocumentationRendererTest`.
  */
 class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
-
     private fun renderAtCaret(text: String): String {
         configureByText(text)
         val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
@@ -29,7 +28,10 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
         return doc
     }
 
-    private fun assertContains(text: String, substring: String) {
+    private fun assertContains(
+        text: String,
+        substring: String,
+    ) {
         assertTrue(text.contains(substring), "Expected to find '$substring' in '$text'")
     }
 
@@ -37,12 +39,13 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
     fun testSeeSectionUrl() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@see https://lua.org The manual
-                    function <caret>f() end
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@see https://lua.org The manual
+                        function <caret>f() end
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "See Also:")
                 assertContains(doc, "<a href=\"https://lua.org\">")
             }
@@ -53,12 +56,13 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
     fun testSeeSectionPlainReference() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@see other.func Related
-                    function <caret>f() end
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@see other.func Related
+                        function <caret>f() end
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "<code>other.func</code>")
                 assertTrue(!doc.contains("<a href"), "Plain reference must not emit an <a href> link")
             }
@@ -69,12 +73,13 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
     fun testDeprecatedSection() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@deprecated Use bar instead
-                    function <caret>foo() end
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@deprecated Use bar instead
+                        function <caret>foo() end
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "⚠ Deprecated:")
                 assertContains(doc, "Use bar instead")
             }
@@ -85,12 +90,13 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
     fun testNamedReturnRow() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@return number count The total
-                    function <caret>f() end
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@return number count The total
+                        function <caret>f() end
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "Returns:")
                 assertContains(doc, "number")
                 assertContains(doc, "<code>count</code>")
@@ -102,14 +108,15 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
     fun testGenericTypeParamBlock() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@generic T
-                    ---@param x T
-                    ---@return T
-                    function <caret>id(x) return x end
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@generic T
+                        ---@param x T
+                        ---@return T
+                        function <caret>id(x) return x end
+                        """.trimIndent(),
+                    )
                 // buildFunctionSignatureTypeParams emits '<' / '>' operators around the param name.
                 assertContains(doc, "&lt;")
                 assertContains(doc, "T")
@@ -121,12 +128,13 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
     fun testLocalFunctionSignature() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@param n number
-                    local function <caret>f(n) end
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@param n number
+                        local function <caret>f(n) end
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "local function")
                 assertContains(doc, "f")
             }
@@ -138,19 +146,20 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
         // TC-03a (#67): C : B : A; A has field id -> Inherited Fields for C lists the grandparent field.
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@class A
-                    ---@field id integer
-                    local A = {}
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@class A
+                        ---@field id integer
+                        local A = {}
 
-                    ---@class B : A
-                    local B = {}
+                        ---@class B : A
+                        local B = {}
 
-                    ---@class C : B
-                    local <caret>C = {}
-                    """.trimIndent(),
-                )
+                        ---@class C : B
+                        local <caret>C = {}
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "Inherited Fields:")
                 assertContains(doc, "id")
             }
@@ -162,15 +171,16 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
         // TC-03b (#36): a bare `--- @class Parent` (no host decl) is resolved via LuaCatsTypeNameIndex.
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    --- @class Parent
-                    --- @field p string
+                val doc =
+                    renderAtCaret(
+                        """
+                        --- @class Parent
+                        --- @field p string
 
-                    ---@class Child : Parent
-                    local <caret>Child = {}
-                    """.trimIndent(),
-                )
+                        ---@class Child : Parent
+                        local <caret>Child = {}
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "Inherited Fields:")
                 assertContains(doc, "p")
             }
@@ -182,17 +192,18 @@ class LuaCatsDocumentationRendererSectionsTest : BaseDocumentTest() {
         // TC-03c (#67): @class A : B; @class B : A must terminate (no stack overflow / hang).
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderAtCaret(
-                    """
-                    ---@class A : B
-                    ---@field a integer
-                    local A = {}
+                val doc =
+                    renderAtCaret(
+                        """
+                        ---@class A : B
+                        ---@field a integer
+                        local A = {}
 
-                    ---@class B : A
-                    ---@field b integer
-                    local <caret>B = {}
-                    """.trimIndent(),
-                )
+                        ---@class B : A
+                        ---@field b integer
+                        local <caret>B = {}
+                        """.trimIndent(),
+                    )
                 assertNotNull(doc, "Cyclic inheritance render must terminate and produce output")
             }
         }

@@ -28,9 +28,10 @@ import javax.swing.Icon
  * a pure state write + event publish (no I/O), so no background marshaling is required. Refresh is
  * driven by [LuaToolchainListener.TOPIC].
  */
-class LuaEnvStatusBarWidget(private val project: Project) :
-    StatusBarWidget, StatusBarWidget.TextPresentation {
-
+class LuaEnvStatusBarWidget(
+    private val project: Project,
+) : StatusBarWidget,
+    StatusBarWidget.TextPresentation {
     private var statusBar: StatusBar? = null
 
     override fun ID(): String = WIDGET_ID
@@ -67,7 +68,8 @@ class LuaEnvStatusBarWidget(private val project: Project) :
             val settings = LuaToolchainProjectSettings.getInstance(project)
             val step = EnvPopupStep(project, settings.environments(), settings.activeEnvironment()?.id)
             JBPopupFactory.getInstance().createListPopup(step).show(
-                com.intellij.ui.awt.RelativePoint(event),
+                com.intellij.ui.awt
+                    .RelativePoint(event),
             )
         } catch (throwable: Throwable) {
             LOG.warn("Failed to open Lua environment popup", throwable)
@@ -80,14 +82,14 @@ class LuaEnvStatusBarWidget(private val project: Project) :
         private val envs: List<LuaEnvironmentState>,
         private val activeId: String?,
     ) : BaseListPopupStep<Any>("Lua Environment", buildItems(envs)) {
+        override fun getTextFor(value: Any): String = (value as? LuaEnvironmentState)?.name ?: ADD_ENV_TEXT
 
-        override fun getTextFor(value: Any): String =
-            (value as? LuaEnvironmentState)?.name ?: ADD_ENV_TEXT
+        override fun getIconFor(value: Any): Icon? = if (isActive(value, activeId)) AllIcons.Actions.Checked else null
 
-        override fun getIconFor(value: Any): Icon? =
-            if (isActive(value, activeId)) AllIcons.Actions.Checked else null
-
-        override fun onChosen(selectedValue: Any, finalChoice: Boolean): PopupStep<*>? {
+        override fun onChosen(
+            selectedValue: Any,
+            finalChoice: Boolean,
+        ): PopupStep<*>? {
             if (selectedValue is LuaEnvironmentState) {
                 LuaToolchainProjectSettings.getInstance(project).activateEnvironment(selectedValue.id)
             } else {
@@ -117,8 +119,10 @@ class LuaEnvStatusBarWidget(private val project: Project) :
         internal fun popupItems(envs: List<LuaEnvironmentState>): List<Any> = envs + ADD_ENV_TEXT
 
         /** Test seam: whether [value] is the active env row (checked in the popup). */
-        internal fun isActive(value: Any, activeId: String?): Boolean =
-            value is LuaEnvironmentState && value.id == activeId
+        internal fun isActive(
+            value: Any,
+            activeId: String?,
+        ): Boolean = value is LuaEnvironmentState && value.id == activeId
 
         private const val PROVISION_ACTION_ID = "Lunar.Toolchain.Provision"
         private const val WIDGET_PLACE = "LunarEnvStatusBarWidget"

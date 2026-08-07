@@ -10,9 +10,9 @@ import net.internetisalie.lunar.lang.LuaLanguage
 class LuaCodeStyleSettings(
     codeStyleSettings: CodeStyleSettings,
 ) : CustomCodeStyleSettings(
-    LuaLanguage.id,
-    codeStyleSettings,
-) {
+        LuaLanguage.id,
+        codeStyleSettings,
+    ) {
     // FORMAT-04 Expression wrapping (values: DO_NOT_WRAP / WRAP_AS_NEEDED / WRAP_ALWAYS)
     @JvmField var WRAP_ARGUMENTS: Int = CommonCodeStyleSettings.WRAP_AS_NEEDED
 
@@ -27,37 +27,34 @@ class LuaCodeStyleSettings(
     @JvmField var WRAP_LONG_COMMENTS: Boolean = false
 
     companion object {
-        fun getInstance(settings : CodeStyleSettings) : LuaCodeStyleSettings? {
-            return settings.getCustomSettings(LuaCodeStyleSettings::class.java)
-        }
+        fun getInstance(settings: CodeStyleSettings): LuaCodeStyleSettings? =
+            settings.getCustomSettings(LuaCodeStyleSettings::class.java)
     }
 }
 
 class LuaCodeStyleSettingsProvider : CodeStyleSettingsProvider() {
-    override fun createCustomSettings(settings: CodeStyleSettings): CustomCodeStyleSettings {
-        return LuaCodeStyleSettings(settings)
-    }
+    override fun createCustomSettings(settings: CodeStyleSettings): CustomCodeStyleSettings =
+        LuaCodeStyleSettings(settings)
 
-    override fun getLanguage(): Language {
-        return LuaLanguage
-    }
+    override fun getLanguage(): Language = LuaLanguage
 
-    override fun createConfigurable(baseSettings: CodeStyleSettings, modelSettings: CodeStyleSettings): CodeStyleConfigurable {
-        return object : CodeStyleAbstractConfigurable(baseSettings, modelSettings, configurableDisplayName) {
-            override fun createPanel(settings: CodeStyleSettings): CodeStyleAbstractPanel {
-                return LuaCodeStyleMainPanel(currentSettings, settings)
-            }
+    override fun createConfigurable(
+        baseSettings: CodeStyleSettings,
+        modelSettings: CodeStyleSettings,
+    ): CodeStyleConfigurable =
+        object : CodeStyleAbstractConfigurable(baseSettings, modelSettings, configurableDisplayName) {
+            override fun createPanel(settings: CodeStyleSettings): CodeStyleAbstractPanel =
+                LuaCodeStyleMainPanel(currentSettings, settings)
         }
-    }
 
     class LuaCodeStyleMainPanel(
         current: CodeStyleSettings,
         settings: CodeStyleSettings,
     ) : TabbedLanguageCodeStylePanel(
-        LuaLanguage,
-        current,
-        settings
-    )
+            LuaLanguage,
+            current,
+            settings,
+        )
 }
 
 class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider() {
@@ -65,12 +62,16 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
     // modern CodeStyleSettingsCustomizableOptions (only WRAP_OPTIONS moved there), so the
     // WRAP_VALUES read stays on the deprecated holder — suppress its deprecation warning.
     @Suppress("DEPRECATION")
-    override fun customizeSettings(consumer: CodeStyleSettingsCustomizable, settingsType: SettingsType) {
+    override fun customizeSettings(
+        consumer: CodeStyleSettingsCustomizable,
+        settingsType: SettingsType,
+    ) {
         when (settingsType) {
-            SettingsType.INDENT_SETTINGS -> consumer.showStandardOptions(
-                CodeStyleSettingsCustomizable.IndentOption.INDENT_SIZE.name,
-                CodeStyleSettingsCustomizable.IndentOption.CONTINUATION_INDENT_SIZE.name,
-            )
+            SettingsType.INDENT_SETTINGS ->
+                consumer.showStandardOptions(
+                    CodeStyleSettingsCustomizable.IndentOption.INDENT_SIZE.name,
+                    CodeStyleSettingsCustomizable.IndentOption.CONTINUATION_INDENT_SIZE.name,
+                )
             SettingsType.BLANK_LINES_SETTINGS -> consumer.showStandardOptions()
             SettingsType.SPACING_SETTINGS -> {
                 val customizableOptions = CodeStyleSettingsCustomizableOptions.getInstance()
@@ -79,7 +80,6 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
                     SpacingOption.SPACE_WITHIN_PARENTHESES.name,
                     SpacingOption.SPACE_WITHIN_BRACKETS.name,
                     SpacingOption.SPACE_WITHIN_BRACES.name,
-
                     SpacingOption.SPACE_AROUND_ASSIGNMENT_OPERATORS.name,
                     SpacingOption.SPACE_AROUND_LOGICAL_OPERATORS.name,
                     SpacingOption.SPACE_AROUND_EQUALITY_OPERATORS.name,
@@ -88,7 +88,7 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
                     SpacingOption.SPACE_AROUND_ADDITIVE_OPERATORS.name,
                     SpacingOption.SPACE_AROUND_MULTIPLICATIVE_OPERATORS.name,
                     SpacingOption.SPACE_AROUND_SHIFT_OPERATORS.name,
-                    SpacingOption.SPACE_AROUND_UNARY_OPERATOR.name
+                    SpacingOption.SPACE_AROUND_UNARY_OPERATOR.name,
                 )
 //                consumer.showCustomOption(
 //                    LuaCodeStyleSettings::class.java,
@@ -142,7 +142,7 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
                 consumer.showStandardOptions(
                     CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_AT_FIRST_COLUMN.name,
                     CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_ADD_SPACE.name,
-                    CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_ADD_SPACE_ON_REFORMAT.name
+                    CodeStyleSettingsCustomizable.CommenterOption.LINE_COMMENT_ADD_SPACE_ON_REFORMAT.name,
                 )
                 // FORMAT-06 Comment formatting
                 consumer.showCustomOption(
@@ -156,17 +156,12 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
         }
     }
 
-    override fun getIndentOptionsEditor(): IndentOptionsEditor? {
-        return SmartIndentOptionsEditor(this)
-    }
+    override fun getIndentOptionsEditor(): IndentOptionsEditor? = SmartIndentOptionsEditor(this)
 
-    override fun getCodeSample(settingsType: SettingsType): String {
-        return CodeStyleAbstractPanel
+    override fun getCodeSample(settingsType: SettingsType): String =
+        CodeStyleAbstractPanel
             .readFromFile(LuaBundle::class.java, "codeStyle.lua")
             .substringAfter("---\n")
-    }
 
-    override fun getLanguage(): Language {
-        return LuaLanguage
-    }
+    override fun getLanguage(): Language = LuaLanguage
 }

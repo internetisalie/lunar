@@ -22,7 +22,6 @@ import kotlin.concurrent.thread
  * against real servers is Phase 6.
  */
 class TestRespClient : BasePlatformTestCase() {
-
     private val servers = mutableListOf<CannedServer>()
 
     override fun tearDown() {
@@ -47,14 +46,15 @@ class TestRespClient : BasePlatformTestCase() {
     /** After the handshake, a `command()` writes the request and decodes the canned reply. */
     fun testCommandDecodesCannedReply() {
         val server = cannedServer(reply = HELLO_MAP_REPLY + "+PONG\r\n".toByteArray(Charsets.UTF_8))
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                client.command("PING")
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    client.command("PING")
+                } finally {
+                    client.dispose()
+                }
             }
-        }
         assertEquals(RespValue.Simple("PONG"), reply)
     }
 
@@ -63,20 +63,22 @@ class TestRespClient : BasePlatformTestCase() {
      * the server pushes two blocks after the handshake and the client drains the second via `readReply`.
      */
     fun testReadReplyReadsNextBlockWithoutSending() {
-        val pushed = HELLO_MAP_REPLY +
-            "+FIRST\r\n".toByteArray(Charsets.UTF_8) +
-            "+SECOND\r\n".toByteArray(Charsets.UTF_8)
+        val pushed =
+            HELLO_MAP_REPLY +
+                "+FIRST\r\n".toByteArray(Charsets.UTF_8) +
+                "+SECOND\r\n".toByteArray(Charsets.UTF_8)
         val server = cannedServer(reply = pushed)
-        val replies = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                val first = client.command("PING")
-                val second = client.readReply()
-                first to second
-            } finally {
-                client.dispose()
+        val replies =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    val first = client.command("PING")
+                    val second = client.readReply()
+                    first to second
+                } finally {
+                    client.dispose()
+                }
             }
-        }
         assertEquals(RespValue.Simple("FIRST"), replies.first)
         assertEquals(RespValue.Simple("SECOND"), replies.second)
     }
@@ -85,30 +87,33 @@ class TestRespClient : BasePlatformTestCase() {
     fun testReadReplyIsCancellable() {
         val server = replyThenStallServer(handshakeReply = HELLO_MAP_REPLY)
         val indicator = EmptyProgressIndicator()
-        val failure = runBlocking {
-            val client = RespClient.open(
-                server.endpoint(),
-                timeouts = RespTimeouts(connectMs = 2_000, readMs = 5_000),
-                indicator = indicator,
-            )
-            try {
-                indicator.cancel()
-                runCatching { client.readReply() }.exceptionOrNull()
-            } finally {
-                client.dispose()
+        val failure =
+            runBlocking {
+                val client =
+                    RespClient.open(
+                        server.endpoint(),
+                        timeouts = RespTimeouts(connectMs = 2_000, readMs = 5_000),
+                        indicator = indicator,
+                    )
+                try {
+                    indicator.cancel()
+                    runCatching { client.readReply() }.exceptionOrNull()
+                } finally {
+                    client.dispose()
+                }
             }
-        }
         assertTrue("expected ProcessCanceledException, got $failure", failure is ProcessCanceledException)
     }
 
     /** TC-TIMEOUT-1: a server that never replies makes the read exceed `readMs` → [RespException.Timeout]. */
     fun testReadTimeoutSurfacesAsRespTimeout() {
         val server = stallingServer()
-        val failure = runBlocking {
-            runCatching {
-                RespClient.open(server.endpoint(), timeouts = RespTimeouts(connectMs = 2_000, readMs = 120))
-            }.exceptionOrNull()
-        }
+        val failure =
+            runBlocking {
+                runCatching {
+                    RespClient.open(server.endpoint(), timeouts = RespTimeouts(connectMs = 2_000, readMs = 120))
+                }.exceptionOrNull()
+            }
         assertTrue("expected RespException.Timeout, got $failure", failure is RespException.Timeout)
     }
 
@@ -116,15 +121,16 @@ class TestRespClient : BasePlatformTestCase() {
     fun testCancelledIndicatorAbortsHandshakeRead() {
         val server = stallingServer()
         val indicator = EmptyProgressIndicator().apply { cancel() }
-        val failure = runBlocking {
-            runCatching {
-                RespClient.open(
-                    server.endpoint(),
-                    timeouts = RespTimeouts(connectMs = 2_000, readMs = 5_000),
-                    indicator = indicator,
-                )
-            }.exceptionOrNull()
-        }
+        val failure =
+            runBlocking {
+                runCatching {
+                    RespClient.open(
+                        server.endpoint(),
+                        timeouts = RespTimeouts(connectMs = 2_000, readMs = 5_000),
+                        indicator = indicator,
+                    )
+                }.exceptionOrNull()
+            }
         assertTrue("expected ProcessCanceledException, got $failure", failure is ProcessCanceledException)
     }
 
@@ -135,29 +141,29 @@ class TestRespClient : BasePlatformTestCase() {
     fun testCancelledIndicatorAbortsCommandRead() {
         val server = replyThenStallServer(handshakeReply = HELLO_MAP_REPLY)
         val indicator = EmptyProgressIndicator()
-        val failure = runBlocking {
-            val client = RespClient.open(
-                server.endpoint(),
-                timeouts = RespTimeouts(connectMs = 2_000, readMs = 5_000),
-                indicator = indicator,
-            )
-            try {
-                indicator.cancel()
-                runCatching { client.command("PING") }.exceptionOrNull()
-            } finally {
-                client.dispose()
+        val failure =
+            runBlocking {
+                val client =
+                    RespClient.open(
+                        server.endpoint(),
+                        timeouts = RespTimeouts(connectMs = 2_000, readMs = 5_000),
+                        indicator = indicator,
+                    )
+                try {
+                    indicator.cancel()
+                    runCatching { client.command("PING") }.exceptionOrNull()
+                } finally {
+                    client.dispose()
+                }
             }
-        }
         assertTrue("expected ProcessCanceledException, got $failure", failure is ProcessCanceledException)
     }
 
     /** Replies with [reply] once the client sends a request, then holds the connection open. */
-    private fun cannedServer(reply: ByteArray): CannedServer =
-        register(CannedServer(afterRequestReply = reply))
+    private fun cannedServer(reply: ByteArray): CannedServer = register(CannedServer(afterRequestReply = reply))
 
     /** Never replies — the client's read blocks until `readMs` elapses or the indicator cancels. */
-    private fun stallingServer(): CannedServer =
-        register(CannedServer(afterRequestReply = ByteArray(0)))
+    private fun stallingServer(): CannedServer = register(CannedServer(afterRequestReply = ByteArray(0)))
 
     /** Completes the handshake, then leaves later commands unanswered (a stalled command read). */
     private fun replyThenStallServer(handshakeReply: ByteArray): CannedServer =
@@ -177,15 +183,13 @@ class TestRespClient : BasePlatformTestCase() {
     private class CannedServer(
         private val afterRequestReply: ByteArray,
     ) : Closeable {
-
         private val serverSocket = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
 
         init {
             thread(isDaemon = true, name = "canned-resp-server") { serve() }
         }
 
-        fun endpoint(): RespEndpoint =
-            RespEndpoint(host = "127.0.0.1", port = serverSocket.localPort)
+        fun endpoint(): RespEndpoint = RespEndpoint(host = "127.0.0.1", port = serverSocket.localPort)
 
         private fun serve() {
             try {

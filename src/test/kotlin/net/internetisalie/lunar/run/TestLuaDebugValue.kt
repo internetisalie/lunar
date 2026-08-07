@@ -12,18 +12,27 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestLuaDebugValue {
-
     private class CapturingNode : XCompositeNode {
         var captured: XValueChildrenList? = null
 
-        override fun addChildren(children: XValueChildrenList, last: Boolean) {
+        override fun addChildren(
+            children: XValueChildrenList,
+            last: Boolean,
+        ) {
             captured = children
         }
 
         override fun tooManyChildren(remaining: Int) {}
+
         override fun setAlreadySorted(alreadySorted: Boolean) {}
+
         override fun setErrorMessage(errorMessage: String) {}
-        override fun setErrorMessage(errorMessage: String, link: com.intellij.xdebugger.frame.XDebuggerTreeNodeHyperlink?) {}
+
+        override fun setErrorMessage(
+            errorMessage: String,
+            link: com.intellij.xdebugger.frame.XDebuggerTreeNodeHyperlink?,
+        ) {}
+
         override fun setMessage(
             message: String,
             icon: Icon?,
@@ -50,7 +59,7 @@ class TestLuaDebugValue {
     @Test
     fun testConstructorWithTypeAndDisplay() {
         val debugValue = LuaDebugValue("number", "42", AllIcons.Nodes.Variable)
-        
+
         assertTrue(debugValue.isNumber)
         assertFalse(debugValue.isString)
         assertFalse(debugValue.isBool)
@@ -61,14 +70,14 @@ class TestLuaDebugValue {
     fun testConstructorWithLuaValue() {
         val luaValue = LuaValue(null)
         val debugValue = LuaDebugValue(luaValue, "0x12345", AllIcons.Nodes.Variable)
-        
+
         assertEquals(luaValue, debugValue.raw)
     }
 
     @Test
     fun testConstructorWithError() {
         val debugValue = LuaDebugValue("Some error message")
-        
+
         // The error message is stored in displayValue, accessed via computePresentation
         // raw.text will be null since we create LuaValue(null) in the error constructor
         assertNotNull(debugValue)
@@ -105,7 +114,7 @@ class TestLuaDebugValue {
     @Test
     fun testMultipleTypeChecks() {
         val debugValue = LuaDebugValue("string", "\"test\"", null)
-        
+
         assertTrue(debugValue.isString)
         assertFalse(debugValue.isNumber)
         assertFalse(debugValue.isBool)

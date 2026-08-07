@@ -22,7 +22,6 @@ import java.io.File
  * cleanly, does anything throw, and does PUC agree about whether it parses.
  */
 class LuaTortureCorpusTest : BasePlatformTestCase() {
-
     override fun getTestDataPath(): String = System.getProperty("user.dir")
 
     private val recording get() = System.getProperty("lunar.corpus.record") == "true"
@@ -51,23 +50,31 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
     }
 
     /** The metrics plus the per-input verdicts, which recording mode needs to write the allowlist. */
-    private class Swept(val metrics: TortureMetrics, val judged: List<Judged>)
+    private class Swept(
+        val metrics: TortureMetrics,
+        val judged: List<Judged>,
+    )
 
-    private fun sweep(repoRoot: File, member: TortureMember): Swept {
+    private fun sweep(
+        repoRoot: File,
+        member: TortureMember,
+    ): Swept {
         val root = TortureManifest.checkoutDir(repoRoot, member.name)
-        val judged = inputsUnder(root).map { input ->
-            judge(repoRoot, member, TortureInput(input.relativeTo(root).path, input.readBytes()))
-        }
+        val judged =
+            inputsUnder(root).map { input ->
+                judge(repoRoot, member, TortureInput(input.relativeTo(root).path, input.readBytes()))
+            }
         // BUG-409: the allowlist forgives reviewed leniency, so what remains can be gated at 0.
         val accepted = judged.filter { it.falseAccept }
         // While recording, the allowlist about to be written *is* the effective one — otherwise the
         // run would baseline these 26 as unexpected and then write an allowlist forgiving them, and
         // the very next ratchet would report a 26 → 0 improvement against a baseline it just made.
-        val expected = if (recording) {
-            accepted.map { it.path }.toSet()
-        } else {
-            TortureExpectedAccepts.load(repoRoot, member.name)
-        }
+        val expected =
+            if (recording) {
+                accepted.map { it.path }.toSet()
+            } else {
+                TortureExpectedAccepts.load(repoRoot, member.name)
+            }
         val stale = TortureExpectedAccepts.staleEntries(expected, accepted.map { it.path }.toSet())
         check(stale.isEmpty()) {
             "${stale.size} expected-accept entries are no longer false accepts — the allowlist has " +
@@ -80,20 +87,23 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
         )
     }
 
-    private fun metricsFrom(member: TortureMember, judged: List<Judged>, unexpected: List<Judged>) =
-        TortureMetrics(
-            sha256 = member.sha256,
-            files = judged.size,
-            parseErrors = judged.count { it.parseErrors > 0 },
-            oracleDisagreements = judged.count { it.falseReject },
-            oracleFalseAccepts = unexpected.size,
-            expectedAccepts = judged.count { it.falseAccept } - unexpected.size,
-            oracleSites = oracleSites(judged, unexpected),
-            oracleTimeouts = judged.count { it.oracle is ParseOracle.Verdict.NotJudged },
-            lexerRoundTripFailures = judged.count { it.roundTripFailed },
-            unmergedTokens = judged.sumOf { it.unmergedTokens },
-            crashes = judged.mapNotNull { it.crash }.groupingBy { it }.eachCount(),
-        )
+    private fun metricsFrom(
+        member: TortureMember,
+        judged: List<Judged>,
+        unexpected: List<Judged>,
+    ) = TortureMetrics(
+        sha256 = member.sha256,
+        files = judged.size,
+        parseErrors = judged.count { it.parseErrors > 0 },
+        oracleDisagreements = judged.count { it.falseReject },
+        oracleFalseAccepts = unexpected.size,
+        expectedAccepts = judged.count { it.falseAccept } - unexpected.size,
+        oracleSites = oracleSites(judged, unexpected),
+        oracleTimeouts = judged.count { it.oracle is ParseOracle.Verdict.NotJudged },
+        lexerRoundTripFailures = judged.count { it.roundTripFailed },
+        unmergedTokens = judged.sumOf { it.unmergedTokens },
+        crashes = judged.mapNotNull { it.crash }.groupingBy { it }.eachCount(),
+    )
 
     /**
      * `onEnter` prunes the `.git` **directory**, which a dot-*file* filter does not: `walkTopDown`
@@ -102,14 +112,18 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
      * deliberately extensionless, so filtering on `.lua` would sweep nothing at all.
      */
     private fun inputsUnder(root: File): List<File> =
-        root.walkTopDown()
+        root
+            .walkTopDown()
             .onEnter { it.name != ".git" }
             .filter { it.isFile && !it.name.startsWith(".") }
             .sortedBy { it.relativeTo(root).path }
             .toList()
 
     /** One input: its path for reporting, and the **bytes**, which both sides must agree on. */
-    private class TortureInput(val path: String, val bytes: ByteArray)
+    private class TortureInput(
+        val path: String,
+        val bytes: ByteArray,
+    )
 
     /**
      * ISO-8859-1, never UTF-8. A fuzz corpus contains invalid UTF-8 by construction, and a lossy
@@ -150,12 +164,17 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
      * A crashed input is excluded from the oracle comparison: it is neither an accept nor a reject,
      * and reporting `parseErrors = 0` for it would score a crash as a false accept.
      */
-    private fun judge(repoRoot: File, member: TortureMember, input: TortureInput): Judged {
+    private fun judge(
+        repoRoot: File,
+        member: TortureMember,
+        input: TortureInput,
+    ): Judged {
         val source = decode(input.bytes)
         val lex = LexerInvariants.check(source)
         val parsed = runCatching { parseErrorsIn(source) }
-        val crash = lex.crash?.let { "lex:$it" }
-            ?: parsed.exceptionOrNull()?.let { "parse:${it::class.java.simpleName}" }
+        val crash =
+            lex.crash?.let { "lex:$it" }
+                ?: parsed.exceptionOrNull()?.let { "parse:${it::class.java.simpleName}" }
         return Judged(
             path = input.path,
             parseErrors = parsed.getOrDefault(0),
@@ -171,8 +190,10 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
      * `.lua` name is what selects the language; the on-disk name is irrelevant.
      */
     private fun parseErrorsIn(source: String): Int {
-        val psiFile: PsiFile = PsiFileFactory.getInstance(project)
-            .createFileFromText("torture-input.lua", LuaFileType, source)
+        val psiFile: PsiFile =
+            PsiFileFactory
+                .getInstance(project)
+                .createFileFromText("torture-input.lua", LuaFileType, source)
         // BUG-409: counts both kinds of syntax error Lunar reports — error elements, and the
         // statements `LuaSyntaxDiagnostics` rejects that the permissive grammar lets through.
         return PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).size +
@@ -186,13 +207,20 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
      * with reasons, in `torture-<name>.expected-accepts`, and repeating a truncated 20 of them here
      * would crowd out the sites that actually fail a build.
      */
-    private fun oracleSites(judged: List<Judged>, unexpected: List<Judged>): List<String> {
+    private fun oracleSites(
+        judged: List<Judged>,
+        unexpected: List<Judged>,
+    ): List<String> {
         val rejects = judged.filter { it.falseReject }.map { "falseReject:${it.path}" }.sorted()
         val accepts = unexpected.map { "falseAccept:${it.path}" }.sorted()
         return (rejects + accepts).take(ORACLE_SITES_CAP)
     }
 
-    private fun report(name: String, observed: TortureMetrics, elapsedMs: Long) {
+    private fun report(
+        name: String,
+        observed: TortureMetrics,
+        elapsedMs: Long,
+    ) {
         println(
             "[torture:$name] files=${observed.files} parseErrors=${observed.parseErrors} " +
                 "elapsedMs=$elapsedMs",
@@ -209,9 +237,15 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
     }
 
     /** Regenerates the allowlist from the sweep, so its reasons can never drift from the verdicts. */
-    private fun recordExpectedAccepts(repoRoot: File, name: String, judged: List<Judged>) {
-        val entries = judged.filter { it.falseAccept }
-            .map { it.path to ((it.oracle as? ParseOracle.Verdict.Reject)?.message ?: "") }
+    private fun recordExpectedAccepts(
+        repoRoot: File,
+        name: String,
+        judged: List<Judged>,
+    ) {
+        val entries =
+            judged
+                .filter { it.falseAccept }
+                .map { it.path to ((it.oracle as? ParseOracle.Verdict.Reject)?.message ?: "") }
         val target = TortureExpectedAccepts.file(repoRoot, name)
         target.parentFile.mkdirs()
         val rendered = TortureExpectedAccepts.render(entries)
@@ -219,7 +253,10 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
         println("[torture] recorded ${target.path} (${entries.size} entries):\n$rendered")
     }
 
-    private fun recordBaseline(baselineFile: File, observed: TortureMetrics) {
+    private fun recordBaseline(
+        baselineFile: File,
+        observed: TortureMetrics,
+    ) {
         baselineFile.parentFile.mkdirs()
         val rendered = TortureBaseline.render(observed)
         baselineFile.writeText(rendered)

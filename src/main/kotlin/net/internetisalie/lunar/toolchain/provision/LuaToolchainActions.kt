@@ -52,18 +52,22 @@ class LuaRecreateToolchainAction : DumbAwareAction("Recreate Environment") {
     override fun actionPerformed(event: AnActionEvent) {
         val targetProject = event.project ?: return
         val manifest = readableManifest(targetProject) ?: return
-        val confirmed = Messages.showYesNoDialog(
-            targetProject,
-            "Delete and rebuild the environment at ${manifest.request.rootDir}?",
-            "Recreate Environment",
-            Messages.getQuestionIcon(),
-        ) == Messages.YES
+        val confirmed =
+            Messages.showYesNoDialog(
+                targetProject,
+                "Delete and rebuild the environment at ${manifest.request.rootDir}?",
+                "Recreate Environment",
+                Messages.getQuestionIcon(),
+            ) == Messages.YES
         if (confirmed) {
             recreate(targetProject, manifest.request)
         }
     }
 
-    private fun recreate(targetProject: Project, request: LuaProvisionRequest) {
+    private fun recreate(
+        targetProject: Project,
+        request: LuaProvisionRequest,
+    ) {
         ApplicationManager.getApplication().executeOnPooledThread {
             FileUtil.delete(File(request.rootDir))
             LuaToolProvisioner.getInstance().provision(targetProject, request)
@@ -82,16 +86,17 @@ class LuaRemoveToolchainAction : DumbAwareAction("Remove Environment") {
     override fun actionPerformed(event: AnActionEvent) {
         val targetProject = event.project ?: return
         val environment = activeEnvironment(targetProject) ?: return
-        val choice = Messages.showYesNoCancelDialog(
-            targetProject,
-            "Remove the Lua toolchain environment at ${environment.rootDir}?\n" +
-                "\"Delete\" also removes the directory from disk.",
-            "Remove Environment",
-            "Delete",
-            "Unbind Only",
-            Messages.getCancelButton(),
-            Messages.getQuestionIcon(),
-        )
+        val choice =
+            Messages.showYesNoCancelDialog(
+                targetProject,
+                "Remove the Lua toolchain environment at ${environment.rootDir}?\n" +
+                    "\"Delete\" also removes the directory from disk.",
+                "Remove Environment",
+                "Delete",
+                "Unbind Only",
+                Messages.getCancelButton(),
+                Messages.getQuestionIcon(),
+            )
         when (choice) {
             Messages.YES -> remove(targetProject, environment.id, deleteDir = true)
             Messages.NO -> remove(targetProject, environment.id, deleteDir = false)
@@ -99,7 +104,11 @@ class LuaRemoveToolchainAction : DumbAwareAction("Remove Environment") {
         }
     }
 
-    private fun remove(targetProject: Project, envId: String, deleteDir: Boolean) {
+    private fun remove(
+        targetProject: Project,
+        envId: String,
+        deleteDir: Boolean,
+    ) {
         LuaToolchainProjectSettings.getInstance(targetProject).removeEnvironment(envId, deleteDir)
     }
 }

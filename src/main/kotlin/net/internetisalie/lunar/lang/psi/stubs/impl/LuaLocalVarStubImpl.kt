@@ -14,5 +14,6 @@ class LuaLocalVarStubImpl(
     override val luacatsAliasName: String?,
     override val luacatsAliasTarget: String?,
     override val luacatsParents: List<String>,
-    override val luacatsFields: Map<String, String>
-) : StubBase<LuaLocalVarDecl>(parent, LuaStubElementTypes.LOCAL_VAR_DECL), LuaLocalVarStub
+    override val luacatsFields: Map<String, String>,
+) : StubBase<LuaLocalVarDecl>(parent, LuaStubElementTypes.LOCAL_VAR_DECL),
+    LuaLocalVarStub

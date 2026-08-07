@@ -4,8 +4,8 @@ import com.intellij.execution.RunManager
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import net.internetisalie.lunar.run.LuaRunConfiguration
 import net.internetisalie.lunar.run.LuaRunConfigurationType
 
@@ -17,14 +17,21 @@ import net.internetisalie.lunar.run.LuaRunConfigurationType
  * outside a WriteAction and can be added as a follow-up background task.
  */
 object LuaRocksScaffolder {
-
-    fun scaffold(project: Project, baseDir: VirtualFile, s: LuaRocksProjectSettings) {
+    fun scaffold(
+        project: Project,
+        baseDir: VirtualFile,
+        s: LuaRocksProjectSettings,
+    ) {
         scaffoldSingleRock(project, baseDir, s)
     }
 
     // ------------------------------------------------------------------ single rock
 
-    private fun scaffoldSingleRock(project: Project, baseDir: VirtualFile, s: LuaRocksProjectSettings) {
+    private fun scaffoldSingleRock(
+        project: Project,
+        baseDir: VirtualFile,
+        s: LuaRocksProjectSettings,
+    ) {
         val name = s.name.ifBlank { "my-project" }
 
         // 1. rockspec
@@ -65,20 +72,28 @@ object LuaRocksScaffolder {
 
     // ------------------------------------------------------------------ helpers
 
-    private fun writeText(dir: VirtualFile, name: String, content: String) {
+    private fun writeText(
+        dir: VirtualFile,
+        name: String,
+        content: String,
+    ) {
         val file = dir.findChild(name) ?: dir.createChildData(this, name)
         VfsUtil.saveText(file, content)
     }
 
-    private fun patchRunConfigTemplate(project: Project, baseDir: VirtualFile) {
+    private fun patchRunConfigTemplate(
+        project: Project,
+        baseDir: VirtualFile,
+    ) {
         val configType = ConfigurationTypeUtil.findConfigurationType(LuaRunConfigurationType::class.java)
         val factory = configType.configurationFactories.first()
         val template = RunManager.getInstance(project).getConfigurationTemplate(factory)
         val cfg = template.configuration as? LuaRunConfiguration ?: return
-        cfg.environmentVariables = EnvironmentVariablesData.create(
-            mapOf("LUA_INIT" to "@${baseDir.path}/src/setup.lua"),
-            true,
-            null,
-        )
+        cfg.environmentVariables =
+            EnvironmentVariablesData.create(
+                mapOf("LUA_INIT" to "@${baseDir.path}/src/setup.lua"),
+                true,
+                null,
+            )
     }
 }

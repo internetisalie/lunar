@@ -15,7 +15,8 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
             fn(settings)
 
             CodeStyleManager.getInstance(myFixture.project).reformatText(
-                myFixture.file, listOf(myFixture.file.textRange)
+                myFixture.file,
+                listOf(myFixture.file.textRange),
             )
         }
     }
@@ -23,10 +24,11 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
     @Test
     fun testFunctionBlock_Newlines() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             function test() end
             print ""
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -36,18 +38,19 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
             function test() end
             
             print ""
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testAnonymousFunctionHeader() {
         myFixture.configureByText(
-            LuaFileType, """
+            LuaFileType,
+            """
             local a = function  (
             
             ) end
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         reformatText {}
@@ -55,88 +58,91 @@ class TestLuaSpacingBuilder : BaseDocumentTest() {
         myFixture.checkResult(
             """
             local a = function() end
-        """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testIfStatement_SingleLine() {
         myFixture.configureByText(
-            LuaFileType, """
-                if   true   then  elseif   false  then  else  end
-            """.trimIndent()
+            LuaFileType,
+            """
+            if   true   then  elseif   false  then  else  end
+            """.trimIndent(),
         )
 
         reformatText {}
 
         myFixture.checkResult(
             """
-                if true then elseif false then else end
-        """.trimIndent() + "\n"
+            if true then elseif false then else end
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testIfStatement_MultiLine() {
         myFixture.configureByText(
-            LuaFileType, """
-                if   true   then 
-                
-                elseif   false   then 
-                
-                else  
-                
-                end
-            """.trimIndent()
+            LuaFileType,
+            """
+            if   true   then 
+            
+            elseif   false   then 
+            
+            else  
+            
+            end
+            """.trimIndent(),
         )
 
         reformatText {}
 
         myFixture.checkResult(
             """
-                if true then
-                elseif false then
-                else
-                end
-        """.trimIndent() + "\n"
+            if true then
+            elseif false then
+            else
+            end
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testRepeatStatement_SingleLine() {
         myFixture.configureByText(
-            LuaFileType, """
-                repeat   until   true
-            """.trimIndent()
+            LuaFileType,
+            """
+            repeat   until   true
+            """.trimIndent(),
         )
 
         reformatText {}
 
         myFixture.checkResult(
             """
-                repeat until true
-        """.trimIndent() + "\n"
+            repeat until true
+            """.trimIndent() + "\n",
         )
     }
 
     @Test
     fun testRepeatStatement_MultiLine() {
         myFixture.configureByText(
-            LuaFileType, """
-                repeat 
-                
-                until true
-            """.trimIndent()
+            LuaFileType,
+            """
+            repeat 
+            
+            until true
+            """.trimIndent(),
         )
 
         reformatText {}
 
         myFixture.checkResult(
             """
-                repeat
-                until true
-        """.trimIndent() + "\n"
+            repeat
+            until true
+            """.trimIndent() + "\n",
         )
     }
-
 }

@@ -25,8 +25,7 @@ class LuaApplicationSettingsConfigurable : Configurable {
         return panel.mainPanel
     }
 
-    override fun isModified(): Boolean =
-        settingsPanel?.isModified(LuaApplicationSettings.instance.state) ?: false
+    override fun isModified(): Boolean = settingsPanel?.isModified(LuaApplicationSettings.instance.state) ?: false
 
     override fun reset() {
         settingsPanel?.reset()

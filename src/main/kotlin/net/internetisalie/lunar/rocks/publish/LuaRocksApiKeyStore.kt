@@ -34,8 +34,7 @@ object LuaRocksApiKeyStore {
     val serviceName: String = generateServiceName(SUBSYSTEM, LEGACY_KEY)
 
     /** Returns the credential-store key string for [server]. */
-    fun keyFor(server: String?): String =
-        if (server.isNullOrBlank()) LEGACY_KEY else "luarocks API key:$server"
+    fun keyFor(server: String?): String = if (server.isNullOrBlank()) LEGACY_KEY else "luarocks API key:$server"
 
     private fun attributesFor(server: String?): CredentialAttributes =
         CredentialAttributes(generateServiceName(SUBSYSTEM, keyFor(server)))
@@ -45,7 +44,10 @@ object LuaRocksApiKeyStore {
         PasswordSafe.instance.getPassword(attributesFor(server))?.takeIf { it.isNotBlank() }
 
     /** Stores [apiKey] for [server]; a `null`/blank value clears the stored key. */
-    fun setApiKey(server: String?, apiKey: String?) {
+    fun setApiKey(
+        server: String?,
+        apiKey: String?,
+    ) {
         PasswordSafe.instance.setPassword(attributesFor(server), apiKey?.takeIf { it.isNotBlank() })
     }
 }

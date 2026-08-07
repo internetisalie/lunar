@@ -6,12 +6,10 @@ import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.settings.LuaProjectSettings
-import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Path
 
 class RockspecRunPathProviderTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         // TOOLING-05 Phase 3: RockspecBridge.read resolves the runtime via the resolver (no more
@@ -22,63 +20,75 @@ class RockspecRunPathProviderTest : BasePlatformTestCase() {
     fun testRockspecRunPathProvider() {
         val physicalDirA = Files.createTempDirectory("lunar_rocks_test_a")
         val rockspecA = physicalDirA.resolve("a-1.0.rockspec")
-        Files.writeString(rockspecA, """
+        Files.writeString(
+            rockspecA,
+            """
             package = "a"
             version = "1.0"
             build = { type = "builtin", modules = { ["a"] = "src/a.lua" } }
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val physicalDirB = Files.createTempDirectory("lunar_rocks_test_b")
         val rockspecB = physicalDirB.resolve("b-1.0.rockspec")
-        Files.writeString(rockspecB, """
+        Files.writeString(
+            rockspecB,
+            """
             package = "b"
             version = "1.0"
             build = { type = "builtin", modules = { ["b"] = "lua/b.lua" } }
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         val rockspecC = physicalDirB.resolve("c-1.0.rockspec")
-        Files.writeString(rockspecC, """
+        Files.writeString(
+            rockspecC,
+            """
             package = "c"
             version = "1.0"
             build = { type = "builtin", modules = { ["cjson"] = { "src/cjson.c" } } }
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         RockspecSourcePathProvider.testDiscoverySeam = { _ ->
             listOf(
                 DiscoveredRockspec(rockspecA, "a"),
                 DiscoveredRockspec(rockspecB, "b"),
-                DiscoveredRockspec(rockspecC, "c")
+                DiscoveredRockspec(rockspecC, "c"),
             )
         }
         RockspecSourcePathProvider.invalidateCache(project)
-        
+
         val projPathNio = Path.of(project.basePath!!)
         val luaModulesPath = projPathNio.resolve("lua_modules")
         Files.createDirectories(luaModulesPath)
-        
-        val lua54Version = PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, "5.4")
-            ?: error("Standard 5.4 not registered")
+
+        val lua54Version =
+            PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, "5.4")
+                ?: error("Standard 5.4 not registered")
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.STANDARD, lua54Version))
 
         // Prime cache
-        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
-            RockspecSourcePathProvider.getInstance(project).derivedPatterns()
-        }.get()
+        com.intellij.openapi.application.ApplicationManager
+            .getApplication()
+            .executeOnPooledThread {
+                RockspecSourcePathProvider.getInstance(project).derivedPatterns()
+            }.get()
 
         // TC #7: LUA_PATH Union
         val prefix = RockspecRunPathProvider.luaPathPrefix(project)
         val dirA = physicalDirA.toString().replace('\\', '/')
         val dirB = physicalDirB.toString().replace('\\', '/')
-        
+
         val expectedPrefix = "$dirA/src/?.lua;$dirA/src/?/init.lua;$dirB/lua/?.lua;$dirB/lua/?/init.lua;"
         assertEquals(expectedPrefix, prefix)
 
         val dataC = RockspecBridge.read(project, rockspecC)
         println("DATA C: " + dataC)
-        
+
         val cRocks = RockspecSourcePathProvider.getInstance(project).cModuleRockspecs()
         println("C ROCKS: " + cRocks)
-        
+
         // TC #8: C-Module LUA_CPATH
         val cPath = RockspecRunPathProvider.luaCPath(project)
         val projPath = project.basePath?.replace('\\', '/')
@@ -101,11 +111,14 @@ class RockspecRunPathProviderTest : BasePlatformTestCase() {
     fun testLuaCPathUsesNativeExtension() {
         val physicalDir = Files.createTempDirectory("lunar_rocks_ext_test")
         val rockspec = physicalDir.resolve("c-1.0.rockspec")
-        Files.writeString(rockspec, """
+        Files.writeString(
+            rockspec,
+            """
             package = "c"
             version = "1.0"
             build = { type = "builtin", modules = { ["cjson"] = { "src/cjson.c" } } }
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         RockspecSourcePathProvider.testDiscoverySeam = { _ ->
             listOf(DiscoveredRockspec(rockspec, "c"))
@@ -115,9 +128,11 @@ class RockspecRunPathProviderTest : BasePlatformTestCase() {
         val projPathNio = Path.of(project.basePath!!)
         Files.createDirectories(projPathNio.resolve("lua_modules"))
 
-        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
-            RockspecSourcePathProvider.getInstance(project).derivedPatterns()
-        }.get()
+        com.intellij.openapi.application.ApplicationManager
+            .getApplication()
+            .executeOnPooledThread {
+                RockspecSourcePathProvider.getInstance(project).derivedPatterns()
+            }.get()
 
         val cPath = RockspecRunPathProvider.luaCPath(project)
         val expectedExt = RockspecRunPathProvider.nativeModuleExtension()

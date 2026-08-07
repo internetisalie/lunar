@@ -17,7 +17,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaCatsDeclarationsTest : BasePlatformTestCase() {
-
     /** The `@field` members declared by [source], read straight through the extractor. */
     private fun fieldsOf(source: String): List<LuaCatsDeclarations.FieldMember> {
         val file = myFixture.configureByText("fields.lua", source)
@@ -67,9 +66,10 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
     fun testDisplayNameKeepsTheMarkerThatTheMemberNameDrops() {
         val file = myFixture.configureByText("disp.lua", "---@class C\n---@field beta? number\nlocal C = {}\n")
         runReadAction {
-            val tag = requireNotNull(PsiTreeUtil.findChildOfType(file, LuaCatsComment::class.java))
-                .fieldTagList
-                .first()
+            val tag =
+                requireNotNull(PsiTreeUtil.findChildOfType(file, LuaCatsComment::class.java))
+                    .fieldTagList
+                    .first()
             assertEquals("beta?", LuaCatsDeclarations.fieldDisplayName(tag))
             assertEquals("beta", LuaCatsDeclarations.fieldMember(tag).name)
         }

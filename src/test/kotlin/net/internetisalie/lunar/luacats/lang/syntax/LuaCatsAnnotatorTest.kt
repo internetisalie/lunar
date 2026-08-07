@@ -12,13 +12,17 @@ import org.junit.jupiter.api.Test
  * `doHighlighting()` pattern as `LuaCatsSemanticHighlightingTest`.
  */
 class LuaCatsAnnotatorTest : BaseDocumentTest() {
-
-    private fun assertHighlighted(text: String, expectedKey: TextAttributesKey) {
+    private fun assertHighlighted(
+        text: String,
+        expectedKey: TextAttributesKey,
+    ) {
         val infos = myFixture.doHighlighting()
         val found = infos.any { it.forcedTextAttributesKey == expectedKey && it.text == text }
         if (!found) {
-            val matchingText = infos.filter { it.text == text }
-                .map { "${it.text}=${it.forcedTextAttributesKey?.externalName}" }
+            val matchingText =
+                infos
+                    .filter { it.text == text }
+                    .map { "${it.text}=${it.forcedTextAttributesKey?.externalName}" }
             fail<Unit>(
                 "Expected '$text' highlighted with ${expectedKey.externalName}. " +
                     "Found for this text: $matchingText.",

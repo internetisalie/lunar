@@ -9,7 +9,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * Runs on the platform fixture so the pane (Swing + JBHtmlPane) constructs on the EDT.
  */
 class PackageDetailPaneDependencyTest : BasePlatformTestCase() {
-
     fun `test dependencyRows expose the clickable package token`() {
         val meta = metadata(listOf("lua >= 5.1", "luassert >= 1.7"))
         val pane = PackageDetailPane(project, model())
@@ -25,21 +24,27 @@ class PackageDetailPaneDependencyTest : BasePlatformTestCase() {
         assertTrue(pane.dependencyRows(metadata(emptyList())).isEmpty())
     }
 
-    private fun model() = LuaRocksBrowserModel(ProjectBackend(project), object : LuaRocksBrowserModel.Listener {
-        override fun onState(state: BrowserState) = Unit
-        override fun onRowChanged(index: Int) = Unit
-    })
+    private fun model() =
+        LuaRocksBrowserModel(
+            ProjectBackend(project),
+            object : LuaRocksBrowserModel.Listener {
+                override fun onState(state: BrowserState) = Unit
 
-    private fun metadata(deps: List<String>) = LuaRockMetadata(
-        name = "inspect",
-        version = "3.1.3-0",
-        summary = "A pretty printer",
-        detailed = null,
-        license = "MIT",
-        homepage = "https://github.com/kikito/inspect.lua",
-        issues = null,
-        location = null,
-        dependencies = deps,
-        modules = emptyList(),
-    )
+                override fun onRowChanged(index: Int) = Unit
+            },
+        )
+
+    private fun metadata(deps: List<String>) =
+        LuaRockMetadata(
+            name = "inspect",
+            version = "3.1.3-0",
+            summary = "A pretty printer",
+            detailed = null,
+            license = "MIT",
+            homepage = "https://github.com/kikito/inspect.lua",
+            issues = null,
+            location = null,
+            dependencies = deps,
+            modules = emptyList(),
+        )
 }

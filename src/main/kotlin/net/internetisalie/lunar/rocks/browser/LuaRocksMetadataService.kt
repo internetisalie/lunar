@@ -28,16 +28,27 @@ object LuaRocksMetadataService {
      *
      * @param project used to resolve the effective executable (pass `null` for app defaults).
      */
-    fun show(name: String, version: String? = null, project: Project? = null): LuaRockMetadata? {
-        val subArgs = buildList {
-            add("show"); add("--porcelain"); add(name)
-            if (version != null) add(version)
-        }
+    fun show(
+        name: String,
+        version: String? = null,
+        project: Project? = null,
+    ): LuaRockMetadata? {
+        val subArgs =
+            buildList {
+                add("show")
+                add("--porcelain")
+                add(name)
+                if (version != null) add(version)
+            }
         val command = LuaRocksEnvironment.command(project, subArgs) ?: return null
-        val output = LuaToolExecutionService.getInstance()
-            .capture(command, LuaExecTimeout.COMMAND)
+        val output =
+            LuaToolExecutionService
+                .getInstance()
+                .capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
-            log.warn("luarocks show --porcelain $name ${version ?: ""} exited ${output.exitCode}: ${output.stderr.trim()}")
+            log.warn(
+                "luarocks show --porcelain $name ${version ?: ""} exited ${output.exitCode}: ${output.stderr.trim()}",
+            )
             return null
         }
         return parseShowOutput(output.stdout, name)
@@ -49,7 +60,10 @@ object LuaRocksMetadataService {
      * Parses `luarocks show --porcelain` stdout into [LuaRockMetadata].
      * Lines without a tab are skipped; unknown keys are ignored.
      */
-    internal fun parseShowOutput(stdout: String, fallbackName: String): LuaRockMetadata? {
+    internal fun parseShowOutput(
+        stdout: String,
+        fallbackName: String,
+    ): LuaRockMetadata? {
         var name: String? = null
         var version: String? = null
         var summary: String? = null

@@ -13,18 +13,20 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
  * See: docs/requirements/spec/type/design/phase-1-api-contracts.md §7
  */
 object LuaTypeGraphBridge {
-
     /**
      * Returns true if [typeName] is a simple identifier that can be resolved in Phase 1.
      * Complex expressions (generics, unions, function types, array types) are handled via [TypeParser].
      */
-    private fun isSimpleTypeName(typeName: String): Boolean =
-        typeName.none { it in "<>|()[]" }
+    private fun isSimpleTypeName(typeName: String): Boolean = typeName.none { it in "<>|()[]" }
 
     /**
      * Converts a Layer-1 [LuaType] to a [ValueNode] in [graph] anchored at [element].
      */
-    fun typeToValueNode(luaType: LuaType, element: PsiElement, graph: LuaTypeGraph): ValueNode {
+    fun typeToValueNode(
+        luaType: LuaType,
+        element: PsiElement,
+        graph: LuaTypeGraph,
+    ): ValueNode {
         val graphType = LuaGraphType.fromLuaType(luaType, graph)
         return graph.value(element, graphType, declaredOrigin = true)
     }
@@ -32,7 +34,7 @@ object LuaTypeGraphBridge {
     private fun resolveTypeWithGenerics(
         typeName: String,
         context: PsiElement,
-        genericNames: Set<String>
+        genericNames: Set<String>,
     ): LuaType? {
         if (typeName in genericNames) return LuaGenericType(typeName)
         return if (isSimpleTypeName(typeName)) {
@@ -63,15 +65,18 @@ object LuaTypeGraphBridge {
     ) {
         val typeTag = cats.getTypeTagList().firstOrNull()
         val classTag = cats.getClassTagList().firstOrNull()
-        
-        val typeName = typeTag?.argType?.text?.trim() 
-            ?: classTag?.argType?.text?.trim() 
-            ?: return
 
-        val genericNames = cats.getGenericTagList()
-            .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
-            .map { it.argName.text }
-            .toSet()
+        val typeName =
+            typeTag?.argType?.text?.trim()
+                ?: classTag?.argType?.text?.trim()
+                ?: return
+
+        val genericNames =
+            cats
+                .getGenericTagList()
+                .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
+                .map { it.argName.text }
+                .toSet()
 
         val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: return
 
@@ -106,10 +111,12 @@ object LuaTypeGraphBridge {
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
-        val genericNames = cats.getGenericTagList()
-            .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
-            .map { it.argName.text }
-            .toSet()
+        val genericNames =
+            cats
+                .getGenericTagList()
+                .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
+                .map { it.argName.text }
+                .toSet()
 
         cats.getParamTagList().forEachIndexed { index, paramTag ->
             val paramName = paramTag.argName?.text?.trim() ?: return@forEachIndexed
@@ -156,10 +163,12 @@ object LuaTypeGraphBridge {
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
-        val genericNames = cats.getGenericTagList()
-            .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
-            .map { it.argName.text }
-            .toSet()
+        val genericNames =
+            cats
+                .getGenericTagList()
+                .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
+                .map { it.argName.text }
+                .toSet()
 
         val descriptors = cats.getReturnTagList().flatMap { it.returnTypeDescriptorList }
         descriptors.forEachIndexed { i, desc ->

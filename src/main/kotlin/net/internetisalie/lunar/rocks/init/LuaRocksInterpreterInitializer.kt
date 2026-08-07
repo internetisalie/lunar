@@ -25,14 +25,16 @@ import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
  *   never races project initialization.
  */
 object LuaRocksInterpreterInitializer {
-
     /** Directory (relative to the project base) of the wizard-provisioned isolated environment. */
     const val ENV_DIR_NAME = ".lua"
 
     private const val LUAROCKS_KIND_ID = "luarocks"
     private const val LUAROCKS_LATEST = "latest"
 
-    fun applySettings(project: Project, settings: LuaRocksProjectSettings) {
+    fun applySettings(
+        project: Project,
+        settings: LuaRocksProjectSettings,
+    ) {
         val projectState = LuaProjectSettings.getInstance(project).state
         projectState.setTarget(targetFor(settings))
         if (!settings.provisionEnvironment) {
@@ -40,19 +42,26 @@ object LuaRocksInterpreterInitializer {
         }
     }
 
-    fun scheduleProvision(project: Project, baseDirPath: String, settings: LuaRocksProjectSettings) {
+    fun scheduleProvision(
+        project: Project,
+        baseDirPath: String,
+        settings: LuaRocksProjectSettings,
+    ) {
         if (!settings.provisionEnvironment) return
         val rootDir = "$baseDirPath/$ENV_DIR_NAME"
         val environmentName = "${settings.kindId} ${settings.luaVersion}"
-        val request = LuaProvisionRequest(
-            environmentName = environmentName,
-            rootDir = rootDir,
-            items = listOf(
-                LuaProvisionItem(settings.kindId, settings.luaVersion),
-                LuaProvisionItem(LUAROCKS_KIND_ID, LUAROCKS_LATEST),
-            ),
-        )
-        LuaToolchainProjectSettings.getInstance(project)
+        val request =
+            LuaProvisionRequest(
+                environmentName = environmentName,
+                rootDir = rootDir,
+                items =
+                    listOf(
+                        LuaProvisionItem(settings.kindId, settings.luaVersion),
+                        LuaProvisionItem(LUAROCKS_KIND_ID, LUAROCKS_LATEST),
+                    ),
+            )
+        LuaToolchainProjectSettings
+            .getInstance(project)
             .upsertEnvironmentAndActivate(LuaEnvironmentState(name = environmentName, rootDir = rootDir))
         StartupManager.getInstance(project).runAfterOpened {
             LuaToolProvisioner.getInstance().provision(project, request)
@@ -60,7 +69,10 @@ object LuaRocksInterpreterInitializer {
     }
 
     /** Binds the registered runtime tool at [interpreterPath] as the project's RUNTIME kind (§2.8). */
-    private fun bindExplicitRuntime(project: Project, interpreterPath: String) {
+    private fun bindExplicitRuntime(
+        project: Project,
+        interpreterPath: String,
+    ) {
         if (interpreterPath.isBlank()) return
         val tool = LuaToolchainRegistry.getInstance().findByPath(interpreterPath) ?: return
         LuaToolchainProjectSettings.getInstance(project).setBinding(WizardRuntimeKinds.LUA, tool.id)

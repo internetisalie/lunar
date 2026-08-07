@@ -10,17 +10,19 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class TestLuaTypeResolution : BasePlatformTestCase() {
-
     @Test
     fun testResolveClassCrossFile() {
         val typeManager = LuaTypeManagerImpl(project)
 
-        myFixture.addFileToProject("player.lua", """
+        myFixture.addFileToProject(
+            "player.lua",
+            """
             ---@class Player
             ---@field name string
             ---@field score number
             local Player = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val usage = myFixture.configureByText("usage.lua", "local p")
 
@@ -53,17 +55,23 @@ class TestLuaTypeResolution : BasePlatformTestCase() {
     fun testInheritanceResolution() {
         val typeManager = LuaTypeManagerImpl(project)
 
-        myFixture.addFileToProject("base.lua", """
+        myFixture.addFileToProject(
+            "base.lua",
+            """
             ---@class Base
             ---@field id number
             local Base
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
-        myFixture.addFileToProject("sub.lua", """
+        myFixture.addFileToProject(
+            "sub.lua",
+            """
             ---@class Sub : Base
             ---@field name string
             local Sub
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val usage = myFixture.configureByText("usage_inheritance.lua", "local s")
         val subType = typeManager.resolveType("Sub", usage) as? LuaClassType

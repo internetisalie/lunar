@@ -37,18 +37,19 @@ import kotlin.time.Duration.Companion.minutes
  * `helper_from_a` (reached transitively through module_b's require of module_a).
  */
 class LuaCrossFileCompletionIntegrationTest {
-
     @Test
     fun `recursive cross-file completion offers transitively required globals`() {
         val projectDir = createTransitiveRequireProject()
 
-        val context = Starter.newContext(
-            testName = "RecursiveCrossFileCompletion",
-            testCase = TestCase(
-                ideInfo = IdeProductResolver.getConfiguredIdeProduct(),
-                projectInfo = LocalProjectInfo(projectDir),
-            ).withVersion(IdeProductResolver.getTestVersion()),
-        )
+        val context =
+            Starter.newContext(
+                testName = "RecursiveCrossFileCompletion",
+                testCase =
+                    TestCase(
+                        ideInfo = IdeProductResolver.getConfiguredIdeProduct(),
+                        projectInfo = LocalProjectInfo(projectDir),
+                    ).withVersion(IdeProductResolver.getTestVersion()),
+            )
         IdeProductResolver.applyLicense(context)
 
         // assertCompletionCommandContains reads dumped completion items from the directory named by
@@ -64,16 +65,17 @@ class LuaCrossFileCompletionIntegrationTest {
         PluginConfigurator(context).installPluginFromPath(File(pathToPlugin).toPath())
 
         // Caret is placed just after `helper_` on line 2 of main.lua (1-based line/column).
-        val commands = CommandChain()
-            .waitForSmartMode()
-            .openFile("main.lua")
-            .goto(2, 8)
-            .doComplete(CompletionType.BASIC)
-            .assertCompletionCommandContains(listOf("helper_from_a", "helper_from_b"))
-            // Dismiss the lookup and quit, else the open completion popup keeps the IDE alive until
-            // the runTimeout (the script-chain runIDE has no implicit exit like runIdeWithDriver).
-            .closeLookup()
-            .exitApp()
+        val commands =
+            CommandChain()
+                .waitForSmartMode()
+                .openFile("main.lua")
+                .goto(2, 8)
+                .doComplete(CompletionType.BASIC)
+                .assertCompletionCommandContains(listOf("helper_from_a", "helper_from_b"))
+                // Dismiss the lookup and quit, else the open completion popup keeps the IDE alive until
+                // the runTimeout (the script-chain runIDE has no implicit exit like runIdeWithDriver).
+                .closeLookup()
+                .exitApp()
 
         context.runIDE(commands = commands, runTimeout = 5.minutes)
     }

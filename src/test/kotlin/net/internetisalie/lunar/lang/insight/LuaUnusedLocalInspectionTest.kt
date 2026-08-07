@@ -8,7 +8,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaUnusedLocalInspection())
@@ -16,7 +15,8 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
 
     private fun unusedWarnings(text: String): List<String> {
         myFixture.configureByText("test.lua", text)
-        return myFixture.doHighlighting()
+        return myFixture
+            .doHighlighting()
             .filter { it.description?.startsWith("Unused") == true }
             .map { it.description }
     }
@@ -26,7 +26,10 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
         assertTrue("Expected no unused warnings but found: $warnings", warnings.isEmpty())
     }
 
-    private fun assertUnused(text: String, vararg expectedWarnings: String) {
+    private fun assertUnused(
+        text: String,
+        vararg expectedWarnings: String,
+    ) {
         val warnings = unusedWarnings(text)
         assertEquals("Warnings count mismatch. Found: $warnings", expectedWarnings.size, warnings.size)
         for (expected in expectedWarnings) {
@@ -45,7 +48,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
             local y = 20
             """.trimIndent(),
             "Unused local variable 'x'",
-            "Unused local variable 'y'"
+            "Unused local variable 'y'",
         )
     }
 
@@ -55,7 +58,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
             """
             local x = 10
             print(x)
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -65,14 +68,14 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
             """
             local _ = 10
             for _, v in pairs({}) do print(v) end
-            """.trimIndent()
+            """.trimIndent(),
         )
         // Variables starting with _ (but not exactly _) ARE flagged
         assertUnused(
             """
             local _x = 20
             """.trimIndent(),
-            "Unused local variable '_x'"
+            "Unused local variable '_x'",
         )
     }
 
@@ -86,7 +89,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
                 print(a)
             end
             """.trimIndent(),
-            "Unused parameter 'b'"
+            "Unused parameter 'b'",
         )
     }
 
@@ -97,7 +100,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
             function test(a, b)
                 print(a)
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -111,7 +114,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
                 return function() return x end
             end
             print(outer())
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -123,7 +126,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
                 print("hi")
             end
             """.trimIndent(),
-            "Unused local variable 'i'"
+            "Unused local variable 'i'",
         )
     }
 
@@ -134,7 +137,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
             for i = 1, 10 do
                 print(i)
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -193,7 +196,7 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
                 print(x)
             end
             """.trimIndent(),
-            "Unused local variable 'x'" // The outer x is unused
+            "Unused local variable 'x'", // The outer x is unused
         )
     }
 }

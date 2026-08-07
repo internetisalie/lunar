@@ -7,15 +7,15 @@ import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaUnOpExpr
 
 object LuaConditionInverter {
-
-    private val flippedRelational: Map<IElementType, String> = mapOf(
-        LuaElementTypes.EQ to "~=",
-        LuaElementTypes.NE to "==",
-        LuaElementTypes.LT to ">=",
-        LuaElementTypes.LE to ">",
-        LuaElementTypes.GT to "<=",
-        LuaElementTypes.GE to "<",
-    )
+    private val flippedRelational: Map<IElementType, String> =
+        mapOf(
+            LuaElementTypes.EQ to "~=",
+            LuaElementTypes.NE to "==",
+            LuaElementTypes.LT to ">=",
+            LuaElementTypes.LE to ">",
+            LuaElementTypes.GT to "<=",
+            LuaElementTypes.GE to "<",
+        )
 
     fun invertedText(condition: LuaExpr): String {
         invertRelational(condition)?.let { return it }
@@ -25,7 +25,10 @@ object LuaConditionInverter {
 
     private fun invertRelational(condition: LuaExpr): String? {
         if (condition !is LuaBinOpExpr) return null
-        val operatorType = condition.binOp.firstChild?.node?.elementType ?: return null
+        val operatorType =
+            condition.binOp.firstChild
+                ?.node
+                ?.elementType ?: return null
         val flippedOp = flippedRelational[operatorType] ?: return null
         val left = condition.left.text
         val right = condition.right?.text ?: return null
@@ -34,7 +37,12 @@ object LuaConditionInverter {
 
     private fun invertNot(condition: LuaExpr): String? {
         if (condition !is LuaUnOpExpr) return null
-        if (condition.unOp.firstChild?.node?.elementType != LuaElementTypes.NOT) return null
+        if (condition.unOp.firstChild
+                ?.node
+                ?.elementType != LuaElementTypes.NOT
+        ) {
+            return null
+        }
         return condition.expr?.text
     }
 }

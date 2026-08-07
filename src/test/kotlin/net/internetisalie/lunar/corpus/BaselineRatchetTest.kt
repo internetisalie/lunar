@@ -24,7 +24,6 @@ import java.io.File
  */
 @RunWith(JUnit4::class)
 class BaselineRatchetTest {
-
     @get:Rule
     val temp = TemporaryFolder()
 
@@ -44,20 +43,23 @@ class BaselineRatchetTest {
 
     @Test
     fun renderParseRoundTrip() {
-        val original = metrics(
-            inspectionHits = mapOf(
-                "LuaUndeclaredVariable" to 41,
-                "LuaTypeAssignability" to 2,
-                CorpusMetrics.UNATTRIBUTED to 0,
-            ),
-        ).copy(
-            symbolHits = mapOf("LuaUndeclaredVariable.wx" to 812, "LuaUndeclaredVariable.ide.config" to 9),
-            ballast = mapOf(
-                "tl" to BallastGroup(claimed = 0, unclaimed = 117),
-                "rockspec" to BallastGroup(claimed = 53, unclaimed = 1),
-                ".luacov" to BallastGroup(claimed = 0, unclaimed = 1),
-            ),
-        )
+        val original =
+            metrics(
+                inspectionHits =
+                    mapOf(
+                        "LuaUndeclaredVariable" to 41,
+                        "LuaTypeAssignability" to 2,
+                        CorpusMetrics.UNATTRIBUTED to 0,
+                    ),
+            ).copy(
+                symbolHits = mapOf("LuaUndeclaredVariable.wx" to 812, "LuaUndeclaredVariable.ide.config" to 9),
+                ballast =
+                    mapOf(
+                        "tl" to BallastGroup(claimed = 0, unclaimed = 117),
+                        "rockspec" to BallastGroup(claimed = 53, unclaimed = 1),
+                        ".luacov" to BallastGroup(claimed = 0, unclaimed = 1),
+                    ),
+            )
         assertEquals(original, CorpusBaseline.parse(CorpusBaseline.render(original)))
     }
 
@@ -71,25 +73,28 @@ class BaselineRatchetTest {
      */
     @Test
     fun renderParseRoundTripCarriesTheOracleAndLexerFields() {
-        val original = metrics().copy(
-            oracleDisagreements = 3,
-            oracleFalseAccepts = 11,
-            oracleSites = listOf("falseAccept:src/b.lua", "falseReject:spec/a.lua"),
-            oracleTimeouts = 1,
-            lexerRoundTripFailures = 2,
-            unmergedTokens = 7,
-            crashes = mapOf("lex:StackOverflowError" to 1, "parse:IllegalStateException" to 4),
-        )
+        val original =
+            metrics().copy(
+                oracleDisagreements = 3,
+                oracleFalseAccepts = 11,
+                oracleSites = listOf("falseAccept:src/b.lua", "falseReject:spec/a.lua"),
+                oracleTimeouts = 1,
+                lexerRoundTripFailures = 2,
+                unmergedTokens = 7,
+                crashes = mapOf("lex:StackOverflowError" to 1, "parse:IllegalStateException" to 4),
+            )
         assertEquals(original, CorpusBaseline.parse(CorpusBaseline.render(original)))
     }
 
     /** A field absent from an older baseline reads as zero rather than throwing. */
     @Test
     fun olderBaselinesWithoutTheNewFieldsStillParse() {
-        val legacy = CorpusBaseline.render(metrics())
-            .lineSequence()
-            .filterNot { it.startsWith("oracle") || it.startsWith("lexer") || it.startsWith("unmerged") }
-            .joinToString("\n")
+        val legacy =
+            CorpusBaseline
+                .render(metrics())
+                .lineSequence()
+                .filterNot { it.startsWith("oracle") || it.startsWith("lexer") || it.startsWith("unmerged") }
+                .joinToString("\n")
         val parsed = CorpusBaseline.parse(legacy)
         assertEquals(0, parsed.oracleDisagreements)
         assertEquals(0, parsed.lexerRoundTripFailures)
@@ -149,14 +154,16 @@ class BaselineRatchetTest {
      */
     @Test
     fun ballastKeyInverseParse() {
-        val rendered = CorpusBaseline.render(
-            metrics().copy(
-                ballast = mapOf(
-                    ".luacov" to BallastGroup(claimed = 0, unclaimed = 1),
-                    "config.ld" to BallastGroup(claimed = 2, unclaimed = 0),
+        val rendered =
+            CorpusBaseline.render(
+                metrics().copy(
+                    ballast =
+                        mapOf(
+                            ".luacov" to BallastGroup(claimed = 0, unclaimed = 1),
+                            "config.ld" to BallastGroup(claimed = 2, unclaimed = 0),
+                        ),
                 ),
-            ),
-        )
+            )
         assertTrue(
             "Expected a doubled dot for the dotfile key, got:\n$rendered",
             rendered.contains("ballast.unclaimed..luacov=1"),
@@ -172,10 +179,11 @@ class BaselineRatchetTest {
      */
     @Test
     fun symbolBreakdownIsReportedNeverGated() {
-        val comparison = CorpusBaseline.compare(
-            metrics().copy(symbolHits = emptyMap()),
-            metrics().copy(symbolHits = mapOf("LuaUndeclaredVariable.wx" to 812)),
-        )
+        val comparison =
+            CorpusBaseline.compare(
+                metrics().copy(symbolHits = emptyMap()),
+                metrics().copy(symbolHits = mapOf("LuaUndeclaredVariable.wx" to 812)),
+            )
         assertTrue(comparison.regressions.isEmpty())
         assertTrue(comparison.improvements.isEmpty())
     }
@@ -194,9 +202,10 @@ class BaselineRatchetTest {
      */
     @Test
     fun mixedBallastGroupReportsBothDispositions() {
-        val rendered = CorpusBaseline.render(
-            metrics().copy(ballast = mapOf("rockspec" to BallastGroup(claimed = 53, unclaimed = 1))),
-        )
+        val rendered =
+            CorpusBaseline.render(
+                metrics().copy(ballast = mapOf("rockspec" to BallastGroup(claimed = 53, unclaimed = 1))),
+            )
         assertTrue(
             "The claimed majority must stay visible, got:\n$rendered",
             rendered.contains("ballast.claimed.rockspec=53"),
@@ -215,10 +224,11 @@ class BaselineRatchetTest {
     /** Ballast is a discovery signal, not a defect count — a new unclaimed group must not fail. */
     @Test
     fun ballastIsReportedNeverGated() {
-        val comparison = CorpusBaseline.compare(
-            metrics().copy(ballast = emptyMap()),
-            metrics().copy(ballast = mapOf("tl" to BallastGroup(claimed = 0, unclaimed = 117))),
-        )
+        val comparison =
+            CorpusBaseline.compare(
+                metrics().copy(ballast = emptyMap()),
+                metrics().copy(ballast = mapOf("tl" to BallastGroup(claimed = 0, unclaimed = 117))),
+            )
         assertTrue(comparison.regressions.isEmpty())
         assertTrue(comparison.improvements.isEmpty())
     }
@@ -239,10 +249,11 @@ class BaselineRatchetTest {
 
     @Test
     fun inspectionHitIncreaseIsRegression() {
-        val comparison = CorpusBaseline.compare(
-            metrics(inspectionHits = mapOf("LuaUndeclaredVariable" to 7)),
-            metrics(inspectionHits = mapOf("LuaUndeclaredVariable" to 8)),
-        )
+        val comparison =
+            CorpusBaseline.compare(
+                metrics(inspectionHits = mapOf("LuaUndeclaredVariable" to 7)),
+                metrics(inspectionHits = mapOf("LuaUndeclaredVariable" to 8)),
+            )
         assertEquals(
             listOf("inspection.LuaUndeclaredVariable: baseline 7 → observed 8"),
             comparison.regressions,
@@ -268,10 +279,11 @@ class BaselineRatchetTest {
     /** …but the failure count itself is always gated: it is the thing that has to come down. */
     @Test
     fun highlightFailureIncreaseIsAlwaysRegression() {
-        val comparison = CorpusBaseline.compare(
-            metrics(inspectionHits = mapOf(CorpusMetrics.HIGHLIGHT_FAILURES to 42)),
-            metrics(inspectionHits = mapOf(CorpusMetrics.HIGHLIGHT_FAILURES to 43)),
-        )
+        val comparison =
+            CorpusBaseline.compare(
+                metrics(inspectionHits = mapOf(CorpusMetrics.HIGHLIGHT_FAILURES to 42)),
+                metrics(inspectionHits = mapOf(CorpusMetrics.HIGHLIGHT_FAILURES to 43)),
+            )
         assertEquals(
             listOf("inspection.highlightFailures: baseline 42 → observed 43"),
             comparison.regressions,
@@ -280,18 +292,22 @@ class BaselineRatchetTest {
 
     @Test
     fun newlyFiringInspectionIsRegression() {
-        val comparison = CorpusBaseline.compare(
-            metrics(inspectionHits = emptyMap()),
-            metrics(inspectionHits = mapOf("LuaUnusedLocal" to 4)),
-        )
+        val comparison =
+            CorpusBaseline.compare(
+                metrics(inspectionHits = emptyMap()),
+                metrics(inspectionHits = mapOf("LuaUnusedLocal" to 4)),
+            )
         assertEquals(listOf("inspection.LuaUnusedLocal: baseline 0 → observed 4"), comparison.regressions)
     }
 
     @Test
     fun missingScalarKeyThrows() {
-        val truncated = CorpusBaseline.render(metrics()).lineSequence()
-            .filterNot { it.startsWith("unresolvedRequires=") }
-            .joinToString("\n")
+        val truncated =
+            CorpusBaseline
+                .render(metrics())
+                .lineSequence()
+                .filterNot { it.startsWith("unresolvedRequires=") }
+                .joinToString("\n")
         try {
             CorpusBaseline.parse(truncated)
             fail("An unreadable baseline must fail loudly, not read as 'no regression'")
@@ -312,10 +328,11 @@ class BaselineRatchetTest {
     /** BUG-407: an empty optional value must not shift any other field. */
     @Test
     fun emptyOptionalDoesNotShiftOtherFields() {
-        val repoRoot = manifestRoot(
-            """{"name":"gap","url":"https://example.invalid/x.git","commit":"deadbeef",""" +
-                """"roots":["src"],"prune":[],"luaLevel":"LUA51","moduleRoot":"lua"}""",
-        )
+        val repoRoot =
+            manifestRoot(
+                """{"name":"gap","url":"https://example.invalid/x.git","commit":"deadbeef",""" +
+                    """"roots":["src"],"prune":[],"luaLevel":"LUA51","moduleRoot":"lua"}""",
+            )
         val entry = CorpusManifest.entry(repoRoot, "gap")
         assertEquals(listOf("src"), entry.roots)
         assertEquals(LuaLanguageLevel.LUA51, entry.luaLevel)
@@ -334,10 +351,11 @@ class BaselineRatchetTest {
 
     @Test
     fun manifestLuaLevelDefaultsAndParses() {
-        val repoRoot = manifestRoot(
-            """{"name":"plain","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
-            """{"name":"pinned","url":"https://example.invalid/y.git","commit":"cafebabe","roots":["src"],"luaLevel":"LUA51"}""",
-        )
+        val repoRoot =
+            manifestRoot(
+                """{"name":"plain","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
+                """{"name":"pinned","url":"https://example.invalid/y.git","commit":"cafebabe","roots":["src"],"luaLevel":"LUA51"}""",
+            )
         assertEquals(LuaLanguageLevel.LUA54, CorpusManifest.entry(repoRoot, "plain").luaLevel)
         assertEquals(LuaLanguageLevel.LUA51, CorpusManifest.entry(repoRoot, "pinned").luaLevel)
     }
@@ -348,12 +366,13 @@ class BaselineRatchetTest {
      */
     @Test
     fun manifestModuleRootDefaultsAndParses() {
-        val repoRoot = manifestRoot(
-            """{"name":"plain","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
-            """{"name":"levelonly","url":"https://example.invalid/y.git","commit":"cafebabe","roots":["src"],"luaLevel":"LUA51"}""",
-            """{"name":"rooted","url":"https://example.invalid/z.git","commit":"f00d","roots":["frontend"],""" +
-                """"luaLevel":"LUA51","moduleRoot":"frontend"}""",
-        )
+        val repoRoot =
+            manifestRoot(
+                """{"name":"plain","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
+                """{"name":"levelonly","url":"https://example.invalid/y.git","commit":"cafebabe","roots":["src"],"luaLevel":"LUA51"}""",
+                """{"name":"rooted","url":"https://example.invalid/z.git","commit":"f00d","roots":["frontend"],""" +
+                    """"luaLevel":"LUA51","moduleRoot":"frontend"}""",
+            )
         assertNull(CorpusManifest.entry(repoRoot, "plain").moduleRoot)
         assertNull(CorpusManifest.entry(repoRoot, "levelonly").moduleRoot)
         assertEquals("frontend", CorpusManifest.entry(repoRoot, "rooted").moduleRoot)
@@ -362,7 +381,10 @@ class BaselineRatchetTest {
     /** TC 9 — the guard refuses an absent corpus instead of measuring nothing. */
     @Test
     fun absentCorpusFailsWithFetchInstruction() {
-        val repoRoot = manifestRoot("""{"name":"ghost","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""")
+        val repoRoot =
+            manifestRoot(
+                """{"name":"ghost","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
+            )
         val entry = CorpusManifest.entry(repoRoot, "ghost")
         val failure = runCatching { CorpusGuards.assertCorpusFetched(repoRoot, entry) }.exceptionOrNull()
         assertTrue(
@@ -418,8 +440,9 @@ class BaselineRatchetTest {
 
     @Test
     fun tortureRenderParseRoundTrip() {
-        val original = torture(lexerRoundTripFailures = 2, unmergedTokens = 7, crashes = mapOf("lex:X" to 1))
-            .copy(oracleTimeouts = 3)
+        val original =
+            torture(lexerRoundTripFailures = 2, unmergedTokens = 7, crashes = mapOf("lex:X" to 1))
+                .copy(oracleTimeouts = 3)
         assertEquals(original, TortureBaseline.parse(TortureBaseline.render(original)))
     }
 
@@ -427,9 +450,10 @@ class BaselineRatchetTest {
     fun tortureRatchetFailsOnAWorseDisagreementCount() {
         val baseline = temp.newFile("torture.baseline")
         baseline.writeText(TortureBaseline.render(torture()))
-        val failure = runCatching {
-            TortureBaseline.assertRatchet(baseline, torture(oracleDisagreements = 2))
-        }.exceptionOrNull()
+        val failure =
+            runCatching {
+                TortureBaseline.assertRatchet(baseline, torture(oracleDisagreements = 2))
+            }.exceptionOrNull()
         assertTrue(
             "Expected a regression, got: ${failure?.message}",
             failure?.message.orEmpty().contains("oracleDisagreements: baseline 1 → observed 2"),
@@ -447,12 +471,13 @@ class BaselineRatchetTest {
     fun tortureRatchetGatesEachInvariantSeparately() {
         val baseline = temp.newFile("torture-invariants.baseline")
         baseline.writeText(TortureBaseline.render(torture(crashes = mapOf("lex:StackOverflowError" to 2))))
-        val observed = torture(
-            oracleDisagreements = 2,
-            lexerRoundTripFailures = 5,
-            unmergedTokens = 1,
-            crashes = mapOf("parse:IllegalStateException" to 1),
-        ).copy(oracleTimeouts = 3)
+        val observed =
+            torture(
+                oracleDisagreements = 2,
+                lexerRoundTripFailures = 5,
+                unmergedTokens = 1,
+                crashes = mapOf("parse:IllegalStateException" to 1),
+            ).copy(oracleTimeouts = 3)
         val regressions = TortureBaseline.compare(TortureBaseline.parse(baseline.readText()), observed).regressions
         assertEquals(
             listOf(
@@ -475,9 +500,10 @@ class BaselineRatchetTest {
     fun timeoutsAreGatedOnBothRatchets() {
         val corpusBaseline = temp.newFile("timeouts.baseline")
         corpusBaseline.writeText(CorpusBaseline.render(metrics()))
-        val corpusFailure = runCatching {
-            CorpusGuards.assertRatchet(corpusBaseline, metrics().copy(oracleTimeouts = 1))
-        }.exceptionOrNull()
+        val corpusFailure =
+            runCatching {
+                CorpusGuards.assertRatchet(corpusBaseline, metrics().copy(oracleTimeouts = 1))
+            }.exceptionOrNull()
         assertTrue(
             "a corpus timeout must regress the ratchet, got: ${corpusFailure?.message}",
             corpusFailure?.message.orEmpty().contains("oracleTimeouts: baseline 0 → observed 1"),
@@ -485,9 +511,10 @@ class BaselineRatchetTest {
 
         val tortureBaselineFile = temp.newFile("torture-timeouts.baseline")
         tortureBaselineFile.writeText(TortureBaseline.render(torture()))
-        val tortureFailure = runCatching {
-            TortureBaseline.assertRatchet(tortureBaselineFile, torture().copy(oracleTimeouts = 1))
-        }.exceptionOrNull()
+        val tortureFailure =
+            runCatching {
+                TortureBaseline.assertRatchet(tortureBaselineFile, torture().copy(oracleTimeouts = 1))
+            }.exceptionOrNull()
         assertTrue(
             "a torture timeout must regress the ratchet, got: ${tortureFailure?.message}",
             tortureFailure?.message.orEmpty().contains("oracleTimeouts: baseline 0 → observed 1"),
@@ -519,9 +546,10 @@ class BaselineRatchetTest {
     fun tortureFalseAcceptsAreGatedUnlikeTheProjectCorpus() {
         val baseline = temp.newFile("torture-accepts.baseline")
         baseline.writeText(TortureBaseline.render(torture().copy(oracleFalseAccepts = 0)))
-        val failure = runCatching {
-            TortureBaseline.assertRatchet(baseline, torture().copy(oracleFalseAccepts = 1))
-        }.exceptionOrNull()
+        val failure =
+            runCatching {
+                TortureBaseline.assertRatchet(baseline, torture().copy(oracleFalseAccepts = 1))
+            }.exceptionOrNull()
         assertTrue(
             "an unallowlisted false accept must fail the build, got: ${failure?.message}",
             failure?.message.orEmpty().contains("oracleFalseAccepts: baseline 0 → observed 1"),
@@ -544,9 +572,10 @@ class BaselineRatchetTest {
     fun tortureRatchetRefusesADifferentArchive() {
         val baseline = temp.newFile("torture-pin.baseline")
         baseline.writeText(TortureBaseline.render(torture()))
-        val failure = runCatching {
-            TortureBaseline.assertRatchet(baseline, torture().copy(sha256 = "deadbeef"))
-        }.exceptionOrNull()
+        val failure =
+            runCatching {
+                TortureBaseline.assertRatchet(baseline, torture().copy(sha256 = "deadbeef"))
+            }.exceptionOrNull()
         assertTrue(
             "Expected the re-record instruction, got: ${failure?.message}",
             failure?.message.orEmpty().contains("different torture archive"),

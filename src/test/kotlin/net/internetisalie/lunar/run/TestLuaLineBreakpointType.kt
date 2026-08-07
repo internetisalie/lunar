@@ -14,7 +14,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestLuaLineBreakpointType : BaseDocumentTest() {
-
     @Test
     fun testBreakpointType() {
         val breakpointType = LuaLineBreakpointType()
@@ -28,8 +27,9 @@ class TestLuaLineBreakpointType : BaseDocumentTest() {
         val fileUrl = psiFile.virtualFile.url
 
         @Suppress("UNCHECKED_CAST")
-        val breakpointType = XLineBreakpointType.EXTENSION_POINT_NAME.extensionList
-            .first { it is LuaLineBreakpointType } as XLineBreakpointType<XBreakpointProperties<*>?>
+        val breakpointType =
+            XLineBreakpointType.EXTENSION_POINT_NAME.extensionList
+                .first { it is LuaLineBreakpointType } as XLineBreakpointType<XBreakpointProperties<*>?>
 
         val manager: XBreakpointManager =
             XDebuggerManager.getInstance(myFixture.project).breakpointManager

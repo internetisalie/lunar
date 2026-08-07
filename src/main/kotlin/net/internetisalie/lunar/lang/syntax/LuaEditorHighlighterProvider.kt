@@ -12,8 +12,6 @@ class LuaEditorHighlighterProvider : EditorHighlighterProvider {
         project: Project?,
         fileType: FileType,
         virtualFile: VirtualFile?,
-        colors: EditorColorsScheme
-    ): EditorHighlighter {
-        return LuaEditorHighlighter(colors)
-    }
+        colors: EditorColorsScheme,
+    ): EditorHighlighter = LuaEditorHighlighter(colors)
 }

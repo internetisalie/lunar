@@ -13,8 +13,11 @@ import com.intellij.psi.PsiWhiteSpace
  * Runs once, gated on the caret leaf. Design §3.2.
  */
 class LuaMissingBracketFixer : SmartEnterProcessorWithFixers.Fixer<LuaSmartEnterProcessor>() {
-
-    override fun apply(editor: Editor, processor: LuaSmartEnterProcessor, element: PsiElement) {
+    override fun apply(
+        editor: Editor,
+        processor: LuaSmartEnterProcessor,
+        element: PsiElement,
+    ) {
         val document = editor.document
         val caret = editor.caretModel.offset
         val file = element.containingFile ?: return
@@ -29,7 +32,11 @@ class LuaMissingBracketFixer : SmartEnterProcessorWithFixers.Fixer<LuaSmartEnter
         processor.registerUnresolvedError(lineEnd + text.length)
     }
 
-    private fun lineTokens(file: PsiFile, lineStart: Int, lineEnd: Int): List<PsiElement> {
+    private fun lineTokens(
+        file: PsiFile,
+        lineStart: Int,
+        lineEnd: Int,
+    ): List<PsiElement> {
         val tokens = mutableListOf<PsiElement>()
         var offset = lineStart
         while (offset < lineEnd) {

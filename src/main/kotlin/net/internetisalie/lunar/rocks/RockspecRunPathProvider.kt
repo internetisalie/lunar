@@ -17,8 +17,13 @@ object RockspecRunPathProvider {
         if (cRocks.none { it.hasCModules }) return null
 
         val treeRoot = LuaRocksTreeLocator.treeRoot(project) ?: return null
-        val languageLevel = LuaProjectSettings.getInstance(project).state.getTarget()
-            .getImplicitLanguageLevel().version
+        val languageLevel =
+            LuaProjectSettings
+                .getInstance(project)
+                .state
+                .getTarget()
+                .getImplicitLanguageLevel()
+                .version
         val nativeExtension = nativeModuleExtension()
         return "$treeRoot/lib/lua/$languageLevel/?.$nativeExtension;;".replace('\\', '/')
     }

@@ -18,8 +18,10 @@ class LuaRedisErrorLinkFilter(
     private val project: Project,
     private val scriptFileUrl: String,
 ) : Filter {
-
-    override fun applyFilter(line: String, entireLength: Int): Filter.Result? {
+    override fun applyFilter(
+        line: String,
+        entireLength: Int,
+    ): Filter.Result? {
         val match = LINE_REFERENCE.find(line) ?: return null
         val serverLine = match.groupValues[1].toIntOrNull() ?: return null
         val file = VirtualFileManager.getInstance().findFileByUrl(scriptFileUrl) ?: return null

@@ -11,19 +11,19 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaImplicitFieldsTest : BasePlatformTestCase() {
-
     @Test
     fun testImplicitFieldsFromSelfAndDirectAssignment() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "player.lua",
-            """
-            ---@class Player
-            local Player = {}
-            function Player:heal() self.hp = 1 end
-            Player.maxHp = 100
-            """.trimIndent(),
-        )
+        val usage =
+            myFixture.configureByText(
+                "player.lua",
+                """
+                ---@class Player
+                local Player = {}
+                function Player:heal() self.hp = 1 end
+                Player.maxHp = 100
+                """.trimIndent(),
+            )
 
         runReadAction {
             val player = typeManager.resolveType("Player", usage)
@@ -37,15 +37,16 @@ class LuaImplicitFieldsTest : BasePlatformTestCase() {
     @Test
     fun testExplicitFieldTakesPrecedence() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "player_field.lua",
-            """
-            ---@class Player
-            ---@field hp string
-            local Player = {}
-            function Player:heal() self.hp = 1 end
-            """.trimIndent(),
-        )
+        val usage =
+            myFixture.configureByText(
+                "player_field.lua",
+                """
+                ---@class Player
+                ---@field hp string
+                local Player = {}
+                function Player:heal() self.hp = 1 end
+                """.trimIndent(),
+            )
 
         runReadAction {
             val player = typeManager.resolveType("Player", usage)
@@ -59,14 +60,15 @@ class LuaImplicitFieldsTest : BasePlatformTestCase() {
     @Test
     fun testSelfOutsideMethodContributesNothing() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "player_self.lua",
-            """
-            ---@class Player
-            local Player = {}
-            self.x = 1
-            """.trimIndent(),
-        )
+        val usage =
+            myFixture.configureByText(
+                "player_self.lua",
+                """
+                ---@class Player
+                local Player = {}
+                self.x = 1
+                """.trimIndent(),
+            )
 
         runReadAction {
             val player = typeManager.resolveType("Player", usage)
@@ -89,14 +91,15 @@ class LuaImplicitFieldsTest : BasePlatformTestCase() {
             local Base
             """.trimIndent(),
         )
-        val usage = myFixture.configureByText(
-            "sub.lua",
-            """
-            ---@class Sub : Base
-            ---@field name string
-            local Sub
-            """.trimIndent(),
-        )
+        val usage =
+            myFixture.configureByText(
+                "sub.lua",
+                """
+                ---@class Sub : Base
+                ---@field name string
+                local Sub
+                """.trimIndent(),
+            )
 
         runReadAction {
             val sub = typeManager.resolveType("Sub", usage) as? LuaClassType
@@ -109,13 +112,14 @@ class LuaImplicitFieldsTest : BasePlatformTestCase() {
     @Test
     fun testAliasRegression() {
         val typeManager = LuaTypeManagerImpl(project)
-        val usage = myFixture.configureByText(
-            "alias.lua",
-            """
-            ---@alias Id number
-            local x
-            """.trimIndent(),
-        )
+        val usage =
+            myFixture.configureByText(
+                "alias.lua",
+                """
+                ---@alias Id number
+                local x
+                """.trimIndent(),
+            )
 
         runReadAction {
             val id = typeManager.resolveType("Id", usage)

@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.redis
 
 import kotlinx.coroutines.runBlocking
-import java.net.ServerSocket
 import net.internetisalie.lunar.redis.resp.RespClient
 import net.internetisalie.lunar.redis.resp.RespEndpoint
 import net.internetisalie.lunar.redis.resp.RespTimeouts
@@ -14,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
+import java.net.ServerSocket
 import java.util.UUID
 
 /**
@@ -28,17 +28,17 @@ import java.util.UUID
  * `docker run --rm -d -p <port>:6379 <image>` (consistent with [LuaRedisServerLauncher]).
  */
 class RedisIntegrationTest {
-
     private val containers = mutableListOf<RunningContainer>()
 
     @Before
     fun assertDockerAvailable() {
-        val result = runCatching {
-            ProcessBuilder("docker", "version", "--format", "{{.Server.Version}}")
-                .redirectErrorStream(true)
-                .start()
-                .also { it.waitFor() }
-        }
+        val result =
+            runCatching {
+                ProcessBuilder("docker", "version", "--format", "{{.Server.Version}}")
+                    .redirectErrorStream(true)
+                    .start()
+                    .also { it.waitFor() }
+            }
         val process = result.getOrNull()
         val exitOk = process?.exitValue() == 0
         if (!exitOk) {
@@ -46,7 +46,7 @@ class RedisIntegrationTest {
                 "Docker environment check failed: Docker is not available on PATH or the Docker daemon " +
                     "is not running. The redisIntegrationTest task requires a running Docker daemon with " +
                     "access to 'redis:8' and 'valkey/valkey:8' images. " +
-                    "Install Docker and ensure the daemon is started before running this task."
+                    "Install Docker and ensure the daemon is started before running this task.",
             )
         }
     }
@@ -73,7 +73,10 @@ class RedisIntegrationTest {
 
     // ── per-flavor suite ──────────────────────────────────────────────────────────────────────────
 
-    private fun runFlavourSuite(container: RunningContainer, flavorLabel: String) {
+    private fun runFlavourSuite(
+        container: RunningContainer,
+        flavorLabel: String,
+    ) {
         withClient(container.endpoint()) { client ->
             verifyEval(client, flavorLabel)
             verifyEvalSha(client, flavorLabel)
@@ -81,19 +84,28 @@ class RedisIntegrationTest {
         }
     }
 
-    private fun verifyEval(client: RespClient, flavorLabel: String) {
+    private fun verifyEval(
+        client: RespClient,
+        flavorLabel: String,
+    ) {
         val context = execContext(LuaRedisExecMode.EVAL, readOnly = false)
         val reply = runBlocking { LuaRedisScriptExecutor().execute(client, context, RETURN_42_SCRIPT) }
         assertEquals("$flavorLabel EVAL: expected integer 42", RespValue.Integer(42), reply)
     }
 
-    private fun verifyEvalSha(client: RespClient, flavorLabel: String) {
+    private fun verifyEvalSha(
+        client: RespClient,
+        flavorLabel: String,
+    ) {
         val context = execContext(LuaRedisExecMode.EVALSHA, readOnly = false)
         val reply = runBlocking { LuaRedisScriptExecutor().execute(client, context, RETURN_42_SCRIPT) }
         assertEquals("$flavorLabel EVALSHA: expected integer 42", RespValue.Integer(42), reply)
     }
 
-    private fun verifyEvalReadOnly(client: RespClient, flavorLabel: String) {
+    private fun verifyEvalReadOnly(
+        client: RespClient,
+        flavorLabel: String,
+    ) {
         val context = execContext(LuaRedisExecMode.EVAL, readOnly = true)
         val reply = runBlocking { LuaRedisScriptExecutor().execute(client, context, RETURN_42_SCRIPT) }
         assertEquals("$flavorLabel EVAL_RO: expected integer 42", RespValue.Integer(42), reply)
@@ -103,11 +115,23 @@ class RedisIntegrationTest {
 
     private fun startContainer(image: String): RunningContainer {
         val port = ServerSocket(0).use { it.localPort }
-        val process = ProcessBuilder(
-            "docker", "run", "--rm", "-d", "-p", "$port:6379", image,
-        ).redirectErrorStream(true).start()
+        val process =
+            ProcessBuilder(
+                "docker",
+                "run",
+                "--rm",
+                "-d",
+                "-p",
+                "$port:6379",
+                image,
+            ).redirectErrorStream(true).start()
         process.waitFor()
-        val containerId = process.inputStream.bufferedReader().readLine().orEmpty().trim()
+        val containerId =
+            process.inputStream
+                .bufferedReader()
+                .readLine()
+                .orEmpty()
+                .trim()
         if (containerId.isBlank()) {
             fail("Failed to start Docker container for image '$image': docker run produced no container id")
         }
@@ -117,21 +141,25 @@ class RedisIntegrationTest {
         return container
     }
 
-    private fun waitForReady(endpoint: RespEndpoint, image: String) {
+    private fun waitForReady(
+        endpoint: RespEndpoint,
+        image: String,
+    ) {
         val deadline = System.currentTimeMillis() + READY_TIMEOUT_MS
         var lastError: Throwable? = null
         val shortTimeouts = RespTimeouts(connectMs = 500, readMs = 1_000)
         while (System.currentTimeMillis() < deadline) {
-            val pingResult = runCatching {
-                runBlocking {
-                    val client = RespClient.open(endpoint, shortTimeouts)
-                    try {
-                        client.command("PING")
-                    } finally {
-                        client.dispose()
+            val pingResult =
+                runCatching {
+                    runBlocking {
+                        val client = RespClient.open(endpoint, shortTimeouts)
+                        try {
+                            client.command("PING")
+                        } finally {
+                            client.dispose()
+                        }
                     }
                 }
-            }
             val reply = pingResult.getOrNull()
             if (reply is RespValue.Simple && reply.text == "PONG") return
             lastError = pingResult.exceptionOrNull()
@@ -142,7 +170,10 @@ class RedisIntegrationTest {
 
     // ── helpers ───────────────────────────────────────────────────────────────────────────────────
 
-    private fun execContext(mode: LuaRedisExecMode, readOnly: Boolean): LuaRedisExecContext =
+    private fun execContext(
+        mode: LuaRedisExecMode,
+        readOnly: Boolean,
+    ): LuaRedisExecContext =
         LuaRedisExecContext(
             connectionId = UUID.randomUUID().toString(),
             execMode = mode,
@@ -151,7 +182,10 @@ class RedisIntegrationTest {
             argv = emptyList(),
         )
 
-    private fun withClient(endpoint: RespEndpoint, block: (RespClient) -> Unit) {
+    private fun withClient(
+        endpoint: RespEndpoint,
+        block: (RespClient) -> Unit,
+    ) {
         val client = runBlocking { RespClient.open(endpoint) }
         try {
             block(client)
@@ -162,8 +196,10 @@ class RedisIntegrationTest {
 
     // ── inner types ───────────────────────────────────────────────────────────────────────────────
 
-    private inner class RunningContainer(private val containerId: String, val port: Int) {
-
+    private inner class RunningContainer(
+        private val containerId: String,
+        val port: Int,
+    ) {
         fun endpoint(): RespEndpoint = RespEndpoint(host = "127.0.0.1", port = port)
 
         fun stop() {

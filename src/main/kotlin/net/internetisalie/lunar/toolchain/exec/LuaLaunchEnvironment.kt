@@ -38,9 +38,10 @@ data class LuaLaunchEnvironment(
     private fun applyPath(commandLine: GeneralCommandLine) {
         if (pathPrependDirs.isEmpty()) return
         val prefix = pathPrependDirs.joinToString(File.pathSeparator) { it.toString() }
-        val existing = commandLine.environment["PATH"]
-            ?: System.getenv("PATH")
-            ?: ""
+        val existing =
+            commandLine.environment["PATH"]
+                ?: System.getenv("PATH")
+                ?: ""
         commandLine.environment["PATH"] =
             if (existing.isBlank()) prefix else "$prefix${File.pathSeparator}$existing"
     }

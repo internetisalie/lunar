@@ -9,7 +9,6 @@ import kotlin.test.assertNotNull
 class TestLuaRemoteResultFactory : BaseDocumentTest() {
     @Test
     fun testCreate() {
-
         myFixture.configureByText(
             LuaFileType,
             """
@@ -44,7 +43,7 @@ class TestLuaRemoteResultFactory : BaseDocumentTest() {
                 _[4][3]._ENV[1] = _[1][3]._ENV[1];
                 return _;
             end
-        """.trimIndent(),
+            """.trimIndent(),
         )
 
         ApplicationManager.getApplication().runReadAction {

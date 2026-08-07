@@ -12,7 +12,6 @@ import com.intellij.psi.PsiElement
  * See: docs/requirements/spec/type/design/phase-1-api-contracts.md §4
  */
 class LuaTypeGraph {
-
     /**
      * Threaded compatibility context (TYPE-09-P2). Replaces a bare `visited` set so we can carry
      * the union-distribution [depth] without pushing `isCompatible` over the contract's 3-arg cap.
@@ -55,7 +54,11 @@ class LuaTypeGraph {
      * Creates a [ValueNode] asserting that [element] produces a value of [type].
      * Typical uses: literal expressions, return values, @type annotations.
      */
-    fun value(element: PsiElement, type: LuaGraphType, declaredOrigin: Boolean = false): ValueNode {
+    fun value(
+        element: PsiElement,
+        type: LuaGraphType,
+        declaredOrigin: Boolean = false,
+    ): ValueNode {
         val node = ValueElement(element, type, declaredOrigin)
         _nodes += node
         return node
@@ -72,7 +75,10 @@ class LuaTypeGraph {
      * [compute] receives the caller's cycle-guard set and **must** thread it into any further
      * graph walk (BUG-390) — resolving a node through its plain `write` restarts the guard.
      */
-    fun lazyValue(element: PsiElement, compute: (MutableSet<VariableNode>) -> LuaGraphType): ValueNode {
+    fun lazyValue(
+        element: PsiElement,
+        compute: (MutableSet<VariableNode>) -> LuaGraphType,
+    ): ValueNode {
         val node = LazyValueElement(element, compute)
         _nodes += node
         return node
@@ -82,7 +88,10 @@ class LuaTypeGraph {
      * Creates a [UseNode] demanding that whatever flows in must be compatible with [type].
      * Typical uses: parameter coercion sites, assignment left-hand sides with annotations.
      */
-    fun use(element: PsiElement, type: LuaGraphType): UseNode {
+    fun use(
+        element: PsiElement,
+        type: LuaGraphType,
+    ): UseNode {
         val node = UseElement(element, type)
         _nodes += node
         return node
@@ -109,7 +118,10 @@ class LuaTypeGraph {
      *  - Everything that can reach [from] can now reach [to] (forward propagation).
      *  - Everything that [to] can reach now constrains [from] (backward propagation).
      */
-    fun addEdge(from: TypeNode, to: TypeNode) {
+    fun addEdge(
+        from: TypeNode,
+        to: TypeNode,
+    ) {
         if (from === to) return
 
         when {
@@ -128,7 +140,10 @@ class LuaTypeGraph {
      * Adds edges for a list of parallel flows (e.g. multiple return values or
      * multiple values in an assignment list).
      */
-    fun flowList(froms: List<TypeNode>, tos: List<VariableNode>) {
+    fun flowList(
+        froms: List<TypeNode>,
+        tos: List<VariableNode>,
+    ) {
         if (froms.isEmpty()) return
 
         tos.forEachIndexed { i, to ->
@@ -138,7 +153,10 @@ class LuaTypeGraph {
     }
 
     /** Convenience for a single variable → variable data-flow edge. */
-    fun flow(from: VariableNode, to: VariableNode) = addEdge(from, to)
+    fun flow(
+        from: VariableNode,
+        to: VariableNode,
+    ) = addEdge(from, to)
 
     private val instantiationCache = mutableMapOf<Pair<LuaGraphType.Function, PsiElement>, LuaGraphType.Function>()
 
@@ -149,11 +167,10 @@ class LuaTypeGraph {
     fun instantiateGeneric(
         template: LuaGraphType.Function,
         element: PsiElement,
-    ): LuaGraphType.Function {
-        return instantiationCache.getOrPut(template to element) {
+    ): LuaGraphType.Function =
+        instantiationCache.getOrPut(template to element) {
             doInstantiateGeneric(template, element)
         }
-    }
 
     private fun doInstantiateGeneric(
         template: LuaGraphType.Function,
@@ -161,26 +178,28 @@ class LuaTypeGraph {
     ): LuaGraphType.Function {
         val substitutionMap = mutableMapOf<String, VariableNode>()
 
-        val instantiatedParams = template.params.map { p ->
-            val pType = p.node.write
-            if (pType is LuaGraphType.Generic) {
-                val freshVar = substitutionMap.getOrPut(pType.name) { variable(element) }
-                LuaGraphType.Function.Parameter(freshVar, p.name, p.isOptional, p.isVararg)
-            } else {
-                // Not generic, but might contain generics (e.g. Union or nested)
-                // For Phase 5, we only handle direct Generic parameters.
-                p
+        val instantiatedParams =
+            template.params.map { p ->
+                val pType = p.node.write
+                if (pType is LuaGraphType.Generic) {
+                    val freshVar = substitutionMap.getOrPut(pType.name) { variable(element) }
+                    LuaGraphType.Function.Parameter(freshVar, p.name, p.isOptional, p.isVararg)
+                } else {
+                    // Not generic, but might contain generics (e.g. Union or nested)
+                    // For Phase 5, we only handle direct Generic parameters.
+                    p
+                }
             }
-        }
 
-        val instantiatedReturns = template.returns.map { r ->
-            val rType = r.write
-            if (rType is LuaGraphType.Generic) {
-                substitutionMap.getOrPut(rType.name) { variable(element) }
-            } else {
-                r
+        val instantiatedReturns =
+            template.returns.map { r ->
+                val rType = r.write
+                if (rType is LuaGraphType.Generic) {
+                    substitutionMap.getOrPut(rType.name) { variable(element) }
+                } else {
+                    r
+                }
             }
-        }
 
         return LuaGraphType.Function(instantiatedParams, instantiatedReturns)
     }
@@ -216,12 +235,17 @@ class LuaTypeGraph {
      * a real element, else the value site, else nowhere — see [addError] for why a file-wide error
      * is worse than no error.
      */
-    private fun reportIncompatible(useElement: PsiElement, valueElement: PsiElement, message: String) {
-        val anchor = when {
-            !isFileWide(useElement) -> useElement
-            !isFileWide(valueElement) -> valueElement
-            else -> return
-        }
+    private fun reportIncompatible(
+        useElement: PsiElement,
+        valueElement: PsiElement,
+        message: String,
+    ) {
+        val anchor =
+            when {
+                !isFileWide(useElement) -> useElement
+                !isFileWide(valueElement) -> valueElement
+                else -> return
+            }
         addError(ElementError(anchor, message, ErrorSeverity.ERROR))
     }
 
@@ -234,7 +258,10 @@ class LuaTypeGraph {
      * deterministically (MAINT-25-04 / TC-07) without a pathological input. A tripped cutoff is a
      * designed break — it logs `warn` (never `error`, which would raise an IDE fatal-error popup).
      */
-    fun checkTypes(maxIterations: Int = 1000, timeLimitMs: Long = 5000) {
+    fun checkTypes(
+        maxIterations: Int = 1000,
+        timeLimitMs: Long = 5000,
+    ) {
         val checkedPairs = mutableSetOf<Pair<TypeNode, TypeNode>>()
         var changed: Boolean
         var iterations = 0
@@ -264,7 +291,11 @@ class LuaTypeGraph {
             // corpus member flipped (LuaUndeclaredVariable 829 → 1647). A suppressed check still
             // consumes its pair, so pair growth is the suppression-independent signal.
             val initialCheckedCount = checkedPairs.size
-            val initialEdgeCount = _nodes.sumOf { (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size } ?: 0 }
+            val initialEdgeCount =
+                _nodes.sumOf {
+                    (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size }
+                        ?: 0
+                }
 
             val currentNodes = _nodes.toList()
             for (node in currentNodes) {
@@ -297,7 +328,11 @@ class LuaTypeGraph {
                 }
             }
 
-            val finalEdgeCount = _nodes.sumOf { (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size } ?: 0 }
+            val finalEdgeCount =
+                _nodes.sumOf {
+                    (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size }
+                        ?: 0
+                }
             if (finalEdgeCount > initialEdgeCount || checkedPairs.size > initialCheckedCount) {
                 changed = true
             }
@@ -335,16 +370,22 @@ class LuaTypeGraph {
             // The nil arm forgives only itself: the informative arms must still all fit.
             val informative = valueType.types.filter { it != LuaGraphType.Nil }
             // Value(Union(nil | A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
-            if (!gradual && informative.isNotEmpty() &&
+            if (!gradual &&
+                informative.isNotEmpty() &&
                 !informative.all { isCompatible(it, useType, CompatContext()) }
             ) {
-                reportIncompatible(useElement, valueElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}")
+                reportIncompatible(
+                    useElement,
+                    valueElement,
+                    "${valueType.displayName()} is not assignable to ${useType.displayName()}",
+                )
                 return
             }
             // Forgiving a nil arm must not ENABLE anything: this pair used to error-and-return, and
             // falling through to the structural loop below would wire member edges on pairs that
             // never propagated before. Suppressing the error is the entire fix.
-            if (!gradual && informative.size < valueType.types.size &&
+            if (!gradual &&
+                informative.size < valueType.types.size &&
                 !isCompatible(valueType, useType, CompatContext())
             ) {
                 return
@@ -362,15 +403,19 @@ class LuaTypeGraph {
         if (useType is LuaGraphType.Union) {
             // Value(T) ≤ Use(Union(A | B)) iff (T ≤ A OR T ≤ B)
             // Find all members that are compatible and propagate to them.
-            val hasCompatible = useType.types.any { member ->
-                isCompatible(valueType, member, CompatContext())
-            }
+            val hasCompatible =
+                useType.types.any { member ->
+                    isCompatible(valueType, member, CompatContext())
+                }
 
             if (hasCompatible) {
                 for (member in useType.types) {
                     // Propagate structural constraints to compatible members
                     if (isCompatible(valueType, member, CompatContext())) {
-                        if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
+                        if (member is LuaGraphType.Table ||
+                            member is LuaGraphType.Function ||
+                            member is LuaGraphType.Union
+                        ) {
                             checkCompatibility(valueType, member, valueElement, useElement, visited, certain)
                         }
                     }
@@ -379,16 +424,23 @@ class LuaTypeGraph {
             }
 
             val closest = LuaUnionDiagnostics.closestMatch(valueType, useType.types)
-            val message = if (closest != null) {
-                "${valueType.displayName()} is not assignable to ${useType.displayName()}; closest match '${closest.member.displayName()}': ${closest.reason}"
-            } else {
-                "${valueType.displayName()} is not assignable to union ${useType.displayName()}"
-            }
+            val message =
+                if (closest != null) {
+                    "${valueType.displayName()} is not assignable to ${useType.displayName()}; closest match '${closest.member.displayName()}': ${closest.reason}"
+                } else {
+                    "${valueType.displayName()} is not assignable to union ${useType.displayName()}"
+                }
             reportIncompatible(useElement, valueElement, message)
             return
         }
 
-        if ((valueType == LuaGraphType.String || valueType == LuaGraphType.Number || valueType == LuaGraphType.Boolean) && useType is LuaGraphType.Table) {
+        if ((
+                valueType == LuaGraphType.String ||
+                    valueType == LuaGraphType.Number ||
+                    valueType == LuaGraphType.Boolean
+            ) &&
+            useType is LuaGraphType.Table
+        ) {
             // Primitives can have methods via metatables.
             return
         }
@@ -422,7 +474,11 @@ class LuaTypeGraph {
             return
         }
 
-        reportIncompatible(useElement, valueElement, "${valueType.displayName()} is not assignable to ${useType.displayName()}")
+        reportIncompatible(
+            useElement,
+            valueElement,
+            "${valueType.displayName()} is not assignable to ${useType.displayName()}",
+        )
     }
 
     private fun isCompatible(
@@ -443,8 +499,10 @@ class LuaTypeGraph {
             log.debug("Distribution depth exceeded $MAX_DISTRIBUTION_DEPTH; assuming compatibility")
             return true
         }
-        if (value is LuaGraphType.Union && value.types.size > MAX_UNION_BREADTH ||
-            use is LuaGraphType.Union && use.types.size > MAX_UNION_BREADTH
+        if (value is LuaGraphType.Union &&
+            value.types.size > MAX_UNION_BREADTH ||
+            use is LuaGraphType.Union &&
+            use.types.size > MAX_UNION_BREADTH
         ) {
             return shallowHeadMatch(value, use)
         }
@@ -458,19 +516,28 @@ class LuaTypeGraph {
 
         // Depth grows ONLY on union-member recursion (distribution nesting); structural/array/
         // function recursion reuses ctx unchanged.
-        val result = when {
-            // A gradual union (Any arm, BUG-397) is compatible with everything — the Any arm
-            // means the value may be exactly the use type at runtime.
-            value is LuaGraphType.Union ->
-                LuaGraphType.Any in value.types || value.types.all { isCompatible(it, use, ctx.deeper()) }
-            use is LuaGraphType.Union -> use.types.any { isCompatible(value, it, ctx.deeper()) }
-            value is LuaGraphType.Array && use is LuaGraphType.Array -> isCompatible(value.elementType, use.elementType, ctx)
-            value is LuaGraphType.Table && use is LuaGraphType.Table -> isNominallyCompatible(value, use, mutableSetOf()) || isStructurallyCompatible(value, use, ctx)
-            (value == LuaGraphType.String || value == LuaGraphType.Number || value == LuaGraphType.Boolean) && use is LuaGraphType.Table -> true
-            value is LuaGraphType.Function && use is LuaGraphType.Function -> isFunctionCompatible(value, use, ctx)
-            value == LuaGraphType.Nil -> use == LuaGraphType.Nil
-            else -> false
-        }
+        val result =
+            when {
+                // A gradual union (Any arm, BUG-397) is compatible with everything — the Any arm
+                // means the value may be exactly the use type at runtime.
+                value is LuaGraphType.Union ->
+                    LuaGraphType.Any in value.types || value.types.all { isCompatible(it, use, ctx.deeper()) }
+                use is LuaGraphType.Union -> use.types.any { isCompatible(value, it, ctx.deeper()) }
+                value is LuaGraphType.Array && use is LuaGraphType.Array ->
+                    isCompatible(
+                        value.elementType,
+                        use.elementType,
+                        ctx,
+                    )
+                value is LuaGraphType.Table && use is LuaGraphType.Table ->
+                    isNominallyCompatible(value, use, mutableSetOf()) ||
+                        isStructurallyCompatible(value, use, ctx)
+                (value == LuaGraphType.String || value == LuaGraphType.Number || value == LuaGraphType.Boolean) &&
+                    use is LuaGraphType.Table -> true
+                value is LuaGraphType.Function && use is LuaGraphType.Function -> isFunctionCompatible(value, use, ctx)
+                value == LuaGraphType.Nil -> use == LuaGraphType.Nil
+                else -> false
+            }
         compatMemo[key] = result
         return result
     }
@@ -480,16 +547,20 @@ class LuaTypeGraph {
      * iff some member shares the other operand's head kind (same [LuaGraphType] subclass). A
      * deliberate soundness/perf trade-off (parent design §2.3.1) — never memoized.
      */
-    private fun shallowHeadMatch(value: LuaGraphType, use: LuaGraphType): Boolean {
+    private fun shallowHeadMatch(
+        value: LuaGraphType,
+        use: LuaGraphType,
+    ): Boolean {
         val valueHeads = headKinds(value)
         val useHeads = headKinds(use)
         return valueHeads.any { it in useHeads }
     }
 
-    private fun headKinds(type: LuaGraphType): Set<Class<out LuaGraphType>> = when (type) {
-        is LuaGraphType.Union -> type.types.map { it::class.java }.toSet()
-        else -> setOf(type::class.java)
-    }
+    private fun headKinds(type: LuaGraphType): Set<Class<out LuaGraphType>> =
+        when (type) {
+            is LuaGraphType.Union -> type.types.map { it::class.java }.toSet()
+            else -> setOf(type::class.java)
+        }
 
     private fun isStructurallyCompatible(
         value: LuaGraphType.Table,
@@ -541,9 +612,21 @@ class LuaTypeGraph {
         val provided = use.params.size
 
         if (provided < minParams) {
-            addError(ElementError(useElement, "Too few arguments: expected at least $minParams, got $provided", ErrorSeverity.WARNING))
+            addError(
+                ElementError(
+                    useElement,
+                    "Too few arguments: expected at least $minParams, got $provided",
+                    ErrorSeverity.WARNING,
+                ),
+            )
         } else if (provided > maxParams) {
-            addError(ElementError(useElement, "Too many arguments: expected at most $maxParams, got $provided", ErrorSeverity.WARNING))
+            addError(
+                ElementError(
+                    useElement,
+                    "Too many arguments: expected at most $maxParams, got $provided",
+                    ErrorSeverity.WARNING,
+                ),
+            )
         }
 
         for (i in 0 until minOf(value.returns.size, use.returns.size)) {
@@ -578,7 +661,8 @@ class LuaTypeGraph {
                 // missing fields are allowed (they might be assigned later).
                 // If it is exact (e.g. from @type), missing fields are only allowed if they are functions
                 // (methods on classes are typically provided via __index, not constructor literals).
-                val isMethodOnClass = use.className != null && (readType is LuaGraphType.Function || writeType is LuaGraphType.Function)
+                val isMethodOnClass =
+                    use.className != null && (readType is LuaGraphType.Function || writeType is LuaGraphType.Function)
                 val isRequired = use.isExact && !isMethodOnClass
 
                 // If the field is missing, it's only an error if it's required (non-optional).
@@ -589,11 +673,12 @@ class LuaTypeGraph {
         }
     }
 
-    private fun isOptional(type: LuaGraphType): Boolean = when (type) {
-        is LuaGraphType.Union -> type.types.any { it == LuaGraphType.Nil }
-        LuaGraphType.Undefined -> true
-        else -> false
-    }
+    private fun isOptional(type: LuaGraphType): Boolean =
+        when (type) {
+            is LuaGraphType.Union -> type.types.any { it == LuaGraphType.Nil }
+            LuaGraphType.Undefined -> true
+            else -> false
+        }
 
     private fun isNominallyCompatible(
         value: LuaGraphType.Table,
@@ -611,7 +696,10 @@ class LuaTypeGraph {
         return false
     }
 
-    private fun propagateDownward(from: TypeNode, to: VariableElement) {
+    private fun propagateDownward(
+        from: TypeNode,
+        to: VariableElement,
+    ) {
         if (to.upSet.add(from)) {
             if (from is VariableElement) {
                 for (upstream in from.upSet) propagateDownward(upstream, to)
@@ -622,7 +710,10 @@ class LuaTypeGraph {
         }
     }
 
-    private fun propagateUpward(from: VariableElement, to: TypeNode) {
+    private fun propagateUpward(
+        from: VariableElement,
+        to: TypeNode,
+    ) {
         if (from.downSet.add(to)) {
             if (to is VariableElement) {
                 for (downstream in to.downSet) propagateUpward(from, downstream)
@@ -633,7 +724,10 @@ class LuaTypeGraph {
         }
     }
 
-    private fun propagateBiEdge(from: VariableElement, to: VariableElement) {
+    private fun propagateBiEdge(
+        from: VariableElement,
+        to: VariableElement,
+    ) {
         propagateDownward(from, to)
         propagateUpward(from, to)
     }
@@ -649,7 +743,9 @@ class LuaTypeGraph {
         /** Union-member cap (TYPE-09-P2-04); larger unions fall back to shallow head matching. */
         private const val MAX_UNION_BREADTH = 100
 
-        private val log = com.intellij.openapi.diagnostic.Logger.getInstance(LuaTypeGraph::class.java)
+        private val log =
+            com.intellij.openapi.diagnostic.Logger
+                .getInstance(LuaTypeGraph::class.java)
     }
 }
 

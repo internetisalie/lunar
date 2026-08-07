@@ -14,9 +14,9 @@ import net.internetisalie.lunar.toolchain.exec.LuaInterpreterCommandLines
  * (RUN-03-01/02). Output is unbuffered via `setvbuf('no')` (RUN-03-08) and the session is
  * interactive via `-i`; history persists through [ConsoleHistoryController] (RUN-03-05).
  */
-class LuaConsoleRunner(project: Project) :
-    AbstractConsoleRunnerWithHistory<LuaConsoleView>(project, "Lua Console", null) {
-
+class LuaConsoleRunner(
+    project: Project,
+) : AbstractConsoleRunnerWithHistory<LuaConsoleView>(project, "Lua Console", null) {
     private val commandLine: GeneralCommandLine = buildCommandLine(project)
 
     override fun createProcess(): Process = commandLine.createProcess()
@@ -34,11 +34,12 @@ class LuaConsoleRunner(project: Project) :
 
     private companion object {
         fun buildCommandLine(project: Project): GeneralCommandLine {
-            val base = LuaInterpreterCommandLines.forProject(project)
-                ?: throw ExecutionException(
-                    "No Lua runtime is configured. Add one under " +
-                        "Settings | Languages & Frameworks | Lua | Toolchain.",
-                )
+            val base =
+                LuaInterpreterCommandLines.forProject(project)
+                    ?: throw ExecutionException(
+                        "No Lua runtime is configured. Add one under " +
+                            "Settings | Languages & Frameworks | Lua | Toolchain.",
+                    )
             return base.withParameters(
                 "-e",
                 "io.stdout:setvbuf('no'); io.stderr:setvbuf('no')",

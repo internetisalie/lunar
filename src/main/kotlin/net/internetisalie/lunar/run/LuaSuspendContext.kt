@@ -21,15 +21,20 @@ import com.intellij.xdebugger.breakpoints.XBreakpoint
 import com.intellij.xdebugger.frame.XExecutionStack
 import com.intellij.xdebugger.frame.XSuspendContext
 
-class LuaSuspendContext: XSuspendContext {
+class LuaSuspendContext : XSuspendContext {
     private val controller: LuaDebuggerController
-    private val project : Project
+    private val project: Project
     private val stack: LuaRemoteStack
-    private val breakpoint : XBreakpoint<*>?
+    private val breakpoint: XBreakpoint<*>?
     private val position: XSourcePosition?
     private val executionStack: LuaExecutionStack
 
-    constructor(project : Project, controller: LuaDebuggerController, breakpoint: XBreakpoint<*>?, stack: LuaRemoteStack) {
+    constructor(
+        project: Project,
+        controller: LuaDebuggerController,
+        breakpoint: XBreakpoint<*>?,
+        stack: LuaRemoteStack,
+    ) {
         this.project = project
         this.controller = controller
         this.breakpoint = breakpoint
@@ -38,8 +43,13 @@ class LuaSuspendContext: XSuspendContext {
         this.executionStack = initExecutionStack()
     }
 
-    constructor(project: Project, controller: LuaDebuggerController, position: XSourcePosition?, stack: LuaRemoteStack) {
-        this.project= project
+    constructor(
+        project: Project,
+        controller: LuaDebuggerController,
+        position: XSourcePosition?,
+        stack: LuaRemoteStack,
+    ) {
+        this.project = project
         this.controller = controller
         this.breakpoint = null
         this.position = position
@@ -47,16 +57,12 @@ class LuaSuspendContext: XSuspendContext {
         this.executionStack = initExecutionStack()
     }
 
-    override fun getActiveExecutionStack(): XExecutionStack {
-        return executionStack
-    }
+    override fun getActiveExecutionStack(): XExecutionStack = executionStack
 
     private fun initExecutionStack(): LuaExecutionStack {
         val frame = LuaStackFrame(project, controller, position, 0)
         return LuaExecutionStack(project, controller, frame, stack)
     }
 
-    override fun getExecutionStacks(): Array<XExecutionStack?> {
-        return arrayOf(executionStack)
-    }
+    override fun getExecutionStacks(): Array<XExecutionStack?> = arrayOf(executionStack)
 }

@@ -14,15 +14,24 @@ import kotlin.io.path.createTempDirectory
 class LuaEnvRedetectionTest {
     private fun writeManifest(): Pair<java.nio.file.Path, LuaEnvManifest> {
         val rootDir = createTempDirectory("lunar-redetect")
-        val manifest = LuaEnvManifest(
-            manifestVersion = 1,
-            environmentId = "env-orphan-1",
-            environmentName = "env54",
-            request = LuaProvisionRequest("env54", rootDir.toString(), listOf(LuaProvisionItem("lua", "5.4.8"))),
-            components = mapOf(
-                "lua" to LuaManifestComponent("5.4.8", "source-build", "hash-lua", listOf("bin/lua", "bin/luac"), 0L),
-            ),
-        )
+        val manifest =
+            LuaEnvManifest(
+                manifestVersion = 1,
+                environmentId = "env-orphan-1",
+                environmentName = "env54",
+                request = LuaProvisionRequest("env54", rootDir.toString(), listOf(LuaProvisionItem("lua", "5.4.8"))),
+                components =
+                    mapOf(
+                        "lua" to
+                            LuaManifestComponent(
+                                "5.4.8",
+                                "source-build",
+                                "hash-lua",
+                                listOf("bin/lua", "bin/luac"),
+                                0L,
+                            ),
+                    ),
+            )
         LuaEnvManifest.write(rootDir, manifest)
         return rootDir to manifest
     }

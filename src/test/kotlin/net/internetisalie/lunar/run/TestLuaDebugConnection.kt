@@ -6,7 +6,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TestLuaDebugConnection {
-
     @Test
     fun testDebugCommandToString() {
         val cmd1 = DebugCommand(DebugCommandKind.STEP)
@@ -29,7 +28,7 @@ class TestLuaDebugConnection {
 
         assertTrue(DebuggerStatus.ErrorInExecution.isError)
         assertTrue(DebuggerStatus.ErrorInExpression.isError)
-        
+
         assertEquals(DebuggerStatus.OK, DebuggerStatus.entries.first { "200 OK".startsWith(it.message) })
     }
 }

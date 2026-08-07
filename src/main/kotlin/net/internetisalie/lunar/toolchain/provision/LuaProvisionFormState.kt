@@ -4,13 +4,19 @@ import java.io.File
 import java.nio.file.Path
 
 /** A selected dev tool and its chosen version (design §2.12 field 6). */
-data class LuaToolChoice(val kindId: String, val versionSpec: String)
+data class LuaToolChoice(
+    val kindId: String,
+    val versionSpec: String,
+)
 
 /** Which field a validation message binds to, so the dialog can attach the [ValidationInfo]. */
 enum class LuaProvisionField { NAME, ROOT_DIR, RUNTIME_VERSION }
 
 /** A failed validation: a message plus the field it belongs to (design §2.12 validation). */
-data class LuaProvisionValidation(val message: String, val field: LuaProvisionField)
+data class LuaProvisionValidation(
+    val message: String,
+    val field: LuaProvisionField,
+)
 
 /**
  * Swing-free snapshot of the [LuaProvisionDialog] fields (design §2.12). Holds the pure
@@ -89,8 +95,14 @@ data class LuaProvisionFormState(
         return null
     }
 
-    private fun fail(message: String, field: LuaProvisionField) = LuaProvisionValidation(message, field)
+    private fun fail(
+        message: String,
+        field: LuaProvisionField,
+    ) = LuaProvisionValidation(message, field)
 }
 
 /** LuaRocks inclusion + version (design §2.12 field 5). */
-data class LuaRocksChoice(val included: Boolean, val versionSpec: String)
+data class LuaRocksChoice(
+    val included: Boolean,
+    val versionSpec: String,
+)

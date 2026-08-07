@@ -16,14 +16,29 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * Design §2.4.
  */
 object LuaSpellcheckSuppressions {
-
     /** LuaCATS / Lua type system primitive names (lowercase), per §2.4. */
-    private val CATS_TYPES: Set<String> = setOf(
-        "nil", "boolean", "number", "string", "userdata", "function",
-        "thread", "table", "integer", "any", "self", "lightuserdata", "void", "unknown",
-    )
+    private val CATS_TYPES: Set<String> =
+        setOf(
+            "nil",
+            "boolean",
+            "number",
+            "string",
+            "userdata",
+            "function",
+            "thread",
+            "table",
+            "integer",
+            "any",
+            "self",
+            "lightuserdata",
+            "void",
+            "unknown",
+        )
 
-    fun isSuppressed(name: String, project: Project): Boolean {
+    fun isSuppressed(
+        name: String,
+        project: Project,
+    ): Boolean {
         if (LuaKeywords.isReserved(name)) return true
         if (name in CATS_TYPES) return true
         val level = LuaProjectSettings.getInstance(project).state.languageLevel

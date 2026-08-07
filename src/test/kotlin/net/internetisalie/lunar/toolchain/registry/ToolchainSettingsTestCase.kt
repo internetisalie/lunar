@@ -18,7 +18,6 @@ import java.util.UUID
  * no disk probing runs.
  */
 abstract class ToolchainSettingsTestCase : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         resetState()
@@ -47,27 +46,29 @@ abstract class ToolchainSettingsTestCase : BasePlatformTestCase() {
         kindId: String,
         usable: Boolean = true,
         environmentId: String? = null,
-        runtime: LuaRuntimeInfo? = null
+        runtime: LuaRuntimeInfo? = null,
     ): LuaRegisteredTool {
         val id = UUID.randomUUID().toString()
-        val health = LuaToolHealth(
-            fileExists = usable,
-            executable = usable,
-            probeOk = usable,
-            probedAtMtime = 1L,
-            reason = null
-        )
-        val model = LuaRegisteredTool(
-            id = id,
-            kindId = kindId,
-            path = "/seed/$kindId/$id",
-            version = "1.0.0",
-            luaVersion = null,
-            runtime = runtime,
-            origin = Origin.MANUAL,
-            environmentId = environmentId,
-            health = health
-        )
+        val health =
+            LuaToolHealth(
+                fileExists = usable,
+                executable = usable,
+                probeOk = usable,
+                probedAtMtime = 1L,
+                reason = null,
+            )
+        val model =
+            LuaRegisteredTool(
+                id = id,
+                kindId = kindId,
+                path = "/seed/$kindId/$id",
+                version = "1.0.0",
+                luaVersion = null,
+                runtime = runtime,
+                origin = Origin.MANUAL,
+                environmentId = environmentId,
+                health = health,
+            )
         registry.registerProvisioned(model)
         return model
     }
@@ -75,14 +76,15 @@ abstract class ToolchainSettingsTestCase : BasePlatformTestCase() {
     protected fun runtimeInfo(
         platform: LuaPlatform,
         version: String,
-        level: LuaLanguageLevel
-    ): LuaRuntimeInfo = LuaRuntimeInfo(
-        product = platform.name,
-        version = version,
-        languageLevel = level,
-        platform = platform,
-        banner = ""
-    )
+        level: LuaLanguageLevel,
+    ): LuaRuntimeInfo =
+        LuaRuntimeInfo(
+            product = platform.name,
+            version = version,
+            languageLevel = level,
+            platform = platform,
+            banner = "",
+        )
 
     protected fun recordEvents(): MutableList<LuaToolchainEvent> {
         val events = mutableListOf<LuaToolchainEvent>()
@@ -93,7 +95,7 @@ abstract class ToolchainSettingsTestCase : BasePlatformTestCase() {
                 override fun toolchainChanged(event: LuaToolchainEvent) {
                     synchronized(events) { events.add(event) }
                 }
-            }
+            },
         )
         return events
     }

@@ -39,12 +39,17 @@ class LuaCatsTypeNameIndex : FileBasedIndexExtension<String, String>() {
     private val indexer: DataIndexer<String, String, FileContent> = Indexer()
 
     override fun getName(): ID<String, String> = LuaCatsTypeNameIndexId
+
     override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
+
     override fun getValueExternalizer(): DataExternalizer<String> = externalizer
+
     override fun getIndexer(): DataIndexer<String, String, FileContent> = indexer
+
     override fun getVersion(): Int = 1
 
     override fun dependsOnFileContent(): Boolean = true
+
     override fun indexDirectories(): Boolean = false
 
     override fun getInputFilter(): FileBasedIndex.InputFilter = InputFilter()
@@ -54,7 +59,11 @@ class LuaCatsTypeNameIndex : FileBasedIndexExtension<String, String>() {
     }
 
     private class StringDataExternalizer : DataExternalizer<String> {
-        override fun save(output: DataOutput, value: String) = output.writeUTF(value)
+        override fun save(
+            output: DataOutput,
+            value: String,
+        ) = output.writeUTF(value)
+
         override fun read(input: DataInput): String = input.readUTF()
     }
 

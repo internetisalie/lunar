@@ -4,7 +4,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlinx.coroutines.isActive
 
 class LunarCoroutineScopeServiceTest : BasePlatformTestCase() {
-
     /** MAINT-22-02: the project-level scope service resolves and hands out an active scope. */
     fun testServiceResolvesWithActiveScope() {
         val service = LunarCoroutineScopeService.getInstance(project)

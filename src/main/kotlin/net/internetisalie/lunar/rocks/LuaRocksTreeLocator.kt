@@ -49,7 +49,8 @@ object LuaRocksTreeLocator {
         if (!luarocksDir.isDirectory()) return emptyList()
 
         val result = mutableListOf<InstalledRock>()
-        luarocksDir.listDirectoryEntries()
+        luarocksDir
+            .listDirectoryEntries()
             .filter { it.isDirectory() && it.name.startsWith("rocks-") }
             .forEach { rocksDir ->
                 rocksDir.listDirectoryEntries().filter { it.isDirectory() }.forEach { packageDir ->

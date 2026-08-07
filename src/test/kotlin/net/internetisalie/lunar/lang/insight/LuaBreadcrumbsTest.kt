@@ -7,16 +7,18 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class LuaBreadcrumbsTest : BaseDocumentTest() {
-
     @Test
     fun testNestedFunctions() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             function outer()
                 local function inner()
                     <caret>
                 end
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
                 val breadcrumbs = myFixture.breadcrumbsAtCaret
@@ -30,12 +32,15 @@ class LuaBreadcrumbsTest : BaseDocumentTest() {
 
     @Test
     fun testMethod() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             local MyClass = {}
             function MyClass:init()
                 <caret>
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
                 val breadcrumbs = myFixture.breadcrumbsAtCaret

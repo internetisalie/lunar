@@ -35,8 +35,9 @@ class LuaProvisioningClasspathSpikeTest {
     private val hashmeSha256 = "69b30e92143264aa140001cf7af42e67642cf645e24cafbb27f1c3505cbbaa39"
 
     private fun resource(name: String): Path {
-        val resourceUrl = javaClass.classLoader.getResource("$fixtureDir/$name")
-            ?: error("Missing test fixture: $fixtureDir/$name")
+        val resourceUrl =
+            javaClass.classLoader.getResource("$fixtureDir/$name")
+                ?: error("Missing test fixture: $fixtureDir/$name")
         return File(resourceUrl.toURI()).toPath()
     }
 
@@ -79,9 +80,12 @@ class LuaProvisioningClasspathSpikeTest {
     fun feedSampleParsesWithRequiredFieldsPerItem() {
         // The feed ships in src/main/resources, so on the test classpath it is packaged inside the
         // composed jar — read it as a stream (a jar: URL is not a hierarchical File).
-        val feedText = javaClass.classLoader.getResourceAsStream("toolchain/toolchain-feed.json")
-            ?.bufferedReader()?.use { it.readText() }
-            ?: error("Missing feed resource: toolchain/toolchain-feed.json")
+        val feedText =
+            javaClass.classLoader
+                .getResourceAsStream("toolchain/toolchain-feed.json")
+                ?.bufferedReader()
+                ?.use { it.readText() }
+                ?: error("Missing feed resource: toolchain/toolchain-feed.json")
 
         val feed = Gson().fromJson(feedText, JsonObject::class.java)
         assertEquals(1, feed.get("feedVersion").asInt, "feedVersion must be 1")
@@ -91,7 +95,8 @@ class LuaProvisioningClasspathSpikeTest {
         assertTrue(items.size() >= 4, "the committed sample must carry at least the four design §2.5 items")
 
         // Fields required for all package types.
-        val universalFields = listOf("kind", "version", "os", "arch", "strategy", "url", "size", "packageType", "rootPrefix")
+        val universalFields =
+            listOf("kind", "version", "os", "arch", "strategy", "url", "size", "packageType", "rootPrefix")
         val allowedStrategies = setOf("SOURCE_BUILD", "RELEASE_BINARY", "LUAROCKS_INSTALL")
         val allowedPackageTypes = setOf("tar.gz", "zip", "git")
 

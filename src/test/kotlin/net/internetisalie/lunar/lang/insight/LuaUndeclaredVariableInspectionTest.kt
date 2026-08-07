@@ -9,7 +9,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaUndeclaredVariableInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaUndeclaredVariableInspection())
@@ -17,7 +16,8 @@ class LuaUndeclaredVariableInspectionTest : BasePlatformTestCase() {
 
     private fun undeclaredWarnings(text: String): List<String> {
         myFixture.configureByText("test.lua", text)
-        return myFixture.doHighlighting()
+        return myFixture
+            .doHighlighting()
             .filter { it.description?.startsWith("Undeclared variable") == true }
             .map { it.description }
     }
@@ -27,7 +27,10 @@ class LuaUndeclaredVariableInspectionTest : BasePlatformTestCase() {
         assertTrue("Expected no undeclared warnings but found: $warnings", warnings.isEmpty())
     }
 
-    private fun assertUndeclared(text: String, vararg names: String) {
+    private fun assertUndeclared(
+        text: String,
+        vararg names: String,
+    ) {
         val warnings = undeclaredWarnings(text)
         assertEquals("Warnings: $warnings", names.size, warnings.size)
         for (name in names) {
@@ -95,11 +98,17 @@ class LuaUndeclaredVariableInspectionTest : BasePlatformTestCase() {
     // TC-07: Additional Globals Allowlist (INSP-01-07)
     @Test
     fun testAdditionalGlobalsAllowlist() {
-        LuaProjectSettings.getInstance(project).state.additionalGlobals.add("love")
+        LuaProjectSettings
+            .getInstance(project)
+            .state.additionalGlobals
+            .add("love")
         try {
             assertNoUndeclared("""love.graphics.print("hi")""")
         } finally {
-            LuaProjectSettings.getInstance(project).state.additionalGlobals.remove("love")
+            LuaProjectSettings
+                .getInstance(project)
+                .state.additionalGlobals
+                .remove("love")
         }
     }
 

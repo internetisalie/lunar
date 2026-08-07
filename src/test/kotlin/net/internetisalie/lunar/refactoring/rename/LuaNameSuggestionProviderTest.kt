@@ -15,14 +15,15 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaNameSuggestionProviderTest : BasePlatformTestCase() {
-
     private val provider = LuaNameSuggestionProvider()
 
     private fun suggestForExpr(rhs: String): Set<String> {
         myFixture.configureByText("t.lua", "local x = $rhs")
         return runReadAction {
-            val expr = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaExpr::class.java)
-                .first { it.text == rhs }
+            val expr =
+                PsiTreeUtil
+                    .findChildrenOfType(myFixture.file, LuaExpr::class.java)
+                    .first { it.text == rhs }
             val result = mutableSetOf<String>()
             provider.getSuggestedNames(expr, null, result)
             result
@@ -57,15 +58,18 @@ class LuaNameSuggestionProviderTest : BasePlatformTestCase() {
     @Test
     fun testRenameElementShape() {
         myFixture.configureByText("t.lua", "local y = getUser()")
-        val nameElement = runReadAction {
-            PsiTreeUtil.collectElementsOfType(myFixture.file, LuaNameRef::class.java)
-                .first { it.identifier.text == "y" }
-        }
-        val result = runReadAction {
-            val acc = mutableSetOf<String>()
-            provider.getSuggestedNames(nameElement, null, acc)
-            acc
-        }
+        val nameElement =
+            runReadAction {
+                PsiTreeUtil
+                    .collectElementsOfType(myFixture.file, LuaNameRef::class.java)
+                    .first { it.identifier.text == "y" }
+            }
+        val result =
+            runReadAction {
+                val acc = mutableSetOf<String>()
+                provider.getSuggestedNames(nameElement, null, acc)
+                acc
+            }
         assertTrue("expected 'user' from RHS, got $result", result.contains("user"))
     }
 }

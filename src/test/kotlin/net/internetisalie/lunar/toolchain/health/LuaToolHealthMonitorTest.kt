@@ -27,7 +27,6 @@ import java.util.UUID
 
 @RunWith(JUnit4::class)
 class LuaToolHealthMonitorTest : BasePlatformTestCase() {
-
     private lateinit var probeStub: StubProbe
 
     override fun setUp() {
@@ -48,27 +47,41 @@ class LuaToolHealthMonitorTest : BasePlatformTestCase() {
     }
 
     private class StubProbe : LuaToolProbe {
-        override fun probe(kind: net.internetisalie.lunar.toolchain.model.LuaToolKind, binaryPath: java.nio.file.Path) =
-            LuaToolProbeResult(ok = true, version = "1.0.0", luaVersion = null, runtime = null, failure = null)
+        override fun probe(
+            kind: net.internetisalie.lunar.toolchain.model.LuaToolKind,
+            binaryPath: java.nio.file.Path,
+        ) = LuaToolProbeResult(ok = true, version = "1.0.0", luaVersion = null, runtime = null, failure = null)
     }
 
-    private fun registerUsableBinary(kindId: String, environmentId: String? = null): Pair<LuaRegisteredTool, File> {
-        val binary = File.createTempFile("lunar-$kindId", "").also {
-            it.writeText("#!/bin/sh\n")
-            it.setExecutable(true)
-            it.deleteOnExit()
-        }
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = kindId,
-            path = binary.absolutePath,
-            version = "1.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = environmentId,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = binary.lastModified(), reason = "OK 1.0.0")
-        )
+    private fun registerUsableBinary(
+        kindId: String,
+        environmentId: String? = null,
+    ): Pair<LuaRegisteredTool, File> {
+        val binary =
+            File.createTempFile("lunar-$kindId", "").also {
+                it.writeText("#!/bin/sh\n")
+                it.setExecutable(true)
+                it.deleteOnExit()
+            }
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = kindId,
+                path = binary.absolutePath,
+                version = "1.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = environmentId,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = binary.lastModified(),
+                        reason = "OK 1.0.0",
+                    ),
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         return tool to binary
     }
@@ -81,7 +94,7 @@ class LuaToolHealthMonitorTest : BasePlatformTestCase() {
                 override fun notify(notification: Notification) {
                     if (notification.groupId == "notification.group.lunar.tools") balloons.add(notification)
                 }
-            }
+            },
         )
         return balloons
     }
@@ -94,7 +107,7 @@ class LuaToolHealthMonitorTest : BasePlatformTestCase() {
                 override fun toolchainChanged(event: LuaToolchainEvent) {
                     synchronized(events) { events.add(event) }
                 }
-            }
+            },
         )
         return events
     }
@@ -140,7 +153,7 @@ class LuaToolHealthMonitorTest : BasePlatformTestCase() {
             LuaToolHealth(true, true, true, binary.lastModified(), "OK 1.0.0"),
             "1.0.0",
             null,
-            null
+            null,
         )
         revalidate(monitor)
         assertEquals("recovery fires no broken balloon", 1, balloons.size)
@@ -153,15 +166,20 @@ class LuaToolHealthMonitorTest : BasePlatformTestCase() {
     // TC-TOOLING-07-07: env-root deletion — member tool reason overridden; one balloon across two passes.
     @Test
     fun testEnvironmentRootDeleted_oneBalloonAndReasonOverride() {
-        val envRoot = java.nio.file.Files.createTempDirectory("lunar-env").toFile().also { it.deleteOnExit() }
+        val envRoot =
+            java.nio.file.Files
+                .createTempDirectory("lunar-env")
+                .toFile()
+                .also { it.deleteOnExit() }
         val (tool, binary) = registerUsableBinary("lua")
         assertTrue(binary.delete())
-        val env = LuaEnvironmentState(
-            id = UUID.randomUUID().toString(),
-            name = "lua54",
-            rootDir = envRoot.absolutePath,
-            toolIds = mutableListOf(tool.id)
-        )
+        val env =
+            LuaEnvironmentState(
+                id = UUID.randomUUID().toString(),
+                name = "lua54",
+                rootDir = envRoot.absolutePath,
+                toolIds = mutableListOf(tool.id),
+            )
         LuaToolchainProjectSettings.getInstance(project).upsertEnvironment(env)
         // re-associate the tool with the environment
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
@@ -191,9 +209,13 @@ class LuaToolHealthMonitorTest : BasePlatformTestCase() {
         val monitor = LuaToolHealthMonitor.getInstance(project)
         monitor.rebuildWatchSetNow()
 
-        val virtualBinary = com.intellij.openapi.vfs.LocalFileSystem.getInstance()
-            .refreshAndFindFileByIoFile(binary) ?: error("binary not in VFS")
-        val deleteEvent = com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent(this, virtualBinary)
+        val virtualBinary =
+            com.intellij.openapi.vfs.LocalFileSystem
+                .getInstance()
+                .refreshAndFindFileByIoFile(binary) ?: error("binary not in VFS")
+        val deleteEvent =
+            com.intellij.openapi.vfs.newvfs.events
+                .VFileDeleteEvent(this, virtualBinary)
 
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
         assertTrue(

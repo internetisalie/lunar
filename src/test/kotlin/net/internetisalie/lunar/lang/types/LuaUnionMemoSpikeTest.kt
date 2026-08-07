@@ -24,7 +24,6 @@ import org.junit.runners.JUnit4
 // NOT extend BasePlatformTestCase, avoiding the IntelliJ platform boot per test.
 @RunWith(JUnit4::class)
 class LuaUnionMemoSpikeTest {
-
     private val genericT = LuaGraphType.Generic("T")
     private val use = LuaGraphType.String
     private var rawCalls = 0
@@ -61,7 +60,8 @@ class LuaUnionMemoSpikeTest {
         value: LuaGraphType,
         useType: LuaGraphType,
         substitutions: Map<String, LuaGraphType>,
-    ): Boolean = contextCache.getOrPut(Triple(value, useType, substitutions)) { rawCompat(value, useType, substitutions) }
+    ): Boolean =
+        contextCache.getOrPut(Triple(value, useType, substitutions)) { rawCompat(value, useType, substitutions) }
 
     @Test
     fun testNaiveMemoIsStaleAcrossContexts() {

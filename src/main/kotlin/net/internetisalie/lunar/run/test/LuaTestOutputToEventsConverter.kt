@@ -4,20 +4,19 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.intellij.execution.testframework.TestConsoleProperties
 import com.intellij.execution.testframework.sm.runner.OutputToGeneralTestEventsConverter
-import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
-import com.intellij.execution.testframework.sm.runner.events.TestFinishedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestFailedEvent
+import com.intellij.execution.testframework.sm.runner.events.TestFinishedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestIgnoredEvent
-import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
+import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
+import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Key
 
 class LuaTestOutputToEventsConverter(
     testFrameworkName: String,
-    private val consoleProperties: TestConsoleProperties
+    private val consoleProperties: TestConsoleProperties,
 ) : OutputToGeneralTestEventsConverter(testFrameworkName, consoleProperties) {
-
     private val myBuffer = StringBuilder()
     private var nextId = 1
 
@@ -29,7 +28,10 @@ class LuaTestOutputToEventsConverter(
     private val config: LuaTestRunConfiguration?
         get() = (consoleProperties as? LuaTestConsoleProperties)?.configuration
 
-    override fun processConsistentText(text: String, outputType: Key<*>) {
+    override fun processConsistentText(
+        text: String,
+        outputType: Key<*>,
+    ) {
         val framework = config?.testFramework ?: LuaTestFramework.BUSTED
         if (framework == LuaTestFramework.LUNITY) {
             val trimmed = text.trim()
@@ -82,7 +84,10 @@ class LuaTestOutputToEventsConverter(
         }
     }
 
-    private fun handleLunitySuiteStart(name: String, locationUrl: String?) {
+    private fun handleLunitySuiteStart(
+        name: String,
+        locationUrl: String?,
+    ) {
         val id = "suite_${nextId++}"
         val parentId = lunitySuiteStack.lastOrNull()
         lunitySuiteStack.add(id)
@@ -92,7 +97,9 @@ class LuaTestOutputToEventsConverter(
     }
 
     private fun handleLunitySuiteEnd(name: String) {
-        val id = lunitySuiteNameToId[name] ?: (if (lunitySuiteStack.isNotEmpty()) lunitySuiteStack.removeLast() else "suite_unknown")
+        val id =
+            lunitySuiteNameToId[name]
+                ?: (if (lunitySuiteStack.isNotEmpty()) lunitySuiteStack.removeLast() else "suite_unknown")
         if (lunitySuiteStack.isNotEmpty() && lunitySuiteStack.last() == id) {
             lunitySuiteStack.removeLast()
         }
@@ -100,7 +107,10 @@ class LuaTestOutputToEventsConverter(
         processor?.onSuiteFinished(finishedEvent)
     }
 
-    private fun handleLunityTestStart(name: String, locationUrl: String?) {
+    private fun handleLunityTestStart(
+        name: String,
+        locationUrl: String?,
+    ) {
         val id = "test_${nextId++}"
         val parentId = lunitySuiteStack.lastOrNull()
         lunityTestNameToId[name] = id
@@ -108,28 +118,53 @@ class LuaTestOutputToEventsConverter(
         processor?.onTestStarted(startedEvent)
     }
 
-    private fun handleLunityTestPass(name: String, duration: Long) {
+    private fun handleLunityTestPass(
+        name: String,
+        duration: Long,
+    ) {
         val id = lunityTestNameToId[name]
         val finishedEvent = TestFinishedEvent(name, id, duration)
         processor?.onTestFinished(finishedEvent)
         lunityTestNameToId.remove(name)
     }
 
-    private fun handleLunityTestFailure(name: String, isError: Boolean, duration: Long, message: String?, trace: String?) {
+    private fun handleLunityTestFailure(
+        name: String,
+        isError: Boolean,
+        duration: Long,
+        message: String?,
+        trace: String?,
+    ) {
         val id = lunityTestNameToId[name]
         val msg = message ?: "Test failed"
         val diff = parseAssertionDiff(msg)
-        val failedEvent = TestFailedEvent(
-            name, id, msg, trace, isError,
-            diff?.second, diff?.first, null, null, false, false, duration
-        )
+        val failedEvent =
+            TestFailedEvent(
+                name,
+                id,
+                msg,
+                trace,
+                isError,
+                diff?.second,
+                diff?.first,
+                null,
+                null,
+                false,
+                false,
+                duration,
+            )
         processor?.onTestFailure(failedEvent)
         val finishedEvent = TestFinishedEvent(name, id, duration)
         processor?.onTestFinished(finishedEvent)
         lunityTestNameToId.remove(name)
     }
 
-    private fun handleLunityTestIgnore(name: String, locationUrl: String?, message: String?, trace: String?) {
+    private fun handleLunityTestIgnore(
+        name: String,
+        locationUrl: String?,
+        message: String?,
+        trace: String?,
+    ) {
         val id = lunityTestNameToId[name] ?: "test_${nextId++}"
         val parentId = lunitySuiteStack.lastOrNull()
         if (!lunityTestNameToId.containsKey(name)) {
@@ -181,7 +216,10 @@ class LuaTestOutputToEventsConverter(
             return parentId
         }
 
-        fun processBustedItem(item: JsonObject, status: String) {
+        fun processBustedItem(
+            item: JsonObject,
+            status: String,
+        ) {
             val fullName = item.get("name")?.asString ?: ""
             val parts = fullName.split(" \u2192 ")
             val testName = parts.last()
@@ -193,10 +231,13 @@ class LuaTestOutputToEventsConverter(
             val durationSec = item.get("duration")?.asDouble ?: 0.0
             val durationMs = (durationSec * 1000).toLong()
 
-            val locationUrl = if (source != null && currentline != null) {
-                val cleanSource = source.removePrefix("@")
-                "lua://$cleanSource:$currentline"
-            } else null
+            val locationUrl =
+                if (source != null && currentline != null) {
+                    val cleanSource = source.removePrefix("@")
+                    "lua://$cleanSource:$currentline"
+                } else {
+                    null
+                }
 
             val testId = "test_${nextId++}"
 
@@ -231,7 +272,7 @@ class LuaTestOutputToEventsConverter(
         locationUrl: String?,
         durationMs: Long,
         item: JsonObject,
-        traceObj: JsonObject?
+        traceObj: JsonObject?,
     ) {
         when (status) {
             "success" -> {
@@ -246,10 +287,21 @@ class LuaTestOutputToEventsConverter(
                 val diff = parseAssertionDiff(message)
                 val startedEvent = TestStartedEvent(testName, testId, parentId, locationUrl, null, null, null, true)
                 processor?.onTestStarted(startedEvent)
-                val failedEvent = TestFailedEvent(
-                    testName, testId, message, trace, status == "error",
-                    diff?.second, diff?.first, null, null, false, false, durationMs
-                )
+                val failedEvent =
+                    TestFailedEvent(
+                        testName,
+                        testId,
+                        message,
+                        trace,
+                        status == "error",
+                        diff?.second,
+                        diff?.first,
+                        null,
+                        null,
+                        false,
+                        false,
+                        durationMs,
+                    )
                 processor?.onTestFailure(failedEvent)
                 val finishedEvent = TestFinishedEvent(testName, testId, durationMs)
                 processor?.onTestFinished(finishedEvent)
@@ -332,20 +384,23 @@ class LuaTestOutputToEventsConverter(
     }
 
     companion object {
-        private val BUSTED_EQUAL_PATTERN = Regex(
-            "Expected objects to be equal\\.\\s*\\n*Passed in:\\s*\\n*(.*?)\\s*\\n+Expected:\\s*\\n*(.*)",
-            kotlin.text.RegexOption.DOT_MATCHES_ALL
-        )
+        private val BUSTED_EQUAL_PATTERN =
+            Regex(
+                "Expected objects to be equal\\.\\s*\\n*Passed in:\\s*\\n*(.*?)\\s*\\n+Expected:\\s*\\n*(.*)",
+                kotlin.text.RegexOption.DOT_MATCHES_ALL,
+            )
 
-        private val EXPECTED_FIRST_PATTERN = Regex(
-            "Expected:?\\s*\\n?(.*?)\\n\\s*(?:Passed in|Got|Actual):?\\s*\\n?(.*)",
-            kotlin.text.RegexOption.DOT_MATCHES_ALL
-        )
+        private val EXPECTED_FIRST_PATTERN =
+            Regex(
+                "Expected:?\\s*\\n?(.*?)\\n\\s*(?:Passed in|Got|Actual):?\\s*\\n?(.*)",
+                kotlin.text.RegexOption.DOT_MATCHES_ALL,
+            )
 
-        private val ACTUAL_FIRST_PATTERN = Regex(
-            "(?:Passed in|Got|Actual):?\\s*\\n?(.*?)\\n\\s*Expected:?\\s*\\n?(.*)",
-            kotlin.text.RegexOption.DOT_MATCHES_ALL
-        )
+        private val ACTUAL_FIRST_PATTERN =
+            Regex(
+                "(?:Passed in|Got|Actual):?\\s*\\n?(.*?)\\n\\s*Expected:?\\s*\\n?(.*)",
+                kotlin.text.RegexOption.DOT_MATCHES_ALL,
+            )
 
         private val LOG = Logger.getInstance(LuaTestOutputToEventsConverter::class.java)
     }

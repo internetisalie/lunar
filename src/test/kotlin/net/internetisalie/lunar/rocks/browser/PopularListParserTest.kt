@@ -10,7 +10,6 @@ import org.junit.Test
  * rank order; the count column is captured; malformed/blank rows are skipped without throwing.
  */
 class PopularListParserTest {
-
     private fun fixture(): String =
         requireNotNull(javaClass.getResourceAsStream("/rocks/stats-this-week.html")) {
             "missing test fixture /rocks/stats-this-week.html"

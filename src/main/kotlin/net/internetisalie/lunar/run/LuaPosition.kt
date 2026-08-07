@@ -26,19 +26,19 @@ data class LuaPosition(
     val path: String,
     val line: Int,
 ) {
-    fun args() : List<String> {
-        return listOf(path, line.toString())
-    }
+    fun args(): List<String> = listOf(path, line.toString())
 
-    fun localPosition() : XSourcePosition?{
-        return createLocalPosition(
+    fun localPosition(): XSourcePosition? =
+        createLocalPosition(
             LocalFileSystem.getInstance().findFileByPath(path),
             line,
         )
-    }
 
     companion object {
-        fun createRemotePosition(xSourcePosition: XSourcePosition, workingDir: File?): LuaPosition {
+        fun createRemotePosition(
+            xSourcePosition: XSourcePosition,
+            workingDir: File?,
+        ): LuaPosition {
             val target = File(xSourcePosition.file.path)
             val relative = FileUtil.getRelativePath(workingDir, target) ?: target.path
             return LuaPosition(
@@ -47,7 +47,10 @@ data class LuaPosition(
             )
         }
 
-        fun createLocalPosition(virtualFile : VirtualFile?, line: Int): XSourcePosition? {
+        fun createLocalPosition(
+            virtualFile: VirtualFile?,
+            line: Int,
+        ): XSourcePosition? {
             if (virtualFile == null) return null
             return XDebuggerUtil.getInstance().createPosition(virtualFile, line - 1)
         }

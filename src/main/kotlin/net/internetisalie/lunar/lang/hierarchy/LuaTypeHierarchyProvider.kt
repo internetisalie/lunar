@@ -17,12 +17,12 @@ import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
  * Mirrors `com.jetbrains.python.hierarchy.PyTypeHierachyProvider`.
  */
 class LuaTypeHierarchyProvider : HierarchyProvider {
-
     override fun getTarget(dataContext: DataContext): PsiElement? {
         val atCaret = elementAtCaret(dataContext) ?: return null
-        val decl = atCaret as? LuaLocalVarDecl
-            ?: PsiTreeUtil.getParentOfType(atCaret, LuaLocalVarDecl::class.java)
-            ?: return null
+        val decl =
+            atCaret as? LuaLocalVarDecl
+                ?: PsiTreeUtil.getParentOfType(atCaret, LuaLocalVarDecl::class.java)
+                ?: return null
         return decl.takeIf { LuaHierarchyUtil.className(it) != null }
     }
 

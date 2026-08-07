@@ -6,14 +6,13 @@ import kotlin.test.Test
 import kotlin.test.assertNotNull
 
 class TestLuaExecutionStack : BaseDocumentTest() {
-
     @Test
     fun testExecutionStackRemoteStack() {
         myFixture.configureByText(LuaFileType, "-- test file")
-        
-        // Create a remote stack with null table  
+
+        // Create a remote stack with null table
         val remoteStack = LuaRemoteStack(null)
-        
+
         assertNotNull(remoteStack)
         // entries should be empty since we passed null
         assert(remoteStack.entries.isEmpty())

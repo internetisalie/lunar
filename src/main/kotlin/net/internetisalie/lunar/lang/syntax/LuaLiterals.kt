@@ -1,17 +1,18 @@
 package net.internetisalie.lunar.lang.syntax
 
-private val SIMPLE_ESCAPES = mapOf(
-    'a' to '\u0007', // bell
-    'b' to '\b',      // backspace
-    'f' to '\u000C',  // form feed
-    'n' to '\n',      // newline
-    'r' to '\r',      // carriage return
-    't' to '\t',      // tab
-    'v' to '\u000B',  // vertical tab
-    '\\' to '\\',     // backslash
-    '"' to '"',       // double quote
-    '\'' to '\''      // single quote
-)
+private val SIMPLE_ESCAPES =
+    mapOf(
+        'a' to '\u0007', // bell
+        'b' to '\b', // backspace
+        'f' to '\u000C', // form feed
+        'n' to '\n', // newline
+        'r' to '\r', // carriage return
+        't' to '\t', // tab
+        'v' to '\u000B', // vertical tab
+        '\\' to '\\', // backslash
+        '"' to '"', // double quote
+        '\'' to '\'', // single quote
+    )
 
 private fun unescapeLuaString(str: String): String {
     val result = StringBuilder()
@@ -107,17 +108,21 @@ private fun unescapeLuaString(str: String): String {
 
 enum class LuaStringForm { SINGLE, DOUBLE, LONG, UNKNOWN }
 
-private val NAMED_ESCAPES = mapOf(
-    '\u0007' to "\\a",
-    '\b' to "\\b",
-    '\u000C' to "\\f",
-    '\n' to "\\n",
-    '\r' to "\\r",
-    '\t' to "\\t",
-    '\u000B' to "\\v"
-)
+private val NAMED_ESCAPES =
+    mapOf(
+        '\u0007' to "\\a",
+        '\b' to "\\b",
+        '\u000C' to "\\f",
+        '\n' to "\\n",
+        '\r' to "\\r",
+        '\t' to "\\t",
+        '\u000B' to "\\v",
+    )
 
-private fun escapeShort(value: String, delimiter: Char): String {
+private fun escapeShort(
+    value: String,
+    delimiter: Char,
+): String {
     val result = StringBuilder()
     for (ch in value) {
         when {
@@ -163,7 +168,10 @@ private fun encodeLong(value: String): String {
     return "[$pad[$lead$value]$pad]"
 }
 
-fun encodeLuaString(value: String, target: LuaStringForm): String =
+fun encodeLuaString(
+    value: String,
+    target: LuaStringForm,
+): String =
     when (target) {
         LuaStringForm.SINGLE -> "'" + escapeShort(value, '\'') + "'"
         LuaStringForm.DOUBLE -> "\"" + escapeShort(value, '"') + "\""
@@ -196,10 +204,11 @@ fun extractLuaString(str: String): String {
         delimiterLength > 0 -> {
             // extended strings (block strings - no escape processing)
             if (str.length < delimiterLength * 2) return ""
-            val trimmed = str.substring(
-                delimiterLength,
-                str.length - delimiterLength
-            )
+            val trimmed =
+                str.substring(
+                    delimiterLength,
+                    str.length - delimiterLength,
+                )
             if (trimmed.startsWith("\n")) trimmed.substring(1) else trimmed
         }
         else -> str

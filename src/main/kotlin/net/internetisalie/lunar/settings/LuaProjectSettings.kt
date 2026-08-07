@@ -20,7 +20,9 @@ import net.internetisalie.lunar.platform.target.Target
     storages = [Storage("lunar.xml")],
     category = SettingsCategory.PLUGINS,
 )
-class LuaProjectSettings(private val project: Project? = null): PersistentStateComponent<LuaProjectSettings.State> {
+class LuaProjectSettings(
+    private val project: Project? = null,
+) : PersistentStateComponent<LuaProjectSettings.State> {
     /**
      * XML-serializable wrapper for Target.
      * Used to persist target as {platform, version label} for deserialization via registry lookup.
@@ -39,13 +41,16 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         }
 
         fun toTarget(): Target? {
-            val version = PlatformVersionRegistry.findVersion(platform, versionLabel)
-                ?: PlatformVersionRegistry.defaultVersion(platform)
+            val version =
+                PlatformVersionRegistry.findVersion(platform, versionLabel)
+                    ?: PlatformVersionRegistry.defaultVersion(platform)
             return version?.let { Target(platform, it) }
         }
     }
+
     class State {
-        var languageLevel : LuaLanguageLevel = LuaLanguageLevel.LUA54
+        var languageLevel: LuaLanguageLevel = LuaLanguageLevel.LUA54
+
         @Property(surroundWithTag = false)
         var target: TargetState? = null
 
@@ -97,23 +102,23 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
          */
         var rocksServerUrl: String = ""
 
-        fun expandSourcePath(project : Project) : String {
-            return sourcePath.trim(' ').expandMacros(project)
-        }
+        fun expandSourcePath(project: Project): String = sourcePath.trim(' ').expandMacros(project)
 
         private fun buildDefaultTarget(): Target {
             val defaultPlatform = LuaPlatform.STANDARD
-            val versionLabel = when (languageLevel) {
-                LuaLanguageLevel.LUA50 -> "5.0"  // Lua 5.0 - not in standard registry, use default
-                LuaLanguageLevel.LUA51 -> "5.1"
-                LuaLanguageLevel.LUA52 -> "5.2"
-                LuaLanguageLevel.LUA53 -> "5.3"
-                LuaLanguageLevel.LUA54 -> "5.4"
-                LuaLanguageLevel.LUA55 -> "5.5"
-            }
-            val version = PlatformVersionRegistry.findVersion(defaultPlatform, versionLabel)
-                ?: PlatformVersionRegistry.defaultVersion(defaultPlatform)
-                ?: throw IllegalStateException("No version found for platform $defaultPlatform")
+            val versionLabel =
+                when (languageLevel) {
+                    LuaLanguageLevel.LUA50 -> "5.0" // Lua 5.0 - not in standard registry, use default
+                    LuaLanguageLevel.LUA51 -> "5.1"
+                    LuaLanguageLevel.LUA52 -> "5.2"
+                    LuaLanguageLevel.LUA53 -> "5.3"
+                    LuaLanguageLevel.LUA54 -> "5.4"
+                    LuaLanguageLevel.LUA55 -> "5.5"
+                }
+            val version =
+                PlatformVersionRegistry.findVersion(defaultPlatform, versionLabel)
+                    ?: PlatformVersionRegistry.defaultVersion(defaultPlatform)
+                    ?: throw IllegalStateException("No version found for platform $defaultPlatform")
             return Target(defaultPlatform, version)
         }
 
@@ -134,9 +139,7 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
 
     private var myState = State()
 
-    override fun getState(): State {
-        return myState
-    }
+    override fun getState(): State = myState
 
     override fun loadState(state: State) {
         // TOOLING-05 Phase 5: clean break — no legacy-field migration. Stale env/interpreter-mode
@@ -214,17 +217,14 @@ class LuaProjectSettings(private val project: Project? = null): PersistentStateC
         get() = state.autoImportStyle
 
     companion object {
-        fun getInstance(project: Project): LuaProjectSettings {
-            return project.getService(LuaProjectSettings::class.java)
-        }
+        fun getInstance(project: Project): LuaProjectSettings = project.getService(LuaProjectSettings::class.java)
     }
 }
 
-fun String.expandMacros(project: Project) : String {
-    return PathMacroManager
+fun String.expandMacros(project: Project): String =
+    PathMacroManager
         .getInstance(project)
         .expandPath(this)
-}
 
 /**
  * User-configurable override for the auto-import template style (COMP-03-03).

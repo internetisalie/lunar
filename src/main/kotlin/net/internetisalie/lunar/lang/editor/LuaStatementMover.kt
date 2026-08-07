@@ -27,8 +27,12 @@ import net.internetisalie.lunar.lang.psi.LuaStatement
  * EDITOR-07-01/-02/-04. Design §2.1 / §3.1.
  */
 class LuaStatementMover : StatementUpDownMover() {
-
-    override fun checkAvailable(editor: Editor, file: PsiFile, info: MoveInfo, down: Boolean): Boolean {
+    override fun checkAvailable(
+        editor: Editor,
+        file: PsiFile,
+        info: MoveInfo,
+        down: Boolean,
+    ): Boolean {
         if (file !is LuaFile) return false
         val document = editor.document
         val offset = getLineStartSafeOffset(document, getLineRangeFromSelection(editor).startLine)
@@ -41,12 +45,18 @@ class LuaStatementMover : StatementUpDownMover() {
         return true
     }
 
-    private fun isInsideMultilineToken(file: PsiFile, offset: Int): Boolean {
+    private fun isInsideMultilineToken(
+        file: PsiFile,
+        offset: Int,
+    ): Boolean {
         val leaf = file.findElementAt(offset) ?: return false
         return leaf !is PsiWhiteSpace && leaf.text.contains('\n')
     }
 
-    private fun enclosingStatement(file: PsiFile, offset: Int): LuaStatement? {
+    private fun enclosingStatement(
+        file: PsiFile,
+        offset: Int,
+    ): LuaStatement? {
         val text = file.text
         var scan = offset
         while (scan < text.length && (text[scan] == ' ' || text[scan] == '\t')) scan++
@@ -55,7 +65,11 @@ class LuaStatementMover : StatementUpDownMover() {
         return PsiTreeUtil.getParentOfType(element, LuaStatement::class.java, false)
     }
 
-    private fun targetRange(statement: LuaStatement, down: Boolean, document: Document): LineRange? {
+    private fun targetRange(
+        statement: LuaStatement,
+        down: Boolean,
+        document: Document,
+    ): LineRange? {
         val sibling = adjacentStatement(statement, down)
         if (sibling != null) {
             return if (sibling is LuaBlockParent && isMultiLine(sibling, document)) {
@@ -69,7 +83,10 @@ class LuaStatementMover : StatementUpDownMover() {
         return delimiterLine(construct, enteringStart = !down, document = document)
     }
 
-    private fun adjacentStatement(statement: LuaStatement, down: Boolean): LuaStatement? {
+    private fun adjacentStatement(
+        statement: LuaStatement,
+        down: Boolean,
+    ): LuaStatement? {
         var sibling = if (down) statement.nextSibling else statement.prevSibling
         while (sibling != null && (sibling is PsiWhiteSpace || sibling is PsiComment)) {
             sibling = if (down) sibling.nextSibling else sibling.prevSibling
@@ -78,16 +95,26 @@ class LuaStatementMover : StatementUpDownMover() {
     }
 
     /** The single line holding [construct]'s opening ([enteringStart]) or closing delimiter. */
-    private fun delimiterLine(construct: PsiElement, enteringStart: Boolean, document: Document): LineRange {
+    private fun delimiterLine(
+        construct: PsiElement,
+        enteringStart: Boolean,
+        document: Document,
+    ): LineRange {
         val anchor = if (enteringStart) construct.textRange.startOffset else construct.textRange.endOffset - 1
         val line = document.getLineNumber(anchor)
         return LineRange(line, line + 1)
     }
 
-    private fun isMultiLine(psi: PsiElement, document: Document): Boolean =
+    private fun isMultiLine(
+        psi: PsiElement,
+        document: Document,
+    ): Boolean =
         document.getLineNumber(psi.textRange.startOffset) != document.getLineNumber(psi.textRange.endOffset - 1)
 
-    private fun lineRangeOf(psi: PsiElement, document: Document): LineRange {
+    private fun lineRangeOf(
+        psi: PsiElement,
+        document: Document,
+    ): LineRange {
         val end = (psi.textRange.endOffset - 1).coerceAtLeast(psi.textRange.startOffset)
         return LineRange(document.getLineNumber(psi.textRange.startOffset), document.getLineNumber(end) + 1)
     }

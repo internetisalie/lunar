@@ -11,7 +11,10 @@ enum class ServerFlavor { REDIS, VALKEY }
  * [version] is the flavor-specific version string: `valkey_version` for a Valkey server, else
  * `redis_version`, else `""`.
  */
-data class ServerFlavorInfo(val flavor: ServerFlavor, val version: String)
+data class ServerFlavorInfo(
+    val flavor: ServerFlavor,
+    val version: String,
+)
 
 /**
  * Single source of truth for the `INFO server` flavor heuristic (design §2.5, §3.3).
@@ -21,7 +24,6 @@ data class ServerFlavorInfo(val flavor: ServerFlavor, val version: String)
  * I/O — so callers may invoke [detect] on the REDIS-01 pooled coroutine.
  */
 object LuaRedisServerFlavor {
-
     private const val VALKEY_VERSION_KEY = "valkey_version"
     private const val REDIS_VERSION_KEY = "redis_version"
 
@@ -39,12 +41,16 @@ object LuaRedisServerFlavor {
      * True only when both sides are a known flavor and they disagree (design §3.3): a Valkey server
      * under a Redis target, or a Redis server under a Valkey target. Any other target opts out.
      */
-    fun mismatches(detected: ServerFlavor, target: LuaPlatform): Boolean =
+    fun mismatches(
+        detected: ServerFlavor,
+        target: LuaPlatform,
+    ): Boolean =
         (target == LuaPlatform.REDIS && detected == ServerFlavor.VALKEY) ||
             (target == LuaPlatform.VALKEY && detected == ServerFlavor.REDIS)
 
     private fun parseFields(infoServerBody: String): Map<String, String> =
-        infoServerBody.split("\n")
+        infoServerBody
+            .split("\n")
             .map { it.trimEnd('\r') }
             .filter { it.contains(':') }
             .associate { it.substringBefore(':').trim() to it.substringAfter(':').trim() }

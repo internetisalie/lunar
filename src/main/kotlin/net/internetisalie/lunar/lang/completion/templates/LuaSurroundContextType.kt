@@ -11,7 +11,6 @@ import com.intellij.codeInsight.template.TemplateContextType
 @Suppress("DEPRECATION")
 class LuaSurroundContextType :
     TemplateContextType("LUA_SURROUND", "Lua (surround)", LuaTemplateContextType::class.java) {
-    override fun isInContext(templateActionContext: TemplateActionContext): Boolean {
-        return isInLuaCodeContext(templateActionContext)
-    }
+    override fun isInContext(templateActionContext: TemplateActionContext): Boolean =
+        isInLuaCodeContext(templateActionContext)
 }

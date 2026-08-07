@@ -3,7 +3,10 @@ package net.internetisalie.lunar.redis.debug
 import net.internetisalie.lunar.redis.resp.RespValue
 
 /** A single local variable from an LDB `print` reply (design §2.9). */
-data class LuaLdbLocal(val name: String, val value: LdbValueNode)
+data class LuaLdbLocal(
+    val name: String,
+    val value: LdbValueNode,
+)
 
 /**
  * A parsed LDB value: an expandable value tree (design §2.9, §3.4).
@@ -11,9 +14,11 @@ data class LuaLdbLocal(val name: String, val value: LdbValueNode)
  * [truncated] marks a node whose repr the server cut at its `maxlen` (design §3.4, TC-LDB-PRINT-2).
  */
 sealed interface LdbValueNode {
-
     /** A leaf value (`10`, `"str"`, `nil`, `true`). */
-    data class Scalar(val text: String, val truncated: Boolean = false) : LdbValueNode
+    data class Scalar(
+        val text: String,
+        val truncated: Boolean = false,
+    ) : LdbValueNode
 
     /** A table rendered as key→value entries; [entries] may be partial when [truncated]. */
     data class Table(
@@ -31,15 +36,13 @@ sealed interface LdbValueNode {
  * (contract §1, §3; TC-LDB-PRINT-2).
  */
 object LdbPrintParser {
-
     private const val KEY_VALUE_SEPARATOR = " = "
     private const val VALUE_SENTINEL = "<value> "
     private const val TRUNCATION_MARKER = "(truncated)"
     private const val MAX_DEPTH = 64
 
     /** Parse a `print` (no-arg) reply block into the frame's locals (design §3.4). */
-    fun parseLocals(reply: RespValue): List<LuaLdbLocal> =
-        statusLines(reply).mapNotNull(::parseLocalLine)
+    fun parseLocals(reply: RespValue): List<LuaLdbLocal> = statusLines(reply).mapNotNull(::parseLocalLine)
 
     /** Parse a single `eval`/`print <var>` reply block into one value node (design §3.4). */
     fun parseValue(reply: RespValue): LdbValueNode =
@@ -54,18 +57,23 @@ object LdbPrintParser {
         return LuaLdbLocal(name, parseRepr(repr, 0))
     }
 
-    private fun statusLines(reply: RespValue): List<String> = when (reply) {
-        is RespValue.Array -> reply.items.orEmpty().map(::lineText)
-        else -> listOf(lineText(reply))
-    }
+    private fun statusLines(reply: RespValue): List<String> =
+        when (reply) {
+            is RespValue.Array -> reply.items.orEmpty().map(::lineText)
+            else -> listOf(lineText(reply))
+        }
 
-    private fun lineText(value: RespValue): String = when (value) {
-        is RespValue.Simple -> value.text
-        is RespValue.Bulk -> value.asString().orEmpty()
-        else -> ""
-    }
+    private fun lineText(value: RespValue): String =
+        when (value) {
+            is RespValue.Simple -> value.text
+            is RespValue.Bulk -> value.asString().orEmpty()
+            else -> ""
+        }
 
-    private fun parseRepr(repr: String, depth: Int): LdbValueNode {
+    private fun parseRepr(
+        repr: String,
+        depth: Int,
+    ): LdbValueNode {
         val text = repr.trim()
         if (depth >= MAX_DEPTH) return LdbValueNode.Scalar(text, truncated = true)
         if (text.startsWith("{")) return parseTable(text, depth)
@@ -78,17 +86,25 @@ object LdbPrintParser {
         return LdbValueNode.Scalar(value, truncated)
     }
 
-    private fun parseTable(text: String, depth: Int): LdbValueNode.Table {
+    private fun parseTable(
+        text: String,
+        depth: Int,
+    ): LdbValueNode.Table {
         val closeIndex = matchingBrace(text)
         val body = text.substring(1, closeIndex ?: text.length)
         val truncated = closeIndex == null || text.endsWith(TRUNCATION_MARKER)
-        val entries = splitEntries(body).mapIndexedNotNull { index, segment ->
-            entryOf(segment, index, depth)
-        }
+        val entries =
+            splitEntries(body).mapIndexedNotNull { index, segment ->
+                entryOf(segment, index, depth)
+            }
         return LdbValueNode.Table(entries, truncated)
     }
 
-    private fun entryOf(segment: String, index: Int, depth: Int): Pair<String, LdbValueNode>? {
+    private fun entryOf(
+        segment: String,
+        index: Int,
+        depth: Int,
+    ): Pair<String, LdbValueNode>? {
         val trimmed = segment.trim().removeSuffix(TRUNCATION_MARKER).trim()
         if (trimmed.isEmpty()) return null
         val (separatorOffset, separatorLength) = topLevelKeySeparator(trimmed)

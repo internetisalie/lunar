@@ -1,16 +1,13 @@
 package net.internetisalie.lunar.coverage
 
+import com.intellij.coverage.BaseCoverageSuite
 import com.intellij.coverage.CoverageAnnotator
 import com.intellij.coverage.CoverageEngine
 import com.intellij.coverage.CoverageFileProvider
 import com.intellij.coverage.CoverageRunner
 import com.intellij.coverage.CoverageSuite
 import com.intellij.coverage.CoverageSuitesBundle
-import com.intellij.coverage.BaseCoverageSuite
 import com.intellij.coverage.DefaultCoverageFileProvider
-import com.intellij.coverage.view.CoverageViewExtension
-import com.intellij.coverage.view.CoverageViewManager
-import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration
 import com.intellij.openapi.project.Project
@@ -27,7 +24,7 @@ class LuaCoverageSuite : BaseCoverageSuite {
         project: Project?,
         runner: CoverageRunner?,
         fileProvider: CoverageFileProvider?,
-        timestamp: Long
+        timestamp: Long,
     ) : super(name, project, runner, fileProvider, timestamp)
 
     override fun getCoverageEngine(): CoverageEngine =
@@ -35,17 +32,16 @@ class LuaCoverageSuite : BaseCoverageSuite {
 }
 
 class LuaCoverageEnabledConfiguration(
-    configuration: RunConfigurationBase<*>
+    configuration: RunConfigurationBase<*>,
 ) : CoverageEnabledConfiguration(
-    configuration,
-    CoverageRunner.getInstanceById("LuaCov") ?: LuaCoverageRunner()
-)
+        configuration,
+        CoverageRunner.getInstanceById("LuaCov") ?: LuaCoverageRunner(),
+    )
 
 class LuaCoverageEngine : CoverageEngine() {
     override fun getPresentableText(): String = "Lua Coverage"
 
-    override fun isApplicableTo(conf: RunConfigurationBase<*>): Boolean =
-        conf is LuaTestRunConfiguration
+    override fun isApplicableTo(conf: RunConfigurationBase<*>): Boolean = conf is LuaTestRunConfiguration
 
     override fun createCoverageEnabledConfiguration(conf: RunConfigurationBase<*>): CoverageEnabledConfiguration =
         LuaCoverageEnabledConfiguration(conf)
@@ -55,7 +51,7 @@ class LuaCoverageEngine : CoverageEngine() {
         project: Project,
         runner: CoverageRunner,
         fileProvider: CoverageFileProvider,
-        timestamp: Long
+        timestamp: Long,
     ): CoverageSuite = LuaCoverageSuite(name, project, runner, fileProvider, timestamp)
 
     override fun createEmptyCoverageSuite(coverageRunner: CoverageRunner): CoverageSuite? =
@@ -64,24 +60,25 @@ class LuaCoverageEngine : CoverageEngine() {
             null,
             coverageRunner,
             DefaultCoverageFileProvider(File("")),
-            0
+            0,
         )
 
-    override fun getCoverageAnnotator(project: Project): CoverageAnnotator =
-        LuaCoverageAnnotator.getInstance(project)
+    override fun getCoverageAnnotator(project: Project): CoverageAnnotator = LuaCoverageAnnotator.getInstance(project)
 
-    override fun coverageEditorHighlightingApplicableTo(file: PsiFile): Boolean =
-        file.fileType == LuaFileType
+    override fun coverageEditorHighlightingApplicableTo(file: PsiFile): Boolean = file.fileType == LuaFileType
 
-    override fun getQualifiedNames(sourceFile: PsiFile): Set<String> =
-        setOf(sourceFile.virtualFile.path)
+    override fun getQualifiedNames(sourceFile: PsiFile): Set<String> = setOf(sourceFile.virtualFile.path)
 
-    override fun getQualifiedName(outputFile: File, sourceFile: PsiFile): String =
-        outputFile.path
+    override fun getQualifiedName(
+        outputFile: File,
+        sourceFile: PsiFile,
+    ): String = outputFile.path
 
     override fun coverageProjectViewStatisticsApplicableTo(fileOrDir: VirtualFile): Boolean =
         !fileOrDir.isDirectory && fileOrDir.fileType == LuaFileType
 
-    override fun acceptedByFilters(psiFile: PsiFile, bundle: CoverageSuitesBundle): Boolean =
-        psiFile.fileType == LuaFileType
+    override fun acceptedByFilters(
+        psiFile: PsiFile,
+        bundle: CoverageSuitesBundle,
+    ): Boolean = psiFile.fileType == LuaFileType
 }

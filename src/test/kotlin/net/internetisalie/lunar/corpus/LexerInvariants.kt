@@ -30,7 +30,6 @@ import net.internetisalie.lunar.lang.lexer.LuaTokenTypes
  * parsed `PsiFile`; giving this object a `Project` purely to parse would be the wrong shape.
  */
 internal object LexerInvariants {
-
     /**
      * [crash] is the throwable's class name, or null when the lex completed. [unmergedTokens] counts
      * internal long-string/long-comment token types that escaped the merging adapters.
@@ -51,15 +50,16 @@ internal object LexerInvariants {
      * `LuaElementTypes.LONGCOMMENT` (`src/main/gen/.../LuaElementTypes.java:100`), which is what the
      * grammar knows. Omitting it left BUG-392's long-comment twin uncovered.
      */
-    private val INTERNAL_TOKENS = setOf(
-        LuaTokenTypes.LONGSTRING_BEGIN,
-        LuaTokenTypes.LONGSTRING,
-        LuaTokenTypes.LONGSTRING_END,
-        LuaTokenTypes.NL_BEFORE_LONGSTRING,
-        LuaTokenTypes.LONGCOMMENT_BEGIN,
-        LuaTokenTypes.LONGCOMMENT,
-        LuaTokenTypes.LONGCOMMENT_END,
-    )
+    private val INTERNAL_TOKENS =
+        setOf(
+            LuaTokenTypes.LONGSTRING_BEGIN,
+            LuaTokenTypes.LONGSTRING,
+            LuaTokenTypes.LONGSTRING_END,
+            LuaTokenTypes.NL_BEFORE_LONGSTRING,
+            LuaTokenTypes.LONGCOMMENT_BEGIN,
+            LuaTokenTypes.LONGCOMMENT,
+            LuaTokenTypes.LONGCOMMENT_END,
+        )
 
     /**
      * Lexes [source] with the **production** [LuaLexer] stack and checks both properties.

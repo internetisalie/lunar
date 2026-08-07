@@ -9,16 +9,16 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * the migrated `Lunar.Toolchain.RunMatrix`, and the old hererocks action ids are unregistered.
  */
 class LuaToolchainActionRegistrationTest : BasePlatformTestCase() {
-
     fun `test provisioning actions are registered`() {
         val manager = ActionManager.getInstance()
-        val ids = listOf(
-            "Lunar.Toolchain.Provision",
-            "Lunar.Toolchain.ChangeVersions",
-            "Lunar.Toolchain.Recreate",
-            "Lunar.Toolchain.Remove",
-            "Lunar.Toolchain.BatchProvision",
-        )
+        val ids =
+            listOf(
+                "Lunar.Toolchain.Provision",
+                "Lunar.Toolchain.ChangeVersions",
+                "Lunar.Toolchain.Recreate",
+                "Lunar.Toolchain.Remove",
+                "Lunar.Toolchain.BatchProvision",
+            )
         ids.forEach { id -> assertNotNull("action $id must resolve", manager.getAction(id)) }
     }
 

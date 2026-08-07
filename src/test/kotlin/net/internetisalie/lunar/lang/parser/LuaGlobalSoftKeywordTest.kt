@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test
  * surrounding syntax is actually a declaration. Keyword highlighting must follow the same rule.
  */
 class LuaGlobalSoftKeywordTest : BaseDocumentTest() {
-
     private fun setLanguageLevel(level: LuaLanguageLevel) {
         LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = level
     }
@@ -135,7 +134,11 @@ class LuaGlobalSoftKeywordTest : BaseDocumentTest() {
 
     // ==================== Keyword highlighting ====================
 
-    private fun assertHighlighted(text: String, expectedKey: TextAttributesKey, present: Boolean) {
+    private fun assertHighlighted(
+        text: String,
+        expectedKey: TextAttributesKey,
+        present: Boolean,
+    ) {
         val infos = myFixture.doHighlighting()
         val found = infos.any { it.forcedTextAttributesKey == expectedKey && it.text == text }
         if (present) {
@@ -167,11 +170,12 @@ class LuaGlobalSoftKeywordTest : BaseDocumentTest() {
     }
 
     companion object {
-        private val PRE_55 = listOf(
-            LuaLanguageLevel.LUA51,
-            LuaLanguageLevel.LUA52,
-            LuaLanguageLevel.LUA53,
-            LuaLanguageLevel.LUA54,
-        )
+        private val PRE_55 =
+            listOf(
+                LuaLanguageLevel.LUA51,
+                LuaLanguageLevel.LUA52,
+                LuaLanguageLevel.LUA53,
+                LuaLanguageLevel.LUA54,
+            )
     }
 }

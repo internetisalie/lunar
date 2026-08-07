@@ -32,14 +32,16 @@ object WorkspaceBuildOrchestrator {
     }
 
     private fun loadRocks(project: Project): List<WorkspaceRock> {
-        val discovered = testDiscoverySeam?.invoke(project)
-            ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
+        val discovered =
+            testDiscoverySeam?.invoke(project)
+                ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
         val rocks = mutableListOf<WorkspaceRock>()
 
         for (d in discovered) {
             ProgressManager.checkCanceled()
-            val data = testBridgeReaderSeam?.invoke(project, d.rockspec)
-                ?: RockspecBridge.read(project, d.rockspec)
+            val data =
+                testBridgeReaderSeam?.invoke(project, d.rockspec)
+                    ?: RockspecBridge.read(project, d.rockspec)
 
             if (data == null) {
                 log.warn("Dropped unparseable rockspec: ${d.rockspec}")

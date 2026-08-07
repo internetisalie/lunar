@@ -9,12 +9,15 @@ package net.internetisalie.lunar.redis.debug
  * (epic RISK-R09). Every token is encoded as explicit UTF-8 bytes.
  */
 sealed interface LdbCommand {
-
     /** `SCRIPT DEBUG YES` (forked) or `SCRIPT DEBUG SYNC` — enters the debug session (design §3.2). */
-    data class EnterDebug(val mode: LuaRedisDebugMode) : LdbCommand
+    data class EnterDebug(
+        val mode: LuaRedisDebugMode,
+    ) : LdbCommand
 
     /** `eval <expression>` — evaluates an expression in the paused frame. */
-    data class Eval(val expression: String) : LdbCommand
+    data class Eval(
+        val expression: String,
+    ) : LdbCommand
 
     /** `step` — Step Into. */
     data object Step : LdbCommand
@@ -29,19 +32,27 @@ sealed interface LdbCommand {
     data object Abort : LdbCommand
 
     /** `break <line>` — add a line breakpoint. */
-    data class Break(val line: Int) : LdbCommand
+    data class Break(
+        val line: Int,
+    ) : LdbCommand
 
     /** `break -<line>` — remove a line breakpoint (negative line = delete, design §3.2). */
-    data class RemoveBreak(val line: Int) : LdbCommand
+    data class RemoveBreak(
+        val line: Int,
+    ) : LdbCommand
 
     /** `break 0` — clear all breakpoints. */
     data object ClearBreaks : LdbCommand
 
     /** `print` (all locals) or `print <var>` (one local). */
-    data class Print(val varName: String?) : LdbCommand
+    data class Print(
+        val varName: String?,
+    ) : LdbCommand
 
     /** `redis <cmd> <args…>` — a Redis command executed in the paused session. */
-    data class RedisCmd(val args: List<String>) : LdbCommand
+    data class RedisCmd(
+        val args: List<String>,
+    ) : LdbCommand
 
     /** `whole` — source-sync check (fetch the whole script). */
     data object ListSource : LdbCommand
@@ -55,7 +66,6 @@ enum class LuaRedisDebugMode { FORKED, SYNC }
  * thread-agnostic; the vector is handed to the REDIS-01 `RespClient.command`, which frames it.
  */
 object LdbWire {
-
     private val UTF_8 = Charsets.UTF_8
 
     private const val SCRIPT_VERB = "SCRIPT"
@@ -71,25 +81,27 @@ object LdbWire {
     /** Maps [command] to its ordered token list, then encodes each token as UTF-8 bytes (design §3.2). */
     fun encode(command: LdbCommand): List<ByteArray> = tokensFor(command).map { it.toByteArray(UTF_8) }
 
-    private fun tokensFor(command: LdbCommand): List<String> = when (command) {
-        is LdbCommand.EnterDebug -> listOf(SCRIPT_VERB, DEBUG_VERB, modeArg(command.mode))
-        LdbCommand.Step -> listOf("step")
-        LdbCommand.Next -> listOf("next")
-        LdbCommand.Continue -> listOf("continue")
-        LdbCommand.Abort -> listOf("abort")
-        is LdbCommand.Break -> listOf(BREAK_VERB, command.line.toString())
-        is LdbCommand.RemoveBreak -> listOf(BREAK_VERB, "-" + command.line.toString())
-        LdbCommand.ClearBreaks -> listOf(BREAK_VERB, CLEAR_BREAKS_ARG)
-        is LdbCommand.Print -> printTokens(command.varName)
-        is LdbCommand.Eval -> listOf(EVAL_VERB, command.expression)
-        is LdbCommand.RedisCmd -> listOf(REDIS_VERB) + command.args
-        LdbCommand.ListSource -> listOf("whole")
-    }
+    private fun tokensFor(command: LdbCommand): List<String> =
+        when (command) {
+            is LdbCommand.EnterDebug -> listOf(SCRIPT_VERB, DEBUG_VERB, modeArg(command.mode))
+            LdbCommand.Step -> listOf("step")
+            LdbCommand.Next -> listOf("next")
+            LdbCommand.Continue -> listOf("continue")
+            LdbCommand.Abort -> listOf("abort")
+            is LdbCommand.Break -> listOf(BREAK_VERB, command.line.toString())
+            is LdbCommand.RemoveBreak -> listOf(BREAK_VERB, "-" + command.line.toString())
+            LdbCommand.ClearBreaks -> listOf(BREAK_VERB, CLEAR_BREAKS_ARG)
+            is LdbCommand.Print -> printTokens(command.varName)
+            is LdbCommand.Eval -> listOf(EVAL_VERB, command.expression)
+            is LdbCommand.RedisCmd -> listOf(REDIS_VERB) + command.args
+            LdbCommand.ListSource -> listOf("whole")
+        }
 
-    private fun modeArg(mode: LuaRedisDebugMode): String = when (mode) {
-        LuaRedisDebugMode.FORKED -> FORKED_ARG
-        LuaRedisDebugMode.SYNC -> SYNC_ARG
-    }
+    private fun modeArg(mode: LuaRedisDebugMode): String =
+        when (mode) {
+            LuaRedisDebugMode.FORKED -> FORKED_ARG
+            LuaRedisDebugMode.SYNC -> SYNC_ARG
+        }
 
     private fun printTokens(varName: String?): List<String> =
         if (varName == null) listOf(PRINT_VERB) else listOf(PRINT_VERB, varName)

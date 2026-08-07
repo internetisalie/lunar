@@ -20,8 +20,10 @@ import net.internetisalie.lunar.settings.LuaSettingsChangedListener
  * lifetime via [Disposable].
  */
 @Service(Service.Level.PROJECT)
-class LuaSettingsChangeListener(private val project: Project) : LuaSettingsChangedListener, Disposable {
-
+class LuaSettingsChangeListener(
+    private val project: Project,
+) : LuaSettingsChangedListener,
+    Disposable {
     init {
         project.messageBus.connect(this).subscribe(LuaSettingsChangedListener.TOPIC, this)
     }

@@ -1,29 +1,24 @@
 package net.internetisalie.lunar.lang.insight
 
-import com.intellij.icons.AllIcons
 import com.intellij.psi.PsiElement
 import com.intellij.ui.breadcrumbs.BreadcrumbsProvider
-import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.psi.*
-import javax.swing.Icon
 
 class LuaBreadcrumbsProvider : BreadcrumbsProvider {
     override fun getLanguages(): Array<LuaLanguage> = arrayOf(LuaLanguage)
 
-    override fun acceptElement(element: PsiElement): Boolean {
-        return element is LuaFuncDecl || element is LuaLocalFuncDecl || element is LuaFile || element is LuaFuncDef
-    }
+    override fun acceptElement(element: PsiElement): Boolean =
+        element is LuaFuncDecl || element is LuaLocalFuncDecl || element is LuaFile || element is LuaFuncDef
 
-    override fun getElementInfo(element: PsiElement): String {
-        return when (element) {
+    override fun getElementInfo(element: PsiElement): String =
+        when (element) {
             is LuaFile -> element.name
             is LuaFuncDecl -> element.funcName.text
             is LuaLocalFuncDecl -> element.nameRef.text
             is LuaFuncDef -> getAssignedName(element) ?: "function"
             else -> ""
         }
-    }
 
     private fun getAssignedName(funcDef: LuaFuncDef): String? {
         val parent = funcDef.parent

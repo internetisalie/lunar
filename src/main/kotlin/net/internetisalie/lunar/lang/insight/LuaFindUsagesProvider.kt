@@ -29,13 +29,13 @@ import net.internetisalie.lunar.lang.syntax.LuaSyntax
  * and how to label them.
  */
 class LuaFindUsagesProvider : FindUsagesProvider {
-
-    override fun getWordsScanner(): WordsScanner = DefaultWordsScanner(
-        LuaLexer(),
-        LuaSyntax.IdentifierTokens,
-        LuaSyntax.CommentTokens,
-        LuaSyntax.StringLiteralTokens,
-    )
+    override fun getWordsScanner(): WordsScanner =
+        DefaultWordsScanner(
+            LuaLexer(),
+            LuaSyntax.IdentifierTokens,
+            LuaSyntax.CommentTokens,
+            LuaSyntax.StringLiteralTokens,
+        )
 
     /**
      * Returns true when [element] is a declaration-site identifier leaf
@@ -67,11 +67,12 @@ class LuaFindUsagesProvider : FindUsagesProvider {
         }
     }
 
-    override fun getType(element: PsiElement): String = when {
-        element is LuaLabelName -> "label"
-        element.parent is LuaNumericForStatement -> "local variable"
-        else -> typeFromNameRefGrandparent(element)
-    }
+    override fun getType(element: PsiElement): String =
+        when {
+            element is LuaLabelName -> "label"
+            element.parent is LuaNumericForStatement -> "local variable"
+            else -> typeFromNameRefGrandparent(element)
+        }
 
     private fun typeFromNameRefGrandparent(element: PsiElement): String {
         val grandParent = element.parent?.parent ?: return ""
@@ -87,7 +88,10 @@ class LuaFindUsagesProvider : FindUsagesProvider {
 
     override fun getDescriptiveName(element: PsiElement): String = element.text
 
-    override fun getNodeText(element: PsiElement, useFullName: Boolean): String = element.text
+    override fun getNodeText(
+        element: PsiElement,
+        useFullName: Boolean,
+    ): String = element.text
 
     override fun getHelpId(psiElement: PsiElement): String? = null
 }

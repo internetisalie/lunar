@@ -7,8 +7,8 @@ import com.intellij.util.ui.UIUtil
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.settings.LuaProjectSettings
-import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import javax.swing.JComponent
 import javax.swing.JLabel
 
@@ -18,13 +18,12 @@ import javax.swing.JLabel
  * project page reflects them and that `redis-server` still resolves despite its UI eviction.
  */
 class LuaProjectConfigurableBindingsTest : ToolchainSettingsTestCase() {
-
     override fun tearDown() {
         try {
             EdtTestUtil.runInEdtAndWait<RuntimeException> {
                 LuaProjectSettings.getInstance(project).state.explicitTarget = false
                 LuaProjectSettings.getInstance(project).setTargetAndNotify(
-                    PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4")
+                    PlatformVersionRegistry.resolveTarget(LuaPlatform.STANDARD, "5.4"),
                 )
             }
         } finally {
@@ -48,9 +47,10 @@ class LuaProjectConfigurableBindingsTest : ToolchainSettingsTestCase() {
         withConfigurable { _, panel ->
             // The advanced LuaCov binding combo is built (collapsed-by-default state is a VNC gate per
             // risks-and-gaps "Test Case Gaps"; DR-01 confirms collapsibleGroup defaults to collapsed).
-            val comboItems = combos(panel).flatMap { combo ->
-                (0 until combo.itemCount).mapNotNull { combo.getItemAt(it) as? LuaBindingItem.Tool }
-            }
+            val comboItems =
+                combos(panel).flatMap { combo ->
+                    (0 until combo.itemCount).mapNotNull { combo.getItemAt(it) as? LuaBindingItem.Tool }
+                }
             assertTrue(comboItems.any { it.tool.kindId == "luacov" })
         }
     }
@@ -74,6 +74,5 @@ class LuaProjectConfigurableBindingsTest : ToolchainSettingsTestCase() {
         }
     }
 
-    private fun combos(panel: JComponent): List<ComboBox<*>> =
-        UIUtil.findComponentsOfType(panel, ComboBox::class.java)
+    private fun combos(panel: JComponent): List<ComboBox<*>> = UIUtil.findComponentsOfType(panel, ComboBox::class.java)
 }

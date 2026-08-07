@@ -12,38 +12,40 @@ import kotlin.test.assertTrue
  * server-truncated table parses to a `truncated = true` node without throwing or using `!!`).
  */
 class TestLdbPrintParser {
-
     private fun block(vararg lines: String): RespValue.Array =
         RespValue.Array(lines.map { RespValue.Bulk(it.toByteArray(Charsets.UTF_8)) })
 
     /** TC-LDB-PRINT-1: a scalar and a nested table become a two-level value tree. */
     @Test
     fun testParseLocalsScalarAndNestedTable() {
-        val reply = block(
-            "<value> x = 10",
-            """<value> t = {"a": 1, "b": {"c": 2}}""",
-        )
-        val expected = listOf(
-            LuaLdbLocal("x", LdbValueNode.Scalar("10")),
-            LuaLdbLocal(
-                "t",
-                LdbValueNode.Table(
-                    listOf(
-                        "a" to LdbValueNode.Scalar("1"),
-                        "b" to LdbValueNode.Table(listOf("c" to LdbValueNode.Scalar("2"))),
+        val reply =
+            block(
+                "<value> x = 10",
+                """<value> t = {"a": 1, "b": {"c": 2}}""",
+            )
+        val expected =
+            listOf(
+                LuaLdbLocal("x", LdbValueNode.Scalar("10")),
+                LuaLdbLocal(
+                    "t",
+                    LdbValueNode.Table(
+                        listOf(
+                            "a" to LdbValueNode.Scalar("1"),
+                            "b" to LdbValueNode.Table(listOf("c" to LdbValueNode.Scalar("2"))),
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
         assertEquals(expected, LdbPrintParser.parseLocals(reply))
     }
 
     /** TC-LDB-PRINT-2: a `maxlen`-truncated table sets `truncated = true` and never throws. */
     @Test
     fun testParseLocalsTruncatedTableFlagsTruncationWithoutThrowing() {
-        val reply = block(
-            """<value> t = {"a": 1, "b": {"c": 2, "d": {"e": 3 (truncated)""",
-        )
+        val reply =
+            block(
+                """<value> t = {"a": 1, "b": {"c": 2, "d": {"e": 3 (truncated)""",
+            )
         val locals = LdbPrintParser.parseLocals(reply)
         assertEquals(1, locals.size)
         val value = locals.first().value

@@ -15,19 +15,17 @@ import net.internetisalie.lunar.refactoring.LuaIntroduceVariableHandler
  * identifiers (locals, parameters, function names, labels) are eligible.
  */
 class LuaRefactoringSupportProvider : RefactoringSupportProvider() {
+    override fun isInplaceRenameAvailable(
+        element: PsiElement,
+        context: PsiElement,
+    ): Boolean = false
 
-    override fun isInplaceRenameAvailable(element: PsiElement, context: PsiElement): Boolean {
-        return false
-    }
+    override fun isMemberInplaceRenameAvailable(
+        elementToRename: PsiElement,
+        context: PsiElement?,
+    ): Boolean = elementToRename is LuaLabelName
 
-    override fun isMemberInplaceRenameAvailable(elementToRename: PsiElement, context: PsiElement?): Boolean {
-        return elementToRename is LuaLabelName
-    }
+    override fun getIntroduceVariableHandler(): RefactoringActionHandler = LuaIntroduceVariableHandler()
 
-    override fun getIntroduceVariableHandler(): RefactoringActionHandler {
-        return LuaIntroduceVariableHandler()
-    }
-
-    override fun isSafeDeleteAvailable(element: PsiElement): Boolean =
-        LuaFindUsagesProvider().canFindUsagesFor(element)
+    override fun isSafeDeleteAvailable(element: PsiElement): Boolean = LuaFindUsagesProvider().canFindUsagesFor(element)
 }

@@ -13,7 +13,6 @@ package net.internetisalie.lunar.definitions
  * before it.
  */
 class LuaLibraryGlobalCompletionTest : LibraryRootTestCase() {
-
     /**
      * The completion strings offered for [text].
      *
@@ -26,7 +25,11 @@ class LuaLibraryGlobalCompletionTest : LibraryRootTestCase() {
         myFixture.configureByText("consumer.lua", text)
         val elements = myFixture.completeBasic()
         if (elements != null) return elements.map { it.lookupString }
-        return listOf(myFixture.editor.document.text.substringBefore('\n').trim())
+        return listOf(
+            myFixture.editor.document.text
+                .substringBefore('\n')
+                .trim(),
+        )
     }
 
     /**
@@ -73,7 +76,10 @@ class LuaLibraryGlobalCompletionTest : LibraryRootTestCase() {
         myFixture.addFileToProject("nearby.lua", "function sharedprefix_project() end\n")
         registerLibraryRoot(mapOf("lib.lua" to "---@meta\nfunction sharedprefix_library() end\n"))
         val found = completionsFor("sharedprefix_<caret>\n")
-        assertTrue("both must be offered. Found: $found", found.containsAll(listOf("sharedprefix_project", "sharedprefix_library")))
+        assertTrue(
+            "both must be offered. Found: $found",
+            found.containsAll(listOf("sharedprefix_project", "sharedprefix_library")),
+        )
         assertTrue(
             "the project's own global must be ranked first. Found: $found",
             found.indexOf("sharedprefix_project") < found.indexOf("sharedprefix_library"),

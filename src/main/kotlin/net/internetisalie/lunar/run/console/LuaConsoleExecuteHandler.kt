@@ -20,7 +20,6 @@ class LuaConsoleExecuteHandler(
     private val project: Project,
     processHandler: ProcessHandler,
 ) : ProcessBackedConsoleExecuteActionHandler(processHandler, false) {
-
     override fun runExecuteAction(consoleView: LanguageConsoleView) {
         val text = consoleView.editorDocument.text
         if (text.isBlank() || LuaChunkCompletion.isComplete(project, text)) {

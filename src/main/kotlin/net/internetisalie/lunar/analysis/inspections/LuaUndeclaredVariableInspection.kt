@@ -28,7 +28,6 @@ import net.internetisalie.lunar.lang.psi.LuaVisitor
  * this inspection only adds classification (read vs. declaration vs. write) and exemption logic.
  */
 class LuaUndeclaredVariableInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaUndeclaredVariable"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -39,12 +38,18 @@ class LuaUndeclaredVariableInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitNameRef(o: LuaNameRef) = inspectNameRef(o, holder)
         }
 
-    private fun inspectNameRef(ref: LuaNameRef, holder: ProblemsHolder) {
+    private fun inspectNameRef(
+        ref: LuaNameRef,
+        holder: ProblemsHolder,
+    ) {
         if (!isReadUse(ref)) return
         if (!LuaUndeclaredNames.isUnresolvedNonGlobal(ref)) return
         val name = ref.identifier.text
@@ -69,8 +74,10 @@ class LuaUndeclaredVariableInspection : LocalInspectionTool() {
 
     /** A name appearing after `.`/`:` is a member/field/method name, not a free variable. */
     private fun isMemberName(parent: PsiElement): Boolean =
-        parent is LuaIndexExpr || parent is LuaMethodExpr ||
-            parent is LuaFuncNameProperty || parent is LuaFuncNameMethod
+        parent is LuaIndexExpr ||
+            parent is LuaMethodExpr ||
+            parent is LuaFuncNameProperty ||
+            parent is LuaFuncNameMethod
 
     private fun isDeclarationNameList(nameList: LuaNameList): Boolean {
         val owner = nameList.parent

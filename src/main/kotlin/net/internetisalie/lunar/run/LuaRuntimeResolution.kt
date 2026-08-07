@@ -16,9 +16,13 @@ private const val RUNTIME_KIND_ID = "lua"
  * an explicit stored path always wins (registry hit → that tool, miss → an ad-hoc RUNTIME tool),
  * otherwise the project-resolved default. Shared by the run and test configurations.
  */
-fun resolveConfiguredRuntime(project: Project, storedPath: String?): LuaRegisteredTool? {
-    val path = storedPath?.takeIf { it.isNotEmpty() }
-        ?: return LuaToolResolver.getInstance().resolveRuntime(project)
+fun resolveConfiguredRuntime(
+    project: Project,
+    storedPath: String?,
+): LuaRegisteredTool? {
+    val path =
+        storedPath?.takeIf { it.isNotEmpty() }
+            ?: return LuaToolResolver.getInstance().resolveRuntime(project)
     return LuaToolchainRegistry.getInstance().findByPath(path) ?: adHocRuntime(path)
 }
 
@@ -34,12 +38,13 @@ fun adHocRuntime(path: String): LuaRegisteredTool {
         runtime = null,
         origin = Origin.MANUAL,
         environmentId = null,
-        health = LuaToolHealth(
-            fileExists = file.exists(),
-            executable = file.canExecute(),
-            probeOk = null,
-            probedAtMtime = null,
-            reason = null
-        )
+        health =
+            LuaToolHealth(
+                fileExists = file.exists(),
+                executable = file.canExecute(),
+                probeOk = null,
+                probedAtMtime = null,
+                reason = null,
+            ),
     )
 }

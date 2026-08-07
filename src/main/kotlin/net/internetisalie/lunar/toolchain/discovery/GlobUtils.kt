@@ -2,11 +2,12 @@ package net.internetisalie.lunar.toolchain.discovery
 
 import java.util.regex.Pattern
 
-fun isGlob(filename: String): Boolean {
-    return filename.contains("*") || filename.contains("?")
-}
+fun isGlob(filename: String): Boolean = filename.contains("*") || filename.contains("?")
 
-fun matchesGlob(glob: String, filename: String): Boolean {
+fun matchesGlob(
+    glob: String,
+    filename: String,
+): Boolean {
     val p = patternFromGlob(glob)
     return p.matcher(filename).matches()
 }

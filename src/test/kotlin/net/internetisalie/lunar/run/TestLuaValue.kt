@@ -7,13 +7,12 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TestLuaValue : BaseDocumentTest() {
-
     @Test
     fun testLuaValueCreation() {
         myFixture.configureByText(LuaFileType, "42")
         val element = myFixture.file.firstChild
         val luaValue = LuaValue(element)
-        
+
         assertNotNull(luaValue)
         assertNotNull(luaValue.kind)
     }
@@ -21,7 +20,7 @@ class TestLuaValue : BaseDocumentTest() {
     @Test
     fun testLuaValueWithNull() {
         val luaValue = LuaValue(null)
-        
+
         assertNotNull(luaValue)
         assertNull(luaValue.text)
     }
@@ -29,14 +28,14 @@ class TestLuaValue : BaseDocumentTest() {
     @Test
     fun testLuaValueNone() {
         val luaValue = LuaValue(null)
-        
+
         assertNotNull(luaValue.kind)
     }
 
     @Test
     fun testCheckTableNull() {
         val luaValue = LuaValue(null)
-        
+
         assertNull(luaValue.checkTable())
     }
 

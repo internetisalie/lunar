@@ -16,14 +16,16 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaGlobalMemberCompletionTest : BasePlatformTestCase() {
-
     private fun completionsFor(text: String): List<String> {
         myFixture.configureByText("consumer.lua", text)
         myFixture.completeBasic()
         return myFixture.lookupElementStrings.orEmpty()
     }
 
-    private fun assertCompletes(text: String, vararg expected: String) {
+    private fun assertCompletes(
+        text: String,
+        vararg expected: String,
+    ) {
         val found = completionsFor(text)
         expected.forEach { assertTrue("Completion should contain '$it'. Found: $found", found.contains(it)) }
     }

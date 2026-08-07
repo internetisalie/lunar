@@ -1,8 +1,6 @@
 package net.internetisalie.lunar
 
-import com.intellij.driver.client.Driver
 import com.intellij.ide.starter.driver.engine.runIdeWithDriver
-import com.intellij.ide.starter.ide.IdeProductProvider
 import com.intellij.ide.starter.models.TestCase
 import com.intellij.ide.starter.project.LocalProjectInfo
 import com.intellij.ide.starter.runner.Starter
@@ -50,7 +48,6 @@ import kotlin.time.Duration.Companion.minutes
  * - Output verification and assertions
  */
 class LuaProgramExecutionWithIDEIntegrationTest {
-
     private fun createTestProject(name: String): Path {
         val projectDir = Path.of("build/test-projects/$name")
         projectDir.createDirectories()
@@ -61,10 +58,11 @@ class LuaProgramExecutionWithIDEIntegrationTest {
     @Test
     fun `execute simple print program through IDE`() {
         val projectDir = createTestProject("lua-ide-simple-print")
-        val luaCode = """
+        val luaCode =
+            """
             print("Hello from Lunar!")
             print("IDE Integration Test")
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("main.lua").writeText(luaCode)
 
@@ -72,42 +70,46 @@ class LuaProgramExecutionWithIDEIntegrationTest {
         // IDE type is automatically determined from gradle.properties:platformType
         val ideProduct = IdeProductResolver.getConfiguredIdeProduct()
         println("✓ Using IDE: ${IdeProductResolver.getProductName(ideProduct)}")
-        
-        val context = Starter.newContext(
-            testName = "SimplePrintTest",
-            testCase = TestCase(
-                ideInfo = ideProduct,
-                projectInfo = LocalProjectInfo(projectDir)
-            ).withVersion(IdeProductResolver.getTestVersion())
-        )
+
+        val context =
+            Starter.newContext(
+                testName = "SimplePrintTest",
+                testCase =
+                    TestCase(
+                        ideInfo = ideProduct,
+                        projectInfo = LocalProjectInfo(projectDir),
+                    ).withVersion(IdeProductResolver.getTestVersion()),
+            )
         IdeProductResolver.applyLicense(context)
 
         // Install the Lunar plugin
         val pathToPlugin = System.getProperty("path.to.build.plugin")
         require(pathToPlugin != null) { "path.to.build.plugin system property not set" }
 
-        com.intellij.ide.starter.plugins.PluginConfigurator(context)
+        com.intellij.ide.starter.plugins
+            .PluginConfigurator(context)
             .installPluginFromPath(File(pathToPlugin).toPath())
 
         // Run IDE with driver and execute test
-        val result = context.runIdeWithDriver(
-            launchName = "simple-print-test",
-            runTimeout = 2.minutes
-        ) {
-            // IDE is configured, but not started yet
-        }
-        
+        val result =
+            context.runIdeWithDriver(
+                launchName = "simple-print-test",
+                runTimeout = 2.minutes,
+            ) {
+                // IDE is configured, but not started yet
+            }
+
         result.useDriverAndCloseIde {
             // IDE is NOW RUNNING with Lunar plugin installed
             println("✓ IDE started successfully")
             println("✓ Lunar plugin loaded")
             println("✓ Project: ${projectDir.toAbsolutePath()}")
-            
+
             // Access to IDE APIs via this (Driver):
             // this.utility<RunManager>().allSettings
             // this.utility<Project>()
             // etc.
-            
+
             // Future: Create and execute LuaRunConfiguration here
         }
     }
@@ -115,42 +117,50 @@ class LuaProgramExecutionWithIDEIntegrationTest {
     @Test
     fun `verify IDE starts with multiple Lua files`() {
         val projectDir = createTestProject("lua-ide-multi-file")
-        
-        projectDir.resolve("main.lua").writeText("""
+
+        projectDir.resolve("main.lua").writeText(
+            """
             local utils = require("utils")
             print("Result: " .. utils.add(5, 3))
-        """.trimIndent())
-        
-        projectDir.resolve("utils.lua").writeText("""
+            """.trimIndent(),
+        )
+
+        projectDir.resolve("utils.lua").writeText(
+            """
             local M = {}
             function M.add(a, b) return a + b end
             return M
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         // Create IDE test context with project
         // IDE type is automatically determined from gradle.properties:platformType
         val ideProduct = IdeProductResolver.getConfiguredIdeProduct()
-        
-        val context = Starter.newContext(
-            testName = "MultiFileTest",
-            testCase = TestCase(
-                ideInfo = ideProduct,
-                projectInfo = LocalProjectInfo(projectDir)
-            ).withVersion(IdeProductResolver.getTestVersion())
-        )
+
+        val context =
+            Starter.newContext(
+                testName = "MultiFileTest",
+                testCase =
+                    TestCase(
+                        ideInfo = ideProduct,
+                        projectInfo = LocalProjectInfo(projectDir),
+                    ).withVersion(IdeProductResolver.getTestVersion()),
+            )
         IdeProductResolver.applyLicense(context)
 
         val pathToPlugin = System.getProperty("path.to.build.plugin")
         require(pathToPlugin != null) { "path.to.build.plugin system property not set" }
 
-        com.intellij.ide.starter.plugins.PluginConfigurator(context)
+        com.intellij.ide.starter.plugins
+            .PluginConfigurator(context)
             .installPluginFromPath(File(pathToPlugin).toPath())
-        
-        val result = context.runIdeWithDriver(
-            launchName = "multi-file-test",
-            runTimeout = 2.minutes
-        ) {}
-        
+
+        val result =
+            context.runIdeWithDriver(
+                launchName = "multi-file-test",
+                runTimeout = 2.minutes,
+            ) {}
+
         result.useDriverAndCloseIde {
             println("✓ IDE started with multi-file Lua project")
             println("✓ Files: main.lua, utils.lua")
@@ -158,4 +168,3 @@ class LuaProgramExecutionWithIDEIntegrationTest {
         }
     }
 }
-

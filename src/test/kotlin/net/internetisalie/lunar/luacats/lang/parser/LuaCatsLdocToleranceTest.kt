@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test
  * constructs below were found by sweeping upstream KOReader with the MAINT-33 machinery.
  */
 class LuaCatsLdocToleranceTest : BaseDocumentTest() {
-
     private fun assertNoParseErrors(code: String) {
         myFixture.configureByText(LuaFileType, code)
         runReadAction {
@@ -26,7 +25,10 @@ class LuaCatsLdocToleranceTest : BaseDocumentTest() {
             val errors = PsiTreeUtil.findChildrenOfType(file, PsiErrorElement::class.java)
             if (errors.isNotEmpty()) {
                 println("PSI TREE FOR:\n$code")
-                println(com.intellij.psi.impl.DebugUtil.psiToString(file, true))
+                println(
+                    com.intellij.psi.impl.DebugUtil
+                        .psiToString(file, true),
+                )
                 errors.forEach { println("  ERROR: '${it.errorDescription}' at offset ${it.textOffset}") }
             }
             Assertions.assertTrue(

@@ -26,12 +26,18 @@ import net.internetisalie.lunar.lang.syntax.LuaSyntax
  * human-verification checklist (VNC gate), not here.
  */
 class LuaSpellcheckingStrategyTest : BasePlatformTestCase() {
-
     private val strategy = LuaSpellcheckingStrategy()
 
-    private data class Captured(val text: String, val useRename: Boolean, val offset: Int, val range: TextRange)
+    private data class Captured(
+        val text: String,
+        val useRename: Boolean,
+        val offset: Int,
+        val range: TextRange,
+    )
 
-    private class CapturingConsumer(val tokens: MutableList<Captured>) : TokenConsumer() {
+    private class CapturingConsumer(
+        val tokens: MutableList<Captured>,
+    ) : TokenConsumer() {
         override fun consumeToken(
             element: PsiElement,
             text: String,
@@ -44,7 +50,10 @@ class LuaSpellcheckingStrategyTest : BasePlatformTestCase() {
         }
     }
 
-    private fun <T : PsiElement> capture(tokenizer: Tokenizer<T>, element: T): List<Captured> {
+    private fun <T : PsiElement> capture(
+        tokenizer: Tokenizer<T>,
+        element: T,
+    ): List<Captured> {
         val tokens = mutableListOf<Captured>()
         ReadAction.run<RuntimeException> { tokenizer.tokenize(element, CapturingConsumer(tokens)) }
         return tokens
@@ -54,7 +63,8 @@ class LuaSpellcheckingStrategyTest : BasePlatformTestCase() {
         ReadAction.compute<Tokenizer<*>, RuntimeException> { strategy.getTokenizer(element) }
 
     private fun firstOfType(set: TokenSet): PsiElement =
-        SyntaxTraverser.psiTraverser(myFixture.file)
+        SyntaxTraverser
+            .psiTraverser(myFixture.file)
             .firstOrNull { it.node?.elementType?.let(set::contains) == true }
             ?: error("no element with type in $set")
 
@@ -93,8 +103,10 @@ class LuaSpellcheckingStrategyTest : BasePlatformTestCase() {
 
     fun testShebangIsNotSpellchecked() {
         myFixture.configureByText("a.lua", "#!/usr/bin/lua\n-- ok")
-        val shebang = SyntaxTraverser.psiTraverser(myFixture.file)
-            .firstOrNull { it.node?.elementType == LuaElementTypes.SHEBANG } ?: error("no shebang")
+        val shebang =
+            SyntaxTraverser
+                .psiTraverser(myFixture.file)
+                .firstOrNull { it.node?.elementType == LuaElementTypes.SHEBANG } ?: error("no shebang")
         assertSame(SpellcheckingStrategy.EMPTY_TOKENIZER, tokenizerOf(shebang))
     }
 
@@ -125,8 +137,11 @@ class LuaSpellcheckingStrategyTest : BasePlatformTestCase() {
 
     fun testParameterNameIsSpellchecked() {
         myFixture.configureByText("a.lua", "local function f(recieveArg) end")
-        val param = SyntaxTraverser.psiTraverser(myFixture.file)
-            .filter(LuaNameRef::class.java).firstOrNull { it.parent is LuaNameList } ?: error("no param nameRef")
+        val param =
+            SyntaxTraverser
+                .psiTraverser(myFixture.file)
+                .filter(LuaNameRef::class.java)
+                .firstOrNull { it.parent is LuaNameList } ?: error("no param nameRef")
         val tokens = capture(LuaIdentifierTokenizer(), param)
         assertEquals(1, tokens.size)
         assertEquals("recieveArg", tokens[0].text)

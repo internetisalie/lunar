@@ -11,7 +11,6 @@ import kotlin.test.assertTrue
  * REDIS-03 TC-FLV-1/TC-FLV-2. Pure parsing + mismatch predicate; no live socket.
  */
 class LuaRedisServerFlavorTest {
-
     @Test
     fun detectsValkeyWhenValkeyVersionPresentAndMismatchesRedisTarget() {
         val body = "# Server\r\nredis_version:7.2.4\r\nvalkey_version:8.0.1\r\nredis_mode:standalone\r\n"

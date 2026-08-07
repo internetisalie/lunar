@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit
  * asserts a background thread. Pure banner-parsing tests live in [LuaToolProbeTest] (plain JUnit 5).
  */
 class LuaToolProbeProcessTest : BasePlatformTestCase() {
-
     private val probe = LuaToolProbeImpl()
     private lateinit var tempDir: Path
 
@@ -67,17 +66,19 @@ class LuaToolProbeProcessTest : BasePlatformTestCase() {
         Files.writeString(scriptFile, "#!/bin/sh\nsleep 2\n")
         scriptFile.toFile().setExecutable(true)
 
-        val slowKind = LuaToolKind(
-            id = "slow-tool",
-            displayName = "Slow Tool",
-            binaryNames = listOf("slow-tool"),
-            probe = ProbeSpec(
-                args = emptyList(),
-                versionRegex = Regex("""(\d+\.\d+\.\d+)"""),
-                timeoutMs = 100,
-            ),
-            capabilities = emptySet(),
-        )
+        val slowKind =
+            LuaToolKind(
+                id = "slow-tool",
+                displayName = "Slow Tool",
+                binaryNames = listOf("slow-tool"),
+                probe =
+                    ProbeSpec(
+                        args = emptyList(),
+                        versionRegex = Regex("""(\d+\.\d+\.\d+)"""),
+                        timeoutMs = 100,
+                    ),
+                capabilities = emptySet(),
+            )
 
         val result = onPooledThread { probe.probe(slowKind, scriptFile) }
 

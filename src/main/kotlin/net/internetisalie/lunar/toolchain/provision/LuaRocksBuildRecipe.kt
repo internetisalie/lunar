@@ -10,20 +10,22 @@ package net.internetisalie.lunar.toolchain.provision
  */
 object LuaRocksBuildRecipe {
     /** The config line appended to `<prefix>/etc/luarocks/config-{X.Y}.lua` (design §3.5 step L.4). */
-    val CONFIG_APPEND: String = """
+    val CONFIG_APPEND: String =
+        """
         |variables = {
         |   CFLAGS = "-O2 -fPIC",
         |}
-    """.trimMargin()
+        """.trimMargin()
 
     fun plan(input: LuaBuildRecipeInput): BuildPlan {
         val prefix = input.prefix.toString()
         val buildDir = input.buildDir
-        val steps = listOf(
-            BuildStep(listOf("./configure", "--prefix=$prefix", "--with-lua=$prefix"), buildDir),
-            BuildStep(listOf("make", "build"), buildDir),
-            BuildStep(listOf("make", "install"), buildDir),
-        )
+        val steps =
+            listOf(
+                BuildStep(listOf("./configure", "--prefix=$prefix", "--with-lua=$prefix"), buildDir),
+                BuildStep(listOf("make", "build"), buildDir),
+                BuildStep(listOf("make", "install"), buildDir),
+            )
         return BuildPlan(steps, installCopies = emptyList(), executables = listOf(input.prefix.resolve("bin/luarocks")))
     }
 }

@@ -14,9 +14,13 @@ class LuaRocksBuildRecipeTest {
     fun posixConfigureMakeBuildMakeInstallSequence() {
         val buildDir = Path.of("/p/.lua/.build/luarocks-3.13.0")
         val prefix = Path.of("/p/.lua")
-        val toolchain = LuaCompilerProbe.Toolchain(
-            Path.of("/usr/bin/gcc"), Path.of("/usr/bin/ar"), Path.of("/usr/bin/ranlib"), Path.of("/usr/bin/make"),
-        )
+        val toolchain =
+            LuaCompilerProbe.Toolchain(
+                Path.of("/usr/bin/gcc"),
+                Path.of("/usr/bin/ar"),
+                Path.of("/usr/bin/ranlib"),
+                Path.of("/usr/bin/make"),
+            )
         val plan = LuaRocksBuildRecipe.plan(LuaBuildRecipeInput("3.13.0", LuaOs.LINUX, toolchain, buildDir, prefix))
 
         assertEquals(

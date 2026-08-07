@@ -13,7 +13,7 @@ class LuaLabelReferenceContributor : PsiReferenceContributor() {
             object : PsiReferenceProvider() {
                 override fun getReferencesByElement(
                     element: PsiElement,
-                    context: ProcessingContext
+                    context: ProcessingContext,
                 ): Array<PsiReference> {
                     val labelRef = element as LuaLabelRef
                     val value = labelRef.identifier?.text ?: labelRef.firstChild?.text
@@ -23,6 +23,7 @@ class LuaLabelReferenceContributor : PsiReferenceContributor() {
                     }
                     return PsiReference.EMPTY_ARRAY
                 }
-            })
+            },
+        )
     }
 }

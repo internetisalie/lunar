@@ -25,7 +25,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaFindUsagesTest : BasePlatformTestCase() {
-
     private val provider = LuaFindUsagesProvider()
     private val usageTypeProvider = LuaReadWriteUsageTypeProvider()
 
@@ -115,7 +114,8 @@ class LuaFindUsagesTest : BasePlatformTestCase() {
 
     @Test
     fun testScopeIsolation() {
-        val code = """
+        val code =
+            """
             local function f()
                 local x = 1
                 print(x)
@@ -124,7 +124,7 @@ class LuaFindUsagesTest : BasePlatformTestCase() {
                 local x = 2
                 print(x)
             end
-        """.trimIndent()
+            """.trimIndent()
         val file = myFixture.configureByText("test.lua", code)
 
         // Find first attName (x inside f)
@@ -161,9 +161,10 @@ class LuaFindUsagesTest : BasePlatformTestCase() {
         val file = myFixture.configureByText("test.lua", "local x = 0\nprint(x)")
         // Find the "x" nameRef that's inside a function call argument
         val nameRefs = PsiTreeUtil.findChildrenOfType(file, LuaNameRef::class.java)
-        val readRef = nameRefs.firstOrNull { ref ->
-            ref.identifier.text == "x" && ref.parent !is LuaVar
-        }
+        val readRef =
+            nameRefs.firstOrNull { ref ->
+                ref.identifier.text == "x" && ref.parent !is LuaVar
+            }
         assertNotNull("Expected a read-site nameRef for 'x'", readRef)
 
         val usageType = usageTypeProvider.getUsageType(readRef!!.identifier)

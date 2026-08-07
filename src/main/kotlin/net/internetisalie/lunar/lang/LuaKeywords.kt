@@ -5,12 +5,31 @@ package net.internetisalie.lunar.lang
  * that collides with a language keyword (which would produce invalid code).
  */
 object LuaKeywords {
-    val RESERVED: Set<String> = setOf(
-        "and", "break", "do", "else", "elseif", "end",
-        "false", "for", "function", "goto", "if", "in",
-        "local", "nil", "not", "or", "repeat", "return",
-        "then", "true", "until", "while",
-    )
+    val RESERVED: Set<String> =
+        setOf(
+            "and",
+            "break",
+            "do",
+            "else",
+            "elseif",
+            "end",
+            "false",
+            "for",
+            "function",
+            "goto",
+            "if",
+            "in",
+            "local",
+            "nil",
+            "not",
+            "or",
+            "repeat",
+            "return",
+            "then",
+            "true",
+            "until",
+            "while",
+        )
 
     fun isReserved(word: String): Boolean = word in RESERVED
 }

@@ -24,7 +24,6 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypeReference
  * [findSuperMembers], a reusable primitive that NAV-06 (type hierarchy) shares.
  */
 class LuaOverrideLineMarkerProvider : RelatedItemLineMarkerProvider() {
-
     override fun collectNavigationMarkers(
         element: PsiElement,
         result: MutableCollection<in RelatedItemLineMarkerInfo<*>>,
@@ -51,16 +50,24 @@ class LuaOverrideLineMarkerProvider : RelatedItemLineMarkerProvider() {
     /** The leaf naming the member: the `:method` leaf, else the last `.property` leaf; null for a bare `function f()`. */
     private fun memberNameLeaf(funcName: LuaFuncName): PsiElement? {
         funcName.funcNameMethod?.let { return it.nameRef.identifier }
-        return funcName.funcNamePropertyList.lastOrNull()?.nameRef?.identifier
+        return funcName.funcNamePropertyList
+            .lastOrNull()
+            ?.nameRef
+            ?.identifier
     }
 
-    private fun markerFor(identifier: PsiElement, superMembers: List<LuaTypeMember>): RelatedItemLineMarkerInfo<*> {
+    private fun markerFor(
+        identifier: PsiElement,
+        superMembers: List<LuaTypeMember>,
+    ): RelatedItemLineMarkerInfo<*> {
         val implements = superMembers.any { isAbstractMember(it) }
         val icon = if (implements) AllIcons.Gutter.ImplementingMethod else AllIcons.Gutter.OverridingMethod
-        val tooltip = LuaBundle.message(
-            if (implements) "gutter.implementing.method" else "gutter.overriding.method",
-        )
-        return NavigationGutterIconBuilder.create(icon)
+        val tooltip =
+            LuaBundle.message(
+                if (implements) "gutter.implementing.method" else "gutter.overriding.method",
+            )
+        return NavigationGutterIconBuilder
+            .create(icon)
             .setTargets(superMembers.mapNotNull { it.sourceElement })
             .setTooltipText(tooltip)
             .createLineMarkerInfo(identifier)
@@ -84,9 +91,15 @@ class LuaOverrideLineMarkerProvider : RelatedItemLineMarkerProvider() {
          * Reusable primitive: NAV-05 uses it for override/implement markers; NAV-06 reuses it to walk
          * the super hierarchy from a method. [context] supplies the resolution scope.
          */
-        fun findSuperMembers(className: String, methodName: String, context: PsiElement): List<LuaTypeMember> {
-            val classType = LuaTypeManager.getInstance(context.project)
-                .resolveType(className, context) as? LuaClassType ?: return emptyList()
+        fun findSuperMembers(
+            className: String,
+            methodName: String,
+            context: PsiElement,
+        ): List<LuaTypeMember> {
+            val classType =
+                LuaTypeManager
+                    .getInstance(context.project)
+                    .resolveType(className, context) as? LuaClassType ?: return emptyList()
             val members = mutableListOf<LuaTypeMember>()
             val visited = mutableSetOf(className)
             for (superType in classType.superTypes) {
@@ -110,10 +123,14 @@ class LuaOverrideLineMarkerProvider : RelatedItemLineMarkerProvider() {
             }
         }
 
-        private fun resolveClass(type: LuaType, context: PsiElement): LuaClassType? = when (type) {
-            is LuaClassType -> type
-            is LuaTypeReference -> type.resolveType() as? LuaClassType
-            else -> LuaTypeManager.getInstance(context.project).resolveType(type.name, context) as? LuaClassType
-        }
+        private fun resolveClass(
+            type: LuaType,
+            context: PsiElement,
+        ): LuaClassType? =
+            when (type) {
+                is LuaClassType -> type
+                is LuaTypeReference -> type.resolveType() as? LuaClassType
+                else -> LuaTypeManager.getInstance(context.project).resolveType(type.name, context) as? LuaClassType
+            }
     }
 }

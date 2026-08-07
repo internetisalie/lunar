@@ -15,8 +15,9 @@ object LuaHighlight {
         TextAttributesKey.createTextAttributesKey("LUA_COMMENT", DefaultLanguageHighlighterColors.LINE_COMMENT)
     val LONGCOMMENT: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_LONGCOMMENT", DefaultLanguageHighlighterColors.BLOCK_COMMENT)
-    val LONGCOMMENT_BRACES: TextAttributesKey = TextAttributesKey
-        .createTextAttributesKey("LUA_LONGCOMMENT_BRACES", DefaultLanguageHighlighterColors.BLOCK_COMMENT)
+    val LONGCOMMENT_BRACES: TextAttributesKey =
+        TextAttributesKey
+            .createTextAttributesKey("LUA_LONGCOMMENT_BRACES", DefaultLanguageHighlighterColors.BLOCK_COMMENT)
 
     val NUMBER: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_NUMBER", DefaultLanguageHighlighterColors.NUMBER)
@@ -61,17 +62,29 @@ object LuaHighlight {
     val DOC_TAG: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_DOC_TAG", DefaultLanguageHighlighterColors.DOC_COMMENT_TAG)
     val DOC_VALUE: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_DOC_VALUE", DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_DOC_VALUE",
+            DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE,
+        )
 
     val PACKAGE: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_PACKAGE", DefaultLanguageHighlighterColors.IDENTIFIER)
 
     val FUNC_PLATFORM: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_FUNC_PLATFORM", DefaultLanguageHighlighterColors.FUNCTION_DECLARATION)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_FUNC_PLATFORM",
+            DefaultLanguageHighlighterColors.FUNCTION_DECLARATION,
+        )
     val FUNC_GLOBAL: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_FUNC_GLOBAL", DefaultLanguageHighlighterColors.FUNCTION_DECLARATION)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_FUNC_GLOBAL",
+            DefaultLanguageHighlighterColors.FUNCTION_DECLARATION,
+        )
     val FUNC_LOCAL: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_FUNC_LOCAL", DefaultLanguageHighlighterColors.FUNCTION_DECLARATION)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_FUNC_LOCAL",
+            DefaultLanguageHighlighterColors.FUNCTION_DECLARATION,
+        )
 
     val CALL_PLATFORM: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_CALL_PLATFORM", FUNC_PLATFORM)
@@ -88,7 +101,10 @@ object LuaHighlight {
         TextAttributesKey.createTextAttributesKey("LUA_LABEL", DefaultLanguageHighlighterColors.LABEL)
 
     val VAR_PLATFORM: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_REF_PLATFORM", DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_REF_PLATFORM",
+            DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL,
+        )
     val VAR_GLOBAL: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_REF_GLOBAL", DefaultLanguageHighlighterColors.GLOBAL_VARIABLE)
     val VAR_LOCAL: TextAttributesKey =
@@ -107,13 +123,22 @@ object LuaHighlight {
         TextAttributesKey.createTextAttributesKey("LUA_ATTR_NAME", DefaultLanguageHighlighterColors.IDENTIFIER)
 
     val INFERRED_LOCAL_CALL: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_LOCAL_CALL", DefaultLanguageHighlighterColors.FUNCTION_CALL)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_INFERRED_LOCAL_CALL",
+            DefaultLanguageHighlighterColors.FUNCTION_CALL,
+        )
     val INFERRED_GLOBAL_CALL: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_GLOBAL_CALL", DefaultLanguageHighlighterColors.FUNCTION_CALL)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_INFERRED_GLOBAL_CALL",
+            DefaultLanguageHighlighterColors.FUNCTION_CALL,
+        )
     val INFERRED_CLASS: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_INFERRED_CLASS", DefaultLanguageHighlighterColors.CLASS_NAME)
     val INFERRED_FIELD: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUA_INFERRED_FIELD", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
     val INFERRED_METHOD: TextAttributesKey =
-        TextAttributesKey.createTextAttributesKey("LUA_INFERRED_METHOD", DefaultLanguageHighlighterColors.INSTANCE_METHOD)
+        TextAttributesKey.createTextAttributesKey(
+            "LUA_INFERRED_METHOD",
+            DefaultLanguageHighlighterColors.INSTANCE_METHOD,
+        )
 }

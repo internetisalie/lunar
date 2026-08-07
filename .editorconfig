@@ -3,13 +3,40 @@
 # top-most EditorConfig file
 root = true
 
-# ktlint: this codebase is formatted by the IntelliJ formatter, not ktlint. ~53 of the standard
-# rules are violated repo-wide, so the standard ruleset is disabled wholesale rather than
-# maintained as a long (and ever-growing) per-rule list. `./gradlew ktlintCheck` therefore passes;
-# it stays available to catch any future non-standard ruleset. To adopt a real ktlint gate later,
-# run `./gradlew ktlintFormat` to reformat, then re-enable `ktlint_standard` (and commit the diff).
+# ktlint: the standard ruleset is ON and `./gradlew ktlintCheck` is a real gate.
+#
+# It was previously `ktlint_standard = disabled`, which made the check pass by asserting nothing.
+# Adopting the ruleset took one mechanical `ktlintFormat` pass (905 files) plus hand-fixes for what
+# ktlint could not fix itself. 37 of the 43 standard rules are enforced; the five turned off below
+# are named individually with the reason, so the exception is auditable instead of a blanket off
+# switch, and a sixth is recorded as debt.
 [*.{kt,kts}]
-ktlint_standard = disabled
+
+# Renaming these would CHANGE BEHAVIOUR, not style. `LuaCodeStyleSettings` exposes
+# `@JvmField var WRAP_ARGUMENTS`-style fields on a `CustomCodeStyleSettings`, and the IntelliJ
+# platform serializes those into the user's code-style XML *by field name* — renaming them silently
+# discards every user's saved Lua formatting settings. `LuaCatsHighlight`'s `TextAttributesKey`
+# properties follow the platform's own constant convention for the same reason.
+ktlint_standard_property-naming = disabled
+
+# `/* paramName = */ false` argument hints on Java platform APIs (`resolveWithCaching`,
+# `createCachedValue`), where Kotlin named arguments are not available. The comment is the only
+# thing telling a reader what that bare boolean means.
+ktlint_standard_comment-wrapping = disabled
+
+# A file-level KDoc immediately preceding the first declaration's own KDoc. Both are wanted: one
+# documents the file's purpose, the other the declaration.
+ktlint_standard_no-consecutive-comments = disabled
+
+# Files deliberately holding several small related declarations (`LuaCheckModel.kt`,
+# `LuaSettingsChangedEvent.kt`) rather than one file per type.
+ktlint_standard_filename = disabled
+
+# DEBT, not a decision: docs/engineering-contract.md asks for no wildcard imports, so this rule
+# should be ON. Expanding the remaining 68 (57 files, mostly `net.internetisalie.lunar.lang.psi.*`)
+# needs symbol-level resolution ktlint cannot do and hand-editing would risk breaking. Tracked as
+# BUG-421; re-enable when that lands.
+ktlint_standard_no-wildcard-imports = disabled
 
 # Kotlin files
 [*.kt]
@@ -50,3 +77,10 @@ trim_trailing_whitespace = true
 # Markdown files
 [*.md]
 trim_trailing_whitespace = false
+
+# Test-source only: method names carry requirement traceability IDs
+# (`testFunctionRegisteredValidationRejectsUnknownName_TC_VALID_1`), which link a test to the test
+# case it discharges in the feature's requirements.md. ktlint wants pure camelCase; renaming 117
+# methods would delete the link. Production sources keep the rule ON — measured 0 violations there.
+[src/{test,integrationTest}/**/*.kt]
+ktlint_standard_function-naming = disabled

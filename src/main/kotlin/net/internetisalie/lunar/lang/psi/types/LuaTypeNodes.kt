@@ -54,7 +54,9 @@ interface UseNode : TypeNode {
  * Implements the "wormhole" invariant: anything assigned to this variable (flowing into
  * [upSet]) must be compatible with anything read from it (flowing into [downSet]).
  */
-interface VariableNode : ValueNode, UseNode {
+interface VariableNode :
+    ValueNode,
+    UseNode {
     /** All upstream nodes that flow values *into* this variable. */
     val upSet: OrderedSet<TypeNode>
 
@@ -101,7 +103,6 @@ internal class UseElement(
 internal class VariableElement(
     override val element: PsiElement,
 ) : VariableNode {
-
     override val upSet: OrderedSet<TypeNode> = OrderedSet()
     override val downSet: OrderedSet<TypeNode> = OrderedSet()
 
@@ -142,16 +143,17 @@ internal class VariableElement(
     private fun resolveRead(visited: MutableSet<VariableNode>): LuaGraphType {
         if (!visited.add(this)) return LuaGraphType.Any
 
-        val demands = downSet.asSequence()
-            .map {
-                when (it) {
-                    is VariableElement -> it.resolveRead(visited)
-                    is UseNode -> it.read
-                    else -> LuaGraphType.Any
-                }
-            }
-            .filter { it != LuaGraphType.Any }
-            .toList()
+        val demands =
+            downSet
+                .asSequence()
+                .map {
+                    when (it) {
+                        is VariableElement -> it.resolveRead(visited)
+                        is UseNode -> it.read
+                        else -> LuaGraphType.Any
+                    }
+                }.filter { it != LuaGraphType.Any }
+                .toList()
 
         // BUG-395: member demands accumulate. Each `x.f` records a separate one-member Table
         // constraint, so taking only the first would describe `x` by whichever member happened to be

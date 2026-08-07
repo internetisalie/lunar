@@ -33,7 +33,13 @@ object LuaPsiImplUtil {
 
             // If we found a sibling that is NOT a comment/whitespace,
             // then any comment before it belongs to that sibling, not us.
-            if (prev != null && prev !is PsiWhiteSpace && prev !is PsiComment && !prev.node.elementType.toString().contains("COMMENT")) {
+            if (prev != null &&
+                prev !is PsiWhiteSpace &&
+                prev !is PsiComment &&
+                !prev.node.elementType
+                    .toString()
+                    .contains("COMMENT")
+            ) {
                 break
             }
 
@@ -42,7 +48,6 @@ object LuaPsiImplUtil {
 
         return null
     }
-
 
     @JvmStatic
     fun getComment(owner: LuaCommentOwner?): PsiComment? {
@@ -59,9 +64,8 @@ object LuaPsiImplUtil {
     }
 
     @JvmStatic
-    fun getBlockList(element : PsiElement) : List<LuaBlock> {
-        return PsiTreeUtil.getChildrenOfType(element, LuaBlock::class.java)?.toList() ?: emptyList()
-    }
+    fun getBlockList(element: PsiElement): List<LuaBlock> =
+        PsiTreeUtil.getChildrenOfType(element, LuaBlock::class.java)?.toList() ?: emptyList()
 
     @JvmStatic
     fun getParameters(parList: LuaParList?): List<String> {
@@ -88,7 +92,9 @@ inline fun <reified T : PsiElement> PsiElement.prevSiblingSkipWhitespaceOnly(): 
 fun PsiElement.firstChildSkipWhitespace(): PsiElement? {
     var child = firstChild
     while (child != null) {
-        if (child !is PsiWhiteSpace) { return child }
+        if (child !is PsiWhiteSpace) {
+            return child
+        }
         child = child.nextSibling
     }
     return null

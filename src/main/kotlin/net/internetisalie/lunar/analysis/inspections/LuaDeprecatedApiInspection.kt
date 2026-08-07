@@ -16,7 +16,6 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeprecatedTag
  * Inspection to flag references to deprecated APIs (INSP-08).
  */
 class LuaDeprecatedApiInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaDeprecatedApi"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -27,7 +26,10 @@ class LuaDeprecatedApiInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitNameRef(o: LuaNameRef) {
                 if (isDeclaration(o)) return
@@ -40,15 +42,16 @@ class LuaDeprecatedApiInspection : LocalInspectionTool() {
                     val deprecatedTag = getDeprecatedTag(element)
                     if (deprecatedTag != null) {
                         val desc = deprecatedTag.description?.text?.trim()
-                        val message = if (!desc.isNullOrEmpty()) {
-                            "Deprecated API: $desc"
-                        } else {
-                            "Deprecated API"
-                        }
+                        val message =
+                            if (!desc.isNullOrEmpty()) {
+                                "Deprecated API: $desc"
+                            } else {
+                                "Deprecated API"
+                            }
                         holder.registerProblem(
                             o,
                             message,
-                            ProblemHighlightType.LIKE_DEPRECATED
+                            ProblemHighlightType.LIKE_DEPRECATED,
                         )
                         break
                     }
@@ -88,9 +91,10 @@ class LuaDeprecatedApiInspection : LocalInspectionTool() {
                 }
             }
             if (commentOwner is LuaLocalVarDecl) {
-                val isDeclaredVar = commentOwner.attNameList.any { 
-                    it.nameRef.identifier == resolved || it.nameRef.identifier.text == resolved.text 
-                }
+                val isDeclaredVar =
+                    commentOwner.attNameList.any {
+                        it.nameRef.identifier == resolved || it.nameRef.identifier.text == resolved.text
+                    }
                 if (!isDeclaredVar && resolved != commentOwner) {
                     return null
                 }

@@ -12,9 +12,7 @@ import net.internetisalie.lunar.settings.LuaEditorOptions
  * Registered via `<editorSmartKeysConfigurable instance="…"/>` (design §2.6, §7).
  * Mirrors Kotlin's `KotlinEditorOptionsConfigurable`.
  */
-class LuaEditorOptionsConfigurable :
-    BeanConfigurable<LuaEditorOptions>(LuaEditorOptions.instance, "Lua") {
-
+class LuaEditorOptionsConfigurable : BeanConfigurable<LuaEditorOptions>(LuaEditorOptions.instance, "Lua") {
     init {
         checkBox(
             "Insert matching end/until for Lua block keywords",

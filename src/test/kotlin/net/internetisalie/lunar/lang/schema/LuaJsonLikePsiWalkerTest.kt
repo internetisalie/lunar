@@ -1,23 +1,25 @@
 package net.internetisalie.lunar.lang.schema
 
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
-import com.intellij.psi.util.PsiTreeUtil
 
 class LuaJsonLikePsiWalkerTest : BasePlatformTestCase() {
-
     fun testProviderFactorySurfacesLunarEpProviders() {
         // The SCHEMA-02..04 seam: providers registered on the lunar EP must flow through
         // LuaSchemaProviderFactory to the platform.
-        val provider = object : LuaSchemaFileProvider() {
-            override fun isAvailable(file: VirtualFile): Boolean = false
-            override fun getName(): String = "seam-test"
-            override fun getSchemaFile(): VirtualFile? = null
-        }
+        val provider =
+            object : LuaSchemaFileProvider() {
+                override fun isAvailable(file: VirtualFile): Boolean = false
+
+                override fun getName(): String = "seam-test"
+
+                override fun getSchemaFile(): VirtualFile? = null
+            }
         ExtensionTestUtil.maskExtensions(LuaSchemaProviderFactory.EP_NAME, listOf(provider), testRootDisposable)
 
         val providers = LuaSchemaProviderFactory().getProviders(project)
@@ -52,12 +54,13 @@ class LuaJsonLikePsiWalkerTest : BasePlatformTestCase() {
 
     fun testGetRootsIgnoresNestedReturn() {
         // A `return` inside a helper function must not be mistaken for the document root (shape A wins).
-        val file = requireNotNull(
-            myFixture.configureByText(
-                "test.lua",
-                "local function helper() return { x = 1 } end\nname = \"y\""
-            ) as? LuaFile
-        )
+        val file =
+            requireNotNull(
+                myFixture.configureByText(
+                    "test.lua",
+                    "local function helper() return { x = 1 } end\nname = \"y\"",
+                ) as? LuaFile,
+            )
         val roots = LuaJsonLikePsiWalker.INSTANCE.getRoots(file)
         assertSize(1, roots)
         assertEquals(file, roots.first())
@@ -66,7 +69,7 @@ class LuaJsonLikePsiWalkerTest : BasePlatformTestCase() {
     fun testFindPositionInTable() {
         val file = requireNotNull(myFixture.configureByText("test.lua", "return { a = { b = 42 } }") as? LuaFile)
         val number = requireNotNull(PsiTreeUtil.findChildOfType(file, LuaTerminalExpr::class.java))
-        
+
         val position = requireNotNull(LuaJsonLikePsiWalker.INSTANCE.findPosition(number, true))
         assertEquals("/a/b", position.toJsonPointer())
     }
@@ -74,7 +77,7 @@ class LuaJsonLikePsiWalkerTest : BasePlatformTestCase() {
     fun testFindPositionInFile() {
         val file = requireNotNull(myFixture.configureByText("test.lua", "a = { b = 42 }") as? LuaFile)
         val number = requireNotNull(PsiTreeUtil.findChildOfType(file, LuaTerminalExpr::class.java))
-        
+
         val position = requireNotNull(LuaJsonLikePsiWalker.INSTANCE.findPosition(number, true))
         assertEquals("/a/b", position.toJsonPointer())
     }

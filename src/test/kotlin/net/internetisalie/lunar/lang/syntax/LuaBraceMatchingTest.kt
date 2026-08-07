@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class LuaBraceMatchingTest : BaseDocumentTest() {
-
     @Test
     fun testMatcherRegistration() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
@@ -27,31 +26,42 @@ class LuaBraceMatchingTest : BaseDocumentTest() {
         val matcher = LuaPairedBraceMatcher()
         val pairs = matcher.pairs
 
-        val expected = setOf(
-            Pair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN),
-            Pair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK),
-            Pair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY),
-            Pair(LuaElementTypes.REPEAT, LuaElementTypes.UNTIL),
-            Pair(LuaElementTypes.DO, LuaElementTypes.END),
-            Pair(LuaElementTypes.FUNCTION, LuaElementTypes.END),
-            Pair(LuaElementTypes.IF, LuaElementTypes.END)
-        )
+        val expected =
+            setOf(
+                Pair(LuaElementTypes.LPAREN, LuaElementTypes.RPAREN),
+                Pair(LuaElementTypes.LBRACK, LuaElementTypes.RBRACK),
+                Pair(LuaElementTypes.LCURLY, LuaElementTypes.RCURLY),
+                Pair(LuaElementTypes.REPEAT, LuaElementTypes.UNTIL),
+                Pair(LuaElementTypes.DO, LuaElementTypes.END),
+                Pair(LuaElementTypes.FUNCTION, LuaElementTypes.END),
+                Pair(LuaElementTypes.IF, LuaElementTypes.END),
+            )
 
         val actual = pairs.map { Pair(it.leftBraceType, it.rightBraceType) }.toSet()
         Assertions.assertEquals(expected, actual)
     }
 
-    private fun doTest(text: String, caretOffset: Int, expectedMatchOffset: Int, forward: Boolean) {
-        val actualMatchOffset = EdtTestUtil.runInEdtAndGet<Int, RuntimeException> {
-            runReadAction {
-                myFixture.configureByText("test.lua", text)
-                val file = myFixture.file
-                val editor = myFixture.editor
-                editor.caretModel.moveToOffset(caretOffset)
-                BraceMatchingUtil.getMatchedBraceOffset(editor, forward, file)
+    private fun doTest(
+        text: String,
+        caretOffset: Int,
+        expectedMatchOffset: Int,
+        forward: Boolean,
+    ) {
+        val actualMatchOffset =
+            EdtTestUtil.runInEdtAndGet<Int, RuntimeException> {
+                runReadAction {
+                    myFixture.configureByText("test.lua", text)
+                    val file = myFixture.file
+                    val editor = myFixture.editor
+                    editor.caretModel.moveToOffset(caretOffset)
+                    BraceMatchingUtil.getMatchedBraceOffset(editor, forward, file)
+                }
             }
-        }
-        Assertions.assertEquals(expectedMatchOffset, actualMatchOffset, "Matching brace offset mismatch at caret $caretOffset")
+        Assertions.assertEquals(
+            expectedMatchOffset,
+            actualMatchOffset,
+            "Matching brace offset mismatch at caret $caretOffset",
+        )
     }
 
     @Test
@@ -88,11 +98,12 @@ class LuaBraceMatchingTest : BaseDocumentTest() {
                 // BraceMatchingUtil.getMatchedBraceOffset crashes with AssertionError
                 // if called on a non-brace token (like STRING here).
                 // This confirms that the platform does not see it as a matchable brace.
-                val matchedOffset = try {
-                    BraceMatchingUtil.getMatchedBraceOffset(editor, true, myFixture.file)
-                } catch (e: AssertionError) {
-                    -1
-                }
+                val matchedOffset =
+                    try {
+                        BraceMatchingUtil.getMatchedBraceOffset(editor, true, myFixture.file)
+                    } catch (e: AssertionError) {
+                        -1
+                    }
                 Assertions.assertEquals(-1, matchedOffset, "Should not match braces inside strings")
             }
         }

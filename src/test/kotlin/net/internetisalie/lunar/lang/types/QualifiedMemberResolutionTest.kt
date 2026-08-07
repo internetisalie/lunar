@@ -16,7 +16,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class QualifiedMemberResolutionTest : IndexedBasePlatformTestCase() {
-
     @Test
     fun testPackagePathQuickDocDoesNotResolveToUnrelatedModuleFunction() {
         myFixture.addFileToProject(
@@ -43,8 +42,9 @@ class QualifiedMemberResolutionTest : IndexedBasePlatformTestCase() {
 
         myFixture.configureByText("test.lua", "local p = package.pa<caret>th\n")
 
-        val targets = LuaDocumentationTargetProvider()
-            .documentationTargets(myFixture.file, myFixture.caretOffset)
+        val targets =
+            LuaDocumentationTargetProvider()
+                .documentationTargets(myFixture.file, myFixture.caretOffset)
         val presentations = targets.map { it.computePresentation().presentableText }
 
         assertTrue(

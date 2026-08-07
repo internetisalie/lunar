@@ -15,7 +15,6 @@ import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
  * or `null` when not applicable.
  */
 class LuaNameSuggestionProvider : NameSuggestionProvider {
-
     override fun getSuggestedNames(
         element: PsiElement,
         nameSuggestionContext: PsiElement?,

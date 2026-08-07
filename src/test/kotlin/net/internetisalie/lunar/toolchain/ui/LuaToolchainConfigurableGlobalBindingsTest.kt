@@ -15,7 +15,6 @@ import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
  * → apply) on the EDT, mirroring the existing [LuaToolchainConfigurableTest] fixture pattern.
  */
 class LuaToolchainConfigurableGlobalBindingsTest : ToolchainSettingsTestCase() {
-
     fun testSelectingToolWritesGlobalBinding_TC8() {
         val tool = seedTool("luacheck")
         assertGlobalBindingApplied(tool)
@@ -65,22 +64,34 @@ class LuaToolchainConfigurableGlobalBindingsTest : ToolchainSettingsTestCase() {
         }
     }
 
-    private fun bindingCombo(panel: DialogPanel, kindId: String): ComboBox<*> =
+    private fun bindingCombo(
+        panel: DialogPanel,
+        kindId: String,
+    ): ComboBox<*> =
         UIUtil.findComponentsOfType(panel, ComboBox::class.java).firstOrNull { combo ->
             (0 until combo.itemCount).any { index ->
                 (combo.getItemAt(index) as? LuaBindingItem.Tool)?.tool?.kindId == kindId
             }
         } ?: error("global binding combo for $kindId not found")
 
-    private fun selectBinding(panel: DialogPanel, kindId: String, toolId: String) {
+    private fun selectBinding(
+        panel: DialogPanel,
+        kindId: String,
+        toolId: String,
+    ) {
         val combo = bindingCombo(panel, kindId)
-        val item = (0 until combo.itemCount).map { combo.getItemAt(it) }
-            .firstOrNull { (it as? LuaBindingItem.Tool)?.tool?.id == toolId }
-            ?: error("tool $toolId not present in $kindId combo")
+        val item =
+            (0 until combo.itemCount)
+                .map { combo.getItemAt(it) }
+                .firstOrNull { (it as? LuaBindingItem.Tool)?.tool?.id == toolId }
+                ?: error("tool $toolId not present in $kindId combo")
         combo.selectedItem = item
     }
 
-    private fun selectInherit(panel: DialogPanel, kindId: String) {
+    private fun selectInherit(
+        panel: DialogPanel,
+        kindId: String,
+    ) {
         bindingCombo(panel, kindId).selectedItem = LuaBindingItem.Inherit
     }
 }

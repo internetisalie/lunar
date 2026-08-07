@@ -27,7 +27,10 @@ class LuaLibraryProvider : AdditionalLibraryRootsProvider() {
         return listOf(libraryRoot)
     }
 
-    class LuaLibrary(private val root: VirtualFile) : SyntheticLibrary(), ItemPresentation {
+    class LuaLibrary(
+        private val root: VirtualFile,
+    ) : SyntheticLibrary(),
+        ItemPresentation {
         override fun getSourceRoots(): Collection<VirtualFile> = listOf(root)
 
         override fun getIcon(unused: Boolean): Icon = LuaIcons.FILE
@@ -38,7 +41,6 @@ class LuaLibraryProvider : AdditionalLibraryRootsProvider() {
 
         override fun hashCode(): Int = root.hashCode()
 
-        override fun equals(other: Any?): Boolean =
-            other is LuaLibrary && other.root == root
+        override fun equals(other: Any?): Boolean = other is LuaLibrary && other.root == root
     }
 }

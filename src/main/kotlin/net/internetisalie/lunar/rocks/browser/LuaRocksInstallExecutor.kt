@@ -13,7 +13,11 @@ import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 import java.nio.file.Path
 
 /** Install request carrying the canonical target tree (3-arg-cap context object, contract §3). */
-data class InstallRequest(val name: String, val version: String?, val treeRoot: Path)
+data class InstallRequest(
+    val name: String,
+    val version: String?,
+    val treeRoot: Path,
+)
 
 /**
  * Runs canonical `install` / `remove` on a background [Task.Backgroundable] against the project
@@ -24,8 +28,9 @@ data class InstallRequest(val name: String, val version: String?, val treeRoot: 
  * [onInstall]/[onRemove] pass a callback that this executor invokes **on the EDT** via `invokeLater`.
  * Unlike the old handler, the KDoc promise matches the invocation site.
  */
-class LuaRocksInstallExecutor(private val project: Project) {
-
+class LuaRocksInstallExecutor(
+    private val project: Project,
+) {
     /** Internal execution context (3-arg-cap object, contract §3): all state for one CLI job. */
     private data class Job(
         val title: String,
@@ -36,28 +41,48 @@ class LuaRocksInstallExecutor(private val project: Project) {
     )
 
     /** Installs [request]; [onDone] is invoked on the EDT with the success flag. */
-    fun install(request: InstallRequest, onDone: (Boolean) -> Unit) {
+    fun install(
+        request: InstallRequest,
+        onDone: (Boolean) -> Unit,
+    ) {
         val title = request.version?.let { "Installing ${request.name} $it" } ?: "Installing ${request.name}"
         val args = LuaRocksInstallCommand.buildInstallArgs(request.treeRoot, request.name, request.version)
         runInBackground(Job(title, request.treeRoot, args, "installed ${request.name}", onDone))
     }
 
     /** Removes [name] from [treeRoot]; [onDone] is invoked on the EDT with the success flag. */
-    fun remove(name: String, treeRoot: Path, onDone: (Boolean) -> Unit) {
+    fun remove(
+        name: String,
+        treeRoot: Path,
+        onDone: (Boolean) -> Unit,
+    ) {
         val args = LuaRocksInstallCommand.buildRemoveArgs(treeRoot, name)
         runInBackground(Job("Removing $name", treeRoot, args, "removed $name", onDone))
     }
 
     private fun runInBackground(job: Job) {
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, job.title, true) {
-            override fun run(indicator: ProgressIndicator) = execute(job, indicator)
-        })
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(project, job.title, true) {
+                override fun run(indicator: ProgressIndicator) = execute(job, indicator)
+            },
+        )
     }
 
-    private fun execute(job: Job, indicator: ProgressIndicator) {
-        val command = (LuaRocksEnvironment.command(project, job.args) ?: return finish(false, NOT_CONFIGURED, job.onDone))
-            .withWorkDirectory(job.treeRoot.parent?.toString())
-        val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.INSTALL, indicator = indicator)
+    private fun execute(
+        job: Job,
+        indicator: ProgressIndicator,
+    ) {
+        val command =
+            (
+                LuaRocksEnvironment.command(project, job.args)
+                    ?: return finish(false, NOT_CONFIGURED, job.onDone)
+            ).withWorkDirectory(job.treeRoot.parent?.toString())
+        val output =
+            LuaToolExecutionService.getInstance().capture(
+                command,
+                LuaExecTimeout.INSTALL,
+                indicator = indicator,
+            )
         if (output.exitCode == 0) {
             LuaRocksSearchCache.invalidateAll()
             finish(true, "LuaRocks: ${job.successLabel}", job.onDone)
@@ -66,13 +91,21 @@ class LuaRocksInstallExecutor(private val project: Project) {
         }
     }
 
-    private fun finish(success: Boolean, message: String, onDone: (Boolean) -> Unit) {
+    private fun finish(
+        success: Boolean,
+        message: String,
+        onDone: (Boolean) -> Unit,
+    ) {
         notify(message, if (success) NotificationType.INFORMATION else NotificationType.ERROR)
         ApplicationManager.getApplication().invokeLater { onDone(success) }
     }
 
-    private fun notify(message: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
+    private fun notify(
+        message: String,
+        type: NotificationType,
+    ) {
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP)
             .createNotification(message, type)
             .notify(project)

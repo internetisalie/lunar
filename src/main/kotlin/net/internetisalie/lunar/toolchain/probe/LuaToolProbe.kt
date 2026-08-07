@@ -9,13 +9,16 @@ interface LuaToolProbe {
      * Probes a tool's version, compatibility, and optional runtime info.
      * Must be called on a background thread.
      */
-    fun probe(kind: LuaToolKind, binaryPath: Path): LuaToolProbeResult
+    fun probe(
+        kind: LuaToolKind,
+        binaryPath: Path,
+    ): LuaToolProbeResult
 
     companion object {
-        fun getInstance(): LuaToolProbe {
-            return com.intellij.openapi.application.ApplicationManager.getApplication()
+        fun getInstance(): LuaToolProbe =
+            com.intellij.openapi.application.ApplicationManager
+                .getApplication()
                 .getService(LuaToolProbe::class.java)
-        }
     }
 }
 
@@ -24,5 +27,5 @@ data class LuaToolProbeResult(
     val version: String?,
     val luaVersion: String?,
     val runtime: LuaRuntimeInfo?,
-    val failure: String?
+    val failure: String?,
 )

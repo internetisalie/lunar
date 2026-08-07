@@ -22,7 +22,6 @@ import kotlin.io.path.writeText
  * 5. Multiple functions
  */
 class LuaProgramExecutionIntegrationTest {
-
     private fun createTestProject(name: String): Path {
         val projectDir = Path.of("build/test-projects/$name")
         projectDir.createDirectories()
@@ -34,10 +33,11 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute simple print program`() {
         val projectDir = createTestProject("lua-simple-print")
 
-        val luaCode = """
+        val luaCode =
+            """
             print("Hello from Lunar!")
             print("Lua plugin integration test")
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("main.lua").writeText(luaCode)
 
@@ -54,7 +54,8 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute arithmetic operations program`() {
         val projectDir = createTestProject("lua-arithmetic")
 
-        val luaCode = """
+        val luaCode =
+            """
             local a = 10
             local b = 20
             print("a = " .. a)
@@ -62,7 +63,7 @@ class LuaProgramExecutionIntegrationTest {
             print("a + b = " .. (a + b))
             print("a * b = " .. (a * b))
             print("b / a = " .. (b / a))
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("arithmetic.lua").writeText(luaCode)
 
@@ -77,7 +78,8 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute string operations program`() {
         val projectDir = createTestProject("lua-strings")
 
-        val luaCode = """
+        val luaCode =
+            """
             local str1 = "Hello"
             local str2 = "Lunar"
 
@@ -87,7 +89,7 @@ class LuaProgramExecutionIntegrationTest {
 
             local substring = string.sub(str1, 1, 3)
             print("Substring: " .. substring)
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("strings.lua").writeText(luaCode)
 
@@ -102,7 +104,8 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute table operations program`() {
         val projectDir = createTestProject("lua-tables")
 
-        val luaCode = """
+        val luaCode =
+            """
             local items = {}
             items[1] = "apple"
             items[2] = "banana"
@@ -114,7 +117,7 @@ class LuaProgramExecutionIntegrationTest {
             end
 
             print("Total items: " .. #items)
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("tables.lua").writeText(luaCode)
 
@@ -129,7 +132,8 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute program with functions`() {
         val projectDir = createTestProject("lua-functions")
 
-        val luaCode = """
+        val luaCode =
+            """
             local function add(a, b)
                 return a + b
             end
@@ -148,7 +152,7 @@ class LuaProgramExecutionIntegrationTest {
             print("add(" .. x .. ", " .. y .. ") = " .. add(x, y))
             print("multiply(" .. x .. ", " .. y .. ") = " .. multiply(x, y))
             describe(add(x, y))
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("functions.lua").writeText(luaCode)
 
@@ -163,7 +167,8 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute program with conditionals`() {
         val projectDir = createTestProject("lua-conditionals")
 
-        val luaCode = """
+        val luaCode =
+            """
             local number = 42
 
             if number > 50 then
@@ -181,7 +186,7 @@ class LuaProgramExecutionIntegrationTest {
                     print(i .. " is odd")
                 end
             end
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("conditionals.lua").writeText(luaCode)
 
@@ -196,7 +201,8 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute program with loops`() {
         val projectDir = createTestProject("lua-loops")
 
-        val luaCode = """
+        val luaCode =
+            """
             print("For loop:")
             for i = 1, 5 do
                 print("  " .. i)
@@ -215,7 +221,7 @@ class LuaProgramExecutionIntegrationTest {
                 print("  x = " .. x)
                 x = x + 1
             until x > 3
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("loops.lua").writeText(luaCode)
 
@@ -230,7 +236,8 @@ class LuaProgramExecutionIntegrationTest {
     fun `execute program with error handling`() {
         val projectDir = createTestProject("lua-errors")
 
-        val luaCode = """
+        val luaCode =
+            """
             local function safeDivide(a, b)
                 if b == 0 then
                     return nil, "Division by zero"
@@ -251,7 +258,7 @@ class LuaProgramExecutionIntegrationTest {
             else
                 print("Result: " .. result)
             end
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("errors.lua").writeText(luaCode)
 
@@ -267,7 +274,8 @@ class LuaProgramExecutionIntegrationTest {
         val projectDir = createTestProject("lua-multifile")
 
         // Create a module file
-        val moduleCode = """
+        val moduleCode =
+            """
             local math_utils = {}
 
             function math_utils.factorial(n)
@@ -281,17 +289,18 @@ class LuaProgramExecutionIntegrationTest {
             end
 
             return math_utils
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("math_utils.lua").writeText(moduleCode)
 
         // Create main file that uses the module
-        val mainCode = """
+        val mainCode =
+            """
             local math_utils = require("math_utils")
 
             print("Factorial of 5: " .. math_utils.factorial(5))
             print("Fibonacci of 7: " .. math_utils.fibonacci(7))
-        """.trimIndent()
+            """.trimIndent()
 
         projectDir.resolve("main.lua").writeText(mainCode)
 
@@ -312,13 +321,14 @@ class LuaProgramExecutionIntegrationTest {
         // Create a project with various valid Lua syntax
         val projectDir = createTestProject("lua-syntax-validation")
 
-        val programs = listOf(
-            "simple.lua" to "print('Simple')",
-            "string_concat.lua" to "print('Hello' .. ' ' .. 'World')",
-            "variable.lua" to "local x = 42; print(x)",
-            "comment.lua" to "-- This is a comment\nprint('Code')",
-            "multiline.lua" to "print([[Multi\nline\nstring]])",
-        )
+        val programs =
+            listOf(
+                "simple.lua" to "print('Simple')",
+                "string_concat.lua" to "print('Hello' .. ' ' .. 'World')",
+                "variable.lua" to "local x = 42; print(x)",
+                "comment.lua" to "-- This is a comment\nprint('Code')",
+                "multiline.lua" to "print([[Multi\nline\nstring]])",
+            )
 
         for ((filename, code) in programs) {
             projectDir.resolve(filename).writeText(code)

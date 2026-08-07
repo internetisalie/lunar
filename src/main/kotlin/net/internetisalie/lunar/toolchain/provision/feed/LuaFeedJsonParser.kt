@@ -13,9 +13,10 @@ internal object LuaFeedJsonParser {
     fun parseFeed(root: JsonObject): LuaToolchainFeed {
         val feedVersion = root.requireInt("feedVersion")
         val kindsObject = root.requireObject("kinds")
-        val kinds = kindsObject.keySet().associateWith { kindId ->
-            parseKind(kindsObject.requireObject(kindId))
-        }
+        val kinds =
+            kindsObject.keySet().associateWith { kindId ->
+                parseKind(kindsObject.requireObject(kindId))
+            }
         return LuaToolchainFeed(feedVersion, kinds)
     }
 
@@ -64,8 +65,7 @@ internal object LuaFeedJsonParser {
             needsCToolchain = rock.requireBoolean("needsCToolchain"),
         )
 
-    private fun corrupt(detail: String): Nothing =
-        throw LuaProvisionException("Corrupt toolchain feed: $detail")
+    private fun corrupt(detail: String): Nothing = throw LuaProvisionException("Corrupt toolchain feed: $detail")
 
     private fun JsonObject.requirePrimitive(field: String) =
         get(field)?.takeUnless { it.isJsonNull } ?: corrupt("missing field '$field'")
@@ -83,13 +83,19 @@ internal object LuaFeedJsonParser {
         runCatching { requirePrimitive(field).asBoolean }.getOrElse { corrupt("field '$field' is not a boolean") }
 
     private fun JsonObject.requireObject(field: String): JsonObject =
-        requirePrimitive(field).let { if (it.isJsonObject) it.asJsonObject else corrupt("field '$field' is not an object") }
+        requirePrimitive(
+            field,
+        ).let { if (it.isJsonObject) it.asJsonObject else corrupt("field '$field' is not an object") }
 
     private fun JsonObject.requireArray(field: String): JsonArray =
-        requirePrimitive(field).let { if (it.isJsonArray) it.asJsonArray else corrupt("field '$field' is not an array") }
+        requirePrimitive(
+            field,
+        ).let { if (it.isJsonArray) it.asJsonArray else corrupt("field '$field' is not an array") }
 
     private fun JsonObject.requireStringArray(field: String): List<String> =
-        requireArray(field).map { runCatching { it.asString }.getOrElse { corrupt("field '$field' has a non-string element") } }
+        requireArray(
+            field,
+        ).map { runCatching { it.asString }.getOrElse { corrupt("field '$field' has a non-string element") } }
 
     private fun JsonObject.optString(field: String): String? =
         get(field)?.takeUnless { it.isJsonNull }?.let {

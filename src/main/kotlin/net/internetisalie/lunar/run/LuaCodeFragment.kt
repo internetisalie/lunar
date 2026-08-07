@@ -32,19 +32,18 @@ class LuaCodeFragment(
     isPhysical: Boolean,
     name: @NonNls String,
     text: CharSequence,
-    private val fragmentContext: PsiElement?
+    private val fragmentContext: PsiElement?,
 ) : LuaFile(
-    TokenType.CODE_FRAGMENT,
-    contentElementType,
-    PsiManagerEx.getInstanceEx(project).fileManager.createFileViewProvider(
-        LightVirtualFile(name, FileTypeManager.getInstance().getFileTypeByFileName(name), text), isPhysical
-    )
-) {
+        TokenType.CODE_FRAGMENT,
+        contentElementType,
+        PsiManagerEx.getInstanceEx(project).fileManager.createFileViewProvider(
+            LightVirtualFile(name, FileTypeManager.getInstance().getFileTypeByFileName(name), text),
+            isPhysical,
+        ),
+    ) {
     init {
         (viewProvider as SingleRootFileViewProvider).forceCachedPsi(this)
     }
 
-    override fun getContext(): PsiElement? {
-        return fragmentContext ?: super.getContext()
-    }
+    override fun getContext(): PsiElement? = fragmentContext ?: super.getContext()
 }

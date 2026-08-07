@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.lang.psi.types
 
-import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
@@ -9,26 +8,36 @@ import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
 import net.internetisalie.lunar.luacats.lang.psi.*
 
 object TypeParser {
-    fun parse(typeString: String, context: PsiElement): LuaType {
+    fun parse(
+        typeString: String,
+        context: PsiElement,
+    ): LuaType {
         val project = context.project
         val luaFile = LuaElementFactory.createFile(project, "---@type $typeString\nlocal _")
-        val varDecl = PsiTreeUtil.findChildOfType(luaFile, LuaLocalVarDecl::class.java)
-            ?: return LuaPrimitiveType.UNKNOWN
+        val varDecl =
+            PsiTreeUtil.findChildOfType(luaFile, LuaLocalVarDecl::class.java)
+                ?: return LuaPrimitiveType.UNKNOWN
 
-        val comment = LuaPsiImplUtil.getCatsComment(varDecl)
-            ?: return LuaPrimitiveType.UNKNOWN
+        val comment =
+            LuaPsiImplUtil.getCatsComment(varDecl)
+                ?: return LuaPrimitiveType.UNKNOWN
 
-        val luaCatsType = PsiTreeUtil.findChildOfType(comment, LuaCatsType::class.java)
-            ?: return LuaPrimitiveType.UNKNOWN
+        val luaCatsType =
+            PsiTreeUtil.findChildOfType(comment, LuaCatsType::class.java)
+                ?: return LuaPrimitiveType.UNKNOWN
 
         return parseType(luaCatsType, context)
     }
 
-    private fun parseType(type: LuaCatsType, context: PsiElement): LuaType {
-        return parseUnionType(type.unionType, context)
-    }
+    private fun parseType(
+        type: LuaCatsType,
+        context: PsiElement,
+    ): LuaType = parseUnionType(type.unionType, context)
 
-    private fun parseUnionType(unionType: LuaCatsUnionType, context: PsiElement): LuaType {
+    private fun parseUnionType(
+        unionType: LuaCatsUnionType,
+        context: PsiElement,
+    ): LuaType {
         val arrays = unionType.arrayTypeList
         if (arrays.isEmpty()) {
             // Fallback: try to parse distinct types if arrayTypeList is empty for some reason
@@ -44,7 +53,10 @@ object TypeParser {
         return LuaUnionType(types)
     }
 
-    private fun parseArrayType(arrayType: LuaCatsArrayType, context: PsiElement): LuaType {
+    private fun parseArrayType(
+        arrayType: LuaCatsArrayType,
+        context: PsiElement,
+    ): LuaType {
         var baseType = parseDistinctType(arrayType.distinctType, context)
         // If it's an array type, text ends with "[]" but the grammar might just have the bracket tokens.
         // The AST structure: arrayType ::= distinctType '[]'?
@@ -55,7 +67,10 @@ object TypeParser {
         return baseType
     }
 
-    private fun parseDistinctType(distinctType: LuaCatsDistinctType, context: PsiElement): LuaType {
+    private fun parseDistinctType(
+        distinctType: LuaCatsDistinctType,
+        context: PsiElement,
+    ): LuaType {
         distinctType.builtinType?.let {
             val name = it.text
             return LuaPrimitiveType.PRIMITIVES[name] ?: LuaPrimitiveType.UNKNOWN
@@ -67,9 +82,10 @@ object TypeParser {
         distinctType.parameterizedName?.let {
             val name = it.genericType.text
             val baseType = LuaTypeManager.getInstance(context.project).createTypeReference(name, context)
-            val typeArgs = it.typeParamList.map { param ->
-                LuaTypeManager.getInstance(context.project).createTypeReference(param.text, context)
-            }
+            val typeArgs =
+                it.typeParamList.map { param ->
+                    LuaTypeManager.getInstance(context.project).createTypeReference(param.text, context)
+                }
             return LuaParameterizedType(baseType, typeArgs)
         }
         distinctType.tupleType?.let {
@@ -96,17 +112,22 @@ object TypeParser {
             return LuaTableLiteralType(members)
         }
         distinctType.functionSignatureType?.let { funcSig ->
-            val params = funcSig.functionSignatureArgumentList.map { arg ->
-                val argName = arg.argName.text
-                val isVararg = argName == "..."
-                // The parser doesn't explicitly handle '?' in function signatures yet,
-                // but we can check if it exists as a raw symbol child.
-                val isOptional = arg.children.any { it.text == "?" }
-                val argTypeNode = PsiTreeUtil.findChildOfType(arg.argType, LuaCatsType::class.java)
-                val argType = if (argTypeNode != null) parseType(argTypeNode, context) else LuaPrimitiveType.ANY
-                LuaParameter(argName, argType, isOptional, isVararg)
-            }
-            val returnTypeNode = PsiTreeUtil.findChildOfType(funcSig.functionSignatureReturnType?.argType, LuaCatsType::class.java)
+            val params =
+                funcSig.functionSignatureArgumentList.map { arg ->
+                    val argName = arg.argName.text
+                    val isVararg = argName == "..."
+                    // The parser doesn't explicitly handle '?' in function signatures yet,
+                    // but we can check if it exists as a raw symbol child.
+                    val isOptional = arg.children.any { it.text == "?" }
+                    val argTypeNode = PsiTreeUtil.findChildOfType(arg.argType, LuaCatsType::class.java)
+                    val argType = if (argTypeNode != null) parseType(argTypeNode, context) else LuaPrimitiveType.ANY
+                    LuaParameter(argName, argType, isOptional, isVararg)
+                }
+            val returnTypeNode =
+                PsiTreeUtil.findChildOfType(
+                    funcSig.functionSignatureReturnType?.argType,
+                    LuaCatsType::class.java,
+                )
             val returnType = if (returnTypeNode != null) parseType(returnTypeNode, context) else LuaPrimitiveType.VOID
             return LuaFunctionType(params, returnType)
         }

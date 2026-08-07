@@ -35,8 +35,9 @@ data class DiscoveredRockspec(
  * ROCKS-05 / ROCKS-10 consume this service; they must not define their own scanner.
  */
 @Service(Service.Level.PROJECT)
-class LuaRockspecDiscoveryService(private val project: Project) {
-
+class LuaRockspecDiscoveryService(
+    private val project: Project,
+) {
     private val discoveryCache: CachedValue<List<DiscoveredRockspec>> =
         CachedValuesManager.getManager(project).createCachedValue(
             {
@@ -45,7 +46,8 @@ class LuaRockspecDiscoveryService(private val project: Project) {
                     PsiModificationTracker.getInstance(project),
                 )
             },
-            /* trackValue = */ false,
+            // trackValue =
+            false,
         )
 
     /**
@@ -72,9 +74,11 @@ class LuaRockspecDiscoveryService(private val project: Project) {
             if (ApplicationManager.getApplication().isReadAccessAllowed) {
                 enumerateIncluded(includeGlobs, excludeGlobs)
             } else {
-                ReadAction.nonBlocking<List<IncludedRockspec>> {
-                    enumerateIncluded(includeGlobs, excludeGlobs)
-                }.expireWith(project).executeSynchronously()
+                ReadAction
+                    .nonBlocking<List<IncludedRockspec>> {
+                        enumerateIncluded(includeGlobs, excludeGlobs)
+                    }.expireWith(project)
+                    .executeSynchronously()
             }
 
         return includedRockspecs
@@ -87,7 +91,8 @@ class LuaRockspecDiscoveryService(private val project: Project) {
     ): List<IncludedRockspec> {
         val fileIndex = ProjectFileIndex.getInstance(project)
         val scope = GlobalSearchScope.projectScope(project)
-        return FilenameIndex.getAllFilesByExt(project, ROCKSPEC_EXT, scope)
+        return FilenameIndex
+            .getAllFilesByExt(project, ROCKSPEC_EXT, scope)
             .mapNotNull { vf -> includedEntry(vf, fileIndex, includeGlobs, excludeGlobs) }
             .sortedBy { it.relativePath.lowercase() }
     }
@@ -106,7 +111,10 @@ class LuaRockspecDiscoveryService(private val project: Project) {
         return IncludedRockspec(nioPath, relativePath)
     }
 
-    private data class IncludedRockspec(val path: Path, val relativePath: String)
+    private data class IncludedRockspec(
+        val path: Path,
+        val relativePath: String,
+    )
 
     companion object {
         private const val ROCKSPEC_EXT = "rockspec"

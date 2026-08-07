@@ -16,7 +16,9 @@ abstract class IndexedDeclarativeInlayHintsTest : LuaInlayHintsTestCase() {
         // Force index rebuild to ensure platform files are indexed
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             WriteAction.run<RuntimeException> {
-                StubIndex.getInstance().forceRebuild(Throwable("Indexed inlay hints test setup: forcing stub index rebuild"))
+                StubIndex.getInstance().forceRebuild(
+                    Throwable("Indexed inlay hints test setup: forcing stub index rebuild"),
+                )
             }
         }
     }

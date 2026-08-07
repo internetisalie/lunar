@@ -5,19 +5,18 @@ import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 
 class LuaDocGenerationTest : BaseDocumentTest() {
-
     @Test
     fun `test enter on three dashes above function generates boilerplate`() {
-        val code = """
+        val code =
+            """
             ---<caret>
             function test(a, b)
                 return a + b
             end
-        """.trimIndent()
+            """.trimIndent()
 
         myFixture.configureByText(LuaFileType, code)
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_ENTER)
@@ -30,7 +29,8 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             }
         }
 
-        val expected = """
+        val expected =
+            """
             --- description
             --- @param a any description
             --- @param b any description
@@ -38,7 +38,7 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             function test(a, b)
                 return a + b
             end
-        """.trimIndent()
+            """.trimIndent()
 
         println("ACTUAL OUTPUT:\n[${myFixture.editor.document.text}]")
         myFixture.checkResult(expected)
@@ -46,12 +46,13 @@ class LuaDocGenerationTest : BaseDocumentTest() {
 
     @Test
     fun `test enter on three dashes above local function generates boilerplate`() {
-        val code = """
+        val code =
+            """
             ---<caret>
             local function test(param1)
                 return param1
             end
-        """.trimIndent()
+            """.trimIndent()
 
         myFixture.configureByText(LuaFileType, code)
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_ENTER)
@@ -64,14 +65,15 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             }
         }
 
-        val expected = """
+        val expected =
+            """
             --- description
             --- @param param1 any description
             --- @return any description
             local function test(param1)
                 return param1
             end
-        """.trimIndent()
+            """.trimIndent()
 
         println("ACTUAL OUTPUT:\n[${myFixture.editor.document.text}]")
         myFixture.checkResult(expected)
@@ -79,10 +81,11 @@ class LuaDocGenerationTest : BaseDocumentTest() {
 
     @Test
     fun `test enter on three dashes above class table generates boilerplate`() {
-        val code = """
+        val code =
+            """
             ---<caret>
             local MyClass = {}
-        """.trimIndent()
+            """.trimIndent()
 
         myFixture.configureByText(LuaFileType, code)
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_ENTER)
@@ -95,10 +98,11 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             }
         }
 
-        val expected = """
+        val expected =
+            """
             --- @class MyClass
             local MyClass = {}
-        """.trimIndent()
+            """.trimIndent()
 
         println("ACTUAL OUTPUT:\n[${myFixture.editor.document.text}]")
         myFixture.checkResult(expected)
@@ -106,12 +110,13 @@ class LuaDocGenerationTest : BaseDocumentTest() {
 
     @Test
     fun `test enter on three dashes above varargs function generates boilerplate`() {
-        val code = """
+        val code =
+            """
             ---<caret>
             function process_items(a, ...)
                 return a
             end
-        """.trimIndent()
+            """.trimIndent()
 
         myFixture.configureByText(LuaFileType, code)
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_ENTER)
@@ -124,7 +129,8 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             }
         }
 
-        val expected = """
+        val expected =
+            """
             --- description
             --- @param a any description
             --- @param ... any description
@@ -132,7 +138,7 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             function process_items(a, ...)
                 return a
             end
-        """.trimIndent()
+            """.trimIndent()
 
         println("ACTUAL OUTPUT:\n[${myFixture.editor.document.text}]")
         myFixture.checkResult(expected)
@@ -140,11 +146,12 @@ class LuaDocGenerationTest : BaseDocumentTest() {
 
     @Test
     fun `test intention generates interactive boilerplate`() {
-        val code = """
+        val code =
+            """
             <caret>function test(a, b)
                 return a
             end
-        """.trimIndent()
+            """.trimIndent()
 
         myFixture.configureByText(LuaFileType, code)
         val intention = myFixture.findSingleIntention("Generate LuaCATS documentation")
@@ -158,7 +165,8 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             }
         }
 
-        val expected = """
+        val expected =
+            """
             --- description
             --- @param a any description
             --- @param b any description
@@ -166,7 +174,7 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             function test(a, b)
                 return a
             end
-        """.trimIndent()
+            """.trimIndent()
 
         println("ACTUAL OUTPUT:\n[${myFixture.editor.document.text}]")
         myFixture.checkResult(expected)
@@ -174,12 +182,13 @@ class LuaDocGenerationTest : BaseDocumentTest() {
 
     @Test
     fun `test type inference in boilerplate`() {
-        val code = """
+        val code =
+            """
             ---<caret>
             function configure(name, count, is_enabled)
                 return true
             end
-        """.trimIndent()
+            """.trimIndent()
 
         myFixture.configureByText(LuaFileType, code)
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_ENTER)
@@ -192,7 +201,8 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             }
         }
 
-        val expected = """
+        val expected =
+            """
             --- description
             --- @param name string description
             --- @param count number description
@@ -201,7 +211,7 @@ class LuaDocGenerationTest : BaseDocumentTest() {
             function configure(name, count, is_enabled)
                 return true
             end
-        """.trimIndent()
+            """.trimIndent()
 
         myFixture.checkResult(expected)
     }

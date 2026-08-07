@@ -32,7 +32,6 @@ import java.lang.reflect.Proxy
  * script file (so `readScriptBody` resolves).
  */
 class TestLuaLdbController : BasePlatformTestCase() {
-
     /** A scripted LDB transport: each call pops the next reply, or raises a queued failure. */
     private class FakeTransport(
         private val enterReply: RespValue,
@@ -43,7 +42,11 @@ class TestLuaLdbController : BasePlatformTestCase() {
 
         override suspend fun enterDebug(mode: LuaRedisDebugMode): RespValue = enterReply
 
-        override suspend fun eval(scriptBody: String, keys: List<String>, argv: List<String>): RespValue = evalReply
+        override suspend fun eval(
+            scriptBody: String,
+            keys: List<String>,
+            argv: List<String>,
+        ): RespValue = evalReply
 
         override suspend fun send(command: LdbCommand): RespValue {
             sentCommands.add(command)
@@ -62,19 +65,35 @@ class TestLuaLdbController : BasePlatformTestCase() {
         val messages = mutableListOf<String>()
     }
 
-    private fun fakeSession(project: Project, recorder: SessionRecorder): XDebugSession {
-        val handler = InvocationHandler { _, method: Method, args ->
-            when (method.name) {
-                "getProject" -> project
-                "breakpointReached" -> { recorder.breakpointReached++; null }
-                "positionReached" -> { recorder.positionReached++; null }
-                "reportError" -> { recorder.errors.add(args?.get(0) as? String ?: ""); null }
-                "reportMessage" -> { recorder.messages.add(args?.get(0) as? String ?: ""); null }
-                "getCurrentStackFrame" -> null
-                "setPauseActionSupported" -> null
-                else -> defaultFor(method)
+    private fun fakeSession(
+        project: Project,
+        recorder: SessionRecorder,
+    ): XDebugSession {
+        val handler =
+            InvocationHandler { _, method: Method, args ->
+                when (method.name) {
+                    "getProject" -> project
+                    "breakpointReached" -> {
+                        recorder.breakpointReached++
+                        null
+                    }
+                    "positionReached" -> {
+                        recorder.positionReached++
+                        null
+                    }
+                    "reportError" -> {
+                        recorder.errors.add(args?.get(0) as? String ?: "")
+                        null
+                    }
+                    "reportMessage" -> {
+                        recorder.messages.add(args?.get(0) as? String ?: "")
+                        null
+                    }
+                    "getCurrentStackFrame" -> null
+                    "setPauseActionSupported" -> null
+                    else -> defaultFor(method)
+                }
             }
-        }
         return Proxy.newProxyInstance(
             XDebugSession::class.java.classLoader,
             arrayOf(XDebugSession::class.java),
@@ -82,11 +101,12 @@ class TestLuaLdbController : BasePlatformTestCase() {
         ) as XDebugSession
     }
 
-    private fun defaultFor(method: Method): Any? = when (method.returnType) {
-        Boolean::class.javaPrimitiveType -> false
-        Int::class.javaPrimitiveType -> 0
-        else -> null
-    }
+    private fun defaultFor(method: Method): Any? =
+        when (method.returnType) {
+            Boolean::class.javaPrimitiveType -> false
+            Int::class.javaPrimitiveType -> 0
+            else -> null
+        }
 
     private fun newConfig(): LuaRedisRunConfiguration {
         val type = LuaRedisRunConfigurationType.getInstance()
@@ -110,17 +130,30 @@ class TestLuaLdbController : BasePlatformTestCase() {
     }
 
     /** A fake conditional line breakpoint at [line] (0-based) carrying [condition] (or none if null). */
-    private fun fakeBreakpoint(line: Int, condition: String?): XBreakpoint<*> {
-        val position = Proxy.newProxyInstance(
-            XSourcePosition::class.java.classLoader,
-            arrayOf(XSourcePosition::class.java),
-        ) { _, method: Method, _ -> if (method.name == "getLine") line else defaultFor(method) } as XSourcePosition
-        val expression = condition?.let {
+    private fun fakeBreakpoint(
+        line: Int,
+        condition: String?,
+    ): XBreakpoint<*> {
+        val position =
             Proxy.newProxyInstance(
-                XExpression::class.java.classLoader,
-                arrayOf(XExpression::class.java),
-            ) { _, method: Method, _ -> if (method.name == "getExpression") it else defaultFor(method) } as XExpression
-        }
+                XSourcePosition::class.java.classLoader,
+                arrayOf(XSourcePosition::class.java),
+            ) { _, method: Method, _ -> if (method.name == "getLine") line else defaultFor(method) } as XSourcePosition
+        val expression =
+            condition?.let {
+                Proxy.newProxyInstance(
+                    XExpression::class.java.classLoader,
+                    arrayOf(XExpression::class.java),
+                ) { _, method: Method, _ ->
+                    if (method.name ==
+                        "getExpression"
+                    ) {
+                        it
+                    } else {
+                        defaultFor(method)
+                    }
+                } as XExpression
+            }
         return Proxy.newProxyInstance(
             XBreakpoint::class.java.classLoader,
             arrayOf(XBreakpoint::class.java),
@@ -134,26 +167,36 @@ class TestLuaLdbController : BasePlatformTestCase() {
     }
 
     /** A single-scalar eval reply block (`<value> <text>`) for the condition gate. */
-    private fun evalScalarBlock(text: String): RespValue = RespValue.Array(
-        listOf(RespValue.Simple("<value> $text")),
-    )
+    private fun evalScalarBlock(text: String): RespValue =
+        RespValue.Array(
+            listOf(RespValue.Simple("<value> $text")),
+        )
 
-    private fun stopBlock(line: Int, reason: String): RespValue = RespValue.Array(
-        listOf(
-            RespValue.Simple("* Stopped at $line, stop reason = $reason"),
-            RespValue.Simple("$line   local x = 1"),
-        ),
-    )
+    private fun stopBlock(
+        line: Int,
+        reason: String,
+    ): RespValue =
+        RespValue.Array(
+            listOf(
+                RespValue.Simple("* Stopped at $line, stop reason = $reason"),
+                RespValue.Simple("$line   local x = 1"),
+            ),
+        )
 
-    private fun sessionEndedBlock(): RespValue = RespValue.Array(
-        listOf(RespValue.Simple("* Lua debugging session ended")),
-    )
+    private fun sessionEndedBlock(): RespValue =
+        RespValue.Array(
+            listOf(RespValue.Simple("* Lua debugging session ended")),
+        )
 
-    private fun printBlock(): RespValue = RespValue.Array(
-        listOf(RespValue.Simple("<value> x = 1")),
-    )
+    private fun printBlock(): RespValue =
+        RespValue.Array(
+            listOf(RespValue.Simple("<value> x = 1")),
+        )
 
-    private fun controllerWith(transport: LdbIo, recorder: SessionRecorder): Pair<LuaLdbController, CoroutineScope> {
+    private fun controllerWith(
+        transport: LdbIo,
+        recorder: SessionRecorder,
+    ): Pair<LuaLdbController, CoroutineScope> {
         val scope = CoroutineScope(SupervisorJob())
         val session = fakeSession(project, recorder)
         val controller = LuaLdbController.forTest(session, scope, newConfig()) { transport }
@@ -163,14 +206,15 @@ class TestLuaLdbController : BasePlatformTestCase() {
     /** The happy path: HANDSHAKE→ARMED→PAUSED (first stop), then step→pause, then continue→TERMINATED. */
     fun testSessionLifecycleReachesTerminated() {
         val recorder = SessionRecorder()
-        val replies = ArrayDeque<Any>(
-            listOf(
-                printBlock(),          // readLocals on first pause
-                stopBlock(2, "step"),  // reply to Step
-                printBlock(),          // readLocals on step pause
-                sessionEndedBlock(),   // reply to Continue → session end
-            ),
-        )
+        val replies =
+            ArrayDeque<Any>(
+                listOf(
+                    printBlock(), // readLocals on first pause
+                    stopBlock(2, "step"), // reply to Step
+                    printBlock(), // readLocals on step pause
+                    sessionEndedBlock(), // reply to Continue → session end
+                ),
+            )
         val transport = FakeTransport(RespValue.Simple("OK"), stopBlock(1, "breakpoint"), replies)
         val (controller, scope) = controllerWith(transport, recorder)
         try {
@@ -192,13 +236,14 @@ class TestLuaLdbController : BasePlatformTestCase() {
     /** TC-LDB-COND-1 (false): a conditional breakpoint whose condition is `false` auto-resumes, no pause. */
     fun testConditionalBreakpointFalseResumes() {
         val recorder = SessionRecorder()
-        val replies = ArrayDeque<Any>(
-            listOf(
-                RespValue.Simple("OK"),        // reply to Break(1) during drain
-                evalScalarBlock("false"),      // reply to Eval(condition) → not holds
-                sessionEndedBlock(),           // reply to the auto Continue → session end
-            ),
-        )
+        val replies =
+            ArrayDeque<Any>(
+                listOf(
+                    RespValue.Simple("OK"), // reply to Break(1) during drain
+                    evalScalarBlock("false"), // reply to Eval(condition) → not holds
+                    sessionEndedBlock(), // reply to the auto Continue → session end
+                ),
+            )
         val transport = FakeTransport(RespValue.Simple("OK"), stopBlock(1, "breakpoint"), replies)
         val (controller, scope) = controllerWith(transport, recorder)
         try {
@@ -218,13 +263,14 @@ class TestLuaLdbController : BasePlatformTestCase() {
     /** TC-LDB-COND-1 (true): a conditional breakpoint whose condition is truthy raises `breakpointReached`. */
     fun testConditionalBreakpointTruePauses() {
         val recorder = SessionRecorder()
-        val replies = ArrayDeque<Any>(
-            listOf(
-                RespValue.Simple("OK"),  // reply to Break(1) during drain
-                evalScalarBlock("6"),    // reply to Eval(condition) → holds
-                printBlock(),            // reply to Print (readLocals) on pause
-            ),
-        )
+        val replies =
+            ArrayDeque<Any>(
+                listOf(
+                    RespValue.Simple("OK"), // reply to Break(1) during drain
+                    evalScalarBlock("6"), // reply to Eval(condition) → holds
+                    printBlock(), // reply to Print (readLocals) on pause
+                ),
+            )
         val transport = FakeTransport(RespValue.Simple("OK"), stopBlock(1, "breakpoint"), replies)
         val (controller, scope) = controllerWith(transport, recorder)
         try {
@@ -233,7 +279,10 @@ class TestLuaLdbController : BasePlatformTestCase() {
                 controller.connect()
             }
             assertEquals("truthy condition must surface a breakpoint pause", 1, recorder.breakpointReached)
-            assertFalse("truthy condition must not auto-Continue", transport.sentCommands.any { it is LdbCommand.Continue })
+            assertFalse(
+                "truthy condition must not auto-Continue",
+                transport.sentCommands.any { it is LdbCommand.Continue },
+            )
         } finally {
             scope.cancel()
         }
@@ -243,12 +292,13 @@ class TestLuaLdbController : BasePlatformTestCase() {
     fun testEvaluateEvalFailureCallsErrorOccurred() {
         val recorder = SessionRecorder()
         val evalError = RespValue.Error("ERR", "Error running script: attempt to call a nil value")
-        val replies = ArrayDeque<Any>(
-            listOf(
-                printBlock(),  // readLocals on first pause
-                evalError,     // reply to the eval command
-            ),
-        )
+        val replies =
+            ArrayDeque<Any>(
+                listOf(
+                    printBlock(), // readLocals on first pause
+                    evalError, // reply to the eval command
+                ),
+            )
         val transport = FakeTransport(RespValue.Simple("OK"), stopBlock(1, "breakpoint"), replies)
         val (controller, scope) = controllerWith(transport, recorder)
         val callback = RecordingCallback()
@@ -268,12 +318,13 @@ class TestLuaLdbController : BasePlatformTestCase() {
     /** TC-LDB-ERR-2: a mid-session transport IO failure calls `session.reportError` and stops cleanly. */
     fun testTransportIoFailureCallsReportError() {
         val recorder = SessionRecorder()
-        val replies = ArrayDeque<Any>(
-            listOf(
-                printBlock(),                       // readLocals on first pause
-                RespException.Io(java.io.IOException("connection reset")), // reply to Step → connection loss
-            ),
-        )
+        val replies =
+            ArrayDeque<Any>(
+                listOf(
+                    printBlock(), // readLocals on first pause
+                    RespException.Io(java.io.IOException("connection reset")), // reply to Step → connection loss
+                ),
+            )
         val transport = FakeTransport(RespValue.Simple("OK"), stopBlock(1, "breakpoint"), replies)
         val (controller, scope) = controllerWith(transport, recorder)
         try {

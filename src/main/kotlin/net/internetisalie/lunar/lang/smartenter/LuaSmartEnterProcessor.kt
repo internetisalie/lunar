@@ -17,7 +17,6 @@ import net.internetisalie.lunar.lang.psi.LuaFile
  * Design §3.1.
  */
 class LuaSmartEnterProcessor : SmartEnterProcessorWithFixers() {
-
     init {
         addFixers(
             LuaMissingBracketFixer(),
@@ -26,7 +25,10 @@ class LuaSmartEnterProcessor : SmartEnterProcessorWithFixers() {
         )
     }
 
-    override fun getStatementAtCaret(editor: Editor, psiFile: PsiFile): PsiElement? {
+    override fun getStatementAtCaret(
+        editor: Editor,
+        psiFile: PsiFile,
+    ): PsiElement? {
         if (psiFile !is LuaFile) return null
         val document = editor.document
         val caret = editor.caretModel.offset
@@ -36,7 +38,10 @@ class LuaSmartEnterProcessor : SmartEnterProcessorWithFixers() {
         return PsiTreeUtil.findCommonParent(startLeaf, endLeaf) ?: endLeaf
     }
 
-    override fun collectAdditionalElements(element: PsiElement, result: MutableList<PsiElement>) {
+    override fun collectAdditionalElements(
+        element: PsiElement,
+        result: MutableList<PsiElement>,
+    ) {
         addOpenerLeaf(element, result)
         var parent = element.parent
         while (parent != null && parent !is LuaFile) {
@@ -52,7 +57,10 @@ class LuaSmartEnterProcessor : SmartEnterProcessorWithFixers() {
      * the opener keyword leaf the token-keyed fixers match on. Add it explicitly (the opener is one
      * of the first two non-whitespace leaves: `local function` / `global function` offset it by one).
      */
-    private fun addOpenerLeaf(element: PsiElement, result: MutableList<PsiElement>) {
+    private fun addOpenerLeaf(
+        element: PsiElement,
+        result: MutableList<PsiElement>,
+    ) {
         var child = element.firstChild
         var inspected = 0
         while (child != null && inspected < 2) {

@@ -11,11 +11,9 @@ class LuaPluginDisposable : Disposable {
 
     companion object {
         @JvmStatic
-        fun getInstance(): Disposable =
-            ApplicationManager.getApplication().getService(LuaPluginDisposable::class.java)
+        fun getInstance(): Disposable = ApplicationManager.getApplication().getService(LuaPluginDisposable::class.java)
 
         @JvmStatic
-        fun getInstance(project: Project): Disposable =
-            project.getService(LuaPluginDisposable::class.java)
+        fun getInstance(project: Project): Disposable = project.getService(LuaPluginDisposable::class.java)
     }
 }

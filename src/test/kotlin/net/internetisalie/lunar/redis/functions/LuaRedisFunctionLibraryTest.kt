@@ -18,16 +18,16 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRedisFunctionLibraryTest : IndexedBasePlatformTestCase() {
-
     // -------------------------------------------------------------------------
     // TC-SHB-1: Shebang parses cleanly; tokens and highlighting are correct.
     // -------------------------------------------------------------------------
     @Test
     fun testShebangParsesCleanly_TC_SHB_1() {
-        val file = myFixture.configureByText(
-            "lib.lua",
-            "#!lua name=mylib\nredis.register_function('f', function(keys, args) return 1 end)",
-        )
+        val file =
+            myFixture.configureByText(
+                "lib.lua",
+                "#!lua name=mylib\nredis.register_function('f', function(keys, args) return 1 end)",
+            )
         // No parse errors
         val errorElement = PsiTreeUtil.findChildOfType(file, PsiErrorElement::class.java)
         assertNull("Shebang file must parse without PsiErrorElement", errorElement)
@@ -80,14 +80,15 @@ class LuaRedisFunctionLibraryTest : IndexedBasePlatformTestCase() {
     // -------------------------------------------------------------------------
     @Test
     fun testRegisteredNames_TC_SCAN_1() {
-        val file = myFixture.configureByText(
-            "lib.lua",
-            """
-            #!lua name=mylib
-            redis.register_function('a', function(keys, args) return 1 end)
-            redis.register_function(nameVar, function(keys, args) return 2 end)
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "lib.lua",
+                """
+                #!lua name=mylib
+                redis.register_function('a', function(keys, args) return 1 end)
+                redis.register_function(nameVar, function(keys, args) return 2 end)
+                """.trimIndent(),
+            )
         val result = LuaRedisFunctionLibrary.registeredNames(file)
         assertEquals("Literal name 'a' must be collected", setOf("a"), result.names)
         assertTrue("Dynamic registration must set hasDynamic", result.hasDynamic)
@@ -95,13 +96,14 @@ class LuaRedisFunctionLibraryTest : IndexedBasePlatformTestCase() {
 
     @Test
     fun testRegisteredNamesTableForm() {
-        val file = myFixture.configureByText(
-            "lib.lua",
-            """
-            #!lua name=mylib
-            redis.register_function{ function_name='b', callback=function(keys, args) end, flags={'no-writes'} }
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "lib.lua",
+                """
+                #!lua name=mylib
+                redis.register_function{ function_name='b', callback=function(keys, args) end, flags={'no-writes'} }
+                """.trimIndent(),
+            )
         val result = LuaRedisFunctionLibrary.registeredNames(file)
         assertEquals("Table-form name 'b' must be collected", setOf("b"), result.names)
         assertFalse("No dynamic registrations", result.hasDynamic)
@@ -120,7 +122,10 @@ class LuaRedisFunctionLibraryTest : IndexedBasePlatformTestCase() {
     // -------------------------------------------------------------------------
     // Helper: configures a text file and asserts detect() result.
     // -------------------------------------------------------------------------
-    private fun assertDetect(content: String, expected: String?) {
+    private fun assertDetect(
+        content: String,
+        expected: String?,
+    ) {
         val file = myFixture.configureByText("test.lua", content)
         val actual = LuaRedisFunctionLibrary.detect(file)
         assertEquals("detect('${content.take(30)}') expected=$expected", expected, actual)

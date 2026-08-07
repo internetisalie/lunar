@@ -18,23 +18,30 @@ import java.util.UUID
  * PATH discovery). Returns `true` when a usable runtime was registered + globally bound.
  */
 object RockspecRuntimeTestSupport {
-
     fun registerRealLuaRuntime(project: Project): Boolean {
         val luaBinary = File(System.getProperty("user.home"), "bin/lua")
         if (!luaBinary.canExecute()) return false
 
         val registry = LuaToolchainRegistry.getInstance()
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "lua",
-            path = luaBinary.absolutePath,
-            version = "5.4",
-            luaVersion = "5.4",
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
-        )
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "lua",
+                path = luaBinary.absolutePath,
+                version = "5.4",
+                luaVersion = "5.4",
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         registry.registerProvisioned(tool)
         registry.setGlobalBinding("lua", tool.id)
         return true

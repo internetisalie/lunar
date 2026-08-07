@@ -7,18 +7,27 @@ package net.internetisalie.lunar.redis.resp
  * or a bare [java.io.IOException] — so callers can classify without inspecting messages, and the no-`!!`
  * contract (engineering-contract §1) is honoured by returning typed errors instead of unsafe dereferences.
  */
-sealed class RespException(message: String, cause: Throwable? = null) : Exception(message, cause) {
-
+sealed class RespException(
+    message: String,
+    cause: Throwable? = null,
+) : Exception(message, cause) {
     /** A connect or read exceeded its configured timeout; [op] names the operation. */
-    class Timeout(op: String) : RespException("Redis $op timed out")
+    class Timeout(
+        op: String,
+    ) : RespException("Redis $op timed out")
 
     /** The reply bytes did not match the RESP grammar; [detail] describes the violation. */
-    class Protocol(detail: String) : RespException("Malformed RESP reply: $detail")
+    class Protocol(
+        detail: String,
+    ) : RespException("Malformed RESP reply: $detail")
 
     /** An underlying socket/stream I/O failure. */
-    class Io(cause: Throwable) : RespException("Redis connection I/O error", cause)
+    class Io(
+        cause: Throwable,
+    ) : RespException("Redis connection I/O error", cause)
 
     /** The connected server predates a required capability (e.g. `EVAL_RO`); [required] names the floor. */
-    class ServerVersion(required: String) :
-        RespException("This server does not support this operation (requires $required)")
+    class ServerVersion(
+        required: String,
+    ) : RespException("This server does not support this operation (requires $required)")
 }

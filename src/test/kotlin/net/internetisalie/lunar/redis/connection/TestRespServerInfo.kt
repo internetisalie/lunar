@@ -8,7 +8,6 @@ import kotlin.test.assertEquals
  * socket path is human-checklist verified (§1); this pins the pure parsing contract.
  */
 class TestRespServerInfo {
-
     @Test
     fun parsesRedisVersionAndFlavor() {
         val body = "# Server\r\nredis_version:7.4.0\r\nredis_mode:standalone\r\n"

@@ -10,14 +10,16 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaLabelResolutionTest : BasePlatformTestCase() {
-
     @Test
     fun testBackwardLabelResolution() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::done::
             print(1)
             goto don<caret>e
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val reference = myFixture.file.findReferenceAt(myFixture.caretOffset)
         assertNotNull("Reference should not be null", reference)
@@ -31,10 +33,13 @@ class LuaLabelResolutionTest : BasePlatformTestCase() {
 
     @Test
     fun testForwardLabelResolution() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             goto don<caret>e
             ::done::
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val reference = myFixture.file.findReferenceAt(myFixture.caretOffset)
         assertNotNull("Reference should not be null", reference)
@@ -48,12 +53,15 @@ class LuaLabelResolutionTest : BasePlatformTestCase() {
 
     @Test
     fun testEnclosingBlockResolution() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::top::
             do
                 goto to<caret>p
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val reference = myFixture.file.findReferenceAt(myFixture.caretOffset)
         assertNotNull("Reference should not be null", reference)
@@ -67,12 +75,15 @@ class LuaLabelResolutionTest : BasePlatformTestCase() {
 
     @Test
     fun testFunctionBoundaryResolution() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::outer::
             local f = function()
                 goto out<caret>er
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val reference = myFixture.file.findReferenceAt(myFixture.caretOffset)
         assertNotNull("Reference should not be null", reference)
@@ -87,12 +98,15 @@ class LuaLabelResolutionTest : BasePlatformTestCase() {
 
     @Test
     fun testSiblingBlockResolution() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             do
                 ::inner::
             end
             goto inn<caret>er
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         val reference = myFixture.file.findReferenceAt(myFixture.caretOffset)
         assertNotNull("Reference should not be null", reference)

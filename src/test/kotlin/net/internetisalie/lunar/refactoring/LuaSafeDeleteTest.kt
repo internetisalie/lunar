@@ -28,7 +28,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaSafeDeleteTest : BasePlatformTestCase() {
-
     private val processor = LuaSafeDeleteProcessor()
     private val findUsagesProvider = LuaFindUsagesProvider()
 
@@ -95,9 +94,10 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
         myFixture.configureByText("test.lua", "print(x)")
 
         // Find the element at the caret-position for `print` (usage ref, not decl).
-        val element = requireNotNull(myFixture.file.findElementAt(0)) {
-            "Expected an element at offset 0"
-        }
+        val element =
+            requireNotNull(myFixture.file.findElementAt(0)) {
+                "Expected an element at offset 0"
+            }
 
         assertFalse(
             "isSafeDeleteAvailable must be false for a usage-site identifier",
@@ -116,9 +116,10 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
         // delegate did not handle the elevated node, the platform would fall back to the default
         // delete and remove the declaration WITHOUT a usage search (silently orphaning references).
         myFixture.configureByText("test.lua", "local x = 1")
-        val decl = requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaLocalVarDecl::class.java)) {
-            "Expected a LuaLocalVarDecl in test.lua"
-        }
+        val decl =
+            requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaLocalVarDecl::class.java)) {
+                "Expected a LuaLocalVarDecl in test.lua"
+            }
         assertTrue(
             "handlesElement must be true for the elevated LuaLocalVarDecl, or Safe Delete skips usage search",
             processor.handlesElement(decl),
@@ -154,9 +155,10 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
     @Test
     fun testLabelDeclarationIsAvailable() {
         myFixture.configureByText("test.lua", "::done::\ngoto done")
-        val labelName = requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaLabelName::class.java)) {
-            "Expected a LuaLabelName in test.lua"
-        }
+        val labelName =
+            requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaLabelName::class.java)) {
+                "Expected a LuaLabelName in test.lua"
+            }
         assertTrue(
             "isSafeDeleteAvailable must be true for a label declaration (LuaLabelName)",
             findUsagesProvider.canFindUsagesFor(labelName),

@@ -13,7 +13,6 @@ import kotlin.test.assertTrue
  * write and are out of unit scope, so only the pure boolean key is evaluated here.
  */
 class TestLuaConsoleExecuteHandler : BaseDocumentTest() {
-
     /** The literal predicate from LuaConsoleExecuteHandler.kt:26. */
     private fun shouldSubmit(text: String): Boolean =
         runInEdtAndGet {

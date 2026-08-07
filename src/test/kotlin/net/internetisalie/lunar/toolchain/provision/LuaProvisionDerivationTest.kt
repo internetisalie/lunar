@@ -9,7 +9,6 @@ import org.junit.Test
  * showing any Swing dialog.
  */
 class LuaProvisionDerivationTest {
-
     private fun form(
         name: String = "lua-5.4.8",
         rootDir: String = "/tmp/does-not-exist-lunar-env",
@@ -25,14 +24,16 @@ class LuaProvisionDerivationTest {
 
     @Test
     fun `toRequest orders runtime, luarocks, release-binary tools, rock tools`() {
-        val request = form(
-            tools = listOf(
-                LuaToolChoice("luacov", "0.16.0"),
-                LuaToolChoice("stylua", "2.5.2"),
-                LuaToolChoice("busted", "2.2.0"),
-                LuaToolChoice("luacheck", "1.2.0"),
-            ),
-        ).toRequest()
+        val request =
+            form(
+                tools =
+                    listOf(
+                        LuaToolChoice("luacov", "0.16.0"),
+                        LuaToolChoice("stylua", "2.5.2"),
+                        LuaToolChoice("busted", "2.2.0"),
+                        LuaToolChoice("luacheck", "1.2.0"),
+                    ),
+            ).toRequest()
         val kinds = request.items.map { it.kindId }
         TestCase.assertEquals(
             listOf("lua", "luarocks", "luacheck", "stylua", "busted", "luacov"),
@@ -119,5 +120,8 @@ class LuaProvisionDerivationTest {
     }
 
     private fun createTempDirectory(): java.io.File =
-        java.nio.file.Files.createTempDirectory("lunar-prov-test").toFile().also { it.deleteOnExit() }
+        java.nio.file.Files
+            .createTempDirectory("lunar-prov-test")
+            .toFile()
+            .also { it.deleteOnExit() }
 }

@@ -9,7 +9,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaGlobalCreationInspection())
@@ -17,7 +16,8 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
 
     private fun globalCreationWarnings(text: String): List<String> {
         myFixture.configureByText("test.lua", text)
-        return myFixture.doHighlighting()
+        return myFixture
+            .doHighlighting()
             .filter { it.description?.startsWith("Global creation") == true }
             .map { it.description }
     }
@@ -27,7 +27,10 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
         assertTrue("Expected no global creation warnings but found: $warnings", warnings.isEmpty())
     }
 
-    private fun assertGlobalCreation(text: String, vararg names: String) {
+    private fun assertGlobalCreation(
+        text: String,
+        vararg names: String,
+    ) {
         val warnings = globalCreationWarnings(text)
         assertEquals("Warnings: $warnings", names.size, warnings.size)
         for (name in names) {
@@ -75,7 +78,7 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
             g = 1
             g = 2
             """.trimIndent(),
-            "g"
+            "g",
         )
     }
 
@@ -85,7 +88,7 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
             """
             local x = 1
             x = 2
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -96,11 +99,17 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
 
     @Test
     fun testAdditionalGlobalsNotFlagged() {
-        LuaProjectSettings.getInstance(project).state.additionalGlobals.add("customGlobal")
+        LuaProjectSettings
+            .getInstance(project)
+            .state.additionalGlobals
+            .add("customGlobal")
         try {
             assertNoGlobalCreation("customGlobal = 1")
         } finally {
-            LuaProjectSettings.getInstance(project).state.additionalGlobals.remove("customGlobal")
+            LuaProjectSettings
+                .getInstance(project)
+                .state.additionalGlobals
+                .remove("customGlobal")
         }
     }
 
@@ -110,7 +119,7 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
             """
             ---@diagnostic disable-next-line: undefined-global
             myGlobal = 1
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -121,7 +130,7 @@ class LuaGlobalCreationInspectionTest : BasePlatformTestCase() {
             local x
             x, y = 1, 2
             """.trimIndent(),
-            "y"
+            "y",
         )
     }
 }

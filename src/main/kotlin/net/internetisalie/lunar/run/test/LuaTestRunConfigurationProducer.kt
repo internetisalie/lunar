@@ -6,23 +6,22 @@ import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiDirectory
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 
 class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunConfiguration>() {
-
     override fun getConfigurationFactory(): ConfigurationFactory =
         LuaTestRunConfigurationType.getInstance().configurationFactories[0]
 
     override fun setupConfigurationFromContext(
         configuration: LuaTestRunConfiguration,
         context: ConfigurationContext,
-        sourceElement: Ref<PsiElement>
+        sourceElement: Ref<PsiElement>,
     ): Boolean {
         val targetLocation = context.location ?: return false
         val targetPsiElement = targetLocation.psiElement
@@ -45,7 +44,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
     private fun setupDirectoryConfiguration(
         configuration: LuaTestRunConfiguration,
         directory: PsiDirectory,
-        virtualFile: VirtualFile
+        virtualFile: VirtualFile,
     ) {
         configuration.testTargetType = "DIRECTORY"
         configuration.testTarget = virtualFile.path
@@ -60,7 +59,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
     private fun setupFileOrPatternConfiguration(
         configuration: LuaTestRunConfiguration,
         context: ConfigurationContext,
-        sourceElement: Ref<PsiElement>
+        sourceElement: Ref<PsiElement>,
     ) {
         val targetLocation = context.location ?: return
         val targetPsiElement = targetLocation.psiElement
@@ -69,7 +68,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
 
         val framework = detectFramework(targetFile)
         configuration.testFramework = framework
-        
+
         val targetProject = context.project
         val defaultInterpreter = LuaToolResolver.getInstance().resolveRuntime(targetProject)
         if (defaultInterpreter != null) {
@@ -77,13 +76,15 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         }
         configuration.workingDirectory = targetVirtualFile.parent?.path ?: targetProject.basePath
 
-        val targetCall = runReadActionBlocking {
-            PsiTreeUtil.getParentOfType(targetPsiElement, LuaFuncCall::class.java, false)
-        }
+        val targetCall =
+            runReadActionBlocking {
+                PsiTreeUtil.getParentOfType(targetPsiElement, LuaFuncCall::class.java, false)
+            }
         val targetTestName = targetCall?.let { getFirstStringArgument(it) }
         val targetCalleeName = targetCall?.let { getCalleeName(it) }
 
-        if (framework == LuaTestFramework.BUSTED && targetTestName != null &&
+        if (framework == LuaTestFramework.BUSTED &&
+            targetTestName != null &&
             (targetCalleeName == "describe" || targetCalleeName == "it" || targetCalleeName == "context")
         ) {
             configuration.testTargetType = "PATTERN"
@@ -100,7 +101,7 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
 
     override fun isConfigurationFromContext(
         configuration: LuaTestRunConfiguration,
-        context: ConfigurationContext
+        context: ConfigurationContext,
     ): Boolean {
         val targetLocation = context.location ?: return false
         val targetPsiElement = targetLocation.psiElement
@@ -118,9 +119,10 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
         }
 
         if (configuration.testTargetType == "PATTERN") {
-            val targetCall = runReadActionBlocking {
-                PsiTreeUtil.getParentOfType(targetPsiElement, LuaFuncCall::class.java, false)
-            }
+            val targetCall =
+                runReadActionBlocking {
+                    PsiTreeUtil.getParentOfType(targetPsiElement, LuaFuncCall::class.java, false)
+                }
             val targetTestName = targetCall?.let { getFirstStringArgument(it) }
             return configuration.testTarget == targetTestName
         }
@@ -138,7 +140,11 @@ class LuaTestRunConfigurationProducer : LazyRunConfigurationProducer<LuaTestRunC
 
     private fun isTestFile(file: PsiFile): Boolean {
         val name = file.name
-        if (name.endsWith("_spec.lua") || name.endsWith("_test.lua") || name.contains("spec") || name.contains("test")) {
+        if (name.endsWith("_spec.lua") ||
+            name.endsWith("_test.lua") ||
+            name.contains("spec") ||
+            name.contains("test")
+        ) {
             return true
         }
         val text = runReadActionBlocking { file.text }

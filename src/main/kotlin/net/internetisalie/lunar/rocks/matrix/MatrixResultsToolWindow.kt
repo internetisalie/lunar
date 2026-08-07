@@ -17,8 +17,10 @@ import javax.swing.table.DefaultTableModel
  * `Project` is retained past close); [RunMatrixAction] pushes results in via [MatrixResultsPanel.setResult].
  */
 class MatrixResultsToolWindow : ToolWindowFactory {
-
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         try {
             val panel = MatrixResultsPanel.getInstance(project)
             val content = toolWindow.contentManager.factory.createContent(panel, "Results", false)
@@ -55,8 +57,7 @@ class MatrixResultsToolWindow : ToolWindowFactory {
         }
 
         companion object {
-            fun getInstance(project: Project): MatrixResultsPanel =
-                project.getService(MatrixResultsPanel::class.java)
+            fun getInstance(project: Project): MatrixResultsPanel = project.getService(MatrixResultsPanel::class.java)
         }
     }
 }

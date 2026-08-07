@@ -8,7 +8,9 @@ import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 
-class LuaDebugValueParser(private val project: Project? = null) {
+class LuaDebugValueParser(
+    private val project: Project? = null,
+) {
     private val localScope: MutableMap<String, LuaValue> = mutableMapOf()
 
     fun evaluateExpression(expr: LuaExpr?): LuaValue? {
@@ -95,12 +97,11 @@ class LuaDebugValueParser(private val project: Project? = null) {
         )
     }
 
-    private fun evaluateFuncDef(expr: LuaFuncDef): LuaValue {
-        return LuaValue(
+    private fun evaluateFuncDef(expr: LuaFuncDef): LuaValue =
+        LuaValue(
             kind = LuaValueKind.Function,
             psiElement = expr,
         )
-    }
 
     private fun evaluatePrefixExpr(expr: LuaPrefixExpr): LuaValue? {
         // prefixExpr ::= varOrExp nameAndArgs*
@@ -142,11 +143,12 @@ class LuaDebugValueParser(private val project: Project? = null) {
 
             "not" -> {
                 // Logical NOT - negate a boolean
-                val boolVal = when (rightValue.kind) {
-                    LuaValueKind.Nil -> false
-                    LuaValueKind.Boolean -> rightValue.boolValue ?: false
-                    else -> true
-                }
+                val boolVal =
+                    when (rightValue.kind) {
+                        LuaValueKind.Nil -> false
+                        LuaValueKind.Boolean -> rightValue.boolValue ?: false
+                        else -> true
+                    }
                 LuaValue(
                     kind = LuaValueKind.Boolean,
                     boolValue = !boolVal,
@@ -156,11 +158,12 @@ class LuaDebugValueParser(private val project: Project? = null) {
 
             "#" -> {
                 // Length operator - only meaningful for tables and strings
-                val length = when (rightValue.kind) {
-                    LuaValueKind.Table -> (rightValue.tableValue?.indexed?.size ?: 0).toDouble()
-                    LuaValueKind.String -> (rightValue.stringValue?.length ?: 0).toDouble()
-                    else -> 0.0
-                }
+                val length =
+                    when (rightValue.kind) {
+                        LuaValueKind.Table -> (rightValue.tableValue?.indexed?.size ?: 0).toDouble()
+                        LuaValueKind.String -> (rightValue.stringValue?.length ?: 0).toDouble()
+                        else -> 0.0
+                    }
                 LuaValue(
                     kind = LuaValueKind.Number,
                     numberValue = length,
@@ -198,15 +201,16 @@ class LuaDebugValueParser(private val project: Project? = null) {
         val varSuffixList = `var`.varSuffixList
 
         // Get base value
-        var currentValue: LuaValue = if (nameRef != null) {
-            // Simple name reference
-            localScope[nameRef.text] ?: LuaValue(kind = LuaValueKind.Nil)
-        } else if (exprVal != null) {
-            // Parenthesized expression
-            evaluateExpression(exprVal) ?: LuaValue(kind = LuaValueKind.Nil)
-        } else {
-            LuaValue(kind = LuaValueKind.Nil)
-        }
+        var currentValue: LuaValue =
+            if (nameRef != null) {
+                // Simple name reference
+                localScope[nameRef.text] ?: LuaValue(kind = LuaValueKind.Nil)
+            } else if (exprVal != null) {
+                // Parenthesized expression
+                evaluateExpression(exprVal) ?: LuaValue(kind = LuaValueKind.Nil)
+            } else {
+                LuaValue(kind = LuaValueKind.Nil)
+            }
 
         // Handle var suffixes (index operations like [key] or .field)
         for (suffix in varSuffixList) {
@@ -246,11 +250,12 @@ class LuaDebugValueParser(private val project: Project? = null) {
                     }
                 }
 
-                val key = when (keyValue.kind) {
-                    LuaValueKind.String -> keyValue.stringValue
-                    LuaValueKind.Number -> keyValue.numberValue?.toInt()?.toString()
-                    else -> null
-                }
+                val key =
+                    when (keyValue.kind) {
+                        LuaValueKind.String -> keyValue.stringValue
+                        LuaValueKind.Number -> keyValue.numberValue?.toInt()?.toString()
+                        else -> null
+                    }
 
                 if (key != null) {
                     return table.getByName(key)?.second ?: LuaValue.NIL
@@ -329,11 +334,12 @@ class LuaDebugValueParser(private val project: Project? = null) {
         exprs: List<LuaExpr>,
     ) {
         for ((i, name) in names.withIndex()) {
-            val value = if (i < exprs.size) {
-                evaluateExpression(exprs[i])
-            } else {
-                null
-            }
+            val value =
+                if (i < exprs.size) {
+                    evaluateExpression(exprs[i])
+                } else {
+                    null
+                }
             localScope[name] = value ?: LuaValue(kind = LuaValueKind.Nil)
         }
     }
@@ -343,11 +349,12 @@ class LuaDebugValueParser(private val project: Project? = null) {
         exprs: List<LuaExpr>,
     ) {
         for ((i, varName) in vars.withIndex()) {
-            val value = if (i < exprs.size) {
-                evaluateExpression(exprs[i])
-            } else {
-                null
-            }
+            val value =
+                if (i < exprs.size) {
+                    evaluateExpression(exprs[i])
+                } else {
+                    null
+                }
             localScope[varName] = value ?: LuaValue(kind = LuaValueKind.Nil)
         }
     }
@@ -355,13 +362,17 @@ class LuaDebugValueParser(private val project: Project? = null) {
     companion object {
         private val log = logger<LuaDebugValueParser>()
 
-        fun parseStringAsLuaValue(project: Project, content: String): LuaValue? {
+        fun parseStringAsLuaValue(
+            project: Project,
+            content: String,
+        ): LuaValue? {
             return try {
                 // Wrap in a table to preserve structure (e.g., {$value} ensures tables stay intact)
                 val wrappedCode = "do return {$content} end"
                 val file = LuaElementFactory.createFile(project, wrappedCode)
-                val doStatement = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
-                    ?: return null
+                val doStatement =
+                    PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
+                        ?: return null
 
                 val table = LuaDebugValueParser(project).parse(doStatement)
 
@@ -375,14 +386,21 @@ class LuaDebugValueParser(private val project: Project? = null) {
             }
         }
 
-        fun parseChunk(project: Project, text: String): LuaTable {
+        fun parseChunk(
+            project: Project,
+            text: String,
+        ): LuaTable {
             val file = LuaElementFactory.createFile(project, text)
             return parseFile(file, project)
         }
 
-        fun parseFile(file: PsiFile, project: Project? = null): LuaTable {
-            val doStatement = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
-                ?: return LuaTable()
+        fun parseFile(
+            file: PsiFile,
+            project: Project? = null,
+        ): LuaTable {
+            val doStatement =
+                PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
+                    ?: return LuaTable()
             val parser = LuaDebugValueParser(project)
             return parser.parse(doStatement)
         }

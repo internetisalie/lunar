@@ -23,19 +23,18 @@ class LuaToolchainProjectState {
 @State(
     name = "LuaToolchainProjectSettings",
     storages = [Storage("lunar.xml")],
-    category = SettingsCategory.PLUGINS
+    category = SettingsCategory.PLUGINS,
 )
-class LuaToolchainProjectSettings(private val project: Project) :
-    PersistentStateComponent<LuaToolchainProjectState> {
-
+class LuaToolchainProjectSettings(
+    private val project: Project,
+) : PersistentStateComponent<LuaToolchainProjectState> {
     private val stateLock = Any()
     private var myState = LuaToolchainProjectState()
 
-    override fun getState(): LuaToolchainProjectState {
-        return synchronized(stateLock) {
+    override fun getState(): LuaToolchainProjectState =
+        synchronized(stateLock) {
             myState
         }
-    }
 
     override fun loadState(state: LuaToolchainProjectState) {
         synchronized(stateLock) {
@@ -43,14 +42,13 @@ class LuaToolchainProjectSettings(private val project: Project) :
         }
     }
 
-    fun environments(): List<LuaEnvironmentState> {
-        return synchronized(stateLock) {
+    fun environments(): List<LuaEnvironmentState> =
+        synchronized(stateLock) {
             myState.environments.toList()
         }
-    }
 
-    fun activeEnvironment(): LuaEnvironmentState? {
-        return synchronized(stateLock) {
+    fun activeEnvironment(): LuaEnvironmentState? =
+        synchronized(stateLock) {
             val activeId = myState.activeEnvironmentId
             if (activeId.isBlank()) {
                 null
@@ -58,15 +56,16 @@ class LuaToolchainProjectSettings(private val project: Project) :
                 myState.environments.firstOrNull { it.id == activeId }
             }
         }
-    }
 
-    fun binding(kindId: String): String? {
-        return synchronized(stateLock) {
+    fun binding(kindId: String): String? =
+        synchronized(stateLock) {
             myState.bindings[kindId]
         }
-    }
 
-    fun setBinding(kindId: String, toolId: String?) {
+    fun setBinding(
+        kindId: String,
+        toolId: String?,
+    ) {
         var changed = false
         synchronized(stateLock) {
             val current = myState.bindings[kindId]
@@ -93,9 +92,10 @@ class LuaToolchainProjectSettings(private val project: Project) :
         var change: LuaToolchainChange? = null
         val resolved: LuaEnvironmentState
         synchronized(stateLock) {
-            val existingIndex = myState.environments.indexOfFirst {
-                it.id == spec.id || normalizeDir(it.rootDir) == normalized
-            }
+            val existingIndex =
+                myState.environments.indexOfFirst {
+                    it.id == spec.id || normalizeDir(it.rootDir) == normalized
+                }
             if (existingIndex == -1) {
                 resolved = spec.copy(id = spec.id.ifBlank { UUID.randomUUID().toString() })
                 myState.environments.add(resolved)
@@ -131,18 +131,19 @@ class LuaToolchainProjectSettings(private val project: Project) :
 
     fun activateEnvironment(envId: String): Boolean {
         var activated = false
-        val result = synchronized(stateLock) {
-            val known = myState.environments.any { it.id == envId }
-            if (!known) {
-                false
-            } else {
-                if (myState.activeEnvironmentId != envId) {
-                    myState.activeEnvironmentId = envId
-                    activated = true
+        val result =
+            synchronized(stateLock) {
+                val known = myState.environments.any { it.id == envId }
+                if (!known) {
+                    false
+                } else {
+                    if (myState.activeEnvironmentId != envId) {
+                        myState.activeEnvironmentId = envId
+                        activated = true
+                    }
+                    true
                 }
-                true
             }
-        }
         if (activated) {
             publish(LuaToolchainChange.ACTIVE_ENVIRONMENT_CHANGED, environmentId = envId)
         }
@@ -162,7 +163,10 @@ class LuaToolchainProjectSettings(private val project: Project) :
         }
     }
 
-    fun removeEnvironment(envId: String, deleteDir: Boolean) {
+    fun removeEnvironment(
+        envId: String,
+        deleteDir: Boolean,
+    ) {
         val removal = removeEnvironmentRecord(envId) ?: return
         if (removal.wasActive) {
             publish(LuaToolchainChange.ACTIVE_ENVIRONMENT_CHANGED, environmentId = null)
@@ -177,7 +181,10 @@ class LuaToolchainProjectSettings(private val project: Project) :
         }
     }
 
-    fun setKindOption(key: String, value: String?) {
+    fun setKindOption(
+        key: String,
+        value: String?,
+    ) {
         var changed = false
         synchronized(stateLock) {
             val current = myState.kindOptions[key]
@@ -204,7 +211,10 @@ class LuaToolchainProjectSettings(private val project: Project) :
         return ""
     }
 
-    private data class EnvironmentRemoval(val wasActive: Boolean, val rootDir: String)
+    private data class EnvironmentRemoval(
+        val wasActive: Boolean,
+        val rootDir: String,
+    )
 
     private fun removeEnvironmentRecord(envId: String): EnvironmentRemoval? {
         return synchronized(stateLock) {
@@ -224,9 +234,12 @@ class LuaToolchainProjectSettings(private val project: Project) :
         kindId: String? = null,
         toolId: String? = null,
         environmentId: String? = null,
-        optionKey: String? = null
+        optionKey: String? = null,
     ) {
-        ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+        ApplicationManager
+            .getApplication()
+            .messageBus
+            .syncPublisher(LuaToolchainListener.TOPIC)
             .toolchainChanged(
                 LuaToolchainEvent(
                     change = change,
@@ -234,17 +247,15 @@ class LuaToolchainProjectSettings(private val project: Project) :
                     kindId = kindId,
                     toolId = toolId,
                     environmentId = environmentId,
-                    optionKey = optionKey
-                )
+                    optionKey = optionKey,
+                ),
             )
     }
 
     companion object {
-        fun getInstance(project: Project): LuaToolchainProjectSettings {
-            return project.getService(LuaToolchainProjectSettings::class.java)
-        }
+        fun getInstance(project: Project): LuaToolchainProjectSettings =
+            project.getService(LuaToolchainProjectSettings::class.java)
 
-        fun normalizeDir(directory: String): String =
-            FileUtil.toCanonicalPath(File(directory).absolutePath)
+        fun normalizeDir(directory: String): String = FileUtil.toCanonicalPath(File(directory).absolutePath)
     }
 }

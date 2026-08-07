@@ -6,28 +6,27 @@ import com.intellij.codeInsight.template.TemplateManager
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.util.Ref
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler
+import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.insight.LuaDocGenerator
 import net.internetisalie.lunar.lang.psi.*
 
 class LuaEnterHandlerDelegate : EnterHandlerDelegate {
-
     override fun preprocessEnter(
         file: PsiFile,
         editor: Editor,
         caretOffset: Ref<Int?>,
         caretAdvance: Ref<Int?>,
         dataContext: DataContext,
-        originalHandler: EditorActionHandler?
+        originalHandler: EditorActionHandler?,
     ): Result = Result.Continue
 
     override fun postProcessEnter(
         file: PsiFile,
         editor: Editor,
-        dataContext: DataContext
+        dataContext: DataContext,
     ): Result {
         if (file !is LuaFile) {
             return Result.Continue
@@ -46,7 +45,11 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
         val prevLine = line - 1
         val prevLineStart = document.getLineStartOffset(prevLine)
         val prevLineEnd = document.getLineEndOffset(prevLine)
-        val prevLineText = document.getText(com.intellij.openapi.util.TextRange(prevLineStart, prevLineEnd))
+        val prevLineText =
+            document.getText(
+                com.intellij.openapi.util
+                    .TextRange(prevLineStart, prevLineEnd),
+            )
         val prevLineIndent = getLineIndent(document, prevLineStart)
         val prevLineTrimmed = prevLineText.trim()
 
@@ -57,7 +60,11 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
 
         val currentLineStart = document.getLineStartOffset(line)
         val currentLineEnd = document.getLineEndOffset(line)
-        val currentLineText = document.getText(com.intellij.openapi.util.TextRange(currentLineStart, currentLineEnd))
+        val currentLineText =
+            document.getText(
+                com.intellij.openapi.util
+                    .TextRange(currentLineStart, currentLineEnd),
+            )
 
         // If current line already has content or starts with ---, don't modify it
         // (this happens when Enter was pressed mid-line)
@@ -76,7 +83,14 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
             if (target != null && LuaDocGenerator.isDocCommentEmpty(target.catsComment)) {
                 val template = LuaDocGenerator.createTemplate(file.project, target, prevLineIndent)
                 if (template != null) {
-                    val endOffset = if (line < document.lineCount - 1) document.getLineStartOffset(line + 1) else document.textLength
+                    val endOffset =
+                        if (line <
+                            document.lineCount - 1
+                        ) {
+                            document.getLineStartOffset(line + 1)
+                        } else {
+                            document.textLength
+                        }
                     document.deleteString(prevLineStart, endOffset)
                     editor.caretModel.moveToOffset(prevLineStart)
                     TemplateManager.getInstance(file.project).startTemplate(editor, template)
@@ -94,7 +108,10 @@ class LuaEnterHandlerDelegate : EnterHandlerDelegate {
         return Result.Continue
     }
 
-    private fun getLineIndent(document: Document, lineStart: Int): String {
+    private fun getLineIndent(
+        document: Document,
+        lineStart: Int,
+    ): String {
         val text = document.charsSequence
         var i = lineStart
         while (i < text.length && text[i].isWhitespace()) {

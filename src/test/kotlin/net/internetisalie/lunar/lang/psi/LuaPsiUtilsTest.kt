@@ -8,7 +8,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaFileType
 
 class LuaPsiUtilsTest : BasePlatformTestCase() {
-
     /** TC3: nodeType on an element with no underlying ASTNode returns null, not an NPE. */
     fun testNodeTypeReturnsNullForNodelessElement() {
         val nodeless: PsiElement =
@@ -25,8 +24,9 @@ class LuaPsiUtilsTest : BasePlatformTestCase() {
     fun testFindNextSiblingSkipsMatchingType() {
         val file = myFixture.configureByText(LuaFileType, "local a = 1")
         val firstLeaf = PsiTreeUtil.getDeepestFirst(file)
-        val secondLeaf = firstLeaf.nextSibling
-            ?: error("fixture must yield at least two sibling leaves")
+        val secondLeaf =
+            firstLeaf.nextSibling
+                ?: error("fixture must yield at least two sibling leaves")
 
         val skipType = LuaPsiUtils.nodeType(secondLeaf)!!
 

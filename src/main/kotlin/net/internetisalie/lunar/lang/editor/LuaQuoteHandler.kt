@@ -23,12 +23,14 @@ import net.internetisalie.lunar.lang.syntax.LuaSyntax
 class LuaQuoteHandler :
     SimpleTokenSetQuoteHandler(LuaSyntax.StringLiteralTokens),
     MultiCharQuoteHandler {
-
     /**
      * Returns the matching quote char as a 1-char sequence, or null to suppress auto-close.
      * [offset] is the post-insertion caret position; `[offset-1]` is the typed opening quote.
      */
-    override fun getClosingQuote(iterator: HighlighterIterator, offset: Int): CharSequence? {
+    override fun getClosingQuote(
+        iterator: HighlighterIterator,
+        offset: Int,
+    ): CharSequence? {
         if (offset < 2) return null
         val charBeforeQuote = iterator.document.charsSequence[offset - 2]
         if (charBeforeQuote.isLetterOrDigit() || charBeforeQuote == '_') return null

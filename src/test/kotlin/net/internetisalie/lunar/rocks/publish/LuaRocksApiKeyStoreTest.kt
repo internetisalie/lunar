@@ -14,7 +14,6 @@ import kotlin.test.assertTrue
  * checklist (scenarios 4.1–4.3). These tests pin the key derivation contract.
  */
 class LuaRocksApiKeyStoreTest {
-
     // ── TC 8: legacy key fall-through ────────────────────────────────────────
 
     @Test

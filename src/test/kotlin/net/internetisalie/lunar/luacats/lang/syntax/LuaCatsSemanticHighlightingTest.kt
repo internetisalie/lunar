@@ -6,27 +6,39 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
-
-    private fun assertHighlighted(text: String, expectedKey: TextAttributesKey) {
+    private fun assertHighlighted(
+        text: String,
+        expectedKey: TextAttributesKey,
+    ) {
         val infos = myFixture.doHighlighting()
-        val found = infos.any {
-            it.forcedTextAttributesKey == expectedKey && it.text == text
-        }
+        val found =
+            infos.any {
+                it.forcedTextAttributesKey == expectedKey && it.text == text
+            }
         if (!found) {
-            val matchingText = infos.filter { it.text == text }.map { "${it.text}=${it.forcedTextAttributesKey?.externalName}" }
+            val matchingText =
+                infos
+                    .filter {
+                        it.text == text
+                    }.map { "${it.text}=${it.forcedTextAttributesKey?.externalName}" }
             val allText = infos.map { "${it.text}[${it.type}]=${it.forcedTextAttributesKey?.externalName}" }.toSet()
             println("All highlights: $allText")
-            fail<Unit>("Expected text '${text}' to be highlighted with ${expectedKey.externalName}. Found attributes for this text: $matchingText.")
+            fail<Unit>(
+                "Expected text '$text' to be highlighted with ${expectedKey.externalName}. Found attributes for this text: $matchingText.",
+            )
         }
     }
 
     @Test
     fun testLuaCatsTags() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@class Player
             ---@field name string
             local p
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("@class", LuaCatsHighlight.TAG)
         assertHighlighted("Player", LuaCatsHighlight.NAME)
@@ -37,11 +49,14 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
 
     @Test
     fun testLuaCatsParams() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@param id number
             ---@return string
             function foo(id) end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("@param", LuaCatsHighlight.TAG)
         assertHighlighted("id", LuaCatsHighlight.NAME)
@@ -52,10 +67,13 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
 
     @Test
     fun testLuaCatsComplexTypes() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@type table<string, number>|fun(a: boolean): void
             local x
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("table", LuaCatsHighlight.TYPE)
         assertHighlighted("string", LuaCatsHighlight.TYPE)
@@ -70,10 +88,13 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
 
     @Test
     fun testLuaCatsStringLiteralType() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@alias Mode "read"|"write"
             local m
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("\"read\"", LuaCatsHighlight.KEYWORD)
         assertHighlighted("\"write\"", LuaCatsHighlight.KEYWORD)
@@ -81,10 +102,13 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
 
     @Test
     fun testLuaCatsNumberLiteralType() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@type 1|2
             local n
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("1", LuaCatsHighlight.KEYWORD)
         assertHighlighted("2", LuaCatsHighlight.KEYWORD)
@@ -92,10 +116,13 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
 
     @Test
     fun testLuaCatsBooleanLiteralType() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@type true|false
             local b
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("true", LuaCatsHighlight.KEYWORD)
         assertHighlighted("false", LuaCatsHighlight.KEYWORD)
@@ -104,20 +131,26 @@ class LuaCatsSemanticHighlightingTest : BaseDocumentTest() {
     @Test
     fun testLuaCatsNilStaysType() {
         // `nil` has a single inhabitant, so it remains the nil TYPE (not a literal), unlike true/false.
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@type nil
             local x
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("nil", LuaCatsHighlight.TYPE)
     }
 
     @Test
     fun testLuaCatsDeprecated() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ---@deprecated Use something else
             local x
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         assertHighlighted("@deprecated Use something else", LuaCatsHighlight.DEPRECATED)
     }

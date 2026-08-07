@@ -15,7 +15,6 @@ import java.nio.file.Files
  * manifest hands the tree to re-registration, so this startup stays silent for it).
  */
 class LuaEnvironmentDetectionStartupTest : ToolchainSettingsTestCase() {
-
     private val startup = LuaEnvironmentDetectionStartup()
     private lateinit var envDir: File
 
@@ -41,25 +40,27 @@ class LuaEnvironmentDetectionStartupTest : ToolchainSettingsTestCase() {
 
         assertFalse(
             "a .lunar-env.json tree is LuaEnvRedetectionStartup's to prompt",
-            startup.shouldOfferAdopt(project, envDir.absolutePath)
+            startup.shouldOfferAdopt(project, envDir.absolutePath),
         )
     }
 
     fun testSkipsAlreadyRecordedDirectory() {
         settings.upsertEnvironmentAndActivate(
-            LuaEnvironmentState(id = "R", name = "Recorded", rootDir = envDir.absolutePath)
+            LuaEnvironmentState(id = "R", name = "Recorded", rootDir = envDir.absolutePath),
         )
 
         assertFalse(startup.shouldOfferAdopt(project, envDir.absolutePath))
     }
 
-    private fun wellFormedManifest() = LuaEnvManifest(
-        manifestVersion = 1,
-        environmentId = "E1",
-        environmentName = "Env",
-        request = LuaProvisionRequest("Env", envDir.absolutePath, listOf(LuaProvisionItem("lua", "5.4"))),
-        components = mapOf(
-            "lua" to LuaManifestComponent("5.4.6", "release", "hash", listOf("bin/lua"), 1L)
+    private fun wellFormedManifest() =
+        LuaEnvManifest(
+            manifestVersion = 1,
+            environmentId = "E1",
+            environmentName = "Env",
+            request = LuaProvisionRequest("Env", envDir.absolutePath, listOf(LuaProvisionItem("lua", "5.4"))),
+            components =
+                mapOf(
+                    "lua" to LuaManifestComponent("5.4.6", "release", "hash", listOf("bin/lua"), 1L),
+                ),
         )
-    )
 }

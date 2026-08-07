@@ -20,11 +20,12 @@ import net.internetisalie.lunar.rocks.LuaRockspecDiscoveryService
 /**
  * Action to build all discovered rocks in the workspace in topological dependency order.
  */
-class BuildWorkspaceAction : DumbAwareAction(
-    "Build Workspace (dependency order)",
-    "Build all first-party rocks with luarocks make in topological dependency order",
-    LuaIcons.ROCKET,
-) {
+class BuildWorkspaceAction :
+    DumbAwareAction(
+        "Build Workspace (dependency order)",
+        "Build all first-party rocks with luarocks make in topological dependency order",
+        LuaIcons.ROCKET,
+    ) {
     override fun update(event: AnActionEvent) {
         val project = event.project
         if (project == null) {
@@ -41,37 +42,43 @@ class BuildWorkspaceAction : DumbAwareAction(
 
         ApplicationManager.getApplication().invokeLater {
             val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
-            val descriptor = RunContentDescriptor(
-                console,
-                null,
-                console.component,
-                "Build Workspace",
-                LuaIcons.ROCKET
-            )
+            val descriptor =
+                RunContentDescriptor(
+                    console,
+                    null,
+                    console.component,
+                    "Build Workspace",
+                    LuaIcons.ROCKET,
+                )
 
             RunContentManager.getInstance(project).showRunContent(
                 DefaultRunExecutor.getRunExecutorInstance(),
-                descriptor
+                descriptor,
             )
 
             runBuildTask(project, console)
         }
     }
 
-    private fun runBuildTask(project: Project, console: ConsoleView) {
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Building workspace", true) {
-            override fun run(indicator: ProgressIndicator) {
-                val plan = WorkspaceBuildOrchestrator.computeBuildOrder(project)
-                executePlan(project, plan, console, indicator)
-            }
-        })
+    private fun runBuildTask(
+        project: Project,
+        console: ConsoleView,
+    ) {
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(project, "Building workspace", true) {
+                override fun run(indicator: ProgressIndicator) {
+                    val plan = WorkspaceBuildOrchestrator.computeBuildOrder(project)
+                    executePlan(project, plan, console, indicator)
+                }
+            },
+        )
     }
 
     private fun executePlan(
         project: Project,
         plan: BuildPlan,
         console: ConsoleView,
-        indicator: ProgressIndicator
+        indicator: ProgressIndicator,
     ) {
         when (plan) {
             BuildPlan.Empty -> {
@@ -81,7 +88,7 @@ class BuildWorkspaceAction : DumbAwareAction(
                 val cycleList = plan.packages.joinToString(", ")
                 console.print(
                     "Build aborted: dependency cycle among $cycleList\n",
-                    ConsoleViewContentType.ERROR_OUTPUT
+                    ConsoleViewContentType.ERROR_OUTPUT,
                 )
             }
             is BuildPlan.Ordered -> {
@@ -91,17 +98,20 @@ class BuildWorkspaceAction : DumbAwareAction(
         }
     }
 
-    private fun reportOutcome(outcome: WorkspaceBuildRunner.BuildOutcome, console: ConsoleView) {
+    private fun reportOutcome(
+        outcome: WorkspaceBuildRunner.BuildOutcome,
+        console: ConsoleView,
+    ) {
         val failedRock = outcome.failedRock
         if (failedRock != null) {
             console.print(
                 "\nWorkspace build FAILED at ${failedRock.packageName} (exit ${outcome.exitCode})\n",
-                ConsoleViewContentType.ERROR_OUTPUT
+                ConsoleViewContentType.ERROR_OUTPUT,
             )
         } else {
             console.print(
                 "\nWorkspace build complete: ${outcome.builtCount} rocks\n",
-                ConsoleViewContentType.SYSTEM_OUTPUT
+                ConsoleViewContentType.SYSTEM_OUTPUT,
             )
         }
     }

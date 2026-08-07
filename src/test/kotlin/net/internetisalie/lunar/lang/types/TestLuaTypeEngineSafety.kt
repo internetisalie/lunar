@@ -10,7 +10,6 @@ import java.util.function.Predicate
 
 @RunWith(JUnit4::class)
 class TestLuaTypeEngineSafety : BasePlatformTestCase() {
-
     @Test
     fun testScopeShadowingAndRedeclaration() {
         val graph = LuaTypeGraph()
@@ -38,24 +37,28 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
 
     @Test
     fun testGenericIsolationAndMemoization() {
-        val file = myFixture.configureByText("test.lua", """
-            ---@generic T
-            ---@param x T
-            ---@return T
-            local function f(x) return x end
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@generic T
+                ---@param x T
+                ---@return T
+                local function f(x) return x end
 
-            local a = f(1)
-            ---@type number
-            local a_check = a
+                local a = f(1)
+                ---@type number
+                local a_check = a
 
-            local b = f("hi")
-            ---@type string
-            local b_check = b
+                local b = f("hi")
+                ---@type string
+                local b_check = b
 
-            local c = f(true)
-            ---@type number
-            local c_err = c -- Error: boolean not assignable to number
-        """.trimIndent())
+                local c = f(true)
+                ---@type number
+                local c_err = c -- Error: boolean not assignable to number
+                """.trimIndent(),
+            )
 
         val snapshot = LuaTypesSnapshot.forFile(file)
         val errors = snapshot.getErrors()
@@ -76,22 +79,29 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
 
         // Verify we have the correct error for c_err
 
-        assertTrue("Should have error for boolean -> number",
-            errors.any { it.message.contains("boolean") && it.message.contains("number") })
+        assertTrue(
+            "Should have error for boolean -> number",
+            errors.any { it.message.contains("boolean") && it.message.contains("number") },
+        )
 
         // If broken, we might also see errors for a_check and b_check
         val assignmentErrors = errors.filter { it.element.text == "a" || it.element.text == "b" }
         assertTrue("Call sites should be isolated; 'a' and 'b' should not have errors", assignmentErrors.isEmpty())
     }
+
     @Test
     fun testIterationLimitSafety() {
         // Create a circular constraint that might cause many iterations
         // We'll use a recursive table pattern.
-        val file = myFixture.configureByText("test.lua", """
-            local t = {}
-            t.next = t
-            local x = t.next.next.next.next.next.next.next.next.next.next.a
-        """.trimIndent())
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local t = {}
+                t.next = t
+                local x = t.next.next.next.next.next.next.next.next.next.next.a
+                """.trimIndent(),
+            )
 
         val startTime = System.currentTimeMillis()
         val snapshot = LuaTypesSnapshot.forFile(file)
@@ -111,11 +121,12 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
         val anchor = myFixture.addFileToProject("rec.lua", "")
         val graph = LuaTypeGraph()
         val selfNode = graph.variable(anchor)
-        val cyclicTable = LuaGraphType.Table(
-            className = null,
-            localMembers = mapOf("self" to selfNode),
-            isExact = true,
-        )
+        val cyclicTable =
+            LuaGraphType.Table(
+                className = null,
+                localMembers = mapOf("self" to selfNode),
+                isExact = true,
+            )
         selfNode.upSet.add(graph.value(anchor, cyclicTable))
         selfNode.downSet.add(graph.use(anchor, cyclicTable))
 
@@ -123,8 +134,9 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
         // No StackOverflowError reaching past this line is the primary TC-03 assertion.
         val luaType = snapshot.graphTypeToLuaType(cyclicTable)
 
-        val members = (luaType as? LuaTableLiteralType)?.localMembers
-            ?: (luaType as? LuaClassType)?.getMembers()
+        val members =
+            (luaType as? LuaTableLiteralType)?.localMembers
+                ?: (luaType as? LuaClassType)?.getMembers()
         assertNotNull("Self-referential table must convert to a member-bearing LuaType", members)
         assertTrue("Member 'self' must survive the cycle guard", members!!.containsKey("self"))
     }
@@ -181,13 +193,15 @@ class TestLuaTypeEngineSafety : BasePlatformTestCase() {
             LuaTypeManagerImpl(project).resolveType("Present", context),
         )
 
-        val cancelInsideResolve = Predicate<StackTraceElement> { frame ->
-            frame.className == LuaTypeManagerImpl::class.java.name && frame.methodName == "doResolveType"
-        }
-        val canceled = BombedProgressIndicator.explodeOnStackElement(cancelInsideResolve).runBombed {
-            LuaTypeManagerImpl(project).resolveType("Present", context)
-            fail("resolveType must rethrow the ProcessCanceledException, not swallow it")
-        }
+        val cancelInsideResolve =
+            Predicate<StackTraceElement> { frame ->
+                frame.className == LuaTypeManagerImpl::class.java.name && frame.methodName == "doResolveType"
+            }
+        val canceled =
+            BombedProgressIndicator.explodeOnStackElement(cancelInsideResolve).runBombed {
+                LuaTypeManagerImpl(project).resolveType("Present", context)
+                fail("resolveType must rethrow the ProcessCanceledException, not swallow it")
+            }
         assertTrue("The bomb must have canceled resolveType mid-flight", canceled)
     }
 }

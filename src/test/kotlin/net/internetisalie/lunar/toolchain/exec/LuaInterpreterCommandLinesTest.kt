@@ -17,7 +17,6 @@ import java.util.UUID
  * resolution never touches disk, so a nonexistent tool path is fine.
  */
 class LuaInterpreterCommandLinesTest : ToolchainSettingsTestCase() {
-
     override fun setUp() {
         super.setUp()
         LuaProjectSettings.getInstance(project).state.sourcePath = ""
@@ -48,8 +47,9 @@ class LuaInterpreterCommandLinesTest : ToolchainSettingsTestCase() {
     fun testForProjectResolvesRuntimeAndAppliesEnvironment() {
         bindRuntime("/opt/lua/bin/lua")
 
-        val cmd = LuaInterpreterCommandLines.forProject(project)
-            ?: error("expected a command line for a bound runtime")
+        val cmd =
+            LuaInterpreterCommandLines.forProject(project)
+                ?: error("expected a command line for a bound runtime")
 
         assertEquals("/opt/lua/bin/lua", cmd.exePath)
         val path = cmd.environment["PATH"].orEmpty()
@@ -57,23 +57,25 @@ class LuaInterpreterCommandLinesTest : ToolchainSettingsTestCase() {
     }
 
     private fun bindRuntime(path: String): LuaRegisteredTool {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "lua",
-            path = path,
-            version = "1.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(
-                fileExists = true,
-                executable = true,
-                probeOk = true,
-                probedAtMtime = 1L,
-                reason = null,
-            ),
-        )
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "lua",
+                path = path,
+                version = "1.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         registry.registerProvisioned(tool)
         settings.setBinding("lua", tool.id)
         LuaExecutionEnvironmentBuilder.getInstance(project).invalidate()

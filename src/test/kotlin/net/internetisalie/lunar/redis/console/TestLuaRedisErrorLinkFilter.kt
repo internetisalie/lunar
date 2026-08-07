@@ -12,7 +12,6 @@ import kotlin.test.assertNotNull as ktAssertNotNull
  * light fixture provides a real `VirtualFile` whose URL the filter resolves.
  */
 class TestLuaRedisErrorLinkFilter : BasePlatformTestCase() {
-
     /** TC-CON-3: `user_script:12:` links to editor line 11 (12 → 0-based). */
     fun testColonFormLinksToConvertedLine() {
         val psiFile = myFixture.configureByText("script.lua", "return 1")

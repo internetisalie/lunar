@@ -13,8 +13,8 @@ import com.intellij.xdebugger.breakpoints.XLineBreakpoint
 class LuaLdbBreakpointHandler(
     private val registrar: LuaLdbBreakpointRegistrar,
 ) : XBreakpointHandler<XLineBreakpoint<XBreakpointProperties<*>>>(
-    LuaLdbBreakpointType::class.java,
-) {
+        LuaLdbBreakpointType::class.java,
+    ) {
     override fun registerBreakpoint(breakpoint: XLineBreakpoint<XBreakpointProperties<*>>) {
         registrar.addBreakpoint(breakpoint)
     }

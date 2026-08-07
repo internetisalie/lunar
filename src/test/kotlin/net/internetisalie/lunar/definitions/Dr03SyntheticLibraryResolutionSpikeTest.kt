@@ -37,15 +37,20 @@ import java.nio.file.Files
  * nothing of Phase 4 written yet to confound a failure.
  */
 class Dr03SyntheticLibraryResolutionSpikeTest : BasePlatformTestCase() {
-
     /** Minimal stand-in for the Phase 4 provider — one directory, exposed as a source root. */
-    private class SpikeProvider(private val root: VirtualFile) : AdditionalLibraryRootsProvider() {
+    private class SpikeProvider(
+        private val root: VirtualFile,
+    ) : AdditionalLibraryRootsProvider() {
         override fun getAdditionalProjectLibraries(project: Project): Collection<SyntheticLibrary> =
-            listOf(object : SyntheticLibrary() {
-                override fun getSourceRoots(): Collection<VirtualFile> = listOf(root)
-                override fun equals(other: Any?): Boolean = other === this
-                override fun hashCode(): Int = root.hashCode()
-            })
+            listOf(
+                object : SyntheticLibrary() {
+                    override fun getSourceRoots(): Collection<VirtualFile> = listOf(root)
+
+                    override fun equals(other: Any?): Boolean = other === this
+
+                    override fun hashCode(): Int = root.hashCode()
+                },
+            )
 
         override fun getRootsToWatch(project: Project): Collection<VirtualFile> = listOf(root)
     }
@@ -77,7 +82,8 @@ class Dr03SyntheticLibraryResolutionSpikeTest : BasePlatformTestCase() {
         // Registering the EP is not enough on its own: the platform caches its root set, so the
         // change has to be announced before anything indexes the new tree.
         runWriteAction {
-            ProjectRootManagerEx.getInstanceEx(project)
+            ProjectRootManagerEx
+                .getInstanceEx(project)
                 .makeRootsChange(EmptyRunnable.getInstance(), false, true)
         }
         // A roots change alone leaves the new tree unindexed in a light fixture: isInLibrary goes
@@ -103,15 +109,17 @@ class Dr03SyntheticLibraryResolutionSpikeTest : BasePlatformTestCase() {
 
         // Step 2 — is the definition actually in the stub index? This is the question Phase 4
         // depends on; completion is only one consumer of the answer.
-        val indexed = runReadAction {
-            StubIndex.getElements(
-                LuaGlobalDeclarationIndex.KEY,
-                "dr03_probe",
-                project,
-                GlobalSearchScope.allScope(project),
-                LuaFuncDecl::class.java,
-            ).map { it.containingFile.virtualFile.path }
-        }
+        val indexed =
+            runReadAction {
+                StubIndex
+                    .getElements(
+                        LuaGlobalDeclarationIndex.KEY,
+                        "dr03_probe",
+                        project,
+                        GlobalSearchScope.allScope(project),
+                        LuaFuncDecl::class.java,
+                    ).map { it.containingFile.virtualFile.path }
+            }
         assertTrue(
             "dr03_probe is not in LuaGlobalDeclarationIndex; the SyntheticLibrary root is library " +
                 "content but its contents were never indexed. Indexed paths: $indexed",
@@ -121,10 +129,15 @@ class Dr03SyntheticLibraryResolutionSpikeTest : BasePlatformTestCase() {
         // Step 3 — a reference in PROJECT code must actually resolve into the library file.
         // Index presence alone does not prove that, and "resolution works" was claimed on it.
         myFixture.configureByText(LuaFileType, "dr03_probe('x')\n")
-        val resolved = runReadAction {
-            val reference = myFixture.file.findReferenceAt(2)
-            reference?.resolve()?.containingFile?.virtualFile?.path
-        }
+        val resolved =
+            runReadAction {
+                val reference = myFixture.file.findReferenceAt(2)
+                reference
+                    ?.resolve()
+                    ?.containingFile
+                    ?.virtualFile
+                    ?.path
+            }
         assertNotNull("a project-file reference must resolve into the definition library", resolved)
         assertTrue(
             "expected resolution into the synthetic library tree, got $resolved",

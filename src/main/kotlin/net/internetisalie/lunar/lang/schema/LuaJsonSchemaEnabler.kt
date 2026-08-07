@@ -6,7 +6,10 @@ import com.jetbrains.jsonSchema.extension.JsonSchemaEnabler
 import net.internetisalie.lunar.lang.LuaFileType
 
 class LuaJsonSchemaEnabler : JsonSchemaEnabler {
-    override fun isEnabledForFile(file: VirtualFile, project: Project?): Boolean {
+    override fun isEnabledForFile(
+        file: VirtualFile,
+        project: Project?,
+    ): Boolean {
         // Coarse, index-free language gate — the JsonSchemaEnabler contract says this method MUST NOT
         // address indexes, so per-file schema selection is left to provider.isAvailable + the engine
         // (which no-ops when no provider claims the file). Mirrors the platform's own YamlJsonEnabler,

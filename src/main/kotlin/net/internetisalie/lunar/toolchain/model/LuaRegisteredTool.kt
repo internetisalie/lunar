@@ -12,13 +12,13 @@ data class LuaRegisteredTool(
     val runtime: LuaRuntimeInfo?,
     val origin: Origin,
     val environmentId: String?,
-    val health: LuaToolHealth
+    val health: LuaToolHealth,
 )
 
 enum class Origin {
     DISCOVERED,
     MANUAL,
-    PROVISIONED
+    PROVISIONED,
 }
 
 data class LuaToolHealth(
@@ -26,7 +26,7 @@ data class LuaToolHealth(
     val executable: Boolean,
     val probeOk: Boolean?,
     val probedAtMtime: Long?,
-    val reason: String?
+    val reason: String?,
 )
 
 val LuaRegisteredTool.isUsable: Boolean
@@ -37,5 +37,5 @@ data class LuaRuntimeInfo(
     val version: String,
     val languageLevel: LuaLanguageLevel,
     val platform: LuaPlatform,
-    val banner: String
+    val banner: String,
 )

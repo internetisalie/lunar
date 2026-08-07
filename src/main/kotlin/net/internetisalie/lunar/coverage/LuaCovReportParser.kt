@@ -8,7 +8,7 @@ import java.io.File
 
 data class FileCoverage(
     val filePath: String,
-    val lineHits: Map<Int, Int> // 1-indexed line -> hit count (0 = uncovered)
+    val lineHits: Map<Int, Int>, // 1-indexed line -> hit count (0 = uncovered)
 )
 
 object LuaCovReportParser {
@@ -71,20 +71,24 @@ object LuaCovReportParser {
         return results
     }
 
-    fun toProjectData(coverages: List<FileCoverage>, project: Project? = null): ProjectData {
+    fun toProjectData(
+        coverages: List<FileCoverage>,
+        project: Project? = null,
+    ): ProjectData {
         val projectData = ProjectData()
         for (coverage in coverages) {
-            val resolvedPath = if (project != null && !File(coverage.filePath).isAbsolute) {
-                val basePath = project.basePath
-                if (basePath != null) {
-                    val resolvedFile = File(basePath, coverage.filePath)
-                    resolvedFile.absolutePath
+            val resolvedPath =
+                if (project != null && !File(coverage.filePath).isAbsolute) {
+                    val basePath = project.basePath
+                    if (basePath != null) {
+                        val resolvedFile = File(basePath, coverage.filePath)
+                        resolvedFile.absolutePath
+                    } else {
+                        coverage.filePath
+                    }
                 } else {
                     coverage.filePath
                 }
-            } else {
-                coverage.filePath
-            }
             val classData = projectData.getOrCreateClassData(resolvedPath)
             val maxLine = coverage.lineHits.keys.maxOrNull() ?: 0
             val lineDataArray = arrayOfNulls<LineData>(maxLine + 1)

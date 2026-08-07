@@ -1,8 +1,8 @@
 package net.internetisalie.lunar.definitions
 
 import com.intellij.openapi.progress.EmptyProgressIndicator
-import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressIndicator
 import net.internetisalie.lunar.toolchain.provision.LuaProvisionException
 import org.junit.Rule
 import org.junit.Test
@@ -25,31 +25,36 @@ import kotlin.test.assertTrue
  */
 @RunWith(JUnit4::class)
 class LuaDefinitionLibraryFetcherTest {
-
     @get:Rule
     val temp = TemporaryFolder()
 
     private val indicator: ProgressIndicator = EmptyProgressIndicator()
 
-    private fun entry(id: String = "busted") = LuaDefinitionEntry(
-        id = id,
-        displayName = "Busted",
-        version = "5ed85d0e",
-        urls = listOf("https://example.invalid/$id.tar.gz"),
-        sha256 = "c33499e7",
-        size = 2040,
-        rootPrefix = "$id-5ed85d0e/library",
-        license = "MIT",
-        attributionUrl = "https://example.invalid/$id",
-        requires = emptyList(),
-    )
+    private fun entry(id: String = "busted") =
+        LuaDefinitionEntry(
+            id = id,
+            displayName = "Busted",
+            version = "5ed85d0e",
+            urls = listOf("https://example.invalid/$id.tar.gz"),
+            sha256 = "c33499e7",
+            size = 2040,
+            rootPrefix = "$id-5ed85d0e/library",
+            license = "MIT",
+            attributionUrl = "https://example.invalid/$id",
+            requires = emptyList(),
+        )
 
     /** Records whether the archive source was consulted at all. */
-    private class SpySource(private val onFetch: () -> Path) : LuaDefinitionArchiveSource {
+    private class SpySource(
+        private val onFetch: () -> Path,
+    ) : LuaDefinitionArchiveSource {
         var calls = 0
             private set
 
-        override fun fetch(entry: LuaDefinitionEntry, indicator: ProgressIndicator): Path {
+        override fun fetch(
+            entry: LuaDefinitionEntry,
+            indicator: ProgressIndicator,
+        ): Path {
             calls++
             return onFetch()
         }
@@ -101,10 +106,15 @@ class LuaDefinitionLibraryFetcherTest {
     fun extractionFailureDiscardsPartialTree() {
         val root = temp.newFolder("cache").toPath()
         val partial = root.resolve("busted-5ed85d0e")
-        val fetcher = LuaDefinitionLibraryFetcher(root) { _, _ ->
-            partial.resolve("library").createDirectories().resolve("partial.lua").writeText("---@meta\n")
-            throw LuaProvisionException("archive truncated mid-extract")
-        }
+        val fetcher =
+            LuaDefinitionLibraryFetcher(root) { _, _ ->
+                partial
+                    .resolve("library")
+                    .createDirectories()
+                    .resolve("partial.lua")
+                    .writeText("---@meta\n")
+                throw LuaProvisionException("archive truncated mid-extract")
+            }
 
         assertNull(fetcher.ensureCached(entry(), indicator))
         assertFalse(partial.exists(), "the partial tree must be removed, not left for isCached")
@@ -117,9 +127,10 @@ class LuaDefinitionLibraryFetcherTest {
     @Test
     fun emptyExtractionIsAFailureAndLeavesNothing() {
         val root = temp.newFolder("cache").toPath()
-        val fetcher = LuaDefinitionLibraryFetcher(root) { _, _ ->
-            temp.newFile("empty.tar.gz").toPath().also { it.writeText("not a tarball at all") }
-        }
+        val fetcher =
+            LuaDefinitionLibraryFetcher(root) { _, _ ->
+                temp.newFile("empty.tar.gz").toPath().also { it.writeText("not a tarball at all") }
+            }
 
         assertNull(fetcher.ensureCached(entry(), indicator))
         assertFalse(fetcher.cacheDir(entry()).exists())

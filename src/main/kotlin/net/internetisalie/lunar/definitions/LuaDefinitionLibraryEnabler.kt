@@ -24,7 +24,6 @@ class LuaDefinitionLibraryEnabler(
     // defined once and so this is assertable without a live notification bus.
     private val notifier: LuaProvisionNotifier = BalloonProvisionNotifier(),
 ) {
-
     /** One catalog entry as the settings table shows it. */
     data class Row(
         val entry: LuaDefinitionEntry,
@@ -89,7 +88,10 @@ class LuaDefinitionLibraryEnabler(
     }
 
     /** Fetches each entry, returning the ids that failed. Cancellation propagates (never a failure). */
-    fun fetchAll(entries: List<LuaDefinitionEntry>, indicator: ProgressIndicator): List<String> =
+    fun fetchAll(
+        entries: List<LuaDefinitionEntry>,
+        indicator: ProgressIndicator,
+    ): List<String> =
         entries.mapNotNull { entry ->
             indicator.text = "Fetching ${entry.displayName}…"
             entry.id.takeIf { fetcher.ensureCached(entry, indicator) == null }
@@ -103,5 +105,4 @@ class LuaDefinitionLibraryEnabler(
             NotificationType.ERROR,
         )
     }
-
 }

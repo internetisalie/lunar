@@ -20,7 +20,12 @@ import java.nio.file.attribute.PosixFilePermissions
  * Runs only on the provisioning orchestrator's background task (blocking I/O; never the EDT).
  */
 object LuaArchiveExtractor {
-    fun extract(archive: Path, targetDir: Path, rootPrefix: String?, indicator: ProgressIndicator) {
+    fun extract(
+        archive: Path,
+        targetDir: Path,
+        rootPrefix: String?,
+        indicator: ProgressIndicator,
+    ) {
         val decompressor = decompressorFor(archive)
         if (rootPrefix != null) decompressor.removePrefixPath(rootPrefix)
         // `Decompressor` blocks `..` traversal itself but defaults escaping symlinks to ALLOW, so an

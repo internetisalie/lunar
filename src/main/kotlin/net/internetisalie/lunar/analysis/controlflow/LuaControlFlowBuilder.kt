@@ -11,33 +11,48 @@ class LuaControlFlowBuilder : LuaVisitor() {
     private val builder = ControlFlowBuilder()
     private val breakStack = mutableListOf<MutableList<Instruction>>()
     private val returnInstructions = mutableListOf<Instruction>()
-    
-    private data class GotoRecord(val gotoInst: Instruction, val targetName: String, val gotoElement: PsiElement)
-    private data class LabelKey(val name: String, val block: LuaBlock)
+
+    private data class GotoRecord(
+        val gotoInst: Instruction,
+        val targetName: String,
+        val gotoElement: PsiElement,
+    )
+
+    private data class LabelKey(
+        val name: String,
+        val block: LuaBlock,
+    )
+
     private val gotoInstructions = mutableListOf<GotoRecord>()
     private val labelInstructions = mutableMapOf<LabelKey, Instruction>()
-    
+
     private var isAbrupted = false
 
     fun build(owner: ScopeOwner): ControlFlow {
         builder.startNode(owner)
-        
+
         when (owner) {
             is LuaFuncDecl -> {
                 owner.getParList()?.getNameList()?.getNameRefList()?.forEach { param ->
-                    builder.addNodeAndCheckPending(LuaReadWriteInstruction(builder, param, param.text, AccessType.WRITE))
+                    builder.addNodeAndCheckPending(
+                        LuaReadWriteInstruction(builder, param, param.text, AccessType.WRITE),
+                    )
                 }
                 owner.getBlockList().firstOrNull()?.accept(this)
             }
             is LuaLocalFuncDecl -> {
                 owner.getParList()?.getNameList()?.getNameRefList()?.forEach { param ->
-                    builder.addNodeAndCheckPending(LuaReadWriteInstruction(builder, param, param.text, AccessType.WRITE))
+                    builder.addNodeAndCheckPending(
+                        LuaReadWriteInstruction(builder, param, param.text, AccessType.WRITE),
+                    )
                 }
                 owner.getBlockList().firstOrNull()?.accept(this)
             }
             is LuaFuncDef -> {
                 owner.getParList()?.getNameList()?.getNameRefList()?.forEach { param ->
-                    builder.addNodeAndCheckPending(LuaReadWriteInstruction(builder, param, param.text, AccessType.WRITE))
+                    builder.addNodeAndCheckPending(
+                        LuaReadWriteInstruction(builder, param, param.text, AccessType.WRITE),
+                    )
                 }
                 owner.getBlockList().firstOrNull()?.accept(this)
             }
@@ -50,13 +65,13 @@ class LuaControlFlowBuilder : LuaVisitor() {
                 owner.accept(this)
             }
         }
-        
+
         val exitInstruction = builder.startNode(null)
-        
+
         for (ret in returnInstructions) {
             builder.addEdge(ret, exitInstruction)
         }
-        
+
         for (gotoRec in gotoInstructions) {
             val targetLabel = resolveGoto(gotoRec)
             if (targetLabel != null) {
@@ -102,10 +117,10 @@ class LuaControlFlowBuilder : LuaVisitor() {
         val exprList = ifStatement.getExprList()
         val blockList = ifStatement.getBlockList()
         if (blockList.isEmpty()) return
-        
+
         val branchAbruptedList = mutableListOf<Boolean>()
         var prevCondInstruction: Instruction? = null
-        
+
         for (i in blockList.indices) {
             val expr = exprList.getOrNull(i)
             if (expr != null) {
@@ -143,12 +158,12 @@ class LuaControlFlowBuilder : LuaVisitor() {
                 prevCondInstruction = null
             }
         }
-        
+
         if (prevCondInstruction != null) {
             builder.addPendingEdge(ifStatement, prevCondInstruction)
             branchAbruptedList.add(false)
         }
-        
+
         isAbrupted = branchAbruptedList.all { it }
     }
 
@@ -165,45 +180,45 @@ class LuaControlFlowBuilder : LuaVisitor() {
             builder.addEdge(fallThrough, condInst)
         }
         builder.flowAbrupted()
-        
+
         val breaks = breakStack.removeAt(breakStack.size - 1)
         for (br in breaks) {
             builder.addPendingEdge(whileStatement, br)
         }
         builder.addPendingEdge(whileStatement, condInst)
-        
+
         isAbrupted = false
     }
 
     override fun visitRepeatStatement(repeatStatement: LuaRepeatStatement) {
         val startInst = builder.startNode(repeatStatement)
         breakStack.add(mutableListOf())
-        
+
         isAbrupted = false
         repeatStatement.getBlockList().firstOrNull()?.accept(this)
-        
+
         val cond = repeatStatement.getExpr()
         val condInst = builder.startNode(cond)
         cond?.accept(this)
         if (!isAbrupted) {
             builder.addEdge(condInst, startInst)
         }
-        
+
         val breaks = breakStack.removeAt(breakStack.size - 1)
         for (br in breaks) {
             builder.addPendingEdge(repeatStatement, br)
         }
-        
+
         isAbrupted = false
     }
 
     override fun visitNumericForStatement(numericForStatement: LuaNumericForStatement) {
         numericForStatement.getExprList().forEach { it.accept(this) }
-        
+
         val loopInst = builder.startNode(numericForStatement)
         val id = numericForStatement.getIdentifier()
         builder.addNodeAndCheckPending(LuaReadWriteInstruction(builder, id, id.text, AccessType.WRITE))
-        
+
         breakStack.add(mutableListOf())
         isAbrupted = false
         numericForStatement.getBlockList().firstOrNull()?.accept(this)
@@ -213,24 +228,24 @@ class LuaControlFlowBuilder : LuaVisitor() {
             builder.addEdge(fallThrough, loopInst)
         }
         builder.flowAbrupted()
-        
+
         val breaks = breakStack.removeAt(breakStack.size - 1)
         for (br in breaks) {
             builder.addPendingEdge(numericForStatement, br)
         }
         builder.addPendingEdge(numericForStatement, loopInst)
-        
+
         isAbrupted = false
     }
 
     override fun visitGenericForStatement(genericForStatement: LuaGenericForStatement) {
         genericForStatement.getExprList().accept(this)
-        
+
         val loopInst = builder.startNode(genericForStatement)
         genericForStatement.getNameList().getNameRefList().forEach { nameRef ->
             builder.addNodeAndCheckPending(LuaReadWriteInstruction(builder, nameRef, nameRef.text, AccessType.WRITE))
         }
-        
+
         breakStack.add(mutableListOf())
         isAbrupted = false
         genericForStatement.getBlockList().firstOrNull()?.accept(this)
@@ -240,13 +255,13 @@ class LuaControlFlowBuilder : LuaVisitor() {
             builder.addEdge(fallThrough, loopInst)
         }
         builder.flowAbrupted()
-        
+
         val breaks = breakStack.removeAt(breakStack.size - 1)
         for (br in breaks) {
             builder.addPendingEdge(genericForStatement, br)
         }
         builder.addPendingEdge(genericForStatement, loopInst)
-        
+
         isAbrupted = false
     }
 
@@ -300,7 +315,9 @@ class LuaControlFlowBuilder : LuaVisitor() {
         assignmentStatement.getVarList().getVarList().forEach { v ->
             val nameRef = v.getNameRef()
             if (nameRef != null && v.getVarSuffixList().isEmpty()) {
-                builder.addNodeAndCheckPending(LuaReadWriteInstruction(builder, nameRef, nameRef.text, AccessType.WRITE))
+                builder.addNodeAndCheckPending(
+                    LuaReadWriteInstruction(builder, nameRef, nameRef.text, AccessType.WRITE),
+                )
             } else {
                 v.accept(this)
             }

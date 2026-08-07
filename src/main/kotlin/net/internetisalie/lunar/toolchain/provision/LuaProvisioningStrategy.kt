@@ -47,7 +47,11 @@ interface LuaProvisioningStrategy {
     val id: String
 
     /** Whether this strategy can provision [item] on [platform] given the [feed]'s assets. */
-    fun supports(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): Boolean
+    fun supports(
+        item: LuaProvisionItem,
+        platform: LuaHostPlatform,
+        feed: LuaToolchainFeed,
+    ): Boolean
 
     /**
      * The identifiers hash (design §3.3) this strategy would record for [item], computed without
@@ -55,8 +59,14 @@ interface LuaProvisioningStrategy {
      * component is up to date (design §3.1 step 8) before choosing to re-run. Throws
      * [LuaProvisionException] only for an unresolvable spec (the same failure `provision` would raise).
      */
-    fun identityHash(context: LuaProvisionContext, item: LuaProvisionItem): String
+    fun identityHash(
+        context: LuaProvisionContext,
+        item: LuaProvisionItem,
+    ): String
 
     /** Provisions [item] into `context.rootDir`; throws [LuaProvisionException] on failure. */
-    fun provision(context: LuaProvisionContext, item: LuaProvisionItem): LuaProvisionedComponent
+    fun provision(
+        context: LuaProvisionContext,
+        item: LuaProvisionItem,
+    ): LuaProvisionedComponent
 }

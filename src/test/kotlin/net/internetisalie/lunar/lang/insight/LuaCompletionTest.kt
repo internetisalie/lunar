@@ -8,8 +8,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class LuaCompletionTest : IndexedDocumentTest() {
-
-    private fun doTest(text: String, vararg expected: String) {
+    private fun doTest(
+        text: String,
+        vararg expected: String,
+    ) {
         configureByText(text)
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings
@@ -19,7 +21,10 @@ class LuaCompletionTest : IndexedDocumentTest() {
         }
     }
 
-    private fun doNotContainTest(text: String, vararg unexpected: String) {
+    private fun doNotContainTest(
+        text: String,
+        vararg unexpected: String,
+    ) {
         configureByText(text)
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings ?: return
@@ -208,14 +213,14 @@ class LuaCompletionTest : IndexedDocumentTest() {
             """
             local b = require("module_b")
             function function_a() end
-            """.trimIndent()
+            """.trimIndent(),
         )
         myFixture.addFileToProject(
             "module_b.lua",
             """
             local a = require("module_a")
             function function_b() end
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         configureByText("local a = require(\"module_a\")\nif true <caret>")
@@ -234,12 +239,12 @@ class LuaCompletionTest : IndexedDocumentTest() {
         // (Actual cache invalidation will be tested in Phase 2.1 after GlobalSymbolRankingService is added)
         myFixture.addFileToProject(
             "config.lua",
-            "return { debug = true }"
+            "return { debug = true }",
         )
 
         // Verify the test fixture can handle multiple files
         configureByText("local cfg = require(\"config\")\nif true <caret>")
-        
+
         // Test passes if fixture handles multi-file scenario without crashing
         myFixture.completeBasic()
     }
@@ -254,7 +259,7 @@ class LuaCompletionTest : IndexedDocumentTest() {
             function create_service() return {} end
             function destroy_service() end
             return {}
-            """.trimIndent()
+            """.trimIndent(),
         )
         myFixture.addFileToProject(
             "utils.lua",
@@ -262,7 +267,7 @@ class LuaCompletionTest : IndexedDocumentTest() {
             function helper() end
             function cleanup() end
             return {}
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         configureByText(
@@ -270,7 +275,7 @@ class LuaCompletionTest : IndexedDocumentTest() {
             local svc = require("service")
             local util = require("utils")
             if <caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         // Test passes if fixture handles multi-module project without crashing
@@ -295,7 +300,7 @@ class LuaCompletionTest : IndexedDocumentTest() {
             """
             function helper_from_a() end
             return {}
-            """.trimIndent()
+            """.trimIndent(),
         )
         // Create module B that requires module A and provides its own function
         myFixture.addFileToProject(
@@ -304,7 +309,7 @@ class LuaCompletionTest : IndexedDocumentTest() {
             require("module_a")
             function helper_from_b() end
             return {}
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         // In our main file, we only require module B, but we should get completion
@@ -313,13 +318,16 @@ class LuaCompletionTest : IndexedDocumentTest() {
             """
             require("module_b")
             helper_<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings
         assertNotNull(strings, "Completion lookup should not be null")
-        assertTrue(strings.contains("helper_from_a"), "Completion should contain 'helper_from_a' via recursive require. Found: $strings")
+        assertTrue(
+            strings.contains("helper_from_a"),
+            "Completion should contain 'helper_from_a' via recursive require. Found: $strings",
+        )
         assertTrue(strings.contains("helper_from_b"), "Completion should contain 'helper_from_b'. Found: $strings")
     }
 }

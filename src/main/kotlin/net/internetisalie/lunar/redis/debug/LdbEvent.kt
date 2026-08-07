@@ -8,18 +8,29 @@ import net.internetisalie.lunar.redis.resp.RespValue
  * Produced by [LdbReplyParser.parse] from a decoded RESP reply block. Pure data; thread-agnostic.
  */
 sealed interface LdbEvent {
-
     /** The debugger stopped at [serverLine] (1-based); [sourceLine] is the gutter-stripped source. */
-    data class Stop(val serverLine: Int, val reason: StopReason, val sourceLine: String?) : LdbEvent
+    data class Stop(
+        val serverLine: Int,
+        val reason: StopReason,
+        val sourceLine: String?,
+    ) : LdbEvent
 
     /** An in-band error (compile / runtime / eval); [scriptLine] is the `user_script:<N>` position. */
-    data class Error(val kind: LdbErrorKind, val message: String, val scriptLine: Int?) : LdbEvent
+    data class Error(
+        val kind: LdbErrorKind,
+        val message: String,
+        val scriptLine: Int?,
+    ) : LdbEvent
 
     /** The debug session ended (normal, forked-timeout, or aborted). */
-    data class SessionEnded(val reason: EndReason) : LdbEvent
+    data class SessionEnded(
+        val reason: EndReason,
+    ) : LdbEvent
 
     /** A raw Redis reply (the response to a `redis <cmd>` in the paused session). */
-    data class Redis(val reply: RespValue) : LdbEvent
+    data class Redis(
+        val reply: RespValue,
+    ) : LdbEvent
 
     /** `+OK` / an unrecognized status line — a no-op acknowledgement. */
     data object Ack : LdbEvent
@@ -42,7 +53,6 @@ enum class EndReason { ENDED, FORK_TIMEOUT, ABORTED }
  * or fatal-error the IDE (contract §1; risks-and-gaps Risk 2.1).
  */
 object LdbReplyParser {
-
     private val STOP_LINE = Regex("""\*\s*Stopped at (\d+)""")
     private val STOP_REASON = Regex("""stop reason\s*=\s*(\w+)""")
     private val GUTTER = Regex("""^\s*\d+\s+""")
@@ -75,28 +85,31 @@ object LdbReplyParser {
     }
 
     /** Normalize a reply block into its status lines (design §3.3 step 1). */
-    private fun statusLines(reply: RespValue): List<String> = when (reply) {
-        is RespValue.Array -> reply.items.orEmpty().map(::lineText)
-        else -> listOf(lineText(reply))
-    }
+    private fun statusLines(reply: RespValue): List<String> =
+        when (reply) {
+            is RespValue.Array -> reply.items.orEmpty().map(::lineText)
+            else -> listOf(lineText(reply))
+        }
 
-    private fun lineText(value: RespValue): String = when (value) {
-        is RespValue.Simple -> value.text
-        is RespValue.Bulk -> value.asString().orEmpty()
-        is RespValue.Error -> combineError(value)
-        else -> ""
-    }
+    private fun lineText(value: RespValue): String =
+        when (value) {
+            is RespValue.Simple -> value.text
+            is RespValue.Bulk -> value.asString().orEmpty()
+            is RespValue.Error -> combineError(value)
+            else -> ""
+        }
 
     private fun combineError(error: RespValue.Error): String =
         if (error.message.isEmpty()) error.klass else "${error.klass} ${error.message}"
 
-    private fun sessionEnd(first: String): LdbEvent? = when {
-        first.startsWith("* Forked debugging session") -> LdbEvent.SessionEnded(EndReason.FORK_TIMEOUT)
-        first.contains(END_SESSION_MARKER, ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ENDED)
-        first.contains("session ended", ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ENDED)
-        first.contains("Aborted", ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ABORTED)
-        else -> null
-    }
+    private fun sessionEnd(first: String): LdbEvent? =
+        when {
+            first.startsWith("* Forked debugging session") -> LdbEvent.SessionEnded(EndReason.FORK_TIMEOUT)
+            first.contains(END_SESSION_MARKER, ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ENDED)
+            first.contains("session ended", ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ENDED)
+            first.contains("Aborted", ignoreCase = true) -> LdbEvent.SessionEnded(EndReason.ABORTED)
+            else -> null
+        }
 
     private fun compileError(first: String): LdbEvent? {
         if (!first.startsWith("* Error compiling")) return null
@@ -104,23 +117,40 @@ object LdbReplyParser {
         return LdbEvent.Error(LdbErrorKind.COMPILE, message, extractUserScriptLine(first))
     }
 
-    private fun stop(first: String, lines: List<String>): LdbEvent? {
-        val serverLine = STOP_LINE.find(first)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: return null
+    private fun stop(
+        first: String,
+        lines: List<String>,
+    ): LdbEvent? {
+        val serverLine =
+            STOP_LINE
+                .find(first)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.toIntOrNull() ?: return null
         val reason = reasonFrom(first)
         val sourceLine = stripGutter(lines.getOrNull(1))
         return LdbEvent.Stop(serverLine, reason, sourceLine)
     }
 
     private fun reasonFrom(first: String): StopReason =
-        when (STOP_REASON.find(first)?.groupValues?.getOrNull(1)?.lowercase()) {
+        when (
+            STOP_REASON
+                .find(first)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.lowercase()
+        ) {
             "step" -> StopReason.STEP
             "next" -> StopReason.NEXT
             else -> StopReason.BREAKPOINT
         }
 
-    private fun stripGutter(line: String?): String? =
-        line?.replaceFirst(GUTTER, "")?.takeIf { it.isNotEmpty() }
+    private fun stripGutter(line: String?): String? = line?.replaceFirst(GUTTER, "")?.takeIf { it.isNotEmpty() }
 
     private fun extractUserScriptLine(text: String): Int? =
-        USER_SCRIPT_LINE.find(text)?.groupValues?.getOrNull(1)?.toIntOrNull()
+        USER_SCRIPT_LINE
+            .find(text)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toIntOrNull()
 }

@@ -11,7 +11,6 @@ enum class LdbState { HANDSHAKE, ARMED, RUNNING, PAUSED, TERMINATED }
  * (single-threaded per session, so no cross-thread state; risks-and-gaps Risk 2.2).
  */
 class LdbSessionMachine {
-
     var state: LdbState = LdbState.HANDSHAKE
         private set
 
@@ -40,15 +39,16 @@ class LdbSessionMachine {
         }
     }
 
-    private fun isLegal(command: LdbCommand): Boolean = when (command) {
-        is LdbCommand.EnterDebug -> state == LdbState.HANDSHAKE
-        LdbCommand.Step, LdbCommand.Next, LdbCommand.Continue,
-        is LdbCommand.Print, is LdbCommand.Eval, is LdbCommand.RedisCmd,
-        -> state == LdbState.PAUSED
-        is LdbCommand.Break, is LdbCommand.RemoveBreak, LdbCommand.ClearBreaks, LdbCommand.ListSource,
-        -> state == LdbState.ARMED || state == LdbState.PAUSED
-        LdbCommand.Abort -> state != LdbState.TERMINATED
-    }
+    private fun isLegal(command: LdbCommand): Boolean =
+        when (command) {
+            is LdbCommand.EnterDebug -> state == LdbState.HANDSHAKE
+            LdbCommand.Step, LdbCommand.Next, LdbCommand.Continue,
+            is LdbCommand.Print, is LdbCommand.Eval, is LdbCommand.RedisCmd,
+            -> state == LdbState.PAUSED
+            is LdbCommand.Break, is LdbCommand.RemoveBreak, LdbCommand.ClearBreaks, LdbCommand.ListSource,
+            -> state == LdbState.ARMED || state == LdbState.PAUSED
+            LdbCommand.Abort -> state != LdbState.TERMINATED
+        }
 
     private fun applyCommandTransition(command: LdbCommand) {
         when (command) {

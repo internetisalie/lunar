@@ -25,7 +25,7 @@ private val LOG = logger<LuaToolchainRegistry>()
 enum class ProbeStatus {
     NEVER,
     OK,
-    FAILED
+    FAILED,
 }
 
 class RegisteredToolState {
@@ -68,17 +68,18 @@ class RegisteredToolState {
         health: LuaToolHealth,
         version: String?,
         luaVersion: String?,
-        runtime: LuaRuntimeInfo?
+        runtime: LuaRuntimeInfo?,
     ) {
         this.version = version ?: ""
         this.luaVersion = luaVersion ?: ""
         this.fileExists = health.fileExists
         this.executable = health.executable
-        this.probeStatus = when (health.probeOk) {
-            null -> ProbeStatus.NEVER
-            true -> ProbeStatus.OK
-            false -> ProbeStatus.FAILED
-        }
+        this.probeStatus =
+            when (health.probeOk) {
+                null -> ProbeStatus.NEVER
+                true -> ProbeStatus.OK
+                false -> ProbeStatus.FAILED
+            }
         this.probedAtMtime = health.probedAtMtime ?: 0L
         this.reason = health.reason ?: ""
 
@@ -107,11 +108,16 @@ class LuaToolchainAppState {
 internal fun enforceSingleRuntimeInvariant(
     bindings: MutableMap<String, String>,
     kindId: String,
-    toolId: String?
+    toolId: String?,
 ): Boolean {
     if (toolId == null) return false
     if (LuaToolKindRegistry.findById(kindId)?.isRuntime != true) return false
-    val runtimeKindIds = LuaToolKindRegistry.all().filter { it.isRuntime }.map { it.id }.toSet()
+    val runtimeKindIds =
+        LuaToolKindRegistry
+            .all()
+            .filter { it.isRuntime }
+            .map { it.id }
+            .toSet()
     val staleRuntimeKeys = bindings.keys.filter { it != kindId && it in runtimeKindIds }
     staleRuntimeKeys.forEach { bindings.remove(it) }
     return staleRuntimeKeys.isNotEmpty()
@@ -121,18 +127,16 @@ internal fun enforceSingleRuntimeInvariant(
 @State(
     name = "LuaToolchainRegistry",
     storages = [Storage("lunar.xml")],
-    category = SettingsCategory.PLUGINS
+    category = SettingsCategory.PLUGINS,
 )
 class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
-
     private val stateLock = Any()
     private var myState = LuaToolchainAppState()
 
-    override fun getState(): LuaToolchainAppState {
-        return synchronized(stateLock) {
+    override fun getState(): LuaToolchainAppState =
+        synchronized(stateLock) {
             myState
         }
-    }
 
     override fun loadState(state: LuaToolchainAppState) {
         synchronized(stateLock) {
@@ -140,23 +144,20 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         }
     }
 
-    fun tools(): List<LuaRegisteredTool> {
-        return synchronized(stateLock) {
+    fun tools(): List<LuaRegisteredTool> =
+        synchronized(stateLock) {
             myState.tools.map { it.toModel() }
         }
-    }
 
-    fun toolsOfKind(kindId: String): List<LuaRegisteredTool> {
-        return synchronized(stateLock) {
+    fun toolsOfKind(kindId: String): List<LuaRegisteredTool> =
+        synchronized(stateLock) {
             myState.tools.filter { it.kindId == kindId }.map { it.toModel() }
         }
-    }
 
-    fun tool(id: String): LuaRegisteredTool? {
-        return synchronized(stateLock) {
+    fun tool(id: String): LuaRegisteredTool? =
+        synchronized(stateLock) {
             myState.tools.firstOrNull { it.id == id }?.toModel()
         }
-    }
 
     fun findByPath(path: String): LuaRegisteredTool? {
         return synchronized(stateLock) {
@@ -164,25 +165,27 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             if (exactMatch != null) return@synchronized exactMatch.toModel()
 
             val normalizedPath = path.replace('\\', '/').trimEnd('/')
-            myState.tools.firstOrNull {
-                it.path.replace('\\', '/').trimEnd('/') == normalizedPath
-            }?.toModel()
+            myState.tools
+                .firstOrNull {
+                    it.path.replace('\\', '/').trimEnd('/') == normalizedPath
+                }?.toModel()
         }
     }
 
-    fun globalBindings(): Map<String, String> {
-        return synchronized(stateLock) {
+    fun globalBindings(): Map<String, String> =
+        synchronized(stateLock) {
             HashMap(myState.globalBindings)
         }
-    }
 
-    fun kindOption(key: String): String {
-        return synchronized(stateLock) {
+    fun kindOption(key: String): String =
+        synchronized(stateLock) {
             myState.kindOptions[key] ?: ""
         }
-    }
 
-    fun setGlobalBinding(kindId: String, toolId: String?) {
+    fun setGlobalBinding(
+        kindId: String,
+        toolId: String?,
+    ) {
         var changed = false
         synchronized(stateLock) {
             val current = myState.globalBindings[kindId]
@@ -200,19 +203,25 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             }
         }
         if (changed) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = LuaToolchainChange.GLOBAL_BINDING_CHANGED,
                         project = null,
                         kindId = kindId,
-                        toolId = toolId
-                    )
+                        toolId = toolId,
+                    ),
                 )
         }
     }
 
-    fun setKindOption(key: String, value: String?) {
+    fun setKindOption(
+        key: String,
+        value: String?,
+    ) {
         var changed = false
         synchronized(stateLock) {
             val current = myState.kindOptions[key]
@@ -226,13 +235,16 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             }
         }
         if (changed) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = LuaToolchainChange.KIND_OPTION_CHANGED,
                         project = null,
-                        optionKey = key
-                    )
+                        optionKey = key,
+                    ),
                 )
         }
     }
@@ -241,13 +253,14 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         path: String,
         kindIdHint: String? = null,
         origin: Origin = Origin.MANUAL,
-        environmentId: String? = null
+        environmentId: String? = null,
     ): LuaRegisteredTool? {
         ApplicationManager.getApplication().assertIsNonDispatchThread()
 
         val file = File(path)
-        val kind = kindIdHint?.let { LuaToolKindRegistry.findById(it) }
-            ?: LuaToolKindRegistry.inferKind(file.name)
+        val kind =
+            kindIdHint?.let { LuaToolKindRegistry.findById(it) }
+                ?: LuaToolKindRegistry.inferKind(file.name)
 
         if (kind == null) {
             LOG.warn("Cannot register tool at '$path': unknown tool kind (use kindIdHint)")
@@ -262,10 +275,11 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         var registeredTool: LuaRegisteredTool? = null
 
         synchronized(stateLock) {
-            val existing = myState.tools.firstOrNull {
-                val c = runCatching { File(it.path).canonicalPath }.getOrDefault(it.path)
-                c == canonical && it.kindId == kind.id
-            }
+            val existing =
+                myState.tools.firstOrNull {
+                    val c = runCatching { File(it.path).canonicalPath }.getOrDefault(it.path)
+                    c == canonical && it.kindId == kind.id
+                }
 
             if (existing != null) {
                 val existingModel = existing.toModel()
@@ -279,14 +293,15 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
                 }
                 registeredTool = existing.toModel()
             } else {
-                val state = RegisteredToolState().apply {
-                    id = UUID.randomUUID().toString()
-                    kindId = kind.id
-                    this.path = file.absolutePath
-                    this.origin = origin
-                    this.environmentId = environmentId ?: ""
-                    updateFrom(health, result.version, result.luaVersion, result.runtime)
-                }
+                val state =
+                    RegisteredToolState().apply {
+                        id = UUID.randomUUID().toString()
+                        kindId = kind.id
+                        this.path = file.absolutePath
+                        this.origin = origin
+                        this.environmentId = environmentId ?: ""
+                        updateFrom(health, result.version, result.luaVersion, result.runtime)
+                    }
                 myState.tools.add(state)
                 change = LuaToolchainChange.TOOL_REGISTERED
                 registeredTool = state.toModel()
@@ -294,14 +309,17 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         }
 
         if (change != null && registeredTool != null) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = change,
                         project = null,
                         kindId = kind.id,
-                        toolId = registeredTool.id
-                    )
+                        toolId = registeredTool.id,
+                    ),
                 )
         }
 
@@ -314,11 +332,12 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         val kindId = tool.kindId
         val canonical = runCatching { File(tool.path).canonicalPath }.getOrDefault(tool.path)
         synchronized(stateLock) {
-            val existing = myState.tools.firstOrNull { it.id == toolId }
-                ?: myState.tools.firstOrNull {
-                    val c = runCatching { File(it.path).canonicalPath }.getOrDefault(it.path)
-                    c == canonical && it.kindId == kindId
-                }
+            val existing =
+                myState.tools.firstOrNull { it.id == toolId }
+                    ?: myState.tools.firstOrNull {
+                        val c = runCatching { File(it.path).canonicalPath }.getOrDefault(it.path)
+                        c == canonical && it.kindId == kindId
+                    }
             if (existing != null) {
                 val existingModel = existing.toModel()
                 if (existingModel != tool) {
@@ -332,14 +351,17 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             }
         }
         if (change != null) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = change,
                         project = null,
                         kindId = kindId,
-                        toolId = toolId
-                    )
+                        toolId = toolId,
+                    ),
                 )
         }
     }
@@ -356,14 +378,17 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             }
         }
         if (removed) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = LuaToolchainChange.TOOL_REMOVED,
                         project = null,
                         kindId = kindId,
-                        toolId = id
-                    )
+                        toolId = id,
+                    ),
                 )
         }
         return removed
@@ -382,25 +407,29 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             }
         }
         for ((toolId, kindId) in removedTools) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = LuaToolchainChange.TOOL_REMOVED,
                         project = null,
                         kindId = kindId,
                         toolId = toolId,
-                        environmentId = environmentId
-                    )
+                        environmentId = environmentId,
+                    ),
                 )
         }
     }
 
     fun refreshTool(id: String) {
         ApplicationManager.getApplication().assertIsNonDispatchThread()
-        val (path, kindId) = synchronized(stateLock) {
-            val tool = myState.tools.firstOrNull { it.id == id }
-            tool?.let { it.path to it.kindId }
-        } ?: return
+        val (path, kindId) =
+            synchronized(stateLock) {
+                val tool = myState.tools.firstOrNull { it.id == id }
+                tool?.let { it.path to it.kindId }
+            } ?: return
 
         val kind = LuaToolKindRegistry.findById(kindId) ?: return
         val result = LuaToolProbe.getInstance().probe(kind, Path.of(path))
@@ -423,14 +452,17 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             }
         }
         if (changed) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = LuaToolchainChange.TOOL_UPDATED,
                         project = null,
                         kindId = kindId,
-                        toolId = id
-                    )
+                        toolId = id,
+                    ),
                 )
         }
     }
@@ -440,7 +472,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         health: LuaToolHealth,
         version: String?,
         luaVersion: String?,
-        runtime: LuaRuntimeInfo?
+        runtime: LuaRuntimeInfo?,
     ) {
         var kindId: String? = null
         var changed = false
@@ -460,14 +492,17 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             }
         }
         if (changed) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(LuaToolchainListener.TOPIC)
+            ApplicationManager
+                .getApplication()
+                .messageBus
+                .syncPublisher(LuaToolchainListener.TOPIC)
                 .toolchainChanged(
                     LuaToolchainEvent(
                         change = LuaToolchainChange.TOOL_UPDATED,
                         project = null,
                         kindId = kindId,
-                        toolId = toolId
-                    )
+                        toolId = toolId,
+                    ),
                 )
         }
     }
@@ -483,12 +518,15 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             registerTool(
                 path = bin.file.absolutePath,
                 kindIdHint = bin.kind.id,
-                origin = Origin.DISCOVERED
+                origin = Origin.DISCOVERED,
             )
         }
     }
 
-    private fun deriveHealth(file: File, result: LuaToolProbeResult): LuaToolHealth {
+    private fun deriveHealth(
+        file: File,
+        result: LuaToolProbeResult,
+    ): LuaToolHealth {
         val fileExists = file.exists()
         val executable = file.canExecute()
         val probeOk = if (!fileExists || !executable) null else result.ok
@@ -499,14 +537,13 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
             executable = executable,
             probeOk = probeOk,
             probedAtMtime = probedAtMtime,
-            reason = reason
+            reason = reason,
         )
     }
 
     companion object {
-        fun getInstance(): LuaToolchainRegistry {
-            return ApplicationManager.getApplication().getService(LuaToolchainRegistry::class.java)
-        }
+        fun getInstance(): LuaToolchainRegistry =
+            ApplicationManager.getApplication().getService(LuaToolchainRegistry::class.java)
     }
 }
 
@@ -517,41 +554,46 @@ fun RegisteredToolState.toModel(): LuaRegisteredTool {
     val reasonVal = reason.takeIf { it.isNotEmpty() }
     val mtimeVal = probedAtMtime.takeIf { it != 0L }
 
-    val probeOkVal = when (probeStatus) {
-        ProbeStatus.NEVER -> null
-        ProbeStatus.OK -> true
-        ProbeStatus.FAILED -> false
-    }
-
-    val healthVal = LuaToolHealth(
-        fileExists = fileExists,
-        executable = executable,
-        probeOk = probeOkVal,
-        probedAtMtime = mtimeVal,
-        reason = reasonVal
-    )
-
-    val runtimeVal = if (product.isNotEmpty()) {
-        val level = try {
-            LuaLanguageLevel.valueOf(languageLevel)
-        } catch (e: Exception) {
-            LuaLanguageLevel.LUA54
+    val probeOkVal =
+        when (probeStatus) {
+            ProbeStatus.NEVER -> null
+            ProbeStatus.OK -> true
+            ProbeStatus.FAILED -> false
         }
-        val plat = try {
-            LuaPlatform.valueOf(platform)
-        } catch (e: Exception) {
-            LuaPlatform.STANDARD
-        }
-        LuaRuntimeInfo(
-            product = product,
-            version = runtimeVersion,
-            languageLevel = level,
-            platform = plat,
-            banner = banner
+
+    val healthVal =
+        LuaToolHealth(
+            fileExists = fileExists,
+            executable = executable,
+            probeOk = probeOkVal,
+            probedAtMtime = mtimeVal,
+            reason = reasonVal,
         )
-    } else {
-        null
-    }
+
+    val runtimeVal =
+        if (product.isNotEmpty()) {
+            val level =
+                try {
+                    LuaLanguageLevel.valueOf(languageLevel)
+                } catch (e: Exception) {
+                    LuaLanguageLevel.LUA54
+                }
+            val plat =
+                try {
+                    LuaPlatform.valueOf(platform)
+                } catch (e: Exception) {
+                    LuaPlatform.STANDARD
+                }
+            LuaRuntimeInfo(
+                product = product,
+                version = runtimeVersion,
+                languageLevel = level,
+                platform = plat,
+                banner = banner,
+            )
+        } else {
+            null
+        }
 
     return LuaRegisteredTool(
         id = id,
@@ -562,7 +604,7 @@ fun RegisteredToolState.toModel(): LuaRegisteredTool {
         runtime = runtimeVal,
         origin = origin,
         environmentId = envIdVal,
-        health = healthVal
+        health = healthVal,
     )
 }
 
@@ -577,11 +619,12 @@ fun LuaRegisteredTool.toState(): RegisteredToolState {
     state.environmentId = environmentId ?: ""
     state.fileExists = health.fileExists
     state.executable = health.executable
-    state.probeStatus = when (health.probeOk) {
-        null -> ProbeStatus.NEVER
-        true -> ProbeStatus.OK
-        false -> ProbeStatus.FAILED
-    }
+    state.probeStatus =
+        when (health.probeOk) {
+            null -> ProbeStatus.NEVER
+            true -> ProbeStatus.OK
+            false -> ProbeStatus.FAILED
+        }
     state.probedAtMtime = health.probedAtMtime ?: 0L
     state.reason = health.reason ?: ""
 

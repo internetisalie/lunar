@@ -23,27 +23,32 @@ import java.io.File
  * read path (contract §1 threading; a freshly-written file is picked up on the next VFS event). This
  * reconciles the former refresh-flag divergence between the two resolvers (P1 #3 root).
  */
-fun resolveModuleCandidates(project: Project, moduleName: String): Sequence<LuaFile> = sequence {
-    val psiManager = PsiManager.getInstance(project)
+fun resolveModuleCandidates(
+    project: Project,
+    moduleName: String,
+): Sequence<LuaFile> =
+    sequence {
+        val psiManager = PsiManager.getInstance(project)
 
-    for (pattern in PathConfiguration.getProjectSourcePathPatterns(project)) {
-        val virtualFile = findByPath(pattern.interpolate(moduleName)) ?: continue
-        (psiManager.findFile(virtualFile) as? LuaFile)?.let { yield(it) }
-    }
-
-    val expectedPathPart = moduleName.replace('.', '/') + ".lua"
-    val expectedInitPathPart = moduleName.replace('.', '/') + "/init.lua"
-    val scope = GlobalSearchScope.allScope(project)
-    val byName = FilenameIndex.getVirtualFilesByName(moduleName.substringAfterLast('.') + ".lua", scope) +
-        FilenameIndex.getVirtualFilesByName("init.lua", scope)
-
-    for (virtualFile in byName) {
-        val path = virtualFile.path
-        if (path.endsWith(expectedPathPart) || path.endsWith(expectedInitPathPart) || !moduleName.contains('.')) {
+        for (pattern in PathConfiguration.getProjectSourcePathPatterns(project)) {
+            val virtualFile = findByPath(pattern.interpolate(moduleName)) ?: continue
             (psiManager.findFile(virtualFile) as? LuaFile)?.let { yield(it) }
         }
+
+        val expectedPathPart = moduleName.replace('.', '/') + ".lua"
+        val expectedInitPathPart = moduleName.replace('.', '/') + "/init.lua"
+        val scope = GlobalSearchScope.allScope(project)
+        val byName =
+            FilenameIndex.getVirtualFilesByName(moduleName.substringAfterLast('.') + ".lua", scope) +
+                FilenameIndex.getVirtualFilesByName("init.lua", scope)
+
+        for (virtualFile in byName) {
+            val path = virtualFile.path
+            if (path.endsWith(expectedPathPart) || path.endsWith(expectedInitPathPart) || !moduleName.contains('.')) {
+                (psiManager.findFile(virtualFile) as? LuaFile)?.let { yield(it) }
+            }
+        }
     }
-}
 
 private fun findByPath(path: String): VirtualFile? =
     LocalFileSystem.getInstance().findFileByPath(path) ?: VfsUtil.findFileByIoFile(File(path), false)

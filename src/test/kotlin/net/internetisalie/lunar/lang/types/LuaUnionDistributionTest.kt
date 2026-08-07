@@ -36,7 +36,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaUnionDistributionTest : BasePlatformTestCase() {
-
     private lateinit var anchor: PsiElement
 
     override fun setUp() {
@@ -45,24 +44,35 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         // an element spanning its whole file (they bury every other inspection's results), and a
         // bare PsiFile anchor is exactly that; production code always anchors at expressions.
         val file = myFixture.addFileToProject("dist.lua", "local anchor = 1\n")
-        anchor = com.intellij.psi.util.PsiTreeUtil.findChildOfType(
-            file,
-            net.internetisalie.lunar.lang.psi.LuaNameRef::class.java,
-        )!!
+        anchor =
+            com.intellij.psi.util.PsiTreeUtil.findChildOfType(
+                file,
+                net.internetisalie.lunar.lang.psi.LuaNameRef::class.java,
+            )!!
     }
 
     /** A single-field exact table whose one field is a required (non-nil) Number. */
-    private fun tableWith(graph: LuaTypeGraph, field: String): LuaGraphType.Table {
+    private fun tableWith(
+        graph: LuaTypeGraph,
+        field: String,
+    ): LuaGraphType.Table {
         val memberNode = graph.variable(anchor)
         memberNode.downSet.add(graph.use(anchor, LuaGraphType.Number))
         return LuaGraphType.Table(className = null, localMembers = mutableMapOf(field to memberNode), isExact = true)
     }
 
-    private fun union(graph: LuaTypeGraph, prefix: String, count: Int): LuaGraphType.Union =
-        LuaGraphType.Union((1..count).map { tableWith(graph, "$prefix$it") }.toSet())
+    private fun union(
+        graph: LuaTypeGraph,
+        prefix: String,
+        count: Int,
+    ): LuaGraphType.Union = LuaGraphType.Union((1..count).map { tableWith(graph, "$prefix$it") }.toSet())
 
     /** Drives the production ValueNode -> UseNode compatibility path and returns emitted errors. */
-    private fun check(graph: LuaTypeGraph, value: LuaGraphType, use: LuaGraphType): List<String> {
+    private fun check(
+        graph: LuaTypeGraph,
+        value: LuaGraphType,
+        use: LuaGraphType,
+    ): List<String> {
         graph.addEdge(graph.value(anchor, value), graph.use(anchor, use))
         return graph.errors.map { it.message }
     }
@@ -71,13 +81,14 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
 
     @Test
     fun testOrDistributionSucceeds() { // TC-09-01: number into string|number → no error
-        val file = myFixture.configureByText(
-            "or.lua",
-            """
-            ---@type string | number
-            local x = 42 -- OK: number is a member of string | number
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "or.lua",
+                """
+                ---@type string | number
+                local x = 42 -- OK: number is a member of string | number
+                """.trimIndent(),
+            )
         val errors = LuaTypesSnapshot.forFile(file).getErrors()
         assertTrue("number into string|number must be compatible, got: ${errors.map { it.message }}", errors.isEmpty())
     }
@@ -86,16 +97,17 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
 
     @Test
     fun testAndDistributionFails() { // TC-09-03: string|number into string → error naming both
-        val file = myFixture.configureByText(
-            "and.lua",
-            """
-            ---@type string | number
-            local x = 42
+        val file =
+            myFixture.configureByText(
+                "and.lua",
+                """
+                ---@type string | number
+                local x = 42
 
-            ---@type string
-            local s = x -- Error: number (via union) violates string-only use
-            """.trimIndent(),
-        )
+                ---@type string
+                local s = x -- Error: number (via union) violates string-only use
+                """.trimIndent(),
+            )
         val errors = LuaTypesSnapshot.forFile(file).getErrors()
         assertFalse("string|number into string must error", errors.isEmpty())
         assertTrue(
@@ -144,7 +156,10 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         // Asserting no StackOverflowError AND no false-positive error (depth cutoff returns true).
         errors = check(graph, deep, deep)
 
-        assertTrue("Deep distribution must assume compatibility (no false-positive error), got: $errors", errors.isEmpty())
+        assertTrue(
+            "Deep distribution must assume compatibility (no false-positive error), got: $errors",
+            errors.isEmpty(),
+        )
     }
 
     // -- Breadth fallback: >100 members -> shallowHeadMatch, completes & compatible ------------
@@ -154,34 +169,49 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         val graph = LuaTypeGraph()
         // 150 distinct field-free exact tables -> a >MAX_UNION_BREADTH union. Field-free so the
         // existing structural-propagation pass cannot emit a missing-field error and confound this.
-        val wide = LuaGraphType.Union(
-            (1..150).map { LuaGraphType.Table(className = "W$it", localMembers = mutableMapOf(), isExact = false) }.toSet(),
-        )
+        val wide =
+            LuaGraphType.Union(
+                (1..150)
+                    .map {
+                        LuaGraphType.Table(
+                            className = "W$it",
+                            localMembers = mutableMapOf(),
+                            isExact = false,
+                        )
+                    }.toSet(),
+            )
         val emptyUse = LuaGraphType.Table(className = null, localMembers = mutableMapOf(), isExact = false)
         // value is the over-breadth union -> isCompatible takes the breadth fallback (shallowHeadMatch:
         // Table heads overlap -> compatible). Must terminate and emit no assignability error.
         val errors = check(graph, wide, emptyUse)
-        assertTrue("Over-breadth union vs head-compatible target must complete without error, got: $errors", errors.isEmpty())
+        assertTrue(
+            "Over-breadth union vs head-compatible target must complete without error, got: $errors",
+            errors.isEmpty(),
+        )
     }
 
     // -- TC-09-02 / TC-TYPE-09-P3-01: OR-failure message stays generic for a non-table value ----
 
     @Test
     fun testOrFailureMessageIsGenericForBoolean() { // TC-09-02: true into string|number → error
-        val file = myFixture.configureByText(
-            "or-fail.lua",
-            """
-            ---@type string | number
-            local x = true -- Error: boolean is not a member of string | number
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "or-fail.lua",
+                """
+                ---@type string | number
+                local x = true -- Error: boolean is not a member of string | number
+                """.trimIndent(),
+            )
         val errors = LuaTypesSnapshot.forFile(file).getErrors()
         assertFalse("boolean into string|number must error", errors.isEmpty())
         val message = errors.first { it.message.contains("boolean") }.message
         assertTrue("Message must name the value type, got: $message", message.contains("boolean"))
         assertTrue("Message must name string member, got: $message", message.contains("string"))
         assertTrue("Message must name number member, got: $message", message.contains("number"))
-        assertFalse("Non-table value must NOT get a closest-match message, got: $message", message.contains("closest match"))
+        assertFalse(
+            "Non-table value must NOT get a closest-match message, got: $message",
+            message.contains("closest match"),
+        )
     }
 
     // -- TC-TYPE-09-P3-02: closest-match names the overlapping member and its missing field -----
@@ -193,27 +223,37 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         val value = tableWith(graph, "x")
         // Named members so the message's closest-match segment can be asserted by name (anonymous
         // tables would both print as "{ ... }" and not discriminate which member was chosen).
-        val xy = LuaGraphType.Table(
-            className = "XY",
-            localMembers = mutableMapOf(
-                "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-                "y" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-            ),
-            isExact = true,
-        )
-        val z = LuaGraphType.Table(
-            className = "Z",
-            localMembers = mutableMapOf(
-                "z" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-            ),
-            isExact = true,
-        )
+        val xy =
+            LuaGraphType.Table(
+                className = "XY",
+                localMembers =
+                    mutableMapOf(
+                        "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                        "y" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                    ),
+                isExact = true,
+            )
+        val z =
+            LuaGraphType.Table(
+                className = "Z",
+                localMembers =
+                    mutableMapOf(
+                        "z" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                    ),
+                isExact = true,
+            )
         val errors = check(graph, value, LuaGraphType.Union(setOf(xy, z)))
 
         assertFalse("incompatible table into union must error, got: $errors", errors.isEmpty())
         val message = errors.first { it.contains("closest match") }
-        assertTrue("Closest-match must name the overlapping member XY, got: $message", message.contains("closest match 'XY'"))
-        assertFalse("Must NOT choose the unrelated member Z as closest, got: $message", message.contains("closest match 'Z'"))
+        assertTrue(
+            "Closest-match must name the overlapping member XY, got: $message",
+            message.contains("closest match 'XY'"),
+        )
+        assertFalse(
+            "Must NOT choose the unrelated member Z as closest, got: $message",
+            message.contains("closest match 'Z'"),
+        )
         assertTrue("Must report the missing 'y' field, got: $message", message.contains("missing field 'y'"))
     }
 
@@ -222,24 +262,28 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
     @Test
     fun testClosestMatchSelectsHighestOverlap() {
         val graph = LuaTypeGraph()
-        val value = LuaGraphType.Table(
-            className = null,
-            localMembers = mutableMapOf(
-                "a" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-                "b" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-            ),
-            isExact = true,
-        )
+        val value =
+            LuaGraphType.Table(
+                className = null,
+                localMembers =
+                    mutableMapOf(
+                        "a" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                        "b" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                    ),
+                isExact = true,
+            )
         val oneOverlap = tableWith(graph, "a") // overlap 1
-        val twoOverlap = LuaGraphType.Table(
-            className = null,
-            localMembers = mutableMapOf(
-                "a" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-                "b" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-                "c" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-            ),
-            isExact = true,
-        )
+        val twoOverlap =
+            LuaGraphType.Table(
+                className = null,
+                localMembers =
+                    mutableMapOf(
+                        "a" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                        "b" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                        "c" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                    ),
+                isExact = true,
+            )
         val match = LuaUnionDiagnostics.closestMatch(value, setOf(oneOverlap, twoOverlap))
         assertNotNull(match)
         assertSame("Highest-overlap member must win", twoOverlap, match!!.member)
@@ -251,23 +295,27 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         val graph = LuaTypeGraph()
         val value = tableWith(graph, "x") // single field x
         // Both members overlap on x (overlap 1). leaner adds one missing field; fatter adds two.
-        val leaner = LuaGraphType.Table(
-            className = null,
-            localMembers = mutableMapOf(
-                "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-                "y" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-            ),
-            isExact = true,
-        )
-        val fatter = LuaGraphType.Table(
-            className = null,
-            localMembers = mutableMapOf(
-                "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-                "p" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-                "q" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
-            ),
-            isExact = true,
-        )
+        val leaner =
+            LuaGraphType.Table(
+                className = null,
+                localMembers =
+                    mutableMapOf(
+                        "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                        "y" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                    ),
+                isExact = true,
+            )
+        val fatter =
+            LuaGraphType.Table(
+                className = null,
+                localMembers =
+                    mutableMapOf(
+                        "x" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                        "p" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                        "q" to graph.variable(anchor).also { it.downSet.add(graph.use(anchor, LuaGraphType.Number)) },
+                    ),
+                isExact = true,
+            )
         val match = LuaUnionDiagnostics.closestMatch(value, setOf(fatter, leaner))
         assertNotNull(match)
         assertSame("Tie on overlap must break to fewest extra required fields", leaner, match!!.member)
@@ -295,26 +343,29 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
     fun testGenericInstantiationsDoNotCollideUnderMemo() {
         // Two distinct call sites of the same generic template must yield independent results:
         // f(42) is number, f(true) is boolean; only the boolean->number assignment errors.
-        val file = myFixture.configureByText(
-            "memo.lua",
-            """
-            ---@generic T
-            ---@param x T
-            ---@return T
-            local function f(x) return x end
+        val file =
+            myFixture.configureByText(
+                "memo.lua",
+                """
+                ---@generic T
+                ---@param x T
+                ---@return T
+                local function f(x) return x end
 
-            local a = f(42)
-            ---@type number
-            local a_check = a -- OK
+                local a = f(42)
+                ---@type number
+                local a_check = a -- OK
 
-            local b = f(true)
-            ---@type number
-            local b_err = b -- Error: boolean not assignable to number
-            """.trimIndent(),
-        )
+                local b = f(true)
+                ---@type number
+                local b_err = b -- Error: boolean not assignable to number
+                """.trimIndent(),
+            )
         val errors = LuaTypesSnapshot.forFile(file).getErrors()
         assertTrue(
-            "Distinct instantiations must not collide; expected a boolean/number error, got: ${errors.map { it.message }}",
+            "Distinct instantiations must not collide; expected a boolean/number error, got: ${errors.map {
+                it.message
+            }}",
             errors.any { it.message.contains("boolean") && it.message.contains("number") },
         )
         assertTrue(

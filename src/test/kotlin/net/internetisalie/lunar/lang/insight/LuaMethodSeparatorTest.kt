@@ -20,7 +20,10 @@ import kotlin.test.assertNull
 class LuaMethodSeparatorTest : BaseDocumentTest() {
     private val provider = LuaMethodSeparatorProvider()
 
-    private fun withSeparators(enabled: Boolean, body: () -> Unit) {
+    private fun withSeparators(
+        enabled: Boolean,
+        body: () -> Unit,
+    ) {
         val settings = DaemonCodeAnalyzerSettings.getInstance()
         val previous = settings.SHOW_METHOD_SEPARATORS
         settings.SHOW_METHOD_SEPARATORS = enabled
@@ -44,7 +47,7 @@ class LuaMethodSeparatorTest : BaseDocumentTest() {
                     end
                     local function b()
                     end
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
                 val decls = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaLocalFuncDecl::class.java).toList()
                 assertEquals(2, decls.size)
@@ -73,7 +76,7 @@ class LuaMethodSeparatorTest : BaseDocumentTest() {
                     end
                     local function b()
                     end
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
                 val decls = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaLocalFuncDecl::class.java).toList()
 

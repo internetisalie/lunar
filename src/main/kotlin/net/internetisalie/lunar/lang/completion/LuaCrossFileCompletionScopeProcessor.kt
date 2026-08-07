@@ -7,15 +7,19 @@ import com.intellij.psi.scope.PsiScopeProcessor
 import net.internetisalie.lunar.lang.psi.*
 
 class LuaCrossFileCompletionScopeProcessor(
-    private val prefix: String
+    private val prefix: String,
 ) : PsiScopeProcessor {
     val results = mutableListOf<Pair<String, PsiElement>>()
 
-    override fun execute(element: PsiElement, state: ResolveState): Boolean {
-        val name = when (element) {
-            is com.intellij.psi.PsiNamedElement -> element.name
-            else -> null
-        } ?: return true
+    override fun execute(
+        element: PsiElement,
+        state: ResolveState,
+    ): Boolean {
+        val name =
+            when (element) {
+                is com.intellij.psi.PsiNamedElement -> element.name
+                else -> null
+            } ?: return true
 
         if (name.startsWith(prefix)) {
             // Only include top-level (file-level) declarations that are accessible from other files
@@ -60,5 +64,8 @@ class LuaCrossFileCompletionScopeProcessor(
 
     override fun <T : Any?> getHint(hintKey: Key<T>): T? = null
 
-    override fun handleEvent(event: PsiScopeProcessor.Event, associated: Any?) {}
+    override fun handleEvent(
+        event: PsiScopeProcessor.Event,
+        associated: Any?,
+    ) {}
 }

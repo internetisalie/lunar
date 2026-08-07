@@ -32,9 +32,15 @@ import javax.swing.tree.TreePath
  * Resolution runs on a pooled thread; the built model is published to the EDT. No hard refs to PSI
  * are retained — only the [Project] is held, and resolution takes it per call.
  */
-class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout()) {
+class DependencyTreePanel(
+    private val project: Project,
+) : JPanel(BorderLayout()) {
     private val treeModel = DefaultTreeModel(DefaultMutableTreeNode("Lua dependencies"))
-    private val tree = Tree(treeModel).apply { isRootVisible = true; cellRenderer = DependencyCellRenderer() }
+    private val tree =
+        Tree(treeModel).apply {
+            isRootVisible = true
+            cellRenderer = DependencyCellRenderer()
+        }
     private val inspector = DependencyInspectorPanel()
     private val filterField = JBTextField()
     private val statusLabel = JBLabel("")
@@ -42,29 +48,38 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
 
     init {
         add(buildToolbar(), BorderLayout.NORTH)
-        val split = JSplitPane(
-            JSplitPane.HORIZONTAL_SPLIT,
-            ScrollPaneFactory.createScrollPane(tree),
-            inspector,
-        ).apply { resizeWeight = 0.6 }
+        val split =
+            JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                ScrollPaneFactory.createScrollPane(tree),
+                inspector,
+            ).apply { resizeWeight = 0.6 }
         add(split, BorderLayout.CENTER)
         add(statusLabel.apply { border = JBUI.Borders.empty(2, 6) }, BorderLayout.SOUTH)
         tree.addTreeSelectionListener { inspector.show(selectedNode()) }
-        filterField.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(event: DocumentEvent) = rebuildTree()
-        })
+        filterField.document.addDocumentListener(
+            object : DocumentAdapter() {
+                override fun textChanged(event: DocumentEvent) = rebuildTree()
+            },
+        )
     }
 
     private fun buildToolbar(): Component {
         val toolbar = JPanel(BorderLayout())
         toolbar.add(JButton(AllIcons.Actions.Refresh).apply { addActionListener { refresh() } }, BorderLayout.WEST)
         val east = JPanel(BorderLayout())
-        east.add(JButton(AllIcons.Actions.Expandall).apply {
-            addActionListener { expandAll() }
-        }, BorderLayout.WEST)
-        east.add(JButton(AllIcons.Actions.Collapseall).apply {
-            addActionListener { collapseAll() }
-        }, BorderLayout.CENTER)
+        east.add(
+            JButton(AllIcons.Actions.Expandall).apply {
+                addActionListener { expandAll() }
+            },
+            BorderLayout.WEST,
+        )
+        east.add(
+            JButton(AllIcons.Actions.Collapseall).apply {
+                addActionListener { collapseAll() }
+            },
+            BorderLayout.CENTER,
+        )
         east.add(filterField.apply { columns = 16 }, BorderLayout.EAST)
         toolbar.add(east, BorderLayout.EAST)
         return toolbar
@@ -74,15 +89,18 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
     fun refresh() {
         statusLabel.text = "Resolving dependencies…"
         ApplicationManager.getApplication().executeOnPooledThread {
-            val roots = LuaRocksDependencyResolver.resolveAll(project)
-                .onEach { VersionConflictEngine.annotate(it) }
+            val roots =
+                LuaRocksDependencyResolver
+                    .resolveAll(project)
+                    .onEach { VersionConflictEngine.annotate(it) }
             ApplicationManager.getApplication().invokeLater {
                 resolvedRoots = roots
-                statusLabel.text = if (roots.isEmpty()) {
-                    "No project rockspec found, or no Lua interpreter is configured."
-                } else {
-                    ""
-                }
+                statusLabel.text =
+                    if (roots.isEmpty()) {
+                        "No project rockspec found, or no Lua interpreter is configured."
+                    } else {
+                        ""
+                    }
                 rebuildTree()
             }
         }
@@ -101,7 +119,12 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
         expandAll()
     }
 
-    private fun addChildren(parent: DefaultMutableTreeNode, node: DependencyNode, filter: String, seen: MutableSet<DependencyNode>) {
+    private fun addChildren(
+        parent: DefaultMutableTreeNode,
+        node: DependencyNode,
+        filter: String,
+        seen: MutableSet<DependencyNode>,
+    ) {
         if (!seen.add(node)) return
         for (child in node.children) {
             if (!matches(child, filter)) continue
@@ -111,10 +134,19 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
         }
     }
 
-    private fun matches(node: DependencyNode, filter: String): Boolean {
+    private fun matches(
+        node: DependencyNode,
+        filter: String,
+    ): Boolean {
         if (filter.isEmpty()) return true
         if (node.packageName.lowercase().contains(filter)) return true
-        if (node.resolvedVersion?.raw?.lowercase()?.contains(filter) == true) return true
+        if (node.resolvedVersion
+                ?.raw
+                ?.lowercase()
+                ?.contains(filter) == true
+        ) {
+            return true
+        }
         return node.children.any { matches(it, filter) }
     }
 
@@ -153,11 +185,12 @@ class DependencyTreePanel(private val project: Project) : JPanel(BorderLayout())
             val node = (value as? DefaultMutableTreeNode)?.userObject as? DependencyNode
             if (node != null) {
                 icon = if (node.hasConflicts) AllIcons.General.Warning else LuaIcons.ROCKET
-                text = buildString {
-                    append(node.packageName)
-                    node.resolvedVersion?.let { append(" ").append(it.raw) } ?: append(" (missing)")
-                    if (node.isCycle) append(" (cycle)")
-                }
+                text =
+                    buildString {
+                        append(node.packageName)
+                        node.resolvedVersion?.let { append(" ").append(it.raw) } ?: append(" (missing)")
+                        if (node.isCycle) append(" (cycle)")
+                    }
             }
             return this
         }

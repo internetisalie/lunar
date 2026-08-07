@@ -14,7 +14,7 @@ package net.internetisalie.lunar.platform.target
 data class VersionEntry(
     val label: String,
     val pathSegment: String,
-    val luacheckStd: String? = null
+    val luacheckStd: String? = null,
 ) {
     override fun toString(): String = label
 }

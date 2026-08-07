@@ -12,7 +12,6 @@ import net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory
  * EP forces JsonSchemaService to (re)discover and resolve them in the light fixture.
  */
 class RockspecSchemaProviderTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         JsonSchemaProviderFactory.EP_NAME.point.registerExtension(LuaSchemaProviderFactory(), testRootDisposable)

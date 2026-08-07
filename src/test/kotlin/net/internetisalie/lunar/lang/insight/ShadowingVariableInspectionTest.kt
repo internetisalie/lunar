@@ -8,7 +8,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class ShadowingVariableInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaShadowingVariableInspection())
@@ -16,7 +15,8 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
 
     private fun shadowingWarnings(text: String): List<String> {
         myFixture.configureByText("test.lua", text)
-        return myFixture.doHighlighting()
+        return myFixture
+            .doHighlighting()
             .filter { it.description?.startsWith("Shadowing variable") == true }
             .map { it.description }
     }
@@ -26,7 +26,10 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
         assertTrue("Expected no shadowing warnings but found: $warnings", warnings.isEmpty())
     }
 
-    private fun assertShadowing(text: String, vararg names: String) {
+    private fun assertShadowing(
+        text: String,
+        vararg names: String,
+    ) {
         val warnings = shadowingWarnings(text)
         assertEquals("Warnings: $warnings", names.size, warnings.size)
         for (name in names) {
@@ -46,7 +49,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
                 local x = 2
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -56,7 +59,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             """
             local x = 1
             local y = 2
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -70,7 +73,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             do
                 local x = 2
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -81,7 +84,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             local x = 1
             local x = 2
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -93,7 +96,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             local function test(x)
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -105,7 +108,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
                 local x = 2
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -117,7 +120,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             for x = 1, 10 do
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -129,7 +132,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
                 local x = 2
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -141,7 +144,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             for x in pairs({}) do
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -153,7 +156,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
                 local x = 2
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -165,7 +168,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             local function x()
             end
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -177,7 +180,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             end
             local x = 1
             """.trimIndent(),
-            "x"
+            "x",
         )
     }
 
@@ -187,7 +190,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             """
             local function test(a, b)
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -198,7 +201,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             local function test(a, a)
             end
             """.trimIndent(),
-            "a"
+            "a",
         )
     }
 
@@ -210,7 +213,7 @@ class ShadowingVariableInspectionTest : BasePlatformTestCase() {
             do
                 local _ = 2
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 }

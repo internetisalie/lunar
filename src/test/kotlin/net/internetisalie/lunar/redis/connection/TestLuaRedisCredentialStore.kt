@@ -11,7 +11,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * `null`). Key-derivation stability is pinned headlessly, mirroring `LuaRocksApiKeyStoreTest`.
  */
 class TestLuaRedisCredentialStore : BasePlatformTestCase() {
-
     override fun tearDown() {
         try {
             LuaRedisCredentialStore.setPassword("u1", null)

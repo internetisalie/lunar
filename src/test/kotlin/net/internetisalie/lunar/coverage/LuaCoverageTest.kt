@@ -1,33 +1,34 @@
 package net.internetisalie.lunar.coverage
 
+import com.intellij.rt.coverage.data.LineCoverage
+import com.intellij.rt.coverage.data.LineData
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import com.intellij.rt.coverage.data.LineCoverage
-import com.intellij.rt.coverage.data.LineData
-import com.intellij.rt.coverage.data.ProjectData
 
 class LuaCoverageTest : BasePlatformTestCase() {
-
     @Test
     fun testLuaCovStatsParser() {
-        val statsContent = """
+        val statsContent =
+            """
             5:initrd/usr/bin/tests.lua
             0 1 0 2 0
             3:src/math.lua
             10 0 5
-        """.trimIndent()
+            """.trimIndent()
 
         val tempFile = File.createTempFile("luacov.stats", "out")
         try {
             tempFile.writeText(statsContent)
             val results = LuaCovStatsParser.parse(tempFile)
-            
+
             assertEquals(2, results.size)
-            
-            val testFile = results.find { it.filePath == "initrd/usr/bin/tests.lua" } ?: throw AssertionError("initrd/usr/bin/tests.lua not found")
+
+            val testFile =
+                results.find {
+                    it.filePath == "initrd/usr/bin/tests.lua"
+                } ?: throw AssertionError("initrd/usr/bin/tests.lua not found")
             assertEquals(5, testFile.lineHits.size)
             assertEquals(0, testFile.lineHits[1])
             assertEquals(1, testFile.lineHits[2])
@@ -35,7 +36,8 @@ class LuaCoverageTest : BasePlatformTestCase() {
             assertEquals(2, testFile.lineHits[4])
             assertEquals(0, testFile.lineHits[5])
 
-            val mathFile = results.find { it.filePath == "src/math.lua" } ?: throw AssertionError("src/math.lua not found")
+            val mathFile =
+                results.find { it.filePath == "src/math.lua" } ?: throw AssertionError("src/math.lua not found")
             assertEquals(3, mathFile.lineHits.size)
             assertEquals(10, mathFile.lineHits[1])
             assertEquals(0, mathFile.lineHits[2])
@@ -47,7 +49,8 @@ class LuaCoverageTest : BasePlatformTestCase() {
 
     @Test
     fun testLuaCovReportParser() {
-        val reportContent = """
+        val reportContent =
+            """
             ==============================================================================
             initrd/usr/bin/tests.lua
             ==============================================================================
@@ -55,17 +58,17 @@ class LuaCoverageTest : BasePlatformTestCase() {
                1 local test_modules = {}
             ***0 local fs = require("runtime.fs")
               10 for line in p:lines() do
-        """.trimIndent()
+            """.trimIndent()
 
         val tempFile = File.createTempFile("luacov.report", "out")
         try {
             tempFile.writeText(reportContent)
             val results = LuaCovReportParser.parse(tempFile)
-            
+
             assertEquals(1, results.size)
             val testFile = results[0]
             assertEquals("initrd/usr/bin/tests.lua", testFile.filePath)
-            
+
             // Only executable lines should be parsed:
             // Line 1: comment (non-exec, skipped)
             // Line 2: 1 hit
@@ -85,14 +88,15 @@ class LuaCoverageTest : BasePlatformTestCase() {
         // luacov pads the hit-count column to its width, so the asterisk run that marks an
         // uncovered (0-hit) line varies in length (***0, ****0, ...). All such lines must parse
         // to 0 hits and enter lineHits, and toProjectData must emit a NONE-status LineData.
-        val reportContent = """
+        val reportContent =
+            """
             ==============================================================================
             src/widths.lua
             ==============================================================================
                1 local covered = 1
             ***0 local three = 2
             ****0 local four = 3
-        """.trimIndent()
+            """.trimIndent()
 
         val tempFile = File.createTempFile("luacov.report", "out")
         try {
@@ -124,7 +128,8 @@ class LuaCoverageTest : BasePlatformTestCase() {
 
     @Test
     fun testReportParserMultipleFileSections() {
-        val reportContent = """
+        val reportContent =
+            """
             ==============================================================================
             src/a.lua
             ==============================================================================
@@ -134,7 +139,7 @@ class LuaCoverageTest : BasePlatformTestCase() {
             src/b.lua
             ==============================================================================
                7 local c = 3
-        """.trimIndent()
+            """.trimIndent()
 
         val tempFile = File.createTempFile("luacov.report", "out")
         try {
@@ -156,7 +161,8 @@ class LuaCoverageTest : BasePlatformTestCase() {
     fun testReportParserMalformedSectionResets() {
         // A path line NOT followed by a second boundary must reset the state machine to
         // SEARCH_HEADER, so no spurious FileCoverage is emitted for the malformed section.
-        val reportContent = """
+        val reportContent =
+            """
             ==============================================================================
             src/malformed.lua
                1 local orphaned = 1
@@ -164,7 +170,7 @@ class LuaCoverageTest : BasePlatformTestCase() {
             src/good.lua
             ==============================================================================
                5 local ok = 2
-        """.trimIndent()
+            """.trimIndent()
 
         val tempFile = File.createTempFile("luacov.report", "out")
         try {
@@ -184,14 +190,15 @@ class LuaCoverageTest : BasePlatformTestCase() {
         // Hit counts for one file may wrap across multiple lines with an intervening blank
         // line; all totalLines counts must land in 1-indexed lineHits and the next header
         // must still parse.
-        val statsContent = """
+        val statsContent =
+            """
             5:src/wrapped.lua
             0 1
 
             0 2 3
             2:src/next.lua
             7 8
-        """.trimIndent()
+            """.trimIndent()
 
         val tempFile = File.createTempFile("luacov.stats", "out")
         try {
@@ -216,18 +223,19 @@ class LuaCoverageTest : BasePlatformTestCase() {
 
     @Test
     fun testToProjectData() {
-        val coverages = listOf(
-            FileCoverage(
-                filePath = "src/foo.lua",
-                lineHits = mapOf(1 to 0, 2 to 5)
+        val coverages =
+            listOf(
+                FileCoverage(
+                    filePath = "src/foo.lua",
+                    lineHits = mapOf(1 to 0, 2 to 5),
+                ),
             )
-        )
         val projectData = LuaCovReportParser.toProjectData(coverages)
         val classData = projectData.getClassData("src/foo.lua") ?: throw AssertionError("ClassData not found")
-        
+
         val lines = classData.lines ?: throw AssertionError("Lines not found")
         assertEquals(3, lines.size) // indices 0, 1, 2
-        
+
         val line1 = lines[1] as? LineData ?: throw AssertionError("Line 1 not found")
         assertEquals(0, line1.hits)
 
@@ -240,12 +248,13 @@ class LuaCoverageTest : BasePlatformTestCase() {
         // RUN-08-13: each LineData's own line number must match its array slot (1-based,
         // platform convention) so SimpleCoverageAnnotator/SrcFileAnnotator align hits to
         // editor lines. getLineData(L) must return the coverage for report line L.
-        val coverages = listOf(
-            FileCoverage(
-                filePath = "src/bar.lua",
-                lineHits = mapOf(1 to 0, 2 to 5, 7 to 3)
+        val coverages =
+            listOf(
+                FileCoverage(
+                    filePath = "src/bar.lua",
+                    lineHits = mapOf(1 to 0, 2 to 5, 7 to 3),
+                ),
             )
-        )
         val projectData = LuaCovReportParser.toProjectData(coverages)
         val classData = projectData.getClassData("src/bar.lua") ?: throw AssertionError("ClassData not found")
 
@@ -268,12 +277,13 @@ class LuaCoverageTest : BasePlatformTestCase() {
         // percentages (SimpleCoverageAnnotator.processLineData) are driven by
         // LineData.getStatus(), NOT by hits. Each LineData must carry an explicit
         // FULL/NONE status or no green/red stripe renders in the live editor.
-        val coverages = listOf(
-            FileCoverage(
-                filePath = "src/bar.lua",
-                lineHits = mapOf(1 to 0, 2 to 5)
+        val coverages =
+            listOf(
+                FileCoverage(
+                    filePath = "src/bar.lua",
+                    lineHits = mapOf(1 to 0, 2 to 5),
+                ),
             )
-        )
         val projectData = LuaCovReportParser.toProjectData(coverages)
         val classData = projectData.getClassData("src/bar.lua") ?: throw AssertionError("ClassData not found")
 

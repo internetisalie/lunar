@@ -12,7 +12,6 @@ import com.intellij.psi.PsiElement
  * See: docs/requirements/spec/type/design/phase-1-api-contracts.md §2
  */
 sealed class LuaGraphType {
-
     /** ⊤ (top type). Every value is assignable to ANY. */
     data object Any : LuaGraphType()
 
@@ -20,8 +19,11 @@ sealed class LuaGraphType {
     data object Undefined : LuaGraphType()
 
     data object Nil : LuaGraphType()
+
     data object Boolean : LuaGraphType()
+
     data object Number : LuaGraphType()
+
     data object String : LuaGraphType()
 
     data class Function(
@@ -48,8 +50,7 @@ sealed class LuaGraphType {
     ) : LuaGraphType() {
         companion object {
             /** Builds a canonical union (flattened, simplified, deduped, sorted, collapsed). */
-            fun create(members: Collection<LuaGraphType>): LuaGraphType =
-                LuaTypeAlgebra.canonicalize(members)
+            fun create(members: Collection<LuaGraphType>): LuaGraphType = LuaTypeAlgebra.canonicalize(members)
         }
     }
 
@@ -62,45 +63,48 @@ sealed class LuaGraphType {
     ) : LuaGraphType()
 
     /** Human-readable name for error messages. */
-    fun displayName(): kotlin.String = when (this) {
-        Any -> "any"
-        Undefined -> "undefined"
-        Nil -> "nil"
-        Boolean -> "boolean"
-        Number -> "number"
-        String -> "string"
-        is Table -> className ?: "{ ... }"
-        is Array -> "${elementType.displayName()}[]"
-        is Union -> types.joinToString(" | ") { it.displayName() }
-        is Generic -> name
-        is Function -> {
-            val paramsStr = params.joinToString(", ") { param ->
-                val name = param.name ?: if (param.isVararg) "..." else "p"
-                val suffix = if (param.isOptional) "?" else ""
-                "$name$suffix"
+    fun displayName(): kotlin.String =
+        when (this) {
+            Any -> "any"
+            Undefined -> "undefined"
+            Nil -> "nil"
+            Boolean -> "boolean"
+            Number -> "number"
+            String -> "string"
+            is Table -> className ?: "{ ... }"
+            is Array -> "${elementType.displayName()}[]"
+            is Union -> types.joinToString(" | ") { it.displayName() }
+            is Generic -> name
+            is Function -> {
+                val paramsStr =
+                    params.joinToString(", ") { param ->
+                        val name = param.name ?: if (param.isVararg) "..." else "p"
+                        val suffix = if (param.isOptional) "?" else ""
+                        "$name$suffix"
+                    }
+                "fun($paramsStr)"
             }
-            "fun($paramsStr)"
         }
-    }
 
-    fun getMembers(): Map<kotlin.String, VariableNode> = when (this) {
-        is Table -> {
-            val result = mutableMapOf<kotlin.String, VariableNode>()
-            for (superType in superTypes.reversed()) {
-                result.putAll(superType.getMembers())
+    fun getMembers(): Map<kotlin.String, VariableNode> =
+        when (this) {
+            is Table -> {
+                val result = mutableMapOf<kotlin.String, VariableNode>()
+                for (superType in superTypes.reversed()) {
+                    result.putAll(superType.getMembers())
+                }
+                result.putAll(localMembers)
+                result
             }
-            result.putAll(localMembers)
-            result
-        }
-        is Union -> {
-            val allMembers = mutableMapOf<kotlin.String, VariableNode>()
-            for (type in types) {
-                allMembers.putAll(type.getMembers())
+            is Union -> {
+                val allMembers = mutableMapOf<kotlin.String, VariableNode>()
+                for (type in types) {
+                    allMembers.putAll(type.getMembers())
+                }
+                allMembers
             }
-            allMembers
+            else -> emptyMap()
         }
-        else -> emptyMap()
-    }
 
     companion object {
         /**
@@ -110,7 +114,10 @@ sealed class LuaGraphType {
          * reading a type resolved out of *another* file (BUG-395). The scratch graph is seeded with
          * one node because [fromLuaType] anchors the member nodes it creates on an existing one.
          */
-        fun materialize(type: LuaType, anchor: PsiElement): LuaGraphType {
+        fun materialize(
+            type: LuaType,
+            anchor: PsiElement,
+        ): LuaGraphType {
             val graph = LuaTypeGraph()
             graph.variable(anchor)
             return fromLuaType(type, graph)
@@ -143,9 +150,10 @@ sealed class LuaGraphType {
                     val result = Function(emptyList(), emptyList())
                     visited[type] = result
 
-                    val params = type.params.map { p ->
-                        Function.Parameter(memberNodeFor(p.type, graph, visited), p.name, p.isOptional, p.isVararg)
-                    }
+                    val params =
+                        type.params.map { p ->
+                            Function.Parameter(memberNodeFor(p.type, graph, visited), p.name, p.isOptional, p.isVararg)
+                        }
                     val returnNode = memberNodeFor(type.returnType, graph, visited)
 
                     val finalFunc = Function(params, listOf(returnNode))

@@ -17,7 +17,6 @@ import java.lang.reflect.Proxy
  * (Live stripe rendering is the integration/VNC check; the titles themselves are asserted here.)
  */
 class LuaRocksToolWindowTitlesTest : BasePlatformTestCase() {
-
     fun `test browser factory sets the LuaRocks Packages stripe and title`() {
         val recorder = TitleRecorder()
         LuaRocksBrowserToolWindowFactory().createToolWindowContent(project, recorder.toolWindow)
@@ -45,16 +44,27 @@ class LuaRocksToolWindowTitlesTest : BasePlatformTestCase() {
 
         private val delegate: ToolWindow = ToolWindowHeadlessManagerImpl.MockToolWindow(project)
 
-        val toolWindow: ToolWindow = Proxy.newProxyInstance(
-            javaClass.classLoader,
-            arrayOf(ToolWindow::class.java),
-            InvocationHandler { _, method, args -> dispatch(method, args) },
-        ) as ToolWindow
+        val toolWindow: ToolWindow =
+            Proxy.newProxyInstance(
+                javaClass.classLoader,
+                arrayOf(ToolWindow::class.java),
+                InvocationHandler { _, method, args -> dispatch(method, args) },
+            ) as ToolWindow
 
-        private fun dispatch(method: Method, args: Array<out Any?>?): Any? = when (method.name) {
-            "setStripeTitle" -> { stripeTitle = args?.get(0) as? String; null }
-            "setTitle" -> { title = args?.get(0) as? String; null }
-            else -> method.invoke(delegate, *(args ?: emptyArray()))
-        }
+        private fun dispatch(
+            method: Method,
+            args: Array<out Any?>?,
+        ): Any? =
+            when (method.name) {
+                "setStripeTitle" -> {
+                    stripeTitle = args?.get(0) as? String
+                    null
+                }
+                "setTitle" -> {
+                    title = args?.get(0) as? String
+                    null
+                }
+                else -> method.invoke(delegate, *(args ?: emptyArray()))
+            }
     }
 }

@@ -25,10 +25,13 @@ import kotlin.io.path.writeText
 class LuaArtifactDownloaderTest : BasePlatformTestCase() {
     private val indicator by lazy { EmptyProgressIndicator() }
 
-    private fun sha256Of(file: Path): String =
-        Files.asByteSource(file.toFile()).hash(Hashing.sha256()).toString()
+    private fun sha256Of(file: Path): String = Files.asByteSource(file.toFile()).hash(Hashing.sha256()).toString()
 
-    private fun writePayload(dir: Path, name: String, content: String): Triple<String, String, Long> {
+    private fun writePayload(
+        dir: Path,
+        name: String,
+        content: String,
+    ): Triple<String, String, Long> {
         val file = dir.resolve(name)
         file.writeText(content)
         return Triple(file.toUri().toString(), sha256Of(file), file.fileSize())
@@ -46,11 +49,12 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         val (url, _, size) = writePayload(fixtures, "defs.tar.gz", "definition-bytes")
         val wrongSha = "0".repeat(64)
 
-        val result = LuaArtifactDownloader(cacheDir).fetch(
-            ArtifactPin(listOf(url), wrongSha, size),
-            indicator,
-            ArtifactVerification.ADVISORY,
-        )
+        val result =
+            LuaArtifactDownloader(cacheDir).fetch(
+                ArtifactPin(listOf(url), wrongSha, size),
+                indicator,
+                ArtifactVerification.ADVISORY,
+            )
 
         assertEquals("definition-bytes", result.readText())
         assertTrue("the mismatched file must be cached, not discarded", result.exists())
@@ -63,9 +67,10 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         val (url, _, size) = writePayload(fixtures, "defs.tar.gz", "definition-bytes")
         val wrongSha = "0".repeat(64)
 
-        val failure = runCatching {
-            LuaArtifactDownloader(cacheDir).fetch(ArtifactPin(listOf(url), wrongSha, size), indicator)
-        }.exceptionOrNull()
+        val failure =
+            runCatching {
+                LuaArtifactDownloader(cacheDir).fetch(ArtifactPin(listOf(url), wrongSha, size), indicator)
+            }.exceptionOrNull()
 
         assertTrue("STRICT must reject a hash mismatch", failure is LuaProvisionException)
     }
@@ -114,10 +119,11 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         val badFile = fixtures.resolve("bad.tar.gz")
         badFile.writeText("wrong-payload-different-hash")
 
-        val result = LuaArtifactDownloader(cacheDir).fetch(
-            ArtifactPin(listOf(badFile.toUri().toString(), good.first), good.second, good.third),
-            indicator,
-        )
+        val result =
+            LuaArtifactDownloader(cacheDir).fetch(
+                ArtifactPin(listOf(badFile.toUri().toString(), good.first), good.second, good.third),
+                indicator,
+            )
 
         assertEquals("the-correct-payload", result.readText())
     }
@@ -130,12 +136,13 @@ class LuaArtifactDownloaderTest : BasePlatformTestCase() {
         val badB = fixtures.resolve("mirrorB.tar.gz").also { it.writeText("payload-b") }
         val impossibleSha = "0".repeat(64)
 
-        val failure = runCatching {
-            LuaArtifactDownloader(cacheDir).fetch(
-                ArtifactPin(listOf(badA.toUri().toString(), badB.toUri().toString()), impossibleSha, 9L),
-                indicator,
-            )
-        }.exceptionOrNull()
+        val failure =
+            runCatching {
+                LuaArtifactDownloader(cacheDir).fetch(
+                    ArtifactPin(listOf(badA.toUri().toString(), badB.toUri().toString()), impossibleSha, 9L),
+                    indicator,
+                )
+            }.exceptionOrNull()
 
         assertTrue("both mirrors failing must raise LuaProvisionException", failure is LuaProvisionException)
         val message = failure?.message.orEmpty()

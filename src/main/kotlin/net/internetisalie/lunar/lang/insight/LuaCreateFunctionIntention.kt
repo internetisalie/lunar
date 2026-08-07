@@ -24,9 +24,14 @@ class LuaCreateFunctionIntention : BaseIntentionAction() {
     private var functionName: String = ""
 
     override fun getFamilyName(): String = "Lua"
+
     override fun getText(): String = "Create function '$functionName'"
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean {
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean {
         if (file !is LuaFile) return false
         val ref = nameRefAt(editor, file) ?: return false
         val callee = calleeOf(ref) ?: return false
@@ -36,7 +41,11 @@ class LuaCreateFunctionIntention : BaseIntentionAction() {
         return true
     }
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val ref = nameRefAt(editor, file) ?: return
         val call = PsiTreeUtil.getParentOfType(ref, LuaFuncCall::class.java) ?: return
         val anchor = PsiTreeUtil.getParentOfType(call, LuaStatement::class.java) ?: return
@@ -45,14 +54,18 @@ class LuaCreateFunctionIntention : BaseIntentionAction() {
         val stub = "local function $functionName($params)\nend"
         WriteCommandAction.runWriteCommandAction(project, text, null, {
             val throwaway = LuaElementFactory.createFile(project, stub)
-            val declaration = PsiTreeUtil.findChildOfType(throwaway, LuaStatement::class.java)
-                ?: return@runWriteCommandAction
+            val declaration =
+                PsiTreeUtil.findChildOfType(throwaway, LuaStatement::class.java)
+                    ?: return@runWriteCommandAction
             val inserted = block.addBefore(declaration, anchor)
             block.addAfter(LuaElementFactory.createNewLine(project), inserted)
         })
     }
 
-    private fun nameRefAt(editor: Editor, file: PsiFile): LuaNameRef? {
+    private fun nameRefAt(
+        editor: Editor,
+        file: PsiFile,
+    ): LuaNameRef? {
         val offset = editor.caretModel.offset
         val here = PsiTreeUtil.getParentOfType(file.findElementAt(offset), LuaNameRef::class.java)
         if (here != null) return here
@@ -68,5 +81,10 @@ class LuaCreateFunctionIntention : BaseIntentionAction() {
     }
 
     private fun argumentCount(call: LuaFuncCall): Int =
-        call.nameAndArgsList.firstOrNull()?.args?.exprList?.exprList?.size ?: 0
+        call.nameAndArgsList
+            .firstOrNull()
+            ?.args
+            ?.exprList
+            ?.exprList
+            ?.size ?: 0
 }

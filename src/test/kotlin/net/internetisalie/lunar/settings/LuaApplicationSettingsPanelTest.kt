@@ -11,7 +11,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * because the DSL panel builds Swing components.
  */
 class LuaApplicationSettingsPanelTest : BasePlatformTestCase() {
-
     fun testIsModifiedAfterTogglingTypeInference_TC11() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             val panel = LuaApplicationSettingsPanel()

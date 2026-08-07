@@ -19,8 +19,11 @@ import net.internetisalie.lunar.lang.psi.LuaLabelName
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.processLabelDeclarations
 
-class LuaLabelReference(element: PsiElement, textRange: TextRange) :
-    PsiReferenceBase<PsiElement?>(element, textRange), PsiPolyVariantReference {
+class LuaLabelReference(
+    element: PsiElement,
+    textRange: TextRange,
+) : PsiReferenceBase<PsiElement?>(element, textRange),
+    PsiPolyVariantReference {
     private val name = element.text.substring(textRange.startOffset, textRange.endOffset)
 
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
@@ -46,8 +49,9 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
 
     override fun isReferenceTo(element: PsiElement): Boolean {
         val resolved = resolveLabel() ?: return false
-        val owner = (element as? LuaLabelName)
-            ?: (element.parent as? LuaLabelName) // tolerate IDENTIFIER leaf targets
+        val owner =
+            (element as? LuaLabelName)
+                ?: (element.parent as? LuaLabelName) // tolerate IDENTIFIER leaf targets
         return resolved === owner && resolved.identifier.text == name
     }
 
@@ -62,7 +66,10 @@ class LuaLabelReference(element: PsiElement, textRange: TextRange) :
             .toTypedArray()
     }
 
-    private fun walkLabelScopes(start: PsiElement, visit: (LuaBlock) -> Boolean) {
+    private fun walkLabelScopes(
+        start: PsiElement,
+        visit: (LuaBlock) -> Boolean,
+    ) {
         var current: PsiElement? = start
         while (current != null && current !is PsiFile) {
             if (current is LuaBlock) {

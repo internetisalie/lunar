@@ -6,9 +6,14 @@ package net.internetisalie.lunar.analysis.luacheck
  * fatal exit (≥ 2) can never be read as a clean green pass.
  */
 sealed interface LuaCheckOutcome {
-    data class Problems(val problems: List<Problem>) : LuaCheckOutcome
+    data class Problems(
+        val problems: List<Problem>,
+    ) : LuaCheckOutcome
 
-    data class Failure(val kind: FailureKind, val detail: String) : LuaCheckOutcome
+    data class Failure(
+        val kind: FailureKind,
+        val detail: String,
+    ) : LuaCheckOutcome
 
     object NotApplicable : LuaCheckOutcome
 }

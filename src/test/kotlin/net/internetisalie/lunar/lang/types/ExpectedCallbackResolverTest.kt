@@ -20,8 +20,8 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class ExpectedCallbackResolverTest : IndexedBasePlatformTestCase() {
-
     private fun redis7() = Target(LuaPlatform.REDIS, VersionEntry("7+", "redis-7"))
+
     private fun standard54() = Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4"))
 
     // `LuaProjectSettings` is a project-level service and `BasePlatformTestCase` reuses one light
@@ -44,45 +44,79 @@ class ExpectedCallbackResolverTest : IndexedBasePlatformTestCase() {
             LuaProjectSettings.getInstance(project).setTargetAndNotify(redis7())
             PlatformLibraryIndex.reload()
         }
-        val file = myFixture.configureByText(
-            "test.lua",
-            "redis.register_function('f', function(keys, args) return keys end)",
-        )
-        val call = PsiTreeUtil.findChildrenOfType(file, LuaFuncCall::class.java)
-            .first { it.text.startsWith("redis.register_function") }
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                "redis.register_function('f', function(keys, args) return keys end)",
+            )
+        val call =
+            PsiTreeUtil
+                .findChildrenOfType(file, LuaFuncCall::class.java)
+                .first { it.text.startsWith("redis.register_function") }
         val resolver = LuaExpectedCallbackResolver(call, requireNotNull(call.varOrExp.`var`))
 
-        val calleeType = requireNotNull(resolver.resolveCalleeType()) {
-            "redis.register_function must resolve to a LuaFunctionType"
-        }
-        val callback = requireNotNull(resolver.expectedCallbackAt(1, calleeType, 0)) {
-            "params[1] of register_function must be a callback fun(...)"
-        }
-        assertEquals("string[]", callback.params.getOrNull(0)?.type?.name)
-        assertEquals("string[]", callback.params.getOrNull(1)?.type?.name)
+        val calleeType =
+            requireNotNull(resolver.resolveCalleeType()) {
+                "redis.register_function must resolve to a LuaFunctionType"
+            }
+        val callback =
+            requireNotNull(resolver.expectedCallbackAt(1, calleeType, 0)) {
+                "params[1] of register_function must be a callback fun(...)"
+            }
+        assertEquals(
+            "string[]",
+            callback.params
+                .getOrNull(0)
+                ?.type
+                ?.name,
+        )
+        assertEquals(
+            "string[]",
+            callback.params
+                .getOrNull(1)
+                ?.type
+                ?.name,
+        )
     }
 
     @Test
     fun testTableSortComparatorSlotResolves() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local t = {}
-            table.sort(t, function(a, b) return a end)
-            """.trimIndent(),
-        )
-        val call = PsiTreeUtil.findChildrenOfType(file, LuaFuncCall::class.java)
-            .first { it.text.startsWith("table.sort") }
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local t = {}
+                table.sort(t, function(a, b) return a end)
+                """.trimIndent(),
+            )
+        val call =
+            PsiTreeUtil
+                .findChildrenOfType(file, LuaFuncCall::class.java)
+                .first { it.text.startsWith("table.sort") }
         val resolver = LuaExpectedCallbackResolver(call, requireNotNull(call.varOrExp.`var`))
 
-        val calleeType = requireNotNull(resolver.resolveCalleeType()) {
-            "table.sort must resolve to a LuaFunctionType"
-        }
-        val comparator = requireNotNull(resolver.expectedCallbackAt(1, calleeType, 0)) {
-            "params[1] of table.sort must be a comparator fun(...)"
-        }
-        assertEquals("any", comparator.params.getOrNull(0)?.type?.name)
-        assertEquals("any", comparator.params.getOrNull(1)?.type?.name)
+        val calleeType =
+            requireNotNull(resolver.resolveCalleeType()) {
+                "table.sort must resolve to a LuaFunctionType"
+            }
+        val comparator =
+            requireNotNull(resolver.expectedCallbackAt(1, calleeType, 0)) {
+                "params[1] of table.sort must be a comparator fun(...)"
+            }
+        assertEquals(
+            "any",
+            comparator.params
+                .getOrNull(0)
+                ?.type
+                ?.name,
+        )
+        assertEquals(
+            "any",
+            comparator.params
+                .getOrNull(1)
+                ?.type
+                ?.name,
+        )
         assertEquals("boolean", comparator.returnType.name)
     }
 }

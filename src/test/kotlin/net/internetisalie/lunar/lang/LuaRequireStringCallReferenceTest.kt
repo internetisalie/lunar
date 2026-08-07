@@ -14,7 +14,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRequireStringCallReferenceTest : BasePlatformTestCase() {
-
     private fun requireReferenceAt(text: String): LuaRequireReference? {
         myFixture.configureByText("consumer.lua", text)
         val element = myFixture.file.findElementAt(myFixture.caretOffset) ?: return null
@@ -28,7 +27,10 @@ class LuaRequireStringCallReferenceTest : BasePlatformTestCase() {
     @Test
     fun parenthesisedFormStillContributesAReference() {
         myFixture.addFileToProject("target.lua", "return {}\n")
-        assertNotNull("Regression guard for the shape that already worked", requireReferenceAt("""local m = require("tar<caret>get")"""))
+        assertNotNull(
+            "Regression guard for the shape that already worked",
+            requireReferenceAt("""local m = require("tar<caret>get")"""),
+        )
     }
 
     @Test
@@ -66,9 +68,11 @@ class LuaRequireStringCallReferenceTest : BasePlatformTestCase() {
     fun exactlyOneReferenceIsContributedPerCall() {
         myFixture.addFileToProject("target.lua", "return {}\n")
         myFixture.configureByText("consumer.lua", """local m = require "target"""")
-        val all = com.intellij.psi.util.PsiTreeUtil.collectElements(myFixture.file) { true }
-            .flatMap { it.references.asIterable() }
-            .filterIsInstance<LuaRequireReference>()
+        val all =
+            com.intellij.psi.util.PsiTreeUtil
+                .collectElements(myFixture.file) { true }
+                .flatMap { it.references.asIterable() }
+                .filterIsInstance<LuaRequireReference>()
         assertEquals("The two contributor branches must not both fire", 1, all.size)
     }
 }

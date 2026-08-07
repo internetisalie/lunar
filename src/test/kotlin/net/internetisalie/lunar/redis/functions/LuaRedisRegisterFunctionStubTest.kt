@@ -40,7 +40,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRedisRegisterFunctionStubTest : IndexedBasePlatformTestCase() {
-
     override fun tearDown() {
         try {
             setStandardTarget("5.4")
@@ -104,8 +103,10 @@ class LuaRedisRegisterFunctionStubTest : IndexedBasePlatformTestCase() {
         )
         runReadAction {
             val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-            val subscript = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaIndexExpr::class.java)
-                .firstOrNull { it.expr != null }
+            val subscript =
+                PsiTreeUtil
+                    .findChildrenOfType(myFixture.file, LuaIndexExpr::class.java)
+                    .firstOrNull { it.expr != null }
             assertNotNull("keys[1] subscript must exist", subscript)
             assertEquals(
                 "keys[1] with @type string[] annotation must infer string under Redis 7+ target",

@@ -21,48 +21,59 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class StubGlobalSeedTypeTest : IndexedBasePlatformTestCase() {
-
     private fun redis7() = Target(LuaPlatform.REDIS, VersionEntry("7+", "redis-7"))
+
     private fun standard54() = Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4"))
 
     @Test
     fun testStubGlobalSeededAsArrayUnderRedis_TC_SEED_1() {
         LuaProjectSettings.getInstance(project).setTargetAndNotify(redis7())
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local x = KEYS
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local x = KEYS
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         val keysRef = PsiTreeUtil.findChildrenOfType(file, LuaNameRef::class.java).first { it.text == "KEYS" }
-        assertEquals("KEYS must seed as string[] under a Redis target", "string[]", snapshot.getValueType(keysRef).displayName())
+        assertEquals(
+            "KEYS must seed as string[] under a Redis target",
+            "string[]",
+            snapshot.getValueType(keysRef).displayName(),
+        )
     }
 
     @Test
     fun testStubGlobalNotSeededOffRedis_TC_KEYS_3_structural() {
         LuaProjectSettings.getInstance(project).setTargetAndNotify(standard54())
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local x = KEYS
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local x = KEYS
+                """.trimIndent(),
+            )
         val snapshot = LuaTypesSnapshot.forFile(file)
         val keysRef = PsiTreeUtil.findChildrenOfType(file, LuaNameRef::class.java).first { it.text == "KEYS" }
-        assertEquals("KEYS must stay undefined off a Redis target (no leak)", "undefined", snapshot.getValueType(keysRef).displayName())
+        assertEquals(
+            "KEYS must stay undefined off a Redis target (no leak)",
+            "undefined",
+            snapshot.getValueType(keysRef).displayName(),
+        )
     }
 
     @Test
     fun testTargetSwitchInvalidatesSeededSnapshot_DR_03b() {
         val settings = LuaProjectSettings.getInstance(project)
         settings.setTargetAndNotify(standard54())
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            local x = KEYS
-            """.trimIndent(),
-        )
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                local x = KEYS
+                """.trimIndent(),
+            )
         val keysRef = PsiTreeUtil.findChildrenOfType(file, LuaNameRef::class.java).first { it.text == "KEYS" }
 
         val beforeSwitch = LuaTypesSnapshot.forFile(file).getValueType(keysRef).displayName()

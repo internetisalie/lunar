@@ -8,8 +8,10 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class LuaCatsParserTest : BaseDocumentTest() {
-
-    private fun doTest(code: String, expectErrors: Boolean = false) {
+    private fun doTest(
+        code: String,
+        expectErrors: Boolean = false,
+    ) {
         // configureByText starts a write action, so it shouldn't be in a read action.
         myFixture.configureByText(LuaFileType, code)
 
@@ -22,7 +24,10 @@ class LuaCatsParserTest : BaseDocumentTest() {
             PsiTreeUtil.findChildrenOfAnyType(file, false, com.intellij.psi.PsiElement::class.java)
 
             println("PSI TREE FOR:\n$code")
-            println(com.intellij.psi.impl.DebugUtil.psiToString(file, true))
+            println(
+                com.intellij.psi.impl.DebugUtil
+                    .psiToString(file, true),
+            )
 
             val errors = PsiTreeUtil.findChildrenOfType(file, PsiErrorElement::class.java)
 
@@ -33,174 +38,215 @@ class LuaCatsParserTest : BaseDocumentTest() {
                     println("PARSER ERRORS IN:\n$code")
                     errors.forEach { println("  - ${it.errorDescription} at offset ${it.textOffset}") }
                 }
-                Assertions.assertTrue(errors.isEmpty(), "Found parser errors in:\n$code\nErrors: " + errors.joinToString { it.errorDescription })
+                Assertions.assertTrue(
+                    errors.isEmpty(),
+                    "Found parser errors in:\n$code\nErrors: " + errors.joinToString { it.errorDescription },
+                )
             }
         }
     }
+
     @Test
     fun testBasicTags() {
-        doTest("""
+        doTest(
+            """
             ---@class Animal
             ---@field name string
             local a = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testTypeUnions() {
-        doTest("""
+        doTest(
+            """
             ---@type string | number | boolean
             local x
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testFunctionSignatures() {
-        doTest("""
+        doTest(
+            """
             ---@type fun(a: string, b: number): boolean
             local f
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testGenerics() {
-        doTest("""
+        doTest(
+            """
             ---@generic T
             ---@param x T
             ---@return T
             function identity(x) return x end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testOverloads() {
-        doTest("""
+        doTest(
+            """
             ---@overload fun(x: string): string
             ---@param x number
             ---@return number
             function f(x) return x end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testLiteralTypes() {
         // Tests literal string and number unions per LuaCATS spec.
-        doTest("""
+        doTest(
+            """
             ---@type "auto" | "manual" | 1 | 2
             local mode
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testBooleanLiteralTypes() {
         // Tests boolean literal types (true/false); nil remains the nil type.
-        doTest("""
+        doTest(
+            """
             ---@type true | false | nil
             local flag
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testOperators() {
         // Tests operator overload syntax per LuaCATS spec.
-        doTest("""
+        doTest(
+            """
             ---@class Vector
             ---@operator add(Vector): Vector
             ---@operator unm: Vector
             local v = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testCast() {
-        doTest("""
+        doTest(
+            """
             ---@cast x +string, -nil
             local x
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testAsync() {
-        doTest("""
+        doTest(
+            """
             ---@async
             function f() end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testDiagnostic() {
-        doTest("""
+        doTest(
+            """
             ---@diagnostic disable: unused-local
             ---@diagnostic disable-next-line: undefined-global
             print(UNDEFINED)
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testDeprecated() {
-        doTest("""
+        doTest(
+            """
             ---@deprecated Use newFunc instead
             function oldFunc() end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testMultiLineEnum() {
         // Tests multi-line enum syntax with ---|  continuation per LuaCATS spec.
-        doTest("""
+        doTest(
+            """
             ---@alias Direction
             ---| 'North' # Go north
             ---| 'South' # Go south
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testMultiLineEnumExtended() {
         // Tests extended multi-line enum with 5+ continuation lines
         // to ensure proper parsing of long enum sequences
-        doTest("""
+        doTest(
+            """
             ---@alias Color
             ---| 'Red'
             ---| 'Green'
             ---| 'Blue'
             ---| 'Yellow'
             ---| 'Orange'
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testNumericLiterals() {
         // Tests that numeric literals are parsed correctly
-        doTest("""
+        doTest(
+            """
             ---@type 1 | 2 | 3
             local x
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testComplexDescriptions() {
         // Tests descriptions with special characters, markdown, and code references
-        doTest("""
+        doTest(
+            """
             ---@param x string The input string (e.g., "hello")
             ---@deprecated Use newFunc instead - see docs
             function oldFunc(x) end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testEdgeCasesNestedFunctions() {
         // Tests nested function type definitions
-        doTest("""
+        doTest(
+            """
             ---@type fun(f: fun(x: number): string): boolean
             local f
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testBrokenTag() {
-        doTest("""
+        doTest(
+            """
             ---@class
-        """.trimIndent(), expectErrors = true)
+            """.trimIndent(),
+            expectErrors = true,
+        )
     }
 
     @Test
@@ -208,28 +254,32 @@ class LuaCatsParserTest : BaseDocumentTest() {
         // NOTE: Nested generics are NOT part of the LuaCATS specification.
         // The official docs state "Generics are still WIP" with no nested examples.
         // See: https://luals.github.io/wiki/annotations/#generic
-        // 
+        //
         // This test validates that the parser handles undefined syntax gracefully,
         // but the parsed structure may not be semantically correct.
-        // 
+        //
         // Grammar: typeParam ::= NAME (spec-compliant - only simple names)
         // To support this, would need: typeParam ::= type (but spec doesn't require it)
-        doTest("""
+        doTest(
+            """
             ---@type Map<string, List<number>>
             local x
-        """.trimIndent())
+            """.trimIndent(),
+        )
         // TODO: Add structural validation when/if nested generics are added to LuaCATS spec
     }
 
     @Test
     fun testReturnTagDescriptions() {
         // BUG-355: EmmyLua @-description after @return type is a hard parse error
-        doTest("""
+        doTest(
+            """
             ---@return number|nil @The earliest expiry time.
             ---@return number|nil The earliest expiry time.
             ---@return number|nil # The earliest expiry time.
             function getNextTimerExpires() end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
@@ -260,8 +310,10 @@ class LuaCatsParserTest : BaseDocumentTest() {
                     errors.joinToString { it.textOffset.toString() },
             )
 
-            val names = PsiTreeUtil.findChildrenOfType(file, com.intellij.psi.PsiElement::class.java)
-                .filter { it.text == "y" || it.text == "number" }
+            val names =
+                PsiTreeUtil
+                    .findChildrenOfType(file, com.intellij.psi.PsiElement::class.java)
+                    .filter { it.text == "y" || it.text == "number" }
             Assertions.assertTrue(
                 names.any { it.text == "y" } && names.any { it.text == "number" },
                 "Line 2 @param tokens were swallowed by the unclosed backtick",
@@ -272,19 +324,23 @@ class LuaCatsParserTest : BaseDocumentTest() {
     @Test
     fun testUnicodeClassNameParses() {
         // MAINT-27 #66: a non-ASCII class name lexes as a single NAME (no BAD_CHARACTER).
-        doTest("""
+        doTest(
+            """
             ---@class 名前
             local x = {}
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testReturnMultipleCommaSeparated() {
-        doTest("""
+        doTest(
+            """
             ---@return string id, boolean status
             ---@return string id # The user id, boolean status
             ---@return number, string
             function myFunc() end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 }

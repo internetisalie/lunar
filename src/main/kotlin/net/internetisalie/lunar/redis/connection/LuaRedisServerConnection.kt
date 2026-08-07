@@ -20,7 +20,6 @@ data class LuaRedisServerConnection(
     val username: String?,
     val provisioning: LuaRedisProvisioning,
 ) {
-
     /**
      * Adapter bridging the connection model to the Phase-2 [RespEndpoint] the [net.internetisalie.lunar.redis.resp.RespClient]
      * opens (design §2.3). Phase 2 shipped `RespClient.open(RespEndpoint)`; this side resolves the
@@ -43,15 +42,18 @@ data class LuaRedisServerConnection(
  * `LocalBinary` / `Docker` start a session-scoped server (REDIS-01 Phase 4 [LuaRedisServerLauncher]).
  */
 sealed interface LuaRedisProvisioning {
-
     /** Connect to an already-running server at the connection's own host/port. */
     object Remote : LuaRedisProvisioning
 
     /** Launch a local server binary resolved through the toolchain (`redis-server` / `valkey-server`). */
-    data class LocalBinary(val toolKindId: String) : LuaRedisProvisioning
+    data class LocalBinary(
+        val toolKindId: String,
+    ) : LuaRedisProvisioning
 
     /** Launch a Docker container (`redis:8` / `valkey/valkey:8`) for the session. */
-    data class Docker(val image: String) : LuaRedisProvisioning
+    data class Docker(
+        val image: String,
+    ) : LuaRedisProvisioning
 
     companion object {
         const val KIND_REMOTE: String = "REMOTE"

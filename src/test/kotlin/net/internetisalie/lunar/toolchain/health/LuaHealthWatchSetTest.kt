@@ -9,12 +9,12 @@ import org.junit.jupiter.api.Test
  * a pure function over path strings, so it is exercised directly.
  */
 class LuaHealthWatchSetTest {
-
-    private val watchSet = LuaHealthWatchSet(
-        exactPaths = setOf("/opt/t/bin/luacheck"),
-        envRoots = setOf("/opt/env"),
-        binDirs = setOf("/opt/env/bin")
-    )
+    private val watchSet =
+        LuaHealthWatchSet(
+            exactPaths = setOf("/opt/t/bin/luacheck"),
+            envRoots = setOf("/opt/env"),
+            binDirs = setOf("/opt/env/bin"),
+        )
 
     @Test
     fun testDeleteEnvRoot_matches() {

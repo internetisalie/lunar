@@ -27,7 +27,10 @@ object LuaToolCatalog {
     val RELEASE_BINARY_TOOL_KINDS: List<String> = TOOL_KINDS.filter { it !in ROCK_TOOL_KINDS }
 
     /** Visible (un-gated) versions of [kindId] sorted newest-first (design §3.11 descending). */
-    fun visibleVersions(feed: LuaToolchainFeed, kindId: String): List<String> {
+    fun visibleVersions(
+        feed: LuaToolchainFeed,
+        kindId: String,
+    ): List<String> {
         val kind = feed.kinds[kindId] ?: return emptyList()
         return kind.versions
             .filter { it.gatedOn == null }
@@ -36,10 +39,15 @@ object LuaToolCatalog {
     }
 
     /** The version the `latest` alias resolves to for [kindId], or the newest visible version. */
-    fun defaultVersion(feed: LuaToolchainFeed, kindId: String, platform: LuaHostPlatform): String {
-        val resolved = runCatching {
-            LuaToolchainFeedLoader.resolveVersion(feed, kindId, "latest", platform).version
-        }.getOrNull()
+    fun defaultVersion(
+        feed: LuaToolchainFeed,
+        kindId: String,
+        platform: LuaHostPlatform,
+    ): String {
+        val resolved =
+            runCatching {
+                LuaToolchainFeedLoader.resolveVersion(feed, kindId, "latest", platform).version
+            }.getOrNull()
         return resolved ?: visibleVersions(feed, kindId).firstOrNull().orEmpty()
     }
 }

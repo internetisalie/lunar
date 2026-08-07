@@ -47,13 +47,14 @@ import com.intellij.xdebugger.XDebuggerManager
  * @since Lunar 2.0.0
  */
 class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
-
     override fun getRunnerId(): String = RUNNER_ID
 
-    override fun canRun(executorId: String, runProfile: RunProfile): Boolean {
-        return executorId == DefaultDebugExecutor.EXECUTOR_ID &&
-                runProfile is LuaRunConfiguration
-    }
+    override fun canRun(
+        executorId: String,
+        runProfile: RunProfile,
+    ): Boolean =
+        executorId == DefaultDebugExecutor.EXECUTOR_ID &&
+            runProfile is LuaRunConfiguration
 
     /**
      * Executes the debug session using XDebugSessionBuilder.
@@ -67,7 +68,7 @@ class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
      */
     override fun doExecute(
         state: RunProfileState,
-        environment: ExecutionEnvironment
+        environment: ExecutionEnvironment,
     ): RunContentDescriptor? {
         val executionResult = state.execute(environment.executor, this) ?: return null
         val project = environment.project
@@ -90,16 +91,18 @@ class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
      */
     private fun createDebugSession(
         environment: ExecutionEnvironment,
-        executionResult: ExecutionResult
+        executionResult: ExecutionResult,
     ): RunContentDescriptor? {
-        return XDebuggerManager.getInstance(environment.project)
-            .newSessionBuilder(object : XDebugProcessStarter() {
-                override fun start(session: XDebugSession): LuaDebugProcess {
-                    log.info("Lua debug process created for ${environment.runProfile.name}")
-                    return LuaDebugProcess(session, executionResult)
-                }
-            })
-            .environment(environment)
+        return XDebuggerManager
+            .getInstance(environment.project)
+            .newSessionBuilder(
+                object : XDebugProcessStarter() {
+                    override fun start(session: XDebugSession): LuaDebugProcess {
+                        log.info("Lua debug process created for ${environment.runProfile.name}")
+                        return LuaDebugProcess(session, executionResult)
+                    }
+                },
+            ).environment(environment)
             .startSession()
             .runContentDescriptor
     }
@@ -113,18 +116,22 @@ class LuaDebugRunner : GenericProgramRunner<RunnerSettings>() {
      * @param project The project where debugging failed
      * @param exception The exception that occurred
      */
-    private fun notifyExecutionError(project: Project, exception: ExecutionException) {
-        val message = exception.message
-            ?: "Failed to start Lua debugger. Verify debugger configuration in project settings."
+    private fun notifyExecutionError(
+        project: Project,
+        exception: ExecutionException,
+    ) {
+        val message =
+            exception.message
+                ?: "Failed to start Lua debugger. Verify debugger configuration in project settings."
 
-        NotificationGroupManager.getInstance()
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup("notification.group.lunar.debugger")
             .createNotification(
                 "Debug session failed",
                 message,
-                NotificationType.ERROR
-            )
-            .notify(project)
+                NotificationType.ERROR,
+            ).notify(project)
     }
 
     companion object {

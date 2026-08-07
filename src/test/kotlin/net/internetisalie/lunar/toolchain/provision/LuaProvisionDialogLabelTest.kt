@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test
  * uses it to label each checkbox.
  */
 class LuaProvisionDialogLabelTest {
-
     @Test
     fun testKnownKindsResolveToDisplayName_BUG370() {
         assertEquals("StyLua", kindDisplayName("stylua"))

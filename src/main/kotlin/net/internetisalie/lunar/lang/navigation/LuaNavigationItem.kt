@@ -22,8 +22,8 @@ class LuaNavigationItem(
     private val declaration: PsiElement,
     private val name: String,
     private val icon: Icon,
-) : NavigationItem, ItemPresentation {
-
+) : NavigationItem,
+    ItemPresentation {
     private val target: Navigatable?
         get() = navigationTarget(declaration) as? Navigatable
 
@@ -33,8 +33,7 @@ class LuaNavigationItem(
 
     override fun getPresentableText(): String = name
 
-    override fun getLocationString(): String? =
-        declaration.containingFile?.name
+    override fun getLocationString(): String? = declaration.containingFile?.name
 
     override fun getIcon(unused: Boolean): Icon = icon
 

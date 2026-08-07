@@ -17,7 +17,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaTypeGraphCycleGuardTest : BasePlatformTestCase() {
-
     @Test
     fun lazyNodeCycleTerminatesInsteadOfOverflowing() {
         val graph = LuaTypeGraph()

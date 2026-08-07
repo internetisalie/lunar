@@ -6,7 +6,10 @@ import javax.swing.Icon
 
 object LuaCovReportFileType : LanguageFileType(LuaCovReportLanguage) {
     override fun getName(): String = "LuaCov Report"
+
     override fun getDescription(): String = "LuaCov code coverage report"
+
     override fun getDefaultExtension(): String = ""
+
     override fun getIcon(): Icon = LuaIcons.COVERAGE_REPORT
 }

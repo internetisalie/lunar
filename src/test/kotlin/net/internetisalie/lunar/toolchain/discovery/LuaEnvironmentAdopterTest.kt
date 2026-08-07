@@ -8,7 +8,6 @@ import java.nio.file.Files
 
 /** TOOLING-02-14 / TC 17: adoption registers every kind binary (with environmentId) + activates. */
 class LuaEnvironmentAdopterTest : ToolchainSettingsTestCase() {
-
     private lateinit var envDir: File
 
     override fun setUp() {
@@ -54,12 +53,16 @@ class LuaEnvironmentAdopterTest : ToolchainSettingsTestCase() {
     }
 
     private fun adoptOffEdt(directory: String = envDir.absolutePath) =
-        ApplicationManager.getApplication()
+        ApplicationManager
+            .getApplication()
             .executeOnPooledThread<net.internetisalie.lunar.toolchain.model.LuaEnvironmentState?> {
                 LuaEnvironmentAdopter.adopt(project, directory)
             }.get()
 
-    private fun writeExecutable(relative: String, content: String) {
+    private fun writeExecutable(
+        relative: String,
+        content: String,
+    ) {
         val target = File(envDir, relative)
         target.parentFile.mkdirs()
         target.writeText(content)

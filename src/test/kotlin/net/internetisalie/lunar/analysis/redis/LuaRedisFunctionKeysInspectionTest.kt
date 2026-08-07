@@ -22,7 +22,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRedisFunctionKeysInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaRedisFunctionKeysInspection())
@@ -111,16 +110,18 @@ class LuaRedisFunctionKeysInspectionTest : BasePlatformTestCase() {
     // -------------------------------------------------------------------------
 
     private fun setRedisTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
-            "No Redis version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
+                "No Redis version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.REDIS, version))
     }
 
     private fun setStandardTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
-            "No STANDARD version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
+                "No STANDARD version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.STANDARD, version))
     }
 
@@ -129,7 +130,8 @@ class LuaRedisFunctionKeysInspectionTest : BasePlatformTestCase() {
      * [LuaRedisFunctionKeysInspection] (filtered by the diagnostic message substring).
      */
     private fun keysInspectionWarnings(): List<String> =
-        myFixture.doHighlighting(HighlightSeverity.WARNING)
+        myFixture
+            .doHighlighting(HighlightSeverity.WARNING)
             .mapNotNull { it.description }
             .filter { it.contains("not available in a Redis Function library") }
 }

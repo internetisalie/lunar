@@ -10,7 +10,6 @@ import net.internetisalie.lunar.lang.psi.LuaFile
 // scope), so keep the deprecated two-arg ctor that sets the "LUA" contextId directly.
 @Suppress("DEPRECATION")
 class LuaTemplateContextType : TemplateContextType("LUA", "Lua") {
-    override fun isInContext(templateActionContext: TemplateActionContext): Boolean {
-        return templateActionContext.file is LuaFile
-    }
+    override fun isInContext(templateActionContext: TemplateActionContext): Boolean =
+        templateActionContext.file is LuaFile
 }

@@ -34,51 +34,54 @@ import net.internetisalie.lunar.lang.indexing.PackageFile
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.platform.target.RuntimeLibraryProvider
 import net.internetisalie.lunar.settings.LuaProjectSettings
-import net.internetisalie.lunar.util.LuaFileUtil
 import java.nio.file.Paths
 import javax.swing.Icon
 
 class PlatformLibraryProvider : AdditionalLibraryRootsProvider() {
-    override fun getAdditionalProjectLibraries(project: Project): Collection<SyntheticLibrary> {
-        return listOf(
+    override fun getAdditionalProjectLibraries(project: Project): Collection<SyntheticLibrary> =
+        listOf(
             getExternalLibraries(project),
             getSupportLibraries(project),
         ).flatten()
-    }
 
     fun getSupportLibraries(project: Project): Collection<SyntheticLibrary> {
-        val (level, platformDirectoryVirtualFile) = PlatformLibraryIndex.getPlatformLibrary(project) ?: return emptyList()
+        val (level, platformDirectoryVirtualFile) =
+            PlatformLibraryIndex.getPlatformLibrary(project)
+                ?: return emptyList()
         return listOf(PlatformLibrary(level, platformDirectoryVirtualFile))
     }
 
     fun getExternalLibraries(project: Project): Collection<SyntheticLibrary> {
         val projectBasePath = project.basePath ?: return emptyList()
 
-        val virtualFiles = PathConfiguration.getStaticSourcePathPatterns(project)
-            .map { it.leadingPath }
-            .distinct()
-            .map { it -> Paths.get(it) }
-            .filter { it.isAbsolute }
-            .filter { !it.startsWith(projectBasePath) }
-            .mapNotNull { VfsUtil.findFile(it, false) }
-            .toTypedArray()
+        val virtualFiles =
+            PathConfiguration
+                .getStaticSourcePathPatterns(project)
+                .map { it.leadingPath }
+                .distinct()
+                .map { it -> Paths.get(it) }
+                .filter { it.isAbsolute }
+                .filter { !it.startsWith(projectBasePath) }
+                .mapNotNull { VfsUtil.findFile(it, false) }
+                .toTypedArray()
 
         if (virtualFiles.isEmpty()) return emptyList()
 
         return listOf<SyntheticLibrary>(
-            ExternalLibraries("Search Trees", *virtualFiles)
+            ExternalLibraries("Search Trees", *virtualFiles),
         )
     }
 
-    class PlatformLibrary(private val level: LuaLanguageLevel,
-                          private val root: VirtualFile
-    ) : SyntheticLibrary(), ItemPresentation {
+    class PlatformLibrary(
+        private val level: LuaLanguageLevel,
+        private val root: VirtualFile,
+    ) : SyntheticLibrary(),
+        ItemPresentation {
         private val roots = listOf(root)
+
         override fun hashCode() = root.hashCode()
 
-        override fun equals(other: Any?): Boolean {
-            return other is PlatformLibrary && other.root == root
-        }
+        override fun equals(other: Any?): Boolean = other is PlatformLibrary && other.root == root
 
         override fun getSourceRoots() = roots
 
@@ -89,22 +92,30 @@ class PlatformLibraryProvider : AdditionalLibraryRootsProvider() {
         override fun getPresentableText() = level.toString()
     }
 
-    class ExternalLibraries(val name : String, vararg root: VirtualFile) : SyntheticLibrary(), ItemPresentation {
-        private val roots =  listOf(*root)
+    class ExternalLibraries(
+        val name: String,
+        vararg root: VirtualFile,
+    ) : SyntheticLibrary(),
+        ItemPresentation {
+        private val roots = listOf(*root)
+
         override fun hashCode() = roots.hashCode()
-        override fun equals(other: Any?): Boolean {
-            return other is ExternalLibraries && other.roots == roots
-        }
+
+        override fun equals(other: Any?): Boolean = other is ExternalLibraries && other.roots == roots
+
         override fun getSourceRoots() = roots
+
         override fun getLocationString() = name
+
         override fun getIcon(p0: Boolean): Icon = LuaIcons.FILE
+
         override fun getPresentableText() = name
     }
 }
 
 object PlatformLibraryIndex {
     fun getPlatformLibraryFolder(project: Project): VirtualFile? {
-        val (_, folder) =  getPlatformLibrary(project) ?: return null
+        val (_, folder) = getPlatformLibrary(project) ?: return null
         return folder
     }
 
@@ -122,12 +133,12 @@ object PlatformLibraryIndex {
         return platformLibraryFolder.children
             .filter { (it.extension ?: "") == "lua" }
             .map {
-                if (it.name == "global.lua" || it.name == "builtin.lua")
+                if (it.name == "global.lua" || it.name == "builtin.lua") {
                     PackageFile("", true, it)
-                else
+                } else {
                     PackageFile(it.name.substringBeforeLast('.', it.name), true, it)
-            }
-            .toList()
+                }
+            }.toList()
     }
 
     /** Reloads platform libraries and forces a stub-index rebuild. Must run on the EDT with no read lock held. */

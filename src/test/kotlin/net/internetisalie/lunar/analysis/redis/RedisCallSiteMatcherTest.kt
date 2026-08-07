@@ -13,15 +13,13 @@ import net.internetisalie.lunar.lang.psi.LuaFuncCall
  * Feeds TC-COMP-3 / TC-UNK-2 downstream (dynamic command never flagged).
  */
 class RedisCallSiteMatcherTest : BasePlatformTestCase() {
-
     private fun firstFuncCall(script: String): LuaFuncCall {
         myFixture.configureByText("site.lua", script)
         return PsiTreeUtil.findChildOfType(myFixture.file, LuaFuncCall::class.java)
             ?: error("no LuaFuncCall parsed from: $script")
     }
 
-    private fun matchOf(script: String): RedisCallSite? =
-        RedisCallSiteMatcher.match(firstFuncCall(script))
+    private fun matchOf(script: String): RedisCallSite? = RedisCallSiteMatcher.match(firstFuncCall(script))
 
     /** (1) `redis.call("GET", k)` → matched: command GET, argCount 2, redis/call. */
     fun testLiteralRedisCall() {
@@ -105,8 +103,10 @@ class RedisCallSiteMatcherTest : BasePlatformTestCase() {
     /** The matcher resolves from a child element (a string literal), not only the call. */
     fun testMatchesFromStringLiteralAnchor() {
         myFixture.configureByText("site.lua", """redis.call("GET", "k")""")
-        val literal = PsiTreeUtil.collectElements(myFixture.file) { it.text == "\"GET\"" }
-            .firstOrNull()
+        val literal =
+            PsiTreeUtil
+                .collectElements(myFixture.file) { it.text == "\"GET\"" }
+                .firstOrNull()
         assertNotNull(literal)
         val site = literal?.let { RedisCallSiteMatcher.match(it) }
         assertEquals("GET", site?.commandName)

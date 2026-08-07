@@ -14,24 +14,34 @@ import java.nio.file.Path
  */
 interface LuaRocksBrowserBackend {
     fun resolveTree(): Path?
-    fun search(query: String, treeRoot: Path?): List<LuaRockPackage>
+
+    fun search(
+        query: String,
+        treeRoot: Path?,
+    ): List<LuaRockPackage>
+
     fun listInstalled(treeRoot: Path): List<InstalledRockRow>
 
     /** Best-effort popular list (ROCKS-16-15); empty on any failure — never throws. */
     fun fetchPopular(): List<PopularEntry> = emptyList()
 
     fun runInBackground(task: () -> Unit)
+
     fun onEdt(action: () -> Unit)
 }
 
 /** Production backend delegating to the real LuaRocks services against [project]. */
-class ProjectBackend(private val project: Project) : LuaRocksBrowserBackend {
+class ProjectBackend(
+    private val project: Project,
+) : LuaRocksBrowserBackend {
     private val popularService = LuaRocksPopularService()
 
     override fun resolveTree(): Path? = LuaRocksInstallCommand.resolveTargetTree(project)
 
-    override fun search(query: String, treeRoot: Path?): List<LuaRockPackage> =
-        LuaRocksSearchService.search(query, project, treeRoot)
+    override fun search(
+        query: String,
+        treeRoot: Path?,
+    ): List<LuaRockPackage> = LuaRocksSearchService.search(query, project, treeRoot)
 
     override fun listInstalled(treeRoot: Path): List<InstalledRockRow> =
         LuaRocksInstalledService.list(project, treeRoot)

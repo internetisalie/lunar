@@ -9,7 +9,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * right-then-left round-trip. Real-flow DoD gate. EDITOR-07-03.
  */
 class LuaMoveLeftRightHandlerTest : BasePlatformTestCase() {
-
     private fun moveRight() = myFixture.performEditorAction(IdeActions.MOVE_ELEMENT_RIGHT)
 
     private fun moveLeft() = myFixture.performEditorAction(IdeActions.MOVE_ELEMENT_LEFT)

@@ -45,8 +45,8 @@ class LuaLdbController private constructor(
     private val scope: CoroutineScope,
     private val config: LuaRedisRunConfiguration,
     private val transportOpener: (suspend () -> LdbIo)?,
-) : LuaLdbEvalHost, LuaLdbBreakpointRegistrar {
-
+) : LuaLdbEvalHost,
+    LuaLdbBreakpointRegistrar {
     constructor(
         session: XDebugSession,
         scope: CoroutineScope,
@@ -115,7 +115,10 @@ class LuaLdbController private constructor(
         return LuaRedisServerLauncher(session.project).launch(provisioning)
     }
 
-    private suspend fun openClient(connection: LuaRedisServerConnection, launched: LaunchedServer?): RespClient {
+    private suspend fun openClient(
+        connection: LuaRedisServerConnection,
+        launched: LaunchedServer?,
+    ): RespClient {
         val password = LuaRedisCredentialStore.getPassword(connection.id)
         val base = connection.toEndpoint(password)
         val endpoint = if (launched == null) base else base.copy(host = launched.host, port = launched.port)
@@ -161,7 +164,10 @@ class LuaLdbController private constructor(
         }
     }
 
-    private suspend fun sendBreak(io: LdbIo, breakpoint: XBreakpoint<*>) {
+    private suspend fun sendBreak(
+        io: LdbIo,
+        breakpoint: XBreakpoint<*>,
+    ) {
         val line = serverLineOf(breakpoint) ?: return
         lineToBreakpoint[line] = breakpoint
         sendGuarded(io, LdbCommand.Break(line))
@@ -207,18 +213,34 @@ class LuaLdbController private constructor(
         return sendGuarded(io, LdbCommand.RedisCmd(args)) ?: RespValue.Error("ERROR", "command rejected")
     }
 
-    override fun launchEvaluate(expression: String, callback: XDebuggerEvaluator.XEvaluationCallback) {
+    override fun launchEvaluate(
+        expression: String,
+        callback: XDebuggerEvaluator.XEvaluationCallback,
+    ) {
         scope.launch { evaluate(expression, callback) }
     }
 
     /** Test seam: run [evaluate] inline (deterministic) instead of dispatching onto [scope]. */
-    internal suspend fun evaluateForTest(expression: String, callback: XDebuggerEvaluator.XEvaluationCallback) =
-        evaluate(expression, callback)
+    internal suspend fun evaluateForTest(
+        expression: String,
+        callback: XDebuggerEvaluator.XEvaluationCallback,
+    ) = evaluate(expression, callback)
 
-    private suspend fun evaluate(expression: String, callback: XDebuggerEvaluator.XEvaluationCallback) {
-        val io = transport ?: run { callback.errorOccurred("No active debug session"); return }
-        val reply = sendGuarded(io, LdbCommand.Eval(expression))
-            ?: run { callback.errorOccurred("Cannot evaluate: session not paused"); return }
+    private suspend fun evaluate(
+        expression: String,
+        callback: XDebuggerEvaluator.XEvaluationCallback,
+    ) {
+        val io =
+            transport ?: run {
+                callback.errorOccurred("No active debug session")
+                return
+            }
+        val reply =
+            sendGuarded(io, LdbCommand.Eval(expression))
+                ?: run {
+                    callback.errorOccurred("Cannot evaluate: session not paused")
+                    return
+                }
         val event = LdbReplyParser.parse(reply)
         if (event is LdbEvent.Error) {
             callback.errorOccurred(event.message)
@@ -295,7 +317,8 @@ class LuaLdbController private constructor(
     }
 
     private fun notifyConnectionLoss(message: String) {
-        NotificationGroupManager.getInstance()
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup("notification.group.lunar.debugger")
             .createNotification("Redis debug session error", message, NotificationType.ERROR)
             .notify(session.project)
@@ -310,7 +333,10 @@ class LuaLdbController private constructor(
         scope.cancel()
     }
 
-    private suspend fun sendGuarded(io: LdbIo, command: LdbCommand): RespValue? {
+    private suspend fun sendGuarded(
+        io: LdbIo,
+        command: LdbCommand,
+    ): RespValue? {
         if (!machine.onCommandSent(command)) {
             log.info("LDB command $command rejected in state ${machine.state}")
             return null
@@ -328,23 +354,26 @@ class LuaLdbController private constructor(
         }
     }
 
-    private fun serverLineOf(breakpoint: XBreakpoint<*>): Int? =
-        breakpoint.sourcePosition?.line?.plus(1)
+    private fun serverLineOf(breakpoint: XBreakpoint<*>): Int? = breakpoint.sourcePosition?.line?.plus(1)
 
     private fun positionFor(serverLine: Int): XSourcePosition? {
-        val url = config.scriptPath?.takeIf { it.isNotBlank() }
-            ?.let { VirtualFileManager.constructUrl("file", File(it).absolutePath) } ?: return null
+        val url =
+            config.scriptPath
+                ?.takeIf { it.isNotBlank() }
+                ?.let { VirtualFileManager.constructUrl("file", File(it).absolutePath) } ?: return null
         val file = VirtualFileManager.getInstance().findFileByUrl(url) ?: return null
         return XDebuggerUtil.getInstance().createPosition(file, serverLine - 1)
     }
 
     private suspend fun readScriptBody(): String {
-        val path = config.scriptPath?.takeIf { it.isNotBlank() }
-            ?: throw ExecutionException("Script path is not defined")
+        val path =
+            config.scriptPath?.takeIf { it.isNotBlank() }
+                ?: throw ExecutionException("Script path is not defined")
         val url = VirtualFileManager.constructUrl("file", File(path).absolutePath)
         return readAction {
-            val file = VirtualFileManager.getInstance().findFileByUrl(url)
-                ?: throw ExecutionException("Script file not found: $url")
+            val file =
+                VirtualFileManager.getInstance().findFileByUrl(url)
+                    ?: throw ExecutionException("Script file not found: $url")
             String(file.contentsToByteArray(), Charsets.UTF_8)
         }
     }

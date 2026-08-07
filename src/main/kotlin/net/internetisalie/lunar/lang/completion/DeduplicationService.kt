@@ -1,7 +1,5 @@
 package net.internetisalie.lunar.lang.completion
 
-import com.intellij.psi.PsiElement
-
 /**
  * Handles deduplication of global symbol suggestions with PSI element identity tracking.
  *
@@ -11,7 +9,6 @@ import com.intellij.psi.PsiElement
  * while still eliminating pure duplicates.
  */
 object DeduplicationService {
-
     /**
      * Deduplicate symbols with improved tracking by PSI element identity.
      *
@@ -27,16 +24,20 @@ object DeduplicationService {
      * @return Deduplicated list sorted by weight (descending)
      */
     fun deduplicateByPsiIdentity(
-        symbols: List<GlobalSymbolRankingService.GlobalSymbolCompletion>
+        symbols: List<GlobalSymbolRankingService.GlobalSymbolCompletion>,
     ): List<GlobalSymbolRankingService.GlobalSymbolCompletion> {
         // Group by (name, file path) for deduplication
         val symbolsByKey = mutableMapOf<SymbolKey, GlobalSymbolRankingService.GlobalSymbolCompletion>()
 
         symbols.forEach { symbol ->
-            val key = SymbolKey(
-                name = symbol.name,
-                filePath = symbol.psiElement.containingFile?.virtualFile?.path ?: return@forEach
-            )
+            val key =
+                SymbolKey(
+                    name = symbol.name,
+                    filePath =
+                        symbol.psiElement.containingFile
+                            ?.virtualFile
+                            ?.path ?: return@forEach,
+                )
 
             // Keep highest weight symbol for this (name, file) pair
             val existing = symbolsByKey[key]
@@ -58,7 +59,7 @@ object DeduplicationService {
      * @return Deduplicated list sorted by weight (descending)
      */
     fun deduplicateByNameOnly(
-        symbols: List<GlobalSymbolRankingService.GlobalSymbolCompletion>
+        symbols: List<GlobalSymbolRankingService.GlobalSymbolCompletion>,
     ): List<GlobalSymbolRankingService.GlobalSymbolCompletion> {
         val deduped = mutableMapOf<String, GlobalSymbolRankingService.GlobalSymbolCompletion>()
         symbols.forEach { symbol ->
@@ -76,6 +77,6 @@ object DeduplicationService {
      */
     private data class SymbolKey(
         val name: String,
-        val filePath: String
+        val filePath: String,
     )
 }

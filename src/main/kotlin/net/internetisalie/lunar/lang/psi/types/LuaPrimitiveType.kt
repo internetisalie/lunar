@@ -1,7 +1,10 @@
 package net.internetisalie.lunar.lang.psi.types
 
-class LuaPrimitiveType(override val name: String) : LuaType {
+class LuaPrimitiveType(
+    override val name: String,
+) : LuaType {
     override fun resolveMember(name: String): LuaTypeMember? = null
+
     override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
 
     override fun isAssignableTo(other: LuaType): Boolean {
@@ -28,6 +31,20 @@ class LuaPrimitiveType(override val name: String) : LuaType {
         val TABLE = LuaPrimitiveType("table")
         val INTEGER = LuaPrimitiveType("integer")
 
-        val PRIMITIVES = listOf(ANY, NIL, NUMBER, STRING, BOOLEAN, VOID, UNKNOWN, FUNCTION, TABLE, INTEGER).associateBy { it.name }
+        val PRIMITIVES =
+            listOf(
+                ANY,
+                NIL,
+                NUMBER,
+                STRING,
+                BOOLEAN,
+                VOID,
+                UNKNOWN,
+                FUNCTION,
+                TABLE,
+                INTEGER,
+            ).associateBy {
+                it.name
+            }
     }
 }

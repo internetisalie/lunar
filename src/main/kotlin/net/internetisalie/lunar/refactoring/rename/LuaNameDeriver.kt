@@ -13,7 +13,6 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  * leading accessor/factory prefix when it is immediately followed by an uppercase letter.
  */
 object LuaNameDeriver {
-
     private val prefixes = listOf("create", "build", "find", "load", "make", "get", "set", "new")
 
     /** Returns a single base-name candidate for [expr], or null if none can be derived. */
@@ -22,19 +21,28 @@ object LuaNameDeriver {
         return stripPrefix(raw)
     }
 
-    private fun rawName(expr: LuaExpr): String? = when (expr) {
-        is LuaFuncCall -> calleeName(expr)
-        is LuaNameRef -> expr.identifier.text
-        else -> propertyName(expr)
-    }
+    private fun rawName(expr: LuaExpr): String? =
+        when (expr) {
+            is LuaFuncCall -> calleeName(expr)
+            is LuaNameRef -> expr.identifier.text
+            else -> propertyName(expr)
+        }
 
     private fun calleeName(call: LuaFuncCall): String? {
-        val methodName = call.nameAndArgsList
-            .mapNotNull { it.methodExpr?.nameRef?.identifier?.text }
-            .lastOrNull()
+        val methodName =
+            call.nameAndArgsList
+                .mapNotNull {
+                    it.methodExpr
+                        ?.nameRef
+                        ?.identifier
+                        ?.text
+                }.lastOrNull()
         if (methodName != null) return methodName
-        return PsiTreeUtil.findChildrenOfType(call.varOrExp, LuaNameRef::class.java)
-            .lastOrNull()?.identifier?.text
+        return PsiTreeUtil
+            .findChildrenOfType(call.varOrExp, LuaNameRef::class.java)
+            .lastOrNull()
+            ?.identifier
+            ?.text
     }
 
     private fun propertyName(expr: LuaExpr): String? {

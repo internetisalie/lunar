@@ -24,7 +24,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaGlobalCreationRedisEscalationTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaGlobalCreationInspection())
@@ -46,8 +45,10 @@ class LuaGlobalCreationRedisEscalationTest : BasePlatformTestCase() {
     fun testGlobalCreationEscalatesToErrorUnderRedis() {
         setRedisTarget("7+")
         myFixture.configureByText("test.lua", "myGlobal = 1")
-        val problems = myFixture.doHighlighting()
-            .filter { it.description?.startsWith("Global creation") == true }
+        val problems =
+            myFixture
+                .doHighlighting()
+                .filter { it.description?.startsWith("Global creation") == true }
         assertTrue(
             "Expected exactly one Global creation problem under Redis target, got: $problems",
             problems.size == 1,
@@ -63,8 +64,10 @@ class LuaGlobalCreationRedisEscalationTest : BasePlatformTestCase() {
     fun testGlobalCreationIsWarningUnderStandardTarget() {
         setStandardTarget("5.4")
         myFixture.configureByText("test.lua", "myGlobal = 1")
-        val problems = myFixture.doHighlighting()
-            .filter { it.description?.startsWith("Global creation") == true }
+        val problems =
+            myFixture
+                .doHighlighting()
+                .filter { it.description?.startsWith("Global creation") == true }
         assertTrue(
             "Expected exactly one Global creation problem under STANDARD target, got: $problems",
             problems.size == 1,
@@ -90,8 +93,10 @@ class LuaGlobalCreationRedisEscalationTest : BasePlatformTestCase() {
             myGlobal = 1
             """.trimIndent(),
         )
-        val problems = myFixture.doHighlighting(HighlightSeverity.WARNING)
-            .filter { it.description?.startsWith("Global creation") == true }
+        val problems =
+            myFixture
+                .doHighlighting(HighlightSeverity.WARNING)
+                .filter { it.description?.startsWith("Global creation") == true }
         assertTrue(
             "Suppressed global creation must produce no problem even under Redis (TC-GLOB-2), got: $problems",
             problems.isEmpty(),
@@ -103,16 +108,18 @@ class LuaGlobalCreationRedisEscalationTest : BasePlatformTestCase() {
     // -------------------------------------------------------------------------
 
     private fun setRedisTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
-            "No Redis version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, label)) {
+                "No Redis version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.REDIS, version))
     }
 
     private fun setStandardTarget(label: String) {
-        val version = requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
-            "No STANDARD version '$label' in registry"
-        }
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.STANDARD, label)) {
+                "No STANDARD version '$label' in registry"
+            }
         LuaProjectSettings.getInstance(project).state.setTarget(Target(LuaPlatform.STANDARD, version))
     }
 }

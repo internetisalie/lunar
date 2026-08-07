@@ -7,7 +7,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaCreateFunctionIntentionTest : BasePlatformTestCase() {
-
     // TC4: two positional args → 2-param stub inserted above.
     @Test
     fun `test create function with two args`() {

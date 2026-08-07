@@ -15,7 +15,6 @@ import net.internetisalie.lunar.redis.resp.RespValue
  * (engineering-contract §1, §2). No retained heavy refs; decomposed into ≤30-line helpers (§3).
  */
 class LuaRedisFunctionExecutor {
-
     /**
      * Deploys [body] via `FUNCTION LOAD [REPLACE]`, then optionally invokes the named function
      * via `FCALL`/`FCALL_RO` based on [config] settings (design §3.5).
@@ -24,26 +23,40 @@ class LuaRedisFunctionExecutor {
      * A server-side write error under `FCALL_RO` is surfaced verbatim — not blocked client-side
      * (TC-RO-1).
      */
-    suspend fun execute(client: RespClient, config: LuaRedisRunConfiguration, body: String): RespValue {
+    suspend fun execute(
+        client: RespClient,
+        config: LuaRedisRunConfiguration,
+        body: String,
+    ): RespValue {
         val loadReply = load(client, body, config.replaceOnLoad)
         if (loadReply is RespValue.Error) return loadReply
         if (config.deployOnly) return loadReply
         return invoke(client, config)
     }
 
-    private suspend fun load(client: RespClient, body: String, replace: Boolean): RespValue {
+    private suspend fun load(
+        client: RespClient,
+        body: String,
+        replace: Boolean,
+    ): RespValue {
         val args = buildLoadArgs(body, replace)
         return client.command(args)
     }
 
-    private fun buildLoadArgs(body: String, replace: Boolean): List<ByteArray> {
+    private fun buildLoadArgs(
+        body: String,
+        replace: Boolean,
+    ): List<ByteArray> {
         val parts = mutableListOf("FUNCTION", "LOAD")
         if (replace) parts.add("REPLACE")
         parts.add(body)
         return parts.map { it.toByteArray(Charsets.UTF_8) }
     }
 
-    private suspend fun invoke(client: RespClient, config: LuaRedisRunConfiguration): RespValue {
+    private suspend fun invoke(
+        client: RespClient,
+        config: LuaRedisRunConfiguration,
+    ): RespValue {
         val args = buildCallArgs(config)
         return client.command(args)
     }

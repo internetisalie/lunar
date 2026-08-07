@@ -13,8 +13,13 @@ import com.intellij.ui.content.ContentFactory
  * Mirrors [net.internetisalie.lunar.rocks.ui.LuaRocksToolWindowFactory]: creates a single
  * [LuaRedisFunctionsPanel] content tab and schedules an initial refresh via `invokeLater`.
  */
-class LuaRedisFunctionsToolWindowFactory : ToolWindowFactory, DumbAware {
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+class LuaRedisFunctionsToolWindowFactory :
+    ToolWindowFactory,
+    DumbAware {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         val panel = LuaRedisFunctionsPanel(project)
         val content = ContentFactory.getInstance().createContent(panel, "", false)
         toolWindow.contentManager.addContent(content)

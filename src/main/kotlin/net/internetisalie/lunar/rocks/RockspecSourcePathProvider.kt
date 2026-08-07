@@ -19,8 +19,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 @Service(Service.Level.PROJECT)
-class RockspecSourcePathProvider(private val project: Project) {
-
+class RockspecSourcePathProvider(
+    private val project: Project,
+) {
     private val forceRefreshTracker = SimpleModificationTracker()
     private val prewarmInFlight = AtomicBoolean(false)
     private val prewarmLaunches = AtomicInteger(0)
@@ -59,8 +60,9 @@ class RockspecSourcePathProvider(private val project: Project) {
 
     private fun computeSynchronously(): Pair<List<SourcePathPattern>, List<CModuleRock>> {
         cachedFull.get()?.let { return it }
-        val discovered = testDiscoverySeam?.invoke(project)
-            ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
+        val discovered =
+            testDiscoverySeam?.invoke(project)
+                ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
         return computePatternsFromPaths(discovered)
     }
 
@@ -70,10 +72,11 @@ class RockspecSourcePathProvider(private val project: Project) {
         prewarmLaunches.incrementAndGet()
         LunarCoroutineScopeService.getInstance(project).scope.launch {
             try {
-                val discovered = readAction {
-                    testDiscoverySeam?.invoke(project)
-                        ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
-                }
+                val discovered =
+                    readAction {
+                        testDiscoverySeam?.invoke(project)
+                            ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
+                    }
                 cachedFull.set(computePatternsFromPaths(discovered))
                 forceRefreshTracker.incModificationCount()
             } finally {
@@ -90,7 +93,10 @@ class RockspecSourcePathProvider(private val project: Project) {
 
         for (disco in discovered) {
             val data = RockspecBridge.read(project, disco.rockspec) ?: continue
-            val dir = disco.rockspec.parent?.toString()?.replace('\\', '/') ?: continue
+            val dir =
+                disco.rockspec.parent
+                    ?.toString()
+                    ?.replace('\\', '/') ?: continue
 
             allPatterns.addAll(RockspecModuleDerivation.derive(dir, data.luaModules))
 
@@ -131,4 +137,7 @@ class RockspecSourcePathProvider(private val project: Project) {
 }
 
 /** A rockspec that declares at least one builtin C module. */
-data class CModuleRock(val rockspecDir: String, val hasCModules: Boolean)
+data class CModuleRock(
+    val rockspecDir: String,
+    val hasCModules: Boolean,
+)

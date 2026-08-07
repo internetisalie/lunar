@@ -10,7 +10,9 @@ import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 import net.internetisalie.lunar.lang.syntax.LuaHighlight.DOC_COMMENT
 import net.internetisalie.lunar.luacats.lang.syntax.LuaCatsSyntaxHighlighter
 
-class LuaEditorHighlighter(scheme: EditorColorsScheme) : LayeredLexerEditorHighlighter(LuaSyntaxHighlighter(), scheme) {
+class LuaEditorHighlighter(
+    scheme: EditorColorsScheme,
+) : LayeredLexerEditorHighlighter(LuaSyntaxHighlighter(), scheme) {
     init {
         if (java.lang.Boolean.TRUE != LayeredLexer.ourDisableLayersFlag.get()) {
             registerDocumentationHighlighter()

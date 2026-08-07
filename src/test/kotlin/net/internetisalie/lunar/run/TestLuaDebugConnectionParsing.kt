@@ -10,7 +10,6 @@ import kotlin.test.assertTrue
  * ([DebugCommand], [DebugCommandKind]). No socket is opened and no DBGp loop is run (MAINT-13-01/-02).
  */
 class TestLuaDebugConnectionParsing {
-
     /** TC 1: breakpoint pause data `<file> <line>` yields file and line groups. */
     @Test
     fun testBreakpointPatternParsesFileAndLine() {

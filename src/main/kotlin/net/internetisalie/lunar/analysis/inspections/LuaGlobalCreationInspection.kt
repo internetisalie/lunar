@@ -22,7 +22,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * Flags assignment-position [LuaNameRef]s that implicitly create global variables (INSP-05).
  */
 class LuaGlobalCreationInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaGlobalCreation"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -33,7 +32,10 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitAssignmentStatement(o: LuaAssignmentStatement) {
                 val varList = o.varList.varList
@@ -46,27 +48,30 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
 
                         val reference = nameRef.reference as? PsiPolyVariantReference ?: continue
                         val resolveResults = reference.multiResolve(false)
-                        val validResolves = resolveResults.filter {
-                            val target = it.element
-                            target != nameRef && target != nameRef.identifier
-                        }
+                        val validResolves =
+                            resolveResults.filter {
+                                val target = it.element
+                                target != nameRef && target != nameRef.identifier
+                            }
                         if (validResolves.isEmpty()) {
                             if (LuaInspectionSuppression.isSuppressed(nameRef, name, DIAGNOSTIC_ID)) continue
-                            val highlightType = if (isRedisTarget(nameRef.project)) {
-                                ProblemHighlightType.ERROR
-                            } else {
-                                ProblemHighlightType.GENERIC_ERROR_OR_WARNING
-                            }
+                            val highlightType =
+                                if (isRedisTarget(nameRef.project)) {
+                                    ProblemHighlightType.ERROR
+                                } else {
+                                    ProblemHighlightType.GENERIC_ERROR_OR_WARNING
+                                }
                             val makeLocalEligible = varList.size == 1 && variable.varSuffixList.isEmpty()
-                            val fixes = buildList {
-                                if (makeLocalEligible) add(LuaMakeLocalQuickFix())
-                                add(LuaAddToGlobalsQuickFix(name))
-                            }
+                            val fixes =
+                                buildList {
+                                    if (makeLocalEligible) add(LuaMakeLocalQuickFix())
+                                    add(LuaAddToGlobalsQuickFix(name))
+                                }
                             holder.registerProblem(
                                 nameRef,
                                 "Global creation '$name'",
                                 highlightType,
-                                *fixes.toTypedArray()
+                                *fixes.toTypedArray(),
                             )
                         }
                     }
@@ -76,11 +81,19 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
 
     /** Returns `true` when the project target is a Redis or Valkey platform (design §3.8). */
     private fun isRedisTarget(project: Project): Boolean {
-        val platform = LuaProjectSettings.getInstance(project).state.getTarget().platform
+        val platform =
+            LuaProjectSettings
+                .getInstance(project)
+                .state
+                .getTarget()
+                .platform
         return platform == LuaPlatform.REDIS || platform == LuaPlatform.VALKEY
     }
 
-    private fun isExemptGlobal(ref: LuaNameRef, name: String): Boolean {
+    private fun isExemptGlobal(
+        ref: LuaNameRef,
+        name: String,
+    ): Boolean {
         val settings = LuaProjectSettings.getInstance(ref.project)
         val level = settings.state.languageLevel
         if (LuaStandardGlobals.contains(name, level)) return true
@@ -97,7 +110,10 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
 class LuaMakeLocalQuickFix : LocalQuickFix {
     override fun getFamilyName(): String = "Make Local"
 
-    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+    override fun applyFix(
+        project: Project,
+        descriptor: ProblemDescriptor,
+    ) {
         val element = descriptor.psiElement ?: return
         val assignStat = PsiTreeUtil.getParentOfType(element, LuaAssignmentStatement::class.java) ?: return
         if (assignStat.varList.varList.size != 1) return

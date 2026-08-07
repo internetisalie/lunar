@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.indexing
 
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
 import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
@@ -9,7 +10,6 @@ import com.intellij.util.indexing.ID
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
-import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
@@ -40,12 +40,17 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
     private val indexer: DataIndexer<String, String, FileContent> = Indexer()
 
     override fun getName(): ID<String, String> = LuaGlobalAssignmentIndexId
+
     override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
+
     override fun getValueExternalizer(): DataExternalizer<String> = externalizer
+
     override fun getIndexer(): DataIndexer<String, String, FileContent> = indexer
+
     override fun getVersion(): Int = 1
 
     override fun dependsOnFileContent(): Boolean = true
+
     override fun indexDirectories(): Boolean = false
 
     override fun getInputFilter(): FileBasedIndex.InputFilter = InputFilter()
@@ -55,7 +60,11 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
     }
 
     private class StringDataExternalizer : DataExternalizer<String> {
-        override fun save(output: DataOutput, value: String) = output.writeUTF(value)
+        override fun save(
+            output: DataOutput,
+            value: String,
+        ) = output.writeUTF(value)
+
         override fun read(input: DataInput): String = input.readUTF()
     }
 
@@ -92,9 +101,10 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
             val names = mutableSetOf<String>()
             topLevel.forEach { stmt ->
                 when (stmt) {
-                    is LuaLocalVarDecl -> stmt.attNameList.forEach { attName ->
-                        boundName(attName)?.let { names += it }
-                    }
+                    is LuaLocalVarDecl ->
+                        stmt.attNameList.forEach { attName ->
+                            boundName(attName)?.let { names += it }
+                        }
                     is LuaLocalFuncDecl -> boundName(stmt)?.let { names += it }
                     else -> Unit
                 }
@@ -103,7 +113,10 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
         }
 
         private fun boundName(declaration: PsiElement): String? =
-            declaration.node.findChildByType(LuaElementTypes.NAME_REF)?.psi?.text
+            declaration.node
+                .findChildByType(LuaElementTypes.NAME_REF)
+                ?.psi
+                ?.text
     }
 
     companion object {

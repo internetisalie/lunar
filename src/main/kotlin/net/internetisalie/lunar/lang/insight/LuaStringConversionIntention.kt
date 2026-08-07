@@ -18,9 +18,14 @@ class LuaStringConversionIntention : BaseIntentionAction() {
     private var actionText: String = "Convert string quotes"
 
     override fun getFamilyName(): String = "Convert string quotes"
+
     override fun getText(): String = actionText
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean {
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean {
         if (file !is LuaFile) return false
         val element = file.findElementAt(editor.caretModel.offset) ?: return false
         val leaf = stringLeafFor(element) ?: return false
@@ -30,7 +35,11 @@ class LuaStringConversionIntention : BaseIntentionAction() {
         return true
     }
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val element = file.findElementAt(editor.caretModel.offset) ?: return
         val leaf = stringLeafFor(element) ?: return
         val target = nextForm(currentForm(leaf.text))

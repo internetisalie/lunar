@@ -19,7 +19,6 @@ import java.io.File
 import java.util.UUID
 
 class LuaToolEditorNotificationProviderTest : BasePlatformTestCase() {
-
     private val provider = LuaToolEditorNotificationProvider()
 
     override fun setUp() {
@@ -45,26 +44,35 @@ class LuaToolEditorNotificationProviderTest : BasePlatformTestCase() {
     private fun collectPanel(file: VirtualFile): EditorNotificationPanel? {
         val function = provider.collectNotificationData(project, file) ?: return null
         val editor = myFixture.editor
-        val fileEditor = com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project)
-            .getSelectedEditor(file) ?: firstEditorFallback()
+        val fileEditor =
+            com.intellij.openapi.fileEditor.FileEditorManager
+                .getInstance(project)
+                .getSelectedEditor(file) ?: firstEditorFallback()
         return function.apply(fileEditor) as? EditorNotificationPanel
     }
 
     private fun firstEditorFallback(): FileEditor =
-        com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).allEditors.first()
+        com.intellij.openapi.fileEditor.FileEditorManager
+            .getInstance(project)
+            .allEditors
+            .first()
 
-    private fun registerTool(kindId: String, health: LuaToolHealth): LuaRegisteredTool {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = kindId,
-            path = "/does/not/matter/$kindId",
-            version = null,
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = health
-        )
+    private fun registerTool(
+        kindId: String,
+        health: LuaToolHealth,
+    ): LuaRegisteredTool {
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = kindId,
+                path = "/does/not/matter/$kindId",
+                version = null,
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health = health,
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         return tool
     }
@@ -73,22 +81,24 @@ class LuaToolEditorNotificationProviderTest : BasePlatformTestCase() {
         LuaToolHealth(fileExists = false, executable = false, probeOk = null, probedAtMtime = null, reason = reason)
 
     private fun usableRuntimeTool(): LuaRegisteredTool {
-        val binary = File.createTempFile("lunar-lua", "").also {
-            it.writeText("#!/bin/sh\n")
-            it.setExecutable(true)
-            it.deleteOnExit()
-        }
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "lua",
-            path = binary.absolutePath,
-            version = "5.4.6",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(true, true, true, binary.lastModified(), "OK 5.4.6")
-        )
+        val binary =
+            File.createTempFile("lunar-lua", "").also {
+                it.writeText("#!/bin/sh\n")
+                it.setExecutable(true)
+                it.deleteOnExit()
+            }
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "lua",
+                path = binary.absolutePath,
+                version = "5.4.6",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health = LuaToolHealth(true, true, true, binary.lastModified(), "OK 5.4.6"),
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         return tool
     }
@@ -98,8 +108,9 @@ class LuaToolEditorNotificationProviderTest : BasePlatformTestCase() {
         myFixture.enableInspections(LuaCheckInspection())
         val profile = InspectionProjectProfileManager.getInstance(project).currentProfile
         profile.setToolEnabled(LuaCheckInspection.SHORT_NAME, false, project)
-        val displayKey = HighlightDisplayKey.find(LuaCheckInspection.SHORT_NAME)
-            ?: error("LuaCheck display key must exist after enableInspections")
+        val displayKey =
+            HighlightDisplayKey.find(LuaCheckInspection.SHORT_NAME)
+                ?: error("LuaCheck display key must exist after enableInspections")
         assertFalse("guard: inspection must be disabled", profile.isToolEnabled(displayKey))
     }
 

@@ -36,7 +36,6 @@ data class CorpusEntry(
  * `json` in the fetcher.
  */
 object CorpusManifest {
-
     const val CORPUS_DIR = "test/corpus"
 
     private const val MANIFEST_PATH = "tooling/corpus/corpus.json"
@@ -44,13 +43,17 @@ object CorpusManifest {
     fun load(repoRoot: File): List<CorpusEntry> {
         val manifest = File(repoRoot, MANIFEST_PATH)
         require(manifest.isFile) { "No corpus manifest at $MANIFEST_PATH" }
-        return JsonParser.parseString(manifest.readText())
+        return JsonParser
+            .parseString(manifest.readText())
             .asJsonObject
             .getAsJsonArray("corpora")
             .map { parseEntry(it.asJsonObject) }
     }
 
-    fun entry(repoRoot: File, name: String): CorpusEntry {
+    fun entry(
+        repoRoot: File,
+        name: String,
+    ): CorpusEntry {
         val matches = load(repoRoot).filter { it.name == name }
         // Distinguished deliberately: a bare singleOrNull would report a duplicate as absent,
         // sending the reader to fetch-corpus.py for a manifest problem.
@@ -60,24 +63,39 @@ object CorpusManifest {
     }
 
     /** The commit actually on disk, stamped by `fetch-corpus.py`; null when the corpus is absent. */
-    fun checkedOutCommit(repoRoot: File, name: String): String? =
-        File(repoRoot, "$CORPUS_DIR/$name/.corpus-sha").takeIf { it.isFile }?.readText()?.trim()
+    fun checkedOutCommit(
+        repoRoot: File,
+        name: String,
+    ): String? = File(repoRoot, "$CORPUS_DIR/$name/.corpus-sha").takeIf { it.isFile }?.readText()?.trim()
 
     /** `<repoRoot>/test/corpus/<name>` — the whole checkout, wider than the indexed [roots]. */
-    fun checkoutDir(repoRoot: File, name: String): File = File(repoRoot, "$CORPUS_DIR/$name")
+    fun checkoutDir(
+        repoRoot: File,
+        name: String,
+    ): File = File(repoRoot, "$CORPUS_DIR/$name")
 
     private fun parseEntry(entry: JsonObject): CorpusEntry {
         val name = entry.required("name")
         return CorpusEntry(
             name = name,
             commit = entry.required("commit"),
-            roots = entry.getAsJsonArray("roots")?.map { it.asString }
-                ?: error("Corpus entry '$name' declares no roots"),
+            roots =
+                entry.getAsJsonArray("roots")?.map { it.asString }
+                    ?: error("Corpus entry '$name' declares no roots"),
             // Defaults to the same level as LuaProjectSettings, so omitting the key is a no-op.
-            luaLevel = entry.get("luaLevel")?.asString?.takeIf { it.isNotBlank() }
-                ?.let { LuaLanguageLevel.valueOf(it) }
-                ?: LuaLanguageLevel.LUA54,
-            moduleRoot = entry.get("moduleRoot")?.asString?.trim()?.takeIf { it.isNotEmpty() },
+            luaLevel =
+                entry
+                    .get("luaLevel")
+                    ?.asString
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { LuaLanguageLevel.valueOf(it) }
+                    ?: LuaLanguageLevel.LUA54,
+            moduleRoot =
+                entry
+                    .get("moduleRoot")
+                    ?.asString
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() },
         )
     }
 

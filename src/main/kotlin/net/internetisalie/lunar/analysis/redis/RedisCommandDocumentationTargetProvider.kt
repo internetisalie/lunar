@@ -23,8 +23,10 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * (plugin.xml §7).
  */
 class RedisCommandDocumentationTargetProvider : DocumentationTargetProvider {
-
-    override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
+    override fun documentationTargets(
+        file: PsiFile,
+        offset: Int,
+    ): List<DocumentationTarget> {
         val element = file.findElementAt(offset) ?: return emptyList()
         if (element.elementType != LuaElementTypes.STRING) return emptyList()
         val site = RedisCallSiteMatcher.match(element) ?: return emptyList()
@@ -33,8 +35,9 @@ class RedisCommandDocumentationTargetProvider : DocumentationTargetProvider {
         val project = file.project
         val target = LuaProjectSettings.getInstance(project).state.getTarget()
         if (target.platform != LuaPlatform.REDIS && target.platform != LuaPlatform.VALKEY) return emptyList()
-        val info = RedisCommandSpecService.getInstance().specFor(target).lookup(name)
-            ?: return emptyList()
+        val info =
+            RedisCommandSpecService.getInstance().specFor(target).lookup(name)
+                ?: return emptyList()
         return listOf(RedisCommandDocumentationTarget(info))
     }
 }
@@ -46,32 +49,34 @@ class RedisCommandDocumentationTargetProvider : DocumentationTargetProvider {
  * [createPointer] can reconstruct it from the info alone (no `SmartPsiElementPointer`
  * needed). The HTML body contains the command name, summary, since-version, and arity.
  */
-class RedisCommandDocumentationTarget(private val info: RedisCommandInfo) : DocumentationTarget {
-
+class RedisCommandDocumentationTarget(
+    private val info: RedisCommandInfo,
+) : DocumentationTarget {
     override fun createPointer(): Pointer<out DocumentationTarget> {
         val captured = info
         return Pointer { RedisCommandDocumentationTarget(captured) }
     }
 
     override fun computePresentation(): TargetPresentation =
-        TargetPresentation.builder(info.name)
+        TargetPresentation
+            .builder(info.name)
             .icon(com.intellij.icons.AllIcons.Nodes.Method)
             .presentation()
 
-    override fun computeDocumentation(): DocumentationResult =
-        DocumentationResult.documentation(buildDocHtml(info))
+    override fun computeDocumentation(): DocumentationResult = DocumentationResult.documentation(buildDocHtml(info))
 
     companion object {
         /** Builds the HTML body for a Redis command's quick documentation. */
-        fun buildDocHtml(info: RedisCommandInfo): String = buildString {
-            append("<b>")
-            append(info.name)
-            append("</b><br>")
-            append(info.summary)
-            append("<br>Since ")
-            append(info.since)
-            append("<br>Arity ")
-            append(info.arity)
-        }
+        fun buildDocHtml(info: RedisCommandInfo): String =
+            buildString {
+                append("<b>")
+                append(info.name)
+                append("</b><br>")
+                append(info.summary)
+                append("<br>Since ")
+                append(info.since)
+                append("<br>Arity ")
+                append(info.arity)
+            }
     }
 }

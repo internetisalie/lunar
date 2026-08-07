@@ -7,19 +7,23 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class TestLuaVarargAnnotator : BasePlatformTestCase() {
-
     @Test
     fun testValidInMainChunk() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             local args = {...}
             local y = ...
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.checkHighlighting(false, false, false)
     }
 
     @Test
     fun testValidInVarargFunction() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             function my_vararg(...)
                 local y = ...
             end
@@ -31,13 +35,16 @@ class TestLuaVarargAnnotator : BasePlatformTestCase() {
             local f = function(...)
                 local x = ...
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.checkHighlighting(false, false, false)
     }
 
     @Test
     fun testInvalidInFixedFunction() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             function my_fixed(a)
                 local y = <error descr="Cannot use '...' outside a vararg function">...</error>
             end
@@ -49,13 +56,16 @@ class TestLuaVarargAnnotator : BasePlatformTestCase() {
             local f = function(a, b)
                 local x = <error descr="Cannot use '...' outside a vararg function">...</error>
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.checkHighlighting(false, false, false)
     }
 
     @Test
     fun testInvalidInNestedFunction() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             function nested(...)
                 return function()
                     local y = <error descr="Cannot use '...' outside a vararg function">...</error>
@@ -67,7 +77,8 @@ class TestLuaVarargAnnotator : BasePlatformTestCase() {
                     local y = ...
                 end
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.checkHighlighting(false, false, false)
     }
 }

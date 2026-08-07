@@ -20,7 +20,6 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypeGraph
  * results independent of which other inspections ran.
  */
 class LuaTypeErrorAnchoringTest : BasePlatformTestCase() {
-
     fun testFileWideUseReanchorsToTheValueElement() {
         val file = myFixture.configureByText("t.lua", "local narrow = 1\n")
         val narrow = PsiTreeUtil.findChildOfType(file, LuaNameRef::class.java)!!

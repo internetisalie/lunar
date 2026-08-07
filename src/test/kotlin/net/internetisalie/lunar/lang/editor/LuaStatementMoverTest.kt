@@ -12,7 +12,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * indent. Real-flow DoD gate. EDITOR-07-01/-02/-04.
  */
 class LuaStatementMoverTest : BasePlatformTestCase() {
-
     private fun down() = myFixture.performEditorAction(IdeActions.ACTION_MOVE_STATEMENT_DOWN_ACTION)
 
     private fun up() = myFixture.performEditorAction(IdeActions.ACTION_MOVE_STATEMENT_UP_ACTION)

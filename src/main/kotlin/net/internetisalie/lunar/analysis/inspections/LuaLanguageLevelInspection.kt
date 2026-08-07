@@ -2,8 +2,8 @@ package net.internetisalie.lunar.analysis.inspections
 
 import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInspection.IntentionWrapper
-import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElement
@@ -31,7 +31,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * (reused via [IntentionWrapper]). All Lua 5.1–5.4 syntax parses; this enforces the runtime level.
  */
 class LuaLanguageLevelInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaLanguageLevel"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -42,14 +41,19 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.ERROR
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitGotoStatement(o: LuaGotoStatement) {
                 if (level(o) < LuaLanguageLevel.LUA52) {
                     register(
-                        holder, o,
+                        holder,
+                        o,
                         "Goto statements are a Lua 5.2+ feature (project configured for ${level(o)})",
-                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA52), RemoveGotoFix(),
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA52),
+                        RemoveGotoFix(),
                     )
                 }
             }
@@ -57,9 +61,11 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
             override fun visitLabel(o: LuaLabel) {
                 if (level(o) < LuaLanguageLevel.LUA52) {
                     register(
-                        holder, o,
+                        holder,
+                        o,
                         "Labels are a Lua 5.2+ feature (project configured for ${level(o)})",
-                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA52), RemoveLabelFix(),
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA52),
+                        RemoveLabelFix(),
                     )
                 }
             }
@@ -67,23 +73,31 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
             override fun visitBinOp(o: LuaBinOp) {
                 if (level(o) >= LuaLanguageLevel.LUA53) return
                 when (val operator = o.text) {
-                    "//" -> register(
-                        holder, o,
-                        "Integer division (//) is a Lua 5.3+ feature (project configured for ${level(o)})",
-                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53), ReplaceIntegerDivisionFix(),
-                    )
-                    in BITWISE_OPERATORS -> register(
-                        holder, o,
-                        "${bitwiseOperatorName(operator)} is a Lua 5.3+ feature (project configured for ${level(o)})",
-                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53),
-                    )
+                    "//" ->
+                        register(
+                            holder,
+                            o,
+                            "Integer division (//) is a Lua 5.3+ feature (project configured for ${level(o)})",
+                            UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53),
+                            ReplaceIntegerDivisionFix(),
+                        )
+                    in BITWISE_OPERATORS ->
+                        register(
+                            holder,
+                            o,
+                            "${bitwiseOperatorName(
+                                operator,
+                            )} is a Lua 5.3+ feature (project configured for ${level(o)})",
+                            UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53),
+                        )
                 }
             }
 
             override fun visitUnOp(o: LuaUnOp) {
                 if (level(o) < LuaLanguageLevel.LUA53 && o.text == "~") {
                     register(
-                        holder, o,
+                        holder,
+                        o,
                         "Bitwise NOT operator (~) is a Lua 5.3+ feature (project configured for ${level(o)})",
                         UpgradeLanguageLevelFix(LuaLanguageLevel.LUA53),
                     )
@@ -93,7 +107,8 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
             override fun visitAttrib(o: LuaAttrib) {
                 if (level(o) < LuaLanguageLevel.LUA54) {
                     register(
-                        holder, o,
+                        holder,
+                        o,
                         "Variable attributes are a Lua 5.4 feature (project configured for ${level(o)})",
                         UpgradeLanguageLevelFix(LuaLanguageLevel.LUA54),
                     )
@@ -104,9 +119,10 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
                 super.visitGlobalVarDecl(o)
                 if (level(o) < LuaLanguageLevel.LUA55) {
                     register(
-                        holder, o.firstChild,
+                        holder,
+                        o.firstChild,
                         "Global variable declarations are only available in Lua 5.5+",
-                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55),
                     )
                 }
             }
@@ -115,9 +131,10 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
                 super.visitGlobalFuncDecl(o)
                 if (level(o) < LuaLanguageLevel.LUA55) {
                     register(
-                        holder, o.firstChild,
+                        holder,
+                        o.firstChild,
                         "Global function declarations are only available in Lua 5.5+",
-                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55),
                     )
                 }
             }
@@ -126,9 +143,10 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
                 super.visitGlobalModeDecl(o)
                 if (level(o) < LuaLanguageLevel.LUA55) {
                     register(
-                        holder, o.firstChild,
+                        holder,
+                        o.firstChild,
                         "Global mode declarations are only available in Lua 5.5+",
-                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55)
+                        UpgradeLanguageLevelFix(LuaLanguageLevel.LUA55),
                     )
                 }
             }
@@ -137,7 +155,12 @@ class LuaLanguageLevelInspection : LocalInspectionTool() {
     private fun level(element: PsiElement): LuaLanguageLevel =
         LuaProjectSettings.getInstance(element.project).state.languageLevel
 
-    private fun register(holder: ProblemsHolder, element: PsiElement, message: String, vararg fixes: com.intellij.codeInsight.intention.IntentionAction) {
+    private fun register(
+        holder: ProblemsHolder,
+        element: PsiElement,
+        message: String,
+        vararg fixes: com.intellij.codeInsight.intention.IntentionAction,
+    ) {
         val quickFixes: Array<LocalQuickFix> = fixes.map { IntentionWrapper(it) }.toTypedArray()
         holder.registerProblem(element, message, ProblemHighlightType.GENERIC_ERROR_OR_WARNING, *quickFixes)
     }

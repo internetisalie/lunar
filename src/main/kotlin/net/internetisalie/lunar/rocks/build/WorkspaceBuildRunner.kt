@@ -17,18 +17,17 @@ import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
 import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
 object WorkspaceBuildRunner {
-
     data class BuildOutcome(
         val builtCount: Int,
         val failedRock: WorkspaceRock?,
-        val exitCode: Int?
+        val exitCode: Int?,
     )
 
     fun run(
         project: Project,
         order: List<WorkspaceRock>,
         console: ConsoleView,
-        indicator: ProgressIndicator
+        indicator: ProgressIndicator,
     ): BuildOutcome {
         val exe = LuaRocksEnvironment.resolveExecutable(project)
         if (exe == null) {
@@ -42,7 +41,10 @@ object WorkspaceBuildRunner {
         for ((i, rock) in order.withIndex()) {
             ProgressManager.checkCanceled()
             indicator.text = "Building ${rock.packageName}"
-            console.print("\n==> Building ${rock.packageName} (${i + 1}/${order.size}) …\n", ConsoleViewContentType.SYSTEM_OUTPUT)
+            console.print(
+                "\n==> Building ${rock.packageName} (${i + 1}/${order.size}) …\n",
+                ConsoleViewContentType.SYSTEM_OUTPUT,
+            )
 
             val exitCode = executeMake(project, rock, exe, console, indicator)
             if (exitCode != 0) {
@@ -61,19 +63,33 @@ object WorkspaceBuildRunner {
     ): Int {
         val configType = ConfigurationTypeUtil.findConfigurationType(LuaRocksRunConfigurationType::class.java)
         val factory = configType.configurationFactories.firstOrNull()
-        val config = LuaRocksRunConfiguration(project, factory, "Workspace build: ${rock.packageName}").apply {
-            command = "make"
-            rockspecPath = rock.rockspec.toString()
-        }
+        val config =
+            LuaRocksRunConfiguration(project, factory, "Workspace build: ${rock.packageName}").apply {
+                command = "make"
+                rockspecPath = rock.rockspec.toString()
+            }
 
         val cmd = config.buildCommandLine(exe)
-        val result = LuaToolExecutionService.getInstance()
-            .stream(cmd, ConsolePrintingListener(console), LuaExecTimeout.INSTALL, colored = true, indicator = indicator)
+        val result =
+            LuaToolExecutionService
+                .getInstance()
+                .stream(
+                    cmd,
+                    ConsolePrintingListener(console),
+                    LuaExecTimeout.INSTALL,
+                    colored = true,
+                    indicator = indicator,
+                )
         return if (result.outcome == LuaExecOutcome.COMPLETED) result.exitCode else -1
     }
 
-    private class ConsolePrintingListener(private val console: ConsoleView) : ProcessListener {
-        override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+    private class ConsolePrintingListener(
+        private val console: ConsoleView,
+    ) : ProcessListener {
+        override fun onTextAvailable(
+            event: ProcessEvent,
+            outputType: Key<*>,
+        ) {
             console.print(event.text, ConsoleViewContentType.getConsoleViewType(outputType))
         }
     }

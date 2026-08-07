@@ -20,11 +20,10 @@ import javax.swing.JTree
  * [createLegendPanel], [isApplicableElement], [createHierarchyTreeStructure], [getComparator],
  * [isInterface], [canBeDeleted], [getQualifiedName].
  */
-class LuaTypeHierarchyBrowser(decl: LuaLocalVarDecl) :
-    TypeHierarchyBrowserBase(decl.project, decl) {
-
-    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor): PsiElement? =
-        descriptor.psiElement
+class LuaTypeHierarchyBrowser(
+    decl: LuaLocalVarDecl,
+) : TypeHierarchyBrowserBase(decl.project, decl) {
+    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor): PsiElement? = descriptor.psiElement
 
     override fun createTrees(trees: MutableMap<in String, in JTree>) {
         createTreeAndSetupCommonActions(trees, IdeActions.GROUP_TYPE_HIERARCHY_POPUP)
@@ -35,7 +34,10 @@ class LuaTypeHierarchyBrowser(decl: LuaLocalVarDecl) :
     override fun isApplicableElement(element: PsiElement): Boolean =
         element is LuaLocalVarDecl && LuaHierarchyUtil.className(element) != null
 
-    override fun createHierarchyTreeStructure(typeName: String, psiElement: PsiElement): HierarchyTreeStructure? {
+    override fun createHierarchyTreeStructure(
+        typeName: String,
+        psiElement: PsiElement,
+    ): HierarchyTreeStructure? {
         val decl = psiElement as? LuaLocalVarDecl ?: return null
         val name = LuaHierarchyUtil.className(decl) ?: return null
         return when (typeName) {

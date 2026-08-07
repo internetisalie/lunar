@@ -29,23 +29,26 @@ class LuaCovReportLexer : LexerBase() {
         val WHITESPACE = IElementType("WHITESPACE", LuaCovReportLanguage)
     }
 
-    override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
+    override fun start(
+        buffer: CharSequence,
+        startOffset: Int,
+        endOffset: Int,
+        initialState: Int,
+    ) {
         this.buffer = buffer
         this.bufferEnd = endOffset
         this.tokenStart = startOffset
         this.tokenEnd = startOffset
-        
+
         // unpack state
         this.highLevelState = (initialState ushr 1) and 0x3
         this.inLineCode = (initialState and 1) != 0
-        
+
         this.tokenType = null
         advance()
     }
 
-    override fun getState(): Int {
-        return (highLevelState shl 1) or (if (inLineCode) 1 else 0)
-    }
+    override fun getState(): Int = (highLevelState shl 1) or (if (inLineCode) 1 else 0)
 
     override fun getTokenType(): IElementType? = tokenType
 
@@ -66,7 +69,10 @@ class LuaCovReportLexer : LexerBase() {
         }
 
         // Check if we are at the start of a line
-        val isStartOfLine = tokenStart == 0 || buffer[tokenStart - 1] == '\n' || (buffer[tokenStart - 1] == '\r' && buffer[tokenStart] != '\n')
+        val isStartOfLine =
+            tokenStart == 0 ||
+                buffer[tokenStart - 1] == '\n' ||
+                (buffer[tokenStart - 1] == '\r' && buffer[tokenStart] != '\n')
 
         if (isStartOfLine) {
             advanceStartOfLine()
@@ -91,10 +97,11 @@ class LuaCovReportLexer : LexerBase() {
         tokenType = HEADER_BOUNDARY
         tokenEnd = tokenStart + count
         // Update state machine
-        highLevelState = when (highLevelState) {
-            2 -> 3 // STATE_SEEN_PATH -> STATE_IN_CODE
-            else -> 1 // others -> STATE_SEEN_FIRST_BOUNDARY
-        }
+        highLevelState =
+            when (highLevelState) {
+                2 -> 3 // STATE_SEEN_PATH -> STATE_IN_CODE
+                else -> 1 // others -> STATE_SEEN_FIRST_BOUNDARY
+            }
     }
 
     private fun parseFilePathLine() {
@@ -112,12 +119,13 @@ class LuaCovReportLexer : LexerBase() {
             parseNewlineOrWhitespace()
         } else {
             val prefixStr = buffer.subSequence(tokenStart, tokenStart + prefixLen).toString()
-            tokenType = when {
-                prefixStr.matches(Regex("""^\*+0?\s*$""")) -> HIT_UNCOVERED
-                prefixStr.isBlank() -> HIT_NONE
-                prefixStr.matches(Regex("""^\s*\d+\s?$""")) -> HIT_COVERED
-                else -> HIT_NONE
-            }
+            tokenType =
+                when {
+                    prefixStr.matches(Regex("""^\*+0?\s*$""")) -> HIT_UNCOVERED
+                    prefixStr.isBlank() -> HIT_NONE
+                    prefixStr.matches(Regex("""^\s*\d+\s?$""")) -> HIT_COVERED
+                    else -> HIT_NONE
+                }
             tokenEnd = tokenStart + prefixLen
             inLineCode = true
         }

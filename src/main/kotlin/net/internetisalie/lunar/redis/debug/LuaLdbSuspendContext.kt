@@ -16,7 +16,6 @@ class LuaLdbSuspendContext(
     evalHost: LuaLdbEvalHost,
     locals: List<LuaLdbLocal>,
 ) : XSuspendContext() {
-
     private val executionStack = LuaLdbExecutionStack(LuaLdbStackFrame(position, evalHost, locals))
 
     override fun getActiveExecutionStack(): XExecutionStack = executionStack

@@ -39,17 +39,17 @@ import java.net.ServerSocket
  * hardened for the `<endsession>` sentinel as part of this phase.
  */
 class RedisDebugIntegrationTest {
-
     private val containers = mutableListOf<RunningContainer>()
 
     @Before
     fun assertDockerAvailable() {
-        val result = runCatching {
-            ProcessBuilder("docker", "version", "--format", "{{.Server.Version}}")
-                .redirectErrorStream(true)
-                .start()
-                .also { it.waitFor() }
-        }
+        val result =
+            runCatching {
+                ProcessBuilder("docker", "version", "--format", "{{.Server.Version}}")
+                    .redirectErrorStream(true)
+                    .start()
+                    .also { it.waitFor() }
+            }
         val exitOk = result.getOrNull()?.exitValue() == 0
         if (!exitOk) {
             fail(
@@ -107,7 +107,10 @@ class RedisDebugIntegrationTest {
 
     // ── TC-INT-1 ────────────────────────────────────────────────────────────────────────────────────
 
-    private fun verifyBreakStepPrintContinue(transport: LuaLdbTransport, flavor: String) = runBlocking {
+    private fun verifyBreakStepPrintContinue(
+        transport: LuaLdbTransport,
+        flavor: String,
+    ) = runBlocking {
         enterDebug(transport, flavor)
         val enterReply = transport.eval(FIVE_LINE_SCRIPT, keys = emptyList(), argv = emptyList())
         val enterStop = LdbReplyParser.parse(enterReply)
@@ -137,7 +140,10 @@ class RedisDebugIntegrationTest {
 
     // ── TC-INT-2 ────────────────────────────────────────────────────────────────────────────────────
 
-    private fun verifyMidPauseRedisCommand(transport: LuaLdbTransport, flavor: String) = runBlocking {
+    private fun verifyMidPauseRedisCommand(
+        transport: LuaLdbTransport,
+        flavor: String,
+    ) = runBlocking {
         enterDebug(transport, flavor)
         val enterStop = LdbReplyParser.parse(transport.eval(FIVE_LINE_SCRIPT, emptyList(), emptyList()))
         assertTrue("$flavor: EVAL should enter at a stop", enterStop is LdbEvent.Stop)
@@ -153,13 +159,19 @@ class RedisDebugIntegrationTest {
 
     // ── TC-INT-3 ────────────────────────────────────────────────────────────────────────────────────
 
-    private fun verifyForkedAbortRollback(container: RunningContainer, flavor: String) {
+    private fun verifyForkedAbortRollback(
+        container: RunningContainer,
+        flavor: String,
+    ) {
         withTransport(container) { transport -> abortForkedSession(transport, flavor) }
         val afterAbort = readKeyOnFreshClient(container, ROLLBACK_KEY)
         assertNull("$flavor: a forked-session write must be rolled back after abort", afterAbort)
     }
 
-    private fun abortForkedSession(transport: LuaLdbTransport, flavor: String) = runBlocking {
+    private fun abortForkedSession(
+        transport: LuaLdbTransport,
+        flavor: String,
+    ) = runBlocking {
         enterDebug(transport, flavor)
         val enterStop = LdbReplyParser.parse(transport.eval(WRITE_SCRIPT, emptyList(), emptyList()))
         assertTrue("$flavor: forked EVAL should enter at a stop", enterStop is LdbEvent.Stop)
@@ -170,32 +182,47 @@ class RedisDebugIntegrationTest {
 
     // ── LDB helpers ─────────────────────────────────────────────────────────────────────────────────
 
-    private suspend fun enterDebug(transport: LuaLdbTransport, flavor: String) {
+    private suspend fun enterDebug(
+        transport: LuaLdbTransport,
+        flavor: String,
+    ) {
         val ok = transport.enterDebug(LuaRedisDebugMode.FORKED)
         assertEquals("$flavor: SCRIPT DEBUG YES should return +OK", RespValue.Simple("OK"), ok)
     }
 
     private fun ended(): LdbEvent = LdbEvent.SessionEnded(EndReason.ENDED)
 
-    private fun assertStop(event: LdbEvent, expectedLine: Int, message: String) {
+    private fun assertStop(
+        event: LdbEvent,
+        expectedLine: Int,
+        message: String,
+    ) {
         assertTrue("$message — expected a Stop, was $event", event is LdbEvent.Stop)
         assertEquals(message, expectedLine, (event as LdbEvent.Stop).serverLine)
     }
 
-    private fun assertRedisReplyMentions(reply: RespValue, needle: String, flavor: String) {
+    private fun assertRedisReplyMentions(
+        reply: RespValue,
+        needle: String,
+        flavor: String,
+    ) {
         val text = statusText(reply)
         assertTrue("$flavor: mid-pause redis reply '$text' should mention '$needle'", text.contains(needle))
     }
 
-    private fun statusText(reply: RespValue): String = when (reply) {
-        is RespValue.Array -> reply.items.orEmpty().joinToString(" | ") { statusText(it) }
-        is RespValue.Simple -> reply.text
-        is RespValue.Bulk -> reply.asString().orEmpty()
-        is RespValue.Error -> "${reply.klass} ${reply.message}"
-        else -> reply.toString()
-    }
+    private fun statusText(reply: RespValue): String =
+        when (reply) {
+            is RespValue.Array -> reply.items.orEmpty().joinToString(" | ") { statusText(it) }
+            is RespValue.Simple -> reply.text
+            is RespValue.Bulk -> reply.asString().orEmpty()
+            is RespValue.Error -> "${reply.klass} ${reply.message}"
+            else -> reply.toString()
+        }
 
-    private fun readKeyOnFreshClient(container: RunningContainer, key: String): String? =
+    private fun readKeyOnFreshClient(
+        container: RunningContainer,
+        key: String,
+    ): String? =
         runBlocking {
             val client = RespClient.open(container.endpoint())
             try {
@@ -211,12 +238,18 @@ class RedisDebugIntegrationTest {
 
     // ── transport / container plumbing ───────────────────────────────────────────────────────────────
 
-    private fun withTransport(image: String, block: (LuaLdbTransport) -> Unit) {
+    private fun withTransport(
+        image: String,
+        block: (LuaLdbTransport) -> Unit,
+    ) {
         val container = startContainer(image)
         withTransport(container, block)
     }
 
-    private fun withTransport(container: RunningContainer, block: (LuaLdbTransport) -> Unit) {
+    private fun withTransport(
+        container: RunningContainer,
+        block: (LuaLdbTransport) -> Unit,
+    ) {
         val client = runBlocking { RespClient.open(container.endpoint()) }
         val transport = LuaLdbTransport(client)
         try {
@@ -228,11 +261,17 @@ class RedisDebugIntegrationTest {
 
     private fun startContainer(image: String): RunningContainer {
         val port = ServerSocket(0).use { it.localPort }
-        val process = ProcessBuilder("docker", "run", "--rm", "-d", "-p", "$port:6379", image)
-            .redirectErrorStream(true)
-            .start()
+        val process =
+            ProcessBuilder("docker", "run", "--rm", "-d", "-p", "$port:6379", image)
+                .redirectErrorStream(true)
+                .start()
         process.waitFor()
-        val containerId = process.inputStream.bufferedReader().readLine().orEmpty().trim()
+        val containerId =
+            process.inputStream
+                .bufferedReader()
+                .readLine()
+                .orEmpty()
+                .trim()
         if (containerId.isBlank()) {
             fail("Failed to start Docker container for image '$image': docker run produced no container id")
         }
@@ -242,21 +281,25 @@ class RedisDebugIntegrationTest {
         return container
     }
 
-    private fun waitForReady(endpoint: RespEndpoint, image: String) {
+    private fun waitForReady(
+        endpoint: RespEndpoint,
+        image: String,
+    ) {
         val deadline = System.currentTimeMillis() + READY_TIMEOUT_MS
         var lastError: Throwable? = null
         val shortTimeouts = RespTimeouts(connectMs = 500, readMs = 1_000)
         while (System.currentTimeMillis() < deadline) {
-            val pingResult = runCatching {
-                runBlocking {
-                    val client = RespClient.open(endpoint, shortTimeouts)
-                    try {
-                        client.command("PING")
-                    } finally {
-                        client.dispose()
+            val pingResult =
+                runCatching {
+                    runBlocking {
+                        val client = RespClient.open(endpoint, shortTimeouts)
+                        try {
+                            client.command("PING")
+                        } finally {
+                            client.dispose()
+                        }
                     }
                 }
-            }
             if ((pingResult.getOrNull() as? RespValue.Simple)?.text == "PONG") return
             lastError = pingResult.exceptionOrNull()
             Thread.sleep(READY_POLL_MS)
@@ -266,8 +309,10 @@ class RedisDebugIntegrationTest {
 
     // ── inner types ───────────────────────────────────────────────────────────────────────────────
 
-    private inner class RunningContainer(private val containerId: String, val port: Int) {
-
+    private inner class RunningContainer(
+        private val containerId: String,
+        val port: Int,
+    ) {
         fun endpoint(): RespEndpoint = RespEndpoint(host = "127.0.0.1", port = port)
 
         fun stop() {
@@ -288,17 +333,19 @@ class RedisDebugIntegrationTest {
         const val READY_TIMEOUT_MS = 30_000L
         const val READY_POLL_MS = 500L
 
-        val FIVE_LINE_SCRIPT = listOf(
-            "local x = 1",
-            "local y = 2",
-            "local t = {a=1,b={c=2}}",
-            "local sum = x + y",
-            "return sum",
-        ).joinToString("\n")
+        val FIVE_LINE_SCRIPT =
+            listOf(
+                "local x = 1",
+                "local y = 2",
+                "local t = {a=1,b={c=2}}",
+                "local sum = x + y",
+                "return sum",
+            ).joinToString("\n")
 
-        val WRITE_SCRIPT = listOf(
-            "redis.call('set', '$ROLLBACK_KEY', 'fromscript')",
-            "return 1",
-        ).joinToString("\n")
+        val WRITE_SCRIPT =
+            listOf(
+                "redis.call('set', '$ROLLBACK_KEY', 'fromscript')",
+                "return 1",
+            ).joinToString("\n")
     }
 }

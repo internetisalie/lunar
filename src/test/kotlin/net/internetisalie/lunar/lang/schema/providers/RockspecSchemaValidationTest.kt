@@ -13,24 +13,27 @@ import net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory
  * EP forces JsonSchemaService to (re)discover and resolve them in the light fixture.
  */
 class RockspecSchemaValidationTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         JsonSchemaProviderFactory.EP_NAME.point.registerExtension(LuaSchemaProviderFactory(), testRootDisposable)
         myFixture.enableInspections(LuaJsonSchemaComplianceInspection())
     }
 
-    private fun warningsFor(fileName: String, text: String): List<String> {
+    private fun warningsFor(
+        fileName: String,
+        text: String,
+    ): List<String> {
         myFixture.configureByText(fileName, text)
         return myFixture.doHighlighting(HighlightSeverity.WARNING).mapNotNull { it.description }
     }
 
     fun testTc1_MissingRequiredPackageOrVersion() {
         // v3.0 requires package + version (among others); a rockspec missing version warns.
-        val warnings = warningsFor(
-            "foo-1.0-1.rockspec",
-            "package = \"foo\"\nsource = { url = \"git://x\" }\nbuild = { type = \"builtin\" }\n",
-        )
+        val warnings =
+            warningsFor(
+                "foo-1.0-1.rockspec",
+                "package = \"foo\"\nsource = { url = \"git://x\" }\nbuild = { type = \"builtin\" }\n",
+            )
         assertTrue(
             "Expected a missing-required-property warning naming 'version', was: $warnings",
             warnings.any { it.contains("Missing required") && it.contains("version") },
@@ -65,16 +68,17 @@ class RockspecSchemaValidationTest : BasePlatformTestCase() {
     }
 
     fun testTc4_V31AllowsTestDependencies() {
-        val warnings = warningsFor(
-            "foo-1.0-1.rockspec",
-            """
-            rockspec_format = "3.1"
-            package = "foo"
-            version = "1.0-1"
-            source = { url = "git://x" }
-            test_dependencies = {}
-            """.trimIndent(),
-        )
+        val warnings =
+            warningsFor(
+                "foo-1.0-1.rockspec",
+                """
+                rockspec_format = "3.1"
+                package = "foo"
+                version = "1.0-1"
+                source = { url = "git://x" }
+                test_dependencies = {}
+                """.trimIndent(),
+            )
         assertFalse(
             "v3.1 must permit test_dependencies, was: $warnings",
             warnings.any { it.contains("test_dependencies") },

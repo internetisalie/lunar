@@ -18,7 +18,6 @@ import java.nio.file.Path
  * finding that completion, unlike resolution, still cannot see library symbols.
  */
 class LuaDefinitionLibraryProviderTest : BasePlatformTestCase() {
-
     private lateinit var cacheRoot: Path
 
     private val settings get() = LuaProjectSettings.getInstance(project)
@@ -87,9 +86,11 @@ class LuaDefinitionLibraryProviderTest : BasePlatformTestCase() {
         seedCache("luassert")
         settings.state.enabledDefinitionLibraries = mutableListOf("busted")
 
-        val roots = provider().getAdditionalProjectLibraries(project)
-            .flatMap { (it as LuaDefinitionLibraryProvider.DefinitionLibrary).sourceRoots }
-            .map { it.name }
+        val roots =
+            provider()
+                .getAdditionalProjectLibraries(project)
+                .flatMap { (it as LuaDefinitionLibraryProvider.DefinitionLibrary).sourceRoots }
+                .map { it.name }
         assertEquals(2, roots.size)
         assertTrue("expected the busted tree, got $roots", roots.any { it.startsWith("busted-") })
         assertTrue("expected luassert pulled in transitively, got $roots", roots.any { it.startsWith("luassert-") })
@@ -105,8 +106,9 @@ class LuaDefinitionLibraryProviderTest : BasePlatformTestCase() {
 
     /** The provider is registered in plugin.xml, not merely instantiable — TC 5's real precondition. */
     fun testProviderIsRegisteredWithThePlatform() {
-        val registered = AdditionalLibraryRootsProvider.EP_NAME.extensionList
-            .any { it is LuaDefinitionLibraryProvider }
+        val registered =
+            AdditionalLibraryRootsProvider.EP_NAME.extensionList
+                .any { it is LuaDefinitionLibraryProvider }
         assertTrue(
             "LuaDefinitionLibraryProvider must be registered in plugin.xml; a unit test that only " +
                 "constructs it would pass while the feature is dead in a running IDE",

@@ -12,7 +12,6 @@ import kotlin.test.assertTrue
  * (PAUSED → RUNNING → TERMINATED on continue+session-end, then a guarded no-op — no throw).
  */
 class TestLdbSessionMachine {
-
     private fun pausedAt(line: Int): LdbSessionMachine {
         val machine = LdbSessionMachine()
         machine.onEvent(LdbEvent.Ack)

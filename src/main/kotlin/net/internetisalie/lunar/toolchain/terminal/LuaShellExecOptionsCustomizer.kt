@@ -26,7 +26,10 @@ import java.nio.file.Path
  * dirs (highest priority first) are iterated in reverse to keep the highest-priority dir first.
  */
 class LuaShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
-    override fun customizeExecOptions(project: Project, shellExecOptions: MutableShellExecOptions) {
+    override fun customizeExecOptions(
+        project: Project,
+        shellExecOptions: MutableShellExecOptions,
+    ) {
         val prependDirs = LuaExecutionEnvironmentBuilder.getInstance(project).pathPrependDirs()
         prependInReverse(prependDirs, shellExecOptions::prependEntryToPATH)
     }
@@ -37,7 +40,10 @@ class LuaShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
          * front-inserting sink keeps the highest-priority dir first on the resulting PATH.
          */
         @TestOnly
-        internal fun prependInReverse(prependDirs: List<Path>, prepend: (Path) -> Unit) {
+        internal fun prependInReverse(
+            prependDirs: List<Path>,
+            prepend: (Path) -> Unit,
+        ) {
             for (dir in prependDirs.asReversed()) {
                 prepend(dir)
             }

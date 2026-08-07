@@ -22,7 +22,6 @@ import java.util.UUID
  * error outcome when nothing resolves.
  */
 class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
-
     private lateinit var fakeExecutable: File
     private lateinit var tempDir: Path
     private lateinit var logFile: File
@@ -33,23 +32,24 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
         tempDir = Files.createTempDirectory("lunar-build-test")
         logFile = File(tempDir.toFile(), "build-log.txt")
 
-        fakeExecutable = File.createTempFile("fake-luarocks", ".sh").apply {
-            writeText(
-                """
-                #!/bin/sh
-                echo "Running luarocks with args: ${'$'}@" >> "${logFile.absolutePath}"
-                echo "Working directory: ${'$'}(pwd)" >> "${logFile.absolutePath}"
-                for arg in "${'$'}@"; do
-                    if echo "${'$'}arg" | grep -q "fail-b-1.0-1.rockspec"; then
-                        echo "Simulating failure for B" >> "${logFile.absolutePath}"
-                        exit 2
-                    fi
-                done
-                exit 0
-                """.trimIndent()
-            )
-            setExecutable(true)
-        }
+        fakeExecutable =
+            File.createTempFile("fake-luarocks", ".sh").apply {
+                writeText(
+                    """
+                    #!/bin/sh
+                    echo "Running luarocks with args: ${'$'}@" >> "${logFile.absolutePath}"
+                    echo "Working directory: ${'$'}(pwd)" >> "${logFile.absolutePath}"
+                    for arg in "${'$'}@"; do
+                        if echo "${'$'}arg" | grep -q "fail-b-1.0-1.rockspec"; then
+                            echo "Simulating failure for B" >> "${logFile.absolutePath}"
+                            exit 2
+                        fi
+                    done
+                    exit 0
+                    """.trimIndent(),
+                )
+                setExecutable(true)
+            }
         bindLuaRocks(fakeExecutable.absolutePath)
     }
 
@@ -68,7 +68,10 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
     }
 
     private fun <T> runOffEdt(body: () -> T): T =
-        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread<T>(body).get()
+        com.intellij.openapi.application.ApplicationManager
+            .getApplication()
+            .executeOnPooledThread<T>(body)
+            .get()
 
     private fun resetToolchain() {
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
@@ -76,17 +79,25 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
     }
 
     private fun bindLuaRocks(path: String) {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "luarocks",
-            path = path,
-            version = "3.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
-        )
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "luarocks",
+                path = path,
+                version = "3.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         LuaToolchainProjectSettings.getInstance(project).setBinding("luarocks", tool.id)
     }
@@ -107,14 +118,15 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
 
         val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         try {
-            val outcome = runOffEdt {
-                WorkspaceBuildRunner.run(
-                    project,
-                    listOf(rockA, rockB, rockC),
-                    console,
-                    EmptyProgressIndicator(),
-                )
-            }
+            val outcome =
+                runOffEdt {
+                    WorkspaceBuildRunner.run(
+                        project,
+                        listOf(rockA, rockB, rockC),
+                        console,
+                        EmptyProgressIndicator(),
+                    )
+                }
 
             assertEquals(3, outcome.builtCount)
             assertNull(outcome.failedRock)
@@ -148,14 +160,15 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
 
         val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         try {
-            val outcome = runOffEdt {
-                WorkspaceBuildRunner.run(
-                    project,
-                    listOf(rockA, rockB, rockC),
-                    console,
-                    EmptyProgressIndicator(),
-                )
-            }
+            val outcome =
+                runOffEdt {
+                    WorkspaceBuildRunner.run(
+                        project,
+                        listOf(rockA, rockB, rockC),
+                        console,
+                        EmptyProgressIndicator(),
+                    )
+                }
 
             assertEquals(1, outcome.builtCount)
             assertEquals(rockB, outcome.failedRock)
@@ -177,17 +190,18 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
     // and stops the topo loop before rock 2 (the live no-orphan-process confirmation is VNC-gated).
     @Test
     fun testCancelDuringBuildStopsBeforeNextRock() {
-        val sleeper = File.createTempFile("fake-luarocks-sleep", ".sh").apply {
-            writeText(
-                """
-                #!/bin/sh
-                echo "started ${'$'}@" >> "${logFile.absolutePath}"
-                sleep 5
-                exit 0
-                """.trimIndent(),
-            )
-            setExecutable(true)
-        }
+        val sleeper =
+            File.createTempFile("fake-luarocks-sleep", ".sh").apply {
+                writeText(
+                    """
+                    #!/bin/sh
+                    echo "started ${'$'}@" >> "${logFile.absolutePath}"
+                    sleep 5
+                    exit 0
+                    """.trimIndent(),
+                )
+                setExecutable(true)
+            }
         resetToolchain()
         bindLuaRocks(sleeper.absolutePath)
 
@@ -231,14 +245,15 @@ class WorkspaceBuildRunnerTest : BasePlatformTestCase() {
 
         val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         try {
-            val outcome = runOffEdt {
-                WorkspaceBuildRunner.run(
-                    project,
-                    listOf(rockA),
-                    console,
-                    EmptyProgressIndicator(),
-                )
-            }
+            val outcome =
+                runOffEdt {
+                    WorkspaceBuildRunner.run(
+                        project,
+                        listOf(rockA),
+                        console,
+                        EmptyProgressIndicator(),
+                    )
+                }
 
             assertEquals(0, outcome.builtCount)
             assertEquals(rockA, outcome.failedRock)

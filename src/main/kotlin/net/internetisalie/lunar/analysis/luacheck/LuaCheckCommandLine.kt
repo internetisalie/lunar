@@ -18,8 +18,9 @@ fun newLuaCheckCommandLine(
     useStdin: Boolean = false,
 ): GeneralCommandLine? {
     val tool = LuaToolResolver.getInstance().resolve(project, "luacheck") ?: return null
-    val cmd = GeneralCommandLine(tool.path)
-        .withWorkDirectory(workDirectory.path)
+    val cmd =
+        GeneralCommandLine(tool.path)
+            .withWorkDirectory(workDirectory.path)
 
     cmd.addParameters(dedupePairs(resolveArguments(project)))
     if (useStdin) {
@@ -36,11 +37,12 @@ internal fun dedupePairs(tokens: List<String>): List<String> {
     while (index < tokens.size) {
         val current = tokens[index]
         val next = tokens.getOrNull(index + 1)
-        index += if (isFlag(current) && next != null && !next.startsWith("-")) {
-            accumulator.appendPair(current, next)
-        } else {
-            accumulator.appendLone(current)
-        }
+        index +=
+            if (isFlag(current) && next != null && !next.startsWith("-")) {
+                accumulator.appendPair(current, next)
+            } else {
+                accumulator.appendLone(current)
+            }
     }
     return accumulator.result
 }
@@ -52,7 +54,10 @@ private class DedupAccumulator {
     val result = mutableListOf<String>()
     private val seen = mutableSetOf<String>()
 
-    fun appendPair(flag: String, value: String): Int {
+    fun appendPair(
+        flag: String,
+        value: String,
+    ): Int {
         if (seen.add("$flag $value")) {
             result.add(flag)
             result.add(value)
@@ -69,8 +74,10 @@ private class DedupAccumulator {
 private fun resolveArguments(project: Project): List<String> {
     val args = mutableListOf<String>()
 
-    val configured = LuaToolchainProjectSettings.getInstance(project)
-        .effectiveKindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS)
+    val configured =
+        LuaToolchainProjectSettings
+            .getInstance(project)
+            .effectiveKindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS)
     if (configured.isNotEmpty()) {
         args.addAll(ParametersListUtil.parseToArray(configured))
     }

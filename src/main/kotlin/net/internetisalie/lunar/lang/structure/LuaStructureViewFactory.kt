@@ -9,11 +9,9 @@ import com.intellij.psi.PsiFile
 import net.internetisalie.lunar.lang.psi.LuaFile
 
 class LuaStructureViewFactory : PsiStructureViewFactory {
-    override fun getStructureViewBuilder(psiFile: PsiFile): StructureViewBuilder {
-        return object : TreeBasedStructureViewBuilder() {
-            override fun createStructureViewModel(editor: Editor?): StructureViewModel {
-                return LuaStructureViewModel(psiFile as LuaFile)
-            }
+    override fun getStructureViewBuilder(psiFile: PsiFile): StructureViewBuilder =
+        object : TreeBasedStructureViewBuilder() {
+            override fun createStructureViewModel(editor: Editor?): StructureViewModel =
+                LuaStructureViewModel(psiFile as LuaFile)
         }
-    }
 }

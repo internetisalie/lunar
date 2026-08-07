@@ -10,7 +10,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class LuaToolProbeTest {
-
     private val probe = LuaToolProbeImpl()
 
     // TC 1: Fake `lua` binary printing `Lua 5.4.6  Copyright (C) 1994-2023 Lua.org, PUC-Rio` on stdout
@@ -166,7 +165,9 @@ class LuaToolProbeTest {
 
     // TC 9: Path that does not exist
     @Test
-    fun testProcessLevelNonExistent_TC9(@TempDir tempDir: Path) {
+    fun testProcessLevelNonExistent_TC9(
+        @TempDir tempDir: Path,
+    ) {
         val nonExistent = tempDir.resolve("does-not-exist")
         val luaKind = LuaToolKindRegistry.findById("lua")!!
         val result = probe.probe(luaKind, nonExistent)
@@ -179,7 +180,9 @@ class LuaToolProbeTest {
 
     // Process-level non-executable
     @Test
-    fun testProcessLevelNonExecutable(@TempDir tempDir: Path) {
+    fun testProcessLevelNonExecutable(
+        @TempDir tempDir: Path,
+    ) {
         val file = tempDir.resolve("not-executable")
         Files.writeString(file, "some content")
         file.toFile().setWritable(true)

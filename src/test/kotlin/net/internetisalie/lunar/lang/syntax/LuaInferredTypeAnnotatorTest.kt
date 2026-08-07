@@ -26,21 +26,29 @@ import org.junit.jupiter.api.Test
  * requires `@class` tags to be resolved via [LuaClassNameIndex], which needs the stub index.
  */
 class LuaInferredTypeAnnotatorTest : IndexedDocumentTest() {
-
     // ── helpers ─────────────────────────────────────────────────────────────────
 
-    private fun highlightedKey(text: String, expectedKey: TextAttributesKey): Boolean {
+    private fun highlightedKey(
+        text: String,
+        expectedKey: TextAttributesKey,
+    ): Boolean {
         val infos = myFixture.doHighlighting(HighlightSeverity.TEXT_ATTRIBUTES)
         return infos.any { it.forcedTextAttributesKey == expectedKey && it.text == text }
     }
 
-    private fun assertKey(code: String, identifierText: String, expectedKey: TextAttributesKey) {
+    private fun assertKey(
+        code: String,
+        identifierText: String,
+        expectedKey: TextAttributesKey,
+    ) {
         myFixture.configureByText(LuaFileType, code)
         val found = highlightedKey(identifierText, expectedKey)
         if (!found) {
-            val all = myFixture.doHighlighting(HighlightSeverity.TEXT_ATTRIBUTES)
-                .filter { it.text == identifierText }
-                .map { "${it.text}=${it.forcedTextAttributesKey?.externalName}" }
+            val all =
+                myFixture
+                    .doHighlighting(HighlightSeverity.TEXT_ATTRIBUTES)
+                    .filter { it.text == identifierText }
+                    .map { "${it.text}=${it.forcedTextAttributesKey?.externalName}" }
             assert(false) {
                 "Expected '$identifierText' to carry ${expectedKey.externalName}. " +
                     "Actual attributes for this text: $all"
@@ -110,9 +118,10 @@ class LuaInferredTypeAnnotatorTest : IndexedDocumentTest() {
         )
         val infos = myFixture.doHighlighting(HighlightSeverity.TEXT_ATTRIBUTES)
         // Find a highlight for "data" at the read site (last occurrence)
-        val fieldHighlight = infos.lastOrNull {
-            it.text == "data" && it.forcedTextAttributesKey == LuaHighlight.INFERRED_FIELD
-        }
+        val fieldHighlight =
+            infos.lastOrNull {
+                it.text == "data" && it.forcedTextAttributesKey == LuaHighlight.INFERRED_FIELD
+            }
         assertNotNull(fieldHighlight) {
             val allData = infos.filter { it.text == "data" }.map { "${it.forcedTextAttributesKey?.externalName}" }
             "Expected 'data' to carry INFERRED_FIELD. Got: $allData"
@@ -138,9 +147,10 @@ class LuaInferredTypeAnnotatorTest : IndexedDocumentTest() {
             """.trimIndent(),
         )
         val infos = myFixture.doHighlighting(HighlightSeverity.TEXT_ATTRIBUTES)
-        val methodHighlight = infos.lastOrNull {
-            it.text == "func" && it.forcedTextAttributesKey == LuaHighlight.INFERRED_METHOD
-        }
+        val methodHighlight =
+            infos.lastOrNull {
+                it.text == "func" && it.forcedTextAttributesKey == LuaHighlight.INFERRED_METHOD
+            }
         assertNotNull(methodHighlight) {
             val all = infos.filter { it.text == "func" }.map { "${it.forcedTextAttributesKey?.externalName}" }
             "Expected 'func' to carry INFERRED_METHOD. Got: $all"

@@ -31,14 +31,19 @@ import java.nio.file.Files
  * root set, and the rescan that announcement schedules has to finish before anything is indexed.
  */
 abstract class LibraryRootTestCase : BasePlatformTestCase() {
-
-    private class LibraryRootProvider(private val root: VirtualFile) : AdditionalLibraryRootsProvider() {
+    private class LibraryRootProvider(
+        private val root: VirtualFile,
+    ) : AdditionalLibraryRootsProvider() {
         override fun getAdditionalProjectLibraries(project: Project): Collection<SyntheticLibrary> =
-            listOf(object : SyntheticLibrary() {
-                override fun getSourceRoots(): Collection<VirtualFile> = listOf(root)
-                override fun equals(other: Any?): Boolean = other === this
-                override fun hashCode(): Int = root.hashCode()
-            })
+            listOf(
+                object : SyntheticLibrary() {
+                    override fun getSourceRoots(): Collection<VirtualFile> = listOf(root)
+
+                    override fun equals(other: Any?): Boolean = other === this
+
+                    override fun hashCode(): Int = root.hashCode()
+                },
+            )
 
         override fun getRootsToWatch(project: Project): Collection<VirtualFile> = listOf(root)
     }
@@ -66,9 +71,10 @@ abstract class LibraryRootTestCase : BasePlatformTestCase() {
             target.writeText(content)
         }
         VfsRootAccess.allowRootAccess(testRootDisposable, dir.absolutePath)
-        val virtual = checkNotNull(VfsUtil.findFileByIoFile(library, true)) {
-            "library tree not visible to the VFS at ${library.absolutePath}"
-        }
+        val virtual =
+            checkNotNull(VfsUtil.findFileByIoFile(library, true)) {
+                "library tree not visible to the VFS at ${library.absolutePath}"
+            }
         VfsUtil.markDirtyAndRefresh(false, true, true, virtual)
         return virtual
     }

@@ -17,8 +17,9 @@ import net.internetisalie.lunar.run.LuaExpressionRange
  * The "expression under the cursor" range is reused from the shared [LuaExpressionRange] (extracted
  * from `run/LuaDebuggerEvaluator` per design §2.6 — no duplicated algorithm).
  */
-class LuaLdbEvaluator(private val evalHost: LuaLdbEvalHost) : XDebuggerEvaluator() {
-
+class LuaLdbEvaluator(
+    private val evalHost: LuaLdbEvalHost,
+) : XDebuggerEvaluator() {
     override fun evaluate(
         expression: String,
         callback: XEvaluationCallback,

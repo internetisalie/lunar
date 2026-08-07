@@ -22,7 +22,6 @@ import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
  *   ([LuaToolResolver.resolve]) → `null` (no hardcoded default; contract §3 step 5).
  */
 object LuaRocksEnvironment {
-
     /**
      * Returns the effective registry server URL for [project], or `null` if nothing is configured.
      * A `null` result means callers must NOT append `--server`; the luarocks CLI falls back to
@@ -35,12 +34,18 @@ object LuaRocksEnvironment {
      */
     fun resolveServer(project: Project?): String? {
         if (project != null) {
-            val projectUrl = LuaProjectSettings.getInstance(project).state.rocksServerUrl.trim()
+            val projectUrl =
+                LuaProjectSettings
+                    .getInstance(project)
+                    .state.rocksServerUrl
+                    .trim()
             if (projectUrl.isNotBlank()) return projectUrl
         }
-        val appUrl = LuaToolchainRegistry.getInstance()
-            .kindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL)
-            .trim()
+        val appUrl =
+            LuaToolchainRegistry
+                .getInstance()
+                .kindOption(LuaKindOptionKeys.LUAROCKS_SERVER_URL)
+                .trim()
         return if (appUrl.isNotBlank()) appUrl else null
     }
 
@@ -49,8 +54,7 @@ object LuaRocksEnvironment {
      * resolves. There is no hardcoded default (contract §3 step 5); a `null` result surfaces a
      * kind-specific configure hint at each call site (design §3.3).
      */
-    fun resolveExecutable(project: Project?): String? =
-        LuaToolResolver.getInstance().resolve(project, "luarocks")?.path
+    fun resolveExecutable(project: Project?): String? = LuaToolResolver.getInstance().resolve(project, "luarocks")?.path
 
     /**
      * Returns [args] with `["--server", server]` prepended after the executable when [server]
@@ -60,8 +64,10 @@ object LuaRocksEnvironment {
      * [args] is expected to start with the subcommand (e.g. `["search", "--porcelain", "x"]`).
      * The caller holds the executable separately; `--server` is injected at index 0 of args.
      */
-    fun withServer(args: List<String>, server: String?): List<String> =
-        if (server.isNullOrBlank()) args else listOf("--server", server) + args
+    fun withServer(
+        args: List<String>,
+        server: String?,
+    ): List<String> = if (server.isNullOrBlank()) args else listOf("--server", server) + args
 
     /**
      * MAINT-30-03 (§2.6): the single builder for the plain effective luarocks command line
@@ -72,7 +78,10 @@ object LuaRocksEnvironment {
      * Out of scope: command shapes that are not `GeneralCommandLine(exe, *subArgs)` — the run-config's
      * user command list and the upload command (`RockUploadCommand`) build their own forms (§2.6).
      */
-    fun command(project: Project?, subArgs: List<String>): GeneralCommandLine? {
+    fun command(
+        project: Project?,
+        subArgs: List<String>,
+    ): GeneralCommandLine? {
         val exe = resolveExecutable(project) ?: return null
         val args = withServer(subArgs, resolveServer(project))
         return GeneralCommandLine(exe, *args.toTypedArray())

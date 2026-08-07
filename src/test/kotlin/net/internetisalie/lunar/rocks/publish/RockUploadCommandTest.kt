@@ -7,7 +7,6 @@ import kotlin.test.assertTrue
 
 /** TC-ROCKS-08-04 + TC 5, TC 6: `luarocks upload` command-line assembly (design §4, §2.5). */
 class RockUploadCommandTest {
-
     // ── Pre-ROCKS-06 baseline (regression guards) ────────────────────────────
 
     @Test
@@ -57,7 +56,13 @@ class RockUploadCommandTest {
 
     @Test
     fun buildWithServerPassesServerInParameters() {
-        val command = RockUploadCommand.build("/usr/bin/luarocks", "foo.rockspec", "K", server = "http://localhost:8080")
+        val command =
+            RockUploadCommand.build(
+                "/usr/bin/luarocks",
+                "foo.rockspec",
+                "K",
+                server = "http://localhost:8080",
+            )
         val params = command.parametersList.list
         assertTrue(params.contains("--server"))
         assertTrue(params.contains("http://localhost:8080"))

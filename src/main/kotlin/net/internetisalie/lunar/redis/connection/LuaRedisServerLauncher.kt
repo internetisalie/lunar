@@ -35,15 +35,16 @@ internal class LaunchSeams(
     val allocatePort: () -> Int,
 )
 
-private fun defaultSeams(): LaunchSeams = LaunchSeams(
-    resolveToolPath = { project, kindId ->
-        LuaToolResolver.getInstance().resolve(project, kindId)?.path
-    },
-    resolveDockerPath = {
-        PathEnvironmentVariableUtil.findInPath("docker")?.absolutePath
-    },
-    allocatePort = { NetUtils.findAvailableSocketPort() },
-)
+private fun defaultSeams(): LaunchSeams =
+    LaunchSeams(
+        resolveToolPath = { project, kindId ->
+            LuaToolResolver.getInstance().resolve(project, kindId)?.path
+        },
+        resolveDockerPath = {
+            PathEnvironmentVariableUtil.findInPath("docker")?.absolutePath
+        },
+        allocatePort = { NetUtils.findAvailableSocketPort() },
+    )
 
 /**
  * Starts/stops a session-scoped Redis/Valkey server for [LuaRedisProvisioning.LocalBinary] or
@@ -61,7 +62,6 @@ class LuaRedisServerLauncher internal constructor(
     private val project: Project,
     private val seams: LaunchSeams,
 ) {
-
     /** Production constructor: uses the real tool resolver, PATH scanner, and [NetUtils] port allocation. */
     constructor(project: Project) : this(project, defaultSeams())
 
@@ -72,21 +72,23 @@ class LuaRedisServerLauncher internal constructor(
      * Throws [ExecutionException] when the required binary or Docker executable cannot be located.
      * Must be called on a pooled coroutine — never the EDT (engineering contract §1).
      */
-    suspend fun launch(provisioning: LuaRedisProvisioning): LaunchedServer = when (provisioning) {
-        is LuaRedisProvisioning.LocalBinary -> launchBinary(provisioning)
-        is LuaRedisProvisioning.Docker -> launchDocker(provisioning)
-        is LuaRedisProvisioning.Remote ->
-            throw IllegalArgumentException(
-                "Remote provisioning does not start a local server; resolve host/port from the connection directly."
-            )
-    }
+    suspend fun launch(provisioning: LuaRedisProvisioning): LaunchedServer =
+        when (provisioning) {
+            is LuaRedisProvisioning.LocalBinary -> launchBinary(provisioning)
+            is LuaRedisProvisioning.Docker -> launchDocker(provisioning)
+            is LuaRedisProvisioning.Remote ->
+                throw IllegalArgumentException(
+                    "Remote provisioning does not start a local server; resolve host/port from the connection directly.",
+                )
+        }
 
     private fun launchBinary(provisioning: LuaRedisProvisioning.LocalBinary): LaunchedServer {
-        val binaryPath = seams.resolveToolPath(project, provisioning.toolKindId)
-            ?: throw ExecutionException(
-                "Redis/Valkey server binary not found — register it under " +
-                    "Settings | Languages & Frameworks | Lua | Toolchain, or use Docker."
-            )
+        val binaryPath =
+            seams.resolveToolPath(project, provisioning.toolKindId)
+                ?: throw ExecutionException(
+                    "Redis/Valkey server binary not found — register it under " +
+                        "Settings | Languages & Frameworks | Lua | Toolchain, or use Docker.",
+                )
         val freePort = seams.allocatePort()
         val commandLine = buildBinaryCommandLine(binaryPath, freePort)
         log.info("Launching Redis server: ${commandLine.commandLineString}")
@@ -97,11 +99,12 @@ class LuaRedisServerLauncher internal constructor(
     }
 
     private fun launchDocker(provisioning: LuaRedisProvisioning.Docker): LaunchedServer {
-        val dockerPath = seams.resolveDockerPath()
-            ?: throw ExecutionException(
-                "Docker is not available on PATH. Install Docker Desktop or a Docker CLI " +
-                    "and ensure it is on the system PATH."
-            )
+        val dockerPath =
+            seams.resolveDockerPath()
+                ?: throw ExecutionException(
+                    "Docker is not available on PATH. Install Docker Desktop or a Docker CLI " +
+                        "and ensure it is on the system PATH.",
+                )
         val freePort = seams.allocatePort()
         val commandLine = buildDockerCommandLine(dockerPath, provisioning.image, freePort)
         log.info("Launching Redis Docker container: ${commandLine.commandLineString}")
@@ -118,7 +121,11 @@ class LuaRedisServerLauncher internal constructor(
 
     private fun readContainerId(handler: OSProcessHandler): String {
         handler.waitFor(5_000)
-        return handler.process.inputStream.bufferedReader().readLine().orEmpty().trim()
+        return handler.process.inputStream
+            .bufferedReader()
+            .readLine()
+            .orEmpty()
+            .trim()
     }
 
     private fun stopHandler(handler: OSProcessHandler) {
@@ -131,7 +138,10 @@ class LuaRedisServerLauncher internal constructor(
         }
     }
 
-    private fun stopDockerContainer(dockerPath: String, containerId: String) {
+    private fun stopDockerContainer(
+        dockerPath: String,
+        containerId: String,
+    ) {
         if (containerId.isBlank()) return
         try {
             Runtime.getRuntime().exec(arrayOf(dockerPath, "rm", "-f", containerId)).waitFor()
@@ -149,8 +159,10 @@ class LuaRedisServerLauncher internal constructor(
  * Extracted as a package-internal function so [TestLuaRedisServerLauncher] can assert the
  * command-line shape (TC-LAUNCH-1) without spawning a real process.
  */
-internal fun buildBinaryCommandLine(binaryPath: String, port: Int): GeneralCommandLine =
-    GeneralCommandLine(binaryPath, "--port", port.toString(), "--save", "")
+internal fun buildBinaryCommandLine(
+    binaryPath: String,
+    port: Int,
+): GeneralCommandLine = GeneralCommandLine(binaryPath, "--port", port.toString(), "--save", "")
 
 /**
  * Builds the [GeneralCommandLine] for a Docker-based Redis/Valkey container (design §3.9).
@@ -160,5 +172,8 @@ internal fun buildBinaryCommandLine(binaryPath: String, port: Int): GeneralComma
  * Extracted as a package-internal function so [TestLuaRedisServerLauncher] can assert the
  * command-line shape (TC-LAUNCH-2) without spawning a real container.
  */
-internal fun buildDockerCommandLine(dockerPath: String, image: String, port: Int): GeneralCommandLine =
-    GeneralCommandLine(dockerPath, "run", "--rm", "-d", "-p", "$port:6379", image)
+internal fun buildDockerCommandLine(
+    dockerPath: String,
+    image: String,
+    port: Int,
+): GeneralCommandLine = GeneralCommandLine(dockerPath, "run", "--rm", "-d", "-p", "$port:6379", image)

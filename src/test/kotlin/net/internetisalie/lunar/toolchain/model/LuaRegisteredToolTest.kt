@@ -4,9 +4,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class LuaRegisteredToolTest {
-
-    private fun createTool(fileExists: Boolean, executable: Boolean, probeOk: Boolean?): LuaRegisteredTool {
-        return LuaRegisteredTool(
+    private fun createTool(
+        fileExists: Boolean,
+        executable: Boolean,
+        probeOk: Boolean?,
+    ): LuaRegisteredTool =
+        LuaRegisteredTool(
             id = "test-id",
             kindId = "lua",
             path = "/usr/bin/lua",
@@ -15,15 +18,15 @@ class LuaRegisteredToolTest {
             runtime = null,
             origin = Origin.MANUAL,
             environmentId = null,
-            health = LuaToolHealth(
-                fileExists = fileExists,
-                executable = executable,
-                probeOk = probeOk,
-                probedAtMtime = 123456789L,
-                reason = "OK"
-            )
+            health =
+                LuaToolHealth(
+                    fileExists = fileExists,
+                    executable = executable,
+                    probeOk = probeOk,
+                    probedAtMtime = 123456789L,
+                    reason = "OK",
+                ),
         )
-    }
 
     @Test
     fun testIsUsableTruthTable() {

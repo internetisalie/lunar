@@ -11,7 +11,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaLabelRenameTest : BasePlatformTestCase() {
-
     @Test
     fun testNameIdentifierOwner() {
         myFixture.configureByText("test.lua", "::lbl::")
@@ -41,37 +40,49 @@ class LuaLabelRenameTest : BasePlatformTestCase() {
 
     @Test
     fun testRenameFromDeclaration() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::<caret>myLabel::
             goto myLabel
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         myFixture.renameElementAtCaret("newLabel")
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             ::newLabel::
             goto newLabel
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testRenameFromReference() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::myLabel::
             goto my<caret>Label
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         myFixture.renameElementAtCaret("newLabel")
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             ::newLabel::
             goto newLabel
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 
     @Test
     fun testScopeIsolatedRename() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             function a()
                 ::<caret>L::
                 goto L
@@ -80,11 +91,13 @@ class LuaLabelRenameTest : BasePlatformTestCase() {
                 ::L::
                 goto L
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
 
         myFixture.renameElementAtCaret("L2")
 
-        myFixture.checkResult("""
+        myFixture.checkResult(
+            """
             function a()
                 ::L2::
                 goto L2
@@ -93,6 +106,7 @@ class LuaLabelRenameTest : BasePlatformTestCase() {
                 ::L::
                 goto L
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 }

@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class LuaToolExecutionServiceTest : BasePlatformTestCase() {
-
     private val service = LuaToolExecutionService()
 
     private fun sh(script: String): GeneralCommandLine = GeneralCommandLine("/bin/sh", "-c", script)
@@ -23,7 +22,11 @@ class LuaToolExecutionServiceTest : BasePlatformTestCase() {
 
     private class RecordingListener : ProcessListener {
         val text = StringBuilder()
-        override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+
+        override fun onTextAvailable(
+            event: ProcessEvent,
+            outputType: Key<*>,
+        ) {
             synchronized(text) { text.append(event.text) }
         }
     }
@@ -73,10 +76,11 @@ class LuaToolExecutionServiceTest : BasePlatformTestCase() {
     // TC 6
     fun testCaptureCancelledViaIndicator() {
         val indicator = EmptyProgressIndicator()
-        val canceller = Thread {
-            Thread.sleep(200)
-            indicator.cancel()
-        }
+        val canceller =
+            Thread {
+                Thread.sleep(200)
+                indicator.cancel()
+            }
         val started = System.currentTimeMillis()
         canceller.start()
         val result = onPooledThread { service.capture(sh("sleep 5"), LuaExecTimeout.COMMAND, indicator = indicator) }
@@ -130,9 +134,10 @@ class LuaToolExecutionServiceTest : BasePlatformTestCase() {
 
     // MAINT-32 TC-01: read-lock-held call offloads the process to a pooled thread and completes.
     fun testCaptureUnderReadLockOffloadsToPool() {
-        val result = onPooledThread {
-            ApplicationManager.getApplication().runReadAction(Computable { service.capture(sh("echo x")) })
-        }
+        val result =
+            onPooledThread {
+                ApplicationManager.getApplication().runReadAction(Computable { service.capture(sh("echo x")) })
+            }
         assertEquals(LuaExecOutcome.COMPLETED, result.outcome)
         assertEquals("x\n", result.stdout)
     }
@@ -164,15 +169,17 @@ class LuaToolExecutionServiceTest : BasePlatformTestCase() {
     fun testStreamCancelledViaIndicatorDestroysProcess() {
         val listener = RecordingListener()
         val indicator = EmptyProgressIndicator()
-        val canceller = Thread {
-            Thread.sleep(200)
-            indicator.cancel()
-        }
+        val canceller =
+            Thread {
+                Thread.sleep(200)
+                indicator.cancel()
+            }
         val started = System.currentTimeMillis()
         canceller.start()
-        val result = onPooledThread {
-            service.stream(sh("sleep 5"), listener, LuaExecTimeout.INSTALL, indicator = indicator)
-        }
+        val result =
+            onPooledThread {
+                service.stream(sh("sleep 5"), listener, LuaExecTimeout.INSTALL, indicator = indicator)
+            }
         val elapsed = System.currentTimeMillis() - started
         assertEquals(LuaExecOutcome.CANCELLED, result.outcome)
         assertTrue("expected prompt cancellation, took ${elapsed}ms", elapsed < 4_000)
@@ -180,9 +187,10 @@ class LuaToolExecutionServiceTest : BasePlatformTestCase() {
 
     // TC 23
     fun testCaptureWritesStdin() {
-        val result = onPooledThread {
-            service.capture(GeneralCommandLine("cat"), LuaExecTimeout.COMMAND, stdin = "return 1\n")
-        }
+        val result =
+            onPooledThread {
+                service.capture(GeneralCommandLine("cat"), LuaExecTimeout.COMMAND, stdin = "return 1\n")
+            }
         assertEquals(LuaExecOutcome.COMPLETED, result.outcome)
         assertEquals("return 1\n", result.output.stdout)
     }

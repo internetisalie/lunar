@@ -22,14 +22,14 @@ import kotlin.io.path.writeText
  * `findByPath` consults `LocalFileSystem` only, so a `temp://` fixture path resolves nothing.
  */
 class LuaSourcePathModuleResolutionTest : BaseDocumentTest() {
-
     @TempDir
     lateinit var moduleRoot: Path
 
     private fun resolveRequire(moduleName: String): Boolean {
         myFixture.configureByText(LuaFileType, "local m = require(\"$moduleName\")\n")
         return runReadAction {
-            PsiTreeUtil.findChildrenOfType(myFixture.file, LuaTerminalExpr::class.java)
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaTerminalExpr::class.java)
                 .flatMap { it.references.toList() }
                 .filterIsInstance<LuaRequireReference>()
                 .any { it.resolve() != null }

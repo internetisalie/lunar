@@ -16,7 +16,6 @@ import java.nio.file.Path
  * All methods are pure — callable from any thread; [resolveTargetTree] reads only `project.basePath`.
  */
 object LuaRocksInstallCommand {
-
     /**
      * Resolves the canonical install/uninstall target tree for [project], or `null` when no
      * project rock tree exists (the caller then renders the no-tree hint and disables Install).
@@ -27,15 +26,22 @@ object LuaRocksInstallCommand {
      * Builds `["install", "--tree", <root>, <name>, <version?>]`. The `--tree <root>` pair precedes
      * the package name; [version] is appended last only when non-null and non-blank (design §3.1).
      */
-    fun buildInstallArgs(treeRoot: Path, name: String, version: String?): List<String> = buildList {
-        add("install")
-        add("--tree")
-        add(treeRoot.toString())
-        add(name)
-        if (!version.isNullOrBlank()) add(version)
-    }
+    fun buildInstallArgs(
+        treeRoot: Path,
+        name: String,
+        version: String?,
+    ): List<String> =
+        buildList {
+            add("install")
+            add("--tree")
+            add(treeRoot.toString())
+            add(name)
+            if (!version.isNullOrBlank()) add(version)
+        }
 
     /** Builds `["remove", "--tree", <root>, <name>]` (design §3.1). */
-    fun buildRemoveArgs(treeRoot: Path, name: String): List<String> =
-        listOf("remove", "--tree", treeRoot.toString(), name)
+    fun buildRemoveArgs(
+        treeRoot: Path,
+        name: String,
+    ): List<String> = listOf("remove", "--tree", treeRoot.toString(), name)
 }

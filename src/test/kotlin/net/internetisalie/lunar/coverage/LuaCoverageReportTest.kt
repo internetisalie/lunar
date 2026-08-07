@@ -21,17 +21,17 @@ import org.junit.Test
 import java.io.File
 
 class LuaCoverageReportTest : BasePlatformTestCase() {
-
     @Test
     fun testLexer() {
-        val reportText = """
+        val reportText =
+            """
             ==============================================================================
             initrd/usr/bin/tests.lua
             ==============================================================================
                  -- comment line
                1 local test_modules = {}
             ***0 local fs = require("runtime.fs")
-        """.trimIndent()
+            """.trimIndent()
 
         val lexer = LuaCovReportLexer()
         lexer.start(reportText, 0, reportText.length)
@@ -43,28 +43,28 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
         }
 
         assertTrue(tokens.isNotEmpty())
-        
+
         // 1st token: HEADER_BOUNDARY
         assertTrue(tokens[0].startsWith("HEADER_BOUNDARY"))
-        
+
         // 2nd token: NEWLINE
         assertTrue(tokens[1].startsWith("NEWLINE"))
-        
+
         // 3rd token: FILE_PATH
         assertTrue(tokens[2].startsWith("FILE_PATH: 'initrd/usr/bin/tests.lua'"))
-        
+
         // 4th token: NEWLINE
         assertTrue(tokens[3].startsWith("NEWLINE"))
-        
+
         // 5th token: HEADER_BOUNDARY
         assertTrue(tokens[4].startsWith("HEADER_BOUNDARY"))
-        
+
         // 6th token: NEWLINE
         assertTrue(tokens[5].startsWith("NEWLINE"))
-        
+
         // 7th token: HIT_NONE: '     '
         assertTrue(tokens[6].startsWith("HIT_NONE: '     '"))
-        
+
         // 8th token: LUA_CODE: '-- comment line'
         assertTrue(tokens[7].startsWith("LUA_CODE: '-- comment line'"))
     }
@@ -74,14 +74,15 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
         // luacov pads the hit-count column to its width, so the uncovered marker is a
         // variable-length run of asterisks (***0, ****0, ...). Every width must lex to
         // HIT_UNCOVERED so the report viewer paints it red, not grey.
-        val reportText = """
+        val reportText =
+            """
             ==============================================================================
             src/widths.lua
             ==============================================================================
             ***0 local three = 1
             ****0 local four = 2
               10 local covered = 3
-        """.trimIndent()
+            """.trimIndent()
 
         val lexer = LuaCovReportLexer()
         lexer.start(reportText, 0, reportText.length)
@@ -108,7 +109,8 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
 
     @Test
     fun testParserIntegration() {
-        val reportContent = """
+        val reportContent =
+            """
             ==============================================================================
             initrd/usr/bin/tests.lua
             ==============================================================================
@@ -116,7 +118,7 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
                2 local test_modules = {}
             ***0 local fs = require("runtime.fs")
               12 for line in p:lines() do
-        """.trimIndent()
+            """.trimIndent()
 
         val tempFile = File.createTempFile("luacov.report", "out")
         try {
@@ -142,7 +144,7 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
     @Test
     fun testNotificationProvider() {
         val provider = LuaCovReportNotificationProvider()
-        
+
         // Test non-report file
         val txtFile = myFixture.configureByText("dummy.txt", "hello")
         val txtPanelFun = provider.collectNotificationData(project, txtFile.virtualFile)
@@ -150,7 +152,7 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
 
         // Test report file
         val reportFile = myFixture.configureByText("luacov.report.out", "=======\ntests.lua\n=======\n")
-        
+
         // Check file type is registered correctly
         assertEquals(LuaCovReportFileType, reportFile.virtualFile.fileType)
 
@@ -180,13 +182,14 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
 
     @Test
     fun testLexerCoveredVsUncoveredPrefixes() {
-        val reportText = """
+        val reportText =
+            """
             ==============================================================================
             src/prefixes.lua
             ==============================================================================
             ***0 local uncovered = 1
               10 local covered = 2
-        """.trimIndent()
+            """.trimIndent()
 
         val lexer = LuaCovReportLexer()
         lexer.start(reportText, 0, reportText.length)
@@ -209,11 +212,12 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
 
     @Test
     fun testLexerStateRoundTrip() {
-        val reportText = """
+        val reportText =
+            """
             ==============================================================================
             src/state.lua
             ==============================================================================
-        """.trimIndent()
+            """.trimIndent()
 
         val lexer = LuaCovReportLexer()
         lexer.start(reportText, 0, reportText.length)
@@ -245,7 +249,10 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
         assertEquals(LuaCovReportHighlight.HEADER, highlighter.getTokenHighlights(LuaCovReportLexer.HEADER_BOUNDARY)[0])
         assertEquals(LuaCovReportHighlight.FILE_PATH, highlighter.getTokenHighlights(LuaCovReportLexer.FILE_PATH)[0])
         assertEquals(LuaCovReportHighlight.COVERED, highlighter.getTokenHighlights(LuaCovReportLexer.HIT_COVERED)[0])
-        assertEquals(LuaCovReportHighlight.UNCOVERED, highlighter.getTokenHighlights(LuaCovReportLexer.HIT_UNCOVERED)[0])
+        assertEquals(
+            LuaCovReportHighlight.UNCOVERED,
+            highlighter.getTokenHighlights(LuaCovReportLexer.HIT_UNCOVERED)[0],
+        )
 
         assertEquals(0, highlighter.getTokenHighlights(LuaCovReportLexer.LUA_CODE).size)
         assertEquals(0, highlighter.getTokenHighlights(LuaCovReportLexer.NEWLINE).size)
@@ -262,8 +269,9 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
     @Test
     fun testLayeredEditorHighlighter() {
         val scheme = EditorColorsManager.getInstance().globalScheme
-        val highlighter = LuaCovReportEditorHighlighterProvider()
-            .getEditorHighlighter(project, LuaCovReportFileType, null, scheme)
+        val highlighter =
+            LuaCovReportEditorHighlighterProvider()
+                .getEditorHighlighter(project, LuaCovReportFileType, null, scheme)
 
         assertTrue(highlighter is LayeredLexerEditorHighlighter)
         assertTrue(highlighter is LuaCovReportEditorHighlighter)
@@ -275,9 +283,11 @@ class LuaCoverageReportTest : BasePlatformTestCase() {
         val reportFile = myFixture.configureByText("luacov.report.out", "=======\ntests.lua\n=======\n")
         assertNotNull(provider.collectNotificationData(project, reportFile.virtualFile))
 
-        val dismissedField = LuaCovReportNotificationProvider::class.java
-            .getDeclaredField("DISMISSED_KEY")
-            .apply { isAccessible = true }
+        val dismissedField =
+            LuaCovReportNotificationProvider::class.java
+                .getDeclaredField("DISMISSED_KEY")
+                .apply { isAccessible = true }
+
         @Suppress("UNCHECKED_CAST")
         val dismissedKey = dismissedField.get(null) as Key<Boolean>
         reportFile.virtualFile.putUserData(dismissedKey, true)

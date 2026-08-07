@@ -106,135 +106,125 @@ class LuaColorSettingsPage : ColorSettingsPage {
         <global>a</global> = "BAD
         """
 
-    private val attributeDescriptors: Array<AttributesDescriptor> = setOf(
-        Pair("color.number", LuaHighlight.NUMBER),
-        Pair("color.string", LuaHighlight.STRING),
-        Pair("color.longstring", LuaHighlight.LONGSTRING),
-        Pair("color.keyword", LuaHighlight.KEYWORD),
-        Pair("color.constant.keywords", LuaHighlight.DEFINED_CONSTANTS),
-        Pair("color.comment", LuaHighlight.COMMENT),
-        Pair("color.longcomment", LuaHighlight.LONGCOMMENT),
-        Pair("color.longstring.braces", LuaHighlight.LONGSTRING_BRACES),
-        Pair("color.longcomment.braces", LuaHighlight.LONGCOMMENT_BRACES),
-        Pair("color.operation", LuaHighlight.OPERATORS),
-        Pair("color.brackets", LuaHighlight.BRACKETS),
-        Pair("color.parenths", LuaHighlight.PARENTHESES),
-        Pair("color.braces", LuaHighlight.BRACES),
-        Pair("color.comma", LuaHighlight.COMMA),
-        Pair("color.semi", LuaHighlight.SEMI),
-        Pair("color.bad_character", LuaHighlight.BAD_CHARACTER),
-        // Docs
-        Pair("color.luacats", LuaCatsHighlight.CONTENT),
-        Pair("color.luacats.tag", LuaCatsHighlight.TAG),
-        Pair("color.luacats.keyword", LuaCatsHighlight.KEYWORD),
-        Pair("color.luacats.value", LuaCatsHighlight.VALUE),
-        Pair("color.luacats.type", LuaCatsHighlight.TYPE),
-        Pair("color.luacats.name", LuaCatsHighlight.NAME),
-        Pair("color.luacats.symbol", LuaCatsHighlight.SYMBOL),
-        Pair("color.luacats.brackets", LuaCatsHighlight.BRACKETS),
-        Pair("color.luacats.deprecated", LuaCatsHighlight.DEPRECATED),
-        // Identifiers
-        Pair("color.platform", LuaHighlight.VAR_PLATFORM),
-        Pair("color.globals", LuaHighlight.VAR_GLOBAL),
-        Pair("color.locals", LuaHighlight.VAR_LOCAL),
-        Pair("color.field", LuaHighlight.FIELD),
-        Pair("color.parameter", LuaHighlight.PARAMETER),
-        Pair("color.upvalue", LuaHighlight.VAR_UP_VALUE),
-        Pair("color.shadowed", LuaHighlight.VAR_SHADOWED),
-        Pair("color.label", LuaHighlight.LABEL),
-        Pair("color.package", LuaHighlight.PACKAGE),
-        Pair("color.func.platform", LuaHighlight.FUNC_PLATFORM),
-        Pair("color.func.global", LuaHighlight.FUNC_GLOBAL),
-        Pair("color.func.local", LuaHighlight.FUNC_LOCAL),
-        Pair("color.call.platform", LuaHighlight.CALL_PLATFORM),
-        Pair("color.call.global", LuaHighlight.CALL_GLOBAL),
-        Pair("color.call.local", LuaHighlight.CALL_LOCAL),
-        Pair("color.attrib", LuaHighlight.ATTRIB_NAME),
-        Pair("color.inferred.localCall", LuaHighlight.INFERRED_LOCAL_CALL),
-        Pair("color.inferred.globalCall", LuaHighlight.INFERRED_GLOBAL_CALL),
-        Pair("color.inferred.class", LuaHighlight.INFERRED_CLASS),
-        Pair("color.inferred.field", LuaHighlight.INFERRED_FIELD),
-        Pair("color.inferred.method", LuaHighlight.INFERRED_METHOD),
-    )
-        .map { pair: Pair<String, TextAttributesKey> ->
+    private val attributeDescriptors: Array<AttributesDescriptor> =
+        setOf(
+            Pair("color.number", LuaHighlight.NUMBER),
+            Pair("color.string", LuaHighlight.STRING),
+            Pair("color.longstring", LuaHighlight.LONGSTRING),
+            Pair("color.keyword", LuaHighlight.KEYWORD),
+            Pair("color.constant.keywords", LuaHighlight.DEFINED_CONSTANTS),
+            Pair("color.comment", LuaHighlight.COMMENT),
+            Pair("color.longcomment", LuaHighlight.LONGCOMMENT),
+            Pair("color.longstring.braces", LuaHighlight.LONGSTRING_BRACES),
+            Pair("color.longcomment.braces", LuaHighlight.LONGCOMMENT_BRACES),
+            Pair("color.operation", LuaHighlight.OPERATORS),
+            Pair("color.brackets", LuaHighlight.BRACKETS),
+            Pair("color.parenths", LuaHighlight.PARENTHESES),
+            Pair("color.braces", LuaHighlight.BRACES),
+            Pair("color.comma", LuaHighlight.COMMA),
+            Pair("color.semi", LuaHighlight.SEMI),
+            Pair("color.bad_character", LuaHighlight.BAD_CHARACTER),
+            // Docs
+            Pair("color.luacats", LuaCatsHighlight.CONTENT),
+            Pair("color.luacats.tag", LuaCatsHighlight.TAG),
+            Pair("color.luacats.keyword", LuaCatsHighlight.KEYWORD),
+            Pair("color.luacats.value", LuaCatsHighlight.VALUE),
+            Pair("color.luacats.type", LuaCatsHighlight.TYPE),
+            Pair("color.luacats.name", LuaCatsHighlight.NAME),
+            Pair("color.luacats.symbol", LuaCatsHighlight.SYMBOL),
+            Pair("color.luacats.brackets", LuaCatsHighlight.BRACKETS),
+            Pair("color.luacats.deprecated", LuaCatsHighlight.DEPRECATED),
+            // Identifiers
+            Pair("color.platform", LuaHighlight.VAR_PLATFORM),
+            Pair("color.globals", LuaHighlight.VAR_GLOBAL),
+            Pair("color.locals", LuaHighlight.VAR_LOCAL),
+            Pair("color.field", LuaHighlight.FIELD),
+            Pair("color.parameter", LuaHighlight.PARAMETER),
+            Pair("color.upvalue", LuaHighlight.VAR_UP_VALUE),
+            Pair("color.shadowed", LuaHighlight.VAR_SHADOWED),
+            Pair("color.label", LuaHighlight.LABEL),
+            Pair("color.package", LuaHighlight.PACKAGE),
+            Pair("color.func.platform", LuaHighlight.FUNC_PLATFORM),
+            Pair("color.func.global", LuaHighlight.FUNC_GLOBAL),
+            Pair("color.func.local", LuaHighlight.FUNC_LOCAL),
+            Pair("color.call.platform", LuaHighlight.CALL_PLATFORM),
+            Pair("color.call.global", LuaHighlight.CALL_GLOBAL),
+            Pair("color.call.local", LuaHighlight.CALL_LOCAL),
+            Pair("color.attrib", LuaHighlight.ATTRIB_NAME),
+            Pair("color.inferred.localCall", LuaHighlight.INFERRED_LOCAL_CALL),
+            Pair("color.inferred.globalCall", LuaHighlight.INFERRED_GLOBAL_CALL),
+            Pair("color.inferred.class", LuaHighlight.INFERRED_CLASS),
+            Pair("color.inferred.field", LuaHighlight.INFERRED_FIELD),
+            Pair("color.inferred.method", LuaHighlight.INFERRED_METHOD),
+        ).map { pair: Pair<String, TextAttributesKey> ->
             AttributesDescriptor(
                 LuaBundle.message(pair.first),
-                pair.second
+                pair.second,
             )
-        }
-        .toTypedArray()
+        }.toTypedArray()
 
-    private val highlightingTagToDescriptorMap: Map<String, TextAttributesKey> = mapOf(
-        // Annotated Identifiers
-        Pair("undefined", LuaHighlight.REF_UNDEFINED),
-        Pair("platform", LuaHighlight.VAR_PLATFORM),
-        Pair("global", LuaHighlight.VAR_GLOBAL),
-        Pair("local", LuaHighlight.VAR_LOCAL),
-        Pair("field", LuaHighlight.FIELD),
-        Pair("parameter", LuaHighlight.PARAMETER),
-        Pair("upval", LuaHighlight.VAR_UP_VALUE),
-        Pair("label", LuaHighlight.LABEL),
-        Pair("package", LuaHighlight.PACKAGE),
-        Pair("shadowed", LuaHighlight.VAR_SHADOWED),
-        Pair("func-platform", LuaHighlight.FUNC_PLATFORM),
-        Pair("func-global", LuaHighlight.FUNC_GLOBAL),
-        Pair("func-local", LuaHighlight.FUNC_LOCAL),
-        Pair("call-platform", LuaHighlight.CALL_PLATFORM),
-        Pair("call-global", LuaHighlight.CALL_GLOBAL),
-        Pair("call-local", LuaHighlight.CALL_LOCAL),
-        Pair("attrib-name", LuaHighlight.ATTRIB_NAME),
-        Pair("inferred-local-call", LuaHighlight.INFERRED_LOCAL_CALL),
-        Pair("inferred-global-call", LuaHighlight.INFERRED_GLOBAL_CALL),
-        Pair("inferred-class", LuaHighlight.INFERRED_CLASS),
-        Pair("inferred-field", LuaHighlight.INFERRED_FIELD),
-        Pair("inferred-method", LuaHighlight.INFERRED_METHOD),
-        // Docs
-        Pair("documentation", LuaHighlight.DOC_COMMENT),
-        Pair("documentation-tag", LuaHighlight.DOC_TAG),
-        Pair("documentation-value", LuaHighlight.DOC_VALUE),
-        Pair("luacats-tag", LuaCatsHighlight.TAG),
-        Pair("luacats-name", LuaCatsHighlight.NAME),
-        Pair("luacats-type", LuaCatsHighlight.TYPE),
-        Pair("luacats-keyword", LuaCatsHighlight.KEYWORD),
-        Pair("luacats-value", LuaCatsHighlight.VALUE),
-        Pair("luacats-symbol", LuaCatsHighlight.SYMBOL),
-        Pair("string-brackets", LuaHighlight.LONGSTRING_BRACES),
-        Pair("comment-brackets", LuaHighlight.LONGCOMMENT_BRACES),
-    )
+    private val highlightingTagToDescriptorMap: Map<String, TextAttributesKey> =
+        mapOf(
+            // Annotated Identifiers
+            Pair("undefined", LuaHighlight.REF_UNDEFINED),
+            Pair("platform", LuaHighlight.VAR_PLATFORM),
+            Pair("global", LuaHighlight.VAR_GLOBAL),
+            Pair("local", LuaHighlight.VAR_LOCAL),
+            Pair("field", LuaHighlight.FIELD),
+            Pair("parameter", LuaHighlight.PARAMETER),
+            Pair("upval", LuaHighlight.VAR_UP_VALUE),
+            Pair("label", LuaHighlight.LABEL),
+            Pair("package", LuaHighlight.PACKAGE),
+            Pair("shadowed", LuaHighlight.VAR_SHADOWED),
+            Pair("func-platform", LuaHighlight.FUNC_PLATFORM),
+            Pair("func-global", LuaHighlight.FUNC_GLOBAL),
+            Pair("func-local", LuaHighlight.FUNC_LOCAL),
+            Pair("call-platform", LuaHighlight.CALL_PLATFORM),
+            Pair("call-global", LuaHighlight.CALL_GLOBAL),
+            Pair("call-local", LuaHighlight.CALL_LOCAL),
+            Pair("attrib-name", LuaHighlight.ATTRIB_NAME),
+            Pair("inferred-local-call", LuaHighlight.INFERRED_LOCAL_CALL),
+            Pair("inferred-global-call", LuaHighlight.INFERRED_GLOBAL_CALL),
+            Pair("inferred-class", LuaHighlight.INFERRED_CLASS),
+            Pair("inferred-field", LuaHighlight.INFERRED_FIELD),
+            Pair("inferred-method", LuaHighlight.INFERRED_METHOD),
+            // Docs
+            Pair("documentation", LuaHighlight.DOC_COMMENT),
+            Pair("documentation-tag", LuaHighlight.DOC_TAG),
+            Pair("documentation-value", LuaHighlight.DOC_VALUE),
+            Pair("luacats-tag", LuaCatsHighlight.TAG),
+            Pair("luacats-name", LuaCatsHighlight.NAME),
+            Pair("luacats-type", LuaCatsHighlight.TYPE),
+            Pair("luacats-keyword", LuaCatsHighlight.KEYWORD),
+            Pair("luacats-value", LuaCatsHighlight.VALUE),
+            Pair("luacats-symbol", LuaCatsHighlight.SYMBOL),
+            Pair("string-brackets", LuaHighlight.LONGSTRING_BRACES),
+            Pair("comment-brackets", LuaHighlight.LONGCOMMENT_BRACES),
+        )
 
-    override fun getDisplayName(): String {
-        return LuaBundle.message("color.name")
-    }
+    override fun getDisplayName(): String = LuaBundle.message("color.name")
 
-    override fun getIcon(): Icon? {
-        return LuaIcons.FILE
-    }
+    override fun getIcon(): Icon? = LuaIcons.FILE
 
-    override fun getAttributeDescriptors(): Array<AttributesDescriptor> {
-        return attributeDescriptors
-    }
+    override fun getAttributeDescriptors(): Array<AttributesDescriptor> = attributeDescriptors
 
-    override fun getColorDescriptors(): Array<ColorDescriptor> {
-        return arrayOf()
-    }
+    override fun getColorDescriptors(): Array<ColorDescriptor> = arrayOf()
 
-    override fun getHighlighter(): SyntaxHighlighter {
-        return LuaSyntaxHighlighter()
-    }
+    override fun getHighlighter(): SyntaxHighlighter = LuaSyntaxHighlighter()
 
     override fun getDemoText(): @NonNls String {
         try {
-                val classLoader = LuaColorSettingsPage::class.java.getClassLoader()
-                classLoader.getResourceAsStream("colorSettings/preview/colorSettings.html")?.use { it ->
-                    InputStreamReader(it).use { reader ->
-                        return reader.readText()
-                    }
+            val classLoader = LuaColorSettingsPage::class.java.getClassLoader()
+            classLoader.getResourceAsStream("colorSettings/preview/colorSettings.html")?.use { it ->
+                InputStreamReader(it).use { reader ->
+                    return reader.readText()
                 }
-        } catch (_ : IOException) { }
+            }
+        } catch (_: IOException) {
+        }
         return ""
     }
 
-    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey> {
-        return highlightingTagToDescriptorMap
-    }
+    override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey> =
+        highlightingTagToDescriptorMap
 }

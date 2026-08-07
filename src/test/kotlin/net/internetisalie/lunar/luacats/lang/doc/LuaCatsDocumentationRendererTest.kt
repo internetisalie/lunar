@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.luacats.lang.doc
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.BaseDocumentTest
@@ -12,12 +11,12 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
-
     @Test
     fun testFunctionDocumentation() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- Adds two numbers.
                     --- @param a number The first number.
                     --- @param b number The second number.
@@ -25,7 +24,8 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
                     function <caret>add(a, b)
                         return a + b
                     end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 assertNotNull(elementAtCaret, "Could not find element at caret")
@@ -52,12 +52,14 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
     fun testClassDocumentation() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- A player in the game.
                     --- @class Player
                     --- @field name string The player's name
                     local <caret>Player = {}
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 assertNotNull(elementAtCaret, "Could not find element at caret")
@@ -83,13 +85,15 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
     fun testEnumDocumentation() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- Log levels.
                     --- @enum LogLevel
                     --- | "DEBUG" # Detailed debug info
                     --- | "INFO" # General info
                     local <caret>LogLevel = {}
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 assertNotNull(elementAtCaret, "Could not find element at caret")
@@ -141,13 +145,15 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
     fun testMarkdownCodeBlock() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- This is a code block:
                     --- ```lua
                     --- local x = 10
                     --- ```
                     function <caret>code_test() end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -163,18 +169,20 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
             }
         }
     }
+
     @Test
     fun testStructuredTypeIsHtmlEscaped() {
         // TC-02a (#35): table<string, integer> must render as escaped code, not a raw <table
         // tag or an unescaped angle bracket, and must not produce a psi_element://table< href.
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderLocalVarDoc(
-                    """
-                    ---@type table<string, integer>
-                    local <caret>m = {}
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderLocalVarDoc(
+                        """
+                        ---@type table<string, integer>
+                        local <caret>m = {}
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "table&lt;string, integer&gt;")
                 assertTrue(!doc.contains("<table"), "Doc contains an unescaped <table: $doc")
                 assertTrue(!doc.contains("psi_element://table<"), "Doc has a broken psi_element href: $doc")
@@ -187,12 +195,13 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
         // TC-02b (#57): ---@type Player local renders `local m : ` + linked Player, not `class Player`.
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderLocalVarDoc(
-                    """
-                    ---@type Player
-                    local <caret>m = {}
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderLocalVarDoc(
+                        """
+                        ---@type Player
+                        local <caret>m = {}
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "local")
                 assertContains(doc, "Player")
                 assertTrue(!doc.contains("class Player"), "Doc still renders 'class Player': $doc")
@@ -206,10 +215,12 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
         // TC-02c (#35): a simple identifier param type is hyperlinked; HTML stays well-formed.
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     ---@param a Player
                     function <caret>f(a) end
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
                 val element = PsiTreeUtil.getParentOfType(elementAtCaret, LuaCommentOwner::class.java, false)
@@ -237,10 +248,11 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
                     local m
                     """.trimIndent(),
                 )
-                val aliasTag = PsiTreeUtil.findChildOfType(
-                    myFixture.file,
-                    net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag::class.java,
-                )
+                val aliasTag =
+                    PsiTreeUtil.findChildOfType(
+                        myFixture.file,
+                        net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag::class.java,
+                    )
                 assertNotNull(aliasTag, "Could not find alias tag")
                 val doc = LuaCatsDocumentationRenderer.renderDoc(aliasTag!!)
                 assertNotNull(doc)
@@ -268,14 +280,15 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
     fun testKeyedFieldIsNamedByItsKeyNotUnknown() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val doc = renderLocalVarDoc(
-                    """
-                    ---@class Keyed
-                    ---@field [string] number
-                    ---@field named boolean
-                    local <caret>Keyed = {}
-                    """.trimIndent(),
-                )
+                val doc =
+                    renderLocalVarDoc(
+                        """
+                        ---@class Keyed
+                        ---@field [string] number
+                        ---@field named boolean
+                        local <caret>Keyed = {}
+                        """.trimIndent(),
+                    )
                 assertContains(doc, "[string]")
                 assertContains(doc, "named")
                 assertTrue(!doc.contains("Unknown"), "a keyed field must not render as 'Unknown': $doc")
@@ -292,7 +305,10 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
         return doc!!
     }
 
-    private fun assertContains(text: String, substring: String) {
+    private fun assertContains(
+        text: String,
+        substring: String,
+    ) {
         assertTrue(text.contains(substring), "Expected to find '$substring' in '$text'")
     }
 }

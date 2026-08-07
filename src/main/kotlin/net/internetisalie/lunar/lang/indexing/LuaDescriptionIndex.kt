@@ -27,39 +27,43 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
     private val myIndexer: DataIndexer<String, String, FileContent> = Indexer()
 
     override fun getName(): ID<String, String> = LuaDescriptionIndexName
+
     override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
+
     override fun getValueExternalizer(): DataExternalizer<String> = myExternalizer
+
     override fun getIndexer(): DataIndexer<String, String, FileContent> = myIndexer
+
     // BUG-408 changed the record encoding (separators are now percent-escaped), so previously
     // written values decode differently. Bumped to force a rebuild.
     override fun getVersion(): Int = 3
 
     override fun dependsOnFileContent(): Boolean = true
+
     override fun indexDirectories(): Boolean = false
-    
+
     override fun getInputFilter(): FileBasedIndex.InputFilter = InputFilter()
 
     private class InputFilter : FileBasedIndex.InputFilter {
-        override fun acceptInput(file: VirtualFile): Boolean {
-            return file.extension == "lua"
-        }
+        override fun acceptInput(file: VirtualFile): Boolean = file.extension == "lua"
     }
 
     private class StringDataExternalizer : DataExternalizer<String> {
-        override fun save(output: DataOutput, value: String) {
+        override fun save(
+            output: DataOutput,
+            value: String,
+        ) {
             output.writeUTF(value)
         }
 
-        override fun read(input: DataInput): String {
-            return input.readUTF()
-        }
+        override fun read(input: DataInput): String = input.readUTF()
     }
 
     private class Indexer : DataIndexer<String, String, FileContent> {
         override fun map(inputData: FileContent): Map<String, String> {
             val result = mutableMapOf<String, String>()
             val psiFile = inputData.psiFile
-            
+
             if (psiFile !is LuaFile) return result
 
             val fileUrl = inputData.file.url
@@ -67,21 +71,27 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
                 val catsComment = owner.catsComment ?: return@forEach
                 val descriptionText = collectDescriptionText(catsComment)
                 if (descriptionText.isBlank()) return@forEach
-                
-                val tokens = descriptionText
-                    .lowercase()
-                    .split(Regex("[^a-zA-Z0-9_]+"))
-                    .filter { it.length >= 2 }
-                    .distinct()
+
+                val tokens =
+                    descriptionText
+                        .lowercase()
+                        .split(Regex("[^a-zA-Z0-9_]+"))
+                        .filter { it.length >= 2 }
+                        .distinct()
 
                 if (tokens.isEmpty()) return@forEach
 
-                val rawName = when (owner) {
-                    is LuaLocalVarDecl -> owner.attNameList.firstOrNull()?.nameRef?.text
-                    is LuaFuncDecl -> owner.funcName.text
-                    is LuaLocalFuncDecl -> owner.nameRef.text
-                    else -> null
-                } ?: owner.text
+                val rawName =
+                    when (owner) {
+                        is LuaLocalVarDecl ->
+                            owner.attNameList
+                                .firstOrNull()
+                                ?.nameRef
+                                ?.text
+                        is LuaFuncDecl -> owner.funcName.text
+                        is LuaLocalFuncDecl -> owner.nameRef.text
+                        else -> null
+                    } ?: owner.text
 
                 val record = DescriptionRecord(rawName.take(50), fileUrl, owner.textOffset)
 
@@ -94,7 +104,7 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
                     }
                 }
             }
-            
+
             return result
         }
     }
@@ -120,10 +130,12 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
  * Sanitising the URL is not an option: it has to round-trip or the file cannot be reopened. The
  * separators are therefore **escaped**, not replaced.
  */
-data class DescriptionRecord(val ownerName: String, val fileUrl: String, val offset: Int) {
-
-    fun encode(): String =
-        listOf(escape(ownerName), escape(fileUrl), offset.toString()).joinToString(FIELD)
+data class DescriptionRecord(
+    val ownerName: String,
+    val fileUrl: String,
+    val offset: Int,
+) {
+    fun encode(): String = listOf(escape(ownerName), escape(fileUrl), offset.toString()).joinToString(FIELD)
 
     companion object {
         private const val FIELD = "\t"
@@ -135,26 +147,30 @@ data class DescriptionRecord(val ownerName: String, val fileUrl: String, val off
          * `%` is escaped **first** and unescaped **last**, so the mapping is a bijection: without
          * that, a path containing the literal text `%09` would decode into a tab.
          */
-        private fun escape(raw: String): String = raw
-            .replace("%", "%25")
-            .replace("\t", "%09")
-            .replace("\n", "%0A")
-            .replace("\r", "%0D")
-            .replace("|", "%7C")
+        private fun escape(raw: String): String =
+            raw
+                .replace("%", "%25")
+                .replace("\t", "%09")
+                .replace("\n", "%0A")
+                .replace("\r", "%0D")
+                .replace("|", "%7C")
 
-        private fun unescape(encoded: String): String = encoded
-            .replace("%7C", "|")
-            .replace("%0D", "\r")
-            .replace("%0A", "\n")
-            .replace("%09", "\t")
-            .replace("%25", "%")
+        private fun unescape(encoded: String): String =
+            encoded
+                .replace("%7C", "|")
+                .replace("%0D", "\r")
+                .replace("%0A", "\n")
+                .replace("%09", "\t")
+                .replace("%25", "%")
 
         /** Joins several records into one index value. */
-        fun join(records: List<DescriptionRecord>): String =
-            records.joinToString(RECORD) { it.encode() }
+        fun join(records: List<DescriptionRecord>): String = records.joinToString(RECORD) { it.encode() }
 
         /** Appends one already-encoded index value to another, using the same separator as [join]. */
-        fun concat(first: String, second: String): String = first + RECORD + second
+        fun concat(
+            first: String,
+            second: String,
+        ): String = first + RECORD + second
 
         /**
          * Every record in an index value. Malformed records are skipped rather than throwing: an

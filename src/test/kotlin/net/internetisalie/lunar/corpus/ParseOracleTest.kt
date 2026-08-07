@@ -16,11 +16,12 @@ import java.io.File
  * already have, and which CI skips via `-PexcludeExternalFixtureTests`.
  */
 class ParseOracleTest : BasePlatformTestCase() {
-
     private val repoRoot = File(System.getProperty("user.dir"))
 
-    private fun judge(source: String, level: LuaLanguageLevel) =
-        ParseOracle.judge(repoRoot, source, level)
+    private fun judge(
+        source: String,
+        level: LuaLanguageLevel,
+    ) = ParseOracle.judge(repoRoot, source, level)
 
     /** TC-1 — valid Lua is accepted. */
     fun testValidLuaIsAccepted() {
@@ -72,8 +73,9 @@ class ParseOracleTest : BasePlatformTestCase() {
      * failure must arrive *before* any file is judged, so a sweep can never quietly measure nothing.
      */
     fun testUnpinnedLevelFailsFastWithTheRemedy() {
-        val failure = runCatching { ParseOracle.requireBinary(repoRoot, LuaLanguageLevel.LUA50) }
-            .exceptionOrNull()
+        val failure =
+            runCatching { ParseOracle.requireBinary(repoRoot, LuaLanguageLevel.LUA50) }
+                .exceptionOrNull()
         assertNotNull("LUA50 has no pinned luac and must throw", failure)
         assertTrue(
             "the error must name the level; was: ${failure?.message}",
@@ -101,8 +103,9 @@ class ParseOracleTest : BasePlatformTestCase() {
         File(emptyRoot, "tooling/corpus").mkdirs()
         File(repoRoot, MANIFEST_PATH).copyTo(File(emptyRoot, MANIFEST_PATH))
 
-        val failure = runCatching { ParseOracle.requireBinary(emptyRoot, LuaLanguageLevel.LUA51) }
-            .exceptionOrNull()
+        val failure =
+            runCatching { ParseOracle.requireBinary(emptyRoot, LuaLanguageLevel.LUA51) }
+                .exceptionOrNull()
         assertNotNull("an unbuilt oracle must throw, not judge nothing", failure)
         val message = failure?.message.orEmpty()
         assertTrue("the error must name the remedy; was: $message", message.contains("fetch-luac.py"))
@@ -156,8 +159,9 @@ class ParseOracleTest : BasePlatformTestCase() {
      */
     fun testAnAlwaysAcceptingOracleIsRefused() {
         val fakeRoot = stagedOracle("#!/bin/sh\nexit 0\n")
-        val failure = runCatching { ParseOracle.assertDiscriminates(fakeRoot, LuaLanguageLevel.LUA51) }
-            .exceptionOrNull()
+        val failure =
+            runCatching { ParseOracle.assertDiscriminates(fakeRoot, LuaLanguageLevel.LUA51) }
+                .exceptionOrNull()
         assertNotNull("an always-accepting oracle must be refused", failure)
         assertTrue(
             "the message must name the vacuity, was: ${failure?.message}",
@@ -172,8 +176,9 @@ class ParseOracleTest : BasePlatformTestCase() {
      */
     fun testABinaryWithTheWrongStampIsRefused() {
         val fakeRoot = stagedOracle("#!/bin/sh\nexit 0\n", stamp = "not-the-pinned-digest")
-        val failure = runCatching { ParseOracle.requireBinary(fakeRoot, LuaLanguageLevel.LUA51) }
-            .exceptionOrNull()
+        val failure =
+            runCatching { ParseOracle.requireBinary(fakeRoot, LuaLanguageLevel.LUA51) }
+                .exceptionOrNull()
         assertNotNull("an unstamped binary must be refused", failure)
         assertTrue(
             "the message must send the reader to the fetch script, was: ${failure?.message}",
@@ -182,17 +187,26 @@ class ParseOracleTest : BasePlatformTestCase() {
     }
 
     /** A throwaway repo root holding the real manifest and a stand-in `luac` for LUA51. */
-    private fun stagedOracle(script: String, stamp: String? = null): File {
+    private fun stagedOracle(
+        script: String,
+        stamp: String? = null,
+    ): File {
         val root = FileUtil.createTempDirectory("lunar-luac-stub", null)
         val manifest = File(root, MANIFEST_PATH)
         manifest.parentFile.mkdirs()
         File(repoRoot, MANIFEST_PATH).copyTo(manifest)
-        val pinned = JsonParser.parseString(manifest.readText())
-            .asJsonObject.getAsJsonArray("builds")
-            .map { it.asJsonObject }
-            .first { it.get("level").asString == "LUA51" }
+        val pinned =
+            JsonParser
+                .parseString(manifest.readText())
+                .asJsonObject
+                .getAsJsonArray("builds")
+                .map { it.asJsonObject }
+                .first { it.get("level").asString == "LUA51" }
         val dir = File(root, "test/luac/${pinned.get("version").asString}").apply { mkdirs() }
-        File(dir, "luac").apply { writeText(script); setExecutable(true) }
+        File(dir, "luac").apply {
+            writeText(script)
+            setExecutable(true)
+        }
         File(dir, ".luac-sha").writeText((stamp ?: pinned.get("sha256").asString) + "\n")
         return root
     }
@@ -227,7 +241,10 @@ class ParseOracleTest : BasePlatformTestCase() {
         assertEquals(ParseOracle.Verdict.Accept, judge(large, LuaLanguageLevel.LUA51))
     }
 
-    private fun runFetchScript(manifest: File, luacRoot: File): Int {
+    private fun runFetchScript(
+        manifest: File,
+        luacRoot: File,
+    ): Int {
         val script = File(repoRoot, "tooling/corpus/fetch-luac.py")
         val builder = ProcessBuilder("python3", script.path).redirectErrorStream(true)
         builder.environment()["LUNAR_LUAC_MANIFEST"] = manifest.path

@@ -6,18 +6,25 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import net.internetisalie.lunar.luacats.lang.lexer.LuaCatsTokenTypes
 import net.internetisalie.lunar.luacats.lang.psi.*
 
 class LuaCatsAnnotator : Annotator {
-    private fun highlight(holder: AnnotationHolder, element : PsiElement, attributes : TextAttributesKey) {
-        holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+    private fun highlight(
+        holder: AnnotationHolder,
+        element: PsiElement,
+        attributes: TextAttributesKey,
+    ) {
+        holder
+            .newSilentAnnotation(HighlightSeverity.INFORMATION)
             .range(element.textRange)
             .textAttributes(attributes)
             .create()
     }
 
-    override fun annotate(element: PsiElement, holder: AnnotationHolder) {
+    override fun annotate(
+        element: PsiElement,
+        holder: AnnotationHolder,
+    ) {
         when (element) {
             is LuaCatsArgKeyword -> highlight(holder, element, LuaCatsHighlight.KEYWORD)
             is LuaCatsNamedType -> highlight(holder, element, LuaCatsHighlight.TYPE)
@@ -36,7 +43,15 @@ class LuaCatsAnnotator : Annotator {
                 val et = element.elementType
                 if (et == LuaCatsElementTypes.SYMBOL) {
                     val text = element.text
-                    if (text == "(" || text == ")" || text == "[" || text == "]" || text == "{" || text == "}" || text == "<" || text == ">") {
+                    if (text == "(" ||
+                        text == ")" ||
+                        text == "[" ||
+                        text == "]" ||
+                        text == "{" ||
+                        text == "}" ||
+                        text == "<" ||
+                        text == ">"
+                    ) {
                         highlight(holder, element, LuaCatsHighlight.BRACKETS)
                     } else {
                         highlight(holder, element, LuaCatsHighlight.SYMBOL)

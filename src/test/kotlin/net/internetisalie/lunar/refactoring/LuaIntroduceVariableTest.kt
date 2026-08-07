@@ -17,7 +17,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaIntroduceVariableTest : BasePlatformTestCase() {
-
     private val handler = LuaIntroduceVariableHandler()
 
     private fun introduceSelected(text: String) {
@@ -52,7 +51,10 @@ class LuaIntroduceVariableTest : BasePlatformTestCase() {
         assertTrue("expected introduced local, got: $result", result.contains("local f = f(a)"))
         assertTrue("expected return to reference the new variable, got: $result", result.contains("return f"))
         assertFalse("the original call should be replaced inside return, got: $result", result.contains("return f(a)"))
-        assertTrue("the local must precede the return, got: $result", result.indexOf("local f = f(a)") < result.indexOf("return f"))
+        assertTrue(
+            "the local must precede the return, got: $result",
+            result.indexOf("local f = f(a)") < result.indexOf("return f"),
+        )
     }
 
     // suggestName: call callee name is used for a function call

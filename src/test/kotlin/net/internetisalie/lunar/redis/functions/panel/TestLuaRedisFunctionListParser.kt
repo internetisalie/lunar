@@ -1,16 +1,14 @@
 package net.internetisalie.lunar.redis.functions.panel
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.coroutines.runBlocking
 import net.internetisalie.lunar.redis.functions.DriftStatus
 import net.internetisalie.lunar.redis.functions.LuaRedisFunctionDrift
 import net.internetisalie.lunar.redis.functions.LuaRedisFunctionListParser
 import net.internetisalie.lunar.redis.functions.LuaRedisFunctionsController
-import net.internetisalie.lunar.redis.functions.RedisFunctionEntry
-import net.internetisalie.lunar.redis.functions.RedisLibraryEntry
 import net.internetisalie.lunar.redis.resp.RespClient
 import net.internetisalie.lunar.redis.resp.RespValue
 import net.internetisalie.lunar.redis.run.ScriptedRespServer
-import kotlinx.coroutines.runBlocking
 
 /**
  * Unit tests for [LuaRedisFunctionListParser], [LuaRedisFunctionDrift], and
@@ -20,7 +18,6 @@ import kotlinx.coroutines.runBlocking
  * seam to assert the correct RESP commands are sent, mirroring [TestLuaRedisFunctionExecutor].
  */
 class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
-
     private val servers = mutableListOf<ScriptedRespServer>()
 
     override fun tearDown() {
@@ -43,18 +40,20 @@ class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
      */
     fun testParseResp3Map_TC_PANEL_1() {
         val flagsArray = RespValue.Array(listOf(bulk("no-writes")))
-        val fnMap = RespValue.Map(
-            listOf(
-                bulk("name") to bulk("f"),
-                bulk("flags") to flagsArray,
-            ),
-        )
-        val libMap = RespValue.Map(
-            listOf(
-                bulk("library_name") to bulk("mylib"),
-                bulk("functions") to RespValue.Array(listOf(fnMap)),
-            ),
-        )
+        val fnMap =
+            RespValue.Map(
+                listOf(
+                    bulk("name") to bulk("f"),
+                    bulk("flags") to flagsArray,
+                ),
+            )
+        val libMap =
+            RespValue.Map(
+                listOf(
+                    bulk("library_name") to bulk("mylib"),
+                    bulk("functions") to RespValue.Array(listOf(fnMap)),
+                ),
+            )
         val reply = RespValue.Array(listOf(libMap))
 
         val result = LuaRedisFunctionListParser.parse(reply)
@@ -76,18 +75,24 @@ class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
      */
     fun testParseResp2ArrayOfPairs_TC_PANEL_1() {
         val flagsArray = RespValue.Array(listOf(bulk("no-writes")))
-        val fnArrayPairs = RespValue.Array(
-            listOf(
-                bulk("name"), bulk("f"),
-                bulk("flags"), flagsArray,
-            ),
-        )
-        val libArrayPairs = RespValue.Array(
-            listOf(
-                bulk("library_name"), bulk("mylib"),
-                bulk("functions"), RespValue.Array(listOf(fnArrayPairs)),
-            ),
-        )
+        val fnArrayPairs =
+            RespValue.Array(
+                listOf(
+                    bulk("name"),
+                    bulk("f"),
+                    bulk("flags"),
+                    flagsArray,
+                ),
+            )
+        val libArrayPairs =
+            RespValue.Array(
+                listOf(
+                    bulk("library_name"),
+                    bulk("mylib"),
+                    bulk("functions"),
+                    RespValue.Array(listOf(fnArrayPairs)),
+                ),
+            )
         val reply = RespValue.Array(listOf(libArrayPairs))
 
         val result = LuaRedisFunctionListParser.parse(reply)
@@ -117,13 +122,14 @@ class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
     /** WITHCODE: `library_code` is captured when present. */
     fun testParseLibraryCodeCaptured() {
         val code = "#!lua name=mylib\nredis.register_function('f', function() end)"
-        val libMap = RespValue.Map(
-            listOf(
-                bulk("library_name") to bulk("mylib"),
-                bulk("library_code") to bulk(code),
-                bulk("functions") to RespValue.Array(emptyList()),
-            ),
-        )
+        val libMap =
+            RespValue.Map(
+                listOf(
+                    bulk("library_name") to bulk("mylib"),
+                    bulk("library_code") to bulk(code),
+                    bulk("functions") to RespValue.Array(emptyList()),
+                ),
+            )
         val reply = RespValue.Array(listOf(libMap))
         val result = LuaRedisFunctionListParser.parse(reply)
 
@@ -177,14 +183,15 @@ class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
      */
     fun testControllerDelete_TC_PANEL_2() {
         val server = scriptedServer(simpleReply("OK"))
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisFunctionsController().deleteWithClient(client, "mylib")
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisFunctionsController().deleteWithClient(client, "mylib")
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertEquals(RespValue.Simple("OK"), reply)
         val cmds = server.requests
@@ -205,14 +212,15 @@ class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
     fun testControllerDeploy_TC_PANEL_3() {
         val fileBody = "#!lua name=mylib\nredis.register_function('f', function(keys,args) return 1 end)"
         val server = scriptedServer(simpleReply("mylib"))
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisFunctionsController().deployWithClient(client, fileBody)
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisFunctionsController().deployWithClient(client, fileBody)
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertEquals(RespValue.Simple("mylib"), reply)
         val cmds = server.requests
@@ -230,30 +238,33 @@ class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
      */
     fun testControllerListWithCode_TC_PANEL_1() {
         val code = "#!lua name=mylib\nredis.register_function('f', function() end)"
-        val resp3FnMap = RespValue.Map(
-            listOf(
-                bulk("name") to bulk("f"),
-                bulk("flags") to RespValue.Array(emptyList()),
-            ),
-        )
-        val resp3LibMap = RespValue.Map(
-            listOf(
-                bulk("library_name") to bulk("mylib"),
-                bulk("library_code") to bulk(code),
-                bulk("functions") to RespValue.Array(listOf(resp3FnMap)),
-            ),
-        )
+        val resp3FnMap =
+            RespValue.Map(
+                listOf(
+                    bulk("name") to bulk("f"),
+                    bulk("flags") to RespValue.Array(emptyList()),
+                ),
+            )
+        val resp3LibMap =
+            RespValue.Map(
+                listOf(
+                    bulk("library_name") to bulk("mylib"),
+                    bulk("library_code") to bulk(code),
+                    bulk("functions") to RespValue.Array(listOf(resp3FnMap)),
+                ),
+            )
         val replyBytes = encodeResp3Array(listOf(resp3LibMap))
         val server = scriptedServer(replyBytes)
 
-        val entries = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisFunctionsController().listWithClient(client, withCode = true)
-            } finally {
-                client.dispose()
+        val entries =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisFunctionsController().listWithClient(client, withCode = true)
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         // Verify command was FUNCTION LIST WITHCODE
         val cmds = server.requests
@@ -300,7 +311,10 @@ class TestLuaRedisFunctionListParser : BasePlatformTestCase() {
         return sb.toString().toByteArray(Charsets.UTF_8)
     }
 
-    private fun appendRespValue(sb: StringBuilder, v: RespValue) {
+    private fun appendRespValue(
+        sb: StringBuilder,
+        v: RespValue,
+    ) {
         when (v) {
             is RespValue.Map -> {
                 sb.append("%${v.entries.size}\r\n")

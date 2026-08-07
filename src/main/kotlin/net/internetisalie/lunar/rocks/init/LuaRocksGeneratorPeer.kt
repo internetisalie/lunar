@@ -30,7 +30,6 @@ import javax.swing.JPanel
  * as enabled-state, not layout swaps.
  */
 class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
-
     // --- widgets -----------------------------------------------------------
 
     private val nameField = JBTextField()
@@ -39,18 +38,22 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
     private val applicationButton = JBRadioButton("Application", false)
 
     // `internal` (not private) so same-module tests can drive the kind/version/provision logic.
-    internal val kindCombo = ComboBox(arrayOf(WizardRuntimeKinds.LUA, WizardRuntimeKinds.LUAJIT)).apply {
-        renderer = SimpleListCellRenderer.create { label, value, _ ->
-            label.text = if (value == WizardRuntimeKinds.LUAJIT) "LuaJIT" else "Lua"
+    internal val kindCombo =
+        ComboBox(arrayOf(WizardRuntimeKinds.LUA, WizardRuntimeKinds.LUAJIT)).apply {
+            renderer =
+                SimpleListCellRenderer.create { label, value, _ ->
+                    label.text = if (value == WizardRuntimeKinds.LUAJIT) "LuaJIT" else "Lua"
+                }
         }
-    }
-    internal val versionCombo = ComboBox<VersionEntry>().apply {
-        renderer = SimpleListCellRenderer.create { label, value, _ -> label.text = value?.label ?: "" }
-    }
+    internal val versionCombo =
+        ComboBox<VersionEntry>().apply {
+            renderer = SimpleListCellRenderer.create { label, value, _ -> label.text = value?.label ?: "" }
+        }
     internal val provisionCheck = JBCheckBox("Provision isolated environment")
-    internal val interpreterCombo = ComboBox<LuaRegisteredTool>().apply {
-        LuaRuntimeComboBox.customize(ProjectManager.getInstance().defaultProject, this)
-    }
+    internal val interpreterCombo =
+        ComboBox<LuaRegisteredTool>().apply {
+            LuaRuntimeComboBox.customize(ProjectManager.getInstance().defaultProject, this)
+        }
 
     private val loaderSetupCheck = JBCheckBox("Loader Setup (src/setup.lua)")
     private val bustedConfigCheck = JBCheckBox("Busted Configuration (spec/)")

@@ -1,8 +1,8 @@
 package net.internetisalie.lunar.lang.formatting.external
 
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.AsyncDocumentFormattingService.FormattingTask
+import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -24,7 +24,6 @@ class StyluaFormattingTask(
     private val request: AsyncFormattingRequest,
     private val config: StyluaExecutionConfig,
 ) : FormattingTask {
-
     override fun run() {
         handleResult(captureOffEdt())
     }
@@ -44,12 +43,11 @@ class StyluaFormattingTask(
         }
     }
 
-    private fun buildCommandLine(): GeneralCommandLine {
-        return GeneralCommandLine(config.styluaPath)
+    private fun buildCommandLine(): GeneralCommandLine =
+        GeneralCommandLine(config.styluaPath)
             .withWorkDirectory(config.workingDirectory)
             .withParameters("--stdin-filepath", config.fileName)
             .withCharset(StandardCharsets.UTF_8)
-    }
 
     private fun handleResult(result: LuaExecResult) {
         when {
@@ -62,8 +60,9 @@ class StyluaFormattingTask(
                 showFirstUseNotificationIfNeeded()
             }
             else -> {
-                val firstLine = result.stderr.lineSequence().firstOrNull { it.isNotBlank() }
-                    ?: "Stylua exited with code ${result.exitCode}"
+                val firstLine =
+                    result.stderr.lineSequence().firstOrNull { it.isNotBlank() }
+                        ?: "Stylua exited with code ${result.exitCode}"
                 request.onError("Stylua", firstLine)
             }
         }
@@ -74,7 +73,8 @@ class StyluaFormattingTask(
         val key = "lunar.stylua.firstUse.notified"
         if (!properties.getBoolean(key)) {
             properties.setValue(key, true)
-            NotificationGroupManager.getInstance()
+            NotificationGroupManager
+                .getInstance()
                 .getNotificationGroup("notification.group.lunar.stylua")
                 ?.createNotification("Formatted with Stylua", NotificationType.INFORMATION)
                 ?.notify(null) // Project-less notification since FormattingTask lacks Project in some contexts

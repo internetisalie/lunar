@@ -17,20 +17,26 @@ import com.intellij.xdebugger.frame.presentation.XValuePresentation
  * entries, each a nested [LuaLdbValue] built from the parsed value tree (design §3.4). Structural
  * only — no live-session references.
  */
-class LuaLdbValue(name: String, private val node: LdbValueNode) : XNamedValue(name) {
-
+class LuaLdbValue(
+    name: String,
+    private val node: LdbValueNode,
+) : XNamedValue(name) {
     constructor(local: LuaLdbLocal) : this(local.name, local.value)
 
-    override fun computePresentation(node: XValueNode, place: XValuePlace) {
+    override fun computePresentation(
+        node: XValueNode,
+        place: XValuePlace,
+    ) {
         val hasChildren = this.node is LdbValueNode.Table
         node.setPresentation(iconFor(this.node), presentationFor(this.node), hasChildren)
     }
 
     override fun computeChildren(node: XCompositeNode) {
-        val table = this.node as? LdbValueNode.Table ?: run {
-            super.computeChildren(node)
-            return
-        }
+        val table =
+            this.node as? LdbValueNode.Table ?: run {
+                super.computeChildren(node)
+                return
+            }
         val children = XValueChildrenList(table.entries.size)
         table.entries.forEach { (key, value) -> children.add(key, LuaLdbValue(key, value)) }
         node.addChildren(children, !table.truncated)
@@ -39,10 +45,11 @@ class LuaLdbValue(name: String, private val node: LdbValueNode) : XNamedValue(na
     private fun iconFor(value: LdbValueNode) =
         if (value is LdbValueNode.Table) AllIcons.Nodes.Field else AllIcons.Nodes.Variable
 
-    private fun presentationFor(value: LdbValueNode): XValuePresentation = when (value) {
-        is LdbValueNode.Scalar -> scalarPresentation(value)
-        is LdbValueNode.Table -> XRegularValuePresentation(tableSummary(value), "table")
-    }
+    private fun presentationFor(value: LdbValueNode): XValuePresentation =
+        when (value) {
+            is LdbValueNode.Scalar -> scalarPresentation(value)
+            is LdbValueNode.Table -> XRegularValuePresentation(tableSummary(value), "table")
+        }
 
     private fun scalarPresentation(scalar: LdbValueNode.Scalar): XValuePresentation {
         val text = if (scalar.truncated) "${scalar.text} …" else scalar.text

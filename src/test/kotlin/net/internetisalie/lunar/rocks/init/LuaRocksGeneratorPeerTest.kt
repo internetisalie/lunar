@@ -7,7 +7,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * getSettings on the toolchain shape (kindId + version + RUNTIME combo).
  */
 class LuaRocksGeneratorPeerTest : BasePlatformTestCase() {
-
     private fun versionLabels(peer: LuaRocksGeneratorPeer): List<String> =
         (0 until peer.versionCombo.itemCount).map { peer.versionCombo.getItemAt(it).label }
 

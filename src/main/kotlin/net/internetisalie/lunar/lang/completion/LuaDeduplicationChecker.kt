@@ -17,20 +17,23 @@ import net.internetisalie.lunar.lang.syntax.extractLuaString
  * known). Mirrors the require-extraction performed by `LuaFileBindingsIndex`.
  */
 object LuaDeduplicationChecker {
-
-    fun isAlreadyRequired(file: LuaFile, modulePath: String): Boolean =
-        modulePath in collectRequirePaths(file)
+    fun isAlreadyRequired(
+        file: LuaFile,
+        modulePath: String,
+    ): Boolean = modulePath in collectRequirePaths(file)
 
     private fun collectRequirePaths(file: LuaFile): Set<String> {
         val paths = mutableSetOf<String>()
-        file.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                if (element is LuaFuncCall) {
-                    extractRequirePath(element)?.let { paths.add(it) }
+        file.accept(
+            object : PsiRecursiveElementVisitor() {
+                override fun visitElement(element: PsiElement) {
+                    if (element is LuaFuncCall) {
+                        extractRequirePath(element)?.let { paths.add(it) }
+                    }
+                    super.visitElement(element)
                 }
-                super.visitElement(element)
-            }
-        })
+            },
+        )
         return paths
     }
 

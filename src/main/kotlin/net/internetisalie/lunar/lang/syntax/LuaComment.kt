@@ -3,33 +3,9 @@ package net.internetisalie.lunar.lang.syntax
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.elementType
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAsyncTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCastTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeprecatedTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDescription
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDiagnosticTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsEnumTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsGenericTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsMetaTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsModuleTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsNodiscardTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOperatorTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOverloadTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsPackageTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsPrivateTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsProtectedTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsReturnTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSeeTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSourceTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVarargTag
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsVersionTag
 
 object LuaDocDescription {
     // TODO: Move out of LuaDocCommentImpl.getDescriptionElements
@@ -40,16 +16,18 @@ object LuaDocSummary {
 }
 
 object LuaCatsSummary {
-    fun getText(comment : LuaCatsComment) : String? {
+    fun getText(comment: LuaCatsComment): String? {
         var first = comment.firstChild ?: return null
         if (first.elementType == LuaCatsElementTypes.COMMENT) {
             first = first.firstChild ?: return null
         }
-        var next : PsiElement? = first
+        var next: PsiElement? = first
         val lines = mutableListOf<String>()
         while (next != null) {
             when {
-                next is PsiWhiteSpace -> { next = next.nextSibling }
+                next is PsiWhiteSpace -> {
+                    next = next.nextSibling
+                }
                 next.elementType == LuaCatsElementTypes.DASHES -> {
                     val dashes = next
                     next = next.nextSibling ?: break
@@ -75,7 +53,6 @@ object LuaCatsSummary {
     }
 }
 
-
 fun getLuaCommentDelimiterLength(str: String): Int {
     if (!str.startsWith("--")) return 0
     if (str.startsWith("--[")) {
@@ -94,13 +71,16 @@ fun extractLuaComment(str: String): String {
             if (str.length < delimiterLength * 2 - 2) return ""
             str.substring(delimiterLength, str.length - delimiterLength + 2)
         }
-        else -> str.lines().joinToString("\n") {
-            if (it.startsWith("--")) it.substring(2) else it
-        }.trimIndent()
+        else ->
+            str
+                .lines()
+                .joinToString("\n") {
+                    if (it.startsWith("--")) it.substring(2) else it
+                }.trimIndent()
     }
 }
 
-fun summarize(str : String) : String{
+fun summarize(str: String): String {
     val firstLine = str.trim().substringBefore('\n')
     return if (firstLine.length < str.length) {
         "$firstLine..."
@@ -120,16 +100,26 @@ internal fun collectDescriptionText(comment: LuaCatsComment): String {
     return sb.toString()
 }
 
-private fun collectCoreTagsDescription(comment: LuaCatsComment, sb: StringBuilder) {
+private fun collectCoreTagsDescription(
+    comment: LuaCatsComment,
+    sb: StringBuilder,
+) {
     comment.classTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.aliasTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.paramTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
-    comment.returnTagList.forEach { it.returnTypeDescriptorList.forEach { desc -> desc.returnDescription?.text?.let { text -> sb.append(text).append(' ') } } }
+    comment.returnTagList.forEach {
+        it.returnTypeDescriptorList.forEach { desc ->
+            desc.returnDescription?.text?.let { text -> sb.append(text).append(' ') }
+        }
+    }
     comment.fieldTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.typeTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
 }
 
-private fun collectAdvancedTagsDescription(comment: LuaCatsComment, sb: StringBuilder) {
+private fun collectAdvancedTagsDescription(
+    comment: LuaCatsComment,
+    sb: StringBuilder,
+) {
     comment.deprecatedTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.seeTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.overloadTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
@@ -140,7 +130,10 @@ private fun collectAdvancedTagsDescription(comment: LuaCatsComment, sb: StringBu
     comment.genericTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
 }
 
-private fun collectOtherTagsDescription(comment: LuaCatsComment, sb: StringBuilder) {
+private fun collectOtherTagsDescription(
+    comment: LuaCatsComment,
+    sb: StringBuilder,
+) {
     comment.castTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.diagnosticTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }
     comment.moduleTagList.forEach { it.description?.text?.let { text -> sb.append(text).append(' ') } }

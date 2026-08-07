@@ -15,7 +15,6 @@ import net.internetisalie.lunar.redis.debug.LuaRedisDebugMode
  * platform fixture provides the project the config resolves its connection against.
  */
 class TestLuaRedisRunConfiguration : BasePlatformTestCase() {
-
     private fun newConfig(): LuaRedisRunConfiguration {
         val type = LuaRedisRunConfigurationType.getInstance()
         val factory = type.configurationFactories[0]
@@ -191,12 +190,13 @@ class TestLuaRedisRunConfiguration : BasePlatformTestCase() {
      */
     fun testFunctionRegisteredValidationRejectsUnknownName_TC_VALID_1() {
         seedConnection("u1")
-        val file = myFixture.configureByText(
-            "lib.lua",
-            "#!lua name=lib\n" +
-                "redis.register_function('f', function(keys, args) return 1 end)\n" +
-                "redis.register_function('g', function(keys, args) return 2 end)",
-        )
+        val file =
+            myFixture.configureByText(
+                "lib.lua",
+                "#!lua name=lib\n" +
+                    "redis.register_function('f', function(keys, args) return 1 end)\n" +
+                    "redis.register_function('g', function(keys, args) return 2 end)",
+            )
         val config = newConfig()
         config.scriptPath = "lib.lua"
         config.connectionId = "u1"
@@ -218,12 +218,13 @@ class TestLuaRedisRunConfiguration : BasePlatformTestCase() {
      */
     fun testFunctionRegisteredValidationSkipsWhenDynamic_TC_VALID_2() {
         seedConnection("u1")
-        val file = myFixture.configureByText(
-            "libdyn.lua",
-            "#!lua name=libdyn\n" +
-                "local fnName = 'f'\n" +
-                "redis.register_function(fnName, function(keys, args) return 1 end)",
-        )
+        val file =
+            myFixture.configureByText(
+                "libdyn.lua",
+                "#!lua name=libdyn\n" +
+                    "local fnName = 'f'\n" +
+                    "redis.register_function(fnName, function(keys, args) return 1 end)",
+            )
         val config = newConfig()
         config.scriptPath = "libdyn.lua"
         config.connectionId = "u1"

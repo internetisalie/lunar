@@ -8,7 +8,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaDeprecatedApiInspection())
@@ -16,7 +15,8 @@ class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
 
     private fun deprecatedWarnings(text: String): List<String> {
         myFixture.configureByText("test.lua", text)
-        return myFixture.doHighlighting()
+        return myFixture
+            .doHighlighting()
             .filter { it.description?.contains("Deprecated API") == true }
             .map { it.description }
     }
@@ -26,7 +26,10 @@ class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
         assertTrue("Expected no deprecated warnings but found: $warnings", warnings.isEmpty())
     }
 
-    private fun assertDeprecated(text: String, expectedMessage: String) {
+    private fun assertDeprecated(
+        text: String,
+        expectedMessage: String,
+    ) {
         val warnings = deprecatedWarnings(text)
         assertEquals("Warnings: $warnings", 1, warnings.size)
         assertEquals(expectedMessage, warnings[0])
@@ -40,7 +43,7 @@ class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
             local function old() end
             old()
             """.trimIndent(),
-            "Deprecated API"
+            "Deprecated API",
         )
     }
 
@@ -52,7 +55,7 @@ class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
             local function old() end
             old()
             """.trimIndent(),
-            "Deprecated API: Use newFunc instead"
+            "Deprecated API: Use newFunc instead",
         )
     }
 
@@ -64,7 +67,7 @@ class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
             local oldVar = 10
             print(oldVar)
             """.trimIndent(),
-            "Deprecated API"
+            "Deprecated API",
         )
     }
 
@@ -74,7 +77,7 @@ class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
             """
             local function normal() end
             normal()
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -87,7 +90,7 @@ class LuaDeprecatedApiInspectionTest : BasePlatformTestCase() {
                 old()
             end
             """.trimIndent(),
-            "Deprecated API"
+            "Deprecated API",
         )
     }
 }

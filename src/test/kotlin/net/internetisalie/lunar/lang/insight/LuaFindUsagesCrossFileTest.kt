@@ -17,7 +17,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaFindUsagesCrossFileTest : IndexedBasePlatformTestCase() {
-
     /**
      * TC-NAV-02-02: cross-file global function usages via stub index.
      *
@@ -41,7 +40,11 @@ class LuaFindUsagesCrossFileTest : IndexedBasePlatformTestCase() {
         val usages = ReferencesSearch.search(declIdentifier, GlobalSearchScope.allScope(project)).findAll()
         assertEquals("Expected 1 cross-file usage of 'Helper'", 1, usages.size)
 
-        val usageFile = usages.first().element.containingFile?.name
+        val usageFile =
+            usages
+                .first()
+                .element.containingFile
+                ?.name
         assertEquals("Usage should be in b.lua", "b.lua", usageFile)
     }
 }

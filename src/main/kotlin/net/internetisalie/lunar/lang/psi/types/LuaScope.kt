@@ -17,7 +17,10 @@ class LuaScope private constructor(
      * Binds [name] to [node] in this scope.
      * Returns true if this name was already defined in the *current* scope level (re-declaration).
      */
-    fun declare(name: String, node: VariableNode): Boolean {
+    fun declare(
+        name: String,
+        node: VariableNode,
+    ): Boolean {
         val isRedeclared = bindings.containsKey(name)
         bindings[name] = node
         return isRedeclared
@@ -36,25 +39,22 @@ class LuaScope private constructor(
      * Returns the return nodes for the innermost enclosing function scope.
      * Walks up if the current scope itself doesn't hold a function boundary.
      */
-    fun enclosingReturnNodes(): MutableList<VariableNode>? =
-        returnNodes ?: parent?.enclosingReturnNodes()
+    fun enclosingReturnNodes(): MutableList<VariableNode>? = returnNodes ?: parent?.enclosingReturnNodes()
 
     /**
      * Creates a child block scope (e.g., `do…end`, `if…then…end`).
      */
-    fun child(): LuaScope {
-        return LuaScope(parent = this, returnNodes = null)
-    }
+    fun child(): LuaScope = LuaScope(parent = this, returnNodes = null)
 
     /**
      * Creates a function scope with its own return context.
      */
-    fun createFunctionScope(returnNodes: MutableList<VariableNode>): LuaScope {
-        return LuaScope(parent = this, returnNodes = returnNodes)
-    }
+    fun createFunctionScope(returnNodes: MutableList<VariableNode>): LuaScope =
+        LuaScope(parent = this, returnNodes = returnNodes)
 
     companion object {
         /** Creates a root (file-level) scope. */
-        fun root(returnNodes: MutableList<VariableNode>? = null): LuaScope = LuaScope(parent = null, returnNodes = returnNodes)
+        fun root(returnNodes: MutableList<VariableNode>? = null): LuaScope =
+            LuaScope(parent = null, returnNodes = returnNodes)
     }
 }

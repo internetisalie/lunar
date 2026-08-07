@@ -43,11 +43,12 @@ data class LuaValue(
     val text: String?
         get() = psiElement?.text
 
-    fun checkTable(): LuaTable? {
-        return if (kind == LuaValueKind.Table) {
+    fun checkTable(): LuaTable? =
+        if (kind == LuaValueKind.Table) {
             tableValue
-        } else null
-    }
+        } else {
+            null
+        }
 
     override fun compareTo(other: LuaValue): Int {
         // First, compare by type ordering
@@ -66,8 +67,8 @@ data class LuaValue(
         }
     }
 
-    fun toDisplayString(): String {
-        return when (kind) {
+    fun toDisplayString(): String =
+        when (kind) {
             LuaValueKind.Nil -> "nil"
             LuaValueKind.Boolean -> (boolValue ?: false).toString()
             LuaValueKind.Number -> {
@@ -85,14 +86,13 @@ data class LuaValue(
             LuaValueKind.Table -> "table"
             LuaValueKind.None -> "none"
         }
-    }
 
     companion object {
         val NONE = LuaValue()
         val NIL = LuaValue(kind = LuaValueKind.Nil)
 
-        private fun computeKindFromPsi(element: PsiElement): LuaValueKind {
-            return when (element.firstChild?.elementType) {
+        private fun computeKindFromPsi(element: PsiElement): LuaValueKind =
+            when (element.firstChild?.elementType) {
                 LuaElementTypes.NUMBER -> LuaValueKind.Number
                 LuaElementTypes.STRING -> LuaValueKind.String
                 LuaElementTypes.NIL -> LuaValueKind.Nil
@@ -100,23 +100,14 @@ data class LuaValue(
                 LuaElementTypes.LCURLY -> LuaValueKind.Table
                 else -> LuaValueKind.None
             }
-        }
 
-        fun newString(value: String): LuaValue {
-            return LuaValue(kind = LuaValueKind.String, stringValue = value)
-        }
+        fun newString(value: String): LuaValue = LuaValue(kind = LuaValueKind.String, stringValue = value)
 
-        fun newTable(value: LuaTable): LuaValue {
-            return LuaValue(kind = LuaValueKind.Table, tableValue = value)
-        }
+        fun newTable(value: LuaTable): LuaValue = LuaValue(kind = LuaValueKind.Table, tableValue = value)
 
-        fun newNumber(value: Double): LuaValue {
-            return LuaValue(kind = LuaValueKind.Number, numberValue = value)
-        }
+        fun newNumber(value: Double): LuaValue = LuaValue(kind = LuaValueKind.Number, numberValue = value)
 
-        fun newBoolean(value: Boolean): LuaValue {
-            return LuaValue(kind = LuaValueKind.Boolean, boolValue = value)
-        }
+        fun newBoolean(value: Boolean): LuaValue = LuaValue(kind = LuaValueKind.Boolean, boolValue = value)
     }
 }
 
@@ -139,17 +130,18 @@ open class LuaTable(
         return result
     }
 
-    fun getByName(name: String) : Pair<LuaValue, LuaValue>? {
+    fun getByName(name: String): Pair<LuaValue, LuaValue>? {
         val key = LuaValue.newString(name)
         val value = named[key] ?: return null
         return Pair(key, value)
     }
 
-    fun getByIndex(index: Int) : LuaValue? {
-        return indexed.getOrNull(index)
-    }
+    fun getByIndex(index: Int): LuaValue? = indexed.getOrNull(index)
 
-    fun addByName(name: String, value: LuaValue) {
+    fun addByName(
+        name: String,
+        value: LuaValue,
+    ) {
         val key = LuaValue.newString(name)
         named[key] = value
     }
@@ -165,13 +157,14 @@ open class LuaTable(
 }
 
 val LuaField.name: String?
-    get() = if (identifier != null) {
-        identifier?.text
-    } else if (exprList.size == 2) {
-        extractLuaString(exprList[0].text)
-    } else {
-        null
-    }
+    get() =
+        if (identifier != null) {
+            identifier?.text
+        } else if (exprList.size == 2) {
+            extractLuaString(exprList[0].text)
+        } else {
+            null
+        }
 
 val LuaField.value: LuaExpr
     get() = exprList.last()

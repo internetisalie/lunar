@@ -48,7 +48,6 @@ data class RedisCallSite(
  * `funcCall ::= varOrExp nameAndArgs+`, `args ::= '(' [exprList] ')' | … | STRING`).
  */
 object RedisCallSiteMatcher {
-
     private val NAMESPACES = setOf("redis", "server")
 
     /**
@@ -59,9 +58,10 @@ object RedisCallSiteMatcher {
      *   member call.
      */
     fun match(anchor: PsiElement): RedisCallSite? {
-        val funcCall = anchor as? LuaFuncCall
-            ?: PsiTreeUtil.getParentOfType(anchor, LuaFuncCall::class.java)
-            ?: return null
+        val funcCall =
+            anchor as? LuaFuncCall
+                ?: PsiTreeUtil.getParentOfType(anchor, LuaFuncCall::class.java)
+                ?: return null
         val receiver = funcCall.varOrExp.`var` ?: return null
         val namespace = namespaceOf(receiver) ?: return null
         val member = memberOf(receiver) ?: return null
@@ -71,7 +71,12 @@ object RedisCallSiteMatcher {
         return RedisCallSite(
             funcCall = funcCall,
             nameLiteral = nameLiteral,
-            commandName = nameLiteral?.string?.text?.trim('"', '\'')?.uppercase(),
+            commandName =
+                nameLiteral
+                    ?.string
+                    ?.text
+                    ?.trim('"', '\'')
+                    ?.uppercase(),
             argCount = argCountOf(args),
             namespace = namespace,
             member = member,
@@ -87,7 +92,9 @@ object RedisCallSiteMatcher {
     /** The invoked member (`call` in `redis.call`), from the sole dotted `varSuffix`. */
     private fun memberOf(receiver: LuaVar): String? {
         val suffix = receiver.varSuffixList.singleOrNull() ?: return null
-        return suffix.indexExpr.nameRef?.identifier?.text
+        return suffix.indexExpr.nameRef
+            ?.identifier
+            ?.text
     }
 
     /**

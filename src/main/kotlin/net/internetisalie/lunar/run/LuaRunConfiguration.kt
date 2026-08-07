@@ -35,10 +35,13 @@ import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-
-class LuaRunConfigurationType : ConfigurationTypeBase(
-    ID, "Lua", "Lua run configuration type",
-    NotNullLazyValue.createValue { LuaIcons.FILE }) {
+class LuaRunConfigurationType :
+    ConfigurationTypeBase(
+        ID,
+        "Lua",
+        "Lua run configuration type",
+        NotNullLazyValue.createValue { LuaIcons.FILE },
+    ) {
     init {
         addFactory(LuaRunConfigurationFactory(this))
     }
@@ -48,59 +51,75 @@ class LuaRunConfigurationType : ConfigurationTypeBase(
     }
 }
 
-class LuaRunConfigurationFactory(type: ConfigurationTypeBase) : ConfigurationFactory(type) {
-    override fun getId(): String {
-        return LuaRunConfigurationType.ID
-    }
+class LuaRunConfigurationFactory(
+    type: ConfigurationTypeBase,
+) : ConfigurationFactory(type) {
+    override fun getId(): String = LuaRunConfigurationType.ID
 
-    override fun createTemplateConfiguration(project: Project): RunConfiguration {
-        return LuaRunConfiguration(project, this, "Lua")
-    }
+    override fun createTemplateConfiguration(project: Project): RunConfiguration =
+        LuaRunConfiguration(project, this, "Lua")
 
-    override fun getOptionsClass(): Class<out BaseState> {
-        return LuaRunConfigurationOptions::class.java
-    }
+    override fun getOptionsClass(): Class<out BaseState> = LuaRunConfigurationOptions::class.java
 }
 
 class LuaRunConfigurationOptions : RunConfigurationOptions() {
-    private val myScriptName: StoredProperty<String?> = string("").provideDelegate(
-        this, "scriptName"
-    )
+    private val myScriptName: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "scriptName",
+        )
 
-    private val myInterpreter: StoredProperty<String?> = string("").provideDelegate(
-        this, "interpreter"
-    )
+    private val myInterpreter: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "interpreter",
+        )
 
-    private val myWorkingDirectory: StoredProperty<String?> = string("").provideDelegate(
-        this, "workingDirectory"
-    )
+    private val myWorkingDirectory: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "workingDirectory",
+        )
 
-    private val mySourcePath: StoredProperty<String?> = string("").provideDelegate(
-        this, "sourcePath"
-    )
+    private val mySourcePath: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "sourcePath",
+        )
 
     private val myEnvironmentVariables: StoredProperty<MutableMap<String, String>> =
         map<String, String>().provideDelegate(
-            this, "environmentVariables"
+            this,
+            "environmentVariables",
         )
-    private val myEnvironmentFile: StoredProperty<String?> = string("").provideDelegate(
-        this, "environmentFile"
-    )
-    private val myEnvironmentProcess: StoredProperty<String?> = string("").provideDelegate(
-        this, "environmentProcess"
-    )
+    private val myEnvironmentFile: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "environmentFile",
+        )
+    private val myEnvironmentProcess: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "environmentProcess",
+        )
 
-    private val myProgramArguments: StoredProperty<String?> = string("").provideDelegate(
-        this, "programArguments"
-    )
+    private val myProgramArguments: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "programArguments",
+        )
 
-    private val myInterpreterArguments: StoredProperty<String?> = string("").provideDelegate(
-        this, "interpreterArguments"
-    )
+    private val myInterpreterArguments: StoredProperty<String?> =
+        string("").provideDelegate(
+            this,
+            "interpreterArguments",
+        )
 
-    private val myDebugPort: StoredProperty<Int> = property(DEFAULT_DEBUG_PORT).provideDelegate(
-        this, "debugPort"
-    )
+    private val myDebugPort: StoredProperty<Int> =
+        property(DEFAULT_DEBUG_PORT).provideDelegate(
+            this,
+            "debugPort",
+        )
 
     var interpreter: String?
         get() = myInterpreter.getValue(this)
@@ -167,12 +186,12 @@ class LuaRunConfigurationOptions : RunConfigurationOptions() {
     }
 }
 
-class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name: String?) :
-    RunConfigurationBase<LuaRunConfigurationOptions?>(project, factory, name) {
-
-    override fun getOptions(): LuaRunConfigurationOptions {
-        return super.getOptions() as LuaRunConfigurationOptions
-    }
+class LuaRunConfiguration(
+    project: Project,
+    factory: ConfigurationFactory?,
+    name: String?,
+) : RunConfigurationBase<LuaRunConfigurationOptions?>(project, factory, name) {
+    override fun getOptions(): LuaRunConfigurationOptions = super.getOptions() as LuaRunConfigurationOptions
 
     var scriptName: String?
         get() = options.scriptName
@@ -197,8 +216,7 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
      * resolution — deliberately NOT folded into [interpreter] — so an unset config tracks the
      * project default dynamically instead of freezing a snapshot into the run configuration.
      */
-    fun resolveInterpreter(): LuaRegisteredTool? =
-        resolveConfiguredRuntime(project, options.interpreter)
+    fun resolveInterpreter(): LuaRegisteredTool? = resolveConfiguredRuntime(project, options.interpreter)
 
     var workingDirectory: String?
         get() = options.workingDirectory
@@ -207,8 +225,7 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         }
 
     /** The working directory to launch in, falling back to the project base path when unset (#56). */
-    fun effectiveWorkDirectory(): String? =
-        workingDirectory?.takeIf { it.isNotEmpty() } ?: project.basePath
+    fun effectiveWorkDirectory(): String? = workingDirectory?.takeIf { it.isNotEmpty() } ?: project.basePath
 
     var sourcePath: String?
         get() = options.sourcePath
@@ -223,11 +240,12 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         }
 
     var environmentVariables: EnvironmentVariablesData?
-        get() = EnvironmentVariablesData.create(
-            options.environmentVariables,
-            options.environmentProcess.toBoolean(),
-            options.environmentFile
-        )
+        get() =
+            EnvironmentVariablesData.create(
+                options.environmentVariables,
+                options.environmentProcess.toBoolean(),
+                options.environmentFile,
+            )
         set(environmentVariables) {
             if (environmentVariables != null) {
                 options.environmentVariables = environmentVariables.envs.toMutableMap()
@@ -252,9 +270,7 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
             options.interpreterArguments = interpreterArguments
         }
 
-    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> {
-        return LuaRunSettingsEditor(project)
-    }
+    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> = LuaRunSettingsEditor(project)
 
     override fun checkConfiguration() {
         if (resolveInterpreter() == null) {
@@ -268,22 +284,29 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
         }
     }
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+    override fun getState(
+        executor: Executor,
+        environment: ExecutionEnvironment,
+    ): RunProfileState {
         return object : CommandLineState(environment) {
             override fun startProcess(): ProcessHandler {
-                val interpreter = resolveInterpreter()
-                    ?: throw ExecutionException(
-                        "No Lua runtime is configured. Add one under " +
-                            "Settings | Languages & Frameworks | Lua | Toolchain.",
-                    )
+                val interpreter =
+                    resolveInterpreter()
+                        ?: throw ExecutionException(
+                            "No Lua runtime is configured. Add one under " +
+                                "Settings | Languages & Frameworks | Lua | Toolchain.",
+                        )
                 val commandLine = LuaInterpreterCommandLines.forBinary(Path.of(interpreter.path))
 
                 val interpreterArguments = ParametersListUtil.parse(interpreterArguments.orEmpty())
                 commandLine.withParameters(interpreterArguments)
 
                 val scriptName = options.scriptName.orEmpty()
-                if (!scriptName.isEmpty()) commandLine.withParameters(scriptName)
-                else commandLine.withParameters("-v", "-i")
+                if (!scriptName.isEmpty()) {
+                    commandLine.withParameters(scriptName)
+                } else {
+                    commandLine.withParameters("-v", "-i")
+                }
 
                 val programArguments = ParametersListUtil.parse(programArguments.orEmpty())
                 commandLine.withParameters(programArguments)
@@ -295,13 +318,17 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
 
                 // Debugging support
                 if (executor.getId() == DefaultDebugExecutor.EXECUTOR_ID) {
-                    val pluginLuaPath = LuaFileUtil.getPluginVirtualDirectoryChild("lua")
-                        ?: throw ExecutionException("Failed to locate plugin directory")
-                    val debuggerPreloaderFile = pluginLuaPath.findChild(DEBUGGER_PRELOADER_FILE)
-                        ?: throw ExecutionException("Failed to locate debugger preloader")
+                    val pluginLuaPath =
+                        LuaFileUtil.getPluginVirtualDirectoryChild("lua")
+                            ?: throw ExecutionException("Failed to locate plugin directory")
+                    val debuggerPreloaderFile =
+                        pluginLuaPath.findChild(DEBUGGER_PRELOADER_FILE)
+                            ?: throw ExecutionException("Failed to locate debugger preloader")
 
-                    commandLine.withEnvironment(ENV_LUNAR_LUA_PATH_TEMPLATE,
-                        pluginLuaPath.path + "/?/init.lua;" + pluginLuaPath.path + "/?.lua")
+                    commandLine.withEnvironment(
+                        ENV_LUNAR_LUA_PATH_TEMPLATE,
+                        pluginLuaPath.path + "/?/init.lua;" + pluginLuaPath.path + "/?.lua",
+                    )
                     commandLine.withEnvironment(ENV_LUNAR_DEBUGGER_PACKAGE, DEBUGGER_PACKAGE)
                     commandLine.withEnvironment(ENV_LUA_INIT, "@${debuggerPreloaderFile.path}")
                     commandLine.withEnvironment(ENV_MOBDEBUG_PORT, debugPort.toString())
@@ -309,12 +336,15 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
 
                 // TOOLING-05 §2.5: PATH prepend + LUA_PATH/LUA_CPATH from the env builder, honoring
                 // the run-config sourcePath override (verbatim LUA_PATH, PATH prepend still applies).
-                LuaExecutionEnvironmentBuilder.getInstance(project)
+                LuaExecutionEnvironmentBuilder
+                    .getInstance(project)
                     .build(sourcePath)
                     .applyTo(commandLine)
 
-                val processHandler = ProcessHandlerFactory.getInstance()
-                    .createColoredProcessHandler(commandLine)
+                val processHandler =
+                    ProcessHandlerFactory
+                        .getInstance()
+                        .createColoredProcessHandler(commandLine)
 
                 ProcessTerminatedListener.attach(processHandler)
                 return processHandler
@@ -332,44 +362,48 @@ class LuaRunConfiguration(project: Project, factory: ConfigurationFactory?, name
     }
 }
 
-class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguration>() {
+class LuaRunSettingsEditor(
+    project: Project,
+) : SettingsEditor<LuaRunConfiguration>() {
     private val myPanel: JPanel
     private val interpreterField = ComboBox<LuaRegisteredTool>()
     private val scriptPathField = TextFieldWithBrowseButton()
     private val workingDirectoryField = TextFieldWithBrowseButton()
-    private val sourcePathField = ExpandableTextField(
-        { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
-        { entries -> entries.joinToString(PathConfiguration.TEMPLATE_SEPARATOR) },
-    )
+    private val sourcePathField =
+        ExpandableTextField(
+            { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
+            { entries -> entries.joinToString(PathConfiguration.TEMPLATE_SEPARATOR) },
+        )
     private val environmentVariablesField = EnvironmentVariablesTextFieldWithBrowseButton()
     private val interpreterArgumentsField = RawCommandLineEditor()
     private val programArgumentsField = RawCommandLineEditor()
     private val debugPortField = JBIntSpinner(LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT, 1, 65535)
-
 
     init {
         LuaRuntimeComboBox.customize(project, interpreterField)
 
         scriptPathField.addBrowseFolderListener(
             project,
-            FileChooserDescriptorFactory.singleFileOrDir()
+            FileChooserDescriptorFactory.singleFileOrDir(),
         )
 
         workingDirectoryField.addBrowseFolderListener(
             project,
-            FileChooserDescriptorFactory.singleDir()
+            FileChooserDescriptorFactory.singleDir(),
         )
 
-        myPanel = FormBuilder.createFormBuilder()
-            .addLabeledComponent("Runtime", interpreterField)
-            .addLabeledComponent("Script file", scriptPathField)
-            .addLabeledComponent("Working directory", workingDirectoryField)
-            .addLabeledComponent("Source path templates", sourcePathField)
-            .addLabeledComponent("Environment variables", environmentVariablesField)
-            .addLabeledComponent("Runtime arguments", interpreterArgumentsField)
-            .addLabeledComponent("Program arguments", programArgumentsField)
-            .addLabeledComponent("Debug port", debugPortField)
-            .panel
+        myPanel =
+            FormBuilder
+                .createFormBuilder()
+                .addLabeledComponent("Runtime", interpreterField)
+                .addLabeledComponent("Script file", scriptPathField)
+                .addLabeledComponent("Working directory", workingDirectoryField)
+                .addLabeledComponent("Source path templates", sourcePathField)
+                .addLabeledComponent("Environment variables", environmentVariablesField)
+                .addLabeledComponent("Runtime arguments", interpreterArgumentsField)
+                .addLabeledComponent("Program arguments", programArgumentsField)
+                .addLabeledComponent("Debug port", debugPortField)
+                .panel
     }
 
     override fun resetEditorFrom(runConfiguration: LuaRunConfiguration) {
@@ -394,7 +428,5 @@ class LuaRunSettingsEditor(project: Project) : SettingsEditor<LuaRunConfiguratio
         runConfiguration.debugPort = debugPortField.number
     }
 
-    override fun createEditor(): JComponent {
-        return myPanel
-    }
+    override fun createEditor(): JComponent = myPanel
 }

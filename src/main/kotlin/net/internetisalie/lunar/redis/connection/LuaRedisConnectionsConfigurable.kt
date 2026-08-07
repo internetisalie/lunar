@@ -37,8 +37,9 @@ import javax.swing.ListSelectionModel
  * in-panel until [apply], which writes the metadata to [LuaRedisConnectionSettings] and the password to
  * [LuaRedisCredentialStore] — never to the XML.
  */
-class LuaRedisConnectionsConfigurable(private val project: Project) : Configurable {
-
+class LuaRedisConnectionsConfigurable(
+    private val project: Project,
+) : Configurable {
     private val model = CollectionListModel<LuaRedisConnectionDraft>()
     private val connectionList = JBList(model)
     private val form = ConnectionForm()
@@ -53,10 +54,12 @@ class LuaRedisConnectionsConfigurable(private val project: Project) : Configurab
         connectionList.cellRenderer = ConnectionCellRenderer
         connectionList.addListSelectionListener { if (!it.valueIsAdjusting) onSelectionChanged() }
         form.onEdited = ::onFormEdited
-        val listComponent = ToolbarDecorator.createDecorator(connectionList)
-            .setAddAction { addConnection() }
-            .setRemoveAction { removeSelectedConnection() }
-            .createPanel()
+        val listComponent =
+            ToolbarDecorator
+                .createDecorator(connectionList)
+                .setAddAction { addConnection() }
+                .setRemoveAction { removeSelectedConnection() }
+                .createPanel()
         val built = JPanel(BorderLayout())
         built.add(listComponent, BorderLayout.WEST)
         built.add(form.component, BorderLayout.CENTER)
@@ -122,9 +125,10 @@ class LuaRedisConnectionsConfigurable(private val project: Project) : Configurab
         val draft = form.snapshot(connectionList.selectedValue?.id ?: return)
         val endpoint = draft.toEndpoint()
         LunarCoroutineScopeService.getInstance(project).scope.launch {
-            val outcome = withBackgroundProgress(project, "Testing Redis connection") {
-                probe(endpoint)
-            }
+            val outcome =
+                withBackgroundProgress(project, "Testing Redis connection") {
+                    probe(endpoint)
+                }
             withContext(Dispatchers.EDT) {
                 warnOnFlavorMismatch(draft.id, outcome)
                 reportTestOutcome(outcome)
@@ -133,9 +137,17 @@ class LuaRedisConnectionsConfigurable(private val project: Project) : Configurab
     }
 
     /** REDIS-03 §7.3: after a successful connect, warn once if the server flavor mismatches the target. */
-    private fun warnOnFlavorMismatch(connectionId: String, outcome: TestOutcome) {
+    private fun warnOnFlavorMismatch(
+        connectionId: String,
+        outcome: TestOutcome,
+    ) {
         val flavor = (outcome as? TestOutcome.Success)?.flavor ?: return
-        val target = LuaProjectSettings.getInstance(project).state.getTarget().platform
+        val target =
+            LuaProjectSettings
+                .getInstance(project)
+                .state
+                .getTarget()
+                .platform
         LuaRedisFlavorWarning.getInstance(project).warnOnceIfMismatch(connectionId, flavor, target)
     }
 
@@ -161,16 +173,17 @@ class LuaRedisConnectionsConfigurable(private val project: Project) : Configurab
 
         var onEdited: () -> Unit = {}
 
-        val component: JComponent = panel {
-            row("Name:") { cell(nameField) }
-            row("Host:") { cell(hostField) }
-            row("Port:") { cell(portField) }
-            row { cell(tlsCheckBox) }
-            row("Username:") { cell(usernameField) }
-            row("Password:") { cell(passwordField.also { it.columns = 18 }) }
-            row("Database:") { cell(databaseField) }
-            row { button("Test Connection") { testConnection() } }
-        }.apply { installEditListeners(this) }
+        val component: JComponent =
+            panel {
+                row("Name:") { cell(nameField) }
+                row("Host:") { cell(hostField) }
+                row("Port:") { cell(portField) }
+                row { cell(tlsCheckBox) }
+                row("Username:") { cell(usernameField) }
+                row("Password:") { cell(passwordField.also { it.columns = 18 }) }
+                row("Database:") { cell(databaseField) }
+                row { button("Test Connection") { testConnection() } }
+            }.apply { installEditListeners(this) }
 
         fun bind(draft: LuaRedisConnectionDraft?) {
             nameField.text = draft?.name ?: ""
@@ -224,7 +237,6 @@ data class LuaRedisConnectionDraft(
     val password: String?,
     val database: Int,
 ) {
-
     fun toConnection(): LuaRedisServerConnection =
         LuaRedisServerConnection(
             id = id,
@@ -241,7 +253,10 @@ data class LuaRedisConnectionDraft(
         RespEndpoint(host = host, port = port, tls = tls, database = database, username = username, password = password)
 
     companion object {
-        fun from(connection: LuaRedisServerConnection, password: String?): LuaRedisConnectionDraft =
+        fun from(
+            connection: LuaRedisServerConnection,
+            password: String?,
+        ): LuaRedisConnectionDraft =
             LuaRedisConnectionDraft(
                 id = connection.id,
                 name = connection.name,

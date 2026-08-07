@@ -6,7 +6,6 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValue
@@ -15,11 +14,10 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
-import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.settings.LuaProjectSettings
-import java.io.File
 
 /**
  * Provides project-wide global symbol suggestions with proximity-based ranking.
@@ -32,8 +30,9 @@ import java.io.File
  * - Rank by proximity (same module, same directory, different module)
  */
 @Service(Service.Level.PROJECT)
-class GlobalSymbolRankingService(private val project: Project) {
-
+class GlobalSymbolRankingService(
+    private val project: Project,
+) {
     data class GlobalSymbolCompletion(
         val name: String,
         val psiElement: PsiElement,
@@ -87,7 +86,7 @@ class GlobalSymbolRankingService(private val project: Project) {
     fun getProjectGlobalSymbols(
         currentFile: LuaFile,
         localSymbolNames: Set<String>,
-        importedSymbolNames: Set<String>
+        importedSymbolNames: Set<String>,
     ): List<GlobalSymbolCompletion> {
         // Graceful degradation in dumb mode
         if (DumbService.isDumb(project)) {
@@ -109,7 +108,7 @@ class GlobalSymbolRankingService(private val project: Project) {
     private fun collectGlobalFunctions(
         currentFile: LuaFile,
         localSymbolNames: Set<String>,
-        importedSymbolNames: Set<String>
+        importedSymbolNames: Set<String>,
     ): List<GlobalSymbolCompletion> {
         val result = mutableListOf<GlobalSymbolCompletion>()
         val settings = LuaProjectSettings.getInstance(project)
@@ -129,15 +128,16 @@ class GlobalSymbolRankingService(private val project: Project) {
             // Check early exit and cancellation before processing each key
             if (result.size >= MAX_CANDIDATES) break
             ProgressManager.checkCanceled()
-             
-            val functions = StubIndex.getElements(
-                LuaGlobalDeclarationIndex.KEY,
-                key,
-                project,
-                scope,
-                LuaFuncDecl::class.java
-            )
-             
+
+            val functions =
+                StubIndex.getElements(
+                    LuaGlobalDeclarationIndex.KEY,
+                    key,
+                    project,
+                    scope,
+                    LuaFuncDecl::class.java,
+                )
+
             for (funcDecl in functions) {
                 // Check cancellation in inner loop
                 ProgressManager.checkCanceled()
@@ -169,7 +169,7 @@ class GlobalSymbolRankingService(private val project: Project) {
                         isClassType = false,
                         sourceVirtualFile = declaringFile.virtualFile,
                         isLibrary = isLibraryFile(declaringFile),
-                    )
+                    ),
                 )
             }
         }
@@ -183,7 +183,7 @@ class GlobalSymbolRankingService(private val project: Project) {
     private fun collectClassSymbols(
         currentFile: LuaFile,
         localSymbolNames: Set<String>,
-        importedSymbolNames: Set<String>
+        importedSymbolNames: Set<String>,
     ): List<GlobalSymbolCompletion> {
         val result = mutableListOf<GlobalSymbolCompletion>()
         val settings = LuaProjectSettings.getInstance(project)
@@ -203,15 +203,16 @@ class GlobalSymbolRankingService(private val project: Project) {
             // Check early exit and cancellation before processing each key
             if (result.size >= MAX_CANDIDATES) break
             ProgressManager.checkCanceled()
-             
-            val classes = StubIndex.getElements(
-                LuaClassNameIndex.KEY,
-                className,
-                project,
-                scope,
-                LuaLocalVarDecl::class.java
-            )
-             
+
+            val classes =
+                StubIndex.getElements(
+                    LuaClassNameIndex.KEY,
+                    className,
+                    project,
+                    scope,
+                    LuaLocalVarDecl::class.java,
+                )
+
             for (classElement in classes) {
                 // Check cancellation in inner loop
                 ProgressManager.checkCanceled()
@@ -243,7 +244,7 @@ class GlobalSymbolRankingService(private val project: Project) {
                         isClassType = true,
                         sourceVirtualFile = declaringFile.virtualFile,
                         isLibrary = isLibraryFile(declaringFile),
-                    )
+                    ),
                 )
             }
         }
@@ -268,13 +269,13 @@ class GlobalSymbolRankingService(private val project: Project) {
     }
 
     /**
-    * Extract the name from a LuaLocalVarDecl (used for @class declarations).
-    * Typically gets the first name from the local variable declaration.
-    */
+     * Extract the name from a LuaLocalVarDecl (used for @class declarations).
+     * Typically gets the first name from the local variable declaration.
+     */
     private fun extractClassElementName(element: LuaLocalVarDecl): String? {
-       val attNames = element.attNameList.firstOrNull() ?: return null
-       val identifier = attNames.nameRef.identifier ?: return null
-       return identifier.text
+        val attNames = element.attNameList.firstOrNull() ?: return null
+        val identifier = attNames.nameRef.identifier ?: return null
+        return identifier.text
     }
 
     /**
@@ -285,9 +286,9 @@ class GlobalSymbolRankingService(private val project: Project) {
     fun funcKeySnapshotForTest(): List<String> = funcKeyCache.value
 
     companion object {
-       private const val MAX_CANDIDATES = 500
+        private const val MAX_CANDIDATES = 500
 
-       fun getInstance(project: Project): GlobalSymbolRankingService =
-           project.getService(GlobalSymbolRankingService::class.java)
+        fun getInstance(project: Project): GlobalSymbolRankingService =
+            project.getService(GlobalSymbolRankingService::class.java)
     }
 }

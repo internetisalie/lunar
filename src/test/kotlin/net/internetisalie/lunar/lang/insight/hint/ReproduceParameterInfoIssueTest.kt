@@ -4,7 +4,6 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.testFramework.EdtTestUtil
 import com.intellij.testFramework.utils.parameterInfo.MockCreateParameterInfoContext
 import net.internetisalie.lunar.IndexedDocumentTest
-import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
@@ -14,7 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class ReproduceParameterInfoIssueTest : IndexedDocumentTest() {
-
     @Test
     fun testDottedPlatformGlobal() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
@@ -23,13 +21,17 @@ class ReproduceParameterInfoIssueTest : IndexedDocumentTest() {
             val settings = LuaProjectSettings.getInstance(myFixture.project)
             val redisVersion = PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, "7+")!!
             settings.state.setTarget(Target(LuaPlatform.REDIS, redisVersion))
-            net.internetisalie.lunar.project.PlatformLibraryIndex.reload()
+            net.internetisalie.lunar.project.PlatformLibraryIndex
+                .reload()
 
             // 2. Perform file configuration and parameter info lookup under a read action.
             runReadAction {
-                val file = configureByText("""
-                    cjson.decode(<caret>)
-                """.trimIndent())
+                val file =
+                    configureByText(
+                        """
+                        cjson.decode(<caret>)
+                        """.trimIndent(),
+                    )
 
                 val handler = LuaParameterInfoHandler()
                 val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)

@@ -13,7 +13,6 @@ import java.nio.file.Paths
  * Maps platformType to IdeProductProvider instances and reads testVersion
  */
 object IdeProductResolver {
-    
     private const val GRADLE_PROPERTIES_PATH = "gradle.properties"
     private const val PLATFORM_TYPE_KEY = "platformType"
     private const val TEST_VERSION_KEY = "testVersion"
@@ -33,7 +32,9 @@ object IdeProductResolver {
     fun applyLicense(context: IDETestContext): IDETestContext {
         val keyPath = resolveLicenseKeyPath(context.ide.productCode)
         if (keyPath == null) {
-            println("⚠ No license key found (set $LICENSE_ENV=/path/to/<ide>.key). A commercial IDE will block on the License dialog.")
+            println(
+                "⚠ No license key found (set $LICENSE_ENV=/path/to/<ide>.key). A commercial IDE will block on the License dialog.",
+            )
             return context
         }
         println("✓ Applying integration-test license from: $keyPath")
@@ -65,18 +66,19 @@ object IdeProductResolver {
     }
 
     /** Host config-dir prefix and key file name for a product code (only commercial IDEs). */
-    private fun hostKeyCoordinates(productCode: String): Pair<String, String>? = when (productCode) {
-        "GO" -> "GoLand" to "goland.key"
-        "IU" -> "IntelliJIdea" to "idea.key"
-        "RM" -> "RubyMine" to "rubymine.key"
-        "WS" -> "WebStorm" to "webstorm.key"
-        "PS" -> "PhpStorm" to "phpstorm.key"
-        "PY" -> "PyCharm" to "pycharm.key"
-        "DB" -> "DataGrip" to "datagrip.key"
-        "CL" -> "CLion" to "clion.key"
-        "RD" -> "Rider" to "rider.key"
-        else -> null
-    }
+    private fun hostKeyCoordinates(productCode: String): Pair<String, String>? =
+        when (productCode) {
+            "GO" -> "GoLand" to "goland.key"
+            "IU" -> "IntelliJIdea" to "idea.key"
+            "RM" -> "RubyMine" to "rubymine.key"
+            "WS" -> "WebStorm" to "webstorm.key"
+            "PS" -> "PhpStorm" to "phpstorm.key"
+            "PY" -> "PyCharm" to "pycharm.key"
+            "DB" -> "DataGrip" to "datagrip.key"
+            "CL" -> "CLion" to "clion.key"
+            "RD" -> "Rider" to "rider.key"
+            else -> null
+        }
 
     /**
      * Get IDE info from gradle.properties platformType
@@ -86,22 +88,20 @@ object IdeProductResolver {
         val platformType = readPlatformType()
         return getIdeProductByType(platformType)
     }
-    
+
     /**
      * Get test IDE version from gradle.properties testVersion
      * @return version string or "2024.3.1" if not found
      */
-    fun getTestVersion(): String {
-        return readTestVersion()
-    }
-    
+    fun getTestVersion(): String = readTestVersion()
+
     /**
      * Get IDE info by platform type code
      * @param platformType Platform type (GO, IU, IC, AI, WS, PS, etc.)
      * @return IdeInfo instance or IC as fallback
      */
-    fun getIdeProductByType(platformType: String): IdeInfo {
-        return when (platformType.uppercase()) {
+    fun getIdeProductByType(platformType: String): IdeInfo =
+        when (platformType.uppercase()) {
             "GO" -> IdeProductProvider.GO
             "IU" -> IdeProductProvider.IU
             "IC" -> IdeProductProvider.IC
@@ -123,8 +123,7 @@ object IdeProductResolver {
                 IdeProductProvider.IC
             }
         }
-    }
-    
+
     /**
      * Read platformType from gradle.properties
      * @return platform type string or "IC" if not found
@@ -136,7 +135,7 @@ object IdeProductResolver {
                 println("⚠ gradle.properties not found at: ${gradleProps.absolutePath}")
                 return "IC"
             }
-            
+
             gradleProps.useLines { lines ->
                 lines
                     .filter { it.contains(PLATFORM_TYPE_KEY) && !it.trim().startsWith("#") }
@@ -150,7 +149,7 @@ object IdeProductResolver {
             "IC"
         }
     }
-    
+
     /**
      * Read testVersion from gradle.properties
      * @return version string or "2024.3.1" if not found
@@ -162,7 +161,7 @@ object IdeProductResolver {
                 println("⚠ gradle.properties not found at: ${gradleProps.absolutePath}")
                 return "2024.3.1"
             }
-            
+
             gradleProps.useLines { lines ->
                 lines
                     .filter { it.contains(TEST_VERSION_KEY) && !it.trim().startsWith("#") }
@@ -176,12 +175,12 @@ object IdeProductResolver {
             "2024.3.1"
         }
     }
-    
+
     /**
      * Get product name for display
      */
-    fun getProductName(ideInfo: IdeInfo): String {
-        return when (ideInfo.productCode) {
+    fun getProductName(ideInfo: IdeInfo): String =
+        when (ideInfo.productCode) {
             "GO" -> "GoLand"
             "IU" -> "IntelliJ IDEA Ultimate"
             "IC" -> "IntelliJ IDEA Community"
@@ -200,5 +199,4 @@ object IdeProductResolver {
             "GW" -> "JetBrains Gateway"
             else -> ideInfo.fullName
         }
-    }
 }

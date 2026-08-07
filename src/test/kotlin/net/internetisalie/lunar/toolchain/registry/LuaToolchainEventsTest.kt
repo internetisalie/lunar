@@ -7,7 +7,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaToolchainEventsTest : ToolchainSettingsTestCase() {
-
     @Test
     fun testSetBindingFiresExactlyOnce_TC9() {
         val toolB = seedTool("luacheck")

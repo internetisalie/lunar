@@ -19,20 +19,22 @@ private val LOG = logger<LuaTargetSynchronizer>()
 
 private val UNINITIALIZED = " uninitialized"
 
-private val RUNTIME_AFFECTING = setOf(
-    LuaToolchainChange.TOOL_REGISTERED,
-    LuaToolchainChange.TOOL_UPDATED,
-    LuaToolchainChange.TOOL_REMOVED,
-    LuaToolchainChange.GLOBAL_BINDING_CHANGED,
-    LuaToolchainChange.PROJECT_BINDING_CHANGED,
-    LuaToolchainChange.ENVIRONMENT_UPDATED,
-    LuaToolchainChange.ENVIRONMENT_REMOVED,
-    LuaToolchainChange.ACTIVE_ENVIRONMENT_CHANGED
-)
+private val RUNTIME_AFFECTING =
+    setOf(
+        LuaToolchainChange.TOOL_REGISTERED,
+        LuaToolchainChange.TOOL_UPDATED,
+        LuaToolchainChange.TOOL_REMOVED,
+        LuaToolchainChange.GLOBAL_BINDING_CHANGED,
+        LuaToolchainChange.PROJECT_BINDING_CHANGED,
+        LuaToolchainChange.ENVIRONMENT_UPDATED,
+        LuaToolchainChange.ENVIRONMENT_REMOVED,
+        LuaToolchainChange.ACTIVE_ENVIRONMENT_CHANGED,
+    )
 
 @Service(Service.Level.PROJECT)
-class LuaTargetSynchronizer(private val project: Project) : Disposable {
-
+class LuaTargetSynchronizer(
+    private val project: Project,
+) : Disposable {
     @Volatile
     private var lastAppliedRuntimeId: String? = UNINITIALIZED
 
@@ -41,7 +43,7 @@ class LuaTargetSynchronizer(private val project: Project) : Disposable {
             LuaToolchainListener.TOPIC,
             object : LuaToolchainListener {
                 override fun toolchainChanged(event: LuaToolchainEvent) = onEvent(event)
-            }
+            },
         )
     }
 
@@ -111,7 +113,6 @@ class LuaTargetSynchronizer(private val project: Project) : Disposable {
     override fun dispose() {}
 
     companion object {
-        fun getInstance(project: Project): LuaTargetSynchronizer =
-            project.getService(LuaTargetSynchronizer::class.java)
+        fun getInstance(project: Project): LuaTargetSynchronizer = project.getService(LuaTargetSynchronizer::class.java)
     }
 }

@@ -10,8 +10,10 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaStringConversionIntentionTest : BasePlatformTestCase() {
-
-    private fun convert(text: String, action: String): String {
+    private fun convert(
+        text: String,
+        action: String,
+    ): String {
         myFixture.configureByText("test.lua", text)
         val intention = myFixture.findSingleIntention(action)
         myFixture.launchAction(intention)
@@ -106,7 +108,11 @@ class LuaStringConversionIntentionTest : BasePlatformTestCase() {
             val reparsed = myFixture.configureByText("check.lua", text)
             val error = PsiTreeUtil.findChildOfType(reparsed, PsiErrorElement::class.java)
             assertNull("converting \"$value\" produced unparseable Lua: $text — ${error?.errorDescription}", error)
-            assertEquals("$value: value must survive the conversion", value, extractLuaString(text.removePrefix("local s = ")))
+            assertEquals(
+                "$value: value must survive the conversion",
+                value,
+                extractLuaString(text.removePrefix("local s = ")),
+            )
         }
     }
 

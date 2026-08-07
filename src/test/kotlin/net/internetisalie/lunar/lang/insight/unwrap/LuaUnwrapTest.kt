@@ -11,17 +11,23 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * by its description under a write command — the documented `UnwrapTestCase` pattern (TC-01..TC-09).
  */
 class LuaUnwrapTest : BasePlatformTestCase() {
-
     private fun options(): List<Pair<PsiElement, com.intellij.codeInsight.unwrap.Unwrapper>> {
         val collected = LuaUnwrapDescriptor().collectUnwrappers(project, myFixture.editor, myFixture.file)
         return collected.map { it.first to it.second }
     }
 
-    private fun assertUnwrapped(before: String, after: String, option: String) {
+    private fun assertUnwrapped(
+        before: String,
+        after: String,
+        option: String,
+    ) {
         myFixture.configureByText("a.lua", before)
         val opts = options()
-        val chosen = opts.firstOrNull { it.second.getDescription(it.first) == option }
-            ?: throw AssertionError("option '$option' not offered; got ${opts.map { it.second.getDescription(it.first) }}")
+        val chosen =
+            opts.firstOrNull { it.second.getDescription(it.first) == option }
+                ?: throw AssertionError(
+                    "option '$option' not offered; got ${opts.map { it.second.getDescription(it.first) }}",
+                )
         WriteCommandAction.runWriteCommandAction(project) {
             chosen.second.unwrap(myFixture.editor, chosen.first)
         }
@@ -34,24 +40,19 @@ class LuaUnwrapTest : BasePlatformTestCase() {
     }
 
     // TC-01 (06-01) — unwrap plain if hoists the body.
-    fun testUnwrapIf() =
-        assertUnwrapped("if x then\n  a()\n  b()<caret>\nend", "a()\nb()", "Unwrap 'if'")
+    fun testUnwrapIf() = assertUnwrapped("if x then\n  a()\n  b()<caret>\nend", "a()\nb()", "Unwrap 'if'")
 
     // TC-05 (06-01) — unwrap while.
-    fun testUnwrapWhile() =
-        assertUnwrapped("while c do\n  step()<caret>\nend", "step()", "Unwrap 'while'")
+    fun testUnwrapWhile() = assertUnwrapped("while c do\n  step()<caret>\nend", "step()", "Unwrap 'while'")
 
     // TC-06 (06-01) — unwrap numeric for.
-    fun testUnwrapNumericFor() =
-        assertUnwrapped("for i = 1, 3 do\n  use(i)<caret>\nend", "use(i)", "Unwrap 'for'")
+    fun testUnwrapNumericFor() = assertUnwrapped("for i = 1, 3 do\n  use(i)<caret>\nend", "use(i)", "Unwrap 'for'")
 
     // TC-07 (06-01) — unwrap do.
-    fun testUnwrapDo() =
-        assertUnwrapped("do\n  scoped()<caret>\nend", "scoped()", "Unwrap 'do'")
+    fun testUnwrapDo() = assertUnwrapped("do\n  scoped()<caret>\nend", "scoped()", "Unwrap 'do'")
 
     // TC-08 (06-01) — unwrap function decl.
-    fun testUnwrapFunction() =
-        assertUnwrapped("function f()\n  body()<caret>\nend", "body()", "Unwrap 'function'")
+    fun testUnwrapFunction() = assertUnwrapped("function f()\n  body()<caret>\nend", "body()", "Unwrap 'function'")
 
     // TC-02 (06-02) — collapse the else branch, keep the then body.
     fun testCollapseElse() =
@@ -66,8 +67,7 @@ class LuaUnwrapTest : BasePlatformTestCase() {
         )
 
     // TC-03 (06-03) — remove the whole enclosing while.
-    fun testRemoveWhile() =
-        assertUnwrapped("while c do\n  work()<caret>\nend", "", "Remove enclosing block")
+    fun testRemoveWhile() = assertUnwrapped("while c do\n  work()<caret>\nend", "", "Remove enclosing block")
 
     // TC-04 (06-04) — nested function/do/if offers unwrap options for each enclosing construct.
     fun testNestedConstructsOfferAllOptions() {

@@ -61,11 +61,9 @@ class LuaTypesSnapshot(
     /** File-scope globals this file declares, by name (BUG-395). */
     private val globalNodes: Map<String, VariableNode> = emptyMap(),
 ) : LuaTypes {
-
     override fun getFileReturnType(): LuaGraphType = fileReturnType
 
-    override fun getValueType(element: PsiElement): LuaGraphType =
-        typeOf(elementNodes[element]?.firstOrNull())
+    override fun getValueType(element: PsiElement): LuaGraphType = typeOf(elementNodes[element]?.firstOrNull())
 
     override fun getGlobalType(name: String): LuaGraphType = typeOf(globalNodes[name])
 
@@ -79,7 +77,12 @@ class LuaTypesSnapshot(
                     val mergedMembers = mutableMapOf<String, VariableNode>()
                     mergedMembers.putAll(write.localMembers)
                     mergedMembers.putAll(read.localMembers)
-                    LuaGraphType.Table(write.className ?: read.className, mergedMembers, write.superTypes, write.isExact)
+                    LuaGraphType.Table(
+                        write.className ?: read.className,
+                        mergedMembers,
+                        write.superTypes,
+                        write.isExact,
+                    )
                 } else if (write != LuaGraphType.Undefined) {
                     write
                 } else {
@@ -94,8 +97,7 @@ class LuaTypesSnapshot(
 
     override fun getErrors(): List<ElementError> = graph.errors
 
-    override fun graphTypeToLuaType(type: LuaGraphType): LuaType =
-        graphTypeToLuaType(type, mutableMapOf())
+    override fun graphTypeToLuaType(type: LuaGraphType): LuaType = graphTypeToLuaType(type, mutableMapOf())
 
     /**
      * MAINT-25-02: cycle-safe conversion. Mirrors [LuaGraphType.fromLuaType]: register a placeholder
@@ -103,7 +105,10 @@ class LuaTypesSnapshot(
      * type (`t.self = t`) resolves the cycle-back reference to the in-construction placeholder
      * instead of recursing forever (StackOverflowError). Scalar heads cannot cycle — returned directly.
      */
-    private fun graphTypeToLuaType(type: LuaGraphType, visited: MutableMap<LuaGraphType, LuaType>): LuaType {
+    private fun graphTypeToLuaType(
+        type: LuaGraphType,
+        visited: MutableMap<LuaGraphType, LuaType>,
+    ): LuaType {
         visited[type]?.let { return it }
         return when (type) {
             LuaGraphType.Any -> LuaPrimitiveType.ANY
@@ -124,12 +129,16 @@ class LuaTypesSnapshot(
         }
     }
 
-    private fun tableToLuaType(type: LuaGraphType.Table, visited: MutableMap<LuaGraphType, LuaType>): LuaType {
+    private fun tableToLuaType(
+        type: LuaGraphType.Table,
+        visited: MutableMap<LuaGraphType, LuaType>,
+    ): LuaType {
         val members = LinkedHashMap<String, LuaTypeMember>()
         if (type.className != null) {
-            val nominal = contextFile?.let {
-                LuaTypeManager.getInstance(it.project).resolveType(type.className, it)
-            }
+            val nominal =
+                contextFile?.let {
+                    LuaTypeManager.getInstance(it.project).resolveType(type.className, it)
+                }
             val superTypes = (nominal as? LuaClassType)?.superTypes ?: emptyList()
             val placeholder = LuaClassType(type.className, superTypes, members)
             visited[type] = placeholder
@@ -150,16 +159,22 @@ class LuaTypesSnapshot(
         return placeholder
     }
 
-    private fun functionToLuaType(type: LuaGraphType.Function, visited: MutableMap<LuaGraphType, LuaType>): LuaType {
-        val params = type.params.map { p ->
-            val name = p.name ?: when (val el = p.node.element) {
-                is net.internetisalie.lunar.lang.psi.LuaNameRef -> el.text
-                is net.internetisalie.lunar.lang.psi.LuaAttName -> el.nameRef.text
-                else -> "p"
+    private fun functionToLuaType(
+        type: LuaGraphType.Function,
+        visited: MutableMap<LuaGraphType, LuaType>,
+    ): LuaType {
+        val params =
+            type.params.map { p ->
+                val name =
+                    p.name ?: when (val el = p.node.element) {
+                        is net.internetisalie.lunar.lang.psi.LuaNameRef -> el.text
+                        is net.internetisalie.lunar.lang.psi.LuaAttName -> el.nameRef.text
+                        else -> "p"
+                    }
+                LuaParameter(name, graphTypeToLuaType(p.node.write, visited), p.isOptional, p.isVararg)
             }
-            LuaParameter(name, graphTypeToLuaType(p.node.write, visited), p.isOptional, p.isVararg)
-        }
-        val returnType = type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write, visited) } ?: LuaPrimitiveType.VOID
+        val returnType =
+            type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write, visited) } ?: LuaPrimitiveType.VOID
         return LuaFunctionType(params, returnType)
     }
 

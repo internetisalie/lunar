@@ -23,11 +23,13 @@ import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.evaluation.EvaluationMode
 import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 
-class LuaDebuggerEvaluator(private val myController: LuaDebuggerController) : XDebuggerEvaluator() {
+class LuaDebuggerEvaluator(
+    private val myController: LuaDebuggerController,
+) : XDebuggerEvaluator() {
     override fun evaluate(
         expression: String,
         callback: XEvaluationCallback,
-        expressionPosition: XSourcePosition?
+        expressionPosition: XSourcePosition?,
     ) {
         myController.launchEvaluate("return $expression", callback)
     }
@@ -35,7 +37,7 @@ class LuaDebuggerEvaluator(private val myController: LuaDebuggerController) : XD
     override fun evaluate(
         expression: XExpression,
         callback: XEvaluationCallback,
-        expressionPosition: XSourcePosition?
+        expressionPosition: XSourcePosition?,
     ) {
         if (expression.mode == EvaluationMode.EXPRESSION) {
             myController.launchEvaluate("return " + expression.expression, callback)
@@ -48,6 +50,6 @@ class LuaDebuggerEvaluator(private val myController: LuaDebuggerController) : XD
         project: Project,
         document: Document,
         offset: Int,
-        sideEffectsAllowed: Boolean
+        sideEffectsAllowed: Boolean,
     ): TextRange? = LuaExpressionRange.atOffset(project, document, offset, sideEffectsAllowed)
 }

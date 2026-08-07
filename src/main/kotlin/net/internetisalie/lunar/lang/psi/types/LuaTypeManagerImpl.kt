@@ -13,25 +13,24 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
 import net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex
-import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
-import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.path.resolveModuleCandidates
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.stubs.LuaFileStub
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import org.jetbrains.annotations.VisibleForTesting
-import java.util.concurrent.ConcurrentHashMap
 
-class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
-
+class LuaTypeManagerImpl(
+    private val project: Project,
+) : LuaTypeManager {
     private val typeCache: CachedValue<MutableMap<String, LuaType?>> =
         CachedValuesManager.getManager(project).createCachedValue(
             {
@@ -40,7 +39,8 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                     PsiModificationTracker.getInstance(project),
                 )
             },
-            /* trackValue = */ false,
+            // trackValue =
+            false,
         )
 
     private val moduleCache: CachedValue<MutableMap<String, LuaType?>> =
@@ -51,7 +51,8 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                     PsiModificationTracker.getInstance(project),
                 )
             },
-            /* trackValue = */ false,
+            // trackValue =
+            false,
         )
 
     private val globalCache: CachedValue<MutableMap<String, LuaType?>> =
@@ -62,14 +63,18 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                     PsiModificationTracker.getInstance(project),
                 )
             },
-            /* trackValue = */ false,
+            // trackValue =
+            false,
         )
 
     private val resolvingModules = ThreadLocal.withInitial { mutableSetOf<String>() }
     private val resolvingTypes = ThreadLocal.withInitial { mutableSetOf<String>() }
     private val resolvingGlobals = ThreadLocal.withInitial { mutableSetOf<String>() }
 
-    override fun resolveType(name: String, context: PsiElement): LuaType? {
+    override fun resolveType(
+        name: String,
+        context: PsiElement,
+    ): LuaType? {
         LuaPrimitiveType.PRIMITIVES[name]?.let { return it }
         val cache = typeCache.value
         if (cache.containsKey(name)) return cache[name]
@@ -88,7 +93,10 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         }
     }
 
-    override fun resolveModule(moduleName: String, context: PsiElement): LuaType? {
+    override fun resolveModule(
+        moduleName: String,
+        context: PsiElement,
+    ): LuaType? {
         val cache = moduleCache.value
         if (cache.containsKey(moduleName)) return cache[moduleName]
 
@@ -114,7 +122,10 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
      * (bundled stdlib, definition libraries, LuaRocks trees) live outside project scope, which is
      * exactly why their members never appeared.
      */
-    override fun resolveGlobal(name: String, context: PsiElement): LuaType? {
+    override fun resolveGlobal(
+        name: String,
+        context: PsiElement,
+    ): LuaType? {
         if (DumbService.isDumb(project)) return null
         val cache = globalCache.value
         if (cache.containsKey(name)) return cache[name]
@@ -126,18 +137,27 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         }
     }
 
-    private fun doResolveGlobal(name: String, context: PsiElement): LuaType? {
-        val declaringFiles = FileBasedIndex.getInstance()
-            .getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, GlobalSearchScope.allScope(project))
+    private fun doResolveGlobal(
+        name: String,
+        context: PsiElement,
+    ): LuaType? {
+        val declaringFiles =
+            FileBasedIndex
+                .getInstance()
+                .getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, GlobalSearchScope.allScope(project))
         val here = context.containingFile?.originalFile
-        return declaringFiles.asSequence()
+        return declaringFiles
+            .asSequence()
             .mapNotNull { PsiManager.getInstance(project).findFile(it) as? LuaFile }
             .filter { it != here }
             .firstNotNullOfOrNull { globalTypeIn(it, name) }
     }
 
     /** The type [file] gives the global [name], or null if it declares it without a useful type. */
-    private fun globalTypeIn(file: LuaFile, name: String): LuaType? {
+    private fun globalTypeIn(
+        file: LuaFile,
+        name: String,
+    ): LuaType? {
         val snapshot = LuaTypesSnapshot.forFile(file)
         val graphType = snapshot.getGlobalType(name)
         if (graphType == LuaGraphType.Undefined || graphType == LuaGraphType.Any) return null
@@ -153,7 +173,10 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
      * file is stubbed or AST-backed depends on nothing more than whether something happened to load
      * its AST first, so the same `require` resolved differently from one caret to the next.
      */
-    private fun getModuleType(psiFile: LuaFile, context: PsiElement): LuaType? {
+    private fun getModuleType(
+        psiFile: LuaFile,
+        context: PsiElement,
+    ): LuaType? {
         psiFile.stub?.exportedTypeString?.let { return TypeParser.parse(it, context) }
 
         val snapshot = LuaTypesSnapshot.forFile(psiFile)
@@ -164,7 +187,10 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
 
     // MAINT-30-03 (§2.5): resolution over the single canonical candidate sequence; the terminal keeps
     // the "skip a found-but-untyped file, try the next pattern" semantic via firstNotNullOfOrNull.
-    private fun doResolveModule(moduleName: String, context: PsiElement): LuaType =
+    private fun doResolveModule(
+        moduleName: String,
+        context: PsiElement,
+    ): LuaType =
         resolveModuleCandidates(project, moduleName)
             .firstNotNullOfOrNull { getModuleType(it, context) }
             ?: LuaPrimitiveType.ANY
@@ -179,7 +205,10 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
      * everything is in project scope, which is why the unit tests for BUG-395 and BUG-398 passed
      * while the live IDE showed nothing.
      */
-    private fun doResolveType(name: String, project: Project): LuaType? {
+    private fun doResolveType(
+        name: String,
+        project: Project,
+    ): LuaType? {
         val scope = GlobalSearchScope.allScope(project)
         val classDecls = StubIndex.getElements(LuaClassNameIndex.KEY, name, project, scope, LuaLocalVarDecl::class.java)
         if (classDecls.isNotEmpty()) {
@@ -201,7 +230,10 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         return null
     }
 
-    private fun materializeClass(name: String, decls: Collection<LuaLocalVarDecl>): LuaType {
+    private fun materializeClass(
+        name: String,
+        decls: Collection<LuaLocalVarDecl>,
+    ): LuaType {
         val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
         for (decl in decls) {
@@ -209,20 +241,28 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             // Last write wins, as it always has here — deliberately unlike materializeUnhostedClass,
             // which merges several tags for one name and so keeps first-wins.
             parts.members.forEach { member ->
-                membersMap[member.name] = LuaTypeMember(
-                    member.name,
-                    LuaTypeReference(member.typeName, decl),
-                    // The tag on the AST path, the host declaration on the stub path (which has no
-                    // PSI). Preserved exactly: LuaOverrideLineMarkerProvider uses sourceElement as
-                    // gutter navigation targets, so collapsing this to `decl` would silently
-                    // regress override navigation — and the parity harness compares names and types
-                    // only, so it would not catch that.
-                    sourceElement = member.tag ?: decl,
-                )
+                membersMap[member.name] =
+                    LuaTypeMember(
+                        member.name,
+                        LuaTypeReference(member.typeName, decl),
+                        // The tag on the AST path, the host declaration on the stub path (which has no
+                        // PSI). Preserved exactly: LuaOverrideLineMarkerProvider uses sourceElement as
+                        // gutter navigation targets, so collapsing this to `decl` would silently
+                        // regress override navigation — and the parity harness compares names and types
+                        // only, so it would not catch that.
+                        sourceElement = member.tag ?: decl,
+                    )
             }
             parts.superTypeNames.forEach { superTypes.add(LuaTypeReference(it, decl)) }
         }
-        LuaImplicitFields.collect(classReceiverNames(name, decls), decls.mapNotNull { it.containingFile }.distinct(), membersMap)
+        LuaImplicitFields.collect(
+            classReceiverNames(name, decls),
+            decls
+                .mapNotNull {
+                    it.containingFile
+                }.distinct(),
+            membersMap,
+        )
         // Method-aware members: `function Class:m` / `function Class.fn` declarations are not
         // captured as @field/implicit members, so resolveMember would miss them otherwise.
         collectMethodMembers(name, decls, membersMap)
@@ -237,7 +277,10 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
      * come from the same three places a hosted class uses: `@field` tags on the tag's own comment,
      * implicit `Name.field = …` assignments in the declaring files, and `function Name.fn()` decls.
      */
-    private fun materializeUnhostedClass(name: String, project: Project): LuaType? {
+    private fun materializeUnhostedClass(
+        name: String,
+        project: Project,
+    ): LuaType? {
         val tags = catsClassTags(name, project)
         if (tags.isEmpty()) return null
 
@@ -253,11 +296,12 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             // flips the within-comment case — exactly the drift this feature exists to remove.
             val perComment = LinkedHashMap<String, LuaTypeMember>()
             parts.members.forEach { member ->
-                perComment[member.name] = LuaTypeMember(
-                    member.name,
-                    LuaTypeReference(member.typeName, tag),
-                    sourceElement = member.tag ?: tag,
-                )
+                perComment[member.name] =
+                    LuaTypeMember(
+                        member.name,
+                        LuaTypeReference(member.typeName, tag),
+                        sourceElement = member.tag ?: tag,
+                    )
             }
             perComment.forEach { (memberName, member) -> membersMap.putIfAbsent(memberName, member) }
             // The dropped `if (it !in superTypes)` guard was dead code, so dropping it preserves
@@ -279,10 +323,14 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
     }
 
     /** Every `---@class <name>` tag in the project, found through the file-based tag index. */
-    private fun catsClassTags(name: String, project: Project): List<LuaCatsClassTag> {
+    private fun catsClassTags(
+        name: String,
+        project: Project,
+    ): List<LuaCatsClassTag> {
         val psiManager = PsiManager.getInstance(project)
         val scope = GlobalSearchScope.allScope(project)
-        return FileBasedIndex.getInstance()
+        return FileBasedIndex
+            .getInstance()
             .getContainingFiles(LuaCatsTypeNameIndex.KEY, name, scope)
             .mapNotNull { psiManager.findFile(it) as? LuaFile }
             .flatMap { PsiTreeUtil.findChildrenOfType(it, LuaCatsClassTag::class.java) }
@@ -315,12 +363,18 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
                 superTypeNames = stub.luacatsParents,
             )
         }
-        val cats = net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl)
-            ?: return DeclaredParts(emptyList(), emptyList())
+        val cats =
+            net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+                .getCatsComment(decl)
+                ?: return DeclaredParts(emptyList(), emptyList())
         return DeclaredParts(
             members = LuaCatsDeclarations.fieldMembers(cats),
-            superTypeNames = cats.getClassTagList().firstOrNull()
-                ?.let { LuaCatsDeclarations.parentTypeNames(it) }.orEmpty(),
+            superTypeNames =
+                cats
+                    .getClassTagList()
+                    .firstOrNull()
+                    ?.let { LuaCatsDeclarations.parentTypeNames(it) }
+                    .orEmpty(),
         )
     }
 
@@ -361,7 +415,11 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
     }
 
     /** One receiver name to scan for, and the file it is confined to (null = project-wide). */
-    private data class MethodScan(val className: String, val receiver: String, val onlyIn: PsiFile?)
+    private data class MethodScan(
+        val className: String,
+        val receiver: String,
+        val onlyIn: PsiFile?,
+    )
 
     private fun addMethodsOf(
         scan: MethodScan,
@@ -375,13 +433,14 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             val memberName = memberNameOf(key, scan.receiver) ?: continue
             if (membersMap.containsKey(memberName)) continue
 
-            val decls = StubIndex.getElements(
-                LuaGlobalDeclarationIndex.KEY,
-                key,
-                project,
-                scope,
-                LuaFuncDecl::class.java,
-            )
+            val decls =
+                StubIndex.getElements(
+                    LuaGlobalDeclarationIndex.KEY,
+                    key,
+                    project,
+                    scope,
+                    LuaFuncDecl::class.java,
+                )
             val decl = decls.firstOrNull { scan.onlyIn == null || it.containingFile == scan.onlyIn } ?: continue
             val fnType = funcTypeFromStub(scan.className, decl)
             membersMap[memberName] = LuaTypeMember(memberName, fnType, sourceElement = decl)
@@ -389,52 +448,83 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
     }
 
     /** `Receiver.m` / `Receiver:m` → `m`; null for a non-match or a nested qualifier (`Foo.bar.baz`). */
-    private fun memberNameOf(key: String, receiver: String): String? {
+    private fun memberNameOf(
+        key: String,
+        receiver: String,
+    ): String? {
         if (!key.startsWith("$receiver.") && !key.startsWith("$receiver:")) return null
         return key.substring(receiver.length + 1).takeIf { !it.contains('.') && !it.contains(':') }
     }
 
-    private fun funcTypeFromStub(className: String, decl: LuaFuncDecl): LuaType {
+    private fun funcTypeFromStub(
+        className: String,
+        decl: LuaFuncDecl,
+    ): LuaType {
         // Prefer the stub (no AST load) but fall back to the cats comment for AST-backed decls —
         // the stub is null when the method is declared in the file currently being edited, where
         // resolving its `---@return` still matters (NAV-05/06, parameter hints). Mirrors how
         // materializeClass reads @field from either the stub or LuaPsiImplUtil.getCatsComment.
         val stub = decl.stub
-        val cats = if (stub == null) net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl) else null
-        val paramTypes: Map<String, String> = stub?.luacatsParamTypes
-            ?: cats?.let { LuaCatsDeclarations.paramTypes(it) }
-            ?: emptyMap()
+        val cats =
+            if (stub == null) {
+                net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+                    .getCatsComment(decl)
+            } else {
+                null
+            }
+        val paramTypes: Map<String, String> =
+            stub?.luacatsParamTypes
+                ?: cats?.let { LuaCatsDeclarations.paramTypes(it) }
+                ?: emptyMap()
         val rawReturn = stub?.luacatsReturnType ?: cats?.let { LuaCatsDeclarations.returnTypeName(it) }
 
         val params = paramTypes.map { (pName, pType) -> LuaParameter(pName, LuaTypeReference(pType, decl)) }
         // `---@return self` parses to a type literally named "self"; substitute the receiver class.
-        val returnType: LuaType = when {
-            rawReturn == null -> LuaPrimitiveType.UNKNOWN
-            rawReturn == "self" -> LuaTypeReference(className, decl)
-            else -> LuaTypeReference(rawReturn, decl)
-        }
+        val returnType: LuaType =
+            when {
+                rawReturn == null -> LuaPrimitiveType.UNKNOWN
+                rawReturn == "self" -> LuaTypeReference(className, decl)
+                else -> LuaTypeReference(rawReturn, decl)
+            }
         return LuaFunctionType(params, returnType)
     }
 
-    private fun materializeAlias(name: String, decl: LuaLocalVarDecl): LuaType {
+    private fun materializeAlias(
+        name: String,
+        decl: LuaLocalVarDecl,
+    ): LuaType {
         val stub = decl.stub
-        val targetTypeStr = if (stub != null) {
-            stub.luacatsAliasTarget
-        } else {
-            val cats = net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl)
-            cats?.let { LuaCatsDeclarations.aliasTarget(it) }
-        }
+        val targetTypeStr =
+            if (stub != null) {
+                stub.luacatsAliasTarget
+            } else {
+                val cats =
+                    net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+                        .getCatsComment(decl)
+                cats?.let { LuaCatsDeclarations.aliasTarget(it) }
+            }
         return LuaAliasType(name, LuaTypeReference(targetTypeStr ?: "any", decl))
     }
 
     override fun inferType(element: PsiElement): LuaType = LuaPrimitiveType.ANY
-    override fun createTypeReference(name: String, context: PsiElement): LuaType = LuaTypeReference(name, context)
+
+    override fun createTypeReference(
+        name: String,
+        context: PsiElement,
+    ): LuaType = LuaTypeReference(name, context)
 
     @VisibleForTesting
-    fun clearCache() { typeCache.value.clear() }
+    fun clearCache() {
+        typeCache.value.clear()
+    }
 
-    private fun logError(message: String, e: Exception) {
-        val log = com.intellij.openapi.diagnostic.Logger.getInstance(LuaTypeManagerImpl::class.java)
+    private fun logError(
+        message: String,
+        e: Exception,
+    ) {
+        val log =
+            com.intellij.openapi.diagnostic.Logger
+                .getInstance(LuaTypeManagerImpl::class.java)
         log.error(message, e)
     }
 }

@@ -9,19 +9,26 @@ package net.internetisalie.lunar.redis.resp
  * length-prefixed payload and decodes to [Bulk] (format prefix stripped), not [Simple].
  */
 sealed interface RespValue {
-
     /** `+OK\r\n` (RESP2 simple string). */
-    data class Simple(val text: String) : RespValue
+    data class Simple(
+        val text: String,
+    ) : RespValue
 
     /** `-WRONGTYPE bad\r\n` → `klass` = first token, `message` = remainder (design §3.4). */
-    data class Error(val klass: String, val message: String) : RespValue
+    data class Error(
+        val klass: String,
+        val message: String,
+    ) : RespValue
 
     /** `:123\r\n`. */
-    data class Integer(val value: Long) : RespValue
+    data class Integer(
+        val value: Long,
+    ) : RespValue
 
     /** `$len\r\n…\r\n`; `$-1\r\n` (null bulk) → [bytes] is null. */
-    data class Bulk(val bytes: ByteArray?) : RespValue {
-
+    data class Bulk(
+        val bytes: ByteArray?,
+    ) : RespValue {
         fun asString(): String? = bytes?.toString(Charsets.UTF_8)
 
         override fun equals(other: Any?): Boolean {
@@ -36,16 +43,24 @@ sealed interface RespValue {
     }
 
     /** `*len\r\n…`; `*-1\r\n` (null array) → [items] is null. */
-    data class Array(val items: List<RespValue>?) : RespValue
+    data class Array(
+        val items: List<RespValue>?,
+    ) : RespValue
 
     /** RESP3 `%len\r\n…` — `len` key/value pairs. */
-    data class Map(val entries: List<Pair<RespValue, RespValue>>) : RespValue
+    data class Map(
+        val entries: List<Pair<RespValue, RespValue>>,
+    ) : RespValue
 
     /** RESP3 `,3.14\r\n`. */
-    data class Double(val value: kotlin.Double) : RespValue
+    data class Double(
+        val value: kotlin.Double,
+    ) : RespValue
 
     /** RESP3 `#t\r\n` / `#f\r\n`. */
-    data class Bool(val value: Boolean) : RespValue
+    data class Bool(
+        val value: Boolean,
+    ) : RespValue
 
     /** RESP3 `_\r\n`. */
     object Null : RespValue

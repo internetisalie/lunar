@@ -10,8 +10,10 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * the descriptor's whole-statement gating (partial / nested-block negatives). Real-flow DoD gate.
  */
 class LuaSurroundWithTest : BasePlatformTestCase() {
-
-    private fun surround(surrounder: Surrounder, source: String) {
+    private fun surround(
+        surrounder: Surrounder,
+        source: String,
+    ) {
         myFixture.configureByText("a.lua", source)
         SurroundWithHandler.invoke(myFixture.project, myFixture.editor, myFixture.file, surrounder)
     }
@@ -29,7 +31,10 @@ class LuaSurroundWithTest : BasePlatformTestCase() {
     /** The caret sits exactly at the start of the wrapped body (body templates). */
     private fun assertCaretAtBodyStart(firstToken: String) {
         val after = result().substring(caret())
-        assertTrue("expected caret at body '$firstToken', doc=<${result()}> caret=${caret()}", after.startsWith(firstToken))
+        assertTrue(
+            "expected caret at body '$firstToken', doc=<${result()}> caret=${caret()}",
+            after.startsWith(firstToken),
+        )
     }
 
     private fun assertWrapsBody(vararg fragments: String) {

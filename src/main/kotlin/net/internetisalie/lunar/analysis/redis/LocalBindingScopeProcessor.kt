@@ -29,12 +29,16 @@ import net.internetisalie.lunar.lang.psi.LuaParList
  * Threading: invoked inside the inspection visitor's read context; touches only in-tree PSI —
  * no VFS, stub index, or type-engine access (risk §1.1). Holds only [targetName] and a flag.
  */
-class LocalBindingScopeProcessor(private val targetName: String) : PsiScopeProcessor {
-
+class LocalBindingScopeProcessor(
+    private val targetName: String,
+) : PsiScopeProcessor {
     var foundLocal: Boolean = false
         private set
 
-    override fun execute(element: PsiElement, state: ResolveState): Boolean {
+    override fun execute(
+        element: PsiElement,
+        state: ResolveState,
+    ): Boolean {
         when (element) {
             is LuaLocalVarDecl ->
                 if (element.attNameList.any { it.nameRef.identifier.text == targetName }) return match()
@@ -61,5 +65,8 @@ class LocalBindingScopeProcessor(private val targetName: String) : PsiScopeProce
 
     override fun <T> getHint(hintKey: Key<T>): T? = null
 
-    override fun handleEvent(event: PsiScopeProcessor.Event, associated: Any?) {}
+    override fun handleEvent(
+        event: PsiScopeProcessor.Event,
+        associated: Any?,
+    ) {}
 }

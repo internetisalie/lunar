@@ -36,9 +36,7 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  * Labels are skipped: [LuaLabelName] is a `PsiNamedElement` whose reference the default searcher
  * already drives.
  */
-class LuaNameReferenceSearcher :
-    QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>(true) {
-
+class LuaNameReferenceSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>(true) {
     override fun processQuery(
         parameters: ReferencesSearch.SearchParameters,
         consumer: Processor<in PsiReference>,
@@ -62,10 +60,15 @@ class LuaNameReferenceSearcher :
      * intersected with the requested scope. A [LocalSearchScope] is handled by reading its scope
      * elements' files directly.
      */
-    private fun candidateFiles(target: PsiElement, name: String, scope: Any): Collection<PsiFile> =
+    private fun candidateFiles(
+        target: PsiElement,
+        name: String,
+        scope: Any,
+    ): Collection<PsiFile> =
         when (scope) {
             is GlobalSearchScope ->
-                CacheManager.getInstance(target.project)
+                CacheManager
+                    .getInstance(target.project)
                     .getFilesWithWord(name, UsageSearchContext.IN_CODE, scope, true)
                     .toList()
             is LocalSearchScope ->

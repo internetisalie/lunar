@@ -27,19 +27,23 @@ import net.internetisalie.lunar.run.LuaDebuggerEditorsProvider
  * breakable iff its enclosing element on that line is a [LuaStatement] — but guards the iteration
  * result with an Elvis default instead of the MobDebug `result.get()!!` (contract §1; design §3.9).
  */
-class LuaLdbBreakpointType : XLineBreakpointTypeBase(
-    "redis-lua-line",
-    "Redis Lua Line Breakpoints",
-    LuaDebuggerEditorsProvider(),
-) {
-
+class LuaLdbBreakpointType :
+    XLineBreakpointTypeBase(
+        "redis-lua-line",
+        "Redis Lua Line Breakpoints",
+        LuaDebuggerEditorsProvider(),
+    ) {
     override fun getDisplayText(breakpoint: XLineBreakpoint<XBreakpointProperties<*>?>): String {
         val sourcePosition: XSourcePosition = breakpoint.sourcePosition ?: return "Unknown position"
         val displayPath = FileUtil.toSystemDependentName(sourcePosition.file.path)
         return "Line ${sourcePosition.line} in file $displayPath"
     }
 
-    override fun canPutAt(file: VirtualFile, line: Int, project: Project): Boolean {
+    override fun canPutAt(
+        file: VirtualFile,
+        line: Int,
+        project: Project,
+    ): Boolean {
         val luaFile = PsiManager.getInstance(project).findFile(file) as? LuaFile ?: return false
         val document = PsiDocumentManager.getInstance(project).getDocument(luaFile) ?: return false
 

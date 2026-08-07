@@ -100,7 +100,6 @@ class LuaProjectSettingsTest {
         assertEquals("lua54", target.getLuacheckStd())
     }
 
-
     @Test
     fun `getTarget idempotent - multiple calls return same migrated target`() {
         val state = LuaProjectSettings.State()
@@ -167,7 +166,7 @@ class TargetStateTest {
     @Test
     fun `TargetState from() creates wrapper with platform and label`() {
         val registry = PlatformVersionRegistry
-        val version = registry.getVersions(LuaPlatform.STANDARD)[2]  // 5.3
+        val version = registry.getVersions(LuaPlatform.STANDARD)[2] // 5.3
         val target = Target(LuaPlatform.STANDARD, version)
 
         val state = LuaProjectSettings.TargetState.from(target)
@@ -216,7 +215,7 @@ class TargetStateTest {
     fun `TargetState toTarget() handles unknown version label gracefully`() {
         val state = LuaProjectSettings.TargetState()
         state.platform = LuaPlatform.STANDARD
-        state.versionLabel = "99.99"  // Non-existent version
+        state.versionLabel = "99.99" // Non-existent version
 
         val restored = state.toTarget()
 
@@ -225,7 +224,6 @@ class TargetStateTest {
         // Should get default version (5.1) instead of failing
         assertEquals("5.1", restored.version.label)
     }
-
 
     @Test
     fun `TargetState serialization preserves platform enum`() {
@@ -269,7 +267,7 @@ class LuaProjectSettingsEdgeCasesTest {
         assertEquals("5.1", original.version.label)
 
         val registry = PlatformVersionRegistry
-        val newVersion = registry.getVersions(LuaPlatform.STANDARD)[3]  // 5.4
+        val newVersion = registry.getVersions(LuaPlatform.STANDARD)[3] // 5.4
         val newTarget = Target(LuaPlatform.STANDARD, newVersion)
         state.setTarget(newTarget)
 
@@ -304,13 +302,14 @@ class LuaProjectSettingsEdgeCasesTest {
 
     @Test
     fun `all language level conversions in migration`() {
-        val conversions = mapOf(
-            LuaLanguageLevel.LUA50 to "5.0",
-            LuaLanguageLevel.LUA51 to "5.1",
-            LuaLanguageLevel.LUA52 to "5.2",
-            LuaLanguageLevel.LUA53 to "5.3",
-            LuaLanguageLevel.LUA54 to "5.4",
-        )
+        val conversions =
+            mapOf(
+                LuaLanguageLevel.LUA50 to "5.0",
+                LuaLanguageLevel.LUA51 to "5.1",
+                LuaLanguageLevel.LUA52 to "5.2",
+                LuaLanguageLevel.LUA53 to "5.3",
+                LuaLanguageLevel.LUA54 to "5.4",
+            )
 
         for ((langLevel, expectedLabel) in conversions) {
             val state = LuaProjectSettings.State()
@@ -464,19 +463,21 @@ class LuaProjectSettingsBackwardCompatibilityTest {
     @Test
     fun `all migration scenarios from phase 1 spec are covered`() {
         // TARGET-06 spec migration scenarios
-        val scenarios = listOf(
-            Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA51, "5.1"),
-            Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA52, "5.2"),
-            Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA53, "5.3"),
-            Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA54, "5.4"),
-            Triple(LuaPlatform.REDIS, LuaLanguageLevel.LUA51, "5"),  // Redis has different labels
-            Triple(LuaPlatform.LUAJIT, LuaLanguageLevel.LUA51, "2.0"),  // LuaJIT defaults to 2.0
-        )
+        val scenarios =
+            listOf(
+                Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA51, "5.1"),
+                Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA52, "5.2"),
+                Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA53, "5.3"),
+                Triple(LuaPlatform.STANDARD, LuaLanguageLevel.LUA54, "5.4"),
+                Triple(LuaPlatform.REDIS, LuaLanguageLevel.LUA51, "5"), // Redis has different labels
+                Triple(LuaPlatform.LUAJIT, LuaLanguageLevel.LUA51, "2.0"), // LuaJIT defaults to 2.0
+            )
 
         for ((platform, langLevel, _) in scenarios) {
             val state = LuaProjectSettings.State()
-            val version = PlatformVersionRegistry.findVersion(platform, langLevel.version)
-                ?: PlatformVersionRegistry.defaultVersion(platform)!!
+            val version =
+                PlatformVersionRegistry.findVersion(platform, langLevel.version)
+                    ?: PlatformVersionRegistry.defaultVersion(platform)!!
             state.setTarget(Target(platform, version))
 
             val target = state.getTarget()
@@ -494,7 +495,6 @@ class LuaProjectSettingsBackwardCompatibilityTest {
  * transitions, and language level derivation.
  */
 class LuaProjectSettingsPanelLogicTest {
-
     @Test
     fun `each platform has at least one version entry`() {
         val registry = PlatformVersionRegistry
@@ -518,13 +518,18 @@ class LuaProjectSettingsPanelLogicTest {
         val versions = PlatformVersionRegistry.getVersions(LuaPlatform.STANDARD)
         val last = versions.last()
         // Standard Lua versions are numeric like "5.x" — just verify it's a valid version label
-        assertTrue(last.label.matches(Regex("5\\.\\d+")), "Last Standard version label should be '5.x', was '${last.label}'")
+        assertTrue(
+            last.label.matches(Regex("5\\.\\d+")),
+            "Last Standard version label should be '5.x', was '${last.label}'",
+        )
     }
 
     @Test
     fun `changing platform to REDIS yields Redis-specific versions`() {
         val versions = PlatformVersionRegistry.getVersions(LuaPlatform.REDIS)
-        assertTrue(versions.all { it.label.contains("7") || it.label.contains("+") || it.label.matches(Regex("\\d.*")) })
+        assertTrue(
+            versions.all { it.label.contains("7") || it.label.contains("+") || it.label.matches(Regex("\\d.*")) },
+        )
         assertTrue(versions.isNotEmpty())
     }
 
@@ -611,7 +616,11 @@ class LuaProjectSettingsPanelLogicTest {
         for (platform in LuaPlatform.entries) {
             val versions = PlatformVersionRegistry.getVersions(platform)
             val labels = versions.map { it.label }
-            assertEquals(labels.size, labels.toSet().size, "Platform ${platform.label} should have unique version labels")
+            assertEquals(
+                labels.size,
+                labels.toSet().size,
+                "Platform ${platform.label} should have unique version labels",
+            )
         }
     }
 }

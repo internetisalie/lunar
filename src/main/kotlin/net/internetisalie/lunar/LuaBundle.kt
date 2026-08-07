@@ -18,9 +18,12 @@ object LuaBundle {
     private const val BUNDLE: String = "net.internetisalie.lunar.LuaBundle"
 
     @JvmStatic
-    fun message(key: @PropertyKey(resourceBundle = BUNDLE) String, vararg params: Any): String {
-        return BundleBase.message(bundle, key, *params)
-    }
+    fun message(
+        key:
+            @PropertyKey(resourceBundle = BUNDLE)
+            String,
+        vararg params: Any,
+    ): String = BundleBase.message(bundle, key, *params)
 
     private val bundle: ResourceBundle
         get() {

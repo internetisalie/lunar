@@ -20,7 +20,6 @@ class LuaLdbStackFrame(
     private val evalHost: LuaLdbEvalHost,
     private val locals: List<LuaLdbLocal>,
 ) : XStackFrame() {
-
     override fun getSourcePosition(): XSourcePosition? = position
 
     override fun getEvaluator(): XDebuggerEvaluator = LuaLdbEvaluator(evalHost)
@@ -31,13 +30,14 @@ class LuaLdbStackFrame(
         node.addChildren(children, true)
     }
 
-    private fun localsGroup(): XValueGroup = object : XValueGroup("Locals") {
-        override fun isAutoExpand(): Boolean = true
+    private fun localsGroup(): XValueGroup =
+        object : XValueGroup("Locals") {
+            override fun isAutoExpand(): Boolean = true
 
-        override fun computeChildren(node: XCompositeNode) {
-            val values = XValueChildrenList(locals.size)
-            locals.forEach { local -> values.add(local.name, LuaLdbValue(local)) }
-            node.addChildren(values, true)
+            override fun computeChildren(node: XCompositeNode) {
+                val values = XValueChildrenList(locals.size)
+                locals.forEach { local -> values.add(local.name, LuaLdbValue(local)) }
+                node.addChildren(values, true)
+            }
         }
-    }
 }

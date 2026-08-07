@@ -1,8 +1,6 @@
 package net.internetisalie.lunar.lang.insight.hint
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.EdtTestUtil
 import com.intellij.testFramework.utils.parameterInfo.MockCreateParameterInfoContext
 import com.intellij.testFramework.utils.parameterInfo.MockUpdateParameterInfoContext
@@ -13,19 +11,20 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class LuaParameterInfoHandlerTest : BaseDocumentTest() {
-
     @Test
     fun testParameterInfoTrigger() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- Adds two numbers.
                     --- @param a number
                     --- @param b number
                     function add(a, b) end
 
                     add(<caret>)
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val handler = LuaParameterInfoHandler()
                 val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
@@ -47,10 +46,12 @@ class LuaParameterInfoHandlerTest : BaseDocumentTest() {
     fun testParameterTracking() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     function test(a, b, c) end
                     test(1, 2<caret>)
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val handler = LuaParameterInfoHandler()
                 val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
@@ -76,13 +77,15 @@ class LuaParameterInfoHandlerTest : BaseDocumentTest() {
     fun testMethodSelfSuppression() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     local Obj = {}
                     --- @param name string
                     function Obj:setName(name) end
 
                     Obj:setName(<caret>)
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val handler = LuaParameterInfoHandler()
                 val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
@@ -106,13 +109,15 @@ class LuaParameterInfoHandlerTest : BaseDocumentTest() {
     fun testOverloadSupport() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- @overload fun(x: string): void
                     --- @param x number
                     function process(x) end
 
                     process(<caret>)
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val handler = LuaParameterInfoHandler()
                 val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
@@ -139,13 +144,15 @@ class LuaParameterInfoHandlerTest : BaseDocumentTest() {
     fun testVarargSupport() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     --- @param name string
                     --- @param ... any
                     function test(name, ...) end
 
                     test("foo", <caret>nil)
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val handler = LuaParameterInfoHandler()
                 val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
@@ -163,9 +170,11 @@ class LuaParameterInfoHandlerTest : BaseDocumentTest() {
     fun testBuiltinPrint() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                configureByText("""
+                configureByText(
+                    """
                     print(<caret>)
-                """.trimIndent())
+                    """.trimIndent(),
+                )
 
                 val handler = LuaParameterInfoHandler()
                 val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
@@ -180,7 +189,10 @@ class LuaParameterInfoHandlerTest : BaseDocumentTest() {
         }
     }
 
-    private fun assertContains(text: String, substring: String) {
+    private fun assertContains(
+        text: String,
+        substring: String,
+    ) {
         assertTrue(text.contains(substring), "Expected to find '$substring' in '$text'")
     }
 }

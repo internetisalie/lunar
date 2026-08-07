@@ -3,7 +3,6 @@ package net.internetisalie.lunar.lang.completion
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class LuaEnterHandlerTest : BasePlatformTestCase() {
-
     // TC 1 — Enter after `then` (COMP-08-01): single `end` inserted.
     fun testEnterAfterThen() {
         myFixture.configureByText("test.lua", "if x > 5 then<caret>")
@@ -95,7 +94,9 @@ class LuaEnterHandlerTest : BasePlatformTestCase() {
     fun testEnterReindentsBodyAndTerminator() {
         myFixture.configureByText("test.lua", "do\n    while x do<caret>\nend")
         myFixture.type('\n')
-        val lines = myFixture.editor.document.text.lines()
+        val lines =
+            myFixture.editor.document.text
+                .lines()
         // Two `end`s total now: the pre-existing outer one and the freshly inserted inner one, each
         // on its own line.
         assertEquals("two terminators, one per block", 2, lines.count { it.trim() == "end" })
@@ -112,7 +113,9 @@ class LuaEnterHandlerTest : BasePlatformTestCase() {
         myFixture.configureByText("test.lua", "if x then<caret>end")
         myFixture.type('\n')
         assertEquals("no second 'end' inserted between the matched pair", 1, endCount())
-        val lines = myFixture.editor.document.text.lines()
+        val lines =
+            myFixture.editor.document.text
+                .lines()
         assertEquals("then and end split across two lines", 2, lines.size)
         assertTrue("first line retains the opener up to 'then'", lines[0].trimEnd().endsWith("then"))
         assertEquals("terminator on its own line", "end", lines[1].trim())
@@ -132,5 +135,8 @@ class LuaEnterHandlerTest : BasePlatformTestCase() {
         assertEquals("exactly one '$keyword'", 1, occurrences(myFixture.editor.document.text, Regex("\\b$keyword\\b")))
     }
 
-    private fun occurrences(text: String, regex: Regex): Int = regex.findAll(text).count()
+    private fun occurrences(
+        text: String,
+        regex: Regex,
+    ): Int = regex.findAll(text).count()
 }

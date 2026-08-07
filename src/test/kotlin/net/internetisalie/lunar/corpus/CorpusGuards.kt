@@ -13,9 +13,11 @@ import java.io.File
  * on-disk pin stamp, [assertRatchet] only the baseline file and the observed metrics.
  */
 internal object CorpusGuards {
-
     /** Refuses to measure a corpus that is absent or has drifted from its manifest pin. */
-    internal fun assertCorpusFetched(repoRoot: File, entry: CorpusEntry) {
+    internal fun assertCorpusFetched(
+        repoRoot: File,
+        entry: CorpusEntry,
+    ) {
         val onDisk = CorpusManifest.checkedOutCommit(repoRoot, entry.name)
         assertNotNull(
             "Corpus '${entry.name}' is not fetched. Run: tooling/corpus/fetch-corpus.py",
@@ -32,7 +34,10 @@ internal object CorpusGuards {
      * The ratchet. Identity-checks `commit`, `files` and `requires` (design §3.2 step 1) before
      * delegating the gated comparison to [CorpusBaseline.compare].
      */
-    internal fun assertRatchet(baselineFile: File, observed: CorpusMetrics) {
+    internal fun assertRatchet(
+        baselineFile: File,
+        observed: CorpusMetrics,
+    ) {
         assertTrue(
             "No baseline at ${baselineFile.path}. Record one with -PwithCorpus -PrecordCorpusBaseline.",
             baselineFile.isFile,
@@ -50,7 +55,10 @@ internal object CorpusGuards {
         )
     }
 
-    private fun assertIdentity(baseline: CorpusMetrics, observed: CorpusMetrics) {
+    private fun assertIdentity(
+        baseline: CorpusMetrics,
+        observed: CorpusMetrics,
+    ) {
         assertEquals(
             "Baseline was recorded against a different corpus commit; re-record it.",
             baseline.commit,

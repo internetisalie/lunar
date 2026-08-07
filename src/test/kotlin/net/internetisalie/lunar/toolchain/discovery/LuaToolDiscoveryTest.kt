@@ -10,9 +10,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class LuaToolDiscoveryTest {
-
     @Test
-    fun testSymlinkDedup_TC12(@TempDir tempDir: Path) {
+    fun testSymlinkDedup_TC12(
+        @TempDir tempDir: Path,
+    ) {
         val dirA = Files.createDirectory(tempDir.resolve("dirA"))
         val dirB = Files.createDirectory(tempDir.resolve("dirB"))
 
@@ -27,15 +28,17 @@ class LuaToolDiscoveryTest {
         }
 
         val luaKind = LuaToolKindRegistry.findById("lua")!!
-        val discovered = LuaToolDiscovery.discoverAll(
-            kinds = listOf(luaKind),
-            extraRoots = listOf(dirA, dirB)
-        )
+        val discovered =
+            LuaToolDiscovery.discoverAll(
+                kinds = listOf(luaKind),
+                extraRoots = listOf(dirA, dirB),
+            )
 
         // Filter to only elements in tempDir to ignore system-wide installations
-        val tempDiscovered = discovered.filter {
-            it.file.absolutePath.startsWith(tempDir.toAbsolutePath().toString())
-        }
+        val tempDiscovered =
+            discovered.filter {
+                it.file.absolutePath.startsWith(tempDir.toAbsolutePath().toString())
+            }
 
         assertEquals(1, tempDiscovered.size) {
             "Expected 1, got ${tempDiscovered.size}. Elements: ${tempDiscovered.map { it.file.absolutePath }}"
@@ -44,7 +47,9 @@ class LuaToolDiscoveryTest {
     }
 
     @Test
-    fun testGlobClaimAndExactClaim_TC13(@TempDir tempDir: Path) {
+    fun testGlobClaimAndExactClaim_TC13(
+        @TempDir tempDir: Path,
+    ) {
         val lua54File = Files.createFile(tempDir.resolve("lua5.4"))
         lua54File.toFile().setExecutable(true)
 
@@ -54,32 +59,40 @@ class LuaToolDiscoveryTest {
         val luaKind = LuaToolKindRegistry.findById("lua")!!
         val luajitKind = LuaToolKindRegistry.findById("luajit")!!
 
-        val discovered = LuaToolDiscovery.discoverAll(
-            kinds = listOf(luaKind, luajitKind),
-            extraRoots = listOf(tempDir)
-        )
+        val discovered =
+            LuaToolDiscovery.discoverAll(
+                kinds = listOf(luaKind, luajitKind),
+                extraRoots = listOf(tempDir),
+            )
 
         // Filter to only elements in tempDir to ignore system-wide installations
-        val tempDiscovered = discovered.filter {
-            it.file.absolutePath.startsWith(tempDir.toAbsolutePath().toString())
-        }
+        val tempDiscovered =
+            discovered.filter {
+                it.file.absolutePath.startsWith(tempDir.toAbsolutePath().toString())
+            }
 
         val luajitDiscovered = tempDiscovered.filter { it.kind == luajitKind }
         val luaDiscovered = tempDiscovered.filter { it.kind == luaKind }
 
         assertEquals(1, luajitDiscovered.size) {
-            "Expected 1 luajit, got ${luajitDiscovered.size}. Elements: ${luajitDiscovered.map { it.file.absolutePath }}. Total temp: ${tempDiscovered.map { "${it.kind.id} -> ${it.file.absolutePath}" }}"
+            "Expected 1 luajit, got ${luajitDiscovered.size}. Elements: ${luajitDiscovered.map {
+                it.file.absolutePath
+            }}. Total temp: ${tempDiscovered.map { "${it.kind.id} -> ${it.file.absolutePath}" }}"
         }
         assertEquals(luajitFile.toFile().canonicalPath, luajitDiscovered[0].file.canonicalPath)
 
         assertEquals(1, luaDiscovered.size) {
-            "Expected 1 lua, got ${luaDiscovered.size}. Elements: ${luaDiscovered.map { it.file.absolutePath }}. Total temp: ${tempDiscovered.map { "${it.kind.id} -> ${it.file.absolutePath}" }}"
+            "Expected 1 lua, got ${luaDiscovered.size}. Elements: ${luaDiscovered.map {
+                it.file.absolutePath
+            }}. Total temp: ${tempDiscovered.map { "${it.kind.id} -> ${it.file.absolutePath}" }}"
         }
         assertEquals(lua54File.toFile().canonicalPath, luaDiscovered[0].file.canonicalPath)
     }
 
     @Test
-    fun testExecutableFilter(@TempDir tempDir: Path) {
+    fun testExecutableFilter(
+        @TempDir tempDir: Path,
+    ) {
         val execFile = Files.createFile(tempDir.resolve("lua"))
         execFile.toFile().setExecutable(true)
 
@@ -93,10 +106,11 @@ class LuaToolDiscoveryTest {
         val styluaKind = LuaToolKindRegistry.findById("stylua")!!
 
         if (!nonExecFile.toFile().canExecute()) {
-            val discovered = LuaToolDiscovery.discoverAll(
-                kinds = listOf(luaKind, luajitKind, styluaKind),
-                extraRoots = listOf(tempDir)
-            )
+            val discovered =
+                LuaToolDiscovery.discoverAll(
+                    kinds = listOf(luaKind, luajitKind, styluaKind),
+                    extraRoots = listOf(tempDir),
+                )
 
             val discoveredFiles = discovered.map { it.file.canonicalPath }
             assertTrue(discoveredFiles.contains(execFile.toFile().canonicalPath))
@@ -113,11 +127,11 @@ class LuaToolDiscoveryTest {
 
         assertEquals(
             listOf("luarocks.bat", "luarocks.exe", "luarocks.cmd", "luarocks"),
-            windowsCandidates
+            windowsCandidates,
         )
         assertEquals(
             listOf("luarocks"),
-            posixCandidates
+            posixCandidates,
         )
     }
 
@@ -138,7 +152,9 @@ class LuaToolDiscoveryTest {
     }
 
     @Test
-    fun testExpandSearchPathGlob(@TempDir tempDir: Path) {
+    fun testExpandSearchPathGlob(
+        @TempDir tempDir: Path,
+    ) {
         val dir1 = Files.createDirectories(tempDir.resolve("Lua 5.1"))
         val dir2 = Files.createDirectories(tempDir.resolve("Lua 5.4"))
         Files.createFile(tempDir.resolve("README"))
@@ -151,7 +167,9 @@ class LuaToolDiscoveryTest {
     //     (TOOLING-05 §6.4 — LuaToolDiscovery.expandSearchPath is byte-for-byte the legacy expander).
 
     @Test
-    fun testExpandsMidSegmentGlob(@TempDir tempDir: Path) {
+    fun testExpandsMidSegmentGlob(
+        @TempDir tempDir: Path,
+    ) {
         val a = Files.createDirectories(tempDir.resolve("lua5.1/bin"))
         val b = Files.createDirectories(tempDir.resolve("lua5.4/bin"))
         Files.createDirectories(tempDir.resolve("lua5.4/share"))
@@ -162,7 +180,9 @@ class LuaToolDiscoveryTest {
     }
 
     @Test
-    fun testLiteralPathReturnsSingleElement(@TempDir tempDir: Path) {
+    fun testLiteralPathReturnsSingleElement(
+        @TempDir tempDir: Path,
+    ) {
         Files.createDirectories(tempDir.resolve("Lua 5.1"))
 
         val result = LuaToolDiscovery.expandSearchPath("$tempDir/Lua 5.1")
@@ -178,7 +198,9 @@ class LuaToolDiscoveryTest {
     }
 
     @Test
-    fun testDottedGlobRequiresDot(@TempDir tempDir: Path) {
+    fun testDottedGlobRequiresDot(
+        @TempDir tempDir: Path,
+    ) {
         val a = Files.createDirectories(tempDir.resolve("Lua 5.1"))
         val b = Files.createDirectories(tempDir.resolve("Lua 5.4"))
         Files.createDirectories(tempDir.resolve("Lua 5"))
@@ -189,7 +211,9 @@ class LuaToolDiscoveryTest {
     }
 
     @Test
-    fun testMatchesAreSortedAscending(@TempDir tempDir: Path) {
+    fun testMatchesAreSortedAscending(
+        @TempDir tempDir: Path,
+    ) {
         val a = Files.createDirectories(tempDir.resolve("lua5.1"))
         val b = Files.createDirectories(tempDir.resolve("lua5.2"))
         val c = Files.createDirectories(tempDir.resolve("lua5.4"))
@@ -207,14 +231,18 @@ class LuaToolDiscoveryTest {
     }
 
     @Test
-    fun testNoMatchReturnsEmpty(@TempDir tempDir: Path) {
+    fun testNoMatchReturnsEmpty(
+        @TempDir tempDir: Path,
+    ) {
         val result = LuaToolDiscovery.expandSearchPath("$tempDir/Ruby *")
 
         assertEquals(emptyList<Path>(), result)
     }
 
     @Test
-    fun testQuestionMarkMatchesSingleChar(@TempDir tempDir: Path) {
+    fun testQuestionMarkMatchesSingleChar(
+        @TempDir tempDir: Path,
+    ) {
         val a = Files.createDirectories(tempDir.resolve("lua51"))
         val b = Files.createDirectories(tempDir.resolve("lua54"))
         Files.createDirectories(tempDir.resolve("luaX"))

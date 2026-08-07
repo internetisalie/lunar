@@ -12,15 +12,19 @@ import org.jetbrains.annotations.Nls
  * (from `UnwrapHandler`) and `collectAffectedElements` read-only for the preview — subclasses must not open
  * their own write command. Stateless. Design §2.2.
  */
-abstract class LuaUnwrapper(description: @Nls String) : AbstractUnwrapper<LuaUnwrapper.Context>(description) {
-
+abstract class LuaUnwrapper(
+    description: @Nls String,
+) : AbstractUnwrapper<LuaUnwrapper.Context>(description) {
     override fun createContext(): Context = Context()
 
     class Context : AbstractContext() {
         override fun isWhiteSpace(element: PsiElement): Boolean = element is PsiWhiteSpace
 
         /** Hoist [block]'s statements before [from] via the platform `extract`/`addRangeBefore` path (§2.2). */
-        fun extractBlockBody(block: LuaBlock, from: PsiElement) {
+        fun extractBlockBody(
+            block: LuaBlock,
+            from: PsiElement,
+        ) {
             val statements = block.statementList
             val first = statements.firstOrNull() ?: return
             extract(first, statements.last(), from)

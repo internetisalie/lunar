@@ -7,38 +7,31 @@ import com.intellij.ide.util.treeView.smartTree.Sorter
 import com.intellij.psi.PsiFile
 import net.internetisalie.lunar.lang.psi.*
 
-class LuaStructureViewModel(private var file: LuaFile) : TextEditorBasedStructureViewModel(file), StructureViewModel.ElementInfoProvider {
-    val SUITABLE_CLASSES = arrayOf<Class<*>>(
-        LuaFile::class.java,
-        LuaLabel::class.java,
-        LuaFuncDecl::class.java,
-        LuaLocalFuncDecl::class.java,
-        LuaFinalStatement::class.java,
-    )
+class LuaStructureViewModel(
+    private var file: LuaFile,
+) : TextEditorBasedStructureViewModel(file),
+    StructureViewModel.ElementInfoProvider {
+    val SUITABLE_CLASSES =
+        arrayOf<Class<*>>(
+            LuaFile::class.java,
+            LuaLabel::class.java,
+            LuaFuncDecl::class.java,
+            LuaLocalFuncDecl::class.java,
+            LuaFinalStatement::class.java,
+        )
 
-    override fun getPsiFile(): PsiFile {
-        return file
-    }
+    override fun getPsiFile(): PsiFile = file
 
-    override fun getRoot(): StructureViewTreeElement {
-        return LuaFileStructureViewTreeElement(file)
-    }
+    override fun getRoot(): StructureViewTreeElement = LuaFileStructureViewTreeElement(file)
 
-    override fun getSorters(): Array<Sorter> {
-        return arrayOf(Sorter.ALPHA_SORTER)
-    }
+    override fun getSorters(): Array<Sorter> = arrayOf(Sorter.ALPHA_SORTER)
 
-    override fun isAlwaysShowsPlus(element: StructureViewTreeElement?): Boolean {
-        return false
-    }
+    override fun isAlwaysShowsPlus(element: StructureViewTreeElement?): Boolean = false
 
-    override fun isAlwaysLeaf(element: StructureViewTreeElement?): Boolean {
-        return element is LuaLocalVariableStructureViewTreeElement ||
-                element is LuaLabelStructureViewTreeElement ||
-                element is LuaReturnStructureViewTreeElement
-    }
+    override fun isAlwaysLeaf(element: StructureViewTreeElement?): Boolean =
+        element is LuaLocalVariableStructureViewTreeElement ||
+            element is LuaLabelStructureViewTreeElement ||
+            element is LuaReturnStructureViewTreeElement
 
-    override fun getSuitableClasses(): Array<Class<*>> {
-        return SUITABLE_CLASSES
-    }
+    override fun getSuitableClasses(): Array<Class<*>> = SUITABLE_CLASSES
 }

@@ -5,41 +5,53 @@ import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.indexing.LuaAliasIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.impl.LuaLocalVarDeclImpl
 import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+import net.internetisalie.lunar.lang.psi.impl.LuaLocalVarDeclImpl
 import net.internetisalie.lunar.lang.psi.stubs.LuaLocalVarStub
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 
-class LuaLocalVarStubElementType(debugName: String) :
-    IStubElementType<LuaLocalVarStub, LuaLocalVarDecl>(debugName, LuaLanguage) {
+class LuaLocalVarStubElementType(
+    debugName: String,
+) : IStubElementType<LuaLocalVarStub, LuaLocalVarDecl>(debugName, LuaLanguage) {
+    override fun createPsi(stub: LuaLocalVarStub): LuaLocalVarDecl = LuaLocalVarDeclImpl(stub, this)
 
-    override fun createPsi(stub: LuaLocalVarStub): LuaLocalVarDecl {
-        return LuaLocalVarDeclImpl(stub, this)
-    }
-
-    override fun createStub(psi: LuaLocalVarDecl, parentStub: StubElement<out com.intellij.psi.PsiElement>?): LuaLocalVarStub {
+    override fun createStub(
+        psi: LuaLocalVarDecl,
+        parentStub: StubElement<out com.intellij.psi.PsiElement>?,
+    ): LuaLocalVarStub {
         val names = psi.attNameList.map { it.nameRef.text }
         val catsComment = LuaPsiImplUtil.getCatsComment(psi)
-        
-        val type = catsComment?.getTypeTagList()?.firstOrNull()?.argType?.text
+
+        val type =
+            catsComment
+                ?.getTypeTagList()
+                ?.firstOrNull()
+                ?.argType
+                ?.text
         val classTag = catsComment?.getClassTagList()?.firstOrNull()
         val className = classTag?.argType?.text
         // BUG-402: stored as a LIST. Flattening to `parentTypes.text` forced the reader to re-split
         // on ',', which cuts a parameterized parent (`Base<string, number>`) in half.
         val parents = classTag?.let { LuaCatsDeclarations.parentTypeNames(it) }.orEmpty()
-        
+
         // The alias NAME is read only here — materializeAlias takes it from the index key — so it
         // stays inline. The TARGET has two readers and so goes through the shared one (MAINT-34-04).
-        val aliasName = catsComment?.getAliasTagList()?.firstOrNull()?.argName?.text
+        val aliasName =
+            catsComment
+                ?.getAliasTagList()
+                ?.firstOrNull()
+                ?.argName
+                ?.text
         val aliasTarget = catsComment?.let { LuaCatsDeclarations.aliasTarget(it) }
-        
+
         // MAINT-34-01: read through the one shared extractor rather than a private copy of the
         // rule. This branch and `materializeClass`'s were copy-paste siblings, and BUG-401 is what
         // that costs — the stub kept `---@field beta? number`'s marker in the member key, producing
         // a `beta?` no lookup could match, while the AST branch had always stripped it.
-        val fields = catsComment
-            ?.let { LuaCatsDeclarations.fieldMembers(it).associate { field -> field.name to field.typeName } }
-            ?: emptyMap()
+        val fields =
+            catsComment
+                ?.let { LuaCatsDeclarations.fieldMembers(it).associate { field -> field.name to field.typeName } }
+                ?: emptyMap()
 
         // Named arguments are mandatory at both construction sites, not a style choice:
         // `luacatsParents` is now `List<String>`, type-identical to `names`, so transposing the two
@@ -58,7 +70,10 @@ class LuaLocalVarStubElementType(debugName: String) :
 
     override fun getExternalId(): String = "lunar.local.var.decl"
 
-    override fun serialize(stub: LuaLocalVarStub, dataStream: StubOutputStream) {
+    override fun serialize(
+        stub: LuaLocalVarStub,
+        dataStream: StubOutputStream,
+    ) {
         dataStream.writeInt(stub.names.size)
         stub.names.forEach { dataStream.writeName(it) }
         dataStream.writeName(stub.luacatsType)
@@ -74,7 +89,10 @@ class LuaLocalVarStubElementType(debugName: String) :
         }
     }
 
-    override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?): LuaLocalVarStub {
+    override fun deserialize(
+        dataStream: StubInputStream,
+        parentStub: StubElement<*>?,
+    ): LuaLocalVarStub {
         val nameCount = dataStream.readInt()
         val names = mutableListOf<String>()
         repeat(nameCount) {
@@ -106,7 +124,10 @@ class LuaLocalVarStubElementType(debugName: String) :
         )
     }
 
-    override fun indexStub(stub: LuaLocalVarStub, sink: IndexSink) {
+    override fun indexStub(
+        stub: LuaLocalVarStub,
+        sink: IndexSink,
+    ) {
         stub.luacatsClassName?.let { sink.occurrence(LuaClassNameIndex.KEY, it) }
         stub.luacatsAliasName?.let { sink.occurrence(LuaAliasIndex.KEY, it) }
     }

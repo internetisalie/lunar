@@ -8,7 +8,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class TestLuaTypeDomainModel : BasePlatformTestCase() {
-
     @Test
     fun testPrimitiveAssignment() {
         val num = LuaPrimitiveType.NUMBER
@@ -34,7 +33,8 @@ class TestLuaTypeDomainModel : BasePlatformTestCase() {
 
     @Test
     fun testClassInheritance() {
-        val animal = LuaClassType("Animal", localMembers = mapOf("age" to LuaTypeMember("age", LuaPrimitiveType.NUMBER)))
+        val animal =
+            LuaClassType("Animal", localMembers = mapOf("age" to LuaTypeMember("age", LuaPrimitiveType.NUMBER)))
         val dog = LuaClassType("Dog", superTypes = listOf(animal))
 
         assertTrue(dog.isAssignableTo(animal))

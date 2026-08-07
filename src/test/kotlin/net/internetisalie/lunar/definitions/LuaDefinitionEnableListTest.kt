@@ -14,7 +14,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaDefinitionEnableListTest : BasePlatformTestCase() {
-
     private val settings get() = LuaProjectSettings.getInstance(project)
 
     /**
@@ -75,7 +74,8 @@ class LuaDefinitionEnableListTest : BasePlatformTestCase() {
         PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 
         var notifications = 0
-        project.messageBus.connect(testRootDisposable)
+        project.messageBus
+            .connect(testRootDisposable)
             .subscribe(
                 LuaSettingsChangedListener.TOPIC,
                 object : LuaSettingsChangedListener {

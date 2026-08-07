@@ -24,5 +24,4 @@ object LuaCatsHighlight {
 
     var DEPRECATED: TextAttributesKey =
         TextAttributesKey.createTextAttributesKey("LUACATS_DEPRECATED", LuaHighlight.COMMENT)
-
 }

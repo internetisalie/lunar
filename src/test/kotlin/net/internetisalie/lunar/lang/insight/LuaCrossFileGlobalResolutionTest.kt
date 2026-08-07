@@ -17,7 +17,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaCrossFileGlobalResolutionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaUndeclaredVariableInspection())
@@ -25,7 +24,8 @@ class LuaCrossFileGlobalResolutionTest : BasePlatformTestCase() {
 
     private fun undeclaredIn(text: String): List<String> {
         myFixture.configureByText("consumer.lua", text)
-        return myFixture.doHighlighting()
+        return myFixture
+            .doHighlighting()
             .mapNotNull { it.description }
             .filter { it.startsWith("Undeclared variable") }
     }

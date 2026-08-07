@@ -3,23 +3,13 @@ package net.internetisalie.lunar.lang.format
 import com.intellij.lang.Commenter
 
 class LuaCommenter : Commenter {
-    override fun getLineCommentPrefix(): String? {
-        return "--"
-    }
+    override fun getLineCommentPrefix(): String? = "--"
 
-    override fun getBlockCommentPrefix(): String? {
-        return "--[["
-    }
+    override fun getBlockCommentPrefix(): String? = "--[["
 
-    override fun getBlockCommentSuffix(): String? {
-        return "]]"
-    }
+    override fun getBlockCommentSuffix(): String? = "]]"
 
-    override fun getCommentedBlockCommentPrefix(): String? {
-        return null
-    }
+    override fun getCommentedBlockCommentPrefix(): String? = null
 
-    override fun getCommentedBlockCommentSuffix(): String? {
-        return null
-    }
+    override fun getCommentedBlockCommentSuffix(): String? = null
 }

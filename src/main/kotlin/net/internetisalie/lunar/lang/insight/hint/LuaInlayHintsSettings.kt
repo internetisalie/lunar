@@ -35,7 +35,9 @@ class LuaInlayHintsSettings : PersistentStateComponent<LuaInlayHintsSettings.Sta
 
     companion object {
         val instance: LuaInlayHintsSettings
-            get() = ApplicationManager.getApplication()
-                .getService(LuaInlayHintsSettings::class.java)
+            get() =
+                ApplicationManager
+                    .getApplication()
+                    .getService(LuaInlayHintsSettings::class.java)
     }
 }

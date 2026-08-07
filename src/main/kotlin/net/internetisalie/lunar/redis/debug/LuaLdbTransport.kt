@@ -13,12 +13,15 @@ import net.internetisalie.lunar.redis.resp.RespValue
  * runs off the EDT.
  */
 interface LdbIo {
-
     /** `SCRIPT DEBUG YES|SYNC` — enters the debug session, returning the `+OK` (or `-ERR`) reply. */
     suspend fun enterDebug(mode: LuaRedisDebugMode): RespValue
 
     /** Send the debugged `EVAL <script> <numkeys> <keys…> <argv…>` — its reply is the first stop block. */
-    suspend fun eval(scriptBody: String, keys: List<String>, argv: List<String>): RespValue
+    suspend fun eval(
+        scriptBody: String,
+        keys: List<String>,
+        argv: List<String>,
+    ): RespValue
 
     /** Send one LDB command; the reply is its single reply block (design §3.1 step 3). */
     suspend fun send(command: LdbCommand): RespValue
@@ -39,16 +42,20 @@ interface LdbIo {
  * argument vectors directly (they are not [LdbCommand]s); all other verbs route through [LdbWire].
  * [Disposable]: [dispose] closes the underlying client.
  */
-class LuaLdbTransport(private val client: RespClient) : LdbIo, Disposable {
-
+class LuaLdbTransport(
+    private val client: RespClient,
+) : LdbIo,
+    Disposable {
     override suspend fun enterDebug(mode: LuaRedisDebugMode): RespValue =
         client.command(LdbWire.encode(LdbCommand.EnterDebug(mode)))
 
-    override suspend fun eval(scriptBody: String, keys: List<String>, argv: List<String>): RespValue =
-        client.command(evalArgs(scriptBody, keys, argv))
+    override suspend fun eval(
+        scriptBody: String,
+        keys: List<String>,
+        argv: List<String>,
+    ): RespValue = client.command(evalArgs(scriptBody, keys, argv))
 
-    override suspend fun send(command: LdbCommand): RespValue =
-        client.command(LdbWire.encode(command))
+    override suspend fun send(command: LdbCommand): RespValue = client.command(LdbWire.encode(command))
 
     override suspend fun readReply(): RespValue = client.readReply()
 
@@ -56,7 +63,11 @@ class LuaLdbTransport(private val client: RespClient) : LdbIo, Disposable {
         client.dispose()
     }
 
-    private fun evalArgs(scriptBody: String, keys: List<String>, argv: List<String>): List<ByteArray> {
+    private fun evalArgs(
+        scriptBody: String,
+        keys: List<String>,
+        argv: List<String>,
+    ): List<ByteArray> {
         val tokens = mutableListOf(EVAL_VERB, scriptBody, keys.size.toString())
         tokens.addAll(keys)
         tokens.addAll(argv)

@@ -16,9 +16,14 @@ import net.internetisalie.lunar.lang.LuaLanguage
  * [net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex] via [LuaCatsTypeNavigation]; the
  * stub `LuaClassNameIndex`/`LuaAliasIndex` remain for type resolution and documentation.
  */
-class LuaGotoClassContributor : GotoClassContributor, ChooseByNameContributorEx {
-
-    override fun processNames(processor: Processor<in String>, scope: GlobalSearchScope, filter: IdFilter?) {
+class LuaGotoClassContributor :
+    GotoClassContributor,
+    ChooseByNameContributorEx {
+    override fun processNames(
+        processor: Processor<in String>,
+        scope: GlobalSearchScope,
+        filter: IdFilter?,
+    ) {
         LuaCatsTypeNavigation.processNames(processor, scope, filter)
     }
 

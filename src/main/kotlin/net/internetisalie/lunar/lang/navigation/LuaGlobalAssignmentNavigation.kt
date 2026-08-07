@@ -15,15 +15,19 @@ import net.internetisalie.lunar.lang.psi.LuaFile
  * containing file, mirroring [LuaMemberFieldNavigation] for the dotted case.
  */
 object LuaGlobalAssignmentNavigation {
-
-    fun find(project: Project, name: String, scope: GlobalSearchScope): List<PsiElement> {
+    fun find(
+        project: Project,
+        name: String,
+        scope: GlobalSearchScope,
+    ): List<PsiElement> {
         val index = FileBasedIndex.getInstance()
         val psiManager = PsiManager.getInstance(project)
         val results = mutableListOf<PsiElement>()
         for (virtualFile in index.getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, scope)) {
             val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
             // File-scope statements only, matching what the indexer recorded.
-            luaFile.getBlockList()
+            luaFile
+                .getBlockList()
                 .flatMap { it.statementList }
                 .filterIsInstance<LuaAssignmentStatement>()
                 .forEach { stmt -> collectTargets(stmt, name, results) }
@@ -31,7 +35,11 @@ object LuaGlobalAssignmentNavigation {
         return results
     }
 
-    private fun collectTargets(stmt: LuaAssignmentStatement, name: String, into: MutableList<PsiElement>) {
+    private fun collectTargets(
+        stmt: LuaAssignmentStatement,
+        name: String,
+        into: MutableList<PsiElement>,
+    ) {
         stmt.varList.varList.forEach { target ->
             if (target.varSuffixList.isEmpty() && target.nameRef?.text == name) {
                 target.nameRef?.identifier?.let { into.add(it) }

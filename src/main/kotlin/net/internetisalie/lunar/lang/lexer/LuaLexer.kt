@@ -7,87 +7,89 @@ import com.intellij.psi.tree.TokenSet
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaLazyElementTypes
 
-class LuaLexer : MergingLexerAdapter(
-    LongStringMergingLexerAdapter(
-        LongCommentMergingLexerAdapter(
-            MultiLineMergingLexerAdapter(
-            FlexAdapter(
-                _LuaLexer(null),
+class LuaLexer :
+    MergingLexerAdapter(
+        LongStringMergingLexerAdapter(
+            LongCommentMergingLexerAdapter(
+                MultiLineMergingLexerAdapter(
+                    FlexAdapter(
+                        _LuaLexer(null),
+                    ),
+                    LuaTokenTypes.SHORTCOMMENT,
+                ),
             ),
-                LuaTokenTypes.SHORTCOMMENT,
-            ),
+        ),
+        TokenSet.create(
+            LuaTokenTypes.LONGCOMMENT,
+            LuaTokenTypes.LONGSTRING,
+            LuaTokenTypes.STRING,
+            LuaTokenTypes.SHORTCOMMENT,
+        ),
+    ) {
+    private val tokenTypes: Map<IElementType, IElementType> =
+        mapOf(
+            LuaTokenTypes.AMP to LuaElementTypes.AMP,
+            LuaTokenTypes.AND to LuaElementTypes.AND,
+            LuaTokenTypes.ASSIGN to LuaElementTypes.ASSIGN,
+            LuaTokenTypes.BREAK to LuaElementTypes.BREAK,
+            LuaTokenTypes.BSL to LuaElementTypes.BSL,
+            LuaTokenTypes.BSR to LuaElementTypes.BSR,
+            LuaTokenTypes.COLON to LuaElementTypes.COLON,
+            LuaTokenTypes.COMMA to LuaElementTypes.COMMA,
+            LuaTokenTypes.CONCAT to LuaElementTypes.CONCAT,
+            LuaTokenTypes.DIV to LuaElementTypes.DIV,
+            LuaTokenTypes.DO to LuaElementTypes.DO,
+            LuaTokenTypes.DOT to LuaElementTypes.DOT,
+            LuaTokenTypes.ELLIPSIS to LuaElementTypes.ELLIPSIS,
+            LuaTokenTypes.ELSE to LuaElementTypes.ELSE,
+            LuaTokenTypes.ELSEIF to LuaElementTypes.ELSEIF,
+            LuaTokenTypes.END to LuaElementTypes.END,
+            LuaTokenTypes.EQ to LuaElementTypes.EQ,
+            LuaTokenTypes.EXP to LuaElementTypes.EXP,
+            LuaTokenTypes.FALSE to LuaElementTypes.FALSE,
+            LuaTokenTypes.FOR to LuaElementTypes.FOR,
+            LuaTokenTypes.FUNCTION to LuaElementTypes.FUNCTION,
+            LuaTokenTypes.GE to LuaElementTypes.GE,
+            LuaTokenTypes.GETN to LuaElementTypes.GETN,
+            LuaTokenTypes.GLOBAL to LuaElementTypes.GLOBAL,
+            LuaTokenTypes.GOTO to LuaElementTypes.GOTO,
+            LuaTokenTypes.GT to LuaElementTypes.GT,
+            LuaTokenTypes.IDENTIFIER to LuaElementTypes.IDENTIFIER,
+            LuaTokenTypes.IF to LuaElementTypes.IF,
+            LuaTokenTypes.IN to LuaElementTypes.IN,
+            LuaTokenTypes.INTDIV to LuaElementTypes.INTDIV,
+            LuaTokenTypes.LBRACK to LuaElementTypes.LBRACK,
+            LuaTokenTypes.LCURLY to LuaElementTypes.LCURLY,
+            LuaTokenTypes.LE to LuaElementTypes.LE,
+            LuaTokenTypes.LOCAL to LuaElementTypes.LOCAL,
+            LuaTokenTypes.LPAREN to LuaElementTypes.LPAREN,
+            LuaTokenTypes.LT to LuaElementTypes.LT,
+            LuaTokenTypes.MARKER to LuaElementTypes.MARKER,
+            LuaTokenTypes.MINUS to LuaElementTypes.MINUS,
+            LuaTokenTypes.MOD to LuaElementTypes.MOD,
+            LuaTokenTypes.MULT to LuaElementTypes.MULT,
+            LuaTokenTypes.NE to LuaElementTypes.NE,
+            LuaTokenTypes.NEG to LuaElementTypes.NEG,
+            LuaTokenTypes.NIL to LuaElementTypes.NIL,
+            LuaTokenTypes.NOT to LuaElementTypes.NOT,
+            LuaTokenTypes.NUMBER to LuaElementTypes.NUMBER,
+            LuaTokenTypes.OR to LuaElementTypes.OR,
+            LuaTokenTypes.PIPE to LuaElementTypes.PIPE,
+            LuaTokenTypes.PLUS to LuaElementTypes.PLUS,
+            LuaTokenTypes.RBRACK to LuaElementTypes.RBRACK,
+            LuaTokenTypes.RCURLY to LuaElementTypes.RCURLY,
+            LuaTokenTypes.REPEAT to LuaElementTypes.REPEAT,
+            LuaTokenTypes.RETURN to LuaElementTypes.RETURN,
+            LuaTokenTypes.RPAREN to LuaElementTypes.RPAREN,
+            LuaTokenTypes.SEMI to LuaElementTypes.SEMI,
+            LuaTokenTypes.SHEBANG to LuaElementTypes.SHEBANG,
+            LuaTokenTypes.SHORTCOMMENT to LuaElementTypes.SHORTCOMMENT,
+            LuaTokenTypes.STRING to LuaElementTypes.STRING,
+            LuaTokenTypes.THEN to LuaElementTypes.THEN,
+            LuaTokenTypes.TRUE to LuaElementTypes.TRUE,
+            LuaTokenTypes.UNTIL to LuaElementTypes.UNTIL,
+            LuaTokenTypes.WHILE to LuaElementTypes.WHILE,
         )
-    ),
-    TokenSet.create(
-        LuaTokenTypes.LONGCOMMENT,
-        LuaTokenTypes.LONGSTRING,
-        LuaTokenTypes.STRING,
-        LuaTokenTypes.SHORTCOMMENT
-    )
-) {
-    private val tokenTypes: Map<IElementType, IElementType> = mapOf(
-        LuaTokenTypes.AMP to LuaElementTypes.AMP,
-        LuaTokenTypes.AND to LuaElementTypes.AND,
-        LuaTokenTypes.ASSIGN to LuaElementTypes.ASSIGN,
-        LuaTokenTypes.BREAK to LuaElementTypes.BREAK,
-        LuaTokenTypes.BSL to LuaElementTypes.BSL,
-        LuaTokenTypes.BSR to LuaElementTypes.BSR,
-        LuaTokenTypes.COLON to LuaElementTypes.COLON,
-        LuaTokenTypes.COMMA to LuaElementTypes.COMMA,
-        LuaTokenTypes.CONCAT to LuaElementTypes.CONCAT,
-        LuaTokenTypes.DIV to LuaElementTypes.DIV,
-        LuaTokenTypes.DO to LuaElementTypes.DO,
-        LuaTokenTypes.DOT to LuaElementTypes.DOT,
-        LuaTokenTypes.ELLIPSIS to LuaElementTypes.ELLIPSIS,
-        LuaTokenTypes.ELSE to LuaElementTypes.ELSE,
-        LuaTokenTypes.ELSEIF to LuaElementTypes.ELSEIF,
-        LuaTokenTypes.END to LuaElementTypes.END,
-        LuaTokenTypes.EQ to LuaElementTypes.EQ,
-        LuaTokenTypes.EXP to LuaElementTypes.EXP,
-        LuaTokenTypes.FALSE to LuaElementTypes.FALSE,
-        LuaTokenTypes.FOR to LuaElementTypes.FOR,
-        LuaTokenTypes.FUNCTION to LuaElementTypes.FUNCTION,
-        LuaTokenTypes.GE to LuaElementTypes.GE,
-        LuaTokenTypes.GETN to LuaElementTypes.GETN,
-        LuaTokenTypes.GLOBAL to LuaElementTypes.GLOBAL,
-        LuaTokenTypes.GOTO to LuaElementTypes.GOTO,
-        LuaTokenTypes.GT to LuaElementTypes.GT,
-        LuaTokenTypes.IDENTIFIER to LuaElementTypes.IDENTIFIER,
-        LuaTokenTypes.IF to LuaElementTypes.IF,
-        LuaTokenTypes.IN to LuaElementTypes.IN,
-        LuaTokenTypes.INTDIV to LuaElementTypes.INTDIV,
-        LuaTokenTypes.LBRACK to LuaElementTypes.LBRACK,
-        LuaTokenTypes.LCURLY to LuaElementTypes.LCURLY,
-        LuaTokenTypes.LE to LuaElementTypes.LE,
-        LuaTokenTypes.LOCAL to LuaElementTypes.LOCAL,
-        LuaTokenTypes.LPAREN to LuaElementTypes.LPAREN,
-        LuaTokenTypes.LT to LuaElementTypes.LT,
-        LuaTokenTypes.MARKER to LuaElementTypes.MARKER,
-        LuaTokenTypes.MINUS to LuaElementTypes.MINUS,
-        LuaTokenTypes.MOD to LuaElementTypes.MOD,
-        LuaTokenTypes.MULT to LuaElementTypes.MULT,
-        LuaTokenTypes.NE to LuaElementTypes.NE,
-        LuaTokenTypes.NEG to LuaElementTypes.NEG,
-        LuaTokenTypes.NIL to LuaElementTypes.NIL,
-        LuaTokenTypes.NOT to LuaElementTypes.NOT,
-        LuaTokenTypes.NUMBER to LuaElementTypes.NUMBER,
-        LuaTokenTypes.OR to LuaElementTypes.OR,
-        LuaTokenTypes.PIPE to LuaElementTypes.PIPE,
-        LuaTokenTypes.PLUS to LuaElementTypes.PLUS,
-        LuaTokenTypes.RBRACK to LuaElementTypes.RBRACK,
-        LuaTokenTypes.RCURLY to LuaElementTypes.RCURLY,
-        LuaTokenTypes.REPEAT to LuaElementTypes.REPEAT,
-        LuaTokenTypes.RETURN to LuaElementTypes.RETURN,
-        LuaTokenTypes.RPAREN to LuaElementTypes.RPAREN,
-        LuaTokenTypes.SEMI to LuaElementTypes.SEMI,
-        LuaTokenTypes.SHEBANG to LuaElementTypes.SHEBANG,
-        LuaTokenTypes.SHORTCOMMENT to LuaElementTypes.SHORTCOMMENT,
-        LuaTokenTypes.STRING to LuaElementTypes.STRING,
-        LuaTokenTypes.THEN to LuaElementTypes.THEN,
-        LuaTokenTypes.TRUE to LuaElementTypes.TRUE,
-        LuaTokenTypes.UNTIL to LuaElementTypes.UNTIL,
-        LuaTokenTypes.WHILE to LuaElementTypes.WHILE,
-    );
 
     override fun getTokenType(): IElementType? {
         val sourceType = super.getTokenType()
@@ -96,15 +98,16 @@ class LuaLexer : MergingLexerAdapter(
             if (sourceType == LuaTokenTypes.SHORTCOMMENT) {
                 val text = super.tokenText
                 if (text.startsWith("---")) {
-                    val isLuaCats = text.lineSequence().all { line ->
-                        line.startsWith("---") || line.isBlank()
-                    }
+                    val isLuaCats =
+                        text.lineSequence().all { line ->
+                            line.startsWith("---") || line.isBlank()
+                        }
                     if (isLuaCats) {
                         return LuaLazyElementTypes.LUACATS_COMMENT
                     }
                 }
             }
-            
+
             val targetType = tokenTypes[sourceType]
             if (targetType != null) {
                 return targetType
@@ -114,7 +117,9 @@ class LuaLexer : MergingLexerAdapter(
     }
 }
 
-class LongStringMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(original) {
+class LongStringMergingLexerAdapter(
+    original: Lexer,
+) : MergingLexerAdapterBase(original) {
     override fun getMergeFunction(): MergeFunction {
         return MergeFunction { type, delegate ->
             if (type != LuaTokenTypes.LONGSTRING_BEGIN) {
@@ -147,7 +152,9 @@ class LongStringMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(o
     }
 }
 
-class LongCommentMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(original) {
+class LongCommentMergingLexerAdapter(
+    original: Lexer,
+) : MergingLexerAdapterBase(original) {
     override fun getMergeFunction(): MergeFunction {
         return MergeFunction { type, delegate ->
             if (type != LuaTokenTypes.LONGCOMMENT_BEGIN) {
@@ -172,8 +179,8 @@ class LongCommentMergingLexerAdapter(original: Lexer) : MergingLexerAdapterBase(
 }
 
 class MultiLineMergingLexerAdapter(
-    original : Lexer,
-    private val elementType : IElementType
+    original: Lexer,
+    private val elementType: IElementType,
 ) : MergingLexerAdapterBase(original) {
     override fun getMergeFunction(): MergeFunction {
         return MergeFunction { type, delegate ->

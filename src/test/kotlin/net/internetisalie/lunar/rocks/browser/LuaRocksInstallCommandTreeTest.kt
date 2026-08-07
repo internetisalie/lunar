@@ -15,7 +15,6 @@ import net.internetisalie.lunar.rocks.LuaRocksTreeLocator
  * property of `LuaRocksTreeLocator`, covered by its own tests.
  */
 class LuaRocksInstallCommandTreeTest : BasePlatformTestCase() {
-
     fun `test resolveTargetTree delegates to LuaRocksTreeLocator`() {
         runReadAction {
             assertEquals(

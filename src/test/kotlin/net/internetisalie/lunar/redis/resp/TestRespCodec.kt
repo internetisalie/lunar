@@ -15,12 +15,10 @@ import kotlin.test.assertTrue
  * TC-RESP-3 (multi-byte UTF-8 bulk byte-length), TC-RESP-4 (fragmented/partial-stream reassembly).
  */
 class TestRespCodec {
-
     private fun pushbackOf(vararg bytes: ByteArray): PushbackInputStream =
         PushbackInputStream(ChunkedInputStream(bytes.toList()))
 
-    private fun pushbackOfWire(wire: String): PushbackInputStream =
-        pushbackOf(wire.toByteArray(Charsets.UTF_8))
+    private fun pushbackOfWire(wire: String): PushbackInputStream = pushbackOf(wire.toByteArray(Charsets.UTF_8))
 
     /** TC-RESP-1: `["SET", "café"]` → `*2\r\n$3\r\nSET\r\n$5\r\ncafé\r\n` (`$5` is the byte length). */
     @Test
@@ -82,12 +80,13 @@ class TestRespCodec {
     @Test
     fun testDecodeResp3Map() {
         val decoded = RespCodec.decode(pushbackOfWire("%1\r\n\$1\r\nk\r\n\$1\r\nv\r\n"))
-        val expected = RespValue.Map(
-            listOf(
-                RespValue.Bulk("k".toByteArray(Charsets.UTF_8)) to
-                    RespValue.Bulk("v".toByteArray(Charsets.UTF_8)),
-            ),
-        )
+        val expected =
+            RespValue.Map(
+                listOf(
+                    RespValue.Bulk("k".toByteArray(Charsets.UTF_8)) to
+                        RespValue.Bulk("v".toByteArray(Charsets.UTF_8)),
+                ),
+            )
         assertEquals(expected, decoded)
     }
 
@@ -155,11 +154,12 @@ class TestRespCodec {
     /** TC-RESP-4: `$6\r\nabcdef\r\n` delivered in fragments reassembles to `Bulk("abcdef")`. */
     @Test
     fun testDecodeFragmentedBulkReassembles() {
-        val stream = pushbackOf(
-            "\$6\r\nab".toByteArray(Charsets.UTF_8),
-            "cd".toByteArray(Charsets.UTF_8),
-            "ef\r\n".toByteArray(Charsets.UTF_8),
-        )
+        val stream =
+            pushbackOf(
+                "\$6\r\nab".toByteArray(Charsets.UTF_8),
+                "cd".toByteArray(Charsets.UTF_8),
+                "ef\r\n".toByteArray(Charsets.UTF_8),
+            )
         val decoded = RespCodec.decode(stream)
         assertEquals("abcdef", (decoded as RespValue.Bulk).asString())
     }
@@ -169,8 +169,9 @@ class TestRespCodec {
      * two chunks, so a multi-byte payload split across chunks forces [RespCodec]'s length-prefixed
      * loop to reassemble across chunk boundaries (TC-RESP-4).
      */
-    private class ChunkedInputStream(chunks: List<ByteArray>) : InputStream() {
-
+    private class ChunkedInputStream(
+        chunks: List<ByteArray>,
+    ) : InputStream() {
         private val queue = ArrayDeque(chunks.filter { it.isNotEmpty() }.map { it.copyOf() })
         private var offset = 0
 
@@ -182,7 +183,11 @@ class TestRespCodec {
             return value
         }
 
-        override fun read(destination: ByteArray, off: Int, len: Int): Int {
+        override fun read(
+            destination: ByteArray,
+            off: Int,
+            len: Int,
+        ): Int {
             if (len == 0) return 0
             val head = queue.firstOrNull() ?: return -1
             val count = minOf(len, head.size - offset)

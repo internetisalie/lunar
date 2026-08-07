@@ -25,7 +25,12 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                 val children = current.children.filter { it !is PsiWhiteSpace && it !is PsiComment }
                 if (children.size == 1) {
                     val child = children[0]
-                    if (child is LuaExpr || child is LuaNameRef || child is LuaVar || child is LuaPrefixExpr || child is LuaVarOrExp) {
+                    if (child is LuaExpr ||
+                        child is LuaNameRef ||
+                        child is LuaVar ||
+                        child is LuaPrefixExpr ||
+                        child is LuaVarOrExp
+                    ) {
                         current = child
                         continue
                     }
@@ -35,7 +40,10 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
             return current
         }
 
-        fun shouldShowHint(paramName: String, argExpr: PsiElement): Boolean {
+        fun shouldShowHint(
+            paramName: String,
+            argExpr: PsiElement,
+        ): Boolean {
             if (paramName.length <= 1 || paramName == "_" || paramName == "p") return false
             if (argExpr is LuaNameRef && argExpr.text == paramName) return false
             if (argExpr is LuaExpr) {
@@ -46,7 +54,10 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
         }
     }
 
-    override fun createCollector(file: PsiFile, editor: Editor): InlayHintsCollector? {
+    override fun createCollector(
+        file: PsiFile,
+        editor: Editor,
+    ): InlayHintsCollector? {
         val settings = LuaInlayHintsSettings.instance.state
 
         // Check large file threshold
@@ -56,11 +67,15 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
         }
 
         return object : SharedBypassCollector {
-            override fun collectFromElement(element: PsiElement, sink: InlayTreeSink) {
+            override fun collectFromElement(
+                element: PsiElement,
+                sink: InlayTreeSink,
+            ) {
                 if (file !is LuaFile) return
 
                 val declarativeSettings = DeclarativeInlayHintsSettings.getInstance()
-                val respectAnnotations = declarativeSettings.isOptionEnabled(RESPECT_ANNOTATIONS_OPTION_ID, PROVIDER_ID) ?: true
+                val respectAnnotations =
+                    declarativeSettings.isOptionEnabled(RESPECT_ANNOTATIONS_OPTION_ID, PROVIDER_ID) ?: true
 
                 if (element is LuaNameRef) {
                     sink.whenOptionEnabled(LOCAL_VARIABLE_TYPE_OPTION_ID) {
@@ -82,7 +97,7 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
             private fun collectLocalVariableHints(
                 element: LuaNameRef,
                 sink: InlayTreeSink,
-                respectAnnotations: Boolean
+                respectAnnotations: Boolean,
             ) {
                 val parent = element.parent
                 val isDecl = parent is LuaAttName || (parent is LuaNameList && parent.parent is LuaParList)
@@ -98,7 +113,7 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                             InlineInlayPosition(element.textRange.endOffset, true),
                             null,
                             null,
-                            HintFormat.default
+                            HintFormat.default,
                         ) {
                             text(": $typeName")
                         }
@@ -110,7 +125,7 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                 func: PsiElement,
                 rparen: PsiElement,
                 sink: InlayTreeSink,
-                respectAnnotations: Boolean
+                respectAnnotations: Boolean,
             ) {
                 if (respectAnnotations && hasExplicitReturnAnnotation(func)) return
 
@@ -119,13 +134,21 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
 
                 if (funcGraphType !is LuaGraphType.Function) return
 
-                val returnTypesStrings = funcGraphType.returns.map { node ->
-                    val t = if (node.write != LuaGraphType.Undefined) node.write else node.read
-                    types.graphTypeToLuaType(t).name
-                }
+                val returnTypesStrings =
+                    funcGraphType.returns.map { node ->
+                        val t = if (node.write != LuaGraphType.Undefined) node.write else node.read
+                        types.graphTypeToLuaType(t).name
+                    }
 
                 val lastSignificant = returnTypesStrings.indexOfLast { it != "any" && it != "unknown" && it != "void" }
-                val filteredReturns = if (lastSignificant >= 0) returnTypesStrings.take(lastSignificant + 1) else emptyList()
+                val filteredReturns =
+                    if (lastSignificant >=
+                        0
+                    ) {
+                        returnTypesStrings.take(lastSignificant + 1)
+                    } else {
+                        emptyList()
+                    }
 
                 val hintText = filteredReturns.joinToString(", ")
                 if (hintText.isEmpty() || hintText == "unknown" || hintText == "any" || hintText == "void") {
@@ -136,7 +159,7 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
                     InlineInlayPosition(rparen.textRange.endOffset, true),
                     null,
                     null,
-                    HintFormat.default
+                    HintFormat.default,
                 ) {
                     text(": $hintText")
                 }
@@ -161,7 +184,12 @@ class LuaTypeInlayHintProvider : InlayHintsProvider {
 
             private fun hasExplicitAnnotation(element: LuaNameRef): Boolean {
                 var current: PsiElement? = element
-                while (current != null && current !is LuaLocalVarDecl && current !is LuaFuncDecl && current !is LuaFuncDef && current !is LuaLocalFuncDecl) {
+                while (current != null &&
+                    current !is LuaLocalVarDecl &&
+                    current !is LuaFuncDecl &&
+                    current !is LuaFuncDef &&
+                    current !is LuaLocalFuncDecl
+                ) {
                     current = current.parent
                 }
 

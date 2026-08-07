@@ -18,7 +18,10 @@ import java.net.Socket
 import java.util.regex.Pattern
 import kotlin.coroutines.coroutineContext
 
-enum class DebuggerStatus(val code: Int, val message: String) {
+enum class DebuggerStatus(
+    val code: Int,
+    val message: String,
+) {
     OK(200, "200 OK"),
     Started(201, "201 Started"),
     PausedBreakpoint(202, "202 Paused"),
@@ -26,7 +29,8 @@ enum class DebuggerStatus(val code: Int, val message: String) {
     Output(204, "204 Output"),
     BadRequest(400, "400 Bad Request"),
     ErrorInExecution(401, "401 Error in Execution"),
-    ErrorInExpression(401, "401 Error in Expression");
+    ErrorInExpression(401, "401 Error in Expression"),
+    ;
 
     val isError: Boolean
         get() = code >= 400
@@ -47,98 +51,108 @@ enum class DebugCommandGroup {
 
 enum class DebugCommandKind(
     val group: DebugCommandGroup,
-    val responses: Map<DebuggerStatus, DebuggerResponseDataKind> = mapOf(
-        DebuggerStatus.OK to DebuggerResponseDataKind.None,
-        DebuggerStatus.BadRequest to DebuggerResponseDataKind.None,
-    ),
+    val responses: Map<DebuggerStatus, DebuggerResponseDataKind> =
+        mapOf(
+            DebuggerStatus.OK to DebuggerResponseDataKind.None,
+            DebuggerStatus.BadRequest to DebuggerResponseDataKind.None,
+        ),
     val minArgs: Int = 0,
     val maxArgs: Int = 0,
 ) {
     BASEDIR(
         group = DebugCommandGroup.Config,
-        maxArgs = 1
+        maxArgs = 1,
     ),
     SETB(
         group = DebugCommandGroup.Config,
         minArgs = 2,
-        maxArgs = 2
+        maxArgs = 2,
     ),
     DELB(
         group = DebugCommandGroup.Config,
         minArgs = 2,
-        maxArgs = 2
+        maxArgs = 2,
     ),
     SETW(
         group = DebugCommandGroup.Config,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.Immediate,
-            DebuggerStatus.BadRequest to DebuggerResponseDataKind.None,
-            DebuggerStatus.ErrorInExpression to DebuggerResponseDataKind.Extended,
-        ),
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.Immediate,
+                DebuggerStatus.BadRequest to DebuggerResponseDataKind.None,
+                DebuggerStatus.ErrorInExpression to DebuggerResponseDataKind.Extended,
+            ),
         minArgs = 1,
-        maxArgs = 1
+        maxArgs = 1,
     ),
     DELW(
         group = DebugCommandGroup.Config,
         minArgs = 1,
-        maxArgs = 1
+        maxArgs = 1,
     ),
 
     STACK(
         group = DebugCommandGroup.Inspect,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.Immediate,
-            DebuggerStatus.ErrorInExecution to DebuggerResponseDataKind.Extended,
-        ),
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.Immediate,
+                DebuggerStatus.ErrorInExecution to DebuggerResponseDataKind.Extended,
+            ),
     ),
     EXEC(
         group = DebugCommandGroup.Inspect,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.Extended,
-            DebuggerStatus.BadRequest to DebuggerResponseDataKind.None,
-            DebuggerStatus.ErrorInExpression to DebuggerResponseDataKind.Extended,
-        ),
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.Extended,
+                DebuggerStatus.BadRequest to DebuggerResponseDataKind.None,
+                DebuggerStatus.ErrorInExpression to DebuggerResponseDataKind.Extended,
+            ),
         minArgs = 1,
         maxArgs = 1,
     ),
 
     RUN(
         group = DebugCommandGroup.Run,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.None,
-        ),
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.None,
+            ),
     ),
     STEP(
         group = DebugCommandGroup.Run,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.None,
-        )
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.None,
+            ),
     ),
     OVER(
         group = DebugCommandGroup.Run,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.None,
-        )
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.None,
+            ),
     ),
     OUT(
         group = DebugCommandGroup.Run,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.None,
-        )
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.None,
+            ),
     ),
 
     EXIT(
         group = DebugCommandGroup.Terminate,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.None,
-        )
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.None,
+            ),
     ),
     DONE(
         group = DebugCommandGroup.Terminate,
-        responses = mapOf(
-            DebuggerStatus.OK to DebuggerResponseDataKind.None,
-        )
-    )
+        responses =
+            mapOf(
+                DebuggerStatus.OK to DebuggerResponseDataKind.None,
+            ),
+    ),
 }
 
 data class DebugCommand(
@@ -157,14 +171,22 @@ data class DebugCommand(
 }
 
 /** Raised when the debuggee returns an error status ([DebuggerStatus.isError]) for a command. */
-class DebuggerError(val status: DebuggerStatus, val data: String) :
-    IOException("${status.message}: $data")
+class DebuggerError(
+    val status: DebuggerStatus,
+    val data: String,
+) : IOException("${status.message}: $data")
 
 interface LuaDebugObserver {
     // Out-of-band events emitted while the debuggee is running.
-    fun onPauseWatchpoint(pos: LuaPosition, watchIndex: Int)
+    fun onPauseWatchpoint(
+        pos: LuaPosition,
+        watchIndex: Int,
+    )
+
     fun onPauseBreakpoint(pos: LuaPosition)
+
     fun onRunExecutionError(file: String)
+
     fun onDisconnected()
 }
 
@@ -208,18 +230,19 @@ class LuaDebugConnection(
      * Send [command] and suspend until the reader coroutine completes its response.
      * Only one command is in flight at a time (guarded by [writeMutex]).
      */
-    suspend fun send(command: DebugCommand): String = writeMutex.withLock {
-        if (socket.isClosed) throw IOException("debugger connection closed")
-        log.info("Sending command ${command.kind.name}")
+    suspend fun send(command: DebugCommand): String =
+        writeMutex.withLock {
+            if (socket.isClosed) throw IOException("debugger connection closed")
+            log.info("Sending command ${command.kind.name}")
 
-        val deferred = CompletableDeferred<String>()
-        pending = deferred
-        pendingKind = command.kind
-        withContext(Dispatchers.IO) {
-            DbgpFraming.writeLine(writer, command.toString())
+            val deferred = CompletableDeferred<String>()
+            pending = deferred
+            pendingKind = command.kind
+            withContext(Dispatchers.IO) {
+                DbgpFraming.writeLine(writer, command.toString())
+            }
+            deferred.await()
         }
-        deferred.await()
-    }
 
     private suspend fun readLoop() {
         try {
@@ -241,8 +264,9 @@ class LuaDebugConnection(
 
     /** Parses one incoming line — reproduces the old `receive()` branching exactly. */
     private fun handleLine(line: String) {
-        val status = DebuggerStatus.entries.firstOrNull { line.startsWith(it.message) }
-            ?: throw IOException("unknown status in response: ${line.take(80)}")
+        val status =
+            DebuggerStatus.entries.firstOrNull { line.startsWith(it.message) }
+                ?: throw IOException("unknown status in response: ${line.take(80)}")
         val data: String = line.removePrefix(status.message).removePrefix(" ").trimEnd('\n')
 
         val deferred = pending
@@ -251,11 +275,12 @@ class LuaDebugConnection(
 
         // Case A: response to the in-flight command.
         if (deferred != null && declared.containsKey(status)) {
-            val payload = if (declared[status] == DebuggerResponseDataKind.Extended) {
-                DbgpFraming.readExactly(input, data.toInt())
-            } else {
-                data
-            }
+            val payload =
+                if (declared[status] == DebuggerResponseDataKind.Extended) {
+                    DbgpFraming.readExactly(input, data.toInt())
+                } else {
+                    data
+                }
             if (kind?.group == DebugCommandGroup.Run) running = true
             pending = null
             pendingKind = null

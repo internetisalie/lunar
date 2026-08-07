@@ -11,7 +11,6 @@ import java.nio.file.Path
  * provisioned") without aborting the others.
  */
 class MatrixRunnerTest : ToolchainSettingsTestCase() {
-
     private val rockspec = Path.of("/p/foo-1.0-1.rockspec")
 
     private fun envWithLuarocks(id: String): Pair<LuaEnvironmentState, String> {
@@ -39,15 +38,17 @@ class MatrixRunnerTest : ToolchainSettingsTestCase() {
         val env3 = LuaEnvironmentState(id = "E3", name = "E3", rootDir = "/p/E3", toolIds = mutableListOf())
 
         val seen = mutableListOf<GeneralCommandLine>()
-        val runner = MatrixRunner.RowRunner { _, command ->
-            seen.add(command)
-            RowOutcome(0, "ok")
-        }
+        val runner =
+            MatrixRunner.RowRunner { _, command ->
+                seen.add(command)
+                RowOutcome(0, "ok")
+            }
 
-        val result = MatrixRunner.execute(
-            MatrixRunner.Request("test", rockspec, listOf(env1, env2, env3)),
-            runner,
-        )
+        val result =
+            MatrixRunner.execute(
+                MatrixRunner.Request("test", rockspec, listOf(env1, env2, env3)),
+                runner,
+            )
 
         // Rows 1 and 2 spawned against their own env's luarocks.
         assertEquals(luarocks1, seen[0].exePath)
@@ -68,10 +69,11 @@ class MatrixRunnerTest : ToolchainSettingsTestCase() {
 
     fun `test empty env set yields no runner call`() {
         var invoked = false
-        val runner = MatrixRunner.RowRunner { _, _ ->
-            invoked = true
-            RowOutcome(0, "")
-        }
+        val runner =
+            MatrixRunner.RowRunner { _, _ ->
+                invoked = true
+                RowOutcome(0, "")
+            }
         val result = MatrixRunner.execute(MatrixRunner.Request("test", rockspec, emptyList()), runner)
         assertTrue(result.rows.isEmpty())
         assertFalse(result.allPassed)

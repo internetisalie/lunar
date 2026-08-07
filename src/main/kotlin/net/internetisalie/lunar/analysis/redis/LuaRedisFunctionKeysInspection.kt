@@ -30,10 +30,12 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * Suppressible via the normal [LuaInspectionSuppression] mechanism.
  */
 class LuaRedisFunctionKeysInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaRedisFunctionKeys"
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor {
         val target = LuaProjectSettings.getInstance(holder.project).state.getTarget()
         if (!isSupportedTarget(target)) return PsiElementVisitor.EMPTY_VISITOR
         if (!LuaRedisFunctionLibrary.isLibrary(holder.file)) return PsiElementVisitor.EMPTY_VISITOR

@@ -17,7 +17,10 @@ import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 /** Evaluate seam: the `evaluate` bridge the LDB frame's [XDebuggerEvaluator] delegates to (design §2.6). */
 interface LuaLdbEvalHost {
     /** Evaluate [expression] in the paused frame; the result flows back through [callback] (design §3.7). */
-    fun launchEvaluate(expression: String, callback: XDebuggerEvaluator.XEvaluationCallback)
+    fun launchEvaluate(
+        expression: String,
+        callback: XDebuggerEvaluator.XEvaluationCallback,
+    )
 }
 
 /** Breakpoint seam: register/unregister an LDB line breakpoint (design §2.4). */

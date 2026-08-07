@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.rocks.browser
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import java.nio.file.Path
 
@@ -12,7 +11,6 @@ import java.nio.file.Path
  * every install/uninstall lands in the project tree the rest of the plugin reads.
  */
 class LuaRocksInstallCommandTest {
-
     private val treeRoot: Path = Path.of("/proj/lua_modules")
 
     @Test

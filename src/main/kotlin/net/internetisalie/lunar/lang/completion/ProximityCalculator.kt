@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.lang.completion
 
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.PsiFile
 import java.io.File
@@ -13,6 +12,7 @@ import java.io.File
  * - Recency weighting for recently modified files
  * - @class-specific boost handling
  */
+
 /**
  * True when [file] is library content — a bundled stdlib stub, a definition library, a LuaRocks
  * tree. Shared by the two things BUG-394's widened search scope has to get right about such a
@@ -24,7 +24,6 @@ internal fun isLibraryFile(file: PsiFile): Boolean {
 }
 
 object ProximityCalculator {
-
     /**
      * Calculate combined proximity and recency weight for a symbol.
      *
@@ -36,7 +35,7 @@ object ProximityCalculator {
     fun calculateWeight(
         currentFile: PsiFile,
         symbolFile: PsiFile,
-        isClassType: Boolean = false
+        isClassType: Boolean = false,
     ): Double {
         // BUG-394: library symbols are ranked strictly below every project symbol. Widening the
         // search scope brought the stdlib and every enabled definition library into completion, and
@@ -66,7 +65,10 @@ object ProximityCalculator {
      * - Same directory: 0.7
      * - Different module: 0.5
      */
-    private fun calculateProximityWeight(currentFile: PsiFile, symbolFile: PsiFile): Double {
+    private fun calculateProximityWeight(
+        currentFile: PsiFile,
+        symbolFile: PsiFile,
+    ): Double {
         if (currentFile == symbolFile) {
             return 0.9 // Same file
         }

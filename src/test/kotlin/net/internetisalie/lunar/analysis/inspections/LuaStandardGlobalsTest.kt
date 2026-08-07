@@ -10,7 +10,6 @@ import org.junit.Test
  * absent from `DELTA_51`, producing a false "undeclared global" warning. TC8/TC9.
  */
 class LuaStandardGlobalsTest {
-
     @Test
     fun `test TC8 arg is a global in Lua 5_1`() {
         assertTrue(LuaStandardGlobals.contains("arg", LuaLanguageLevel.LUA51))

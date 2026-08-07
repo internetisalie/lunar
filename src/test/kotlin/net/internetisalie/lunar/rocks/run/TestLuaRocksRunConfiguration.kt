@@ -21,7 +21,6 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 class TestLuaRocksRunConfiguration : BaseDocumentTest() {
-
     @AfterTest
     fun resetToolchainState() {
         resetToolchain()
@@ -41,17 +40,25 @@ class TestLuaRocksRunConfiguration : BaseDocumentTest() {
 
     private fun bindLuaRocks(path: String): LuaRegisteredTool {
         resetToolchain()
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "luarocks",
-            path = path,
-            version = "3.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
-        )
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "luarocks",
+                path = path,
+                version = "3.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         LuaToolchainProjectSettings.getInstance(myFixture.project).setBinding("luarocks", tool.id)
         return tool
@@ -71,7 +78,7 @@ class TestLuaRocksRunConfiguration : BaseDocumentTest() {
         assertEquals("luarocks", commandLine.exePath)
         assertEquals(
             listOf("--local", "build", "--no-doc", "app-1.rockspec"),
-            commandLine.parametersList.list
+            commandLine.parametersList.list,
         )
     }
 
@@ -110,9 +117,12 @@ class TestLuaRocksRunConfiguration : BaseDocumentTest() {
         source.globalFlags = "--tree lua_modules"
         source.rockspecPath = "\$PROJECT_DIR\$/my-app-scm-1.rockspec"
         source.arguments = "--no-doc"
-        source.environmentVariables = EnvironmentVariablesData.create(
-            mapOf("DEBUG" to "1"), true, null
-        )
+        source.environmentVariables =
+            EnvironmentVariablesData.create(
+                mapOf("DEBUG" to "1"),
+                true,
+                null,
+            )
 
         val element = XmlSerializer.serialize(source.getOptions())
 

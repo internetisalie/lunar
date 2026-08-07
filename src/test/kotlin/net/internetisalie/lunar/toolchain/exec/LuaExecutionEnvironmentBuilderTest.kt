@@ -25,7 +25,6 @@ import java.util.UUID
  * the `RockspecSourcePathProvider` discovery seam, mirroring `RockspecRunPathProviderTest`.
  */
 class LuaExecutionEnvironmentBuilderTest : ToolchainSettingsTestCase() {
-
     private val builder: LuaExecutionEnvironmentBuilder
         get() = LuaExecutionEnvironmentBuilder.getInstance(project)
 
@@ -44,24 +43,29 @@ class LuaExecutionEnvironmentBuilderTest : ToolchainSettingsTestCase() {
         }
     }
 
-    private fun bindTool(kindId: String, path: String): LuaRegisteredTool {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = kindId,
-            path = path,
-            version = "1.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(
-                fileExists = true,
-                executable = true,
-                probeOk = true,
-                probedAtMtime = 1L,
-                reason = null,
-            ),
-        )
+    private fun bindTool(
+        kindId: String,
+        path: String,
+    ): LuaRegisteredTool {
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = kindId,
+                path = path,
+                version = "1.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         registry.registerProvisioned(tool)
         settings.setBinding(kindId, tool.id)
         return tool
@@ -98,7 +102,8 @@ class LuaExecutionEnvironmentBuilderTest : ToolchainSettingsTestCase() {
     fun testLuaCPathFromBuiltinCRockspec() {
         // TOOLING-05 Phase 3: RockspecBridge.read resolves the runtime via the resolver; bind a real
         // interpreter so the bridge can launch and parse the C-module rockspec.
-        net.internetisalie.lunar.rocks.RockspecRuntimeTestSupport.registerRealLuaRuntime(project)
+        net.internetisalie.lunar.rocks.RockspecRuntimeTestSupport
+            .registerRealLuaRuntime(project)
         val projectRoot = project.basePath ?: error("no base path")
         Files.createDirectories(Path.of(projectRoot).resolve("lua_modules"))
         val rockspec = writeCModuleRockspec()
@@ -186,11 +191,12 @@ class LuaExecutionEnvironmentBuilderTest : ToolchainSettingsTestCase() {
 
     private fun activateEnvironment(rootDir: String) {
         val projectSettings = LuaToolchainProjectSettings.getInstance(project)
-        val spec = LuaEnvironmentState(
-            id = UUID.randomUUID().toString(),
-            name = "env",
-            rootDir = rootDir,
-        )
+        val spec =
+            LuaEnvironmentState(
+                id = UUID.randomUUID().toString(),
+                name = "env",
+                rootDir = rootDir,
+            )
         projectSettings.upsertEnvironmentAndActivate(spec)
     }
 }

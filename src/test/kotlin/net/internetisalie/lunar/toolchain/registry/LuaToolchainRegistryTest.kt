@@ -19,20 +19,22 @@ import org.junit.runners.JUnit4
 
 class FakeLuaToolProbe : LuaToolProbe {
     val results = mutableMapOf<String, LuaToolProbeResult>()
-    override fun probe(kind: LuaToolKind, binaryPath: java.nio.file.Path): LuaToolProbeResult {
-        return results[binaryPath.toAbsolutePath().toString()] ?: LuaToolProbeResult(
+
+    override fun probe(
+        kind: LuaToolKind,
+        binaryPath: java.nio.file.Path,
+    ): LuaToolProbeResult =
+        results[binaryPath.toAbsolutePath().toString()] ?: LuaToolProbeResult(
             ok = true,
             version = "1.0.0",
             luaVersion = null,
             runtime = null,
-            failure = null
+            failure = null,
         )
-    }
 }
 
 @RunWith(JUnit4::class)
 class LuaToolchainRegistryTest : BasePlatformTestCase() {
-
     private lateinit var fakeProbe: FakeLuaToolProbe
 
     override fun setUp() {
@@ -41,7 +43,7 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
         ApplicationManager.getApplication().replaceService(
             LuaToolProbe::class.java,
             fakeProbe,
-            testRootDisposable
+            testRootDisposable,
         )
         // Reset registry state
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
@@ -58,7 +60,10 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
     @Test
     fun testRegisterAndRefreshTool_TC15_16() {
-        val file = java.nio.file.Files.createTempFile("stylua", "").toFile()
+        val file =
+            java.nio.file.Files
+                .createTempFile("stylua", "")
+                .toFile()
         file.writeText("#!/bin/sh\n")
         file.setExecutable(true)
         file.deleteOnExit()
@@ -68,18 +73,24 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
         val events = mutableListOf<LuaToolchainEvent>()
         val connection = ApplicationManager.getApplication().messageBus.connect(testRootDisposable)
-        connection.subscribe(LuaToolchainListener.TOPIC, object : LuaToolchainListener {
-            override fun toolchainChanged(event: LuaToolchainEvent) {
-                synchronized(events) {
-                    events.add(event)
+        connection.subscribe(
+            LuaToolchainListener.TOPIC,
+            object : LuaToolchainListener {
+                override fun toolchainChanged(event: LuaToolchainEvent) {
+                    synchronized(events) {
+                        events.add(event)
+                    }
                 }
-            }
-        })
+            },
+        )
 
         // 1. Register tool (TC 15)
-        val tool = ApplicationManager.getApplication().executeOnPooledThread<LuaRegisteredTool?> {
-            registry.registerTool(path, "stylua")
-        }.get()
+        val tool =
+            ApplicationManager
+                .getApplication()
+                .executeOnPooledThread<LuaRegisteredTool?> {
+                    registry.registerTool(path, "stylua")
+                }.get()
 
         assertNotNull(tool)
         assertEquals(1, registry.tools().size)
@@ -98,17 +109,21 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
         }
 
         // 2. Register again (TC 16)
-        fakeProbe.results[file.absolutePath] = LuaToolProbeResult(
-            ok = true,
-            version = "2.0.0",
-            luaVersion = null,
-            runtime = null,
-            failure = null
-        )
+        fakeProbe.results[file.absolutePath] =
+            LuaToolProbeResult(
+                ok = true,
+                version = "2.0.0",
+                luaVersion = null,
+                runtime = null,
+                failure = null,
+            )
 
-        val updatedTool = ApplicationManager.getApplication().executeOnPooledThread<LuaRegisteredTool?> {
-            registry.registerTool(path, "stylua")
-        }.get()
+        val updatedTool =
+            ApplicationManager
+                .getApplication()
+                .executeOnPooledThread<LuaRegisteredTool?> {
+                    registry.registerTool(path, "stylua")
+                }.get()
 
         assertNotNull(updatedTool)
         assertEquals(1, registry.tools().size)
@@ -131,13 +146,16 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
         val events = mutableListOf<LuaToolchainEvent>()
         val connection = ApplicationManager.getApplication().messageBus.connect(testRootDisposable)
-        connection.subscribe(LuaToolchainListener.TOPIC, object : LuaToolchainListener {
-            override fun toolchainChanged(event: LuaToolchainEvent) {
-                synchronized(events) {
-                    events.add(event)
+        connection.subscribe(
+            LuaToolchainListener.TOPIC,
+            object : LuaToolchainListener {
+                override fun toolchainChanged(event: LuaToolchainEvent) {
+                    synchronized(events) {
+                        events.add(event)
+                    }
                 }
-            }
-        })
+            },
+        )
 
         val toolId = "test-tool-id-123"
 
@@ -178,46 +196,48 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
         val originalState = LuaToolchainAppState()
 
         // 1. RUNTIME tool
-        val tool1 = RegisteredToolState().apply {
-            id = "id-1"
-            kindId = "lua"
-            path = "/usr/bin/lua"
-            version = "5.4.6"
-            luaVersion = ""
-            product = "Lua"
-            runtimeVersion = "5.4.6"
-            languageLevel = "LUA54"
-            platform = "STANDARD"
-            banner = "Lua 5.4.6  Copyright (C) 199 PUC-Rio"
-            origin = Origin.DISCOVERED
-            environmentId = "env-123"
-            fileExists = true
-            executable = true
-            probeStatus = ProbeStatus.OK
-            probedAtMtime = 123456789L
-            reason = ""
-        }
+        val tool1 =
+            RegisteredToolState().apply {
+                id = "id-1"
+                kindId = "lua"
+                path = "/usr/bin/lua"
+                version = "5.4.6"
+                luaVersion = ""
+                product = "Lua"
+                runtimeVersion = "5.4.6"
+                languageLevel = "LUA54"
+                platform = "STANDARD"
+                banner = "Lua 5.4.6  Copyright (C) 199 PUC-Rio"
+                origin = Origin.DISCOVERED
+                environmentId = "env-123"
+                fileExists = true
+                executable = true
+                probeStatus = ProbeStatus.OK
+                probedAtMtime = 123456789L
+                reason = ""
+            }
 
         // 2. Probe-failed tool
-        val tool2 = RegisteredToolState().apply {
-            id = "id-2"
-            kindId = "luarocks"
-            path = "/usr/bin/luarocks"
-            version = ""
-            luaVersion = ""
-            product = ""
-            runtimeVersion = ""
-            languageLevel = ""
-            platform = ""
-            banner = ""
-            origin = Origin.MANUAL
-            environmentId = ""
-            fileExists = true
-            executable = true
-            probeStatus = ProbeStatus.FAILED
-            probedAtMtime = 987654321L
-            reason = "Timeout"
-        }
+        val tool2 =
+            RegisteredToolState().apply {
+                id = "id-2"
+                kindId = "luarocks"
+                path = "/usr/bin/luarocks"
+                version = ""
+                luaVersion = ""
+                product = ""
+                runtimeVersion = ""
+                languageLevel = ""
+                platform = ""
+                banner = ""
+                origin = Origin.MANUAL
+                environmentId = ""
+                fileExists = true
+                executable = true
+                probeStatus = ProbeStatus.FAILED
+                probedAtMtime = 987654321L
+                reason = "Timeout"
+            }
 
         originalState.tools.add(tool1)
         originalState.tools.add(tool2)
@@ -225,9 +245,13 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
         originalState.kindOptions["lua.arguments"] = "--some-flag"
 
         // Serialize
-        val element = com.intellij.util.xmlb.XmlSerializer.serialize(originalState)
+        val element =
+            com.intellij.util.xmlb.XmlSerializer
+                .serialize(originalState)
         // Deserialize
-        val restoredState = com.intellij.util.xmlb.XmlSerializer.deserialize(element, LuaToolchainAppState::class.java)
+        val restoredState =
+            com.intellij.util.xmlb.XmlSerializer
+                .deserialize(element, LuaToolchainAppState::class.java)
 
         // Verify tools mapping equality
         val originalModels = originalState.tools.map { it.toModel() }
@@ -255,7 +279,10 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
     @Test
     fun testDeletedBinaryHealthAndRefresh_TC19() {
-        val file = java.nio.file.Files.createTempFile("luacheck", "").toFile()
+        val file =
+            java.nio.file.Files
+                .createTempFile("luacheck", "")
+                .toFile()
         file.writeText("#!/bin/sh\n")
         file.setExecutable(true)
         val path = file.absolutePath
@@ -264,18 +291,24 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
         val events = mutableListOf<LuaToolchainEvent>()
         val connection = ApplicationManager.getApplication().messageBus.connect(testRootDisposable)
-        connection.subscribe(LuaToolchainListener.TOPIC, object : LuaToolchainListener {
-            override fun toolchainChanged(event: LuaToolchainEvent) {
-                synchronized(events) {
-                    events.add(event)
+        connection.subscribe(
+            LuaToolchainListener.TOPIC,
+            object : LuaToolchainListener {
+                override fun toolchainChanged(event: LuaToolchainEvent) {
+                    synchronized(events) {
+                        events.add(event)
+                    }
                 }
-            }
-        })
+            },
+        )
 
         // 1. Register tool
-        val tool = ApplicationManager.getApplication().executeOnPooledThread<LuaRegisteredTool?> {
-            registry.registerTool(path, "luacheck")
-        }.get()
+        val tool =
+            ApplicationManager
+                .getApplication()
+                .executeOnPooledThread<LuaRegisteredTool?> {
+                    registry.registerTool(path, "luacheck")
+                }.get()
 
         assertNotNull(tool)
         assertTrue(tool!!.health.fileExists)
@@ -298,18 +331,21 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
         }
 
         // Setup fake probe for deleted file
-        fakeProbe.results[path] = LuaToolProbeResult(
-            ok = false,
-            version = null,
-            luaVersion = null,
-            runtime = null,
-            failure = "Not executable"
-        )
+        fakeProbe.results[path] =
+            LuaToolProbeResult(
+                ok = false,
+                version = null,
+                luaVersion = null,
+                runtime = null,
+                failure = "Not executable",
+            )
 
         // 3. refreshTool(id) -> fileExists=false, TOOL_UPDATED fired
-        ApplicationManager.getApplication().executeOnPooledThread {
-            registry.refreshTool(tool.id)
-        }.get()
+        ApplicationManager
+            .getApplication()
+            .executeOnPooledThread {
+                registry.refreshTool(tool.id)
+            }.get()
 
         val refreshed = registry.tools().first()
         assertFalse(refreshed.health.fileExists)
@@ -324,7 +360,10 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
     @Test
     fun testRegisterUnknownKind_TC20() {
-        val file = java.nio.file.Files.createTempFile("unknown_binary", "").toFile()
+        val file =
+            java.nio.file.Files
+                .createTempFile("unknown_binary", "")
+                .toFile()
         file.writeText("#!/bin/sh\n")
         file.setExecutable(true)
         file.deleteOnExit()
@@ -334,17 +373,23 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
         val events = mutableListOf<LuaToolchainEvent>()
         val connection = ApplicationManager.getApplication().messageBus.connect(testRootDisposable)
-        connection.subscribe(LuaToolchainListener.TOPIC, object : LuaToolchainListener {
-            override fun toolchainChanged(event: LuaToolchainEvent) {
-                synchronized(events) {
-                    events.add(event)
+        connection.subscribe(
+            LuaToolchainListener.TOPIC,
+            object : LuaToolchainListener {
+                override fun toolchainChanged(event: LuaToolchainEvent) {
+                    synchronized(events) {
+                        events.add(event)
+                    }
                 }
-            }
-        })
+            },
+        )
 
-        val tool = ApplicationManager.getApplication().executeOnPooledThread<LuaRegisteredTool?> {
-            registry.registerTool(path)
-        }.get()
+        val tool =
+            ApplicationManager
+                .getApplication()
+                .executeOnPooledThread<LuaRegisteredTool?> {
+                    registry.registerTool(path)
+                }.get()
 
         assertNull(tool)
         assertEquals(0, registry.tools().size)
@@ -355,16 +400,22 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
     @Test
     fun testFindByPath() {
-        val file = java.nio.file.Files.createTempFile("stylua", "").toFile()
+        val file =
+            java.nio.file.Files
+                .createTempFile("stylua", "")
+                .toFile()
         file.writeText("#!/bin/sh\n")
         file.setExecutable(true)
         file.deleteOnExit()
         val path = file.absolutePath
 
         val registry = LuaToolchainRegistry.getInstance()
-        val tool = ApplicationManager.getApplication().executeOnPooledThread<LuaRegisteredTool?> {
-            registry.registerTool(path, "stylua")
-        }.get()
+        val tool =
+            ApplicationManager
+                .getApplication()
+                .executeOnPooledThread<LuaRegisteredTool?> {
+                    registry.registerTool(path, "stylua")
+                }.get()
 
         assertNotNull(tool)
         assertEquals(tool, registry.findByPath(path))
@@ -377,31 +428,34 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
     @Test
     fun testRuntimeToolModelStateRoundTrip_TC24() {
-        val runtimeInfo = LuaRuntimeInfo(
-            product = "LuaJIT",
-            version = "2.1.0",
-            languageLevel = LuaLanguageLevel.LUA51,
-            platform = LuaPlatform.LUAJIT,
-            banner = "LuaJIT 2.1.0"
-        )
-        val health = LuaToolHealth(
-            fileExists = true,
-            executable = true,
-            probeOk = true,
-            probedAtMtime = 123456L,
-            reason = null
-        )
-        val originalModel = LuaRegisteredTool(
-            id = "uuid-1234",
-            kindId = "luajit",
-            path = "/usr/bin/luajit",
-            version = "2.1.0",
-            luaVersion = null,
-            runtime = runtimeInfo,
-            origin = Origin.DISCOVERED,
-            environmentId = null,
-            health = health
-        )
+        val runtimeInfo =
+            LuaRuntimeInfo(
+                product = "LuaJIT",
+                version = "2.1.0",
+                languageLevel = LuaLanguageLevel.LUA51,
+                platform = LuaPlatform.LUAJIT,
+                banner = "LuaJIT 2.1.0",
+            )
+        val health =
+            LuaToolHealth(
+                fileExists = true,
+                executable = true,
+                probeOk = true,
+                probedAtMtime = 123456L,
+                reason = null,
+            )
+        val originalModel =
+            LuaRegisteredTool(
+                id = "uuid-1234",
+                kindId = "luajit",
+                path = "/usr/bin/luajit",
+                version = "2.1.0",
+                luaVersion = null,
+                runtime = runtimeInfo,
+                origin = Origin.DISCOVERED,
+                environmentId = null,
+                health = health,
+            )
 
         val state = originalModel.toState()
         val restoredModel = state.toModel()
@@ -420,7 +474,10 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
     @Test
     fun testUpdateToolCheckOptimized_TC25() {
-        val file = java.nio.file.Files.createTempFile("luacov", "").toFile()
+        val file =
+            java.nio.file.Files
+                .createTempFile("luacov", "")
+                .toFile()
         file.writeText("#!/bin/sh\n")
         file.setExecutable(true)
         file.deleteOnExit()
@@ -430,18 +487,24 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
         val events = mutableListOf<LuaToolchainEvent>()
         val connection = ApplicationManager.getApplication().messageBus.connect(testRootDisposable)
-        connection.subscribe(LuaToolchainListener.TOPIC, object : LuaToolchainListener {
-            override fun toolchainChanged(event: LuaToolchainEvent) {
-                synchronized(events) {
-                    events.add(event)
+        connection.subscribe(
+            LuaToolchainListener.TOPIC,
+            object : LuaToolchainListener {
+                override fun toolchainChanged(event: LuaToolchainEvent) {
+                    synchronized(events) {
+                        events.add(event)
+                    }
                 }
-            }
-        })
+            },
+        )
 
         // Register
-        val tool = ApplicationManager.getApplication().executeOnPooledThread<LuaRegisteredTool?> {
-            registry.registerTool(path, "luacov")
-        }.get()
+        val tool =
+            ApplicationManager
+                .getApplication()
+                .executeOnPooledThread<LuaRegisteredTool?> {
+                    registry.registerTool(path, "luacov")
+                }.get()
 
         assertNotNull(tool)
         synchronized(events) {
@@ -455,7 +518,7 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
             health = tool.health,
             version = tool.version,
             luaVersion = tool.luaVersion,
-            runtime = tool.runtime
+            runtime = tool.runtime,
         )
 
         synchronized(events) {
@@ -469,7 +532,7 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
             health = newHealth,
             version = tool.version,
             luaVersion = tool.luaVersion,
-            runtime = tool.runtime
+            runtime = tool.runtime,
         )
 
         synchronized(events) {
@@ -481,63 +544,77 @@ class LuaToolchainRegistryTest : BasePlatformTestCase() {
 
     @Test
     fun testAutoDiscoverE2E() {
-        val rootDir = java.nio.file.Files.createTempDirectory("lunar_autodiscover_test")
+        val rootDir =
+            java.nio.file.Files
+                .createTempDirectory("lunar_autodiscover_test")
 
         val styluaFile = rootDir.resolve("stylua")
-        java.nio.file.Files.writeString(styluaFile, "#!/bin/sh\n")
+        java.nio.file.Files
+            .writeString(styluaFile, "#!/bin/sh\n")
         styluaFile.toFile().setExecutable(true)
 
         val luarocksFile = rootDir.resolve("luarocks")
-        java.nio.file.Files.writeString(luarocksFile, "#!/bin/sh\n")
+        java.nio.file.Files
+            .writeString(luarocksFile, "#!/bin/sh\n")
         luarocksFile.toFile().setExecutable(true)
 
         val luaFile = rootDir.resolve("lua5.4")
-        java.nio.file.Files.writeString(luaFile, "#!/bin/sh\n")
+        java.nio.file.Files
+            .writeString(luaFile, "#!/bin/sh\n")
         luaFile.toFile().setExecutable(true)
 
-        fakeProbe.results[styluaFile.toAbsolutePath().toString()] = LuaToolProbeResult(
-            ok = true,
-            version = "0.20.0",
-            luaVersion = null,
-            runtime = null,
-            failure = null
-        )
-        fakeProbe.results[luarocksFile.toAbsolutePath().toString()] = LuaToolProbeResult(
-            ok = true,
-            version = "3.11.0",
-            luaVersion = "5.4",
-            runtime = null,
-            failure = null
-        )
-        fakeProbe.results[luaFile.toAbsolutePath().toString()] = LuaToolProbeResult(
-            ok = true,
-            version = "5.4.6",
-            luaVersion = null,
-            runtime = LuaRuntimeInfo(
-                product = "Lua",
+        fakeProbe.results[styluaFile.toAbsolutePath().toString()] =
+            LuaToolProbeResult(
+                ok = true,
+                version = "0.20.0",
+                luaVersion = null,
+                runtime = null,
+                failure = null,
+            )
+        fakeProbe.results[luarocksFile.toAbsolutePath().toString()] =
+            LuaToolProbeResult(
+                ok = true,
+                version = "3.11.0",
+                luaVersion = "5.4",
+                runtime = null,
+                failure = null,
+            )
+        fakeProbe.results[luaFile.toAbsolutePath().toString()] =
+            LuaToolProbeResult(
+                ok = true,
                 version = "5.4.6",
-                languageLevel = LuaLanguageLevel.LUA54,
-                platform = LuaPlatform.STANDARD,
-                banner = "Lua 5.4.6  Copyright (C) 1994-2023 Lua.org, PUC-Rio"
-            ),
-            failure = null
-        )
+                luaVersion = null,
+                runtime =
+                    LuaRuntimeInfo(
+                        product = "Lua",
+                        version = "5.4.6",
+                        languageLevel = LuaLanguageLevel.LUA54,
+                        platform = LuaPlatform.STANDARD,
+                        banner = "Lua 5.4.6  Copyright (C) 1994-2023 Lua.org, PUC-Rio",
+                    ),
+                failure = null,
+            )
 
         val registry = LuaToolchainRegistry.getInstance()
 
         val events = mutableListOf<LuaToolchainEvent>()
         val connection = ApplicationManager.getApplication().messageBus.connect(testRootDisposable)
-        connection.subscribe(LuaToolchainListener.TOPIC, object : LuaToolchainListener {
-            override fun toolchainChanged(event: LuaToolchainEvent) {
-                synchronized(events) {
-                    events.add(event)
+        connection.subscribe(
+            LuaToolchainListener.TOPIC,
+            object : LuaToolchainListener {
+                override fun toolchainChanged(event: LuaToolchainEvent) {
+                    synchronized(events) {
+                        events.add(event)
+                    }
                 }
-            }
-        })
+            },
+        )
 
-        ApplicationManager.getApplication().executeOnPooledThread {
-            registry.autoDiscover(listOf(rootDir))
-        }.get()
+        ApplicationManager
+            .getApplication()
+            .executeOnPooledThread {
+                registry.autoDiscover(listOf(rootDir))
+            }.get()
 
         val tools = registry.tools()
         val tempTools = tools.filter { it.path.startsWith(rootDir.toAbsolutePath().toString()) }

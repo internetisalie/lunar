@@ -17,13 +17,22 @@ import com.intellij.spellchecker.tokenizer.TokenConsumer
  * Design §2.2, §3.2.
  */
 class LuaStringTokenizer : EscapeSequenceTokenizer<PsiElement>() {
-
-    override fun tokenize(element: PsiElement, consumer: TokenConsumer) {
+    override fun tokenize(
+        element: PsiElement,
+        consumer: TokenConsumer,
+    ) {
         val raw = element.text
         val (inner, prefixLen) = stripDelimiters(raw)
         if (inner.isEmpty()) return
         if (!inner.contains('\\') || isLongBracket(raw)) {
-            consumer.consumeToken(element, inner, false, prefixLen, TextRange.allOf(inner), PlainTextSplitter.getInstance())
+            consumer.consumeToken(
+                element,
+                inner,
+                false,
+                prefixLen,
+                TextRange.allOf(inner),
+                PlainTextSplitter.getInstance(),
+            )
         } else {
             val sb = StringBuilder(inner.length)
             val offsets = IntArray(inner.length + 1)

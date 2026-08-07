@@ -32,10 +32,12 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * No-ops when the project target is not Redis or Valkey.
  */
 class LuaRedisCommandInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaRedisCommand"
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitFuncCall(o: LuaFuncCall) {
                 val site = RedisCallSiteMatcher.match(o) ?: return
@@ -64,12 +66,17 @@ class LuaRedisCommandInspection : LocalInspectionTool() {
     // -------------------------------------------------------------------------
     // §3.4 step 5a — unknown command: suppression + did-you-mean quick fixes
     // -------------------------------------------------------------------------
-    private fun checkUnknown(ctx: CheckContext, name: String, literal: LuaTerminalExpr) {
+    private fun checkUnknown(
+        ctx: CheckContext,
+        name: String,
+        literal: LuaTerminalExpr,
+    ) {
         val rootRef = rootNameRefOf(ctx.site) ?: return
         if (LuaInspectionSuppression.isSuppressed(rootRef, name, UNKNOWN_DIAGNOSTIC_ID)) return
-        val fixes = didYouMean(name, ctx.spec.names())
-            .map { LuaRedisRenameCommandQuickFix(it) }
-            .toTypedArray()
+        val fixes =
+            didYouMean(name, ctx.spec.names())
+                .map { LuaRedisRenameCommandQuickFix(it) }
+                .toTypedArray()
         ctx.holder.registerProblem(
             literal,
             "Unknown Redis command '$name'",
@@ -81,11 +88,16 @@ class LuaRedisCommandInspection : LocalInspectionTool() {
     // -------------------------------------------------------------------------
     // §3.4 step 5b — arity: minArgs counts the command token; subtract 1 for display
     // -------------------------------------------------------------------------
-    private fun checkArity(ctx: CheckContext, name: String) {
+    private fun checkArity(
+        ctx: CheckContext,
+        name: String,
+    ) {
         val info = ctx.info ?: return
         val minArgs = if (info.arity < 0) -info.arity else info.arity
         if (ctx.site.argCount >= minArgs) return
-        val argListAnchor = ctx.site.funcCall.nameAndArgsList.firstOrNull() ?: return
+        val argListAnchor =
+            ctx.site.funcCall.nameAndArgsList
+                .firstOrNull() ?: return
         val found = ctx.site.argCount - 1
         val expected = minArgs - 1
         ctx.holder.registerProblem(
@@ -98,7 +110,11 @@ class LuaRedisCommandInspection : LocalInspectionTool() {
     // -------------------------------------------------------------------------
     // §3.9 — determinism: Redis 5/6 only; requires the file-level site cache
     // -------------------------------------------------------------------------
-    private fun checkDeterminism(ctx: CheckContext, name: String, literal: LuaTerminalExpr) {
+    private fun checkDeterminism(
+        ctx: CheckContext,
+        name: String,
+        literal: LuaTerminalExpr,
+    ) {
         if (ctx.target.version.label != "5" && ctx.target.version.label != "6") return // TC-DET-3
         if (ctx.info == null || "nondeterministic" !in ctx.info.flags) return
 
@@ -121,16 +137,21 @@ class LuaRedisCommandInspection : LocalInspectionTool() {
     // File-level site cache for determinism (design §3.9): collected once per
     // PSI modification cycle via CachedValuesManager (mirrors LuaInspectionSuppression).
     // -------------------------------------------------------------------------
-    private fun fileSiteInfo(file: PsiFile, spec: RedisCommandSpec): FileSiteInfo {
-        return CachedValuesManager.getManager(file.project).getCachedValue(file) {
+    private fun fileSiteInfo(
+        file: PsiFile,
+        spec: RedisCommandSpec,
+    ): FileSiteInfo =
+        CachedValuesManager.getManager(file.project).getCachedValue(file) {
             CachedValueProvider.Result.create(
                 buildFileSiteInfo(file, spec),
                 PsiModificationTracker.MODIFICATION_COUNT,
             )
         }
-    }
 
-    private fun buildFileSiteInfo(file: PsiFile, spec: RedisCommandSpec): FileSiteInfo {
+    private fun buildFileSiteInfo(
+        file: PsiFile,
+        spec: RedisCommandSpec,
+    ): FileSiteInfo {
         val funcCalls = PsiTreeUtil.collectElementsOfType(file, LuaFuncCall::class.java)
         val guardOffsets = mutableListOf<Int>()
         val writeOffsets = mutableListOf<Int>()
@@ -147,7 +168,10 @@ class LuaRedisCommandInspection : LocalInspectionTool() {
     private fun isGuardCall(site: RedisCallSite): Boolean =
         site.namespace == "redis" && site.member == "replicate_commands"
 
-    private fun isWriteCall(site: RedisCallSite, spec: RedisCommandSpec): Boolean {
+    private fun isWriteCall(
+        site: RedisCallSite,
+        spec: RedisCommandSpec,
+    ): Boolean {
         val cmdName = site.commandName ?: return false
         return spec.lookup(cmdName)?.flags?.contains("write") == true
     }
@@ -157,7 +181,8 @@ class LuaRedisCommandInspection : LocalInspectionTool() {
     // Reads only containingFile + textOffset — exactly what isSuppressed consumes.
     // -------------------------------------------------------------------------
     private fun rootNameRefOf(site: RedisCallSite): LuaNameRef? =
-        site.funcCall.varOrExp.`var`?.nameRef
+        site.funcCall.varOrExp.`var`
+            ?.nameRef
 
     companion object {
         private const val UNKNOWN_DIAGNOSTIC_ID = "redis-unknown-command"

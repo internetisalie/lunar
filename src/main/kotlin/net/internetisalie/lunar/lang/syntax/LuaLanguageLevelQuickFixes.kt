@@ -18,16 +18,23 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * Quick fix that upgrades the project's configured language level to support the used feature.
  */
 class UpgradeLanguageLevelFix(
-    private val requiredLevel: LuaLanguageLevel
+    private val requiredLevel: LuaLanguageLevel,
 ) : BaseIntentionAction() {
-
     override fun getFamilyName(): String = "Lua Language Level"
 
     override fun getText(): String = "Upgrade project to $requiredLevel"
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean = true
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean = true
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val settings = LuaProjectSettings.getInstance(project)
         settings.state.languageLevel = requiredLevel
     }
@@ -39,14 +46,21 @@ class UpgradeLanguageLevelFix(
  * Quick fix that removes a goto statement.
  */
 class RemoveGotoFix : BaseIntentionAction() {
-
     override fun getFamilyName(): String = "Lua Language Level"
 
     override fun getText(): String = "Remove goto statement"
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean = true
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean = true
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val offset = editor.caretModel.offset
         val element = file.findElementAt(offset) ?: return
         PsiTreeUtil.getParentOfType(element, LuaGotoStatement::class.java, false)?.delete()
@@ -59,14 +73,21 @@ class RemoveGotoFix : BaseIntentionAction() {
  * Quick fix that removes a label.
  */
 class RemoveLabelFix : BaseIntentionAction() {
-
     override fun getFamilyName(): String = "Lua Language Level"
 
     override fun getText(): String = "Remove label"
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean = true
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean = true
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val offset = editor.caretModel.offset
         val element = file.findElementAt(offset) ?: return
         PsiTreeUtil.getParentOfType(element, LuaLabel::class.java, false)?.delete()
@@ -79,14 +100,21 @@ class RemoveLabelFix : BaseIntentionAction() {
  * Quick fix that replaces integer division with regular division and floor.
  */
 class ReplaceIntegerDivisionFix : BaseIntentionAction() {
-
     override fun getFamilyName(): String = "Lua Language Level"
 
     override fun getText(): String = "Replace // with / and math.floor()"
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean = true
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean = true
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val offset = editor.caretModel.offset
         val element = file.findElementAt(offset) ?: return
         val binOpExpr = PsiTreeUtil.getParentOfType(element, LuaBinOpExpr::class.java, false) ?: return

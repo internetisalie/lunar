@@ -8,7 +8,6 @@ package net.internetisalie.lunar.run.test
  * `\Q…\E`, which busted does not understand.
  */
 object LuaPatternEscaper {
-
     private val MAGIC_CHARS = setOf('(', ')', '.', '%', '+', '-', '*', '?', '[', ']', '^', '$')
 
     fun escape(name: String): String {

@@ -30,14 +30,17 @@ class LuaConsoleAction : DumbAwareAction() {
         event.presentation.isEnabled = event.getData(CommonDataKeys.PROJECT) != null
     }
 
-    private fun notifyFailure(project: Project, message: String?) {
-        NotificationGroupManager.getInstance()
+    private fun notifyFailure(
+        project: Project,
+        message: String?,
+    ) {
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup("notification.group.lunar.debugger")
             .createNotification(
                 "Lua Console",
                 message ?: "Configure a Lua interpreter in project settings.",
                 NotificationType.ERROR,
-            )
-            .notify(project)
+            ).notify(project)
     }
 }

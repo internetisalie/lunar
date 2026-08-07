@@ -14,14 +14,16 @@ import net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory
  * in the light fixture (mirrors RockspecSchemaValidationTest).
  */
 class LuacheckrcSchemaTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         JsonSchemaProviderFactory.EP_NAME.point.registerExtension(LuaSchemaProviderFactory(), testRootDisposable)
         myFixture.enableInspections(LuaJsonSchemaComplianceInspection())
     }
 
-    private fun warningsFor(fileName: String, text: String): List<String> {
+    private fun warningsFor(
+        fileName: String,
+        text: String,
+    ): List<String> {
         myFixture.configureByText(fileName, text)
         return myFixture.doHighlighting(HighlightSeverity.WARNING).mapNotNull { it.description }
     }

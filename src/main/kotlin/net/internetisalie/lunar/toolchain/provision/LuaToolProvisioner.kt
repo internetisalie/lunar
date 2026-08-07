@@ -25,7 +25,10 @@ class LuaToolProvisioner {
     private val reserved = ConcurrentHashMap.newKeySet<String>()
 
     /** Validates + serializes + queues the background provisioning of [request] (design §3.1). */
-    fun provision(project: Project, request: LuaProvisionRequest) {
+    fun provision(
+        project: Project,
+        request: LuaProvisionRequest,
+    ) {
         val canonical = validate(request)
         val canonicalRequest = request.copy(rootDir = canonical)
         if (!tryReserve(canonical)) {
@@ -67,7 +70,11 @@ class LuaToolProvisioner {
         reserved.remove(rootDir)
     }
 
-    private fun notify(project: Project, message: String, type: NotificationType) {
+    private fun notify(
+        project: Project,
+        message: String,
+        type: NotificationType,
+    ) {
         BalloonProvisionNotifier().notify(project, message, type)
     }
 

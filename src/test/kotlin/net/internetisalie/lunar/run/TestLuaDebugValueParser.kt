@@ -8,7 +8,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class TestLuaDebugValueParser : BaseDocumentTest() {
-
     @Test
     fun testEvaluateSimpleNumber() {
         myFixture.configureByText(LuaFileType, "local x = 42")
@@ -17,10 +16,11 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         ApplicationManager.getApplication().runReadAction {
             // This is a basic test - in practice you'd parse the PSI tree
             // and extract expressions to evaluate
-            val value = LuaValue(
-                kind = LuaValueKind.Number,
-                numberValue = 42.0
-            )
+            val value =
+                LuaValue(
+                    kind = LuaValueKind.Number,
+                    numberValue = 42.0,
+                )
 
             assertEquals(LuaValueKind.Number, value.kind)
             assertEquals(42.0, value.numberValue)
@@ -33,10 +33,11 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = \"hello\"")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaValue(
-                kind = LuaValueKind.String,
-                stringValue = "hello"
-            )
+            val value =
+                LuaValue(
+                    kind = LuaValueKind.String,
+                    stringValue = "hello",
+                )
 
             assertEquals(LuaValueKind.String, value.kind)
             assertEquals("hello", value.stringValue)
@@ -61,10 +62,11 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = true")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaValue(
-                kind = LuaValueKind.Boolean,
-                boolValue = true
-            )
+            val value =
+                LuaValue(
+                    kind = LuaValueKind.Boolean,
+                    boolValue = true,
+                )
 
             assertEquals(LuaValueKind.Boolean, value.kind)
             assertEquals(true, value.boolValue)
@@ -77,10 +79,11 @@ class TestLuaDebugValueParser : BaseDocumentTest() {
         myFixture.configureByText(LuaFileType, "local x = false")
 
         ApplicationManager.getApplication().runReadAction {
-            val value = LuaValue(
-                kind = LuaValueKind.Boolean,
-                boolValue = false
-            )
+            val value =
+                LuaValue(
+                    kind = LuaValueKind.Boolean,
+                    boolValue = false,
+                )
 
             assertEquals(LuaValueKind.Boolean, value.kind)
             assertEquals(false, value.boolValue)

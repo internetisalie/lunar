@@ -37,14 +37,17 @@ import kotlin.test.assertNull
  * framework is on the test classpath — since the evaluator never touches the controller here.
  */
 class TestLuaDebuggerEvaluator : BaseDocumentTest() {
-
     /** Returns the text of the selected expression range at [marker], or null if none. */
-    private fun rangeAt(text: String, marker: String): String? {
+    private fun rangeAt(
+        text: String,
+        marker: String,
+    ): String? {
         val psiFile = myFixture.configureByText(LuaFileType, text)
         val project = myFixture.project
         val offset = text.indexOf(marker)
         // getExpressionRangeAtOffset never touches the controller/scope, so a throwaway scope suffices.
-        val evaluator = LuaDebuggerEvaluator(LuaDebuggerController(fakeSession(project), CoroutineScope(SupervisorJob())))
+        val evaluator =
+            LuaDebuggerEvaluator(LuaDebuggerController(fakeSession(project), CoroutineScope(SupervisorJob())))
         return runInEdtAndGet {
             val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
             val range = evaluator.getExpressionRangeAtOffset(project, document, offset, false)
@@ -70,76 +73,122 @@ class TestLuaDebuggerEvaluator : BaseDocumentTest() {
         assertNull(rangeAt("local y = 1", "local"))
     }
 
-    private fun fakeSession(project: Project): XDebugSession = object : XDebugSession {
-        override fun getProject(): Project = project
-        override fun getRunProfile(): RunProfile? = null
-        override fun setPauseActionSupported(isSupported: Boolean) {}
+    private fun fakeSession(project: Project): XDebugSession =
+        object : XDebugSession {
+            override fun getProject(): Project = project
 
-        override fun getDebugProcess(): XDebugProcess = TODO("not used")
-        override fun isSuspended(): Boolean = TODO("not used")
-        override fun getCurrentStackFrame(): XStackFrame? = TODO("not used")
-        override fun getSuspendContext(): XSuspendContext? = TODO("not used")
-        override fun getCurrentPosition(): XSourcePosition? = TODO("not used")
-        override fun getTopFramePosition(): XSourcePosition? = TODO("not used")
-        override fun stepOver(ignoreBreakpoints: Boolean) = TODO("not used")
-        override fun stepInto() = TODO("not used")
-        override fun stepOut() = TODO("not used")
-        override fun forceStepInto() = TODO("not used")
-        override fun runToPosition(position: XSourcePosition, ignoreBreakpoints: Boolean) = TODO("not used")
-        override fun pause() = TODO("not used")
-        override fun resume() = TODO("not used")
-        override fun showExecutionPoint() = TODO("not used")
-        override fun setCurrentStackFrame(
-            executionStack: XExecutionStack,
-            frame: XStackFrame,
-            isTopFrame: Boolean,
-        ) = TODO("not used")
+            override fun getRunProfile(): RunProfile? = null
 
-        override fun updateBreakpointPresentation(
-            breakpoint: XLineBreakpoint<*>,
-            icon: Icon?,
-            errorMessage: String?,
-        ) = TODO("not used")
+            override fun setPauseActionSupported(isSupported: Boolean) {}
 
-        override fun setBreakpointVerified(breakpoint: XLineBreakpoint<*>) = TODO("not used")
-        override fun setBreakpointInvalid(breakpoint: XLineBreakpoint<*>, errorMessage: String?) = TODO("not used")
-        override fun breakpointReached(
-            breakpoint: XBreakpoint<*>,
-            evaluatedLogExpression: String?,
-            suspendContext: XSuspendContext,
-        ): Boolean = TODO("not used")
+            override fun getDebugProcess(): XDebugProcess = TODO("not used")
 
-        override fun positionReached(suspendContext: XSuspendContext) = TODO("not used")
-        override fun sessionResumed() = TODO("not used")
-        override fun stop() = TODO("not used")
-        override fun setBreakpointMuted(muted: Boolean) = TODO("not used")
-        override fun areBreakpointsMuted(): Boolean = TODO("not used")
-        override fun addSessionListener(listener: XDebugSessionListener, parentDisposable: Disposable) =
-            TODO("not used")
+            override fun isSuspended(): Boolean = TODO("not used")
 
-        override fun addSessionListener(listener: XDebugSessionListener) = TODO("not used")
-        override fun removeSessionListener(listener: XDebugSessionListener) = TODO("not used")
-        override fun reportMessage(message: String, type: MessageType, listener: HyperlinkListener?) =
-            TODO("not used")
+            override fun getCurrentStackFrame(): XStackFrame? = TODO("not used")
 
-        override fun getSessionName(): String = TODO("not used")
+            override fun getSuspendContext(): XSuspendContext? = TODO("not used")
 
-        @Deprecated("Do not use.")
-        override fun getRunContentDescriptor(): RunContentDescriptor = TODO("not used")
+            override fun getCurrentPosition(): XSourcePosition? = TODO("not used")
 
-        override fun rebuildViews() = TODO("not used")
-        override fun <V : XSmartStepIntoVariant> smartStepInto(handler: XSmartStepIntoHandler<V>, variant: V) =
-            TODO("not used")
+            override fun getTopFramePosition(): XSourcePosition? = TODO("not used")
 
-        @Deprecated("Deprecated in Java")
-        override fun updateExecutionPosition() = TODO("not used")
+            override fun stepOver(ignoreBreakpoints: Boolean) = TODO("not used")
 
-        override fun initBreakpoints() = TODO("not used")
-        override fun getConsoleView(): ConsoleView = TODO("not used")
-        override fun getUI(): RunnerLayoutUi? = TODO("not used")
-        override fun isMixedMode(): Boolean = TODO("not used")
-        override fun getExecutionEnvironment() = TODO("not used")
-        override fun isStopped(): Boolean = TODO("not used")
-        override fun isPaused(): Boolean = TODO("not used")
-    }
+            override fun stepInto() = TODO("not used")
+
+            override fun stepOut() = TODO("not used")
+
+            override fun forceStepInto() = TODO("not used")
+
+            override fun runToPosition(
+                position: XSourcePosition,
+                ignoreBreakpoints: Boolean,
+            ) = TODO("not used")
+
+            override fun pause() = TODO("not used")
+
+            override fun resume() = TODO("not used")
+
+            override fun showExecutionPoint() = TODO("not used")
+
+            override fun setCurrentStackFrame(
+                executionStack: XExecutionStack,
+                frame: XStackFrame,
+                isTopFrame: Boolean,
+            ) = TODO("not used")
+
+            override fun updateBreakpointPresentation(
+                breakpoint: XLineBreakpoint<*>,
+                icon: Icon?,
+                errorMessage: String?,
+            ) = TODO("not used")
+
+            override fun setBreakpointVerified(breakpoint: XLineBreakpoint<*>) = TODO("not used")
+
+            override fun setBreakpointInvalid(
+                breakpoint: XLineBreakpoint<*>,
+                errorMessage: String?,
+            ) = TODO("not used")
+
+            override fun breakpointReached(
+                breakpoint: XBreakpoint<*>,
+                evaluatedLogExpression: String?,
+                suspendContext: XSuspendContext,
+            ): Boolean = TODO("not used")
+
+            override fun positionReached(suspendContext: XSuspendContext) = TODO("not used")
+
+            override fun sessionResumed() = TODO("not used")
+
+            override fun stop() = TODO("not used")
+
+            override fun setBreakpointMuted(muted: Boolean) = TODO("not used")
+
+            override fun areBreakpointsMuted(): Boolean = TODO("not used")
+
+            override fun addSessionListener(
+                listener: XDebugSessionListener,
+                parentDisposable: Disposable,
+            ) = TODO("not used")
+
+            override fun addSessionListener(listener: XDebugSessionListener) = TODO("not used")
+
+            override fun removeSessionListener(listener: XDebugSessionListener) = TODO("not used")
+
+            override fun reportMessage(
+                message: String,
+                type: MessageType,
+                listener: HyperlinkListener?,
+            ) = TODO("not used")
+
+            override fun getSessionName(): String = TODO("not used")
+
+            @Deprecated("Do not use.")
+            override fun getRunContentDescriptor(): RunContentDescriptor = TODO("not used")
+
+            override fun rebuildViews() = TODO("not used")
+
+            override fun <V : XSmartStepIntoVariant> smartStepInto(
+                handler: XSmartStepIntoHandler<V>,
+                variant: V,
+            ) = TODO("not used")
+
+            @Deprecated("Deprecated in Java")
+            override fun updateExecutionPosition() = TODO("not used")
+
+            override fun initBreakpoints() = TODO("not used")
+
+            override fun getConsoleView(): ConsoleView = TODO("not used")
+
+            override fun getUI(): RunnerLayoutUi? = TODO("not used")
+
+            override fun isMixedMode(): Boolean = TODO("not used")
+
+            override fun getExecutionEnvironment() = TODO("not used")
+
+            override fun isStopped(): Boolean = TODO("not used")
+
+            override fun isPaused(): Boolean = TODO("not used")
+        }
 }

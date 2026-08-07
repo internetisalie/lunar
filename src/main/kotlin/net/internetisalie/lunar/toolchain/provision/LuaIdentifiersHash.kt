@@ -32,17 +32,18 @@ data class LuaIdentifiersHashInput(
  */
 object LuaIdentifiersHash {
     fun compute(input: LuaIdentifiersHashInput): String {
-        val lines = listOf(
-            "kind=${input.kindId}",
-            "version=${input.resolvedVersion}",
-            "strategy=${input.strategyId}",
-            "os=${input.os}",
-            "arch=${input.arch}",
-            "root=${input.canonicalRootDir}",
-            "artifact=${input.artifact}",
-            "readline=false",
-            "compat=${input.compatDefines}",
-        )
+        val lines =
+            listOf(
+                "kind=${input.kindId}",
+                "version=${input.resolvedVersion}",
+                "strategy=${input.strategyId}",
+                "os=${input.os}",
+                "arch=${input.arch}",
+                "root=${input.canonicalRootDir}",
+                "artifact=${input.artifact}",
+                "readline=false",
+                "compat=${input.compatDefines}",
+            )
         return Hashing.sha256().hashString(lines.joinToString("\n"), StandardCharsets.UTF_8).toString()
     }
 }

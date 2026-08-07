@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.toolchain.health
 
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.toolchain.model.LuaEnvironmentState
 import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.model.LuaToolHealth
@@ -13,7 +14,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import java.util.UUID
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 /**
  * TC-TOOLING-07-08: diagnostics snapshot format (design §4.1).
@@ -24,7 +24,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  */
 @RunWith(JUnit4::class)
 class LuaToolDiagnosticsTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
@@ -54,12 +53,13 @@ class LuaToolDiagnosticsTest : BasePlatformTestCase() {
         LuaToolchainProjectSettings.getInstance(project).setBinding("luacheck", luacheckTool.id)
 
         // Active environment containing the lua tool
-        val env = LuaEnvironmentState(
-            id = UUID.randomUUID().toString(),
-            name = "lua54",
-            rootDir = "/tmp/test-env",
-            toolIds = mutableListOf(luaTool.id)
-        )
+        val env =
+            LuaEnvironmentState(
+                id = UUID.randomUUID().toString(),
+                name = "lua54",
+                rootDir = "/tmp/test-env",
+                toolIds = mutableListOf(luaTool.id),
+            )
         LuaToolchainProjectSettings.getInstance(project).upsertEnvironmentAndActivate(env)
 
         val lines = captureLines()
@@ -140,9 +140,10 @@ class LuaToolDiagnosticsTest : BasePlatformTestCase() {
         val projectLines = bindingLines.filter { it.contains("scope=project") }
         assertTrue("global bindings present", globalLines.isNotEmpty())
         assertTrue("no project bindings set", projectLines.isEmpty())
-        val globalKinds = globalLines.map { line ->
-            line.substringAfter("kind=").substringBefore(" ")
-        }
+        val globalKinds =
+            globalLines.map { line ->
+                line.substringAfter("kind=").substringBefore(" ")
+            }
         assertEquals("global bindings sorted ascending", globalKinds.sorted(), globalKinds)
     }
 
@@ -169,42 +170,72 @@ class LuaToolDiagnosticsTest : BasePlatformTestCase() {
         return lines
     }
 
-    private fun registerTool(kindId: String, usable: Boolean): LuaRegisteredTool {
+    private fun registerTool(
+        kindId: String,
+        usable: Boolean,
+    ): LuaRegisteredTool {
         val id = UUID.randomUUID().toString()
-        val health = if (usable) {
-            LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = "OK 1.0.0")
-        } else {
-            LuaToolHealth(fileExists = false, executable = false, probeOk = null, probedAtMtime = null, reason = "Binary missing")
-        }
-        val tool = LuaRegisteredTool(
-            id = id,
-            kindId = kindId,
-            path = "/fake/path/$kindId",
-            version = if (usable) "1.0.0" else null,
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = health
-        )
+        val health =
+            if (usable) {
+                LuaToolHealth(
+                    fileExists = true,
+                    executable = true,
+                    probeOk = true,
+                    probedAtMtime = 1L,
+                    reason = "OK 1.0.0",
+                )
+            } else {
+                LuaToolHealth(
+                    fileExists = false,
+                    executable = false,
+                    probeOk = null,
+                    probedAtMtime = null,
+                    reason = "Binary missing",
+                )
+            }
+        val tool =
+            LuaRegisteredTool(
+                id = id,
+                kindId = kindId,
+                path = "/fake/path/$kindId",
+                version = if (usable) "1.0.0" else null,
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health = health,
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         return tool
     }
 
-    private fun assertLinePresent(lines: List<String>, prefix: String) {
-        assertTrue("Expected a line starting with '$prefix' in:\n${lines.joinToString("\n")}",
-            lines.any { it.startsWith(prefix) })
-    }
-
-    private fun assertLineContains(lines: List<String>, prefix: String, fragment: String) {
-        val matching = lines.filter { it.startsWith(prefix) }
+    private fun assertLinePresent(
+        lines: List<String>,
+        prefix: String,
+    ) {
         assertTrue(
-            "Expected line starting with '$prefix' to contain '$fragment'. Lines:\n${matching.joinToString("\n")}",
-            matching.any { it.contains(fragment) }
+            "Expected a line starting with '$prefix' in:\n${lines.joinToString("\n")}",
+            lines.any { it.startsWith(prefix) },
         )
     }
 
-    private fun assertToolLinePresent(lines: List<String>, tool: LuaRegisteredTool, usable: Boolean) {
+    private fun assertLineContains(
+        lines: List<String>,
+        prefix: String,
+        fragment: String,
+    ) {
+        val matching = lines.filter { it.startsWith(prefix) }
+        assertTrue(
+            "Expected line starting with '$prefix' to contain '$fragment'. Lines:\n${matching.joinToString("\n")}",
+            matching.any { it.contains(fragment) },
+        )
+    }
+
+    private fun assertToolLinePresent(
+        lines: List<String>,
+        tool: LuaRegisteredTool,
+        usable: Boolean,
+    ) {
         val toolLines = lines.filter { it.contains("[TOOLCHAIN-DIAG] tool") && it.contains("id=${tool.id.take(8)}") }
         assertTrue("Expected tool line for id=${tool.id.take(8)}", toolLines.isNotEmpty())
         val line = toolLines.first()
@@ -218,15 +249,38 @@ class LuaToolDiagnosticsTest : BasePlatformTestCase() {
         }
     }
 
-    private fun assertBindingLinePresent(lines: List<String>, scope: String, kindId: String) {
-        val found = lines.any { it.contains("[TOOLCHAIN-DIAG] binding") && it.contains("scope=$scope") && it.contains("kind=$kindId") }
+    private fun assertBindingLinePresent(
+        lines: List<String>,
+        scope: String,
+        kindId: String,
+    ) {
+        val found =
+            lines.any {
+                it.contains("[TOOLCHAIN-DIAG] binding") &&
+                    it.contains("scope=$scope") &&
+                    it.contains("kind=$kindId")
+            }
         assertTrue("Expected binding line: scope=$scope kind=$kindId in:\n${lines.joinToString("\n")}", found)
     }
 
-    private fun assertEnvLinePresent(lines: List<String>, env: LuaEnvironmentState) {
-        val found = lines.any { it.contains("[TOOLCHAIN-DIAG] env") && it.contains("id=${env.id.take(8)}") && it.contains("name='${env.name}'") }
+    private fun assertEnvLinePresent(
+        lines: List<String>,
+        env: LuaEnvironmentState,
+    ) {
+        val found =
+            lines.any {
+                it.contains("[TOOLCHAIN-DIAG] env") &&
+                    it.contains("id=${env.id.take(8)}") &&
+                    it.contains("name='${env.name}'")
+            }
         assertTrue("Expected env line for id=${env.id.take(8)} name='${env.name}'", found)
-        val activeLine = lines.firstOrNull { it.contains("[TOOLCHAIN-DIAG] env") && it.contains("id=${env.id.take(8)}") }
+        val activeLine =
+            lines.firstOrNull {
+                it.contains(
+                    "[TOOLCHAIN-DIAG] env",
+                ) &&
+                    it.contains("id=${env.id.take(8)}")
+            }
         assertNotNull("env line exists", activeLine)
         assertTrue("env is active", activeLine!!.contains("active=true"))
     }

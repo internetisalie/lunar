@@ -11,8 +11,10 @@ import kotlin.test.assertTrue
  * (TC-05), and `self` typing in methods (TC-06).
  */
 class LuaTypeInferredCompletionTest : IndexedDocumentTest() {
-
-    private fun doContains(text: String, vararg expected: String) {
+    private fun doContains(
+        text: String,
+        vararg expected: String,
+    ) {
         configureByText(text)
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings
@@ -22,7 +24,10 @@ class LuaTypeInferredCompletionTest : IndexedDocumentTest() {
         }
     }
 
-    private fun doNotContains(text: String, vararg unexpected: String) {
+    private fun doNotContains(
+        text: String,
+        vararg unexpected: String,
+    ) {
         configureByText(text)
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings ?: return

@@ -1,10 +1,10 @@
 package net.internetisalie.lunar.redis.run
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.coroutines.runBlocking
 import net.internetisalie.lunar.redis.resp.RespClient
 import net.internetisalie.lunar.redis.resp.RespException
 import net.internetisalie.lunar.redis.resp.RespValue
-import kotlinx.coroutines.runBlocking
 import java.util.UUID
 
 /**
@@ -17,7 +17,6 @@ import java.util.UUID
  * [LuaRedisScriptShaCache] singleton never carries state across tests.
  */
 class TestLuaRedisScriptExecutor : BasePlatformTestCase() {
-
     private val servers = mutableListOf<ScriptedRespServer>()
 
     override fun tearDown() {
@@ -38,31 +37,35 @@ class TestLuaRedisScriptExecutor : BasePlatformTestCase() {
 
     /** The SHA1 is the lowercase hex digest the server would compute from the same body. */
     fun testSha1HexMatchesServerAlgorithm() {
-        val jdk = java.security.MessageDigest.getInstance("SHA-1")
-            .digest("return 1".toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+        val jdk =
+            java.security.MessageDigest
+                .getInstance("SHA-1")
+                .digest("return 1".toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
         assertEquals(jdk, LuaRedisScriptExecutor.sha1Hex("return 1"))
     }
 
     /** TC-SHA-1: EVALSHA with an empty cache loads, and a `NOSCRIPT` triggers one re-LOAD + retry that succeeds. */
     fun testEvalShaNoScriptRetrySucceeds() {
         val connectionId = UUID.randomUUID().toString()
-        val server = scriptedServer(
-            bulkReply("shaOfBody"),
-            errorReply("NOSCRIPT No matching script"),
-            bulkReply("shaOfBody"),
-            "+OK\r\n".toByteArray(Charsets.UTF_8),
-        )
+        val server =
+            scriptedServer(
+                bulkReply("shaOfBody"),
+                errorReply("NOSCRIPT No matching script"),
+                bulkReply("shaOfBody"),
+                "+OK\r\n".toByteArray(Charsets.UTF_8),
+            )
         val context = context(connectionId, LuaRedisExecMode.EVALSHA, readOnly = false)
 
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisScriptExecutor().execute(client, context, "return 1")
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisScriptExecutor().execute(client, context, "return 1")
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertEquals(RespValue.Simple("OK"), reply)
         val commands = server.requests
@@ -74,22 +77,24 @@ class TestLuaRedisScriptExecutor : BasePlatformTestCase() {
     /** A second consecutive `NOSCRIPT` surfaces the error rather than looping (design §3.8). */
     fun testEvalShaSecondNoScriptSurfaces() {
         val connectionId = UUID.randomUUID().toString()
-        val server = scriptedServer(
-            bulkReply("shaOfBody"),
-            errorReply("NOSCRIPT first"),
-            bulkReply("shaOfBody"),
-            errorReply("NOSCRIPT second"),
-        )
+        val server =
+            scriptedServer(
+                bulkReply("shaOfBody"),
+                errorReply("NOSCRIPT first"),
+                bulkReply("shaOfBody"),
+                errorReply("NOSCRIPT second"),
+            )
         val context = context(connectionId, LuaRedisExecMode.EVALSHA, readOnly = false)
 
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisScriptExecutor().execute(client, context, "return 1")
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisScriptExecutor().execute(client, context, "return 1")
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertTrue("second NOSCRIPT surfaces as an Error reply, got $reply", reply is RespValue.Error)
         assertEquals("NOSCRIPT", (reply as RespValue.Error).klass)
@@ -98,19 +103,21 @@ class TestLuaRedisScriptExecutor : BasePlatformTestCase() {
     /** TC-RO-1: read-only against a Redis 6.2 server fails fast with ServerVersion; no `_RO` command sent. */
     fun testReadOnlyVersionGateFailsFastBelow7() {
         val connectionId = UUID.randomUUID().toString()
-        val server = scriptedServer(
-            bulkReply("# Server\r\nredis_version:6.2.0\r\nredis_mode:standalone\r\n"),
-        )
+        val server =
+            scriptedServer(
+                bulkReply("# Server\r\nredis_version:6.2.0\r\nredis_mode:standalone\r\n"),
+            )
         val context = context(connectionId, LuaRedisExecMode.EVAL, readOnly = true)
 
-        val failure = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                runCatching { LuaRedisScriptExecutor().execute(client, context, "return 1") }.exceptionOrNull()
-            } finally {
-                client.dispose()
+        val failure =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    runCatching { LuaRedisScriptExecutor().execute(client, context, "return 1") }.exceptionOrNull()
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertTrue("expected RespException.ServerVersion, got $failure", failure is RespException.ServerVersion)
         assertTrue(
@@ -124,26 +131,32 @@ class TestLuaRedisScriptExecutor : BasePlatformTestCase() {
     /** Read-only against a Redis 8 server passes the gate and issues the `_RO` variant. */
     fun testReadOnlyVersionGatePassesAtOrAbove7() {
         val connectionId = UUID.randomUUID().toString()
-        val server = scriptedServer(
-            bulkReply("# Server\r\nredis_version:8.0.0\r\n"),
-            ":42\r\n".toByteArray(Charsets.UTF_8),
-        )
+        val server =
+            scriptedServer(
+                bulkReply("# Server\r\nredis_version:8.0.0\r\n"),
+                ":42\r\n".toByteArray(Charsets.UTF_8),
+            )
         val context = context(connectionId, LuaRedisExecMode.EVAL, readOnly = true)
 
-        val reply = runBlocking {
-            val client = RespClient.open(server.endpoint())
-            try {
-                LuaRedisScriptExecutor().execute(client, context, "return 42")
-            } finally {
-                client.dispose()
+        val reply =
+            runBlocking {
+                val client = RespClient.open(server.endpoint())
+                try {
+                    LuaRedisScriptExecutor().execute(client, context, "return 42")
+                } finally {
+                    client.dispose()
+                }
             }
-        }
 
         assertEquals(RespValue.Integer(42), reply)
         assertTrue("EVAL_RO sent", server.requests.any { it.contains("EVAL_RO") })
     }
 
-    private fun context(connectionId: String, mode: LuaRedisExecMode, readOnly: Boolean): LuaRedisExecContext =
+    private fun context(
+        connectionId: String,
+        mode: LuaRedisExecMode,
+        readOnly: Boolean,
+    ): LuaRedisExecContext =
         LuaRedisExecContext(
             connectionId = connectionId,
             execMode = mode,

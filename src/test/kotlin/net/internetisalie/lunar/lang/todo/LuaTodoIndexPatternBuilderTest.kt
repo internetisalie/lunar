@@ -12,7 +12,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * Covers TC-1..TC-6 from the implementation plan.
  */
 class LuaTodoIndexPatternBuilderTest : BasePlatformTestCase() {
-
     private fun todoCount(text: String): Int {
         val file = myFixture.configureByText("a.lua", text)
         return PsiTodoSearchHelper.getInstance(project).findTodoItems(file).size

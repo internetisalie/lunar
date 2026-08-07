@@ -8,9 +8,7 @@ import com.intellij.codeInsight.template.TemplateContextType
  * not inside a string, comment, or number. Parented to [LuaTemplateContextType] (`LUA`).
  */
 @Suppress("DEPRECATION")
-class LuaCodeContextType :
-    TemplateContextType("LUA_CODE", "Lua (code)", LuaTemplateContextType::class.java) {
-    override fun isInContext(templateActionContext: TemplateActionContext): Boolean {
-        return isInLuaCodeContext(templateActionContext)
-    }
+class LuaCodeContextType : TemplateContextType("LUA_CODE", "Lua (code)", LuaTemplateContextType::class.java) {
+    override fun isInContext(templateActionContext: TemplateActionContext): Boolean =
+        isInLuaCodeContext(templateActionContext)
 }

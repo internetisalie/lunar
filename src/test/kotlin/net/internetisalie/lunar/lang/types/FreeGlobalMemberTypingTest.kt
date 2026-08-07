@@ -26,7 +26,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class FreeGlobalMemberTypingTest : IndexedBasePlatformTestCase() {
-
     // ---------------------------------------------------------------------------------------------
     // BUG-359: the false positive came from the seed-less member access falling into the
     // `graph.nil` operand fallback in visitBinOpExpr — a Nil value meeting the concat's String use.
@@ -76,8 +75,10 @@ class FreeGlobalMemberTypingTest : IndexedBasePlatformTestCase() {
 
         runReadAction {
             val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-            val replyRef = PsiTreeUtil.collectElementsOfType(myFixture.file, LuaNameRef::class.java)
-                .first { it.text == "reply" }
+            val replyRef =
+                PsiTreeUtil
+                    .collectElementsOfType(myFixture.file, LuaNameRef::class.java)
+                    .first { it.text == "reply" }
             val replyType = snapshot.getValueType(replyRef)
 
             assertTrue(
@@ -150,8 +151,10 @@ class FreeGlobalMemberTypingTest : IndexedBasePlatformTestCase() {
 
         runReadAction {
             val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-            val tRef = PsiTreeUtil.collectElementsOfType(myFixture.file, LuaNameRef::class.java)
-                .first { it.text == "t" }
+            val tRef =
+                PsiTreeUtil
+                    .collectElementsOfType(myFixture.file, LuaNameRef::class.java)
+                    .first { it.text == "t" }
             val tType = snapshot.getValueType(tRef)
             assertTrue(
                 "a bare free global must carry its declared members (got: ${tType.displayName()})",
@@ -248,8 +251,10 @@ class FreeGlobalMemberTypingTest : IndexedBasePlatformTestCase() {
 
         runReadAction {
             val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-            val n = PsiTreeUtil.collectElementsOfType(myFixture.file, LuaNameRef::class.java)
-                .first { it.text == "n" }
+            val n =
+                PsiTreeUtil
+                    .collectElementsOfType(myFixture.file, LuaNameRef::class.java)
+                    .first { it.text == "n" }
             assertEquals(
                 "a declared nested member must type through the chain",
                 LuaGraphType.String,
@@ -275,8 +280,10 @@ class FreeGlobalMemberTypingTest : IndexedBasePlatformTestCase() {
 
         runReadAction {
             val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-            val pRef = PsiTreeUtil.collectElementsOfType(myFixture.file, LuaNameRef::class.java)
-                .first { it.text == "p" }
+            val pRef =
+                PsiTreeUtil
+                    .collectElementsOfType(myFixture.file, LuaNameRef::class.java)
+                    .first { it.text == "p" }
             assertEquals(
                 "package.path must read string off the declaring file",
                 LuaGraphType.String,

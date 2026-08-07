@@ -73,12 +73,13 @@ class LuaToolchainSerializationSpikeTest {
     @Test
     fun projectStateRoundTripsDeepEqual() {
         val projectState = LuaToolchainProjectState()
-        val environment = ToolEnvironmentState().apply {
-            id = "env-1"
-            name = "dev"
-            rootDir = "/proj/.lunar/env-1"
-            toolIds = mutableListOf("t1", "t2")
-        }
+        val environment =
+            ToolEnvironmentState().apply {
+                id = "env-1"
+                name = "dev"
+                rootDir = "/proj/.lunar/env-1"
+                toolIds = mutableListOf("t1", "t2")
+            }
         projectState.environments.add(environment)
         projectState.bindings["STYLUA"] = "t3"
         projectState.activeEnvironmentId = "env-1"
@@ -155,7 +156,12 @@ class LuaToolchainSerializationSpikeTest {
 
     // --- helpers ---
 
-    private fun tool(id: String, kindId: String, path: String, version: String?): RegisteredToolState =
+    private fun tool(
+        id: String,
+        kindId: String,
+        path: String,
+        version: String?,
+    ): RegisteredToolState =
         RegisteredToolState().apply {
             this.id = id
             this.kindId = kindId
@@ -163,7 +169,10 @@ class LuaToolchainSerializationSpikeTest {
             this.version = version
         }
 
-    private fun assertToolEquals(expected: RegisteredToolState, actual: RegisteredToolState) {
+    private fun assertToolEquals(
+        expected: RegisteredToolState,
+        actual: RegisteredToolState,
+    ) {
         assertEquals(expected.id, actual.id)
         assertEquals(expected.kindId, actual.kindId)
         assertEquals(expected.path, actual.path)
@@ -174,19 +183,20 @@ class LuaToolchainSerializationSpikeTest {
 
     companion object {
         /** Every deleted legacy tag name; none may survive re-serialization (design §2.6 step 4). */
-        private val LEGACY_TAG_NAMES = listOf(
-            "interpreters",
-            "toolInventory",
-            "globalToolBindings",
-            "hererocksEnv",
-            "hererocksEnvs",
-            "interpreterMode",
-            "interpreterModeMigrated",
-            "explicitInterpreter",
-            "explicitTarget",
-            "activeEnvId",
-            "projectToolBindings",
-        )
+        private val LEGACY_TAG_NAMES =
+            listOf(
+                "interpreters",
+                "toolInventory",
+                "globalToolBindings",
+                "hererocksEnv",
+                "hererocksEnvs",
+                "interpreterMode",
+                "interpreterModeMigrated",
+                "explicitInterpreter",
+                "explicitTarget",
+                "activeEnvId",
+                "projectToolBindings",
+            )
 
         /**
          * Models today's real serialized app-level shape (LuaApplicationSettings.State:39-53):

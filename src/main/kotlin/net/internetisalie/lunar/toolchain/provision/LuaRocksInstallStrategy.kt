@@ -18,15 +18,20 @@ import kotlin.io.path.exists
  * `luarocks` subprocess. The production path still routes through the TOOLING-03 service.
  */
 interface LuaRockInstaller {
-    fun run(cmd: GeneralCommandLine, indicator: ProgressIndicator): LuaExecResult
+    fun run(
+        cmd: GeneralCommandLine,
+        indicator: ProgressIndicator,
+    ): LuaExecResult
 }
 
 /** Production installer: the INSTALL-timeout capture mandated by design §3.8 (contract §10.6). */
 class ExecServiceRockInstaller(
     private val execService: LuaToolExecutionService = LuaToolExecutionService.getInstance(),
 ) : LuaRockInstaller {
-    override fun run(cmd: GeneralCommandLine, indicator: ProgressIndicator): LuaExecResult =
-        execService.capture(cmd, LuaExecTimeout.INSTALL, indicator = indicator)
+    override fun run(
+        cmd: GeneralCommandLine,
+        indicator: ProgressIndicator,
+    ): LuaExecResult = execService.capture(cmd, LuaExecTimeout.INSTALL, indicator = indicator)
 }
 
 /**
@@ -43,20 +48,43 @@ class LuaRocksInstallStrategy(
 ) : LuaProvisioningStrategy {
     override val id: String = "luarocks-install"
 
-    override fun supports(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): Boolean =
-        rockOf(item, platform, feed) != null
+    override fun supports(
+        item: LuaProvisionItem,
+        platform: LuaHostPlatform,
+        feed: LuaToolchainFeed,
+    ): Boolean = rockOf(item, platform, feed) != null
 
-    override fun identityHash(context: LuaProvisionContext, item: LuaProvisionItem): String {
-        val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
-        val rock = resolved.rock
-            ?: throw LuaProvisionException("No rock defined for ${item.kindId} ${resolved.version}")
+    override fun identityHash(
+        context: LuaProvisionContext,
+        item: LuaProvisionItem,
+    ): String {
+        val resolved =
+            LuaToolchainFeedLoader.resolveVersion(
+                context.feed,
+                item.kindId,
+                item.versionSpec,
+                context.platform,
+            )
+        val rock =
+            resolved.rock
+                ?: throw LuaProvisionException("No rock defined for ${item.kindId} ${resolved.version}")
         return LuaIdentifiersHash.compute(hashInput(RockIdentity(item.kindId, resolved.version, rock), context))
     }
 
-    override fun provision(context: LuaProvisionContext, item: LuaProvisionItem): LuaProvisionedComponent {
-        val resolved = LuaToolchainFeedLoader.resolveVersion(context.feed, item.kindId, item.versionSpec, context.platform)
-        val rock = resolved.rock
-            ?: throw LuaProvisionException("No rock defined for ${item.kindId} ${resolved.version}")
+    override fun provision(
+        context: LuaProvisionContext,
+        item: LuaProvisionItem,
+    ): LuaProvisionedComponent {
+        val resolved =
+            LuaToolchainFeedLoader.resolveVersion(
+                context.feed,
+                item.kindId,
+                item.versionSpec,
+                context.platform,
+            )
+        val rock =
+            resolved.rock
+                ?: throw LuaProvisionException("No rock defined for ${item.kindId} ${resolved.version}")
         val argv = buildArgv(context.rootDir, rock, context.platform)
         val cmd = commandLine(argv, context.rootDir, context.platform)
         val result = installer.run(cmd, context.indicator)
@@ -68,7 +96,11 @@ class LuaRocksInstallStrategy(
         return component(RockComponent(RockIdentity(item.kindId, resolved.version, rock), wrapper), context)
     }
 
-    private fun commandLine(argv: List<String>, rootDir: Path, platform: LuaHostPlatform): GeneralCommandLine {
+    private fun commandLine(
+        argv: List<String>,
+        rootDir: Path,
+        platform: LuaHostPlatform,
+    ): GeneralCommandLine {
         val cmd = GeneralCommandLine(argv).withWorkDirectory(File(rootDir.toString()))
         if (platform.os == LuaOs.WINDOWS) {
             cmd.withEnvironment(mapOf("LUAROCKS_CONFIG" to "$rootDir/luarocks-config.lua"))
@@ -76,11 +108,19 @@ class LuaRocksInstallStrategy(
         return cmd
     }
 
-    private fun rockOf(item: LuaProvisionItem, platform: LuaHostPlatform, feed: LuaToolchainFeed): LuaFeedRock? =
+    private fun rockOf(
+        item: LuaProvisionItem,
+        platform: LuaHostPlatform,
+        feed: LuaToolchainFeed,
+    ): LuaFeedRock? =
         runCatching { LuaToolchainFeedLoader.resolveVersion(feed, item.kindId, item.versionSpec, platform) }
-            .getOrNull()?.rock
+            .getOrNull()
+            ?.rock
 
-    private fun component(rock: RockComponent, context: LuaProvisionContext): LuaProvisionedComponent {
+    private fun component(
+        rock: RockComponent,
+        context: LuaProvisionContext,
+    ): LuaProvisionedComponent {
         val input = hashInput(rock.identity, context)
         return LuaProvisionedComponent(
             rock.identity.kindId,
@@ -93,7 +133,10 @@ class LuaRocksInstallStrategy(
     }
 
     /** Builds the shared hash input from the rock identity (design §3.3). */
-    private fun hashInput(identity: RockIdentity, context: LuaProvisionContext): LuaIdentifiersHashInput {
+    private fun hashInput(
+        identity: RockIdentity,
+        context: LuaProvisionContext,
+    ): LuaIdentifiersHashInput {
         val pin = identity.rock.pinnedVersion ?: "latest"
         return LuaIdentifiersHashInput(
             kindId = identity.kindId,
@@ -108,48 +151,78 @@ class LuaRocksInstallStrategy(
     }
 
     /** The rock's identity used for both the hash and the record. */
-    private data class RockIdentity(val kindId: String, val resolvedVersion: String, val rock: LuaFeedRock)
+    private data class RockIdentity(
+        val kindId: String,
+        val resolvedVersion: String,
+        val rock: LuaFeedRock,
+    )
 
     /** Bundles the resolved rock identity + landed wrapper so [component] stays a two-argument function. */
-    private data class RockComponent(val identity: RockIdentity, val wrapper: Path)
+    private data class RockComponent(
+        val identity: RockIdentity,
+        val wrapper: Path,
+    )
 
     companion object {
         private const val OUTPUT_TAIL = 20
 
-        private val C_TOOLCHAIN = Regex(
-            "(?i)(gcc|cc1|cl)\\b.*(not found|no such file)|error: failed (compiling|building)|" +
-                "lua\\.h: no such file|could not find a c compiler",
-        )
+        private val C_TOOLCHAIN =
+            Regex(
+                "(?i)(gcc|cc1|cl)\\b.*(not found|no such file)|error: failed (compiling|building)|" +
+                    "lua\\.h: no such file|could not find a c compiler",
+            )
 
         /** Argv for `luarocks install` (design §3.8 step 2); pin appended as one element when set. */
-        fun buildArgv(rootDir: Path, rock: LuaFeedRock, platform: LuaHostPlatform): List<String> {
+        fun buildArgv(
+            rootDir: Path,
+            rock: LuaFeedRock,
+            platform: LuaHostPlatform,
+        ): List<String> {
             val luarocks = luarocksPath(rootDir, platform).toString()
-            val prefix = if (platform.os == LuaOs.WINDOWS) {
-                listOf(luarocks, "--lua-dir", rootDir.toString(), "--tree", rootDir.toString())
-            } else {
-                listOf(luarocks)
-            }
+            val prefix =
+                if (platform.os == LuaOs.WINDOWS) {
+                    listOf(luarocks, "--lua-dir", rootDir.toString(), "--tree", rootDir.toString())
+                } else {
+                    listOf(luarocks)
+                }
             val pin = rock.pinnedVersion?.let { listOf(it) } ?: emptyList()
             return prefix + listOf("install", rock.rockName) + pin
         }
 
-        private fun luarocksPath(rootDir: Path, platform: LuaHostPlatform): Path =
+        private fun luarocksPath(
+            rootDir: Path,
+            platform: LuaHostPlatform,
+        ): Path =
             if (platform.os == LuaOs.WINDOWS) rootDir.resolve("bin/luarocks.exe") else rootDir.resolve("bin/luarocks")
 
-        private fun wrapperPath(rootDir: Path, rock: LuaFeedRock, platform: LuaHostPlatform): Path {
+        private fun wrapperPath(
+            rootDir: Path,
+            rock: LuaFeedRock,
+            platform: LuaHostPlatform,
+        ): Path {
             val name = if (platform.os == LuaOs.WINDOWS) "${rock.binName}.bat" else rock.binName
             return rootDir.resolve("bin/$name")
         }
 
         /** Classifies a failed install into C-toolchain guidance vs. a generic message (design §4.4). */
-        fun classify(result: LuaExecResult, rock: LuaFeedRock): LuaProvisionException {
+        fun classify(
+            result: LuaExecResult,
+            rock: LuaFeedRock,
+        ): LuaProvisionException {
             val output = (result.stdout + "\n" + result.stderr)
-            val tail = output.trim().lines().takeLast(OUTPUT_TAIL).joinToString("\n").ifBlank { "(no output)" }
-            val message = if (C_TOOLCHAIN.containsMatchIn(output)) {
-                cToolchainMessage(rock.rockName)
-            } else {
-                "luarocks install ${rock.rockName} failed (exit ${result.exitCode})"
-            }
+            val tail =
+                output
+                    .trim()
+                    .lines()
+                    .takeLast(OUTPUT_TAIL)
+                    .joinToString("\n")
+                    .ifBlank { "(no output)" }
+            val message =
+                if (C_TOOLCHAIN.containsMatchIn(output)) {
+                    cToolchainMessage(rock.rockName)
+                } else {
+                    "luarocks install ${rock.rockName} failed (exit ${result.exitCode})"
+                }
             return LuaProvisionException("$message\n$tail")
         }
 

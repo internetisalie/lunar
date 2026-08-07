@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.run
 
-import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -13,12 +12,16 @@ class LuaRemoteStack(
     stack: LuaTable?,
 ) {
     private val virtualFiles: MutableMap<String, VirtualFile?> = mutableMapOf()
-    val entries: List<LuaRemoteStackEntry> = stack?.indexed?.mapNotNull {
-        it.checkTable()?.let { table -> LuaRemoteStackEntry(table, virtualFiles) }
-    } ?: emptyList()
+    val entries: List<LuaRemoteStackEntry> =
+        stack?.indexed?.mapNotNull {
+            it.checkTable()?.let { table -> LuaRemoteStackEntry(table, virtualFiles) }
+        } ?: emptyList()
 
     companion object {
-        fun create(project: Project, text: String): LuaRemoteStack {
+        fun create(
+            project: Project,
+            text: String,
+        ): LuaRemoteStack {
             val table = LuaDebugValueParser.parseChunk(project, text)
             return LuaRemoteStack(table)
         }
@@ -54,7 +57,6 @@ class LuaRemoteStackEntry(
     // { d = { 1, "1" }, e = { 2, "2" }, _ENV = { {...}, "table: 0x5e930bee3c50" } }
     val upvalues: LuaRemoteScope
         get() = LuaRemoteScope(stackEntryTable.indexed.get(2).checkTable())
-
 }
 
 // { "c", "stack.lua", 3, 5, "Lua", "local", "/home/mini/Documents/src/lua/test/stack.lua" }
@@ -81,7 +83,6 @@ class LuaRemoteStackFrame(
         get() = stackFrameTable?.getByIndex(6)?.stringValue ?: ""
 
     val virtualFile: VirtualFile? = virtualFiles.getOrDefault(path, null)
-
 }
 
 class LuaRemoteScope(
@@ -94,7 +95,6 @@ class LuaRemoteScope(
         val field = scopeTable?.getByName(name) ?: return null
         return LuaRemoteVariable(field)
     }
-
 }
 
 class LuaRemoteVariable(
@@ -106,8 +106,11 @@ class LuaRemoteVariable(
         get() = variableField.second.checkTable()?.getByIndex(0) ?: LuaValue.NONE
 
     val displayValue: String?
-        get() = variableField.second.checkTable()?.getByIndex(1)?.stringValue
-
+        get() =
+            variableField.second
+                .checkTable()
+                ?.getByIndex(1)
+                ?.stringValue
 }
 
 object LuaRemoteResultFactory {
@@ -117,8 +120,9 @@ object LuaRemoteResultFactory {
         if (file !is LuaFile) return LuaValue.NONE
 
         val variables = mutableMapOf<String, LuaValue>()
-        val wrapper = PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
-            ?: return LuaValue.NONE
+        val wrapper =
+            PsiTreeUtil.findChildOfType(file, LuaDoStatement::class.java)
+                ?: return LuaValue.NONE
         val wrapperBlock = wrapper.block ?: return LuaValue.NONE
 
         for (statement in wrapperBlock.statementList) {
@@ -135,7 +139,11 @@ object LuaRemoteResultFactory {
                 }
 
                 is LuaFinalStatement -> {
-                    val varName = statement.exprList?.exprList?.getOrNull(0)?.text ?: continue
+                    val varName =
+                        statement.exprList
+                            ?.exprList
+                            ?.getOrNull(0)
+                            ?.text ?: continue
                     return variables[varName] ?: LuaValue.NONE
                 }
             }
@@ -145,4 +153,3 @@ object LuaRemoteResultFactory {
         return LuaValue.NONE
     }
 }
-

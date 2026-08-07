@@ -11,8 +11,9 @@ package net.internetisalie.lunar.analysis.redis
  * @see RedisCommandInfo
  * @see RedisCommandSpecService
  */
-data class RedisCommandSpec(val commands: Map<String, RedisCommandInfo>) {
-
+data class RedisCommandSpec(
+    val commands: Map<String, RedisCommandInfo>,
+) {
     /**
      * Looks up a command by name (case-insensitive; keys are stored upper-cased).
      *

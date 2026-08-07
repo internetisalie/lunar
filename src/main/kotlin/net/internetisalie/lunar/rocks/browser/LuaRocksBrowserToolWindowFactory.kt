@@ -14,9 +14,13 @@ import com.intellij.ui.content.ContentFactory
  * the ROCKS-03 dependency tool window (BUG-366). The panel is the content disposer, so its
  * Alarm/JBHtmlPane are torn down with the content.
  */
-class LuaRocksBrowserToolWindowFactory : ToolWindowFactory, DumbAware {
-
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+class LuaRocksBrowserToolWindowFactory :
+    ToolWindowFactory,
+    DumbAware {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         toolWindow.stripeTitle = "LuaRocks Packages"
         toolWindow.title = "LuaRocks Packages"
         val panel = LuaRocksBrowserPanel(project)

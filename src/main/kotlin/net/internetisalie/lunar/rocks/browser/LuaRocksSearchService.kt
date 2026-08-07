@@ -43,13 +43,18 @@ object LuaRocksSearchService {
      * @param project resolves the effective executable and registry server (ROCKS-06).
      * @param treeRoot the canonical tree whose installed rocks flag the ✓ cross-ref (design §2.3).
      */
-    fun search(query: String, project: Project? = null, treeRoot: Path? = null): List<LuaRockPackage> {
+    fun search(
+        query: String,
+        project: Project? = null,
+        treeRoot: Path? = null,
+    ): List<LuaRockPackage> {
         if (query.isBlank()) return emptyList()
         val server = LuaRocksEnvironment.resolveServer(project)
         LuaRocksSearchCache.get(query, server, System.currentTimeMillis())?.let { return it }
 
-        val command = LuaRocksEnvironment.command(project, listOf("search", "--porcelain", query))
-            ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
+        val command =
+            LuaRocksEnvironment.command(project, listOf("search", "--porcelain", query))
+                ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
         val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
             throw BrowserCliError(output.stderr.trim().ifEmpty { "luarocks search exited ${output.exitCode}" })
@@ -62,7 +67,11 @@ object LuaRocksSearchService {
     }
 
     /** [search] wrapper preserving the graceful silent-empty path for non-browser callers (design §6). */
-    fun searchOrEmpty(query: String, project: Project? = null, treeRoot: Path? = null): List<LuaRockPackage> =
+    fun searchOrEmpty(
+        query: String,
+        project: Project? = null,
+        treeRoot: Path? = null,
+    ): List<LuaRockPackage> =
         try {
             search(query, project, treeRoot)
         } catch (failure: BrowserCliError) {
@@ -77,13 +86,22 @@ object LuaRocksSearchService {
      *
      * @param project resolves the effective executable (ROCKS-06).
      */
-    fun installed(project: Project? = null, treeRoot: Path? = null): Set<String> {
-        val subArgs = buildList {
-            add("list"); add("--porcelain")
-            if (treeRoot != null) { add("--tree"); add(treeRoot.toString()) }
-        }
-        val command = LuaRocksEnvironment.command(project, subArgs)
-            ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
+    fun installed(
+        project: Project? = null,
+        treeRoot: Path? = null,
+    ): Set<String> {
+        val subArgs =
+            buildList {
+                add("list")
+                add("--porcelain")
+                if (treeRoot != null) {
+                    add("--tree")
+                    add(treeRoot.toString())
+                }
+            }
+        val command =
+            LuaRocksEnvironment.command(project, subArgs)
+                ?: throw BrowserCliError(BrowserCliError.LUAROCKS_NOT_CONFIGURED)
         val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
             throw BrowserCliError(output.stderr.trim().ifEmpty { "luarocks list exited ${output.exitCode}" })
@@ -92,7 +110,10 @@ object LuaRocksSearchService {
     }
 
     /** [installed] wrapper preserving the graceful silent-empty path (design §6). */
-    fun installedOrEmpty(project: Project? = null, treeRoot: Path? = null): Set<String> =
+    fun installedOrEmpty(
+        project: Project? = null,
+        treeRoot: Path? = null,
+    ): Set<String> =
         try {
             installed(project, treeRoot)
         } catch (failure: BrowserCliError) {
@@ -109,7 +130,10 @@ object LuaRocksSearchService {
      * Lines with < 4 fields are silently skipped.
      * Rows sharing the same `(name, version)` are merged into one [LuaRockPackage] (first repo/ns wins).
      */
-    internal fun parseSearchOutput(stdout: String, installedNames: Set<String>): List<LuaRockPackage> {
+    internal fun parseSearchOutput(
+        stdout: String,
+        installedNames: Set<String>,
+    ): List<LuaRockPackage> {
         // Ordered map to preserve result order while collapsing arch variants
         val seen = LinkedHashMap<Pair<String, String>, LuaRockPackage>()
         for (line in stdout.lineSequence()) {
@@ -119,14 +143,15 @@ object LuaRocksSearchService {
             if (f.size < 4) continue
             val key = f[0] to f[1]
             if (!seen.containsKey(key)) {
-                seen[key] = LuaRockPackage(
-                    name = f[0],
-                    version = f[1],
-                    arch = f[2],
-                    repo = f[3],
-                    namespace = f.getOrElse(4) { "" },
-                    isInstalled = f[0] in installedNames,
-                )
+                seen[key] =
+                    LuaRockPackage(
+                        name = f[0],
+                        version = f[1],
+                        arch = f[2],
+                        repo = f[3],
+                        namespace = f.getOrElse(4) { "" },
+                        isInstalled = f[0] in installedNames,
+                    )
             }
         }
         return seen.values.toList()

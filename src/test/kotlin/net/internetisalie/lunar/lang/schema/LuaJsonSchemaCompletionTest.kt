@@ -11,26 +11,20 @@ import com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory
 import net.internetisalie.lunar.lang.LuaFileType
 
 class LuaJsonSchemaCompletionTest : BasePlatformTestCase() {
-
     class TestSchemaProvider : LuaSchemaFileProvider() {
-        override fun isAvailable(file: VirtualFile): Boolean {
-            return file.extension == "testcfg"
-        }
+        override fun isAvailable(file: VirtualFile): Boolean = file.extension == "testcfg"
 
         override fun getName(): String = "Test Lua Schema"
 
-        override fun getSchemaFile(): VirtualFile? {
-            return JsonSchemaProviderFactory.getResourceFile(
+        override fun getSchemaFile(): VirtualFile? =
+            JsonSchemaProviderFactory.getResourceFile(
                 TestSchemaProvider::class.java,
-                "/schema/test-config.schema.json"
+                "/schema/test-config.schema.json",
             )
-        }
     }
 
     class TestSchemaProviderFactory : JsonSchemaProviderFactory {
-        override fun getProviders(project: Project): List<JsonSchemaFileProvider> {
-            return listOf(TestSchemaProvider())
-        }
+        override fun getProviders(project: Project): List<JsonSchemaFileProvider> = listOf(TestSchemaProvider())
     }
 
     override fun setUp() {
@@ -44,7 +38,7 @@ class LuaJsonSchemaCompletionTest : BasePlatformTestCase() {
         ExtensionTestUtil.maskExtensions(
             JsonSchemaProviderFactory.EP_NAME,
             listOf(TestSchemaProviderFactory()),
-            testRootDisposable
+            testRootDisposable,
         )
     }
 
@@ -61,7 +55,9 @@ class LuaJsonSchemaCompletionTest : BasePlatformTestCase() {
 
     fun testTc1_FindsSchema() {
         val file = myFixture.configureByText("test.testcfg", "name = \"x\"\n").virtualFile
-        val service = com.jetbrains.jsonSchema.ide.JsonSchemaService.Impl.get(myFixture.project)
+        val service =
+            com.jetbrains.jsonSchema.ide.JsonSchemaService.Impl
+                .get(myFixture.project)
         val schemaFile = service.getSchemaFilesForFile(file).firstOrNull()
         assertNotNull("Should find a schema for test.testcfg", schemaFile)
         assertEquals("test-config.schema.json", schemaFile?.name)
@@ -69,22 +65,28 @@ class LuaJsonSchemaCompletionTest : BasePlatformTestCase() {
 
     fun testTc2_CompletionKeys() {
         // TC #2
-        myFixture.configureByText("test.testcfg", """
+        myFixture.configureByText(
+            "test.testcfg",
+            """
             name = "x"
             <caret>
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         val variants = myFixture.completeBasic().map { it.lookupString }
         assertContainsElements(variants, "opts", "tags")
     }
 
     fun testTc3_CompletionValues() {
         // TC #3
-        myFixture.configureByText("test.testcfg", """
+        myFixture.configureByText(
+            "test.testcfg",
+            """
             name = "x"
             opts = { level = "<caret>" }
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         val variants = myFixture.completeBasic().map { it.lookupString }
         assertContainsElements(variants, "low", "high")
     }

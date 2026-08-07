@@ -5,18 +5,15 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.indexing.*
-import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.luacats.lang.doc.LuaCatsDeclaredType
-import net.internetisalie.lunar.project.PlatformLibraryIndex
 
 class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHandler.LuaParameterInfoCandidate> {
-
     data class LuaParameterInfoCandidate(
         val name: String,
         val params: List<String>,
         val types: List<String?>,
-        val isMethod: Boolean = false
+        val isMethod: Boolean = false,
     )
 
     override fun findElementForParameterInfo(context: CreateParameterInfoContext): LuaArgs? {
@@ -47,14 +44,18 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         return args
     }
 
-    private fun resolveCandidates(funcCall: LuaFuncCall, nameAndArgs: LuaNameAndArgs): List<LuaParameterInfoCandidate> {
+    private fun resolveCandidates(
+        funcCall: LuaFuncCall,
+        nameAndArgs: LuaNameAndArgs,
+    ): List<LuaParameterInfoCandidate> {
         val methodExpr = nameAndArgs.methodExpr
-        val target = if (methodExpr != null) {
-            methodExpr.nameRef
-        } else {
-            val index = funcCall.nameAndArgsList.indexOf(nameAndArgs)
-            if (index == 0) funcCall.varOrExp else null
-        } ?: return emptyList()
+        val target =
+            if (methodExpr != null) {
+                methodExpr.nameRef
+            } else {
+                val index = funcCall.nameAndArgsList.indexOf(nameAndArgs)
+                if (index == 0) funcCall.varOrExp else null
+            } ?: return emptyList()
 
         val identifier = findIdentifier(target) ?: return emptyList()
         val identifierName = identifier.text
@@ -80,14 +81,17 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
             val qName = getQualifiedName(target)
             if (qName != null && qName.contains('.')) {
                 val project = funcCall.project
-                val scope = com.intellij.psi.search.GlobalSearchScope.allScope(project)
-                val elements = com.intellij.psi.stubs.StubIndex.getElements(
-                    LuaGlobalDeclarationIndex.KEY,
-                    qName,
-                    project,
-                    scope,
-                    LuaFuncDecl::class.java
-                )
+                val scope =
+                    com.intellij.psi.search.GlobalSearchScope
+                        .allScope(project)
+                val elements =
+                    com.intellij.psi.stubs.StubIndex.getElements(
+                        LuaGlobalDeclarationIndex.KEY,
+                        qName,
+                        project,
+                        scope,
+                        LuaFuncDecl::class.java,
+                    )
                 boundElement = elements.firstOrNull()
             }
         }
@@ -100,9 +104,12 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
             // For method calls (where methodExpr is not null), we need to look for method declarations
             if (methodExpr != null) {
                 // Look for a function declaration with funcNameMethod matching identifierName
-                boundElement = allFuncDecls.find {
-                    it.funcName.funcNameMethod?.nameRef?.text == identifierName
-                }
+                boundElement =
+                    allFuncDecls.find {
+                        it.funcName.funcNameMethod
+                            ?.nameRef
+                            ?.text == identifierName
+                    }
             } else {
                 // For regular function calls, look for direct name matches
                 val allLocalFuncDecls = PsiTreeUtil.findChildrenOfType(file, LuaLocalFuncDecl::class.java)
@@ -116,9 +123,10 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         }
 
         // Find the actual declaration containing this identifier
-        val definition = PsiTreeUtil.getParentOfType(boundElement, LuaFuncDecl::class.java, false)
-            ?: PsiTreeUtil.getParentOfType(boundElement, LuaLocalFuncDecl::class.java, false)
-            ?: return emptyList()
+        val definition =
+            PsiTreeUtil.getParentOfType(boundElement, LuaFuncDecl::class.java, false)
+                ?: PsiTreeUtil.getParentOfType(boundElement, LuaLocalFuncDecl::class.java, false)
+                ?: return emptyList()
 
         val candidates = mutableListOf<LuaParameterInfoCandidate>()
 
@@ -150,7 +158,12 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                     } else {
                         val params = mutableListOf<String>()
                         if (isMethod) params.add("self")
-                        params.addAll(definition.parList?.nameList?.nameRefList?.map { it.text } ?: emptyList())
+                        params.addAll(
+                            definition.parList
+                                ?.nameList
+                                ?.nameRefList
+                                ?.map { it.text } ?: emptyList(),
+                        )
                         if (definition.parList?.node?.findChildByType(LuaElementTypes.ELLIPSIS) != null) {
                             params.add("...")
                         }
@@ -173,7 +186,12 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                 } else {
                     val params = mutableListOf<String>()
                     if (isMethod) params.add("self")
-                    params.addAll(definition.parList?.nameList?.nameRefList?.map { it.text } ?: emptyList())
+                    params.addAll(
+                        definition.parList
+                            ?.nameList
+                            ?.nameRefList
+                            ?.map { it.text } ?: emptyList(),
+                    )
                     if (definition.parList?.node?.findChildByType(LuaElementTypes.ELLIPSIS) != null) {
                         params.add("...")
                     }
@@ -192,7 +210,12 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                         candidates.add(LuaParameterInfoCandidate(name, params, types))
                     } else {
                         val params = mutableListOf<String>()
-                        params.addAll(definition.parList?.nameList?.nameRefList?.map { it.text } ?: emptyList())
+                        params.addAll(
+                            definition.parList
+                                ?.nameList
+                                ?.nameRefList
+                                ?.map { it.text } ?: emptyList(),
+                        )
                         if (definition.parList?.node?.findChildByType(LuaElementTypes.ELLIPSIS) != null) {
                             params.add("...")
                         }
@@ -208,7 +231,12 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                     }
                 } else {
                     val params = mutableListOf<String>()
-                    params.addAll(definition.parList?.nameList?.nameRefList?.map { it.text } ?: emptyList())
+                    params.addAll(
+                        definition.parList
+                            ?.nameList
+                            ?.nameRefList
+                            ?.map { it.text } ?: emptyList(),
+                    )
                     if (definition.parList?.node?.findChildByType(LuaElementTypes.ELLIPSIS) != null) {
                         params.add("...")
                     }
@@ -229,17 +257,18 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
     private fun getQualifiedName(element: PsiElement): String? {
         if (element !is LuaNameRef && element !is LuaVarOrExp) return null
 
-        val luaVar = if (element is LuaVarOrExp) {
-            element.`var` ?: return null
-        } else {
-            val parent = element.parent
-            if (parent is LuaIndexExpr) {
-                val varSuffix = parent.parent as? LuaVarSuffix ?: return null
-                varSuffix.parent as? LuaVar ?: return null
+        val luaVar =
+            if (element is LuaVarOrExp) {
+                element.`var` ?: return null
             } else {
-                element.parent as? LuaVar ?: return null
+                val parent = element.parent
+                if (parent is LuaIndexExpr) {
+                    val varSuffix = parent.parent as? LuaVarSuffix ?: return null
+                    varSuffix.parent as? LuaVar ?: return null
+                } else {
+                    element.parent as? LuaVar ?: return null
+                }
             }
-        }
 
         val baseNameRef = luaVar.nameRef ?: return null
         val sb = StringBuilder()
@@ -253,8 +282,12 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                     sb.append(".")
                     sb.append(mNameRef.text)
                     if (mNameRef == element) return sb.toString()
-                } else break
-            } else break
+                } else {
+                    break
+                }
+            } else {
+                break
+            }
         }
 
         if (element is LuaVarOrExp || element == baseNameRef) return sb.toString()
@@ -262,7 +295,10 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         return null
     }
 
-    override fun showParameterInfo(element: LuaArgs, context: CreateParameterInfoContext) {
+    override fun showParameterInfo(
+        element: LuaArgs,
+        context: CreateParameterInfoContext,
+    ) {
         context.showHint(element, element.textOffset, this)
     }
 
@@ -276,7 +312,10 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         return PsiTreeUtil.getParentOfType(element, LuaArgs::class.java, false)
     }
 
-    override fun updateParameterInfo(parameterOwner: LuaArgs, context: UpdateParameterInfoContext) {
+    override fun updateParameterInfo(
+        parameterOwner: LuaArgs,
+        context: UpdateParameterInfoContext,
+    ) {
         val offset = context.offset
         val exprList = parameterOwner.exprList
 
@@ -298,7 +337,10 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
         context.setCurrentParameter(index)
     }
 
-    override fun updateUI(p: LuaParameterInfoCandidate, context: ParameterInfoUIContext) {
+    override fun updateUI(
+        p: LuaParameterInfoCandidate,
+        context: ParameterInfoUIContext,
+    ) {
         val sb = StringBuilder()
         sb.append(p.name).append("(")
 
@@ -341,7 +383,7 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
             false,
             false,
             false,
-            context.defaultParameterColor
+            context.defaultParameterColor,
         )
     }
 }

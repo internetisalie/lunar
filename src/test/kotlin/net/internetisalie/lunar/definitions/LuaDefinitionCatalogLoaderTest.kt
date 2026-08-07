@@ -16,23 +16,23 @@ import kotlin.test.assertTrue
  * than fail loudly.
  */
 class LuaDefinitionCatalogLoaderTest {
-
     private fun entryJson(
         id: String = "busted",
         omit: String? = null,
         extra: String = "",
     ): String {
-        val fields = linkedMapOf(
-            "id" to "\"$id\"",
-            "displayName" to "\"Busted\"",
-            "version" to "\"5ed85d0e\"",
-            "urls" to "[\"https://example.invalid/$id/archive/5ed85d0e.tar.gz\"]",
-            "sha256" to "\"c33499e7\"",
-            "size" to "2040",
-            "rootPrefix" to "\"$id-5ed85d0e/library\"",
-            "license" to "\"MIT\"",
-            "attributionUrl" to "\"https://example.invalid/$id\"",
-        )
+        val fields =
+            linkedMapOf(
+                "id" to "\"$id\"",
+                "displayName" to "\"Busted\"",
+                "version" to "\"5ed85d0e\"",
+                "urls" to "[\"https://example.invalid/$id/archive/5ed85d0e.tar.gz\"]",
+                "sha256" to "\"c33499e7\"",
+                "size" to "2040",
+                "rootPrefix" to "\"$id-5ed85d0e/library\"",
+                "license" to "\"MIT\"",
+                "attributionUrl" to "\"https://example.invalid/$id\"",
+            )
         omit?.let { fields.remove(it) }
         val body = fields.entries.joinToString(",") { "\"${it.key}\":${it.value}" }
         return "{$body${if (extra.isEmpty()) "" else ",$extra"}}"
@@ -77,9 +77,10 @@ class LuaDefinitionCatalogLoaderTest {
      */
     @Test
     fun missingSha256ThrowsMissingNotTypeError() {
-        val failure = assertFailsWith<LuaProvisionException> {
-            LuaDefinitionCatalogLoader.parse(catalogJson(entryJson(omit = "sha256")))
-        }
+        val failure =
+            assertFailsWith<LuaProvisionException> {
+                LuaDefinitionCatalogLoader.parse(catalogJson(entryJson(omit = "sha256")))
+            }
         assertContains(failure.message.orEmpty(), "missing field 'sha256'")
     }
 
@@ -139,9 +140,10 @@ class LuaDefinitionCatalogLoaderTest {
 
     @Test
     fun missingCatalogVersionThrows() {
-        val failure = assertFailsWith<LuaProvisionException> {
-            LuaDefinitionCatalogLoader.parse("""{"libraries":[]}""")
-        }
+        val failure =
+            assertFailsWith<LuaProvisionException> {
+                LuaDefinitionCatalogLoader.parse("""{"libraries":[]}""")
+            }
         assertContains(failure.message.orEmpty(), "catalogVersion")
     }
 
@@ -152,7 +154,8 @@ class LuaDefinitionCatalogLoaderTest {
 
     @Test
     fun emptyUrlListThrows() {
-        val json = catalogJson(entryJson().replace("""["https://example.invalid/busted/archive/5ed85d0e.tar.gz"]""", "[]"))
+        val json =
+            catalogJson(entryJson().replace("""["https://example.invalid/busted/archive/5ed85d0e.tar.gz"]""", "[]"))
         val failure = assertFailsWith<LuaProvisionException> { LuaDefinitionCatalogLoader.parse(json) }
         assertContains(failure.message.orEmpty(), "urls")
     }
@@ -160,9 +163,10 @@ class LuaDefinitionCatalogLoaderTest {
     /** Ids key the per-project enable list, so a duplicate makes "enabled" ambiguous. */
     @Test
     fun duplicateIdThrows() {
-        val failure = assertFailsWith<LuaProvisionException> {
-            LuaDefinitionCatalogLoader.parse(catalogJson(entryJson(), entryJson()))
-        }
+        val failure =
+            assertFailsWith<LuaProvisionException> {
+                LuaDefinitionCatalogLoader.parse(catalogJson(entryJson(), entryJson()))
+            }
         assertContains(failure.message.orEmpty(), "duplicate")
     }
 

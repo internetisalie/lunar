@@ -5,17 +5,17 @@ import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
 
 class LuaLineBreakpointHandler(
-    private val myDebugProcess: LuaDebugProcess
+    private val myDebugProcess: LuaDebugProcess,
 ) : XBreakpointHandler<XLineBreakpoint<XBreakpointProperties<*>>>(
-    LuaLineBreakpointType::class.java,
-) {
+        LuaLineBreakpointType::class.java,
+    ) {
     override fun registerBreakpoint(breakpoint: XLineBreakpoint<XBreakpointProperties<*>>) {
         myDebugProcess.addBreakPoint(breakpoint)
     }
 
     override fun unregisterBreakpoint(
         breakpoint: XLineBreakpoint<XBreakpointProperties<*>>,
-        temporary: Boolean
+        temporary: Boolean,
     ) {
         myDebugProcess.removeBreakPoint(breakpoint)
     }

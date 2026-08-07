@@ -8,7 +8,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaMemberFieldIndexTest : BasePlatformTestCase() {
-
     @Test
     fun testQualifiedFieldKeysPresent() {
         myFixture.configureByText(

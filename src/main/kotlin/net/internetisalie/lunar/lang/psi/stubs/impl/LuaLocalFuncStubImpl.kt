@@ -10,5 +10,6 @@ class LuaLocalFuncStubImpl(
     parent: StubElement<*>?,
     override val name: String?,
     override val luacatsReturnType: String?,
-    override val luacatsParamTypes: Map<String, String>
-) : StubBase<LuaLocalFuncDecl>(parent, LuaStubElementTypes.LOCAL_FUNC_DECL), LuaLocalFuncStub
+    override val luacatsParamTypes: Map<String, String>,
+) : StubBase<LuaLocalFuncDecl>(parent, LuaStubElementTypes.LOCAL_FUNC_DECL),
+    LuaLocalFuncStub

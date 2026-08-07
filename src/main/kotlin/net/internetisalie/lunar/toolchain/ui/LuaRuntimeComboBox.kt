@@ -8,13 +8,13 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SimpleTextAttributes
 import net.internetisalie.lunar.lang.LuaIcons
+import net.internetisalie.lunar.toolchain.model.Capability
 import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.model.LuaToolHealth
 import net.internetisalie.lunar.toolchain.model.Origin
 import net.internetisalie.lunar.toolchain.model.isUsable
-import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
-import net.internetisalie.lunar.toolchain.model.Capability
 import net.internetisalie.lunar.toolchain.probe.LuaToolProbe
+import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import java.nio.file.Path
@@ -34,8 +34,10 @@ private const val LUA_KIND_ID = "lua"
  * subtlety). Ad-hoc entries are never auto-registered.
  */
 object LuaRuntimeComboBox {
-
-    fun customize(project: Project, field: ComboBox<LuaRegisteredTool>) {
+    fun customize(
+        project: Project,
+        field: ComboBox<LuaRegisteredTool>,
+    ) {
         val default = LuaToolResolver.getInstance().resolveRuntime(project)
         val binder = ComboBinder(field, default)
 
@@ -57,7 +59,7 @@ object LuaRuntimeComboBox {
     /** Holds the invariant state (the field + its default) so the helpers stay within the arg cap. */
     private class ComboBinder(
         private val field: ComboBox<LuaRegisteredTool>,
-        private val default: LuaRegisteredTool?
+        private val default: LuaRegisteredTool?,
     ) {
         fun buildModel(typed: LuaRegisteredTool?): DefaultComboBoxModel<LuaRegisteredTool> {
             val byPath = LinkedHashMap<String, LuaRegisteredTool>()
@@ -95,12 +97,13 @@ object LuaRuntimeComboBox {
             ApplicationManager.getApplication().executeOnPooledThread {
                 val kind = LuaToolKindRegistry.findById(LUA_KIND_ID) ?: return@executeOnPooledThread
                 val result = LuaToolProbe.getInstance().probe(kind, Path.of(adHoc.path))
-                val upgraded = adHoc.copy(
-                    version = result.version,
-                    luaVersion = result.luaVersion,
-                    runtime = result.runtime,
-                    health = adHoc.health.copy(probeOk = result.ok, reason = result.failure)
-                )
+                val upgraded =
+                    adHoc.copy(
+                        version = result.version,
+                        luaVersion = result.luaVersion,
+                        runtime = result.runtime,
+                        health = adHoc.health.copy(probeOk = result.ok, reason = result.failure),
+                    )
                 ApplicationManager.getApplication().invokeLater { applyProbe(upgraded) }
             }
         }
@@ -140,11 +143,15 @@ private class PathComboBoxEditor : BasicComboBoxEditor() {
 }
 
 private fun usableRuntimeTools(): List<LuaRegisteredTool> {
-    val runtimeKindIds = LuaToolKindRegistry.all()
-        .filter { Capability.RUNTIME in it.capabilities }
-        .map { it.id }
-        .toSet()
-    return LuaToolchainRegistry.getInstance().tools()
+    val runtimeKindIds =
+        LuaToolKindRegistry
+            .all()
+            .filter { Capability.RUNTIME in it.capabilities }
+            .map { it.id }
+            .toSet()
+    return LuaToolchainRegistry
+        .getInstance()
+        .tools()
         .filter { it.kindId in runtimeKindIds && it.isUsable }
 }
 
@@ -158,7 +165,14 @@ private fun adHocTool(path: String): LuaRegisteredTool =
         runtime = null,
         origin = Origin.MANUAL,
         environmentId = null,
-        health = LuaToolHealth(fileExists = true, executable = true, probeOk = null, probedAtMtime = null, reason = null)
+        health =
+            LuaToolHealth(
+                fileExists = true,
+                executable = true,
+                probeOk = null,
+                probedAtMtime = null,
+                reason = null,
+            ),
     )
 
 /** Renders a RUNTIME tool: path in bold + `product version` in gray (unusable → "Invalid"). */
@@ -168,7 +182,7 @@ private class LuaRuntimeListCellRenderer : ColoredListCellRenderer<Any>() {
         value: Any?,
         index: Int,
         selected: Boolean,
-        hasFocus: Boolean
+        hasFocus: Boolean,
     ) {
         when (value) {
             null -> append("No interpreter selected", SimpleTextAttributes.ERROR_ATTRIBUTES)

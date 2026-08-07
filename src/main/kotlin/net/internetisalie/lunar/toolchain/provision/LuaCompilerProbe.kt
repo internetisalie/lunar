@@ -13,11 +13,17 @@ import java.nio.file.Path
  */
 object LuaCompilerProbe {
     /** The resolved toolchain executables; [make] is null when `make` is absent (required only by LuaRocks/LuaJIT). */
-    data class Toolchain(val cc: Path, val ar: Path, val ranlib: Path, val make: Path?)
+    data class Toolchain(
+        val cc: Path,
+        val ar: Path,
+        val ranlib: Path,
+        val make: Path?,
+    )
 
-    const val REMEDIATION = "No C toolchain found on PATH (need cc/gcc, ar, ranlib). " +
-        "Install build tools (Linux: `sudo apt install build-essential`; macOS: " +
-        "`xcode-select --install`) or pick a version with a prebuilt binary."
+    const val REMEDIATION =
+        "No C toolchain found on PATH (need cc/gcc, ar, ranlib). " +
+            "Install build tools (Linux: `sudo apt install build-essential`; macOS: " +
+            "`xcode-select --install`) or pick a version with a prebuilt binary."
 
     fun probe(platform: LuaHostPlatform): Toolchain? {
         val ccCandidates = if (platform.os == LuaOs.MACOS) listOf("cc", "gcc") else listOf("gcc", "cc")

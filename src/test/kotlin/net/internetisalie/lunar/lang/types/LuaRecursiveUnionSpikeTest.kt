@@ -24,21 +24,21 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRecursiveUnionSpikeTest : IndexedBasePlatformTestCase() {
-
     @Test
     fun testSelfReferentialUnionAliasTerminates() {
-        val file = myFixture.configureByText(
-            "test.lua",
-            """
-            ---@class T
-            ---@field self T | number
-            local T = {}
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@class T
+                ---@field self T | number
+                local T = {}
 
-            ---@type T | number
-            local x = T
-            local y = x
-            """.trimIndent(),
-        )
+                ---@type T | number
+                local x = T
+                local y = x
+                """.trimIndent(),
+            )
 
         // The whole conversion + checkTypes pipeline must terminate without SOE.
         val snapshot = LuaTypesSnapshot.forFile(file)

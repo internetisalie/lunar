@@ -18,7 +18,10 @@ import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 
 /** The registered-names result from a static scan of a library file (design §2.2). */
-data class RegisteredNames(val names: Set<String>, val hasDynamic: Boolean)
+data class RegisteredNames(
+    val names: Set<String>,
+    val hasDynamic: Boolean,
+)
 
 /**
  * Paired cache entry for registration scan results: names + per-function flag sets.
@@ -39,7 +42,6 @@ private data class RegistrationCache(
  * Pure PSI reads; call from a read action. No retained heavy refs.
  */
 object LuaRedisFunctionLibrary {
-
     /** Matches the `#!lua name=<identifier>` shebang prefix (design §3.2). */
     val SHEBANG_NAME = Regex("""^#!\s*lua\s+name=([A-Za-z0-9_]+)""")
 
@@ -72,8 +74,10 @@ object LuaRedisFunctionLibrary {
      * scan, or an empty set when the function was not found or used a dynamic name
      * (design §3.7 step 4).
      */
-    fun registeredFlags(file: PsiFile, name: String): Set<String> =
-        registrationCache(file).flags[name] ?: emptySet()
+    fun registeredFlags(
+        file: PsiFile,
+        name: String,
+    ): Set<String> = registrationCache(file).flags[name] ?: emptySet()
 
     // -------------------------------------------------------------------------
     // Detect helpers (§3.2)
@@ -83,7 +87,11 @@ object LuaRedisFunctionLibrary {
         if (file !is LuaFile) return null
         val shebangLeaf = findLeadingShebang(file) ?: return null
         val shebangLine = buildShebangLine(shebangLeaf)
-        return SHEBANG_NAME.find(shebangLine)?.groupValues?.getOrNull(1)?.takeIf { it.isNotEmpty() }
+        return SHEBANG_NAME
+            .find(shebangLine)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.takeIf { it.isNotEmpty() }
     }
 
     private fun findLeadingShebang(file: LuaFile): PsiElement? {
@@ -197,11 +205,12 @@ object LuaRedisFunctionLibrary {
     private fun extractFlagsField(field: LuaField): Set<String> {
         val flagsExpr = field.exprList.firstOrNull() as? LuaTableConstructor ?: return emptySet()
         val flagFields = flagsExpr.fieldList?.fieldList ?: return emptySet()
-        return flagFields.mapNotNull { f ->
-            val expr = f.exprList.firstOrNull() as? LuaTerminalExpr ?: return@mapNotNull null
-            val stringEl = expr.string ?: return@mapNotNull null
-            stripQuotes(stringEl.text).takeIf { it.isNotEmpty() }
-        }.toSet()
+        return flagFields
+            .mapNotNull { f ->
+                val expr = f.exprList.firstOrNull() as? LuaTerminalExpr ?: return@mapNotNull null
+                val stringEl = expr.string ?: return@mapNotNull null
+                stripQuotes(stringEl.text).takeIf { it.isNotEmpty() }
+            }.toSet()
     }
 
     /** Strips surrounding quotes exactly as in LuaRequireReferenceContributor (line 39). */

@@ -21,7 +21,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaUnionDistributionSpikeTest : BasePlatformTestCase() {
-
     private lateinit var anchor: PsiElement
     private lateinit var graph: LuaTypeGraph
 
@@ -43,8 +42,10 @@ class LuaUnionDistributionSpikeTest : BasePlatformTestCase() {
         )
     }
 
-    private fun disjointUnion(prefix: String, count: Int): LuaGraphType.Union =
-        LuaGraphType.Union((1..count).map { tableWith("$prefix$it") }.toSet())
+    private fun disjointUnion(
+        prefix: String,
+        count: Int,
+    ): LuaGraphType.Union = LuaGraphType.Union((1..count).map { tableWith("$prefix$it") }.toSet())
 
     // -- Throwaway distribution copies ---------------------------------------------------------
 
@@ -59,7 +60,11 @@ class LuaUnionDistributionSpikeTest : BasePlatformTestCase() {
         return when {
             value is LuaGraphType.Union -> value.types.all { compatUnbounded(it, use, visited) }
             use is LuaGraphType.Union -> use.types.any { compatUnbounded(value, it, visited) }
-            value is LuaGraphType.Table && use is LuaGraphType.Table -> structural(value, use) { v, u -> compatUnbounded(v, u, visited) }
+            value is LuaGraphType.Table && use is LuaGraphType.Table ->
+                structural(
+                    value,
+                    use,
+                ) { v, u -> compatUnbounded(v, u, visited) }
             else -> false
         }
     }
@@ -86,8 +91,10 @@ class LuaUnionDistributionSpikeTest : BasePlatformTestCase() {
 
     private fun breadthOf(t: LuaGraphType): Int = if (t is LuaGraphType.Union) t.types.size else 1
 
-    private fun headMatch(value: LuaGraphType, use: LuaGraphType): Boolean =
-        value::class == use::class
+    private fun headMatch(
+        value: LuaGraphType,
+        use: LuaGraphType,
+    ): Boolean = value::class == use::class
 
     private inline fun structural(
         value: LuaGraphType.Table,
@@ -166,9 +173,10 @@ class LuaUnionDistributionSpikeTest : BasePlatformTestCase() {
         compatBounded(pathoValue, pathoUse, 0, mutableSetOf())
         val boundedPathoMs = (System.nanoTime() - boundedPathoStart) / 1_000_000.0
 
-        val unboundedPathoMs = timedOrTimeout(5_000) {
-            compatUnbounded(pathoValue, pathoUse, mutableSetOf())
-        }
+        val unboundedPathoMs =
+            timedOrTimeout(5_000) {
+                compatUnbounded(pathoValue, pathoUse, mutableSetOf())
+            }
 
         println("SPIKE-01 bounded-median-ms=$boundedMs")
         println("SPIKE-01 unbounded-median-ms=$unboundedMs")
@@ -179,8 +187,11 @@ class LuaUnionDistributionSpikeTest : BasePlatformTestCase() {
         println("SPIKE-01 patho-unbounded-ms=${unboundedPathoMs ?: ">5000 (timed out)"}")
         println(
             "SPIKE-01 patho-ratio=" +
-                if (unboundedPathoMs == null) "INF (unbounded non-terminating within 5s)"
-                else (unboundedPathoMs / maxOf(boundedPathoMs, 1e-6)).toString(),
+                if (unboundedPathoMs == null) {
+                    "INF (unbounded non-terminating within 5s)"
+                } else {
+                    (unboundedPathoMs / maxOf(boundedPathoMs, 1e-6)).toString()
+                },
         )
 
         assertTrue("Bounded distribution must complete under the 50ms budget (was $boundedMs ms)", boundedMs < 50.0)
@@ -192,42 +203,56 @@ class LuaUnionDistributionSpikeTest : BasePlatformTestCase() {
      * ([depth] levels). Disjoint field names per node force distinct (value,use) pairs at every
      * level, defeating the simple visited-pair collapse.
      */
-    private fun nestedWideUnion(prefix: String, width: Int, depth: Int): LuaGraphType {
+    private fun nestedWideUnion(
+        prefix: String,
+        width: Int,
+        depth: Int,
+    ): LuaGraphType {
         if (depth == 0) return disjointUnion("${prefix}leaf", width)
         val inner = nestedWideUnion(prefix, width, depth - 1)
-        val tables = (1..width).map { idx ->
-            val memberNode = graph.variable(anchor)
-            memberNode.upSet.add(graph.value(anchor, inner))
-            memberNode.downSet.add(graph.use(anchor, inner))
-            LuaGraphType.Table(null, mutableMapOf("$prefix${depth}_$idx" to memberNode), isExact = true)
-        }
+        val tables =
+            (1..width).map { idx ->
+                val memberNode = graph.variable(anchor)
+                memberNode.upSet.add(graph.value(anchor, inner))
+                memberNode.downSet.add(graph.use(anchor, inner))
+                LuaGraphType.Table(null, mutableMapOf("$prefix${depth}_$idx" to memberNode), isExact = true)
+            }
         return LuaGraphType.Union(tables.toSet())
     }
 
     /** Runs [block] on a worker; returns elapsed ms, or null if it exceeds [timeoutMs]. */
-    private fun timedOrTimeout(timeoutMs: Long, block: () -> Unit): Double? {
+    private fun timedOrTimeout(
+        timeoutMs: Long,
+        block: () -> Unit,
+    ): Double? {
         var elapsed: Double? = null
-        val worker = Thread {
-            val start = System.nanoTime()
-            try {
-                block()
-                elapsed = (System.nanoTime() - start) / 1_000_000.0
-            } catch (_: StackOverflowError) {
-                elapsed = null
+        val worker =
+            Thread {
+                val start = System.nanoTime()
+                try {
+                    block()
+                    elapsed = (System.nanoTime() - start) / 1_000_000.0
+                } catch (_: StackOverflowError) {
+                    elapsed = null
+                }
             }
-        }
         worker.isDaemon = true
         worker.start()
         worker.join(timeoutMs)
         return if (worker.isAlive) null else elapsed
     }
 
-    private fun disjointUnionFor(g: LuaTypeGraph, prefix: String, count: Int): LuaGraphType.Union {
-        val tables = (1..count).map { idx ->
-            val memberNode = g.variable(anchor)
-            memberNode.downSet.add(g.use(anchor, LuaGraphType.Number))
-            LuaGraphType.Table(null, mutableMapOf("$prefix$idx" to memberNode), isExact = true)
-        }
+    private fun disjointUnionFor(
+        g: LuaTypeGraph,
+        prefix: String,
+        count: Int,
+    ): LuaGraphType.Union {
+        val tables =
+            (1..count).map { idx ->
+                val memberNode = g.variable(anchor)
+                memberNode.downSet.add(g.use(anchor, LuaGraphType.Number))
+                LuaGraphType.Table(null, mutableMapOf("$prefix$idx" to memberNode), isExact = true)
+            }
         return LuaGraphType.Union(tables.toSet())
     }
 }

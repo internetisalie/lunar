@@ -10,9 +10,14 @@ import net.internetisalie.lunar.lang.psi.*
 
 class LuaGenerateDocIntention : BaseIntentionAction() {
     override fun getFamilyName(): String = "Lua"
+
     override fun getText(): String = "Generate LuaCATS documentation"
 
-    override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean {
+    override fun isAvailable(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ): Boolean {
         if (file !is LuaFile) return false
         val element = file.findElementAt(editor.caretModel.offset) ?: return false
         val owner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java) ?: return false
@@ -32,7 +37,11 @@ class LuaGenerateDocIntention : BaseIntentionAction() {
         return exprList.exprList[0] is LuaTableConstructor
     }
 
-    override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+    override fun invoke(
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+    ) {
         val element = file.findElementAt(editor.caretModel.offset) ?: return
         val owner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java) ?: return
 
@@ -48,7 +57,10 @@ class LuaGenerateDocIntention : BaseIntentionAction() {
         TemplateManager.getInstance(project).startTemplate(editor, template)
     }
 
-    private fun getLineIndent(document: com.intellij.openapi.editor.Document, lineStart: Int): String {
+    private fun getLineIndent(
+        document: com.intellij.openapi.editor.Document,
+        lineStart: Int,
+    ): String {
         val text = document.charsSequence
         var i = lineStart
         while (i < text.length && text[i].isWhitespace() && text[i] != '\n') {

@@ -19,7 +19,6 @@ import net.internetisalie.lunar.lang.syntax.LuaSyntax
  * any PSI change) via [CachedValuesManager].
  */
 object LuaInspectionSuppression {
-
     /** A single comment-derived suppression rule resolved to absolute source line numbers. */
     private data class SuppressionRange(
         val startLine: Int,
@@ -27,7 +26,11 @@ object LuaInspectionSuppression {
         val names: Set<String>,
         val allDiagnostics: Boolean,
     ) {
-        fun covers(line: Int, name: String, diagnosticId: String): Boolean {
+        fun covers(
+            line: Int,
+            name: String,
+            diagnosticId: String,
+        ): Boolean {
             if (line < startLine || line > endLine) return false
             if (allDiagnostics) return true
             return diagnosticId in names || name in names
@@ -40,18 +43,21 @@ object LuaInspectionSuppression {
         Regex("""^---@diagnostic\s+(disable-next-line|disable-line|disable|enable)\s*$""")
     private val LUACHECK_REGEX = Regex("""--\s*luacheck:\s*ignore\b(.*)$""")
 
-    fun isSuppressed(ref: LuaNameRef, name: String, diagnosticId: String): Boolean {
+    fun isSuppressed(
+        ref: LuaNameRef,
+        name: String,
+        diagnosticId: String,
+    ): Boolean {
         val file = ref.containingFile ?: return false
         val line = lineOf(file, ref.textOffset) ?: return false
         val ranges = suppressionRangesFor(file)
         return ranges.any { it.covers(line, name, diagnosticId) }
     }
 
-    private fun suppressionRangesFor(file: PsiFile): List<SuppressionRange> {
-        return CachedValuesManager.getManager(file.project).getCachedValue(file) {
+    private fun suppressionRangesFor(file: PsiFile): List<SuppressionRange> =
+        CachedValuesManager.getManager(file.project).getCachedValue(file) {
             CachedValueProvider.Result.create(parseFile(file), PsiModificationTracker.MODIFICATION_COUNT)
         }
-    }
 
     private fun parseFile(file: PsiFile): List<SuppressionRange> {
         val comments = PsiTreeUtil.collectElements(file) { it.elementType in LuaSyntax.CommentTokens }
@@ -67,7 +73,11 @@ object LuaInspectionSuppression {
         return ranges
     }
 
-    private data class OpenDisableBlock(val startLine: Int, val names: Set<String>, val allDiagnostics: Boolean) {
+    private data class OpenDisableBlock(
+        val startLine: Int,
+        val names: Set<String>,
+        val allDiagnostics: Boolean,
+    ) {
         fun close(endLine: Int) = SuppressionRange(startLine, endLine, names, allDiagnostics)
     }
 
@@ -124,7 +134,10 @@ object LuaInspectionSuppression {
         }
     }
 
-    private fun closesBlock(block: OpenDisableBlock, names: Set<String>): Boolean {
+    private fun closesBlock(
+        block: OpenDisableBlock,
+        names: Set<String>,
+    ): Boolean {
         if (block.allDiagnostics || names.isEmpty()) return true
         return block.names.intersect(names).isNotEmpty()
     }
@@ -141,10 +154,16 @@ object LuaInspectionSuppression {
     }
 
     private fun splitNames(raw: String): Set<String> =
-        raw.split(Regex("""[,\s]+""")).map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        raw
+            .split(Regex("""[,\s]+"""))
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
 
-    private fun lineOf(file: PsiFile, offset: Int): Int? =
-        PsiDocumentManager.getInstance(file.project).getDocument(file)?.getLineNumber(offset)
+    private fun lineOf(
+        file: PsiFile,
+        offset: Int,
+    ): Int? = PsiDocumentManager.getInstance(file.project).getDocument(file)?.getLineNumber(offset)
 
     private fun lineCount(file: PsiFile): Int =
         (PsiDocumentManager.getInstance(file.project).getDocument(file)?.lineCount ?: 1) - 1

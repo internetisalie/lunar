@@ -16,14 +16,16 @@ import net.internetisalie.lunar.redis.resp.RespValue
  * caller (engineering-contract §2). No retained heavy refs beyond the transient connection value.
  */
 class LuaRedisFunctionsController {
-
     /**
      * Sends `FUNCTION LIST [WITHCODE]` and returns parsed [RedisLibraryEntry] list (design §3.9, TC-PANEL-1).
      *
      * Opens and disposes a [RespClient] per call. Callers must hold a reference to [connection]
      * for the lifetime of the call only.
      */
-    suspend fun list(connection: LuaRedisServerConnection, withCode: Boolean): List<RedisLibraryEntry> {
+    suspend fun list(
+        connection: LuaRedisServerConnection,
+        withCode: Boolean,
+    ): List<RedisLibraryEntry> {
         val client = openClient(connection)
         return try {
             listWithClient(client, withCode)
@@ -33,7 +35,10 @@ class LuaRedisFunctionsController {
     }
 
     /** Testable inner: performs `FUNCTION LIST` on an injected [client] (TC-PANEL-1). */
-    suspend fun listWithClient(client: RespClient, withCode: Boolean): List<RedisLibraryEntry> {
+    suspend fun listWithClient(
+        client: RespClient,
+        withCode: Boolean,
+    ): List<RedisLibraryEntry> {
         val args = if (withCode) listOf("FUNCTION", "LIST", "WITHCODE") else listOf("FUNCTION", "LIST")
         val reply = client.command(args.map { it.toByteArray(Charsets.UTF_8) })
         return LuaRedisFunctionListParser.parse(reply)
@@ -44,7 +49,10 @@ class LuaRedisFunctionsController {
      *
      * The caller removes the row from the model on a non-error reply. Opens and disposes a client per call.
      */
-    suspend fun delete(connection: LuaRedisServerConnection, libraryName: String): RespValue {
+    suspend fun delete(
+        connection: LuaRedisServerConnection,
+        libraryName: String,
+    ): RespValue {
         val client = openClient(connection)
         return try {
             deleteWithClient(client, libraryName)
@@ -54,15 +62,20 @@ class LuaRedisFunctionsController {
     }
 
     /** Testable inner: performs `FUNCTION DELETE` on an injected [client] (TC-PANEL-2). */
-    suspend fun deleteWithClient(client: RespClient, libraryName: String): RespValue =
-        client.command("FUNCTION", "DELETE", libraryName)
+    suspend fun deleteWithClient(
+        client: RespClient,
+        libraryName: String,
+    ): RespValue = client.command("FUNCTION", "DELETE", libraryName)
 
     /**
      * Sends `FUNCTION LOAD REPLACE <libraryBody>` and returns the server reply (design §3.9, TC-PANEL-3).
      *
      * On success the panel should call `refresh()`. Opens and disposes a client per call.
      */
-    suspend fun deploy(connection: LuaRedisServerConnection, libraryBody: String): RespValue {
+    suspend fun deploy(
+        connection: LuaRedisServerConnection,
+        libraryBody: String,
+    ): RespValue {
         val client = openClient(connection)
         return try {
             deployWithClient(client, libraryBody)
@@ -72,7 +85,10 @@ class LuaRedisFunctionsController {
     }
 
     /** Testable inner: performs `FUNCTION LOAD REPLACE` on an injected [client] (TC-PANEL-3). */
-    suspend fun deployWithClient(client: RespClient, libraryBody: String): RespValue {
+    suspend fun deployWithClient(
+        client: RespClient,
+        libraryBody: String,
+    ): RespValue {
         val args = listOf("FUNCTION", "LOAD", "REPLACE", libraryBody)
         return client.command(args.map { it.toByteArray(Charsets.UTF_8) })
     }

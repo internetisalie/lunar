@@ -3,11 +3,10 @@ package net.internetisalie.lunar.lang.insight
 import net.internetisalie.lunar.BaseDocumentTest
 import org.junit.jupiter.api.Test
 import kotlin.io.path.createTempFile
-import kotlin.io.path.writeText
 import kotlin.io.path.deleteIfExists
+import kotlin.io.path.writeText
 
 class LuaFoldingTest : BaseDocumentTest() {
-
     fun testFolding(text: String) {
         val content = text.trimIndent()
         val tempFile = createTempFile("lunar-fold-test-", ".lua")
@@ -21,12 +20,14 @@ class LuaFoldingTest : BaseDocumentTest() {
 
     @Test
     fun testBlockStringFolding() {
-        testFolding("""
+        testFolding(
+            """
             local s = <fold text='[=[multi...]=]'>[=[
                 multi
                 line
             ]=]</fold>
-        """)
+        """,
+        )
     }
 
     @Test
@@ -34,103 +35,125 @@ class LuaFoldingTest : BaseDocumentTest() {
         // Lua does not allow literal newlines in quoted strings
         // This test is skipped because it tests invalid Lua syntax
         // Quoted strings must be single-line, or use block strings [[...]] for multi-line
-        testFolding("""
+        testFolding(
+            """
             local s = "single line string"
-        """)
+        """,
+        )
     }
 
     @Test
     fun testLongCommentFolding() {
-        testFolding("""
+        testFolding(
+            """
             <fold text='--[=[comment...]=]'>--[=[
                 comment
                 lines
             ]=]</fold>
-        """)
+        """,
+        )
     }
 
     @Test
     fun testDocCommentFolding() {
-        testFolding("""
+        testFolding(
+            """
             <fold text='--- doc...'>--- doc
             --- line 2
             --- line 3</fold>
             function f() end
-        """)
+        """,
+        )
     }
 
     @Test
     fun testRegionFolding() {
-        testFolding("""
+        testFolding(
+            """
             <fold text='My Region'>--#region My Region
             local x = 1
             --#endregion</fold>
-        """)
+        """,
+        )
     }
 
     @Test
     fun testFunctionFolding() {
-        testFolding("""
+        testFolding(
+            """
             function f()<fold text='...'>
                 print(1)
             </fold>end
-        """)
+        """,
+        )
     }
 
     @Test
     fun testLocalFunctionFolding() {
-        testFolding("""
+        testFolding(
+            """
             local function f()<fold text='...'>
                 print(1)
             </fold>end
-        """)
+        """,
+        )
     }
 
     @Test
     fun testAnonymousFunctionFolding() {
-        testFolding("""
+        testFolding(
+            """
             local f = function()<fold text='...'>
                 print(1)
             </fold>end
-        """)
+        """,
+        )
     }
 
     @Test
     fun testGlobalFunctionFolding() {
-        testFolding("""
+        testFolding(
+            """
             global function f()<fold text='...'>
                 print(1)
             </fold>end
-        """)
+        """,
+        )
     }
 
     @Test
     fun testTableFolding() {
-        testFolding("""
+        testFolding(
+            """
             local t = <fold text='{...}'>{
                 a = 1,
                 b = 2
             }</fold>
-        """)
+        """,
+        )
     }
 
     @Test
     fun testIfFolding() {
-        testFolding("""
+        testFolding(
+            """
             <fold text='...'>if true then
                 print(1)
             else
                 print(2)
             end</fold>
-        """)
+        """,
+        )
     }
 
     @Test
     fun testWhileFolding() {
-        testFolding("""
+        testFolding(
+            """
             <fold text='...'>while true do
                 print(1)
             end</fold>
-        """)
+        """,
+        )
     }
 }

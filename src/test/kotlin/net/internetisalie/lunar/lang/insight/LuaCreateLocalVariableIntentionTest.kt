@@ -7,7 +7,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaCreateLocalVariableIntentionTest : BasePlatformTestCase() {
-
     // TC1: simple write target → local declaration.
     @Test
     fun `test create local on simple write target`() {

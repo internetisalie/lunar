@@ -11,8 +11,13 @@ import com.intellij.ui.content.ContentFactory
  * Registers the LuaRocks dependency tool window. The actual UI lives in [DependencyTreePanel]; this
  * factory wires it into a single content tab and kicks off the first resolution.
  */
-class LuaRocksToolWindowFactory : ToolWindowFactory, DumbAware {
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+class LuaRocksToolWindowFactory :
+    ToolWindowFactory,
+    DumbAware {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         toolWindow.stripeTitle = "LuaRocks Dependencies"
         toolWindow.title = "LuaRocks Dependencies"
         val panel = DependencyTreePanel(project)

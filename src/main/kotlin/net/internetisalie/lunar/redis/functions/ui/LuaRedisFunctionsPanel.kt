@@ -43,15 +43,17 @@ private val log = logger<LuaRedisFunctionsPanel>()
  *
  * Holds only [Project]; no retained PSI/VFS/RespClient refs (engineering-contract §4).
  */
-class LuaRedisFunctionsPanel(private val project: Project) : JPanel(BorderLayout()) {
-
+class LuaRedisFunctionsPanel(
+    private val project: Project,
+) : JPanel(BorderLayout()) {
     private val controller = LuaRedisFunctionsController()
     private val scope get() = LunarCoroutineScopeService.getInstance(project).scope
     private val treeModel = DefaultTreeModel(DefaultMutableTreeNode("Redis Functions"))
-    private val tree = Tree(treeModel).apply {
-        isRootVisible = true
-        cellRenderer = FunctionsCellRenderer()
-    }
+    private val tree =
+        Tree(treeModel).apply {
+            isRootVisible = true
+            cellRenderer = FunctionsCellRenderer()
+        }
     private val statusLabel = JBLabel("")
     private val connectionSelector = JComboBox<ConnectionItem>()
     private var loadedEntries: List<RedisLibraryEntry> = emptyList()
@@ -67,16 +69,22 @@ class LuaRedisFunctionsPanel(private val project: Project) : JPanel(BorderLayout
         val toolbar = JPanel(BorderLayout())
         toolbar.add(connectionSelector, BorderLayout.CENTER)
         val buttons = JPanel()
-        buttons.add(JButton(AllIcons.Actions.Refresh).apply {
-            toolTipText = "Refresh"
-            addActionListener { refresh() }
-        })
-        buttons.add(JButton("Deploy").apply {
-            addActionListener { onDeploy() }
-        })
-        buttons.add(JButton("Delete").apply {
-            addActionListener { onDelete() }
-        })
+        buttons.add(
+            JButton(AllIcons.Actions.Refresh).apply {
+                toolTipText = "Refresh"
+                addActionListener { refresh() }
+            },
+        )
+        buttons.add(
+            JButton("Deploy").apply {
+                addActionListener { onDeploy() }
+            },
+        )
+        buttons.add(
+            JButton("Delete").apply {
+                addActionListener { onDelete() }
+            },
+        )
         toolbar.add(buttons, BorderLayout.EAST)
         return toolbar
     }
@@ -150,36 +158,41 @@ class LuaRedisFunctionsPanel(private val project: Project) : JPanel(BorderLayout
 
     private fun onDeploy() {
         val connection = selectedConnection() ?: return
-        val entry = selectedLibrary() ?: run {
-            Messages.showInfoMessage(project, "Select a library to deploy.", "Deploy")
-            return
-        }
-        val localBody = localBodies[entry.name] ?: run {
-            Messages.showInfoMessage(project, "No local file body found for '${entry.name}'.", "Deploy")
-            return
-        }
-        val confirmed = Messages.showYesNoDialog(
-            project,
-            "Deploy local '${entry.name}' to the server (FUNCTION LOAD REPLACE)?",
-            "Deploy Library",
-            Messages.getQuestionIcon(),
-        )
+        val entry =
+            selectedLibrary() ?: run {
+                Messages.showInfoMessage(project, "Select a library to deploy.", "Deploy")
+                return
+            }
+        val localBody =
+            localBodies[entry.name] ?: run {
+                Messages.showInfoMessage(project, "No local file body found for '${entry.name}'.", "Deploy")
+                return
+            }
+        val confirmed =
+            Messages.showYesNoDialog(
+                project,
+                "Deploy local '${entry.name}' to the server (FUNCTION LOAD REPLACE)?",
+                "Deploy Library",
+                Messages.getQuestionIcon(),
+            )
         if (confirmed != Messages.YES) return
         runPanelOperation(connection) { ctrl, conn -> ctrl.deploy(conn, localBody) }
     }
 
     private fun onDelete() {
         val connection = selectedConnection() ?: return
-        val entry = selectedLibrary() ?: run {
-            Messages.showInfoMessage(project, "Select a library to delete.", "Delete")
-            return
-        }
-        val confirmed = Messages.showYesNoDialog(
-            project,
-            "Delete library '${entry.name}' from the server?",
-            "Delete Library",
-            Messages.getQuestionIcon(),
-        )
+        val entry =
+            selectedLibrary() ?: run {
+                Messages.showInfoMessage(project, "Select a library to delete.", "Delete")
+                return
+            }
+        val confirmed =
+            Messages.showYesNoDialog(
+                project,
+                "Delete library '${entry.name}' from the server?",
+                "Delete Library",
+                Messages.getQuestionIcon(),
+            )
         if (confirmed != Messages.YES) return
         runPanelOperation(connection) { ctrl, conn -> ctrl.delete(conn, entry.name) }
     }
@@ -233,11 +246,12 @@ class LuaRedisFunctionsPanel(private val project: Project) : JPanel(BorderLayout
 
         private fun renderLibrary(entry: RedisLibraryEntry) {
             val localBody = localBodies[entry.name]
-            val drift = if (localBody != null) {
-                LuaRedisFunctionDrift.compare(entry.libraryCode, localBody)
-            } else {
-                DriftStatus.UNKNOWN
-            }
+            val drift =
+                if (localBody != null) {
+                    LuaRedisFunctionDrift.compare(entry.libraryCode, localBody)
+                } else {
+                    DriftStatus.UNKNOWN
+                }
             icon = if (drift == DriftStatus.DRIFTED) AllIcons.General.Warning else AllIcons.Nodes.Package
             val driftLabel = if (drift == DriftStatus.DRIFTED) " [DRIFTED]" else ""
             text = "${entry.name}$driftLabel"
@@ -254,7 +268,9 @@ class LuaRedisFunctionsPanel(private val project: Project) : JPanel(BorderLayout
     // Connection selector model item
     // -----------------------------------------------------------------------
 
-    private data class ConnectionItem(val connection: LuaRedisServerConnection) {
+    private data class ConnectionItem(
+        val connection: LuaRedisServerConnection,
+    ) {
         override fun toString(): String = connection.name
     }
 }

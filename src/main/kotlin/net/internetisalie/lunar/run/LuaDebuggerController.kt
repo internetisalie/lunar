@@ -77,11 +77,12 @@ class LuaDebuggerController(
         serverPort = (this.session.runProfile as? LuaRunConfiguration)?.debugPort
             ?: LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT
 
-        val workingDirectory: String = listOfNotNull(
-            (this.session.runProfile as? LuaRunConfiguration)?.workingDirectory,
-            session.project.basePath,
-            "",
-        ).first()
+        val workingDirectory: String =
+            listOfNotNull(
+                (this.session.runProfile as? LuaRunConfiguration)?.workingDirectory,
+                session.project.basePath,
+                "",
+            ).first()
 
         val baseDir = if (!workingDirectory.endsWith("/")) "$workingDirectory/" else workingDirectory
         this.baseDir = baseDir
@@ -89,7 +90,10 @@ class LuaDebuggerController(
         workingDir = File(baseDir)
     }
 
-    fun printToConsole(text: String?, contentType: ConsoleViewContentType) {
+    fun printToConsole(
+        text: String?,
+        contentType: ConsoleViewContentType,
+    ) {
         val console = this.console
         if (console == null) {
             log.error("Console not set")
@@ -107,9 +111,10 @@ class LuaDebuggerController(
     @Throws(IOException::class)
     suspend fun connect() {
         log.info("Starting Debug Controller")
-        val server = withContext(Dispatchers.IO) {
-            ServerSocket(serverPort).apply { soTimeout = CONNECT_TIMEOUT_MS }
-        }
+        val server =
+            withContext(Dispatchers.IO) {
+                ServerSocket(serverPort).apply { soTimeout = CONNECT_TIMEOUT_MS }
+            }
         serverSocket = server
 
         val clientSocket = withContext(Dispatchers.IO) { server.accept() }
@@ -127,13 +132,14 @@ class LuaDebuggerController(
 
     fun terminate() {
         log.info("terminate")
-        scope.launch {
-            try {
-                connection?.send(DebugCommand(DebugCommandKind.EXIT))
-            } catch (e: Exception) {
-                log.info("EXIT send failed: ${e.message}")
-            }
-        }.invokeOnCompletion { close() }
+        scope
+            .launch {
+                try {
+                    connection?.send(DebugCommand(DebugCommandKind.EXIT))
+                } catch (e: Exception) {
+                    log.info("EXIT send failed: ${e.message}")
+                }
+            }.invokeOnCompletion { close() }
     }
 
     fun terminated() {
@@ -237,34 +243,40 @@ class LuaDebuggerController(
             // Re-parse each string value in the result to recover types from stringification
             val reparsedTable = LuaTable()
             for (value in table.indexed) {
-                val reparsed = if (value.kind == LuaValueKind.String) {
-                    LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
-                } else {
-                    value
-                }
+                val reparsed =
+                    if (value.kind == LuaValueKind.String) {
+                        LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
+                    } else {
+                        value
+                    }
                 reparsedTable.indexed.add(reparsed)
             }
             for ((key, value) in table.named) {
-                val reparsed = if (value.kind == LuaValueKind.String) {
-                    LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
-                } else {
-                    value
-                }
+                val reparsed =
+                    if (value.kind == LuaValueKind.String) {
+                        LuaDebugValueParser.parseStringAsLuaValue(session.project, value.stringValue ?: "") ?: value
+                    } else {
+                        value
+                    }
                 reparsedTable.named[key] = reparsed
             }
 
             // If the result is a single scalar value, return it directly instead of wrapping in table
-            val value = if (reparsedTable.indexed.size == 1 && reparsedTable.named.isEmpty()) {
-                reparsedTable.indexed[0]
-            } else {
-                LuaValue.newTable(reparsedTable)
-            }
+            val value =
+                if (reparsedTable.indexed.size == 1 && reparsedTable.named.isEmpty()) {
+                    reparsedTable.indexed[0]
+                } else {
+                    LuaValue.newTable(reparsedTable)
+                }
             LuaDebugValue(value, null, AllIcons.Nodes.Lambda)
         }
     }
 
     /** Bridge for [LuaDebuggerEvaluator] (XDebugger callback API): evaluate on [scope], report via [callback]. */
-    fun launchEvaluate(statement: String, callback: XDebuggerEvaluator.XEvaluationCallback) {
+    fun launchEvaluate(
+        statement: String,
+        callback: XDebuggerEvaluator.XEvaluationCallback,
+    ) {
         scope.launch {
             try {
                 callback.evaluated(execute(statement))
@@ -283,7 +295,10 @@ class LuaDebuggerController(
     }
 
     inner class DebugObserver : LuaDebugObserver {
-        override fun onPauseWatchpoint(pos: LuaPosition, watchIndex: Int) {
+        override fun onPauseWatchpoint(
+            pos: LuaPosition,
+            watchIndex: Int,
+        ) {
             log.info("watch $watchIndex at ${pos.path} line ${pos.line}")
             onPause(pos)
         }

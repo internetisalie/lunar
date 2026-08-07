@@ -19,7 +19,6 @@ import java.util.UUID
  */
 @RunWith(JUnit4::class)
 class LuaRedisFlavorWarningTest : BasePlatformTestCase() {
-
     @Test
     fun warnsExactlyOncePerConnectionOnMismatchAndSuppressesRepeat() {
         val balloons = captureBalloons()

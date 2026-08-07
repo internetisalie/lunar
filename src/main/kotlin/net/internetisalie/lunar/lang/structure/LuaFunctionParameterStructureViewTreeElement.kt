@@ -6,25 +6,17 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.PsiElement
 import javax.swing.Icon
 
-class LuaFunctionParameterStructureViewTreeElement(private var myIdentifier : PsiElement) : LuaStructureViewTreeElement(myIdentifier) {
-    override fun getPresentation(): ItemPresentation {
-        return object : ItemPresentation {
-            override fun getPresentableText(): String? {
-                return myIdentifier.text
-            }
+class LuaFunctionParameterStructureViewTreeElement(
+    private var myIdentifier: PsiElement,
+) : LuaStructureViewTreeElement(myIdentifier) {
+    override fun getPresentation(): ItemPresentation =
+        object : ItemPresentation {
+            override fun getPresentableText(): String? = myIdentifier.text
 
-            override fun getIcon(unused: Boolean): Icon {
-                return AllIcons.Nodes.Parameter
-            }
+            override fun getIcon(unused: Boolean): Icon = AllIcons.Nodes.Parameter
         }
-    }
 
+    override fun getChildren(): Array<TreeElement> = emptyArray()
 
-    override fun getChildren(): Array<TreeElement> {
-        return emptyArray()
-    }
-
-    override fun getValue(): Any {
-        return myIdentifier
-    }
+    override fun getValue(): Any = myIdentifier
 }

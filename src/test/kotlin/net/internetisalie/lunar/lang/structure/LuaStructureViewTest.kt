@@ -16,12 +16,9 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaStructureViewTest : BasePlatformTestCase() {
+    private fun luaFile(text: String): LuaFile = myFixture.configureByText("test.lua", text.trimIndent()) as LuaFile
 
-    private fun luaFile(text: String): LuaFile =
-        myFixture.configureByText("test.lua", text.trimIndent()) as LuaFile
-
-    private fun rootChildren(file: LuaFile): List<TreeElement> =
-        LuaFileStructureViewTreeElement(file).children.toList()
+    private fun rootChildren(file: LuaFile): List<TreeElement> = LuaFileStructureViewTreeElement(file).children.toList()
 
     // Phase 1: Factory & Model wiring — MAINT-11-01
 
@@ -61,15 +58,16 @@ class LuaStructureViewTest : BasePlatformTestCase() {
 
     @Test
     fun testTopLevelStatementsMapToNodeTypesInOrder() {
-        val luaSource = luaFile(
-            """
+        val luaSource =
+            luaFile(
+                """
             function foo() end
             local function bar() end
             local v = 1
             ::done::
             return 1
             """,
-        )
+            )
         val children = rootChildren(luaSource)
         assertEquals(5, children.size)
         assertInstanceOf(children[0], LuaFunctionStructureViewTreeElement::class.java)
@@ -82,8 +80,9 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testMultipleLocalVarsBecomeSeparateNodes() {
         val luaSource = luaFile("local a, b = 1, 2")
-        val variableNodes = rootChildren(luaSource)
-            .filterIsInstance<LuaLocalVariableStructureViewTreeElement>()
+        val variableNodes =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaLocalVariableStructureViewTreeElement>()
         assertEquals(2, variableNodes.size)
         assertEquals("a", variableNodes[0].presentation.presentableText)
         assertEquals("b", variableNodes[1].presentation.presentableText)
@@ -94,9 +93,10 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testGlobalFunctionParamsBeforeBlockChildren() {
         val luaSource = luaFile("function foo(p, q) local z = 1 end")
-        val functionNode = rootChildren(luaSource)
-            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
-            .first()
+        val functionNode =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+                .first()
         val functionChildren = functionNode.children.toList()
         assertEquals(3, functionChildren.size)
         assertInstanceOf(functionChildren[0], LuaFunctionParameterStructureViewTreeElement::class.java)
@@ -110,9 +110,10 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testGlobalFunctionPresentableTextAndIcon() {
         val luaSource = luaFile("function foo() end")
-        val functionNode = rootChildren(luaSource)
-            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
-            .first()
+        val functionNode =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+                .first()
         assertEquals("foo", functionNode.presentation.presentableText)
         assertSame(AllIcons.Nodes.Function, functionNode.presentation.getIcon(false))
     }
@@ -120,9 +121,10 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testLocalFunctionChildrenAndName() {
         val luaSource = luaFile("local function bar(n) return n end")
-        val localFunctionNode = rootChildren(luaSource)
-            .filterIsInstance<LuaLocalFunctionStructureViewTreeElement>()
-            .first()
+        val localFunctionNode =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaLocalFunctionStructureViewTreeElement>()
+                .first()
         assertEquals("bar", localFunctionNode.presentation.presentableText)
         val functionChildren = localFunctionNode.children.toList()
         assertEquals(2, functionChildren.size)
@@ -136,9 +138,10 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testLabelNodeLeafPresentation() {
         val luaSource = luaFile("::top::")
-        val labelNode = rootChildren(luaSource)
-            .filterIsInstance<LuaLabelStructureViewTreeElement>()
-            .first()
+        val labelNode =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaLabelStructureViewTreeElement>()
+                .first()
         assertEquals("top", labelNode.presentation.presentableText)
         assertSame(AllIcons.Nodes.Bookmark, labelNode.presentation.getIcon(false))
         assertEmpty(labelNode.children)
@@ -147,9 +150,10 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testReturnNodeLeafPresentation() {
         val luaSource = luaFile("return true")
-        val returnNode = rootChildren(luaSource)
-            .filterIsInstance<LuaReturnStructureViewTreeElement>()
-            .first()
+        val returnNode =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaReturnStructureViewTreeElement>()
+                .first()
         assertEquals("return", returnNode.presentation.presentableText)
         assertSame(AllIcons.Debugger.EvaluationResult, returnNode.presentation.getIcon(false))
         assertEmpty(returnNode.children)
@@ -158,9 +162,10 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testLocalVariableNodeLeafPresentation() {
         val luaSource = luaFile("local v = 1")
-        val variableNode = rootChildren(luaSource)
-            .filterIsInstance<LuaLocalVariableStructureViewTreeElement>()
-            .first()
+        val variableNode =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaLocalVariableStructureViewTreeElement>()
+                .first()
         assertEquals("v", variableNode.presentation.presentableText)
         assertSame(AllIcons.Nodes.Variable, variableNode.presentation.getIcon(false))
         assertEmpty(variableNode.children)
@@ -168,13 +173,14 @@ class LuaStructureViewTest : BasePlatformTestCase() {
 
     @Test
     fun testIsAlwaysLeafClassification() {
-        val luaSource = luaFile(
-            """
+        val luaSource =
+            luaFile(
+                """
             local v = 1
             ::top::
             return 1
             """,
-        )
+            )
         val structureModel = LuaStructureViewModel(luaSource)
         val children = rootChildren(luaSource)
         val variableNode = children.filterIsInstance<LuaLocalVariableStructureViewTreeElement>().first()
@@ -185,9 +191,10 @@ class LuaStructureViewTest : BasePlatformTestCase() {
         assertTrue(structureModel.isAlwaysLeaf(returnNode))
 
         val functionSource = luaFile("function foo() end")
-        val functionNode = rootChildren(functionSource)
-            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
-            .first()
+        val functionNode =
+            rootChildren(functionSource)
+                .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+                .first()
         assertFalse(structureModel.isAlwaysLeaf(functionNode))
     }
 
@@ -195,23 +202,25 @@ class LuaStructureViewTest : BasePlatformTestCase() {
 
     @Test
     fun testUnsupportedTopLevelStatementsRouteToEmpty() {
-        val luaSource = luaFile(
-            """
+        val luaSource =
+            luaFile(
+                """
             if true then end
             while true do end
             x = 1
             """,
-        )
+            )
         assertEmpty(TreeElementUtils.getRootChildren(luaSource))
     }
 
     @Test
     fun testGetFuncBodyChildrenParamsThenBlock() {
         val luaSource = luaFile("function foo(p) local q = 1 end")
-        val functionDecl = rootChildren(luaSource)
-            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
-            .first()
-            .value as LuaFuncDecl
+        val functionDecl =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+                .first()
+                .value as LuaFuncDecl
         val bodyChildren = TreeElementUtils.getFuncBodyChildren(functionDecl.parList, functionDecl.block)
         assertEquals(2, bodyChildren.size)
         assertInstanceOf(bodyChildren[0], LuaFunctionParameterStructureViewTreeElement::class.java)
@@ -223,10 +232,11 @@ class LuaStructureViewTest : BasePlatformTestCase() {
     @Test
     fun testGetFuncBodyChildrenHandlesEmptyBody() {
         val luaSource = luaFile("function foo() end")
-        val functionDecl = rootChildren(luaSource)
-            .filterIsInstance<LuaFunctionStructureViewTreeElement>()
-            .first()
-            .value as LuaFuncDecl
+        val functionDecl =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaFunctionStructureViewTreeElement>()
+                .first()
+                .value as LuaFuncDecl
         val bodyChildren = TreeElementUtils.getFuncBodyChildren(functionDecl.parList, functionDecl.block)
         assertEmpty(bodyChildren)
     }

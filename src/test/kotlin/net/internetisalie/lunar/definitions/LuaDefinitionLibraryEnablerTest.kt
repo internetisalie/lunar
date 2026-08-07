@@ -2,10 +2,10 @@ package net.internetisalie.lunar.definitions
 
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
-import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.settings.LuaProjectSettings
@@ -21,7 +21,6 @@ import java.nio.file.Path
  * page actually does.
  */
 class LuaDefinitionLibraryEnablerTest : BasePlatformTestCase() {
-
     private lateinit var cacheRoot: Path
 
     private val settings get() = LuaProjectSettings.getInstance(project)
@@ -146,7 +145,11 @@ class LuaDefinitionLibraryEnablerTest : BasePlatformTestCase() {
         val messages = mutableListOf<String>()
         val types = mutableListOf<NotificationType>()
 
-        override fun notify(project: Project, message: String, type: NotificationType) {
+        override fun notify(
+            project: Project,
+            message: String,
+            type: NotificationType,
+        ) {
             messages += message
             types += type
         }

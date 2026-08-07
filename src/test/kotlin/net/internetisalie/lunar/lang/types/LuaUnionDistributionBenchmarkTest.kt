@@ -23,7 +23,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaUnionDistributionBenchmarkTest : BasePlatformTestCase() {
-
     private lateinit var anchor: PsiElement
 
     override fun setUp() {
@@ -32,15 +31,20 @@ class LuaUnionDistributionBenchmarkTest : BasePlatformTestCase() {
     }
 
     /** A single-field exact table whose one field is a required (non-nil) Number — forces work. */
-    private fun tableWith(graph: LuaTypeGraph, field: String): LuaGraphType.Table {
+    private fun tableWith(
+        graph: LuaTypeGraph,
+        field: String,
+    ): LuaGraphType.Table {
         val memberNode = graph.variable(anchor)
         memberNode.downSet.add(graph.use(anchor, LuaGraphType.Number))
         return LuaGraphType.Table(className = null, localMembers = mutableMapOf(field to memberNode), isExact = true)
     }
 
     /** A disjoint single-field-table union of [count] members, built in [graph]. */
-    private fun union(graph: LuaTypeGraph, count: Int): LuaGraphType.Union =
-        LuaGraphType.Union((1..count).map { tableWith(graph, "f$it") }.toSet())
+    private fun union(
+        graph: LuaTypeGraph,
+        count: Int,
+    ): LuaGraphType.Union = LuaGraphType.Union((1..count).map { tableWith(graph, "f$it") }.toSet())
 
     /**
      * Times one fresh compatibility run: a [count]-member union value checked against a single
@@ -59,7 +63,10 @@ class LuaUnionDistributionBenchmarkTest : BasePlatformTestCase() {
         return System.nanoTime() - start
     }
 
-    private fun medianNanos(count: Int, iterations: Int): Long {
+    private fun medianNanos(
+        count: Int,
+        iterations: Int,
+    ): Long {
         val samples = LongArray(iterations) { timeOneRun(count) }
         return samples.sorted()[iterations / 2]
     }
@@ -67,7 +74,8 @@ class LuaUnionDistributionBenchmarkTest : BasePlatformTestCase() {
     @Test
     fun testUnionDistributionStaysWithinRelativeBudget() {
         val iterations = 1000
-        repeat(20) { // warm up the JIT across all three shapes
+        repeat(20) {
+            // warm up the JIT across all three shapes
             timeOneRun(1)
             timeOneRun(5)
             timeOneRun(20)
@@ -88,7 +96,13 @@ class LuaUnionDistributionBenchmarkTest : BasePlatformTestCase() {
         // ≤5 members: near-constant overhead — within a generous constant factor of the baseline.
         assertTrue("5-member median ($fiveNs ns) must stay within 10× the baseline ($baselineNs ns)", fiveRatio < 10.0)
         // ≤20 members: graceful degradation — looser ratio plus an absolute 5ms ceiling backstop.
-        assertTrue("20-member median ($twentyNs ns) must stay within 25× the baseline ($baselineNs ns)", twentyRatio < 25.0)
-        assertTrue("20-member median must stay under the 5ms absolute ceiling (was $twentyNs ns)", twentyNs < 5_000_000L)
+        assertTrue(
+            "20-member median ($twentyNs ns) must stay within 25× the baseline ($baselineNs ns)",
+            twentyRatio < 25.0,
+        )
+        assertTrue(
+            "20-member median must stay under the 5ms absolute ceiling (was $twentyNs ns)",
+            twentyNs < 5_000_000L,
+        )
     }
 }

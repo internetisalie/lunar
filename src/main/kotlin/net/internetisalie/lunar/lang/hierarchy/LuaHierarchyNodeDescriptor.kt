@@ -20,8 +20,8 @@ class LuaHierarchyNodeDescriptor(
     element: PsiElement,
     private val displayName: String,
     isBase: Boolean,
-) : HierarchyNodeDescriptor(element.project, parentDescriptor, element, isBase), Navigatable {
-
+) : HierarchyNodeDescriptor(element.project, parentDescriptor, element, isBase),
+    Navigatable {
     override fun update(): Boolean {
         var changes = super.update()
         val oldText = myHighlightedText

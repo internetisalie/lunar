@@ -23,7 +23,6 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag
  * bare `@param` also carry `@tparam`/`@treturn`, so a marker-based signal misclassifies most of them.
  */
 object LuaCatsDeclaredType {
-
     /**
      * Characters that only appear in type syntax — unions, arrays, generics, optionals, function
      * types, table literals and string literals. Any of them means the text was parsed as a
@@ -48,7 +47,10 @@ object LuaCatsDeclaredType {
      * keeps (resolves); `@param b Builder the builder` keeps when `Builder` is declared;
      * `@param a Player` keeps regardless, having no description to be the first word of.
      */
-    fun isType(tag: LuaCatsParamTag, comment: LuaCatsComment): Boolean {
+    fun isType(
+        tag: LuaCatsParamTag,
+        comment: LuaCatsComment,
+    ): Boolean {
         val text = tag.argType.text.trim()
         if (text.isEmpty()) return false
         if (STRUCTURAL.any { it in text }) return true

@@ -30,7 +30,6 @@ import net.internetisalie.lunar.lang.psi.LuaStatement
  * disjoint (the file graph does not descend into function bodies), so no statement is judged twice.
  */
 class LuaUnreachableCodeInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaUnreachableCode"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -41,28 +40,34 @@ class LuaUnreachableCodeInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
 
-    override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
+    override fun checkFile(
+        file: PsiFile,
+        manager: InspectionManager,
+        isOnTheFly: Boolean,
+    ): Array<ProblemDescriptor>? {
         if (file !is LuaFile) return null
         val heads = scopeOwners(file).flatMap { unreachableHeads(it) }.distinct()
         if (heads.isEmpty()) return null
-        return heads.map { stmt ->
-            manager.createProblemDescriptor(
-                stmt,
-                MESSAGE,
-                isOnTheFly,
-                arrayOf<LocalQuickFix>(LuaRemoveUnreachableCodeQuickFix()),
-                ProblemHighlightType.LIKE_UNUSED_SYMBOL,
-            )
-        }.toTypedArray()
+        return heads
+            .map { stmt ->
+                manager.createProblemDescriptor(
+                    stmt,
+                    MESSAGE,
+                    isOnTheFly,
+                    arrayOf<LocalQuickFix>(LuaRemoveUnreachableCodeQuickFix()),
+                    ProblemHighlightType.LIKE_UNUSED_SYMBOL,
+                )
+            }.toTypedArray()
     }
 
     /** The owners [ControlFlowCache.getControlFlow] accepts: the file, plus every function at any depth. */
-    private fun scopeOwners(file: LuaFile): List<ScopeOwner> = buildList {
-        add(file)
-        addAll(PsiTreeUtil.findChildrenOfType(file, LuaFuncDecl::class.java))
-        addAll(PsiTreeUtil.findChildrenOfType(file, LuaLocalFuncDecl::class.java))
-        addAll(PsiTreeUtil.findChildrenOfType(file, LuaFuncDef::class.java))
-    }
+    private fun scopeOwners(file: LuaFile): List<ScopeOwner> =
+        buildList {
+            add(file)
+            addAll(PsiTreeUtil.findChildrenOfType(file, LuaFuncDecl::class.java))
+            addAll(PsiTreeUtil.findChildrenOfType(file, LuaLocalFuncDecl::class.java))
+            addAll(PsiTreeUtil.findChildrenOfType(file, LuaFuncDef::class.java))
+        }
 
     /**
      * Returns the *head* statement of every dead run within [owner]'s control flow, in document order.
@@ -98,7 +103,10 @@ class LuaUnreachableCodeInspection : LocalInspectionTool() {
         return result
     }
 
-    private fun isHeadOfDeadRun(stmt: LuaStatement, reachable: Map<LuaStatement, Boolean>): Boolean {
+    private fun isHeadOfDeadRun(
+        stmt: LuaStatement,
+        reachable: Map<LuaStatement, Boolean>,
+    ): Boolean {
         val previous = previousStatementSibling(stmt)
         if (previous != null) {
             // Continuation when the preceding sibling is itself dead; a reachable (or node-less) one
@@ -126,14 +134,17 @@ class LuaUnreachableCodeInspection : LocalInspectionTool() {
 }
 
 class LuaRemoveUnreachableCodeQuickFix : LocalQuickFix {
-
     override fun getFamilyName(): String = "Remove unreachable code"
 
-    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+    override fun applyFix(
+        project: Project,
+        descriptor: ProblemDescriptor,
+    ) {
         val element = descriptor.psiElement ?: return
-        val statement = element as? LuaStatement
-            ?: PsiTreeUtil.getParentOfType(element, LuaStatement::class.java)
-            ?: return
+        val statement =
+            element as? LuaStatement
+                ?: PsiTreeUtil.getParentOfType(element, LuaStatement::class.java)
+                ?: return
         statement.delete()
     }
 }

@@ -17,9 +17,11 @@ import java.util.UUID
  * binary and asserts a non-dispatch thread.
  */
 object LuaEnvironmentAdopter {
-
     /** Registers every kind binary found in [directory], then upserts+activates the env; `null` if none. */
-    fun adopt(project: Project, directory: String): LuaEnvironmentState? {
+    fun adopt(
+        project: Project,
+        directory: String,
+    ): LuaEnvironmentState? {
         val environmentId = UUID.randomUUID().toString()
         val toolIds = mutableListOf<String>()
         for (kind in LuaToolKindRegistry.all()) {
@@ -32,28 +34,38 @@ object LuaEnvironmentAdopter {
                 id = environmentId,
                 name = File(directory).name,
                 rootDir = directory,
-                toolIds = toolIds
-            )
+                toolIds = toolIds,
+            ),
         )
     }
 
-    private fun registerKindBinary(kind: LuaToolKind, directory: String, environmentId: String): String? {
+    private fun registerKindBinary(
+        kind: LuaToolKind,
+        directory: String,
+        environmentId: String,
+    ): String? {
         for (base in kind.binaryNames) {
             for (candidate in candidatePaths(directory, base)) {
                 if (!isExecutableFile(candidate)) continue
-                val registered = LuaToolchainRegistry.getInstance()
-                    .registerTool(candidate, kind.id, Origin.DISCOVERED, environmentId)
+                val registered =
+                    LuaToolchainRegistry
+                        .getInstance()
+                        .registerTool(candidate, kind.id, Origin.DISCOVERED, environmentId)
                 if (registered != null) return registered.id
             }
         }
         return null
     }
 
-    private fun candidatePaths(directory: String, base: String): List<String> = listOf(
-        "$directory/bin/$base",
-        "$directory/$base.exe",
-        "$directory/$base.bat"
-    )
+    private fun candidatePaths(
+        directory: String,
+        base: String,
+    ): List<String> =
+        listOf(
+            "$directory/bin/$base",
+            "$directory/$base.exe",
+            "$directory/$base.bat",
+        )
 
     private fun isExecutableFile(path: String): Boolean {
         val file = File(path)

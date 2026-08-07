@@ -5,14 +5,16 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVarOrExp
-import net.internetisalie.lunar.lang.psi.LuaFuncCall
 
-class LuaTestRunLineMarkerProvider : RunLineMarkerContributor(), DumbAware {
+class LuaTestRunLineMarkerProvider :
+    RunLineMarkerContributor(),
+    DumbAware {
     override fun getInfo(element: PsiElement): Info? {
         val elementType = element.node.elementType
         if (elementType != LuaElementTypes.IDENTIFIER) return null

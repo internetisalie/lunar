@@ -7,7 +7,6 @@ import com.intellij.openapi.application.WriteAction
  * Tests for Lua inlay hints settings functionality.
  */
 class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
-
     override fun setUp() {
         super.setUp()
         // Enable all inlay hint categories for testing by default
@@ -19,11 +18,15 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         LuaInlayHintsSettings.instance.state.largeFileThreshold = 100000
     }
 
-    private fun setOptionEnabled(optionId: String, enabled: Boolean) {
-        val providerId = when (optionId) {
-            LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID -> LuaMethodChainInlayHintProvider.PROVIDER_ID
-            else -> LuaTypeInlayHintProvider.PROVIDER_ID
-        }
+    private fun setOptionEnabled(
+        optionId: String,
+        enabled: Boolean,
+    ) {
+        val providerId =
+            when (optionId) {
+                LuaMethodChainInlayHintProvider.METHOD_CHAIN_OPTION_ID -> LuaMethodChainInlayHintProvider.PROVIDER_ID
+                else -> LuaTypeInlayHintProvider.PROVIDER_ID
+            }
         WriteAction.run<RuntimeException> {
             DeclarativeInlayHintsSettings.getInstance().setOptionEnabled(optionId, providerId, enabled)
         }
@@ -33,11 +36,15 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         // Disable local variable hints
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             local x = 42
             local function greet(name) end
             greet("hello")
-        """.trimIndent(), LuaTypeInlayHintProvider())
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
     }
 
     fun testLocalVariableHintsEnabled() {
@@ -46,19 +53,27 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             local x/*<# : number #>*/ = 42
-        """.trimIndent(), LuaTypeInlayHintProvider())
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
     }
 
     fun testParameterHintsDisabled() {
         // Disable parameter hints provider
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             local function move(posX/*<# : number #>*/, posY/*<# : number #>*/) end
             move(10, 20)
-        """.trimIndent(), LuaParameterInlayHintsProvider())
+            """.trimIndent(),
+            LuaParameterInlayHintsProvider(),
+        )
     }
 
     fun testParameterHintsEnabled() {
@@ -67,10 +82,14 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             local function move(posX, posY) end
             move(/*<# posX: #>*/10, /*<# posY: #>*/20)
-        """.trimIndent(), LuaParameterInlayHintsProvider())
+            """.trimIndent(),
+            LuaParameterInlayHintsProvider(),
+        )
     }
 
     fun testReturnTypeHintsDisabled() {
@@ -79,11 +98,15 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             local function double()
                 return 42
             end
-        """.trimIndent(), LuaTypeInlayHintProvider())
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
     }
 
     fun testReturnTypeHintsEnabled() {
@@ -92,11 +115,15 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setOptionEnabled(LuaTypeInlayHintProvider.LOCAL_VARIABLE_TYPE_OPTION_ID, false)
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             local function double()/*<# : number #>*/
                 return 42
             end
-        """.trimIndent(), LuaTypeInlayHintProvider())
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
     }
 
     fun testRespectAnnotationsEnabled() {
@@ -106,10 +133,14 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             ---@type number
             local x = 42
-        """.trimIndent(), LuaTypeInlayHintProvider())
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
     }
 
     fun testRespectAnnotationsDisabled() {
@@ -119,10 +150,14 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             ---@type number
             local x/*<# : number #>*/ = 42
-        """.trimIndent(), LuaTypeInlayHintProvider())
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
     }
 
     fun testMethodChainHintsEnabled() {
@@ -133,7 +168,9 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
         // A multi-line chain shows the resolved return type after the intermediate call.
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             ---@class Builder
             local Builder = {}
 
@@ -146,7 +183,9 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
             local obj = Builder
             obj:m1()
                :m2()/*<# : Builder #>*/
-        """.trimIndent(), LuaMethodChainInlayHintProvider())
+            """.trimIndent(),
+            LuaMethodChainInlayHintProvider(),
+        )
     }
 
     fun testMethodChainHintsDisabled() {
@@ -156,7 +195,9 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
         setProviderEnabled(LuaParameterInlayHintsProvider.PROVIDER_ID, false)
         setOptionEnabled(LuaTypeInlayHintProvider.RETURN_TYPE_OPTION_ID, false)
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             ---@class Builder
             local Builder = {}
 
@@ -169,16 +210,22 @@ class LuaInlayHintsSettingsTest : LuaInlayHintsTestCase() {
             local obj = Builder
             obj:m1()
                :m2()
-        """.trimIndent(), LuaMethodChainInlayHintProvider())
+            """.trimIndent(),
+            LuaMethodChainInlayHintProvider(),
+        )
     }
 
     fun testLargeFileThreshold() {
         // Set a very low threshold - file should be skipped
         LuaInlayHintsSettings.instance.state.largeFileThreshold = 1 // File has more than 1 line
 
-        doLuaTestProvider("test.lua", """
+        doLuaTestProvider(
+            "test.lua",
+            """
             local x = 42
             local y = 10
-        """.trimIndent(), LuaTypeInlayHintProvider())
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
     }
 }

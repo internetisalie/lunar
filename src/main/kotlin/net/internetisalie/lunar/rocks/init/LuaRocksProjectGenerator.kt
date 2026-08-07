@@ -19,13 +19,11 @@ import javax.swing.Icon
  * Registered via `directoryProjectGenerator` EP in plugin.xml (see §7 of the design doc).
  */
 class LuaRocksProjectGenerator : DirectoryProjectGeneratorBase<LuaRocksProjectSettings>() {
-
     override fun getName(): String = "LuaRocks"
 
     override fun getLogo(): Icon = LuaIcons.ROCKET
 
-    override fun createPeer(): ProjectGeneratorPeer<LuaRocksProjectSettings> =
-        LuaRocksGeneratorPeer()
+    override fun createPeer(): ProjectGeneratorPeer<LuaRocksProjectSettings> = LuaRocksGeneratorPeer()
 
     override fun validate(baseDirPath: String): ValidationResult {
         // Additional path-level validation; name validation is in the peer.

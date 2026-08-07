@@ -4,19 +4,11 @@ import com.intellij.openapi.fileTypes.LanguageFileType
 import javax.swing.Icon
 
 object LuaFileType : LanguageFileType(LuaLanguage) {
-    override fun getName(): String {
-        return "Lua"
-    }
+    override fun getName(): String = "Lua"
 
-    override fun getDescription(): String {
-        return "Lua language file"
-    }
+    override fun getDescription(): String = "Lua language file"
 
-    override fun getDefaultExtension(): String {
-        return "lua"
-    }
+    override fun getDefaultExtension(): String = "lua"
 
-    override fun getIcon(): Icon {
-        return LuaIcons.FILE
-    }
+    override fun getIcon(): Icon = LuaIcons.FILE
 }

@@ -17,7 +17,6 @@ import net.internetisalie.lunar.rocks.LuaRocksEnvironment
  * [RockUploadCommandTest].
  */
 object RockUploadCommand {
-
     /**
      * Assembles the subcommand argument list for `luarocks upload` (without `--server`, which
      * is a global flag handled by [build]).

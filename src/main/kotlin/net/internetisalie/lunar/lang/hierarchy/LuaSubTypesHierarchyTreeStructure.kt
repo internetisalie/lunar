@@ -20,9 +20,10 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypeReference
  * Mirrors `com.jetbrains.python.hierarchy.treestructures.PySubTypesHierarchyTreeStructure`, which
  * delegates the reverse walk to a search; here the walk is the index scan.
  */
-class LuaSubTypesHierarchyTreeStructure(decl: LuaLocalVarDecl, name: String) :
-    HierarchyTreeStructure(decl.project, LuaHierarchyNodeDescriptor(null, decl, name, true)) {
-
+class LuaSubTypesHierarchyTreeStructure(
+    decl: LuaLocalVarDecl,
+    name: String,
+) : HierarchyTreeStructure(decl.project, LuaHierarchyNodeDescriptor(null, decl, name, true)) {
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<Any?> {
         val decl = descriptor.psiElement as? LuaLocalVarDecl ?: return emptyArray()
         val targetName = LuaHierarchyUtil.className(decl) ?: return emptyArray()
@@ -42,18 +43,26 @@ class LuaSubTypesHierarchyTreeStructure(decl: LuaLocalVarDecl, name: String) :
     }
 
     /** True when [candidate] lists a supertype that resolves (by name) to [targetName]. */
-    private fun isDirectSubtypeOf(candidate: LuaClassType, targetName: String): Boolean =
-        candidate.superTypes.any { superTypeName(it) == targetName }
+    private fun isDirectSubtypeOf(
+        candidate: LuaClassType,
+        targetName: String,
+    ): Boolean = candidate.superTypes.any { superTypeName(it) == targetName }
 
-    private fun superTypeName(type: LuaType): String = when (type) {
-        is LuaClassType -> type.name
-        is LuaTypeReference -> (type.resolveType() as? LuaClassType)?.name ?: type.name
-        else -> type.name
-    }
+    private fun superTypeName(type: LuaType): String =
+        when (type) {
+            is LuaClassType -> type.name
+            is LuaTypeReference -> (type.resolveType() as? LuaClassType)?.name ?: type.name
+            else -> type.name
+        }
 
     /** The declaring element to wrap for [candidateName]; prefers the in-file decl for navigation. */
-    private fun subtypeDecl(project: Project, candidateName: String, context: PsiElement): LuaLocalVarDecl? =
-        LuaHierarchyUtil.classDeclarations(project, candidateName)
+    private fun subtypeDecl(
+        project: Project,
+        candidateName: String,
+        context: PsiElement,
+    ): LuaLocalVarDecl? =
+        LuaHierarchyUtil
+            .classDeclarations(project, candidateName)
             .firstOrNull { it.containingFile == context.containingFile }
             ?: LuaHierarchyUtil.classDeclaration(project, candidateName)
 }

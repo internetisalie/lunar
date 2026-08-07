@@ -7,19 +7,16 @@ import com.intellij.openapi.project.ProjectManager
 
 fun newAppBackgroundTask(
     description: String,
-    action : (ProgressIndicator)->Unit,
-) : Task.Backgroundable {
-    return newProjectBackgroundTask(description, ProjectManager.getInstance().defaultProject, action)
-}
+    action: (ProgressIndicator) -> Unit,
+): Task.Backgroundable = newProjectBackgroundTask(description, ProjectManager.getInstance().defaultProject, action)
 
 fun newProjectBackgroundTask(
     description: String,
     project: Project,
     action: (ProgressIndicator) -> Unit,
-) : Task.Backgroundable {
-    return object : Task.Backgroundable(project, description, false) {
+): Task.Backgroundable =
+    object : Task.Backgroundable(project, description, false) {
         override fun run(indicator: ProgressIndicator) {
             action(indicator)
         }
     }
-}

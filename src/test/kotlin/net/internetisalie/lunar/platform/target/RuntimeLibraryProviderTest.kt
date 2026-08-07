@@ -20,10 +20,11 @@ class RuntimeLibraryProviderTest {
         val descriptor = LightProjectDescriptor()
         val factory = IdeaTestFixtureFactory.getFixtureFactory()
         val builder = factory.createLightFixtureBuilder(descriptor, "RuntimeLibraryProviderTest")
-        fixture = factory.createCodeInsightFixture(
-            builder.fixture,
-            LightTempDirTestFixtureImpl(false)
-        )
+        fixture =
+            factory.createCodeInsightFixture(
+                builder.fixture,
+                LightTempDirTestFixtureImpl(false),
+            )
         fixture.setUp()
     }
 
@@ -107,7 +108,7 @@ class RuntimeLibraryProviderTest {
             val expectedPath = "runtime/standard/lua-5.4"
             assertTrue(
                 root.path.endsWith(expectedPath),
-                "Library root path should end with $expectedPath, got ${root.path}"
+                "Library root path should end with $expectedPath, got ${root.path}",
             )
         }
     }

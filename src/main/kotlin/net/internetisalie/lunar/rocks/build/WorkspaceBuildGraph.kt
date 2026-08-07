@@ -7,7 +7,6 @@ import com.intellij.openapi.progress.ProgressManager
  * Pure; no platform access.
  */
 object WorkspaceBuildGraph {
-
     /**
      * Edges: A depends-on B (A→B) iff A.dependencyNames contains B.packageName (normalized),
      * A != B, and B is in [rocks]. External names are ignored.
@@ -51,10 +50,11 @@ object WorkspaceBuildGraph {
         for (node in nodes) {
             ProgressManager.checkCanceled()
             val rock = byName.getValue(node)
-            val deps = rock.dependencyNames
-                .map { it.lowercase() }
-                .filter { it != node && it in byName }
-                .toSet()
+            val deps =
+                rock.dependencyNames
+                    .map { it.lowercase() }
+                    .filter { it != node && it in byName }
+                    .toSet()
 
             outDeg[node] = deps.size
             for (dep in deps) {

@@ -19,7 +19,6 @@ import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
  * suffix if already bound locally). Returns null for GLOBAL_STYLE (no binding).
  */
 class LuaImportNameResolver {
-
     fun resolve(
         file: VirtualFile,
         exportStyle: LuaExportStyle,
@@ -34,19 +33,28 @@ class LuaImportNameResolver {
     }
 
     /** The module's single `@class` name, read the same way the type engine does (stub or cats tag). */
-    private fun resolveFromClassAnnotation(file: VirtualFile, project: Project): String? {
+    private fun resolveFromClassAnnotation(
+        file: VirtualFile,
+        project: Project,
+    ): String? {
         if (DumbService.isDumb(project)) return null
         val psiFile = PsiManager.getInstance(project).findFile(file) as? LuaFile ?: return null
-        val classNames = PsiTreeUtil.findChildrenOfType(psiFile, LuaLocalVarDecl::class.java)
-            .mapNotNull { classNameOf(it) }
-            .filter { it.isNotEmpty() }
+        val classNames =
+            PsiTreeUtil
+                .findChildrenOfType(psiFile, LuaLocalVarDecl::class.java)
+                .mapNotNull { classNameOf(it) }
+                .filter { it.isNotEmpty() }
         return classNames.singleOrNull()
     }
 
     private fun classNameOf(decl: LuaLocalVarDecl): String? {
         decl.stub?.luacatsClassName?.let { return it.trim() }
         val cats = LuaPsiImplUtil.getCatsComment(decl) ?: return null
-        return cats.classTagList.firstOrNull()?.argType?.text?.trim()
+        return cats.classTagList
+            .firstOrNull()
+            ?.argType
+            ?.text
+            ?.trim()
     }
 
     private fun resolveFromFilename(file: VirtualFile): String =
@@ -54,7 +62,10 @@ class LuaImportNameResolver {
             .replace(Regex("[-\\s]+"), "_")
             .lowercase()
 
-    private fun resolveConflict(name: String, currentFile: LuaFile): String {
+    private fun resolveConflict(
+        name: String,
+        currentFile: LuaFile,
+    ): String {
         val localNames = collectLocalNames(currentFile)
         if (name !in localNames) return name
         var suffix = 2

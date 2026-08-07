@@ -22,4 +22,7 @@ internal fun dottedMemberName(target: LuaVar): String? {
 
 /** The field-name identifier of the last dotted segment (the navigation target), or null. */
 internal fun memberFieldIdentifier(target: LuaVar): PsiElement? =
-    target.varSuffixList.lastOrNull()?.indexExpr?.nameRef
+    target.varSuffixList
+        .lastOrNull()
+        ?.indexExpr
+        ?.nameRef

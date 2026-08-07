@@ -15,10 +15,12 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  * `SERVER_*` globals, which have no `redis` equivalent.
  */
 class LuaValkeyToRedisQuickFix : LocalQuickFix {
-
     override fun getFamilyName(): String = "Replace 'server' with 'redis'"
 
-    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+    override fun applyFix(
+        project: Project,
+        descriptor: ProblemDescriptor,
+    ) {
         val serverRef = descriptor.psiElement as? LuaNameRef ?: return
         val identifierLeaf = serverRef.identifier
         WriteAction.run<RuntimeException> {

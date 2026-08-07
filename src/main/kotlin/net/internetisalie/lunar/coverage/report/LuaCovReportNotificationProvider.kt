@@ -15,15 +15,16 @@ import com.intellij.ui.EditorNotifications
 import java.util.function.Function
 import javax.swing.JComponent
 
-class LuaCovReportNotificationProvider : EditorNotificationProvider, DumbAware {
-
+class LuaCovReportNotificationProvider :
+    EditorNotificationProvider,
+    DumbAware {
     companion object {
         private val DISMISSED_KEY = Key.create<Boolean>("LuaCovReportNotificationDismissed")
     }
 
     override fun collectNotificationData(
         project: Project,
-        file: VirtualFile
+        file: VirtualFile,
     ): Function<in FileEditor, out JComponent?>? {
         if (file.fileType != LuaCovReportFileType) return null
         if (file.getUserData(DISMISSED_KEY) == true) return null

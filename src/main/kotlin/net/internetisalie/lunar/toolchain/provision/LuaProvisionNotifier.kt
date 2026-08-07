@@ -10,13 +10,22 @@ import com.intellij.openapi.project.Project
  * text is defined in one place.
  */
 interface LuaProvisionNotifier {
-    fun notify(project: Project, message: String, type: NotificationType)
+    fun notify(
+        project: Project,
+        message: String,
+        type: NotificationType,
+    )
 }
 
 /** Production notifier on the `notification.group.lunar.tools` group (`plugin.xml`). */
 class BalloonProvisionNotifier : LuaProvisionNotifier {
-    override fun notify(project: Project, message: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
+    override fun notify(
+        project: Project,
+        message: String,
+        type: NotificationType,
+    ) {
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP)
             .createNotification(message, type)
             .notify(project)

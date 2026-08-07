@@ -31,9 +31,10 @@ class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage)
     }
 
     private fun extractExportedType(file: LuaFile): String? {
-        val rootReturns = PsiTreeUtil.findChildrenOfType(file, LuaFinalStatement::class.java).filter { fs ->
-            fs.text.startsWith("return") && isAtRoot(fs)
-        }
+        val rootReturns =
+            PsiTreeUtil.findChildrenOfType(file, LuaFinalStatement::class.java).filter { fs ->
+                fs.text.startsWith("return") && isAtRoot(fs)
+            }
 
         if (rootReturns.isEmpty()) return null
 
@@ -41,7 +42,12 @@ class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage)
         for (lastReturn in rootReturns) {
             val returnCats = getCatsComment(lastReturn)
             if (returnCats != null) {
-                val typeStr = returnCats.getTypeTagList().firstOrNull()?.argType?.text
+                val typeStr =
+                    returnCats
+                        .getTypeTagList()
+                        .firstOrNull()
+                        ?.argType
+                        ?.text
                 if (typeStr != null) {
                     types.add(typeStr)
                     continue
@@ -60,8 +66,17 @@ class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage)
                             if (name in names) {
                                 val catsComment = getCatsComment(current)
                                 if (catsComment != null) {
-                                    val typeStr = catsComment.getTypeTagList().firstOrNull()?.argType?.text
-                                        ?: catsComment.getClassTagList().firstOrNull()?.argType?.text
+                                    val typeStr =
+                                        catsComment
+                                            .getTypeTagList()
+                                            .firstOrNull()
+                                            ?.argType
+                                            ?.text
+                                            ?: catsComment
+                                                .getClassTagList()
+                                                .firstOrNull()
+                                                ?.argType
+                                                ?.text
                                     if (typeStr != null) types.add(typeStr)
                                 }
                             }
@@ -71,7 +86,12 @@ class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage)
                 } else if (lastExpr is LuaTableConstructor) {
                     val catsComment = getCatsComment(lastExpr)
                     if (catsComment != null) {
-                        val typeStr = catsComment.getTypeTagList().firstOrNull()?.argType?.text
+                        val typeStr =
+                            catsComment
+                                .getTypeTagList()
+                                .firstOrNull()
+                                ?.argType
+                                ?.text
                         if (typeStr != null) types.add(typeStr)
                     }
                 }
@@ -104,11 +124,17 @@ class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage)
         return null
     }
 
-    override fun serialize(stub: LuaFileStub, dataStream: StubOutputStream) {
+    override fun serialize(
+        stub: LuaFileStub,
+        dataStream: StubOutputStream,
+    ) {
         dataStream.writeName(stub.exportedTypeString)
     }
 
-    override fun deserialize(dataStream: StubInputStream, parentStub: StubElement<*>?): LuaFileStub {
+    override fun deserialize(
+        dataStream: StubInputStream,
+        parentStub: StubElement<*>?,
+    ): LuaFileStub {
         val exportedTypeString = dataStream.readName()?.string
         return LuaFileStubImpl(null, exportedTypeString)
     }

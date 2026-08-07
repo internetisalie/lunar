@@ -7,23 +7,44 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaLabelCompletionTest : BasePlatformTestCase() {
+    private val luaKeywords =
+        setOf(
+            "and",
+            "break",
+            "do",
+            "else",
+            "elseif",
+            "end",
+            "false",
+            "for",
+            "function",
+            "goto",
+            "if",
+            "in",
+            "local",
+            "nil",
+            "not",
+            "or",
+            "repeat",
+            "return",
+            "then",
+            "true",
+            "until",
+            "while",
+        )
 
-    private val luaKeywords = setOf(
-        "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto",
-        "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"
-    )
-
-    private fun getLabelsOnly(strings: List<String>): List<String> {
-        return strings.filter { it !in luaKeywords }
-    }
+    private fun getLabelsOnly(strings: List<String>): List<String> = strings.filter { it !in luaKeywords }
 
     @Test
     fun testVisibleLabelsCompletion() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::alpha::
             ::beta::
             goto <caret>
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings ?: emptyList()
         assertSameElements(getLabelsOnly(strings), "alpha", "beta")
@@ -31,13 +52,16 @@ class LuaLabelCompletionTest : BasePlatformTestCase() {
 
     @Test
     fun testEnclosingBlockCompletion() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::outer::
             do
                 ::inner::
                 goto <caret>
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings ?: emptyList()
         assertSameElements(getLabelsOnly(strings), "outer", "inner")
@@ -45,13 +69,16 @@ class LuaLabelCompletionTest : BasePlatformTestCase() {
 
     @Test
     fun testSiblingBlockCompletion() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             do
                 ::sibling::
             end
             ::current::
             goto <caret>
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings ?: emptyList()
         assertSameElements(getLabelsOnly(strings), "current")
@@ -59,13 +86,16 @@ class LuaLabelCompletionTest : BasePlatformTestCase() {
 
     @Test
     fun testFunctionBoundaryCompletion() {
-        myFixture.configureByText("test.lua", """
+        myFixture.configureByText(
+            "test.lua",
+            """
             ::outer::
             local f = function()
                 ::inner::
                 goto <caret>
             end
-        """.trimIndent())
+            """.trimIndent(),
+        )
         myFixture.completeBasic()
         val strings = myFixture.lookupElementStrings ?: emptyList()
         assertSameElements(getLabelsOnly(strings), "inner")

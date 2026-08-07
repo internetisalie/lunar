@@ -15,7 +15,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaTypeAssignabilityInspection())
@@ -30,15 +29,16 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
     /** A call with too few arguments must be reported by the inspection (not just the snapshot). */
     @Test
     fun testArityTooFewReported() {
-        val descs = descriptions(
-            """
-            ---@param a number
-            ---@param b number
-            local function add(a, b) end
+        val descs =
+            descriptions(
+                """
+                ---@param a number
+                ---@param b number
+                local function add(a, b) end
 
-            add(1)
-            """.trimIndent(),
-        )
+                add(1)
+                """.trimIndent(),
+            )
         assertTrue(
             "Expected a 'Too few arguments' problem from the inspection, got: $descs",
             descs.any { it.contains("Too few arguments") },
@@ -48,17 +48,18 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
     /** A table literal missing a required `@field` must be reported. */
     @Test
     fun testMissingRequiredFieldReported() {
-        val descs = descriptions(
-            """
-            ---@class User
-            ---@field id number
-            ---@field username string
-            local User = {}
+        val descs =
+            descriptions(
+                """
+                ---@class User
+                ---@field id number
+                ---@field username string
+                local User = {}
 
-            ---@type User
-            local u = { id = 1 }
-            """.trimIndent(),
-        )
+                ---@type User
+                local u = { id = 1 }
+                """.trimIndent(),
+            )
         assertTrue(
             "Expected a missing-required-field problem for 'username', got: $descs",
             descs.any { it.contains("Missing required field") && it.contains("username") },
@@ -68,17 +69,18 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
     /** An optional (`| nil`) field omitted from a table literal must NOT be reported. */
     @Test
     fun testOptionalFieldNotReported() {
-        val descs = descriptions(
-            """
-            ---@class User
-            ---@field id number
-            ---@field email string | nil
-            local User = {}
+        val descs =
+            descriptions(
+                """
+                ---@class User
+                ---@field id number
+                ---@field email string | nil
+                local User = {}
 
-            ---@type User
-            local u = { id = 1 }
-            """.trimIndent(),
-        )
+                ---@type User
+                local u = { id = 1 }
+                """.trimIndent(),
+            )
         assertFalse(
             "Optional field 'email' must not be reported as missing, got: $descs",
             descs.any { it.contains("email") },
@@ -88,12 +90,13 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
     /** A scalar type mismatch (`number` assigned to `---@type string`) must be reported (TC1). */
     @Test
     fun testScalarTypeMismatchReported() {
-        val descs = descriptions(
-            """
-            ---@type string
-            local x = 42
-            """.trimIndent(),
-        )
+        val descs =
+            descriptions(
+                """
+                ---@type string
+                local x = 42
+                """.trimIndent(),
+            )
         assertTrue(
             "Expected a 'not assignable' problem mentioning 'number' and 'string', got: $descs",
             descs.any { it.contains("not assignable") && it.contains("number") && it.contains("string") },
@@ -123,12 +126,13 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
      */
     @Test
     fun testUnionMemberMatchNotReported() {
-        val descs = descriptions(
-            """
-            ---@type string|number
-            local x = 42
-            """.trimIndent(),
-        )
+        val descs =
+            descriptions(
+                """
+                ---@type string|number
+                local x = 42
+                """.trimIndent(),
+            )
         assertFalse(
             "A union member match must not produce a 'not assignable' warning, got: $descs",
             descs.any { it.contains("not assignable") },
@@ -142,23 +146,24 @@ class LuaTypeAssignabilityInspectionTest : BasePlatformTestCase() {
      */
     @Test
     fun testUnionClosestMatchDiagnosticOnRealCode() {
-        val descs = descriptions(
-            """
-            ---@class Point
-            ---@field x number
-            ---@field y number
-            local Point = {}
+        val descs =
+            descriptions(
+                """
+                ---@class Point
+                ---@field x number
+                ---@field y number
+                local Point = {}
 
-            ---@class Color
-            ---@field r number
-            ---@field g number
-            ---@field b number
-            local Color = {}
+                ---@class Color
+                ---@field r number
+                ---@field g number
+                ---@field b number
+                local Color = {}
 
-            ---@type Point | Color
-            local p = { x = 1 }
-            """.trimIndent(),
-        )
+                ---@type Point | Color
+                local p = { x = 1 }
+                """.trimIndent(),
+            )
         assertTrue(
             "Expected a union closest-match diagnostic naming 'Point' and the missing 'y', got: $descs",
             descs.any { it.contains("Point") && it.contains("y") },

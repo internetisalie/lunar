@@ -24,11 +24,12 @@ import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
  * [LuaRocksEnvironment], retrieves (or prompts for) the per-server API key from
  * [LuaRocksApiKeyStore], then runs the upload on a [Task.Backgroundable] off the EDT.
  */
-class PublishRockAction : DumbAwareAction(
-    "Publish Rock to LuaRocks…",
-    "Upload this rockspec to LuaRocks",
-    LuaIcons.ROCKET,
-) {
+class PublishRockAction :
+    DumbAwareAction(
+        "Publish Rock to LuaRocks…",
+        "Upload this rockspec to LuaRocks",
+        LuaIcons.ROCKET,
+    ) {
     override fun update(event: AnActionEvent) {
         val rockspec = event.getData(CommonDataKeys.VIRTUAL_FILE)
         val enabled = event.project != null && rockspec != null && isRockspec(rockspec)
@@ -44,20 +45,37 @@ class PublishRockAction : DumbAwareAction(
         upload(project, rockspec.path, apiKey, server)
     }
 
-    private fun ensureApiKey(project: Project, server: String?): String? {
+    private fun ensureApiKey(
+        project: Project,
+        server: String?,
+    ): String? {
         LuaRocksApiKeyStore.getApiKey(server)?.let { return it }
-        val prompt = if (server != null) "Enter your API key for $server:" else "Enter your luarocks.org upload API key:"
-        val entered = Messages.showPasswordDialog(
-            project,
-            prompt,
-            "Publish Rock to LuaRocks",
-            LuaIcons.ROCKET,
-        )?.takeIf { it.isNotBlank() } ?: return null
+        val prompt =
+            if (server !=
+                null
+            ) {
+                "Enter your API key for $server:"
+            } else {
+                "Enter your luarocks.org upload API key:"
+            }
+        val entered =
+            Messages
+                .showPasswordDialog(
+                    project,
+                    prompt,
+                    "Publish Rock to LuaRocks",
+                    LuaIcons.ROCKET,
+                )?.takeIf { it.isNotBlank() } ?: return null
         LuaRocksApiKeyStore.setApiKey(server, entered)
         return entered
     }
 
-    private fun upload(project: Project, rockspecPath: String, apiKey: String, server: String?) {
+    private fun upload(
+        project: Project,
+        rockspecPath: String,
+        apiKey: String,
+        server: String?,
+    ) {
         ProgressManager.getInstance().run(
             object : Task.Backgroundable(project, "Publishing rock to LuaRocks", true) {
                 override fun run(indicator: ProgressIndicator) {
@@ -67,8 +85,10 @@ class PublishRockAction : DumbAwareAction(
                         return
                     }
                     val command = RockUploadCommand.build(exe, rockspecPath, apiKey, server = server)
-                    val output = LuaToolExecutionService.getInstance()
-                        .capture(command, LuaExecTimeout.NETWORK, indicator = indicator)
+                    val output =
+                        LuaToolExecutionService
+                            .getInstance()
+                            .capture(command, LuaExecTimeout.NETWORK, indicator = indicator)
                     if (output.exitCode == 0) {
                         notify(project, "LuaRocks: published $rockspecPath", NotificationType.INFORMATION)
                     } else {
@@ -90,8 +110,13 @@ class PublishRockAction : DumbAwareAction(
         )
     }
 
-    private fun notify(project: Project, message: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
+    private fun notify(
+        project: Project,
+        message: String,
+        type: NotificationType,
+    ) {
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP)
             .createNotification(message, type)
             .notify(project)
@@ -104,8 +129,7 @@ class PublishRockAction : DumbAwareAction(
                 "Settings | Languages & Frameworks | Lua | Toolchain."
 
         /** True when [file] is a `.rockspec` (the upload target). */
-        fun isRockspec(file: VirtualFile): Boolean =
-            !file.isDirectory && file.extension == "rockspec"
+        fun isRockspec(file: VirtualFile): Boolean = !file.isDirectory && file.extension == "rockspec"
 
         /**
          * Returns true when a non-zero [exitCode] with [stderr] output looks like an authentication
@@ -117,7 +141,10 @@ class PublishRockAction : DumbAwareAction(
          * - "Forbidden" (HTTP 403)
          * - "Unauthorized" (HTTP 401)
          */
-        internal fun isAuthFailure(exitCode: Int, stderr: String): Boolean {
+        internal fun isAuthFailure(
+            exitCode: Int,
+            stderr: String,
+        ): Boolean {
             if (exitCode == 0) return false
             val lower = stderr.lowercase()
             return lower.contains("invalid api key") ||

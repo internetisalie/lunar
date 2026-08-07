@@ -21,12 +21,12 @@ import net.internetisalie.lunar.platform.target.VersionEntry
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.settings.LuaSettingsChangedListener
 import net.internetisalie.lunar.toolchain.model.LuaToolKind
-import net.internetisalie.lunar.toolchain.resolve.LuaTargetSynchronizer
 import net.internetisalie.lunar.toolchain.registry.LuaKindOptionKeys
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainEvent
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainListener
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import net.internetisalie.lunar.toolchain.resolve.LuaTargetSynchronizer
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolution
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import net.internetisalie.lunar.toolchain.resolve.ResolutionSource
@@ -42,12 +42,13 @@ private const val CONFIGURABLE_ID = "net.internetisalie.lunar.toolchain.ui.LuaPr
  * (§3.6) — superseding the interim panel's silent writes. The resolved-runtime display reflects
  * applied state only (§3.5), recomputed on reset / apply / toolchain events.
  */
-class LuaProjectConfigurable(private val project: Project) : BoundSearchableConfigurable(
-    displayName = "Lua Project",
-    helpTopic = "settings.lua.project",
-    _id = CONFIGURABLE_ID
-) {
-
+class LuaProjectConfigurable(
+    private val project: Project,
+) : BoundSearchableConfigurable(
+        displayName = "Lua Project",
+        helpTopic = "settings.lua.project",
+        _id = CONFIGURABLE_ID,
+    ) {
     private val controls = ProjectControls()
 
     /** True while [resetTargetControls] drives the platform combo, so its action listener stays inert. */
@@ -66,37 +67,38 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         return builtPanel
     }
 
-    private fun buildPanel(): DialogPanel = panel {
-        buildTargetGroup(this)
-        group("Environment") {
-            row("Active environment:") { cell(controls.environmentCombo) }
-        }
-        group("Toolchain Bindings") {
-            commonKinds().forEach { kind ->
-                row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
+    private fun buildPanel(): DialogPanel =
+        panel {
+            buildTargetGroup(this)
+            group("Environment") {
+                row("Active environment:") { cell(controls.environmentCombo) }
+            }
+            group("Toolchain Bindings") {
+                commonKinds().forEach { kind ->
+                    row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
+                }
+            }
+            collapsibleGroup("Advanced tools") {
+                advancedKinds().forEach { kind ->
+                    row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
+                }
+            }
+            group("Resolved Runtime") {
+                row("Runtime:") { cell(controls.runtimeLabel) }
+                row("Language level:") { cell(controls.languageLevelLabel) }
+                row { comment("Reflects applied settings") }
+            }
+            group("Luacheck") {
+                row(LuaBundle.message("luacheck.arguments")) { cell(controls.luacheckArgsField) }
+            }
+            group("LuaRocks") {
+                row("Server URL (project override):") { cell(controls.rocksUrlField) }
+            }
+            group("Source & Completion") {
+                row("Source path patterns:") { cell(controls.sourcePathField) }
+                row { cell(controls.underscoreCheckBox) }
             }
         }
-        collapsibleGroup("Advanced tools") {
-            advancedKinds().forEach { kind ->
-                row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
-            }
-        }
-        group("Resolved Runtime") {
-            row("Runtime:") { cell(controls.runtimeLabel) }
-            row("Language level:") { cell(controls.languageLevelLabel) }
-            row { comment("Reflects applied settings") }
-        }
-        group("Luacheck") {
-            row(LuaBundle.message("luacheck.arguments")) { cell(controls.luacheckArgsField) }
-        }
-        group("LuaRocks") {
-            row("Server URL (project override):") { cell(controls.rocksUrlField) }
-        }
-        group("Source & Completion") {
-            row("Source path patterns:") { cell(controls.sourcePathField) }
-            row { cell(controls.underscoreCheckBox) }
-        }
-    }
 
     override fun isModified(): Boolean {
         if (isTargetModified()) return true
@@ -134,8 +136,9 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     private fun resetEnvironmentCombo() {
-        val items = listOf<LuaEnvironmentItem>(LuaEnvironmentItem.None) +
-            toolchainSettings.environments().map(LuaEnvironmentItem::Env)
+        val items =
+            listOf<LuaEnvironmentItem>(LuaEnvironmentItem.None) +
+                toolchainSettings.environments().map(LuaEnvironmentItem::Env)
         controls.environmentCombo.model = DefaultComboBoxModel(items.toTypedArray())
         val activeId = toolchainSettings.activeEnvironment()?.id
         controls.environmentCombo.selectedItem = items.firstOrNull {
@@ -166,8 +169,9 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         suppressPlatformEvents = true
         try {
             val state = projectSettings.state
-            val platformItems = listOf<TargetItem>(TargetItem.Auto) +
-                PlatformVersionRegistry.platforms().sortedBy { it.label }.map { TargetItem.Platform(it) }
+            val platformItems =
+                listOf<TargetItem>(TargetItem.Auto) +
+                    PlatformVersionRegistry.platforms().sortedBy { it.label }.map { TargetItem.Platform(it) }
             controls.platformCombo.model = DefaultComboBoxModel(platformItems.toTypedArray())
             if (state.explicitTarget) {
                 val pinned = state.getTarget()
@@ -224,7 +228,7 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
             val versionLabel = (controls.versionCombo.selectedItem as? VersionEntry)?.label ?: ""
             state.explicitTarget = true
             projectSettings.setTargetAndNotify(
-                PlatformVersionRegistry.resolveTarget(selected.platform, versionLabel)
+                PlatformVersionRegistry.resolveTarget(selected.platform, versionLabel),
             )
         } else if (state.explicitTarget) {
             state.explicitTarget = false
@@ -262,9 +266,10 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
         val newRocksUrl = controls.rocksUrlField.text.trim()
         val newSourcePath = controls.sourcePathField.text
         val newUnderscore = controls.underscoreCheckBox.isSelected
-        val changed = newRocksUrl != projectState.rocksServerUrl.trim() ||
-            newSourcePath != projectState.sourcePath ||
-            newUnderscore != projectState.suppressUnderscorePrefixedGlobals
+        val changed =
+            newRocksUrl != projectState.rocksServerUrl.trim() ||
+                newSourcePath != projectState.sourcePath ||
+                newUnderscore != projectState.suppressUnderscorePrefixedGlobals
         if (!changed) return
         projectState.rocksServerUrl = newRocksUrl
         projectState.sourcePath = newSourcePath
@@ -287,10 +292,10 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
                 override fun toolchainChanged(event: LuaToolchainEvent) {
                     ApplicationManager.getApplication().invokeLater(
                         { recomputeRuntimeDisplay() },
-                        ModalityState.any()
+                        ModalityState.any(),
                     )
                 }
-            }
+            },
         )
     }
 
@@ -313,7 +318,9 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     private fun savedProjectLuacheckArgs(): String =
-        LuaToolchainProjectSettings.getInstance(project).state.kindOptions[LuaKindOptionKeys.LUACHECK_ARGUMENTS]
+        LuaToolchainProjectSettings
+            .getInstance(project)
+            .state.kindOptions[LuaKindOptionKeys.LUACHECK_ARGUMENTS]
             ?.trim() ?: ""
 
     /** §3.6: renders the effective app default in each inherited field's empty-text placeholder. */
@@ -329,22 +336,25 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
 
     /** Holds the buffered Swing controls so the per-group / per-field helpers stay within the arg cap. */
     private inner class ProjectControls {
-        val platformCombo = ComboBox<TargetItem>().apply {
-            renderer = SimpleListCellRenderer.create("") { platformItemLabel(it) }
-            addActionListener {
-                if (!suppressPlatformEvents) {
-                    repopulateVersionCombo((selectedItem as? TargetItem.Platform)?.platform)
+        val platformCombo =
+            ComboBox<TargetItem>().apply {
+                renderer = SimpleListCellRenderer.create("") { platformItemLabel(it) }
+                addActionListener {
+                    if (!suppressPlatformEvents) {
+                        repopulateVersionCombo((selectedItem as? TargetItem.Platform)?.platform)
+                    }
                 }
             }
-        }
 
-        val versionCombo = ComboBox<VersionEntry>().apply {
-            renderer = SimpleListCellRenderer.create("") { it.label }
-        }
+        val versionCombo =
+            ComboBox<VersionEntry>().apply {
+                renderer = SimpleListCellRenderer.create("") { it.label }
+            }
 
-        val environmentCombo = ComboBox<LuaEnvironmentItem>().apply {
-            renderer = SimpleListCellRenderer.create("") { environmentLabel(it) }
-        }
+        val environmentCombo =
+            ComboBox<LuaEnvironmentItem>().apply {
+                renderer = SimpleListCellRenderer.create("") { environmentLabel(it) }
+            }
 
         val runtimeLabel = JBLabel()
         val languageLevelLabel = JBLabel()
@@ -353,20 +363,21 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
 
         val rocksUrlField = JBTextField().apply { columns = 40 }
 
-        val sourcePathField = ExpandableTextField(
-            { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
-            { entries -> entries.joinToString(PathConfiguration.TEMPLATE_SEPARATOR) }
-        ).apply { columns = 60 }
+        val sourcePathField =
+            ExpandableTextField(
+                { value -> value.split(PathConfiguration.TEMPLATE_SEPARATOR) },
+                { entries -> entries.joinToString(PathConfiguration.TEMPLATE_SEPARATOR) },
+            ).apply { columns = 60 }
 
-        val underscoreCheckBox = JBCheckBox(
-            "Hide symbols with an underscore prefix (_) from suggestions"
-        )
+        val underscoreCheckBox =
+            JBCheckBox(
+                "Hide symbols with an underscore prefix (_) from suggestions",
+            )
 
         private val bindingCombos: Map<String, ComboBox<LuaBindingItem>> =
             LuaToolKindClassifier.bindable().associate { kind -> kind.id to newBindingCombo(kind.id) }
 
-        fun bindingCombo(kindId: String): ComboBox<LuaBindingItem> =
-            bindingCombos[kindId] ?: newBindingCombo(kindId)
+        fun bindingCombo(kindId: String): ComboBox<LuaBindingItem> = bindingCombos[kindId] ?: newBindingCombo(kindId)
 
         private fun newBindingCombo(kindId: String): ComboBox<LuaBindingItem> =
             ComboBox<LuaBindingItem>().apply {
@@ -374,20 +385,26 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
             }
     }
 
-    private fun platformItemLabel(item: TargetItem): String = when (item) {
-        TargetItem.Auto -> "Auto (from runtime)"
-        is TargetItem.Platform -> item.platform.label
-    }
+    private fun platformItemLabel(item: TargetItem): String =
+        when (item) {
+            TargetItem.Auto -> "Auto (from runtime)"
+            is TargetItem.Platform -> item.platform.label
+        }
 
-    private fun environmentLabel(item: LuaEnvironmentItem): String = when (item) {
-        LuaEnvironmentItem.None -> "None (use bindings)"
-        is LuaEnvironmentItem.Env -> item.env.name.ifBlank { item.env.rootDir }
-    }
+    private fun environmentLabel(item: LuaEnvironmentItem): String =
+        when (item) {
+            LuaEnvironmentItem.None -> "None (use bindings)"
+            is LuaEnvironmentItem.Env -> item.env.name.ifBlank { item.env.rootDir }
+        }
 
-    private fun bindingLabel(kindId: String, item: LuaBindingItem): String = when (item) {
-        LuaBindingItem.Inherit -> "Inherit (${inheritLabel(kindId)})"
-        is LuaBindingItem.Tool -> toolLabel(item.tool.path, item.tool.version)
-    }
+    private fun bindingLabel(
+        kindId: String,
+        item: LuaBindingItem,
+    ): String =
+        when (item) {
+            LuaBindingItem.Inherit -> "Inherit (${inheritLabel(kindId)})"
+            is LuaBindingItem.Tool -> toolLabel(item.tool.path, item.tool.version)
+        }
 
     private fun inheritLabel(kindId: String): String {
         val inherited = LuaToolResolver.getInstance().resolve(null, kindId) ?: return "nothing resolved"
@@ -395,7 +412,10 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
     }
 
     companion object {
-        fun toolLabel(path: String, version: String?): String = "$path — ${version ?: "-"}"
+        fun toolLabel(
+            path: String,
+            version: String?,
+        ): String = "$path — ${version ?: "-"}"
     }
 }
 
@@ -405,26 +425,30 @@ class LuaProjectConfigurable(private val project: Project) : BoundSearchableConf
  * edits — it reflects only what [LuaToolResolver.resolveRuntimeDetailed] returns for the project.
  */
 private object LuaProjectRuntimeDisplay {
-
-    data class Display(val runtimeText: String, val languageLevelText: String)
+    data class Display(
+        val runtimeText: String,
+        val languageLevelText: String,
+    )
 
     fun compute(project: Project): Display {
         val resolution = LuaToolResolver.getInstance().resolveRuntimeDetailed(project)
         val resolved = resolution as? LuaToolResolution.Resolved
         val runtime = resolved?.tool?.runtime
         if (resolved == null || runtime == null) return fallback()
-        val text = "${resolved.tool.path} — ${runtime.product} ${runtime.version}" +
-            sourceSuffix(resolved.source)
+        val text =
+            "${resolved.tool.path} — ${runtime.product} ${runtime.version}" +
+                sourceSuffix(resolved.source)
         return Display(text, runtime.languageLevel.toString())
     }
 
     private fun fallback(): Display =
         Display("No runtime configured", "${Target.default().getImplicitLanguageLevel()} (default)")
 
-    private fun sourceSuffix(source: ResolutionSource): String = when (source) {
-        ResolutionSource.ACTIVE_ENVIRONMENT -> " (from active environment)"
-        ResolutionSource.PROJECT_BINDING -> " (project binding)"
-        ResolutionSource.GLOBAL_BINDING -> " (global binding)"
-        ResolutionSource.INVENTORY_FALLBACK -> " (inventory fallback)"
-    }
+    private fun sourceSuffix(source: ResolutionSource): String =
+        when (source) {
+            ResolutionSource.ACTIVE_ENVIRONMENT -> " (from active environment)"
+            ResolutionSource.PROJECT_BINDING -> " (project binding)"
+            ResolutionSource.GLOBAL_BINDING -> " (global binding)"
+            ResolutionSource.INVENTORY_FALLBACK -> " (inventory fallback)"
+        }
 }

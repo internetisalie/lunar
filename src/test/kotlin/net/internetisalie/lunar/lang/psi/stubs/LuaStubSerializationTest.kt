@@ -14,7 +14,6 @@ import java.io.ByteArrayOutputStream
 
 @RunWith(JUnit4::class)
 class LuaStubSerializationTest : BasePlatformTestCase() {
-
     private fun buildStubTree(text: String): StubTree {
         val file = myFixture.configureByText("test.lua", text.trimIndent()) as PsiFileImpl
         return runReadAction {
@@ -46,10 +45,13 @@ class LuaStubSerializationTest : BasePlatformTestCase() {
 
     @Test
     fun testLocalVarStubHoistsClassAndExtends() {
-        val stubTree = buildStubTree("""
+        val stubTree =
+            buildStubTree(
+                """
             ---@class Builder: Base
             local Builder = {}
-        """)
+        """,
+            )
         val localVars = stubTree.root.collect<LuaLocalVarStub>()
         assertTrue("Local variables list should not be empty", localVars.isNotEmpty())
         val first = localVars.first()
@@ -59,12 +61,15 @@ class LuaStubSerializationTest : BasePlatformTestCase() {
 
     @Test
     fun testLocalVarStubSerializationRoundTrip() {
-        val stubTree = buildStubTree("""
+        val stubTree =
+            buildStubTree(
+                """
             ---@class Builder: Base
             ---@field name string
             ---@field id number
             local Builder = {}
-        """)
+        """,
+            )
         val restoredRoot = roundTrip(stubTree.root)
         val localVars = restoredRoot.collect<LuaLocalVarStub>()
         assertTrue("Local variables list should not be empty", localVars.isNotEmpty())
@@ -77,10 +82,13 @@ class LuaStubSerializationTest : BasePlatformTestCase() {
 
     @Test
     fun testFuncStubReturnTypeRoundTrip() {
-        val stubTree = buildStubTree("""
+        val stubTree =
+            buildStubTree(
+                """
             ---@return string
             function f() end
-        """)
+        """,
+            )
         val restoredRoot = roundTrip(stubTree.root)
         val funcs = restoredRoot.collect<LuaFuncStub>()
         assertTrue("Functions list should not be empty", funcs.isNotEmpty())
@@ -91,9 +99,12 @@ class LuaStubSerializationTest : BasePlatformTestCase() {
 
     @Test
     fun testLocalFuncStubRoundTrip() {
-        val stubTree = buildStubTree("""
+        val stubTree =
+            buildStubTree(
+                """
             local function g() end
-        """)
+        """,
+            )
         val restoredRoot = roundTrip(stubTree.root)
         val localFuncs = restoredRoot.collect<LuaLocalFuncStub>()
         assertTrue("Local functions list should not be empty", localFuncs.isNotEmpty())

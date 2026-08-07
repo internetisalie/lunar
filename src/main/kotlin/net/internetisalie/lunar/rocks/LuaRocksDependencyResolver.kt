@@ -17,9 +17,13 @@ import java.nio.file.Path
 object LuaRocksDependencyResolver {
     /** Resolves one [DependencyNode] root per discovered rockspec (ROCKS-09-05). */
     fun resolveAll(project: Project): List<DependencyNode> {
-        val installed = LuaRocksTreeLocator.installedRocks(project)
-            .groupBy { it.packageName.lowercase() }
-        return LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
+        val installed =
+            LuaRocksTreeLocator
+                .installedRocks(project)
+                .groupBy { it.packageName.lowercase() }
+        return LuaRockspecDiscoveryService
+            .getInstance(project)
+            .discoverRockspecPaths()
             .mapNotNull { resolveOne(project, it.rockspec, installed) }
     }
 
@@ -71,10 +75,11 @@ object LuaRocksDependencyResolver {
         }
         context.seen[key]?.let { return it }
         val installed = context.installed[key].orEmpty()
-        val resolved = installed
-            .filter { spec.isSatisfiedBy(it.version) }
-            .maxByOrNull { it.version }
-            ?: installed.maxByOrNull { it.version }
+        val resolved =
+            installed
+                .filter { spec.isSatisfiedBy(it.version) }
+                .maxByOrNull { it.version }
+                ?: installed.maxByOrNull { it.version }
         val node = DependencyNode(spec.packageName, isTransitive, resolvedVersion = resolved?.version)
         context.seen[key] = node
         return node
@@ -87,8 +92,10 @@ object LuaRocksDependencyResolver {
         visiting: Set<String>,
     ) {
         val key = spec.packageName.lowercase()
-        val rock = context.installed[key].orEmpty()
-            .firstOrNull { it.version == child.resolvedVersion } ?: return
+        val rock =
+            context.installed[key]
+                .orEmpty()
+                .firstOrNull { it.version == child.resolvedVersion } ?: return
         val data = RockspecBridge.read(context.project, rock.rockspec) ?: return
         expand(child, data.dependencies, context, visiting + key, parentIsRoot = false)
     }

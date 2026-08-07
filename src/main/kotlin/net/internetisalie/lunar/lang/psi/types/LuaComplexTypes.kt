@@ -1,6 +1,8 @@
 package net.internetisalie.lunar.lang.psi.types
 
-class LuaUnionType(val types: Set<LuaType>) : LuaType {
+class LuaUnionType(
+    val types: Set<LuaType>,
+) : LuaType {
     override val name: String = types.joinToString(" | ") { it.name }
 
     override fun resolveMember(name: String): LuaTypeMember? {
@@ -9,7 +11,7 @@ class LuaUnionType(val types: Set<LuaType>) : LuaType {
         // For now, let's keep it simple: if any type can't resolve it, it's null.
         val members = types.map { it.resolveMember(name) }
         if (members.any { it == null }) return null
-        
+
         // Return a member with a union type of all resolved members
         return LuaTypeMember(name, LuaUnionType(members.map { it!!.type }.toSet()))
     }
@@ -32,16 +34,16 @@ class LuaUnionType(val types: Set<LuaType>) : LuaType {
         // Every type in this union must be assignable to 'other'
         return types.all { it.isAssignableTo(other) }
     }
-    
+
     override fun toString(): String = name
 }
 
-class LuaArrayType(val elementType: LuaType) : LuaType {
+class LuaArrayType(
+    val elementType: LuaType,
+) : LuaType {
     override val name: String = "${elementType.name}[]"
 
-    override fun resolveMember(name: String): LuaTypeMember? {
-        return null
-    }
+    override fun resolveMember(name: String): LuaTypeMember? = null
 
     override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
 
@@ -55,12 +57,15 @@ class LuaArrayType(val elementType: LuaType) : LuaType {
         }
         return false
     }
-    
+
     override fun toString(): String = name
 }
 
-class LuaGenericType(override val name: String) : LuaType {
+class LuaGenericType(
+    override val name: String,
+) : LuaType {
     override fun resolveMember(name: String): LuaTypeMember? = null
+
     override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
 
     override fun isAssignableTo(other: LuaType): Boolean {
@@ -70,16 +75,17 @@ class LuaGenericType(override val name: String) : LuaType {
         }
         return this == other
     }
-    
+
     override fun toString(): String = name
 }
 
-class LuaParameterizedType(val baseType: LuaType, val arguments: List<LuaType>) : LuaType {
+class LuaParameterizedType(
+    val baseType: LuaType,
+    val arguments: List<LuaType>,
+) : LuaType {
     override val name: String = "${baseType.name}<${arguments.joinToString(", ") { it.name }}>"
 
-    override fun resolveMember(name: String): LuaTypeMember? {
-        return baseType.resolveMember(name)
-    }
+    override fun resolveMember(name: String): LuaTypeMember? = baseType.resolveMember(name)
 
     override fun getMembers(): Map<String, LuaTypeMember> = baseType.getMembers()
 
@@ -89,20 +95,23 @@ class LuaParameterizedType(val baseType: LuaType, val arguments: List<LuaType>) 
             return other.types.any { this.isAssignableTo(it) }
         }
         if (other is LuaParameterizedType) {
-            return baseType.isAssignableTo(other.baseType) && 
-                   arguments.size == other.arguments.size &&
-                   arguments.zip(other.arguments).all { (a, b) -> a.isAssignableTo(b) }
+            return baseType.isAssignableTo(other.baseType) &&
+                arguments.size == other.arguments.size &&
+                arguments.zip(other.arguments).all { (a, b) -> a.isAssignableTo(b) }
         }
         return baseType.isAssignableTo(other)
     }
-    
+
     override fun toString(): String = name
 }
 
-class LuaTableLiteralType(val localMembers: Map<String, LuaTypeMember>) : LuaType {
+class LuaTableLiteralType(
+    val localMembers: Map<String, LuaTypeMember>,
+) : LuaType {
     override val name: String = "{ ${localMembers.entries.joinToString(", ") { "${it.key}: ${it.value.type.name}" }} }"
 
     override fun resolveMember(name: String): LuaTypeMember? = localMembers[name]
+
     override fun getMembers(): Map<String, LuaTypeMember> = localMembers
 
     override fun isAssignableTo(other: LuaType): Boolean {
@@ -118,6 +127,6 @@ class LuaTableLiteralType(val localMembers: Map<String, LuaTypeMember>) : LuaTyp
         }
         return false
     }
-    
+
     override fun toString(): String = name
 }

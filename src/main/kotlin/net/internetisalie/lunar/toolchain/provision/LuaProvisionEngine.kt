@@ -47,7 +47,11 @@ class LuaProvisionEngine(
      * from [execute] so unit tests can inject a fake feed and a chosen platform without the bundled
      * resource or the host's real OS. Failures surface as balloons; cancellation re-propagates.
      */
-    internal fun run(job: LuaProvisionJob, platform: LuaHostPlatform, feed: LuaToolchainFeed) {
+    internal fun run(
+        job: LuaProvisionJob,
+        platform: LuaHostPlatform,
+        feed: LuaToolchainFeed,
+    ) {
         try {
             runPipeline(RunInputs(job, platform, feed))
         } catch (cancelled: ProcessCanceledException) {
@@ -58,7 +62,11 @@ class LuaProvisionEngine(
         }
     }
 
-    private data class RunInputs(val job: LuaProvisionJob, val platform: LuaHostPlatform, val feed: LuaToolchainFeed)
+    private data class RunInputs(
+        val job: LuaProvisionJob,
+        val platform: LuaHostPlatform,
+        val feed: LuaToolchainFeed,
+    )
 
     private fun runPipeline(inputs: RunInputs) {
         val rootDir = Path.of(inputs.job.request.rootDir)
@@ -71,13 +79,20 @@ class LuaProvisionEngine(
 
     // --- §3.1 step 4: fail-fast version resolution before any work ---
 
-    private fun resolveAll(items: List<LuaProvisionItem>, platform: LuaHostPlatform, feed: LuaToolchainFeed) {
+    private fun resolveAll(
+        items: List<LuaProvisionItem>,
+        platform: LuaHostPlatform,
+        feed: LuaToolchainFeed,
+    ) {
         items.forEach { LuaToolchainFeedLoader.resolveVersion(feed, it.kindId, it.versionSpec, platform) }
     }
 
     // --- §3.1 step 5: ordering + forced-LuaRocks rule ---
 
-    private fun orderItems(items: List<LuaProvisionItem>, manifest: LuaEnvManifest?): List<LuaProvisionItem> {
+    private fun orderItems(
+        items: List<LuaProvisionItem>,
+        manifest: LuaEnvManifest?,
+    ): List<LuaProvisionItem> {
         val ordered = items.sortedBy(::orderClass)
         requireLuaRocksForRocks(ordered, manifest)
         return ordered
@@ -91,7 +106,10 @@ class LuaProvisionEngine(
             else -> 3
         }
 
-    private fun requireLuaRocksForRocks(items: List<LuaProvisionItem>, manifest: LuaEnvManifest?) {
+    private fun requireLuaRocksForRocks(
+        items: List<LuaProvisionItem>,
+        manifest: LuaEnvManifest?,
+    ) {
         val rocks = items.filter { LuaProvisioningPlan.strategyIdsFor(it.kindId) == listOf("luarocks-install") }
         if (rocks.isEmpty()) return
         val hasLuaRocks = items.any { it.kindId == "luarocks" } || manifest?.components?.containsKey("luarocks") == true
@@ -103,7 +121,11 @@ class LuaProvisionEngine(
 
     // --- §3.1 step 6: C-toolchain preflight ---
 
-    private data class Preflight(val items: List<LuaProvisionItem>, val platform: LuaHostPlatform, val feed: LuaToolchainFeed)
+    private data class Preflight(
+        val items: List<LuaProvisionItem>,
+        val platform: LuaHostPlatform,
+        val feed: LuaToolchainFeed,
+    )
 
     private fun preflight(preflight: Preflight): LuaCompilerProbe.Toolchain? {
         if (preflight.platform.os == LuaOs.WINDOWS || !needsCToolchain(preflight)) return null
@@ -113,22 +135,38 @@ class LuaProvisionEngine(
     private fun needsCToolchain(preflight: Preflight): Boolean =
         preflight.items.any { selectableAsSource(it, preflight) || nativeRock(it, preflight) }
 
-    private fun selectableAsSource(item: LuaProvisionItem, preflight: Preflight): Boolean {
+    private fun selectableAsSource(
+        item: LuaProvisionItem,
+        preflight: Preflight,
+    ): Boolean {
         if (item.kindId !in LuaProvisioningPlan.SOURCE_BUILD_KINDS) return false
         return strategyById("source-build")?.supports(item, preflight.platform, preflight.feed) == true
     }
 
-    private fun nativeRock(item: LuaProvisionItem, preflight: Preflight): Boolean {
+    private fun nativeRock(
+        item: LuaProvisionItem,
+        preflight: Preflight,
+    ): Boolean {
         if (LuaProvisioningPlan.strategyIdsFor(item.kindId) != listOf("luarocks-install")) return false
-        val rock = runCatching {
-            LuaToolchainFeedLoader.resolveVersion(preflight.feed, item.kindId, item.versionSpec, preflight.platform).rock
-        }.getOrNull()
+        val rock =
+            runCatching {
+                LuaToolchainFeedLoader
+                    .resolveVersion(
+                        preflight.feed,
+                        item.kindId,
+                        item.versionSpec,
+                        preflight.platform,
+                    ).rock
+            }.getOrNull()
         return rock?.needsCToolchain == true
     }
 
     // --- §3.1 steps 7–10: per-item skip/execute loop + registration ---
 
-    private fun provisionAll(setup: LuaProvisionSetup, items: List<LuaProvisionItem>) {
+    private fun provisionAll(
+        setup: LuaProvisionSetup,
+        items: List<LuaProvisionItem>,
+    ) {
         val rootDir = Path.of(setup.job.request.rootDir)
         var manifest = manifestFor(setup, rootDir)
         val components = mutableListOf<LuaProvisionedComponent>()
@@ -152,7 +190,10 @@ class LuaProvisionEngine(
         val skippedAll: Boolean,
     )
 
-    private fun manifestFor(setup: LuaProvisionSetup, rootDir: Path): LuaEnvManifest {
+    private fun manifestFor(
+        setup: LuaProvisionSetup,
+        rootDir: Path,
+    ): LuaEnvManifest {
         val existing = LuaEnvManifest.read(rootDir)
         val environmentId = existing?.environmentId ?: UUID.randomUUID().toString()
         return LuaEnvManifest(
@@ -164,9 +205,16 @@ class LuaProvisionEngine(
         )
     }
 
-    private data class ItemRun(val setup: LuaProvisionSetup, val item: LuaProvisionItem, val manifest: LuaEnvManifest)
+    private data class ItemRun(
+        val setup: LuaProvisionSetup,
+        val item: LuaProvisionItem,
+        val manifest: LuaEnvManifest,
+    )
 
-    private data class ItemOutcome(val component: LuaProvisionedComponent, val skipped: Boolean)
+    private data class ItemOutcome(
+        val component: LuaProvisionedComponent,
+        val skipped: Boolean,
+    )
 
     private fun provisionOne(run: ItemRun): ItemOutcome {
         val indicator = run.setup.job.indicator
@@ -190,10 +238,16 @@ class LuaProvisionEngine(
         return reusedComponent(run.item.kindId, recorded, rootDir)
     }
 
-    private fun freshHash(strategy: LuaProvisioningStrategy, run: ItemRun): String? =
-        runCatching { strategy.identityHash(contextFor(run), run.item) }.getOrNull()
+    private fun freshHash(
+        strategy: LuaProvisioningStrategy,
+        run: ItemRun,
+    ): String? = runCatching { strategy.identityHash(contextFor(run), run.item) }.getOrNull()
 
-    private fun reusedComponent(kindId: String, recorded: LuaManifestComponent, rootDir: Path): LuaProvisionedComponent {
+    private fun reusedComponent(
+        kindId: String,
+        recorded: LuaManifestComponent,
+        rootDir: Path,
+    ): LuaProvisionedComponent {
         val binaries = recorded.binaries.map { rootDir.resolve(it) }
         return LuaProvisionedComponent(
             kindId = kindId,
@@ -221,7 +275,9 @@ class LuaProvisionEngine(
     }
 
     private fun supporting(run: ItemRun): List<LuaProvisioningStrategy> =
-        LuaProvisioningPlan.strategyIdsFor(run.item.kindId).mapNotNull(::strategyById)
+        LuaProvisioningPlan
+            .strategyIdsFor(run.item.kindId)
+            .mapNotNull(::strategyById)
             .filter { it.supports(run.item, run.setup.platform, run.setup.feed) }
 
     private fun contextFor(run: ItemRun): LuaProvisionContext =
@@ -235,7 +291,11 @@ class LuaProvisionEngine(
             toolchain = run.setup.toolchain,
         )
 
-    private fun noMethod(item: LuaProvisionItem, platform: LuaHostPlatform, errors: List<String>): LuaProvisionException {
+    private fun noMethod(
+        item: LuaProvisionItem,
+        platform: LuaHostPlatform,
+        errors: List<String>,
+    ): LuaProvisionException {
         val prefix = "${item.kindId} ${item.versionSpec} failed:"
         if (errors.isEmpty()) {
             val where = "${platform.os.name.lowercase()}-${platform.arch.name.lowercase()}"
@@ -244,34 +304,46 @@ class LuaProvisionEngine(
         return LuaProvisionException("$prefix ${errors.joinToString("\n")}")
     }
 
-    private fun mergeManifest(manifest: LuaEnvManifest, kindId: String, component: LuaProvisionedComponent): LuaEnvManifest {
+    private fun mergeManifest(
+        manifest: LuaEnvManifest,
+        kindId: String,
+        component: LuaProvisionedComponent,
+    ): LuaEnvManifest {
         val rootDir = Path.of(manifest.request.rootDir)
-        val record = LuaManifestComponent(
-            resolvedVersion = component.resolvedVersion,
-            strategyId = component.strategyId,
-            identifiersHash = component.identifiersHash,
-            binaries = (listOf(component.primaryBinary) + component.extraBinaries).map { relativize(rootDir, it) },
-            provisionedAtEpochMs = System.currentTimeMillis(),
-        )
+        val record =
+            LuaManifestComponent(
+                resolvedVersion = component.resolvedVersion,
+                strategyId = component.strategyId,
+                identifiersHash = component.identifiersHash,
+                binaries = (listOf(component.primaryBinary) + component.extraBinaries).map { relativize(rootDir, it) },
+                provisionedAtEpochMs = System.currentTimeMillis(),
+            )
         return manifest.copy(components = manifest.components + (kindId to record))
     }
 
-    private fun relativize(rootDir: Path, binary: Path): String =
-        runCatching { rootDir.relativize(binary).toString().replace('\\', '/') }.getOrDefault(binary.toString())
+    private fun relativize(
+        rootDir: Path,
+        binary: Path,
+    ): String = runCatching { rootDir.relativize(binary).toString().replace('\\', '/') }.getOrDefault(binary.toString())
 
-    private fun register(setup: LuaProvisionSetup, run: RunResult) {
-        val result = LuaProvisionResult(
-            environmentId = run.manifest.environmentId,
-            environmentName = setup.job.request.environmentName,
-            rootDir = setup.job.request.rootDir,
-            components = run.components,
-        )
+    private fun register(
+        setup: LuaProvisionSetup,
+        run: RunResult,
+    ) {
+        val result =
+            LuaProvisionResult(
+                environmentId = run.manifest.environmentId,
+                environmentName = setup.job.request.environmentName,
+                rootDir = setup.job.request.rootDir,
+                components = run.components,
+            )
         sink.register(setup.job.project, result)
-        val label = if (run.skippedAll) {
-            "Lua toolchain '${result.environmentName}' already up to date"
-        } else {
-            "Provisioned Lua toolchain '${result.environmentName}'"
-        }
+        val label =
+            if (run.skippedAll) {
+                "Lua toolchain '${result.environmentName}' already up to date"
+            } else {
+                "Provisioned Lua toolchain '${result.environmentName}'"
+            }
         notifier.notify(setup.job.project, "$label (${run.components.size} tools)", NotificationType.INFORMATION)
     }
 

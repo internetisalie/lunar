@@ -11,21 +11,32 @@ import java.util.concurrent.ConcurrentHashMap
  * connection id and the content SHA, so two connections never share a stale entry.
  */
 object LuaRedisScriptShaCache {
-
     private val loaded = ConcurrentHashMap.newKeySet<String>()
 
-    private fun keyOf(connectionId: String, sha: String): String = "$connectionId::$sha"
+    private fun keyOf(
+        connectionId: String,
+        sha: String,
+    ): String = "$connectionId::$sha"
 
     /** True when [sha] is known to be loaded on the server behind [connectionId]. */
-    fun isLoaded(connectionId: String, sha: String): Boolean = loaded.contains(keyOf(connectionId, sha))
+    fun isLoaded(
+        connectionId: String,
+        sha: String,
+    ): Boolean = loaded.contains(keyOf(connectionId, sha))
 
     /** Marks [sha] as loaded on the server behind [connectionId] (after a successful `SCRIPT LOAD`). */
-    fun markLoaded(connectionId: String, sha: String) {
+    fun markLoaded(
+        connectionId: String,
+        sha: String,
+    ) {
         loaded.add(keyOf(connectionId, sha))
     }
 
     /** Evicts [sha] for [connectionId] (on `NOSCRIPT`, before a re-`SCRIPT LOAD`). */
-    fun evict(connectionId: String, sha: String) {
+    fun evict(
+        connectionId: String,
+        sha: String,
+    ) {
         loaded.remove(keyOf(connectionId, sha))
     }
 }

@@ -26,8 +26,9 @@ import javax.swing.tree.DefaultTreeModel
  * [com.intellij.openapi.Disposable]. Implements [ExecutionConsole] so it can be wrapped directly in a
  * `DefaultExecutionResult` (design §5).
  */
-class RespReplyTreeConsole(project: Project) : ExecutionConsole {
-
+class RespReplyTreeConsole(
+    project: Project,
+) : ExecutionConsole {
     private val console: ConsoleView =
         TextConsoleBuilderFactory.getInstance().createBuilder(project).console
 
@@ -36,10 +37,13 @@ class RespReplyTreeConsole(project: Project) : ExecutionConsole {
     private val tree = Tree(treeModel)
 
     /** The console component: reply tree above the text console. Add it to the run content UI. */
-    private val rootComponent: JComponent = OnePixelSplitter(true, 0.5f).apply {
-        firstComponent = com.intellij.ui.components.JBScrollPane(tree)
-        secondComponent = console.component
-    }
+    private val rootComponent: JComponent =
+        OnePixelSplitter(true, 0.5f).apply {
+            firstComponent =
+                com.intellij.ui.components
+                    .JBScrollPane(tree)
+            secondComponent = console.component
+        }
 
     init {
         Disposer.register(this, console)

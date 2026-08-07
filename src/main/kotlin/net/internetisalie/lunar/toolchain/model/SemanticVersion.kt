@@ -1,6 +1,10 @@
 package net.internetisalie.lunar.toolchain.model
 
-data class SemanticVersion(val major: Int, val minor: Int, val patch: Int) : Comparable<SemanticVersion> {
+data class SemanticVersion(
+    val major: Int,
+    val minor: Int,
+    val patch: Int,
+) : Comparable<SemanticVersion> {
     override fun compareTo(other: SemanticVersion): Int {
         val majorCmp = major.compareTo(other.major)
         if (majorCmp != 0) return majorCmp

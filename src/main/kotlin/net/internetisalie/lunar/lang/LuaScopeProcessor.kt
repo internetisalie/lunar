@@ -11,7 +11,6 @@ import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.LuaNameList
 import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 import net.internetisalie.lunar.lang.psi.LuaParList
 import net.internetisalie.lunar.lang.psi.LuaVar
@@ -22,13 +21,18 @@ import net.internetisalie.lunar.lang.psi.LuaVar
  * Walks up the PSI tree from a reference location, checking each scope level
  * for a matching declaration. Stops on the first match.
  */
-class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
+class LuaScopeProcessor(
+    val name: String,
+) : PsiScopeProcessor {
     var result: PsiElement? = null
         private set
 
     private var found = false
 
-    override fun execute(element: PsiElement, state: ResolveState): Boolean {
+    override fun execute(
+        element: PsiElement,
+        state: ResolveState,
+    ): Boolean {
         // Already found a match; stop the walk
         if (found) return false
 
@@ -40,7 +44,7 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
                     if (attName.nameRef.identifier.text == name) {
                         result = attName.nameRef.identifier
                         found = true
-                        return@execute false  // Stop walk
+                        return@execute false // Stop walk
                     }
                 }
             }
@@ -81,7 +85,9 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
                 }
                 // Check implicit self
                 if (name == "self" && element.funcName.funcNameMethod != null) {
-                    result = element.funcName.funcNameMethod!!.nameRef.identifier
+                    result =
+                        element.funcName.funcNameMethod!!
+                            .nameRef.identifier
                     found = true
                     return false
                 }
@@ -129,12 +135,15 @@ class LuaScopeProcessor(val name: String) : PsiScopeProcessor {
             }
         }
 
-        return true  // Continue walk
+        return true // Continue walk
     }
 
     override fun <T : Any?> getHint(hintKey: Key<T>): T? = null
 
-    override fun handleEvent(event: PsiScopeProcessor.Event, associated: Any?) {}
+    override fun handleEvent(
+        event: PsiScopeProcessor.Event,
+        associated: Any?,
+    ) {}
 }
 
 /**
@@ -146,14 +155,21 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
     enum class SymbolType {
         LOCAL,
         PARAMETER,
-        GLOBAL
+        GLOBAL,
     }
 
-    data class SymbolInfo(val name: String, val element: PsiElement, val type: SymbolType)
+    data class SymbolInfo(
+        val name: String,
+        val element: PsiElement,
+        val type: SymbolType,
+    )
 
     val results: MutableMap<String, SymbolInfo> = mutableMapOf()
 
-    override fun execute(element: PsiElement, state: ResolveState): Boolean {
+    override fun execute(
+        element: PsiElement,
+        state: ResolveState,
+    ): Boolean {
         // Collect all names, don't stop
         when (element) {
             is LuaLocalVarDecl -> {
@@ -230,10 +246,13 @@ class LuaCompletionScopeProcessor : PsiScopeProcessor {
             }
         }
 
-        return true  // Always continue
+        return true // Always continue
     }
 
     override fun <T : Any?> getHint(hintKey: Key<T>): T? = null
 
-    override fun handleEvent(event: PsiScopeProcessor.Event, associated: Any?) {}
+    override fun handleEvent(
+        event: PsiScopeProcessor.Event,
+        associated: Any?,
+    ) {}
 }

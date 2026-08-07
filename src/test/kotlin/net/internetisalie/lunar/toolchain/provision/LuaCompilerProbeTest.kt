@@ -13,9 +13,10 @@ import org.junit.Test
 class LuaCompilerProbeTest {
     @Test
     fun remediationTextMatchesSpec() {
-        val expected = "No C toolchain found on PATH (need cc/gcc, ar, ranlib). " +
-            "Install build tools (Linux: `sudo apt install build-essential`; macOS: " +
-            "`xcode-select --install`) or pick a version with a prebuilt binary."
+        val expected =
+            "No C toolchain found on PATH (need cc/gcc, ar, ranlib). " +
+                "Install build tools (Linux: `sudo apt install build-essential`; macOS: " +
+                "`xcode-select --install`) or pick a version with a prebuilt binary."
         assertEquals(expected, LuaCompilerProbe.REMEDIATION)
     }
 

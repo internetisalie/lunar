@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
 class LuaTypeAssignabilityTest : BaseDocumentTest() {
-
     @Test
     fun testOptionalFieldInTableConstructor() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            configureByText("""
+            configureByText(
+                """
                 ---@class User
                 ---@field id number
                 ---@field username string
@@ -22,7 +22,8 @@ class LuaTypeAssignabilityTest : BaseDocumentTest() {
 
                 ---@type User
                 local current_user = { id = 1, username = "admin" }
-            """.trimIndent())
+                """.trimIndent(),
+            )
 
             val types = LuaTypesSnapshot.forFile(myFixture.file)
             val errors = types.getErrors()
@@ -35,28 +36,34 @@ class LuaTypeAssignabilityTest : BaseDocumentTest() {
     @Test
     fun testArrayTypeInlayHintPreservesInferredType() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            configureByText("""
+            configureByText(
+                """
                 ---@type string[]
                 local <caret>tags = { "lua", "intellij", "lunar" }
-            """.trimIndent())
+                """.trimIndent(),
+            )
 
             val types = LuaTypesSnapshot.forFile(myFixture.file)
             val tagsElement = myFixture.file.findElementAt(myFixture.caretOffset)!!.parent
-            
+
             val type = types.getValueType(tagsElement)
-            // The variable's resolved type now includes both the inferred type { ... } 
+            // The variable's resolved type now includes both the inferred type { ... }
             // and the annotation type string[]. This is correct for type flow: when other = tags,
             // other should receive the union type { ... } | string[].
-            // The inlay hint provider's hasExplicitAnnotation check prevents showing hints on 
+            // The inlay hint provider's hasExplicitAnnotation check prevents showing hints on
             // the annotated variable itself, while the union type flows to readers.
-            assertTrue(type.displayName() == "{ ... } | string[]", "Expected inferred type unioned with annotation type")
+            assertTrue(
+                type.displayName() == "{ ... } | string[]",
+                "Expected inferred type unioned with annotation type",
+            )
         }
     }
 
     @Test
     fun testTableConstructorAssignabilityToFunction() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            configureByText("""
+            configureByText(
+                """
                 ---@class User
                 ---@field id number
                 ---@field username string
@@ -64,7 +71,8 @@ class LuaTypeAssignabilityTest : BaseDocumentTest() {
 
                 ---@type User
                 local current_user = { id = 1, username = "admin" }
-            """.trimIndent())
+                """.trimIndent(),
+            )
 
             val types = LuaTypesSnapshot.forFile(myFixture.file)
             val errors = types.getErrors()
@@ -77,13 +85,15 @@ class LuaTypeAssignabilityTest : BaseDocumentTest() {
     @Test
     fun testReturnMultipleCommaSeparatedPropagation() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
-            configureByText("""
+            configureByText(
+                """
                 ---@return number, string
                 local function myFunc()
                 end
 
                 local a, b = myFunc()
-            """.trimIndent())
+                """.trimIndent(),
+            )
 
             val file = myFixture.file
             val types = LuaTypesSnapshot.forFile(file)
@@ -95,8 +105,14 @@ class LuaTypeAssignabilityTest : BaseDocumentTest() {
             val typeA = types.getValueType(aVar)
             val typeB = types.getValueType(bVar)
 
-            assertTrue(typeA.displayName().contains("number"), "Expected 'a' to be number but got ${typeA.displayName()}")
-            assertTrue(typeB.displayName().contains("string"), "Expected 'b' to be string but got ${typeB.displayName()}")
+            assertTrue(
+                typeA.displayName().contains("number"),
+                "Expected 'a' to be number but got ${typeA.displayName()}",
+            )
+            assertTrue(
+                typeB.displayName().contains("string"),
+                "Expected 'b' to be string but got ${typeB.displayName()}",
+            )
         }
     }
 }

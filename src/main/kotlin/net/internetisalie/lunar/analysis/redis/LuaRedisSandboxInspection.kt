@@ -34,7 +34,6 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  * Suppressible via the normal `LuaInspectionSuppression` mechanism.
  */
 class LuaRedisSandboxInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaRedisSandbox"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -45,7 +44,10 @@ class LuaRedisSandboxInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitNameRef(o: LuaNameRef) {
                 if (isDeclaration(o)) return
@@ -115,7 +117,9 @@ class LuaRedisSandboxInspection : LocalInspectionTool() {
         private fun osMemberOf(ref: LuaNameRef): String? {
             val luaVar = ref.parent as? LuaVar ?: return null
             val suffix = luaVar.varSuffixList.firstOrNull() ?: return null
-            return suffix.indexExpr.nameRef?.identifier?.text
+            return suffix.indexExpr.nameRef
+                ?.identifier
+                ?.text
         }
 
         /**
@@ -145,7 +149,10 @@ class LuaRedisSandboxInspection : LocalInspectionTool() {
          * index, or type engine — risk §1.1). A name with no visible local binding is treated
          * as a global and evaluated against the allowlist as before.
          */
-        private fun bindsToLocal(ref: LuaNameRef, rootName: String): Boolean {
+        private fun bindsToLocal(
+            ref: LuaNameRef,
+            rootName: String,
+        ): Boolean {
             val processor = LocalBindingScopeProcessor(rootName)
             LuaResolveUtil.scopeCrawlUp(processor, ref)
             return processor.foundLocal

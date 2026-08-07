@@ -12,7 +12,6 @@ import com.intellij.psi.scope.PsiScopeProcessor
 import net.internetisalie.lunar.lang.psi.*
 
 class LuaShadowingVariableInspection : LocalInspectionTool() {
-
     override fun getShortName(): String = "LuaShadowingVariable"
 
     override fun getGroupDisplayName(): String = "Lua"
@@ -23,7 +22,10 @@ class LuaShadowingVariableInspection : LocalInspectionTool() {
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WEAK_WARNING
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+    ): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitLocalVarDecl(o: LuaLocalVarDecl) {
                 o.attNameList.forEach { attName ->
@@ -59,7 +61,10 @@ class LuaShadowingVariableInspection : LocalInspectionTool() {
             }
         }
 
-    private fun inspectIdentifier(identifier: PsiElement, holder: ProblemsHolder) {
+    private fun inspectIdentifier(
+        identifier: PsiElement,
+        holder: ProblemsHolder,
+    ) {
         val name = identifier.text
         if (name == "_" || name.isEmpty()) return
 
@@ -70,18 +75,24 @@ class LuaShadowingVariableInspection : LocalInspectionTool() {
             holder.registerProblem(
                 identifier,
                 "Shadowing variable '$name'",
-                ProblemHighlightType.GENERIC_ERROR_OR_WARNING
+                ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
             )
         }
     }
 }
 
-private class ShadowingResolveProcessor(val name: String, val startElement: PsiElement) : PsiScopeProcessor {
+private class ShadowingResolveProcessor(
+    val name: String,
+    val startElement: PsiElement,
+) : PsiScopeProcessor {
     var result: PsiElement? = null
         private set
     private var found = false
 
-    override fun execute(element: PsiElement, state: ResolveState): Boolean {
+    override fun execute(
+        element: PsiElement,
+        state: ResolveState,
+    ): Boolean {
         if (found) return false
 
         when (element) {
@@ -156,5 +167,9 @@ private class ShadowingResolveProcessor(val name: String, val startElement: PsiE
     }
 
     override fun <T : Any?> getHint(hintKey: Key<T>): T? = null
-    override fun handleEvent(event: PsiScopeProcessor.Event, associated: Any?) {}
+
+    override fun handleEvent(
+        event: PsiScopeProcessor.Event,
+        associated: Any?,
+    ) {}
 }

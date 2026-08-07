@@ -28,14 +28,27 @@ class ReleaseBinaryStrategyTest : BasePlatformTestCase() {
         return File(url.toURI()).toPath()
     }
 
-    private inner class FixtureFetcher(private val archive: Path) : LuaArtifactFetcher {
-        override fun fetch(asset: LuaFeedAsset, indicator: ProgressIndicator): Path = archive
+    private inner class FixtureFetcher(
+        private val archive: Path,
+    ) : LuaArtifactFetcher {
+        override fun fetch(
+            asset: LuaFeedAsset,
+            indicator: ProgressIndicator,
+        ): Path = archive
     }
 
-    private fun feed(kindId: String, version: LuaFeedVersion): LuaToolchainFeed =
-        LuaToolchainFeed(1, mapOf(kindId to LuaFeedKind(emptyMap(), listOf(version))))
+    private fun feed(
+        kindId: String,
+        version: LuaFeedVersion,
+    ): LuaToolchainFeed = LuaToolchainFeed(1, mapOf(kindId to LuaFeedKind(emptyMap(), listOf(version))))
 
-    private fun context(feed: LuaToolchainFeed, platform: LuaHostPlatform, rootDir: Path, kindId: String, spec: String): LuaProvisionContext =
+    private fun context(
+        feed: LuaToolchainFeed,
+        platform: LuaHostPlatform,
+        rootDir: Path,
+        kindId: String,
+        spec: String,
+    ): LuaProvisionContext =
         LuaProvisionContext(
             project = project,
             request = LuaProvisionRequest("env", rootDir.toString(), listOf(LuaProvisionItem(kindId, spec))),
@@ -47,13 +60,28 @@ class ReleaseBinaryStrategyTest : BasePlatformTestCase() {
         )
 
     fun testWinLuaBinariesCopiesCanonicalLuaExe() {
-        val asset = LuaFeedAsset("windows", "x86_64", "https://x/lua.zip", "SHA", 0, "zip", null, "win-lua-binaries", "lua54.exe")
+        val asset =
+            LuaFeedAsset(
+                "windows",
+                "x86_64",
+                "https://x/lua.zip",
+                "SHA",
+                0,
+                "zip",
+                null,
+                "win-lua-binaries",
+                "lua54.exe",
+            )
         val version = LuaFeedVersion("5.4.2", null, null, listOf(asset), null)
         val strategy = ReleaseBinaryStrategy(FixtureFetcher(fixture("release-win-lua.zip")))
         val rootDir = createTempDirectory("lunar-winlua")
         val platform = LuaHostPlatform(LuaOs.WINDOWS, LuaArch.X86_64)
 
-        val component = strategy.provision(context(feed("lua", version), platform, rootDir, "lua", "5.4.2"), LuaProvisionItem("lua", "5.4.2"))
+        val component =
+            strategy.provision(
+                context(feed("lua", version), platform, rootDir, "lua", "5.4.2"),
+                LuaProvisionItem("lua", "5.4.2"),
+            )
 
         val bin = rootDir.resolve("bin")
         assertTrue("lua.exe canonical copy must exist", bin.resolve("lua.exe").exists())
@@ -66,13 +94,17 @@ class ReleaseBinaryStrategyTest : BasePlatformTestCase() {
     }
 
     fun testWinLuaRocksWritesLuaRocksConfig() {
-        val asset = LuaFeedAsset("windows", "x86_64", "https://x/lr.zip", "SHA", 0, "zip", null, "single-binary", "stylua")
+        val asset =
+            LuaFeedAsset("windows", "x86_64", "https://x/lr.zip", "SHA", 0, "zip", null, "single-binary", "stylua")
         val version = LuaFeedVersion("3.13.0", null, null, listOf(asset), null)
         val strategy = ReleaseBinaryStrategy(FixtureFetcher(fixture("release-single.zip")))
         val rootDir = createTempDirectory("lunar-winlr")
         val platform = LuaHostPlatform(LuaOs.WINDOWS, LuaArch.X86_64)
 
-        strategy.provision(context(feed("luarocks", version), platform, rootDir, "luarocks", "3.13.0"), LuaProvisionItem("luarocks", "3.13.0"))
+        strategy.provision(
+            context(feed("luarocks", version), platform, rootDir, "luarocks", "3.13.0"),
+            LuaProvisionItem("luarocks", "3.13.0"),
+        )
 
         val config = rootDir.resolve("luarocks-config.lua")
         assertTrue("luarocks-config.lua must be written on Windows", config.exists())
@@ -83,13 +115,18 @@ class ReleaseBinaryStrategyTest : BasePlatformTestCase() {
 
     fun testSingleBinaryRestoresExecBitOnPosix() {
         if (com.intellij.openapi.util.SystemInfo.isWindows) return
-        val asset = LuaFeedAsset("linux", "x86_64", "https://x/stylua.zip", "SHA", 0, "zip", null, "single-binary", "stylua")
+        val asset =
+            LuaFeedAsset("linux", "x86_64", "https://x/stylua.zip", "SHA", 0, "zip", null, "single-binary", "stylua")
         val version = LuaFeedVersion("2.5.2", null, null, listOf(asset), null)
         val strategy = ReleaseBinaryStrategy(FixtureFetcher(fixture("release-single.zip")))
         val rootDir = createTempDirectory("lunar-single")
         val platform = LuaHostPlatform(LuaOs.LINUX, LuaArch.X86_64)
 
-        val component = strategy.provision(context(feed("stylua", version), platform, rootDir, "stylua", "2.5.2"), LuaProvisionItem("stylua", "2.5.2"))
+        val component =
+            strategy.provision(
+                context(feed("stylua", version), platform, rootDir, "stylua", "2.5.2"),
+                LuaProvisionItem("stylua", "2.5.2"),
+            )
 
         val binary = rootDir.resolve("bin/stylua")
         assertTrue("single binary extracted to bin/", binary.exists())

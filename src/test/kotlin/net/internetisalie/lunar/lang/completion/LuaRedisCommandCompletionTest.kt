@@ -24,7 +24,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaRedisCommandCompletionTest : IndexedBasePlatformTestCase() {
-
     // Restore the default target after each test so Redis library roots do not leak into
     // alphabetically-later test suites (mirrors RedisAmbientTypingTest.tearDown contract).
     override fun tearDown() {
@@ -114,11 +113,12 @@ class LuaRedisCommandCompletionTest : IndexedBasePlatformTestCase() {
         // contributor and our contributor only fires on STRING tokens.
         val commandNames = strings.filter { it == it.uppercase() && it.length >= 3 && it.all { c -> c.isLetter() } }
         // Filter out known Lua keyword candidates that happen to be uppercase (none expected, but be safe).
-        val redisCommandsInResult = commandNames.filter { name ->
-            // A command from the spec will be present only if our contributor ran.
-            // GET, SET, HSET are spec commands; if they appear the test fails.
-            name in setOf("GET", "SET", "HSET", "DEL", "INCR", "SINTERCARD")
-        }
+        val redisCommandsInResult =
+            commandNames.filter { name ->
+                // A command from the spec will be present only if our contributor ran.
+                // GET, SET, HSET are spec commands; if they appear the test fails.
+                name in setOf("GET", "SET", "HSET", "DEL", "INCR", "SINTERCARD")
+            }
         assertTrue(
             "No Redis command names must be injected for a non-literal first arg, got: $redisCommandsInResult",
             redisCommandsInResult.isEmpty(),
@@ -135,9 +135,10 @@ class LuaRedisCommandCompletionTest : IndexedBasePlatformTestCase() {
         myFixture.completeBasic()
 
         val strings = myFixture.lookupElementStrings ?: emptyList()
-        val redisCommandsInResult = strings.filter { name ->
-            name in setOf("GET", "SET", "HSET", "DEL", "INCR", "SINTERCARD")
-        }
+        val redisCommandsInResult =
+            strings.filter { name ->
+                name in setOf("GET", "SET", "HSET", "DEL", "INCR", "SINTERCARD")
+            }
         assertTrue(
             "No Redis command names must be offered under the Standard target, got: $redisCommandsInResult",
             redisCommandsInResult.isEmpty(),

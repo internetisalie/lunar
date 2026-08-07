@@ -24,29 +24,35 @@ import net.internetisalie.lunar.lang.psi.LuaParList
  * Lua has no compound-assignment operators (`++`, `+=`), so [Access.ReadWrite] never arises.
  */
 class LuaReadWriteAccessDetector : ReadWriteAccessDetector() {
-
     override fun isReadWriteAccessible(element: PsiElement): Boolean =
         element is LuaNameRef || element.elementType == LuaElementTypes.IDENTIFIER
 
     override fun isDeclarationWriteAccess(element: PsiElement): Boolean {
         // Normalize to a LuaNameRef regardless of whether the platform passed a leaf
         // IDENTIFIER token or the LuaNameRef node itself.
-        val nameRef = element as? LuaNameRef
-            ?: if (element.elementType == LuaElementTypes.IDENTIFIER) element.parent as? LuaNameRef
-            else null
+        val nameRef =
+            element as? LuaNameRef
+                ?: if (element.elementType == LuaElementTypes.IDENTIFIER) {
+                    element.parent as? LuaNameRef
+                } else {
+                    null
+                }
         if (nameRef != null) return isBindingSiteNameRef(nameRef)
         // numeric-for: IDENTIFIER hangs directly under LuaNumericForStatement (no LuaNameRef wrapper)
         val parent = element.parent ?: return false
         return parent is LuaNumericForStatement
     }
 
-    override fun getReferenceAccess(referencedElement: PsiElement, reference: PsiReference): Access =
-        getExpressionAccess(reference.element)
+    override fun getReferenceAccess(
+        referencedElement: PsiElement,
+        reference: PsiReference,
+    ): Access = getExpressionAccess(reference.element)
 
     override fun getExpressionAccess(expression: PsiElement): Access {
-        val ref = expression as? LuaNameRef
-            ?: expression.parent as? LuaNameRef
-            ?: return Access.Read
+        val ref =
+            expression as? LuaNameRef
+                ?: expression.parent as? LuaNameRef
+                ?: return Access.Read
         return if (LuaReadWriteUsageTypeProvider.isWriteTarget(ref)) Access.Write else Access.Read
     }
 

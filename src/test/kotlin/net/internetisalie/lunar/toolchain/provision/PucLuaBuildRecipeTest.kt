@@ -26,7 +26,10 @@ class PucLuaBuildRecipeTest {
 
     private fun toolchain() = LuaCompilerProbe.Toolchain(cc, ar, ranlib, Path.of("/usr/bin/make"))
 
-    private fun buildTree(version: String, sources: List<String>): Path {
+    private fun buildTree(
+        version: String,
+        sources: List<String>,
+    ): Path {
         val buildDir = Files.createTempDirectory("lunar-puc-$version")
         val src = buildDir.resolve("src").also { it.createDirectories() }
         sources.forEach { src.resolve(it).writeText("/* $it */") }
@@ -36,7 +39,10 @@ class PucLuaBuildRecipeTest {
         return buildDir
     }
 
-    private fun plan(version: String, sources: List<String>): BuildPlan {
+    private fun plan(
+        version: String,
+        sources: List<String>,
+    ): BuildPlan {
         val buildDir = buildTree(version, sources)
         return PucLuaBuildRecipe.plan(LuaBuildRecipeInput(version, LuaOs.LINUX, toolchain(), buildDir, prefix))
     }
@@ -45,21 +51,28 @@ class PucLuaBuildRecipeTest {
     fun lua548LinuxCommandSequenceMatchesTc1() {
         val sources = listOf("lapi.c", "lauxlib.c", "lua.c", "luac.c")
         val steps = plan("5.4.8", sources).steps
-        val cflags = listOf(
-            "-O2", "-Wall", "-Wextra", "-std=gnu99",
-            "-DLUA_USE_POSIX", "-DLUA_USE_DLOPEN", "-DLUA_COMPAT_5_3",
-        )
+        val cflags =
+            listOf(
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-std=gnu99",
+                "-DLUA_USE_POSIX",
+                "-DLUA_USE_DLOPEN",
+                "-DLUA_COMPAT_5_3",
+            )
         val ldflags = listOf("-Wl,-E", "-ldl", "-lm")
-        val expected = listOf(
-            listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "lapi.o", "lapi.c"),
-            listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "lauxlib.o", "lauxlib.c"),
-            listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "lua.o", "lua.c"),
-            listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "luac.o", "luac.c"),
-            listOf("/usr/bin/ar", "rcu", "liblua54.a", "lapi.o", "lauxlib.o"),
-            listOf("/usr/bin/ranlib", "liblua54.a"),
-            listOf("/usr/bin/gcc", "-o", "luac", "luac.o", "liblua54.a") + ldflags,
-            listOf("/usr/bin/gcc", "-o", "lua", "lua.o", "liblua54.a") + ldflags,
-        )
+        val expected =
+            listOf(
+                listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "lapi.o", "lapi.c"),
+                listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "lauxlib.o", "lauxlib.c"),
+                listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "lua.o", "lua.c"),
+                listOf("/usr/bin/gcc") + cflags + listOf("-c", "-o", "luac.o", "luac.c"),
+                listOf("/usr/bin/ar", "rcu", "liblua54.a", "lapi.o", "lauxlib.o"),
+                listOf("/usr/bin/ranlib", "liblua54.a"),
+                listOf("/usr/bin/gcc", "-o", "luac", "luac.o", "liblua54.a") + ldflags,
+                listOf("/usr/bin/gcc", "-o", "lua", "lua.o", "liblua54.a") + ldflags,
+            )
         assertEquals(expected, steps.map { it.command })
     }
 
@@ -87,12 +100,18 @@ class PucLuaBuildRecipeTest {
         val sources = listOf("lapi.c", "lua.c", "luac.c")
         val steps = plan("5.2.4", sources).steps
         val firstCompile = steps.first { it.command.contains("-c") }.command
-        val expectedCflags = listOf(
-            "-O2", "-Wall", "-Wextra",
-            "-DLUA_USE_POSIX", "-DLUA_USE_DLOPEN",
-            "-DLUA_USE_STRTODHEX", "-DLUA_USE_AFORMAT", "-DLUA_USE_LONGLONG",
-            "-DLUA_COMPAT_ALL",
-        )
+        val expectedCflags =
+            listOf(
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-DLUA_USE_POSIX",
+                "-DLUA_USE_DLOPEN",
+                "-DLUA_USE_STRTODHEX",
+                "-DLUA_USE_AFORMAT",
+                "-DLUA_USE_LONGLONG",
+                "-DLUA_COMPAT_ALL",
+            )
         assertEquals(listOf("/usr/bin/gcc") + expectedCflags + listOf("-c", "-o", "lapi.o", "lapi.c"), firstCompile)
         assertTrue("5.2 has no -std", steps.none { it.command.contains("-std=gnu99") })
     }
@@ -113,15 +132,17 @@ class PucLuaBuildRecipeTest {
     fun patchLuaconfInsertsBlockBeforeLastEndifWithFivePointFourPaths() {
         val original = "#ifndef luaconf_h\n#define luaconf_h\n#define LUA_ROOT \"/x\"\n#endif\n"
         val patched = PucLuaBuildRecipe.patchLuaconf(original, "5.4.8", prefix)
-        val expectedBlock = listOf(
-            "/* patched by Lunar provisioner */",
-            "#undef LUA_PATH_DEFAULT",
-            "#define LUA_PATH_DEFAULT \"/p/.lua/share/lua/5.4/?.lua;/p/.lua/share/lua/5.4/?/init.lua;./?.lua;./?/init.lua\"",
-            "#undef LUA_CPATH_DEFAULT",
-            "#define LUA_CPATH_DEFAULT \"/p/.lua/lib/lua/5.4/?.so;/p/.lua/lib/lua/5.4/loadall.so;./?.so\"",
-        ).joinToString("\n")
-        val expected = "#ifndef luaconf_h\n#define luaconf_h\n#define LUA_ROOT \"/x\"\n" +
-            expectedBlock + "\n#endif\n"
+        val expectedBlock =
+            listOf(
+                "/* patched by Lunar provisioner */",
+                "#undef LUA_PATH_DEFAULT",
+                "#define LUA_PATH_DEFAULT \"/p/.lua/share/lua/5.4/?.lua;/p/.lua/share/lua/5.4/?/init.lua;./?.lua;./?/init.lua\"",
+                "#undef LUA_CPATH_DEFAULT",
+                "#define LUA_CPATH_DEFAULT \"/p/.lua/lib/lua/5.4/?.so;/p/.lua/lib/lua/5.4/loadall.so;./?.so\"",
+            ).joinToString("\n")
+        val expected =
+            "#ifndef luaconf_h\n#define luaconf_h\n#define LUA_ROOT \"/x\"\n" +
+                expectedBlock + "\n#endif\n"
         assertEquals(expected, patched)
     }
 

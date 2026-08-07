@@ -25,7 +25,11 @@ object RockspecExclusionFilter {
      * @param includeGlobs when non-empty, acts as an allow-list (ROCKS-09-07)
      * @param excludeGlobs when non-empty, any match excludes the path (ROCKS-09-07)
      */
-    fun isIncluded(relativePath: String, includeGlobs: List<String>, excludeGlobs: List<String>): Boolean {
+    fun isIncluded(
+        relativePath: String,
+        includeGlobs: List<String>,
+        excludeGlobs: List<String>,
+    ): Boolean {
         if (!isBuiltInIncluded(relativePath)) return false
         if (includeGlobs.isEmpty() && excludeGlobs.isEmpty()) return true
         if (excludeGlobs.any { matchesGlob(relativePath, it) }) return false
@@ -42,7 +46,10 @@ object RockspecExclusionFilter {
         return normalized in BUILT_IN_EXCLUDED_SEGMENTS || normalized.startsWith(BUILD_SEGMENT_PREFIX)
     }
 
-    private fun matchesGlob(relativePath: String, glob: String): Boolean =
+    private fun matchesGlob(
+        relativePath: String,
+        glob: String,
+    ): Boolean =
         try {
             FileSystems.getDefault().getPathMatcher("glob:$glob").matches(Path.of(relativePath))
         } catch (e: IllegalArgumentException) {

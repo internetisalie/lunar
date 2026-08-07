@@ -1,9 +1,9 @@
 package net.internetisalie.lunar.toolchain.provision
 
+import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectState
 import net.internetisalie.lunar.toolchain.registry.ToolchainSettingsTestCase
-import com.intellij.testFramework.EdtTestUtil
 
 /**
  * BUG-371: the "Change Versions" flow (prefill with initial != null) must disable rootDirField so
@@ -11,7 +11,6 @@ import com.intellij.testFramework.EdtTestUtil
  * by constructing it on the EDT inside the light-fixture project.
  */
 class LuaProvisionDialogRootDirTest : ToolchainSettingsTestCase() {
-
     private fun makeRequest(): LuaProvisionRequest =
         LuaProvisionRequest(
             environmentName = "lua-5.4.7",

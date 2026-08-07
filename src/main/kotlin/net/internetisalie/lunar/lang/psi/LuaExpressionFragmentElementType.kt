@@ -11,11 +11,16 @@ import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.parser.LuaParser
 
 class LuaExpressionFragmentElementType : ICodeFragmentElementType("EXPRESSION_FRAGMENT", LuaLanguage) {
-    override fun doParseContents(chameleon: ASTNode, psi: PsiElement): ASTNode? {
+    override fun doParseContents(
+        chameleon: ASTNode,
+        psi: PsiElement,
+    ): ASTNode? {
         val project: Project = psi.project
         val languageForParser = getLanguageForParser(psi)
-        val builder: PsiBuilder = PsiBuilderFactory.getInstance()
-            .createBuilder(project, chameleon, null, languageForParser, chameleon.getChars())
+        val builder: PsiBuilder =
+            PsiBuilderFactory
+                .getInstance()
+                .createBuilder(project, chameleon, null, languageForParser, chameleon.getChars())
         val parser: LuaParser =
             LanguageParserDefinitions.INSTANCE.forLanguage(languageForParser).createParser(project) as LuaParser
         val node: ASTNode = parser.parse(this, builder)

@@ -16,14 +16,19 @@ import net.internetisalie.lunar.lang.psi.LuaStatement
  * wrapped source, swap it in under a write command, reformat, and place the caret. Subclasses supply only
  * the template shape via [wrap]. Stateless; retains no `Project`/`Editor`. Design §2.3 / §3.1.
  */
-abstract class LuaStatementSurrounder(private val description: String) : Surrounder {
-
+abstract class LuaStatementSurrounder(
+    private val description: String,
+) : Surrounder {
     final override fun getTemplateDescription(): String = description
 
     final override fun isApplicable(elements: Array<PsiElement>): Boolean =
         elements.isNotEmpty() && elements.all { it is LuaStatement }
 
-    final override fun surroundElements(project: Project, editor: Editor, elements: Array<PsiElement>): TextRange? {
+    final override fun surroundElements(
+        project: Project,
+        editor: Editor,
+        elements: Array<PsiElement>,
+    ): TextRange? {
         val statements = elements.filterIsInstance<LuaStatement>()
         if (statements.isEmpty()) return null
         val source = wrap(LuaBlockStructure.statementsText(statements))
@@ -34,7 +39,11 @@ abstract class LuaStatementSurrounder(private val description: String) : Surroun
         return if (caret < 0) null else TextRange(caret, caret)
     }
 
-    private fun applyWrap(project: Project, statements: List<LuaStatement>, source: String): Int {
+    private fun applyWrap(
+        project: Project,
+        statements: List<LuaStatement>,
+        source: String,
+    ): Int {
         val dummy = LuaElementFactory.createFile(project, source)
         val newStatement = PsiTreeUtil.findChildOfType(dummy, LuaStatement::class.java) ?: return -1
         val inserted = LuaBlockStructure.replaceStatements(statements.first(), statements.last(), newStatement)

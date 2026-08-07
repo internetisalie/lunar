@@ -3,14 +3,13 @@ package net.internetisalie.lunar.lang.completion.postfix
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class LuaPostfixTemplateTest : BasePlatformTestCase() {
-
     fun testIfPostfixTemplate() {
         myFixture.configureByText(
             "test.lua",
             """
             local x = 10
             x > 5.if<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t") // Trigger postfix template expansion
@@ -23,7 +22,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             if x > 5 then
             <caret>
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -33,7 +32,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local ready = true
             ready.not<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -42,7 +41,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local ready = true
             not ready<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -51,7 +50,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             "test.lua",
             """
             getUser().var<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -62,7 +61,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
         myFixture.checkResult(
             """
             local value = getUser()
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
     }
 
@@ -72,7 +71,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local count = 3
             count.for<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -83,7 +82,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             for i = 1, count do
             <caret>
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -93,7 +92,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local tbl = {}
             tbl.forp<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -104,7 +103,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             for k, v in pairs(tbl) do
             <caret>
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -114,7 +113,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local list = {}
             list.fori<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -125,7 +124,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             for i, v in ipairs(list) do
             <caret>
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -135,7 +134,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local ok = true
             ok.ifnot<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -146,7 +145,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             if not ok then
             <caret>
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -156,7 +155,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local x = nil
             x.nil<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -167,7 +166,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             if x == nil then
             <caret>
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -177,7 +176,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local x = nil
             x.notnil<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -188,7 +187,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             if x ~= nil then
             <caret>
             end
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -198,7 +197,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local result = 1
             result.return<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -207,7 +206,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local result = 1
             return result<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -217,7 +216,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local value = 1
             value.print<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         myFixture.type("\t")
@@ -226,7 +225,7 @@ class LuaPostfixTemplateTest : BasePlatformTestCase() {
             """
             local value = 1
             print(value)<caret>
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 

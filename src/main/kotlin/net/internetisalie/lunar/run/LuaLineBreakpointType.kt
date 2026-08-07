@@ -30,19 +30,23 @@ import com.intellij.xdebugger.breakpoints.XLineBreakpointTypeBase
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaStatement
 
-class LuaLineBreakpointType : XLineBreakpointTypeBase(
-    "lua-line",
-    "Lua Line Breakpoints",
-    LuaDebuggerEditorsProvider(),
-) {
-
+class LuaLineBreakpointType :
+    XLineBreakpointTypeBase(
+        "lua-line",
+        "Lua Line Breakpoints",
+        LuaDebuggerEditorsProvider(),
+    ) {
     override fun getDisplayText(breakpoint: XLineBreakpoint<XBreakpointProperties<*>?>): String {
         val sourcePosition: XSourcePosition = breakpoint.sourcePosition ?: return "Unknown position"
         val displayPath = FileUtil.toSystemDependentName(sourcePosition.file.path)
         return "Line ${sourcePosition.line + 1} in file $displayPath"
     }
 
-    override fun canPutAt(file: VirtualFile, line: Int, project: Project): Boolean {
+    override fun canPutAt(
+        file: VirtualFile,
+        line: Int,
+        project: Project,
+    ): Boolean {
         val luaFile = PsiManager.getInstance(project).findFile(file) as? LuaFile ?: return false
         val document: Document = PsiDocumentManager.getInstance(project).getDocument(luaFile) ?: return false
 
@@ -51,11 +55,14 @@ class LuaLineBreakpointType : XLineBreakpointTypeBase(
             var element: PsiElement? = element
 
             // avoid comments
-            if ((element is PsiWhiteSpace) || (PsiTreeUtil.getParentOfType<PsiComment?>(
-                    element,
-                    PsiComment::class.java
-                ) !=
-                        null)
+            if ((element is PsiWhiteSpace) ||
+                (
+                    PsiTreeUtil.getParentOfType<PsiComment?>(
+                        element,
+                        PsiComment::class.java,
+                    ) !=
+                        null
+                )
             ) {
                 return@iterateLine true
             }

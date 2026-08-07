@@ -8,7 +8,6 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class LuaSuspiciousConcatenationInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaSuspiciousConcatenationInspection())
@@ -16,7 +15,8 @@ class LuaSuspiciousConcatenationInspectionTest : BasePlatformTestCase() {
 
     private fun concatWarnings(text: String): List<String> {
         myFixture.configureByText("test.lua", text)
-        return myFixture.doHighlighting()
+        return myFixture
+            .doHighlighting()
             .filter { it.description?.startsWith("Suspicious concatenation") == true }
             .map { it.description!! }
     }
@@ -26,7 +26,10 @@ class LuaSuspiciousConcatenationInspectionTest : BasePlatformTestCase() {
         assertTrue("Expected no suspicious-concatenation warnings but found: $warnings", warnings.isEmpty())
     }
 
-    private fun assertOneWarning(text: String, expectedMessage: String) {
+    private fun assertOneWarning(
+        text: String,
+        expectedMessage: String,
+    ) {
         val warnings = concatWarnings(text)
         assertEquals("Expected exactly one warning but got: $warnings", 1, warnings.size)
         assertEquals(expectedMessage, warnings[0])

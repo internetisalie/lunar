@@ -20,7 +20,6 @@ import java.util.UUID
  * delegates to; the builder is seeded with two real tools so `pathPrependDirs()` returns `[d1, d2]`.
  */
 class LuaShellExecOptionsCustomizerTest : ToolchainSettingsTestCase() {
-
     fun testPrependsDirsInReverseSoHighestPriorityStaysFirst() {
         bindTool("lua", "/d1/lua")
         bindTool("luacheck", "/d2/luacheck")
@@ -35,24 +34,29 @@ class LuaShellExecOptionsCustomizerTest : ToolchainSettingsTestCase() {
         assertEquals(listOf(Path.of("/d2"), Path.of("/d1")), recorded)
     }
 
-    private fun bindTool(kindId: String, path: String) {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = kindId,
-            path = path,
-            version = "1.0.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(
-                fileExists = true,
-                executable = true,
-                probeOk = true,
-                probedAtMtime = 1L,
-                reason = null,
-            ),
-        )
+    private fun bindTool(
+        kindId: String,
+        path: String,
+    ) {
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = kindId,
+                path = path,
+                version = "1.0.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         registry.registerProvisioned(tool)
         settings.setBinding(kindId, tool.id)
     }

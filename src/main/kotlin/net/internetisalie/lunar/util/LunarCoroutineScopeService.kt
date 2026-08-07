@@ -16,7 +16,9 @@ import kotlinx.coroutines.CoroutineScope
  * Do not retain `Project`/`Editor`/`PsiFile` across a launched job; read PSI/VFS via `readAction`.
  */
 @Service(Service.Level.PROJECT)
-class LunarCoroutineScopeService(val scope: CoroutineScope) {
+class LunarCoroutineScopeService(
+    val scope: CoroutineScope,
+) {
     companion object {
         fun getInstance(project: Project): LunarCoroutineScopeService = project.service()
     }

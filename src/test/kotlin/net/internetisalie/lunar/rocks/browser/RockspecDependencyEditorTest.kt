@@ -10,7 +10,6 @@ import org.junit.Test
  * appends a fresh block when none exists.
  */
 class RockspecDependencyEditorTest {
-
     @Test
     fun `appends to a single-line dependencies block`() {
         val out = RockspecDependencyEditor.addDependency("dependencies = { \"lua >= 5.1\" }\n", "inspect >= 3.1")
@@ -20,11 +19,12 @@ class RockspecDependencyEditorTest {
 
     @Test
     fun `appends to a multi-line dependencies block`() {
-        val src = """
+        val src =
+            """
             dependencies = {
                "lua >= 5.1",
             }
-        """.trimIndent()
+            """.trimIndent()
         val out = RockspecDependencyEditor.addDependency(src, "inspect >= 3.1")
         assertTrue(out, out.contains("\"lua >= 5.1\""))
         assertTrue(out, out.contains("\"inspect >= 3.1\""))

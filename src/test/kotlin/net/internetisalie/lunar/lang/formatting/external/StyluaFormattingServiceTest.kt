@@ -24,13 +24,16 @@ import java.util.UUID
 
 @RunWith(JUnit4::class)
 class StyluaFormattingServiceTest : BasePlatformTestCase() {
-
     private lateinit var mockStyluaBinary: File
     private val recordingNotificationService = RecordingFormattingNotificationService()
 
     override fun setUp() {
         super.setUp()
-        project.replaceService(FormattingNotificationService::class.java, recordingNotificationService, testRootDisposable)
+        project.replaceService(
+            FormattingNotificationService::class.java,
+            recordingNotificationService,
+            testRootDisposable,
+        )
 
         resetToolchain()
 
@@ -85,7 +88,7 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
 
             echo "${'$'}stdin_content"
             exit 0
-            """.trimIndent()
+            """.trimIndent(),
         )
         f.setExecutable(true)
         f.deleteOnExit()
@@ -93,17 +96,25 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
     }
 
     private fun registerAndBindStylua(path: String = mockStyluaBinary.absolutePath) {
-        val tool = LuaRegisteredTool(
-            id = UUID.randomUUID().toString(),
-            kindId = "stylua",
-            path = path,
-            version = "0.20.0",
-            luaVersion = null,
-            runtime = null,
-            origin = Origin.MANUAL,
-            environmentId = null,
-            health = LuaToolHealth(fileExists = true, executable = true, probeOk = true, probedAtMtime = 1L, reason = null),
-        )
+        val tool =
+            LuaRegisteredTool(
+                id = UUID.randomUUID().toString(),
+                kindId = "stylua",
+                path = path,
+                version = "0.20.0",
+                luaVersion = null,
+                runtime = null,
+                origin = Origin.MANUAL,
+                environmentId = null,
+                health =
+                    LuaToolHealth(
+                        fileExists = true,
+                        executable = true,
+                        probeOk = true,
+                        probedAtMtime = 1L,
+                        reason = null,
+                    ),
+            )
         LuaToolchainRegistry.getInstance().registerProvisioned(tool)
         LuaToolchainRegistry.getInstance().setGlobalBinding("stylua", tool.id)
     }
@@ -111,7 +122,8 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
     private fun reformat() {
         WriteCommandAction.writeCommandAction(project).run<RuntimeException?> {
             CodeStyleManager.getInstance(project).reformatText(
-                myFixture.file, listOf(myFixture.file.textRange)
+                myFixture.file,
+                listOf(myFixture.file.textRange),
             )
         }
     }
@@ -176,7 +188,9 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
         myFixture.configureByText("test.lua", originalText)
         reformat()
         assertEquals(originalText, myFixture.file.text)
-        assertTrue(recordingNotificationService.errorsReported.any { it.contains("Stylua did not respond within 30 seconds") })
+        assertTrue(
+            recordingNotificationService.errorsReported.any { it.contains("Stylua did not respond within 30 seconds") },
+        )
     }
 
     private class RecordingFormattingNotificationService : FormattingNotificationService {
@@ -187,7 +201,7 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
             displayId: String?,
             title: @NlsContexts.NotificationTitle String,
             message: @NlsContexts.NotificationContent String,
-            vararg actions: AnAction?
+            vararg actions: AnAction?,
         ) {
             errorsReported.add(message)
         }
@@ -198,7 +212,7 @@ class StyluaFormattingServiceTest : BasePlatformTestCase() {
             title: @NlsContexts.NotificationTitle String,
             message: @NlsContexts.NotificationContent String,
             context: FormattingContext,
-            offset: Int
+            offset: Int,
         ) {
             errorsReported.add(message)
         }

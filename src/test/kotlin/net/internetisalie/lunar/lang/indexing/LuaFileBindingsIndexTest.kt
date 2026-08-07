@@ -24,7 +24,6 @@ import kotlin.test.assertTrue
  * never indexed. This mirrors the proven approach in `LuaCrossFileCompletionHeavyTest`.
  */
 class LuaFileBindingsIndexTest {
-
     private lateinit var myFixture: CodeInsightTestFixture
 
     @BeforeTest
@@ -100,7 +99,9 @@ class LuaFileBindingsIndexTest {
             val declRecord = readBindingsRecord(declFile)
             assertTrue(
                 declRecord.bindings.any { it.name == "bar" },
-                "A declaration `function bar()` must record a `bar` binding. Found: ${declRecord.bindings.map { it.name }}",
+                "A declaration `function bar()` must record a `bar` binding. Found: ${declRecord.bindings.map {
+                    it.name
+                }}",
             )
         }
     }
@@ -111,8 +112,10 @@ class LuaFileBindingsIndexTest {
             "Fixture file must have a file:-scheme URL to be indexed. Got: ${virtualFile.url}",
         )
         val scope = GlobalSearchScope.fileScope(myFixture.project, virtualFile)
-        val values = FileBasedIndex.getInstance()
-            .getValues(LuaFileBindingsIndexName, ForwardIndexer.KEY, scope)
+        val values =
+            FileBasedIndex
+                .getInstance()
+                .getValues(LuaFileBindingsIndexName, ForwardIndexer.KEY, scope)
         assertEquals(1, values.size, "Expected exactly one indexed record for the file")
         return values.first()
     }

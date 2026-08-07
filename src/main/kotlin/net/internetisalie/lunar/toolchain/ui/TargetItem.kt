@@ -10,5 +10,7 @@ import net.internetisalie.lunar.platform.LuaPlatform
 sealed interface TargetItem {
     data object Auto : TargetItem
 
-    data class Platform(val platform: LuaPlatform) : TargetItem
+    data class Platform(
+        val platform: LuaPlatform,
+    ) : TargetItem
 }

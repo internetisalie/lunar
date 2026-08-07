@@ -10,7 +10,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * width. TC-01..TC-10. EDITOR-08.
  */
 class LuaSmartEnterTest : BasePlatformTestCase() {
-
     private fun complete(source: String): String {
         myFixture.configureByText("a.lua", source)
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_COMPLETE_STATEMENT)
@@ -19,15 +18,24 @@ class LuaSmartEnterTest : BasePlatformTestCase() {
 
     private fun caret(): Int = myFixture.editor.caretModel.offset
 
-    private fun count(text: String, word: String): Int = Regex("\\b$word\\b").findAll(text).count()
+    private fun count(
+        text: String,
+        word: String,
+    ): Int = Regex("\\b$word\\b").findAll(text).count()
 
-    private fun assertClosedBlock(text: String, vararg headerKeywords: String) {
+    private fun assertClosedBlock(
+        text: String,
+        vararg headerKeywords: String,
+    ) {
         for (kw in headerKeywords) assertTrue("expected '$kw' in <$text>", text.contains(kw))
         assertTrue("expected trailing 'end' in <$text>", text.trimEnd().endsWith("end"))
         assertEquals("exactly one 'end' in <$text>", 1, count(text, "end"))
     }
 
-    private fun assertCaretInBody(text: String, terminator: String = "end") {
+    private fun assertCaretInBody(
+        text: String,
+        terminator: String = "end",
+    ) {
         assertTrue("caret before '$terminator' in <$text> @${caret()}", text.substring(caret()).contains(terminator))
     }
 

@@ -13,7 +13,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TestLuaDebugVariable : BaseDocumentTest() {
-
     @Test
     fun testDebugVariableCreation() {
         val value = LuaDebugValue("number", "42", null)

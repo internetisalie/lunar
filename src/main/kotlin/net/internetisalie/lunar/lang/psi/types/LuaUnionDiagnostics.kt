@@ -12,55 +12,73 @@ package net.internetisalie.lunar.lang.psi.types
  * here keeps the helper side-effect-free.
  */
 object LuaUnionDiagnostics {
-
     /** Unions wider than this skip overlap scoring (mirrors the engine's breadth guard). */
     private const val MAX_SCORED_UNION = 100
 
     /** The union member [value] most nearly matches, plus a concise reason — or null if none is close. */
-    data class ClosestMatch(val member: LuaGraphType.Table, val reason: String)
+    data class ClosestMatch(
+        val member: LuaGraphType.Table,
+        val reason: String,
+    )
 
     /**
      * Returns the closest table member of [members] for table [value], or null when [value] is not a
      * table, the union is too wide to score, or no table member shares any field with [value].
      */
-    fun closestMatch(value: LuaGraphType, members: Collection<LuaGraphType>): ClosestMatch? {
+    fun closestMatch(
+        value: LuaGraphType,
+        members: Collection<LuaGraphType>,
+    ): ClosestMatch? {
         if (value !is LuaGraphType.Table || members.size > MAX_SCORED_UNION) return null
 
         val valueKeys = value.getMembers().keys
-        val best = members
-            .filterIsInstance<LuaGraphType.Table>()
-            .map { member -> Scored(member, overlap(valueKeys, member), missingRequiredFields(value, member)) }
-            .filter { it.overlap > 0 }
-            .minWithOrNull(compareByDescending<Scored> { it.overlap }.thenBy { it.missing.size })
-            ?: return null
+        val best =
+            members
+                .filterIsInstance<LuaGraphType.Table>()
+                .map { member -> Scored(member, overlap(valueKeys, member), missingRequiredFields(value, member)) }
+                .filter { it.overlap > 0 }
+                .minWithOrNull(compareByDescending<Scored> { it.overlap }.thenBy { it.missing.size })
+                ?: return null
 
         return ClosestMatch(best.member, reasonFor(best.missing))
     }
 
-    private data class Scored(val member: LuaGraphType.Table, val overlap: Int, val missing: List<String>)
+    private data class Scored(
+        val member: LuaGraphType.Table,
+        val overlap: Int,
+        val missing: List<String>,
+    )
 
-    private fun overlap(valueKeys: Set<String>, member: LuaGraphType.Table): Int =
-        member.getMembers().keys.count { it in valueKeys }
+    private fun overlap(
+        valueKeys: Set<String>,
+        member: LuaGraphType.Table,
+    ): Int = member.getMembers().keys.count { it in valueKeys }
 
     /** Required field keys of [member] absent from [value] (a field is required if its read type is not optional). */
-    private fun missingRequiredFields(value: LuaGraphType.Table, member: LuaGraphType.Table): List<String> {
+    private fun missingRequiredFields(
+        value: LuaGraphType.Table,
+        member: LuaGraphType.Table,
+    ): List<String> {
         val valueKeys = value.getMembers().keys
-        return member.getMembers()
+        return member
+            .getMembers()
             .filter { (key, node) -> key !in valueKeys && !isOptional(node.read) }
             .keys
             .toList()
     }
 
-    private fun reasonFor(missing: List<String>): String = when {
-        missing.isEmpty() -> "incompatible fields"
-        missing.size == 1 -> "missing field '${missing.first()}'"
-        else -> "missing fields ${missing.joinToString(", ") { "'$it'" }}"
-    }
+    private fun reasonFor(missing: List<String>): String =
+        when {
+            missing.isEmpty() -> "incompatible fields"
+            missing.size == 1 -> "missing field '${missing.first()}'"
+            else -> "missing fields ${missing.joinToString(", ") { "'$it'" }}"
+        }
 
     /** A field is optional when its demanded type is a union containing nil, or is the bottom sentinel. */
-    private fun isOptional(type: LuaGraphType): Boolean = when (type) {
-        is LuaGraphType.Union -> type.types.any { it == LuaGraphType.Nil }
-        LuaGraphType.Undefined -> true
-        else -> false
-    }
+    private fun isOptional(type: LuaGraphType): Boolean =
+        when (type) {
+            is LuaGraphType.Union -> type.types.any { it == LuaGraphType.Nil }
+            LuaGraphType.Undefined -> true
+            else -> false
+        }
 }

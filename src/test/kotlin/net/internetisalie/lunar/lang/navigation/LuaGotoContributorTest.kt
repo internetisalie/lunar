@@ -22,7 +22,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
-
     /** All names the contributor enumerates over the whole project scope. */
     private fun namesOf(contributor: com.intellij.navigation.ChooseByNameContributorEx): Set<String> {
         val collector = CommonProcessors.CollectProcessor<String>()
@@ -36,7 +35,11 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
         name: String,
     ): List<NavigationItem> {
         val items = mutableListOf<NavigationItem>()
-        val processor = Processor<NavigationItem> { items.add(it); true }
+        val processor =
+            Processor<NavigationItem> {
+                items.add(it)
+                true
+            }
         contributor.processElementsWithName(name, processor, FindSymbolParameters.wrap(name, project, false))
         return items
     }
@@ -71,7 +74,11 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
         val items = itemsOf(contributor, "Bob")
         assertEquals("Expected one Go-to-Class item for the bare class 'Bob'", 1, items.size)
         assertEquals("Bare class item name must be the index key", "Bob", items.first().name)
-        assertEquals("Bare class item should locate to bare.lua", "bare.lua", items.first().presentation?.locationString)
+        assertEquals(
+            "Bare class item should locate to bare.lua",
+            "bare.lua",
+            items.first().presentation?.locationString,
+        )
         assertTrue("Bare class item should be navigable", items.first().canNavigate())
     }
 
@@ -84,12 +91,19 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
         myFixture.addFileToProject("aliases.lua", "--- @alias DeviceSide table<string,Bob>\n")
         val contributor = LuaGotoClassContributor()
 
-        assertTrue("processNames should enumerate the bare alias name 'DeviceSide'", namesOf(contributor).contains("DeviceSide"))
+        assertTrue(
+            "processNames should enumerate the bare alias name 'DeviceSide'",
+            namesOf(contributor).contains("DeviceSide"),
+        )
 
         val items = itemsOf(contributor, "DeviceSide")
         assertEquals("Expected one Go-to-Class item for the alias 'DeviceSide'", 1, items.size)
         assertEquals("Alias item name must be the index key", "DeviceSide", items.first().name)
-        assertEquals("Alias item should locate to aliases.lua", "aliases.lua", items.first().presentation?.locationString)
+        assertEquals(
+            "Alias item should locate to aliases.lua",
+            "aliases.lua",
+            items.first().presentation?.locationString,
+        )
         assertTrue("Alias item should be navigable", items.first().canNavigate())
     }
 
@@ -109,7 +123,10 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
         myFixture.addFileToProject("helper.lua", "function Helper() end")
         val contributor = LuaGotoSymbolContributor()
 
-        assertTrue("processNames should enumerate the global function 'Helper'", namesOf(contributor).contains("Helper"))
+        assertTrue(
+            "processNames should enumerate the global function 'Helper'",
+            namesOf(contributor).contains("Helper"),
+        )
 
         val items = itemsOf(contributor, "Helper")
         assertEquals("Expected one Go-to-Symbol item for 'Helper'", 1, items.size)

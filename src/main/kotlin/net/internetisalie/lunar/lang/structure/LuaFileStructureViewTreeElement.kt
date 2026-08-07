@@ -6,26 +6,20 @@ import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.lang.psi.LuaFile
 import javax.swing.Icon
 
-class LuaFileStructureViewTreeElement(private var myFile: LuaFile) : LuaStructureViewTreeElement(myFile) {
-    override fun getPresentation(): ItemPresentation {
-        return object : ItemPresentation {
-            override fun getPresentableText(): String? {
-                return myFile.getName()
-            }
+class LuaFileStructureViewTreeElement(
+    private var myFile: LuaFile,
+) : LuaStructureViewTreeElement(myFile) {
+    override fun getPresentation(): ItemPresentation =
+        object : ItemPresentation {
+            override fun getPresentableText(): String? = myFile.getName()
 
-            override fun getIcon(unused: Boolean): Icon {
-                return LuaIcons.FILE
-            }
+            override fun getIcon(unused: Boolean): Icon = LuaIcons.FILE
         }
-    }
 
-    override fun getChildren(): Array<TreeElement> {
-        return TreeElementUtils
+    override fun getChildren(): Array<TreeElement> =
+        TreeElementUtils
             .getRootChildren(myFile)
             .toTypedArray()
-    }
 
-    override fun getValue(): Any {
-        return myFile
-    }
+    override fun getValue(): Any = myFile
 }

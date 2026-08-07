@@ -17,7 +17,6 @@ import kotlin.test.assertNull
  * files required by `myFixture.testHighlightUsages(filename)`.
  */
 class LuaReturnHighlightHandlerTest : BaseDocumentTest() {
-
     private val factory = LuaReturnHighlightUsagesHandlerFactory()
 
     // TC-NAV-09-01 — caret on a `return` highlights all same-scope returns
@@ -25,9 +24,10 @@ class LuaReturnHighlightHandlerTest : BaseDocumentTest() {
     fun testSameScopeReturnsHighlighted() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val file = configureByText(
-                    "function f() if a then <caret>return 1 end return 2 end"
-                )
+                val file =
+                    configureByText(
+                        "function f() if a then <caret>return 1 end return 2 end",
+                    )
                 val editor = myFixture.editor
                 val caretEl = file.findElementAt(myFixture.caretOffset)
                 assertNotNull(caretEl, "Expected element at caret")
@@ -49,9 +49,10 @@ class LuaReturnHighlightHandlerTest : BaseDocumentTest() {
     fun testNestedFunctionReturnsExcluded() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             runReadAction {
-                val file = configureByText(
-                    "function f() local g = function() return 1 end <caret>return 2 end"
-                )
+                val file =
+                    configureByText(
+                        "function f() local g = function() return 1 end <caret>return 2 end",
+                    )
                 val editor = myFixture.editor
                 val caretEl = file.findElementAt(myFixture.caretOffset)
                 assertNotNull(caretEl, "Expected element at caret")

@@ -10,14 +10,16 @@ package net.internetisalie.lunar.rocks.browser
  * none exists.
  */
 object RockspecDependencyEditor {
-
     private val DEPENDENCIES_BLOCK = Regex("(?s)dependencies\\s*=\\s*\\{(.*?)}")
 
     /**
      * Returns [rockspecText] with [entry] (e.g. `"inspect >= 3.1"`) added to `dependencies`.
      * If the package (the leading token of [entry]) is already listed, the text is returned unchanged.
      */
-    fun addDependency(rockspecText: String, entry: String): String {
+    fun addDependency(
+        rockspecText: String,
+        entry: String,
+    ): String {
         val match = DEPENDENCIES_BLOCK.find(rockspecText) ?: return appendNewBlock(rockspecText, entry)
         val body = match.groupValues[1]
         if (containsPackage(body, packageOf(entry))) return rockspecText
@@ -25,7 +27,10 @@ object RockspecDependencyEditor {
         return rockspecText.replaceRange(match.range, rebuilt)
     }
 
-    private fun insertInto(body: String, entry: String): String {
+    private fun insertInto(
+        body: String,
+        entry: String,
+    ): String {
         val existing = body.trim().trimEnd(',')
         if (existing.isEmpty()) return " \"$entry\" "
         return if (body.contains('\n')) {
@@ -35,13 +40,18 @@ object RockspecDependencyEditor {
         }
     }
 
-    private fun appendNewBlock(rockspecText: String, entry: String): String {
+    private fun appendNewBlock(
+        rockspecText: String,
+        entry: String,
+    ): String {
         val separator = if (rockspecText.endsWith("\n") || rockspecText.isEmpty()) "" else "\n"
         return "$rockspecText${separator}dependencies = { \"$entry\" }\n"
     }
 
-    private fun containsPackage(body: String, name: String): Boolean =
-        Regex("[\"']${Regex.escape(name)}(?=[\"' ])").containsMatchIn(body)
+    private fun containsPackage(
+        body: String,
+        name: String,
+    ): Boolean = Regex("[\"']${Regex.escape(name)}(?=[\"' ])").containsMatchIn(body)
 
     private fun packageOf(entry: String): String = entry.substringBefore(' ').trim()
 }

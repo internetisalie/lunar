@@ -14,15 +14,20 @@ import net.internetisalie.lunar.lang.psi.LuaFieldList
  * bracketed-list ranges come from the platform default. EDITOR-04-03. Stateless. Design §2.3 / §3.3.
  */
 class LuaArgumentListSelectioner : ExtendWordSelectionHandlerBase() {
-
     override fun canSelect(e: PsiElement): Boolean = e is LuaExprList || e is LuaFieldList
 
-    override fun select(e: PsiElement, editorText: CharSequence, cursorOffset: Int, editor: Editor): List<TextRange>? {
-        val items: List<PsiElement> = when (e) {
-            is LuaExprList -> e.exprList
-            is LuaFieldList -> e.fieldList
-            else -> return null
-        }
+    override fun select(
+        e: PsiElement,
+        editorText: CharSequence,
+        cursorOffset: Int,
+        editor: Editor,
+    ): List<TextRange>? {
+        val items: List<PsiElement> =
+            when (e) {
+                is LuaExprList -> e.exprList
+                is LuaFieldList -> e.fieldList
+                else -> return null
+            }
         val firstItem = items.firstOrNull() ?: return null
         val lastItem = items.last()
         return listOf(TextRange(firstItem.textRange.startOffset, lastItem.textRange.endOffset))

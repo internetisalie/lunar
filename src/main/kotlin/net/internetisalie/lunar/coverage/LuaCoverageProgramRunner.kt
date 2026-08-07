@@ -7,43 +7,53 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RunnerSettings
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.GenericProgramRunner
+import com.intellij.execution.runners.RunContentBuilder
 import com.intellij.execution.ui.RunContentDescriptor
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.notification.NotificationAction
-import com.intellij.execution.runners.RunContentBuilder
-import net.internetisalie.lunar.run.test.LuaTestRunConfiguration
-import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
+import com.intellij.openapi.application.ApplicationManager
 import net.internetisalie.lunar.rocks.browser.InstallRequest
 import net.internetisalie.lunar.rocks.browser.LuaRocksInstallCommand
 import net.internetisalie.lunar.rocks.browser.LuaRocksInstallExecutor
-import com.intellij.openapi.application.ApplicationManager
+import net.internetisalie.lunar.run.test.LuaTestRunConfiguration
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import java.io.File
 
 class LuaCoverageProgramRunner : GenericProgramRunner<RunnerSettings>() {
     override fun getRunnerId(): String = "LuaCoverageProgramRunner"
 
-    override fun canRun(executorId: String, profile: RunProfile): Boolean =
-        executorId == CoverageExecutor.EXECUTOR_ID && profile is LuaTestRunConfiguration
+    override fun canRun(
+        executorId: String,
+        profile: RunProfile,
+    ): Boolean = executorId == CoverageExecutor.EXECUTOR_ID && profile is LuaTestRunConfiguration
 
-    override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
+    override fun doExecute(
+        state: RunProfileState,
+        environment: ExecutionEnvironment,
+    ): RunContentDescriptor? {
         val project = environment.project
         val luacovTool = LuaToolResolver.getInstance().resolve(project, "luacov")
         if (luacovTool == null) {
-            val notificationGroup = NotificationGroupManager.getInstance()
-                .getNotificationGroup("notification.group.lunar.tools")
-            val notification = notificationGroup.createNotification(
-                "Code coverage library 'luacov' is not installed in the current SDK.",
-                NotificationType.ERROR
-            )
+            val notificationGroup =
+                NotificationGroupManager
+                    .getInstance()
+                    .getNotificationGroup("notification.group.lunar.tools")
+            val notification =
+                notificationGroup.createNotification(
+                    "Code coverage library 'luacov' is not installed in the current SDK.",
+                    NotificationType.ERROR,
+                )
             val treeRoot = LuaRocksInstallCommand.resolveTargetTree(project)
             if (treeRoot != null) {
-                notification.addAction(NotificationAction.createSimple("Install via LuaRocks") {
-                    notification.expire()
-                    LuaRocksInstallExecutor(project).install(InstallRequest("luacov", null, treeRoot)) {
-                        // Handled by background install task
-                    }
-                })
+                notification.addAction(
+                    NotificationAction.createSimple("Install via LuaRocks") {
+                        notification.expire()
+                        LuaRocksInstallExecutor(project).install(InstallRequest("luacov", null, treeRoot)) {
+                            // Handled by background install task
+                        }
+                    },
+                )
             }
             notification.notify(project)
             return null

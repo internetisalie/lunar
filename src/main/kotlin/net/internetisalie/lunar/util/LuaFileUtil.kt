@@ -30,18 +30,24 @@ object LuaFileUtil {
 
     fun findLuaFilesInDir(dir: VirtualFile): List<VirtualFile> {
         val result = mutableListOf<VirtualFile>()
-        VfsUtil.visitChildrenRecursively(dir, object : VirtualFileVisitor<VirtualFile>() {
-            override fun visitFile(vf: VirtualFile): Boolean {
-                if (vf.fileType == LuaFileType) {
-                    result.add(vf)
+        VfsUtil.visitChildrenRecursively(
+            dir,
+            object : VirtualFileVisitor<VirtualFile>() {
+                override fun visitFile(vf: VirtualFile): Boolean {
+                    if (vf.fileType == LuaFileType) {
+                        result.add(vf)
+                    }
+                    return true
                 }
-                return true
-            }
-        })
+            },
+        )
         return result
     }
 
-    fun findPsiFiles(project: Project, virtualFiles : Collection<VirtualFile>) : List<PsiFile> {
+    fun findPsiFiles(
+        project: Project,
+        virtualFiles: Collection<VirtualFile>,
+    ): List<PsiFile> {
         val psiManager = PsiManager.getInstance(project)
         return virtualFiles.mapNotNull { psiManager.findFile(it) }
     }

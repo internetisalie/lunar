@@ -16,9 +16,16 @@ import net.internetisalie.lunar.lang.psi.LuaFile
  * intention expansion reformats — never append or alter the trailing newline.
  */
 class LuaTrailingNewlinePostProcessor : PostFormatProcessor {
-    override fun processElement(source: PsiElement, settings: CodeStyleSettings): PsiElement = source
+    override fun processElement(
+        source: PsiElement,
+        settings: CodeStyleSettings,
+    ): PsiElement = source
 
-    override fun processText(source: PsiFile, rangeToReformat: TextRange, settings: CodeStyleSettings): TextRange {
+    override fun processText(
+        source: PsiFile,
+        rangeToReformat: TextRange,
+        settings: CodeStyleSettings,
+    ): TextRange {
         if (source !is LuaFile) return rangeToReformat
 
         val document = source.viewProvider.document ?: return rangeToReformat

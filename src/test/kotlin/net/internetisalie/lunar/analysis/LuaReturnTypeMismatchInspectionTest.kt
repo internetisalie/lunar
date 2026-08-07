@@ -12,7 +12,6 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaReturnTypeMismatchInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(LuaReturnTypeMismatchInspection())
@@ -30,14 +29,15 @@ class LuaReturnTypeMismatchInspectionTest : BasePlatformTestCase() {
     /** Returning a string from a `---@return number` function must be reported. */
     @Test
     fun testReturnTypeMismatchReported() {
-        val descs = descriptions(
-            """
-            ---@return number
-            local function f()
-                return "not a number"
-            end
-            """.trimIndent(),
-        )
+        val descs =
+            descriptions(
+                """
+                ---@return number
+                local function f()
+                    return "not a number"
+                end
+                """.trimIndent(),
+            )
         assertTrue(
             "Expected a return-type-mismatch problem, got: $descs",
             descs.any { looksLikeTypeMismatch(it) },
@@ -47,14 +47,15 @@ class LuaReturnTypeMismatchInspectionTest : BasePlatformTestCase() {
     /** A matching return type must NOT be flagged. */
     @Test
     fun testMatchingReturnNotReported() {
-        val descs = descriptions(
-            """
-            ---@return number
-            local function f()
-                return 42
-            end
-            """.trimIndent(),
-        )
+        val descs =
+            descriptions(
+                """
+                ---@return number
+                local function f()
+                    return 42
+                end
+                """.trimIndent(),
+            )
         assertTrue(
             "A matching return must not be flagged, got: $descs",
             descs.none { looksLikeTypeMismatch(it) },

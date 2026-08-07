@@ -13,15 +13,17 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * selection logic via [ProjectManager] directly (same implementation) to stay in a light fixture.
  */
 class LuaToolchainInventoryTableProjectSelectionTest : BasePlatformTestCase() {
-
     /**
      * The light-fixture test project is open and non-default. The openProjects selection filter
      * (isDefault=false, isDisposed=false) must include it, confirming a single-project scenario
      * uses the direct path (no chooser).
      */
     fun `test selection filter returns the fixture project when it is open BUG372`() {
-        val candidates = ProjectManager.getInstance().openProjects
-            .filter { !it.isDefault && !it.isDisposed }
+        val candidates =
+            ProjectManager
+                .getInstance()
+                .openProjects
+                .filter { !it.isDefault && !it.isDisposed }
         assertTrue(
             "Expected fixture project in project candidates",
             candidates.any { it == project },
@@ -30,8 +32,11 @@ class LuaToolchainInventoryTableProjectSelectionTest : BasePlatformTestCase() {
 
     /** Selection filter excludes default projects. */
     fun `test selection filter excludes default projects BUG372`() {
-        val candidates = ProjectManager.getInstance().openProjects
-            .filter { !it.isDefault && !it.isDisposed }
+        val candidates =
+            ProjectManager
+                .getInstance()
+                .openProjects
+                .filter { !it.isDefault && !it.isDisposed }
         assertTrue(
             "Selection filter must exclude default projects",
             candidates.none { it.isDefault },
@@ -40,8 +45,11 @@ class LuaToolchainInventoryTableProjectSelectionTest : BasePlatformTestCase() {
 
     /** Single project → branching logic: candidates.size == 1 → provisionInto directly (no popup). */
     fun `test single open project resolves without chooser BUG372`() {
-        val candidates = ProjectManager.getInstance().openProjects
-            .filter { !it.isDefault && !it.isDisposed }
+        val candidates =
+            ProjectManager
+                .getInstance()
+                .openProjects
+                .filter { !it.isDefault && !it.isDisposed }
         if (candidates.size == 1) {
             assertEquals(project, candidates.single())
         }

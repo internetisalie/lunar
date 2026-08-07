@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test
  * stored API key can be cleared and the user re-prompted. Pure function — no platform needed.
  */
 class PublishRockAuthFailureTest {
-
     @Test
     fun exitZeroIsNotAuthFailure() {
         assertFalse(PublishRockAction.isAuthFailure(0, "Invalid API key"))

@@ -23,7 +23,6 @@ import net.internetisalie.lunar.lang.psi.LuaFuncCall
  * paths independently deciding the same question is the shape MAINT-34 exists to clean up after.
  */
 object LuaSyntaxDiagnostics {
-
     /**
      * True when [statement] is an expression statement Lua does not permit.
      *

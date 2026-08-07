@@ -11,19 +11,37 @@ import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 
 class LuaDocumentationLinkHandler : DocumentationLinkHandler {
-    override fun resolveLink(target: DocumentationTarget, url: String): LinkResolveResult? {
+    override fun resolveLink(
+        target: DocumentationTarget,
+        url: String,
+    ): LinkResolveResult? {
         if (target !is LuaCatsDocumentationTarget) return null
         if (!url.startsWith(DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL)) return null
         val typeName = url.removePrefix(DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL)
-        
+
         val project = target.element.project
         val scope = GlobalSearchScope.allScope(project)
-        
+
         // Try class first, then alias
-        val decl = StubIndex.getElements(LuaClassNameIndex.KEY, typeName, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
-            ?: StubIndex.getElements(LuaAliasIndex.KEY, typeName, project, scope, LuaLocalVarDecl::class.java).firstOrNull()
-            ?: return null
-        
+        val decl =
+            StubIndex
+                .getElements(
+                    LuaClassNameIndex.KEY,
+                    typeName,
+                    project,
+                    scope,
+                    LuaLocalVarDecl::class.java,
+                ).firstOrNull()
+                ?: StubIndex
+                    .getElements(
+                        LuaAliasIndex.KEY,
+                        typeName,
+                        project,
+                        scope,
+                        LuaLocalVarDecl::class.java,
+                    ).firstOrNull()
+                ?: return null
+
         return LinkResolveResult.resolvedTarget(LuaCatsDocumentationTarget(decl))
     }
 }

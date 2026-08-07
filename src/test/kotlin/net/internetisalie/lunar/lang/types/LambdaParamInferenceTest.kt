@@ -21,8 +21,8 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
-
     private fun redis7() = Target(LuaPlatform.REDIS, VersionEntry("7+", "redis-7"))
+
     private fun standard54() = Target(LuaPlatform.STANDARD, VersionEntry("5.4", "lua-5.4"))
 
     override fun tearDown() {
@@ -53,13 +53,25 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
         )
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
 
-        val keysRef = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java)
-            .first { it.text == "keys" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
-        assertEquals("keys must infer string[] from callback fun(keys: string[], args: string[])", "string[]", snapshot.getValueType(keysRef).displayName())
+        val keysRef =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+                .first { it.text == "keys" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
+        assertEquals(
+            "keys must infer string[] from callback fun(keys: string[], args: string[])",
+            "string[]",
+            snapshot.getValueType(keysRef).displayName(),
+        )
 
-        val subscript = PsiTreeUtil.findChildrenOfType(myFixture.file, net.internetisalie.lunar.lang.psi.LuaIndexExpr::class.java)
-            .first { it.expr != null }
-        assertEquals("keys[1] must resolve to string via the lazy-subscript path (REDIS-05 TC-STUB-1)", "string", snapshot.getValueType(subscript).displayName())
+        val subscript =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, net.internetisalie.lunar.lang.psi.LuaIndexExpr::class.java)
+                .first { it.expr != null }
+        assertEquals(
+            "keys[1] must resolve to string via the lazy-subscript path (REDIS-05 TC-STUB-1)",
+            "string",
+            snapshot.getValueType(subscript).displayName(),
+        )
     }
 
     // TC 3: table.sort comparator → a typed `any` (stub declares fun(a: any, b: any): boolean).
@@ -73,9 +85,15 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
             """.trimIndent(),
         )
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-        val aRef = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java)
-            .first { it.text == "a" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
-        assertEquals("comparator a must infer any (stub declares fun(a: any, b: any))", "any", snapshot.getValueType(aRef).displayName())
+        val aRef =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+                .first { it.text == "a" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
+        assertEquals(
+            "comparator a must infer any (stub declares fun(a: any, b: any))",
+            "any",
+            snapshot.getValueType(aRef).displayName(),
+        )
     }
 
     // TC 4: LuaCATS-annotated local callee.
@@ -90,9 +108,15 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
             """.trimIndent(),
         )
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-        val xRef = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java)
-            .first { it.text == "x" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
-        assertEquals("lambda x must infer string from the LuaCATS callback annotation", "string", snapshot.getValueType(xRef).displayName())
+        val xRef =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+                .first { it.text == "x" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
+        assertEquals(
+            "lambda x must infer string from the LuaCATS callback annotation",
+            "string",
+            snapshot.getValueType(xRef).displayName(),
+        )
     }
 
     // TC 5 (TYPE-10-03): the precedence gate skips a lambda parameter whose graph-node `write` is
@@ -117,8 +141,10 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
             """.trimIndent(),
         )
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-        val xRef = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java)
-            .first { it.text == "x" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
+        val xRef =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+                .first { it.text == "x" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
         assertEquals(
             "inline ---@param does not attach (LuaArgs-parented, pre-existing); expected-type seed applies",
             "string",
@@ -137,9 +163,15 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
             """.trimIndent(),
         )
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-        val xRef = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java)
-            .first { it.text == "x" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
-        assertEquals("an untyped cb slot must leave x undefined (no spurious narrowing)", "undefined", snapshot.getValueType(xRef).displayName())
+        val xRef =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+                .first { it.text == "x" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
+        assertEquals(
+            "an untyped cb slot must leave x undefined (no spurious narrowing)",
+            "undefined",
+            snapshot.getValueType(xRef).displayName(),
+        )
     }
 
     // TC 7 (TYPE-10-04): a non-lambda argument is unaffected (baseline equivalence).
@@ -154,8 +186,10 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
             """.trimIndent(),
         )
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-        val myCompRef = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java)
-            .last { it.text == "myComp" }
+        val myCompRef =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+                .last { it.text == "myComp" }
         // Baseline: the reference to myComp in the call carries the local's function value type,
         // which is unchanged by TYPE-10 (no lambda literal in this slot). Must not throw.
         val actual = snapshot.getValueType(myCompRef).displayName()
@@ -173,9 +207,17 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
             """.trimIndent(),
         )
         val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
-        val literal = PsiTreeUtil.findChildrenOfType(myFixture.file, net.internetisalie.lunar.lang.psi.LuaTerminalExpr::class.java)
-            .first { it.text == "42" }
-        assertEquals("a numeric literal argument stays number, unaffected", "number", snapshot.getValueType(literal).displayName())
+        val literal =
+            PsiTreeUtil
+                .findChildrenOfType(
+                    myFixture.file,
+                    net.internetisalie.lunar.lang.psi.LuaTerminalExpr::class.java,
+                ).first { it.text == "42" }
+        assertEquals(
+            "a numeric literal argument stays number, unaffected",
+            "number",
+            snapshot.getValueType(literal).displayName(),
+        )
         assertTrue("run(42) must not introduce a lambda-seed exception", true)
     }
 }
