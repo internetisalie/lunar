@@ -297,7 +297,7 @@ values. First match wins; the list is ordered. `name := export_name or the captu
 | 9 | `(?:class\|struct)\s+(\w+(?:::\w+)*)\s*(?::\s*(?:public\|protected\|private)\s+(\w+))?` | opens class state; `Klass(name=flatten(\1), base=\2)`. `%delete` is already gone (§3.2 step 8) |
 | 10 | `}\s*;?` while class or enum state is open | decrements that state's depth (see bookkeeping below) |
 | 11 | inside enum state: `(\w+)\s*(?:=[^,]*)?,?\s*$` | `Const(name=\1, type="number")` |
-| 12 | any line containing the word `operator` | **skip** (179 occurrences) — C++ operator overloads are not reachable from Lua by name |
+| 12 | any line containing the word `operator` | **skip** (179 occurrences) — see below |
 | 13 | inside class state, `%member_func\s+(TYPE)\s+(\w+)\s*;` | `Func(name, params=(), returns=map_type(\1))` appended to `methods` — a C++ field exposed as a zero-arg accessor; `name` **must** come from the preceding `%rename` (measured: all 14 occurrences carry one). No `%rename` → skip and log at WARN |
 | 14 | inside class state, `(?:(static)\s+)?(?:virtual\s+)?(TYPE)\s+(\w+)\s*\((.*)\)\s*(?:const\s*)?(?:=\s*0\s*)?;` | `Func` appended to `statics` if `\1`, else `methods` |
 | 15 | inside class state, `(\w+)\s*\((.*)\)\s*;` where `\1 == class name` **or** an `export_name` is set | `Func` appended to `ctors` |
@@ -332,6 +332,17 @@ A single-token type group is **not** sufficient: measured 185 `const T& Method(�
   in sorted order (§3.7).
 - **Class re-opening**: `class wxFoo` appearing twice in one group merges into the existing `Klass`;
   a second base is ignored if one is already recorded.
+- **Skipping `operator` is safe, and the reason is not the obvious one.** "Not reachable from Lua by
+  name" would be a poor justification, because BUG-424 (landing before this feature) models operator
+  **metamethods** — so if wxLua bound `operator+` to `__add`, dropping it would make legal
+  `wxPoint + wxPoint` an error against a class the engine knows has no `__add`. Checked: it does
+  not. `wxLua/bindings/genwxbind.lua` contains no metamethod mapping, and the only `__add`/`__concat`/
+  `__eq` hits anywhere in the tree are in the *bundled Lua interpreter* (`modules/lua-5.1/src/ltm.c`)
+  and its manual. wxLua's own binding layer (`modules/wxlua/wxlbind.cpp`) uses `__index` and
+  `__tostring` only. C++ operators are therefore genuinely unreachable from Lua, by name or by
+  metamethod, and skipping them creates no gap under BUG-424. (Emitting `---@operator` would not help
+  regardless: like `@overload`, it is parsed but consumed only by `LuaComment`/`LuaDocGenerator`,
+  never by `LuaTypeGraphBridge`.)
 - ⚠ **Qualified names (`Parent::Name`) must be captured whole.** 6 classes
   (`class %delete wxDateTime::TimeZone`, `wxString::const_iterator`, …) and 29 enums
   (`enum wxDateTime::Month`) are declared this way. A `(\w+)` name group stops at the `::` and

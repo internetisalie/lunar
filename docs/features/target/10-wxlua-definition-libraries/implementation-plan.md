@@ -145,7 +145,15 @@ title: "Implementation Plan"
 ### Phase 3b: Type-error delta [Must]
 
 - **Goal**: know what typing the members costs before anyone fetches it.
-- **Not blocked, but the instrument changed.** BUG-419's defect 3 landed in `31d9c761` (corpus
+- **Now a genuine pre-publication gate.** BUG-423, BUG-424 and BUG-425 land before this feature, so
+  out-of-file signatures reach the type graph and the two largest language-rule false-positive
+  classes are gone. DR-08 therefore measures the real thing, and it measures **only** what this
+  feature contributes.
+- **Re-read the baselines at run time — do not use the numbers below.** BUG-423/424/425 will each
+  move `LuaTypeAssignability` and `LuaReturnTypeMismatch`. The figures recorded here
+  (zerobrane 358 / 65, post-BUG-419) are the *lineage*, not the target; diff against
+  `src/test/resources/corpus/zerobrane.baseline` as it stands when Phase 3b runs.
+- **Historical note.** BUG-419's defect 3 landed in `31d9c761` (corpus
   re-baselined: zerobrane `LuaTypeAssignability` 997 → 358, `LuaReturnTypeMismatch` 83 → 65) and its
   verification closed in `1a5fd807`. However **BUG-425** means out-of-file signatures never reach
   the type graph, so a corpus delta for this feature measures **zero** — a null result that must not
@@ -161,10 +169,9 @@ title: "Implementation Plan"
         and paste the result into design §3.4. The mapping choice is currently argued from
         `LuaPrimitiveType.kt:10-18` and `LuaGraphType.kt:147` — reading, not running.
   - [ ] Widen any §3.4 row a new hit traces back to. **Never narrow user code to fit the library.**
-  - [ ] **Raise the ordering dependency before publishing**: MAINT-37 must pin `wxlua` into the
-        ZeroBrane sweep ahead of BUG-425, so the corpus gate is the tripwire. If that ordering
-        cannot be had, publish v1 with `@param`/`@return` suppressed on methods (a generator flag)
-        and add them in a follow-up that can be measured — the delivered value is unaffected.
+  - [ ] Confirm BUG-423/424/425 are all `done` before running DR-08. If any is not, DR-08's result
+        is not interpretable: 425 open makes it vacuously zero, 423/424 open bury this feature's
+        contribution in two known false-positive classes.
   - [ ] Record in Phase 4's publication note that the tree ships ~10,000 contracts which are inert
         on today's engine and activate when BUG-425 lands — and that BUG-425's fix must mark
         `memberNodeFor`'s `declaredDemand`, or this whole population arrives in the hypothesis tier

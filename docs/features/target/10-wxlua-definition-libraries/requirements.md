@@ -227,11 +227,13 @@ an in-memory library root. Generator cases run against a checked-in `.i` fixture
   See [risks-and-gaps.md](risks-and-gaps.md) Risk 1.6.
 - **TARGET-09** (`planned`) — consumes TARGET-10-11's `detectionPatterns`. Not a blocker in either
   direction.
-- **MAINT-37** — *both* a dependant and this feature's safety mechanism. It must pin `wxlua` into
-  the ZeroBrane sweep **before BUG-425 lands**, or nothing anywhere gates the ~10,000 contracts this
-  feature publishes: the sweep has no definition libraries today, so BUG-425's own verification
-  cannot see them, and the population activates first in users' editors. See
-  [risks-and-gaps.md](risks-and-gaps.md) Risk 1.6.
+- **BUG-423, BUG-424, BUG-425** — all land **before** this feature (decided 2026-08-07). 425 makes
+  this feature's contracts reachable at all; 423 and 424 clear the two largest false-positive classes
+  from the ERROR tier this feature is about to load. Together they make DR-08 a real measurement
+  rather than a vacuous zero, and keep any regression attributable to TARGET-10 alone.
+- **MAINT-37** — dependant, and *ongoing* regression protection once this ships: a pinned `wxlua` in
+  the sweep is what catches a future re-pin or type-engine change degrading the map. Not load-bearing
+  for the initial ship, given the ordering above.
 - **wxLua upstream** — `pkulchenko/wxlua` @ `4d83c8d44eeccf88683ca0146a13b16d0b0d4264`.
 
 ## See Also

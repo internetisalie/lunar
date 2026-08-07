@@ -65,22 +65,26 @@ actually fixed?
   are unchecked today become checked, against ~10,000 emitted `@param`/`@return` contracts derived
   by a ~40-row hand-written C++→LuaCATS map. A single over-narrow row is a false positive at scale,
   in a read-only fetched library the user cannot edit.
-- **Likelihood — DEFERRED AND UNATTRIBUTABLE, which is worse than active.** **BUG-425** (`high`, filed 2026-08-07)
+- **Likelihood — ACTIVE from day one, and that is the good outcome.** **BUG-425** (`high`, filed 2026-08-07)
   measures that a signature declared outside the file under analysis **never reaches the type
   graph**: not demoted to the hypothesis tier, emitting nothing at all. Its probe shows even
   `Too few arguments` stays silent across a file boundary, so the callee's `Function` type is
   absent, parameters and return alike. A definition library is out-of-file by construction, so on
   today's engine this feature's ~10,000 contracts put **zero** through the declared-demand path.
-  **Inert is not safe — it is a fuse, and no gate is watching it.** The corpus sweep runs with **no
-  definition libraries** (that is MAINT-37, `todo`). So: this feature publishes ~10,000 unvalidated
-  contracts; nothing exercises them; BUG-425 lands and is verified against the *bare* corpus, which
-  has no out-of-file contracts to activate, so its gate sees nothing; and the whole population
-  arrives in users' editors at once, on IDE restart, from a change they did not make. The failure
-  is not that the risk is later — it is that it lands where nobody is measuring, attributable to
-  neither feature. BUG-425's own note adds the sting: parameters materialised through
-  `LuaGraphType.fromLuaType` get use nodes from `memberNodeFor`, which passes no `declaredDemand`
-  and defaults to `false`, so unless that site is marked in the same change the population lands in
-  the hypothesis tier **silently** instead.
+  **Sequencing decision, 2026-08-07: BUG-423, BUG-424 and BUG-425 all land BEFORE this feature.**
+  That dissolves the problem rather than mitigating it. Had TARGET-10 shipped first, its contracts
+  would have been inert — and inert is a fuse, not safety: the corpus sweep carries no definition
+  libraries (MAINT-37, `todo`), so BUG-425's own verification would have been blind to the
+  population it activated, and ~10,000 unvalidated contracts would have arrived in users' editors at
+  once, attributable to neither feature. With 425 landing first the mechanism is live **before** the
+  data exists, so every contract this feature adds is live on arrival, measured by this feature's own
+  DR-08, before publication. The explosion, if any, is ours, on our gate, attributable to us.
+
+  The two bugs ahead of it are the right ones to have first: **BUG-423** (arithmetic/concat
+  string↔number coercion) was the largest class surviving BUG-419's rule, and **BUG-424** (operator
+  metamethods, 655 LPeg claims) the largest overall. Both are *language-rule* demands — the ERROR
+  tier they clean up is the tier this feature is about to load. Adding 10,000 contracts to a tier
+  with two known large false-positive classes would have made DR-08 unreadable.
   The `integer` mapping alone covered 7,469 sites, against a Lua 5.1 corpus with no integer subtype
   and a type engine that relates `number` and `integer` not at all (`LuaPrimitiveType.kt:10-18`).
 - **Mitigation**: (a) §3.4's "widest type that is still true" rule, with integral types mapped to
@@ -92,7 +96,13 @@ actually fixed?
   actually addresses the fuse — **(f) the sequencing below, which arranges for the detonation to
   land on our corpus gate rather than on users.**
 
-- **The mitigation is ordering, not more analysis. MAINT-37 must land before BUG-425.**
+- **~~MAINT-37 must land before BUG-425~~ — moot, and superseded by the ordering above.** Retained
+  because the reasoning still applies if the order ever changes. MAINT-37 remains valuable as
+  *ongoing* regression protection once this ships — a pinned `wxlua` in the sweep is what catches a
+  future re-pin or type-engine change degrading the map — but it is no longer load-bearing for the
+  initial ship, and the no-`@param` fallback below is not needed.
+
+  <details><summary>Superseded reasoning</summary>
   MAINT-37 ("corpus sweeps run with pinned definition libraries") is normally read as the
   *beneficiary* of this feature. It is also its **safety mechanism**, and the arrow points the other
   way: once the ZeroBrane sweep pins `wxlua`, BUG-425's fix trips **our** gate — in CI, against a
@@ -109,6 +119,8 @@ actually fixed?
      only. That keeps completion, navigation, `require("wx")` and all 1,877 undeclared-variable
      hits (the entire delivered value) while reducing the contract surface to near zero, and defers
      parameter types to a follow-up that can be measured. It is a generator flag, not a redesign.
+
+  </details>
 - **Sequencing — BUG-419's defect 3 has ALREADY LANDED, and this feature's baseline is post-fix.**
   `31d9c761` (2026-08-07) shipped "incompatibility is a diagnostic only when something DECLARED it".
   It re-baselined the corpus in the same commit:
