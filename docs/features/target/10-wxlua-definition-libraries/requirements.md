@@ -214,10 +214,12 @@ an in-memory library root. Generator cases run against a checked-in `.i` fixture
 - **TARGET-08** (`done`) — the catalog, fetcher, provider and settings UI this entry rides on.
 - **BUG-394 / BUG-395 / BUG-398 / BUG-399** (`done`) — library-root completion and module
   resolution; without them a correct tree would still resolve nothing.
-- **BUG-419** (`in_progress`) — **ordering dependency for DR-08 / Phase 3b.** Its rule makes stub
-  signatures contracts, so it does not shield this feature's `@param`s; but until it lands, wx-induced
-  type errors are unreadable inside ZeroBrane's 4,452-emission assignability floor. See
-  [risks-and-gaps.md](risks-and-gaps.md) Risk 1.6.
+- **BUG-419** (`in_progress`; defect 3 landed in `31d9c761`) — **not a blocker.** The corpus
+  baselines DR-08 measures against (zerobrane `LuaTypeAssignability=358`,
+  `LuaReturnTypeMismatch=65`) are already post-fix, so Phase 3b can run immediately. Its landed rule
+  makes a **stub signature** a declared contract and propagates declaredness transitively through
+  call sites, so it does not shield this feature's `@param`s — it is what makes them enforceable.
+  See [risks-and-gaps.md](risks-and-gaps.md) Risk 1.6.
 - **TARGET-09** (`planned`) — consumes TARGET-10-11's `detectionPatterns`. Not a blocker in either
   direction.
 - **MAINT-37** — depends on this feature; not a dependency of it.

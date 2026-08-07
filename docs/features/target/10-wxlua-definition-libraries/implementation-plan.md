@@ -145,13 +145,15 @@ title: "Implementation Plan"
 ### Phase 3b: Type-error delta [Must]
 
 - **Goal**: know what typing the members costs before anyone fetches it.
-- **Blocked on BUG-419 landing.** Measured before it, wx-induced errors are buried in ZeroBrane's
-  4,452-emission assignability floor (99.9 % of which BUG-419 demotes); measured after, each is
-  visible and attributable to a §3.4 row.
+- **Not blocked.** BUG-419's defect 3 landed in `31d9c761`, which re-baselined the corpus in the
+  same commit — zerobrane `LuaTypeAssignability` 997 → 358, `LuaReturnTypeMismatch` 83 → 65. Those
+  are the numbers to diff against, and they are already clean.
 - **Tasks**:
-  - [ ] Run **DR-08** — record ZeroBrane's `LuaTypeAssignability` (baseline 358) and
-        `LuaReturnTypeMismatch` (65) with the generated tree registered, and diff against
-        `src/test/resources/corpus/zerobrane.baseline`. Triage every new hit to a §3.4 row.
+  - [ ] Run **DR-08** — record ZeroBrane's `LuaTypeAssignability` (post-BUG-419 baseline **358**) and
+        `LuaReturnTypeMismatch` (**65**) with the generated tree registered, and diff against
+        `src/test/resources/corpus/zerobrane.baseline`. Triage every new hit to a §3.4 row. Expect a
+        rise: stub signatures are declared contracts under BUG-419's landed rule, and declaredness
+        propagates transitively, so wx contracts bind beyond the immediate call argument.
   - [ ] Spike `---@param x number` vs `---@param x integer` against a numeric literal at `LUA51`,
         and paste the result into design §3.4. The mapping choice is currently argued from
         `LuaPrimitiveType.kt:10-18` and `LuaGraphType.kt:147` — reading, not running.

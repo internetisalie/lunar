@@ -65,48 +65,66 @@ actually fixed?
   are unchecked today become checked, against ~10,000 emitted `@param`/`@return` contracts derived
   by a ~40-row hand-written C++→LuaCATS map. A single over-narrow row is a false positive at scale,
   in a read-only fetched library the user cannot edit.
-- **Likelihood**: high without mitigation. The `integer` mapping alone covered 7,469 sites, against a
-  Lua 5.1 corpus with no integer subtype and a type engine that relates `number` and `integer` not
-  at all (`LuaPrimitiveType.kt:10-18`).
+- **Likelihood**: high without mitigation, and raised by BUG-419's landed change: stub signatures
+  are contracts, and declaredness now propagates transitively through call sites. The `integer`
+  mapping alone covered 7,469 sites, against a Lua 5.1 corpus with no integer subtype and a type
+  engine that relates `number` and `integer` not at all (`LuaPrimitiveType.kt:10-18`).
 - **Mitigation**: (a) §3.4's "widest type that is still true" rule, with integral types mapped to
   `number`; (b) unknown types to `any`, never a guess; (c) unknown bases emitted as stubs so no
   inheritance chain is severed (3 cases); (d) **DR-08** measures the actual delta before publishing;
   (e) checklist Scenario 3.2 requires **zero** new type errors on a real ZeroBrane file, with the
   stated fix always being to widen the mapping, never to narrow user code.
-- **Sequencing — BUG-419 is a hard ordering dependency for DR-08, and it does *not* shield this
-  feature.** BUG-419 (`in_progress`) is the same failure mode from the engine side, and its
-  2026-08-07 probe measures the interaction exactly:
+- **Sequencing — BUG-419's defect 3 has ALREADY LANDED, and this feature's baseline is post-fix.**
+  `31d9c761` (2026-08-07) shipped "incompatibility is a diagnostic only when something DECLARED it".
+  It re-baselined the corpus in the same commit:
 
-  | member | assignability emissions | demand **declared** | demand **inferred** | survives BUG-419's rule |
-  |---|---:|---:|---:|---:|
-  | zerobrane | 4,452 | **3 (0.1 %)** | 4,449 (99.9 %) | **3** |
+  | member | `LuaTypeAssignability` before → after | `LuaReturnTypeMismatch` |
+  |---|---:|---:|
+  | zerobrane | 997 → **358** | 83 → **65** |
+  | luarocks / luacheck / penlight | 478→213 / 376→201 / 317→135 | — |
 
-  Two consequences, in opposite directions:
+  So the 358 and 65 that DR-08 measures against are **already clean**, and **DR-08 is unblocked
+  today** — it does not wait on anything. (`LuaUndeclaredVariable` is untouched at 1,945; different
+  inspection.)
 
-  1. **BUG-419 removes the ambient floor.** 99.9 % of ZeroBrane's assignability emissions are the
-     engine checking an inferred demand against an inferred value; BUG-419 demotes them to a
-     hypothesis tier. ZeroBrane's surviving error count goes 4,452 → 3.
-  2. **BUG-419 gives TARGET-10's own contracts no protection at all — by design.** Its emission
-     rule 2 names "an annotation, **a stub signature**, a declared global" as exactly the things
-     that *are* contracts. Every `@param` this feature emits is a stub signature. So ~1,900
-     ZeroBrane `wx.*` call sites migrate out of the 99.9 % suppressed bucket and into the 0.1 %
-     reported bucket. The reason ZeroBrane survives with 3 errors today is that almost nothing is
-     declared; TARGET-10 declares ~10,000 contracts.
+  **Correction to an earlier draft of this section**, which quoted the report's probe table (4,452
+  emissions, 99.9 % inferred, 3 survivors) as the expected outcome. The implementation refuted that
+  prediction: the real reduction was **−58 %, not ~100 %**, for two reasons recorded in
+  `31d9c761` — the 7,433 was a graph-level count *before* dedup, and the probe counted only
+  annotations as "declared". The landed model has **three** kinds of demand, not two:
 
-  **Therefore DR-08 must run *after* BUG-419 lands.** Measured before, wx-induced errors are buried
-  in a 4,452-emission floor and the delta is unreadable; measured after, every one is visible and
-  attributable to a §3.4 row — which is the whole point of the measurement. This is an ordering
-  dependency, not a preference.
+  | demand | example | verdict |
+  |---|---|---|
+  | user annotation | `---@param n number` | contract → **ERROR** |
+  | **language rule** | `a .. b` needs a string | contract → **ERROR** |
+  | inference | `f()` needs `fun()` | guess → HYPOTHESIS |
 
-  Rule 1 (viral unknowns) does help this feature marginally: `any`-mapped types stay gradual. Rule 3
-  does not apply to us. **Nothing in BUG-419 addresses the `number`/`integer` mapping** — that was
-  this design's own defect and is fixed in §3.4, not by the engine.
+  **This sharpens rather than softens Risk 1.6.** Two mechanics from the landed change:
+
+  1. A **stub signature is a user-declared demand** — the commit names it explicitly. Every
+     `@param` this feature emits is therefore a contract whose violation is an ERROR. BUG-419 gives
+     this feature no protection; it is the mechanism by which our contracts become enforceable.
+  2. **Declaredness propagates transitively.** `checkFunctionCompatibility` wires
+     argument-variable → parameter-variable, and `VariableElement` now resolves a variable's demand
+     as declared *if any of its reads is* — a fix the commit made after finding declared `@param`
+     violations were being silently demoted. So wx contracts reach every variable that flows into a
+     wx call, not just the immediate argument. The enforcement surface is wider than the ~1,900
+     direct call sites.
+
+  What remains open in BUG-419 is defects 1 and 2 (viral unknowns; `Undefined` union arms), held
+  back deliberately because fixing 1 alone would *create* false positives, plus the reopen for two
+  unmet verification items. By the commit's own reasoning those "can affect at most a handful of
+  emissions" with defect 3 gating — so they neither block nor materially help this feature. Defect 1
+  would help marginally, by keeping `any`-mapped types gradual.
+
+  **Nothing in BUG-419 addresses the `number`/`integer` mapping.** That was this design's own
+  defect, fixed in §3.4 — and now more load-bearing, since declared demands are genuinely enforced.
 
 - **Reciprocal impact on BUG-419 — worth telling its owner.** BUG-419's epistemic argument opens
   with ZeroBrane's "1,945 identifiers the engine admits it cannot resolve… a name-model ~84 %
   unknown". TARGET-10 removes **1,877 of those 1,945** (`zerobrane.baseline`), taking the unknown
-  share to roughly 3 %. The *rule* stands on the probe's 99.9 % independently, but the ZeroBrane
-  framing that motivates it stops being true once this lands.
+  share to roughly 3 %. The landed rule stands on its own measurement, but the ZeroBrane framing
+  that motivates the *remaining* defects 1–2 stops being true once this lands.
 
 ### Risk 1.2: The emitted shape resolves in tests but not in a real IDE
 
