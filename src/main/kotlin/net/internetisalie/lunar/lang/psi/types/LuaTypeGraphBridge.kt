@@ -88,7 +88,7 @@ object LuaTypeGraphBridge {
 
         // Create a UseNode constraint that represents the variable's declared type.
         // The constraint validates that values flowing into this variable are assignable to the declared type.
-        val useNode = graph.use(element, graphType)
+        val useNode = graph.use(element, graphType, declaredDemand = true)
         graph.addEdge(variable, useNode)
     }
 
@@ -139,7 +139,7 @@ object LuaTypeGraphBridge {
             }
 
             // Create a UseNode constraint that represents the parameter's declared type
-            val useNode = graph.use(context, graphType)
+            val useNode = graph.use(context, graphType, declaredDemand = true)
             // Use the graph API to add the edge instead of direct downSet manipulation.
             graph.addEdge(paramNode, useNode)
         }
@@ -187,7 +187,7 @@ object LuaTypeGraphBridge {
             }
 
             // Create a UseNode constraint that represents the return type requirement
-            val useNode = graph.use(context, graphType)
+            val useNode = graph.use(context, graphType, declaredDemand = true)
             // Use the graph API to add the edge instead of direct downSet manipulation.
             graph.addEdge(retNode, useNode)
         }

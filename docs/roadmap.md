@@ -69,7 +69,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-411 | Vertical tab and form feed are not treated as whitespace | todo | C | — | — | ✓ |
 | BUG-413 | Generated doc comments infer wrong `@param` types | todo | C | — | — | ✓ |
 | BUG-414 | Debugger variable navigation walks PSI with no read action | todo | S | — | — | ✓ |
-| BUG-419 | Type engine reports incompatibility it cannot know (unknowns omitted; inferred demands checked as contracts) | todo | M | BUG-416/417 *(done — built the provenance and certainty machinery this completes)* | — | ✓ |
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
 

@@ -44,6 +44,21 @@ interface ValueNode : TypeNode {
  */
 interface UseNode : TypeNode {
     val read: LuaGraphType
+
+    /**
+     * True for demands the USER declared — a `---@param`/`---@type` annotation, a stub signature.
+     * False for demands the engine synthesized from usage: `frame:SetStatusText()` manufacturing a
+     * `Table{SetStatusText}`, or `a .. b` manufacturing a `String`.
+     *
+     * This separates a contract from a guess (BUG-419). A value conflicting with a *declared* demand
+     * is a diagnostic; a value conflicting with an *inferred* demand is two of the engine's own
+     * guesses disagreeing — evidence the model is incomplete, not that the code is wrong. Measured
+     * across four corpus members: 7 430 of 7 433 emissions were inferred-vs-inferred.
+     *
+     * Named apart from [ValueNode.declaredOrigin] deliberately: [VariableNode] is both a value and a
+     * use, and the two provenances are independent.
+     */
+    val declaredDemand: Boolean get() = false
 }
 
 /**
@@ -97,6 +112,7 @@ internal class LazyValueElement(
 internal class UseElement(
     override val element: PsiElement,
     override val read: LuaGraphType,
+    override val declaredDemand: Boolean = false,
 ) : UseNode
 
 /** Mutable variable binding. Created by [LuaTypeGraph.variable]. */
@@ -110,6 +126,29 @@ internal class VariableElement(
     override val read: LuaGraphType get() = resolveRead(mutableSetOf())
 
     override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = resolveWrite(visited)
+
+    /**
+     * A variable's demand is the intersection of everything read from it, so it is DECLARED if any
+     * of those reads is (BUG-419).
+     *
+     * Without this the flag was silently lost at exactly the case that must keep erroring. A call
+     * argument does not meet the `@param` use node directly — `checkFunctionCompatibility` wires
+     * argument-variable → parameter-variable, so the pair actually checked is (value, *variable*),
+     * and [VariableNode] is itself a [UseNode]. Inheriting the `false` default demoted every
+     * declared-contract violation reached through a call to a hypothesis.
+     */
+    override val declaredDemand: Boolean get() = resolveDeclaredDemand(mutableSetOf())
+
+    private fun resolveDeclaredDemand(visited: MutableSet<VariableNode>): Boolean {
+        if (!visited.add(this)) return false
+        return downSet.any {
+            when (it) {
+                is VariableElement -> it.resolveDeclaredDemand(visited)
+                is UseNode -> it.declaredDemand
+                else -> false
+            }
+        }
+    }
 
     private fun resolveWrite(visited: MutableSet<VariableNode>): LuaGraphType {
         if (!visited.add(this)) return LuaGraphType.Undefined

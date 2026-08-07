@@ -497,13 +497,13 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val resType =
             when (op) {
                 "+", "-", "*", "/", "//", "^", "%" -> {
-                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.Number))
-                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
+                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.Number, declaredDemand = true))
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number, declaredDemand = true))
                     LuaGraphType.Number
                 }
                 ".." -> {
-                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.String))
-                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.String))
+                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.String, declaredDemand = true))
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.String, declaredDemand = true))
                     LuaGraphType.String
                 }
                 "==", "~=", "<", ">", "<=", ">=" -> {
@@ -535,15 +535,21 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                         rightNode,
                         graph.use(
                             o,
-                            LuaGraphType.Union.create(
-                                setOf(LuaGraphType.String, LuaGraphType.Table(), LuaGraphType.Array(LuaGraphType.Any)),
-                            ),
+                            declaredDemand = true,
+                            type =
+                                LuaGraphType.Union.create(
+                                    setOf(
+                                        LuaGraphType.String,
+                                        LuaGraphType.Table(),
+                                        LuaGraphType.Array(LuaGraphType.Any),
+                                    ),
+                                ),
                         ),
                     )
                     LuaGraphType.Number
                 }
                 "-" -> {
-                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number))
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number, declaredDemand = true))
                     LuaGraphType.Number
                 }
                 "not" -> LuaGraphType.Boolean

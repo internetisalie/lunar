@@ -161,6 +161,10 @@
 
     <annotator
             language="Lua"
+            implementationClass="net.internetisalie.lunar.analysis.LuaTypeHypothesisAnnotator"/>
+
+    <annotator
+            language="Lua"
             implementationClass="net.internetisalie.lunar.lang.syntax.LuaNumeralAnnotator"/>
     <annotator
             language="Lua"

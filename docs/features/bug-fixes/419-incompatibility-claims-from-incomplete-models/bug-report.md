@@ -3,7 +3,7 @@ id: "BUG-419"
 title: "The type engine reports incompatibility it cannot know: unknowns are omitted, not represented, and inferred demands are checked like contracts"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -154,13 +154,47 @@ correctness fix — an unknown write dropped can make a flow look certain when i
 3. Certainty (c) is not a discriminator on its own — it ranges 2.6 %–33 % across members and, with
    (3) gating, applies to a handful of emissions.
 
-### The blast radius is the real decision
+### The blast radius — predicted 7 433 → 3, ACTUAL 2 168 → 907
 
-The rule as specified takes assignability output from **7 433 to 3** corpus-wide. That is not
-"removing false positives" — it is switching the inspection off for code without annotations, and
-leaving it on for code with them. That may be exactly right (it is LuaLS's behaviour, and the
-report's own thesis), but it is a product decision about what the inspection is *for*, and it is
-much larger than "fix a false-positive source" implies. Decide it deliberately.
+The probe's ratio said the rule would take output from 7 433 to 3, i.e. switch the inspection off for
+un-annotated code. **Implemented, the measured result is a 58 % reduction, not ~100 %:**
+
+| member | before | after | |
+| :-- | --: | --: | --: |
+| zerobrane | 997 | 358 | −64 % |
+| luarocks | 478 | 213 | −55 % |
+| luacheck | 376 | 201 | −47 % |
+| penlight | 317 | 135 | −57 % |
+| **total** | **2 168** | **907** | **−58 %** |
+
+Two reasons the probe over-stated it, both worth keeping:
+
+1. **7 433 was graph-level**, before the inspection layer's file-wide-anchor drop and dedup. The
+   caveat was recorded and then the ratio was quoted anyway as if it transferred. It does not.
+2. **The probe defined "declared" as annotation-only** — and that was wrong, which is the
+   substantive correction below.
+
+### Correction to defect 3: not every inferred demand is a guess
+
+The report frames defect 3 around `frame:SetStatusText()` synthesizing a `Table{SetStatusText}`
+demand. That generalises too far. `a .. b` demanding a string is **not** the engine inferring
+anything — it is a rule of Lua, and `attempt to concatenate a boolean value` is a runtime error no
+matter what anybody annotated. There are three kinds of demand, not two:
+
+| demand | declared by | verdict |
+| :-- | :-- | :-- |
+| `---@param n number` | the user | contract → **ERROR** |
+| `a .. b` requires a string | **the language** | contract → **ERROR** |
+| `f()` requires `fun()`, `x.k` requires `Table{k}` | the engine's inference | guess → **HYPOTHESIS** |
+
+Caught by two existing tests — `testBooleanConcatMismatchReported` and
+`testGenuineNilConcatHighlightedOnce` — which turned out to encode genuine Lua semantics rather than
+stale policy. The first implementation demoted both and would have silently stopped reporting a real
+runtime error.
+
+So the shipped rule is materially more conservative than the design implied, and better for it:
+violations of Lua's own rules and of user annotations still error; only demands the engine invented
+from usage are demoted.
 
 ## Verification
 

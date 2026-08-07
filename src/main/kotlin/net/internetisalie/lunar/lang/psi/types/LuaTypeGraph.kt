@@ -91,8 +91,9 @@ class LuaTypeGraph {
     fun use(
         element: PsiElement,
         type: LuaGraphType,
+        declaredDemand: Boolean = false,
     ): UseNode {
-        val node = UseElement(element, type)
+        val node = UseElement(element, type, declaredDemand)
         _nodes += node
         return node
     }
@@ -131,7 +132,14 @@ class LuaTypeGraph {
             from is ValueNode && to is UseNode -> {
                 // A direct value→use edge is the expression's own value meeting its own demand —
                 // `nil .. "x"` — so a Nil here is CERTAIN, not one reaching definition among many.
-                checkCompatibility(from.write, to.read, from.element, to.element, certain = true)
+                checkCompatibility(
+                    from.write,
+                    to.read,
+                    from.element,
+                    to.element,
+                    certain = true,
+                    declaredDemand = to.declaredDemand,
+                )
             }
         }
     }
@@ -239,6 +247,8 @@ class LuaTypeGraph {
         useElement: PsiElement,
         valueElement: PsiElement,
         message: String,
+        declaredDemand: Boolean = false,
+        inferredValueType: String? = null,
     ) {
         val anchor =
             when {
@@ -246,7 +256,12 @@ class LuaTypeGraph {
                 !isFileWide(valueElement) -> valueElement
                 else -> return
             }
-        addError(ElementError(anchor, message, ErrorSeverity.ERROR))
+        // BUG-419: an incompatibility is a DIAGNOSTIC only when the expectation is one the user
+        // wrote. Against a demand the engine synthesized from usage, both sides are its own
+        // inferences and the conflict is evidence the model is incomplete — measured at 7 430 of
+        // 7 433 emissions across four corpus members.
+        val tier = if (declaredDemand) ErrorSeverity.ERROR else ErrorSeverity.HYPOTHESIS
+        addError(ElementError(anchor, message, tier, inferredValueType.takeIf { tier == ErrorSeverity.HYPOTHESIS }))
     }
 
     /**
@@ -321,6 +336,7 @@ class LuaTypeGraph {
                                     valueNode.element,
                                     useNode.element,
                                     certain = certain,
+                                    declaredDemand = useNode.declaredDemand,
                                 )
                             }
                         }
@@ -346,6 +362,7 @@ class LuaTypeGraph {
         useElement: PsiElement,
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>> = mutableSetOf(),
         certain: Boolean = false,
+        declaredDemand: Boolean = false,
     ) {
         if (valueType == LuaGraphType.Any || useType == LuaGraphType.Any) return
         if (valueType == LuaGraphType.Undefined || useType == LuaGraphType.Undefined) return
@@ -378,6 +395,8 @@ class LuaTypeGraph {
                     useElement,
                     valueElement,
                     "${valueType.displayName()} is not assignable to ${useType.displayName()}",
+                    declaredDemand,
+                    valueType.displayName(),
                 )
                 return
             }
@@ -394,7 +413,7 @@ class LuaTypeGraph {
             for (member in valueType.types) {
                 if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
                     if (gradual && !isCompatible(member, useType, CompatContext())) continue
-                    checkCompatibility(member, useType, valueElement, useElement, visited, certain)
+                    checkCompatibility(member, useType, valueElement, useElement, visited, certain, declaredDemand)
                 }
             }
             return
@@ -416,7 +435,15 @@ class LuaTypeGraph {
                             member is LuaGraphType.Function ||
                             member is LuaGraphType.Union
                         ) {
-                            checkCompatibility(valueType, member, valueElement, useElement, visited, certain)
+                            checkCompatibility(
+                                valueType,
+                                member,
+                                valueElement,
+                                useElement,
+                                visited,
+                                certain,
+                                declaredDemand,
+                            )
                         }
                     }
                 }
@@ -430,7 +457,7 @@ class LuaTypeGraph {
                 } else {
                     "${valueType.displayName()} is not assignable to union ${useType.displayName()}"
                 }
-            reportIncompatible(useElement, valueElement, message)
+            reportIncompatible(useElement, valueElement, message, declaredDemand, valueType.displayName())
             return
         }
 
@@ -458,7 +485,15 @@ class LuaTypeGraph {
         if (valueType is LuaGraphType.Array && useType is LuaGraphType.Array) {
             // Arrays are invariant in Phase 1 for simplicity, or covariant?
             // Let's use structural matching if needed, but for now just element types.
-            checkCompatibility(valueType.elementType, useType.elementType, valueElement, useElement, visited, certain)
+            checkCompatibility(
+                valueType.elementType,
+                useType.elementType,
+                valueElement,
+                useElement,
+                visited,
+                certain,
+                declaredDemand,
+            )
             return
         }
 
@@ -469,7 +504,7 @@ class LuaTypeGraph {
             // it flagged a shipped IDE 959 times.
             if (certain) {
                 val message = "nil value is not assignable to ${useType.displayName()}"
-                reportIncompatible(useElement, valueElement, message)
+                reportIncompatible(useElement, valueElement, message, declaredDemand, valueType.displayName())
             }
             return
         }
@@ -478,6 +513,8 @@ class LuaTypeGraph {
             useElement,
             valueElement,
             "${valueType.displayName()} is not assignable to ${useType.displayName()}",
+            declaredDemand,
+            valueType.displayName(),
         )
     }
 
@@ -753,10 +790,22 @@ class LuaTypeGraph {
 // Error types
 // ---------------------------------------------------------------------------
 
-enum class ErrorSeverity { ERROR, WARNING, WEAK_WARNING }
+/**
+ * [HYPOTHESIS] is not a diagnostic: it is the engine's own guess conflicting with another of its
+ * guesses (BUG-419). Inspections must not report it — it carries no claim about the user's code,
+ * only the observation that annotating something would let the engine speak with authority.
+ */
+enum class ErrorSeverity { ERROR, WARNING, WEAK_WARNING, HYPOTHESIS }
 
 data class ElementError(
     val element: PsiElement,
     val message: String,
     val severity: ErrorSeverity = ErrorSeverity.ERROR,
+    /**
+     * The type the engine inferred for the VALUE, on [ErrorSeverity.HYPOTHESIS] errors only.
+     *
+     * Carried rather than parsed back out of [message]: the annotate-it fix needs the type to
+     * scaffold a `---@type`, and recovering it from prose would break the moment the wording did.
+     */
+    val inferredValueType: String? = null,
 )
