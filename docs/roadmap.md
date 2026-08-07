@@ -20,7 +20,7 @@ folders:
 > removed from this roadmap and live in git history. **Remaining work is all post-MVP:** the
 > **Wave 20 follow-ons** (corpus-sweep fixes + the consolidated loose backlog, incl. MAINT-21 —
 > deferred, externally blocked on the unreleased 2026.2 platform), the **Wave 21 definition-library
-> stream** (TARGET-07/08/09, MAINT-34 and their bug follow-ons), and the **AI epic (Wave 22)**.
+> stream** (TARGET-07/09/10, MAINT-37 and their bug follow-ons), and the **AI epic (Wave 22)**.
 >
 > **Waves map to releases: wave N ships as `v0.N.x`.** Wave 20 → v0.20.0/v0.20.1,
 > Wave 21 → v0.21.0.
@@ -87,10 +87,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog | todo | C | — | MAINT-37 *(zerobrane member scope)* | ✓ |
-| MAINT-34 | LuaCATS extraction unification (stub ↔ AST parity) | **done** | M | — | BUG-402 *(closed)* | ✓ Done 2026-08-07, all 7 requirements Full. One `LuaCatsDeclarations` now reads every nominal-layer LuaCATS tag (`@field`/`@class` parents/`@param`/`@return`/`@alias`), so the stub/AST fork is a data-source choice rather than two parsers; stub stores parents as a `List<String>` (version 3→4). Guarded by `LuaCatsStubAstParityTest`, which asserts the branch each arm took before comparing. Verified live in GoLand (scenarios 1–2). Spun off **BUG-420** |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | — | — | ✓ |
 | MAINT-37 | Corpus sweeps run with pinned definition libraries | todo | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
-| BUG-402 | A parameterized `@class` parent is split in half on the stub path | **done** | S | — | — | ✓ Fixed 2026-08-07 by MAINT-34-02: the stub stores parents as a `List<String>`, so `materializeClass`'s `split(',')` is gone. Regression-locked by `LuaCatsStubAstParityTest` TC-2 on both arms. **Does not make a parameterized parent resolve** — that is BUG-420 |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
 
