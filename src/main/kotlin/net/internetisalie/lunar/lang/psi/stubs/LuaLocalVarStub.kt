@@ -9,6 +9,6 @@ interface LuaLocalVarStub : StubElement<LuaLocalVarDecl> {
     val luacatsClassName: String?
     val luacatsAliasName: String?
     val luacatsAliasTarget: String?
-    val luacatsExtends: String?
+    val luacatsParents: List<String>
     val luacatsFields: Map<String, String>
 }

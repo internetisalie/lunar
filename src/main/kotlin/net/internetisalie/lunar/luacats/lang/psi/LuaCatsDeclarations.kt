@@ -64,4 +64,20 @@ object LuaCatsDeclarations {
     /** The descriptor text as written: a name (`beta?`) or a key (`[string]`). */
     private fun declaredDescriptor(tag: LuaCatsFieldTag): String =
         tag.fieldDescriptor.argName?.text ?: tag.fieldDescriptor.argType?.text ?: ""
+
+    /**
+     * The parent type names [tag] declares, one entry per parent — never a joined string.
+     *
+     * `parentTypes ::= <<ArgType parentType>> { ',' <<ArgType parentType>> }*` (`luacats.bnf:93`),
+     * so the grammar has already separated them and the comma never needs re-interpreting. That is
+     * the whole of BUG-402: the stub used to flatten this to `parentTypes.text` and the type manager
+     * re-split it on `','`, cutting `Base<string, number>` into `Base<string` and `number>`.
+     *
+     * The fragments' joined `toString` reads back as the original string, so the defect is invisible
+     * unless the list is counted — which is why the parity harness compares per-element renderings.
+     */
+    fun parentTypeNames(tag: LuaCatsClassTag): List<String> =
+        tag.parentTypes?.argTypeList.orEmpty()
+            .map { it.text.trim() }
+            .filter { it.isNotEmpty() }
 }

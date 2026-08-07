@@ -310,19 +310,17 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         if (stub != null) {
             return DeclaredParts(
                 members = stub.luacatsFields.map { (n, t) -> LuaCatsDeclarations.FieldMember(n, t, tag = null) },
-                // Still re-split here because the stub still stores a joined string; MAINT-34-02
-                // changes the stored shape to a list and deletes this. Keeping the split for now is
-                // what keeps this phase behaviour-preserving — BUG-402 stays witnessed by TC-2.
-                superTypeNames = stub.luacatsExtends?.split(',')
-                    ?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
+                // BUG-402: the stub stores the list the extractor produced, so nothing is re-derived
+                // here. The `split(',')` this replaces cut `Base<string, number>` into two fragments.
+                superTypeNames = stub.luacatsParents,
             )
         }
         val cats = net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl)
             ?: return DeclaredParts(emptyList(), emptyList())
         return DeclaredParts(
             members = LuaCatsDeclarations.fieldMembers(cats),
-            superTypeNames = cats.getClassTagList().firstOrNull()?.parentTypes?.argTypeList
-                .orEmpty().map { it.text.trim() },
+            superTypeNames = cats.getClassTagList().firstOrNull()
+                ?.let { LuaCatsDeclarations.parentTypeNames(it) }.orEmpty(),
         )
     }
 
@@ -336,7 +334,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         val cats = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java) ?: return null
         return DeclaredParts(
             LuaCatsDeclarations.fieldMembers(cats),
-            tag.parentTypes?.argTypeList.orEmpty().map { it.text.trim() },
+            LuaCatsDeclarations.parentTypeNames(tag),
         )
     }
 

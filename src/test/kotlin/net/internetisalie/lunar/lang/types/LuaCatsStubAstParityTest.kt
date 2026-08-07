@@ -10,7 +10,6 @@ import net.internetisalie.lunar.lang.psi.types.LuaAliasType
 import net.internetisalie.lunar.lang.psi.types.LuaClassType
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -177,10 +176,6 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
      * `parentTypes.argTypeList`, which the grammar already split correctly.
      */
     @Test
-    @Ignore(
-        "BUG-402, fixed by MAINT-34-02. Witnessed on the STUB arm at this commit: " +
-            "expected [\"Base<string, number>\"] but was [\"Base<string\", \"number>\"].",
-    )
     fun testParameterizedParentIsOneSupertype() {
         assertParity(
             ParityCase(
@@ -334,7 +329,7 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
      */
     @Test
     fun testStubVersionIsCurrent() {
-        assertEquals("stub version", 3, LuaParserDefinition.FILE.stubVersion)
+        assertEquals("stub version", 4, LuaParserDefinition.FILE.stubVersion)
     }
 
     /**

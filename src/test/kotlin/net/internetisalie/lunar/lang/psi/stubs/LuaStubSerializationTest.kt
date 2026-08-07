@@ -54,7 +54,7 @@ class LuaStubSerializationTest : BasePlatformTestCase() {
         assertTrue("Local variables list should not be empty", localVars.isNotEmpty())
         val first = localVars.first()
         assertEquals("Builder", first.luacatsClassName)
-        assertEquals("Base", first.luacatsExtends)
+        assertEquals(listOf("Base"), first.luacatsParents)
     }
 
     @Test
@@ -70,7 +70,7 @@ class LuaStubSerializationTest : BasePlatformTestCase() {
         assertTrue("Local variables list should not be empty", localVars.isNotEmpty())
         val first = localVars.first()
         assertEquals("Builder", first.luacatsClassName)
-        assertEquals("Base", first.luacatsExtends)
+        assertEquals(listOf("Base"), first.luacatsParents)
         assertEquals("string", first.luacatsFields["name"])
         assertEquals("number", first.luacatsFields["id"])
     }

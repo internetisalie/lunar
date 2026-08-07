@@ -24,7 +24,9 @@ class LuaLocalVarStubElementType(debugName: String) :
         val type = catsComment?.getTypeTagList()?.firstOrNull()?.argType?.text
         val classTag = catsComment?.getClassTagList()?.firstOrNull()
         val className = classTag?.argType?.text
-        val extendsType = classTag?.parentTypes?.text?.removePrefix(":")?.trim()
+        // BUG-402: stored as a LIST. Flattening to `parentTypes.text` forced the reader to re-split
+        // on ',', which cuts a parameterized parent (`Base<string, number>`) in half.
+        val parents = classTag?.let { LuaCatsDeclarations.parentTypeNames(it) }.orEmpty()
         
         val aliasTag = catsComment?.getAliasTagList()?.firstOrNull()
         val aliasName = aliasTag?.argName?.text
@@ -37,8 +39,20 @@ class LuaLocalVarStubElementType(debugName: String) :
         val fields = catsComment
             ?.let { LuaCatsDeclarations.fieldMembers(it).associate { field -> field.name to field.typeName } }
             ?: emptyMap()
-        
-        return LuaLocalVarStubImpl(parentStub, names, type, className, aliasName, aliasTarget, extendsType, fields)
+
+        // Named arguments are mandatory at both construction sites, not a style choice:
+        // `luacatsParents` is now `List<String>`, type-identical to `names`, so transposing the two
+        // would compile silently and corrupt both the declared names and the parent list.
+        return LuaLocalVarStubImpl(
+            parent = parentStub,
+            names = names,
+            luacatsType = type,
+            luacatsClassName = className,
+            luacatsAliasName = aliasName,
+            luacatsAliasTarget = aliasTarget,
+            luacatsParents = parents,
+            luacatsFields = fields,
+        )
     }
 
     override fun getExternalId(): String = "lunar.local.var.decl"
@@ -50,7 +64,8 @@ class LuaLocalVarStubElementType(debugName: String) :
         dataStream.writeName(stub.luacatsClassName)
         dataStream.writeName(stub.luacatsAliasName)
         dataStream.writeName(stub.luacatsAliasTarget)
-        dataStream.writeName(stub.luacatsExtends)
+        dataStream.writeInt(stub.luacatsParents.size)
+        stub.luacatsParents.forEach { dataStream.writeName(it) }
         dataStream.writeInt(stub.luacatsFields.size)
         stub.luacatsFields.forEach { (name, type) ->
             dataStream.writeName(name)
@@ -68,7 +83,9 @@ class LuaLocalVarStubElementType(debugName: String) :
         val className = dataStream.readName()?.string
         val aliasName = dataStream.readName()?.string
         val aliasTarget = dataStream.readName()?.string
-        val extendsType = dataStream.readName()?.string
+        val parentCount = dataStream.readInt()
+        val parents = mutableListOf<String>()
+        repeat(parentCount) { dataStream.readName()?.string?.let { parents.add(it) } }
         val fieldCount = dataStream.readInt()
         val fields = mutableMapOf<String, String>()
         repeat(fieldCount) {
@@ -76,7 +93,16 @@ class LuaLocalVarStubElementType(debugName: String) :
             val fType = dataStream.readName()?.string ?: ""
             fields[fName] = fType
         }
-        return LuaLocalVarStubImpl(parentStub, names, type, className, aliasName, aliasTarget, extendsType, fields)
+        return LuaLocalVarStubImpl(
+            parent = parentStub,
+            names = names,
+            luacatsType = type,
+            luacatsClassName = className,
+            luacatsAliasName = aliasName,
+            luacatsAliasTarget = aliasTarget,
+            luacatsParents = parents,
+            luacatsFields = fields,
+        )
     }
 
     override fun indexStub(stub: LuaLocalVarStub, sink: IndexSink) {
