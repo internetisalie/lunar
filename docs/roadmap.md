@@ -90,7 +90,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-34 | LuaCATS extraction unification (stub ↔ AST parity) | **planned** | M | — | BUG-402 | ✓ |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | — | — | ✓ |
 | MAINT-37 | Corpus sweeps run with pinned definition libraries | todo | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
-| BUG-402 | A parameterized `@class` parent is split in half on the stub path | todo | S | — | — | ✓ |
+| BUG-402 | A parameterized `@class` parent is split in half on the stub path | **done** | S | — | — | ✓ Fixed 2026-08-07 by MAINT-34-02: the stub stores parents as a `List<String>`, so `materializeClass`'s `split(',')` is gone. Regression-locked by `LuaCatsStubAstParityTest` TC-2 on both arms. **Does not make a parameterized parent resolve** — that is BUG-420 |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
 
