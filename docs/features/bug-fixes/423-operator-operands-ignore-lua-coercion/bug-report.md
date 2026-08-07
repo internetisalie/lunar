@@ -111,6 +111,41 @@ matters most.
   decision, not part of fixing a false positive.
 - `LENGTHABLE` — `#` already demands `String | Table | Array`, an unnamed trait. Naming it is free.
 
+### Full operator inventory — what each position actually admits
+
+The design's operator table demands `NUMBER` in four rows. The coercion gap touches three of them,
+so the trait work needs this inventory rather than the two operators that happen to be implemented.
+Everything below is measured (5.0.3 / 5.4.7 / 5.5.0) except where marked.
+
+| operator | design says | Lua actually admits | in code today | trait |
+| :-- | :-- | :-- | :-- | :-- |
+| `+ - * / // ^ %` | `NUMBER` | number, **numeric string** | **yes** — the 661 | `NUMBERABLE` |
+| unary `-` | `NUMBER` | number, **numeric string** (`-"5"` = −5) | **yes** | `NUMBERABLE` |
+| `..` | `STRING` *(TODO: stringable)* | string, **number** | **yes** — the 93 | `STRINGABLE` |
+| `#` | — | string, table, **anything with `__len`** | **yes**, as `String \| Table \| Array` | `LENGTHABLE` (already, unnamed) |
+| `& \| ~ << >>` | `NUMBER` | number; string coerces **≤5.3 only**, removed 5.4 (§8.1) | **no** | version-gated — NOT `NUMBERABLE` |
+| unary `~` | `NUMBER` | as bitwise | **no** | version-gated |
+| `< <= > >=` | `NUMBER` *(TODO: ordered)* | number vs number, **or string vs string**; mixed is an error | **no** — no demand at all | `ORDERED` |
+| `== ~=` | no constraint | anything | **no** | none needed |
+
+Three things this makes visible that the two-operator view did not:
+
+1. **The blast radius was bounded by accident.** Only arithmetic and unary minus were ever
+   implemented, so only they produce false positives. Bitwise and unary `~` would have been wrong
+   too — and *differently per language version*, which is a worse failure than the one being fixed.
+2. **Bitwise must not reuse `NUMBERABLE`.** It is the one position where the admitted set changes
+   across supported levels: string coercion works up to 5.3 and was removed from the core in 5.4
+   (manual §8.1). A trait shared with arithmetic would silently accept `"10" | 1` on 5.4+, where it
+   is an error. This is the obvious wrong move and therefore the one to write down.
+3. **Relational is wrong in the OTHER direction, and the design already knew.** `NUMBER` there is
+   too *strict*: `"a" < "b"` is valid Lua, `"10" < 5` is not. The `ORDERED` TODO catches exactly
+   that. So the gap is specifically *coercion at operators* — where the design reasoned about
+   operand breadth it got the answer right, which is why `ORDERED` and `STRINGABLE` exist and
+   `NUMBERABLE` does not.
+
+`ORDERED` remains a tightening rather than a fix (relational imposes no demand today, so nothing is
+falsely reported), and is therefore sequenced separately from the false-positive work.
+
 ### Two candidate fixes — traits preferred, flag as the tactical fallback
 
 Both keep the demand type at `Number`/`String` so inference and hints stay precise. That constraint
