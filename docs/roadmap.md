@@ -72,6 +72,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
 | BUG-423 | Arithmetic and concatenation operands ignore Lua's string↔number coercion | todo | M | — | — | ✓ |
+| BUG-424 | Operator metamethods (`__add`, `__concat`, `__len`) are unmodelled — latent false positives | todo | C | BUG-423 *(shape decides where this belongs)* | — | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 

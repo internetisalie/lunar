@@ -75,19 +75,47 @@ assignable to string" to the union form, breaking `DuplicateNilAssignabilityTest
 cosmetic and would just need the expectation updating — recorded because it is evidence of the same
 demand-is-also-inference entanglement, not an independent problem.
 
-### The right fix: coercion belongs in the compatibility relation, not the demand
+### Two candidate fixes — traits preferred, flag as the tactical fallback
 
-Keep the demand at `Number` (so inference and hints stay precise) and permit `String` where an
-arithmetic operand is being *checked*. That needs the coercion to be context-scoped — a flag on the
-`UseNode` marking "this demand coerces", consulted by `checkCompatibility`/`isCompatible` — because
-a global `String ≤ Number` rule would wrongly accept `---@type number` + `local x = "s"`.
+Both keep the demand type at `Number`/`String` so inference and hints stay precise. That constraint
+is non-negotiable: violating it is exactly what killed the reverted attempt.
 
-`UseNode` already grew `declaredDemand` for BUG-419, so the shape is established; this is a second
-independent axis on the same node, not new machinery.
+**(a) A `coercing` flag on `UseNode`** — set at the five operator demand sites, consulted by
+`checkCompatibility`/`isCompatible`. `UseNode` already grew `declaredDemand` for BUG-419, so this is
+a second independent axis on an established shape. Smallest possible change.
 
-**Estimated shape**: one flag, set at the five operator demand sites, read at the two compatibility
-entry points. Small, but it must not leak into the demand type itself — which is exactly what the
-reverted attempt got wrong.
+**(b) Traits — `Numberable`, `Stringable`, `Lengthable`** — express what the *position* requires
+rather than tagging the edge. Preferred, because a flag can only ever say "also accept string here",
+while a trait says what the operand must be able to *do*:
+
+| | flag | traits |
+| :-- | :-- | :-- |
+| fixes string↔number | yes | yes |
+| keeps hints precise | yes | only if traits never reach `resolveRead` |
+| the `#` operator | stays an ad-hoc union | **already is `Lengthable`** — unifies it |
+| `__add` / `__concat` tables | inexpressible | natural: `Numberable` ⊇ table-with-`__add` |
+| diagnostic wording | bare mismatch | "string is not Numberable" |
+
+The `#` row is the tell: `visitUnaryOpExpr` already demands `String | Table | Array`, which is an
+unnamed `Lengthable`. The codebase is halfway to traits by accident, and naming it would replace a
+one-off union rather than add a concept.
+
+**The trap is identical for both.** A trait must be a *demand-only* type that never surfaces through
+`VariableElement.resolveRead`, or it reintroduces the `n : number | string` regression verbatim —
+this time with a name users have never heard of. Whichever is chosen, the inlay-hint test and
+`DuplicateNilAssignabilityTest` are the gates, because those are what caught the last attempt.
+
+**Second trap, with precedent.** The flag (or trait) will likely need transitive resolution through
+`downSet`, mirroring `VariableElement.resolveDeclaredDemand`. BUG-419 assumed the checked pair was
+(value, use-node) when it is frequently (value, **variable**) — `VariableNode` *is* a `UseNode` and
+inherited the `false` default, silently demoting every declared contract reached through a call. An
+operand reaching an operator through a variable hop would lose a `coercing` flag the same way. Verify
+with a fixture that has the hop, not just the direct form.
+
+**Sequencing.** The full trait model is gated on metamethod awareness (BUG-424) for the
+`__add`/`__concat` arm. Traits can land first covering only the primitive arms, with the metamethod
+arm added when BUG-424 does — the trait boundary is where that extension belongs, which is the third
+argument for (b) over (a).
 
 ## Version sensitivity — one real exception, not in scope
 
