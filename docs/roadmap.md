@@ -71,6 +71,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-414 | Debugger variable navigation walks PSI with no read action | todo | S | — | — | ✓ |
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
+| BUG-423 | Arithmetic and concatenation operands ignore Lua's string↔number coercion | todo | M | — | — | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 
@@ -85,7 +86,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
-| TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog | todo | C | — | MAINT-37 *(zerobrane member scope)* | ✓ |
+| TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog | **planned** | C | — | MAINT-37 *(zerobrane member scope)* | ✓ |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | — | — | ✓ |
 | MAINT-37 | Corpus sweeps run with pinned definition libraries | todo | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
