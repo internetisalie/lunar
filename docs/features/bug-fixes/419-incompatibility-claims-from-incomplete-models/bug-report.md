@@ -3,7 +3,7 @@ id: "BUG-419"
 title: "The type engine reports incompatibility it cannot know: unknowns are omitted, not represented, and inferred demands are checked like contracts"
 type: "bug"
 parent_id: "BUG"
-status: "done"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -195,6 +195,34 @@ runtime error.
 So the shipped rule is materially more conservative than the design implied, and better for it:
 violations of Lua's own rules and of user annotations still error; only demands the engine invented
 from usage are demoted.
+
+## Status — defect 3 SHIPPED, the report is NOT closed
+
+Marked `done` on 2026-08-07 and reopened the same day: two of the four verification items below were
+never completed, and later measurement showed the thesis is not met.
+
+**Shipped** (`31d9c761`): defect 3. `UseNode.declaredDemand`, the ERROR/HYPOTHESIS split, the
+inspections skipping hypotheses, `LuaTypeHypothesisAnnotator` with the annotate-it intention. Corpus
+2 168 → 907. A declared-contract violation still errors, and that criterion caught a real bug
+(declared `@param` demoted through every call site).
+
+**Not shipped**: defects 1 and 2, deliberately — the probe showed defect 2 has zero exposure because
+defect 1 masks it, so they are one change and neither is urgent once defect 3 gates. That deferral
+stands.
+
+**Not done, and the reason it matters**: the BUG-417 parity criterion was never re-run. An attempt
+(2026-08-07) produced `undeclaredAlone=0 withTypes=0` — vacuous, because the probe did not reproduce
+the sweep's module-root/sourcePath setup and so measured nothing. Recorded as unmet rather than
+passed. This change moved most type errors out of ERROR severity, which is precisely the lever
+BUG-417 was about, so the criterion is *more* relevant here than usual, not less.
+
+**The thesis is not met.** "The engine may only claim incompatibility it can know" — it still emits
+655 LPeg claims it cannot know (BUG-424). Defect 3 classified operator demands as *language
+contracts*, which is right in principle, but the language model behind them is wrong about
+metamethods. So the ERROR tier is still carrying a large class the engine has no basis for.
+
+Closing this report requires: the parity criterion actually measured, and either BUG-424 landing or
+an explicit decision that the 655 are acceptable in the ERROR tier.
 
 ## Verification
 

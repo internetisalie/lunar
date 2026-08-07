@@ -71,6 +71,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-414 | Debugger variable navigation walks PSI with no read action | todo | S | — | — | ✓ |
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
+| BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-423 | Arithmetic and concatenation operands ignore Lua's string↔number coercion | todo | C | — | — | ✓ |
 | BUG-424 | Operator metamethods are unmodelled — the largest false-positive class (655 of 661) | todo | **M** | — | BUG-423 | ✓ |
 
