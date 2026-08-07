@@ -3,7 +3,7 @@ id: "BUG-423"
 title: "Arithmetic and concatenation operands ignore Lua's string↔number coercion"
 type: "bug"
 parent_id: "BUG"
-priority: "medium"
+priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
@@ -32,18 +32,49 @@ class.
 Arithmetic accepts strings, concatenation accepts numbers, **comparison coerces nothing** — and that
 last row is why the fix touches only the first two.
 
-## Corpus impact
+## Corpus impact — SAMPLED, and the headline number was misattributed
 
-Survivors of BUG-419's rule, by value→use pair:
+The BUG-419 survivor characterisation showed 661 `string -> number` on zerobrane and this report
+originally claimed them. **Sampling the actual sites refutes that**: 655 of the 661 are LPeg pattern
+algebra, not arithmetic.
 
 ```
-661  string  ->  number     zerobrane   <- this defect
- 55  number  ->  string      "
- 27  number  ->  string     penlight
- 11  number  ->  string     luarocks
+total=661   lpeg-context=655   other=6
 ```
 
-~750 emissions of ~2 300 graph-level survivors, all one cause.
+```lua
+local comment = lexer.token(lexer.COMMENT, '#' * lexer.nonnewline^0)
+local word    = (lexer.alpha + '-') * (lexer.alnum + '-')^0
+local n1b     = P('_') + '∆' + '⍙'
+```
+
+In LPeg `+` is ordered choice (`__add`), `*` is sequence (`__mul`) and `^` is repetition (`__pow`),
+and the metamethods take a string operand and coerce it to a pattern. zerobrane bundles Scintillua,
+so ~130 of its 325 Lua files are LPeg lexers. **Those 655 belong to BUG-424 (operator metamethods),
+not here.**
+
+What is genuinely this bug, on zerobrane, is **6 emissions**:
+
+```
+tomorrow.lua:12   local function h2d(n) return 0+('0x'..n) end     <- textbook: hex string + number
+sha2.lua:70-72    8 * len, (len + 1 + 8) % 64                      <- param inferred as string
+```
+
+The `h2d` line is exactly the case this report is about. The `sha2` ones may be inference
+imprecision rather than coercion and were not classified further.
+
+Concat's 93 `number -> string` were **not** sampled and may divide the same way — LPeg does not
+overload `..`, so they are more likely genuine, but that is an assumption, not a measurement.
+
+### What this changes
+
+This bug is **real but small**, not the largest false-positive class. Its priority drops
+accordingly, and BUG-424's rises sharply — see that report, which now owns the 655.
+
+It also invalidates the argument that the reverted widening was worth its cost: it would have
+suppressed the 655 **by accident**, because the flagged operand happens to be a string, while
+modelling nothing about LPeg and simultaneously blinding the engine to genuine `"abc" * 2`. Being
+right for the wrong reason would have hidden BUG-424 indefinitely.
 
 ## Fix — the obvious one was TRIED and REVERTED
 

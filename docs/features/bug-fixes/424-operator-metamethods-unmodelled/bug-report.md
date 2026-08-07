@@ -1,9 +1,9 @@
 ---
 id: "BUG-424"
-title: "Operator metamethods (`__add`, `__concat`, `__len`, `__call`) are unmodelled — latent false positives behind inference imprecision"
+title: "Operator metamethods (`__add`, `__mul`, `__pow`, `__concat`, `__len`) are unmodelled — the largest false-positive class"
 type: "bug"
 parent_id: "BUG"
-priority: "low"
+priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
@@ -41,40 +41,86 @@ t .. "s" = V
 
 **Lunar reports 0 errors on the same source.** That is the important part, and it is *not* support.
 
-## Zero errors is imprecision, not correctness
+## Not latent — MEASURED as the dominant false-positive class
 
-The engine is silent because `setmetatable({x = x}, V)` returned through a local function does not
-resolve to a precise enough type to conflict with the operand demand — not because it consulted
-`__add`. The gap is real and currently masked.
+This report originally said "0 false positives, latent risk, low priority". **Sampling BUG-419's
+survivors refutes that.** Of the 661 `string -> number` emissions on zerobrane, **655 are LPeg
+pattern algebra**:
 
-Evidence it is only masked: the BUG-419 survivor characterisation found a live `{ ... } -> number`
-emission on luarocks. A table *does* conflict with an arithmetic demand once its type resolves. Every
-improvement to inference precision converts more of this latent gap into visible false positives —
-so this bug gets *worse* as the engine gets *better*, which is why it is worth recording now while it
-costs nothing.
+```
+total=661   lpeg-context=655   other=6
+```
 
-`#` is accidentally safe: `visitUnaryOpExpr` demands `String | Table | Array`, so any table passes
-regardless of whether it defines `__len`. Permissive in the safe direction, and by accident rather
-than design.
+```lua
+local comment = lexer.token(lexer.COMMENT, '#' * lexer.nonnewline^0)
+local word    = (lexer.alpha + '-') * (lexer.alnum + '-')^0
+local n1b     = P('_') + '∆' + '⍙'
+lex:add_rule('label', token(lexer.LABEL, word * ':'))
+```
 
-## Why low priority
+LPeg overloads `+` as ordered choice (`__add`), `*` as sequence (`__mul`), `^` as repetition
+(`__pow`) and `-` as difference (`__sub`); each metamethod accepts a **string** operand and coerces
+it to a pattern. zerobrane bundles Scintillua, so ~130 of its 325 Lua files are LPeg lexers and every
+pattern definition in them trips this.
 
-Nothing is broken today — 0 false positives measured, 1 borderline emission corpus-wide. This is a
-latent-risk record, not a live defect. It matters mainly as a *design input* to BUG-423: a trait
-model (`Numberable`, `Stringable`, `Lengthable`) has a natural place to express "a table with
-`__add` is Numberable", where a boolean `coercing` flag has none. If BUG-423 lands as traits, this
-becomes an extension at a defined boundary; if it lands as a flag, this needs its own mechanism
-later.
+### Why the first probe read zero
 
-## Fix direction
+The original probe built a table with `__add` and used it on **both** sides:
 
-Teach the operator demands about metamethods, most cheaply by resolving the operand's metatable
-(the machinery exists — `LuaTypesVisitor` already walks `mt.__index` for COMP-04-08) and treating a
-present `__add`/`__concat`/`__len` as satisfying the corresponding demand.
+```lua
+local a, b = new(1), new(2)
+local sum = a + b        -- 0 errors
+```
 
-Order it **after** BUG-423, whose chosen shape decides where this belongs. Doing it first would
-build a mechanism that the trait model may replace.
+Both operands resolve to nothing precise, so no conflict is reachable — the silence was inference
+imprecision, exactly as recorded. But that fixture is unrepresentative. Real metamethod code has a
+**literal on one side** (`'#' * pattern`), and the literal is precisely typed, so *it* is the operand
+that gets flagged. The defect was never latent; it was misfiled as string→number coercion because the
+string is the side the message names.
 
-Not worth doing at all until inference is precise enough that the false positives actually appear —
-at which point the corpus will say so, since `{ ... } -> <primitive>` pairs are exactly what the
-BUG-419 survivor characterisation counts.
+The lesson generalises: a fixture where nothing resolves cannot demonstrate the absence of a
+diagnostic that only appears when something does.
+
+## Fix direction — this IS the trait work, not a follow-on
+
+The dependency recorded when this was filed (`BUG-424 -> BUG-423`, "order it after") is **inverted**
+by the sampling. BUG-423 is ~6 emissions; this is 655. Traits are the agreed direction (the type
+engine design's own unbuilt roadmap item 6), so the metamethod arm is not an extension to add later —
+it is the arm that carries the value:
+
+```
+NUMBERABLE  = number | numeric-string | <has __add/__sub/__mul/__div/__mod/__pow/__unm>
+STRINGABLE  = string | number         | <has __concat>
+LENGTHABLE  = string | table | array  | <has __len>
+```
+
+Without the metamethod arm, traits fix ~6 emissions on zerobrane. With it, ~661. Building the
+primitive arms first and deferring metamethods would ship the version that does almost nothing.
+
+**Do not "fix" this by widening the primitive demand.** Widening arithmetic to `number | string`
+suppresses all 655 — because the operand that gets flagged happens to be a string — while modelling
+nothing about LPeg and simultaneously blinding the engine to a genuine `"abc" * 2`. Right answer,
+wrong reason, and it would have hidden this bug indefinitely. (That widening was tried under BUG-423
+and reverted for an unrelated reason: it regressed every inferred hint.)
+
+### Mechanism
+
+`LuaTypesVisitor` already walks `mt.__index` for COMP-04-08, so metatable resolution exists. The work
+is to consult it for the arithmetic/concat/length metamethods at the point a trait is checked, rather
+than only for member lookup.
+
+Two known hazards, both with precedent in this code:
+
+- **The trait must never reach `resolveRead`.** The design says "as use-type heads" for exactly this
+  reason; the reverted widening proved what happens otherwise (`n : number | string` on every
+  numeric parameter).
+- **It will likely need transitive resolution through `downSet`**, mirroring
+  `VariableElement.resolveDeclaredDemand`. BUG-419 assumed the checked pair was (value, use-node)
+  when it is frequently (value, **variable**), because `VariableNode` is itself a `UseNode`.
+
+### Verification
+
+The corpus is the gate: zerobrane's `LuaTypeAssignability` should fall by roughly the 655, and the
+BUG-419 survivor characterisation re-run should show `string -> number` collapse without
+`{ ... } -> <primitive>` rising. A unit fixture must use a **literal on one side**
+(`'#' * pattern`) — the both-tables fixture that read zero above is not a valid regression test.
