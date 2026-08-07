@@ -210,24 +210,75 @@ inspections skipping hypotheses, `LuaTypeHypothesisAnnotator` with the annotate-
 defect 1 masks it, so they are one change and neither is urgent once defect 3 gates. That deferral
 stands.
 
-**Not done, and the reason it matters**: the BUG-417 parity criterion was never re-run. An attempt
-(2026-08-07) produced `undeclaredAlone=0 withTypes=0` — vacuous, because the probe did not reproduce
-the sweep's module-root/sourcePath setup and so measured nothing. Recorded as unmet rather than
-passed. This change moved most type errors out of ERROR severity, which is precisely the lever
-BUG-417 was about, so the criterion is *more* relevant here than usual, not less.
+**Now done** (2026-08-07, second attempt): the two verification gaps above. See
+"Verification, completed" below. Neither changed the verdict on defect 3 — the parity criterion
+passes and the ERROR path proved to be guarded everywhere but one line — but both turned up
+something the report did not know, and one of them is a new bug.
 
 **The thesis is not met.** "The engine may only claim incompatibility it can know" — it still emits
 655 LPeg claims it cannot know (BUG-424). Defect 3 classified operator demands as *language
 contracts*, which is right in principle, but the language model behind them is wrong about
 metamethods. So the ERROR tier is still carrying a large class the engine has no basis for.
 
-Closing this report requires: the parity criterion actually measured, and either BUG-424 landing or
-an explicit decision that the 655 are acceptable in the ERROR tier.
+Closing this report now requires only the metamethod question: **BUG-424 landing, or an explicit
+decision that the 655 are acceptable in the ERROR tier.**
 
-## Verification
+## Verification, completed (2026-08-07)
+
+### The BUG-417 parity criterion — PASSES, and is now a test
+
+Re-run properly, as `LuaCorpusInspectionParityTest` (`*Corpus*`, so `-PwithCorpus`) rather than a
+throwaway. zerobrane, `LuaUndeclaredVariable` with and without `LuaTypeAssignabilityInspection`:
+
+```
+files=72  withTypes=1948  withoutTypes=1954  baseline=1945
+filesAtExactParity=70/72
+src/editor/commands.lua  withTypes=54  withoutTypes=55
+src/util.lua             withTypes=71  withoutTypes=76
+```
+
+Identical to BUG-417's post-fix measurement — 1 948 / 1 954, 70 of 72 — so the hypothesis tier did
+not disturb inspection independence. The residual 6 are refs inside narrow, correctly-anchored ERROR
+ranges: the platform's by-design severity precedence, not the file-wide class BUG-417 removed.
+
+The first attempt's failure mode is designed out rather than remembered. `assertAnchored` requires
+the measured total to sit within 25 of the ratchet's recorded baseline, so a probe measuring a
+different tree — the `0 vs 0` that read as perfect parity — fails instead of passing vacuously.
+
+### Mutation proof of the ERROR path — one line is measurably unguarded
+
+`LuaDeclaredContractErrorTest` adds fixtures for the sites the single pre-existing fixture did not
+cover, and every guard was flipped in turn:
+
+| mutation | went red |
+| :-- | :-- |
+| tier split → always `HYPOTHESIS` | 9 tests across 4 classes |
+| `@param` injection site → `false` | 4 |
+| `@type` injection site → `false` | 3 |
+| `@return` injection site → `false` | 1 |
+| operator sites → `false` | `testBooleanConcatMismatchReported`, `testGenuineNilConcatHighlightedOnce` |
+| `VariableElement.declaredDemand` → `false` | the two variable-mediated `@param` fixtures |
+
+**One survived**: replacing `resolveDeclaredDemand`'s *recursion* with a one-hop lookup leaves every
+fixture green, including deliberately-constructed two-variable chains. A value propagates all the
+way into the parameter variable, so the declared use node is always exactly one hop from wherever
+the check lands. The recursion is insurance against a shape that does not occur today; it is
+recorded as untested rather than described as covered, and the harness was proved live with a
+`false` canary in the same invocation shape.
+
+### And a new bug: BUG-425
+
+The fixtures were extended to the shape TARGET-10 will generate — a contract declared in a
+*definitions file* — and it produces no diagnostic at all, not even the arity warning. Out-of-file
+signatures never reach the type graph. That is filed separately as **BUG-425**; it also means this
+report's "3 declared-demand emissions across all of zerobrane" undercounts for a second reason
+beyond un-annotated code.
+
+## Verification (original list)
 
 - Fixtures for each defect, red before / green after, mutation-proved (defect 1's fixture must show
   the omitted write defeating certainty; defect 2's must show the `Undefined`-arm union erroring).
+  **Done for defect 3**, above; defects 1 and 2 are not implemented, so their fixtures are not owed.
 - Corpus re-baselined once, with the movement attributed per flag from the probe.
 - The BUG-417 parity criterion re-run: inspection independence must survive the change.
 - A declared-contract violation with certain evidence (`--- @param n number` + literal string)

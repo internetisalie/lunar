@@ -109,7 +109,14 @@ inspection's results gone. All 124 `wx` refs in `filetree.lua` sat inside those 
 ### Verification
 
 zerobrane, 72 files, per-file undeclared counts with vs without the type inspection: **70 of 72
-files at exact parity**; totals 1 948 vs 1 954. The residual 6 are refs inside *narrow,
+files at exact parity**; totals 1 948 vs 1 954.
+
+> **Pinned as a test, 2026-08-07** — `LuaCorpusInspectionParityTest` (opt in with `-PwithCorpus`).
+> BUG-419 later moved most type errors out of ERROR severity, which is exactly the lever this bug
+> was about, and re-measuring produced these same four numbers. The criterion had until then been a
+> one-off measurement, and BUG-419's first attempt to re-run it reported `0 vs 0` — vacuously green,
+> because it did not reproduce the sweep. The test therefore anchors its own total against the
+> recorded ratchet baseline before believing any parity verdict. The residual 6 are refs inside *narrow,
 correctly-anchored* ERROR ranges — the platform's by-design severity precedence, which applies to
 any inspection pair in any IntelliJ plugin, and structurally cannot be the file-wide class (the
 `addError` net forbids it). Whole-sweep: `LuaUndeclaredVariable` 843 → **1 947** with the inspection
