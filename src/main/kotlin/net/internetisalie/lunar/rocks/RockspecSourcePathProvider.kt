@@ -25,6 +25,14 @@ class RockspecSourcePathProvider(
     private val forceRefreshTracker = SimpleModificationTracker()
     private val prewarmInFlight = AtomicBoolean(false)
     private val prewarmLaunches = AtomicInteger(0)
+
+    /**
+     * Generation counter, bumped by [invalidateCache] (BUG-410).
+     *
+     * A prewarm captures it at launch and checks it before publishing, so a job whose inputs were
+     * invalidated while it was computing retires quietly instead of overwriting fresher state.
+     */
+    private val prewarmEpoch = AtomicInteger(0)
     private val cachedFull = AtomicReference<Pair<List<SourcePathPattern>, List<CModuleRock>>>(null)
 
     private val cache: CachedValue<Pair<List<SourcePathPattern>, List<CModuleRock>>> =
@@ -70,6 +78,7 @@ class RockspecSourcePathProvider(
         if (cache.hasUpToDateValue()) return
         if (!prewarmInFlight.compareAndSet(false, true)) return
         prewarmLaunches.incrementAndGet()
+        val epoch = prewarmEpoch.get()
         LunarCoroutineScopeService.getInstance(project).scope.launch {
             try {
                 val discovered =
@@ -77,10 +86,19 @@ class RockspecSourcePathProvider(
                         testDiscoverySeam?.invoke(project)
                             ?: LuaRockspecDiscoveryService.getInstance(project).discoverRockspecPaths()
                     }
-                cachedFull.set(computePatternsFromPaths(discovered))
-                forceRefreshTracker.incModificationCount()
+                val computed = computePatternsFromPaths(discovered)
+                // BUG-410: publish only if nothing invalidated us while we were computing.
+                // Otherwise this result describes inputs that are already gone, and publishing it
+                // would both resurrect stale patterns and make the next caller believe its own
+                // prewarm had completed.
+                if (prewarmEpoch.get() == epoch) {
+                    cachedFull.set(computed)
+                    forceRefreshTracker.incModificationCount()
+                }
             } finally {
-                prewarmInFlight.set(false)
+                // Never clear a flag that now belongs to a newer generation — doing so would let
+                // two prewarms run at once, which is the dedup this flag exists to provide.
+                if (prewarmEpoch.get() == epoch) prewarmInFlight.set(false)
             }
         }
     }
@@ -118,6 +136,13 @@ class RockspecSourcePathProvider(
         @TestOnly
         fun invalidateCache(project: Project) {
             val provider = getInstance(project)
+            // BUG-410: retire any in-flight prewarm FIRST. Previously this cleared the counters but
+            // left `prewarmInFlight` set, so a job launched before the reset kept the flag — the
+            // next `prewarm()` bailed at the CAS without counting a launch — and then published into
+            // `cachedFull`, which is all `isPrewarmComplete` looks at. A caller therefore saw an
+            // await satisfied by somebody else's job with its own launch count still at zero.
+            provider.prewarmEpoch.incrementAndGet()
+            provider.prewarmInFlight.set(false)
             provider.cachedFull.set(null)
             provider.prewarmLaunches.set(0)
             provider.forceRefreshTracker.incModificationCount()

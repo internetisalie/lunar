@@ -6,6 +6,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.path.PathConfiguration
 import net.internetisalie.lunar.lang.path.SourcePathPattern
 import java.nio.file.Files
+import java.util.concurrent.TimeUnit.SECONDS
 
 class RockspecSourcePathProviderTest : BasePlatformTestCase() {
     override fun setUp() {
@@ -136,6 +137,51 @@ class RockspecSourcePathProviderTest : BasePlatformTestCase() {
 
         assertEquals(
             "N unresolved references in one read-lock pass schedule exactly one prewarm job",
+            1,
+            RockspecSourcePathProvider.prewarmLaunchCount(project),
+        )
+    }
+
+    /**
+     * BUG-410: a prewarm still running from an EARLIER test must not satisfy a later one.
+     *
+     * `prewarm()` bails at `prewarmInFlight.compareAndSet(false, true)` **without** incrementing
+     * `prewarmLaunches`, and `invalidateCache` zeroed the counter while leaving `prewarmInFlight`
+     * set — so a leftover job blocked the new launch and then published into `cachedFull`, which is
+     * all `isPrewarmComplete` checks. The await returned satisfied by somebody else's work and the
+     * count was still 0: `expected:<1> but was:<0>`, exactly as observed on 2026-08-05.
+     *
+     * The original was timing-dependent (it needed the previous test's coroutine to still be in
+     * flight, hence "the VM had just recovered from a network blip"). This holds the job open on a
+     * latch instead, so the race is forced rather than waited for.
+     */
+    fun testStalePrewarmCannotSatisfyALaterInvalidation() {
+        val rockspecFile = writeRockspec()
+        val entered = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+
+        // A prewarm that parks inside discovery, so it is still in flight across invalidateCache.
+        RockspecSourcePathProvider.testDiscoverySeam = {
+            entered.countDown()
+            release.await()
+            listOf(DiscoveredRockspec(rockspecFile, "foo"))
+        }
+        RockspecSourcePathProvider.testForceReadLockGuard = true
+        RockspecSourcePathProvider.invalidateCache(project)
+        onPooledThreadUnderReadLock { RockspecSourcePathProvider.getInstance(project).derivedPatterns() }
+        assertTrue("the first prewarm must reach the discovery seam", entered.await(30, SECONDS))
+
+        // A new test would start here: reset, then do its own read-lock pass.
+        RockspecSourcePathProvider.invalidateCache(project)
+        RockspecSourcePathProvider.testDiscoverySeam = { listOf(DiscoveredRockspec(rockspecFile, "foo")) }
+        release.countDown()
+
+        val provider = RockspecSourcePathProvider.getInstance(project)
+        onPooledThreadUnderReadLock { provider.derivedPatterns() }
+        awaitPrewarm(rockspecFile)
+
+        assertEquals(
+            "the post-invalidation pass must launch its OWN prewarm, not inherit the stale one",
             1,
             RockspecSourcePathProvider.prewarmLaunchCount(project),
         )

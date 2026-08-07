@@ -14,6 +14,7 @@ import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import java.io.File
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Computes the [LuaLaunchEnvironment] for a project — the single source of truth for the
@@ -38,6 +39,16 @@ class LuaExecutionEnvironmentBuilder(
     @Volatile
     private var cachedPathPrependDirs: List<Path>? = null
 
+    /**
+     * Generation counter, bumped by [invalidate] (BUG-422).
+     *
+     * [pathPrependDirs] is an unsynchronized read-compute-write: a caller that began computing
+     * before an invalidation would otherwise publish its stale result afterwards, and because an
+     * **empty** list is non-null it would then be served as a real answer rather than recomputed.
+     * A resolver that saw no bound toolchain therefore pinned "no PATH entries" indefinitely.
+     */
+    private val cacheEpoch = AtomicInteger(0)
+
     init {
         ApplicationManager.getApplication().messageBus.connect(this).subscribe(
             LuaToolchainListener.TOPIC,
@@ -51,6 +62,7 @@ class LuaExecutionEnvironmentBuilder(
     fun pathPrependDirs(): List<Path> {
         cachedPathPrependDirs?.let { return it }
 
+        val epoch = cacheEpoch.get()
         val resolver = LuaToolResolver.getInstance()
         val dirs =
             LuaToolKindRegistry
@@ -60,7 +72,12 @@ class LuaExecutionEnvironmentBuilder(
                 .mapNotNull { runCatching { Path.of(it).parent }.getOrNull() }
                 .distinct()
 
-        cachedPathPrependDirs = dirs
+        // BUG-422: publish only if the toolchain did not change while we were resolving. A stale
+        // write here is not merely a missed refresh — it would be *served*, because an empty list
+        // is non-null, so the next caller gets "no PATH entries" as a cached answer.
+        if (cacheEpoch.get() == epoch) {
+            cachedPathPrependDirs = dirs
+        }
         return dirs
     }
 
@@ -97,6 +114,9 @@ class LuaExecutionEnvironmentBuilder(
 
     /** Drops the cached dir list; the next [pathPrependDirs] recomputes it. */
     fun invalidate() {
+        // Bump first: any resolve already in flight is retired before the clear, so it cannot
+        // re-publish the value we are dropping (BUG-422).
+        cacheEpoch.incrementAndGet()
         cachedPathPrependDirs = null
     }
 

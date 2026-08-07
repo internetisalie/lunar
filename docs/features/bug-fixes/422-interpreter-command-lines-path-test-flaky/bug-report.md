@@ -57,7 +57,37 @@ fully reset.
 **Unverified**: the specific interaction has not been reproduced deliberately. Recorded as a
 hypothesis, not a conclusion.
 
-## Fix direction
+## Hardening applied 2026-08-07 — but this bug stays OPEN
+
+While fixing [BUG-410](../../../roadmap.md) (a prewarm publishing after the invalidation that was
+meant to retire it), the same shape turned up here and has been guarded the same way:
+
+```kotlin
+cachedPathPrependDirs?.let { return it }   // an EMPTY list is non-null — so it is SERVED
+val dirs = …resolve every tool kind…       // invalidate() can land in here
+cachedPathPrependDirs = dirs                // …and this stale write then wins
+```
+
+`pathPrependDirs()` is an unsynchronized read-compute-write. A caller that began resolving before
+an invalidation published its result afterwards, and because an empty list is non-null it was then
+returned as a cached *answer* rather than recomputed — so a resolve that happened to see no bound
+toolchain could pin "no PATH entries" until the next invalidation. `applyPath` returns early on an
+empty list, which is exactly the observed symptom. `LuaExecutionEnvironmentBuilder` now carries a
+generation counter bumped by `invalidate()`, and a resolve publishes only if its generation is still
+current.
+
+**This is not a claim that the flake is fixed.** The race above was found by reading, not by
+reproducing — unlike BUG-410, whose reproduction was forced with a latch and which failed with the
+original signature before the fix and passed after. There is no seam to pause a resolve mid-flight,
+and adding one solely to demonstrate my own hypothesis would prove nothing about the original
+failure. So:
+
+- the guard is justified on its own merits (a stale write here is *served*, not merely missed);
+- whether it removes the observed flake is **unverified**;
+- this stays open until the test either runs clean over a meaningful number of full-suite runs, or
+  fails again — in which case the recorded evidence here is the starting point, not folklore.
+
+## Fix direction (if it recurs)
 
 Reproduce first — run the suite with a fixed seed / ordering until it fails, then bisect the
 preceding class. Do not "fix" it by adding another `invalidate()` call until the leak is identified;
