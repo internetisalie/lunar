@@ -15,9 +15,9 @@
 # pass --platform=linux/amd64 or the VM cannot run the image at all.
 #
 #   docker build --platform=linux/amd64 \
-#     -t northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.1.0 \
+#     -t northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.2.0 \
 #     tooling/ci-image
-#   docker push northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.1.0
+#   docker push northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.2.0
 #
 # GAR in northamerica-northeast1, NOT registry.internetisalie.net: the VM pulls over its
 # own GCP egress, in-region. The fleet LAN registry is reachable — the pool masquerades
@@ -44,21 +44,26 @@ FROM debian:13-slim
 #   interpreter and open a DBGp TCP socket.
 # curl + ca-certificates: the UniTrack ingest step, and TLS for everything Gradle fetches.
 #
-# Deliberately ABSENT, both verified rather than assumed:
+# build-essential + python3: the CORPUS lane (BUG-415). tooling/corpus/fetch-luac.py builds
+#   the five pinned PUC `luac` oracle binaries from sha256-verified source — the judge must
+#   not come from a distro package (MAINT-35-00) — and all three fetchers are python3.
+#   0.1.0 deliberately omitted build-essential ("nothing in the suite needs a C toolchain",
+#   true for the routine lane and still is); the corpus gate invalidated that for this
+#   image as a whole. 5.1–5.3 `make linux` wants readline and falls back to `make posix`
+#   without it; readline is deliberately not added — the oracle only needs `luac`.
+#
+# Deliberately ABSENT, verified rather than assumed:
 #   nodejs          — only JS actions need it, and `uses:` is a stated non-goal of this
 #                     executor, so no action ever runs. It was the last reason to carry
 #                     the gitea runner image.
-#   build-essential — the standard workflow installs it, but nothing in the suite needs a
-#                     C toolchain: LuaCompilerProbeTest is written env-independently
-#                     ("without depending on the CI host having (or lacking) a real C
-#                     toolchain") and tolerates a null probe. The other build-essential
-#                     hits are assertions on user-facing message TEXT, not compiler use.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         openjdk-21-jdk-headless \
         fontconfig fonts-dejavu-core \
         lua5.4 lua-socket \
         curl ca-certificates \
+        build-essential \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Two names on purpose. TestLuaDebugHarness resolves the interpreter through the JVM's
@@ -88,4 +93,7 @@ RUN git --version \
     && /root/bin/lua -v \
     && fc-match sans >/dev/null \
     && lua -e "require('socket')" \
-    && curl --version >/dev/null
+    && curl --version >/dev/null \
+    && cc --version >/dev/null \
+    && make --version >/dev/null \
+    && python3 --version

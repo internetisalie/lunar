@@ -3,7 +3,7 @@ id: "BUG-415"
 title: "Corpus baselines went stale through a type-engine change, and a 3x jump was never evaluated"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -76,10 +76,16 @@ moves by 45 without a code change will eventually be re-recorded to silence it.
    a single defect: a possibly-nil value reaching a table slot, **1 801 of 2 491 (72%)**. Refiled as
    **BUG-416**. The 846 → 2594 movement is therefore **not** a floor to protect, and this baseline
    must not be treated as an expectation until BUG-416 lands.
-2. **Close the process gap.** The corpus cannot run in CI (no `test/` tree), so the gate needs
-   another trigger: run it on the builder as part of the release checklist, or teach
-   `build-plugin.yml` to fetch the corpus for tag builds only. Decide deliberately — today's answer
-   is "whenever someone remembers", which is how this happened.
+2. ~~**Close the process gap.**~~ **Closed 2026-08-06 — the gate runs on the `lunar-ci` pool.**
+   Every premise of "the corpus cannot run in CI" had dissolved by the time this was revisited: the
+   fixtures are fully pinned and stamped (fetch-corpus/fetch-luac/fetch-torture, MAINT-35's
+   pattern), the pool's node-local `/cache` persists them across jobs, and the `test` symlink is
+   re-pointed at that mount in-job. A `corpus` job in `build-plugin.yml` now runs the full
+   `'*Corpus*'` ratchet on **every push to `main`, every `v*` tag** (releases are corpus-gated),
+   and **any PR touching the gate's own machinery** — so the lane is exercised pre-merge on
+   exactly the changes most likely to break it. The job image gained `build-essential` + `python3`
+   (0.2.0; the pool is tagless and consumes the newest semver automatically). The trigger is now
+   "every merge", not "whenever someone remembers".
 3. ~~**Explain the 45-count drift.**~~ **Mostly explained 2026-08-06 — the large component is
    BUG-417** (the contamination regime). The undeclared
    inspection's results depend on whether the type inspection ran in the same pass (measured: 1 954
@@ -100,3 +106,12 @@ moves by 45 without a code change will eventually be re-recorded to silence it.
   step 1 turned into a fixture once the intended answer is known.
 - Whatever trigger step 2 chooses must be demonstrated to fail on a stale baseline — the same
   standard MAINT-35 was held to.
+
+## Outcome (2026-08-06)
+
+All three items closed: (1) the un-evaluated jump was sampled and became BUG-416, fixed; (3) the
+drift was BUG-417 (large component, fixed) plus BUG-418 (measured deterministic, no fix needed);
+(2) the process gap is closed by the `corpus` CI lane above. The first CI run of the lane doubles
+as the cross-machine determinism experiment BUG-418 deliberately left open: the builder-recorded
+baselines either reproduce on the pool's n2-standard-4 or fail loudly on day one — both outcomes
+are the gate working.

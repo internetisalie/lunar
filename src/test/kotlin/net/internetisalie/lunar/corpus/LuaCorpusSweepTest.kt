@@ -37,6 +37,17 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
+        // The corpus lives in the out-of-repo test/ tree, reached through a symlink whose CANONICAL
+        // path the sweep uses (applyModuleRoot resolves it for sourcePath). On the builder that
+        // canonical path happens to sit under ${'$'}HOME, which VfsRootAccess allows by default; in the
+        // CI pod it is /cache/lunar/test — outside every default root — and the platform's test
+        // guard throws VfsRootAccessNotAllowedError from require resolution instead (measured:
+        // 23 penlight parse-crashes, requires 100 → 43, identity refusal — CI run 9735). Sanction
+        // it explicitly so the suite is location-independent rather than home-directory-lucky.
+        com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess.allowRootAccess(
+            testRootDisposable,
+            File(System.getProperty("user.dir"), CorpusManifest.CORPUS_DIR).canonicalPath,
+        )
         // The ten language-only inspections of design §3.3. Redis/luacheck/JSON-schema tools are
         // excluded: they would measure the environment (absent binary, absent Redis, absent schema
         // mapping) rather than the plugin.

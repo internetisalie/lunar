@@ -48,6 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      corpus: ${{ steps.filter.outputs.corpus }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,20 +62,27 @@ jobs:
           HEAD_SHA: ${{ github.sha }}
         run: |
           set -eu
-          emit() { echo "code=$1" >> "$GITHUB_OUTPUT"; echo "resolved code=$1"; exit 0; }
-          # Release tags always build.
-          case "$REF" in refs/tags/v*) emit true ;; esac
+          emit() { echo "code=$1" >> "$GITHUB_OUTPUT"; echo "corpus=$2" >> "$GITHUB_OUTPUT"; echo "resolved code=$1 corpus=$2"; exit 0; }
+          # Release tags always build (and the corpus job self-selects on the tag ref).
+          case "$REF" in refs/tags/v*) emit true false ;; esac
           if [ "$EVENT" = "pull_request" ]; then BASE="${PR_BASE:-}"; else BASE="${BEFORE:-}"; fi
           ZERO=0000000000000000000000000000000000000000
           # Unknown/first-push/force-push base → cannot classify → build to be safe.
           if [ -z "$BASE" ] || [ "$BASE" = "$ZERO" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
-            emit true
+            emit true false
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD_SHA")
+          # corpus = a PR touches the gate's own machinery, so the lane is exercised
+          # PRE-merge on exactly the changes most likely to break it (BUG-415).
+          CORPUS=false
+          if echo "$CHANGED" | grep -qE '^tooling/corpus/|^tooling/ci-image/|^src/test/resources/corpus/|^src/test/kotlin/net/internetisalie/lunar/corpus/|^\.gitea/workflows/build-plugin\.yml$'; then
+            CORPUS=true
           fi
           # code = any changed file that is neither under docs/ nor a *.md.
-          if git diff --name-only "$BASE" "$HEAD_SHA" | grep -vE '^docs/|\.md$' | grep -q .; then
-            emit true
+          if echo "$CHANGED" | grep -vE '^docs/|\.md$' | grep -q .; then
+            emit true "$CORPUS"
           else
-            emit false
+            emit false "$CORPUS"
           fi
 
   # Routine gate for branch pushes and PRs, on the lunar-ci pool (one n2-standard-4 VM
@@ -231,6 +239,102 @@ jobs:
             exit 1
           fi
           echo "unit tests passed"
+
+  # The corpus gate (BUG-415): the ratchet that catches semantic regressions across pinned
+  # real-world projects (MAINT-33/35) finally has a trigger that is not "when someone
+  # remembers" — every push to main, every release tag, and any PR that touches the
+  # gate's own machinery (the `corpus` output above). BUG-397 moved every baseline with
+  # nothing noticing precisely because this lane did not exist.
+  #
+  # Same executor constraints as `build`: no `uses:` steps (the checkout below is inert;
+  # the executor's own preamble clones the repo), no step-level `if:`, no `${{ }}` in
+  # step bodies.
+  #
+  # The out-of-repo `test/` tree: the repo tracks `test` as a symlink to `../test`, which
+  # dangles on a CI checkout. It is re-pointed at the pool's node-local /cache mount, so
+  # the pinned fixtures persist across jobs on a warm VM — every fetcher below stamps its
+  # artifacts (commit SHA / tarball sha256 / archive sha256) and is a no-op when the
+  # stamp matches, so a warm run provisions in seconds and a cold VM pays ~3 min once.
+  #
+  # INVOCATION SHAPE IS LOAD-BEARING (BUG-418): counts are byte-deterministic per
+  # invocation shape, and the baselines were recorded with the full '*Corpus*' filter.
+  # Never narrow this to a single member here — a member-alone run reads ±2 off the
+  # full-run baseline by design and would fail as a phantom regression.
+  corpus:
+    needs: changes
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v') || needs.changes.outputs.corpus == 'true' }}
+    runs-on: lunar-ci
+    # EXPLICIT PIN — the tagless resolver's documented escape hatch, used deliberately.
+    # Two consecutive dispatches ran 0.1.0 with 0.2.0 verifiably newest in GAR, so the
+    # pool's newest-semver resolution is persistently failing and silently serving its
+    # last-dispatched fallback (the log line that says so is runner-side). This job needs
+    # cc + python3, which only >= 0.2.0 carries; the verify step below fails by name if
+    # this pin ever runs an image without them. Investigate the resolver in
+    # glimmer-gitea-runner and drop this pin once newest-semver provably dispatches.
+    container:
+      image: northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.2.0
+    env:
+      GRADLE_USER_HOME: /cache/lunar/gradle
+    steps:
+      # Inert on this pool (see `build`); kept for portability to runners that honour it.
+      - uses: actions/checkout@v4
+
+      - name: Verify toolchain (incl. the corpus lane's C compiler and python3)
+        # THE LAST COMMAND IS THE STEP'S VERDICT. Measured on this executor (first corpus
+        # run): `set -eu` and mid-script failures do not fail a step — "python3: not
+        # found" ×3 still printed "success" — the step's status is its final command's
+        # exit. So every step here funnels its assertions into one final compound test.
+        # This one exists to catch the pool running a pre-0.2.0 image (no cc/python3):
+        # fail here, in two lines, not five sweeps later at the ratchet.
+        run: |
+          java -version
+          "$HOME/bin/lua" -v
+          echo "GRADLE_USER_HOME=${GRADLE_USER_HOME}"
+          if [ -d "${GRADLE_USER_HOME}" ]; then
+            echo "gradle cache: WARM ($(du -sh "${GRADLE_USER_HOME}" 2>/dev/null | cut -f1))"
+          else
+            echo "gradle cache: COLD (no ${GRADLE_USER_HOME} yet)"
+          fi
+          fc-match sans >/dev/null && cc -dumpversion >/dev/null && python3 --version && echo "toolchain ok (image >= 0.2.0)"
+
+      - name: Provision pinned fixtures (corpus checkouts, luac oracles, torture archive)
+        # `test` is a tracked symlink to ../test; re-point it at the persistent /cache
+        # mount. All three fetchers verify pins (commit SHA / sha256) and refuse on
+        # mismatch — an unverified oracle is worse than no oracle (MAINT-35-00).
+        # Same executor rule as above: the final compound assertion is what fails the
+        # step. The fetchers' own exits are invisible to it, so their OUTCOME is asserted
+        # — one stamped artifact per fetcher must exist, or the step fails here instead
+        # of the ratchet failing five times with "corpus not fetched".
+        run: |
+          set -eu
+          mkdir -p /cache/lunar/test
+          rm -f test
+          ln -sfn /cache/lunar/test test
+          python3 tooling/corpus/fetch-corpus.py
+          python3 tooling/corpus/fetch-luac.py
+          python3 tooling/corpus/fetch-torture.py
+          echo "fixtures: $(du -sh /cache/lunar/test 2>/dev/null | cut -f1)"
+          test -f test/corpus/zerobrane/.corpus-sha && test -x test/luac/5.1.5/luac && test -f test/corpus-torture/fuzzing-lua/.corpus-sha && echo "fixtures ok"
+
+      - name: Corpus ratchet (full '*Corpus*' filter — see invocation-shape note above)
+        # --rerun for the same reason `build` uses it: with a persistent GRADLE_USER_HOME
+        # the task cache can serve :test FROM-CACHE and report a pass having run nothing,
+        # while several of the sweep's real inputs (the out-of-repo test/ tree above all)
+        # are not declared to Gradle. Compile stays cacheable; only the test task re-runs.
+        #
+        # On failure, dump the sweep's own report lines and the assertion messages from
+        # the test XMLs BEFORE exiting: the pod (and its HTML report) is gone 5 minutes
+        # after the job, and Gradle does not forward test stdout to this log — the first
+        # cross-machine failure (penlight, run 9733) was undiagnosable for exactly that
+        # reason. The trailing `exit 1` is the step's verdict (last-command rule).
+        run: |
+          ./gradlew test --rerun --no-daemon --stacktrace -PwithCorpus --tests '*Corpus*' && exit 0
+          echo "=== ratchet diagnostics: observed counts ==="
+          grep -rho "\[corpus:[a-z-]*\][^<]*" build/test-results/test/ 2>/dev/null | sort -u || true
+          grep -rho "\[torture:[a-z-]*\][^<]*" build/test-results/test/ 2>/dev/null | sort -u || true
+          echo "=== ratchet diagnostics: failure messages ==="
+          grep -rho 'failure message="[^"]*"' build/test-results/test/ 2>/dev/null | head -20 || true
+          exit 1
 
   # The RELEASE lane, and the only lane that produces a published artifact. Stays on the
   # shared runner because it depends on three things the lunar-ci executor does not
