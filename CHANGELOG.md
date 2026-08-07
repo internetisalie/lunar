@@ -2,6 +2,38 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### A keyed `---@field` no longer documents itself as "Unknown" (MAINT-34)
+
+Quick documentation rendered `---@field [string] number` with the literal word **Unknown** where the
+field's name belongs, because a keyed field stores its descriptor in a different slot from a named
+one and only the named slot was read. It now renders as `[string]`.
+
+Optional fields are unchanged and deliberately asymmetric: `---@field beta? number` completes and
+resolves as `beta`, while quick documentation still shows `beta?` — the marker is part of what you
+wrote, and worth seeing when you are reading the docs rather than calling the member.
+
+### LuaCATS annotations are read once, not three times (MAINT-34, BUG-402)
+
+Every LuaCATS tag that feeds the type engine was read by two or three separate copies of the same
+logic — one at indexing time, one from live syntax, and a third added later — and which copy ran
+depended on nothing more than whether the declaring file happened to be open. The copies had
+already drifted three times, each time producing a defect where a class resolved differently from
+one caret position to the next.
+
+All of them now share one reader, so the remaining split is *where the data comes from*, not *what a
+tag means*. This is internal, and on its own you should see no change; it exists so that the class of
+bug it caused stops recurring. Its one user-visible symptom, a parameterized parent
+(`---@class Kid : Base<string, number>`) being split into two nonsense supertypes when the declaring
+file was closed, is fixed.
+
+Being straight about the limit of that last fix: the parent's name is now correct, but a
+parameterized parent still does not *resolve*, so members inherited through one remain missing —
+before and after. Nothing regressed; the remaining half is tracked separately and the fix is a known
+shape.
+
+**On upgrade, Lunar re-indexes once.** The stored form of a class's parent list changed, so cached
+index data from an earlier build is discarded and rebuilt on first open.
+
 ### Free globals are now typed for the whole engine, not just completion (BUG-397, closes BUG-359)
 
 The type engine deliberately refused to look up a free global — `table`, `redis`, `package`, or a
