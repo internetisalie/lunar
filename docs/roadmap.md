@@ -68,7 +68,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-358 | Reformatting a read-only file throws a write-unsafe exception | todo | C | — | — | ✓ |
 | BUG-410 | `RockspecSourcePathProviderTest` prewarm-scheduling test is flaky | todo | M | — | — | ✓ |
 | BUG-411 | Vertical tab and form feed are not treated as whitespace | todo | C | — | — | ✓ |
-| BUG-412 | "Convert to long string" emits invalid Lua when the value contains a closing long bracket | todo | M | — | — | ✓ |
 | BUG-413 | Generated doc comments infer wrong `@param` types | todo | C | — | — | ✓ |
 | BUG-414 | Debugger variable navigation walks PSI with no read action | todo | S | — | — | ✓ |
 | BUG-419 | Type engine reports incompatibility it cannot know (unknowns omitted; inferred demands checked as contracts) | todo | M | BUG-416/417 *(done — built the provenance and certainty machinery this completes)* | — | ✓ |
