@@ -161,6 +161,10 @@ title: "Implementation Plan"
         and paste the result into design §3.4. The mapping choice is currently argued from
         `LuaPrimitiveType.kt:10-18` and `LuaGraphType.kt:147` — reading, not running.
   - [ ] Widen any §3.4 row a new hit traces back to. **Never narrow user code to fit the library.**
+  - [ ] **Raise the ordering dependency before publishing**: MAINT-37 must pin `wxlua` into the
+        ZeroBrane sweep ahead of BUG-425, so the corpus gate is the tripwire. If that ordering
+        cannot be had, publish v1 with `@param`/`@return` suppressed on methods (a generator flag)
+        and add them in a follow-up that can be measured — the delivered value is unaffected.
   - [ ] Record in Phase 4's publication note that the tree ships ~10,000 contracts which are inert
         on today's engine and activate when BUG-425 lands — and that BUG-425's fix must mark
         `memberNodeFor`'s `declaredDemand`, or this whole population arrives in the hypothesis tier

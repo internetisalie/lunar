@@ -227,7 +227,11 @@ an in-memory library root. Generator cases run against a checked-in `.i` fixture
   See [risks-and-gaps.md](risks-and-gaps.md) Risk 1.6.
 - **TARGET-09** (`planned`) — consumes TARGET-10-11's `detectionPatterns`. Not a blocker in either
   direction.
-- **MAINT-37** — depends on this feature; not a dependency of it.
+- **MAINT-37** — *both* a dependant and this feature's safety mechanism. It must pin `wxlua` into
+  the ZeroBrane sweep **before BUG-425 lands**, or nothing anywhere gates the ~10,000 contracts this
+  feature publishes: the sweep has no definition libraries today, so BUG-425's own verification
+  cannot see them, and the population activates first in users' editors. See
+  [risks-and-gaps.md](risks-and-gaps.md) Risk 1.6.
 - **wxLua upstream** — `pkulchenko/wxlua` @ `4d83c8d44eeccf88683ca0146a13b16d0b0d4264`.
 
 ## See Also

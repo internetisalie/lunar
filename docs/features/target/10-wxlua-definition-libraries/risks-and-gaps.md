@@ -65,16 +65,22 @@ actually fixed?
   are unchecked today become checked, against ~10,000 emitted `@param`/`@return` contracts derived
   by a ~40-row hand-written C++→LuaCATS map. A single over-narrow row is a false positive at scale,
   in a read-only fetched library the user cannot edit.
-- **Likelihood — LATENT today, high when BUG-425 lands.** **BUG-425** (`high`, filed 2026-08-07)
+- **Likelihood — DEFERRED AND UNATTRIBUTABLE, which is worse than active.** **BUG-425** (`high`, filed 2026-08-07)
   measures that a signature declared outside the file under analysis **never reaches the type
   graph**: not demoted to the hypothesis tier, emitting nothing at all. Its probe shows even
   `Too few arguments` stays silent across a file boundary, so the callee's `Function` type is
   absent, parameters and return alike. A definition library is out-of-file by construction, so on
   today's engine this feature's ~10,000 contracts put **zero** through the declared-demand path.
-  The risk does not disappear — it is deferred and then arrives all at once. BUG-425's own note
-  adds the sting: parameters materialised through `LuaGraphType.fromLuaType` get use nodes from
-  `memberNodeFor`, which passes no `declaredDemand` and defaults to `false`, so unless that site is
-  marked in the same change the whole population lands in the hypothesis tier **silently**.
+  **Inert is not safe — it is a fuse, and no gate is watching it.** The corpus sweep runs with **no
+  definition libraries** (that is MAINT-37, `todo`). So: this feature publishes ~10,000 unvalidated
+  contracts; nothing exercises them; BUG-425 lands and is verified against the *bare* corpus, which
+  has no out-of-file contracts to activate, so its gate sees nothing; and the whole population
+  arrives in users' editors at once, on IDE restart, from a change they did not make. The failure
+  is not that the risk is later — it is that it lands where nobody is measuring, attributable to
+  neither feature. BUG-425's own note adds the sting: parameters materialised through
+  `LuaGraphType.fromLuaType` get use nodes from `memberNodeFor`, which passes no `declaredDemand`
+  and defaults to `false`, so unless that site is marked in the same change the population lands in
+  the hypothesis tier **silently** instead.
   The `integer` mapping alone covered 7,469 sites, against a Lua 5.1 corpus with no integer subtype
   and a type engine that relates `number` and `integer` not at all (`LuaPrimitiveType.kt:10-18`).
 - **Mitigation**: (a) §3.4's "widest type that is still true" rule, with integral types mapped to
@@ -82,7 +88,27 @@ actually fixed?
   inheritance chain is severed (3 cases); (d) **DR-08**, re-specified below because a corpus delta measures **zero** today and would read as
   "safe";
   (e) checklist Scenario 3.2 requires **zero** new type errors on a real ZeroBrane file, with the
-  stated fix always being to widen the mapping, never to narrow user code.
+  stated fix always being to widen the mapping, never to narrow user code; and — the one that
+  actually addresses the fuse — **(f) the sequencing below, which arranges for the detonation to
+  land on our corpus gate rather than on users.**
+
+- **The mitigation is ordering, not more analysis. MAINT-37 must land before BUG-425.**
+  MAINT-37 ("corpus sweeps run with pinned definition libraries") is normally read as the
+  *beneficiary* of this feature. It is also its **safety mechanism**, and the arrow points the other
+  way: once the ZeroBrane sweep pins `wxlua`, BUG-425's fix trips **our** gate — in CI, against a
+  recorded baseline, attributable to the commit that caused it — before any user sees it. Without
+  that ordering there is no tripwire anywhere in the system.
+
+  Three consequences, all cheap:
+  1. **MAINT-37 must pin `wxlua` specifically** into the ZeroBrane sweep, not merely gain the
+     capability to pin libraries. A capability nobody exercises is not a tripwire.
+  2. **BUG-425 gains a verification item**: its fix must be measured with a definition library
+     enabled. On the bare corpus its own gate is blind to the population it activates.
+  3. If MAINT-37 cannot precede BUG-425, the conservative fallback is to emit the v1 tree
+     **without `@param`/`@return` on methods** — `@class`, constructors' `@return` and constants
+     only. That keeps completion, navigation, `require("wx")` and all 1,877 undeclared-variable
+     hits (the entire delivered value) while reducing the contract surface to near zero, and defers
+     parameter types to a follow-up that can be measured. It is a generator flag, not a redesign.
 - **Sequencing — BUG-419's defect 3 has ALREADY LANDED, and this feature's baseline is post-fix.**
   `31d9c761` (2026-08-07) shipped "incompatibility is a diagnostic only when something DECLARED it".
   It re-baselined the corpus in the same commit:
