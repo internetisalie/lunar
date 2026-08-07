@@ -62,6 +62,69 @@ sealed class LuaGraphType {
         val name: kotlin.String,
     ) : LuaGraphType()
 
+    /**
+     * A **demand-only** type: what an operator POSITION requires its operand to be able to *do*,
+     * rather than what it must *be* (BUG-423).
+     *
+     * `visitBinOpExpr` used to demand exactly [Number] at arithmetic and exactly [String] at `..`.
+     * Lua coerces between the two at both — `"10" + 5` is 15, `1 .. "x"` is `"1x"`, measured
+     * identical on 5.0.3, 5.4.7 and 5.5.0 — so the engine rejected legal code, 661 times on one
+     * corpus member alone.
+     *
+     * **A trait must never surface through inference.** Widening the demand type to a plain
+     * `number | string` union was tried and reverted, because the demand does double duty: it
+     * constrains the operand *and* it feeds [VariableElement.resolveRead], so every
+     * `function double(n) return n * 2 end` started hinting `n : number | string`. [inferredAs] is
+     * how that is avoided — the checker sees the trait, inference only ever sees the primitive.
+     * The type-engine design called for exactly this and named it "as use-type heads".
+     *
+     * **Missing arm — BUG-424.** In Lua an operand also satisfies these positions by carrying the
+     * matching metamethod (`__add`, `__concat`, `__len`). That arm is not built: `setmetatable(t, mt)`
+     * with a *named* metatable — the form all real code uses — currently infers [Undefined] (measured
+     * 2026-08-07), so there is no typed table for a metamethod check to consult and no fixture that
+     * could demonstrate one working. [admits] is where it belongs when that is fixed.
+     *
+     * **Do not add bitwise operators to [Numberable].** They are the one position whose admitted set
+     * changes across supported levels: string coercion works up to 5.3 and was removed from the core
+     * in 5.4 (manual §8.1), so sharing this trait would silently accept `"10" | 1` where it errors.
+     * Lunar constrains bitwise operands not at all today, so it cannot currently get this wrong.
+     */
+    sealed class Trait : LuaGraphType() {
+        /** Operand types the position accepts outright, by Lua's own coercion rules. */
+        abstract val admits: Set<LuaGraphType>
+
+        /** What inference reports for a variable constrained here. Never the trait itself. */
+        abstract val inferredAs: LuaGraphType
+
+        /** `+ - * / // ^ %` and unary `-`. */
+        data object Numberable : Trait() {
+            override val admits get() = setOf<LuaGraphType>(Number, String)
+            override val inferredAs get() = Number
+        }
+
+        /** `..` */
+        data object Stringable : Trait() {
+            override val admits get() = setOf<LuaGraphType>(String, Number)
+            override val inferredAs get() = String
+        }
+
+        /**
+         * `#`. Already an unnamed trait before this change — `visitUnOpExpr` demanded the
+         * `String | Table | Array` union inline — so naming it replaced a one-off rather than
+         * adding a concept. [inferredAs] keeps that exact union so hints are unchanged.
+         */
+        data object Lengthable : Trait() {
+            override val admits get() = setOf(String, Table(), Array(Any))
+            override val inferredAs get() = Union.create(admits)
+        }
+    }
+
+    /**
+     * This type as INFERENCE should report it: a [Trait] collapses to the primitive it stands for,
+     * everything else is itself. See [Trait] for why the distinction exists.
+     */
+    fun asInferred(): LuaGraphType = if (this is Trait) inferredAs else this
+
     /** Human-readable name for error messages. */
     fun displayName(): kotlin.String =
         when (this) {
@@ -75,6 +138,9 @@ sealed class LuaGraphType {
             is Array -> "${elementType.displayName()}[]"
             is Union -> types.joinToString(" | ") { it.displayName() }
             is Generic -> name
+            // Diagnostics name the primitive, not the trait: "boolean is not assignable to string"
+            // is what users understand, and what DuplicateNilAssignabilityTest pins.
+            is Trait -> inferredAs.displayName()
             is Function -> {
                 val paramsStr =
                     params.joinToString(", ") { param ->

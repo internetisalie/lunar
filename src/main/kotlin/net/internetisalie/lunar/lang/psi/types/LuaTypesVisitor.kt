@@ -496,14 +496,16 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
         val resType =
             when (op) {
+                // The demand is a TRAIT, not the result type (BUG-423): Lua coerces a string
+                // operand at arithmetic and a number operand at `..`. The result stays exact.
                 "+", "-", "*", "/", "//", "^", "%" -> {
-                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.Number, declaredDemand = true))
-                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number, declaredDemand = true))
+                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.Trait.Numberable, declaredDemand = true))
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Trait.Numberable, declaredDemand = true))
                     LuaGraphType.Number
                 }
                 ".." -> {
-                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.String, declaredDemand = true))
-                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.String, declaredDemand = true))
+                    graph.addEdge(leftNode, graph.use(o, LuaGraphType.Trait.Stringable, declaredDemand = true))
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Trait.Stringable, declaredDemand = true))
                     LuaGraphType.String
                 }
                 "==", "~=", "<", ">", "<=", ">=" -> {
@@ -530,26 +532,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val resType =
             when (op) {
                 "#" -> {
-                    // # right implies right is string, table, or array (REDIS-04 §3.1b: #ARGV over string[])
-                    graph.addEdge(
-                        rightNode,
-                        graph.use(
-                            o,
-                            declaredDemand = true,
-                            type =
-                                LuaGraphType.Union.create(
-                                    setOf(
-                                        LuaGraphType.String,
-                                        LuaGraphType.Table(),
-                                        LuaGraphType.Array(LuaGraphType.Any),
-                                    ),
-                                ),
-                        ),
-                    )
+                    // string, table, or array (REDIS-04 §3.1b: #ARGV over string[]) — the same set
+                    // as before, now named: it was already a trait, spelled as an inline union.
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Trait.Lengthable, declaredDemand = true))
                     LuaGraphType.Number
                 }
                 "-" -> {
-                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Number, declaredDemand = true))
+                    // `-"5"` is −5, so unary minus coerces exactly as binary arithmetic does.
+                    graph.addEdge(rightNode, graph.use(o, LuaGraphType.Trait.Numberable, declaredDemand = true))
                     LuaGraphType.Number
                 }
                 "not" -> LuaGraphType.Boolean

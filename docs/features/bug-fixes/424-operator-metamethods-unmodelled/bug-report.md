@@ -124,3 +124,53 @@ The corpus is the gate: zerobrane's `LuaTypeAssignability` should fall by roughl
 BUG-419 survivor characterisation re-run should show `string -> number` collapse without
 `{ ... } -> <primitive>` rising. A unit fixture must use a **literal on one side**
 (`'#' * pattern`) — the both-tables fixture that read zero above is not a valid regression test.
+
+## Status (2026-08-07) — the trait system shipped; THIS ARM IS BLOCKED, and two claims above are wrong
+
+BUG-423 landed the trait system — `Numberable`/`Stringable`/`Lengthable` as demand-only types, with
+the metamethod arm left out. Attempting that arm produced two corrections to this report.
+
+### 1. The metamethod arm cannot be built, because `setmetatable` produces no type
+
+Filed as **BUG-426**. `setmetatable(t, mt)` types the result only when `mt` is an inline table
+literal; with a named metatable — the form all real code uses, including this report's own measured
+fixture — it infers `Undefined`:
+
+```
+local i = setmetatable({}, { __index = { x = 1 } })  -> Table       <- the COMP-04-08 test's form
+local V = {}; V.__index = V
+local i = setmetatable({}, V)                        -> Undefined
+```
+
+So the premise in *Mechanism* above — "`LuaTypesVisitor` already walks `mt.__index` for COMP-04-08,
+so metatable resolution exists" — holds for the literal form only. There is no typed table for a
+metamethod check to consult, and no fixture that could distinguish a working arm from a broken one:
+every metamethod fixture written for this passed *before* any arm existed, because `Undefined`
+absorbs every check. Building it now would be unreachable code whose silence would then be read as
+the feature working — the exact error this report identifies in its own *Why the first probe read
+zero* section, one level up.
+
+`LuaOperatorTraitTest.testMetamethodTablesAreUntypedToday` records the measurement and **goes red
+when BUG-426 is fixed**, which is the trigger to build this arm.
+
+### 2. The "655" was never comparable to the baselines
+
+This report is built on `total=661 lpeg-context=655`, taken from BUG-419's survivor
+characterisation. Those are **graph-level `reportIncompatible` emissions**, and BUG-419 states in
+the same table that they "are not comparable to the 997/478/376/317 baselines". Quoting them anyway
+is what made this report high priority over BUG-423 and inverted the dependency between them.
+
+Measured against the actual inspection counts, the trait system's primitive arms — the change this
+report says would "fix ~6" — removed **57 assignability errors** corpus-wide (907 → 850) plus 17
+return-type mismatches. zerobrane fell 358 → 338.
+
+Whether any of those 20 zerobrane errors were the LPeg sites is not established, and cannot be from
+these numbers. **What this arm is worth is therefore unmeasured**, and re-deriving it from the 655
+would repeat the mistake. It should be re-characterised at the inspection level after BUG-426 lands,
+when LPeg-shaped values are typed and the question becomes answerable.
+
+### What stands
+
+The defect is real: a table implementing an operator via a metamethod is not modelled, and once
+BUG-426 makes such tables typed they will be reported as errors. The trait boundary is built and is
+where the arm belongs — `LuaGraphType.Trait.admits`. Only the sizing and the sequencing were wrong.

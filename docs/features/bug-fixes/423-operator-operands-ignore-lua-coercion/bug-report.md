@@ -3,6 +3,7 @@ id: "BUG-423"
 title: "Arithmetic and concatenation operands ignore Lua's string↔number coercion"
 type: "bug"
 parent_id: "BUG"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -250,3 +251,47 @@ existing builders are unaffected, but a builder or CI pod provisioned during an 
 the MAINT-35 parse oracle, so that gate silently becomes unavailable exactly when someone is setting
 up. The pins are sha256-verified, so mirroring the tarballs would remove the dependency without
 weakening the ratchet. Not filed separately yet.
+
+## Fixed (2026-08-07) — traits, option (b)
+
+`LuaGraphType.Trait` — `Numberable`, `Stringable`, `Lengthable` — as **demand-only** types, wired at
+the five operator sites in `visitBinOpExpr`/`visitUnOpExpr`. `Trait.inferredAs` is the barrier that
+keeps them out of inference: `VariableElement.resolveRead`, `LuaTypes.typeOf` and
+`graphTypeToLuaType` all project a trait back to the primitive it stands for, so the reverted
+attempt's `n : number | string` regression cannot recur. `LuaTypeInlayHintsTest` and
+`DuplicateNilAssignabilityTest` — the two gates named above — are green.
+
+`Lengthable` replaced the inline `String | Table | Array` union at `#` rather than adding anything,
+exactly as the `#` row predicted.
+
+### Corpus movement — measured, and smaller than this report predicted
+
+| member | `LuaTypeAssignability` | `LuaReturnTypeMismatch` |
+| :-- | --: | --: |
+| zerobrane | 358 → **338** | 65 → 62 |
+| luarocks | 201 → **196** | 28 → 22 |
+| penlight | 135 → **103** | 29 → 21 |
+| luacheck | 213 → **213** | unchanged |
+| **total** | **907 → 850** (−57) | −17 |
+
+**The 661 was never an inspection count.** This report and BUG-424 both quoted it as though it were
+comparable to the 907 baseline; it is a *graph-level* `reportIncompatible` count from BUG-419's
+survivor characterisation, and BUG-419's own text says those "are not comparable to the baselines".
+Quoting it anyway is the second time that caveat has been recorded and then ignored — including by
+the sequencing argument that made BUG-424 the priority over this report.
+
+So the user-visible win is **57 false errors, not 655**, and the split between this bug and BUG-424
+cannot be read off those numbers at all.
+
+`LuaSuspiciousConcatenation` on penlight rose 18 → 19. It is an **unhide, not a regression**: run
+with only that inspection enabled, it reports 20 sites both before and after the change. One of them
+had been buried under an assignability ERROR range that this fix removed — BUG-417's severity
+precedence, working in the right direction. (The 20th is still buried, which is that bug's recorded
+residual class.)
+
+### Not done, and deliberately: `ORDERED`, and bitwise
+
+Both were argued above as out of scope and remain so. Relational operators still impose no demand;
+adding `ORDERED` would *tighten* rather than fix, and is a separate decision. Bitwise operands are
+still unconstrained, with the version-gating trap recorded in `Trait`'s KDoc where anyone adding
+them will read it.

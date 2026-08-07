@@ -188,7 +188,9 @@ internal class VariableElement(
                 .map {
                     when (it) {
                         is VariableElement -> it.resolveRead(visited)
-                        is UseNode -> it.read
+                        // BUG-423: a trait is demand-only. This is the boundary it must not cross —
+                        // letting one through made every `n * 2` parameter hint `number | string`.
+                        is UseNode -> it.read.asInferred()
                         else -> LuaGraphType.Any
                     }
                 }.filter { it != LuaGraphType.Any }

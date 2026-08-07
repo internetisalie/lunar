@@ -90,7 +90,9 @@ class LuaTypesSnapshot(
                 }
             }
             is ValueNode -> node.write
-            is UseNode -> node.read
+            // asInferred: a bare use node's demand may be an operator trait, which is demand-only
+            // and must never be reported as a type (BUG-423).
+            is UseNode -> node.read.asInferred()
             else -> LuaGraphType.Undefined
         }
     }
@@ -126,6 +128,9 @@ class LuaTypesSnapshot(
                 LuaUnionType(luaTypes).also { visited[type] = it }
             }
             is LuaGraphType.Generic -> LuaGenericType(type.name)
+            // Defence in depth: traits are filtered at resolveRead, so one should never arrive
+            // here. If one does, the primitive it stands for is the honest answer, not a crash.
+            is LuaGraphType.Trait -> graphTypeToLuaType(type.inferredAs, visited)
         }
     }
 

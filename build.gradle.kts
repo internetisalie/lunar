@@ -272,6 +272,12 @@ tasks {
         if (!project.hasProperty("withCorpus")) {
             filter {
                 excludeTestsMatching("*Corpus*")
+                // Opt-in with the sweeps (it indexes the same corpus) but deliberately NOT named
+                // `*Corpus*`: the ratchet's contract is that recording and verification share the
+                // invocation shape (BUG-418), and anything inside the `--tests '*Corpus*'` filter
+                // shares the sweeps' JVM and shifts their counts. Measured: including it moved
+                // luacheck's LuaTypeAssignability by +12. Run it by name.
+                excludeTestsMatching("*InspectionParityTest")
                 isFailOnNoMatchingTests = false
             }
         }

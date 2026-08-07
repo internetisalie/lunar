@@ -89,6 +89,9 @@ class LuaSuspiciousConcatenationInspection : LocalInspectionTool() {
             is LuaGraphType.Array,
             -> false
             is LuaGraphType.Union -> type.types.any { isConcatenable(it) }
+            // Unreachable in practice — getValueType projects operator traits away (BUG-423) — but
+            // the primitive a trait stands for is the right answer if one ever arrives.
+            is LuaGraphType.Trait -> isConcatenable(type.inferredAs)
         }
 
     private companion object {

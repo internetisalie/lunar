@@ -371,6 +371,12 @@ class LuaTypeGraph {
         // Recursion guard for head-to-head structural matching
         if (!visited.add(valueType to useType)) return
 
+        // A trait is satisfied or it is not — there is no structure to propagate into (BUG-423).
+        // Falling through when unsatisfied is deliberate: the branches below produce the specific
+        // wording ("nil value is not assignable to string", the union closest-match diagnostic)
+        // that this position had before it was named, and that the tests pin.
+        if (useType is LuaGraphType.Trait && isCompatible(valueType, useType, CompatContext())) return
+
         // Union distributive rules
         if (valueType is LuaGraphType.Union) {
             // A union keeping an `Any` arm is gradual (BUG-397): the value may be anything at
@@ -556,6 +562,10 @@ class LuaTypeGraph {
                 value is LuaGraphType.Union ->
                     LuaGraphType.Any in value.types || value.types.all { isCompatible(it, use, ctx.deeper()) }
                 use is LuaGraphType.Union -> use.types.any { isCompatible(value, it, ctx.deeper()) }
+                // BUG-423. Ordered after the union branches so a union VALUE still distributes
+                // (every arm must satisfy the position), and before the structural ones because a
+                // trait has no structure to match against.
+                use is LuaGraphType.Trait -> use.admits.any { isCompatible(value, it, ctx) }
                 value is LuaGraphType.Array && use is LuaGraphType.Array ->
                     isCompatible(
                         value.elementType,

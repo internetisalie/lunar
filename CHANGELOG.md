@@ -2,6 +2,21 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### `"10" + 5` is no longer a type error (BUG-423)
+
+Lua coerces between strings and numbers at arithmetic and at `..` — `"10" + 5` is 15, `-"5"` is −5,
+`1 .. "x"` is `"1x"` — and the type engine did not, so it reported legal code as a mismatch. Every
+arithmetic operator, unary minus and concatenation now accept the operand Lua accepts.
+
+Across the four sweep corpora this removes **57 assignability errors and 17 return-type
+mismatches**, all of them false. One suppressed warning in penlight *appeared* as a result: it had
+been hidden underneath one of the false errors.
+
+What is still reported is unchanged: `true + 1`, `nil .. "x"` and a table with no arithmetic
+metamethod are real Lua errors and still surface. Inferred types are unaffected too — a parameter
+used as `n * 2` still reads `number`, not `number | string`, because the operand rule constrains the
+position without widening what the value is inferred to be.
+
 ### A keyed `---@field` no longer documents itself as "Unknown" (MAINT-34)
 
 Quick documentation rendered `---@field [string] number` with the literal word **Unknown** where the

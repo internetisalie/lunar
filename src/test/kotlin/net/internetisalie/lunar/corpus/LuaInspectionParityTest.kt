@@ -29,10 +29,14 @@ import java.io.File
  * criterion is about. TARGET-10 will move the baseline again by ~1 900 undeclared hits, so a
  * measurement taken after it lands would be confounded.
  *
- * Excluded from the routine loop with the other `*Corpus*` tests — opt in with `-PwithCorpus`.
+ * Opt in with `-PwithCorpus`, and run it **by name** — it is deliberately not called `*Corpus*`.
+ * Anything matched by the `--tests '*Corpus*'` filter shares the sweeps' JVM and shifts their
+ * counts, which breaks the ratchet's contract that recording and verification use the same
+ * invocation shape (BUG-418). Measured while adding this: inside the filter it moved luacheck's
+ * `LuaTypeAssignability` by +12.
  */
 @RunWith(JUnit4::class)
-class LuaCorpusInspectionParityTest : BasePlatformTestCase() {
+class LuaInspectionParityTest : BasePlatformTestCase() {
     private val undeclared = LuaUndeclaredVariableInspection()
     private val assignability = LuaTypeAssignabilityInspection()
 
