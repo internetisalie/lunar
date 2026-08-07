@@ -3,7 +3,7 @@ id: "MAINT-34"
 title: "34: LuaCATS Extraction Unification (stub ↔ AST parity)"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|requirements]]"

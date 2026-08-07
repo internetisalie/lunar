@@ -36,6 +36,28 @@ members appear on a subclass. **If "no"**, MAINT-34-02 remains correct and worth
 stops emitting garbage names, and the two paths agree) but a follow-up is needed for generic parent
 resolution — file it, with `parentClassName` as the reference, rather than widening this feature.
 
+**ANSWERED 2026-08-07 — the answer is "no". Follow-up filed as BUG-420.**
+
+Measured with a throwaway probe (`ProbeMaint34DeRiskTest`, run on the builder, not committed). The
+probe needed **no production change**: `materializeClass`'s AST branch already walks
+`parentTypes.argTypeList`, so the AST path delivers the intact name today — which is exactly the
+state MAINT-34-02 will make universal.
+
+```
+PROBE DR-01 kid.superTypes=[ProbeBase<string, number>]      ← name arrives INTACT
+PROBE DR-01 kid.members=[own]                               ← but `inherited` is MISSING
+PROBE DR-01 resolveType("ProbeBase<string, number>") = null ← does not resolve
+PROBE DR-01 resolveType("ProbeBase") members=[inherited]    ← the parent itself is fine
+```
+
+So an intact parameterized name is necessary but not sufficient: `LuaClassNameIndex` is keyed on
+the plain class name, and nothing strips the generic arguments before the lookup. Inheritance
+through a parameterized parent is broken today and stays broken after MAINT-34 — this feature
+converts *two nonsense names* into *one correct-but-unresolved name*, which is the payoff
+`requirements.md` already states. The fix shape is known and already in the repo
+(`parentClassName`'s `substringBefore('<')`); it is **BUG-420**, deliberately not widened into
+this feature.
+
 **Why it does not block**: MAINT-34-02's payoff is stated honestly in `requirements.md` — for the
 common non-generic parent it repairs inheritance outright; for a generic parent it converts two
 nonsense names into one correct name that may or may not resolve. Neither claim depends on DR-01's
@@ -50,6 +72,22 @@ For a key-descriptor field (`---@field [string] number`) the grammar puts the de
 
 **Action**: render quick-doc for a class with a keyed field and look. Confirm or drop the claim in
 `design.md` §4.4 before Phase 5 acts on it.
+
+**ANSWERED 2026-08-07 — CONFIRMED. The rendering gap is real, and now measured rather than inferred.**
+
+Quick-doc for `---@class ProbeKeyed` / `---@field [string] number` / `---@field named boolean`
+rendered, verbatim:
+
+```html
+<p><code>Unknown</code> <span …>(<font …>number</font>)</span></p>
+<p><code>named</code> <span …>(<font …>boolean</font>)</span></p>
+```
+
+The keyed field's **name** is the literal string "Unknown", sitting next to a correctly-named
+sibling — so this is the `argName?.text ?: "Unknown"` fallback firing, not an unrelated "Unknown"
+elsewhere in the template. MAINT-34-07 is therefore a small real fix as well as a de-duplication,
+though it stays a `Could`: `fieldDisplayName` returns the declared descriptor text, which for a
+keyed field is `[string]`.
 
 **Why it does not block**: MAINT-34-07 is a `Could`, and the de-duplication is worth doing whether
 or not the rendering gap is real.
