@@ -760,13 +760,21 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val calleeNodeRef = firstNode(calleeUnwrapped) ?: return
 
         // BUG-397: a declaration-typed callee (a free global like `print`, or a free-global
-        // member like `redis.pcall`) contributes its declared return to the call results but
-        // raises no call demand — stub calls were never arity/param-checked before the callee
-        // had a node, and starting to check them is what regressed `redis.register_function`'s
-        // `@overload` table form in the reverted attempts. Also keeps call-site argument nodes
-        // out of the shared seed's parameter nodes (one seed serves every call in the file).
+        // member like `redis.pcall`) contributes its declared return to the call results and
+        // raises no CALL demand on the callee itself — wiring one is what regressed
+        // `redis.register_function`'s `@overload` table form in the reverted attempts, and it
+        // would also push call-site argument nodes into the shared seed's parameter nodes (one
+        // seed serves every call in the file).
+        //
+        // BUG-425: its declared PARAMETER types are still checked, per argument and per call site.
+        // Without that, a `---@param` one file away — every stdlib signature, every definition
+        // library — was not merely demoted, it was never looked at.
         if (calleeNodeRef in declarationTypedNodes) {
-            seedDeclarationTypedCallResult(calleeNodeRef, nameAndArgs.methodExpr?.nameRef?.text, callResultNodes)
+            val declared = declaredFunctionOf(calleeNodeRef, nameAndArgs.methodExpr?.nameRef?.text)
+            declared?.let {
+                seedDeclaredReturns(it, callResultNodes)
+                demandDeclaredParams(it, argExprs)
+            }
             return
         }
 
@@ -823,27 +831,113 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     /**
-     * Flows a declaration-typed callee's declared returns into [callResultNodes] (BUG-397).
+     * The declared signature a declaration-typed callee names.
+     *
      * For a `:` method call the callee seed holds the *receiver*; the method's function type is
      * projected out of the seed's declared members. A non-function (or missing) declared type
-     * seeds nothing, leaving the results [LuaGraphType.Undefined] exactly as before.
+     * resolves to null, leaving everything downstream exactly as before (BUG-397).
      */
-    private fun seedDeclarationTypedCallResult(
+    private fun declaredFunctionOf(
         calleeNode: TypeNode,
         methodName: String?,
+    ): LuaGraphType.Function? {
+        val write = (calleeNode as? ValueNode)?.write ?: return null
+        return if (methodName == null) {
+            write as? LuaGraphType.Function
+        } else {
+            write.getMembers()[methodName]?.write as? LuaGraphType.Function
+        }
+    }
+
+    /** Flows a declared signature's returns into the call's result nodes (BUG-397). */
+    private fun seedDeclaredReturns(
+        funcType: LuaGraphType.Function,
         callResultNodes: List<VariableNode>,
     ) {
-        val write = (calleeNode as? ValueNode)?.write ?: return
-        val funcType =
-            if (methodName == null) {
-                write as? LuaGraphType.Function
-            } else {
-                write.getMembers()[methodName]?.write as? LuaGraphType.Function
-            } ?: return
         funcType.returns.forEachIndexed { index, returnNode ->
             callResultNodes.getOrNull(index)?.let { graph.addEdge(returnNode, it) }
         }
     }
+
+    /**
+     * BUG-425: check each argument against the declared parameter type at that position.
+     *
+     * A **fresh use node per argument**, rather than an edge into the signature's own parameter
+     * node: [freeGlobalSeed] memoizes one seed per name, so those parameter nodes are shared by
+     * every call in the file and writing call-site values into them would make call sites
+     * contaminate one another.
+     *
+     * The demand is `declaredDemand = true` — a stub signature is a contract somebody wrote, which
+     * is exactly BUG-419's distinction between a contract and a guess.
+     */
+    private fun demandDeclaredParams(
+        declared: LuaGraphType.Function,
+        argExprs: List<PsiElement>,
+    ) {
+        if (!positionsAreUnambiguous(declared, argExprs.size)) return
+        argExprs.forEachIndexed { index, argExpr ->
+            val param = declared.params.getOrNull(index)?.takeUnless { it.isVararg } ?: return@forEachIndexed
+            val declaredType = param.node.read
+            if (carriesGraphNodes(declaredType)) return@forEachIndexed
+            val argNode = firstNode(unwrapExpression(argExpr)) ?: return@forEachIndexed
+            graph.addEdge(argNode, graph.use(argExpr, declaredType, declaredDemand = true))
+        }
+    }
+
+    /**
+     * Whether [type] embeds graph nodes, and therefore cannot safely be used as a demand here.
+     *
+     * A structural check against such a type does not merely compare: `checkFunctionCompatibility`
+     * and `checkTableCompatibility` **wire edges into the type's own member and parameter nodes**.
+     * Those nodes belong to the memoized seed shared by every call in the file, so a single call
+     * site would rewrite the signature everybody else reads — measured, as
+     * `ExpectedCallbackResolverTest.testTableSortComparatorSlotResolves` going red when the
+     * comparator slot picked up one call's lambda.
+     *
+     * So BUG-425 checks scalar contracts only. A `---@param cb fun(...)` or `---@param w wxWindow`
+     * is still unchecked; doing those needs a demand built from a *copy* of the declared type, which
+     * is a larger change than this bug. TYPE-10's `propagateExpectedLambdaParams` already covers the
+     * callback case for inference, which is the part users see.
+     */
+    private fun carriesGraphNodes(type: LuaGraphType): Boolean =
+        when (type) {
+            is LuaGraphType.Function, is LuaGraphType.Table -> true
+            is LuaGraphType.Array -> carriesGraphNodes(type.elementType)
+            is LuaGraphType.Union -> type.types.any { carriesGraphNodes(it) }
+            else -> false
+        }
+
+    /**
+     * Whether argument *positions* can be matched to parameters at all — the guard that keeps
+     * overloaded and optional-parameter calls unreported.
+     *
+     * Requires an exact count and no vararg, which is much stricter than "the arity fits", and
+     * deliberately so. **Measured**: a fits-the-arity rule put 244 false positives on the corpus,
+     * 123 of them from `table.insert` alone:
+     *
+     * ```lua
+     * ---@overload fun(list: table, value: any): nil
+     * ---@param list table
+     * ---@param pos? integer
+     * ---@param value? any
+     * function table.insert(list, pos, value) end
+     *
+     * table.insert(stack, "block start")   -- 2 args, arity fits, position 1 is `pos: integer`
+     * ```
+     *
+     * The caller omitted a *middle* parameter, which positional matching cannot see. Only the
+     * primary signature is modelled — `@overload` never reaches the type engine — so any call that
+     * does not fill every slot is a call the engine cannot align, and aligning it anyway checks
+     * arguments against the wrong parameters. That is the same reasoning that already keeps arity
+     * itself unreported (`testDeclarationTypedCalleeIsNotArityChecked`), applied to types.
+     *
+     * The cost is under-reporting on optional-parameter calls. That is BUG-419's posture, and the
+     * alternative was measured to be worse than the bug being fixed.
+     */
+    private fun positionsAreUnambiguous(
+        declared: LuaGraphType.Function,
+        count: Int,
+    ): Boolean = declared.params.none { it.isVararg } && count == declared.params.size
 
     /** The per-argument expression list for a call (string / exprList / tableConstructor form). */
     private fun argExpressionsOf(nameAndArgs: LuaNameAndArgs): List<PsiElement> {

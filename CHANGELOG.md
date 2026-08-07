@@ -2,6 +2,17 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### A `---@param` in another file is now checked (BUG-425)
+
+Annotations only ever constrained calls in the file that declared them. A library declaring
+`---@param n number` on `function Lib.count(n)` had that contract ignored everywhere it was actually
+called, so `Lib.count("oops")` passed in silence.
+
+Deliberately narrow: the check applies when the call supplies exactly one argument per declared
+parameter, and to scalar parameter types. Calls that omit an optional parameter are left alone,
+because only a function's primary signature is known and an `@overload` would make the alignment
+guesswork — an earlier, looser rule was measured putting 244 false positives on real projects.
+
 ### `setmetatable` now types the pattern everyone actually writes (BUG-426, BUG-424)
 
 The type engine understood `setmetatable(t, mt)` only when the metatable was written inline as a

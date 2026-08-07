@@ -3,6 +3,7 @@ id: "BUG-425"
 title: "A function signature declared outside the file under analysis never reaches the type graph"
 type: "bug"
 parent_id: "BUG"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -76,3 +77,71 @@ hypothesis tier unless that site is marked at the same time — the whole popula
   file reports `Too few arguments`.
 - A corpus re-baseline, expected to move `LuaTypeAssignability` upward: this is a fix that *adds*
   diagnostics, and the new population must be sampled for false positives before it is accepted.
+
+## Fixed in part (2026-08-07) — and two claims in this report were wrong
+
+### Root cause: a deliberate BUG-397 suppression, not an accident
+
+`visitFuncCall` returns early for a callee in `declarationTypedNodes`, with the reason in the
+comment: such a callee "contributes its declared return to the call results but raises no call
+demand", because wiring one regressed `redis.register_function`'s `@overload` table form. Nobody
+separated *the demand on the callee* (which really must stay off) from *the declared parameter
+types* (which need not).
+
+Fixed by raising a per-argument demand carrying the declared parameter type, marked
+`declaredDemand = true` — a stub signature is a contract somebody wrote. Two guards, both measured
+into existence:
+
+- **Only node-free parameter types.** A demand built from a `Function` or `Table` does not merely
+  compare — `checkFunctionCompatibility` and `checkTableCompatibility` wire edges into the type's
+  own member and parameter nodes, which belong to the seed shared by every call in the file. One
+  call site rewrote the signature everyone else reads;
+  `ExpectedCallbackResolverTest.testTableSortComparatorSlotResolves` caught it. So class-typed and
+  callback-typed parameters remain unchecked.
+- **Only exact-arity, vararg-free calls.** A "the arity fits" rule put **244 false positives** on
+  the corpus, 123 from `table.insert` alone: it declares `(list, pos?, value?)` plus an `@overload`,
+  so `table.insert(stack, "block start")` matched `"block start"` against `pos: integer`. The caller
+  omitted a *middle* parameter, which positional matching cannot see, and `@overload` never reaches
+  the type engine at all. Any call that does not fill every slot is one the engine cannot align.
+
+### Corpus impact: ZERO, on all four members
+
+`LuaTypeAssignability` and `LuaReturnTypeMismatch` are unchanged everywhere; on luarocks the
+per-site dump is byte-identical to the control, 0 new and 0 lost. The fix is unit-verified and
+corpus-invisible, because real calls to out-of-file signatures almost never fill every slot exactly.
+
+That is a third correction to TARGET-10's contract-load premise: even with this fixed, its generated
+`wx` contracts are checked only on calls that supply every parameter.
+
+### Claim 1 was wrong: the stdlib row was an artefact
+
+This report's measurement table has `stdlib bad-arg []` as evidence. A light fixture has **no
+bundled stdlib stubs in scope** — `resolveGlobal("string")` returns an empty table there, so
+`string.rep` had no signature to check for reasons that have nothing to do with this bug. Forcing a
+stub-index rebuild changes nothing. That row proves nothing and is withdrawn.
+
+### Claim 2 was wrong: arity coming alive is not the criterion
+
+The verification list said "the arity probe must also come alive". It must not:
+`testDeclarationTypedCalleeIsNotArityChecked` pins arity as deliberately unreported, for the
+`@overload` reason above. That criterion is withdrawn, and the reasoning behind it now guards the
+type check too.
+
+## Still open — filed as BUG-427
+
+Two shapes remain invisible, and both are *resolution* gaps rather than demand gaps, which this
+report conflated. Measured:
+
+```
+---@param n number
+function count(n) end          (another file)  -> resolveGlobal = null            <- no type at all
+---@param n number
+count = function(n) end        (another file)  -> fun(n: unknown)                 <- @param lost
+Lib = {}
+---@param n number
+function Lib.count(n) end      (another file)  -> checked, and errors correctly   <- fixed here
+```
+
+The library-member form — what a definitions file generates, and what TARGET-10 emits — works. A
+bare global function declaration does not resolve cross-file at all, and the assignment form
+resolves without its annotations. See **BUG-427**.

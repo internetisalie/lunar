@@ -157,41 +157,44 @@ class LuaDeclaredContractErrorTest : BasePlatformTestCase() {
     }
 
     /**
-     * **Characterization, not an endorsement (BUG-425).** A contract declared in a *definitions
-     * file* rather than beside the call produces no diagnostic of any kind today — not a demoted
-     * hypothesis, nothing. Measured, with the same-file global above as the discriminator:
+     * BUG-425. A contract declared in a *definitions file* rather than beside the call produced no
+     * diagnostic of any kind — not a demoted hypothesis, nothing — because a declaration-typed
+     * callee raised no demands at all.
      *
-     * ```
-     * samefile bad-arg  [ERROR:string is not assignable to number]
-     * xfile   bad-arg   []
-     * xfile   zero-arg  []        <- not even the arity WARNING
-     * stdlib  bad-arg   []
-     * ```
-     *
-     * The arity row is what makes this a signature-wiring gap rather than a tier problem:
-     * `checkFunctionCompatibility` emits "Too few arguments" regardless of any type, so its silence
-     * means the callee's signature never reaches the call site at all.
-     *
-     * It matters here because TARGET-10 will generate ~10 000 `wx`/`wxstc`/`wxaui` contracts in
-     * exactly this shape, on the premise that they load the declared-demand ERROR path. On today's
-     * engine they load nothing. **When this test goes red the gap is closed** — flip it to
-     * [assertErrors] and close BUG-425.
+     * The library-member form, which is what a definitions file generates and what TARGET-10 will
+     * emit ~10 000 of.
      */
     @Test
-    fun testOutOfFileDeclaredContractsProduceNoDiagnosticToday() {
+    fun testDeclaredParamInADefinitionsFileStillErrors() {
         myFixture.addFileToProject(
             "defs.lua",
             """
+            Lib = {}
             ---@param n number
-            function count(n) end
+            function Lib.count(n) end
             """.trimIndent(),
         )
-        val crossFile = errorsFor("""count("s")""")
-        val stdlib = errorsFor("""local repeated = string.rep("x", {})""")
-        assertEquals(
-            "BUG-425 has been fixed — out-of-file contracts now reach the graph; see the KDoc",
-            emptyList<String>(),
-            (crossFile + stdlib).map { "${it.severity}:${it.message}" },
+        assertErrors(
+            "a @param declared in another file is no less declared",
+            errorsFor("""Lib.count("s")"""),
+        )
+    }
+
+    /** …and a conforming call stays silent. The above must not be "always errors". */
+    @Test
+    fun testAConformingCrossFileCallIsSilent() {
+        myFixture.addFileToProject(
+            "defs.lua",
+            """
+            Lib = {}
+            ---@param n number
+            function Lib.count(n) end
+            """.trimIndent(),
+        )
+        val errors = errorsFor("""Lib.count(2)""")
+        assertTrue(
+            "a conforming call must produce no error, got: ${errors.map { "${it.severity}:${it.message}" }}",
+            errors.none { it.severity == ErrorSeverity.ERROR },
         )
     }
 }
