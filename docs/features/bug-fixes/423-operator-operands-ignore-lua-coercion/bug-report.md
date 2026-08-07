@@ -75,6 +75,42 @@ assignable to string" to the union form, breaking `DuplicateNilAssignabilityTest
 cosmetic and would just need the expectation updating — recorded because it is evidence of the same
 demand-is-also-inference entanglement, not an independent problem.
 
+### This is not a new design question — traits were specified and never built
+
+`docs/features/type/type-inference-engine-design.md` already calls for them, by name:
+
+| where | what it says |
+| :-- | :-- |
+| §4.1 type kinds | `TRAIT_ORDERED`, `TRAIT_STRINGABLE`, listed as first-class "Trait constraints" |
+| operator table | `..` → *"TODO: stringable trait"*; relational → *"TODO: ordered trait"* |
+| known gaps | *"`..` operands / `STRING` constraint / Should be relaxed to a `STRINGABLE` trait"* |
+| roadmap item 6 | *"**Trait system** — implement `ORDERED` and `STRINGABLE` traits (**as use-type heads**)"* |
+
+`git grep -i trait src/main` returns nothing. Designed, recorded as a gap, never implemented.
+
+"**as use-type heads**" is the demand-only property — the one that must never surface through
+`resolveRead`. The design had it right from the start; the reverted attempt above rediscovered it by
+breaking the inlay hints. That is the strongest argument for traits over a `coercing` flag: the flag
+is a new idea, the trait is the plan.
+
+**But the design has a hole that the measurement exposes.** It anticipated `STRINGABLE` (concat) and
+`ORDERED` (relational), and specified arithmetic as plain `NUMBER` with *no* TODO — so it believed
+`NUMBER` was correct there. It is not: `"10" + 5` is 15, and arithmetic accounts for **661 of the
+~750** false positives, against 55 + 27 + 11 for concat. The single largest cost is the case the
+original design did not flag.
+
+So the trait set needs a fourth the design never named — `NUMBERABLE` — and it is the one that
+matters most.
+
+**Two of the four are moot or free today**, which shrinks the work:
+
+- `ORDERED` — relational operators currently impose **no** operand demand at all
+  (`"==", "~=", "<", ">", "<=", ">=" -> Boolean`, no use edge). The design's "typed as NUMBER" is
+  stale. Permissive, therefore safe, and `"a" < "b"` correctly goes unflagged while `"10" < 5` — a
+  real Lua error — also goes unflagged. Adding `ORDERED` would *tighten* this, so it is a separate
+  decision, not part of fixing a false positive.
+- `LENGTHABLE` — `#` already demands `String | Table | Array`, an unnamed trait. Naming it is free.
+
 ### Two candidate fixes — traits preferred, flag as the tactical fallback
 
 Both keep the demand type at `Number`/`String` so inference and hints stay precise. That constraint
