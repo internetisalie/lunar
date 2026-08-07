@@ -2,6 +2,27 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### `setmetatable` now types the pattern everyone actually writes (BUG-426, BUG-424)
+
+The type engine understood `setmetatable(t, mt)` only when the metatable was written inline as a
+table literal. With a named metatable — the ordinary constructor pattern —
+
+```lua
+local Account = {}
+Account.__index = Account
+function Account.new() return setmetatable({}, Account) end
+```
+
+instances came back untyped: no member completion, no member checking, nothing. And because an
+untyped value silently satisfies every check, it looked supported rather than absent.
+
+Instances now carry the metatable's members, so completion and type checking work through
+`__index`, and a table whose metatable implements an operator (`__add`, `__concat`, `__len`) is
+accepted at that operator instead of reported as a mismatch.
+
+Across the sweep corpora this removes a further **27 assignability errors and 7 return-type
+mismatches**, all false.
+
 ### `"10" + 5` is no longer a type error (BUG-423)
 
 Lua coerces between strings and numbers at arithmetic and at `..` — `"10" + 5` is 15, `-"5"` is −5,

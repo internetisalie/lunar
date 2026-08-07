@@ -81,6 +81,31 @@ class LuaTypeInferredCompletionTest : IndexedDocumentTest() {
         doNotContains("local t = { name = \"Lua\" }\nt:<caret>", "name")
     }
 
+    /**
+     * BUG-426. The same capability as TC-05 but with the metatable **named**, which is the form
+     * real code writes and the one that produced `Undefined` — so completion offered nothing at
+     * all. Kept beside TC-05 because a fix that swapped which polarity `setmetatable` consults
+     * could satisfy either one alone.
+     */
+    @Test
+    fun `BUG-426 setmetatable named metatable members`() {
+        doContains(
+            """
+            local Account = {}
+            Account.__index = Account
+            Account.balance = 0
+
+            local function new()
+                return setmetatable({}, Account)
+            end
+
+            local acct = new()
+            acct.<caret>
+            """.trimIndent(),
+            "balance",
+        )
+    }
+
     @Test
     fun `TC-05 setmetatable __index members`() {
         doContains(

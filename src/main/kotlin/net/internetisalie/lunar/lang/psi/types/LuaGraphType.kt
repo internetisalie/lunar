@@ -43,6 +43,15 @@ sealed class LuaGraphType {
         val localMembers: Map<kotlin.String, VariableNode> = emptyMap(),
         val superTypes: List<LuaGraphType> = emptyList(),
         val isExact: kotlin.Boolean = false,
+        /**
+         * Metamethod names this table's metatable defines (`__add`, `__concat`, `__len`, …), which
+         * is what lets it satisfy an operator position — see [Trait].
+         *
+         * Separate from [localMembers] because a metamethod is not a member *of this table*: it
+         * lives on the metatable, which `setmetatable` is the only thing that establishes. Merging
+         * them would make `t.__add` complete on the instance, which is not what Lua exposes.
+         */
+        val metamethods: Set<kotlin.String> = emptySet(),
     ) : LuaGraphType()
 
     data class Union(
@@ -78,11 +87,15 @@ sealed class LuaGraphType {
      * how that is avoided — the checker sees the trait, inference only ever sees the primitive.
      * The type-engine design called for exactly this and named it "as use-type heads".
      *
-     * **Missing arm — BUG-424.** In Lua an operand also satisfies these positions by carrying the
-     * matching metamethod (`__add`, `__concat`, `__len`). That arm is not built: `setmetatable(t, mt)`
-     * with a *named* metatable — the form all real code uses — currently infers [Undefined] (measured
-     * 2026-08-07), so there is no typed table for a metamethod check to consult and no fixture that
-     * could demonstrate one working. [admits] is where it belongs when that is fixed.
+     * **The metamethod arm (BUG-424)** is [metamethods]: in Lua an operand also satisfies these
+     * positions by carrying the matching metamethod, so a table with `__add` is arithmetic-capable
+     * however un-numeric it looks. It could only be built once BUG-426 made `setmetatable` with a
+     * named metatable produce a typed table — before that there was nothing for it to consult, and
+     * no fixture that could tell a working arm from a broken one.
+     *
+     * It is deliberately per-TRAIT rather than per-operator: a table defining only `__add` also
+     * satisfies `*` here. Modelling that precisely needs a demand per operator, and the imprecision
+     * errs toward accepting — the posture BUG-419 chose.
      *
      * **Do not add bitwise operators to [Numberable].** They are the one position whose admitted set
      * changes across supported levels: string coercion works up to 5.3 and was removed from the core
@@ -93,18 +106,24 @@ sealed class LuaGraphType {
         /** Operand types the position accepts outright, by Lua's own coercion rules. */
         abstract val admits: Set<LuaGraphType>
 
+        /** Metamethods that let a table satisfy the position regardless of [admits]. */
+        abstract val metamethods: Set<kotlin.String>
+
         /** What inference reports for a variable constrained here. Never the trait itself. */
         abstract val inferredAs: LuaGraphType
 
         /** `+ - * / // ^ %` and unary `-`. */
         data object Numberable : Trait() {
             override val admits get() = setOf<LuaGraphType>(Number, String)
+            override val metamethods =
+                setOf("__add", "__sub", "__mul", "__div", "__mod", "__pow", "__unm", "__idiv")
             override val inferredAs get() = Number
         }
 
         /** `..` */
         data object Stringable : Trait() {
             override val admits get() = setOf<LuaGraphType>(String, Number)
+            override val metamethods = setOf("__concat")
             override val inferredAs get() = String
         }
 
@@ -115,6 +134,7 @@ sealed class LuaGraphType {
          */
         data object Lengthable : Trait() {
             override val admits get() = setOf(String, Table(), Array(Any))
+            override val metamethods = setOf("__len")
             override val inferredAs get() = Union.create(admits)
         }
     }

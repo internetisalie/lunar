@@ -565,7 +565,8 @@ class LuaTypeGraph {
                 // BUG-423. Ordered after the union branches so a union VALUE still distributes
                 // (every arm must satisfy the position), and before the structural ones because a
                 // trait has no structure to match against.
-                use is LuaGraphType.Trait -> use.admits.any { isCompatible(value, it, ctx) }
+                use is LuaGraphType.Trait ->
+                    use.admits.any { isCompatible(value, it, ctx) } || implementsOperator(value, use)
                 value is LuaGraphType.Array && use is LuaGraphType.Array ->
                     isCompatible(
                         value.elementType,
@@ -584,6 +585,24 @@ class LuaTypeGraph {
         compatMemo[key] = result
         return result
     }
+
+    /**
+     * BUG-424: a table satisfies an operator position when its metatable implements the operator —
+     * `a + b` is legal for any `a` carrying `__add`, however un-numeric it looks.
+     *
+     * Supertypes are walked because `setmetatable` records the metatable's members as a supertype,
+     * so an instance can inherit the capability from a base class's metatable.
+     */
+    private fun implementsOperator(
+        value: LuaGraphType,
+        trait: LuaGraphType.Trait,
+    ): Boolean =
+        when (value) {
+            is LuaGraphType.Table ->
+                value.metamethods.any { it in trait.metamethods } ||
+                    value.superTypes.any { implementsOperator(it, trait) }
+            else -> false
+        }
 
     /**
      * Cheap over-approximation used when a union exceeds [MAX_UNION_BREADTH] (TYPE-09-P2-04): true

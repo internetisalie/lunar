@@ -128,43 +128,70 @@ class LuaOperatorTraitTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
+    // --- Metamethods: a table that implements the operator (BUG-424) -------------------------
+
     /**
-     * **Characterization, not an endorsement — BUG-424's arm is BLOCKED, and this records why.**
+     * BUG-424's measured fixture, reduced. `V.__add` makes `instance + 2` legal Lua — 5.4.7 and
+     * 5.5.0 both print `3`.
      *
-     * The metamethod arm (`__add`/`__concat`/`__len` making a table satisfy an operator position)
-     * is not implemented, because it cannot be tested. `setmetatable(t, mt)` with a **named**
-     * metatable — the form all real code uses, including BUG-424's own measured fixture and LPeg —
-     * infers `Undefined`, so there is no typed table for a metamethod check to consult:
-     *
-     * ```
-     * local plain = {}                                     -> Table            <- typed
-     * local i = setmetatable({}, { __index = { x = 1 } })   -> Table            <- typed (TC-05)
-     * local V = {}; V.__index = V
-     * local i = setmetatable({}, V)                        -> Undefined        <- NOT typed
-     * local i = setmetatable(base, V)                      -> Undefined
-     * ```
-     *
-     * `Undefined` absorbs every check, so an operator on such a value is silently accepted — which
-     * is why BUG-424's probe read "Lunar reports 0 errors" and correctly called it *not support*.
-     * A metamethod arm built today would be unreachable code with no fixture able to prove it
-     * works, and the same 0-errors reading would then be mistaken for the feature working.
-     *
-     * **When this test goes red**, `setmetatable` with a named metatable types again — at which
-     * point the metamethod arm becomes both necessary (these values start being reported) and
-     * testable. That is the trigger to build it; see BUG-424.
+     * These fixtures are only meaningful because BUG-426 landed first. Before it, `instance`
+     * inferred `Undefined`, which absorbs every check — so this test passed with no metamethod arm
+     * implemented at all, and would have "proved" a feature that did not exist.
+     * [testPlainTableAtArithmeticIsStillRejected] is what keeps it honest now: the two differ only
+     * in whether the metatable defines the operator.
      */
     @Test
-    fun testMetamethodTablesAreUntypedToday() =
+    fun testTableWithArithmeticMetamethodIsAccepted() =
         assertNoProblem(
-            "setmetatable with a named metatable still infers Undefined; see the KDoc before 'fixing' this",
+            "a table whose metatable defines __add implements arithmetic",
             """
             local V = {}
             V.__index = V
             V.__add = function(a, b) return 0 end
             local instance = setmetatable({}, V)
             local total = instance + 2
+            """.trimIndent(),
+        )
+
+    /** `__concat` is the same arm at the other operator, and needs no `__index` to work. */
+    @Test
+    fun testTableWithConcatMetamethodIsAccepted() =
+        assertNoProblem(
+            "a table whose metatable defines __concat implements concatenation",
+            """
+            local V = {}
+            V.__concat = function(a, b) return "V" end
+            local instance = setmetatable({}, V)
             local joined = instance .. "s"
+            """.trimIndent(),
+        )
+
+    /** `#` demanded an unnamed trait long before this; `__len` is the arm it was missing. */
+    @Test
+    fun testTableWithLenMetamethodIsAccepted() =
+        assertNoProblem(
+            "a table whose metatable defines __len implements length",
+            """
+            local V = {}
+            V.__len = function(a) return 1 end
+            local instance = setmetatable({}, V)
             local size = #instance
+            """.trimIndent(),
+        )
+
+    /**
+     * A metatable that implements `__add` does not thereby implement `__concat`. Without this, a
+     * metamethod check that ignored *which* metamethod would pass all three tests above.
+     */
+    @Test
+    fun testMetamethodDoesNotSatisfyAnUnrelatedOperator() =
+        assertProblem(
+            "__add must not make a table concatenable",
+            """
+            local V = {}
+            V.__add = function(a, b) return 0 end
+            local instance = setmetatable({}, V)
+            local joined = instance .. "s"
             """.trimIndent(),
         )
 }

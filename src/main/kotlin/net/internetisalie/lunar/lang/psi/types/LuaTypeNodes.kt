@@ -188,9 +188,13 @@ internal class VariableElement(
                 .map {
                     when (it) {
                         is VariableElement -> it.resolveRead(visited)
-                        // BUG-423: a trait is demand-only. This is the boundary it must not cross —
-                        // letting one through made every `n * 2` parameter hint `number | string`.
-                        is UseNode -> it.read.asInferred()
+                        // The trait is deliberately PRESERVED here. It is a demand, and `read` is
+                        // what the checker examines for a value reaching an operator through a
+                        // variable — projecting it to its primitive at this hop lost the metamethod
+                        // arm for every such value (BUG-424), which is the same shape as BUG-419's
+                        // declaredDemand defect. Projection happens at the presentation boundary
+                        // instead: LuaTypes.typeOf and the inlay-hint providers.
+                        is UseNode -> it.read
                         else -> LuaGraphType.Any
                     }
                 }.filter { it != LuaGraphType.Any }

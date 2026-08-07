@@ -3,6 +3,7 @@ id: "BUG-426"
 title: "`setmetatable(t, mt)` infers `Undefined` whenever the metatable is a named variable"
 type: "bug"
 parent_id: "BUG"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -68,3 +69,62 @@ goes red when this is fixed, which is the signal to build the arm.
 - **Corpus re-baseline expected to rise**: this makes a large population of values typed for the
   first time, so new diagnostics will appear. Sample them before accepting the movement — that is
   the same posture BUG-425 records, and for the same reason.
+
+## Fixed (2026-08-07)
+
+The cause is **polarity**, not metatable resolution. `V.__index = V` goes through `visitIndexExpr`,
+which records the member as a *demand* on `V` (`graph.use`) and never touches its `write`.
+`handleSetMetatable` consulted only `write`, so a named metatable's type was the bare `{}` it was
+declared with, `__index` was nowhere in it, and the call bailed. An inline table literal worked
+because `visitTableConstructor` puts members in `localMembers` — on the write side.
+
+Three changes:
+
+- **`mergedTableOf`** — an argument's table type merges what is written to it with what is demanded
+  of it. This is the view `LuaTypesSnapshot` already reports for a variable, so it is what the rest
+  of the IDE was seeing; a genuine write wins over a demand on the same key.
+- **`indexTableOf` resolves through the member's `upSet`**, not its `write`. `write` flattens to the
+  source's write type, which for `V.__index = V` is again `V`'s bare `{}` — so members would have
+  been dropped a second time, one level down.
+- **A metatable with no resolvable `__index` no longer bails.** `setmetatable` returns its first
+  argument regardless, so the table stays typed rather than collapsing to `Undefined`.
+
+### It unblocked BUG-424, and that arm landed with it
+
+`LuaOperatorTraitTest.testMetamethodTablesAreUntypedToday` went red exactly as designed. Leaving it
+there would have shipped a *new* false-positive class — every metamethod-carrying table erroring at
+its own operators — so the metamethod arm was built in the same change: `LuaGraphType.Table` gained
+`metamethods`, populated from the metatable, and `Trait.metamethods` is consulted by
+`implementsOperator`. BUG-424 is closed by this.
+
+Implementing it surfaced the trap BUG-423 predicted verbatim: `VariableElement.resolveRead` was
+projecting the trait to its primitive, so a value reaching an operator **through a variable hop**
+was checked against `number` rather than `Numberable` and never reached the metamethod arm — the
+same shape as BUG-419's `declaredDemand` defect, one axis over. The projection moved to the
+presentation boundary (`LuaTypes.typeOf` and `graphTypeToLuaType`, which both inlay-hint providers
+convert through). The graph now sees demands; only the IDE sees primitives.
+
+### Corpus — and the prediction in this report was wrong
+
+This report predicted the re-baseline would **rise**, on the reasoning that newly-typed values
+produce new diagnostics, and said to sample them before accepting. It fell:
+
+| member | `LuaTypeAssignability` | `LuaReturnTypeMismatch` |
+| :-- | --: | --: |
+| zerobrane | 338 → **323** | 62 → 59 |
+| penlight | 103 → **91** | 21 → 17 |
+| luarocks | 196 → 196 | unchanged |
+| luacheck | 213 → 213 | unchanged |
+
+Checked for a rise hidden under a larger fall: the per-symbol maps are **byte-identical** across all
+four members, and `LuaUndeclaredVariable` did not move. So this is a net removal, not a churn.
+
+The metamethod arm is why. Typing these values does create new checks, but the same change taught
+the engine that a table implementing an operator satisfies it — and correctly typed values also stop
+falling into the other error paths they used to.
+
+## Known limitation
+
+Metamethods are recorded only from `setmetatable`. A `---@class` declaring `__add` as a field does
+not make its instances arithmetic-capable, and neither does assigning `__add` to a table that is
+never installed as a metatable — which is correct for the second case and a gap for the first.

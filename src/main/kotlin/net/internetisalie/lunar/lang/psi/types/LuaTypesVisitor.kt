@@ -122,25 +122,76 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val argExprs = nameAndArgs.args.exprList?.exprList ?: return false
         if (argExprs.size < 2) return false
 
-        val tType =
-            (firstNode(unwrapExpression(argExprs[0])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
-        val mtType =
-            (firstNode(unwrapExpression(argExprs[1])) as? ValueNode)?.write as? LuaGraphType.Table ?: return false
+        val tType = tableArgumentType(argExprs[0]) ?: return false
+        val metatable = tableArgumentType(argExprs[1]) ?: return false
 
-        val indexType = indexTableOf(mtType) ?: return false
-        val augmented = tType.copy(superTypes = tType.superTypes + indexType)
+        // BUG-426: a metatable with no resolvable `__index` establishes no members, but the call
+        // still RETURNS its first argument. Bailing out here left the whole result `Undefined`,
+        // which absorbs every check — so the pattern looked supported while being invisible.
+        val indexType = indexTableOf(metatable)
+        val augmented =
+            tType.copy(
+                superTypes = if (indexType == null) tType.superTypes else tType.superTypes + indexType,
+                // BUG-424: which operators this value implements. Recorded from the METATABLE, not
+                // from `__index` — a metatable may overload `+` without exposing any members at all.
+                metamethods = metamethodsOf(metatable),
+            )
         graph.addEdge(graph.value(o, augmented), resultNode)
         return true
     }
 
-    /** Resolves the table exposed via a metatable's `__index` member (a table, or a function's first table return). */
+    /** The `__`-prefixed keys a metatable defines, both polarities (see [mergedTableOf]). */
+    private fun metamethodsOf(metatable: LuaGraphType.Table): Set<String> =
+        metatable
+            .getMembers()
+            .keys
+            .filterTo(mutableSetOf()) { it.startsWith("__") }
+
+    /** The table an argument denotes, across both polarities — see [mergedTableOf]. */
+    private fun tableArgumentType(argExpr: PsiElement?): LuaGraphType.Table? =
+        firstNode(unwrapExpression(argExpr))?.let { mergedTableOf(it) }
+
+    /**
+     * A node's table type merging what is WRITTEN to it with what is DEMANDED of it (BUG-426).
+     *
+     * Reading `write` alone is what confined `setmetatable` to inline table literals. `V.__index = V`
+     * and `V.greet = …` go through `visitIndexExpr`, which records each member as a *demand*
+     * (`graph.use`) on `V` and never touches its `write` — so a named metatable's write type is the
+     * bare `{}` it was declared with, `__index` is nowhere in it, and the call bailed.
+     *
+     * The merge mirrors what [LuaTypesSnapshot] already does when it reports a variable's type, so
+     * this is the view the rest of the IDE was seeing all along. A genuine write wins over a demand
+     * on the same key: the demand is an inference about how the member is used, the write is what
+     * the member is.
+     */
+    private fun mergedTableOf(node: TypeNode): LuaGraphType.Table? {
+        val written = (node as? ValueNode)?.write as? LuaGraphType.Table
+        val demanded = (node as? UseNode)?.read as? LuaGraphType.Table
+        if (written == null && demanded == null) return null
+        val members = LinkedHashMap<String, VariableNode>()
+        demanded?.localMembers?.let { members.putAll(it) }
+        written?.localMembers?.let { members.putAll(it) }
+        return LuaGraphType.Table(
+            className = written?.className ?: demanded?.className,
+            localMembers = members,
+            superTypes = written?.superTypes ?: emptyList(),
+            isExact = written?.isExact ?: false,
+        )
+    }
+
+    /**
+     * The table exposed via a metatable's `__index` member: whatever flows INTO that member, or a
+     * function's first table return.
+     *
+     * Resolved through the member's [VariableNode.upSet] rather than its `write`, because `write`
+     * flattens to the source's write type — and for the `V.__index = V` idiom that is `V`'s bare
+     * declared `{}`, dropping every member `V` gained by assignment. The source node itself still
+     * carries both polarities.
+     */
     private fun indexTableOf(metatable: LuaGraphType.Table): LuaGraphType.Table? {
-        val indexWrite = metatable.getMembers()["__index"]?.write ?: return null
-        return when (indexWrite) {
-            is LuaGraphType.Table -> indexWrite
-            is LuaGraphType.Function -> indexWrite.returns.firstOrNull()?.write as? LuaGraphType.Table
-            else -> null
-        }
+        val indexNode = metatable.getMembers()["__index"] ?: return null
+        indexNode.upSet.firstNotNullOfOrNull { mergedTableOf(it) }?.let { return it }
+        return (indexNode.write as? LuaGraphType.Function)?.returns?.firstOrNull()?.write as? LuaGraphType.Table
     }
 
     private fun unwrapExpression(

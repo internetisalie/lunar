@@ -86,7 +86,10 @@ class LuaTypesSnapshot(
                 } else if (write != LuaGraphType.Undefined) {
                     write
                 } else {
-                    if (read != LuaGraphType.Any) read else LuaGraphType.Undefined
+                    // asInferred: an un-assigned variable is typed by what is demanded of it, and
+                    // an operator demand is a trait — which is demand-only and must be reported as
+                    // the primitive it stands for (BUG-423).
+                    if (read != LuaGraphType.Any) read.asInferred() else LuaGraphType.Undefined
                 }
             }
             is ValueNode -> node.write
@@ -128,8 +131,10 @@ class LuaTypesSnapshot(
                 LuaUnionType(luaTypes).also { visited[type] = it }
             }
             is LuaGraphType.Generic -> LuaGenericType(type.name)
-            // Defence in depth: traits are filtered at resolveRead, so one should never arrive
-            // here. If one does, the primitive it stands for is the honest answer, not a crash.
+            // One of the two presentation boundaries where an operator trait becomes the primitive
+            // it stands for (BUG-423). Reached for real: both inlay-hint providers type a
+            // parameter from its `read` and convert through here, so this is what keeps
+            // `function double(n) return n * 2 end` hinting `n : number`.
             is LuaGraphType.Trait -> graphTypeToLuaType(type.inferredAs, visited)
         }
     }

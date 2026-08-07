@@ -3,6 +3,7 @@ id: "BUG-424"
 title: "Operator metamethods (`__add`, `__mul`, `__pow`, `__concat`, `__len`) are unmodelled — the largest false-positive class"
 type: "bug"
 parent_id: "BUG"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -174,3 +175,40 @@ when LPeg-shaped values are typed and the question becomes answerable.
 The defect is real: a table implementing an operator via a metamethod is not modelled, and once
 BUG-426 makes such tables typed they will be reported as errors. The trait boundary is built and is
 where the arm belongs — `LuaGraphType.Trait.admits`. Only the sizing and the sequencing were wrong.
+
+## Fixed (2026-08-07) — with BUG-426, which had to land first
+
+BUG-426 made `setmetatable` with a named metatable produce a typed table, and
+`LuaOperatorTraitTest.testMetamethodTablesAreUntypedToday` — written to go red on exactly that —
+did. Leaving it would have shipped a new false-positive class, so the arm was built in the same
+change:
+
+- `LuaGraphType.Table.metamethods`, populated by `handleSetMetatable` from the **metatable's** keys
+  (not from `__index`: a metatable may overload `+` while exposing no members at all).
+- `Trait.metamethods` per trait, consulted by `LuaTypeGraph.implementsOperator`, which walks
+  supertypes so an instance inherits the capability from a base class's metatable.
+
+`testMetamethodDoesNotSatisfyAnUnrelatedOperator` is the control: `__add` must not make a table
+concatenable. Without it a check that ignored *which* metamethod would pass every other fixture.
+
+Implementing it hit the trap this report and BUG-423 both recorded: `VariableElement.resolveRead`
+projected the trait to its primitive, so an operand reaching an operator **through a variable hop**
+was checked against `number` instead of `Numberable` and never reached this arm. Same shape as
+BUG-419's `declaredDemand` defect. Fixed by moving the projection to the presentation boundary.
+
+### The sizing question is now answerable, and the answer is small
+
+This report's headline was 655. Measured at the inspection level, the metamethod arm plus BUG-426
+together moved `LuaTypeAssignability` **850 → 823** (zerobrane 338 → 323, penlight 103 → 91), with
+per-symbol maps byte-identical, so nothing rose underneath.
+
+Adding the trait system's earlier −57, the whole BUG-423 + BUG-424 + BUG-426 sequence is
+**907 → 823 (−84)**, against a claim of 655 for this report alone. The gap is entirely the
+graph-level-vs-inspection-level confusion recorded above — and the LPeg sites specifically are still
+not shown to have moved, because LPeg's patterns come from a C library Lunar has no definitions for,
+so they were never typed and never will be by this change.
+
+## Known limitation
+
+Metamethods are recorded only from `setmetatable`, and per-trait rather than per-operator: a table
+defining only `__add` also satisfies `*`. Both err toward accepting, which is the BUG-419 posture.

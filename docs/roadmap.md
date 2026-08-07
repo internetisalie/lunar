@@ -72,8 +72,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
-| BUG-424 | Operator metamethods are unmodelled — arm blocked, sizing unmeasured | blocked | C | **BUG-426** | — | ✓ |
-| BUG-426 | `setmetatable(t, mt)` infers `Undefined` whenever the metatable is a named variable | todo | **M** | — | BUG-424 | ✓ |
 | BUG-425 | A function signature declared outside the file under analysis never reaches the type graph | todo | **M** | — | BUG-419 | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
