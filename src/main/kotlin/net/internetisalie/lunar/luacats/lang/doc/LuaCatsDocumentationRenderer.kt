@@ -448,8 +448,14 @@ object LuaCatsDocumentationRenderer {
     }
 
     private fun buildFieldTag(tag: LuaCatsFieldTag, sb: StringBuilder) {
-        val fieldDescriptor = tag.fieldDescriptor
-        val name = fieldDescriptor.argName?.text ?: "Unknown"
+        // `fieldDisplayName` keeps the optional marker (quick-doc shows `beta?`, as LuaLS does),
+        // which is exactly where it differs from the engine's member name — a deliberate difference,
+        // now adjacent to the engine's rule instead of being a private copy free to drift.
+        //
+        // It also fixes a real gap, measured rather than assumed (MAINT-34 DR-02): the old
+        // `argName?.text ?: "Unknown"` rendered a keyed field's name as the literal word "Unknown",
+        // because `---@field [string] number` puts its descriptor in `argType`, not `argName`.
+        val name = LuaCatsDeclarations.fieldDisplayName(tag)
         val type = tag.argType.text
 
         sb.append("<p><code>").append(name).append("</code>")
@@ -538,12 +544,20 @@ object LuaCatsDocumentationRenderer {
 
     private const val INHERITANCE_DEPTH_CAP = 64
 
-    /** The simple class name of a parent [LuaCatsArgType], trimmed and stripped of any generic args. */
-    private fun parentClassName(argType: LuaCatsArgType): String =
-        argType.text.substringBefore('<').trim()
+    /**
+     * A parent name reduced to what [LuaClassNameIndex] is keyed on — the generic arguments stripped.
+     *
+     * This is a *display/lookup* variant of the engine's rule, not a disagreement with it, and it is
+     * why quick-doc's inherited-field walk works on `: Base<string, number>` while the type engine
+     * does not (BUG-420, which will want exactly this treatment).
+     */
+    private fun simpleParentName(declared: String): String = declared.substringBefore('<').trim()
 
     private fun parentClassNames(classTag: LuaCatsClassTag?): List<String> =
-        classTag?.parentTypes?.argTypeList?.map { parentClassName(it) }?.filter { it.isNotEmpty() } ?: emptyList()
+        classTag?.let { LuaCatsDeclarations.parentTypeNames(it) }
+            .orEmpty()
+            .map { simpleParentName(it) }
+            .filter { it.isNotEmpty() }
 
     /**
      * Resolves a parent `@class` name to its comment. Prefers the stub-indexed host-decl form and

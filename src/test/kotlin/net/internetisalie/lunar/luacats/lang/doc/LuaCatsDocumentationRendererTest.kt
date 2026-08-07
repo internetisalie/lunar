@@ -251,6 +251,38 @@ class LuaCatsDocumentationRendererTest : BaseDocumentTest() {
         }
     }
 
+    /**
+     * A keyed field is named by its key, not by the literal word "Unknown".
+     *
+     * `---@field [string] number` puts its descriptor in `argType` rather than `argName`
+     * (`fieldKeyDescriptor ::= '[' type ']'`), and the renderer's old `argName?.text ?: "Unknown"`
+     * fallback therefore printed "Unknown" as the field's name. Measured before fixing, as
+     * MAINT-34's DR-02: quick-doc emitted `<code>Unknown</code> (number)` right beside a correctly
+     * named `<code>named</code> (boolean)`, which is what ruled out an unrelated "Unknown" in the
+     * template.
+     *
+     * The named sibling is kept in the fixture for the same reason — it is what makes a failure here
+     * mean "the keyed field lost its name" rather than "the renderer produced nothing".
+     */
+    @Test
+    fun testKeyedFieldIsNamedByItsKeyNotUnknown() {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                val doc = renderLocalVarDoc(
+                    """
+                    ---@class Keyed
+                    ---@field [string] number
+                    ---@field named boolean
+                    local <caret>Keyed = {}
+                    """.trimIndent(),
+                )
+                assertContains(doc, "[string]")
+                assertContains(doc, "named")
+                assertTrue(!doc.contains("Unknown"), "a keyed field must not render as 'Unknown': $doc")
+            }
+        }
+    }
+
     private fun renderLocalVarDoc(code: String): String {
         configureByText(code)
         val elementAtCaret = myFixture.file.findElementAt(myFixture.caretOffset)
