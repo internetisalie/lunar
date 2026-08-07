@@ -7,6 +7,7 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.impl.LuaFuncDeclImpl
 import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import net.internetisalie.lunar.lang.psi.stubs.LuaFuncStub
 
 class LuaFuncStubElementType(debugName: String) :
@@ -21,12 +22,10 @@ class LuaFuncStubElementType(debugName: String) :
         // getter is @NotNull, so read the child off the node instead of throwing.
         val name = psi.node.findChildByType(LuaElementTypes.FUNC_NAME)?.text ?: ""
         val catsComment = LuaPsiImplUtil.getCatsComment(psi)
-        val returnType = catsComment?.getReturnTagList()?.flatMap { it.returnTypeDescriptorList }?.firstOrNull()?.argType?.text
-        val paramTypes = catsComment?.getParamTagList()?.associate {
-            val pName = it.argName?.text ?: ""
-            val pType = it.argType.text
-            pName to pType
-        } ?: emptyMap()
+        // MAINT-34-03: one extractor, not a copy. This block and its twin in the sibling
+        // *FuncStubElementType were byte-identical, and funcTypeFromStub held a third.
+        val returnType = catsComment?.let { LuaCatsDeclarations.returnTypeName(it) }
+        val paramTypes = catsComment?.let { LuaCatsDeclarations.paramTypes(it) } ?: emptyMap()
 
         return LuaFuncStubImpl(parentStub, name, returnType, paramTypes)
     }

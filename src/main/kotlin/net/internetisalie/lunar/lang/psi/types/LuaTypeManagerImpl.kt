@@ -402,9 +402,9 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
         val stub = decl.stub
         val cats = if (stub == null) net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl) else null
         val paramTypes: Map<String, String> = stub?.luacatsParamTypes
-            ?: cats?.getParamTagList()?.associate { (it.argName?.text ?: "") to it.argType.text }
+            ?: cats?.let { LuaCatsDeclarations.paramTypes(it) }
             ?: emptyMap()
-        val rawReturn = stub?.luacatsReturnType ?: cats?.getReturnTagList()?.flatMap { it.returnTypeDescriptorList }?.firstOrNull()?.argType?.text
+        val rawReturn = stub?.luacatsReturnType ?: cats?.let { LuaCatsDeclarations.returnTypeName(it) }
 
         val params = paramTypes.map { (pName, pType) -> LuaParameter(pName, LuaTypeReference(pType, decl)) }
         // `---@return self` parses to a type literally named "self"; substitute the receiver class.
@@ -422,7 +422,7 @@ class LuaTypeManagerImpl(private val project: Project) : LuaTypeManager {
             stub.luacatsAliasTarget
         } else {
             val cats = net.internetisalie.lunar.lang.psi.LuaPsiImplUtil.getCatsComment(decl)
-            cats?.getAliasTagList()?.firstOrNull()?.argType?.text
+            cats?.let { LuaCatsDeclarations.aliasTarget(it) }
         }
         return LuaAliasType(name, LuaTypeReference(targetTypeStr ?: "any", decl))
     }

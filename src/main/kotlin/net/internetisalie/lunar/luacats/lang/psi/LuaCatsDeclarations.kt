@@ -80,4 +80,22 @@ object LuaCatsDeclarations {
         tag.parentTypes?.argTypeList.orEmpty()
             .map { it.text.trim() }
             .filter { it.isNotEmpty() }
+
+    /** Declared parameter name → type string, in declaration order. */
+    fun paramTypes(comment: LuaCatsComment): Map<String, String> =
+        comment.paramTagList.associate { (it.argName?.text ?: "") to it.argType.text }
+
+    /**
+     * The first declared `@return`'s type string, or null.
+     *
+     * Only the first: the nominal layer models a single return (`LuaFunctionType.returnType`).
+     * Resolving `---@return self` to the receiver class stays with the caller, since that needs the
+     * class name — a type-engine concern, not a tag-reading one.
+     */
+    fun returnTypeName(comment: LuaCatsComment): String? =
+        comment.returnTagList.flatMap { it.returnTypeDescriptorList }.firstOrNull()?.argType?.text
+
+    /** The first `@alias`'s target type string, or null. */
+    fun aliasTarget(comment: LuaCatsComment): String? =
+        comment.aliasTagList.firstOrNull()?.argType?.text
 }

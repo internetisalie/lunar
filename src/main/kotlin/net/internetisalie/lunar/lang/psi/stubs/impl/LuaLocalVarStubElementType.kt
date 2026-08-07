@@ -28,9 +28,10 @@ class LuaLocalVarStubElementType(debugName: String) :
         // on ',', which cuts a parameterized parent (`Base<string, number>`) in half.
         val parents = classTag?.let { LuaCatsDeclarations.parentTypeNames(it) }.orEmpty()
         
-        val aliasTag = catsComment?.getAliasTagList()?.firstOrNull()
-        val aliasName = aliasTag?.argName?.text
-        val aliasTarget = aliasTag?.argType?.text
+        // The alias NAME is read only here — materializeAlias takes it from the index key — so it
+        // stays inline. The TARGET has two readers and so goes through the shared one (MAINT-34-04).
+        val aliasName = catsComment?.getAliasTagList()?.firstOrNull()?.argName?.text
+        val aliasTarget = catsComment?.let { LuaCatsDeclarations.aliasTarget(it) }
         
         // MAINT-34-01: read through the one shared extractor rather than a private copy of the
         // rule. This branch and `materializeClass`'s were copy-paste siblings, and BUG-401 is what
