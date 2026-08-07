@@ -381,10 +381,6 @@ class LuaTypeGraph {
             // *is* `nil` in Lua, so every branch-dependent value is `T | nil` and demanding the
             // nil arm match the use flagged idiomatic code 1 801 times across one corpus member.
             // The nil arm forgives only itself: the informative arms must still all fit.
-            // A `nil` arm is optionality, not evidence (BUG-416). Reading an absent table field
-            // *is* `nil` in Lua, so every branch-dependent value is `T | nil` and demanding the
-            // nil arm match the use flagged idiomatic code 1 801 times across one corpus member.
-            // The nil arm forgives only itself: the informative arms must still all fit.
             val informative = valueType.types.filter { it != LuaGraphType.Nil }
             // Value(Union(nil | A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
             if (!gradual &&
