@@ -145,9 +145,12 @@ title: "Implementation Plan"
 ### Phase 3b: Type-error delta [Must]
 
 - **Goal**: know what typing the members costs before anyone fetches it.
-- **Not blocked.** BUG-419's defect 3 landed in `31d9c761`, which re-baselined the corpus in the
-  same commit — zerobrane `LuaTypeAssignability` 997 → 358, `LuaReturnTypeMismatch` 83 → 65. Those
-  are the numbers to diff against, and they are already clean.
+- **Not blocked, but the instrument changed.** BUG-419's defect 3 landed in `31d9c761` (corpus
+  re-baselined: zerobrane `LuaTypeAssignability` 997 → 358, `LuaReturnTypeMismatch` 83 → 65) and its
+  verification closed in `1a5fd807`. However **BUG-425** means out-of-file signatures never reach
+  the type graph, so a corpus delta for this feature measures **zero** — a null result that must not
+  be read as "the map is safe". DR-08 therefore validates §3.4 with a same-file harness, and records
+  the corpus zero explicitly as the expected non-result.
 - **Tasks**:
   - [ ] Run **DR-08** — record ZeroBrane's `LuaTypeAssignability` (post-BUG-419 baseline **358**) and
         `LuaReturnTypeMismatch` (**65**) with the generated tree registered, and diff against
@@ -158,6 +161,11 @@ title: "Implementation Plan"
         and paste the result into design §3.4. The mapping choice is currently argued from
         `LuaPrimitiveType.kt:10-18` and `LuaGraphType.kt:147` — reading, not running.
   - [ ] Widen any §3.4 row a new hit traces back to. **Never narrow user code to fit the library.**
+  - [ ] Record in Phase 4's publication note that the tree ships ~10,000 contracts which are inert
+        on today's engine and activate when BUG-425 lands — and that BUG-425's fix must mark
+        `memberNodeFor`'s `declaredDemand`, or this whole population arrives in the hypothesis tier
+        silently. Flag it on BUG-425's report; that fix and this data land as one user-visible
+        change whether or not they land together.
 - **Exit criteria**: the type-error delta is a recorded number with every new hit attributed; §3.4
   is updated from the spike.
 

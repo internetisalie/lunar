@@ -65,13 +65,22 @@ actually fixed?
   are unchecked today become checked, against ~10,000 emitted `@param`/`@return` contracts derived
   by a ~40-row hand-written C++→LuaCATS map. A single over-narrow row is a false positive at scale,
   in a read-only fetched library the user cannot edit.
-- **Likelihood**: high without mitigation, and raised by BUG-419's landed change: stub signatures
-  are contracts, and declaredness now propagates transitively through call sites. The `integer`
-  mapping alone covered 7,469 sites, against a Lua 5.1 corpus with no integer subtype and a type
-  engine that relates `number` and `integer` not at all (`LuaPrimitiveType.kt:10-18`).
+- **Likelihood — LATENT today, high when BUG-425 lands.** **BUG-425** (`high`, filed 2026-08-07)
+  measures that a signature declared outside the file under analysis **never reaches the type
+  graph**: not demoted to the hypothesis tier, emitting nothing at all. Its probe shows even
+  `Too few arguments` stays silent across a file boundary, so the callee's `Function` type is
+  absent, parameters and return alike. A definition library is out-of-file by construction, so on
+  today's engine this feature's ~10,000 contracts put **zero** through the declared-demand path.
+  The risk does not disappear — it is deferred and then arrives all at once. BUG-425's own note
+  adds the sting: parameters materialised through `LuaGraphType.fromLuaType` get use nodes from
+  `memberNodeFor`, which passes no `declaredDemand` and defaults to `false`, so unless that site is
+  marked in the same change the whole population lands in the hypothesis tier **silently**.
+  The `integer` mapping alone covered 7,469 sites, against a Lua 5.1 corpus with no integer subtype
+  and a type engine that relates `number` and `integer` not at all (`LuaPrimitiveType.kt:10-18`).
 - **Mitigation**: (a) §3.4's "widest type that is still true" rule, with integral types mapped to
   `number`; (b) unknown types to `any`, never a guess; (c) unknown bases emitted as stubs so no
-  inheritance chain is severed (3 cases); (d) **DR-08** measures the actual delta before publishing;
+  inheritance chain is severed (3 cases); (d) **DR-08**, re-specified below because a corpus delta measures **zero** today and would read as
+  "safe";
   (e) checklist Scenario 3.2 requires **zero** new type errors on a real ZeroBrane file, with the
   stated fix always being to widen the mapping, never to narrow user code.
 - **Sequencing — BUG-419's defect 3 has ALREADY LANDED, and this feature's baseline is post-fix.**
@@ -99,7 +108,8 @@ actually fixed?
   | **language rule** | `a .. b` needs a string | contract → **ERROR** |
   | inference | `f()` needs `fun()` | guess → HYPOTHESIS |
 
-  **This sharpens rather than softens Risk 1.6.** Two mechanics from the landed change:
+  **Two mechanics from the landed change bear on us — but only once BUG-425 is fixed (see
+  Likelihood above). On today's engine neither reaches a definition library.**
 
   1. A **stub signature is a user-declared demand** — the commit names it explicitly. Every
      `@param` this feature emits is therefore a contract whose violation is an ERROR. BUG-419 gives
@@ -111,11 +121,19 @@ actually fixed?
      wx call, not just the immediate argument. The enforcement surface is wider than the ~1,900
      direct call sites.
 
-  What remains open in BUG-419 is defects 1 and 2 (viral unknowns; `Undefined` union arms), held
-  back deliberately because fixing 1 alone would *create* false positives, plus the reopen for two
-  unmet verification items. By the commit's own reasoning those "can affect at most a handful of
-  emissions" with defect 3 gating — so they neither block nor materially help this feature. Defect 1
-  would help marginally, by keeping `any`-mapped types gradual.
+  BUG-419's two reopened verification items were **closed in `1a5fd807`**: the BUG-417 parity
+  criterion now passes as a test (and its own vacuous `0 vs 0` failure mode is designed out —
+  `assertAnchored` requires the measured total within 25 of the ratchet baseline before any verdict
+  is believed), and the declared-contract ERROR path is mutation-proved. What remains open is
+  defects 1 and 2 (viral unknowns; `Undefined` union arms), held back deliberately because fixing 1
+  alone would *create* false positives, plus BUG-424. None blocks this feature; defect 1 would help
+  marginally, by keeping `any`-mapped types gradual.
+
+- **Correction, third pass.** This section previously claimed DR-08 would be "the first real load on
+  BUG-419's declared-contract path". BUG-425 refutes that: the load is zero until out-of-file
+  signatures reach the graph. Recorded because the error is instructive — the analysis kept running
+  ahead of what had actually been measured, which is the failure mode the planning bar's
+  "behaviour must be EXECUTED" axis exists to catch.
 
   **Nothing in BUG-419 addresses the `number`/`integer` mapping.** That was this design's own
   defect, fixed in §3.4 — and now more load-bearing, since declared demands are genuinely enforced.
@@ -247,7 +265,7 @@ actually fixed?
 | TARGET-10-00-DR-03 | Settle the published repository's owner and name | Gap 2.3 | todo — **blocks Phase 4** |
 | TARGET-10-00-DR-04 | Measure first-index wall-clock and heap for a tree of the real order of magnitude | Gap 2.2, Risk 1.3 | todo — **blocks Phase 1** |
 | TARGET-10-00-DR-05 | Parse-coverage spike over the real `.i` files against the pinned ZeroBrane corpus | Risk 1.1 (is the format tractable at all?) | **done** — [research.md §5](research.md). 82% / 96% / 95% for `wx` / `wxstc` / `wxaui` from a 40-line parser implementing 4 of the 10 forms. A **lower bound**, not a target; the Phase 3 floors come from the first real run. |
-| TARGET-10-00-DR-08 | Measure the type-error delta: baseline ZeroBrane's `LuaTypeAssignability` (358) and `LuaReturnTypeMismatch` (65), then re-measure with the generated tree registered. Separately spike `---@param x number` vs `---@param x integer` against a numeric literal at `LUA51` to confirm §3.4's mapping choice empirically | Risk 1.6 | todo — **blocks Phase 4** (publish) |
+| TARGET-10-00-DR-08 | **Validate §3.4's type map where contracts actually reach.** A corpus delta measures zero today (BUG-425), so it cannot be the instrument. Instead: sample ~50 emitted wx signatures spanning every §3.4 row, inline them **same-file** with representative ZeroBrane call sites, and assert no diagnostic. Then run the corpus delta anyway and **record the expected zero explicitly**, so a future reader cannot mistake it for a pass. Include the `---@param x number` vs `integer` case at `LUA51` | Risk 1.6 | todo — **blocks Phase 4** (publish) |
 | TARGET-10-00-DR-06 | Spike the split namespace layout through `LibraryRootTestCase` (TC 7a): `wx.lua` with only the `---@class wx` header, members in `wx/wxcore.lua`, assert `wx.<caret>` completes them | Gap 2.4, Risk 1.2 | todo — **blocks Phase 2** |
 | TARGET-10-00-DR-07 | Count every declaration form in the pinned `.i` files **and execute the §3.2/§3.3 rules over all 42 of them** | Risk 1.1 | **done** — reference implementation checked in at `tooling/spikes/target-10-wxi-grammar/probe.py`; firing counts in design §3.3, coverage in §3.8 (98/99/95%). Counting alone overturned the "six forms" premise; *running* it then overturned five more assumptions that counting could not see — see the note below. |
 

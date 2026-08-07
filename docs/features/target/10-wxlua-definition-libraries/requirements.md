@@ -214,7 +214,12 @@ an in-memory library root. Generator cases run against a checked-in `.i` fixture
 - **TARGET-08** (`done`) — the catalog, fetcher, provider and settings UI this entry rides on.
 - **BUG-394 / BUG-395 / BUG-398 / BUG-399** (`done`) — library-root completion and module
   resolution; without them a correct tree would still resolve nothing.
-- **BUG-419** (`in_progress`; defect 3 landed in `31d9c761`) — **not a blocker.** The corpus
+- **BUG-425** (`high`, untraced) — out-of-file signatures never reach the type graph. Nothing this
+  feature *delivers* depends on it: completion, navigation, `require` resolution and the 1,877
+  undeclared-variable hits are unaffected. But it means this feature's `@param`/`@return` contracts
+  are **inert until BUG-425 is fixed**, and then activate as a population. It reshapes DR-08 (a
+  corpus delta measures zero) and is the reason Phase 4 carries a publication note.
+- **BUG-419** (`in_progress`; defect 3 landed in `31d9c761`, verification closed in `1a5fd807`) — **not a blocker.** The corpus
   baselines DR-08 measures against (zerobrane `LuaTypeAssignability=358`,
   `LuaReturnTypeMismatch=65`) are already post-fix, so Phase 3b can run immediately. Its landed rule
   makes a **stub signature** a declared contract and propagates declaredness transitively through
