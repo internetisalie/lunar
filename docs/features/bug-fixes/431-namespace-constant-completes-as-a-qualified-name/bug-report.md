@@ -1,0 +1,79 @@
+---
+id: "BUG-431"
+title: "A library namespace constant completes as the qualified `wx.wxID_ANY`, not the bare member — and the suite is red because of it"
+type: "bug"
+parent_id: "BUG"
+status: "todo"
+priority: "high"
+folders:
+  - "[[features/bug-fixes|bug-fixes]]"
+---
+
+# BUG-431: namespace constants complete as qualified names, and main is red
+
+Found while gating COMP-09 DR-09. **The full unit suite is failing on `main` today** — this is not
+introduced by any pending work; it was verified by stashing every uncommitted change and re-running
+the whole suite on a clean tree.
+
+## Measured (2026-08-08, gce-builder, full suite)
+
+```
+clean tree      2494 tests completed, 1 failed, 1 skipped
+with DR-09      2500 tests completed, 1 failed, 1 skipped     <- same single failure
+```
+
+```
+TargetTenDrSpikeTest > testDr06SingleFileLayout FAILED
+  junit.framework.AssertionFailedError:
+    single-file layout must resolve a namespace constant. Found: [wx.wxID_ANY]
+  at TargetTenDrSpikeTest.kt:161
+```
+
+The fixture is one registered library file:
+
+```lua
+---@meta
+
+---@class wx
+wx = {}
+
+---@type number
+wx.wxID_ANY = nil
+```
+
+Completion for `wx.wxID_<caret>` returns the list `[wx.wxID_ANY]` — the **qualified** name as the
+lookup string. The assertion is `constant.contains("wxID_ANY")`, i.e. exact list-element membership,
+which the qualified form fails. In the same run the method half of the same test passes:
+`f:<caret>` on a `wxFrame` returns `Show`, bare and correct.
+
+## The two questions, in order
+
+1. **Is the completion behaviour itself wrong?** A lookup string of `wx.wxID_ANY` offered at
+   `wx.<caret>` inserts `wx.wx.wxID_ANY`. If that is what a running IDE does, this is a user-visible
+   defect in member completion and the priority above is right. It has not been checked live — the
+   evidence so far is a test fixture only, and `LibraryRootTestCase` exists precisely because
+   library-root behaviour differs from project-file behaviour.
+2. **If the qualified form is correct**, the assertion is over-strict. Note that
+   `TargetTenDrSpikeTest` contains **both** forms for equivalent observations —
+   `constant.contains("wxID_ANY")` at `:163` and the looser
+   `constant.any { it.contains("wxID_ANY") }` at `:281` — so the harness disagrees with itself about
+   what the right answer is, and one of the two was written to pass against whatever was observed.
+
+## Regression or committed red?
+
+`TargetTenDrSpikeTest` was added in `e5b802a0` ("feat(target): TARGET-10 Phase 0 — DR verdicts
+measured"). **BUG-423, BUG-424 and BUG-425 landed afterwards.** Whether one of those changed member
+completion's lookup strings — making this a regression — or whether the spike was committed red has
+not been determined and should be, before deciding which of the two questions above to act on.
+
+## Why it matters beyond the one test
+
+A red full suite is a broken gate for everything else: the next real regression lands against a
+baseline that is already failing, and "1 failed" stops being a signal. Per the standing rule that a
+feature's gate is regression-relative, this must be resolved rather than carried.
+
+## Gating notes
+
+`--rerun --no-build-cache` is required; without it `:test` is served FROM-CACHE and reports a pass
+having run nothing. Gate on the **full** suite — an isolated `--tests *TargetTen*` run can pass while
+the full suite fails.

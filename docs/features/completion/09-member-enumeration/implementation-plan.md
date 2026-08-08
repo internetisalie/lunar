@@ -24,7 +24,7 @@ folders:
 > **Two DR-09 findings change this plan.** (1) D1 and D2 were both *confirmed by measurement*, so
 > §4.5's scope rule is now first-declaring-file within `projectScope`-then-`allScope` — Phase 1 must
 > implement that, not the union the prototype currently has. (2) The one membership mismatch is
-> an **engine defect** (design §4.4a): the global and `@class` doors disagree about `a.b.c = v`, and the global door is wrong
+> **BUG-430**: the global and `@class` doors disagree about `a.b.c = v`, and the global door is wrong
 > twice. COMP-09 preserves the **`@class` door** and deliberately does not reproduce the flattening;
 > COMP-09-07's bar is redefined accordingly (design §4.4a) and Phase 0's golden must record which
 > door each receiver is measured through.
@@ -43,7 +43,7 @@ folders:
         `resolveGlobal` and `resolveType` per receiver (design §1.4 — `wx` answers differently through
         each): a namespace global, a `@class` with dot *and* colon members, and an all-colon `@class`.
         **Label each receiver with the door it is measured through** — design §4.4a: for `a.b.c = v`
-        the two doors disagree and the global door's answer is wrong, so an unlabelled golden would
+        the two doors disagree and the global door's answer is BUG-430, so an unlabelled golden would
         certify a bug as the contract.
   - [ ] Add the `LuaOverrideLineMarkerProvider` case to the golden — `sourceElement` is load-bearing
         (design §4.1) and `materializeClass:256-262` warns the parity harness cannot see it.
