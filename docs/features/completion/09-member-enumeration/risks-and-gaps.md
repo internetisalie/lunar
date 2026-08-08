@@ -97,6 +97,7 @@ folders:
 | ID | Action | Resolves | Status |
 | :-- | :-- | :-- | :-- |
 | COMP-09-00-DR-01 | Record today's exact enumeration result — member set, types, order — for a library global, a `@class`, and a local-declared class, as a golden file | Risk 1.1, 1.2 | todo — **blocks everything** |
+| COMP-09-00-DR-02a | Build a harness that observes the **first** lookup element — `completeBasic()` returns only when completion finishes, so no time-to-first-result figure exists for any fixture, including the ones this plan quotes | NFR-1 (unmeasured), TC 2 | todo — **blocks NFR-1** |
 | COMP-09-00-DR-02 | Instrument the four buckets (`resolveGlobal`, `:328` scan, `:421` scan, remaining materialize) and measure each **against the existing 100 ms target** — the budget is not ours to set | COMP-09 NFR, Gap 2.2 | todo |
 | COMP-09-00-DR-03 | Prototype the index shape against the wx tree; decide name-only vs name+kind | Gap 2.1, 2.3 | todo |
 | COMP-09-00-DR-04 | Establish whether incremental yield and the existing memoization can coexist, or whether only completion yields incrementally | Risk 1.3 | todo |

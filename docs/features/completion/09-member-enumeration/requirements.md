@@ -119,7 +119,8 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | # | Requirement | Given | When | Then |
 |---|---|---|---|---|
 | 1 | COMP-09-01 | A 230 KiB library root declaring ~3 400 `wx.*` members | `wx.<caret>`, measure **time to first element** | Under the budget set by DR-02; today it is 12 902 ms |
-| 2 | COMP-09-04 | Same | Measure time-to-first and time-to-exhaustive separately | They differ by at least an order of magnitude |
+| 2 | COMP-09-04 | Same | Measure time-to-first and time-to-exhaustive **separately**, via a harness that observes the first element rather than `completeBasic()`'s return | They differ by at least an order of magnitude; first-result meets NFR-1 while exhaustive is permitted not to |
+| 2a | COMP-09-04 | The 530 KiB fixture, narrow prefix vs broad prefix | Compare time-to-first-result for each | Both under 100 ms — first-result must be independent of both index size and candidate count, unlike today's 18 429 / 25 352 ms |
 | 3 | COMP-09-07 | Every existing definition/completion fixture | Run the suite | Identical member sets and types to today |
 | 4 | COMP-09-06 | All four corpus members | Re-baseline | `LuaTypeAssignability` / `LuaReturnTypeMismatch` unchanged |
 | 5 | COMP-09-03 | Library declaring `wx.K = nil`, `function wx.F() end`, `---@class C` with a field | `wx.<caret>` and `C` instance caret | All three forms enumerate |
@@ -143,18 +144,31 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 ## Non-Functional Requirements
 
 **The target already exists and this feature is 129× outside it.**
-[`docs/features/non-functional.md:13`](../../non-functional.md): *"Code completion should return
-results in under 100ms for projects up to 50k lines."* Measured today against a 230 KiB library
-root: **12 902 ms**. Against a 530 KiB single file: **25 352 ms**. Even the cheapest fixture measured
-— 40 KiB of constants — is **297 ms**, 3× over.
+[`non-functional.md`](../../non-functional.md) — amended alongside this feature — sets
+**time-to-first-result under 100 ms, independent of index size**, and deliberately sets *no* budget
+for the exhaustive set, because that scales with **index entries traversed**.
+
+Measured today: **12 902 ms** against a 230 KiB library root, **25 352 ms** against a 530 KiB single
+file, **297 ms** against 40 KiB of constants. That entries rather than results dominate is measured,
+not assumed: a **narrow** prefix matching a handful of candidates cost 18 429 ms where a **broad**
+one cost 25 352 ms.
+
+**⚠ Every number above is time-to-EXHAUSTIVE, and time-to-first-result has never been measured.**
+`myFixture.completeBasic()` returns only when completion finishes, so the Phase 0 harness could not
+observe a first element. Today the two are almost certainly equal — the eager `materialize` precedes
+any `addElement` — but "almost certainly" is not a measurement, and the *binding* target is the one
+with no data behind it. DR-02 must therefore build a harness that can observe the first element (a
+`CompletionResultSet` wrapper or a `LookupListener`), not reuse the Phase 0 timings.
 
 `GlobalSymbolCompletionPerformanceTest`'s KDoc adds per-scale targets (*"<250ms at 1000 symbols"*,
 *"<400ms at 5000 symbols"*).
 
-- **NFR-1 — time to first element < 100 ms** against the COMP-09 TC 1 fixture. Not a new budget:
-  the existing one, applied to the case that breaks it.
-- **NFR-2 — no regression in exhaustive-enumeration time.** 12.9 s to the *complete* set is
-  acceptable; 12.9 s to the *first* result is the defect.
+- **NFR-1 — time to first element < 100 ms** against the COMP-09 TC 1 fixture, independent of index
+  size. Not a new budget: the amended existing one, applied to the case that breaks it.
+- **NFR-2 — the exhaustive phase carries no latency budget**, but must be incremental, cancellable
+  and off the EDT. 12.9 s to the *complete* set is acceptable; 12.9 s to the *first* result is the
+  defect. A "fix" that makes the exhaustive set faster while leaving first-result behind it has not
+  addressed this feature.
 - **NFR-3 — the target becomes enforced, not documented.** See COMP-09-08.
 - **NFR-4 — threading unchanged**; enumeration runs where it runs today
   (`docs/engineering-contract.md` §1).
