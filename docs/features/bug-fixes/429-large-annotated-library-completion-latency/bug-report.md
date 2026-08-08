@@ -129,6 +129,24 @@ brute force a lookup the index answers in one query.
    this plan and may be unnecessary once the two scans are gone. Do not build it before (2) is
    measured.
 
+### Two more instances, found by auditing every `getAllKeys` site
+
+The handoff's audit named one. Scanning all nine `getAllKeys`/`processAllKeys` call sites in
+`src/main` finds **two more of the same shape**, both on the LuaCATS `@class` path — which matters
+disproportionately here, because a definition library is essentially nothing *but* `@class`
+declarations.
+
+| Site | Shape | Verdict |
+| :-- | :-- | :-- |
+| `LuaTypeManagerImpl:328-332` (`materializeUnhostedClass`) | **second** `getAllKeys(LuaGlobalDeclarationIndex.KEY)` → `addMethodsOf` | **Same defect**, not in the handoff. Fixed by the same receiver-keyed `getElements`. This is the `---@class` materialization path, so for wx it is likely to dominate `:420`. |
+| `LuaTypeManagerImpl:337-348` (`catsClassTags`) | `getContainingFiles(LuaCatsTypeNameIndex.KEY, name)` ✓ then `PsiTreeUtil.findChildrenOfType(file, LuaCatsClassTag)` over the **whole file**, filtering by name | **Narrower but real.** Index-narrowed to the right files, then linear within them. A 230 KiB `wx.lua` with hundreds of `@class` tags pays a full-file PSI walk per class resolved. |
+| `LuaCatsTypeNavigation:32` | `processAllKeys` | **Legitimate** — Go-to-Class name enumeration genuinely needs every name. Its `processElements` is properly keyed (`getContainingFiles(KEY, name, scope)`). Not a gap; recorded so nobody "fixes" it. |
+| `GlobalSymbolRankingService:51-72` | `getAllKeys` ×2 | **Already addressed** — the comment records it was scanned per completion invocation and is now cached (§2.5.5). Precedent for this fix, and worth reading before repeating the approach. |
+| `LuaGotoSymbolContributor`, `LuaDocSearchEverywhereContributor`, `LuaHierarchyUtil` | enumeration APIs | **Legitimate** — Search Everywhere, Goto Symbol and hierarchy all need the full key set by definition. |
+
+So there are **two** `addMethodsOf` feeds to fix (`:328` and `:421/424`), not one, and a third,
+different narrowing to consider in `catsClassTags`. DR-01's fourth bucket should distinguish them.
+
 ## Constraint inherited from BUG-395 — do not repeat its reverted experiment
 
 That commit records: "Deliberately not wired into `visitNameRef`, which would type free globals for
