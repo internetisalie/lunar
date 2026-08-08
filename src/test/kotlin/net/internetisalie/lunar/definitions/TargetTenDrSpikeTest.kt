@@ -14,24 +14,6 @@ import kotlin.system.measureTimeMillis
  * rule, which this feature's own review caught twice.
  */
 class TargetTenDrSpikeTest : LibraryRootTestCase() {
-    /**
-     * Completions offered at the caret in [text].
-     *
-     * A single perfect match is auto-inserted and `completeBasic` returns null, which reads as
-     * "nothing offered" — the exact ambiguity `LuaLibraryGlobalCompletionTest` documents. Recover
-     * the inserted word from the document instead.
-     */
-    private fun completionsFor(text: String): List<String> {
-        myFixture.configureByText("consumer.lua", text)
-        val elements = myFixture.completeBasic()
-        if (elements != null) return elements.map { it.lookupString }
-        return listOf(
-            myFixture.editor.document.text
-                .substringBefore('\n')
-                .trim(),
-        )
-    }
-
     // ---------------------------------------------------------------- DR-02: statics encoding
 
     /** Branch A (`statics_mode="dotted"`): constructor and statics share the `wx.wxFileName` path. */
@@ -278,9 +260,9 @@ class TargetTenDrSpikeTest : LibraryRootTestCase() {
         println("DR-06c re-anchored constructor: $ctor")
         println("DR-06c re-anchored free function (2nd file): $free")
         val ok =
-            constant.any { it.contains("wxID_ANY") } &&
+            constant.contains("wxID_ANY") &&
                 ctor.contains("Show") &&
-                free.any { it.contains("wxFileExists") }
+                free.contains("wxFileExists")
         println("DR-06c VERDICT: " + if (ok) "split-with-reanchor WORKS" else "does not merge")
     }
 

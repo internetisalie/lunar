@@ -31,6 +31,37 @@ import java.nio.file.Files
  * root set, and the rescan that announcement schedules has to finish before anything is indexed.
  */
 abstract class LibraryRootTestCase : BasePlatformTestCase() {
+    /**
+     * The lookup strings offered at the caret in [text].
+     *
+     * A lookup with exactly one match is **auto-inserted** and `completeBasic` returns null, so
+     * reading the offered elements alone reports the single-perfect-match case as "nothing was
+     * offered" — indistinguishable from the failure most tests here exist to catch. The inserted
+     * word is recovered from the document instead.
+     */
+    protected fun completionsFor(text: String): List<String> {
+        myFixture.configureByText("consumer.lua", text)
+        val elements = myFixture.completeBasic()
+        if (elements != null) return elements.map { it.lookupString }
+        return listOf(insertedWordAtCaret())
+    }
+
+    /**
+     * The word a single perfect match was auto-inserted as: the identifier ending at the caret.
+     *
+     * It must be read that way rather than as the whole line, which is what BUG-431 was. The line
+     * still holds the receiver — `wx.wxID_<caret>` completes to a line reading `wx.wxID_ANY` — and a
+     * member's lookup string is never qualified, so a line-wide read reports a member that resolved
+     * correctly as one that came back under the wrong name, and does so only for the members whose
+     * prefix happens to be unambiguous.
+     */
+    private fun insertedWordAtCaret(): String {
+        val document = myFixture.editor.document.text
+        val caret = myFixture.editor.caretModel.offset
+        val start = document.take(caret).indexOfLast { !it.isLetterOrDigit() && it != '_' } + 1
+        return document.substring(start, caret)
+    }
+
     private class LibraryRootProvider(
         private val root: VirtualFile,
     ) : AdditionalLibraryRootsProvider() {

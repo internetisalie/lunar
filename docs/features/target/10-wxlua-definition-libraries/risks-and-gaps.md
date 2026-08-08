@@ -320,6 +320,12 @@ actually fixed?
 
 Every verdict below is executed output, not a reading.
 
+> **The DR-06 spike was committed with a failing assertion** — `testDr06SingleFileLayout` was red
+> from `e5b802a0` onward, which is how it stayed red on `main` until BUG-431 traced it. The verdicts
+> in the table are unaffected: they were read off the spike's `println` output, and BUG-431 measured
+> that output correct. What failed was the assertion's reading of the harness, not the completion it
+> observed. Recorded so a later reader does not discount the table for a defect that was never in it.
+
 | DR | Verdict | Evidence |
 | :-- | :-- | :-- |
 | **DR-02** | **Branch B (`statics_mode="on-class"`)** | `wx.wxFileName.<caret>` against a root declaring both `function wx.wxFileName(path)` and `function wx.wxFileName.GetCwd()` offers **nothing**. The constructor half works: `local f = wx.wxFileName("x")` then `f:` offers `GetFullPath`. So constructors keep the namespace path and statics move onto the class table, exactly as design §3.6 Branch B specifies. `wx.wxFileName.GetCwd()` will not complete — the accepted cost, and the right way round (~1 000 constructors vs 494 statics). |

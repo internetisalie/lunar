@@ -14,25 +14,6 @@ package net.internetisalie.lunar.definitions
  */
 class LuaLibraryGlobalCompletionTest : LibraryRootTestCase() {
     /**
-     * The completion strings offered for [text].
-     *
-     * A lookup with exactly one match is **auto-inserted** and `completeBasic` returns null, so
-     * reading `lookupElementStrings` alone reports the single-perfect-match case as an empty list —
-     * indistinguishable from "nothing was offered", which is precisely the bug under test. The
-     * inserted word is recovered from the document instead.
-     */
-    private fun completionsFor(text: String): List<String> {
-        myFixture.configureByText("consumer.lua", text)
-        val elements = myFixture.completeBasic()
-        if (elements != null) return elements.map { it.lookupString }
-        return listOf(
-            myFixture.editor.document.text
-                .substringBefore('\n')
-                .trim(),
-        )
-    }
-
-    /**
      * The bundled stdlib case, which needs no registered root of its own — `PlatformLibraryProvider`
      * already contributes `builtin.lua`. This is the plainest possible statement of the bug: typing
      * `pri` in a Lua file did not offer `print`.
