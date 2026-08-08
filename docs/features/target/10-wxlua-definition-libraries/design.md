@@ -527,7 +527,23 @@ The global assignment makes `wx` an ambient global (wxLua's `wx` is global once 
 `return wx` makes the file a requirable module. Both are needed — ZeroBrane writes `require("wx")`
 *and* uses `wx` bare.
 
-#### 3.5.2 Group file — `library/<ns>/<cpp>.lua`, and the split-layout question
+#### 3.5.2 File layout — RESOLVED BY DR-06 (2026-08-07): minimal root + class bodies
+
+**Both branches below were refuted by measurement; this is the layout that replaced them.**
+
+- Namespace-level members — `wx.wxCONST = nil`, `function wx.wxFrame(...)` constructors, free
+  functions — **must** be written into the file that declares `---@class wx` / `wx = {}`. A sibling
+  file resolves nothing, **and re-declaring `---@class wx` in the sibling does not merge either**
+  (measured; the option the original §3.5.2 never considered).
+- Class bodies — `---@class wxFrame` / `local wxFrame = {}` / its methods — go in sibling files
+  `library/<ns>/<cpp>.lua`. Flat type names resolve cross-file, including cross-namespace
+  (`wxstc.wxStyledTextCtrl : wxControl` offers both its own and inherited members).
+
+This is the arrangement that both resolves and keeps the root file as small as it can be. It is
+**still over budget** — a 230 KiB root costs 12.9 s to first completion — which is BUG-429, and why
+Phase 4 is blocked. Phases 1–3 are unaffected: the emitted text is the same either way.
+
+<details><summary>Superseded: the original split-vs-single question</summary>
 
 `wxcore_*.i` → `library/wx/wxcore.lua`; `wxstc_stc.i` → `library/wxstc/wxstc.lua`. One file per
 **C++ group**, not per `.i` file, so filenames stay stable when upstream splits a header.
@@ -556,6 +572,8 @@ to assert behaviour from reading.
 
 Nothing else in the design depends on which verdict lands: §3.5.3–§3.5.8 render identical text
 either way, and only the file each block is written to changes.
+
+</details>
 
 #### 3.5.3 Constants and aliases
 
@@ -652,7 +670,13 @@ reading; **DR-02 runs it** ([risks-and-gaps.md](risks-and-gaps.md)).
 
 Both branches are fully specified. `emit.render_group` takes `statics_mode` (§2.3); DR-02 sets it.
 
-**Branch A — `statics_mode="dotted"` (preferred; used if DR-02 passes).** Emit both:
+**DR-02 RESOLVED 2026-08-07: Branch B.** Measured — `wx.wxFileName.<caret>` offers nothing when
+`wx.wxFileName` is also declared as a constructor function. The constructor half works
+(`local f = wx.wxFileName("x")` → `f:` offers instance members), so `statics_mode="on-class"` is the
+implemented behaviour and `wx.wxFileName.GetCwd()` does not complete. Branch A is retained below for
+the record.
+
+**Branch A — `statics_mode="dotted"` (REFUTED).** Emit both:
 
 ```lua
 ---@return wxFileName

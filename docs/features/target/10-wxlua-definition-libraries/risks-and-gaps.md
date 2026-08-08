@@ -316,17 +316,46 @@ actually fixed?
   `wxaui` only. `wxwebview` is emitted and resolvable but will not itself trigger a TARGET-09
   suggestion; a file using only `wxwebview.*` is vanishingly rare.
 
+## Phase 0 results — 2026-08-07, `TargetTenDrSpikeTest` on gce-builder
+
+Every verdict below is executed output, not a reading.
+
+| DR | Verdict | Evidence |
+| :-- | :-- | :-- |
+| **DR-02** | **Branch B (`statics_mode="on-class"`)** | `wx.wxFileName.<caret>` against a root declaring both `function wx.wxFileName(path)` and `function wx.wxFileName.GetCwd()` offers **nothing**. The constructor half works: `local f = wx.wxFileName("x")` then `f:` offers `GetFullPath`. So constructors keep the namespace path and statics move onto the class table, exactly as design §3.6 Branch B specifies. `wx.wxFileName.GetCwd()` will not complete — the accepted cost, and the right way round (~1 000 constructors vs 494 statics). |
+| **DR-06** | **Neither branch as written.** Both are superseded — see below. | A sibling file with no re-anchor resolves nothing (`[]` for constant and constructor). **Re-declaring `---@class wx` + `wx = {}` in the sibling does not merge either** (`[]` again) — the option §3.5.2 never considered. One self-contained file per namespace *does* resolve, and cross-namespace inheritance resolves with it (`wxstc.wxStyledTextCtrl` offers both `SetLexer` and inherited `Enable`). |
+| **DR-04** | **FAILS the budget, and blocks publication.** | See BUG-429. |
+
+### The layout that follows, and why it is still not enough
+
+Combining DR-06's two findings: namespace-level members (`wx.wxCONST = nil`,
+`function wx.wxFrame()`, free functions) **must** sit in the file declaring `---@class wx`, while
+class bodies resolve cross-file by flat type name. That gives a minimal-root arrangement — root file
+for namespace members, sibling files for class bodies — which DR-04d confirms resolves in both
+directions (namespace constant ✓, class member via constructor ✓).
+
+It is still too slow. With a 230 KiB root, a namespace-constant completion costs **12.9 s**; the
+single-file variant costs 18–25 s. Indexing is fine throughout (1.5–2.7 s) — the cost is in
+completion. Filed as **BUG-429**, with the two unseparated hypotheses (annotated *function*
+declarations being far more expensive than annotated assignments, versus the cost being whole-tree
+rather than per-file). They imply opposite fixes, and if it is whole-tree then no layout helps and
+only a smaller emitted surface does.
+
+**Consequence for this feature**: Phases 1–3 (the generator) proceed unchanged — the tree is needed
+whatever the resolution. **Phase 4 (publish) is blocked on BUG-429**, because shipping a library
+whose first completion costs 13 s is worse than shipping nothing.
+
 ## Pre-Implementation De-risking Tasks
 
 | ID | Action | Resolves | Status |
 |---|---|---|---|
 | TARGET-10-00-DR-01 | Enumerate LuaCATS org + `LuaLS/LLS-Addons` and confirm no wxLua definition library exists; read ZeroBrane's `api/lua/wxwidgets.lua` | The premise of the whole feature | **done** — [research.md §1–2](research.md). 28 LuaCATS repos, 86 LLS-Addons submodules, no wxLua. ZeroBrane's file is an 812-byte runtime introspector. |
-| TARGET-10-00-DR-02 | Spike the dual `function wx.wxFileName(p)` + `function wx.wxFileName.GetCwd()` declaration through `LibraryRootTestCase` | Gap 2.1 (design §3.6 branch) | todo — **blocks Phase 2** |
+| TARGET-10-00-DR-02 | **done — Branch B**, see Phase 0 results. Spike the dual `function wx.wxFileName(p)` + `function wx.wxFileName.GetCwd()` declaration through `LibraryRootTestCase` | Gap 2.1 (design §3.6 branch) | todo — **blocks Phase 2** |
 | TARGET-10-00-DR-03 | Settle the published repository's owner and name | Gap 2.3 | todo — **blocks Phase 4** |
-| TARGET-10-00-DR-04 | Measure first-index wall-clock and heap for a tree of the real order of magnitude | Gap 2.2, Risk 1.3 | todo — **blocks Phase 1** |
+| TARGET-10-00-DR-04 | **done — FAILS, see BUG-429**. Measure first-index wall-clock and heap for a tree of the real order of magnitude | Gap 2.2, Risk 1.3 | todo — **blocks Phase 1** |
 | TARGET-10-00-DR-05 | Parse-coverage spike over the real `.i` files against the pinned ZeroBrane corpus | Risk 1.1 (is the format tractable at all?) | **done** — [research.md §5](research.md). 82% / 96% / 95% for `wx` / `wxstc` / `wxaui` from a 40-line parser implementing 4 of the 10 forms. A **lower bound**, not a target; the Phase 3 floors come from the first real run. |
 | TARGET-10-00-DR-08 | **Validate §3.4's type map where contracts actually reach.** A corpus delta measures zero today (BUG-425), so it cannot be the instrument. Instead: sample ~50 emitted wx signatures spanning every §3.4 row, inline them **same-file** with representative ZeroBrane call sites, and assert no diagnostic. Then run the corpus delta anyway and **record the expected zero explicitly**, so a future reader cannot mistake it for a pass. Include the `---@param x number` vs `integer` case at `LUA51` | Risk 1.6 | todo — **blocks Phase 4** (publish) |
-| TARGET-10-00-DR-06 | Spike the split namespace layout through `LibraryRootTestCase` (TC 7a): `wx.lua` with only the `---@class wx` header, members in `wx/wxcore.lua`, assert `wx.<caret>` completes them | Gap 2.4, Risk 1.2 | todo — **blocks Phase 2** |
+| TARGET-10-00-DR-06 | **done — neither branch; minimal-root layout derived instead**. Spike the split namespace layout through `LibraryRootTestCase` (TC 7a): `wx.lua` with only the `---@class wx` header, members in `wx/wxcore.lua`, assert `wx.<caret>` completes them | Gap 2.4, Risk 1.2 | todo — **blocks Phase 2** |
 | TARGET-10-00-DR-07 | Count every declaration form in the pinned `.i` files **and execute the §3.2/§3.3 rules over all 42 of them** | Risk 1.1 | **done** — reference implementation checked in at `tooling/spikes/target-10-wxi-grammar/probe.py`; firing counts in design §3.3, coverage in §3.8 (98/99/95%). Counting alone overturned the "six forms" premise; *running* it then overturned five more assumptions that counting could not see — see the note below. |
 
 **Why DR-07 had to be executed, not counted.** The first grammar written from the counted form table
