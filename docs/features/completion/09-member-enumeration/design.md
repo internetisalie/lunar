@@ -40,21 +40,45 @@ enumeration is already fast. It is *"answer a symbol's type without building its
 whole graph"*. The two `getAllKeys` scans are real (§1.3) but they are inside the 10 ms, and fixing
 them would not have moved the headline number at all.
 
-### 1.2 The cost is per-keystroke, not per-session (DR-02b/c)
+### 1.2 An unrelated edit costs 264 ms — REMEASURED (DR-02c, medians of 5)
 
-| | ms |
+The original version of this section reported cold 800 / warm 0 / after-one-keystroke 608 ms and
+called it "76 % repaid". Every figure was single-shot, Step 9 re-ran the harness and got the
+*opposite* verdict, and DR-02c was reopened. Redone with medians of 5, and with **time-to-first**
+(the quantity the NFR names) rather than time-to-exhaustive:
+
+| | time-to-first |
 | :-- | --: |
-| cold | 800 |
-| warm, no PSI change | **0** |
-| after one keystroke **in the consumer file** | **608** |
+| cold | **1 152 ms** |
+| warm, no PSI change | **1.0 ms** |
+| after one keystroke **in the consumer file** | **264 ms** (samples 217 / 221 / 264 / 271 / 599) |
 
-(Constants-only fixture, hence 800 ms not 9 568 ms; the **ratio** is the finding — 76 % repaid.)
+**The old headline was wrong twice.** 22 % of the cold cost is repaid, not 76 %; and the
+per-keystroke-vs-per-session framing is a false dichotomy — it is neither. An unrelated edit does not
+repay the full build, but it takes completion from 1.0 ms to 264 ms, which is **2.6x over budget**.
+Both halves of the old wording flattered the code in one direction and the problem in the other.
 
-`typeCache` (`LuaTypeManagerImpl:34-44`) and the per-file snapshot (`LuaTypes:215-222`) both depend
-on project-wide `PsiModificationTracker`, so an edit anywhere invalidates the *library's* snapshot.
-Typing `wx.wxF` therefore pays the full graph build on each character. The NFR's per-keystroke clause
-was right, but the mechanism is cache invalidation forcing recomputation — not, as it stated,
-cancellation and restart.
+The mechanism is as described: `typeCache` (`LuaTypeManagerImpl:34-44`) and the per-file snapshot
+(`LuaTypes:215-222`) both depend on project-wide `PsiModificationTracker`, so an edit anywhere
+invalidates the *library's* snapshot. The NFR's per-keystroke clause was right that repeated typing
+pays repeatedly; it is wrong that the mechanism is cancellation and restart, and wrong that each
+keystroke pays the *whole* cost.
+
+### 1.2a §3.3 / DR-07 DECIDED — narrowing invalidation is a complement, not an alternative
+
+The open question was whether narrowing cache invalidation would beat indexing, which would make this
+whole feature the more expensive of two options. The three figures above answer it:
+
+- narrowing invalidation could at best take the post-edit case from **264 ms to 1.0 ms**. That is a
+  real win and worth having.
+- it cannot touch the **cold 1 152 ms**, which is the first completion of every session — the moment
+  a user is most likely to notice, and the one the budget is missed by 11.5x.
+- it also does nothing about the **40x scaling with member count** (§1.9), because that is present
+  cold and warm alike.
+
+**Decision: index, and keep narrowing as a separate follow-up.** They fix disjoint halves; only
+indexing fixes the half that is over budget on a clean IDE start. DR-07 closes here rather than
+staying a "TBD under Technical Debt with no task", which is what Step 9 flagged it as.
 
 ### 1.3 The receiver key is dot-only (DR-06)
 
@@ -131,8 +155,12 @@ total. Neither is evidence for anything. Candidate C — 43 ms for a 17 234-key 
 `getElements` — is the only figure from this run that holds, and it says the scan is not the
 dominant term. COMP-09-09's bound is **entries traversed**, per `non-functional.md`.
 
-**Which gives the design its answer.** 340 ms is 28× better than 9 568 ms and still over the 100 ms
-budget, because it loads stubs. Names must come from the index *value*, not from the elements:
+**Which gives the design its answer** — and note the 340 ms total above is the sum of two withdrawn
+components, so it is quoted as the *shape* of the result, not as a figure. The load-bearing evidence
+is §4.0's `membersOf` at **2 ms for 3 600 members** against `resolveGlobal`'s **13 655 ms** on the
+same fixture, measured on the built index. Index-backed name lookup beats the graph by three orders
+of magnitude and still loses if it loads stubs, so names must come from the index *value*, not from
+the elements:
 
 > A receiver-keyed index whose **value is the member name**, so enumeration is a key lookup returning
 > strings with zero stub deserialisation and zero graph construction.
@@ -241,6 +269,47 @@ per-member type + displayName, 3700 members:    median   4 ms  (min 4, max 11)
 per-keystroke claim does not** — see §2's correction table. Any figure quoted from here on is a median
 of ≥5 or is marked single-shot.
 
+## 1.9 NFR-1 MEASURED at last (DR-02a) — time-to-first is 746 ms and scales with member count
+
+`completeBasic()` returns only when completion has finished, so until now **no time-to-first-result
+figure existed for any fixture in this plan**, including the ones §1.1–§1.7 quote. DR-02a built the
+observer: a `CompletionContributor` registered `LoadingOrder.FIRST` for Lua which calls
+`runRemainingContributors` and timestamps each result as the platform produces it. The numbers come
+from a real `completeBasic()` run, not from calling the contributor by hand with a synthesised
+parameter object.
+
+| | |
+| :-- | --: |
+| **cold time-to-first**, 3 600 members | **746 ms** |
+| cold time-to-exhaustive | 777 ms |
+| **gap first → exhaustive** | **31 ms (4 %)** |
+| warm time-to-first, median of 5 of the *same* completion | 1.1 ms |
+| cold time-to-first, **3-member** receiver in its own file | 41 ms |
+| cold time-to-first, **3 600-member** receiver in its own file | 1 641 ms |
+
+Three things follow, and two of them are new.
+
+**First == exhaustive is now measured, not structural.** DR-02 argued it from the shape of the emit
+loop; the gap is 31 ms against a 746 ms total. That is what withdrawing COMP-09-04 (incremental
+yield) rested on, and it now rests on a measurement instead of a reading — which matters, given the
+record.
+
+**NFR-1 is missed by 7.5x**, and this is the first time the target has been compared against the
+quantity it actually names. §1.6's 167 ms was time-to-exhaustive on a warm file.
+
+**The NFR's independence clause is violated outright.** `non-functional.md` requires time-to-first to
+be independent of *candidate count*, and it scales **40x** between a 3-member and a 3 600-member
+receiver measured cold in separate files. Separate files matter: the per-file snapshot is memoized,
+so two receivers in one file would have made the second look free for reasons unrelated to its size.
+
+**Caveat on the two cold figures.** 746 ms and 1 641 ms are the same receiver in different fixtures
+(one library file vs two), so they are not comparable to each other; each is only comparable to its
+own pair. Both are cold and both are over budget, which is all either is used for.
+
+**This is COMP-09-08's mechanism.** The gate asserts cold time-to-first against the budget and is red
+today by construction, which is the mutation proof the plan asks for — no need to break the code to
+show the test can fail, because it fails now.
+
 ## 2. Consequences for the plan
 
 Corrections forced by Step 9 review, beyond §1.7/§1.8:
@@ -257,24 +326,26 @@ Corrections forced by Step 9 review, beyond §1.7/§1.8:
 | "Replace the two `getAllKeys` scans" is the first increment | Those scans are inside a 10 ms region. Real, but not the headline. Demoted to a work-bound fix (COMP-09-09), not a latency one |
 | Fix direction is index-backed member enumeration | Fix direction is **avoiding the declaring file's whole-graph build** to answer one symbol's type. Enumeration is already fast |
 | Swapping the scan is a strict simplification | It is a correctness regression until `indexStub` also sinks `substringBefore(':')` — a **stub index format change**: version bump, full reindex |
-| Per-keystroke concern justified by cancel/restart | Justified by measured cache invalidation: 76 % of the cost repaid on an unrelated edit |
+| Per-keystroke concern justified by cancel/restart | Justified by measured cache invalidation. ⚠ The "76 % repaid" figure once here is **withdrawn**; §1.2 remeasured it with medians as **22 %** (264 ms of 1 152 ms) |
 
-## 3. Open questions this design cannot yet answer
+## 3. Questions this design could not answer when it was written — all now closed
 
-Deliberately unresolved — each needs a measurement that has not been taken, and inventing answers
-here is what produced §1.1 and §1.3.
+Each needed a measurement that had not been taken, and inventing answers here is what produced the
+errors §1.1 and §1.3 record. **None remains open**; each is closed by a named section, and anything
+still genuinely undecided lives in `risks-and-gaps.md` as a tracked task, per the DoD.
 
 1. ~~Can a global's type be answered without `forFile`?~~ **Answered, §1.5.** Not the type — but the
    member *names* can, from an index value, which is what completion needs.
 2. ~~Is the `@class` path dominated by `forFile` or by the `getElements`-per-key loop?~~
    **Answered, §1.6.** Neither — it never calls `forFile`, and its cold cost is dominated by the
    declaring file's AST parse. Different bottleneck, same remedy.
-3. **Does narrowing invalidation help more than indexing?** If the library snapshot survived edits to
-   unrelated files the cost would be once per session per file rather than 76 % repaid per keystroke
-   (§1.2). Possibly a smaller change than an index; not obviously safe.
-4. ~~Where does incremental yield apply?~~ **Decided, §1.7 — nowhere.** COMP-09-04 withdrawn,
-   COMP-09-04b (lazy type rendering) added. Reopens only if a value-carrying index lookup measures
-   slow in Phase 1.
+3. ~~Does narrowing invalidation help more than indexing?~~ **Decided, §1.2a (DR-07).** No — it is a
+   complement. Narrowing takes the post-edit case from 264 ms to 1.0 ms but cannot touch the cold
+   1 152 ms, which is every session's first completion, nor the 40x member-count scaling. Index now,
+   narrow separately.
+4. ~~Where does incremental yield apply?~~ **Decided, §1.7 — nowhere**, and confirmed by measurement
+   in §1.9: the gap between the first element and the last is 31 ms of 777 ms. COMP-09-04 withdrawn;
+   COMP-09-04b withdrawn in turn (§1.7).
 
 ## 4. Architecture — rewritten from a measured prototype (DR-09)
 
@@ -285,6 +356,9 @@ registered, indexed a real library root, and was measured: `LuaReceiverMemberInd
 places the prototype disagreed with today's engine are stated as findings rather than smoothed over.
 
 ### 4.0 What DR-09 measured
+
+*(`membersOf` below is DR-09's prototype name; Phase 1 retires it for `membersOfGlobal` /
+`membersIn` — §4.5. The figures are unaffected: it is the same key lookup.)*
 
 Fixture for timing: one 238 KiB `---@meta` library — 3 400 `---@type number` constants, 200 dot
 functions, 300 classes × 8 colon methods — the BUG-429 shape.
@@ -411,78 +485,320 @@ recording the last suffix against the root receiver instead of descending. That 
 reading missed it: both readings were correct about the code they read. Filed as **BUG-430**.
 
 **This changes what COMP-09-07 can mean.** "Behaviour-preserving" is not well-defined while two
-goldens exist for one receiver and one of them is a bug. COMP-09 therefore preserves the **`@class`
-door's** membership (`resolveType` → `materializeClass`), which the prototype matches exactly on all
-four receivers, and **does not** reproduce the global door's flattening. That is a deliberate,
-recorded behaviour change, not an accident, and it is the correct direction — but it must be stated
-in the plan and gated, not discovered by a user.
+goldens exist for one receiver and one of them is a bug. **Each consumer preserves the door it
+actually serves** — completion the global door (§4.5), materialization the `@class` door (§4.6) —
+and neither reproduces the flattening.
 
-### 4.5 Consumer 1 — completion, with the scope semantics measured (§4.9 D1/D2)
+**Per-door golden, measured (DR-14).** An earlier version of this section claimed the prototype
+"matches the `@class` door exactly on all four receivers". That was never measured: the DR-09b
+harness took `resolveGlobal(r) ?: resolveType(r)`, the exact collapse §1.4 forbids, so for `wx` and
+`Shapes` it compared against the *global* door while the text said `@class`. Step 9 caught it. Redone
+per door, separately:
 
-Both defects the second review raised were reproduced, and they are different problems:
+| receiver | global door | `@class` door | |
+| :-- | :-- | :-- | :-- |
+| `wx` | `[wxFileExists, wxID_ANY]` | `[wxFileExists, wxID_ANY]` | agree |
+| `wxFrame` | **unresolvable** | `[Show, staticCount, title]` | only one door answers |
+| `AllColon` | **unresolvable** | `[alpha]` | only one door answers |
+| `Shapes` | `[deep, direct, nested, plain]` | `[direct, nested, plain]` | **disagree — `deep`** |
 
-**D2 — the superset is real.** `testDr09d2UnionVersusFirstDeclaringFile`, with a global `wx` in a
-library and an unrelated **file-local** `wx` in another file:
+Two receivers resolve through only one door, which is why a `?:` golden is not merely imprecise but
+silently door-dependent. COMP-09-07 requires every golden entry to name its door; the harness that
+produced the previous table did not, and the claim it supported has been replaced rather than
+re-worded.
 
-```
-DR-09d2 wx.lua        -> [real]
-DR-09d2 unrelated.lua -> [privateToThisFile, alsoPrivate]
-union  = [alsoPrivate, privateToThisFile, real]
-golden = [real]
-VERDICT: SUPERSET CONFIRMED, extra=[alsoPrivate, privateToThisFile]
-```
+### 4.5 Consumer 1 — completion. REWRITTEN FROM DR-14 after a third failed review of this section
 
-Risk 1.1 predicted this in its own words and the previous §4.5 walked into it. A flat union over
-`allScope` is **not** adoptable.
-
-**D1 — scope precedence is distinguishable, and reproducing it fixes part of D2.**
-`testDr09d1ScopePrecedence`, with `assert.fromLibrary` in a library and `assert.fromProject` in the
-project:
-
-```
-membersOf(projectScope) = [fromProject]
-membersOf(allScope)     = [fromLibrary, fromProject]
-golden (today)          = [fromProject]
-```
-
-So today's BUG-427 precedence — `projectScope`, then `allScope` only if the first is empty — is
-observable in *membership*, not just in which declaration a member resolves to.
-
-**The rule, therefore:**
-
-> `membersOf` mirrors `doResolveGlobal:150-151`: try `projectScope`; if it yields nothing, try
-> `allScope`. **Within the chosen scope, take the members of the first declaring file only** —
-> `typeOfGlobalIn:160-165`'s `.firstNotNullOfOrNull`, not a union.
-
-First-file-only is what kills D2's superset: `unrelated.lua`'s local `wx` is a different file, so it
-is never reached. This is a narrower `membersOf` than the prototype's current `processValues` union,
-and the union variant remains in the prototype **only** as the D2 probe. Phase 1 must implement
-first-file-only and re-run `testDr09b` — matching on all four receivers is the gate, not an
-expectation.
-
-The residual is honest and small: a *genuinely* additive second file (`function wx.extra()` in a
-second library file, same global) contributes nothing today either, because
-`typeOfGlobalIn` stops at the first. The index preserves that limitation rather than fixing it; if it
-should be fixed, that is its own bug.
+Two earlier versions of this section were wrong; so was the third. Step 9 blocker B2 found that the
+rule "mirror `typeOfGlobalIn`'s `.firstNotNullOfOrNull`" was read off the **tail** of a call chain
+whose **head** says something else:
 
 ```kotlin
-private fun crossFileGlobalMembers(receiver: PsiElement): List<LuaReceiverMember> {
-    val nameRef = bareNameOf(receiver) ?: return emptyList()
-    return LuaReceiverMemberIndex.membersOf(nameRef.text, nameRef.project)   // scope rule is internal
+private fun typeOfGlobalIn(scope, name, exclude): LuaType? =
+    FileBasedIndex.getInstance()
+        .getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, scope)   // <- NOT this index
+        .asSequence()
+        .mapNotNull { PsiManager.getInstance(project).findFile(it) as? LuaFile }
+        .filter { it != exclude }                                        // <- no parameter for this
+        .firstNotNullOfOrNull { globalTypeIn(it, name) }                 // <- skips typeless files
+```
+
+`LuaGlobalAssignmentIndex` keys **bare top-level globals** (`LuaGlobalAssignmentIndex.kt:27-28`);
+`LuaReceiverMemberIndex` keys receivers that own members. Different candidate sets, so "the first
+declaring file" denotes a different file in each. And "first" is undefined over an unordered
+`getContainingFiles` result.
+
+**The rule, implemented as `membersOfGlobal` and measured (DR-14).** Selection is not reinvented: it
+asks `LuaGlobalAssignmentIndex` the same question `typeOfGlobalIn` asks, honours `exclude`, and only
+then reads member values for the chosen file.
+
+```kotlin
+fun membersOfGlobal(receiver: String, project: Project, exclude: PsiFile?): List<LuaReceiverMember> {
+    declaringFileFor(receiver, project, GlobalSearchScope.projectScope(project), exclude)
+        ?.let { return membersInFile(receiver, project, it) }
+    declaringFileFor(receiver, project, GlobalSearchScope.allScope(project), exclude)
+        ?.let { return membersInFile(receiver, project, it) }
+    return emptyList()
 }
 ```
 
-The emit loop keeps its shape; `memberType` is replaced by `kind`:
+`declaringFileFor` is `getContainingFiles(LuaGlobalAssignmentIndex.KEY, receiver, scope)` filtered by
+`exclude?.virtualFile != vf`, taking the first. `membersInFile` is `processValues(KEY, receiver,
+inFile, …)` — the platform's own per-file restriction, so no ordering assumption is needed.
 
-```kotlin
-if (isColon && member.kind != Kind.FUNCTION) continue
-result.addElement(PrioritizedLookupElement.withPriority(LuaMemberLookup.create(member), 100.0))
+**`exclude` is `context.containingFile?.originalFile`, not `containingFile` (BL-8).**
+`doResolveGlobal:143` reads `val here = context.containingFile?.originalFile`, and during completion
+the PSI file is a **copy** — so passing `containingFile` makes the exclusion silently never fire, and
+nothing would catch it because the excluded file is usually not a declarer anyway. The prototype
+compares `exclude?.virtualFile != vf` where `typeOfGlobalIn` compares `PsiFile != exclude`; these
+agree once `originalFile` is used, because a copy shares its original's `VirtualFile`. **DR-14 never
+exercised this path** — it passed `myFixture.file`, which declares none of the receivers — so it is
+specified here and gated by a test rather than claimed as measured.
+
+**One divergence remains and is deliberate**: `globalTypeIn` skips a file that declares the name with
+no useful type, which requires the graph build this feature exists to avoid. `membersOfGlobal` takes
+the first *declaring* file instead of the first *typed* one. DR-14 measured no divergence from this
+on the golden receivers; it is recorded as a residual, not as solved.
+
+**Measured against today's global door (DR-14), the door this call site actually serves:**
+
+| receiver | today, global door | `membersOfGlobal` | |
+| :-- | :-- | :-- | :-- |
+| `wx` (bare global + `@class`) | `[wxFileExists, wxID_ANY]` | `[wxFileExists, wxID_ANY]` | **exact** |
+| `Shapes` (`a.b.c` shape) | `[deep, direct, nested, plain]` | `[direct, nested, plain]` | `deep` dropped — **BUG-430, deliberate** (§4.4a) |
+| `wxFrame` (`@class` on a `local`) | **unresolvable** | `[]` | **exact** — see below |
+| `AllColon` (`@class` on a `local`) | **unresolvable** | `[]` | **exact** |
+| `Derived` (`@class D : Base` on a bare global) | `[ownFn]` | `[ownField, ownFn]` | **superset by one** — see §4.5a |
+
+`wxFrame` and `AllColon` returning `[]` is not a regression: `crossFileGlobalMembers` resolves a
+**bare name through `resolveGlobal`** (`LuaCompletionContributor.kt:133-139`), and a `@class` on a
+`local` is not a global. Today it returns `emptyMap()` for these; so does the index rule. Those
+receivers reach members through the *type graph* in the contributor's `else` branch, which this
+feature does not touch. An earlier draft would have used the union here, which DR-14 shows returns
+their full member list — i.e. it would have invented members at a call site that offers none today.
+
+**The union is still right for §4.6**, where `addMethodsOf` genuinely wants every declaring file
+(BUG-399). Two entry points, two selection rules, each measured against the door it serves:
+
+| entry point | consumer | selection | verified against |
+| :-- | :-- | :-- | :-- |
+| `membersOfGlobal(receiver, project, exclude)` | completion (§4.5) | `LuaGlobalAssignmentIndex`, scope precedence, first file, exclude context | the **global** door |
+| `membersIn(receiver, project, scope)` | materialization (§4.6) | union over all files in `scope` | the **`@class`** door — DR-14: union == class door on all four receivers |
+
+Collapsing these into one `membersOf` is how D1, D2 and B2 all happened. The prototype's union
+`membersOf` is renamed `membersIn` in Phase 1 and no method named `membersOf` survives, so the name
+cannot be reached for by accident.
+
+### 4.5c When the index is authoritative — three remedies, two of them wrong, all measured
+
+This is the section rounds four and five both broke, and the sequence is worth keeping because each
+wrong answer looked right.
+
+**The problem (BL-2, DR-15).** The index's sources see a member only if it is written syntactically
+against the receiver name. `Config = { host = …, port = … }` produced **no entries at all** where
+today's global door returns `[host, port]`.
+
+**Remedy 1 — "fall back when the index is empty". WRONG, and its test could not fail.** Round five
+found the counterexample in the canonical Lua module idiom:
+
+```lua
+M = { VERSION = "1.0" }
+function M.f() end          -- source 1 emits M -> [f], so the index is NOT empty
 ```
 
-`LuaMemberLookup` gains an overload taking `LuaReceiverMember`: the icon comes from `kind`, and **no
-type text is set** on this path — the index has no type. §1.7 measured type rendering at 4 ms for
-3 700 members, so this is not a performance choice; it is that the type is genuinely absent. That is
-a **visible behaviour change** and TC 3 must expect it rather than treat it as a regression.
+The fallback never fires and `VERSION` is silently lost. Worse, DR-15's supporting harness computed
+`withFallback = if (indexed.isNotEmpty()) indexed else today` and then asserted `withFallback ==
+today` — for the two receivers it was cited for, `indexed` is empty, so it asserted `today == today`.
+A test that cannot fail, certifying a rule that was wrong.
+
+**Remedy 2 — index the table literal (source 4).** `R = { a = 1 }` now emits `a`. Measured (DR-19):
+`M` and `Config` both match today exactly. But it is still not sufficient, because opacity and
+syntactic extension can coexist: `OM = require("luassert")` plus `function OM.extra() end` leaves the
+index non-empty and incomplete. Emptiness is not a test for authority.
+
+**Remedy 3 — the receiver carries a binding-opacity marker. This is the design.**
+
+At index time, a bare `R = <expr>` — **at any depth**, not only top level — whose `<expr>` is **not**
+a table constructor emits a sentinel `LuaReceiverMember.OPAQUE_BINDING`.
+
+Any depth is deliberate and is what DR-19 measured. `LuaGlobalAssignmentIndex` is top-level-only
+because a nested bare assignment may target an enclosing local, and mis-indexing one there would
+invent a global. Here the failure is inverted: a missed sentinel marks a receiver authoritative when
+it is not, and silently drops whatever only the graph knows — `wx = {}` … `function init() wx =
+createNamespace() end` is the shape. Marking too many receivers opaque costs latency; marking too few
+costs members. The query returns membership *and* whether it is
+authoritative:
+
+```kotlin
+data class Membership(val members: List<LuaReceiverMember>, val authoritative: Boolean, val found: Boolean)
+
+fun globalMembership(receiver: String, project: Project, exclude: PsiFile?): Membership
+```
+
+`authoritative = false` iff **any** declaring file in the chosen scope emitted the sentinel — not
+merely the one selection happened to pick. The sentinel is filtered out of `members`, so it is never
+offered; membership still comes from the first candidate, preserving `typeOfGlobalIn`.
+
+**Why authority is a receiver property, not a per-file one (DR-19c).** Step 9 round six filed
+"'first' is undefined over an unordered `getContainingFiles` result" as *non-blocking*, on the
+grounds that today's `typeOfGlobalIn` is equally non-deterministic. Adding an assertion to DR-19's
+harness — which until then only printed — showed it is blocking: two runs of the same fixture
+disagreed about whether `assert` was authoritative, because a different declaring file was picked.
+
+Today's non-determinism only decides *which* type you get. A non-deterministic **authority** flag
+decides whether members are dropped, and the two errors are not symmetric: a wrong
+`authoritative = true` silently loses members, a wrong `false` only costs latency. Computing opacity
+over every candidate makes the flag stable and biases the residual error toward the survivable side.
+
+This is also the round where a harness that could only print was upgraded to one that can fail — and
+it failed immediately, on something two reviews had read past.
+
+**Measured (DR-19), five shapes including the two that broke remedies 1 and 2:**
+
+| receiver | shape | today | index | authoritative | effective | |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| `wx` | `wx = {}` + `function wx.works()` | `[works]` | `[works]` | true | `[works]` | MATCH |
+| `M` | literal **+** syntactic | `[DEBUG, VERSION, f]` | `[DEBUG, VERSION, f]` | true | same | MATCH |
+| `Config` | pure literal | `[host, port]` | `[host, port]` | true | same | MATCH |
+| `assert` | `= require(…)` | `[unregister]` | `[]` | **false** | `[unregister]` | MATCH |
+| `OM` | `= require(…)` **+** syntactic | `[unregister]` | `[extra]` | **false** | `[unregister]` | MATCH |
+
+`OM` is the row that matters: the index has something, and is still not trusted.
+
+**Where the fallback lives — BLOCKER 1.** Not in `LuaReceiverMemberIndex`. Its companion has no
+`PsiElement` anchor (only the *excluded* `PsiFile`), `resolveGlobal(String, PsiElement)` and
+`materialize(LuaType, PsiElement)` both require one, and `getMembers()` returns
+`Map<String, VariableNode>` rather than `List<LuaReceiverMember>` — so the fallback cannot be written
+inside a method with that signature at all. It would also invert the layering (indexing → type
+engine) and re-enter `resolveGlobal`'s `resolvingGlobals` cycle-breaker.
+
+It lives in the **contributor**, which already has the anchor and already handles both element types
+(§4.5b):
+
+```kotlin
+// LuaCompletionContributor, replacing crossFileGlobalMembers' single return
+val membership = LuaReceiverMemberIndex.globalMembership(nameRef.text, nameRef.project,
+                                                         nameRef.containingFile?.originalFile)
+if (membership.authoritative) {
+    emitIndexed(membership.members)                       // §4.5b's index arm — syntactic filter
+} else {
+    emitGraph(LuaGraphType.materialize(                   // §4.5b's else arm, VERBATIM
+        LuaTypeManager.getInstance(nameRef.project).resolveGlobal(nameRef.text, nameRef) ?: return,
+        nameRef).getMembers())
+}
+```
+
+So no `VariableNode → LuaReceiverMember` conversion is ever needed, the semantic `isColon` filter and
+the type text are preserved on the fallback path, and the two arms §4.5b already specifies are
+exactly the two arms this needs.
+
+**The latency fork, named rather than routed around.** A non-authoritative receiver pays the full
+graph build (§1.9: 746 ms cold). That is a **two-tier contract**, and `non-functional.md` must say so
+— see §4.12 — rather than the gate quietly picking a fast-path fixture. COMP-09-08 asserts the budget
+on an authoritative receiver **and** records the non-authoritative cost, and the checklist asks a
+human whether the slow tier is noticeable.
+
+**Residual, stated**: a receiver bound through `require` or a call keeps today's cost and today's
+membership. The feature makes syntactically-declared members fast — which is every generated
+definition library, TARGET-10 included — and changes nothing else.
+
+### 4.5a A membership superset the reviews did not find: `@field` on the completion door
+
+DR-14's `Derived` row is a finding neither Step 9 review raised, and it is Risk 1.1 in a new place.
+
+```
+---@class Derived : Base
+---@field ownField number
+Derived = {}
+function Derived.ownFn() end
+```
+
+```
+today, global door          [ownFn]                     completion `Derived.` offers [ownFn]
+today, @class door          [inheritedField, inheritedFn, ownField, ownFn]
+membersOfGlobal             [ownField, ownFn]           <- ownField is NEW on this path
+```
+
+§4.3's source 3 indexes `@field` tags, so the index knows `ownField`; today's completion path does
+not, because `resolveGlobal` returns a `LuaTableLiteralType` built from the assignment and never
+reads the `@class` comment. **This is a deliberate behaviour change, declared here rather than
+discovered**: `Derived.ownField` is a member the user declared and should be offered.
+
+It does **not** threaten COMP-09-06 — the checker's inputs are unchanged (§4.1 keeps materialization
+on `forFile`), so no corpus baseline can move. It **does** need a test asserting the new member is
+offered, and a checklist scenario, both added.
+
+**And it settles B5.** COMP-09-03 scopes in "inherited members". DR-14 measured that today's
+**completion door does not inherit at all** — `Derived.` offers `[ownFn]`, not `Base`'s members —
+while the `@class` door does (`LuaGraphType.kt:179` `putAll(superType.getMembers())`). So a flat
+index list is not a regression on this path. Inheritance is served by the `@class` door, which §4.6
+leaves on the graph. COMP-09-03's inherited-members clause is therefore satisfied **by not changing
+that path**, and requirements.md now says so instead of implying a supertype walk that no section
+designs.
+
+### 4.5b The emit loop — B3, the fork the previous draft glossed
+
+"The emit loop keeps its shape" was wrong. `LuaCompletionContributor.kt:374-388` is **shared** by two
+branches producing different element types:
+
+```kotlin
+val members = if (type == LuaGraphType.Undefined) crossFileGlobalMembers(receiverExpr)  // Map<String, VariableNode>
+              else type.getMembers()                                                     // Map<String, VariableNode>
+for ((name, memberNode) in members) {
+    val memberType = memberNode.write
+    if (isColon && memberType !is LuaGraphType.Function) continue      // SEMANTIC filter
+    result.addElement(PrioritizedLookupElement.withPriority(LuaMemberLookup.create(name, memberType), 100.0))
+}
+```
+
+Changing `crossFileGlobalMembers` to `List<LuaReceiverMember>` breaks the `else` branch, which still
+needs `memberNode.write` for both the type text and the semantic `isColon` filter. **The two branches
+split; they do not share a loop.**
+
+```kotlin
+if (type == LuaGraphType.Undefined) {
+    for (m in crossFileGlobalMembers(receiverExpr)) {                  // List<LuaReceiverMember>
+        if (isColon && m.kind != Kind.FUNCTION) continue               // SYNTACTIC filter (D3)
+        result.addElement(PrioritizedLookupElement.withPriority(LuaMemberLookup.create(m), 100.0))
+    }
+} else {
+    for ((name, memberNode) in type.getMembers()) {                    // unchanged, verbatim
+        val memberType = memberNode.write
+        if (isColon && memberType !is LuaGraphType.Function) continue
+        result.addElement(PrioritizedLookupElement.withPriority(LuaMemberLookup.create(name, memberType), 100.0))
+    }
+}
+```
+
+The `else` branch is untouched, which is what `implementation-plan.md`'s "golden unchanged for the
+in-file path" exit criterion requires. `LuaMemberLookup` gains an overload
+`create(member: LuaReceiverMember): LookupElement` — icon from `kind`, **no type text**, because the
+index has no type (§1.7 measured type rendering at 4 ms, so this is absence, not cost).
+
+The two `isColon` filters are deliberately not the same test: semantic in the `else` branch,
+syntactic in the index branch. §4.3's D3 residue (`wx.f = someFn` records FIELD) lives exactly here
+and is gated by a test rather than assumed away.
+
+### 4.12 The latency contract becomes two-tier — the premise this feature moves
+
+`non-functional.md` states one flat time-to-first budget for every receiver. §4.5c does not meet it
+for a non-authoritative receiver and cannot: that path is today's graph build by construction.
+
+An earlier draft handled this by having COMP-09-08's gate "assert against a receiver on the fast
+path" — i.e. by choosing a fixture that passes. That is a constraint worked around by fixture
+selection rather than examined, which is exactly what the premise axis exists to catch, and Step 9
+round five caught it.
+
+**The premise is therefore moved, not dodged.** `non-functional.md` gains a two-tier statement:
+
+> Time-to-first-result is **< 100 ms for a receiver whose members are syntactically declared** — the
+> case every generated definition library falls into. A receiver bound through `require`, a call, or
+> any expression the index cannot see through resolves through the type graph and is **not** covered
+> by that budget; its cost is whatever the declaring file's graph build costs. Narrowing that tier is
+> COMP-09's DR-07 follow-up, not this feature.
+
+COMP-09-08 gates tier 1 and **records** tier 2 rather than silently excluding it, and checklist
+scenario 1.5 asks a human whether tier 2 is noticeable in practice.
 
 ### 4.6 Consumer 2 — materialization (`addMethodsOf`)
 
@@ -514,22 +830,49 @@ behaviours preserved verbatim, each a test:
 | file confinement for a local-declared class (BUG-398) | `:456` | unchanged `scan.onlyIn` filter |
 | nested qualifiers are not members | `memberNameOf:467` | derived at index time (§4.3) |
 
-Two entry points, deliberately named apart: `membersOf` (completion — scope precedence, first file)
-and `membersIn` (materialization — an explicit scope, all files). Collapsing them is how D1 and D2
-happened.
+Two entry points, deliberately named apart: **`membersOfGlobal`** (completion — scope precedence,
+first file, index-or-fallback) and **`membersIn`** (materialization — an explicit scope, all files).
+Collapsing them is how D1, D2 and B2 all happened, and the name `membersOf` is retired so it cannot
+be reached for again.
 
 ### 4.7 COMP-09-05 — `@class`-declared metamethods
 
-Change site: `LuaGraphType.fromLuaType`'s `is LuaClassType ->` branch, which today passes no
-`metamethods`. When converting, any member whose name is in `LuaGraphType.Trait`'s metamethod sets
-(`LuaGraphType.kt:118-126`) contributes to `metamethods` **as well as** remaining a member.
+Change site: `LuaGraphType.fromLuaType`'s `is LuaClassType ->` branch (`LuaGraphType.kt:267-277`),
+which today constructs `Table(type.name, members, supers, isExact = true)` and passes no
+`metamethods`. Any member whose name is a known metamethod contributes to `metamethods` **as well
+as** remaining a member.
 
-"As well as" is deliberate: `LuaGraphType.kt:50-52` records that metamethods are held separately
-because adding them to `localMembers` "would make `t.__add` complete on the instance, which is not
-what Lua exposes". A `@class`-declared `__add` is already in `localMembers` today — so keeping it
-there is behaviour-preserving and only the operator check gains it. **Observe this before changing
-it** (checklist item): if `t.__add` does *not* complete today, that comment describes an intent the
-code does not implement, and this becomes a decision rather than a preservation.
+**Specified, not narrated (B9).** Three verified facts constrain how:
+
+1. `Trait` is a `sealed class` whose subobjects each hold their own `metamethods` set — `Numberable`
+   (`:118-121`), `Stringable` (`:126`), `Lengthable` — and **there is no aggregate**. The union must
+   be formed explicitly, once, as a `private val`:
+   `ALL_METAMETHODS = setOf(Trait.Numberable, Trait.Stringable, Trait.Lengthable).flatMapTo(mutableSetOf()) { it.metamethods }`.
+2. `Table.metamethods` is an immutable `val`, and the `Table` is constructed **before** `members` is
+   populated — it goes into `visited[type]` first to break cycles, and the map is mutated afterwards.
+   So the set cannot be read off the populated map; it must come from `type.getMembers()` *before*
+   the constructor call:
+   `val metas = type.getMembers().keys.filterTo(mutableSetOf()) { it in ALL_METAMETHODS }`.
+3. Supertype metamethods need **no** separate walk: `getMembers()` already merges supertypes
+   (`LuaGraphType.kt:179`), so `@class D : Base` inherits `Base`'s `__add` through the same
+   expression. TC 6b asserts it rather than leaving it to be discovered.
+
+"As well as" is deliberate, and **DR-12 measured why**:
+
+```
+v.  offers [__add, len, x]      <- a @class-declared __add already completes today
+v:  offers [len]                <- and the colon filter already excludes it
+```
+
+So keeping it in `localMembers` is behaviour-preserving and only the operator check gains it. This
+was contested across two reviews — the plan and the checklist both expected `__add` absent — and the
+measurement settles it in the design's favour.
+
+It also shows `LuaGraphType.kt:50-52` describes an intent the code does not implement on this path:
+metamethods are held separately because putting them in `localMembers` "would make `t.__add` complete
+on the instance, which is not what Lua exposes", and for a `@class`-declared metamethod it always
+has. COMP-09-05 preserves the **behaviour**, not the intent. That is the conservative call and the
+right one here, but the gap is real and is recorded rather than quietly inherited.
 
 ### 4.8 Registration and reindex boundaries
 
@@ -558,16 +901,33 @@ Every version bump forces a full reindex on first run, and **no benchmark may cr
 Previously absent entirely, which `non-functional.md:26-30` and the engineering contract make
 binding:
 
-- **Read action.** `membersOf`/`membersIn` touch `FileBasedIndex` and must be called under one.
+- **Read action.** `membersOfGlobal`/`membersIn` touch `FileBasedIndex` and must be called under one.
   Completion contributors already run under a read action; `addMethodsOf` does too. No new
   requirement, but stated so a future caller does not assume otherwise.
 - **`ProgressManager.checkCanceled()`** inside the value-processing loop. The 3 600-member call is
   2 ms, so this is not about the loop being long — it is that a `processValues` callback that never
   yields cannot be cancelled if a pathological receiver appears.
-- **`DumbService`.** `FileBasedIndex` queries are unavailable during indexing. `crossFileGlobalMembers`
-  must degrade to empty rather than throw. Today's path resolves through the type engine, which has
-  its own dumb-mode behaviour — Phase 1 must establish what that is and match it, and this is
-  **untested by DR-09**.
+- **`DumbService` — MEASURED (DR-10), and the obligation is real.**
+
+  | door, while dumb | today |
+  | :-- | :-- |
+  | `resolveGlobal` | **null** — guarded at `LuaTypeManagerImpl:129` |
+  | `materialize(resolveGlobal(...))` | **null**, following from the above |
+  | completion, `wx.<caret>` | **`[]`** — empty, no throw, no error |
+  | `LuaReceiverMemberIndex.membersOf` (the prototype) | **throws `IndexNotReadyException`** |
+  | `resolveType` | **logs an IDE internal error and rethrows** — no guard at all (**BUG-432**) |
+
+  So §4.9's requirement was right and the prototype does not meet it. **The rule: `globalMembership` returns
+  `Membership(emptyList(), authoritative = true, found = false)` when `DumbService.isDumb`, and
+  `membersIn` returns empty.** `authoritative = true` is deliberate: it stops the contributor taking
+  §4.5c's fallback into `resolveGlobal`, which is itself dumb-guarded and would return null anyway.
+  The user sees `[]`, which is what DR-10 measured today, which reproduces the `[]` the user sees
+  today rather than the exception the prototype would introduce.
+
+  The behaviour being matched is `resolveGlobal`'s, deliberately — **not** `resolveType`'s, which
+  DR-10 found is itself defective (BUG-432: an `IndexNotReadyException` is control flow, and logging
+  it via `Logger.error` shows the user a crash report while indexing). Matching that would propagate
+  a bug into new code, so this is one place COMP-09 does not preserve today's behaviour.
 
 ### 4.10 The record: what the two Step 9 reviews found
 
@@ -585,15 +945,132 @@ figure in §4.0–§4.5 above comes from a run.
 - Confirmed correct by both reviews: the no-stub-bump argument, the separator round-trip, the four
   preserved materialization behaviours, and the collection-valued index's viability.
 
+### 4.10a COMP-09-08 — the latency gate, now that DR-02a supplies a mechanism
+
+Previously "NOT DESIGNED — no test class, no first-element harness". The harness exists (§1.9).
+
+**Mechanism.** A `CompletionContributor` registered `LoadingOrder.FIRST` for Lua whose
+`fillCompletionVariants` calls `result.runRemainingContributors(parameters) { … }`, timestamping the
+first result and the last, then passing each through unchanged. It observes a real `completeBasic()`
+run and adds nothing to production code — the probe lives in the test source set and is registered on
+`testRootDisposable`.
+
+**Assertions**, all against a **cold** receiver, all medians of ≥5 where the quantity is stable:
+
+| # | assertion | today |
+| :-- | :-- | :-- |
+| 1 | cold time-to-first < the `non-functional.md` budget | **red** — 746 ms vs 100 ms |
+| 2 | time-to-first for a 3-member receiver and a 3 600-member receiver are within a stated factor | **red** — 40x |
+
+**Mutation proof comes free**, which is the unusual part: the plan requires COMP-09-08 to be shown
+failing before the fix lands, and both assertions fail on today's code as written. Nothing has to be
+deliberately broken to prove the test can fail — §1.9 *is* the failing run. What must still be
+mutation-proved is the opposite direction, once the fix lands: re-introducing the graph build on the
+completion path must turn assertion 1 red again, or it is passing for an unrelated reason.
+
+**Cold is the whole difficulty.** Warm time-to-first is 1.1 ms, so a gate that does not force a cold
+state passes trivially and forever. "Cold" here means the declaring file's `LuaTypesSnapshot` has not
+been built — §1.2 established a single keystroke anywhere is enough to get back to it, so the gate
+must reproduce that rather than rely on fixture ordering, and each measured receiver needs its own
+file (§1.9).
+
+**It runs in the routine loop**, not behind `-PwithPerf` — COMP-09-08's acceptance criterion says so
+explicitly, and Risk 1.5 records what the alternative bought last time.
+
+**Assertion 2's factor — tracked, with a derivation rule (BL-4).** "Independent" needs a number.
+It is **DR-17**, and it is not left to whatever the post-fix run happens to produce: the factor is
+`ceil(p95 / p50)` over ≥5 cold samples of the *narrow* receiver alone — i.e. the harness's own noise
+floor, measured on a case where member count cannot be the variable. A wide-vs-narrow ratio inside
+that band is independence; outside it is not. Today's 40x is far outside any plausible floor, which
+is why assertion 2 is red now.
+
+**Assertion 1 measures the receiver on the FAST path (§4.5c).** A receiver that falls back pays the
+graph build by design, so a gate that happened to pick one would certify a budget the fallback does
+not meet. The gate fixture declares its members syntactically; the fallback's cost is recorded
+separately, not asserted against the budget.
+
+### 4.10b COMP-09-09 — the work bound, from DR-11
+
+The last requirement without a design. COMP-09-09 asks that "**entries traversed** per enumeration is
+instrumented and asserted proportional to matching entries; adding unrelated indexed content must not
+increase it". §4.10a's timing probe cannot answer it — a duration is not a count, and an
+implementation that scanned the whole key space *quickly* would pass a latency gate while failing
+this one outright.
+
+**Mechanism.** There is no platform metric for "entries traversed", but there is an exact place to
+count: `FileBasedIndex.processValues` calls back once per (key, file) pair it visits, so counting
+callbacks **is** the traversal count, taken where the traversal happens. DR-11 added the counter to
+the prototype and measured:
+
+| | entries traversed | files visited | members found | stub keys in the index |
+| :-- | --: | --: | --: | --: |
+| quiet project, `Target` | 50 | 1 | 50 | 4 145 |
+| **noisy** (+40 receivers x 100 members), `Target` | **50** | **1** | 50 | 4 145 |
+| noisy, `Noise7` | 100 | 1 | 100 | 4 145 |
+
+`entriesTraversed == membersFound` exactly, and it does **not** move when unrelated indexed content
+is added — which is the requirement, verbatim. The `getAllKeys` column is the contrast: the scan
+COMP-09-01 removes would visit 4 145 keys to answer a 50-member question.
+
+**Assertions:**
+
+| # | assertion | asserted on | why it is not tautological |
+| :-- | :-- | :-- | :-- |
+| 1 | `entriesTraversed >= membersIn(R).size`, and `== ` it when no name repeats across files | `membersIn` (§4.6) | a scan-based implementation traverses the key space and fails |
+| 2 | `entriesTraversed` for R is **unchanged** between a quiet and a noisy project | both entry points | this is the one that goes red if anyone reintroduces a scan |
+| 3 | `filesVisited ==` the number of files declaring R | `membersIn` | catches an enumeration that widened its scope (D2's failure mode, in count form) |
+| 4 | `filesVisited == 1` when a declaring file was found (`Membership.found`), else 0 | `globalMembership` (§4.5c) | the completion door reads exactly one file by construction; more means the selection rule leaked |
+
+*(An earlier revision added "or 0 on the §4.5c fallback". That is impossible: the fallback is reached only when a declaring file **was** found and emitted the sentinel, so `membersInFile` has already visited exactly one file. Written that way the gate goes red on a correct implementation.)*
+
+**The counter must be extended to `membersOfGlobal` (BL-5).** DR-11's prototype counts only inside
+the union entry point; `membersInFile` runs `processValues` without touching it, so assertion 4 was
+specified against an instrument that does not observe the door it names. Phase 1 adds counting to
+both entry points — one line at each `processValues` callback — and TC 9, which measures
+`wx.<caret>`, is the *completion* door and therefore depends on it.
+
+**Corrected after Step 9 (B6).** DR-11 measured these against the prototype's *union*, and assertions
+1 and 3 as first written are invalidated by §4.5's first-file rule — `filesVisited` is 1 by
+construction there, and `membersOf` de-dupes with `putIfAbsent` while `entries` sums `members.size`,
+so equality breaks whenever a name repeats across files. Each assertion now names the entry point it
+holds for, and assertion 1 states the inequality that is actually true. A gate written against the
+wrong one of two entry points is a gate that passes for the wrong reason.
+
+**Shipping shape — not the spike's.** DR-11 used a `@Volatile` global object, which is fine for a
+single-threaded test and wrong in production: two concurrent completions would overwrite each other's
+counts, and a global mutable static on a hot path is exactly the kind of thing that survives into
+shipped code because it is cheap. The counter ships as a **`ThreadLocal`**, reset by the caller,
+read on the same thread that ran the enumeration. Completion runs one session per thread, so the
+numbers stay attributable.
+
+**Caveat DR-11 exposed, worth keeping.** `StubIndex.getAllKeys(KEY, project)` returned 4 145 in
+*both* arms, including the "quiet" one that declares 54 — index storage is shared across test methods
+in one JVM and `getAllKeys` is not really project-scoped. That is another reason the gate counts
+callbacks rather than comparing key totals: the key total is not a reliable number in a test, and a
+gate built on it would be measuring the fixture.
+
 ### 4.11 Still not designed
 
-- **COMP-09-08 (latency gate)** and **COMP-09-09 (work bound)**. DR-09 supplies the *evidence* a
-  bound is achievable (0 ms narrow vs 2 ms wide) but neither an assertion mechanism nor a
-  first-element harness. DR-02a remains open and still blocks NFR-1.
+- ~~COMP-09-08, COMP-09-09~~ — **both designed** (§4.10a, §4.10b) off DR-02a and DR-11. Every
+  requirement now has a design.
 - **Narrowing cache invalidation** (§3.3 / DR-07) — independent, possibly a smaller win.
 - **Removing the four caches** — re-measure each; a follow-up.
-- **`LuaImplicitFields` / `LuaTypesVisitor:1349` / `catsClassTags`' file walks**. Phase 4 measures
-  whether §4.5/§4.6 already moved them below budget.
+- **`LuaImplicitFields:76` / `LuaTypesVisitor:1349` / `catsClassTags` (`LuaTypeManagerImpl:347`)** —
+  COMP-09-02's other three sites. **Out of scope — but on a weaker basis than an earlier draft
+  claimed, and the weakness is stated (BL-3).**
+
+  The earlier justification was "22 ms of a 949 ms cold path". Three things are wrong with it and
+  none was caught until the fourth review: the **949 ms denominator is disavowed by §1.8**, which
+  re-measured the same path at 383 ms (−60 %) and put the warm-file median at 120 ms — against which
+  22 ms is 18 %, not 2 %; the **22 ms numerator is single-shot**, violating this plan's own
+  medians-of-≥5 rule (DR-08 is still "partly done"); and `LuaTypesVisitor:1349` is on the
+  **`resolveGlobal`/`forFile` door**, not the `@class` door candidate B was measured on, so the
+  figure does not even apply to one of the three sites.
+
+  They stay out of scope because §4.3 and §4.6 do not touch them and nothing in this feature's
+  measured critical path runs through them — **not** because they were shown to be cheap. That is a
+  scoping decision, and COMP-09-02's acceptance is scoped to match. Re-measuring them properly is
+  **DR-16**, tracked rather than asserted away.
 
 ## 5. Requirement coverage
 
@@ -607,8 +1084,8 @@ than a call-shape argument; the rows that are still not designed say so.
 | COMP-09-03 all sources, dot **and** colon | §4.3 covers **3 of 4** — funcs, assignments, `@field`; metamethods are COMP-09-05 | §4.4 — `AllColon` (every member colon-declared) enumerates 2 of 2, the case a naive swap emptied |
 | ~~COMP-09-04~~ incremental yield | **withdrawn** | §1.7 — no tail to stream |
 | ~~COMP-09-04b~~ lazy type rendering | **withdrawn** | §1.7 — measured 4 ms for 3 700 members; presentation was never the cost, and `renderElement` is not per-visible-row |
-| COMP-09-05 `@class` metamethods | §4.7 — change site named, behaviour to observe first | COMP-04-DR-01 / BUG-426; unmeasured, and the checklist observes `t.__add` before the change |
+| COMP-09-05 `@class` metamethods | §4.7 — change site named, current behaviour measured | DR-12 — `v.` offers `[__add, len, x]`, `v:` offers `[len]`, so the change is operator-only and the offered sets must not move |
 | COMP-09-06 no new type source | §4.1 | the split — names for completion, `forFile` retained for the checker — keeps the checker's inputs unchanged |
 | COMP-09-07 behaviour-preserving | §4.4 measured; §4.4a **redefines the bar** | 3 of 4 receivers exact; the 4th is BUG-430, where the two doors disagree and the global one is wrong. COMP-09 preserves the `@class` door and deliberately does not reproduce the global door's flattening |
-| COMP-09-08 latency enforced | **NOT DESIGNED** — no test class, no first-element harness (DR-02a is `todo`, "blocks NFR-1") | §1.6 — even the warm-file `@class` path is 167 ms, over budget with no library involved |
-| COMP-09-09 work bound | **evidence yes, mechanism no** | §4.0 — 8 members 0 ms vs 3 600 members 2 ms on one index shows the bound holds; no assertion mechanism is specified |
+| COMP-09-08 latency enforced | §4.10a — mechanism, two assertions, both red today | §1.9 — cold time-to-first **746 ms** vs a 100 ms budget, and **40x** scaling with member count. DR-02a done; the open item is assertion 2's factor |
+| COMP-09-09 work bound | §4.10b — three assertions off a `processValues` callback count | §4.10b (DR-11) — `entriesTraversed` is 50 for a 50-member receiver and **unchanged** by 4 000 unrelated keys; §4.0's 0 ms vs 2 ms is the timing corroboration |

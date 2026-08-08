@@ -35,12 +35,21 @@ folders:
     statement that the work bound, not a stopwatch, is what governs.
   - **Scope: index entries, not project lines.** The former wording — "for projects up to 50k lines"
     — bounded index size by a proxy that omits everything not in project files. A definition library
-    or bundled stub contributes index entries while contributing zero project lines, which is how a
-    530 KiB library root measured 25 352 ms while remaining technically in-spec. Library, stub and
+    or bundled stub contributes index entries while contributing zero project lines, while measuring
+    tens of seconds to first completion and remaining technically in-spec. Library, stub and
     dependency content counts.
-  - Measured evidence that entries rather than results dominate: against one 530 KiB root, a
-    **narrow** prefix matching a handful of candidates cost 18 429 ms where a **broad** prefix cost
-    25 352 ms.
+  - ⚠ The narrow-vs-broad prefix pair once cited here (18 429 ms vs 25 352 ms) is **WITHDRAWN**:
+    single-shot, time-to-*exhaustive* rather than time-to-first, and a 38 % gap inside that harness
+    family's demonstrated ±60 % run-to-run spread. The surviving evidence that **entries** dominate is
+    COMP-09 design §1.9 (a 3-member receiver 41 ms vs a 3 600-member receiver 1 641 ms, both cold, in
+    separate files) and §4.10b's entry counts (50 traversed for a 50-member receiver, unchanged by
+    4 000 unrelated keys).
+  - **Two tiers, because one flat budget is not achievable and pretending otherwise selects a
+    flattering fixture.** The < 100 ms time-to-first target applies to a receiver whose members are
+    **syntactically declared** — every generated definition library. A receiver bound through
+    `require`, a call, or any expression an index cannot see through resolves through the type graph
+    and is **not** covered by it; its cost is the declaring file's graph build. See COMP-09 design
+    §4.12. A gate must assert tier 1 and *record* tier 2, never quietly test only the first.
   - **Targets stated here must be enforced by a test that fails without them.** A documented target
     with no gate behind it is how a 129× miss went unnoticed until a feature tripped over it; the
     performance suite's assertions were `assertTrue(elapsed > 0)` and it is excluded from the routine

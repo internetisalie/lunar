@@ -2,7 +2,7 @@
 id: "COMP-09"
 title: "09: Member Enumeration"
 type: "feature"
-status: "todo"
+status: "planned"
 priority: "high"
 parent_id: "COMP"
 folders:
@@ -49,8 +49,10 @@ Four caches, one half-built index direction, and no single answer to the questio
   Specifications): dotted assignments, dotted function declarations, `@class` fields and inherited
   members, and metamethods.
 - Replacing the brute-force scans and file walks listed in COMP-09-01/02 with it.
-- **Incremental yield**: enumeration that can produce a first result without producing all of them,
-  so time-to-first-result stops equalling time-to-exhaustive-result.
+- ~~**Incremental yield**~~ — **withdrawn 2026-08-07** (COMP-09-04, design §1.7) and now confirmed by
+  measurement: DR-02a put the gap between the first element and the last at **31 ms of 777 ms**, so
+  there is no long tail to stream. Time-to-first stops equalling time-to-exhaustive by making *both*
+  fast, not by splitting them.
 - Closing **COMP-04-DR-01** and BUG-426's "Known limitation" — `@class`-declared metamethods.
 
 ### Out of Scope
@@ -74,8 +76,8 @@ Four caches, one half-built index direction, and no single answer to the questio
 | ID | Requirement | Priority | Description |
 |----|-------------|----------|-------------|
 | COMP-09-01 | **Receiver-keyed member enumeration** | M | "Members of `X`" is answered by an index lookup, not a key scan. |
-| COMP-09-02 | **No full-file walk on the member path** | M | Enumeration narrowed to files must not then walk each file's whole PSI. |
-| COMP-09-03 | **All four declaration sources, dot *and* colon** | M | Dotted assignments, function declarations in **both** `ns.f` and `C:m` form, `@class` fields (incl. inherited), metamethods. The colon form is called out because it is the one the existing receiver key omits (DR-06). |
+| COMP-09-02 | **No full-file walk on the member path** | M | Enumeration narrowed to files must not then walk each file's whole PSI. **Scoped to the sites design §4.3/§4.6 replace.** The `catsClassTags` / `LuaImplicitFields` / `LuaTypesVisitor:1349` walks are excluded because **§4.3 and §4.6 do not touch them and they are not on this feature's measured critical path** — *not* because they were shown to be cheap. An earlier revision justified this with "22 ms of a 949 ms cold path"; that is **retracted** (§1.8 re-measured the denominator at 383 ms, the numerator is single-shot, and it was taken on the wrong door for one of the three sites). Their cost is **DR-16** (design §4.11). |
+| COMP-09-03 | **All four declaration sources, dot *and* colon** | M | Dotted assignments, function declarations in **both** `ns.f` and `C:m` form, `@class` fields, metamethods. **Inherited members stay on the `@class` door** and are not indexed: DR-14 measured that today's *completion* door does not inherit at all (`Derived.` offers `[ownFn]`, not `Base`'s members), so a flat index list is not a regression there; `LuaGraphType.kt:179` continues to merge supertypes for materialization (design §4.5a). The colon form is called out because it is the one the existing receiver key omits (DR-06). |
 | ~~COMP-09-04~~ | ~~**Incremental yield**~~ | — | **WITHDRAWN 2026-08-07.** It names the wrong mechanism — see COMP-09-04b and design §1.7. |
 | ~~COMP-09-04b~~ | ~~**Lazy member-type rendering**~~ | — | **WITHDRAWN 2026-08-07 after Step 9 review.** Measured: 4 ms (median of 5) for 3 700 members' types + `displayName()`. Presentation was never on the critical path, and `renderElement` is *not* per-visible-row — that is `getExpensiveRenderer`. Design §1.7. |
 | COMP-09-05 | **`@class`-declared metamethods** | S | A `---@class` declaring `__add` makes its instances arithmetic-capable — closes COMP-04-DR-01 / BUG-426. |
@@ -136,18 +138,22 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 
 | # | Requirement | Given | When | Then |
 |---|---|---|---|---|
-| 1 | COMP-09-01 | A 230 KiB library root declaring ~3 400 `wx.*` members | `wx.<caret>`, measure **time to first element** | Under the budget set by DR-02; today it is 12 902 ms |
+| 1 | COMP-09-01 | A 230 KiB library root declaring ~3 400 `wx.*` members, receiver **authoritative** (§4.5c) | `wx.<caret>`, measure **time to first element**, median of ≥5 cold | **< 100 ms** (`non-functional.md`, tier 1 — design §4.12). Today: **746 ms** (design §1.9). *(An earlier revision said "the budget set by DR-02"; DR-02 is superseded and set no budget.)* |
 | 2 | — | *(withdrawn with COMP-09-04b — the premise it tested was false)* | | |
-| 2a | NFR-1 | The 530 KiB fixture, narrow prefix vs broad prefix | Compare time-to-first-result for each, **medians of ≥5** | Both under 100 ms. The 18 429 / 25 352 ms pair previously cited here was time-to-*exhaustive*, single-shot, and its 38 % gap sits inside this harness family's demonstrated ±60 % spread — it is not evidence for anything (design §1.8) |
+| 2a | NFR-1 | A 3-member receiver and a 3 600-member receiver, **each in its own file**, both cold | Compare time-to-first-element | Comparable. Today 41 ms vs 1 641 ms — 40x (design §1.9), which the NFR's independence clause forbids. The narrow-vs-broad *prefix* pair once cited here is withdrawn (design §1.8) |
 | 3 | COMP-09-07 | Every existing definition/completion fixture, plus the DR-01 golden | Run the suite | Identical member sets and types to today, recorded for **both** `resolveGlobal` and `resolveType` per receiver — `wx` answers differently through each (design §1.4), so a one-door golden would miss a change to the other |
 | 3a | COMP-09-07 | The `AllColon` fixture — a `@class` whose every member is colon-declared | Enumerate | 2 members. Today's scan returns them; the proposed receiver-key swap returns 0 (design §1.3/§1.4). This is the regression guard |
 | 4 | COMP-09-06 | All four corpus members | Re-baseline | `LuaTypeAssignability` / `LuaReturnTypeMismatch` unchanged |
 | 5 | COMP-09-03 | Library declaring `wx.K = nil`, `function wx.F() end`, `---@class C` with a field, **and `function C:m()`** | `wx.<caret>`, `C` instance caret | All four forms enumerate. Without the colon case a fix passes every other TC while losing class methods (DR-06) |
 | 5a | COMP-09-03 | A `---@class D` whose members are **all** colon-declared — no dot member anywhere | `D` instance caret | Members enumerate. Today `D` has no receiver key at all, so this is the sharpest form of DR-06 |
 | 6 | COMP-09-05 | `---@class V` declaring `__add`; `local a, b = V(), V()` | `a + b` | No diagnostic (closes COMP-04-DR-01) |
-| 9 | COMP-09-09 | The TC 1 fixture, then the same fixture plus an unrelated 200 KiB library | Instrument entries traversed for `wx.<caret>` in both | The count is unchanged — enumeration must not visit the added library's entries. Fails today: `getAllKeys` visits every key |
-| 8 | COMP-09-08 | The TC 1 fixture, on today's code | Run the new latency test | It **fails**, reporting ~12 900 ms against a 100 ms budget — mutation-proving the gate before the fix lands |
-| 7 | COMP-09-02 | A file with 500 `@class` tags | Resolve one class | No full-file tag walk (assert via instrumentation, not timing) |
+| 9 | COMP-09-09 | The TC 1 fixture, then the same fixture plus an unrelated 200 KiB library | Instrument entries traversed for `wx.<caret>` in both — the **completion** door, so the counter must cover `membersOfGlobal`, not only `membersIn` (design §4.10b) | The count is unchanged — enumeration must not visit the added library's entries. Fails today: `getAllKeys` visits every key |
+| 8 | COMP-09-08 | The TC 1 fixture, on today's code, on a receiver that takes the **fast** path (§4.5c) | Run the new latency test | It **fails**, reporting **746 ms** time-to-**first** against a 100 ms budget (design §1.9) — mutation-proving the gate before the fix lands. *(An earlier revision said ~12 900 ms; that is time-to-**exhaustive**, which is not what this gate measures.)* |
+| 7 | COMP-09-02 | The `wx` fixture | Enumerate through `membersIn`, counting `processValues` callbacks | `entriesTraversed >= membersIn(R).size` (and `==` when no name repeats across declaring files — design §4.10b assertion 1) and does not move when 4 000 unrelated keys are added (design §4.10b). **Scoped**: the `catsClassTags` / `LuaImplicitFields` / `LuaTypesVisitor` walks are excluded — they are out of scope because §4.3/§4.6 do not touch them, not because they were measured cheap — the old 22 ms/949 ms justification is retracted, and their cost is DR-16 (design §4.11) |
+| 7a | COMP-09-07 | `wx`, `wxFrame`, `AllColon`, `Shapes` | Enumerate through **both** doors, never `resolveGlobal(r) ?: resolveType(r)` | The golden records each door separately. Two of the four resolve through only one door, so a collapsed golden is silently door-dependent (design §4.4a) |
+| 7b | COMP-09-01 | A `@class` on a **local** (`---@class wxFrame` / `local wxFrame = {}`) | `membersOfGlobal("wxFrame", …)` | `[]` — matching today's `crossFileGlobalMembers`, which returns `emptyMap()` because a local is not a global. The union would return its full member list, inventing members at a call site that offers none (design §4.5) |
+| 7c | COMP-09-03 | `---@class Derived : Base` / `---@field ownField number` / `Derived = {}` | `Derived.<caret>` | `ownField` **is** offered. This is a deliberate new member on the completion path (design §4.5a) — today it is absent — and must be an expectation, not a silent diff |
+| 6b | COMP-09-05 | `---@class D : Base` where `Base` declares `__add` | `D() + D()` | No diagnostic. `getMembers()` merges supertypes, so no separate supertype walk is needed (design §4.7) |
 
 ## Acceptance Criteria
 
@@ -171,10 +177,13 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 **time-to-first-result under 100 ms, independent of index size**, and deliberately sets *no* budget
 for the exhaustive set, because that scales with **index entries traversed**.
 
-Measured today: **12 902 ms** against a 230 KiB library root, **25 352 ms** against a 530 KiB single
+Measured today: **12 902 ms** against a 230 KiB library root, ~~25 352 ms~~ *(withdrawn — single-shot,
+and time-to-exhaustive; see below)* against a 530 KiB single
 file, **297 ms** against 40 KiB of constants. That entries rather than results dominate is measured,
-not assumed: a **narrow** prefix matching a handful of candidates cost 18 429 ms where a **broad**
-one cost 25 352 ms.
+not assumed. ⚠ **The narrow-vs-broad pair once quoted here (18 429 ms vs 25 352 ms) is WITHDRAWN**
+— single-shot, time-to-*exhaustive*, and a 38 % gap inside this harness family's demonstrated ±60 %
+spread (design §1.8). The claim now rests on design §1.9's cold narrow-vs-wide pair (41 ms for 3
+members, 1 641 ms for 3 600) and §4.10b's entry counts, both of which are about **entries**.
 
 **⚠ Every number above is time-to-EXHAUSTIVE, and time-to-first-result has never been measured.**
 `myFixture.completeBasic()` returns only when completion finishes, so the Phase 0 harness could not
@@ -225,44 +234,53 @@ would be true and useless.
 
 ## Status against the planning bar
 
-**Not at the bar, and `status` stays `todo`.** All five artifacts now exist, but Step 9 review
-(second pass, 2026-08-07) returned FAIL again. The measurement sections (§1.1–§1.8) were independently
-reproduced and hold; **§4, the design, does not** — see design §4.9. Outstanding:
+**Six Step 9 reviews were run. Every blocker was verified against the code before being acted on**,
+and three of them were verified by *measurement* rather than by reading, which is how two accepted
+remedies turned out to be wrong.
 
-- **D1/D2/D3** — flat `allScope` reverts BUG-427; `membersOf` is a membership superset (Risk 1.1's own
-  predicted failure); `Kind` is syntactic where the filter it replaces is semantic
-- `membersOf` has no algorithm and is uncallable as placed; the `DataExternalizer` has no wire format
-- COMP-09-03 designed for 2 of its 4 sources; COMP-09-08 and COMP-09-09 have **no design at all**
-- no read-action, cancellation or `DumbService` statement, all binding per `non-functional.md:26-30`
-- §4.7 contradicts the plan and the checklist on whether `t.__add` completes today
+### The arc, because the failure mode changed each round
 
-**The pattern, stated so it stops repeating**: every section written from *measurement* has survived
-two adversarial reviews; every section written from *reading the code* has failed one. §4 must not be
-revised a third time in prose. **DR-09** prototypes the index and measures it, and §4 is rewritten
-from what the prototype does — the same route that fixed TARGET-10's `.i` grammar only after
-`probe.py` existed.
+| Round | What it found | Character |
+| :-- | :-- | :-- |
+| 1–2 | §4 written from reading; D1/D2/D3 | design was fiction |
+| 3 | 9 blockers. §4.5 read off the **tail** of a call chain whose head names a different index | design was fiction, subtler |
+| 4 | 9 blockers. **Every golden fixture shared one binding shape** (`R = {}` + separate members) — the one shape in which the index and the graph agree | the *evidence* was too narrow |
+| 5 | 6 blockers. Round 4's remedy fails on `M = { VERSION } + function M.f()`, and its harness asserted `today == today` | the *remedy* was wrong and its test could not fail |
+| 6 | 5 blockers, **all internal-consistency** — corrections landed in `design.md` and not in the four documents an implementer reads | the design is sound; propagation was not |
 
-### DR-09 outcome (2026-08-08) — the route worked, and it was not free
+### Round 5 → 6, and the design that survived
 
-§4 is now rewritten from a registered, measured prototype (design §4.0–§4.11). What the run settled
-that two rounds of reading could not:
+BL-2 (round 4): the index sees a member only if it is written syntactically against the receiver
+name, so `Config = { host, port }` returned `[]` where today's global door returns both.
 
-- **D1 and D2 were both real**, and measurement decided the fix rather than arbitrating between two
-  readings: `membersOf` over `allScope` returned `[alsoPrivate, privateToThisFile, real]` against a
-  golden of `[real]`. The rule is first-declaring-file within `projectScope`-then-`allScope`.
-- **D3 was half real** — `= function() end` is classifiable, `= someFn` is not — so it became a
-  bounded, gated residue instead of either a blocker or a hand-wave.
-- **The prototype was right and the engine was wrong** on the one remaining mismatch. `a.b.c = v`
-  hoists `c` onto `a` and leaves `a.b` empty, and only on the global door. Filed as **BUG-430**. This
-  is the finding no amount of re-reading would have produced, because both readings of the code were
-  *correct about what the code says* — `memberNameOf` and `LuaImplicitFields` do reject nested
-  qualifiers. A third path does not, and only running it showed that.
-- **Consequence for this feature**: COMP-09-07's "behaviour-preserving" was not a well-defined bar.
-  Two goldens exist for one receiver and one is a defect. COMP-09 now preserves the `@class` door
-  explicitly (design §4.4a).
+Three remedies, **two measured wrong before the third worked** (DR-19, design §4.5c):
 
-The cost was one prototype and two harness runs. Both earlier prose revisions cost a review round
-each and settled nothing.
+1. *fall back when the index is empty* — loses `VERSION` from `M = { VERSION } + function M.f()`,
+   because source 1 makes the index non-empty. Its harness computed
+   `if (indexed.isNotEmpty()) indexed else today` and asserted `== today`: for the receivers it
+   certified, `today == today`.
+2. *also index table-literal fields* — fixes that, not `OM = require(x) + function OM.extra()`.
+3. **a binding-opacity sentinel** — the index says whether it is authoritative. All five binding
+   shapes match today, including both counterexamples.
+
+Round 6's five blockers were then all propagation: `requirements.md` still carried remedy 1 as the
+fix and a retracted "22 ms of 949 ms" justification; `implementation-plan.md` Phase 2 still asked for
+a signature that cannot express the non-authoritative branch; `design.md` §4.10b assertion 4 had a
+clause that goes red on a correct implementation; and the sentinel's scope was written "top level"
+where the measured code is any-depth. All closed.
+
+### The lesson worth carrying into Phase 0
+
+**A golden is only as good as the binding shapes in it.** Three DR rounds each missed a defect
+because their fixtures varied *member style* (dot, colon, `@field`) while holding *binding shape*
+fixed. Phase 0 now carries a standing item listing the eight shapes the golden must contain, and
+adding a shape is the cheap move — adding another member style is not.
+
+### Open, tracked, not blocking
+
+DR-16 (re-measure the descoped walks — the scope decision does not depend on the answer), DR-17
+(assertion 2's factor, with a stated derivation rule), DR-18 (a second whole-project index's build
+cost — committed to, but it should not stay `todo` past Phase 1).
 
 ## Dependencies
 

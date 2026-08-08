@@ -64,6 +64,23 @@ resolveGlobal("Plain") members = [leaf, mid]   -- `mid` is an empty table
 `isExact=true` on the empty `nested` node compounds it: the table is asserted complete while being
 demonstrably not.
 
+## Confirmed in completion, not just in the type API (DR-12, 2026-08-08)
+
+The measurements above are of `resolveGlobal`/`resolveType`. A second probe drove real completion
+over the same shape, so the user-visible half is no longer inferred:
+
+```lua
+Foo = {} ; Foo.bar = {} ; Foo.bar.baz = 1 ; Foo.direct = 2
+```
+
+```
+Foo.      offers [bar, baz, direct]     <- `baz` is offered where it does not exist
+Foo.bar.  offers []                     <- and withheld where it does
+```
+
+Both halves of the defect are what a user sees. `Foo.bar.` offering **nothing** is arguably the worse
+one: a table with two members completes as empty.
+
 ## Why it matters
 
 `Config.db.host = …` is ordinary Lua, and both halves of the result are wrong in a user-visible way.
