@@ -88,7 +88,10 @@ verbatim if COMP-09-04 is reinstated.
 - **Question**: decides whether incremental yield can carry types lazily (`renderElement` is called
   per *visible row*, so ~15 of them) or whether early rows show no type at all.
 - **Options / leaning**: unknown. Inherited from BUG-429, still unestablished. Do not assume.
-- **Resolved by**: DR-02.
+- **Resolved by**: NOT DR-02 — Step 9 caught that DR-02 is `done` while never testing this, so the
+  tracker showed a closed resolver for an open question. Needs its own task; and note §1.7's
+  withdrawal of COMP-09-04b means completion no longer *needs* per-member types lazily, so this gap
+  now bears only on the checker.
 
 ### Gap 2.5: ~~Whether COMP-09-04 should be withdrawn~~ — DECIDED, withdrawn (design §1.7)
 
@@ -123,11 +126,13 @@ verbatim if COMP-09-04 is reinstated.
 | COMP-09-00-DR-03.1 | §3.1: can a type be answered without `forFile`? | design §3.1 | **done** — design §1.5. Not the type; but member *names* can, from an index **value**, at key-lookup speed. `getAllKeys` over 25 335 keys is 44 ms — cheap; `getElements` is 1.5 ms per element and is the real cost |
 | COMP-09-00-DR-06 | Does `getElements(KEY, receiver)` cover the colon form? | COMP-09-01's premise | **done — NO.** Dot-only; `getElements(KEY, "ColonHost")` → `[ColonHost.staticDot]`. See design §1.3 |
 | COMP-09-00-DR-02 | Bucket the cost | critical path | **done.** `resolveGlobal` 9 568 ms / `materialize` 10 ms / `getMembers` 0 ms. The hot path is `LuaTypesSnapshot.forFile` on the declaring file, not enumeration. See design §1.1 |
-| COMP-09-00-DR-02c | Per-keystroke or per-session? | severity | **done — per-keystroke.** cold 800 ms, warm 0 ms, 608 ms repaid after one keystroke in an *unrelated* file. Both caches depend on project-wide `PsiModificationTracker`. See design §1.2 |
+| COMP-09-00-DR-02c | Per-keystroke or per-session? | severity | **REOPENED.** Step 9 re-ran the same harness and it printed the *opposite* verdict (214 ms vs a 244 ms threshold → "once per session"). Single-shot timing. The mechanism is sound by reading (`LuaTypes.kt:214-222`) but the claim is not measured. Redo with medians of ≥5 |
 | COMP-09-00-DR-02a | Build a harness that observes the **first** lookup element — `completeBasic()` returns only when completion finishes, so no time-to-first-result figure exists for any fixture, including the ones this plan quotes | NFR-1 (unmeasured), TC 2 | todo — **blocks NFR-1** |
 | COMP-09-00-DR-02 | Instrument the four buckets (`resolveGlobal`, `:328` scan, `:421` scan, remaining materialize) and measure each **against the existing 100 ms target** — the budget is not ours to set | COMP-09 NFR, Gap 2.2 | todo |
 | COMP-09-00-DR-03 | Prototype the index shape against the wx tree; decide name-only vs name+kind | Gap 2.1, 2.3 | todo |
 | COMP-09-00-DR-04 | ~~Incremental yield vs memoization~~ | Risk 1.3 | **withdrawn** — COMP-09-04 withdrawn (design §1.7), so nothing yields partially and no cache holds a partial result |
+| COMP-09-00-DR-07 | §3.3: would narrowing cache invalidation beat indexing? Previously only a "TBD" under Technical Debt with no task — the DoD requires every open question be tracked | design §3.3 | todo |
+| COMP-09-00-DR-08 | Re-measure every quoted figure with medians of ≥5 before it is cited anywhere. Step 9 showed −60 % run-to-run spread and one flipped verdict | design §1.8 | **partly done** — class door and per-member cost re-measured; §1.2 and the narrow-vs-broad pair still owed |
 | COMP-09-00-DR-05 | ~~Land BUG-429's two-site fix first~~ — **withdrawn.** It cannot precede DR-01: replacing the scans changes enumeration, and DR-01 exists to record what enumeration returns *before* that happens. The scan replacement is COMP-09-01's first increment, after DR-01, not a shortcut around it | — | withdrawn |
 
 ### Risk 1.5: The performance suite cannot fail, so the next regression is equally invisible

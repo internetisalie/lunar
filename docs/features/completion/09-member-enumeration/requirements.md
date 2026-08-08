@@ -77,12 +77,12 @@ Four caches, one half-built index direction, and no single answer to the questio
 | COMP-09-02 | **No full-file walk on the member path** | M | Enumeration narrowed to files must not then walk each file's whole PSI. |
 | COMP-09-03 | **All four declaration sources, dot *and* colon** | M | Dotted assignments, function declarations in **both** `ns.f` and `C:m` form, `@class` fields (incl. inherited), metamethods. The colon form is called out because it is the one the existing receiver key omits (DR-06). |
 | ~~COMP-09-04~~ | ~~**Incremental yield**~~ | — | **WITHDRAWN 2026-08-07.** It names the wrong mechanism — see COMP-09-04b and design §1.7. |
-| COMP-09-04b | **Lazy member-type rendering** | M | A member's type text is computed when its row is rendered, not when the element is created. `LookupElement.renderElement` is called per *visible* row, so ~15 rows pay instead of the whole set. |
+| ~~COMP-09-04b~~ | ~~**Lazy member-type rendering**~~ | — | **WITHDRAWN 2026-08-07 after Step 9 review.** Measured: 4 ms (median of 5) for 3 700 members' types + `displayName()`. Presentation was never on the critical path, and `renderElement` is *not* per-visible-row — that is `getExpensiveRenderer`. Design §1.7. |
 | COMP-09-05 | **`@class`-declared metamethods** | S | A `---@class` declaring `__add` makes its instances arithmetic-capable — closes COMP-04-DR-01 / BUG-426. |
 | COMP-09-06 | **No new type source** | M | The checker sees exactly what it sees today. Corpus baselines must not move. |
 | COMP-09-07 | **Behaviour-preserving** | M | Same members, same types, same completions as today on every existing fixture. |
 | COMP-09-08 | **The latency target is enforced** | M | A failing-first test asserts time-to-first-element against the `non-functional.md` budget, and runs in the routine loop — not behind `-PwithPerf`. |
-| COMP-09-09 | **The work bound is enforced** | M | Entries traversed per enumeration is instrumented and asserted proportional to matching entries. Adding unrelated indexed content must not increase it. |
+| COMP-09-09 | **The work bound is enforced** | M | **Entries traversed** per enumeration is instrumented and asserted proportional to matching entries; adding unrelated indexed content must not increase it. (An earlier revision restated this as "bound stub loads" on the strength of a mismeasured `getAllKeys` figure — reverted, design §2.) |
 
 ## Detailed Specifications
 
@@ -137,8 +137,8 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | # | Requirement | Given | When | Then |
 |---|---|---|---|---|
 | 1 | COMP-09-01 | A 230 KiB library root declaring ~3 400 `wx.*` members | `wx.<caret>`, measure **time to first element** | Under the budget set by DR-02; today it is 12 902 ms |
-| 2 | COMP-09-04b | A receiver with ~3 600 members | Complete, then count how many members had their type computed | Proportional to visible rows (~15), not to member count. Eager rendering would cost 3 600 × 1.5 ms ≈ 5.4 s |
-| 2a | COMP-09-04 | The 530 KiB fixture, narrow prefix vs broad prefix | Compare time-to-first-result for each | Both under 100 ms — first-result must be independent of both index size and candidate count, unlike today's 18 429 / 25 352 ms |
+| 2 | — | *(withdrawn with COMP-09-04b — the premise it tested was false)* | | |
+| 2a | NFR-1 | The 530 KiB fixture, narrow prefix vs broad prefix | Compare time-to-first-result for each, **medians of ≥5** | Both under 100 ms. The 18 429 / 25 352 ms pair previously cited here was time-to-*exhaustive*, single-shot, and its 38 % gap sits inside this harness family's demonstrated ±60 % spread — it is not evidence for anything (design §1.8) |
 | 3 | COMP-09-07 | Every existing definition/completion fixture, plus the DR-01 golden | Run the suite | Identical member sets and types to today, recorded for **both** `resolveGlobal` and `resolveType` per receiver — `wx` answers differently through each (design §1.4), so a one-door golden would miss a change to the other |
 | 3a | COMP-09-07 | The `AllColon` fixture — a `@class` whose every member is colon-declared | Enumerate | 2 members. Today's scan returns them; the proposed receiver-key swap returns 0 (design §1.3/§1.4). This is the regression guard |
 | 4 | COMP-09-06 | All four corpus members | Re-baseline | `LuaTypeAssignability` / `LuaReturnTypeMismatch` unchanged |
@@ -153,7 +153,7 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 
 - [ ] COMP-09-01/02 — every site in the two tables above is converted or explicitly justified.
 - [ ] COMP-09-03 — TC 5 passes for all four sources.
-- [ ] COMP-09-04b — TC 1 and 2; type computations scale with visible rows, not member count.
+- [ ] ~~COMP-09-04b~~ — withdrawn; nothing to verify.
 - [ ] COMP-09-05 — TC 6; COMP-04-DR-01 and BUG-426's limitation are closed or re-scoped in writing.
 - [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
 - [ ] COMP-09-07 — TC 3.
@@ -222,6 +222,23 @@ lines, so the NFR does not literally bind for library trees — which is how a 5
 both catastrophic and technically in-spec. `non-functional.md` must be amended to cover **indexed
 library content**, not only project content. Leaving the qualifier in place and declaring compliance
 would be true and useless.
+
+## Status against the planning bar
+
+**Not at the bar, and `status` stays `todo`.** Step 9 review (2026-08-07) returned FAIL on
+Completeness and Grounding. What exists is a *measured diagnosis* plus a fix direction at the
+confidence the evidence supports. Specifically missing:
+
+- no `implementation-plan.md`, no `human-verification-checklists.md`
+- no fully-qualified class names, no method signatures, no `plugin.xml` / index-registration section
+- COMP-09-05 (`@class` metamethods) not designed
+- the algorithms Risk 1.2 requires be enumerated *before* code — `MethodScan.onlyIn` confinement, the
+  BUG-398 class-name-vs-local-name rule, the nested-qualifier rule (design §4.2) — are not written
+- Gap 2.2 ("can one member's type be resolved without materializing its receiver?") is still open;
+  its listed resolver DR-02 is `done` but never tested it
+
+Two of the plan's acted-upon conclusions were refuted by that review (design §1.7, §4). Reaching the
+bar needs the §4 rewrite carried into a real design, not another revision of this document.
 
 ## Dependencies
 

@@ -186,42 +186,72 @@ question anticipated, and it is why the fix is one index change rather than two 
 An index of names serves completion; the checker still needs types and therefore still pays. Which is
 exactly §1.5's split, arrived at independently from the other door.
 
-## 1.7 DECISION — no incremental yield; lazy type rendering instead
+## 1.7 DECISION (REVISED after adversarial review) — no incremental yield, no lazy rendering
 
-COMP-09-04 asked for incremental yield. **Withdrawn**, because the measurements moved the bottleneck
-and the requirement named the mechanism for the *old* one.
+An earlier revision withdrew COMP-09-04 (incremental yield) and replaced it with COMP-09-04b (lazy
+type rendering), on the claim that eager type text would cost 3 600 × 1.5 ms ≈ 5.4 s and that
+`renderElement` is called per visible row. **Both halves were wrong.** Step 9 review caught them; both
+are now measured.
 
-| what completion needs | cost after the §4 fix | consequence |
-| :-- | :-- | :-- |
-| member **names** | ~ms — keyed index lookup, no stub load, no graph | emit the whole set in one batch |
-| member **types** | ~1.5 ms each (measured, §1.5) | 3 600 members ⇒ **5.4 s** if computed eagerly |
+**There is no per-element type cost.** Median of 5, 3 700 members — `memberNode.write` plus
+`displayName()` plus the `isColon`/`is Function` filter that `LuaCompletionContributor:384` applies:
 
-Two different mechanisms address two different problems:
+```
+per-member type + displayName, 3700 members:  median 4 ms  (min 4, max 11)
+```
 
-- **Incremental yield** — the contributor emits elements over time and the popup grows. Solves *names
-  are slow to find*. That problem **ceases to exist** once names come from an index value.
-- **Lazy rendering** — every element is emitted at once, but each one's presentation is computed on
-  demand. `LookupElement.renderElement` is called per **visible row**, so ~15 rows cost ~22 ms rather
-  than 5.4 s. Solves *per-element detail is slow*, which is the problem that remains.
+`memberNode.write` comes from the already-materialized graph (`materialize` 6–10 ms, `getMembers`
+0 ms) and `LuaGraphType.displayName()` (`LuaGraphType.kt:149-173`) is a pure structural `when` with no
+PSI, index or stub access. The "1.5 ms per element" was `StubIndex.getElements` — stub
+deserialisation, a different operation — and the same design's candidate C did 500 `getElements` in
+43 ms (0.09 ms each), contradicting it in the same document.
 
-So the need COMP-09-04 pointed at is real; its mechanism was wrong. It is replaced by **COMP-09-04b**,
-which is also the smaller change: `LuaMemberLookup.create` currently takes `memberType: LuaGraphType`
-eagerly and calls `withTypeText(memberType.displayName())`. Lazy rendering is a `LookupElement`
-subclass overriding `renderElement` — contained in `LuaMemberLookup`, not in the contributor's control
-flow.
+**And `renderElement` is not per visible row.** `BaseCompletionLookupArranger.java:187` calls it for
+every element added, `LookupImpl.java:410` again on `addItem`, and `LookupElement.java:122-131`'s
+javadoc says it "is called before the item can be shown … should be relatively fast … If there are
+heavy computations involved, consider … moving into `getExpensiveRenderer()`". The per-visible-row API
+is `getExpensiveRenderer` / `LookupElementBuilder.withExpensiveRenderer`, which these artifacts never
+named.
 
-**Why lazy rendering is safe here.** Prefix matching keys off the lookup *string*, not the
-presentation, and these elements carry a fixed `PrioritizedLookupElement.withPriority(element, 100.0)`
-— so neither filtering nor sorting forces a render of the whole set. Had sorting needed type
-information, lazy rendering would not work and streaming would be back on the table.
+**So both requirements are withdrawn, and nothing replaces them.** Presentation was never on the
+critical path; the whole cost is *reaching* the members (§1.1, §1.6). Deleting COMP-09-04b removes the
+only requirement that touched the completion contributor or `LuaMemberLookup`, which makes this
+feature purely an indexing change.
 
-**The one unmeasured premise, and what would reverse this.** "Index value lookup is ~ms" is *inferred*
-from `getAllKeys` over 25 335 keys costing 44 ms (§1.5): a keyed lookup returning values should beat a
-full scan. It has **not** been measured for a value-carrying index, because that index does not exist
-yet. If Phase 1 measures it slow, names become slow to find again and **COMP-09-04 is reinstated**.
-That is the single number that reopens this decision; nothing else in §1 does.
+NFR-2c keeps "incremental" as a property not to break. If a future measurement shows enumeration
+itself slow, COMP-09-04 returns — and its mechanism would then be `getExpensiveRenderer`, not
+`renderElement`.
+
+## 1.8 Measurement discipline — the figures in §1.2/§1.6 were single-shot
+
+Step 9 re-ran all three harnesses. `resolveType` cold came back 383 ms against the 949 ms recorded
+(−60 %), and **§1.2's harness printed the opposite verdict** — `afterEdit > cold/2` evaluated false,
+so it reported "once per session" where the recorded run reported "per-keystroke". Single
+`measureTimeMillis` calls with no warm-up: every ratio derived from a *pair* of them sat inside its own
+noise floor.
+
+Re-measured with medians of 5:
+
+```
+classDoor warm-file + cold-class, 500 members:  median 120 ms  (min 110, max 154)
+classDoor cold-file + cold-class:               1174 ms  (single — unrepeatable by construction)
+per-member type + displayName, 3700 members:    median   4 ms  (min 4, max 11)
+```
+
+120 ms is still over the 100 ms budget, so §1.6's conclusion survives on better numbers. **The
+per-keystroke claim does not** — see §2's correction table. Any figure quoted from here on is a median
+of ≥5 or is marked single-shot.
 
 ## 2. Consequences for the plan
+
+Corrections forced by Step 9 review, beyond §1.7/§1.8:
+
+| Claim | Status |
+| :-- | :-- |
+| "per-keystroke, 76 % repaid" (§1.2) | **UNRELIABLE.** The harness verdict flipped on re-run. The *mechanism* is sound by reading (`LuaTypes.kt:214-222` deps include project-wide `PsiModificationTracker.MODIFICATION_COUNT`) but it is no longer a measured claim. Needs a repeated-run harness before being cited |
+| "`getAllKeys` is cheap — 44 ms / 25 335 keys" (§1.5) | **WITHDRAWN as stated.** That was `FileBasedIndex.getAllKeys(LuaMemberFieldIndex)`, a different subsystem from the `StubIndex.getAllKeys(LuaGlobalDeclarationIndex)` scans it was used to exonerate; and the printed number was the *filtered* match count, not the key total, polluted by cross-test index accumulation. Candidate C (43 ms for a 17 234-key scan + 500 `getElements`) is the figure that actually supports the conclusion |
+| "bound stub loads, not key visits" (COMP-09-09) | **Reverted.** Candidate C shows 500 `getElements` inside 43 ms. The bound should be on *entries traversed*, as `non-functional.md` states |
+| "one index change covers both doors" (§1.6) | **Not yet supported** — see §4's rewrite. `LuaGlobalDeclarationIndex` is a `StringStubIndexExtension` with **no value field**, so function-declaration names cannot come from "an index value" |
 
 | Was | Now |
 | :-- | :-- |
@@ -247,21 +277,41 @@ here is what produced §1.1 and §1.3.
    COMP-09-04b (lazy type rendering) added. Reopens only if a value-carrying index lookup measures
    slow in Phase 1.
 
-## 4. Fix direction, as far as measurement supports it
+## 4. Fix direction — REWRITTEN, and it is not yet at the bar
 
-1. **`LuaMemberFieldIndex` gains a receiver key with the member name as its value**, covering dotted
-   assignments. Enumeration becomes a key lookup returning strings.
-2. **`LuaFuncStubElementType.indexStub` also sinks `substringBefore(':')`**, so colon-declared
-   methods gain a receiver key (§1.3). Stub format change: version bump, full reindex, and a boundary
-   no benchmark may cross.
-3. **The enumeration callers read names from the index**, and resolve types only where a type is
-   actually required — the checker via today's `forFile`, completion lazily or not at all.
-4. **The `getElements`-per-key loops** in `collectMethodMembers` / `materializeUnhostedClass` are
-   replaced by the same lookup. Bounded by COMP-09-09, restated: bound **stub loads**, not key visits
-   (§1.5).
+Step 9 refuted §4's central mechanism. Recorded honestly rather than patched:
 
-Not yet supported by measurement, and therefore not designed: whether (3) needs incremental yield
-(§3.4 — likely withdrawable), and whether narrowing invalidation would beat indexing (§3.3).
+**What was wrong.** §4.1 said `LuaMemberFieldIndex` "gains a receiver key with the member name as its
+value". It is `FileBasedIndexExtension<String, String>` (`:31`) whose `DataIndexer` returns
+`Map<String, String>` — **one value per key per file**. A `receiver → member` mapping would store
+exactly one member for a file declaring 3 400. Not implementable as written; it needs a collection
+value type and a custom `DataExternalizer`.
+
+**What was missing.** `LuaGlobalAssignmentIndex` — unnamed in any of these artifacts — is a
+`FileBasedIndex` that already PSI-walks **both** `LuaAssignmentStatement` targets *and* `LuaFuncDecl`
+names (`:88-96`), with an unused `""` value, and whose own KDoc calls it the "Sibling of
+`LuaMemberFieldIndex`". It is the natural carrier for both declaration sources, and its existence
+removes the objection that function names must come from a stub index.
+
+**Direction, at the confidence the evidence supports:**
+
+1. A receiver-keyed, **collection-valued** `FileBasedIndex` over member names, modelled on
+   `LuaGlobalAssignmentIndex`'s indexer (which already visits both sources) rather than on
+   `LuaMemberFieldIndex`'s single-String shape.
+2. The colon form needs its receiver derived at index time — `substringBefore(':')` as well as
+   `substringBefore('.')` — and a stated rule for nested qualifiers, because `memberNameOf:465-466`
+   rejects `Foo.bar.baz` while `substringBefore('.')` on the existing `a.b.c` key would yield `a`.
+   Nothing here yet says which wins; `LuaMemberFieldIndexTest.testDeepQualifiedKeyPresent` locks the
+   current behaviour.
+3. Enumeration callers read names from it; types stay where they are (§1.7 — presentation is free, and
+   the checker needs real types).
+4. `MethodScan.onlyIn`'s file-confinement and the class-name-vs-local-name distinction (BUG-398) must
+   be reproduced explicitly. Risk 1.2's own mitigation says to enumerate these rules in the design
+   *before* writing code; that is **not done**.
+
+**Version bumps this implies, none previously named:** `LuaMemberFieldIndex.getVersion()` (currently
+1), `LuaGlobalAssignmentIndex.getVersion()` (2), and — if the stub sink changes —
+`LuaFileElementType.getStubVersion()` (4). Each forces a reindex, and no benchmark may cross one.
 
 ## 5. Requirement coverage
 
@@ -272,8 +322,8 @@ Now writable: §3.1 and §3.2 are answered, and both doors resolve to the same r
 | COMP-09-01 receiver-keyed enumeration | §4.1, §4.2 | §1.5 — names from an index value at key-lookup speed; §1.3 — the colon form needs its own key |
 | COMP-09-02 no full-file walk | §4.3, §4.4 | §1.6 — the walk and the parse are the `@class` door's cost |
 | COMP-09-03 all sources, dot **and** colon | §4.1, §4.2 | §1.3, §1.4 — `AllColon` enumerates 2 today and 0 under a naive swap |
-| ~~COMP-09-04~~ incremental yield | **withdrawn** | §1.7 — right need, wrong mechanism |
-| COMP-09-04b lazy type rendering | §4.3 + `LuaMemberLookup` | §1.5 — types cost ~1.5 ms each; `renderElement` is per visible row |
+| ~~COMP-09-04~~ incremental yield | **withdrawn** | §1.7 — no tail to stream |
+| ~~COMP-09-04b~~ lazy type rendering | **withdrawn** | §1.7 — measured 4 ms for 3 700 members; presentation was never the cost, and `renderElement` is not per-visible-row |
 | COMP-09-05 `@class` metamethods | not yet designed | COMP-04-DR-01 / BUG-426; Gap 2.3 says decide after the index shape is fixed, which §1.5 now fixes |
 | COMP-09-06 no new type source | §4.3 | the split — names for completion, `forFile` retained for the checker — is what keeps the checker's inputs unchanged |
 | COMP-09-07 behaviour-preserving | DR-01 golden | §1.4 — both doors per receiver, colon methods included |
