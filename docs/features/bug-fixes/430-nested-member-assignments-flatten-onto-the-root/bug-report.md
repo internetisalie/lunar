@@ -106,3 +106,57 @@ which definition libraries all are — takes the correct door.
 Fixing 1 and 2 together is the real fix and they should not be separated: correcting the hoist
 without populating the intermediate would take `deep` from wrong-place to nowhere. Whether the
 resulting member set changes the corpus sweep baselines must be measured before the fix lands.
+
+## Root cause — GROUNDED 2026-08-08, and it is bigger than this report's Scope assumed
+
+An implement-bug attempt was made and **reverted**. It fixed defect 1 and could not fix defect 2, and
+this report's own Scope section says they must not be separated. What it established:
+
+### Layer 1 — the hoist (defect 1). Found, fixed, reverted with the rest.
+
+`LuaTypesVisitor.visitIndexExpr` anchors every suffix on the **bare receiver**:
+
+```kotlin
+val varElement = PsiTreeUtil.getParentOfType(o, LuaVar::class.java)
+val receiverNode = firstNode(unwrapExpression(varElement.firstChild))   // <- root nameRef, always
+```
+
+`varElement.firstChild` is `Foo` whether `o` is `.bar` or `.baz`, so `Foo.bar.baz = 1` constrains
+`Foo` with a member `baz`. **The site already documents this**, in a comment guarding the
+*declaration-typed* branch: "The graph path below anchors EVERY suffix on the bare receiver, so
+letting a later suffix of a declaration-typed chain fall through would resolve `A.b.c` as `A.c`."
+The hazard was known and guarded for annotated receivers; the ordinary graph path was left with it.
+
+Anchoring each suffix on its predecessor removes the hoist — measured: `Foo.` went from
+`[bar, baz, direct, qux]` to `[bar, direct]`.
+
+### Layer 2 — one member node per occurrence. Tried, not sufficient.
+
+`Foo.bar = {}` and `Foo.bar.baz = 1` each contain their own `.bar` index expression, and
+`graph.variable(o)` mints a fresh node per occurrence, so the receiver carries two unrelated `bar`
+members. Interning them per `(receiverNode, name)` did **not** make `Foo.bar.` non-empty.
+
+### Layer 3 — the actual blocker: an exact table literal does not accrete later member writes.
+
+`graph.addEdge(receiverNode, graph.use(o, tableConstraint))` records the member as a **use** — a
+demand — not a write. Cross-file enumeration goes `resolveGlobal` → `LuaTypesSnapshot` → the member's
+**written** type, and `Foo.bar = {}` writes `Table(localMembers = {}, isExact = true)`
+(`LuaGraphType.kt:259`). The report's own opening measurement already showed this and it was read as a
+symptom: `members["nested"] = Table(className=null, localMembers={}, superTypes=[], isExact=true)`.
+
+So the fix is not a suffix-anchoring correction. It is: **a table whose literal is exact must still
+widen when a later statement writes a new member into it.** That is core type-engine semantics —
+exactness and accretion — and changing it affects every table in every corpus, not just nested
+chains.
+
+### Consequence for planning
+
+This is **not an implement-bug-sized change**, and the "Scope" section above was written before the
+root cause was known. It needs a `plan-feature`-grade pass with corpus measurement up front, because
+the plausible fixes (drop `isExact` for a table that is later extended; make member constraints
+contribute to the write side; unify member nodes across statements) each change assignability for
+code that has nothing to do with this bug.
+
+The reproduction is parked beside this report as `LuaNestedMemberAssignmentTest.kt.txt` — four
+completion-level tests, three of which are red on today's code with exactly the output above. It is
+**not** in the test source set, because a red suite is a broken gate for everything else.
