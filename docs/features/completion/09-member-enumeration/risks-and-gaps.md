@@ -47,7 +47,13 @@ folders:
 - **Mitigation**: enumerate the rules explicitly in the design before writing code; each becomes a
   test at the enumeration boundary, not only end-to-end.
 
-### Risk 1.3: Incremental yield conflicts with memoized results
+### Risk 1.3: ~~Incremental yield conflicts with memoized results~~ — dissolved by §1.7
+
+Withdrawing COMP-09-04 removes this risk: nothing yields partially, so no cache has to hold a partial
+result. DR-04 is correspondingly withdrawn. Retained below as the reasoning, because it returns
+verbatim if COMP-09-04 is reinstated.
+
+### Risk 1.3 (superseded): Incremental yield conflicts with memoized results
 
 - **Impact**: today's callers get a complete `Map<String, …>` and several memoize it (`typeCache`,
   `LuaTypes` per-file cache). An enumeration that yields incrementally either has to complete before
@@ -84,7 +90,7 @@ folders:
 - **Options / leaning**: unknown. Inherited from BUG-429, still unestablished. Do not assume.
 - **Resolved by**: DR-02.
 
-### Gap 2.5: Whether COMP-09-04 (incremental yield) should be withdrawn
+### Gap 2.5: ~~Whether COMP-09-04 should be withdrawn~~ — DECIDED, withdrawn (design §1.7)
 
 - **Question**: §1.5 and §1.6 put member *names* at key-lookup speed with no stub or PSI load. If the
   exhaustive set arrives in milliseconds there is no long tail to stream, and COMP-09-04 —
@@ -93,8 +99,12 @@ folders:
 - **Options / leaning**: withdraw it, keeping the NFR's incremental/cancellable clause as a property
   the implementation must not *break* rather than a feature it must add. Leaning withdraw; it is the
   most invasive part of the feature and the least supported by measurement.
-- **Resolved by**: the Phase 1 measurement of the index-value enumeration. Decide on the number, not
-  now.
+- **Decided 2026-08-07**: withdrawn, replaced by COMP-09-04b (lazy type rendering). Names become fast,
+  types stay slow *per element*, and `renderElement` is called per visible row — so the remaining
+  problem is presentation cost, not discovery cost. Design §1.7 records the full reasoning.
+- **What would reverse it**: Phase 1 measuring a value-carrying index lookup as slow. That is the only
+  input that reinstates COMP-09-04, and it is flagged in §1.7 as an unmeasured premise rather than
+  buried.
 
 ### Gap 2.3: Whether metamethods belong here
 
@@ -117,7 +127,7 @@ folders:
 | COMP-09-00-DR-02a | Build a harness that observes the **first** lookup element — `completeBasic()` returns only when completion finishes, so no time-to-first-result figure exists for any fixture, including the ones this plan quotes | NFR-1 (unmeasured), TC 2 | todo — **blocks NFR-1** |
 | COMP-09-00-DR-02 | Instrument the four buckets (`resolveGlobal`, `:328` scan, `:421` scan, remaining materialize) and measure each **against the existing 100 ms target** — the budget is not ours to set | COMP-09 NFR, Gap 2.2 | todo |
 | COMP-09-00-DR-03 | Prototype the index shape against the wx tree; decide name-only vs name+kind | Gap 2.1, 2.3 | todo |
-| COMP-09-00-DR-04 | Establish whether incremental yield and the existing memoization can coexist, or whether only completion yields incrementally | Risk 1.3 | todo |
+| COMP-09-00-DR-04 | ~~Incremental yield vs memoization~~ | Risk 1.3 | **withdrawn** — COMP-09-04 withdrawn (design §1.7), so nothing yields partially and no cache holds a partial result |
 | COMP-09-00-DR-05 | ~~Land BUG-429's two-site fix first~~ — **withdrawn.** It cannot precede DR-01: replacing the scans changes enumeration, and DR-01 exists to record what enumeration returns *before* that happens. The scan replacement is COMP-09-01's first increment, after DR-01, not a shortcut around it | — | withdrawn |
 
 ### Risk 1.5: The performance suite cannot fail, so the next regression is equally invisible

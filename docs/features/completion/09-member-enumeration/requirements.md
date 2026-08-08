@@ -76,7 +76,8 @@ Four caches, one half-built index direction, and no single answer to the questio
 | COMP-09-01 | **Receiver-keyed member enumeration** | M | "Members of `X`" is answered by an index lookup, not a key scan. |
 | COMP-09-02 | **No full-file walk on the member path** | M | Enumeration narrowed to files must not then walk each file's whole PSI. |
 | COMP-09-03 | **All four declaration sources, dot *and* colon** | M | Dotted assignments, function declarations in **both** `ns.f` and `C:m` form, `@class` fields (incl. inherited), metamethods. The colon form is called out because it is the one the existing receiver key omits (DR-06). |
-| COMP-09-04 | **Incremental yield** | M | A caller can consume a first result before the exhaustive set exists. |
+| ~~COMP-09-04~~ | ~~**Incremental yield**~~ | — | **WITHDRAWN 2026-08-07.** It names the wrong mechanism — see COMP-09-04b and design §1.7. |
+| COMP-09-04b | **Lazy member-type rendering** | M | A member's type text is computed when its row is rendered, not when the element is created. `LookupElement.renderElement` is called per *visible* row, so ~15 rows pay instead of the whole set. |
 | COMP-09-05 | **`@class`-declared metamethods** | S | A `---@class` declaring `__add` makes its instances arithmetic-capable — closes COMP-04-DR-01 / BUG-426. |
 | COMP-09-06 | **No new type source** | M | The checker sees exactly what it sees today. Corpus baselines must not move. |
 | COMP-09-07 | **Behaviour-preserving** | M | Same members, same types, same completions as today on every existing fixture. |
@@ -136,7 +137,7 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | # | Requirement | Given | When | Then |
 |---|---|---|---|---|
 | 1 | COMP-09-01 | A 230 KiB library root declaring ~3 400 `wx.*` members | `wx.<caret>`, measure **time to first element** | Under the budget set by DR-02; today it is 12 902 ms |
-| 2 | COMP-09-04 | Same | Measure time-to-first and time-to-exhaustive **separately**, via a harness that observes the first element rather than `completeBasic()`'s return | They differ by at least an order of magnitude; first-result meets NFR-1 while exhaustive is permitted not to |
+| 2 | COMP-09-04b | A receiver with ~3 600 members | Complete, then count how many members had their type computed | Proportional to visible rows (~15), not to member count. Eager rendering would cost 3 600 × 1.5 ms ≈ 5.4 s |
 | 2a | COMP-09-04 | The 530 KiB fixture, narrow prefix vs broad prefix | Compare time-to-first-result for each | Both under 100 ms — first-result must be independent of both index size and candidate count, unlike today's 18 429 / 25 352 ms |
 | 3 | COMP-09-07 | Every existing definition/completion fixture, plus the DR-01 golden | Run the suite | Identical member sets and types to today, recorded for **both** `resolveGlobal` and `resolveType` per receiver — `wx` answers differently through each (design §1.4), so a one-door golden would miss a change to the other |
 | 3a | COMP-09-07 | The `AllColon` fixture — a `@class` whose every member is colon-declared | Enumerate | 2 members. Today's scan returns them; the proposed receiver-key swap returns 0 (design §1.3/§1.4). This is the regression guard |
@@ -152,7 +153,7 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 
 - [ ] COMP-09-01/02 — every site in the two tables above is converted or explicitly justified.
 - [ ] COMP-09-03 — TC 5 passes for all four sources.
-- [ ] COMP-09-04 — TC 1 and 2; time-to-first-element is the measured quantity, not time-to-complete.
+- [ ] COMP-09-04b — TC 1 and 2; type computations scale with visible rows, not member count.
 - [ ] COMP-09-05 — TC 6; COMP-04-DR-01 and BUG-426's limitation are closed or re-scoped in writing.
 - [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
 - [ ] COMP-09-07 — TC 3.
@@ -193,8 +194,10 @@ with no data behind it. DR-02 must therefore build a harness that can observe th
 - **NFR-2b — exhaustive latency carries no fixed figure, deliberately.** 12.9 s to the *complete* set
   is acceptable; 12.9 s to the *first* result is the defect. A "fix" that speeds the exhaustive set
   while leaving first-result behind it has not addressed this feature.
-- **NFR-2c — cancellable inside the traversal, incremental, off the EDT.** Typing `wx.wxF` restarts
-  enumeration five times; cancellation makes that survivable, not free.
+- **NFR-2c — cancellable inside the traversal, and off the EDT.** Typing `wx.wxF` restarts enumeration
+  five times; cancellation makes that survivable, not free. *Incremental* is retained here as a
+  property the implementation must not **break**, not a feature it must add — COMP-09-04 is withdrawn
+  (design §1.7).
 - **NFR-2d — the non-incremental consumers bound the real cost.** The checker, the corpus sweep and
   documentation rendering need the complete set, so for them exhaustive time *is* user-facing.
   NFR-2's work bound is what protects them; NFR-2b's absence of a latency figure is not permission.

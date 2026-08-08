@@ -186,6 +186,41 @@ question anticipated, and it is why the fix is one index change rather than two 
 An index of names serves completion; the checker still needs types and therefore still pays. Which is
 exactly §1.5's split, arrived at independently from the other door.
 
+## 1.7 DECISION — no incremental yield; lazy type rendering instead
+
+COMP-09-04 asked for incremental yield. **Withdrawn**, because the measurements moved the bottleneck
+and the requirement named the mechanism for the *old* one.
+
+| what completion needs | cost after the §4 fix | consequence |
+| :-- | :-- | :-- |
+| member **names** | ~ms — keyed index lookup, no stub load, no graph | emit the whole set in one batch |
+| member **types** | ~1.5 ms each (measured, §1.5) | 3 600 members ⇒ **5.4 s** if computed eagerly |
+
+Two different mechanisms address two different problems:
+
+- **Incremental yield** — the contributor emits elements over time and the popup grows. Solves *names
+  are slow to find*. That problem **ceases to exist** once names come from an index value.
+- **Lazy rendering** — every element is emitted at once, but each one's presentation is computed on
+  demand. `LookupElement.renderElement` is called per **visible row**, so ~15 rows cost ~22 ms rather
+  than 5.4 s. Solves *per-element detail is slow*, which is the problem that remains.
+
+So the need COMP-09-04 pointed at is real; its mechanism was wrong. It is replaced by **COMP-09-04b**,
+which is also the smaller change: `LuaMemberLookup.create` currently takes `memberType: LuaGraphType`
+eagerly and calls `withTypeText(memberType.displayName())`. Lazy rendering is a `LookupElement`
+subclass overriding `renderElement` — contained in `LuaMemberLookup`, not in the contributor's control
+flow.
+
+**Why lazy rendering is safe here.** Prefix matching keys off the lookup *string*, not the
+presentation, and these elements carry a fixed `PrioritizedLookupElement.withPriority(element, 100.0)`
+— so neither filtering nor sorting forces a render of the whole set. Had sorting needed type
+information, lazy rendering would not work and streaming would be back on the table.
+
+**The one unmeasured premise, and what would reverse this.** "Index value lookup is ~ms" is *inferred*
+from `getAllKeys` over 25 335 keys costing 44 ms (§1.5): a keyed lookup returning values should beat a
+full scan. It has **not** been measured for a value-carrying index, because that index does not exist
+yet. If Phase 1 measures it slow, names become slow to find again and **COMP-09-04 is reinstated**.
+That is the single number that reopens this decision; nothing else in §1 does.
+
 ## 2. Consequences for the plan
 
 | Was | Now |
@@ -208,9 +243,9 @@ here is what produced §1.1 and §1.3.
 3. **Does narrowing invalidation help more than indexing?** If the library snapshot survived edits to
    unrelated files the cost would be once per session per file rather than 76 % repaid per keystroke
    (§1.2). Possibly a smaller change than an index; not obviously safe.
-4. **Where does incremental yield apply, given enumeration is 10 ms?** Likely nowhere. If names come
-   from an index value at key-lookup speed, there is no long tail to stream. COMP-09-04 may be
-   withdrawable — which would remove the most invasive part of the feature.
+4. ~~Where does incremental yield apply?~~ **Decided, §1.7 — nowhere.** COMP-09-04 withdrawn,
+   COMP-09-04b (lazy type rendering) added. Reopens only if a value-carrying index lookup measures
+   slow in Phase 1.
 
 ## 4. Fix direction, as far as measurement supports it
 
@@ -237,7 +272,8 @@ Now writable: §3.1 and §3.2 are answered, and both doors resolve to the same r
 | COMP-09-01 receiver-keyed enumeration | §4.1, §4.2 | §1.5 — names from an index value at key-lookup speed; §1.3 — the colon form needs its own key |
 | COMP-09-02 no full-file walk | §4.3, §4.4 | §1.6 — the walk and the parse are the `@class` door's cost |
 | COMP-09-03 all sources, dot **and** colon | §4.1, §4.2 | §1.3, §1.4 — `AllColon` enumerates 2 today and 0 under a naive swap |
-| COMP-09-04 incremental yield | **possibly withdrawable** | §3.4 — with names at key-lookup speed there may be no tail to stream |
+| ~~COMP-09-04~~ incremental yield | **withdrawn** | §1.7 — right need, wrong mechanism |
+| COMP-09-04b lazy type rendering | §4.3 + `LuaMemberLookup` | §1.5 — types cost ~1.5 ms each; `renderElement` is per visible row |
 | COMP-09-05 `@class` metamethods | not yet designed | COMP-04-DR-01 / BUG-426; Gap 2.3 says decide after the index shape is fixed, which §1.5 now fixes |
 | COMP-09-06 no new type source | §4.3 | the split — names for completion, `forFile` retained for the checker — is what keeps the checker's inputs unchanged |
 | COMP-09-07 behaviour-preserving | DR-01 golden | §1.4 — both doors per receiver, colon methods included |
