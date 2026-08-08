@@ -145,6 +145,47 @@ fix is an index *shape* change rather than a new subsystem.
 Types then arrive separately, and only where needed: the checker keeps `forFile`, and completion
 renders type text lazily per visible row or not at all.
 
+## 1.6 §3.2 ANSWERED — the `@class` door has a different bottleneck, and one fix still covers both
+
+```
+resolveType("Big0")  cold                       949 ms   (500 members)
+resolveType("Big1")  same file, warm            167 ms   (500 members)
+A  forFile(big.lua), measured AFTER the above  1674 ms   <-- still COLD
+B  catsClassTags-shaped walk, AST warm            22 ms
+C  getAllKeys(17 234) + getElements per match     66 ms
+D  first AST walk of an untouched 253 KiB file   352 ms   (~333 ms of it parse)
+```
+
+**The `@class` door never builds the type graph.** Candidate A was measured *after* two
+`resolveType` calls and was still 1 674 ms — so `forFile` had not been invoked. This door is
+therefore *not* the §1.1 defect, and §3.2's premise ("if the two have different bottlenecks, one fix
+does not cover both") was right about the first half.
+
+**Its cold cost is file-level one-time work, not enumeration.** 949 ms cold against 167 ms once the
+file is warm. An equivalent untouched file costs 352 ms just to parse and walk (D), so the parse is
+the largest identified component. ~430 ms of the cold cost remains unattributed — probably stub
+construction and the first `getContainingFiles` touch. **Recorded as unattributed rather than
+assigned**, since attribution by elimination is what produced the two errors in §1.1 and §1.5.
+
+**Its marginal cost is ~167 ms per class** for 500 members — already over the 100 ms budget on its
+own, before any file-level cost. About half is B + C (88 ms); the rest is `funcTypeFromStub` per
+method plus `LuaImplicitFields`.
+
+**But one fix still covers both doors**, because the index-value enumeration of §1.5 needs neither
+PSI nor stubs:
+
+| door | what it pays today | what an index value removes |
+| :-- | :-- | :-- |
+| `resolveGlobal` | `forFile` graph build, 823–1 674 ms | all of it (§1.5) |
+| `resolveType` | AST parse 352 ms + walk 22 ms + scan/stub loads 66 ms + per-method stub reads | the parse, the walk and the stub loads |
+
+So the answer to §3.2 is: **different bottleneck, same remedy.** That is a better outcome than the
+question anticipated, and it is why the fix is one index change rather than two subsystems.
+
+**Caveat that survives.** The `@class` door needs member *types* (`funcTypeFromStub`), not only names.
+An index of names serves completion; the checker still needs types and therefore still pays. Which is
+exactly §1.5's split, arrived at independently from the other door.
+
 ## 2. Consequences for the plan
 
 | Was | Now |
@@ -161,10 +202,9 @@ here is what produced §1.1 and §1.3.
 
 1. ~~Can a global's type be answered without `forFile`?~~ **Answered, §1.5.** Not the type — but the
    member *names* can, from an index value, which is what completion needs.
-2. **Is the `@class` path (`resolveType` → `materializeClass`) dominated by `forFile` or by the
-   `getElements`-per-key loop?** Still unmeasured. §1.4 shows it is a second door to the same room,
-   and §1.5 shows stub loading is the real cost, so this is now the highest-value remaining
-   measurement.
+2. ~~Is the `@class` path dominated by `forFile` or by the `getElements`-per-key loop?~~
+   **Answered, §1.6.** Neither — it never calls `forFile`, and its cold cost is dominated by the
+   declaring file's AST parse. Different bottleneck, same remedy.
 3. **Does narrowing invalidation help more than indexing?** If the library snapshot survived edits to
    unrelated files the cost would be once per session per file rather than 76 % repaid per keystroke
    (§1.2). Possibly a smaller change than an index; not obviously safe.
@@ -186,5 +226,20 @@ here is what produced §1.1 and §1.3.
    (§1.5).
 
 Not yet supported by measurement, and therefore not designed: whether (3) needs incremental yield
-(§3.4), and whether the `@class` door has a different bottleneck (§3.2). **Requirement coverage stays
-deferred until §3.2 is measured** — it is one spike, and guessing it is how §1.1 and §1.5 went wrong.
+(§3.4 — likely withdrawable), and whether narrowing invalidation would beat indexing (§3.3).
+
+## 5. Requirement coverage
+
+Now writable: §3.1 and §3.2 are answered, and both doors resolve to the same remedy.
+
+| Requirement | Covered by | Evidence |
+| :-- | :-- | :-- |
+| COMP-09-01 receiver-keyed enumeration | §4.1, §4.2 | §1.5 — names from an index value at key-lookup speed; §1.3 — the colon form needs its own key |
+| COMP-09-02 no full-file walk | §4.3, §4.4 | §1.6 — the walk and the parse are the `@class` door's cost |
+| COMP-09-03 all sources, dot **and** colon | §4.1, §4.2 | §1.3, §1.4 — `AllColon` enumerates 2 today and 0 under a naive swap |
+| COMP-09-04 incremental yield | **possibly withdrawable** | §3.4 — with names at key-lookup speed there may be no tail to stream |
+| COMP-09-05 `@class` metamethods | not yet designed | COMP-04-DR-01 / BUG-426; Gap 2.3 says decide after the index shape is fixed, which §1.5 now fixes |
+| COMP-09-06 no new type source | §4.3 | the split — names for completion, `forFile` retained for the checker — is what keeps the checker's inputs unchanged |
+| COMP-09-07 behaviour-preserving | DR-01 golden | §1.4 — both doors per receiver, colon methods included |
+| COMP-09-08 latency enforced | requirements NFR-3 | §1.6 shows even the warm-file `@class` path is 167 ms, i.e. over budget without a library involved |
+| COMP-09-09 work bound | §4.4 | §1.5 — bound **stub loads**, not key visits: `getAllKeys` is 44 ms for 25 335 keys |

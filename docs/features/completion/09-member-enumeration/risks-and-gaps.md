@@ -84,6 +84,18 @@ folders:
 - **Options / leaning**: unknown. Inherited from BUG-429, still unestablished. Do not assume.
 - **Resolved by**: DR-02.
 
+### Gap 2.5: Whether COMP-09-04 (incremental yield) should be withdrawn
+
+- **Question**: §1.5 and §1.6 put member *names* at key-lookup speed with no stub or PSI load. If the
+  exhaustive set arrives in milliseconds there is no long tail to stream, and COMP-09-04 —
+  the only requirement touching the completion contributor rather than the index — solves a problem
+  that no longer exists.
+- **Options / leaning**: withdraw it, keeping the NFR's incremental/cancellable clause as a property
+  the implementation must not *break* rather than a feature it must add. Leaning withdraw; it is the
+  most invasive part of the feature and the least supported by measurement.
+- **Resolved by**: the Phase 1 measurement of the index-value enumeration. Decide on the number, not
+  now.
+
 ### Gap 2.3: Whether metamethods belong here
 
 - **Question**: COMP-09-05 is the only source with no index and no cross-file path. It may be a
@@ -97,6 +109,7 @@ folders:
 | ID | Action | Resolves | Status |
 | :-- | :-- | :-- | :-- |
 | COMP-09-00-DR-01 | Golden enumeration across both entry points | Risk 1.1, 1.2 | **done** — design §1.4. `wx` resolves through *both* doors with different types; `AllColon` (all-colon members) enumerates 2 today and would return 0 under the proposed swap. Golden must record both doors per receiver |
+| COMP-09-00-DR-03.2 | §3.2: is the `@class` door dominated by `forFile` or the key loop? | design §3.2 | **done** — design §1.6. Neither: it never calls `forFile` (A measured 1 674 ms cold *after* two resolveType calls). Cold cost is the declaring file's AST parse (352 ms measured on an untouched equivalent); marginal cost 167 ms/class, already over budget. Different bottleneck, **same remedy** |
 | COMP-09-00-DR-03.1 | §3.1: can a type be answered without `forFile`? | design §3.1 | **done** — design §1.5. Not the type; but member *names* can, from an index **value**, at key-lookup speed. `getAllKeys` over 25 335 keys is 44 ms — cheap; `getElements` is 1.5 ms per element and is the real cost |
 | COMP-09-00-DR-06 | Does `getElements(KEY, receiver)` cover the colon form? | COMP-09-01's premise | **done — NO.** Dot-only; `getElements(KEY, "ColonHost")` → `[ColonHost.staticDot]`. See design §1.3 |
 | COMP-09-00-DR-02 | Bucket the cost | critical path | **done.** `resolveGlobal` 9 568 ms / `materialize` 10 ms / `getMembers` 0 ms. The hot path is `LuaTypesSnapshot.forFile` on the declaring file, not enumeration. See design §1.1 |
