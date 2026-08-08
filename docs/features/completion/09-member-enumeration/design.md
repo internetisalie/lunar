@@ -295,7 +295,7 @@ functions, 300 classes × 8 colon methods — the BUG-429 shape.
 | `membersOf("wxG7")`, 8 members, median of 5 | **0 ms** |
 | `resolveGlobal("wx")`, same fixture, same run, cold | **13 655 ms** |
 | externalizer round-trip, 4 members incl. non-ASCII | **exact**, 55 bytes; empty list 4 bytes |
-| membership vs today's golden, 4 receivers | 3 exact; 1 differs by BUG-430 (§4.9a) |
+| membership vs today's golden, 4 receivers | 3 exact; 1 differs by an engine defect (§4.4a) |
 
 The narrow/wide pair is the important one: 8 members costs 0 ms on the same index in the same
 project as 3 600 members costing 2 ms. That is COMP-09-09's work bound demonstrated, not asserted —
@@ -380,13 +380,13 @@ wxFrame): nil` measured as `FUNCTION/DOT`.
 | `wx` (globals, constants, dot functions) | 4 | 4 | **exact** |
 | `wxFrame` (colon methods + `@field`) | 5 | 5 | **exact** |
 | `AllColon` (every member colon-declared) | 2 | 2 | **exact** — the shape DR-06 showed has *no* receiver key today |
-| `Shapes` (nested + assigned + keyed) | 5 | 4 | differs by `deep`, which is **BUG-430** |
+| `Shapes` (nested + assigned + keyed) | 5 | 4 | differs by `deep` — **the engine is wrong here**, §4.4a |
 
 `AllColon` matching is the load-bearing result: it is the case COMP-09-01's original "strict
 simplification" would have silently emptied (§1.3), and the new index gets it right because the
 receiver key is derived at index time rather than inherited from the dot-only stub sink.
 
-### 4.4a The `deep` divergence is a defect in the engine, not the index — BUG-430
+### 4.4a The `deep` divergence is a defect in the engine, not the index
 
 The single mismatch was traced (`CompNineDr09bTest`) and it is not the prototype's:
 
@@ -398,8 +398,17 @@ resolveGlobal("Shapes")  members = [alsoDeep, deep, direct, nested]   <- grandch
 resolveType("Shapes")    members = [direct, nested]                   <- correct
 ```
 
-So the two doors disagree on the same receiver in the same file, and the global door's answer is
-wrong twice over. Filed as **BUG-430**.
+So the two doors disagree on the same receiver in the same file, and the global door is wrong twice
+over: every nested member is offered at the one path where it does not exist (`Shapes.deep`) and
+withheld from the one where it does (`Shapes.nested.deep`). `isExact=true` on the empty `nested` node
+compounds it — the table is asserted complete while being demonstrably not. The same shape with no
+`---@class` at all behaves identically (`Plain.mid.leaf` → `[leaf, mid]`), so this is the global
+door's rule, not an interaction with the annotation.
+
+Neither `memberNameOf` nor `LuaImplicitFields.singleFieldSuffixName` produces this — both reject
+`base.x.y` explicitly. The flattening is `LuaTypesVisitor`/`LuaTypesSnapshot`'s member-write walk
+recording the last suffix against the root receiver instead of descending. That is why two rounds of
+reading missed it: both readings were correct about the code they read.
 
 **This changes what COMP-09-07 can mean.** "Behaviour-preserving" is not well-defined while two
 goldens exist for one receiver and one of them is a bug. COMP-09 therefore preserves the **`@class`
@@ -600,6 +609,6 @@ than a call-shape argument; the rows that are still not designed say so.
 | ~~COMP-09-04b~~ lazy type rendering | **withdrawn** | §1.7 — measured 4 ms for 3 700 members; presentation was never the cost, and `renderElement` is not per-visible-row |
 | COMP-09-05 `@class` metamethods | §4.7 — change site named, behaviour to observe first | COMP-04-DR-01 / BUG-426; unmeasured, and the checklist observes `t.__add` before the change |
 | COMP-09-06 no new type source | §4.1 | the split — names for completion, `forFile` retained for the checker — keeps the checker's inputs unchanged |
-| COMP-09-07 behaviour-preserving | §4.4 measured; §4.4a **redefines the bar** | 3 of 4 receivers exact; the 4th is BUG-430, where the two doors disagree and one is wrong. COMP-09 preserves the `@class` door and deliberately does not reproduce the global door's flattening |
+| COMP-09-07 behaviour-preserving | §4.4 measured; §4.4a **redefines the bar** | 3 of 4 receivers exact; on the 4th the two doors disagree and the global one is wrong (§4.4a). COMP-09 preserves the `@class` door and deliberately does not reproduce the global door's flattening |
 | COMP-09-08 latency enforced | **NOT DESIGNED** — no test class, no first-element harness (DR-02a is `todo`, "blocks NFR-1") | §1.6 — even the warm-file `@class` path is 167 ms, over budget with no library involved |
 | COMP-09-09 work bound | **evidence yes, mechanism no** | §4.0 — 8 members 0 ms vs 3 600 members 2 ms on one index shows the bound holds; no assertion mechanism is specified |

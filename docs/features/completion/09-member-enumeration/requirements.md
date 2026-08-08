@@ -253,7 +253,7 @@ that two rounds of reading could not:
 - **D3 was half real** — `= function() end` is classifiable, `= someFn` is not — so it became a
   bounded, gated residue instead of either a blocker or a hand-wave.
 - **The prototype was right and the engine was wrong** on the one remaining mismatch. `a.b.c = v`
-  hoists `c` onto `a` and leaves `a.b` empty, and only on the global door. Filed as **BUG-430**. This
+  hoists `c` onto `a` and leaves `a.b` empty, and only on the global door (design §4.4a). This
   is the finding no amount of re-reading would have produced, because both readings of the code were
   *correct about what the code says* — `memberNameOf` and `LuaImplicitFields` do reject nested
   qualifiers. A third path does not, and only running it showed that.
