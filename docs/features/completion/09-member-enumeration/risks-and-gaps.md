@@ -96,7 +96,8 @@ folders:
 
 | ID | Action | Resolves | Status |
 | :-- | :-- | :-- | :-- |
-| COMP-09-00-DR-01 | Record today's exact enumeration result — member set, types, order — for a library global, a `@class`, and a local-declared class, as a golden file | Risk 1.1, 1.2 | **INCOMPLETE** — `wx` captured (3 members); `resolveGlobal` returns null for `wxFrame`/`ColonHost` because both are `local` + `@class`, i.e. types not globals. Redo across `resolveGlobal` **and** `resolveType`, with colon-declared methods in the fixture. Still blocks everything |
+| COMP-09-00-DR-01 | Golden enumeration across both entry points | Risk 1.1, 1.2 | **done** — design §1.4. `wx` resolves through *both* doors with different types; `AllColon` (all-colon members) enumerates 2 today and would return 0 under the proposed swap. Golden must record both doors per receiver |
+| COMP-09-00-DR-03.1 | §3.1: can a type be answered without `forFile`? | design §3.1 | **done** — design §1.5. Not the type; but member *names* can, from an index **value**, at key-lookup speed. `getAllKeys` over 25 335 keys is 44 ms — cheap; `getElements` is 1.5 ms per element and is the real cost |
 | COMP-09-00-DR-06 | Does `getElements(KEY, receiver)` cover the colon form? | COMP-09-01's premise | **done — NO.** Dot-only; `getElements(KEY, "ColonHost")` → `[ColonHost.staticDot]`. See design §1.3 |
 | COMP-09-00-DR-02 | Bucket the cost | critical path | **done.** `resolveGlobal` 9 568 ms / `materialize` 10 ms / `getMembers` 0 ms. The hot path is `LuaTypesSnapshot.forFile` on the declaring file, not enumeration. See design §1.1 |
 | COMP-09-00-DR-02c | Per-keystroke or per-session? | severity | **done — per-keystroke.** cold 800 ms, warm 0 ms, 608 ms repaid after one keystroke in an *unrelated* file. Both caches depend on project-wide `PsiModificationTracker`. See design §1.2 |

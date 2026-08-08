@@ -76,13 +76,74 @@ dominant idiomatic form for class methods.
 `ColonHost.staticDot` happens to use the dot form*. A class whose members are all colon-declared has
 **no receiver key at all**. The keying is incidental to member style, not a property of the class.
 
-### 1.4 DR-01 is incomplete — recorded, not glossed
+### 1.4 DR-01, done properly — and it makes DR-06's risk concrete
 
-The golden enumeration captured `wx` (3 members) but `resolveGlobal` returns **null** for `wxFrame`
-and `ColonHost`: both are `local` + `---@class`, so they are types, not globals, and need
-`resolveType`. The harness used one entry point for two questions. DR-01 must be redone across
-**both** before any code changes, because it is the guard for COMP-09-07 — and per §1.3 its fixture
-must contain colon-declared methods or it will certify their loss as behaviour-preserving.
+Redone across both entry points, with colon methods in the fixture:
+
+| receiver | `resolveGlobal` | `resolveType` | golden members |
+| :-- | :-- | :-- | :-- |
+| `wx` (`---@class wx` + `wx = {}`) | `LuaTableLiteralType` | `LuaClassType` | `wxFileExists, wxFrame, wxID_ANY, wxID_OK` |
+| `wxFrame` (`local` + `@class`) | **null** | `LuaClassType` | `GetTitle, Show, staticCount` |
+| `AllColon` (all members colon-declared) | **null** | `LuaClassType` | `alpha, beta` |
+
+Three things fall out.
+
+**Today's scan DOES enumerate colon methods.** `wxFrame:Show`, `wxFrame:GetTitle`, `AllColon:alpha`
+and `AllColon:beta` are all present, because `memberNameOf` matches `receiver:`. So DR-06's risk is
+no longer hypothetical: **`AllColon` would go from 2 members to 0** under the proposed swap, and it
+is now golden-file-verified rather than argued.
+
+**A receiver can resolve through *both* entry points, with different types.** `wx` is
+`LuaTableLiteralType` via `resolveGlobal` and `LuaClassType` via `resolveType`, because it carries
+both `---@class wx` and `wx = {}`. So COMP-09-07's golden file must record **both** answers per
+receiver; capturing one would let a change alter the other undetected. The first DR-01 attempt took
+`viaGlobal ?: viaType` and would have done exactly that.
+
+**`resolveGlobal` is not the only door.** COMP-09-01's site list is written against the
+`resolveGlobal` path; the `resolveType` path reaches enumeration through `materializeClass` /
+`materializeUnhostedClass` — which is where the two `getAllKeys` scans live. Two doors, one room.
+
+## 1.5 §3.1 ANSWERED — the graph build is the cost, and names can bypass it
+
+**(b) `LuaTypesSnapshot.forFile` carries essentially the whole path.**
+
+```
+LuaTypesSnapshot.forFile(library)          823 ms   (123 KiB root)
+resolveGlobal, snapshot now warm            53 ms
+```
+
+So the answer to "can a global's type be answered without `forFile`?" is: **not today** — the type
+*is* the graph. But that is the wrong question, which (c) shows.
+
+**(c) Member NAMES can be had from the existing indexes without any graph — and the bottleneck is
+not where I assumed.**
+
+```
+getElements(KEY,"wx")                 200 names   296 ms
+LuaMemberFieldIndex full key scan   25 335 keys    44 ms      <-- the "expensive" scan
+index-only name enumeration, total              340 ms
+compare: resolveGlobal                        9 568 ms
+```
+
+**`getAllKeys` over 25 335 keys costs 44 ms.** The scan is *cheap*. What costs is
+`getElements` — 296 ms for 200 elements, ~1.5 ms each, because each one deserialises a stub. And
+`collectMethodMembers` calls `getElements` **per matching key**, so for a 3 600-member receiver that
+is seconds. My earlier framing — "`getAllKeys` is the defect" — was wrong in the same way as §1.1:
+inferred from the call shape, refuted by running it. COMP-09-09's work bound is still right, but the
+work it must bound is **stub loads**, not key visits.
+
+**Which gives the design its answer.** 340 ms is 28× better than 9 568 ms and still over the 100 ms
+budget, because it loads stubs. Names must come from the index *value*, not from the elements:
+
+> A receiver-keyed index whose **value is the member name**, so enumeration is a key lookup returning
+> strings with zero stub deserialisation and zero graph construction.
+
+`LuaMemberFieldIndex` already has a value field, currently `""` (`:71`) — "The value is unused;
+navigation re-resolves the field identifier on demand". That is the field to use, and it is why the
+fix is an index *shape* change rather than a new subsystem.
+
+Types then arrive separately, and only where needed: the checker keeps `forFile`, and completion
+renders type text lazily per visible row or not at all.
 
 ## 2. Consequences for the plan
 
@@ -98,18 +159,32 @@ must contain colon-declared methods or it will certify their loss as behaviour-p
 Deliberately unresolved — each needs a measurement that has not been taken, and inventing answers
 here is what produced §1.1 and §1.3.
 
-1. **Can a global's type be answered without `LuaTypesSnapshot.forFile`?** `LuaGlobalAssignmentIndex`
-   already names the declaring *file*. What is missing is its type without the graph. Whether a stub
-   can carry enough is unknown.
-2. **Is the `@class` receiver path also dominated by `forFile`, or by the `getAllKeys` scans?**
-   DR-01's harness could not reach it (§1.4), so the `@class` path is **unmeasured**.
-3. **Does narrowing invalidation help more than indexing?** If the snapshot survived unrelated edits,
-   the cost would be once per session per file. That may be a smaller change than a new index — and
-   it is not obviously safe.
-4. **Where does incremental yield apply, given enumeration is 10 ms?** Possibly nowhere: if the cost
-   moves out of the critical path entirely, streaming solves a problem that no longer exists.
+1. ~~Can a global's type be answered without `forFile`?~~ **Answered, §1.5.** Not the type — but the
+   member *names* can, from an index value, which is what completion needs.
+2. **Is the `@class` path (`resolveType` → `materializeClass`) dominated by `forFile` or by the
+   `getElements`-per-key loop?** Still unmeasured. §1.4 shows it is a second door to the same room,
+   and §1.5 shows stub loading is the real cost, so this is now the highest-value remaining
+   measurement.
+3. **Does narrowing invalidation help more than indexing?** If the library snapshot survived edits to
+   unrelated files the cost would be once per session per file rather than 76 % repaid per keystroke
+   (§1.2). Possibly a smaller change than an index; not obviously safe.
+4. **Where does incremental yield apply, given enumeration is 10 ms?** Likely nowhere. If names come
+   from an index value at key-lookup speed, there is no long tail to stream. COMP-09-04 may be
+   withdrawable — which would remove the most invasive part of the feature.
 
-## 4. Requirement coverage
+## 4. Fix direction, as far as measurement supports it
 
-Deferred until §3 is answered. Writing a coverage table now would map requirements onto components
-chosen for reasons §1 just refuted.
+1. **`LuaMemberFieldIndex` gains a receiver key with the member name as its value**, covering dotted
+   assignments. Enumeration becomes a key lookup returning strings.
+2. **`LuaFuncStubElementType.indexStub` also sinks `substringBefore(':')`**, so colon-declared
+   methods gain a receiver key (§1.3). Stub format change: version bump, full reindex, and a boundary
+   no benchmark may cross.
+3. **The enumeration callers read names from the index**, and resolve types only where a type is
+   actually required — the checker via today's `forFile`, completion lazily or not at all.
+4. **The `getElements`-per-key loops** in `collectMethodMembers` / `materializeUnhostedClass` are
+   replaced by the same lookup. Bounded by COMP-09-09, restated: bound **stub loads**, not key visits
+   (§1.5).
+
+Not yet supported by measurement, and therefore not designed: whether (3) needs incremental yield
+(§3.4), and whether the `@class` door has a different bottleneck (§3.2). **Requirement coverage stays
+deferred until §3.2 is measured** — it is one spike, and guessing it is how §1.1 and §1.5 went wrong.
