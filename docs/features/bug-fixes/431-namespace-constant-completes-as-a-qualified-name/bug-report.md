@@ -59,6 +59,12 @@ which the qualified form fails. In the same run the method half of the same test
    `constant.any { it.contains("wxID_ANY") }` at `:281` — so the harness disagrees with itself about
    what the right answer is, and one of the two was written to pass against whatever was observed.
 
+   A third possibility to rule out before choosing between 1 and 2: the answer may **differ by
+   source**. Both assertions run against a library root; a project-file declaration goes through a
+   different resolution path. If bare is correct there and qualified here, then `:281`'s looser form
+   is right by accident rather than by design, and the fix is neither the test nor the contributor
+   but the divergence.
+
 ## Regression or committed red?
 
 `TargetTenDrSpikeTest` was added in `e5b802a0` ("feat(target): TARGET-10 Phase 0 — DR verdicts
