@@ -75,7 +75,7 @@ Four caches, one half-built index direction, and no single answer to the questio
 |----|-------------|----------|-------------|
 | COMP-09-01 | **Receiver-keyed member enumeration** | M | "Members of `X`" is answered by an index lookup, not a key scan. |
 | COMP-09-02 | **No full-file walk on the member path** | M | Enumeration narrowed to files must not then walk each file's whole PSI. |
-| COMP-09-03 | **All four declaration sources** | M | Dotted assignments, dotted function declarations, `@class` fields (incl. inherited), metamethods. |
+| COMP-09-03 | **All four declaration sources, dot *and* colon** | M | Dotted assignments, function declarations in **both** `ns.f` and `C:m` form, `@class` fields (incl. inherited), metamethods. The colon form is called out because it is the one the existing receiver key omits (DR-06). |
 | COMP-09-04 | **Incremental yield** | M | A caller can consume a first result before the exhaustive set exists. |
 | COMP-09-05 | **`@class`-declared metamethods** | S | A `---@class` declaring `__add` makes its instances arithmetic-capable — closes COMP-04-DR-01 / BUG-426. |
 | COMP-09-06 | **No new type source** | M | The checker sees exactly what it sees today. Corpus baselines must not move. |
@@ -84,6 +84,11 @@ Four caches, one half-built index direction, and no single answer to the questio
 | COMP-09-09 | **The work bound is enforced** | M | Entries traversed per enumeration is instrumented and asserted proportional to matching entries. Adding unrelated indexed content must not increase it. |
 
 ## Detailed Specifications
+
+> **De-risking complete 2026-08-07 — see [design.md §1](design.md). Two claims below were refuted by
+> measurement and are corrected there: the critical path is `resolveGlobal` →
+> `LuaTypesSnapshot.forFile` (9 568 ms), not `materialize` (10 ms); and the receiver-key swap is a
+> correctness regression, not a simplification, because the sink is dot-only.**
 
 ### COMP-09-01: the sites to replace
 
@@ -95,9 +100,18 @@ Four caches, one half-built index direction, and no single answer to the questio
 
 `LuaGlobalDeclarationIndex` is **already receiver-keyed** (`LuaFuncStubElementType:69-75` sinks both
 the qualified name and `substringBefore('.')`), so the first two are brute-forcing a query the index
-already answers. That part is a strict simplification, not a redesign — and it is this feature's
-**first increment**, taken after DR-01's golden file, not before it. Replacing a scan changes what
-enumeration returns; the whole point of DR-01 is to have recorded that first.
+already answers **for the dot form only**. Measured (DR-06): `getElements(KEY, "ColonHost")` returns
+`[ColonHost.staticDot]` — the colon-declared `ColonHost:dotless` and `ColonHost:scale` are absent,
+because `LuaFuncStubElementType:69-75` sinks a receiver key only when the name contains `'.'` while
+`memberNameOf:466` matches both separators. Swapping the scan as-is **drops every colon-declared
+method**, and `function C:m()` is the dominant idiomatic form. Worse, the `ColonHost` receiver key
+exists only because one member happens to use the dot form — a wholly colon-declared class has no
+receiver key at all.
+
+So this is **not** a strict simplification and **not** the first increment. It requires `indexStub`
+to also sink `substringBefore(':')` — a stub index format change, hence a version bump and a full
+reindex, which is also a second boundary no benchmark may cross. And per DR-02 these scans sit inside
+a 10 ms region, so they are a **work-bound** fix (COMP-09-09), not a latency one.
 
 ### COMP-09-02: the sites narrowed-then-walked
 
@@ -126,7 +140,8 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | 2a | COMP-09-04 | The 530 KiB fixture, narrow prefix vs broad prefix | Compare time-to-first-result for each | Both under 100 ms — first-result must be independent of both index size and candidate count, unlike today's 18 429 / 25 352 ms |
 | 3 | COMP-09-07 | Every existing definition/completion fixture | Run the suite | Identical member sets and types to today |
 | 4 | COMP-09-06 | All four corpus members | Re-baseline | `LuaTypeAssignability` / `LuaReturnTypeMismatch` unchanged |
-| 5 | COMP-09-03 | Library declaring `wx.K = nil`, `function wx.F() end`, `---@class C` with a field | `wx.<caret>` and `C` instance caret | All three forms enumerate |
+| 5 | COMP-09-03 | Library declaring `wx.K = nil`, `function wx.F() end`, `---@class C` with a field, **and `function C:m()`** | `wx.<caret>`, `C` instance caret | All four forms enumerate. Without the colon case a fix passes every other TC while losing class methods (DR-06) |
+| 5a | COMP-09-03 | A `---@class D` whose members are **all** colon-declared — no dot member anywhere | `D` instance caret | Members enumerate. Today `D` has no receiver key at all, so this is the sharpest form of DR-06 |
 | 6 | COMP-09-05 | `---@class V` declaring `__add`; `local a, b = V(), V()` | `a + b` | No diagnostic (closes COMP-04-DR-01) |
 | 9 | COMP-09-09 | The TC 1 fixture, then the same fixture plus an unrelated 200 KiB library | Instrument entries traversed for `wx.<caret>` in both | The count is unchanged — enumeration must not visit the added library's entries. Fails today: `getAllKeys` visits every key |
 | 8 | COMP-09-08 | The TC 1 fixture, on today's code | Run the new latency test | It **fails**, reporting ~12 900 ms against a 100 ms budget — mutation-proving the gate before the fix lands |

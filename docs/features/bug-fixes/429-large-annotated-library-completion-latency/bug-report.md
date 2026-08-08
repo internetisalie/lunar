@@ -47,7 +47,27 @@ Wall-clock for the first `completeBasic()` after the root is indexed. Indexing i
 
 Candidate count is not the driver: a narrow prefix costs 18 s where a broad one costs 25 s.
 
-## The critical path
+## CORRECTION 2026-08-07 — this report's critical path was wrong
+
+Measured (`CompNineDrSpikeTest`, COMP-09 DR-02): `resolveGlobal` **9 568 ms**, `materialize`
+**10 ms**, `getMembers` **0 ms** for 3 700 members. The section below states that `materialize`
+"builds the complete type graph for every member … before the loop yields its first element". It
+does not — materialization and enumeration together are 10 ms.
+
+The cost is inside `resolveGlobal`: `doResolveGlobal → typeOfGlobalIn → globalTypeIn →
+LuaTypesSnapshot.forFile(declaringFile)`, which builds the **whole 242 KiB library file's type
+graph** to answer what type it gives one global. Corrected analysis is
+[COMP-09 design §1](../../completion/09-member-enumeration/design.md).
+
+Also measured: warm `resolveGlobal` is **0 ms**, but one keystroke in an *unrelated* file repays
+**76 %** of the cost, because `typeCache` and the per-file snapshot both depend on project-wide
+`PsiModificationTracker`. So it is per-keystroke, not per-session.
+
+The section below is retained as the reasoning that was refuted — it is a clean example of a claim
+read off a call shape and never run. The `getAllKeys` audit further down is unaffected: those scans
+are real, they are simply inside the 10 ms and were never the headline.
+
+## The critical path (AS ORIGINALLY WRITTEN — see correction above)
 
 `LuaCompletionContributor.kt:370-388` already **streams** — its emit loop is
 `for ((name, node) in members) { result.addElement(...) }`. It never gets to start:

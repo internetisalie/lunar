@@ -96,7 +96,10 @@ folders:
 
 | ID | Action | Resolves | Status |
 | :-- | :-- | :-- | :-- |
-| COMP-09-00-DR-01 | Record today's exact enumeration result — member set, types, order — for a library global, a `@class`, and a local-declared class, as a golden file | Risk 1.1, 1.2 | todo — **blocks everything** |
+| COMP-09-00-DR-01 | Record today's exact enumeration result — member set, types, order — for a library global, a `@class`, and a local-declared class, as a golden file | Risk 1.1, 1.2 | **INCOMPLETE** — `wx` captured (3 members); `resolveGlobal` returns null for `wxFrame`/`ColonHost` because both are `local` + `@class`, i.e. types not globals. Redo across `resolveGlobal` **and** `resolveType`, with colon-declared methods in the fixture. Still blocks everything |
+| COMP-09-00-DR-06 | Does `getElements(KEY, receiver)` cover the colon form? | COMP-09-01's premise | **done — NO.** Dot-only; `getElements(KEY, "ColonHost")` → `[ColonHost.staticDot]`. See design §1.3 |
+| COMP-09-00-DR-02 | Bucket the cost | critical path | **done.** `resolveGlobal` 9 568 ms / `materialize` 10 ms / `getMembers` 0 ms. The hot path is `LuaTypesSnapshot.forFile` on the declaring file, not enumeration. See design §1.1 |
+| COMP-09-00-DR-02c | Per-keystroke or per-session? | severity | **done — per-keystroke.** cold 800 ms, warm 0 ms, 608 ms repaid after one keystroke in an *unrelated* file. Both caches depend on project-wide `PsiModificationTracker`. See design §1.2 |
 | COMP-09-00-DR-02a | Build a harness that observes the **first** lookup element — `completeBasic()` returns only when completion finishes, so no time-to-first-result figure exists for any fixture, including the ones this plan quotes | NFR-1 (unmeasured), TC 2 | todo — **blocks NFR-1** |
 | COMP-09-00-DR-02 | Instrument the four buckets (`resolveGlobal`, `:328` scan, `:421` scan, remaining materialize) and measure each **against the existing 100 ms target** — the budget is not ours to set | COMP-09 NFR, Gap 2.2 | todo |
 | COMP-09-00-DR-03 | Prototype the index shape against the wx tree; decide name-only vs name+kind | Gap 2.1, 2.3 | todo |
@@ -117,6 +120,10 @@ folders:
 - **TBD: the four caches.** If enumeration becomes cheap, `typeCache`, the two sibling
   `CachedValue`s, `LuaTypes`' per-file cache and `GlobalSymbolRankingService`'s may each be
   redundant. Removing a cache is a separate, measurable change — not a side effect of this one.
+- **TBD: narrowing cache invalidation** may beat indexing. If the library snapshot survived edits to
+  unrelated files, the cost would be once per session per file rather than per keystroke (design
+  §1.2). That could be a smaller change than a new index — and it is not obviously safe, which is why
+  it is a question (design §3.3) and not a plan.
 - **TBD: `LuaImportNameResolver`'s whole-file walks** (`:44,79,82`) enumerate *local* declarations,
   a different question with the same shape. Out of scope; recorded so the next audit finds it.
 
