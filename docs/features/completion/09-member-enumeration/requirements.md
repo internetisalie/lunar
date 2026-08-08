@@ -80,7 +80,8 @@ Four caches, one half-built index direction, and no single answer to the questio
 | COMP-09-05 | **`@class`-declared metamethods** | S | A `---@class` declaring `__add` makes its instances arithmetic-capable — closes COMP-04-DR-01 / BUG-426. |
 | COMP-09-06 | **No new type source** | M | The checker sees exactly what it sees today. Corpus baselines must not move. |
 | COMP-09-07 | **Behaviour-preserving** | M | Same members, same types, same completions as today on every existing fixture. |
-| COMP-09-08 | **The latency target is enforced** | M | A failing-first test asserts time-to-first-element against the `non-functional.md` budget, and runs in the routine loop — not behind `-PwithPerf`. `non-functional.md` is amended to cover indexed library content. |
+| COMP-09-08 | **The latency target is enforced** | M | A failing-first test asserts time-to-first-element against the `non-functional.md` budget, and runs in the routine loop — not behind `-PwithPerf`. |
+| COMP-09-09 | **The work bound is enforced** | M | Entries traversed per enumeration is instrumented and asserted proportional to matching entries. Adding unrelated indexed content must not increase it. |
 
 ## Detailed Specifications
 
@@ -125,6 +126,7 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | 4 | COMP-09-06 | All four corpus members | Re-baseline | `LuaTypeAssignability` / `LuaReturnTypeMismatch` unchanged |
 | 5 | COMP-09-03 | Library declaring `wx.K = nil`, `function wx.F() end`, `---@class C` with a field | `wx.<caret>` and `C` instance caret | All three forms enumerate |
 | 6 | COMP-09-05 | `---@class V` declaring `__add`; `local a, b = V(), V()` | `a + b` | No diagnostic (closes COMP-04-DR-01) |
+| 9 | COMP-09-09 | The TC 1 fixture, then the same fixture plus an unrelated 200 KiB library | Instrument entries traversed for `wx.<caret>` in both | The count is unchanged — enumeration must not visit the added library's entries. Fails today: `getAllKeys` visits every key |
 | 8 | COMP-09-08 | The TC 1 fixture, on today's code | Run the new latency test | It **fails**, reporting ~12 900 ms against a 100 ms budget — mutation-proving the gate before the fix lands |
 | 7 | COMP-09-02 | A file with 500 `@class` tags | Resolve one class | No full-file tag walk (assert via instrumentation, not timing) |
 
@@ -137,7 +139,9 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 - [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
 - [ ] COMP-09-07 — TC 3.
 - [ ] COMP-09-08 — the latency assertion exists, fails before the fix, passes after, and runs
-      without `-PwithPerf`; `non-functional.md:13` covers library content.
+      without `-PwithPerf`.
+- [ ] COMP-09-09 — the work bound is instrumented and asserted (TC 9); adding unrelated indexed
+      content does not change entries traversed.
 - [ ] Each cache in the "Why this is a capability" table is re-measured and either removed as
       redundant or kept with a stated reason.
 
@@ -165,10 +169,17 @@ with no data behind it. DR-02 must therefore build a harness that can observe th
 
 - **NFR-1 — time to first element < 100 ms** against the COMP-09 TC 1 fixture, independent of index
   size. Not a new budget: the amended existing one, applied to the case that breaks it.
-- **NFR-2 — the exhaustive phase carries no latency budget**, but must be incremental, cancellable
-  and off the EDT. 12.9 s to the *complete* set is acceptable; 12.9 s to the *first* result is the
-  defect. A "fix" that makes the exhaustive set faster while leaving first-result behind it has not
-  addressed this feature.
+- **NFR-2 — exhaustive work is proportional to entries matching the receiver, not to index size.**
+  Verified by instrumenting entries traversed, not by a clock. This is the target today's code
+  violates outright, and the one that does not vary with the machine.
+- **NFR-2b — exhaustive latency carries no fixed figure, deliberately.** 12.9 s to the *complete* set
+  is acceptable; 12.9 s to the *first* result is the defect. A "fix" that speeds the exhaustive set
+  while leaving first-result behind it has not addressed this feature.
+- **NFR-2c — cancellable inside the traversal, incremental, off the EDT.** Typing `wx.wxF` restarts
+  enumeration five times; cancellation makes that survivable, not free.
+- **NFR-2d — the non-incremental consumers bound the real cost.** The checker, the corpus sweep and
+  documentation rendering need the complete set, so for them exhaustive time *is* user-facing.
+  NFR-2's work bound is what protects them; NFR-2b's absence of a latency figure is not permission.
 - **NFR-3 — the target becomes enforced, not documented.** See COMP-09-08.
 - **NFR-4 — threading unchanged**; enumeration runs where it runs today
   (`docs/engineering-contract.md` §1).
