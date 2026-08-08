@@ -277,41 +277,198 @@ here is what produced §1.1 and §1.3.
    COMP-09-04b (lazy type rendering) added. Reopens only if a value-carrying index lookup measures
    slow in Phase 1.
 
-## 4. Fix direction — REWRITTEN, and it is not yet at the bar
+## 4. Architecture
 
-Step 9 refuted §4's central mechanism. Recorded honestly rather than patched:
+### 4.1 The constraint that shapes it: two consumers, different needs
 
-**What was wrong.** §4.1 said `LuaMemberFieldIndex` "gains a receiver key with the member name as its
-value". It is `FileBasedIndexExtension<String, String>` (`:31`) whose `DataIndexer` returns
-`Map<String, String>` — **one value per key per file**. A `receiver → member` mapping would store
-exactly one member for a file declaring 3 400. Not implementable as written; it needs a collection
-value type and a custom `DataExternalizer`.
+`addMethodsOf` produces `LuaTypeMember(name, type, visibility, description, sourceElement)`
+(`LuaType.kt:21-27`), and `sourceElement` is **load-bearing** — `materializeClass:256-262` records
+that `LuaOverrideLineMarkerProvider` uses it as a gutter navigation target, with the warning that
+"the parity harness compares names and types only, so it would not catch that". An index of names
+cannot produce a `LuaTypeMember`.
 
-**What was missing.** `LuaGlobalAssignmentIndex` — unnamed in any of these artifacts — is a
-`FileBasedIndex` that already PSI-walks **both** `LuaAssignmentStatement` targets *and* `LuaFuncDecl`
-names (`:88-96`), with an unused `""` value, and whose own KDoc calls it the "Sibling of
-`LuaMemberFieldIndex`". It is the natural carrier for both declaration sources, and its existence
-removes the objection that function names must come from a stub index.
+So enumeration splits by consumer, and only one of them can be served without PSI:
 
-**Direction, at the confidence the evidence supports:**
+| consumer | needs | can an index answer it? |
+| :-- | :-- | :-- |
+| **completion** (`crossFileGlobalMembers`) | member name; whether it is a function (the `isColon` filter, `LuaCompletionContributor.kt:384`); an icon (`LuaMemberLookup.kt:19-23`) | **yes** — name + kind, no PSI |
+| **type materialization** (`addMethodsOf`) | full `LuaTypeMember` incl. `sourceElement` | **no** — still needs the `LuaFuncDecl` |
 
-1. A receiver-keyed, **collection-valued** `FileBasedIndex` over member names, modelled on
-   `LuaGlobalAssignmentIndex`'s indexer (which already visits both sources) rather than on
-   `LuaMemberFieldIndex`'s single-String shape.
-2. The colon form needs its receiver derived at index time — `substringBefore(':')` as well as
-   `substringBefore('.')` — and a stated rule for nested qualifiers, because `memberNameOf:465-466`
-   rejects `Foo.bar.baz` while `substringBefore('.')` on the existing `a.b.c` key would yield `a`.
-   Nothing here yet says which wins; `LuaMemberFieldIndexTest.testDeepQualifiedKeyPresent` locks the
-   current behaviour.
-3. Enumeration callers read names from it; types stay where they are (§1.7 — presentation is free, and
-   the checker needs real types).
-4. `MethodScan.onlyIn`'s file-confinement and the class-name-vs-local-name distinction (BUG-398) must
-   be reproduced explicitly. Risk 1.2's own mitigation says to enumerate these rules in the design
-   *before* writing code; that is **not done**.
+The win differs accordingly, and both are measured:
 
-**Version bumps this implies, none previously named:** `LuaMemberFieldIndex.getVersion()` (currently
-1), `LuaGlobalAssignmentIndex.getVersion()` (2), and — if the stub sink changes —
-`LuaFileElementType.getStubVersion()` (4). Each forces a reindex, and no benchmark may cross one.
+- completion skips `forFile` entirely (§1.5: 823–1 674 ms) and the `@class` door's AST parse (§1.6:
+  ~298–352 ms);
+- materialization keeps `getElements` per member but stops **scanning every key to find them** —
+  O(members of R) instead of O(all keys), which is COMP-09-09's bound.
+
+### 4.2 `net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex` (new)
+
+```kotlin
+/** One member a receiver declares in one file. `kind` exists for the isColon filter and the icon. */
+data class LuaReceiverMember(val name: String, val kind: Kind, val separator: Separator) {
+    enum class Kind { FUNCTION, FIELD }
+    enum class Separator { DOT, COLON }
+}
+
+class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverMember>>() {
+    override fun getName(): ID<String, List<LuaReceiverMember>> = KEY
+    override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
+    override fun getValueExternalizer(): DataExternalizer<List<LuaReceiverMember>>
+    override fun getIndexer(): DataIndexer<String, List<LuaReceiverMember>, FileContent>
+    override fun getVersion(): Int = 1
+    override fun dependsOnFileContent(): Boolean = true
+    override fun indexDirectories(): Boolean = false
+    override fun getInputFilter(): FileBasedIndex.InputFilter          // extension == "lua"
+
+    companion object { val KEY: ID<String, List<LuaReceiverMember>> = ID.create("lunar.receiver.member") }
+
+    /** Every member of [receiver] visible in [scope], unioned across declaring files. */
+    fun membersOf(receiver: String, project: Project, scope: GlobalSearchScope): List<LuaReceiverMember>
+}
+```
+
+**A `FileBasedIndex` value is per (key, file)**, so one key `wx` carries a list per declaring file and
+`membersOf` unions them. That is what `LuaMemberFieldIndex`'s `<String, String>` shape could not do
+(§2) — the value type is the fix, not the key.
+
+**Modelled on `LuaGlobalAssignmentIndex`**, which already PSI-walks both declaration forms
+(`:88-96`) in a `FileBasedIndex`. This is the prior art the earlier revision failed to name; the new
+index is its sibling, not a replacement, and neither is retired.
+
+### 4.3 Indexer algorithm
+
+Input: a `LuaFile`'s `FileContent`. Output: `Map<String, List<LuaReceiverMember>>`.
+
+1. Walk **all** `LuaAssignmentStatement` (not just top-level — a member assignment inside a function
+   still declares a member; this differs deliberately from `LuaGlobalAssignmentIndex`, which is
+   top-level-only because a nested *bare* assignment may target an enclosing local).
+   For each `LuaVar` target with a non-empty `varSuffixList`, apply §4.4. Emit `Kind.FIELD`.
+2. Walk all `LuaFuncDecl`. Take `node.findChildByType(LuaElementTypes.FUNC_NAME)?.text` — the same
+   source `LuaFuncStubElementType.createStub:24` uses, so the two agree by construction. Apply §4.4.
+   Emit `Kind.FUNCTION`.
+3. Group by receiver.
+
+### 4.4 Receiver derivation — the nested-qualifier rule
+
+The behaviour to preserve is `memberNameOf` (`LuaTypeManagerImpl:462-468`):
+
+```kotlin
+if (!key.startsWith("$receiver.") && !key.startsWith("$receiver:")) return null
+return key.substring(receiver.length + 1).takeIf { !it.contains('.') && !it.contains(':') }
+```
+
+— i.e. **exactly one separator**. `Foo.bar.baz` is *not* a member of `Foo`. So:
+
+> Split the qualified name on the **first** `.` or `:`, whichever occurs earlier. If the remainder
+> contains a further `.` or `:`, **emit nothing**. Otherwise emit
+> `receiver = prefix`, `name = remainder`, `separator = the one found`.
+
+`a.b.c` therefore contributes no entry, matching `memberNameOf`. This is **not** what
+`substringBefore('.')` does — that would yield receiver `a`, member `b.c`, and admit a member the
+current engine rejects. `LuaMemberFieldIndexTest.testDeepQualifiedKeyPresent` locks the *existing*
+index's deep-key behaviour and is unaffected: that index keys on the whole dotted name and stays as
+it is.
+
+### 4.5 Consumer 1 — completion (`LuaCompletionContributor.crossFileGlobalMembers`)
+
+```kotlin
+private fun crossFileGlobalMembers(receiver: PsiElement): List<LuaReceiverMember> {
+    val nameRef = bareNameOf(receiver) ?: return emptyList()
+    return LuaReceiverMemberIndex.membersOf(
+        nameRef.text, nameRef.project, GlobalSearchScope.allScope(nameRef.project),
+    )
+}
+```
+
+`allScope`, matching `addMethodsOf`'s comment (BUG-399: library declarations are members too).
+The emit loop keeps its shape; `memberType` is replaced by `kind`:
+
+```kotlin
+if (isColon && member.kind != Kind.FUNCTION) continue
+result.addElement(PrioritizedLookupElement.withPriority(LuaMemberLookup.create(member), 100.0))
+```
+
+`LuaMemberLookup` gains an overload taking `LuaReceiverMember`: the icon comes from `kind`, and
+**no type text is set** on this path. Rationale: the index has no type, and §1.7 measured that adding
+type text from a materialized graph costs 4 ms — so where the graph is already built (the in-file
+path, unchanged) type text stays; on the cross-file path it is absent rather than expensive. That is
+a **visible behaviour change** and TC 3 must be amended to expect it rather than treat it as a
+regression.
+
+### 4.6 Consumer 2 — materialization (`addMethodsOf`)
+
+Signature unchanged; only how candidate keys are found changes.
+
+```kotlin
+private fun addMethodsOf(scan: MethodScan, membersMap: MutableMap<String, LuaTypeMember>) {
+    val scope = GlobalSearchScope.allScope(project)
+    for (member in LuaReceiverMemberIndex.membersOf(scan.receiver, project, scope)) {
+        if (member.kind != Kind.FUNCTION) continue
+        if (membersMap.containsKey(member.name)) continue                       // first-wins, preserved
+        val key = "${scan.receiver}${if (member.separator == COLON) ":" else "."}${member.name}"
+        val decls = StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, key, project, scope, LuaFuncDecl::class.java)
+        val decl = decls.firstOrNull { scan.onlyIn == null || it.containingFile == scan.onlyIn } ?: continue
+        membersMap[member.name] = LuaTypeMember(member.name, funcTypeFromStub(scan.className, decl), sourceElement = decl)
+    }
+}
+```
+
+`collectMethodMembers` and `materializeUnhostedClass:328` drop their `getAllKeys` argument. **Four
+behaviours preserved verbatim**, each becoming a test (§4.9):
+
+| rule | where it lives today | how it survives |
+| :-- | :-- | :-- |
+| `allScope`, not projectScope (BUG-399) | `:441` | same scope passed to `membersOf` |
+| first-wins within a receiver | `:445` | unchanged `containsKey` guard |
+| file confinement for a local-declared class (BUG-398) | `:456` | unchanged `scan.onlyIn` filter |
+| nested qualifiers are not members | `memberNameOf:467` | §4.4, at index time |
+
+### 4.7 COMP-09-05 — `@class`-declared metamethods
+
+`LuaGraphType.Table.metamethods` (`LuaGraphType.kt:54`) is populated only from `setmetatable`
+(BUG-426's Known limitation; COMP-04-DR-01). `materializeClass:250-263` already collects `@field`
+members into `membersMap`. The change:
+
+> When converting a `LuaClassType` to `LuaGraphType.Table`, any member whose name is in
+> `LuaGraphType.Trait`'s metamethod sets (`__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`,
+> `__unm`, `__idiv`, `__concat`, `__len`, …, enumerated at `LuaGraphType.kt:118-126`) contributes to
+> `metamethods` **as well as** remaining a member.
+
+"As well as" is deliberate: `LuaGraphType.kt:50-52` records that metamethods are held separately
+because adding them to `localMembers` "would make `t.__add` complete on the instance, which is not
+what Lua exposes". A `@class`-declared `__add` is already in `localMembers` today, so completion
+behaviour is unchanged; only the operator check gains it.
+
+### 4.8 Registration
+
+```xml
+<!-- src/main/resources/META-INF/plugin.xml, beside the five existing entries at :663-667 -->
+<fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex"/>
+```
+
+No other registration. No new service, no EP, no `plugin.xml` change beyond this line.
+
+**Version bumps and their reindex boundaries** — every one forces a full reindex on first run, and
+**no benchmark may cross one**:
+
+| index | today | after |
+| :-- | :-- | :-- |
+| `LuaReceiverMemberIndex` | — | 1 (new) |
+| `LuaMemberFieldIndex` | 1 | unchanged — not modified |
+| `LuaGlobalAssignmentIndex` | 2 | unchanged |
+| stub format (`LuaFileElementType.getStubVersion`) | 4 | **unchanged** — §4.4 derives receivers in the *new* index, so `LuaFuncStubElementType`'s dot-only sink is left alone |
+
+That last row is the payoff of putting receiver derivation in a new `FileBasedIndex` rather than
+amending the stub sink: no stub-format change, no `getStubVersion` bump, and DR-06's dot/colon
+asymmetry is sidestepped rather than fixed in place.
+
+### 4.9 What is deliberately not designed
+
+- **Narrowing cache invalidation** (§3.3 / DR-07). Independent of this and possibly a smaller win.
+- **Removing the four caches.** Acceptance criterion says re-measure each; that is a follow-up.
+- **`LuaImplicitFields` / `LuaTypesVisitor:1349` / `catsClassTags`' file walks** (COMP-09-02's other
+  sites). They are on the same critical path but need their own analysis; Phase 4 measures whether
+  §4.5/§4.6 already moved them below budget.
 
 ## 5. Requirement coverage
 
