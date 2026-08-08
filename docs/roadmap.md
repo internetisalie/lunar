@@ -72,7 +72,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
-| BUG-427 | Cross-file global `function f() end` resolves to no type; the assignment form loses its annotations | todo | **M** | — | — | ✓ |
+| BUG-428 | A `nil` arm from `and`/`or` is reported as a certain nil instead of optionality | todo | S | — | — | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 

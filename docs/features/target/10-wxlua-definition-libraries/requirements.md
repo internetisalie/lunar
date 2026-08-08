@@ -227,6 +227,12 @@ an in-memory library root. Generator cases run against a checked-in `.i` fixture
   See [risks-and-gaps.md](risks-and-gaps.md) Risk 1.6.
 - **TARGET-09** (`planned`) — consumes TARGET-10-11's `detectionPatterns`. Not a blocker in either
   direction.
+> **Enforcement caveat (2026-08-07, after BUG-425/427 shipped).** Contracts are live, but checked
+> only on **exact-arity, vararg-free** calls and only for **scalar** parameter types — both limits
+> measured into existence (a looser arity rule put 244 false positives on the corpus; structural
+> demands corrupt the shared signature). Optional-parameter signatures and `wxWindow`-typed
+> parameters this feature emits are therefore **unenforced**. See DR-08 and `risks-and-gaps.md`.
+
 - **BUG-423, BUG-424, BUG-425** — all land **before** this feature (decided 2026-08-07). 425 makes
   this feature's contracts reachable at all; 423 and 424 clear the two largest false-positive classes
   from the ERROR tier this feature is about to load. Together they make DR-08 a real measurement

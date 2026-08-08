@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.types
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.types.LuaGraphType
 import net.internetisalie.lunar.lang.psi.types.LuaTypeGraph
+import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -49,5 +50,30 @@ class LuaTypeGraphCycleGuardTest : BasePlatformTestCase() {
         target.upSet.add(lazy)
 
         assertEquals(LuaGraphType.String, target.write)
+    }
+
+    /**
+     * BUG-427. `graphTypeToLuaType` registered its cycle placeholder for a Function only on the way
+     * *out*, unlike tables — so a function type reachable from its own parameter or return recursed
+     * until the stack died. Latent until BUG-427 made `setfenv`/`rawlen` resolvable, at which point
+     * luacheck's one-line `(setfenv and rawlen)(setfenv and rawlen)` sample killed the highlight
+     * pass outright.
+     */
+    @Test
+    fun selfReferentialFunctionTypeConvertsInsteadOfOverflowing() {
+        val graph = LuaTypeGraph()
+        val anchor = myFixture.addFileToProject("fncycle.lua", "local f\n")
+        val node = graph.variable(anchor)
+
+        // The function's own parameter and return ARE the node whose value is the function.
+        val selfReferential =
+            LuaGraphType.Function(
+                listOf(LuaGraphType.Function.Parameter(node)),
+                listOf(node),
+            )
+        graph.addEdge(graph.value(anchor, selfReferential), node)
+
+        val converted = LuaTypesSnapshot(graph, emptyMap(), LuaGraphType.Any).graphTypeToLuaType(selfReferential)
+        assertNotNull("a self-referential function type must convert, not overflow", converted)
     }
 }

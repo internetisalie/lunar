@@ -267,6 +267,57 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         return result.reversed()
     }
 
+    /**
+     * BUG-427: the comments belonging to a function EXPRESSION, which owns none of its own.
+     *
+     * `---@param n number` above `count = function(n) end` is a sibling of the *assignment*, not of
+     * the function, so [getAllCatsComments]' prev-sibling walk starts inside the statement and finds
+     * nothing. The declaration form `function count(n) end` never had this problem, which is why
+     * only the assignment form resolved with `fun(n: unknown)`.
+     *
+     * Restricted to a lone right-hand side. With several expressions there is no way to tell which
+     * one a `@param` was written for, and guessing the first would attach a contract to code nobody
+     * annotated.
+     */
+    private fun enclosingStatementCats(element: PsiElement): List<LuaCatsComment> {
+        var statement: PsiElement? = element.parent
+        while (statement != null && statement !is LuaAssignmentStatement && statement !is LuaLocalVarDecl) {
+            if (statement is LuaBlock || statement is PsiFile) return emptyList()
+            statement = statement.parent
+        }
+        val expressions =
+            when (statement) {
+                is LuaAssignmentStatement -> statement.exprList.exprList
+                is LuaLocalVarDecl -> statement.exprList?.exprList ?: emptyList()
+                else -> return emptyList()
+            }
+        val sole = expressions.singleOrNull() ?: return emptyList()
+        if (!PsiTreeUtil.isAncestor(sole, element, false)) return emptyList()
+        return statementCats(statement)
+    }
+
+    /**
+     * The LuaCATS comments attached to a statement.
+     *
+     * `LuaLocalVarDecl` is a [LuaCommentOwner] and answers directly. `LuaAssignmentStatement` is
+     * **not** — it is a bare `LuaStatement` — and its comment is frequently a sibling of an
+     * *ancestor* rather than of the statement itself, so a flat prev-sibling walk finds nothing.
+     * Climbing is what `LuaPsiImplUtil.getCatsComment` does for comment owners, with the same
+     * ownership rule reproduced here: stop as soon as something else sits before us, because a
+     * comment above *that* belongs to it.
+     */
+    private fun statementCats(statement: PsiElement): List<LuaCatsComment> {
+        (statement as? LuaCommentOwner)?.catsComment?.let { return listOf(it) }
+        var current: PsiElement? = statement
+        while (current != null && current !is PsiFile) {
+            val found = getAllCatsComments(current)
+            if (found.isNotEmpty()) return found
+            if (current.prevSibling != null) return emptyList()
+            current = current.parent
+        }
+        return emptyList()
+    }
+
     override fun visitFile(file: PsiFile) {
         if (rootReturnNodes.isEmpty()) {
             repeat(8) { rootReturnNodes.add(graph.variable(file)) }
@@ -563,14 +614,56 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                     LuaGraphType.Boolean
                 }
                 "and", "or" -> {
-                    // Simplified: result is one of the operands
                     val leftType = (leftNode as? ValueNode)?.write ?: LuaGraphType.Any
                     val rightType = (rightNode as? ValueNode)?.write ?: LuaGraphType.Any
-                    LuaGraphType.Union.create(setOf(leftType, rightType))
+                    // `a and b` yields a's FALSY value or b; `a or b` yields a's TRUTHY value or b.
+                    // Unioning both operands whole instead injected a `boolean` arm into every
+                    // `cond and x or y` — Lua's ternary — and the arm then failed any string or
+                    // number demand downstream. Invisible until BUG-427 let such a value cross a
+                    // file boundary, at which point it produced 312 of 335 new corpus errors.
+                    // An unknown right operand makes the whole expression unknown. Without this the
+                    // surviving arm is the left's falsy part alone, so `value and f(...)` with an
+                    // un-inferable `f` collapsed to a bare `nil` and every use of the result was
+                    // reported — 40 corpus false positives, worse than the imprecision being fixed.
+                    val carried = if (op == "and") falsyPart(leftType) else truthyPart(leftType)
+                    if (rightType == LuaGraphType.Undefined) {
+                        LuaGraphType.Undefined
+                    } else {
+                        LuaGraphType.Union.create(setOf(carried, rightType))
+                    }
                 }
                 else -> LuaGraphType.Any
             }
         elementNodes[o] = listOf(graph.value(o, resType))
+    }
+
+    /**
+     * The arms of [type] that survive Lua's truthiness test — everything but `nil` and `false`.
+     *
+     * `boolean` goes unconditionally, not just when another arm remains. Without literal types
+     * there is no way to say "`true`", and the arm the engine would keep is `false` — which by
+     * definition never reaches the left-hand result. Keeping it "when nothing else remains" was
+     * tried and left all 312 corpus false positives in place, because the informative arms of a
+     * `cond and x or y` chain are frequently `Undefined` and `Union.create` drops those first, so
+     * the boolean was the last arm standing exactly where it was most wrong.
+     *
+     * The cost is `flag or default` reporting only `default`'s type. That is under-reporting, which
+     * is the posture BUG-419 chose deliberately.
+     */
+    private fun truthyPart(type: LuaGraphType): LuaGraphType {
+        val arms = if (type is LuaGraphType.Union) type.types else setOf(type)
+        val truthy = arms.filterNot { it == LuaGraphType.Nil || it == LuaGraphType.Boolean }
+        return if (truthy.isEmpty()) LuaGraphType.Undefined else LuaGraphType.Union.create(truthy)
+    }
+
+    /**
+     * The arms of [type] that fail Lua's truthiness test. `nil` and `false` are the only ones, so a
+     * type with neither contributes nothing to `a and b` — the result is then just `b`.
+     */
+    private fun falsyPart(type: LuaGraphType): LuaGraphType {
+        val arms = if (type is LuaGraphType.Union) type.types else setOf(type)
+        val falsy = arms.filter { it == LuaGraphType.Nil || it == LuaGraphType.Boolean }
+        return if (falsy.isEmpty()) LuaGraphType.Undefined else LuaGraphType.Union.create(falsy)
     }
 
     override fun visitUnOpExpr(o: LuaUnOpExpr) {
@@ -1296,7 +1389,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         parList: LuaParList?,
         funcNode: VariableNode? = null,
     ) {
-        val allCats = (element as? LuaCommentOwner)?.catsComment?.let { listOf(it) } ?: getAllCatsComments(element)
+        val allCats =
+            (element as? LuaCommentOwner)?.catsComment?.let { listOf(it) }
+                ?: getAllCatsComments(element).ifEmpty { enclosingStatementCats(element) }
         val returnDescriptors = allCats.flatMap { it.getReturnTagList() }.flatMap { it.returnTypeDescriptorList }
         val returnCount = returnDescriptors.size
         val returnNodes: MutableList<VariableNode> =

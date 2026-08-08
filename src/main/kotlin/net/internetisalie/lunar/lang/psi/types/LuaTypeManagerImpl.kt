@@ -141,17 +141,28 @@ class LuaTypeManagerImpl(
         name: String,
         context: PsiElement,
     ): LuaType? {
-        val declaringFiles =
-            FileBasedIndex
-                .getInstance()
-                .getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, GlobalSearchScope.allScope(project))
         val here = context.containingFile?.originalFile
-        return declaringFiles
+        // The project's own declaration wins over a bundled stub's (BUG-427). Lua lets a project
+        // reassign a stdlib global — `assert = require("luassert")` is how busted does it — and
+        // once bare `function assert(...)` declarations became indexable both files declare the
+        // name, with nothing but index order deciding. Searching project scope first makes the
+        // answer the one the user wrote; the fallback keeps stub-only globals resolvable.
+        return typeOfGlobalIn(GlobalSearchScope.projectScope(project), name, here)
+            ?: typeOfGlobalIn(GlobalSearchScope.allScope(project), name, here)
+    }
+
+    private fun typeOfGlobalIn(
+        scope: GlobalSearchScope,
+        name: String,
+        exclude: PsiFile?,
+    ): LuaType? =
+        FileBasedIndex
+            .getInstance()
+            .getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, scope)
             .asSequence()
             .mapNotNull { PsiManager.getInstance(project).findFile(it) as? LuaFile }
-            .filter { it != here }
+            .filter { it != exclude }
             .firstNotNullOfOrNull { globalTypeIn(it, name) }
-    }
 
     /** The type [file] gives the global [name], or null if it declares it without a useful type. */
     private fun globalTypeIn(

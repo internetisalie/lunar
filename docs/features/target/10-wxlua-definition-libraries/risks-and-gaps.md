@@ -176,6 +176,28 @@ actually fixed?
   **Nothing in BUG-419 addresses the `number`/`integer` mapping.** That was this design's own
   defect, fixed in §3.4 — and now more load-bearing, since declared demands are genuinely enforced.
 
+- **Correction, fourth pass — BUG-425 and BUG-427 both shipped, and the load is still not "10 000".**
+  Out-of-file signatures now reach the graph, so this feature's contracts are live on arrival as the
+  sequencing decision intended. But the enforcement is **deliberately narrow**, and the caveats are
+  the plan's to absorb, not the bugs':
+
+  1. **Exact arity only.** A declared parameter is checked only when the call supplies exactly one
+     argument per parameter, with no vararg. A looser "the arity fits" rule was implemented and
+     measured putting **244 false positives** on the corpus — 123 from `table.insert` alone, whose
+     `@overload` and optional `pos` make positional matching guesswork. `@overload` never reaches
+     the type engine at all, so any call that does not fill every slot is one it cannot align.
+     Generated wx bindings are mostly all-required, so most should qualify — but any signature this
+     feature emits with an optional parameter is **unenforced on short calls**, silently.
+  2. **Scalar parameter types only.** A demand built from a `Table` or `Function` wires edges into
+     the shared signature's own member nodes and corrupts it for every other call site (measured;
+     it broke `table.sort`'s comparator). So `---@param parent wxWindow` and any callback parameter
+     are **not checked** — only `number`/`string`/`boolean`/unions of those are.
+
+  For DR-08 this sharpens the instrument rather than blunting it: the sample of ~50 signatures
+  should be chosen to include **both** an exact-arity scalar call (which will be enforced) and an
+  optional-parameter or class-typed one (which will not), so the checklist records the boundary
+  instead of discovering it. A clean DR-08 on class-typed parameters alone would prove nothing.
+
 - **Reciprocal impact on BUG-419 — worth telling its owner.** BUG-419's epistemic argument opens
   with ZeroBrane's "1,945 identifiers the engine admits it cannot resolve… a name-model ~84 %
   unknown". TARGET-10 removes **1,877 of those 1,945** (`zerobrane.baseline`), taking the unknown

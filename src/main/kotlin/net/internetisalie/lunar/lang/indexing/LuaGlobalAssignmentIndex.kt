@@ -13,6 +13,8 @@ import com.intellij.util.io.KeyDescriptor
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import org.jetbrains.annotations.NonNls
@@ -22,8 +24,9 @@ import java.io.DataOutput
 private val LuaGlobalAssignmentIndexId: @NonNls ID<String, String> = ID.create("lunar.global.assignment")
 
 /**
- * File-based index of **bare** global assignments (BUG-391): a top-level `name = value` whose target
- * has no dotted suffix declares the global `name`.
+ * File-based index of **bare** global declarations: a top-level `name = value` whose target has no
+ * dotted suffix (BUG-391), and a top-level `function name() end` with no dotted or method name
+ * (BUG-427). Both declare the global `name`; only the first was indexed until 2026-08-07.
  *
  * Sibling of [LuaMemberFieldIndex], which owns the dotted `receiver.field = value` case. Neither is
  * stubbed (only `LuaFuncDecl`/`LuaLocalVarDecl`/`LuaLocalFuncDecl` are), so both read straight from
@@ -47,7 +50,8 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
 
     override fun getIndexer(): DataIndexer<String, String, FileContent> = indexer
 
-    override fun getVersion(): Int = 1
+    // 2: BUG-427 added bare global `function f() end` declarations.
+    override fun getVersion(): Int = 2
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -87,7 +91,25 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
                     }
                 }
             }
+            topLevel.filterIsInstance<LuaFuncDecl>().forEach { decl ->
+                declaredGlobalName(decl)?.takeIf { it !in fileLocals }?.let { result[it] = "" }
+            }
             return result
+        }
+
+        /**
+         * BUG-427: `function count() end` declares the global `count` exactly as `count = function`
+         * does, and only the assignment form was indexed — so a bare global API was unresolvable
+         * from any other file, taking hover, hints, parameter info and assignability with it.
+         *
+         * Null for a dotted or method name (`function Lib.f()`, `function C:m()`): those write a
+         * *member*, which is [LuaMemberFieldIndex]'s business, and their base name is declared by
+         * whatever created the receiver.
+         */
+        private fun declaredGlobalName(decl: LuaFuncDecl): String? {
+            val funcName = decl.node.findChildByType(LuaElementTypes.FUNC_NAME)?.psi as? LuaFuncName ?: return null
+            if (funcName.funcNamePropertyList.isNotEmpty() || funcName.funcNameMethod != null) return null
+            return boundName(funcName)
         }
 
         /**

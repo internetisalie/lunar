@@ -2,6 +2,26 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+### A global API declared in another file now carries its types (BUG-427)
+
+`function count(n) end` at file scope declares a global, and nothing indexed it — so a project whose
+API is bare global functions was invisible across file boundaries to hover, inlay hints, parameter
+info, completion and type checking alike. The assignment form `count = function(n) end` resolved but
+dropped its `---@param` annotations, which is its own half of the same hole. Both are fixed, and
+where a project reassigns a stdlib global (`assert = require("luassert")`) the project's own
+declaration now wins over the bundled stub.
+
+Two long-standing defects surfaced with it and are fixed:
+
+- **`x and y or z` no longer infers a stray `boolean`.** The two operators were modelled as the union
+  of both operands, so Lua's ternary idiom picked up a boolean arm that then failed any string or
+  number use downstream.
+- **A self-referential function type no longer crashes highlighting.** It recursed until the stack
+  gave out, taking the whole file's inspection results with it.
+
+Across the sweep corpora these remove **109 assignability errors and 52 return-type mismatches**,
+and two operands that really are un-concatenable became visible.
+
 ### A `---@param` in another file is now checked (BUG-425)
 
 Annotations only ever constrained calls in the file that declared them. A library declaring
