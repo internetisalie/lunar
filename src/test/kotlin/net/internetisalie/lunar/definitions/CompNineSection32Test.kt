@@ -29,7 +29,10 @@ import kotlin.system.measureTimeMillis
  */
 class CompNineSection32Test : LibraryRootTestCase() {
     /** A large library file holding several classes, each with many colon-declared methods. */
-    private fun bigLibrary(classes: Int, methodsEach: Int): String {
+    private fun bigLibrary(
+        classes: Int,
+        methodsEach: Int,
+    ): String {
         val sb = StringBuilder("---@meta\n\n")
         repeat(classes) { c ->
             sb.append("---@class Big$c\nlocal Big$c = {}\n\n")
@@ -83,7 +86,9 @@ class CompNineSection32Test : LibraryRootTestCase() {
                                     .size
                             } ?: -1
                 }
-            println("§3.2 resolveType(\"Big1\") — same file, warm file / cold class = ${secondClassMs}ms  members=$members1")
+            println(
+                "§3.2 resolveType(\"Big1\") — same file, warm file / cold class = ${secondClassMs}ms  members=$members1",
+            )
 
             // --- candidate A: does this door touch forFile at all? Time it separately.
             val libVf = libRoot.findChild("big.lua")!!
@@ -116,7 +121,11 @@ class CompNineSection32Test : LibraryRootTestCase() {
                         elementCount +=
                             StubIndex
                                 .getElements<String, LuaFuncDecl>(
-                                    LuaGlobalDeclarationIndex.KEY, key, project, scope, LuaFuncDecl::class.java,
+                                    LuaGlobalDeclarationIndex.KEY,
+                                    key,
+                                    project,
+                                    scope,
+                                    LuaFuncDecl::class.java,
                                 ).size
                     }
                 }
@@ -130,13 +139,23 @@ class CompNineSection32Test : LibraryRootTestCase() {
                     val coldPsi = PsiManager.getInstance(project).findFile(coldVf)!!
                     tagCount = PsiTreeUtil.findChildrenOfType(coldPsi, LuaCatsClassTag::class.java).size
                 }
-            println("§3.2 candidate D — first AST walk of an UNTOUCHED 253 KiB file = ${coldParseMs}ms ($tagCount tags)")
+            println(
+                "§3.2 candidate D — first AST walk of an UNTOUCHED 253 KiB file = ${coldParseMs}ms ($tagCount tags)",
+            )
             val warmWalkMs =
                 measureTimeMillis {
-                    PsiTreeUtil.findChildrenOfType(PsiManager.getInstance(project).findFile(coldVf)!!, LuaCatsClassTag::class.java).size
+                    PsiTreeUtil
+                        .findChildrenOfType(
+                            PsiManager.getInstance(project).findFile(coldVf)!!,
+                            LuaCatsClassTag::class.java,
+                        ).size
                 }
-            println("§3.2 candidate D — same walk, AST now warm = ${warmWalkMs}ms  => parse cost ~${coldParseMs - warmWalkMs}ms")
-            println("§3.2 VERDICT: resolveType cold=${resolveTypeMs}ms warm-file=${secondClassMs}ms | A(forFile)=$forFileMs B(walk)=$catsMs C(scan)=$scanMs D(parse)=$coldParseMs")
+            println(
+                "§3.2 candidate D — same walk, AST now warm = ${warmWalkMs}ms  => parse cost ~${coldParseMs - warmWalkMs}ms",
+            )
+            println(
+                "§3.2 VERDICT: resolveType cold=${resolveTypeMs}ms warm-file=${secondClassMs}ms | A(forFile)=$forFileMs B(walk)=$catsMs C(scan)=$scanMs D(parse)=$coldParseMs",
+            )
         }
     }
 }

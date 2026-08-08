@@ -92,7 +92,14 @@ class CompNineDr01Test : LibraryRootTestCase() {
             listOf("wx", "wxFrame", "AllColon").forEach { name ->
                 val viaGlobal = manager.resolveGlobal(name, context)
                 val viaType = manager.resolveType(name, context)
-                println("DR-01 $name: resolveGlobal=${viaGlobal?.let { it::class.simpleName } ?: "null"} resolveType=${viaType?.let { it::class.simpleName } ?: "null"}")
+                println(
+                    "DR-01 $name: resolveGlobal=${viaGlobal?.let {
+                        it::class.simpleName
+                    } ?: "null"} resolveType=${viaType?.let {
+                        it::class
+                            .simpleName
+                    } ?: "null"}",
+                )
                 (viaGlobal ?: viaType)?.let { resolved ->
                     val members =
                         LuaGraphType
@@ -117,12 +124,18 @@ class CompNineDr01Test : LibraryRootTestCase() {
 
         runReadAction {
             val libVf = libRoot.findChild("wx.lua")!!
-            val libPsi = com.intellij.psi.PsiManager.getInstance(project).findFile(libVf)!!
+            val libPsi =
+                com.intellij.psi.PsiManager
+                    .getInstance(project)
+                    .findFile(libVf)!!
             val forFileMs = measureTimeMillis { LuaTypesSnapshot.forFile(libPsi) }
             println("§3.1(b) LuaTypesSnapshot.forFile(library) = ${forFileMs}ms  (root ${root.length / 1024} KiB)")
-            val resolveMs = measureTimeMillis { LuaTypeManager.getInstance(project).resolveGlobal("wx", myFixture.file) }
+            val resolveMs =
+                measureTimeMillis { LuaTypeManager.getInstance(project).resolveGlobal("wx", myFixture.file) }
             println("§3.1(b) resolveGlobal AFTER forFile is warm = ${resolveMs}ms")
-            println("§3.1(b) => if forFile carries the cost and resolveGlobal is then ~0, the graph build IS the whole path")
+            println(
+                "§3.1(b) => if forFile carries the cost and resolveGlobal is then ~0, the graph build IS the whole path",
+            )
         }
     }
 
@@ -148,7 +161,11 @@ class CompNineDr01Test : LibraryRootTestCase() {
                     funcNames =
                         StubIndex
                             .getElements<String, LuaFuncDecl>(
-                                LuaGlobalDeclarationIndex.KEY, "wx", project, scope, LuaFuncDecl::class.java,
+                                LuaGlobalDeclarationIndex.KEY,
+                                "wx",
+                                project,
+                                scope,
+                                LuaFuncDecl::class.java,
                             ).map { it.funcName.text }
                 }
             println("§3.1(c)(i)  getElements(KEY,\"wx\") -> ${funcNames.size} names in ${funcMs}ms")
@@ -164,7 +181,9 @@ class CompNineDr01Test : LibraryRootTestCase() {
             println("§3.1(c)(ii) LuaMemberFieldIndex full key scan -> ${assignNames.size} names in ${assignMs}ms")
 
             val total = funcMs + assignMs
-            println("§3.1(c) index-only name enumeration total = ${total}ms for ${funcNames.size + assignNames.size} names")
+            println(
+                "§3.1(c) index-only name enumeration total = ${total}ms for ${funcNames.size + assignNames.size} names",
+            )
             println("§3.1(c) => compare with resolveGlobal's 9568ms on an equivalent tree")
         }
     }

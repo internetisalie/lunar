@@ -25,7 +25,11 @@ class TargetTenDrSpikeTest : LibraryRootTestCase() {
         myFixture.configureByText("consumer.lua", text)
         val elements = myFixture.completeBasic()
         if (elements != null) return elements.map { it.lookupString }
-        return listOf(myFixture.editor.document.text.substringBefore('\n').trim())
+        return listOf(
+            myFixture.editor.document.text
+                .substringBefore('\n')
+                .trim(),
+        )
     }
 
     // ---------------------------------------------------------------- DR-02: statics encoding
@@ -65,7 +69,10 @@ class TargetTenDrSpikeTest : LibraryRootTestCase() {
         registerBranchATree()
         val found = completionsFor("local f = wx.wxFileName(\"x\")\nf:<caret>\n")
         println("DR-02(a) constructor→instance members: $found")
-        assertTrue("constructor must infer wxFileName so `f:` offers GetFullPath. Found: $found", found.contains("GetFullPath"))
+        assertTrue(
+            "constructor must infer wxFileName so `f:` offers GetFullPath. Found: $found",
+            found.contains("GetFullPath"),
+        )
     }
 
     /** DR-02(b): can a static live on the same path as the constructor function? */
@@ -147,8 +154,14 @@ class TargetTenDrSpikeTest : LibraryRootTestCase() {
         val ctor = completionsFor("local f = wx.wxFrame(nil)\nf:<caret>\n")
         println("DR-06 single constant: $constant")
         println("DR-06 single constructor: $ctor")
-        println("DR-06 SINGLE VERDICT: " + if (constant.contains("wxID_ANY") && ctor.contains("Show")) "works" else "ALSO FAILS")
-        assertTrue("single-file layout must resolve a namespace constant. Found: $constant", constant.contains("wxID_ANY"))
+        println(
+            "DR-06 SINGLE VERDICT: " +
+                if (constant.contains("wxID_ANY") && ctor.contains("Show")) "works" else "ALSO FAILS",
+        )
+        assertTrue(
+            "single-file layout must resolve a namespace constant. Found: $constant",
+            constant.contains("wxID_ANY"),
+        )
     }
 
     /** Cross-file, cross-namespace inheritance (TC 8) — flat type names must resolve across files. */
@@ -264,7 +277,10 @@ class TargetTenDrSpikeTest : LibraryRootTestCase() {
         println("DR-06c re-anchored constant: $constant")
         println("DR-06c re-anchored constructor: $ctor")
         println("DR-06c re-anchored free function (2nd file): $free")
-        val ok = constant.any { it.contains("wxID_ANY") } && ctor.contains("Show") && free.any { it.contains("wxFileExists") }
+        val ok =
+            constant.any { it.contains("wxID_ANY") } &&
+                ctor.contains("Show") &&
+                free.any { it.contains("wxFileExists") }
         println("DR-06c VERDICT: " + if (ok) "split-with-reanchor WORKS" else "does not merge")
     }
 
@@ -302,7 +318,10 @@ class TargetTenDrSpikeTest : LibraryRootTestCase() {
         var constants = 0
         val whole = StringBuilder("---@meta\n\n---@class wx\nwx = {}\n\n")
         repeat(15) { group ->
-            repeat(370) { i -> whole.append("---@type number\nwx.wxCONST_${group}_$i = nil\n\n"); constants++ }
+            repeat(370) { i ->
+                whole.append("---@type number\nwx.wxCONST_${group}_$i = nil\n\n")
+                constants++
+            }
             repeat(18) { c ->
                 whole.append("---@class wxGen${group}_$c\nlocal wxGen${group}_$c = {}\n\n")
                 repeat(15) { m ->

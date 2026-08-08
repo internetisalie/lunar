@@ -665,6 +665,8 @@
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex"/>
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaMemberFieldIndex"/>
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex"/>
+    <!-- COMP-09 DR-09 prototype: registered so it can be measured; nothing consumes it yet. -->
+    <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaClassNameIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaAliasIndex"/>

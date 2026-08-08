@@ -276,7 +276,30 @@ here is what produced §1.1 and §1.3.
    COMP-09-04b (lazy type rendering) added. Reopens only if a value-carrying index lookup measures
    slow in Phase 1.
 
-## 4. Architecture
+## 4. Architecture — rewritten from a measured prototype (DR-09)
+
+Two earlier revisions of this section were written from reading the code and each failed a Step 9
+review (§4.9, retained below as the record). This one describes a prototype that exists, was
+registered, indexed a real library root, and was measured: `LuaReceiverMemberIndex` plus
+`CompNineDr09Test` / `CompNineDr09bTest`. Every claim below cites a printed figure, and the two
+places the prototype disagreed with today's engine are stated as findings rather than smoothed over.
+
+### 4.0 What DR-09 measured
+
+Fixture for timing: one 238 KiB `---@meta` library — 3 400 `---@type number` constants, 200 dot
+functions, 300 classes × 8 colon methods — the BUG-429 shape.
+
+| measurement | result |
+| :-- | :-- |
+| `membersOf("wx")`, 3 600 members, median of 5 | **2 ms** (samples 13/2/2/3/2 — the 13 is the cold first call) |
+| `membersOf("wxG7")`, 8 members, median of 5 | **0 ms** |
+| `resolveGlobal("wx")`, same fixture, same run, cold | **13 655 ms** |
+| externalizer round-trip, 4 members incl. non-ASCII | **exact**, 55 bytes; empty list 4 bytes |
+| membership vs today's golden, 4 receivers | 3 exact; 1 differs by BUG-430 (§4.9a) |
+
+The narrow/wide pair is the important one: 8 members costs 0 ms on the same index in the same
+project as 3 600 members costing 2 ms. That is COMP-09-09's work bound demonstrated, not asserted —
+cost tracks members of the receiver, not index size.
 
 ### 4.1 The constraint that shapes it: two consumers, different needs
 
@@ -293,93 +316,153 @@ So enumeration splits by consumer, and only one of them can be served without PS
 | **completion** (`crossFileGlobalMembers`) | member name; whether it is a function (the `isColon` filter, `LuaCompletionContributor.kt:384`); an icon (`LuaMemberLookup.kt:19-23`) | **yes** — name + kind, no PSI |
 | **type materialization** (`addMethodsOf`) | full `LuaTypeMember` incl. `sourceElement` | **no** — still needs the `LuaFuncDecl` |
 
-The win differs accordingly, and both are measured:
+The win differs accordingly:
 
-- completion skips `forFile` entirely (§1.5: 823–1 674 ms) and the `@class` door's AST parse (§1.6:
-  ~298–352 ms);
-- materialization keeps `getElements` per member but stops **scanning every key to find them** —
-  O(members of R) instead of O(all keys), which is COMP-09-09's bound.
+- completion skips the graph build entirely — measured 2 ms against 13 655 ms on one fixture;
+- materialization keeps `getElements` per member but stops **scanning every key to find them**.
 
-### 4.2 `net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex` (new)
+### 4.2 `net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex`
+
+Exists, registered, measured. `FileBasedIndexExtension<String, List<LuaReceiverMember>>`, key =
+receiver name, value = the members that receiver declares **in one file**.
 
 ```kotlin
-/** One member a receiver declares in one file. `kind` exists for the isColon filter and the icon. */
 data class LuaReceiverMember(val name: String, val kind: Kind, val separator: Separator) {
     enum class Kind { FUNCTION, FIELD }
     enum class Separator { DOT, COLON }
 }
-
-class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverMember>>() {
-    override fun getName(): ID<String, List<LuaReceiverMember>> = KEY
-    override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
-    override fun getValueExternalizer(): DataExternalizer<List<LuaReceiverMember>>
-    override fun getIndexer(): DataIndexer<String, List<LuaReceiverMember>, FileContent>
-    override fun getVersion(): Int = 1
-    override fun dependsOnFileContent(): Boolean = true
-    override fun indexDirectories(): Boolean = false
-    override fun getInputFilter(): FileBasedIndex.InputFilter          // extension == "lua"
-
-    companion object { val KEY: ID<String, List<LuaReceiverMember>> = ID.create("lunar.receiver.member") }
-
-    /** Every member of [receiver] visible in [scope], unioned across declaring files. */
-    fun membersOf(receiver: String, project: Project, scope: GlobalSearchScope): List<LuaReceiverMember>
-}
 ```
 
-**A `FileBasedIndex` value is per (key, file)**, so one key `wx` carries a list per declaring file and
-`membersOf` unions them. That is what `LuaMemberFieldIndex`'s `<String, String>` shape could not do
-(§2) — the value type is the fix, not the key.
+A `FileBasedIndex` value is per (key, file), so key `wx` carries one list per declaring file and
+`membersOf` combines them. That is what `LuaMemberFieldIndex`'s `<String, String>` shape could not
+do — the **value type** is the fix, not the key. Collection-valued precedent in this repo is
+`LuaFileBindingsIndex` (`:34-77`), whose externalizer this one is modelled on.
 
-**Modelled on `LuaGlobalAssignmentIndex`**, which already PSI-walks both declaration forms
-(`:88-96`) in a `FileBasedIndex`. This is the prior art the earlier revision failed to name; the new
-index is its sibling, not a replacement, and neither is retired.
+**Wire format** (§4.9's "no wire format specified" defect, now closed and round-trip-proved):
 
-### 4.3 Indexer algorithm
-
-Input: a `LuaFile`'s `FileContent`. Output: `Map<String, List<LuaReceiverMember>>`.
-
-1. Walk **all** `LuaAssignmentStatement` (not just top-level — a member assignment inside a function
-   still declares a member; this differs deliberately from `LuaGlobalAssignmentIndex`, which is
-   top-level-only because a nested *bare* assignment may target an enclosing local).
-   For each `LuaVar` target with a non-empty `varSuffixList`, apply §4.4. Emit `Kind.FIELD`.
-2. Walk all `LuaFuncDecl`. Take `node.findChildByType(LuaElementTypes.FUNC_NAME)?.text` — the same
-   source `LuaFuncStubElementType.createStub:24` uses, so the two agree by construction. Apply §4.4.
-   Emit `Kind.FUNCTION`.
-3. Group by receiver.
-
-### 4.4 Receiver derivation — the nested-qualifier rule
-
-The behaviour to preserve is `memberNameOf` (`LuaTypeManagerImpl:462-468`):
-
-```kotlin
-if (!key.startsWith("$receiver.") && !key.startsWith("$receiver:")) return null
-return key.substring(receiver.length + 1).takeIf { !it.contains('.') && !it.contains(':') }
+```
+writeInt(count)
+per member: writeUTF(name), writeByte(kind.ordinal), writeByte(separator.ordinal)
 ```
 
-— i.e. **exactly one separator**. `Foo.bar.baz` is *not* a member of `Foo`. So:
+Ordinals are safe **only** because `getVersion()` gates the format; reordering either enum is a
+version bump. Measured: 55 bytes for 4 members including a non-ASCII name, 4 bytes for an empty
+list, restored `EXACT`.
 
-> Split the qualified name on the **first** `.` or `:`, whichever occurs earlier. If the remainder
-> contains a further `.` or `:`, **emit nothing**. Otherwise emit
-> `receiver = prefix`, `name = remainder`, `separator = the one found`.
+### 4.3 Indexer algorithm — three sources, as implemented
 
-`a.b.c` therefore contributes no entry, matching `memberNameOf`. This is **not** what
-`substringBefore('.')` does — that would yield receiver `a`, member `b.c`, and admit a member the
-current engine rejects. `LuaMemberFieldIndexTest.testDeepQualifiedKeyPresent` locks the *existing*
-index's deep-key behaviour and is unaffected: that index keys on the whole dotted name and stays as
-it is.
+1. **`function R.m()` / `function R:m()`** — `node.findChildByType(FUNC_NAME)?.text`, the same source
+   `LuaFuncStubElementType.createStub:24` uses, so the two agree by construction. `Kind.FUNCTION`,
+   separator from the character found.
+2. **`R.f = value`, at any depth** — a member assignment inside a function still declares a member.
+   Deliberately unlike `LuaGlobalAssignmentIndex`, which is top-level-only because a nested *bare*
+   assignment may target an enclosing local. Rejects `R[i]` (keyed suffix), `f().x` (call suffix)
+   and `R.a.b` (more than one suffix), matching `LuaImplicitFields.singleFieldSuffixName`.
+3. **`---@field` on a `---@class R` comment** — via `LuaCatsDeclarations.fieldMembers`. Sources 3
+   and 4 of COMP-09-03 were previously undesigned; this closes the `@field` half.
 
-### 4.5 Consumer 1 — completion (`LuaCompletionContributor.crossFileGlobalMembers`)
+`Kind` for source 2 (§4.9 D3): `R.f = function() end` is `FUNCTION` — the RHS is syntactically a
+`LuaFuncDef`. `R.f = someOtherFn` cannot be classified without resolution and is recorded `FIELD`.
+Measured on the DR-09b fixture: `assignedFn=FUNCTION/DOT`, `aliasedFn=FIELD/DOT`. **This is a real
+residual gap, not a solved one** — it is bounded to indirectly-assigned functions, and COMP-09-08's
+gate must include a case for it so the cost is visible rather than assumed away.
+
+For source 3, `Kind` comes from the declared type text starting `fun(`. `---@field onClose fun(self:
+wxFrame): nil` measured as `FUNCTION/DOT`.
+
+### 4.4 Membership vs today — measured, and the two divergences
+
+`CompNineDr09Test.testDr09bMembershipVersusGolden` compares `membersOf` against
+`materialize(resolve(...)).getMembers().keys` per receiver:
+
+| receiver | golden | indexed | verdict |
+| :-- | :-- | :-- | :-- |
+| `wx` (globals, constants, dot functions) | 4 | 4 | **exact** |
+| `wxFrame` (colon methods + `@field`) | 5 | 5 | **exact** |
+| `AllColon` (every member colon-declared) | 2 | 2 | **exact** — the shape DR-06 showed has *no* receiver key today |
+| `Shapes` (nested + assigned + keyed) | 5 | 4 | differs by `deep`, which is **BUG-430** |
+
+`AllColon` matching is the load-bearing result: it is the case COMP-09-01's original "strict
+simplification" would have silently emptied (§1.3), and the new index gets it right because the
+receiver key is derived at index time rather than inherited from the dot-only stub sink.
+
+### 4.4a The `deep` divergence is a defect in the engine, not the index — BUG-430
+
+The single mismatch was traced (`CompNineDr09bTest`) and it is not the prototype's:
+
+```
+Shapes.nested = {} ; Shapes.nested.deep = 1 ; Shapes.nested.alsoDeep = "s"
+
+resolveGlobal("Shapes")  members = [alsoDeep, deep, direct, nested]   <- grandchildren hoisted
+                         members["nested"].localMembers = {}          <- and the real parent is empty
+resolveType("Shapes")    members = [direct, nested]                   <- correct
+```
+
+So the two doors disagree on the same receiver in the same file, and the global door's answer is
+wrong twice over. Filed as **BUG-430**.
+
+**This changes what COMP-09-07 can mean.** "Behaviour-preserving" is not well-defined while two
+goldens exist for one receiver and one of them is a bug. COMP-09 therefore preserves the **`@class`
+door's** membership (`resolveType` → `materializeClass`), which the prototype matches exactly on all
+four receivers, and **does not** reproduce the global door's flattening. That is a deliberate,
+recorded behaviour change, not an accident, and it is the correct direction — but it must be stated
+in the plan and gated, not discovered by a user.
+
+### 4.5 Consumer 1 — completion, with the scope semantics measured (§4.9 D1/D2)
+
+Both defects the second review raised were reproduced, and they are different problems:
+
+**D2 — the superset is real.** `testDr09d2UnionVersusFirstDeclaringFile`, with a global `wx` in a
+library and an unrelated **file-local** `wx` in another file:
+
+```
+DR-09d2 wx.lua        -> [real]
+DR-09d2 unrelated.lua -> [privateToThisFile, alsoPrivate]
+union  = [alsoPrivate, privateToThisFile, real]
+golden = [real]
+VERDICT: SUPERSET CONFIRMED, extra=[alsoPrivate, privateToThisFile]
+```
+
+Risk 1.1 predicted this in its own words and the previous §4.5 walked into it. A flat union over
+`allScope` is **not** adoptable.
+
+**D1 — scope precedence is distinguishable, and reproducing it fixes part of D2.**
+`testDr09d1ScopePrecedence`, with `assert.fromLibrary` in a library and `assert.fromProject` in the
+project:
+
+```
+membersOf(projectScope) = [fromProject]
+membersOf(allScope)     = [fromLibrary, fromProject]
+golden (today)          = [fromProject]
+```
+
+So today's BUG-427 precedence — `projectScope`, then `allScope` only if the first is empty — is
+observable in *membership*, not just in which declaration a member resolves to.
+
+**The rule, therefore:**
+
+> `membersOf` mirrors `doResolveGlobal:150-151`: try `projectScope`; if it yields nothing, try
+> `allScope`. **Within the chosen scope, take the members of the first declaring file only** —
+> `typeOfGlobalIn:160-165`'s `.firstNotNullOfOrNull`, not a union.
+
+First-file-only is what kills D2's superset: `unrelated.lua`'s local `wx` is a different file, so it
+is never reached. This is a narrower `membersOf` than the prototype's current `processValues` union,
+and the union variant remains in the prototype **only** as the D2 probe. Phase 1 must implement
+first-file-only and re-run `testDr09b` — matching on all four receivers is the gate, not an
+expectation.
+
+The residual is honest and small: a *genuinely* additive second file (`function wx.extra()` in a
+second library file, same global) contributes nothing today either, because
+`typeOfGlobalIn` stops at the first. The index preserves that limitation rather than fixing it; if it
+should be fixed, that is its own bug.
 
 ```kotlin
 private fun crossFileGlobalMembers(receiver: PsiElement): List<LuaReceiverMember> {
     val nameRef = bareNameOf(receiver) ?: return emptyList()
-    return LuaReceiverMemberIndex.membersOf(
-        nameRef.text, nameRef.project, GlobalSearchScope.allScope(nameRef.project),
-    )
+    return LuaReceiverMemberIndex.membersOf(nameRef.text, nameRef.project)   // scope rule is internal
 }
 ```
 
-`allScope`, matching `addMethodsOf`'s comment (BUG-399: library declarations are members too).
 The emit loop keeps its shape; `memberType` is replaced by `kind`:
 
 ```kotlin
@@ -387,21 +470,21 @@ if (isColon && member.kind != Kind.FUNCTION) continue
 result.addElement(PrioritizedLookupElement.withPriority(LuaMemberLookup.create(member), 100.0))
 ```
 
-`LuaMemberLookup` gains an overload taking `LuaReceiverMember`: the icon comes from `kind`, and
-**no type text is set** on this path. Rationale: the index has no type, and §1.7 measured that adding
-type text from a materialized graph costs 4 ms — so where the graph is already built (the in-file
-path, unchanged) type text stays; on the cross-file path it is absent rather than expensive. That is
-a **visible behaviour change** and TC 3 must be amended to expect it rather than treat it as a
-regression.
+`LuaMemberLookup` gains an overload taking `LuaReceiverMember`: the icon comes from `kind`, and **no
+type text is set** on this path — the index has no type. §1.7 measured type rendering at 4 ms for
+3 700 members, so this is not a performance choice; it is that the type is genuinely absent. That is
+a **visible behaviour change** and TC 3 must expect it rather than treat it as a regression.
 
 ### 4.6 Consumer 2 — materialization (`addMethodsOf`)
 
-Signature unchanged; only how candidate keys are found changes.
+Signature unchanged; only how candidate keys are found changes. Note this door uses `allScope`
+directly (BUG-399, `:441`) — it is not the global-resolution door and does not inherit §4.5's
+precedence rule.
 
 ```kotlin
 private fun addMethodsOf(scan: MethodScan, membersMap: MutableMap<String, LuaTypeMember>) {
     val scope = GlobalSearchScope.allScope(project)
-    for (member in LuaReceiverMemberIndex.membersOf(scan.receiver, project, scope)) {
+    for (member in LuaReceiverMemberIndex.membersIn(scan.receiver, project, scope)) {
         if (member.kind != Kind.FUNCTION) continue
         if (membersMap.containsKey(member.name)) continue                       // first-wins, preserved
         val key = "${scan.receiver}${if (member.separator == COLON) ":" else "."}${member.name}"
@@ -412,111 +495,111 @@ private fun addMethodsOf(scan: MethodScan, membersMap: MutableMap<String, LuaTyp
 }
 ```
 
-`collectMethodMembers` and `materializeUnhostedClass:328` drop their `getAllKeys` argument. **Four
-behaviours preserved verbatim**, each becoming a test (§4.9):
+`collectMethodMembers` and `materializeUnhostedClass:328` drop their `getAllKeys` argument. Four
+behaviours preserved verbatim, each a test:
 
 | rule | where it lives today | how it survives |
 | :-- | :-- | :-- |
-| `allScope`, not projectScope (BUG-399) | `:441` | same scope passed to `membersOf` |
+| `allScope`, not projectScope (BUG-399) | `:441` | same scope passed to `membersIn` |
 | first-wins within a receiver | `:445` | unchanged `containsKey` guard |
 | file confinement for a local-declared class (BUG-398) | `:456` | unchanged `scan.onlyIn` filter |
-| nested qualifiers are not members | `memberNameOf:467` | §4.4, at index time |
+| nested qualifiers are not members | `memberNameOf:467` | derived at index time (§4.3) |
+
+Two entry points, deliberately named apart: `membersOf` (completion — scope precedence, first file)
+and `membersIn` (materialization — an explicit scope, all files). Collapsing them is how D1 and D2
+happened.
 
 ### 4.7 COMP-09-05 — `@class`-declared metamethods
 
-`LuaGraphType.Table.metamethods` (`LuaGraphType.kt:54`) is populated only from `setmetatable`
-(BUG-426's Known limitation; COMP-04-DR-01). `materializeClass:250-263` already collects `@field`
-members into `membersMap`. The change:
-
-> When converting a `LuaClassType` to `LuaGraphType.Table`, any member whose name is in
-> `LuaGraphType.Trait`'s metamethod sets (`__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`,
-> `__unm`, `__idiv`, `__concat`, `__len`, …, enumerated at `LuaGraphType.kt:118-126`) contributes to
-> `metamethods` **as well as** remaining a member.
+Change site: `LuaGraphType.fromLuaType`'s `is LuaClassType ->` branch, which today passes no
+`metamethods`. When converting, any member whose name is in `LuaGraphType.Trait`'s metamethod sets
+(`LuaGraphType.kt:118-126`) contributes to `metamethods` **as well as** remaining a member.
 
 "As well as" is deliberate: `LuaGraphType.kt:50-52` records that metamethods are held separately
 because adding them to `localMembers` "would make `t.__add` complete on the instance, which is not
-what Lua exposes". A `@class`-declared `__add` is already in `localMembers` today, so completion
-behaviour is unchanged; only the operator check gains it.
+what Lua exposes". A `@class`-declared `__add` is already in `localMembers` today — so keeping it
+there is behaviour-preserving and only the operator check gains it. **Observe this before changing
+it** (checklist item): if `t.__add` does *not* complete today, that comment describes an intent the
+code does not implement, and this becomes a decision rather than a preservation.
 
-### 4.8 Registration
+### 4.8 Registration and reindex boundaries
 
 ```xml
-<!-- src/main/resources/META-INF/plugin.xml, beside the five existing entries at :663-667 -->
 <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex"/>
 ```
 
-No other registration. No new service, no EP, no `plugin.xml` change beyond this line.
-
-**Version bumps and their reindex boundaries** — every one forces a full reindex on first run, and
-**no benchmark may cross one**:
+Already added beside the five existing entries (`plugin.xml:668`) for DR-09; nothing consumes it yet.
+No new service, no EP.
 
 | index | today | after |
 | :-- | :-- | :-- |
-| `LuaReceiverMemberIndex` | — | 1 (new) |
+| `LuaReceiverMemberIndex` | 1 (DR-09) | 1 |
 | `LuaMemberFieldIndex` | 1 | unchanged — not modified |
 | `LuaGlobalAssignmentIndex` | 2 | unchanged |
-| stub format (`LuaFileElementType.getStubVersion`) | 4 | **unchanged** — §4.4 derives receivers in the *new* index, so `LuaFuncStubElementType`'s dot-only sink is left alone |
+| stub format (`LuaFileElementType.getStubVersion`) | 4 | **unchanged** |
 
-That last row is the payoff of putting receiver derivation in a new `FileBasedIndex` rather than
-amending the stub sink: no stub-format change, no `getStubVersion` bump, and DR-06's dot/colon
-asymmetry is sidestepped rather than fixed in place.
+The stub row is the payoff, and Step 9 confirmed the argument: the sink stores the whole `FUNC_NAME`,
+so `C:m` is itself a key. Deriving receivers in a *new* `FileBasedIndex` leaves the dot-only stub sink
+alone — DR-06's asymmetry is sidestepped rather than fixed in place, at no stub-format cost.
 
-### 4.9 DEFECTS FOUND BY STEP 9 REVIEW — §4 is not implementable as written
+Every version bump forces a full reindex on first run, and **no benchmark may cross one**.
 
-Verified against the code before accepting. §4 was written from reading, not from running, and it is
-wrong in three ways that reading did not catch — the same failure §1.1 and §1.5 record, one level up.
+### 4.9 Platform obligations
 
-**D1 — §4.5's flat `allScope` silently reverts BUG-427.** `doResolveGlobal:150-151` is deliberately
-two-phase, `projectScope` **then** `allScope`, so "the project's own declaration wins over a bundled
-stub's — `assert = require("luassert")` is how busted does it". §4.5 collapses that to one `allScope`
-call citing only BUG-399, which is a different question. `requirements.md` lists BUG-427 as a
-dependency; the design neither extends nor replaces it.
+Previously absent entirely, which `non-functional.md:26-30` and the engineering contract make
+binding:
 
-**D2 — §4.5 is a membership superset, which is Risk 1.1's own stated failure mode.**
-`typeOfGlobalIn:160-165` ends `.firstNotNullOfOrNull { globalTypeIn(it, name) }` — today completion
-takes the **first declaring file only**, with the current file excluded. `membersOf(receiver,
-allScope)` unions **every** file whose text declares that receiver, including files where it is a
-`local` (`local wx = {} … function f() wx.priv = 1 end`). Risk 1.1 predicted exactly this ("the
-natural implementation produces a superset by construction") and §4 walked into it. Nothing in the
-plan gates completion *membership*: the Phase 3 golden diff covers materialization only.
+- **Read action.** `membersOf`/`membersIn` touch `FileBasedIndex` and must be called under one.
+  Completion contributors already run under a read action; `addMethodsOf` does too. No new
+  requirement, but stated so a future caller does not assume otherwise.
+- **`ProgressManager.checkCanceled()`** inside the value-processing loop. The 3 600-member call is
+  2 ms, so this is not about the loop being long — it is that a `processValues` callback that never
+  yields cannot be cancelled if a pathological receiver appears.
+- **`DumbService`.** `FileBasedIndex` queries are unavailable during indexing. `crossFileGlobalMembers`
+  must degrade to empty rather than throw. Today's path resolves through the type engine, which has
+  its own dumb-mode behaviour — Phase 1 must establish what that is and match it, and this is
+  **untested by DR-09**.
 
-**D3 — `Kind` is syntactic where the filter it replaces is semantic.** `LuaCompletionContributor:384`
-filters on the *inferred* type (`memberType !is LuaGraphType.Function`). §4.3 emits `Kind.FIELD` for
-every assignment, so `wx.f = function() end` becomes a FIELD: it vanishes from `wx:` completion and
-takes a field icon.
+### 4.10 The record: what the two Step 9 reviews found
 
-Also unresolved and required before this is implementable: `membersOf` has no algorithm and, as
-placed, is uncallable as `LuaReceiverMemberIndex.membersOf(...)`; the `DataExternalizer` has no wire
-format; §4.7 names no change site (it is `LuaGraphType.fromLuaType`'s `is LuaClassType ->` branch,
-which passes no `metamethods`); and §4 states nothing about read actions, `ProgressManager.checkCanceled`
-or `DumbService`, all of which `non-functional.md:26-30` and the engineering contract make binding.
+Kept because the pattern is the point. §4 was written twice from reading and failed twice; every
+figure in §4.0–§4.5 above comes from a run.
 
-**What §4 got right, confirmed by review**: the no-stub-version-bump argument (the sink stores the
-whole `FUNC_NAME`, so `C:m` is itself a key); the separator round-trip; the four preserved
-materialization behaviours; and the viability of a collection-valued `FileBasedIndex` — for which the
-repo's real precedent is `LuaFileBindingsIndex` (`:34-77`), which §4.2 failed to name.
+- **D1** — flat `allScope` reverted BUG-427's precedence. **Confirmed** and fixed (§4.5).
+- **D2** — `membersOf` union was a membership superset. **Confirmed by measurement** and fixed by
+  first-file-only (§4.5).
+- **D3** — `Kind` syntactic where the filter is semantic. **Partly real**: direct
+  `= function() end` is classifiable, indirect assignment is not (§4.3), and the residue is now a
+  bounded, gated gap.
+- No `membersOf` algorithm, no wire format, `@field` undesigned, no read-action/cancel/dumb-mode
+  statement — all closed above.
+- Confirmed correct by both reviews: the no-stub-bump argument, the separator round-trip, the four
+  preserved materialization behaviours, and the collection-valued index's viability.
 
-### 4.10 What is deliberately not designed
+### 4.11 Still not designed
 
-- **Narrowing cache invalidation** (§3.3 / DR-07). Independent of this and possibly a smaller win.
-- **Removing the four caches.** Acceptance criterion says re-measure each; that is a follow-up.
-- **`LuaImplicitFields` / `LuaTypesVisitor:1349` / `catsClassTags`' file walks** (COMP-09-02's other
-  sites). They are on the same critical path but need their own analysis; Phase 4 measures whether
-  §4.5/§4.6 already moved them below budget.
+- **COMP-09-08 (latency gate)** and **COMP-09-09 (work bound)**. DR-09 supplies the *evidence* a
+  bound is achievable (0 ms narrow vs 2 ms wide) but neither an assertion mechanism nor a
+  first-element harness. DR-02a remains open and still blocks NFR-1.
+- **Narrowing cache invalidation** (§3.3 / DR-07) — independent, possibly a smaller win.
+- **Removing the four caches** — re-measure each; a follow-up.
+- **`LuaImplicitFields` / `LuaTypesVisitor:1349` / `catsClassTags`' file walks**. Phase 4 measures
+  whether §4.5/§4.6 already moved them below budget.
 
 ## 5. Requirement coverage
 
-Now writable: §3.1 and §3.2 are answered, and both doors resolve to the same remedy.
+Rewritten after DR-09. Every "covered" row now cites a printed figure from a prototype run rather
+than a call-shape argument; the rows that are still not designed say so.
 
 | Requirement | Covered by | Evidence |
 | :-- | :-- | :-- |
-| COMP-09-01 receiver-keyed enumeration | §4.1, §4.2 | §1.5 — names from an index value at key-lookup speed; §1.3 — the colon form needs its own key |
-| COMP-09-02 no full-file walk | §4.3, §4.4 | §1.6 — the walk and the parse are the `@class` door's cost |
-| COMP-09-03 all sources, dot **and** colon | §4.3 covers **2 of 4** — `@class` fields and metamethods are not indexed | §1.3, §1.4 — `AllColon` enumerates 2 today and 0 under a naive swap |
+| COMP-09-01 receiver-keyed enumeration | §4.2 — implemented and registered | §4.0 — `membersOf("wx")` 2 ms median for 3 600 members vs `resolveGlobal` 13 655 ms, same fixture, same run |
+| COMP-09-02 no full-file walk | §4.3 | §1.6 — the walk and the parse are the `@class` door's cost; §4.0 — the index path pays neither |
+| COMP-09-03 all sources, dot **and** colon | §4.3 covers **3 of 4** — funcs, assignments, `@field`; metamethods are COMP-09-05 | §4.4 — `AllColon` (every member colon-declared) enumerates 2 of 2, the case a naive swap emptied |
 | ~~COMP-09-04~~ incremental yield | **withdrawn** | §1.7 — no tail to stream |
 | ~~COMP-09-04b~~ lazy type rendering | **withdrawn** | §1.7 — measured 4 ms for 3 700 members; presentation was never the cost, and `renderElement` is not per-visible-row |
-| COMP-09-05 `@class` metamethods | not yet designed | COMP-04-DR-01 / BUG-426; Gap 2.3 says decide after the index shape is fixed, which §1.5 now fixes |
-| COMP-09-06 no new type source | §4.3 | the split — names for completion, `forFile` retained for the checker — is what keeps the checker's inputs unchanged |
-| COMP-09-07 behaviour-preserving | DR-01 golden | §1.4 — both doors per receiver, colon methods included |
-| COMP-09-08 latency enforced | **NOT DESIGNED** — no test class, no first-element harness (DR-02a is `todo` and self-labelled "blocks NFR-1") | §1.6 shows even the warm-file `@class` path is 167 ms, i.e. over budget without a library involved |
-| COMP-09-09 work bound | **NOT DESIGNED** | no instrumentation mechanism specified; §1.5's supporting figure is withdrawn |
+| COMP-09-05 `@class` metamethods | §4.7 — change site named, behaviour to observe first | COMP-04-DR-01 / BUG-426; unmeasured, and the checklist observes `t.__add` before the change |
+| COMP-09-06 no new type source | §4.1 | the split — names for completion, `forFile` retained for the checker — keeps the checker's inputs unchanged |
+| COMP-09-07 behaviour-preserving | §4.4 measured; §4.4a **redefines the bar** | 3 of 4 receivers exact; the 4th is BUG-430, where the two doors disagree and one is wrong. COMP-09 preserves the `@class` door and deliberately does not reproduce the global door's flattening |
+| COMP-09-08 latency enforced | **NOT DESIGNED** — no test class, no first-element harness (DR-02a is `todo`, "blocks NFR-1") | §1.6 — even the warm-file `@class` path is 167 ms, over budget with no library involved |
+| COMP-09-09 work bound | **evidence yes, mechanism no** | §4.0 — 8 members 0 ms vs 3 600 members 2 ms on one index shows the bound holds; no assertion mechanism is specified |

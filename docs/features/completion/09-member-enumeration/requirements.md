@@ -242,6 +242,28 @@ revised a third time in prose. **DR-09** prototypes the index and measures it, a
 from what the prototype does — the same route that fixed TARGET-10's `.i` grammar only after
 `probe.py` existed.
 
+### DR-09 outcome (2026-08-08) — the route worked, and it was not free
+
+§4 is now rewritten from a registered, measured prototype (design §4.0–§4.11). What the run settled
+that two rounds of reading could not:
+
+- **D1 and D2 were both real**, and measurement decided the fix rather than arbitrating between two
+  readings: `membersOf` over `allScope` returned `[alsoPrivate, privateToThisFile, real]` against a
+  golden of `[real]`. The rule is first-declaring-file within `projectScope`-then-`allScope`.
+- **D3 was half real** — `= function() end` is classifiable, `= someFn` is not — so it became a
+  bounded, gated residue instead of either a blocker or a hand-wave.
+- **The prototype was right and the engine was wrong** on the one remaining mismatch. `a.b.c = v`
+  hoists `c` onto `a` and leaves `a.b` empty, and only on the global door. Filed as **BUG-430**. This
+  is the finding no amount of re-reading would have produced, because both readings of the code were
+  *correct about what the code says* — `memberNameOf` and `LuaImplicitFields` do reject nested
+  qualifiers. A third path does not, and only running it showed that.
+- **Consequence for this feature**: COMP-09-07's "behaviour-preserving" was not a well-defined bar.
+  Two goldens exist for one receiver and one is a defect. COMP-09 now preserves the `@class` door
+  explicitly (design §4.4a).
+
+The cost was one prototype and two harness runs. Both earlier prose revisions cost a review round
+each and settled nothing.
+
 ## Dependencies
 
 - **COMP-04** (`done`) — extends it; owns `LuaMemberLookup` and the `setmetatable` modelling.

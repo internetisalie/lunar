@@ -16,7 +16,10 @@ import kotlin.system.measureTimeMillis
 class CompNineMediansTest : LibraryRootTestCase() {
     private fun median(runs: List<Long>) = runs.sorted()[runs.size / 2]
 
-    private fun report(label: String, runs: List<Long>) {
+    private fun report(
+        label: String,
+        runs: List<Long>,
+    ) {
         val s = runs.sorted()
         println("MEDIAN $label: median=${median(runs)}ms min=${s.first()} max=${s.last()} runs=$runs")
     }
@@ -39,11 +42,12 @@ class CompNineMediansTest : LibraryRootTestCase() {
             val cold = measureTimeMillis { m.resolveType("Big0", myFixture.file) }
             println("MEDIAN classDoor cold-file+cold-class (single, unavoidable) = ${cold}ms")
             (1..5).forEach { i ->
-                runs += measureTimeMillis {
-                    m.resolveType("Big$i", myFixture.file)?.let {
-                        LuaGraphType.materialize(it, myFixture.file).getMembers().size
+                runs +=
+                    measureTimeMillis {
+                        m.resolveType("Big$i", myFixture.file)?.let {
+                            LuaGraphType.materialize(it, myFixture.file).getMembers().size
+                        }
                     }
-                }
             }
         }
         report("classDoor warm-file+cold-class (500 members)", runs)
@@ -68,15 +72,16 @@ class CompNineMediansTest : LibraryRootTestCase() {
             val members = graph.getMembers()
             val renders = mutableListOf<Long>()
             repeat(5) {
-                renders += measureTimeMillis {
-                    var sink = 0
-                    for ((name, node) in members) {
-                        val t = node.write
-                        val isFn = t is LuaGraphType.Function          // the isColon filter at :384
-                        sink += name.length + t.displayName().length + if (isFn) 1 else 0
+                renders +=
+                    measureTimeMillis {
+                        var sink = 0
+                        for ((name, node) in members) {
+                            val t = node.write
+                            val isFn = t is LuaGraphType.Function // the isColon filter at :384
+                            sink += name.length + t.displayName().length + if (isFn) 1 else 0
+                        }
+                        require(sink > 0)
                     }
-                    require(sink > 0)
-                }
             }
             report("per-member type+displayName for ${members.size} members", renders)
             println("MEDIAN => if this is single-digit ms, presentation was NEVER the cost")

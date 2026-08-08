@@ -15,8 +15,21 @@ folders:
 > enumeration a new type source, which is BUG-395's reverted experiment (BUG-397, four suites).
 > Nothing in Phase 1 may land before the golden file records what enumeration returns today.
 
-> **Blocked on DR-09.** Design §4 failed its second Step 9 review (§4.9 D1–D3) and must be rewritten
-> from a measured prototype, not revised again in prose. Phases 1+ cannot start until DR-09 has run.
+> **DR-09 is done (2026-08-08) and §4 has been rewritten from it** — design §4.0–§4.11. The
+> prototype exists (`LuaReceiverMemberIndex`, registered, nothing consumes it) and was measured:
+> `membersOf` **2 ms** for 3 600 members against `resolveGlobal`'s **13 655 ms** on the same fixture,
+> **0 ms** for an 8-member receiver, exact externalizer round-trip, and exact membership on 3 of the
+> 4 golden receivers.
+>
+> **Two DR-09 findings change this plan.** (1) D1 and D2 were both *confirmed by measurement*, so
+> §4.5's scope rule is now first-declaring-file within `projectScope`-then-`allScope` — Phase 1 must
+> implement that, not the union the prototype currently has. (2) The one membership mismatch is
+> **BUG-430**: the global and `@class` doors disagree about `a.b.c = v`, and the global door is wrong
+> twice. COMP-09 preserves the **`@class` door** and deliberately does not reproduce the flattening;
+> COMP-09-07's bar is redefined accordingly (design §4.4a) and Phase 0's golden must record which
+> door each receiver is measured through.
+>
+> **DR-10 still blocks Phase 1**: dumb-mode behaviour is asserted in design §4.9 and measured nowhere.
 
 > **Two standing rules.** (1) Any figure quoted in a doc or a commit is a **median of ≥5**; design
 > §1.8 records a −60 % single-shot spread and one flipped verdict. (2) No benchmark may cross a
@@ -29,6 +42,9 @@ folders:
   - [ ] Promote `CompNineDr01Test`'s enumeration dump into a checked-in golden covering, for **both**
         `resolveGlobal` and `resolveType` per receiver (design §1.4 — `wx` answers differently through
         each): a namespace global, a `@class` with dot *and* colon members, and an all-colon `@class`.
+        **Label each receiver with the door it is measured through** — design §4.4a: for `a.b.c = v`
+        the two doors disagree and the global door's answer is BUG-430, so an unlabelled golden would
+        certify a bug as the contract.
   - [ ] Add the `LuaOverrideLineMarkerProvider` case to the golden — `sourceElement` is load-bearing
         (design §4.1) and `materializeClass:256-262` warns the parity harness cannot see it.
   - [ ] Write **COMP-09-08**'s latency assertion (time-to-first-element vs the 100 ms NFR) and
@@ -40,15 +56,25 @@ folders:
 ## Phase 1: `LuaReceiverMemberIndex`
 
 - **Goal**: the index exists and is correct; nothing consumes it yet.
+- **Blocked on DR-10** (dumb-mode behaviour).
+- **Starting point**: DR-09's prototype is already in `src/main` and registered. Phase 1 is
+  *finishing* it, not writing it — the class, externalizer, three-source indexer and registration
+  exist and are measured (design §4.0). What is missing is below.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex` + `LuaReceiverMember`
-        — design §4.2, incl. the `DataExternalizer<List<LuaReceiverMember>>`.
-  - [ ] Implement the indexer — design §4.3 (both declaration forms; `FUNC_NAME` text read the same
-        way `LuaFuncStubElementType.createStub:24` reads it, so the two agree by construction).
-  - [ ] Implement receiver derivation — design §4.4, **first separator, reject nested qualifiers**.
-  - [ ] Register in `plugin.xml` beside the five existing `fileBasedIndex` entries — design §4.8.
+  - [ ] Replace the prototype's `membersOf` union with the measured rule — design §4.5: try
+        `projectScope`, fall back to `allScope`, and within the chosen scope take **the first
+        declaring file only**. Keep the union available as `membersIn(receiver, scope)` for
+        materialization (design §4.6), which genuinely wants all files.
+  - [ ] Re-run `CompNineDr09Test.testDr09b` and `testDr09d2` with that rule. Membership matching on
+        all four receivers is the **gate**; D2's superset is fixed on paper until it does.
+  - [ ] Add `ProgressManager.checkCanceled()` to the value-processing loop and the dumb-mode
+        behaviour DR-10 establishes — design §4.9.
   - [ ] Tests: dot member, colon member, all-colon receiver, nested qualifier (`a.b.c` → **no**
-        entry), same receiver across two files (union), and `getVersion` bump behaviour.
+        entry), `@field`, `= function() end` vs `= someFn` (design §4.3's bounded D3 gap), same
+        receiver in two files (first-file for `membersOf`, union for `membersIn`), and externalizer
+        round-trip incl. empty and non-ASCII.
+  - [ ] Delete `CompNineDr09Test`/`CompNineDr09bTest` once their cases are covered by real tests —
+        they are throwaway harnesses, and design §4.0's figures are already recorded.
 - **Exit**: index tests green; `LuaMemberFieldIndexTest.testDeepQualifiedKeyPresent` still green
   (that index is untouched); full suite green.
 
@@ -56,13 +82,12 @@ folders:
 
 - **Goal**: `wx.<caret>` served from the index; COMP-09-08 goes green.
 - **Tasks**:
-  - [ ] **Resolve design §4.9 D1 and D2 first** — the scope rule (`projectScope` then `allScope`, per
-        BUG-427) and whether membership is first-file or union. Neither is decided; implementing §4.5
-        as written reverts BUG-427 and ships a superset.
-  - [ ] Rewrite `crossFileGlobalMembers` — design §4.5, once D1/D2 are decided.
+  - [ ] Rewrite `crossFileGlobalMembers` — design §4.5. D1 and D2 are **decided and measured**; the
+        rule lands in Phase 1, so this phase consumes it rather than deciding it.
   - [ ] Add `LuaMemberLookup.create(LuaReceiverMember)` — icon from `kind`, **no type text** on this
-        path (design §4.5). **Resolve D3 first**: `Kind` is syntactic, so `wx.f = function() end`
-        indexes as FIELD and would vanish from `wx:` completion.
+        path (design §4.5). D3 is bounded, not closed: `wx.f = function() end` is FUNCTION, but
+        `wx.f = someFn` is FIELD and vanishes from `wx:` completion. Add that case to the gate so the
+        residue stays visible.
   - [ ] Amend TC 3 to expect absent type text on the cross-file path. This is a **visible behaviour
         change** and must be an expectation, not a silent diff.
   - [ ] Re-measure time-to-first-element, medians of ≥5.

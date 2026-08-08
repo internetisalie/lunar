@@ -98,7 +98,11 @@ class CompNineDrSpikeTest : LibraryRootTestCase() {
             val byReceiver =
                 StubIndex
                     .getElements<String, LuaFuncDecl>(
-                        LuaGlobalDeclarationIndex.KEY, "ColonHost", project, scope, LuaFuncDecl::class.java,
+                        LuaGlobalDeclarationIndex.KEY,
+                        "ColonHost",
+                        project,
+                        scope,
+                        LuaFuncDecl::class.java,
                     ).map { it.funcName.text }
                     .sorted()
             println("DR-06 getElements(KEY, \"ColonHost\") -> $byReceiver")
@@ -106,16 +110,25 @@ class CompNineDrSpikeTest : LibraryRootTestCase() {
             val wxByReceiver =
                 StubIndex
                     .getElements<String, LuaFuncDecl>(
-                        LuaGlobalDeclarationIndex.KEY, "wx", project, scope, LuaFuncDecl::class.java,
+                        LuaGlobalDeclarationIndex.KEY,
+                        "wx",
+                        project,
+                        scope,
+                        LuaFuncDecl::class.java,
                     ).map { it.funcName.text }
                     .sorted()
             println("DR-06 getElements(KEY, \"wx\") -> $wxByReceiver")
 
             val colonFound = byReceiver.any { it.contains(":") }
+            val verdict =
+                if (colonFound) {
+                    "DOES cover the colon form — COMP-09-01's claim holds"
+                } else {
+                    "is DOT-ONLY — the swap would drop colon methods"
+                }
             println(
-                "DR-06 VERDICT: receiver key " +
-                    (if (colonFound) "DOES cover the colon form — COMP-09-01's claim holds" else "is DOT-ONLY — the swap would drop colon methods") +
-                    "; dot form covered=${wxByReceiver.isNotEmpty()}",
+                "DR-06 VERDICT: receiver key $verdict; " +
+                    "dot form covered=${wxByReceiver.isNotEmpty()}",
             )
         }
     }
@@ -132,16 +145,20 @@ class CompNineDrSpikeTest : LibraryRootTestCase() {
         registerLibraryRoot(mapOf("wx.lua" to root.toString()))
         consumer("local x = 1\n")
 
-        val cold = measureTimeMillis { runReadAction { LuaTypeManager.getInstance(project).resolveGlobal("wx", myFixture.file) } }
-        val warm = measureTimeMillis { runReadAction { LuaTypeManager.getInstance(project).resolveGlobal("wx", myFixture.file) } }
+        fun resolve() = runReadAction { LuaTypeManager.getInstance(project).resolveGlobal("wx", myFixture.file) }
+
+        val cold = measureTimeMillis { resolve() }
+        val warm = measureTimeMillis { resolve() }
 
         // One keystroke in an unrelated file — the consumer, not the library.
         com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) {
             myFixture.editor.document.insertString(myFixture.editor.document.textLength, "-- k\n")
-            com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
+            com.intellij.psi.PsiDocumentManager
+                .getInstance(project)
+                .commitAllDocuments()
         }
 
-        val afterEdit = measureTimeMillis { runReadAction { LuaTypeManager.getInstance(project).resolveGlobal("wx", myFixture.file) } }
+        val afterEdit = measureTimeMillis { resolve() }
         println("DR-02c cold=${cold}ms  warm=${warm}ms  after-one-keystroke-in-CONSUMER=${afterEdit}ms")
         println(
             "DR-02c VERDICT: " +
@@ -224,8 +241,14 @@ class CompNineDrSpikeTest : LibraryRootTestCase() {
             val materializeMs = measureTimeMillis { graph = LuaGraphType.materialize(type, context) }
             var count = 0
             val getMembersMs = measureTimeMillis { count = graph!!.getMembers().size }
-            println("DR-02 resolveGlobal=${resolveMs}ms  materialize=${materializeMs}ms  getMembers=${getMembersMs}ms  members=$count")
-            println("DR-02 => all of it precedes the first addElement, so time-to-first == time-to-exhaustive by construction")
+            println(
+                "DR-02 resolveGlobal=${resolveMs}ms  materialize=${materializeMs}ms  " +
+                    "getMembers=${getMembersMs}ms  members=$count",
+            )
+            println(
+                "DR-02 => all of it precedes the first addElement, " +
+                    "so time-to-first == time-to-exhaustive by construction",
+            )
 
             // DR-02b: resolveGlobal is 99.9% of it. Is the cost LuaTypesSnapshot.forFile on the
             // DECLARING file? Time a snapshot build directly, and time a second resolveGlobal to

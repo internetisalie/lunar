@@ -35,6 +35,12 @@ folders:
   stops the change. Not "investigate the movement": stop. Plus DR-01, which pins the exact
   membership of today's result *before* anything is replaced, so the comparison is against a
   recorded set rather than a memory.
+- **STATUS (DR-09, 2026-08-08): this risk fired, exactly as written, and was caught by measurement.**
+  A flat `membersOf(receiver, allScope)` union returned `[alsoPrivate, privateToThisFile, real]`
+  against a golden of `[real]` — the extras came from an unrelated file-local `wx`. The design's
+  answer is first-declaring-file-only within a scope-precedence chain (design §4.5), which reproduces
+  today's `typeOfGlobalIn`. The risk stays open until `testDr09b` passes on all four receivers with
+  that rule implemented, because until then the superset is fixed only on paper.
 
 ### Risk 1.2: The scope and file-confinement semantics are lost in translation
 
@@ -123,7 +129,8 @@ verbatim if COMP-09-04 is reinstated.
 | :-- | :-- | :-- | :-- |
 | COMP-09-00-DR-01 | Golden enumeration across both entry points | Risk 1.1, 1.2 | **done** — design §1.4. `wx` resolves through *both* doors with different types; `AllColon` (all-colon members) enumerates 2 today and would return 0 under the proposed swap. Golden must record both doors per receiver |
 | COMP-09-00-DR-03.2 | §3.2: is the `@class` door dominated by `forFile` or the key loop? | design §3.2 | **done** — design §1.6. Neither: it never calls `forFile` (A measured 1 674 ms cold *after* two resolveType calls). Cold cost is the declaring file's AST parse (352 ms measured on an untouched equivalent); marginal cost 167 ms/class, already over budget. Different bottleneck, **same remedy** |
-| COMP-09-00-DR-09 | Prototype `LuaReceiverMemberIndex` and MEASURE it before §4 is rewritten again — membership vs today's golden, `membersOf` timing, externalizer round-trip | design §4.9 D1–D3 | todo — **blocks any further §4 revision** |
+| COMP-09-00-DR-09 | Prototype `LuaReceiverMemberIndex` and MEASURE it before §4 is rewritten again — membership vs today's golden, `membersOf` timing, externalizer round-trip | design §4.9 D1–D3 | **done** — `LuaReceiverMemberIndex` + `CompNineDr09Test`/`CompNineDr09bTest`. §4 rewritten from the run (design §4.0–§4.11). Results: `membersOf` **2 ms**/3 600 members vs `resolveGlobal` **13 655 ms**, and **0 ms** for an 8-member receiver (the work bound, demonstrated); externalizer round-trip **exact**; membership exact on 3 of 4 receivers. D1 and D2 both **confirmed by measurement** and fixed by first-declaring-file-within-scope-precedence; D3 **partly real** and now bounded. The 4th receiver's mismatch was traced to the engine and filed as **BUG-430** |
+| COMP-09-00-DR-10 | Establish what `crossFileGlobalMembers` does during indexing today, and match it — §4.9 asserts `DumbService` handling is required but DR-09 measured none of it | design §4.9 | todo — **blocks Phase 1** |
 | COMP-09-00-DR-03.1 | §3.1: can a type be answered without `forFile`? | design §3.1 | **done** — design §1.5. Not the type; but member *names* can, from an index **value**, at key-lookup speed. `getAllKeys` over 25 335 keys is 44 ms — cheap; `getElements` is 1.5 ms per element and is the real cost |
 | COMP-09-00-DR-06 | Does `getElements(KEY, receiver)` cover the colon form? | COMP-09-01's premise | **done — NO.** Dot-only; `getElements(KEY, "ColonHost")` → `[ColonHost.staticDot]`. See design §1.3 |
 | COMP-09-00-DR-02 | Bucket the cost | critical path | **done.** `resolveGlobal` 9 568 ms / `materialize` 10 ms / `getMembers` 0 ms. The hot path is `LuaTypesSnapshot.forFile` on the declaring file, not enumeration. See design §1.1 |
