@@ -1,5 +1,15 @@
 # Change Log
 
+## Unreleased
+
+### No more "IDE internal error" while the project is indexing (BUG-432)
+
+Any type resolution that happened during indexing — a background inspection, a hover, a gutter pass —
+reported a crash to the user. `IndexNotReadyException` is the platform's way of saying "the indexes
+are not built yet", which is ordinary control flow, but it was being logged as an error and so
+surfaced as the red internal-error notification. Type resolution now degrades quietly while indexing
+and resumes when it finishes, matching what global resolution has always done.
+
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
 ### A global API declared in another file now carries its types (BUG-427)

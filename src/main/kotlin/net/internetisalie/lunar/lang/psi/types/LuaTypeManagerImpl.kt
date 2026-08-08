@@ -2,6 +2,7 @@ package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -76,6 +77,11 @@ class LuaTypeManagerImpl(
         context: PsiElement,
     ): LuaType? {
         LuaPrimitiveType.PRIMITIVES[name]?.let { return it }
+        // BUG-432: the same guard resolveGlobal has carried since BUG-395. doResolveType queries the
+        // stub and file-based indexes, which throw IndexNotReadyException while the IDE is indexing —
+        // and the catch below turned that into a user-visible internal-error report. A primitive is
+        // resolved above this line because it needs no index at all.
+        if (DumbService.isDumb(project)) return null
         val cache = typeCache.value
         if (cache.containsKey(name)) return cache[name]
         if (name in resolvingTypes.get()) return null // Break reentrant cycles
@@ -84,6 +90,12 @@ class LuaTypeManagerImpl(
             resolvingTypes.get().add(name)
             doResolveType(name, project)
         } catch (e: ProcessCanceledException) {
+            throw e
+        } catch (e: IndexNotReadyException) {
+            // BUG-432, and the half that matters more than the guard: this is control flow, exactly
+            // like ProcessCanceledException — the indexes are not built yet, nothing has gone wrong.
+            // Logger.error surfaces an "IDE internal error" to the user. The guard above cannot make
+            // this branch unreachable: dumb mode can begin between the check and the query.
             throw e
         } catch (e: Exception) {
             logError("Error resolving type $name", e)

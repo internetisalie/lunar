@@ -74,7 +74,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-428 | A `nil` arm from `and`/`or` is reported as a certain nil instead of optionality | todo | S | — | — | ✓ |
 | BUG-430 | `a.b.c = v` makes `c` a member of `a` and leaves `a.b` empty; the two enumeration doors disagree | todo | M | — | found by COMP-09 DR-09; settles what COMP-09-07 can call behaviour-preserving | ✓ |
-| BUG-432 | `resolveType` has no dumb-mode guard, so every call during indexing raises an IDE internal error | todo | M | — | found by COMP-09 DR-10; COMP-09 Phase 1 must match a *correct* dumb-mode behaviour | ✓ |
 | COMP-09 | Member enumeration — "members of X" from an index, not a key scan or file walk; a latency gate and a work bound | planned | M | — | **TARGET-10** *(release 2)*; absorbs BUG-429; closes COMP-04-DR-01 + BUG-426's limitation; surfaced BUG-430/431/432 | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
