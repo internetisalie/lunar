@@ -73,6 +73,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-428 | A `nil` arm from `and`/`or` is reported as a certain nil instead of optionality | todo | S | — | — | ✓ |
+| BUG-429 | Member completion on a library global blocks on a full type materialization — time-to-first-result equals time-to-exhaustive-result (12.9s) | todo | M | — | **TARGET-10** *(release 2: classes + methods)* | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 
