@@ -80,6 +80,7 @@ Four caches, one half-built index direction, and no single answer to the questio
 | COMP-09-05 | **`@class`-declared metamethods** | S | A `---@class` declaring `__add` makes its instances arithmetic-capable — closes COMP-04-DR-01 / BUG-426. |
 | COMP-09-06 | **No new type source** | M | The checker sees exactly what it sees today. Corpus baselines must not move. |
 | COMP-09-07 | **Behaviour-preserving** | M | Same members, same types, same completions as today on every existing fixture. |
+| COMP-09-08 | **The latency target is enforced** | M | A failing-first test asserts time-to-first-element against the `non-functional.md` budget, and runs in the routine loop — not behind `-PwithPerf`. `non-functional.md` is amended to cover indexed library content. |
 
 ## Detailed Specifications
 
@@ -123,6 +124,7 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | 4 | COMP-09-06 | All four corpus members | Re-baseline | `LuaTypeAssignability` / `LuaReturnTypeMismatch` unchanged |
 | 5 | COMP-09-03 | Library declaring `wx.K = nil`, `function wx.F() end`, `---@class C` with a field | `wx.<caret>` and `C` instance caret | All three forms enumerate |
 | 6 | COMP-09-05 | `---@class V` declaring `__add`; `local a, b = V(), V()` | `a + b` | No diagnostic (closes COMP-04-DR-01) |
+| 8 | COMP-09-08 | The TC 1 fixture, on today's code | Run the new latency test | It **fails**, reporting ~12 900 ms against a 100 ms budget — mutation-proving the gate before the fix lands |
 | 7 | COMP-09-02 | A file with 500 `@class` tags | Resolve one class | No full-file tag walk (assert via instrumentation, not timing) |
 
 ## Acceptance Criteria
@@ -133,14 +135,47 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 - [ ] COMP-09-05 — TC 6; COMP-04-DR-01 and BUG-426's limitation are closed or re-scoped in writing.
 - [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
 - [ ] COMP-09-07 — TC 3.
+- [ ] COMP-09-08 — the latency assertion exists, fails before the fix, passes after, and runs
+      without `-PwithPerf`; `non-functional.md:13` covers library content.
 - [ ] Each cache in the "Why this is a capability" table is re-measured and either removed as
       redundant or kept with a stated reason.
 
 ## Non-Functional Requirements
 
-- Time-to-first-element budget set by DR-02 from measurement, not invented.
-- No regression in exhaustive-enumeration time.
-- Threading unchanged: enumeration runs where it runs today (`docs/engineering-contract.md` §1).
+**The target already exists and this feature is 129× outside it.**
+[`docs/features/non-functional.md:13`](../../non-functional.md): *"Code completion should return
+results in under 100ms for projects up to 50k lines."* Measured today against a 230 KiB library
+root: **12 902 ms**. Against a 530 KiB single file: **25 352 ms**. Even the cheapest fixture measured
+— 40 KiB of constants — is **297 ms**, 3× over.
+
+`GlobalSymbolCompletionPerformanceTest`'s KDoc adds per-scale targets (*"<250ms at 1000 symbols"*,
+*"<400ms at 5000 symbols"*).
+
+- **NFR-1 — time to first element < 100 ms** against the COMP-09 TC 1 fixture. Not a new budget:
+  the existing one, applied to the case that breaks it.
+- **NFR-2 — no regression in exhaustive-enumeration time.** 12.9 s to the *complete* set is
+  acceptable; 12.9 s to the *first* result is the defect.
+- **NFR-3 — the target becomes enforced, not documented.** See COMP-09-08.
+- **NFR-4 — threading unchanged**; enumeration runs where it runs today
+  (`docs/engineering-contract.md` §1).
+
+### Why 12.9 s was never caught, and what that requires of this feature
+
+Every timing assertion in the performance suite is `assertTrue(result.phase1Time > 0, "Benchmark
+should record a time > 0")`, with comments that say so — *"Informational: capture target scale
+data"*. It is an honest benchmark harness, not a gate, and it is excluded from the routine loop
+(`-PwithPerf`). So no stated target has ever been enforceable, and a 129× miss was invisible.
+
+**Fixing the enumeration without fixing that leaves the next 129× regression equally invisible.**
+Hence COMP-09-08 below.
+
+### The spec hole — name it, do not exploit it
+
+The 100 ms target is qualified *"for projects up to 50k lines"*. A definition library is not project
+lines, so the NFR does not literally bind for library trees — which is how a 530 KiB root can be
+both catastrophic and technically in-spec. `non-functional.md` must be amended to cover **indexed
+library content**, not only project content. Leaving the qualifier in place and declaring compliance
+would be true and useless.
 
 ## Dependencies
 

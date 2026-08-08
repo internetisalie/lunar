@@ -97,10 +97,19 @@ folders:
 | ID | Action | Resolves | Status |
 | :-- | :-- | :-- | :-- |
 | COMP-09-00-DR-01 | Record today's exact enumeration result — member set, types, order — for a library global, a `@class`, and a local-declared class, as a golden file | Risk 1.1, 1.2 | todo — **blocks everything** |
-| COMP-09-00-DR-02 | Instrument the four buckets (`resolveGlobal`, `:328` scan, `:421` scan, remaining materialize) and set the time-to-first-element budget from the numbers | COMP-09 NFR, Gap 2.2 | todo |
+| COMP-09-00-DR-02 | Instrument the four buckets (`resolveGlobal`, `:328` scan, `:421` scan, remaining materialize) and measure each **against the existing 100 ms target** — the budget is not ours to set | COMP-09 NFR, Gap 2.2 | todo |
 | COMP-09-00-DR-03 | Prototype the index shape against the wx tree; decide name-only vs name+kind | Gap 2.1, 2.3 | todo |
 | COMP-09-00-DR-04 | Establish whether incremental yield and the existing memoization can coexist, or whether only completion yields incrementally | Risk 1.3 | todo |
 | COMP-09-00-DR-05 | Land BUG-429's two-site fix first and re-measure — it may move the numbers enough to change this feature's shape | all | todo |
+
+### Risk 1.5: The performance suite cannot fail, so the next regression is equally invisible
+
+- **Impact**: `GlobalSymbolCompletionPerformanceTest` asserts `phase1Time > 0` and is excluded from
+  the routine loop. A 129× miss against `non-functional.md:13` went unnoticed until a feature
+  happened to trip over it. Landing COMP-09 without COMP-09-08 restores exactly that condition.
+- **Likelihood**: certain, absent COMP-09-08 — it is the current state.
+- **Mitigation**: COMP-09-08, mutation-proved (TC 8): the assertion must be shown to fail on today's
+  code before the fix lands, or it is another test that cannot fail.
 
 ## Technical Debt & Future Work
 
