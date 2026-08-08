@@ -125,12 +125,11 @@ index-only name enumeration, total              340 ms
 compare: resolveGlobal                        9 568 ms
 ```
 
-**`getAllKeys` over 25 335 keys costs 44 ms.** The scan is *cheap*. What costs is
-`getElements` — 296 ms for 200 elements, ~1.5 ms each, because each one deserialises a stub. And
-`collectMethodMembers` calls `getElements` **per matching key**, so for a 3 600-member receiver that
-is seconds. My earlier framing — "`getAllKeys` is the defect" — was wrong in the same way as §1.1:
-inferred from the call shape, refuted by running it. COMP-09-09's work bound is still right, but the
-work it must bound is **stub loads**, not key visits.
+⚠ **WITHDRAWN — see §2.** The figures once quoted here (`getAllKeys` 44 ms / `getElements` ~1.5 ms
+each) compared two different index subsystems and printed a filtered match count rather than a key
+total. Neither is evidence for anything. Candidate C — 43 ms for a 17 234-key scan *plus* 500
+`getElements` — is the only figure from this run that holds, and it says the scan is not the
+dominant term. COMP-09-09's bound is **entries traversed**, per `non-functional.md`.
 
 **Which gives the design its answer.** 340 ms is 28× better than 9 568 ms and still over the 100 ms
 budget, because it loads stubs. Names must come from the index *value*, not from the elements:
@@ -462,7 +461,42 @@ That last row is the payoff of putting receiver derivation in a new `FileBasedIn
 amending the stub sink: no stub-format change, no `getStubVersion` bump, and DR-06's dot/colon
 asymmetry is sidestepped rather than fixed in place.
 
-### 4.9 What is deliberately not designed
+### 4.9 DEFECTS FOUND BY STEP 9 REVIEW — §4 is not implementable as written
+
+Verified against the code before accepting. §4 was written from reading, not from running, and it is
+wrong in three ways that reading did not catch — the same failure §1.1 and §1.5 record, one level up.
+
+**D1 — §4.5's flat `allScope` silently reverts BUG-427.** `doResolveGlobal:150-151` is deliberately
+two-phase, `projectScope` **then** `allScope`, so "the project's own declaration wins over a bundled
+stub's — `assert = require("luassert")` is how busted does it". §4.5 collapses that to one `allScope`
+call citing only BUG-399, which is a different question. `requirements.md` lists BUG-427 as a
+dependency; the design neither extends nor replaces it.
+
+**D2 — §4.5 is a membership superset, which is Risk 1.1's own stated failure mode.**
+`typeOfGlobalIn:160-165` ends `.firstNotNullOfOrNull { globalTypeIn(it, name) }` — today completion
+takes the **first declaring file only**, with the current file excluded. `membersOf(receiver,
+allScope)` unions **every** file whose text declares that receiver, including files where it is a
+`local` (`local wx = {} … function f() wx.priv = 1 end`). Risk 1.1 predicted exactly this ("the
+natural implementation produces a superset by construction") and §4 walked into it. Nothing in the
+plan gates completion *membership*: the Phase 3 golden diff covers materialization only.
+
+**D3 — `Kind` is syntactic where the filter it replaces is semantic.** `LuaCompletionContributor:384`
+filters on the *inferred* type (`memberType !is LuaGraphType.Function`). §4.3 emits `Kind.FIELD` for
+every assignment, so `wx.f = function() end` becomes a FIELD: it vanishes from `wx:` completion and
+takes a field icon.
+
+Also unresolved and required before this is implementable: `membersOf` has no algorithm and, as
+placed, is uncallable as `LuaReceiverMemberIndex.membersOf(...)`; the `DataExternalizer` has no wire
+format; §4.7 names no change site (it is `LuaGraphType.fromLuaType`'s `is LuaClassType ->` branch,
+which passes no `metamethods`); and §4 states nothing about read actions, `ProgressManager.checkCanceled`
+or `DumbService`, all of which `non-functional.md:26-30` and the engineering contract make binding.
+
+**What §4 got right, confirmed by review**: the no-stub-version-bump argument (the sink stores the
+whole `FUNC_NAME`, so `C:m` is itself a key); the separator round-trip; the four preserved
+materialization behaviours; and the viability of a collection-valued `FileBasedIndex` — for which the
+repo's real precedent is `LuaFileBindingsIndex` (`:34-77`), which §4.2 failed to name.
+
+### 4.10 What is deliberately not designed
 
 - **Narrowing cache invalidation** (§3.3 / DR-07). Independent of this and possibly a smaller win.
 - **Removing the four caches.** Acceptance criterion says re-measure each; that is a follow-up.
@@ -478,11 +512,11 @@ Now writable: §3.1 and §3.2 are answered, and both doors resolve to the same r
 | :-- | :-- | :-- |
 | COMP-09-01 receiver-keyed enumeration | §4.1, §4.2 | §1.5 — names from an index value at key-lookup speed; §1.3 — the colon form needs its own key |
 | COMP-09-02 no full-file walk | §4.3, §4.4 | §1.6 — the walk and the parse are the `@class` door's cost |
-| COMP-09-03 all sources, dot **and** colon | §4.1, §4.2 | §1.3, §1.4 — `AllColon` enumerates 2 today and 0 under a naive swap |
+| COMP-09-03 all sources, dot **and** colon | §4.3 covers **2 of 4** — `@class` fields and metamethods are not indexed | §1.3, §1.4 — `AllColon` enumerates 2 today and 0 under a naive swap |
 | ~~COMP-09-04~~ incremental yield | **withdrawn** | §1.7 — no tail to stream |
 | ~~COMP-09-04b~~ lazy type rendering | **withdrawn** | §1.7 — measured 4 ms for 3 700 members; presentation was never the cost, and `renderElement` is not per-visible-row |
 | COMP-09-05 `@class` metamethods | not yet designed | COMP-04-DR-01 / BUG-426; Gap 2.3 says decide after the index shape is fixed, which §1.5 now fixes |
 | COMP-09-06 no new type source | §4.3 | the split — names for completion, `forFile` retained for the checker — is what keeps the checker's inputs unchanged |
 | COMP-09-07 behaviour-preserving | DR-01 golden | §1.4 — both doors per receiver, colon methods included |
-| COMP-09-08 latency enforced | requirements NFR-3 | §1.6 shows even the warm-file `@class` path is 167 ms, i.e. over budget without a library involved |
-| COMP-09-09 work bound | §4.4 | §1.5 — bound **stub loads**, not key visits: `getAllKeys` is 44 ms for 25 335 keys |
+| COMP-09-08 latency enforced | **NOT DESIGNED** — no test class, no first-element harness (DR-02a is `todo` and self-labelled "blocks NFR-1") | §1.6 shows even the warm-file `@class` path is 167 ms, i.e. over budget without a library involved |
+| COMP-09-09 work bound | **NOT DESIGNED** | no instrumentation mechanism specified; §1.5's supporting figure is withdrawn |

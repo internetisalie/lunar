@@ -15,6 +15,9 @@ folders:
 > enumeration a new type source, which is BUG-395's reverted experiment (BUG-397, four suites).
 > Nothing in Phase 1 may land before the golden file records what enumeration returns today.
 
+> **Blocked on DR-09.** Design §4 failed its second Step 9 review (§4.9 D1–D3) and must be rewritten
+> from a measured prototype, not revised again in prose. Phases 1+ cannot start until DR-09 has run.
+
 > **Two standing rules.** (1) Any figure quoted in a doc or a commit is a **median of ≥5**; design
 > §1.8 records a −60 % single-shot spread and one flipped verdict. (2) No benchmark may cross a
 > reindex boundary (design §4.8).
@@ -53,13 +56,20 @@ folders:
 
 - **Goal**: `wx.<caret>` served from the index; COMP-09-08 goes green.
 - **Tasks**:
-  - [ ] Rewrite `crossFileGlobalMembers` — design §4.5.
+  - [ ] **Resolve design §4.9 D1 and D2 first** — the scope rule (`projectScope` then `allScope`, per
+        BUG-427) and whether membership is first-file or union. Neither is decided; implementing §4.5
+        as written reverts BUG-427 and ships a superset.
+  - [ ] Rewrite `crossFileGlobalMembers` — design §4.5, once D1/D2 are decided.
   - [ ] Add `LuaMemberLookup.create(LuaReceiverMember)` — icon from `kind`, **no type text** on this
-        path (design §4.5).
+        path (design §4.5). **Resolve D3 first**: `Kind` is syntactic, so `wx.f = function() end`
+        indexes as FIELD and would vanish from `wx:` completion.
   - [ ] Amend TC 3 to expect absent type text on the cross-file path. This is a **visible behaviour
         change** and must be an expectation, not a silent diff.
   - [ ] Re-measure time-to-first-element, medians of ≥5.
-- **Exit**: COMP-09-08 green; golden unchanged for the in-file path; TC 6, 7, 7a, 14 green.
+- **Exit**: COMP-09-08 green; golden unchanged for the in-file path; **completion membership diffed
+  against the golden in both directions** (design §4.9 D2 — today's path takes the *first* declaring
+  file only, so a union is a superset and Phase 3's diff does not cover this consumer); TC 6 and TC 7
+  green. *(An earlier revision cited TC 7a and TC 14 here; neither exists in `requirements.md`.)*
 
 ## Phase 3: Materialization consumer
 
@@ -80,7 +90,10 @@ folders:
   - [ ] Contribute `@class`-declared metamethod names to `LuaGraphType.Table.metamethods` — design
         §4.7, **as well as** leaving them in `localMembers`.
   - [ ] TC 6: `---@class V` with `__add`; `V() + V()` reports nothing.
-  - [ ] Assert `t.__add` still does **not** complete on an instance (`LuaGraphType.kt:50-52`).
+  - [ ] **Settle the contradiction first.** Design §4.7 says a `@class`-declared `__add` is *already*
+        in `localMembers` and so already completes; this plan and the checklist both expect it **not**
+        to. `LuaGraphType.fromLuaType:267-277` copies every member into `localMembers`, which favours
+        the design — but none of the three was executed. Run it, then assert whichever is true.
   - [ ] Close BUG-426's limitation section or restate what remains.
 - **Exit**: TC 6 green; corpus baselines unmoved.
 
@@ -89,6 +102,7 @@ folders:
 - **Goal**: establish what is left, rather than assuming it is done.
 - **Tasks**:
   - [ ] Re-measure both doors, medians of ≥5, against the 100 ms NFR.
+  - [ ] *(design §4.10 says Phase 4 measures these; it is Phase 5 — this plan is authoritative.)*
   - [ ] Measure whether COMP-09-02's remaining sites (`catsClassTags:347`,
         `LuaImplicitFields:76`, `LuaTypesVisitor:1349`) are now under budget or still need work.
   - [ ] Re-measure each of the four caches (design §2) and either remove as redundant or record why

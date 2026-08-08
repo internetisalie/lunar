@@ -100,9 +100,13 @@ folders:
 - **Steps**:
   1. In a project file, `local a, b = ...` typed as `Vec`; write `local c = a + b`.
   2. Then type `a.` and invoke completion.
-- **Expected**: no diagnostic on `a + b` (closes COMP-04-DR-01 / BUG-426); and `__add` does **not**
-  appear in the completion list — metamethods are held separately for exactly that reason
-  (`LuaGraphType.kt:50-52`).
+- **Expected**: no diagnostic on `a + b` (closes COMP-04-DR-01 / BUG-426).
+- ⚠ **Contested, and this scenario is where it gets settled**: whether `__add` appears in the
+  completion list. This checklist and `implementation-plan.md` say it must **not**; design §4.7 says
+  it already does today, because `LuaGraphType.fromLuaType:267-277` copies every member into
+  `localMembers`. None of the three was executed. **Record what you observe before the change and
+  after** — the pre-change observation is the one that resolves it.
+- **Observed before**: ______  **after**: ______
 - **Result**: ⬜ Pass / ⬜ Fail
 
 ## 4. No new diagnostics

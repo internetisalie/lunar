@@ -225,20 +225,22 @@ would be true and useless.
 
 ## Status against the planning bar
 
-**Not at the bar, and `status` stays `todo`.** Step 9 review (2026-08-07) returned FAIL on
-Completeness and Grounding. What exists is a *measured diagnosis* plus a fix direction at the
-confidence the evidence supports. Specifically missing:
+**Not at the bar, and `status` stays `todo`.** All five artifacts now exist, but Step 9 review
+(second pass, 2026-08-07) returned FAIL again. The measurement sections (§1.1–§1.8) were independently
+reproduced and hold; **§4, the design, does not** — see design §4.9. Outstanding:
 
-- no `implementation-plan.md`, no `human-verification-checklists.md`
-- no fully-qualified class names, no method signatures, no `plugin.xml` / index-registration section
-- COMP-09-05 (`@class` metamethods) not designed
-- the algorithms Risk 1.2 requires be enumerated *before* code — `MethodScan.onlyIn` confinement, the
-  BUG-398 class-name-vs-local-name rule, the nested-qualifier rule (design §4.2) — are not written
-- Gap 2.2 ("can one member's type be resolved without materializing its receiver?") is still open;
-  its listed resolver DR-02 is `done` but never tested it
+- **D1/D2/D3** — flat `allScope` reverts BUG-427; `membersOf` is a membership superset (Risk 1.1's own
+  predicted failure); `Kind` is syntactic where the filter it replaces is semantic
+- `membersOf` has no algorithm and is uncallable as placed; the `DataExternalizer` has no wire format
+- COMP-09-03 designed for 2 of its 4 sources; COMP-09-08 and COMP-09-09 have **no design at all**
+- no read-action, cancellation or `DumbService` statement, all binding per `non-functional.md:26-30`
+- §4.7 contradicts the plan and the checklist on whether `t.__add` completes today
 
-Two of the plan's acted-upon conclusions were refuted by that review (design §1.7, §4). Reaching the
-bar needs the §4 rewrite carried into a real design, not another revision of this document.
+**The pattern, stated so it stops repeating**: every section written from *measurement* has survived
+two adversarial reviews; every section written from *reading the code* has failed one. §4 must not be
+revised a third time in prose. **DR-09** prototypes the index and measures it, and §4 is rewritten
+from what the prototype does — the same route that fixed TARGET-10's `.i` grammar only after
+`probe.py` existed.
 
 ## Dependencies
 
