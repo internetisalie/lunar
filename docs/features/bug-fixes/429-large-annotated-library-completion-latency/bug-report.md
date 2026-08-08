@@ -79,6 +79,56 @@ Not an oversight. Three separate reasons compose, and only the fourth is a mista
    97 KiB tarball. Nothing had ever been 230 KiB in one declaring file. The design was correct for
    its inputs and nobody bounded it — TARGET-10 is the first input that makes it matter.
 
+## A second unindexed receiver→members path, inside `materialize`
+
+Raised by the BUG-423/424/425/426/427 session's read-only index audit; **verified here** before
+folding in.
+
+`LuaTypeManagerImpl.collectMethodMembers:420` fetches **every key in the project**, then string-matches
+each one against the receiver:
+
+```kotlin
+val allKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
+addMethodsOf(MethodScan(className, className, null), allKeys, membersMap)
+decls.forEach { … addMethodsOf(MethodScan(className, localName, decl.containingFile), allKeys, …) }
+```
+
+`allKeys` is fetched **per `collectMethodMembers` call**, i.e. per class materialized — so the wx
+fixture pays a ~10 000-key scan per class, not once. It is the same key-direction mismatch as the
+namespace path, on the class side, and it sits *inside* `materialize`.
+
+**This changes DR-01.** A three-way split (`resolveGlobal` / `materialize` / `getMembers`) attributes
+it to graph construction and hides it. A fourth bucket is required. It also changes the fix: a
+"stream cheap names first" pass fixes the namespace caret only — `f:` on a wx class still pays the
+scan.
+
+### …and the index already supports the query it is brute-forcing
+
+`LuaFuncStubElementType.indexStub:69-75` sinks **two** keys per dotted declaration:
+
+```kotlin
+sink.occurrence(LuaGlobalDeclarationIndex.KEY, it)                       // "wx.wxFrame"
+if (it.contains('.')) {
+    sink.occurrence(LuaGlobalDeclarationIndex.KEY, it.substringBefore('.'))   // "wx"
+}
+```
+
+So `LuaGlobalDeclarationIndex` is **already receiver-keyed**, and
+`StubIndex.getElements(KEY, "wx", project, scope, LuaFuncDecl::class.java)` returns every
+`function wx.*` declaration directly. The `getAllKeys` scan is not merely slow — it is emulating by
+brute force a lookup the index answers in one query.
+
+**That shrinks the fix considerably**, and reorders it:
+
+1. **Replace the scan with the query it emulates** (`collectMethodMembers`). No new index, no new
+   emission machinery, no intended behaviour change — the same elements, found directly.
+2. **Then re-measure.** Fix A's new index shrinks to covering *assignments* only
+   (`wx.wxID_ANY = nil`), since `LuaMemberFieldIndex` is qualified-name-keyed and functions are
+   already handled by (1).
+3. **Only then decide whether the two-phase emit is needed at all.** It is the most invasive part of
+   this plan and may be unnecessary once the two scans are gone. Do not build it before (2) is
+   measured.
+
 ## Constraint inherited from BUG-395 — do not repeat its reverted experiment
 
 That commit records: "Deliberately not wired into `visitNameRef`, which would type free globals for
@@ -119,9 +169,40 @@ type would appear twice. Candidates, to be decided by measurement, not by argume
 
 | ID | Action | Why |
 | :-- | :-- | :-- |
-| BUG-429-DR-01 | Instrument `crossFileGlobalMembers`: split the 12.9 s between `resolveGlobal`, `materialize` and `getMembers` | The fix targets whichever dominates; "materialize" is inferred from the call shape, not measured |
+| BUG-429-DR-01 | Instrument `crossFileGlobalMembers` with **four** buckets: `resolveGlobal`, `collectMethodMembers`'s key scan, the rest of `materialize`, `getMembers` | The fix targets whichever dominates. The fourth bucket exists because the class-side scan is inside `materialize` and a three-way split hides it |
+| BUG-429-DR-01b | Replace `collectMethodMembers`'s `getAllKeys` scan with the receiver-keyed `getElements` the index already supports, and re-measure before building anything else | May remove most of the cost on its own, and would make the two-phase emit unnecessary |
 | BUG-429-DR-02 | Determine whether one member's type can be resolved without materializing the receiver | Decides which duplicate-handling option above is available at all |
 | BUG-429-DR-03 | Confirm the cost is per-declaring-file, not whole-tree | If whole-tree, an index-first pass still fixes first-result but the exhaustive number will not shrink; TARGET-10's earlier size analysis assumed per-file and never separated them |
+
+## Benchmarking hazard
+
+`LuaGlobalAssignmentIndex.getVersion()` is now **2** (was 1, bumped by BUG-427). The first run after
+pulling forces a full reindex — do not take a timing across that boundary. Confirmed at
+`LuaGlobalAssignmentIndex.kt:54`.
+
+`doResolveGlobal` also changed under this analysis (`426ac162`/`a40a3e19`): it is now two phases,
+`typeOfGlobalIn(projectScope)` then `typeOfGlobalIn(allScope)`, so that a project's own
+`assert = require("luassert")` beats a bundled stub once bare `function f() end` became indexable.
+For a library global like `wx` projectScope misses and allScope hits, so behaviour is preserved —
+but it is two index queries now, not one, and BUG-395's quoted rationale describes the reason, not
+the current shape. Re-read `LuaTypeManagerImpl.kt:140-152` before instrumenting.
+
+## Not a resolution hole — do not "fix" it as one
+
+`LuaMemberFieldIndex` indexing only `LuaAssignmentStatement` is real (reason 3 above) but it is
+**redundancy asymmetry, not a lookup gap**. `LuaNameReference:95-111` runs the
+`LuaGlobalDeclarationIndex` qualified-name lookup — which covers `function wx.wxFrame() end` — and
+`LuaMemberFieldNavigation` alongside it, which covers `wx.wxField = value`. Between the two,
+lookup-by-qualified-name is complete. Fix A should still index both forms for the *receiver*
+direction; just do not expect a navigation bug to disappear with it, and do not add a
+navigation-regression test that would only ever have passed.
+
+## The same missing direction, elsewhere
+
+Metamethods have no index and no cross-file path at all — only the per-file graph from
+`setmetatable`. Recorded as a known limitation in BUG-426, and irrelevant to wxLua (independently
+confirmed: `genwxbind.lua` emits no metamethod mapping). Noted because it is the third instance of
+this shape and a future fix should consider them together.
 
 ## Verification
 

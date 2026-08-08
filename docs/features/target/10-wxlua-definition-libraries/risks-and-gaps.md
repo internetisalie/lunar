@@ -345,6 +345,15 @@ only a smaller emitted surface does.
 whatever the resolution. **Phase 4 (publish) is blocked on BUG-429**, because shipping a library
 whose first completion costs 13 s is worse than shipping nothing.
 
+### DR-08 must sample the enforcement boundary, not just the type map
+
+Handoff from the BUG-423/424/425/426/427 session: contracts are live on arrival, but enforced only
+on **exact-arity, vararg-free** calls and only for **scalar** parameter types. So an optional
+parameter (`---@param segments? number`, which §3.5.7 emits for every C++ default) and a
+class-typed parameter (`---@param parent wxWindow`) are **unenforced today**. DR-08's ~50-signature
+sample must deliberately include one of each, and the checklist must record the boundary — otherwise
+a green DR-08 reads as "the map is validated" when a large share of it was never checked.
+
 ## Pre-Implementation De-risking Tasks
 
 | ID | Action | Resolves | Status |
