@@ -2,7 +2,7 @@
 id: "BUG-429"
 title: "Member completion on a library global blocks on a full type materialization, so time-to-first-result equals time-to-exhaustive-result"
 type: "bug"
-status: "todo"
+status: "superseded"
 parent_id: "BUG"
 priority: "high"
 folders:
@@ -10,6 +10,22 @@ folders:
 ---
 
 # BUG-429: First completion result waits for the exhaustive one
+
+> **SUPERSEDED by [COMP-09](../../completion/09-member-enumeration/requirements.md), 2026-08-07 —
+> not fixed, absorbed.** Every site in this report's fix direction is COMP-09-01/02; its DR-01/01b are
+> COMP-09's DR-02/DR-05. Two items tracked one change.
+>
+> It was also not separable in practice, which is the part worth recording. This report proposed
+> landing the two-site scan replacement "first, before building anything else" — but COMP-09-DR-01
+> requires golden-filing today's exact enumeration result *before* anything replaces it, precisely
+> because the natural implementation returns a superset and would silently make enumeration a new
+> type source (Risk 1.1, the failure BUG-395 already hit and reverted as BUG-397). Replacing the
+> scans changes enumeration, so it cannot precede that gate. "Land the small fix first" was the same
+> work with a different label, minus the safety check.
+>
+> **This document is retained for its diagnosis, which COMP-09 references rather than restates** —
+> the critical path, the four reasons it was never index-backed, and the `getAllKeys` audit. Nothing
+> below is superseded as *analysis*; only the plan to act on it separately is.
 
 Typing `wx.` against a definition library of realistic size shows nothing for **12.9 s**. The
 exhaustive result taking 12.9 s is defensible; the *first* result taking 12.9 s is not. The two are

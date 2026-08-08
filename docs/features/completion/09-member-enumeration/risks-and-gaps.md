@@ -101,7 +101,7 @@ folders:
 | COMP-09-00-DR-02 | Instrument the four buckets (`resolveGlobal`, `:328` scan, `:421` scan, remaining materialize) and measure each **against the existing 100 ms target** — the budget is not ours to set | COMP-09 NFR, Gap 2.2 | todo |
 | COMP-09-00-DR-03 | Prototype the index shape against the wx tree; decide name-only vs name+kind | Gap 2.1, 2.3 | todo |
 | COMP-09-00-DR-04 | Establish whether incremental yield and the existing memoization can coexist, or whether only completion yields incrementally | Risk 1.3 | todo |
-| COMP-09-00-DR-05 | Land BUG-429's two-site fix first and re-measure — it may move the numbers enough to change this feature's shape | all | todo |
+| COMP-09-00-DR-05 | ~~Land BUG-429's two-site fix first~~ — **withdrawn.** It cannot precede DR-01: replacing the scans changes enumeration, and DR-01 exists to record what enumeration returns *before* that happens. The scan replacement is COMP-09-01's first increment, after DR-01, not a shortcut around it | — | withdrawn |
 
 ### Risk 1.5: The performance suite cannot fail, so the next regression is equally invisible
 

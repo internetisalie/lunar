@@ -73,8 +73,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-428 | A `nil` arm from `and`/`or` is reported as a certain nil instead of optionality | todo | S | — | — | ✓ |
-| BUG-429 | Member completion on a library global blocks on a full type materialization — time-to-first-result equals time-to-exhaustive-result (12.9s) | todo | M | — | **COMP-09** *(narrow two-site fix + motivating measurement)* | ✓ |
-| COMP-09 | Member enumeration — "members of X" from an index, not a key scan or file walk; incremental yield | todo | M | BUG-429 *(lands first)* | **TARGET-10** *(release 2)*; closes COMP-04-DR-01 + BUG-426's limitation | ✓ |
+| COMP-09 | Member enumeration — "members of X" from an index, not a key scan or file walk; incremental yield + a work bound | todo | M | — | **TARGET-10** *(release 2)*; absorbs BUG-429; closes COMP-04-DR-01 + BUG-426's limitation | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 

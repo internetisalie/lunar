@@ -95,7 +95,9 @@ Four caches, one half-built index direction, and no single answer to the questio
 
 `LuaGlobalDeclarationIndex` is **already receiver-keyed** (`LuaFuncStubElementType:69-75` sinks both
 the qualified name and `substringBefore('.')`), so the first two are brute-forcing a query the index
-already answers. That part is a strict simplification, not a redesign.
+already answers. That part is a strict simplification, not a redesign — and it is this feature's
+**first increment**, taken after DR-01's golden file, not before it. Replacing a scan changes what
+enumeration returns; the whole point of DR-01 is to have recorded that first.
 
 ### COMP-09-02: the sites narrowed-then-walked
 
@@ -207,7 +209,10 @@ would be true and useless.
 - **COMP-04** (`done`) — extends it; owns `LuaMemberLookup` and the `setmetatable` modelling.
 - **NAV-12** (`done`) — `LuaMemberFieldIndex` is consumed, not fixed.
 - **BUG-395/397/427** — the reverted-experiment constraint (COMP-09-06) comes from here.
-- **BUG-429** — the narrow two-site fix and the motivating measurement; lands first.
+- **BUG-429** (`superseded`) — absorbed here, not a predecessor. Its diagnosis is the reference for
+  the critical path, the four reasons enumeration was never index-backed, and the `getAllKeys` audit;
+  its fix sites are COMP-09-01/02. It is deliberately *not* landed separately — see its supersession
+  note and COMP-09-DR-05.
 - **BUG-426** — its Known limitation becomes COMP-09-05.
 - **TARGET-10** — first consumer at scale; its release 2 gates on this.
 
