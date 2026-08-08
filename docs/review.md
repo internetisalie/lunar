@@ -473,3 +473,67 @@ Two conclusions worth carrying forward:
    `ExecutionException`, PSI access outside a read action, and `PsiElement` in a `data class` are
    all mechanically detectable; a lint/detekt rule closes them permanently, whereas a third review
    pass would just find the next few files nobody opened.
+
+---
+
+## 5. Re-verification of §1–§3 against current code (2026-08-07)
+
+§1–§3 were marked closed on 2026-08-06 by **feature completion** — nine MAINT features plus five
+bugs shipped, therefore every finding they coalesced is remediated. That is a proxy, and it failed
+at least once (below). This section re-checks the findings themselves against `main`.
+
+**Method.** Read-only. For each numbered finding, locate the cited file and check the specific
+defect signature in current source. No code was modified; TARGET-10 is in development.
+
+### Result
+
+| verdict | count | findings |
+| :-- | --: | :-- |
+| **Fixed — verified in code** | 36 | 1, 3, 5–9, 15–19, 23, 25, 26, 28–31, 33, 34, 45, 46, 49, 50, 52, 56, 58–61, 63, 66, 68–70 |
+| **Partially open** | 1 | **2** |
+| **Cited file no longer exists** | 7 | 10, 12, 21, 43, 48, 64, 71 |
+| **Not verified** (code restructured, or prose-only) | 28 | 20, 27, 32, 35, 37, 40, 51, 53, 54, 57, 62, 67, 72 + the 15 numbers appearing only in §2/§3 prose (4, 11, 13, 14, 22, 24, 36, 38, 39, 41, 42, 44, 47, 55, 65) |
+
+### The one confirmed hole — finding #2
+
+> `graphTypeToLuaType` recurses through members with **no cycle guard** … **Fix:** thread a
+> `visited` map through the conversion.
+
+MAINT-25-02 threaded `visited` and made the **table** case safe by registering a placeholder before
+recursing. It left the other branches registering only on the way out. Consequence:
+
+- The `Function` branch still overflowed. Measured 2026-08-07 on luacheck's one-line
+  `(setfenv and rawlen)(setfenv and rawlen)` sample, which killed the highlight pass outright as
+  soon as BUG-427 made those globals resolvable. Fixed in `a40a3e19`, mutation-proved by
+  `LuaTypeGraphCycleGuardTest.selfReferentialFunctionTypeConvertsInsteadOfOverflowing`.
+- **`Array` and `Union` still register after recursing** and remain unguarded today. No reproduction
+  is on record for either, which is why they were not changed with the function branch — but the
+  finding's own wording ("no cycle guard") is not yet satisfied.
+
+The failure mode is instructive and worth naming: the fix addressed the finding's **example**
+(`t.self = t`) rather than its **statement**. Same shape as BUG-419 being marked done with two of
+four verification items unmet.
+
+### What "not verified" means here
+
+- **Restructured code** (13): the cited symbol no longer exists, so the finding is neither confirmed
+  fixed nor confirmed live without reading the replacement in full — e.g. #35 (`buildTypeLink` and
+  any HTML escaping are gone from the renderer), #40 (`extractFuncDeclName` gone). #72's cited
+  branch (`parent is LuaCatsArgType && parent.parent is LuaCatsClassTag`) is **still present**
+  verbatim; the finding called it unreachable-and-latently-wrong, and nothing here settles which.
+- **Cited file deleted** (7): the finding as written cannot be live. This does **not** establish
+  that the capability moved safely — e.g. #21 (`FileUserData` staleness) and the three
+  `rocks/browser` findings were rewritten wholesale by ROCKS-16 and would need their own check.
+- **Prose-only** (15): findings referenced by number in §2/§3 without a table row; they were not
+  extracted or checked.
+
+### Reading
+
+Where the findings were checkable, the remediation is real: 36 of 37 checkable rows are properly
+fixed, several with the exact fix the review prescribed (#45's equal-version case, #70's
+server-scoped cache key, #69's `multiResolve`, #50's `findVersion(STANDARD, "5.4")`). The closure
+was not hollow.
+
+But **"every finding remediated" is not supportable as written** — one row was closed with the
+defect still live, and 39 % of the findings cannot be confirmed from code alone. Treat §1–§3 as
+"substantially remediated, one known hole, remainder unverified" rather than closed.
