@@ -22,9 +22,15 @@ import java.io.DataOutputStream
  * These cases replace `CompNineDr09Test`/`CompNineDr09bTest`, the DR-09 harnesses, which printed
  * their findings rather than asserting them. Every case they covered is re-homed: the externalizer
  * round-trip and the four golden receivers here, DR-09's D2 union-versus-first-file question in
- * [testTheTwoDoorsDisagreeAboutASecondDeclaringFile] (with `CompNineDr14Test`'s local-receiver arm
- * still holding the disjoint-set half), and DR-09b's `deep` finding in
- * [testANestedQualifierContributesNoEntry] — design §4.4a already records its conclusion as BUG-430.
+ * [testTheTwoDoorsDisagreeAboutASecondDeclaringFile], its file-local contamination half — Risk 1.1's
+ * measured firing shape — in [testAFileLocalReceiverIsNotASelectableDeclaringFile], and DR-09b's
+ * `deep` finding in [testANestedQualifierContributesNoEntry], whose conclusion design §4.4a already
+ * records as BUG-430.
+ *
+ * The contamination half was for one commit attributed to `CompNineDr14Test`'s local-receiver arm.
+ * That method has **no assertion** — it prints a verdict — so the claim was false and the case was
+ * uncovered until the method above was written. Printing is not a gate, including when the thing
+ * being credited to a printout is this feature's own primary risk.
  */
 class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
     // ------------------------------------------------------------------ the wire format
@@ -92,7 +98,7 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
         assertEquals(listOf("alpha", "beta"), namesOf("AllColon"))
         assertTrue(
             "every member of AllColon is colon-declared, so a dot-only derivation returns nothing",
-            membersOf("AllColon").all { it.separator == LuaReceiverMember.Separator.COLON },
+            unionMembersOf("AllColon").all { it.separator == LuaReceiverMember.Separator.COLON },
         )
     }
 
@@ -153,6 +159,45 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
         myFixture.configureByText("consumer.lua", "local x = 1\n")
         assertEquals("the completion door reads the first declaring file only", listOf("fromA"), globalNamesOf("R"))
         assertEquals("materialization wants every declaring file — BUG-399", listOf("fromA", "fromB"), namesOf("R"))
+    }
+
+    /**
+     * **Risk 1.1's measured firing shape, as an assertion.** `risks-and-gaps.md:41-46` records that a
+     * flat `membersOf(receiver, allScope)` union returned `[alsoPrivate, privateToThisFile, real]`
+     * against a golden of `[real]` — "the extras came from an unrelated file-local `wx`". That is the
+     * defect the whole of design §4.5 was rewritten around, and until this method existed it was
+     * asserted nowhere: [testTheTwoDoorsDisagreeAboutASecondDeclaringFile] uses two files that both
+     * declare a **global**, and `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable` — cited as
+     * holding this half — contains no assertion at all.
+     *
+     * The rule that saves it: selection comes from `LuaGlobalAssignmentIndex`, and a file-local
+     * `local wx = {}` never enters that index, so `unrelated.lua` is not a **selectable declaring
+     * file** however many `wx` members it contributes to *this* index. The union is not merely a
+     * superset here — take the wrong door and the answer is contaminated by a receiver that is a
+     * different object.
+     */
+    fun testAFileLocalReceiverIsNotASelectableDeclaringFile() {
+        registerLibraryRoot(
+            mapOf(
+                "wx.lua" to "---@meta\n\n---@class wx\nwx = {}\n\nfunction wx.real() end\n\nreturn wx\n",
+                "unrelated.lua" to
+                    "local wx = {}\n\nfunction wx.privateToThisFile() end\n\n" +
+                    "function wx.alsoPrivate() end\n\nreturn wx\n",
+            ),
+        )
+        myFixture.configureByText("consumer.lua", "local x = 1\n")
+        assertEquals(
+            "a file-local `wx` is absent from LuaGlobalAssignmentIndex and therefore not a " +
+                "selectable declaring file — the completion door must return the global's members alone",
+            listOf("real"),
+            globalNamesOf("wx"),
+        )
+        assertEquals(
+            "and the union door is exactly the contaminated set risks-and-gaps.md Risk 1.1 measured, " +
+                "which is why the two doors may never be collapsed (defect D2)",
+            listOf("alsoPrivate", "privateToThisFile", "real"),
+            namesOf("wx"),
+        )
     }
 
     /**
@@ -284,10 +329,15 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
     private fun dotFunction(name: String) =
         LuaReceiverMember(name, LuaReceiverMember.Kind.FUNCTION, LuaReceiverMember.Separator.DOT)
 
-    private fun membersOf(receiver: String): List<LuaReceiverMember> =
+    /**
+     * The **union** door. Named for the door it exercises because `membersOf` is a retired name
+     * (design §4.5's two-door table: "no method named `membersOf` survives"): a helper that does not
+     * say which of the two doors it opens is the ambiguity defects D1, D2 and B2 all came from.
+     */
+    private fun unionMembersOf(receiver: String): List<LuaReceiverMember> =
         runReadAction { LuaReceiverMemberIndex.membersIn(receiver, project, GlobalSearchScope.allScope(project)) }
 
-    private fun namesOf(receiver: String): List<String> = membersOf(receiver).map { it.name }.sorted()
+    private fun namesOf(receiver: String): List<String> = unionMembersOf(receiver).map { it.name }.sorted()
 
     private fun globalNamesOf(
         receiver: String,
@@ -301,7 +351,7 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
         receiver: String,
         expected: LuaReceiverMember,
     ) {
-        val declared = membersOf(receiver)
+        val declared = unionMembersOf(receiver)
         val found = declared.firstOrNull { it.name == expected.name }
         assertEquals("$receiver.${expected.name} among $declared", expected, found)
     }

@@ -181,6 +181,12 @@ per line; the consumers are Phases 2 and 3.
       four of design §4.10b's assertions are armed and green in `MemberEnumerationWorkBoundGateTest`
       — assertion 4, the *completion* door, was red until `LuaReceiverMemberWork` reached
       `membersInFile` (BL-5). The requirement still needs Phase 3, where the consumers stop scanning.
+      **Assertion 4 holds `filesVisited == 1` for its fixture, not by construction.** DR-19c makes
+      `membershipOver` read every candidate to decide opacity, so a receiver bare-bound in two files
+      in the chosen scope visits two on a *correct* implementation; `quietFixture()` yields exactly
+      one candidate, which is what pins the 1. Phase 3 uses assertion 4 as its D2-leak detector and
+      must read it as "one candidate in, one file read" — a count above the candidate count is the
+      leak, a count equal to it is not.
 - [ ] Each cache in the "Why this is a capability" table is re-measured and either removed as
       redundant or kept with a stated reason.
 
@@ -308,11 +314,23 @@ Refreshed after Phase 0, which closed two of these and moved a third:
   its task list does not contain it, and the index's *output shape* is unchanged from DR-19's, so the
   build cost DR-18 would measure is the one that has been in `src/main` since then rather than
   anything Phase 1 introduced. It belongs in Phase 5's re-measure.
-- **Cancellation is not gated, and cannot be — measured in Phase 1.** §4.9's
-  `ProgressManager.checkCanceled()` is present at both `processValues` callbacks, but no test can
-  distinguish its presence: the platform throws `ProcessCanceledException` from `processValues`
-  *before invoking any callback*, so a test asserting the throw passes with the line deleted. The
-  candidate test was written, measured and deleted rather than kept as a gate that cannot fail.
+- **Cancellation cannot be gated *by asserting the throw*, and one of its two calls cannot be gated
+  at all — both measured, in Phase 1 and its remediation.** §4.9's `ProgressManager.checkCanceled()`
+  is present at both `processValues` callbacks. No test can distinguish it *by the throw*: the
+  platform calls `checkCanceled()` inside `ensureUpToDate` (`FileBasedIndexImpl:893`) before the value
+  iterator is opened, so `processValues` under a cancelled indicator throws before invoking any
+  callback and a test asserting the throw passes with the line deleted. That candidate test was
+  written, measured and deleted.
+  What *is* observable is the probe rather than the throw. The platform checks after each callback
+  (`FileBasedIndexEx:424`, `:455`) and the plugin checks before it, so a
+  `CoreProgressManager.CheckCanceledHook` sees two probes straddle one `recordVisit`. The **union
+  door** is gated on that in
+  `LuaReceiverMemberCancellationTest.testTheUnionDoorProbesCancellationBeforeEachCallbackAndNotOnlyAfterIt`
+  and mutation-proved (`[1, 1, 2, 2, 3]` → `[1, 2, 3]` red). The **completion door** is not: because
+  `membershipOver` reads one file per `processValues` call, each call brings its own run of platform
+  probes at an unchanged file count, so the same repeat appears with or without the plugin's line —
+  that test was written, mutation-tested, found to survive and removed. `membersInFile:510`'s call is
+  therefore required, present, and an accepted evidence gap.
 
 ## Dependencies
 

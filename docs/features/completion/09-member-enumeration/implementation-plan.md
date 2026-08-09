@@ -234,8 +234,20 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
 - **Exit**: index tests green; `LuaMemberFieldIndexTest.testDeepQualifiedKeyPresent` still green
   (that index is untouched); full suite green.
 - **Exit met.** `ktlintCheck test --rerun --no-build-cache` on gce-builder: **BUILD SUCCESSFUL,
-  2 538 tests, 0 failures, 1 skipped** (baseline 2 526 — five DR-09 harness methods deleted, 17 real
-  ones added), ktlint 0 violations. `src/test/resources/comp09/member-enumeration.golden` is
+  2 541 tests, 0 failures, 1 skipped** (baseline 2 526 − **6** deleted + **21** added = 2 541), ktlint
+  0 violations. The deleted six are `CompNineDr09Test`'s five (`testDr09aExternalizerRoundTrip`,
+  `testDr09bMembershipVersusGolden`, `testDr09d2UnionVersusFirstDeclaringFile`,
+  `testDr09d1ScopePrecedence`, `testDr09cMembersOfTiming`) **plus**
+  `CompNineDr09bTest.testWhereDeepComesFrom`; the added 21 are `LuaReceiverMemberIndexTest` 11,
+  `LuaReceiverMemberBindingShapeTest` 4, `LuaReceiverMemberDoorParityTest` 3,
+  `LuaReceiverMemberDumbModeTest` 3. The other four `CompNineDr*` files in the commit tree are
+  rename-only: method counts before/after are 2/2, 2/2, 4/4, 3/3.
+  *(This line first read “2 538 … five deleted, 17 added”. The commit message and the handoff carried
+  the right figure; only this document — the one Phase 2 reads — was wrong, which is the
+  corrected-in-one-artefact-not-the-others failure this feature has now filed against itself three
+  times. Re-derived from the builder's JUnit XML and from `git show 6b480de4^:<file>` method counts,
+  not copied.)*
+  `src/test/resources/comp09/member-enumeration.golden` is
   **byte-unchanged** (`a8c580ccc7a9528c0fde41527d870c48`), which is the point: nothing consumes the
   index yet, so a moved golden would have meant enumeration semantics changed in the wrong phase.
   `getVersion()` stays **1** — the indexer's output shape did not change, so no reindex boundary was
@@ -249,9 +261,19 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   and turning print-only harnesses into gates.
 - **`membersByFile` was deleted with `CompNineDr09Test`.** It was DR-09's D2 probe and had no other
   caller; design §4.5's table names exactly two entry points, so leaving a third reachable would
-  re-create the hazard `membersOf`'s retirement exists to prevent. D2's case is re-homed as an
-  assertion (`LuaReceiverMemberIndexTest.testTheTwoDoorsDisagreeAboutASecondDeclaringFile`), and
-  `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable` still holds the disjoint-set half.
+  re-create the hazard `membersOf`'s retirement exists to prevent. D2's case is re-homed as **two**
+  assertions: `LuaReceiverMemberIndexTest.testTheTwoDoorsDisagreeAboutASecondDeclaringFile` for the
+  two-global-declaring-files shape, and
+  `LuaReceiverMemberIndexTest.testAFileLocalReceiverIsNotASelectableDeclaringFile` for the
+  file-local contamination shape — Risk 1.1's measured firing shape, `[real]` from the completion
+  door against `[alsoPrivate, privateToThisFile, real]` from the union.
+  *(For one commit the second half was credited to
+  `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable`. That method has **no assertion** — 17
+  `println`s, ending in a printed VERDICT — so the claim was false and the shape this feature's whole
+  §4.5 rewrite exists for was covered nowhere. Coverage was not regressed, because the deleted
+  `testDr09d2UnionVersusFirstDeclaringFile` asserted nothing either; but the claim was the evidence
+  offered for “delete them once their cases are covered by real tests”, in the same commit whose text
+  says printing is not a gate. The assertion now exists and is mutation-proved.)*
 - **`membersIn` filters the sentinel too.** §4.5c only requires it of `globalMembership`, but the
   marker is index-internal and Phase 3 materializes `membersIn`'s names directly, so leaving it in
   would offer a member whose name is a NUL byte. Gated by
@@ -260,20 +282,64 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   membership. Harmless until the counter reached that door, at which point §4.10b's assertion 4 reads
   **2**, not 1. Each candidate is now read once. Mutation-proved: restoring the double read gives
   `the completion door reads exactly one declaring file expected:<1> but was:<2>`.
-- **`ProgressManager.checkCanceled()` cannot be gated, and that is a measurement, not an omission.**
-  It is in both callbacks as §4.9 requires, but a test asserting the throw **passes with the line
-  deleted**: probed on gce-builder, `FileBasedIndex.processValues` under a cancelled indicator throws
+- **`ProgressManager.checkCanceled()` cannot be gated *by asserting the throw*.** It is in both
+  callbacks as §4.9 requires, but a test asserting the throw **passes with the line deleted**: probed
+  on gce-builder, `FileBasedIndex.processValues` under a cancelled indicator throws
   `ProcessCanceledException` *before invoking any callback* (the raw probe's callback never ran; the
-  counter showed `reset()` had happened and `files == 0`). The candidate test was written, measured
-  and **deleted** rather than kept as a gate that cannot fail — Phase 0's remediation is about
-  exactly that shape. Recorded in the code beside the call.
+  counter showed `reset()` had happened and `files == 0`) — grounded afterwards in
+  `FileBasedIndexImpl:893`, which calls `checkCanceled()` inside `ensureUpToDate` before the value
+  iterator is opened. That candidate test was written, measured and **deleted**.
   *(Measured on the way: `ProgressManager.runProcess` calls `indicator.start()`, which **clears** the
   cancelled flag — the probe's first version was green for that reason alone.)*
+  **Phase 1 then over-generalised this to "cannot be gated" full stop, and that was wrong for one of
+  the two calls.** What is observable is not the throw but the probe: the platform checks *after*
+  each callback (`FileBasedIndexEx:424`, `:455`) and the plugin checks *before*, so a
+  `CoreProgressManager.CheckCanceledHook` recording `LuaReceiverMemberWork.files` at every check sees
+  two probes straddle one `recordVisit`. Gated in
+  `LuaReceiverMemberCancellationTest.testTheUnionDoorProbesCancellationBeforeEachCallbackAndNotOnlyAfterIt`
+  and mutation-proved: deleting `membersIn`'s `checkCanceled()` turns `[1, 1, 2, 2, 3]` into
+  `[1, 2, 3]` and the test goes red. **`membersInFile`'s call at `:510` remains ungated**, measured
+  rather than assumed — `membershipOver` reads one file per `processValues` call, so each call brings
+  its own run of platform probes at an unchanged file count and produces the same repeat with or
+  without the plugin's line. That second test was written, mutation-tested, found to survive and
+  removed. Recorded in the code beside both calls.
 - **`Membership` moved off the companion** onto the class, so Phase 2 can write
   `LuaReceiverMemberIndex.Membership` rather than `…Companion.Membership`.
 - **`Indexer.map` was ~90 executable lines**, three times the engineering contract's limit, and mixed
   raw PSI traversal with orchestration. Split into one helper per source with the logic unchanged —
   which the byte-unchanged golden and the untouched `getVersion()` both attest.
+
+### Phase 1 remediation — the review gate that failed was gate 8, traceability
+
+Phase 1's code passed gates 1–7 and is unchanged by this. What failed was the evidence layer: two
+checked-in artefacts asserted things that were not true, and one status marker was stale. All of it
+is corrected above rather than argued with; the substantive item is the first.
+
+- [x] **A false verification claim became a real assertion.** The plan and the test KDoc both said
+      `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable` held D2's disjoint-set half. It holds
+      nothing — `grep -c assert` is 0 against 17 `println`s. Risk 1.1's *measured firing shape* (a
+      global `wx` plus an unrelated file-local `wx`) was therefore asserted nowhere, which is the one
+      shape design §4.5 was rewritten around. Now
+      `LuaReceiverMemberIndexTest.testAFileLocalReceiverIsNotASelectableDeclaringFile`, pinning
+      `[real]` from the completion door and the contaminated `[alsoPrivate, privateToThisFile, real]`
+      from the union. Mutation-proved by pointing the completion door at the union.
+- [x] **The exit gate's arithmetic re-derived**, not copied: 2 526 − 6 + 21 = **2 541**.
+- [x] **Task-summary row for Phase 1 set to done.** The whole table was re-checked; phases 2–5 are
+      genuinely `todo` and every one of their checkboxes is unchecked.
+- [x] **§4.9's cancellation claim narrowed to what was measured**, and the half that *is* gateable
+      is now gated — see the `checkCanceled` bullet above. `requirements.md` follows.
+- [x] **`membersOf` renamed out of the test helpers** (`unionMembersOf`). The name is retired
+      precisely so it cannot be reached for by accident, and it had reappeared in this phase's own
+      primary evidence file next to `globalNamesOf`, where no reader could tell which door an
+      assertion was on.
+- [x] **Design §4.10b assertion 4's justification corrected.** "Reads exactly one file **by
+      construction**" is false under DR-19c: `membershipOver` reads every candidate to decide
+      opacity, so the flipped gate is fixture-dependent. Phase 3 uses assertion 4 as its D2-leak
+      detector, so the overstatement was load-bearing. `design.md` and `requirements.md` now say what
+      DR-19c actually guarantees.
+- **Gate.** `ktlintCheck test --rerun --no-build-cache` on gce-builder: **BUILD SUCCESSFUL,
+  2 543 tests, 0 failures, 1 skipped** (2 541 + 2 added), ktlint 0 violations. Golden still
+  `a8c580ccc7a9528c0fde41527d870c48`; `getVersion()` still 1; no `src/main` behaviour changed.
 
 ## Phase 2: Completion consumer
 
@@ -367,7 +433,7 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
 | Phase | Status | Priority |
 | :-- | :-- | :-- |
 | 0: Golden file and instrument | **done** (2026-08-09) | Must |
-| 1: `LuaReceiverMemberIndex` | todo | Must |
+| 1: `LuaReceiverMemberIndex` | **done** (2026-08-09, remediated 2026-08-09) | Must |
 | 2: Completion consumer | todo | Must |
 | 3: Materialization consumer | todo | Must |
 | 4: `@class` metamethods | todo | Should |

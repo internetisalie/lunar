@@ -42,8 +42,16 @@ folders:
   A flat `membersOf(receiver, allScope)` union returned `[alsoPrivate, privateToThisFile, real]`
   against a golden of `[real]` — the extras came from an unrelated file-local `wx`. The design's
   answer is first-declaring-file-only within a scope-precedence chain (design §4.5), which reproduces
-  today's `typeOfGlobalIn`. The risk stays open until `testDr09b` passes on all four receivers with
-  that rule implemented, because until then the superset is fixed only on paper.
+  today's `typeOfGlobalIn`. The risk stays open until the consumers stop scanning (Phase 3) and the
+  four corpus baselines are re-run, because until then the superset is fixed only at the index.
+- **STATUS (Phase 1 remediation, 2026-08-09): the firing shape above is now an assertion.**
+  `testDr09b`, named here as the gate, was a print-only harness and was deleted in Phase 1; its
+  membership half is re-homed in `LuaReceiverMemberDoorParityTest` (per-door, all four receivers) and
+  **this bullet's exact shape** — a global `wx` plus an unrelated file-local `wx` — in
+  `LuaReceiverMemberIndexTest.testAFileLocalReceiverIsNotASelectableDeclaringFile`, which pins
+  `[real]` from the completion door against `[alsoPrivate, privateToThisFile, real]` from the union.
+  For one commit that half was credited to `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable`,
+  which contains no assertion at all.
 
 ### Risk 1.2: The scope and file-confinement semantics are lost in translation
 

@@ -1074,9 +1074,11 @@ COMP-09-01 removes would visit 4 145 keys to answer a 50-member question.
 | 1 | `entriesTraversed >= membersIn(R).size`, and `== ` it when no name repeats across files | `membersIn` (§4.6) | a scan-based implementation traverses the key space and fails |
 | 2 | `entriesTraversed` for R is **unchanged** between a quiet and a noisy project | both entry points | this is the one that goes red if anyone reintroduces a scan |
 | 3 | `filesVisited ==` the number of files declaring R | `membersIn` | catches an enumeration that widened its scope (D2's failure mode, in count form) |
-| 4 | `filesVisited == 1` when a declaring file was found (`Membership.found`), else 0 | `globalMembership` (§4.5c) | the completion door reads exactly one file by construction; more means the selection rule leaked |
+| 4 | `filesVisited ==` the number of **candidate** files the selection rule chose (1 for a receiver bare-bound in one file in the chosen scope), else 0 | `globalMembership` (§4.5c) | the completion door reads only the files `LuaGlobalAssignmentIndex` offered it; more means the selection rule leaked |
 
-*(An earlier revision added "or 0 on the §4.5c fallback". That is impossible: the fallback is reached only when a declaring file **was** found and emitted the sentinel, so `membersInFile` has already visited exactly one file. Written that way the gate goes red on a correct implementation.)*
+*(An earlier revision added "or 0 on the §4.5c fallback". That is impossible: the fallback is reached only when a declaring file **was** found and emitted the sentinel, so `membersInFile` has already visited at least one file. Written that way the gate goes red on a correct implementation.)*
+
+*(**Corrected after the Phase 1 review.** Assertion 4 said "reads exactly one file **by construction**", justified by the fallback argument above. §4.5c's DR-19c rule invalidates that justification: authority is a property of the receiver, so `membershipOver` reads **every** candidate to decide opacity and only takes membership from the first. A receiver bare-bound in two files in the chosen scope therefore visits two, correctly. `MemberEnumerationWorkBoundGateTest`'s `quietFixture()` bare-binds `Target` in one file only, so the `== 1` it asserts is a property of that fixture; the test KDoc says "**here**" and this row now says so too. This matters at Phase 3, which uses assertion 4 as its D2-leak detector — read as a construction guarantee it would not distinguish a genuine scope leak from the ordinary multi-candidate case.)*
 
 **The counter must be extended to `membersOfGlobal` (BL-5).** DR-11's prototype counts only inside
 the union entry point; `membersInFile` runs `processValues` without touching it, so assertion 4 was
