@@ -130,6 +130,33 @@ snapshots on the global tracker).
 | TYPE-11-DR-04 | Re-measure DR-20's 9 ms / 334 ms pair after the change, medians of >=5. **Success is landing near the 9 ms no-library baseline, not the warm ~1 ms** — the old warm number was the consumer's own snapshot served from cache; after a keystroke that snapshot correctly rebuilds, and every free global re-runs `resolveGlobal` + `graphTypeToLuaType`, which builds a fresh `visited` map per call and walks the library table's full member set. If the number lands well above 9 ms, that conversion is the next cost to look at — not a failure of the invalidation change. | TYPE-11-01 |
 | TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb` (index-rebuild test fixture), exit dumb mode, complete again. Do the baked-in nulls survive? Verifies the guard demanded by TYPE-11-05 actually engages. | TYPE-11-05 |
 
+### De-risking outcomes (run 2026-08-09; full output in [design.md](design.md) §1)
+
+DR-01, -02, -04 and -05 were run; DR-03 was not, as scoped above. Four statements in the sections
+above did not survive being executed, and they are corrected here rather than left to be re-derived:
+
+- **The residual is real, and the approach this document sketched is unsound.** Pinning every
+  provenance-matched library snapshot to a generation tracker turned both named residual paths red
+  (design §1.1). The plan therefore builds the alternative this document already allowed — leaving
+  cross-file-resolving snapshots on the global tracker — decided per build from a recorded source set.
+- **Nothing but TYPE-11's own new fixtures noticed.** Under the unsound build, 2543 pre-existing
+  tests and all four corpus baselines passed unchanged. TYPE-11-04's acceptance cannot rest on the
+  existing suite.
+- **Residual path 2 is real only in the hosted `---@class` form** (`---@class C` over `local C = {}`),
+  and reaches the snapshot via `freeGlobalSeed` → `tableToLuaType` → `LuaGraphType.fromLuaType`, not
+  via `materializeClass` as stated above. The bundled stdlib is 21/22 unhosted (design §1.2).
+- **TYPE-11-03's "matched by `VirtualFile` identity" is not achievable as written.** `===` is false
+  for a project file the index itself supplied; matching is by **URL containment**, read through
+  `psiFile.originalFile.virtualFile` because a completion copy has no `virtualFile` at all
+  (design §1.3).
+- **TYPE-11-05's staleness class did not reproduce.** The nulls are baked in while dumb, but they do
+  not survive — the file's own `modificationStamp` moves at dumb-mode exit, and `forFile`'s `psiFile`
+  dependency rebuilds regardless of the churn tracker. Removing the guard left the harness green, as
+  did an absolutely-never-ticking tracker. The guard is retained as insurance and TYPE-11-05 has **no
+  automated protection**; tracked as `risks-and-gaps.md` DR-06 (design §1.6).
+- **DR-04's success criterion is not met.** Arm B lands at 3–5× arm A in the same run, not "near the
+  9 ms baseline" — which this document predicted, and named the reason for (design §1.5).
+
 ## Relationship to COMP-09
 
 COMP-09 is **parked at Phase 1** because of this. Its Phase 2 was executed to plan and aborted

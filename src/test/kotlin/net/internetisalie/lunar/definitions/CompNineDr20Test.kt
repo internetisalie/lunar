@@ -32,7 +32,11 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
  */
 class CompNineDr20Test : LibraryRootTestCase() {
     /** Distinct text per sample so `forFile`'s per-file-text memoization cannot serve a warm answer. */
-    private fun consumer(index: Int) = myFixture.configureByText("consumer$index.lua", "local pad$index = $index\nwx.<caret>\n")
+    private fun consumer(index: Int): PsiFile =
+        myFixture.configureByText(
+            "consumer$index.lua",
+            "local pad$index = $index\nwx.<caret>\n",
+        )
 
     private fun bigLibrary(): String {
         val root = StringBuilder("---@meta\n\n---@class wx\nwx = {}\n\n")
@@ -119,7 +123,10 @@ class CompNineDr20Test : LibraryRootTestCase() {
                         }.sorted()
                 val graphUs = timeForFileUs(file)
                 println("DR-20 Q2 $label: scope walk samples(us)=$walk median=${walk[2]}us  |  forFile=${graphUs}us")
-                println("DR-20 Q2 $label: fileBindsName(\"wx\")=${fileBindsName(file, "wx")} fileBindsName(\"t\")=${fileBindsName(file, "t")}")
+                println(
+                    "DR-20 Q2 $label: fileBindsName(\"wx\")=${fileBindsName(file, "wx")} " +
+                        "fileBindsName(\"t\")=${fileBindsName(file, "t")}",
+                )
             }
             println("DR-20 Q2 => if the walk is orders below forFile, the routing question does not need the graph")
         }
