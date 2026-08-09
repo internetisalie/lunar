@@ -41,6 +41,14 @@ runs "for *every* unbound name reference the type visitor meets" (its own KDoc);
 cross-file and calls `forFile(wx.lua)`, building the library's entire graph. COMP-09 design §1.1
 already measured that inner path at 9 568 ms on a larger tree.
 
+**What this feature does *not* fix** — stated so nobody expects it to:
+- The **cold first build** of a session still pays the full library graph once (COMP-09's index is
+  the answer to that half; see the last section).
+- The **consumer-side rebuild scales with consumer file size** and is *correctly* invalidated per
+  keystroke — the file did change. DR-20's own sideways data has `forFile` at 124 ms on a
+  4 001-line file with the library already warm. If large project files matter, that is a separate
+  incremental-inference problem, out of scope here.
+
 ## Why this is a capability, not a tuning knob
 
 `MODIFICATION_COUNT` there is not a considered choice about library files — it is the safe
@@ -56,24 +64,59 @@ yields a stale snapshot, not a crash.
 | `psiFile` | that file's own content | already a dependency of `forFile` |
 | `ProjectRootModificationTracker` | roots added/removed — rock install/uninstall that changes the root set, definition-library enable/disable | platform API (`platform/core-api`), not yet used here |
 | `targetModificationTracker` | **platform and language version together** — `Target` is `{platform, version}` and `setTarget` ticks it while deriving `languageLevel` (`LuaProjectSettings:134`) | already a dependency of `forFile` |
-| rock content changed **inside an existing root** | `luarocks install` writing into an already-registered `lua_modules/` — the root set does not change, so the roots tracker does **not** tick | `RockspecSourcePathProvider.forceRefreshTracker` exists; **whether it ticks on install is unverified** |
+| **index availability (dumb mode)** | `resolveGlobal` returns `null` while dumb (`LuaTypeManagerImpl:141`) — a snapshot built during indexing **bakes those nulls in**. Today any keystroke heals it; under a generation dependency it is sticky until the next roots/target tick | not handled anywhere; needs a don't-cache-while-dumb guard or `DumbService`'s modification tracker as a dependency |
+| rock content changed **inside an existing root** | `luarocks install` writing into an already-registered `lua_modules/` — the root set does not change, so the roots tracker does **not** tick | `RockspecSourcePathProvider.forceRefreshTracker` exists; **whether it ticks on install is unverified**. **Deferred, not blocking:** v1 scope excludes rocks trees entirely (see Scope below) |
+
+## Scope: platform libraries only, identified by provenance
+
+v1 applies the generation dependency **only to plugin-provisioned immutable libraries** — the
+bundled stdlib stubs and fetched definition libraries (LuaLS addons). Everything else, rocks trees
+included, stays on the global tracker. Three reasons:
+
+- Those files are genuinely immutable within a session; their content changes only via plugin
+  update or addon re-fetch, both detectable. And DR-20's measured pain case (the 123 KiB `wx`
+  library) **is** a definition library — this scope captures the demonstrated win.
+- Rocks trees are exactly the risky remainder: mutable in place (the unverified
+  `forceRefreshTracker` signal above) and ordinary Lua code that plausibly references project
+  globals, maximizing the residual below. Excluding them converts that signal from a blocker into
+  a follow-up.
+- Identification is **by provenance** — the `RuntimeLibraryProvider` / definition-library registry
+  knows its own files — **not** by `ProjectFileIndex.isInLibrary`, whose behavior for this
+  plugin's `SyntheticLibrary` roots is unverified. Provenance sidesteps that question entirely.
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Description |
 |----|-------------|----------|-------------|
-| TYPE-11-01 | **A library snapshot survives an unrelated edit** | M | Editing a project file must not invalidate the cached snapshot of a file in a library root. |
-| TYPE-11-02 | **Every generation signal invalidates it** | M | Roots change, target/version change, and in-place library content change each discard the affected snapshots. A missed signal is a stale-type defect, which is worse than the cost being fixed. |
-| TYPE-11-03 | **Library-file identification is correct for synthetic roots** | M | This plugin's libraries arrive via `AdditionalLibraryRootsProvider`/`SyntheticLibrary`, not ordinary library roots. `ProjectFileIndex.isInLibrary` is used at `ProximityCalculator:23`, but not verified for synthetic roots. |
+| TYPE-11-01 | **A platform-library snapshot survives an unrelated edit** | M | Editing a project file must not invalidate the cached snapshot of a file in a plugin-provisioned library (bundled stdlib stub, definition library). Rocks trees are out of scope for v1 and keep today's behavior. |
+| TYPE-11-02 | **Every generation signal invalidates it** | M | Roots change and target/version change each discard the affected snapshots. A missed signal is a stale-type defect, which is worse than the cost being fixed. |
+| TYPE-11-03 | **Library-file identification is by provenance** | M | The library set comes from what this plugin provisioned (`RuntimeLibraryProvider` / the definition-library registry), matched by `VirtualFile` identity against the file `resolveGlobal` actually resolved. Not `ProjectFileIndex.isInLibrary` — unverified for `SyntheticLibrary` roots, and unnecessary once provenance answers the question. |
 | TYPE-11-04 | **No new stale-type defect** | M | All four corpus baselines unmoved, and the full suite green. This changes when inference results are discarded; a wrong answer here is invisible until it is wrong in a user's editor. |
+| TYPE-11-05 | **A dumb-mode build is never cached across the generation** | M | `resolveGlobal` answers `null` while indexing; a snapshot built then has those nulls baked in and must not outlive dumb mode. Either skip caching while `DumbService.isDumb`, or add the dumb-mode tracker as a dependency. Without this, TYPE-11 *creates* a staleness class that today's per-keystroke invalidation accidentally heals. |
 
 ## The residual that may defeat the whole approach
 
-A library file's snapshot is **not** purely a function of its own content. `buildSnapshot` calls
-`resolveGlobal` for unbound names, which reaches other files — so library A's snapshot can depend on
-library B, and on project files. If that is real here, a per-file generation dependency is unsound
-regardless of how many signals are composited, and the answer is something else (a scoped tracker per
-dependency set, or leaving cross-file-resolving snapshots on the global tracker).
+A library file's snapshot is **not** purely a function of its own content, and the code makes the
+dependency on *project* files likelier than "reaches other files" suggests. Two concrete paths:
+
+- **Cross-file globals, project files winning.** `buildSnapshot` calls `resolveGlobal` for every
+  unbound name (`freeGlobalSeed`, `LuaTypesVisitor:1322`), and `doResolveGlobal` searches
+  **project scope first** (BUG-427, `LuaTypeManagerImpl:162`). So an unbound name inside a library
+  file can resolve to — and embed the type of — a declaration in a project file.
+- **Class member materialization is project-wide.** `materializeClass` → `collectMethodMembers`
+  enumerates `LuaGlobalDeclarationIndex` with `getAllKeys` across the project
+  (`LuaTypeManagerImpl:427`). A project file declaring `function LibClass:helper()` adds a member
+  to a library-defined class; edit that file and a generation-pinned library snapshot is stale.
+  This is not hypothetical — extending a stub-defined class from project code is an ordinary Lua
+  idiom.
+
+Library→library dependencies are safe under a *shared* generation tracker (any library change
+ticks it for all). Library→project dependencies are the unsound case, and the platform-library
+scoping above **shrinks this surface but does not eliminate it** — a project file can extend a
+stub-defined class just as easily as a rock's. If measurement shows these paths are hot, a
+per-file generation dependency is unsound regardless of how many signals are composited, and the
+answer is something else (a scoped tracker per dependency set, or leaving cross-file-resolving
+snapshots on the global tracker).
 
 **Nothing above should be built until that is measured.**
 
@@ -81,10 +124,11 @@ dependency set, or leaving cross-file-resolving snapshots on the global tracker)
 
 | ID | Question | Resolves |
 | :-- | :-- | :-- |
-| TYPE-11-DR-01 | Swap `forFile`'s dependency to a roots-scoped one **for library files only**, run the full suite and the corpus sweeps. What breaks tells you whether the cross-file residual is real. | the residual above; TYPE-11-04 |
-| TYPE-11-DR-02 | Does `ProjectFileIndex.isInLibrary` return true for this plugin's `SyntheticLibrary` roots? `LibraryRootTestCase` exists precisely because that path behaves unlike ordinary roots. | TYPE-11-03 |
-| TYPE-11-DR-03 | Does `RockspecSourcePathProvider.forceRefreshTracker` tick on `luarocks install` into an existing root? If not, what does — and if nothing does, that signal must be built. | TYPE-11-02 |
-| TYPE-11-DR-04 | Re-measure DR-20's 9 ms / 334 ms pair after the change, medians of >=5. The claim is that subsequent completions land near the warm ~1 ms. | TYPE-11-01 |
+| TYPE-11-DR-01 | Swap `forFile`'s dependency to a generation-scoped one **for platform-library files only**, run the full suite and the corpus sweeps. What breaks tells you whether the cross-file residual is real. Include the two named residual paths explicitly: a project file shadowing a stub global (BUG-427 ordering) and a project file adding a method to a stub-defined class. | the residual above; TYPE-11-04 |
+| TYPE-11-DR-02 | Can every file `resolveGlobal` resolves into be matched by `VirtualFile` identity against the provenance set (`RuntimeLibraryProvider` / definition-library registry)? Watch for identity traps — `originalFile`, light-fixture copies, event-system vs local file system. | TYPE-11-03 |
+| TYPE-11-DR-03 | *(Deferred — rocks are out of v1 scope.)* Before ever extending this to rocks trees: does `RockspecSourcePathProvider.forceRefreshTracker` tick on `luarocks install` into an existing root? If not, what does — and if nothing does, that signal must be built. | follow-up scope only |
+| TYPE-11-DR-04 | Re-measure DR-20's 9 ms / 334 ms pair after the change, medians of >=5. **Success is landing near the 9 ms no-library baseline, not the warm ~1 ms** — the old warm number was the consumer's own snapshot served from cache; after a keystroke that snapshot correctly rebuilds, and every free global re-runs `resolveGlobal` + `graphTypeToLuaType`, which builds a fresh `visited` map per call and walks the library table's full member set. If the number lands well above 9 ms, that conversion is the next cost to look at — not a failure of the invalidation change. | TYPE-11-01 |
+| TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb` (index-rebuild test fixture), exit dumb mode, complete again. Do the baked-in nulls survive? Verifies the guard demanded by TYPE-11-05 actually engages. | TYPE-11-05 |
 
 ## Relationship to COMP-09
 
