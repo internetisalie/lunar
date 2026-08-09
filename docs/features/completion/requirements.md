@@ -24,7 +24,7 @@ Intelligent completion is the primary driver of productivity in the IDE.
 | `COMP-06` | **Postfix Templates**         |  **C**   | Trigger code transformations after a dot (e.g., `myVar.if` -> `if myVar then ... end`).                                                                                       |
 | `COMP-07` | **Live Templates**            |  **C**   | Standard IntelliJ snippets for common Lua patterns (loops, function headers).                                                                                                 |
 | `COMP-08` | **Auto-complete Enhancement** |  **S**   | Intelligent auto-completion for common patterns (e.g., table methods, function calls).                                                                                        |
-| [`COMP-09`](./09-member-enumeration/requirements.md) | **Member Enumeration** | **M** | Answer "members of X" from an index rather than a full key scan or file walk, and yield incrementally so time-to-first-result decouples from time-to-exhaustive-result. |
+| [`COMP-09`](./09-member-enumeration/requirements.md) | **Member Enumeration** | **M** | Answer "members of X" from an index rather than a full key scan or file walk, gated by a time-to-first-result budget and a work bound. *(Incremental yield was scoped out — COMP-09-04, withdrawn 2026-08-07: the gap between the first element and the last is 31 ms of 777 ms, so there is no tail to stream. Design §1.7/§1.9.)* |
 
 ---
 
