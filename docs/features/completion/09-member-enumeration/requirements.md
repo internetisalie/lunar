@@ -157,16 +157,30 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 
 ## Acceptance Criteria
 
+**Phase 1 is done (2026-08-09)** — `LuaReceiverMemberIndex` is complete, correct and tested, and
+**nothing consumes it yet**, so no criterion below is met by it alone. What Phase 1 moved is marked
+per line; the consumers are Phases 2 and 3.
+
 - [ ] COMP-09-01/02 — every site in the two tables above is converted or explicitly justified.
-- [ ] COMP-09-03 — TC 5 passes for all four sources.
+- [ ] COMP-09-03 — TC 5 passes for all four sources. **Sources verified at the index** after Phase 1
+      (`LuaReceiverMemberIndexTest`): dotted assignment, `function R.f`/`function R:m` including the
+      all-colon receiver (TC 5a), `@field`, and the table literal. TC 5 itself is a completion test
+      and needs Phase 2.
 - [ ] ~~COMP-09-04b~~ — withdrawn; nothing to verify.
 - [ ] COMP-09-05 — TC 6; COMP-04-DR-01 and BUG-426's limitation are closed or re-scoped in writing.
 - [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
-- [ ] COMP-09-07 — TC 3.
+- [ ] COMP-09-07 — TC 3. **TC 7a is met** (`LuaReceiverMemberDoorParityTest`): each entry point is
+      asserted against the door it serves, never `resolveGlobal(r) ?: resolveType(r)`. The union
+      reproduces the `@class` door on all four receivers; the completion door reproduces the global
+      door with exactly the two declared divergences — `Shapes` loses `deep` (BUG-430) and `Derived`
+      gains `ownField` (§4.5a). TC 7b and 7c are covered there too.
 - [ ] COMP-09-08 — the latency assertion exists, fails before the fix, passes after, and runs
       without `-PwithPerf`.
 - [ ] COMP-09-09 — the work bound is instrumented and asserted (TC 9); adding unrelated indexed
-      content does not change entries traversed.
+      content does not change entries traversed. **The instrument is complete after Phase 1**: all
+      four of design §4.10b's assertions are armed and green in `MemberEnumerationWorkBoundGateTest`
+      — assertion 4, the *completion* door, was red until `LuaReceiverMemberWork` reached
+      `membersInFile` (BL-5). The requirement still needs Phase 3, where the consumers stop scanning.
 - [ ] Each cache in the "Why this is a capability" table is re-measured and either removed as
       redundant or kept with a stated reason.
 
@@ -289,8 +303,16 @@ Refreshed after Phase 0, which closed two of these and moved a third:
   against a 41 ms warm-file `@class` door, candidate C 18 ms) and it makes the old scope-out look
   worse, not better. Still owed: the per-site right-door analysis. The scope decision does not depend
   on the answer.
-- **DR-18 — still `todo`.** A second whole-project index's build cost is asserted nowhere and
-  measured nowhere; committed to, but it should not stay `todo` past Phase 1.
+- **DR-18 — still `todo` after Phase 1, and now overdue by this document's own words.** A second
+  whole-project index's build cost is asserted nowhere and measured nowhere. Phase 1 did not move it:
+  its task list does not contain it, and the index's *output shape* is unchanged from DR-19's, so the
+  build cost DR-18 would measure is the one that has been in `src/main` since then rather than
+  anything Phase 1 introduced. It belongs in Phase 5's re-measure.
+- **Cancellation is not gated, and cannot be — measured in Phase 1.** §4.9's
+  `ProgressManager.checkCanceled()` is present at both `processValues` callbacks, but no test can
+  distinguish its presence: the platform throws `ProcessCanceledException` from `processValues`
+  *before invoking any callback*, so a test asserting the throw passes with the line deleted. The
+  candidate test was written, measured and deleted rather than kept as a gate that cannot fail.
 
 ## Dependencies
 

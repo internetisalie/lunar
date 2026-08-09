@@ -9,7 +9,7 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 /**
  * THROWAWAY — COMP-09 DR-14, remediating Step 9 blockers B2 and B8.
  *
- * **B2.** Design §4.5 said `membersOf` "mirrors `doResolveGlobal`… take the members of the first
+ * **B2.** Design §4.5 said `membersIn` "mirrors `doResolveGlobal`… take the members of the first
  * declaring file only, `typeOfGlobalIn`'s `.firstNotNullOfOrNull`". Review checked the *head* of that
  * chain, which I had not: `typeOfGlobalIn` draws candidate files from **`LuaGlobalAssignmentIndex`**
  * — bare top-level globals — not from the receiver-member index. Different candidate set, plus a
@@ -136,7 +136,7 @@ class CompNineDr14Test : LibraryRootTestCase() {
                             .keys
                             .sorted()
                     } ?: emptyList()
-                val union = LuaReceiverMemberIndex.membersOf(receiver, project, all).map { it.name }.sorted()
+                val union = LuaReceiverMemberIndex.membersIn(receiver, project, all).map { it.name }.sorted()
                 val corrected =
                     LuaReceiverMemberIndex
                         .membersOfGlobal(receiver, project, context)
@@ -185,7 +185,7 @@ class CompNineDr14Test : LibraryRootTestCase() {
         myFixture.configureByText("consumer.lua", "local x = 1\n")
         runReadAction {
             val all = GlobalSearchScope.allScope(project)
-            val union = LuaReceiverMemberIndex.membersOf("wx", project, all).map { it.name }.sorted()
+            val union = LuaReceiverMemberIndex.membersIn("wx", project, all).map { it.name }.sorted()
             val corrected =
                 LuaReceiverMemberIndex
                     .membersOfGlobal("wx", project, myFixture.file)

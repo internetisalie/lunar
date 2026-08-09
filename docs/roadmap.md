@@ -74,7 +74,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-428 | A `nil` arm from `and`/`or` is reported as a certain nil instead of optionality | todo | S | — | — | ✓ |
 | BUG-430 | `a.b.c = v` makes `c` a member of `a` and leaves `a.b` empty; the two enumeration doors disagree | todo | **L** | — | found by COMP-09 DR-09. **Root cause grounded 2026-08-08 and it is engine-scale** — an exact table literal does not accrete later member writes; needs a plan-feature pass with corpus measurement, not a bug fix | ✓ |
-| COMP-09 | Member enumeration — "members of X" from an index, not a key scan or file walk; a latency gate and a work bound | planned | M | — | **TARGET-10** *(release 2)*; absorbs BUG-429; closes COMP-04-DR-01 + BUG-426's limitation; surfaced BUG-430/431/432 | ✓ |
+| COMP-09 | Member enumeration — "members of X" from an index, not a key scan or file walk; a latency gate and a work bound | in_progress | M | — | **TARGET-10** *(release 2)*; absorbs BUG-429; closes COMP-04-DR-01 + BUG-426's limitation; surfaced BUG-430/431/432 | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 

@@ -11,7 +11,7 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 /**
  * THROWAWAY — COMP-09 DR-10.
  *
- * Design §4.9 asserts that `membersOf` "must degrade to empty rather than throw" during indexing,
+ * Design §4.9 asserts that `membersIn` "must degrade to empty rather than throw" during indexing,
  * and that today's path "has its own dumb-mode behaviour" which Phase 1 must match. Neither half was
  * measured. Reading finds exactly one guard in the whole type layer —
  * `LuaTypeManagerImpl:129`, `resolveGlobal` returns null when dumb — and none on `resolveType`,
@@ -75,9 +75,9 @@ class CompNineDr10Test : LibraryRootTestCase() {
         runReadAction {
             probe("resolveGlobal(wx)") { manager.resolveGlobal("wx", context)?.let { "type" } }
             probe("resolveType(wxFrame)") { manager.resolveType("wxFrame", context)?.let { "type" } }
-            probe("membersOf(wx)") {
+            probe("membersIn(wx)") {
                 LuaReceiverMemberIndex
-                    .membersOf("wx", project, GlobalSearchScope.allScope(project))
+                    .membersIn("wx", project, GlobalSearchScope.allScope(project))
                     .map { it.name }
             }
             probe("materialize(resolveGlobal(wx))") {
@@ -96,9 +96,9 @@ class CompNineDr10Test : LibraryRootTestCase() {
             runReadAction {
                 probe("resolveGlobal(wx)") { manager.resolveGlobal("wx", context)?.let { "type" } }
                 probe("resolveType(wxFrame)") { manager.resolveType("wxFrame", context)?.let { "type" } }
-                probe("membersOf(wx)") {
+                probe("membersIn(wx)") {
                     LuaReceiverMemberIndex
-                        .membersOf("wx", project, GlobalSearchScope.allScope(project))
+                        .membersIn("wx", project, GlobalSearchScope.allScope(project))
                         .map { it.name }
                 }
                 probe("materialize(resolveGlobal(wx))") {

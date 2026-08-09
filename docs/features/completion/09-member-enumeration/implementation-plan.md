@@ -184,7 +184,7 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   golden's determinism immediately before Phase 1 diffs against it trades a live gate for a cosmetic
   one. Revisit after Phase 1's diff is taken.
 
-## Phase 1: `LuaReceiverMemberIndex`
+## Phase 1: `LuaReceiverMemberIndex` — **DONE 2026-08-09**
 
 - **Goal**: the index exists and is correct; nothing consumes it yet.
 - **Unblocked** — DR-10 done.
@@ -192,45 +192,88 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   *finishing* it, not writing it — the class, externalizer, three-source indexer and registration
   exist and are measured (design §4.0). What is missing is below.
 - **Tasks**:
-  - [ ] Add indexer **source 4** — table-literal fields of a bare `R = { a = 1 }` (design §4.5c).
-  - [ ] Add the **binding-opacity sentinel** and `globalMembership(...): Membership` — design §4.5c.
+  - [x] Add indexer **source 4** — table-literal fields of a bare `R = { a = 1 }` (design §4.5c).
+  - [x] Add the **binding-opacity sentinel** and `globalMembership(...): Membership` — design §4.5c.
         Emptiness is **not** a test for authority: `OM = require(x)` plus `function OM.extra()` leaves
         the index non-empty and incomplete, which is how remedies 1 and 2 both failed.
-  - [ ] The fallback lives in the **contributor**, not the index (design §4.5c, BLOCKER 1): the index
+  - [x] The fallback lives in the **contributor**, not the index (design §4.5c, BLOCKER 1): the index
         companion has no `PsiElement` anchor, `resolveGlobal`/`materialize` both need one, and
         `getMembers()` returns `Map<String, VariableNode>`. Routing it through §4.5b's existing
         `else` arm needs no conversion and preserves the semantic filter and the type text.
-  - [ ] Gate on `CompNineDr19Test`'s five shapes — `wx`, `M` (literal+syntactic), `Config` (literal),
+  - [x] Gate on `CompNineDr19Test`'s five shapes — `wx`, `M` (literal+syntactic), `Config` (literal),
         `assert` (opaque), `OM` (opaque+syntactic). Two prior remedies passed a smaller set.
-  - [ ] Extend `LuaReceiverMemberWork` counting to **both** entry points — `membersInFile` currently
+        *Gated in `LuaReceiverMemberBindingShapeTest`; the opaque receiver is renamed `Busted` there
+        so the fixture does not shadow the Lua builtin `assert`.*
+  - [x] Extend `LuaReceiverMemberWork` counting to **both** entry points — `membersInFile` currently
         does not touch it, so §4.10b assertion 4 and TC 9 have no instrument (BL-5).
-  - [ ] Pass `context.containingFile?.originalFile` as `exclude`, not `containingFile` (design §4.5,
+  - [x] Pass `context.containingFile?.originalFile` as `exclude`, not `containingFile` (design §4.5,
         BL-8), and test it — DR-14 never exercised that path.
-  - [ ] Land the **two** entry points design §4.5 measured, and **delete the name `membersOf`** so it
+  - [x] Land the **two** entry points design §4.5 measured, and **delete the name `membersOf`** so it
         cannot be reached for by accident:
         - `membersOfGlobal(receiver, project, exclude)` — completion. Selection comes from
           `LuaGlobalAssignmentIndex` (the same index `typeOfGlobalIn` uses — **not** this one),
           `projectScope` then `allScope`, first file, context excluded; then `processValues(KEY,
           receiver, inFile, …)` for that file. Prototyped and measured in DR-14.
         - `membersIn(receiver, project, scope)` — materialization. The union, unchanged.
-  - [ ] Re-run `CompNineDr14Test` and gate on it: `membersOfGlobal` vs the **global** door and
+  - [x] Re-run `CompNineDr14Test` and gate on it: `membersOfGlobal` vs the **global** door and
         `membersIn` vs the **`@class`** door, per receiver, never `resolveGlobal(r) ?: resolveType(r)`
         (TC 7a). Expected divergences are exactly two, both declared: `Shapes` loses `deep` (BUG-430)
         and `Derived` gains `ownField` (design §4.5a).
-  - [ ] Add `ProgressManager.checkCanceled()` to the value-processing loop, and make `membersOfGlobal` /
+  - [x] Add `ProgressManager.checkCanceled()` to the value-processing loop, and make `membersOfGlobal` /
         `membersIn` **return empty when `DumbService.isDumb`** (and **not** take §4.5c's fallback while
         dumb — `resolveGlobal` is guarded and would return null anyway) — design §4.9. Without it the
         prototype throws `IndexNotReadyException` where today's completion quietly offers `[]`
         (DR-10, measured). Test it in dumb mode; nothing in the suite does that today, which is how
         BUG-432 survived.
-  - [ ] Tests: dot member, colon member, all-colon receiver, nested qualifier (`a.b.c` → **no**
+  - [x] Tests: dot member, colon member, all-colon receiver, nested qualifier (`a.b.c` → **no**
         entry), `@field`, `= function() end` vs `= someFn` (design §4.3's bounded D3 gap), same
-        receiver in two files (first-file for `membersOf`, union for `membersIn`), and externalizer
+        receiver in two files (first-file for `membersOfGlobal`, union for `membersIn`), and externalizer
         round-trip incl. empty and non-ASCII.
-  - [ ] Delete `CompNineDr09Test`/`CompNineDr09bTest` once their cases are covered by real tests —
+  - [x] Delete `CompNineDr09Test`/`CompNineDr09bTest` once their cases are covered by real tests —
         they are throwaway harnesses, and design §4.0's figures are already recorded.
 - **Exit**: index tests green; `LuaMemberFieldIndexTest.testDeepQualifiedKeyPresent` still green
   (that index is untouched); full suite green.
+- **Exit met.** `ktlintCheck test --rerun --no-build-cache` on gce-builder: **BUILD SUCCESSFUL,
+  2 538 tests, 0 failures, 1 skipped** (baseline 2 526 — five DR-09 harness methods deleted, 17 real
+  ones added), ktlint 0 violations. `src/test/resources/comp09/member-enumeration.golden` is
+  **byte-unchanged** (`a8c580ccc7a9528c0fde41527d870c48`), which is the point: nothing consumes the
+  index yet, so a moved golden would have meant enumeration semantics changed in the wrong phase.
+  `getVersion()` stays **1** — the indexer's output shape did not change, so no reindex boundary was
+  crossed and Phase 5's benchmarks stay comparable to §4.0's.
+
+### What Phase 1 found that the plan did not say
+
+- **Most of the task list was already in `src/main`.** Source 4, `OPAQUE_BINDING`, `Membership`,
+  `globalMembership`, `membersOfGlobal`/`membersInFile` and the `ThreadLocal` counter all landed with
+  DR-19 and Phase 0. Phase 1's real content was the *entry-point split*, the platform obligations,
+  and turning print-only harnesses into gates.
+- **`membersByFile` was deleted with `CompNineDr09Test`.** It was DR-09's D2 probe and had no other
+  caller; design §4.5's table names exactly two entry points, so leaving a third reachable would
+  re-create the hazard `membersOf`'s retirement exists to prevent. D2's case is re-homed as an
+  assertion (`LuaReceiverMemberIndexTest.testTheTwoDoorsDisagreeAboutASecondDeclaringFile`), and
+  `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable` still holds the disjoint-set half.
+- **`membersIn` filters the sentinel too.** §4.5c only requires it of `globalMembership`, but the
+  marker is index-internal and Phase 3 materializes `membersIn`'s names directly, so leaving it in
+  would offer a member whose name is a NUL byte. Gated by
+  `LuaReceiverMemberBindingShapeTest.testTheUnionDoorDoesNotLeakTheOpacitySentinelEither`.
+- **`membershipOver` read the first candidate file twice** — once inside the opacity `any`, once for
+  membership. Harmless until the counter reached that door, at which point §4.10b's assertion 4 reads
+  **2**, not 1. Each candidate is now read once. Mutation-proved: restoring the double read gives
+  `the completion door reads exactly one declaring file expected:<1> but was:<2>`.
+- **`ProgressManager.checkCanceled()` cannot be gated, and that is a measurement, not an omission.**
+  It is in both callbacks as §4.9 requires, but a test asserting the throw **passes with the line
+  deleted**: probed on gce-builder, `FileBasedIndex.processValues` under a cancelled indicator throws
+  `ProcessCanceledException` *before invoking any callback* (the raw probe's callback never ran; the
+  counter showed `reset()` had happened and `files == 0`). The candidate test was written, measured
+  and **deleted** rather than kept as a gate that cannot fail — Phase 0's remediation is about
+  exactly that shape. Recorded in the code beside the call.
+  *(Measured on the way: `ProgressManager.runProcess` calls `indicator.start()`, which **clears** the
+  cancelled flag — the probe's first version was green for that reason alone.)*
+- **`Membership` moved off the companion** onto the class, so Phase 2 can write
+  `LuaReceiverMemberIndex.Membership` rather than `…Companion.Membership`.
+- **`Indexer.map` was ~90 executable lines**, three times the engineering contract's limit, and mixed
+  raw PSI traversal with orchestration. Split into one helper per source with the logic unchanged —
+  which the byte-unchanged golden and the untouched `getVersion()` both attest.
 
 ## Phase 2: Completion consumer
 

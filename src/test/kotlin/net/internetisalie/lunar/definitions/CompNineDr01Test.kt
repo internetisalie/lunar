@@ -64,7 +64,7 @@ class CompNineDr01Test : LibraryRootTestCase() {
      * ⚠ Both figures below are **withdrawn as evidence** (design §1.5, §2): they compare two
      * different index subsystems — `StubIndex` versus `FileBasedIndex` — and the second prints a
      * filtered match count rather than a key total, polluted by cross-test index accumulation. Kept
-     * as the shape of the result only; the load-bearing figure is design §4.0's `membersOf` at 2 ms
+     * as the shape of the result only; the load-bearing figure is design §4.0's `membersIn` at 2 ms
      * for 3 600 members.
      */
     fun testSection31IndexOnlyNameEnumeration() {

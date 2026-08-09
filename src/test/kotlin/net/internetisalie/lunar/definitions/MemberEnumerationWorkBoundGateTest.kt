@@ -31,21 +31,22 @@ import net.internetisalie.lunar.lang.indexing.LuaReceiverMemberWork
  * | 1 | `entriesTraversed >= members.size`, `==` when no name repeats | union | green |
  * | 2 | `entriesTraversed` unchanged between a quiet and a noisy project | union | green |
  * | 3 | `filesVisited ==` the declaring-file count, checked at **1 and at 2** | union | green |
- * | 4 | `filesVisited == 1` when a declaring file was found | `globalMembership` | **red** |
+ * | 4 | `filesVisited == 1` when a declaring file was found | `globalMembership` | green since Phase 1 |
  *
  * 1–3 pass because the DR-09 prototype is already index-backed; they are the assertions that go red
  * if anyone reintroduces a scan, which is what COMP-09-01 exists to remove and what an earlier
  * revision of the design proposed replacing one scan with another form of. **`implementation-plan.md`
- * expects this gate red at Phase 0 and only assertion 4 is:** 1–3 measure the index, which already
+ * expected this gate red at Phase 0 and only assertion 4 was:** 1–3 measure the index, which already
  * meets them, and the redness COMP-09-09 is really about lives at the *consumers* — Phase 3 is where
  * they stop scanning.
  *
- * Assertion 4 is red for a different reason and is the one Phase 1 fixes: `membersInFile` runs
- * `processValues` without touching the counter, so it was specified against an instrument that does
+ * Assertion 4 was red for a different reason and is the one Phase 1 fixed: `membersInFile` ran
+ * `processValues` without touching the counter, so it was specified against an instrument that did
  * not observe the door it names (BL-5) — and TC 9, which measures `wx.<caret>`, is exactly that
  * door. Armed on gce-builder 2026-08-09 it reported `the completion door reads exactly one declaring
  * file expected:<1> but was:<0>`, against a `globalMembership` that had demonstrably read one file
- * and returned 30 members.
+ * and returned 30 members. Phase 1 extended `LuaReceiverMemberWork` to both entry points and flipped
+ * [COMPLETION_DOOR_INSTRUMENTED].
  */
 class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
     /** Assertions 1 and 3, on the union entry point: two declaring files, fifty distinct members. */
@@ -109,10 +110,11 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
     /**
      * Assertion 4 — the **completion** door, which is the door TC 9 measures.
      *
-     * `globalMembership` reads exactly one declaring file by construction, so more than one means the
-     * selection rule leaked. It cannot be asserted yet: `membersInFile` does not record into the
-     * counter, so the instrument reports 0 for a door that demonstrably visited a file. That is
-     * design §4.10b's BL-5, and Phase 1 closes it in one line at each `processValues` callback.
+     * `globalMembership` reads exactly one declaring file here, so more than one means the selection
+     * rule leaked: `Target` is bare-assigned in `target-a.lua` only, so `LuaGlobalAssignmentIndex`
+     * offers exactly one candidate and `membershipOver` reads it once — once, not twice, which is
+     * why Phase 1 also stopped that method asking `membersInFile` for the same file for opacity and
+     * again for membership.
      *
      * **The counter is captured inside the read action, not after it.** `LuaReceiverMemberWork` is a
      * `ThreadLocal` (design §4.10b), so it is only readable on the thread that recorded into it.
@@ -161,7 +163,7 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
             LuaReceiverMemberWork.reset()
             val found =
                 LuaReceiverMemberIndex
-                    .membersOf(receiverName, project, GlobalSearchScope.allScope(project))
+                    .membersIn(receiverName, project, GlobalSearchScope.allScope(project))
                     .size
             Traversal(found, LuaReceiverMemberWork.entries, LuaReceiverMemberWork.files)
         }
@@ -194,7 +196,7 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
 
     private companion object {
         /** Flipped by Phase 1's "extend `LuaReceiverMemberWork` counting to both entry points". */
-        const val COMPLETION_DOOR_INSTRUMENTED = false
+        const val COMPLETION_DOOR_INSTRUMENTED = true
 
         const val RECEIVER = "Target"
         const val FIRST_FILE_MEMBERS = 30

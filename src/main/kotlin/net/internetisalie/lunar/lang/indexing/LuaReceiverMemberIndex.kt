@@ -1,5 +1,7 @@
 package net.internetisalie.lunar.lang.indexing
 
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
@@ -15,6 +17,7 @@ import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncDef
@@ -44,10 +47,10 @@ private val LuaReceiverMemberIndexId: @NonNls ID<String, List<LuaReceiverMember>
  * concurrent completions would overwrite each other's counts. Completion runs one session per
  * thread, so per-thread counters stay attributable. Design §4.10b.
  *
- * **Only the union entry point records into it today.** `membersInFile` — and therefore
- * `globalMembership`, the door TC 9 measures — runs `processValues` without touching it, so design
- * §4.10b's assertion 4 has no instrument yet. Extending it to both entry points is Phase 1's work
- * (BL-5); `MemberEnumerationWorkBoundGateTest` holds the assertion that goes green when it lands.
+ * **Both entry points record into it** (Phase 1, BL-5). Each entry point calls [reset] on the way in
+ * and every `processValues` callback calls [recordVisit], so the totals describe one enumeration
+ * however many files it read — which is what design §4.10b's assertion 4 needs, since it is stated
+ * against `globalMembership` and that door reaches the index through `membersInFile`.
  */
 object LuaReceiverMemberWork {
     private val entryCount: ThreadLocal<Int> = ThreadLocal.withInitial { 0 }
@@ -58,15 +61,26 @@ object LuaReceiverMemberWork {
 
     val files: Int get() = fileCount.get()
 
-    fun reset() = record(0, 0)
-
-    fun record(
-        entriesTraversed: Int,
-        filesVisited: Int,
-    ) {
-        entryCount.set(entriesTraversed)
-        fileCount.set(filesVisited)
+    fun reset() {
+        entryCount.set(0)
+        fileCount.set(0)
     }
+
+    /** One `processValues` callback: one file, and the entries it handed over. */
+    internal fun recordVisit(entriesInFile: Int) {
+        entryCount.set(entryCount.get() + entriesInFile)
+        fileCount.set(fileCount.get() + 1)
+    }
+}
+
+/** The indexer's accumulator: receiver name → the members it declares in the file being indexed. */
+private typealias MemberSink = MutableMap<String, MutableList<LuaReceiverMember>>
+
+private fun MemberSink.record(
+    receiver: String,
+    member: LuaReceiverMember,
+) {
+    getOrPut(receiver) { mutableListOf() }.add(member)
 }
 
 /** One member a receiver declares in one file. [kind] serves the isColon filter and the icon. */
@@ -94,15 +108,21 @@ data class LuaReceiverMember(
 }
 
 /**
- * COMP-09 DR-09 PROTOTYPE — receiver-keyed member enumeration.
+ * COMP-09 — receiver-keyed member enumeration. Design §4.2–§4.5c.
  *
- * Exists to be **measured**, not to be believed. Design §4 was written twice from reading the code
- * and failed a Step 9 review both times (§4.9 D1–D3); this is the prototype that §4 must be
- * rewritten from. Nothing in the plugin consumes it yet.
+ * Every figure in design §4 comes from a run against this class, not from a reading of it: §4 was
+ * written twice from reading and failed a Step 9 review both times (§4.9 D1–D3). **Nothing in the
+ * plugin consumes it yet** — the completion consumer is Phase 2 and materialization is Phase 3.
  *
  * The value type is what `LuaMemberFieldIndex`'s `<String, String>` could not be: a
- * `FileBasedIndex` value is per (key, file), so key `wx` carries one list per declaring file and
- * [membersOf] unions them. Collection-valued precedent is [LuaFileBindingsIndex].
+ * `FileBasedIndex` value is per (key, file), so key `wx` carries one list per declaring file.
+ * Collection-valued precedent is [LuaFileBindingsIndex].
+ *
+ * **Two entry points, two selection rules, and no third** (design §4.5). [membersOfGlobal] /
+ * [globalMembership] serve completion — scope precedence, first declaring file, context excluded —
+ * and [membersIn] serves materialization with the union over a scope. Collapsing them into one
+ * `membersOf` is how review defects D1, D2 and B2 all happened, so that name deliberately does not
+ * exist: each door is verified against the door it actually serves.
  */
 class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverMember>>() {
     private val externalizer: DataExternalizer<List<LuaReceiverMember>> = MemberListExternalizer()
@@ -127,6 +147,24 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
     private class InputFilter : FileBasedIndex.InputFilter {
         override fun acceptInput(file: VirtualFile): Boolean = file.extension == "lua"
     }
+
+    /**
+     * What the index knows about a receiver, and **whether it is authoritative**.
+     *
+     * [authoritative] is false when a declaring file binds the receiver to something the index cannot
+     * see through (DR-19b). Callers must then use the type graph; emptiness is not a sufficient test,
+     * because a receiver can be opaquely bound *and* syntactically extended — `OM = require("x")`
+     * plus `function OM.extra() end` leaves the index non-empty and incomplete, which is how the
+     * first two remedies for design §4.5c both failed.
+     *
+     * Declared on the class rather than inside the companion so consumers can name the type
+     * (`LuaReceiverMemberIndex.Membership`) without going through `Companion`.
+     */
+    data class Membership(
+        val members: List<LuaReceiverMember>,
+        val authoritative: Boolean,
+        val found: Boolean,
+    )
 
     /**
      * Wire format: count, then per member `name`, `kind.ordinal`, `separator.ordinal`. Ordinals are
@@ -163,86 +201,99 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             val psiFile = inputData.psiFile
             if (psiFile !is LuaFile) return emptyMap()
             val byReceiver = mutableMapOf<String, MutableList<LuaReceiverMember>>()
+            indexFunctionDeclarations(psiFile, byReceiver)
+            indexMemberAssignments(psiFile, byReceiver)
+            indexTableLiteralFields(psiFile, byReceiver)
+            indexOpaqueBindings(psiFile, byReceiver)
+            indexClassFields(psiFile, byReceiver)
+            return byReceiver
+        }
 
-            // Source 1 — `function R.m()` / `function R:m()`. Read through FUNC_NAME, the same text
-            // LuaFuncStubElementType.createStub uses, so the two agree by construction.
+        /**
+         * Source 1 — `function R.m()` / `function R:m()`. Read through FUNC_NAME, the same text
+         * `LuaFuncStubElementType.createStub` uses, so the two agree by construction.
+         */
+        private fun indexFunctionDeclarations(
+            psiFile: LuaFile,
+            byReceiver: MemberSink,
+        ) {
             PsiTreeUtil.findChildrenOfType(psiFile, LuaFuncDecl::class.java).forEach { decl ->
                 val qualified = decl.node.findChildByType(LuaElementTypes.FUNC_NAME)?.text ?: return@forEach
                 split(qualified)?.let { (receiver, name, separator) ->
-                    byReceiver
-                        .getOrPut(receiver) { mutableListOf() }
-                        .add(LuaReceiverMember(name, LuaReceiverMember.Kind.FUNCTION, separator))
+                    byReceiver.record(receiver, LuaReceiverMember(name, LuaReceiverMember.Kind.FUNCTION, separator))
                 }
             }
+        }
 
-            // Source 2 — `R.f = value`, at any depth: a member assignment inside a function still
-            // declares a member. Deliberately unlike LuaGlobalAssignmentIndex, which is top-level
-            // only because a nested BARE assignment may target an enclosing local.
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaAssignmentStatement::class.java).forEach { stmt ->
-                val exprs = stmt.exprList.exprList
-                stmt.varList.varList.forEachIndexed { i, target ->
-                    val (receiver, name) = dottedTarget(target) ?: return@forEachIndexed
-                    // §4.9 D3: an assignment whose RHS is literally `function() end` declares a
-                    // FUNCTION. `R.f = someOtherFn` cannot be classified without resolution and is
-                    // recorded FIELD; the golden diff measures how much that costs.
-                    val kind =
-                        if (exprs.getOrNull(i) is LuaFuncDef) {
-                            LuaReceiverMember.Kind.FUNCTION
-                        } else {
-                            LuaReceiverMember.Kind.FIELD
-                        }
-                    byReceiver
-                        .getOrPut(receiver) { mutableListOf() }
-                        .add(LuaReceiverMember(name, kind, LuaReceiverMember.Separator.DOT))
+        /**
+         * Source 2 — `R.f = value`, at any depth: a member assignment inside a function still
+         * declares a member. Deliberately unlike `LuaGlobalAssignmentIndex`, which is top-level only
+         * because a nested BARE assignment may target an enclosing local.
+         *
+         * §4.9 D3: an assignment whose RHS is literally `function() end` declares a FUNCTION.
+         * `R.f = someOtherFn` cannot be classified without resolution and is recorded FIELD; the
+         * golden diff measures how much that costs.
+         */
+        private fun indexMemberAssignments(
+            psiFile: LuaFile,
+            byReceiver: MemberSink,
+        ) {
+            forEachAssignedTarget(psiFile) { target, assigned ->
+                val (receiver, name) = dottedTarget(target) ?: return@forEachAssignedTarget
+                byReceiver.record(receiver, LuaReceiverMember(name, kindOf(assigned), LuaReceiverMember.Separator.DOT))
+            }
+        }
+
+        /**
+         * Source 4 (DR-19) — `R = { a = 1, b = 2 }`. Without this the index is blind to a
+         * table-literal-bound global, and worse, PARTIALLY blind to the canonical module idiom
+         * `M = { VERSION = "1" }` + `function M.f() end`, where source 1 makes the index non-empty
+         * so an "empty means fall back" rule never fires and VERSION is silently lost.
+         */
+        private fun indexTableLiteralFields(
+            psiFile: LuaFile,
+            byReceiver: MemberSink,
+        ) {
+            forEachBareBinding(psiFile) { receiver, bound ->
+                val literal = bound as? LuaTableConstructor ?: return@forEachBareBinding
+                literal.fieldList?.fieldList?.forEach { field ->
+                    val name = field.identifier?.text ?: return@forEach
+                    val member =
+                        LuaReceiverMember(name, kindOf(field.exprList.firstOrNull()), LuaReceiverMember.Separator.DOT)
+                    byReceiver.record(receiver, member)
                 }
             }
+        }
 
-            // Source 4 (DR-19) — `R = { a = 1, b = 2 }`. Without this the index is blind to a
-            // table-literal-bound global, and worse, PARTIALLY blind to the canonical module idiom
-            // `M = { VERSION = "1" }` + `function M.f() end`, where source 1 makes the index
-            // non-empty so an "empty means fall back" rule never fires and VERSION is silently lost.
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaAssignmentStatement::class.java).forEach { stmt ->
-                val exprs = stmt.exprList.exprList
-                stmt.varList.varList.forEachIndexed { i, target ->
-                    if (target.varSuffixList.isNotEmpty()) return@forEachIndexed
-                    val receiver = target.nameRef?.text ?: return@forEachIndexed
-                    val literal = exprs.getOrNull(i) as? LuaTableConstructor ?: return@forEachIndexed
-                    literal.fieldList?.fieldList?.forEach { field ->
-                        val name = field.identifier?.text ?: return@forEach
-                        val kind =
-                            if (field.exprList.firstOrNull() is LuaFuncDef) {
-                                LuaReceiverMember.Kind.FUNCTION
-                            } else {
-                                LuaReceiverMember.Kind.FIELD
-                            }
-                        byReceiver
-                            .getOrPut(receiver) { mutableListOf() }
-                            .add(LuaReceiverMember(name, kind, LuaReceiverMember.Separator.DOT))
-                    }
-                }
+        /**
+         * DR-19b — mark a receiver whose binding the index cannot see through, at any depth.
+         *
+         * Any depth is deliberate (design §4.5c): a missed sentinel marks a receiver authoritative
+         * when it is not and silently drops whatever only the type graph knows, where a spurious one
+         * only costs latency.
+         */
+        private fun indexOpaqueBindings(
+            psiFile: LuaFile,
+            byReceiver: MemberSink,
+        ) {
+            forEachBareBinding(psiFile) { receiver, bound ->
+                if (bound is LuaTableConstructor) return@forEachBareBinding
+                byReceiver.record(
+                    receiver,
+                    LuaReceiverMember(
+                        LuaReceiverMember.OPAQUE_BINDING,
+                        LuaReceiverMember.Kind.FIELD,
+                        LuaReceiverMember.Separator.DOT,
+                    ),
+                )
             }
+        }
 
-            // DR-19b — mark a receiver whose binding the index cannot see through.
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaAssignmentStatement::class.java).forEach { stmt ->
-                val exprs = stmt.exprList.exprList
-                stmt.varList.varList.forEachIndexed { i, target ->
-                    if (target.varSuffixList.isNotEmpty()) return@forEachIndexed
-                    val receiver = target.nameRef?.text ?: return@forEachIndexed
-                    val rhs = exprs.getOrNull(i)
-                    if (rhs is LuaTableConstructor) return@forEachIndexed
-                    byReceiver
-                        .getOrPut(receiver) { mutableListOf() }
-                        .add(
-                            LuaReceiverMember(
-                                LuaReceiverMember.OPAQUE_BINDING,
-                                LuaReceiverMember.Kind.FIELD,
-                                LuaReceiverMember.Separator.DOT,
-                            ),
-                        )
-                }
-            }
-
-            // Source 3 — `---@field` on a `---@class R` comment.
+        /** Source 3 — `---@field` on a `---@class R` comment. */
+        private fun indexClassFields(
+            psiFile: LuaFile,
+            byReceiver: MemberSink,
+        ) {
             PsiTreeUtil.findChildrenOfType(psiFile, LuaCatsClassTag::class.java).forEach { tag ->
                 // Nullable in practice on a partial `---@class` even though the generated getter is
                 // not annotated — LuaTypeManagerImpl:348 reads the same accessor as `argType?.text`.
@@ -255,14 +306,36 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
                         } else {
                             LuaReceiverMember.Kind.FIELD
                         }
-                    byReceiver
-                        .getOrPut(receiver) { mutableListOf() }
-                        .add(LuaReceiverMember(field.name, kind, LuaReceiverMember.Separator.DOT))
+                    byReceiver.record(receiver, LuaReceiverMember(field.name, kind, LuaReceiverMember.Separator.DOT))
                 }
             }
-
-            return byReceiver
         }
+
+        /** Every assignment target in the file, paired with the expression positionally bound to it. */
+        private fun forEachAssignedTarget(
+            psiFile: LuaFile,
+            visit: (LuaVar, LuaExpr?) -> Unit,
+        ) {
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaAssignmentStatement::class.java).forEach { stmt ->
+                val exprs = stmt.exprList.exprList
+                stmt.varList.varList.forEachIndexed { i, target -> visit(target, exprs.getOrNull(i)) }
+            }
+        }
+
+        /** As [forEachAssignedTarget], restricted to a suffix-free `R = <expr>` — a whole-receiver bind. */
+        private fun forEachBareBinding(
+            psiFile: LuaFile,
+            visit: (String, LuaExpr?) -> Unit,
+        ) {
+            forEachAssignedTarget(psiFile) { target, assigned ->
+                if (target.varSuffixList.isNotEmpty()) return@forEachAssignedTarget
+                val receiver = target.nameRef?.text ?: return@forEachAssignedTarget
+                visit(receiver, assigned)
+            }
+        }
+
+        private fun kindOf(assigned: LuaExpr?): LuaReceiverMember.Kind =
+            if (assigned is LuaFuncDef) LuaReceiverMember.Kind.FUNCTION else LuaReceiverMember.Kind.FIELD
 
         /** `R.f` → the receiver and member; null for a keyed or call suffix, or a nested qualifier. */
         private fun dottedTarget(target: LuaVar): Pair<String, String>? {
@@ -299,34 +372,60 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
     companion object {
         val KEY: ID<String, List<LuaReceiverMember>> = LuaReceiverMemberIndexId
 
-        /** Every member of [receiver] visible in [scope], unioned across declaring files. */
-        fun membersOf(
+        /**
+         * **Materialization door** (design §4.6): every member of [receiver] visible in [scope],
+         * unioned across every declaring file. `addMethodsOf` genuinely wants all of them (BUG-399).
+         *
+         * This is the union the prototype called `membersOf`. It is **not** the completion rule —
+         * DR-14 measured the union as a membership superset at that call site (defect D2), so the
+         * name `membersOf` no longer exists and each door has to be asked for by name.
+         *
+         * Returns empty while [DumbService] reports dumb (design §4.9, DR-10): the platform throws
+         * `IndexNotReadyException` from `processValues` during indexing, and today's completion
+         * quietly offers `[]` rather than reporting a crash.
+         *
+         * **The `checkCanceled()` below has no regression test, and that is a measurement rather
+         * than an omission.** Design §4.9 requires it and it stays, but it cannot be gated from
+         * outside: probed on gce-builder 2026-08-09, `processValues` under a cancelled indicator
+         * throws `ProcessCanceledException` **before invoking any callback** — the probe's raw
+         * callback never ran, while the counter showed `reset()` had happened and `files == 0`. A
+         * test asserting the throw passes with this line deleted, which is the vacuous shape Phase
+         * 0's remediation was about, so it was written, measured and removed rather than kept as a
+         * gate that cannot fail.
+         */
+        fun membersIn(
             receiver: String,
             project: Project,
             scope: GlobalSearchScope,
         ): List<LuaReceiverMember> {
+            LuaReceiverMemberWork.reset()
+            if (DumbService.isDumb(project)) return emptyList()
             val seen = LinkedHashMap<String, LuaReceiverMember>()
-            var entries = 0
-            var files = 0
             FileBasedIndex.getInstance().processValues(KEY, receiver, null, { _, members ->
-                files++
-                entries += members.size
+                ProgressManager.checkCanceled()
+                LuaReceiverMemberWork.recordVisit(members.size)
                 members.forEach { seen.putIfAbsent(it.name, it) }
                 true
             }, scope)
-            LuaReceiverMemberWork.record(entries, files)
-            return seen.values.toList()
+            return seen.values.filterNot { it.name == LuaReceiverMember.OPAQUE_BINDING }
         }
 
         /**
-         * DR-14 candidate for design §4.5 — the completion door's rule, built to be **measured**.
+         * **Completion door** (design §4.5) — the members [globalMembership] found, discarding the
+         * authority flag. Callers that must decide between the index and the type graph want
+         * [globalMembership] instead; this is for callers that only want the names.
          *
          * It does not invent its own file selection. `typeOfGlobalIn` picks the declaring file from
          * `LuaGlobalAssignmentIndex` (bare top-level globals only — a *different* candidate set from
          * this index's keys), excludes the context file, and takes the first that yields a type.
          * This mirrors the first three of those and deliberately cannot mirror the fourth: skipping a
          * file whose global has no useful type requires the graph build the whole feature exists to
-         * avoid. DR-14 measures what that costs.
+         * avoid. DR-14 measured that residual at nothing on the golden receivers.
+         *
+         * [exclude] must be `context.containingFile?.originalFile` and not `containingFile`
+         * (design §4.5, BL-8): during completion the PSI file is a **copy** with its own
+         * `VirtualFile`, so the plain `containingFile` matches no candidate and the exclusion
+         * silently never fires.
          */
         fun membersOfGlobal(
             receiver: String,
@@ -335,24 +434,23 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
         ): List<LuaReceiverMember> = globalMembership(receiver, project, exclude).members
 
         /**
-         * What the index knows about [receiver], and **whether it is authoritative**.
+         * While dumb the answer is `Membership(emptyList(), authoritative = true, found = false)` —
+         * design §4.9, measured by DR-10.
          *
-         * [Membership.authoritative] is false when the declaring file binds the receiver to something
-         * the index cannot see through (DR-19b). Callers must then use the type graph; emptiness is
-         * not a sufficient test, because a receiver can be opaquely bound *and* syntactically
-         * extended.
+         * `authoritative = true` is deliberate and is the whole point of returning rather than
+         * throwing: it stops the caller taking §4.5c's graph fallback, which is itself dumb-guarded
+         * (`LuaTypeManagerImpl:129`) and would return null anyway. The user sees `[]`, which is what
+         * completion offers today. The prototype threw `IndexNotReadyException` here, and matching
+         * `resolveType` instead would have propagated BUG-432 — an index exception logged through
+         * `Logger.error`, i.e. a crash report shown while the IDE is merely indexing.
          */
-        data class Membership(
-            val members: List<LuaReceiverMember>,
-            val authoritative: Boolean,
-            val found: Boolean,
-        )
-
         fun globalMembership(
             receiver: String,
             project: Project,
             exclude: PsiFile?,
         ): Membership {
+            LuaReceiverMemberWork.reset()
+            if (DumbService.isDumb(project)) return Membership(emptyList(), authoritative = true, found = false)
             candidates(receiver, project, GlobalSearchScope.projectScope(project), exclude)
                 .takeIf { it.isNotEmpty() }
                 ?.let { return membershipOver(receiver, project, it) }
@@ -374,22 +472,20 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * members, where a wrong `false` only costs latency.
          *
          * Membership still comes from the first candidate, preserving `typeOfGlobalIn`'s behaviour.
+         *
+         * Each candidate is read **once** and the per-file lists are reused for both questions. The
+         * earlier shape asked `membersInFile` for the first file twice — once inside the opacity
+         * `any`, once for membership — which double-counted that file in `LuaReceiverMemberWork` the
+         * moment the counter reached this door, and design §4.10b's assertion 4 pins it at one.
          */
         private fun membershipOver(
             receiver: String,
             project: Project,
             files: List<VirtualFile>,
         ): Membership {
-            val opaque =
-                files.any { f ->
-                    membersInFile(receiver, project, f).any {
-                        it.name ==
-                            LuaReceiverMember.OPAQUE_BINDING
-                    }
-                }
-            val members =
-                membersInFile(receiver, project, files.first())
-                    .filter { it.name != LuaReceiverMember.OPAQUE_BINDING }
+            val perFile = files.map { membersInFile(receiver, project, it) }
+            val opaque = perFile.any { declared -> declared.any { it.name == LuaReceiverMember.OPAQUE_BINDING } }
+            val members = perFile.first().filterNot { it.name == LuaReceiverMember.OPAQUE_BINDING }
             return Membership(members, authoritative = !opaque, found = true)
         }
 
@@ -411,24 +507,12 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
         ): List<LuaReceiverMember> {
             val seen = LinkedHashMap<String, LuaReceiverMember>()
             FileBasedIndex.getInstance().processValues(KEY, receiver, file, { _, members ->
+                ProgressManager.checkCanceled()
+                LuaReceiverMemberWork.recordVisit(members.size)
                 members.forEach { seen.putIfAbsent(it.name, it) }
                 true
             }, GlobalSearchScope.allScope(project))
             return seen.values.toList()
-        }
-
-        /** As [membersOf], but reporting which file each member came from — DR-09's D2 probe. */
-        fun membersByFile(
-            receiver: String,
-            project: Project,
-            scope: GlobalSearchScope,
-        ): Map<VirtualFile, List<LuaReceiverMember>> {
-            val byFile = LinkedHashMap<VirtualFile, List<LuaReceiverMember>>()
-            FileBasedIndex.getInstance().processValues(KEY, receiver, null, { file, members ->
-                byFile[file] = members
-                true
-            }, scope)
-            return byFile
         }
     }
 }

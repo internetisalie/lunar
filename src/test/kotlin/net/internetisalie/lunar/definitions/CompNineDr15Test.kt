@@ -88,7 +88,7 @@ class CompNineDr15Test : LibraryRootTestCase() {
                         .membersOfGlobal(receiver, project, context)
                         .map { it.name }
                         .sorted()
-                val union = LuaReceiverMemberIndex.membersOf(receiver, project, all).map { it.name }.sorted()
+                val union = LuaReceiverMemberIndex.membersIn(receiver, project, all).map { it.name }.sorted()
                 println("DR-15 $receiver  today=$today")
                 println("DR-15 $receiver  index=$viaIndex  union=$union")
                 println(
