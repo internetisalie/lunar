@@ -24,6 +24,7 @@ Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE
 | [`TYPE-07`](./07-external-api-stubs/requirements.md) | **External API Stubs** | **S** | Allow `.lua` files to define types for external modules. |
 | [`TYPE-09`](./09-union-distribution-logic/requirements.md) | **Union Distribution Logic** | **M** | Distributive checking for union types. |
 | [`TYPE-10`](./10-lambda-parameter-inference/requirements.md) | **Expected-Type → Lambda-Parameter Inference** | **C** | Propagate a parameter's declared `fun(...)` type onto a passed lambda's parameters. |
+| [`TYPE-11`](./11-library-snapshot-invalidation/requirements.md) | **Library Snapshot Invalidation** | **M** | A library file's cached type graph is discarded by a keystroke anywhere, because `forFile` depends on project-wide `MODIFICATION_COUNT`. Measured 9 ms vs 334 ms for the same two-line file without/with a 123 KiB library (COMP-09 DR-20). Blocks COMP-09. |
 | `TYPE-08` | **Flow-Sensitive Analysis** | **C** | Narrow types based on control flow. |
 
 ---

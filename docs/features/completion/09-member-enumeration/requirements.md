@@ -2,7 +2,7 @@
 id: "COMP-09"
 title: "09: Member Enumeration"
 type: "feature"
-status: "in_progress"
+status: "blocked"
 priority: "high"
 parent_id: "COMP"
 folders:
@@ -251,6 +251,40 @@ lines, so the NFR does not literally bind for library trees — which is how a 5
 both catastrophic and technically in-spec. `non-functional.md` must be amended to cover **indexed
 library content**, not only project content. Leaving the qualifier in place and declaring compliance
 would be true and useless.
+
+## PARKED AT PHASE 1 (2026-08-09) — blocked on TYPE-11
+
+Phases 0 and 1 are complete, reviewed and committed. **Phases 2-5 are not started and should not be
+started as written.**
+
+Phase 2 was executed exactly to plan, measured, and aborted (`ABORT_REPLAN`, `d5af3231`, docs only —
+no production change kept). Two measured reasons, either of which is disqualifying:
+
+1. **The change site is nearly dead.** `crossFileGlobalMembers` sits behind
+   `if (type == LuaGraphType.Undefined)`, and the in-file snapshot already resolves a cross-file
+   global to a populated `Table`. Across every cross-file completion test in the repo the branch is
+   entered by exactly three receivers — `luassert`, `wxFrame`, `AllColon` — all of which offer
+   nothing. Design §4.5's table is captioned "the door this call site actually serves"; it does not
+   serve that door, and DR-14 validated `membersOfGlobal` against `resolveGlobal` **directly**, never
+   through the contributor, so no de-risking could have caught it.
+2. **It is downstream of the cost.** `LuaTypesSnapshot.forFile(consumerFile)` runs unconditionally
+   above the guard: **1 462 ms of a 1 661 ms** cold completion. `BUDGET_ENFORCED` cannot be flipped
+   at this site however correct the index arm is.
+
+DR-20 then established where that cost comes from: **library snapshots are discarded by every
+unrelated keystroke**, because `forFile` depends on project-wide
+`PsiModificationTracker.MODIFICATION_COUNT`. Identical two-line consumer, medians of 5: **9 ms with
+no library, 334 ms with a 123 KiB library**. That is now **TYPE-11**, and it is the prerequisite.
+
+**What stands, and is harmless.** `LuaReceiverMemberIndex` is complete, registered, tested
+(2 543 tests green) and **consumed by nothing**. The golden, the latency gate and the work-bound gate
+are checked in; the two gates remain inverted, asserting today's miss.
+
+**What must be re-planned, not resumed.** Phases 2-4 are premised on a change site that measurement
+has disproved. Resuming them would build on the disproved thing. The re-plan needs TYPE-11's answer
+first, because it decides whether the remaining problem is "the first completion of a session" (an
+index question) or "every completion after an edit" (an invalidation question) — and the DR-20
+numbers say the second is the larger half on this path.
 
 ## Status against the planning bar
 
