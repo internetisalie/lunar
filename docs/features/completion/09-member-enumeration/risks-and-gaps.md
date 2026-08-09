@@ -53,6 +53,81 @@ folders:
   For one commit that half was credited to `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable`,
   which contains no assertion at all.
 
+### BLOCKER (Phase 2, 2026-08-09): the change site design §4.5 specifies is unreachable, and it is downstream of the cost
+
+**Phase 2 was executed to the plan, measured, and stopped. `ABORT_REPLAN`.** No production change was
+kept: the tree is back at Phase 1's `0e182b1c`. This section records the measurement so replanning
+starts from a run rather than a reading.
+
+**The plan's Phase 2 is:** rewrite `crossFileGlobalMembers` (`LuaCompletionContributor.kt:133-139`) to
+consume `globalMembership`, per design §4.5b/§4.5c. That was done exactly as specified — the §4.5c
+fork in the contributor, the §4.5b emit-loop split, `LuaMemberLookup.create(LuaReceiverMember)`. The
+result was **zero behaviour change**: the golden stayed byte-identical
+(`a8c580ccc7a9528c0fde41527d870c48`) and all five new expectation tests failed, each reporting
+*today's* answer.
+
+**The reason, probed rather than read.** The fork is guarded by
+`if (type == LuaGraphType.Undefined)` at `LuaCompletionContributor.kt:370-378`, where `type` comes
+from the in-file `LuaTypesSnapshot`. That snapshot **already resolves a cross-file global to a fully
+populated `Table`**, so the guard does not open. Instrumenting the branch and running every
+cross-file completion test in the repo:
+
+| receiver | fixture | `type` at the guard | `crossFileGlobalMembers` reached |
+| :-- | :-- | :-- | :-- |
+| `wx`, `Config`, `M`, `Busted`, `OM`, `Shapes`, `Base`, `Derived` | the golden fixture | `Table(...)` with its members | **no** |
+| `table` (bundled stdlib), `Lib` (project file), `assert` (`require`-bound), `Shadow` | `LuaGlobalMemberCompletionTest` | `Table(...)` / `Union(...)` | **no** |
+| `wx` | `LuaLibraryMemberCompletionTest`, library root | `Table(...)` | **no** |
+| `luassert`, `wxFrame`, `AllColon` | the golden fixture | `Undefined` | **yes — and all three return `<none>`** |
+
+So the branch is reached by exactly the three receivers whose `@class` sits on a **local**, i.e. the
+ones that are not globals and have nothing to offer. It is dead for every receiver COMP-09 exists to
+serve. Design §4.5's comparison table is headed "measured against today's global door, **the door
+this call site actually serves**" — the call site does not serve that door for any receiver with
+members, and DR-14 validated `membersOfGlobal` against `resolveGlobal` directly rather than through
+the contributor, so nothing in the de-risking would have caught it.
+
+**And the guard is downstream of the cost.** `LuaTypesSnapshot.forFile(receiverExpr.containingFile)`
+runs *unconditionally*, before either arm. Timed inside the COMP-09-08 fixture on gce-builder
+(us, two cold runs of the 3 600-member receiver):
+
+| | `forFile` | `getValueType` | gate's total cold time-to-first |
+| :-- | --: | --: | --: |
+| `wx`, run 1 | 1 462 142 | 27 | 1 661 395 |
+| `wx`, run 2 | 853 725 | 4 | 878 303 |
+| `Opaque` (tier 2) | 143 206 | 2 | 170 936 |
+
+The graph build is **88–97 %** of cold time-to-first and the member lookup the fork replaces is a
+rounding error. **COMP-09-08 therefore cannot be flipped by any change at this site**, however
+correct the index arm is: by the time the fork is evaluated the budget is already spent. The gate ran
+unchanged and still reports the miss (`wide = 878 303 us = 46x` against a derived floor of `2x`).
+
+**Why this was not worked around.** The obvious repair — consult the index *before*
+`LuaTypesSnapshot.forFile` for a bare-name receiver — is a new rule, not an implementation detail: it
+reorders in-file-versus-global precedence, which is what
+`LuaGlobalMemberCompletionTest.aLocalShadowsTheCrossFileGlobal` pins (a file-local `Shadow` must beat
+the global `Shadow`), and design §4.5/§4.5b contain no such rule. Inventing one to make the gate green
+is the rogue workaround the abort protocol forbids.
+
+**What replanning owes.** (1) A change site above the snapshot build, with a stated shadowing rule.
+(2) A restatement of §4.5's premise that `crossFileGlobalMembers` is the completion door — it is not.
+(3) A re-derivation of §4.12's two-tier contract: tier 2 (`Opaque`, 143 ms in `forFile` alone) misses
+the 100 ms budget through the same snapshot build, so the tiers may not be the distinction that
+matters. **Not owed:** any change to `LuaReceiverMemberIndex`, which the probe shows answers exactly
+as designed — `Derived` → `[Show, ownFn, ownField]` authoritative, `Shapes` → `[plain, nested,
+direct]` authoritative, `wx` → `[wxFileExists, wxID_ANY]` authoritative, `OM` → `[extra]`
+**non-authoritative**. Phase 1 is sound; only its consumer is mis-sited.
+
+**The five expectations Phase 2 wrote are correct and should be reused verbatim once the site moves**
+— they were run and each failed against today's code, which is the mutation proof the plan asks for:
+
+| expectation | design | observed failure on today's code |
+| :-- | :-- | :-- |
+| all four indexer sources reach `Sources.` | TC 5 | `fromFieldTag` absent |
+| `Derived.` offers `ownField` | §4.5a / TC 7c | `[Show, ownFn]` |
+| `Shapes.` no longer offers `deep` | §4.4a / BUG-430 | `[deep, direct, nested, plain]` |
+| `Residue.aliased` is a FIELD and vanishes at `Residue:` | §4.3 D3 | offered at `:` |
+| the index arm renders no type text | §4.5b / TC 3 | `wxFileExists=fun(filename)` |
+
 ### Risk 1.2: The scope and file-confinement semantics are lost in translation
 
 - **Impact**: subtly wrong members. `addMethodsOf` carries `MethodScan(className, receiver, onlyIn)`

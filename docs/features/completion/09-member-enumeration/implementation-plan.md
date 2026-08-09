@@ -341,7 +341,21 @@ is corrected above rather than argued with; the substantive item is the first.
   2 543 tests, 0 failures, 1 skipped** (2 541 + 2 added), ktlint 0 violations. Golden still
   `a8c580ccc7a9528c0fde41527d870c48`; `getVersion()` still 1; no `src/main` behaviour changed.
 
-## Phase 2: Completion consumer
+## Phase 2: Completion consumer — **BLOCKED 2026-08-09, needs replanning**
+
+> **Executed to this plan, measured, reverted.** The change site below —
+> `crossFileGlobalMembers`, `LuaCompletionContributor.kt:133-139` — is guarded by
+> `type == LuaGraphType.Undefined`, and that guard **does not open for any receiver with members**:
+> the in-file `LuaTypesSnapshot` already resolves a cross-file global to a populated `Table`. Probed
+> across every cross-file completion test in the repo, the branch is reached only by `luassert`,
+> `wxFrame` and `AllColon` — the three whose `@class` sits on a local and which offer `<none>`.
+> Implementing this phase exactly as written produced **zero behaviour change**.
+>
+> It is also **downstream of the cost**: `LuaTypesSnapshot.forFile` runs unconditionally before the
+> guard and is **88–97 %** of cold time-to-first (1 462 ms of 1 661 ms; 854 ms of 878 ms), so
+> COMP-09-08 cannot be flipped here at all. Full measurement, and what replanning owes, in
+> [risks-and-gaps.md](risks-and-gaps.md) — "BLOCKER (Phase 2, 2026-08-09)". **Phase 1's index is not
+> implicated**: it answers exactly as designed on every probed receiver.
 
 - **Goal**: `wx.<caret>` served from the index; COMP-09-08 goes green.
 - **Tasks**:
@@ -434,7 +448,7 @@ is corrected above rather than argued with; the substantive item is the first.
 | :-- | :-- | :-- |
 | 0: Golden file and instrument | **done** (2026-08-09) | Must |
 | 1: `LuaReceiverMemberIndex` | **done** (2026-08-09, remediated 2026-08-09) | Must |
-| 2: Completion consumer | todo | Must |
+| 2: Completion consumer | **blocked** (2026-08-09 — change site unreachable and downstream of the cost; needs replanning) | Must |
 | 3: Materialization consumer | todo | Must |
 | 4: `@class` metamethods | todo | Should |
 | 5: Re-measure and decide deferrals | todo | Must |
