@@ -91,7 +91,7 @@ included, stays on the global tracker. Three reasons:
 | TYPE-11-01 | **A platform-library snapshot survives an unrelated edit** | M | Editing a project file must not invalidate the cached snapshot of a file in a plugin-provisioned library (bundled stdlib stub, definition library). Rocks trees are out of scope for v1 and keep today's behavior. |
 | TYPE-11-02 | **Every generation signal invalidates it** | M | Roots change and target/version change each discard the affected snapshots. A missed signal is a stale-type defect, which is worse than the cost being fixed. |
 | TYPE-11-03 | **Library-file identification is by provenance** | M | The library set comes from what this plugin provisioned (`RuntimeLibraryProvider` / the definition-library registry), matched by `VirtualFile` identity against the file `resolveGlobal` actually resolved. Not `ProjectFileIndex.isInLibrary` — unverified for `SyntheticLibrary` roots, and unnecessary once provenance answers the question. |
-| TYPE-11-04 | **No new stale-type defect** | M | All four corpus baselines unmoved, and the full suite green. This changes when inference results are discarded; a wrong answer here is invisible until it is wrong in a user's editor. |
+| TYPE-11-04 | **No new stale-type defect** | M | An edit-then-reread fixture (`TypeElevenDr01ResidualTest`) stays green. **Measured (TYPE-11-DR-09): "all four corpus baselines unmoved and the full suite green" is not a test of this** — both hold under a build that serves stale types. They stay as "nothing else moved" checks. |
 | TYPE-11-05 | **A dumb-mode build is never cached across the generation** | M | `resolveGlobal` answers `null` while indexing; a snapshot built then has those nulls baked in and must not outlive dumb mode. Either skip caching while `DumbService.isDumb`, or add the dumb-mode tracker as a dependency. Without this, TYPE-11 *creates* a staleness class that today's per-keystroke invalidation accidentally heals. |
 
 ## The residual that may defeat the whole approach
@@ -140,8 +140,9 @@ above did not survive being executed, and they are corrected here rather than le
   (design §1.1). The plan therefore builds the alternative this document already allowed — leaving
   cross-file-resolving snapshots on the global tracker — decided per build from a recorded source set.
 - **Nothing but TYPE-11's own new fixtures noticed.** Under the unsound build, 2543 pre-existing
-  tests and all four corpus baselines passed unchanged. TYPE-11-04's acceptance cannot rest on the
-  existing suite.
+  tests passed unchanged. TYPE-11-04's acceptance cannot rest on the existing suite. *(First round
+  asserted the corpus half from a run that never executed the sweep classes; second round measured it
+  — see below. The claim happens to be true, but it was not evidence when it was made.)*
 - **Residual path 2 is real only in the hosted `---@class` form** (`---@class C` over `local C = {}`),
   and reaches the snapshot via `freeGlobalSeed` → `tableToLuaType` → `LuaGraphType.fromLuaType`, not
   via `materializeClass` as stated above. The bundled stdlib is 21/22 unhosted (design §1.2).
@@ -156,6 +157,29 @@ above did not survive being executed, and they are corrected here rather than le
   automated protection**; tracked as `risks-and-gaps.md` DR-06 (design §1.6).
 - **DR-04's success criterion is not met.** Arm B lands at 3–5× arm A in the same run, not "near the
   9 ms baseline" — which this document predicted, and named the reason for (design §1.5).
+
+### Second round (2026-08-09, `main` @ `2e06bc86`) — the recorder's premise, and the sweep
+
+- **The recorder's premise was tested and the recorder survives (TYPE-11-DR-10, design §1.7).** This
+  document blames residual path 1 on `doResolveGlobal` searching project scope first (BUG-427). That
+  ordering was *removed* — a provisioned file's globals were restricted to a provisioned-only
+  candidate set — and blanket pinning stayed unsound: `2571 tests completed, 2 failed`, with residual
+  path 2 still reporting `[afterEdit, beforeEdit]`. The reason is that path 2 never passes through
+  global resolution at all: `collectMethodMembers` reads
+  `StubIndex.getAllKeys(LuaGlobalDeclarationIndex.KEY, project)` **project-wide, with no scope
+  argument** (`LuaTypeManagerImpl:427-432`). The restriction also deletes real behaviour — a library
+  global typed from a project global stops resolving entirely (`[beforeEdit]` → `[]`).
+- **Residual path 2's route is `materializeClass` after all, in the sense that matters.** This
+  document's original wording named `materializeClass` → `collectMethodMembers`; design §1.2 corrected
+  it to `freeGlobalSeed` → `tableToLuaType` → `fromLuaType`. Both are right about different halves:
+  the *carrier* into the snapshot graph is `fromLuaType`, and the *source* of the project member is
+  `collectMethodMembers`, reached from `tableToLuaType`'s nominal `resolveType(className)` hop
+  (`LuaTypes.kt:156-172`). Only the second half explains why scoping global resolution cannot fix it.
+- **The corpus sweep is blind to this too (TYPE-11-DR-09).** Re-run under the blanket-pin build:
+  `2571 tests completed, 2 failed` — both TYPE-11's own — with `LuaCorpusSweepTest` 4/0,
+  `LuaTortureCorpusTest` 1/0 and `LuaInspectionParityTest` 1/0. All four baselines unmoved.
+  Structural, not incidental: `CorpusSweep.run` is a single pass over an unedited tree, and a stale
+  cache needs an edit. TYPE-11-04's acceptance is `TypeElevenDr01ResidualTest` and nothing else.
 
 ## Relationship to COMP-09
 

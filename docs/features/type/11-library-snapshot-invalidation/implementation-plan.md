@@ -84,8 +84,15 @@ are already committed and green on `main`. They must stay green at the end of ev
 - **Exit criteria**:
   - `tooling/gce-builder/gce-builder.sh run "ktlintCheck lintDocs test --rerun --no-build-cache"` —
     BUILD SUCCESSFUL, 0 failures.
-  - the **corpus sweep run explicitly** — `run "test -PwithCorpus --rerun --no-build-cache"` — green, and the six sweep classes present in `build/test-results/test/`. Reference on `69ad6b57`: 2 571 tests, 0 failures. (`git status --short src/test/resources/corpus/`
-    empty).
+  - the **corpus sweep run explicitly** — `run "test -PwithCorpus --rerun --no-build-cache"` — green,
+    with **`LuaCorpusSweepTest`, `LuaTortureCorpusTest` and `LuaInspectionParityTest`** present in
+    `build/test-results/test/` **and timestamped after the run started**. Those three are the only
+    classes the `-PwithCorpus` filter gates (`design.md` §1.4 ⚠⚠); `BaselineRatchetTest`,
+    `LexerInvariantsTest` and `ParseOracleTest` run in the routine loop and prove nothing about the
+    sweep, and `--rerun` does **not** clear the results directory, so a stale XML from the previous
+    run reads as a pass. Reference on `69ad6b57`: 2 571 tests, 0 failures. Do **not** substitute
+    `git status --short src/test/resources/corpus/` — it is empty whether the sweep passed, regressed
+    or never ran (`build.gradle.kts:286-288`).
   - `TypeElevenDr04LatencyTest` arm B median at least 5× below the `main` figure **measured in the
     same run** as its own arm A. No cross-run ratio is quotable (design §1.5).
   - Every new assertion shown red under a stated mutation, appended to the `risks-and-gaps.md` ledger.
@@ -115,7 +122,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 | TYPE-11-01 — a platform-library snapshot survives an unrelated edit | M | Phase 3 |
 | TYPE-11-02 — every generation signal invalidates it | M | Phase 1 (the tracker composition) + Phase 3 (`TypeElevenGenerationSignalTest`) |
 | TYPE-11-03 — identification is by provenance | M | Phase 1 |
-| TYPE-11-04 — no new stale-type defect | M | Phase 2 (recording) + Phase 3 (the condition); gated by `TypeElevenDr01ResidualTest`, the full suite and the four corpus baselines |
+| TYPE-11-04 — no new stale-type defect | M | Phase 2 (recording) + Phase 3 (the condition); gated by **`TypeElevenDr01ResidualTest` alone** — measured (TYPE-11-DR-09): the full suite and all four corpus baselines pass unchanged under the rejected blanket-pin build, so neither is a gate for this requirement. They remain exit criteria for "nothing else moved". |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | Phase 3 (the guard, design §3.4) + Phase 4 (DR-06, because the guard currently has no reproducing test) |
 
 ## Verification Tasks

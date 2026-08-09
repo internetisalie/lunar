@@ -27,6 +27,30 @@ carries no production change.** For the record, the reverted scaffold was:
 the design's premises, and every one of their assertions has been shown red under a named mutation
 (below).
 
+### Second measurement round (2026-08-09, `main` @ `2e06bc86`) — DR-09 and DR-10
+
+Same discipline, same builder, same revert. This round tested the **premise** behind the recorder
+(`design.md` §1.7 / DR-10) and ran the corpus sweep under the unsound build (DR-09). Its scaffold,
+also reverted — `git diff -- src/main/` is empty at commit:
+
+| Scaffold file / edit | Purpose | State |
+| :-- | :-- | :-- |
+| `src/main/kotlin/.../lang/psi/types/LuaTemporaryProvenance.kt` (new, 45 lines) | `object` with `rootUrls(project)` memoized on the **project** via `CachedValuesManager.getManager(project).getCachedValue(project)` with `ProjectRootModificationTracker` + `state.targetModificationTracker`; roots = `RuntimeLibraryProvider(project).getLibraryRoot(state.getTarget())` + EP-registered `LuaDefinitionLibraryProvider.getRootsToWatch(project)`; `isProvisionedUrl(project, url)` = `url == root \|\| url.startsWith("$root/")`; `isProvisioned(file)` reads `file.originalFile.virtualFile?.url` | **deleted** |
+| `LuaTypes.kt` — `forFile` | added `private val BLANKET_PIN: Boolean = "true".toBoolean()` in the companion (a parsed string, not a `const`, so neither arm folds to unreachable code) and made the churn dependency `if (BLANKET_PIN && !DumbService.isDumb(project) && LuaTemporaryProvenance.isProvisioned(psiFile)) ProjectRootModificationTracker.getInstance(project) else PsiModificationTracker.MODIFICATION_COUNT`; imports `DumbService`, `ProjectRootModificationTracker` | **reverted to HEAD** |
+| `LuaTypeManagerImpl.kt` — file-level `internal val RESTRICT_PROVISIONED_GLOBALS: Boolean` (same parsed-string form) | the DR-10 arm switch: `true` for the restriction run, `false` for the DR-09 run | **reverted to HEAD** |
+| `LuaTypeManagerImpl.kt` — `doResolveGlobal` first statement | `if (RESTRICT_PROVISIONED_GLOBALS && here != null && LuaTemporaryProvenance.isProvisioned(here)) return typeOfProvisionedGlobal(name, here)` | **reverted to HEAD** |
+| `LuaTypeManagerImpl.kt` — new `private fun typeOfProvisionedGlobal(name, exclude)` | `typeOfGlobalIn` over `GlobalSearchScope.allScope(project)` with `.filter { LuaTemporaryProvenance.isProvisionedUrl(project, it.url) }` inserted before the `PsiManager.findFile` hop | **reverted to HEAD** |
+
+No `plugin.xml`, `build.gradle.kts` or test-source change was needed: both arms are selected by
+editing the two `Boolean` initialisers and re-running, and every assertion consumed is one of the
+committed TYPE-11 harnesses.
+
+**Reading test results on the builder: `--rerun` does not clear `build/test-results/test/`.** The
+previous run's XML sits there for the whole of the next run and is only replaced when `:test`
+finishes. Reading it mid-run reports the *previous* build's verdict. Check `ls -l` timestamps against
+`date` on the builder before believing any XML — this round nearly recorded a false "Q1 is green"
+from 2-hour-old files.
+
 ## Mutation ledger — every assertion, and the mutation that turned it red
 
 "A test that cannot fail is not a gate." Each row was run; the `result` column is the observed
@@ -44,6 +68,9 @@ outcome, not an expectation.
 | `…testALightFixtureProjectFileIsNeverProvisioned` | provenance widened to accept `/src` | **RED** — `MUTATION C` |
 | `TypeElevenDr05DumbModeTest.testASnapshotBuiltWhileDumbDoesNotSurviveIntoSmartMode` | (a) `!isDumb` term removed; (b) generation tracker replaced with `ModificationTracker.NEVER_CHANGED` | **GREEN under both.** Not a gate — see Gap 2.1. |
 | `TypeElevenDr04LatencyTest` (both arms) | — | **No assertions at all.** It is a printing probe, exactly like `CompNineDr20Test`, and is not claimed as a gate. |
+| `…testALibraryGlobalTypedFromAProjectGlobalTracksThatProjectFile` (2026-08-09, second round) | provisioned-context globals restricted to provisioned scope (DR-10) **+** blanket pin | **RED at a different assertion — `:88`, not `:93`.** `the library global must take the project declaration's members expected:<[beforeEdit]> but was:<[]>`. The move from `:93` to `:88` is the DR-10 scaffold's liveness proof: the restriction is what turns `[beforeEdit]` into `[]`. |
+| `…testAProjectDeclaredMethodOnAStubClassTracksThatProjectFile` (second round) | same | **RED at `:139`, message unchanged** — `the removed project method must disappear; got [afterEdit, beforeEdit]`. Identical to blanket pinning: this path never enters `typeOfGlobalIn`. |
+| Blanket pin alone, re-run in the second round for DR-09 | blanket pin (provenance + `!isDumb`), restriction off | **RED at `:93` and `:139`** — reproduces the first round's signature exactly, which is what makes the `:88` above attributable to the restriction and not to the pin. |
 
 For completeness, the two full-suite runs the ledger is anchored to:
 
@@ -52,7 +79,17 @@ blanket pin (rejected):   2563 tests completed, 2 failed, 1 skipped   BUILD FAIL
 conditional rule (§3):    2564 tests, 0 failures, 1 skipped           BUILD SUCCESSFUL in 9m 45s
 ```
 
-⚠ **corrected 2026-08-09** — the corpus sweep was **not run** for those measurements. `git status --short src/test/resources/corpus/` is **not** evidence: baselines are only rewritten under `-PrecordCorpusBaseline` (`build.gradle.kts:286-288`), so that check is clean whether the sweep passed, regressed, or never ran. The corpus classes are excluded from the routine loop by design (`build.gradle.kts:272-283`) — they index ~300-file third-party trees and need `tooling/corpus/fetch-corpus.py`. **The gate is the sweep itself**: `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"`, in which `BaselineRatchetTest` compares against the recorded baselines in-test. Run on `69ad6b57` afterwards: **2 571 tests, 0 failures**, baselines unmoved.
+⚠ **corrected 2026-08-09** — the corpus sweep was **not run** for those measurements. `git status --short src/test/resources/corpus/` is **not** evidence: baselines are only rewritten under `-PrecordCorpusBaseline` (`build.gradle.kts:286-288`), so that check is clean whether the sweep passed, regressed, or never ran. **The gate is the sweep itself**: `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"`. Run on `69ad6b57` afterwards: **2 571 tests, 0 failures**, baselines unmoved.
+
+⚠⚠ **corrected again 2026-08-09 (second round)** — the correction above named the wrong comparator.
+`BaselineRatchetTest` does **not** compare the recorded baselines: its 35 tests build synthetic
+`CorpusMetrics` and ratchet them against throwaway files in a JUnit `TemporaryFolder`
+(`BaselineRatchetTest.kt:28`, `:406`, `:416`). It is also **not** gated by `-PwithCorpus` —
+`excludeTestsMatching("*Corpus*")` is case-sensitive and does not match the lowercase
+`…lunar.corpus.` package segment, which the class's own KDoc states (`BaselineRatchetTest.kt:19-24`);
+the same holds for `LexerInvariantsTest` and `ParseOracleTest`. The recorded baselines are compared
+only in `LuaCorpusSweepTest.sweepAndRatchet` → `CorpusGuards.assertRatchet`
+(`LuaCorpusSweepTest.kt:97-101`) and in `LuaTortureCorpusTest`. See `design.md` §1.4 ⚠⚠ and §1.7.
 
 Two harness defects were caught and fixed by this exercise rather than shipped:
 
@@ -72,7 +109,7 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 | Constraint treated as fixed | Verdict |
 | :-- | :-- |
 | "The residual might not be real" | **REFUTED by measurement.** It is real and it fires: `design.md` §1.1. Blanket pinning is unsound and this plan does not build it. |
-| "The existing suite plus four corpus baselines will catch a stale-type regression here" | **REFUTED for the suite; UNTESTED for the corpus.** The pre-existing tests passed unchanged under a build that demonstrably serves stale types. The corpus half was never measured — those classes are excluded from the routine loop and the sweep was not run under the unsound build. Re-running it there is [[DR-09]]. This premise is the reason `TypeElevenDr01ResidualTest` exists and the reason it is committed rather than thrown away. |
+| "The existing suite plus four corpus baselines will catch a stale-type regression here" | **REFUTED for both halves, by measurement.** The pre-existing tests passed unchanged under a build that demonstrably serves stale types; DR-09 then re-ran the sweep on that same build and **all four baselines compared unchanged** (`2571 tests completed, 2 failed` — both TYPE-11's own). See "DR-09 measured" below: the sweep is a single pass over an unedited tree, so it cannot observe a stale-cache defect at any corpus size. This premise is the reason `TypeElevenDr01ResidualTest` exists and the reason it is committed rather than thrown away. |
 | "A project file adding a method to a stub class stales the snapshot" (`requirements.md`) | **PARTLY REFUTED.** True only for the **hosted** `---@class` form, and by a different route than `requirements.md` names (`freeGlobalSeed` → `tableToLuaType` → `fromLuaType`, not `materializeClass` reaching the snapshot). The bundled stdlib is 21/22 unhosted. `design.md` §1.2. |
 | "A dumb-mode build bakes in nulls that are then sticky" (`requirements.md`, TYPE-11-05) | **HALF REFUTED.** The nulls are baked in (`graph type = Undefined`); they are **not** sticky, and not because of any tracker — the file's own `modificationStamp` moves 0→1 when dumb mode ends. The guard is kept as insurance; see Gap 2.1. |
 | "Library files can be matched by `VirtualFile` identity" (TYPE-11-03) | **REFUTED as written.** `===` is false for a project file the index itself supplied. Matching is by URL containment. `design.md` §1.3. |
@@ -80,8 +117,58 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 | "Rocks trees are out of v1 scope" | **Chosen, not forced.** They are excluded because they are mutable in place and their refresh signal is unverified — a v1 that included them would need TYPE-11-DR-03 answered first. TYPE-11-DR-03 was deliberately **not run**. |
 | "`ProjectRootModificationTracker` is the right generation signal" | **Chosen, and half-executed.** Measured **not** to tick across a dumb-mode episode (`P2D before/inside/after dumb: roots=10` throughout) or across a document edit (`P2S before/after: rootsTracker=7`) — both are exactly what §3.3 relies on. That it **does** tick when a definition library is enabled is verified by **reading** the chain, not by running the production path: `LuaDefinitionLibraryEnabler.apply` → `LuaProjectSettings.notifyDefinitionRootsChanged` (`LuaProjectSettings.kt:199-205`) → `LuaSettingsChangedListener.TOPIC` → `LuaSettingsChangeListener.onSettingsChanged` (`project/LuaSettingsChangeListener.kt:32`) → `PlatformLibraryIndex.reload()` → `ProjectRootManagerEx.makeRootsChange` (`project/PlatformLibraryProvider.kt:149`). The TYPE-11 fixtures announce the roots change themselves, so they do **not** exercise that chain. See Gap 2.3. |
 | "The `psiFile` dependency in `forFile` can stay as it is" | **Genuinely fixed, and load-bearing in a way not previously noticed.** It is what makes a file's own edit always rebuild its own snapshot regardless of the churn tracker (`CachedValueBase` reads `containingFile.modificationStamp` for a `PsiElement` dependency). Removing it would break the design silently. |
+| **"`doResolveGlobal` must keep searching project scope first (BUG-427), so the recorder has to over-approximate around it"** (`design.md` §3.5) | **REFUTED as the recorder's justification, by measurement — `design.md` §1.7.** The constraint *is* removable: a scaffold that sends a provisioned file's globals to a provisioned-only candidate set compiles and runs. Removing it does **not** make blanket pinning sound (`2571 tests completed, 2 failed`; residual path 2 still reports `[afterEdit, beforeEdit]`), because that path reaches the snapshot through `materializeClass` → `collectMethodMembers`, which queries `StubIndex.getAllKeys(LuaGlobalDeclarationIndex.KEY, project)` with **no scope argument at all** (`LuaTypeManagerImpl:427-432`). Removing it also costs real behaviour: residual path 1's library global stops resolving (`[beforeEdit]` → `[]`). The recorder stays; its stated *reason* was wrong, and §3.5 now says so. |
+| "The corpus half of TYPE-11-04's acceptance is `BaselineRatchetTest` comparing recorded baselines under `-PwithCorpus`" (this document's own 2026-08-09 correction) | **REFUTED by reading the tests it names.** `BaselineRatchetTest` ratchets synthetic metrics against `TemporaryFolder` files and runs in the **routine** loop; the recorded baselines are compared only by `LuaCorpusSweepTest`/`LuaTortureCorpusTest`. A correction that names the wrong gate is the same defect as the claim it corrected. |
 | "A latency probe with no assertions is acceptable" | **Chosen, and stated.** DR-04 measures a direction; a threshold gate on a figure whose own baseline moved 3.2–10.4 ms between runs on the same machine would be noise dressed as a contract. COMP-09 §1.2's rule, applied. |
 | "Library→library dependencies are safe under a shared generation tracker" (`requirements.md`) | **Accepted, untested.** No fixture edits a library file, because a user cannot. It is safe by construction: any change to a provisioned tree comes through a roots change, which ticks the shared tracker for every pinned file at once. |
+
+## DR-09 measured: the sweep does **not** catch it, and it structurally cannot
+
+The blanket-pin build (provenance + `!isDumb`, no source condition — the configuration
+`design.md` §1.1 rejected) re-run as `run "test -PwithCorpus --rerun --no-build-cache"`:
+
+```
+TypeElevenDr01ResidualTest > testAProjectDeclaredMethodOnAStubClassTracksThatProjectFile FAILED
+    junit.framework.AssertionFailedError at TypeElevenDr01ResidualTest.kt:139
+TypeElevenDr01ResidualTest > testALibraryGlobalTypedFromAProjectGlobalTracksThatProjectFile FAILED
+    junit.framework.AssertionFailedError at TypeElevenDr01ResidualTest.kt:93
+
+2571 tests completed, 2 failed, 1 skipped
+> Task :test FAILED
+BUILD FAILED in 18m 33s
+```
+
+```
+DR-01 path1 before edit: libAlias  members = [beforeEdit]
+DR-01 path1 after edit:  libAlias  members = [beforeEdit]   <- stale
+DR-01 path2 before edit: libHandle members = [beforeEdit]
+DR-01 path2 after edit:  libHandle members = [afterEdit, beforeEdit]   <- stale
+```
+
+Every corpus class green in that same run (XML timestamps checked against the run, not inherited):
+
+```
+BaselineRatchetTest      tests=35 failures=0      LuaCorpusSweepTest      tests=4 failures=0
+LexerInvariantsTest      tests=8  failures=0      LuaInspectionParityTest tests=1 failures=0
+ParseOracleTest          tests=14 failures=0      LuaTortureCorpusTest    tests=1 failures=0
+```
+
+**Answer: the blind spot is wider than the plan claimed.** All four recorded baselines — luacheck,
+luarocks, penlight, zerobrane — compare unchanged under a build that serves stale types, so
+TYPE-11-04's acceptance rests on `TypeElevenDr01ResidualTest` and on nothing else. `design.md` §1.1's
+"the existing suite is not a gate for this" now extends to the corpus sweep.
+
+**And this is structural, not a gap in corpus coverage.** `CorpusSweep.run`
+(`CorpusSweep.kt:75-100`) is a **single pass**: it applies a module root, sweeps every file once for
+parse/require tallies, then collects inspection hits. It never edits a file. This defect class is
+"a snapshot built before an edit is still served after it" — it cannot exist without an edit, so no
+single-pass sweep observes it however large the corpus grows. Two further reasons it could not have
+fired here: the sweep installs no definition library, and every corpus file is a *project* file,
+which the pin never touches.
+
+**Consequence for the plan.** Do not widen the corpus to chase this. The gate for TYPE-11-04 is an
+edit-then-reread fixture (`TypeElevenDr01ResidualTest`) plus the Risk 1.1 source-text guard; the
+sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 
 ## Critical Risks
 
@@ -93,6 +180,9 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
   test failure — the user simply sees a type that stopped updating.
 - **Likelihood**: **medium now, high over time.** `design.md` §3.5 enumerates six sites and they were
   sufficient for every measured case, but nothing structurally prevents a seventh being added later.
+- **Escalated by DR-09.** The corpus sweep was the last remaining candidate for a broad safety net and
+  it is measured blind to this class (below). `TypeElevenDr01ResidualTest` plus the Phase 3 source-text
+  guard are the whole defence; there is no third line.
 - **Mitigation**: (a) `TypeElevenDr01ResidualTest` is committed and covers the two known shapes;
   (b) implementation-plan Phase 3 adds `LuaTypeSourceRecorderCoverageTest`, a source-text guard over
   `LuaTypeManagerImpl.kt` that fails when a `PsiManager.findFile` / `StubIndex.getElements` /
@@ -186,7 +276,8 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 
 | ID | Action | Resolves | Status |
 | :-- | :-- | :-- | :-- |
-| TYPE-11-DR-09 | Re-run the corpus sweep **under the blanket-pin build** — `run "test -PwithCorpus --rerun --no-build-cache"` — to establish whether the sweep would have caught what the routine loop missed. The original refutation ran the routine loop only, so "all four baselines passed unchanged" was never measured. If the sweep *does* catch it, TYPE-11-04's acceptance is stronger than the plan currently claims; if it does not, the blind spot is wider. | TYPE-11-04, Risk 1.1 |
+| TYPE-11-DR-09 | Re-run the corpus sweep **under the blanket-pin build** — `run "test -PwithCorpus --rerun --no-build-cache"` — to establish whether the sweep would have caught what the routine loop missed. | TYPE-11-04, Risk 1.1 | **done, negative — see "DR-09 measured" below.** |
+| TYPE-11-DR-10 | Is the recorder's premise removable? Restrict a provisioned file's global resolution to provisioned scope, then blanket-pin, and see whether the residual still fires. | the recorder's existence; `design.md` §3.5, §9 | **done, negative** — `design.md` §1.7. `2571 tests completed, 2 failed`. The recorder survives; §3.5's stated justification was wrong and is corrected. |
 | TYPE-11-DR-01 | Pin `forFile`'s dependency for provenance-matched library files; run the full suite and the corpus sweeps; build explicit fixtures for both named residual paths | the residual; TYPE-11-04 | **done** — `design.md` §1.1/§1.2/§1.4. Residual real; blanket pinning rejected; conditional rule adopted and re-run green |
 | TYPE-11-DR-02 | Can every file `resolveGlobal` resolves into be matched against the provenance set? | TYPE-11-03 | **done** — `design.md` §1.3. Yes, by URL containment through `originalFile`; `===` and `psiFile.virtualFile` both refuted |
 | TYPE-11-DR-03 | Does `RockspecSourcePathProvider.forceRefreshTracker` tick on `luarocks install` into an existing root? | follow-up scope only | **not run** — rocks are out of v1 scope |

@@ -11,8 +11,12 @@ folders:
 
 This feature changes **how long a cache lives**. Both of its failure modes are invisible to a green
 suite — one is a latency the test JVM does not feel the way a user does, the other is a stale type
-that `design.md` §1.1 measured 2543 pre-existing tests failing to notice. Everything below must be
-run in a real IDE against a real definition library.
+that `design.md` §1.1 measured 2543 pre-existing tests failing to notice **and that TYPE-11-DR-09
+then measured all four corpus baselines failing to notice as well** (`risks-and-gaps.md` → "DR-09
+measured": `2571 tests completed, 2 failed`, both of them TYPE-11's own fixtures). Outside
+`TypeElevenDr01ResidualTest`, the scenarios below are the only thing standing between this feature
+and a silent stale type. Everything below must be run in a real IDE against a real definition
+library.
 
 **Common setup** (steps 1–5 of Scenario 1.1) is referenced by later scenarios; do it once per session.
 

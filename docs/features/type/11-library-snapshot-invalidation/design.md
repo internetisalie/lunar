@@ -155,7 +155,26 @@ BUILD SUCCESSFUL in 9m 45s
 tests 2564 failures 0 skipped 1
 ```
 
-⚠ **corrected 2026-08-09**: the corpus sweep was not run for that measurement. `git status --short src/test/resources/corpus/` is **not** evidence: baselines are only rewritten under `-PrecordCorpusBaseline` (`build.gradle.kts:286-288`), so that check is clean whether the sweep passed, regressed, or never ran. The corpus classes are excluded from the routine loop by design (`build.gradle.kts:272-283`) — they index ~300-file third-party trees and need `tooling/corpus/fetch-corpus.py`. **The gate is the sweep itself**: `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"`, in which `BaselineRatchetTest` compares against the recorded baselines in-test.
+⚠ **corrected 2026-08-09**: the corpus sweep was not run for that measurement. `git status --short src/test/resources/corpus/` is **not** evidence: baselines are only rewritten under `-PrecordCorpusBaseline` (`build.gradle.kts:286-288`), so that check is clean whether the sweep passed, regressed, or never ran. **The gate is the sweep itself**: `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"`.
+
+⚠⚠ **corrected again 2026-08-09 (second measurement round)** — the correction above named the **wrong comparator**, and named three classes as sweep-gated that are not:
+
+- `BaselineRatchetTest` never reads a recorded baseline. Its 35 tests build synthetic `CorpusMetrics`
+  and write throwaway files into a JUnit `TemporaryFolder` (`BaselineRatchetTest.kt:28`, `:406`, `:416`).
+- `BaselineRatchetTest`, `LexerInvariantsTest` and `ParseOracleTest` are **not** behind `-PwithCorpus`.
+  `excludeTestsMatching("*Corpus*")` is case-sensitive and does not match the lowercase
+  `…lunar.corpus.` package segment — each class says so in its own KDoc
+  (`BaselineRatchetTest.kt:19-24`, `LexerInvariantsTest.kt:8-11`, `ParseOracleTest.kt:9-11`), and each
+  is deliberately named to run in the routine loop.
+- The recorded baselines under `src/test/resources/corpus/` are compared in exactly one place:
+  `LuaCorpusSweepTest.sweepAndRatchet` → `CorpusGuards.assertRatchet` (`LuaCorpusSweepTest.kt:97-101`),
+  plus `LuaTortureCorpusTest`.
+
+So the only classes whose presence distinguishes a sweep run from a routine one are
+**`LuaCorpusSweepTest` (4 tests), `LuaTortureCorpusTest` (1) and `LuaInspectionParityTest` (1)**.
+Corroborated by counting: routine 2 564 vs sweep 2 571 is a delta of **7**, not the 63 tests the
+`…lunar.corpus.` package contributes in total (ratchet 35, oracle 14, lexer 8, sweep 4, parity 1,
+torture 1 — measured, §1.7).
 
 Every bundled stdlib file and DR-04's 123 KiB synthetic library is pinnable. `io.lua` records one
 source (its own hosted `File` class) and that source is inside the provisioned set.
@@ -215,6 +234,84 @@ green.
 for a demonstrated defect, and the DR-05 harness is explicitly NOT a gate.** Saying otherwise would
 be the exact "test that cannot fail" this plan exists to avoid. Closing it properly is a tracked
 de-risking task (`risks-and-gaps.md` → DR-06).
+
+### 1.7 The premise behind the recorder, examined by execution (2026-08-09, second round)
+
+The recorder (§2.1, §3.1, §3.5, §3.6) is the most complex thing in this design, and §3.5 justifies its
+widest rule — "report **every** file `typeOfGlobalIn` visits" — by naming **one** constraint: that
+`doResolveGlobal` searches project scope first (BUG-427, `LuaTypeManagerImpl:162-163`). A design whose
+most complex part exists to survive one removable constraint is exactly the "unexamined premise" the
+planning skill warns about, and §9 did not list removing it. So it was removed and measured.
+
+**The scaffold** (reverted; itemised in `risks-and-gaps.md` → "What the measurement ran against"):
+when the *resolving context file* is plugin-provisioned, `doResolveGlobal` skips the project-scope
+pass entirely and searches a provisioned-only candidate set —
+`FileBasedIndex.getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, allScope)` filtered to files
+under a provenance root. Paired with **blanket** pinning (provenance + `!isDumb`, no source recording,
+no conditional): the design of §3.3 minus §3.1/§3.5/§3.6.
+
+```
+> Task :test
+TypeElevenDr01ResidualTest > testAProjectDeclaredMethodOnAStubClassTracksThatProjectFile FAILED
+    junit.framework.AssertionFailedError at TypeElevenDr01ResidualTest.kt:139
+TypeElevenDr01ResidualTest > testALibraryGlobalTypedFromAProjectGlobalTracksThatProjectFile FAILED
+    junit.framework.AssertionFailedError at TypeElevenDr01ResidualTest.kt:88
+
+2571 tests completed, 2 failed, 1 skipped
+> Task :test FAILED
+BUILD FAILED in 19m 50s
+```
+
+```
+DR-01 path1 before edit: libAlias members = []
+  junit.framework.AssertionFailedError: the library global must take the project declaration's
+  members expected:<[beforeEdit]> but was:<[]>
+
+DR-01 path2 before edit: libHandle members = [beforeEdit]
+DR-01 path2 after edit:  libHandle members = [afterEdit, beforeEdit]
+  junit.framework.AssertionFailedError: the removed project method must disappear;
+  got [afterEdit, beforeEdit]
+
+DR-01 control after project edit: projectAlias = [after] libOnly = [fromLibrary]   (green)
+```
+
+**The recorder survives. Three things were established, none of them by reading:**
+
+1. **The restriction is live, and it deletes the behaviour rather than fixing it.** Residual path 1's
+   *pre-condition* moved from `[beforeEdit]` (on `main`, and under blanket pinning) to `[]`: a library
+   file's free global that only a project file declares now resolves to nothing at all. That is the
+   scaffold's mutation proof — and it is also the reason the restriction is not shippable on its own
+   terms. It is a user-visible resolution change, well outside a cache-lifetime feature's remit.
+2. **Residual path 2 is untouched, because it never goes through `typeOfGlobalIn`.** `[afterEdit,
+   beforeEdit]` is the identical blanket-pin symptom. The project method reaches the library file's
+   snapshot through the **nominal** channel: `freeGlobalSeed` → `resolveGlobal("HostGlobal")` — which
+   the restriction *allows*, both files being provisioned — → `globalTypeIn` → `graphTypeToLuaType`
+   → `tableToLuaType` (`LuaTypes.kt:156-172`) → `resolveType("HostClass")` → `materializeClass` →
+   `collectMethodMembers`, which reads `StubIndex.getAllKeys(LuaGlobalDeclarationIndex.KEY, project)`
+   **project-wide with no scope argument at all** (`LuaTypeManagerImpl:427-432`), and is then frozen
+   into the graph by `LuaGraphType.fromLuaType` (`LuaGraphType.kt:251`). No restriction on global
+   *scope* can reach a channel that takes no scope.
+3. **Nothing that should have survived broke.** No BUG-427 fixture failed — a project file
+   reassigning a stdlib global is project-context resolution, which the restriction does not touch.
+   Library→library resolution still works: `libHandle = HostGlobal` across two provisioned files gave
+   `[beforeEdit]` before the edit.
+
+**Consequence for §3.5.** The over-approximation rule stays, but its stated justification was too
+narrow. The recorder is not there to survive BUG-427's ordering; BUG-427's ordering could be deleted
+tomorrow and blanket pinning would still be unsound. It is there to survive **project-wide nominal
+class materialization**, which is why the `materializeClass` (`:262`) and `addMethodsOf` (`:467`)
+report sites — not the `typeOfGlobalIn` one — are the load-bearing rows of that table.
+
+Corpus results in the same run, all green under a build that demonstrably serves stale types:
+
+```
+BaselineRatchetTest      tests=35 failures=0      LuaCorpusSweepTest     tests=4  failures=0
+LexerInvariantsTest      tests=8  failures=0      LuaInspectionParityTest tests=1 failures=0
+ParseOracleTest          tests=14 failures=0      LuaTortureCorpusTest   tests=1  failures=0
+```
+
+DR-04 in the same run (medians of five, compare only within the row): arm A 2 992 µs, arm B
+13 888 µs — recorded, not a gate (§1.5's rule).
 
 ### Prior Art in This Repo
 
@@ -441,6 +538,14 @@ deliberate over-approximation: `doResolveGlobal` searches project scope first (B
 still a file whose future content can change the answer. Over-approximating costs a lost pin; under-
 approximating costs a stale type.
 
+**That ordering is not, however, what the recorder exists for** — §1.7 removed it and blanket pinning
+stayed unsound. The rows that carry the weight are `materializeClass` (`:262`) and `addMethodsOf`
+(`:467`): `collectMethodMembers` reads `StubIndex.getAllKeys(LuaGlobalDeclarationIndex.KEY, project)`
+**project-wide with no scope argument** (`:427-432`), so a project file extends a stub-defined class
+no matter how global resolution is scoped. Deleting a row from this table on the grounds that
+"resolution no longer reaches project scope" would be a stale-type defect; §1.7 is the measurement
+that says so.
+
 ### 3.6 Cache replay
 
 - **Input → Output**: a door name + argument → the source set recorded when that answer was computed.
@@ -573,7 +678,7 @@ Platform APIs used, all verified present by compiling the measurement build agai
 | TYPE-11-01 — a platform-library snapshot survives an unrelated edit | M | §2.2, §2.3, §3.2, §3.3 | `TypeElevenDr04LatencyTest` arm B; §1.5 |
 | TYPE-11-02 — every generation signal invalidates it | M | §3.2 step 1, §3.3 step 5, §5 example 3 | `TypeElevenGenerationSignalTest` (plan Phase 3) |
 | TYPE-11-03 — identification is by provenance | M | §3.2 | `TypeElevenDr02ProvenanceTest`, 5 assertions, all mutation-proved |
-| TYPE-11-04 — no new stale-type defect | M | §3.1, §3.3, §3.5, §3.6 | `TypeElevenDr01ResidualTest` (3 tests) + full suite + four corpus baselines |
+| TYPE-11-04 — no new stale-type defect | M | §3.1, §3.3, §3.5, §3.6 | `TypeElevenDr01ResidualTest` (3 tests). **It is the only gate.** Measured (TYPE-11-DR-09): under the rejected blanket-pin build the full suite *and* all four corpus baselines pass — `2571 tests completed, 2 failed`, both of them these fixtures. The suite and the sweep show that nothing *else* moved; neither can detect this defect class, because it needs an edit after a snapshot is built and the sweep is a single pass (`risks-and-gaps.md` → "DR-09 measured"). |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | §3.4 | Guard implemented; **no reproducing test exists** (§1.6). Tracked as `risks-and-gaps.md` DR-06. |
 
 ### 8.1 Acceptance cases, as input → output
@@ -594,7 +699,7 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | TC-8 | TYPE-11-04 (residual 1) | Library `alpha.lua` = `libAlias = sharedByProject`; project `shared.lua` = `sharedByProject = { beforeEdit = 1 }` → rewritten to `{ afterEdit = 1 }`. | `resolveGlobal("libAlias").getMembers().keys` = `[beforeEdit]` before, `[afterEdit]` after. `TypeElevenDr01ResidualTest`. |
 | TC-9 | TYPE-11-04 (residual 2) | Library `host.lua` = `---@class HostClass` / `local HostClass = {}` / `HostGlobal = HostClass`, `host2.lua` = `libHandle = HostGlobal`; project `ext.lua` = `function HostClass:beforeEdit() end` → rewritten to `afterEdit`. | `resolveGlobal("libHandle").getMembers().keys` contains `afterEdit` and **not** `beforeEdit`. `TypeElevenDr01ResidualTest`. |
 | TC-10 | TYPE-11-04 (project→project) | Project `a.lua` = `projectShared = { before = 1 }`, `b.lua` = `projectAlias = projectShared`; rewrite `a.lua` to `{ after = 1 }`. | `resolveGlobal("projectAlias").getMembers().keys` = `[after]`. `…testAProjectToProjectDependencyIsNeverPinned`. |
-| TC-11 | TYPE-11-04 (suite) | The full suite, **and the corpus sweep run explicitly**: `run "test -PwithCorpus --rerun --no-build-cache"`. | 0 failures across both. The sweep classes (`BaselineRatchetTest`, `LuaCorpusSweepTest`, `LuaInspectionParityTest`, `LuaTortureCorpusTest`, `LexerInvariantsTest`, `ParseOracleTest`) must appear in `build/test-results/test/` — their **absence** is the failure mode, and it is silent. Reference run on `69ad6b57`: **2 571 tests, 0 failures**, ratchet 35/0, sweep 4/0, parity 1/0, torture 1/0, 19m 43s. |
+| TC-11 | TYPE-11-04 (suite) | The full suite, **and the corpus sweep run explicitly**: `run "test -PwithCorpus --rerun --no-build-cache"`. | 0 failures, and **`LuaCorpusSweepTest`, `LuaTortureCorpusTest` and `LuaInspectionParityTest` present in `build/test-results/test/`** — those three are the only classes the `-PwithCorpus` filter gates, so they are the only ones whose presence proves the sweep ran (§1.4 ⚠⚠; `BaselineRatchetTest`, `LexerInvariantsTest` and `ParseOracleTest` appear under a plain `test` run too and prove nothing). Their **absence** is the failure mode, and it is silent. Check the timestamps: `--rerun` does not clear `build/test-results/test/`, so an aborted run leaves the previous run's XML in place — measured, and it is how this exercise nearly mis-read its own first result. Reference on `69ad6b57`: **2 571 tests, 0 failures**, sweep 4/0, parity 1/0, torture 1/0. |
 | TC-12 | TYPE-11-05 | Library `delta.lua` = `libDumb = sharedByLibrary`, `deltaSource.lua` = `sharedByLibrary = { fromLibrary = 1 }`; build `forFile(delta.lua)` inside `DumbModeTestUtils.runInDumbModeSynchronously`, then leave dumb mode. | `resolveGlobal("libDumb").getMembers().keys` = `[fromLibrary]`. `TypeElevenDr05DumbModeTest` — **records, does not gate** (§1.6). |
 
 ## 9. Alternatives Considered
@@ -602,6 +707,7 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | Option | Why not |
 | :-- | :-- |
 | **Blanket pin every provisioned library file** (what `requirements.md` sketched) | Measured unsound: §1.1, two residual paths fire, `BUILD FAILED`. |
+| **Remove the constraint instead of surviving it: make a provisioned file's globals resolve in provisioned scope only, then blanket-pin** (no recorder, no source set, no conditional) | **Measured and rejected — §1.7.** `2571 tests completed, 2 failed`. It does not make blanket pinning sound: residual path 2 does not travel through `typeOfGlobalIn` at all but through `materializeClass` → `collectMethodMembers`, which queries `StubIndex.getAllKeys(…, project)` with no scope argument (`LuaTypeManagerImpl:427-432`), so `[afterEdit, beforeEdit]` is unchanged. And it is not free: residual path 1's library global stops resolving altogether (`[beforeEdit]` → `[]`), a user-visible resolution change outside this feature's remit. |
 | **Composite the generation tracker out of more signals** (roots + target + dumb + a rocks signal) | Does not touch the residual at all. The stale content comes from a *project* file whose change ticks none of those signals, however many are added. `requirements.md` says this itself. |
 | **A scoped tracker per dependency set** | Requires materialising and invalidating a per-file dependency graph across the whole project. Strictly more machinery than §3.3, and §1.4 shows §3.3 already pins every file that costs anything. Revisit only if the trace shows valuable files being excluded. |
 | **Pin only files that made no cross-file resolution at all** | Simpler (no recorder plumbing into the manager) but strictly weaker: it also excludes library→library dependencies, which are safe under a shared generation tracker. It would have excluded `io.lua` (`sources=1`) for no correctness gain. |
