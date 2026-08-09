@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.definitions
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
@@ -133,82 +132,26 @@ class CompNineDrSpikeTest : LibraryRootTestCase() {
         }
     }
 
-    /**
-     * DR-02c — the severity determinant. Both caches depend on project-wide
-     * `PsiModificationTracker`, which *implies* a keystroke in the consumer file invalidates the
-     * library's snapshot and the next `wx.` pays the full cost again. Implication is not measurement.
-     */
-    fun testDr02cInvalidationOnUnrelatedEdit() {
-        val root = StringBuilder("---@meta\n\n---@class wx\nwx = {}\n\n")
-        repeat(3400) { i -> root.append("---@type number\nwx.wxC_$i = nil\n\n") }
-        root.append("return wx\n")
-        registerLibraryRoot(mapOf("wx.lua" to root.toString()))
-        consumer("local x = 1\n")
-
-        fun resolve() = runReadAction { LuaTypeManager.getInstance(project).resolveGlobal("wx", myFixture.file) }
-
-        val cold = measureTimeMillis { resolve() }
-        val warm = measureTimeMillis { resolve() }
-
-        // One keystroke in an unrelated file — the consumer, not the library.
-        com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) {
-            myFixture.editor.document.insertString(myFixture.editor.document.textLength, "-- k\n")
-            com.intellij.psi.PsiDocumentManager
-                .getInstance(project)
-                .commitAllDocuments()
-        }
-
-        val afterEdit = measureTimeMillis { resolve() }
-        println("DR-02c cold=${cold}ms  warm=${warm}ms  after-one-keystroke-in-CONSUMER=${afterEdit}ms")
-        println(
-            "DR-02c VERDICT: " +
-                if (afterEdit > cold / 2) {
-                    "PER-KEYSTROKE — an unrelated edit invalidates and the full cost is repaid"
-                } else {
-                    "once per session — an unrelated edit does NOT invalidate the library snapshot"
-                },
-        )
-    }
-
-    // ------------------------------------------------------------------ DR-01
-
-    /** Today's exact enumeration result, for the golden file COMP-09-07 compares against. */
-    fun testDr01GoldenEnumeration() {
-        registerEnumerationFixture()
-        consumer("local x = 1\n")
-        runReadAction {
-            listOf("wx", "wxFrame", "ColonHost").forEach { name ->
-                dumpEnumeration(project, name)
-            }
-        }
-    }
-
-    private fun dumpEnumeration(
-        project: Project,
-        name: String,
-    ) {
-        val context = myFixture.file
-        val resolved = LuaTypeManager.getInstance(project).resolveGlobal(name, context)
-        if (resolved == null) {
-            println("DR-01 $name -> resolveGlobal returned null")
-            return
-        }
-        val members =
-            LuaGraphType
-                .materialize(resolved, context)
-                .getMembers()
-                .map { (member, node) -> "$member : ${node.write}" }
-                .sorted()
-        println("DR-01 $name -> ${members.size} members")
-        members.forEach { println("DR-01   $it") }
-    }
+    // DR-02c's single-shot variant lived here and is DELETED: its `cold`/`warm`/`afterEdit` triple was
+    // three unrepeated `measureTimeMillis` calls, and Step 9 re-ran it to the OPPOSITE verdict. The
+    // measurement is `CompNineDr13Test`, medians of five, on time-to-**first** rather than
+    // time-to-exhaustive.
+    //
+    // DR-01's single-door golden dump lived here too and is likewise DELETED: it took `resolveGlobal`
+    // alone, and design §1.4 forbids a golden that does not name the door each receiver was measured
+    // through. The golden is now checked in — `MemberEnumerationGoldenTest`.
 
     // ------------------------------------------------------------------ DR-02
 
     /**
-     * Bucket timings on the real path. If `materialize` dominates and precedes every `addElement`,
-     * time-to-first-result equals time-to-exhaustive **by construction** — which is what DR-02a was
-     * raised to measure and what this establishes without a first-element observer.
+     * Bucket timings on the real path — design §1.1's `resolveGlobal` / `materialize` / `getMembers`
+     * split, the measurement that overturned BUG-429's claim that materialization is the cost.
+     *
+     * Medians of five for every **repeatable** bucket. The cold `resolveGlobal` cannot be one: the
+     * per-file snapshot is memoized, so the second call measures the cache rather than the build, and
+     * it is labelled `(single — unrepeatable by construction)` exactly as design §1.8 labels the
+     * class door's cold figure. Averaging a cold sample with four warm ones is what produced the
+     * "1 ms vs 0 ms" verdict Step 9 threw out.
      */
     fun testDr02BucketTimings() {
         val files = mutableMapOf<String, String>()
@@ -237,24 +180,28 @@ class CompNineDrSpikeTest : LibraryRootTestCase() {
                 println("DR-02 resolveGlobal returned null — cannot bucket")
                 return@runReadAction
             }
-            var graph: LuaGraphType? = null
-            val materializeMs = measureTimeMillis { graph = LuaGraphType.materialize(type, context) }
+            println("DR-02 resolveGlobal = ${resolveMs}ms (single — unrepeatable by construction)")
+
             var count = 0
-            val getMembersMs = measureTimeMillis { count = graph!!.getMembers().size }
-            println(
-                "DR-02 resolveGlobal=${resolveMs}ms  materialize=${materializeMs}ms  " +
-                    "getMembers=${getMembersMs}ms  members=$count",
-            )
+            val materializeRuns =
+                (1..5).map {
+                    measureTimeMillis {
+                        count = LuaGraphType.materialize(type, context).getMembers().size
+                    }
+                }
+            Medians.report("DR-02 materialize+getMembers ($count members)", materializeRuns)
+
+            // DR-02b: resolveGlobal is 99.9% of it. What the CachedValuesManager memoization
+            // (MAINT-30-02) buys, once the snapshot is warm.
+            val warmRuns =
+                (1..5).map {
+                    measureTimeMillis { LuaTypeManager.getInstance(project).resolveGlobal("wx", context) }
+                }
+            Medians.report("DR-02b resolveGlobal warm (no PSI change)", warmRuns)
             println(
                 "DR-02 => all of it precedes the first addElement, " +
-                    "so time-to-first == time-to-exhaustive by construction",
+                    "so time-to-first == time-to-exhaustive by construction (measured in DR-02a)",
             )
-
-            // DR-02b: resolveGlobal is 99.9% of it. Is the cost LuaTypesSnapshot.forFile on the
-            // DECLARING file? Time a snapshot build directly, and time a second resolveGlobal to
-            // see what the CachedValuesManager memoization (MAINT-30-02) actually buys.
-            val secondMs = measureTimeMillis { LuaTypeManager.getInstance(project).resolveGlobal("wx", context) }
-            println("DR-02b second resolveGlobal (warm, no PSI change) = ${secondMs}ms")
         }
     }
 }

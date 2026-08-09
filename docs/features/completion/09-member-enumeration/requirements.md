@@ -2,7 +2,7 @@
 id: "COMP-09"
 title: "09: Member Enumeration"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "COMP"
 folders:

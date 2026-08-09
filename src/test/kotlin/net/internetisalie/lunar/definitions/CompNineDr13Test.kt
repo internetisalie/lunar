@@ -1,11 +1,6 @@
 package net.internetisalie.lunar.definitions
 
-import com.intellij.codeInsight.completion.CompletionContributorEP
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.extensions.DefaultPluginDescriptor
-import com.intellij.openapi.extensions.ExtensionPointName
-import com.intellij.openapi.extensions.LoadingOrder
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.psi.PsiDocumentManager
 
 /**
@@ -24,29 +19,8 @@ import com.intellij.psi.PsiDocumentManager
  * Uses DR-02a's first-element probe, so all figures are time-to-**first**, the quantity the NFR
  * names — not time-to-exhaustive, which is what §1.2 measured.
  */
-class CompNineDr13Test : LibraryRootTestCase() {
-    private fun installProbe() {
-        val ep = ExtensionPointName<CompletionContributorEP>("com.intellij.completion.contributor")
-        val descriptor =
-            DefaultPluginDescriptor(
-                PluginId.getId("net.internetisalie.lunar.dr13"),
-                CompNineDr02aTest.FirstElementProbe::class.java.classLoader,
-            )
-        val bean =
-            CompletionContributorEP(
-                "Lua",
-                CompNineDr02aTest.FirstElementProbe::class.java.name,
-                descriptor,
-            )
-        ep.point.registerExtension(bean, LoadingOrder.FIRST, testRootDisposable)
-    }
-
-    private fun timeToFirstUs(): Long {
-        CompNineDr02aTest.FirstElementProbe.recorded = null
-        myFixture.configureByText("consumer.lua", "wx.<caret>\n")
-        myFixture.completeBasic()
-        return CompNineDr02aTest.FirstElementProbe.recorded?.firstUs ?: -1
-    }
+class CompNineDr13Test : TimedCompletionTestCase() {
+    private fun timeToFirstOnWx(): Long = timeToFirstUs("wx.<caret>\n")
 
     /** One keystroke in the CONSUMER file — an edit that touches nothing the library declares. */
     private fun keystrokeInConsumer() {
@@ -64,18 +38,18 @@ class CompNineDr13Test : LibraryRootTestCase() {
     }
 
     fun testDr02cAndDr07() {
-        installProbe()
+        installFirstElementProbe()
         registerLibraryRoot(mapOf("wx.lua" to bigLibrary()))
 
-        val cold = timeToFirstUs()
-        val warm = (1..5).map { timeToFirstUs() }.sorted()[2]
+        val cold = timeToFirstOnWx()
+        val warm = (1..5).map { timeToFirstOnWx() }.sorted()[2]
 
         // Five INDEPENDENT post-edit samples: edit, then complete, five times over.
         val afterEdit =
             (1..5)
                 .map {
                     keystrokeInConsumer()
-                    timeToFirstUs()
+                    timeToFirstOnWx()
                 }.sorted()
 
         println("DR-02c time-to-FIRST cold          = ${cold}us")

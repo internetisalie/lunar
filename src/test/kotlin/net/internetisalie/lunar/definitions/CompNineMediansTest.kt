@@ -14,16 +14,6 @@ import kotlin.system.measureTimeMillis
  * spread printed so a reader can judge.
  */
 class CompNineMediansTest : LibraryRootTestCase() {
-    private fun median(runs: List<Long>) = runs.sorted()[runs.size / 2]
-
-    private fun report(
-        label: String,
-        runs: List<Long>,
-    ) {
-        val s = runs.sorted()
-        println("MEDIAN $label: median=${median(runs)}ms min=${s.first()} max=${s.last()} runs=$runs")
-    }
-
     /** §1.6's `@class` door, 5 distinct classes so each is a cold class in a warm file. */
     fun testClassDoorMedians() {
         val sb = StringBuilder("---@meta\n\n")
@@ -50,7 +40,7 @@ class CompNineMediansTest : LibraryRootTestCase() {
                     }
             }
         }
-        report("classDoor warm-file+cold-class (500 members)", runs)
+        Medians.report("classDoor warm-file+cold-class (500 members)", runs)
     }
 
     /**
@@ -83,7 +73,7 @@ class CompNineMediansTest : LibraryRootTestCase() {
                         require(sink > 0)
                     }
             }
-            report("per-member type+displayName for ${members.size} members", renders)
+            Medians.report("per-member type+displayName for ${members.size} members", renders)
             println("MEDIAN => if this is single-digit ms, presentation was NEVER the cost")
         }
     }

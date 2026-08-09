@@ -64,6 +64,25 @@ invalidates the *library's* snapshot. The NFR's per-keystroke clause was right t
 pays repeatedly; it is wrong that the mechanism is cancellation and restart, and wrong that each
 keystroke pays the *whole* cost.
 
+**Phase 0 re-ran it (2026-08-09), and the RATIO is not stable either.** Same harness, same medians of
+five, different machine load:
+
+| | recorded above | Phase 0 re-run |
+| :-- | --: | --: |
+| cold | 1 152 ms | **463 ms** |
+| warm | 1.0 ms | **0.9 ms** |
+| after one keystroke in the consumer | 264 ms | **223 ms** (183/197/223/232/235) |
+| "repaid" | 22 % | **48 %** |
+
+So the **direction survives and the precision does not**. What is stable across both runs, and is all
+this section is allowed to claim: cold is multiple hundreds of milliseconds and far over budget; warm
+is ~1 ms; and an unrelated keystroke costs 200 ms or more, which is over budget on its own. What is
+*not* stable is the repaid fraction — and note the harness's own printed verdict switches on
+`afterEdit > cold/2`, which at 223 ms against a 231 ms half-cold is decided by 8 ms of noise. **The
+per-keystroke/per-session dichotomy is not merely false, it is unmeasurable by this harness**, which
+is the sharper form of what §1.2a already concluded. DR-07's decision is unaffected: narrowing cannot
+touch the cold figure under either run.
+
 ### 1.2a §3.3 / DR-07 DECIDED — narrowing invalidation is a complement, not an alternative
 
 The open question was whether narrowing cache invalidation would beat indexing, which would make this
@@ -506,6 +525,24 @@ Two receivers resolve through only one door, which is why a `?:` golden is not m
 silently door-dependent. COMP-09-07 requires every golden entry to name its door; the harness that
 produced the previous table did not, and the claim it supported has been replaced rather than
 re-worded.
+
+**Phase 0 checked this in, and it found one more thing (2026-08-09).**
+`src/test/resources/comp09/member-enumeration.golden` records eleven receivers across all eight
+binding shapes, per door, plus what `R.<caret>` offers and the `sourceElement` the override marker
+navigates to. Three observations that were not in the tables above:
+
+- **The doors disagree about member TYPES, not only membership.** `wx.wxID_ANY` is `nil | number`
+  through the global door and `nil` through the `@class` door, from one `---@type number` annotation.
+  §1.4 recorded that the two doors give the *receiver* different types; that they give the same
+  *member* different types is new, and it is why the golden records `member:type` rather than a name
+  list. COMP-09-06's "no baseline may move" is asserted against the door each consumer serves.
+- **`OM.extra` is absent from the global door today.** `OM = require("luassert")` +
+  `function OM.extra()` enumerates `[unregister]` — the syntactically declared member is lost.
+  Consistent with DR-19's row, now pinned rather than argued, and it is the residual §4.5c's
+  sentinel deliberately preserves rather than fixes.
+- **An `@field` function signature materializes as `undefined`** on the `@class` door
+  (`Base.onClose:undefined` from `---@field onClose fun(): nil`). Out of COMP-09's scope; recorded so
+  a later reader does not mistake it for something this feature caused.
 
 ### 4.5 Consumer 1 — completion. REWRITTEN FROM DR-14 after a third failed review of this section
 

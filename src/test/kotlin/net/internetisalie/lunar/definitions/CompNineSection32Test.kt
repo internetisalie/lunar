@@ -97,39 +97,49 @@ class CompNineSection32Test : LibraryRootTestCase() {
             println("§3.2 candidate A — LuaTypesSnapshot.forFile(big.lua), measured AFTER the above = ${forFileMs}ms")
             println("§3.2   (if this is large while resolveType was small, the @class door never built the graph)")
 
-            // --- candidate B: catsClassTags' narrowed-then-walk
-            val catsMs =
-                measureTimeMillis {
-                    FileBasedIndex
-                        .getInstance()
-                        .getContainingFiles(LuaCatsTypeNameIndex.KEY, "Big2", scope)
-                        .mapNotNull { PsiManager.getInstance(project).findFile(it) }
-                        .flatMap { PsiTreeUtil.findChildrenOfType(it, LuaCatsClassTag::class.java) }
-                        .count { it.argType?.text?.trim() == "Big2" }
+            // --- candidate B: catsClassTags' narrowed-then-walk. Medians of five, because the
+            //     single-shot 22 ms this once reported is the numerator design §4.11 disavows. A
+            //     proper re-measurement against the RIGHT DOOR for each of the three walk sites is
+            //     still owed and is DR-16; this only retires the medians half of the complaint.
+            val catsRuns =
+                (1..5).map {
+                    measureTimeMillis {
+                        FileBasedIndex
+                            .getInstance()
+                            .getContainingFiles(LuaCatsTypeNameIndex.KEY, "Big2", scope)
+                            .mapNotNull { PsiManager.getInstance(project).findFile(it) }
+                            .flatMap { PsiTreeUtil.findChildrenOfType(it, LuaCatsClassTag::class.java) }
+                            .count { it.argType?.text?.trim() == "Big2" }
+                    }
                 }
-            println("§3.2 candidate B — catsClassTags-shaped walk for one class = ${catsMs}ms")
+            Medians.report("§3.2 candidate B — catsClassTags-shaped walk for one class", catsRuns)
+            val catsMs = Medians.of(catsRuns)
 
             // --- candidate C: addMethodsOf's getAllKeys + getElements per matching key
             var keyCount = 0
             var elementCount = 0
-            val scanMs =
-                measureTimeMillis {
-                    val allKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
-                    keyCount = allKeys.size
-                    for (key in allKeys) {
-                        if (!key.startsWith("Big3.") && !key.startsWith("Big3:")) continue
-                        elementCount +=
-                            StubIndex
-                                .getElements<String, LuaFuncDecl>(
-                                    LuaGlobalDeclarationIndex.KEY,
-                                    key,
-                                    project,
-                                    scope,
-                                    LuaFuncDecl::class.java,
-                                ).size
+            val scanRuns =
+                (1..5).map {
+                    measureTimeMillis {
+                        val allKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
+                        keyCount = allKeys.size
+                        elementCount = 0
+                        for (key in allKeys) {
+                            if (!key.startsWith("Big3.") && !key.startsWith("Big3:")) continue
+                            elementCount +=
+                                StubIndex
+                                    .getElements<String, LuaFuncDecl>(
+                                        LuaGlobalDeclarationIndex.KEY,
+                                        key,
+                                        project,
+                                        scope,
+                                        LuaFuncDecl::class.java,
+                                    ).size
+                        }
                     }
                 }
-            println("§3.2 candidate C — getAllKeys($keyCount) + getElements per match ($elementCount) = ${scanMs}ms")
+            Medians.report("§3.2 candidate C — getAllKeys($keyCount) + getElements per match ($elementCount)", scanRuns)
+            val scanMs = Medians.of(scanRuns)
             // --- candidate D: the unaccounted remainder. Is it the AST parse of the declaring file?
             //     `cold.lua` has never been touched, so this pays the parse that resolveType paid.
             val coldVf = libRoot.findChild("cold.lua")!!

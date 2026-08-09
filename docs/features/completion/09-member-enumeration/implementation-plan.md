@@ -54,38 +54,84 @@ folders:
 > §1.8 records a −60 % single-shot spread and one flipped verdict. (2) No benchmark may cross a
 > reindex boundary (design §4.8).
 
-## Phase 0: Golden file and instrument
+## Phase 0: Golden file and instrument — **DONE 2026-08-09**
 
 - **Goal**: record today's behaviour before touching it, and make the gates able to fail.
 - **Tasks**:
-  - [ ] Promote `CompNineDr01Test`'s enumeration dump into a checked-in golden covering, for **both**
+  - [x] Promote `CompNineDr01Test`'s enumeration dump into a checked-in golden covering, for **both**
         `resolveGlobal` and `resolveType` per receiver (design §1.4 — `wx` answers differently through
         each): a namespace global, a `@class` with dot *and* colon members, and an all-colon `@class`.
         **Label each receiver with the door it is measured through** — design §4.4a: for `a.b.c = v`
         the two doors disagree and the global door's answer is BUG-430, so an unlabelled golden would
         certify a bug as the contract.
-  - [ ] **Standing item — the golden must carry every binding shape, not every member style.** Three
+        → `src/test/resources/comp09/member-enumeration.golden`, written by
+        `MemberEnumerationGoldenTest`. Each row is `<receiver>|<door>|<member>:<type>`; the two doors
+        are never collapsed. A **third** door is recorded that the task did not ask for — what
+        `R.<caret>` actually offers — because Phase 2's exit diffs completion membership and today's
+        completion path takes the *first* declaring file only, so Phase 3's materialization diff
+        cannot cover it.
+  - [x] **Standing item — the golden must carry every binding shape, not every member style.** Three
         DR rounds each missed a defect because their fixtures shared one shape. The golden carries,
         at minimum: `R = {}` + syntactic members; `R = { a = 1 }` (literal); `R = { a = 1 }` +
         syntactic (mixed); `R = require(x)` (opaque); `R = require(x)` + syntactic (opaque + mixed);
         a `@class` on a **local**; an all-colon `@class`; and `a.b.c = v`. Adding a *member style* is
         cheap and finds little; adding a *binding shape* is what found BL-2 and BLOCKER 2.
-  - [ ] Add the `LuaOverrideLineMarkerProvider` case to the golden — `sourceElement` is load-bearing
+        → All eight are in `Comp09GoldenFixture`, one receiver per file. The opaque receiver is named
+        `Busted`, not `assert`: a golden that shares a receiver name with a bundled stdlib stub would
+        record whichever declaring file the unordered `getContainingFiles` returned.
+  - [x] Add the `LuaOverrideLineMarkerProvider` case to the golden — `sourceElement` is load-bearing
         (design §4.1) and `materializeClass:256-262` warns the parity harness cannot see it.
-  - [ ] Promote `CompNineDr02aTest`'s probe into **COMP-09-08**'s gate — design §4.10a. Both
+        → Four `override|…` rows recording the **source PSI class and file** per super member, so the
+        Implement-vs-Override distinction is pinned: `Derived:Show` → `LuaFuncDeclImpl`,
+        `Derived:onClose` → `LuaCatsFieldTagImpl`, `Derived:ownFn` → `<none>`.
+  - [x] Promote `CompNineDr02aTest`'s probe into **COMP-09-08**'s gate — design §4.10a. Both
         assertions (cold time-to-first vs budget; narrow-vs-wide receiver) are **already red**
         (§1.9), so the "must fail first" obligation is met by construction; what still needs proving
         is the reverse direction after Phase 2, and assertion 2's factor is not yet chosen.
-  - [ ] Promote `CompNineDr11Test`'s counter into **COMP-09-09**'s gate — design §4.10b. Three
+        → Probe promoted to `FirstElementProbe` / `TimedCompletionTestCase`;
+        `MemberEnumerationLatencyGateTest` holds both assertions. **Armed and run red on today's
+        code**: `cold time-to-first for wx. was 1054 ms against a 100 ms budget`, and
+        `time-to-first scales 64x with member count against a measured noise floor of 2x`. Assertion
+        2's factor is **derived at run time by DR-17's stated rule** — `ceil(p95/p50)` over five cold
+        3-member receivers, each in its own file — rather than picked; it measured 2x
+        (10 018/10 142/10 392/10 620/11 604 us).
+  - [x] Promote `CompNineDr11Test`'s counter into **COMP-09-09**'s gate — design §4.10b. Three
         assertions: `entriesTraversed >= membersIn(R).size`; `entriesTraversed` for R **unchanged**
         between a quiet and a noisy project; `filesVisited ==` the declaring-file count. Ship the
         counter as a **`ThreadLocal`**, not DR-11's `@Volatile` global — two concurrent completions
         would overwrite each other's counts.
-  - [ ] Do **not** build the gate on `getAllKeys` totals. DR-11 measured 4 145 keys in both the quiet
+        → `MemberEnumerationWorkBoundGateTest`; `LuaReceiverMemberWork` is now a `ThreadLocal` pair
+        behind `record(...)`. `CompNineDr11Test` is deleted: it only printed, and printing is not a
+        gate. Measured: `quiet=Traversal(members=50, entries=50, files=2)`,
+        `noisy=Traversal(members=50, entries=50, files=2)`.
+        **Correction to this plan** — assertions 1–3 are **green** today, not red: they measure the
+        DR-09 prototype, which is already index-backed. Only assertion 4 is red, and for the reason
+        BL-5 names — `the completion door reads exactly one declaring file expected:<1> but was:<0>`,
+        because `membersInFile` never touches the counter. The redness COMP-09-09 is *about* lives at
+        the consumers, and Phase 3 is where they stop scanning.
+  - [x] Do **not** build the gate on `getAllKeys` totals. DR-11 measured 4 145 keys in both the quiet
         and the noisy arm: index storage is shared across test methods in one JVM and `getAllKeys` is
         not really project-scoped, so a gate on that number measures the fixture.
-  - [ ] Convert the three throwaway harnesses to medians of ≥5 and delete the single-shot variants.
-- **Exit**: golden checked in; two gates red; DR-02c re-run with medians and its verdict recorded.
+        → No `getAllKeys` call survives in either gate.
+  - [x] Convert the three throwaway harnesses to medians of ≥5 and delete the single-shot variants.
+        → `CompNineDrSpikeTest` (§1.1 buckets), `CompNineDr01Test` (§3.1) and `CompNineSection32Test`
+        (§3.2 candidates B and C) now median five runs through a shared `Medians` helper. Deleted:
+        `CompNineDrSpikeTest.testDr02cInvalidationOnUnrelatedEdit` (single-shot DR-02c, superseded by
+        `CompNineDr13Test`) and both single-door DR-01 golden dumps. A quantity that is unrepeatable
+        by construction — a cold snapshot build is warm the second time — is now **labelled**
+        `(single — unrepeatable by construction)` instead of being averaged with warm samples.
+- **Exit**: golden checked in ✅; the two gates exist and were each **shown red with the real
+  assertion armed** ✅ (output above and in the class KDocs); DR-02c re-run with medians ✅.
+- **Deviation, and the reason.** Both gates ship with a one-line direction switch —
+  `BUDGET_ENFORCED` / `COMPLETION_DOOR_INSTRUMENTED`, both `false` — under which each asserts the
+  **miss** rather than the target: the same measured quantity against the same budget, inverted. The
+  plan's "two gates red" cannot mean *leave a red test on main for three phases* — the repo is
+  trunk-based and the non-regression gate is a green suite — and a gate that is merely absent until
+  Phase 2 is the `-PwithPerf` mistake again. Inverted, the assertion still cannot pass vacuously: it
+  goes red the moment the requirement is met, so Phase 2 and Phase 1 respectively **cannot land
+  without flipping their switch**, and flipping it is already each phase's exit criterion. The
+  must-fail-first obligation is discharged by the armed run recorded above, not by the shipped
+  direction.
 
 ## Phase 1: `LuaReceiverMemberIndex`
 
@@ -226,7 +272,7 @@ folders:
 
 | Phase | Status | Priority |
 | :-- | :-- | :-- |
-| 0: Golden file and instrument | todo | Must |
+| 0: Golden file and instrument | **done** (2026-08-09) | Must |
 | 1: `LuaReceiverMemberIndex` | todo | Must |
 | 2: Completion consumer | todo | Must |
 | 3: Materialization consumer | todo | Must |

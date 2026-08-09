@@ -30,22 +30,42 @@ import java.io.DataOutput
 private val LuaReceiverMemberIndexId: @NonNls ID<String, List<LuaReceiverMember>> = ID.create("lunar.receiver.member")
 
 /**
- * COMP-09-09's instrument (DR-11 spike): index **entries** handed to the value processor by the last
- * enumeration, and the **files** they came from.
+ * COMP-09-09's instrument: index **entries** handed to the value processor by the last enumeration
+ * on this thread, and the **files** they came from.
  *
  * The acceptance criterion asks for a count, not a duration, and there is no platform metric for
- * "entries traversed" — a timing probe cannot answer it. This is the cheapest thing that can:
- * `processValues` calls back once per (key, file) pair it visits, so counting the callbacks *is* the
- * traversal count, taken at the only place the traversal happens.
+ * "entries traversed" — a timing probe cannot answer it, because an implementation that scanned the
+ * whole key space *quickly* would pass a latency gate while failing this one outright. This is the
+ * cheapest thing that can: `processValues` calls back once per (key, file) pair it visits, so
+ * counting the callbacks **is** the traversal count, taken at the only place the traversal happens.
+ *
+ * **Thread-local, not the DR-11 spike's `@Volatile` global.** A global mutable static on a hot path
+ * is exactly the kind of thing that survives into shipped code because it is cheap, and two
+ * concurrent completions would overwrite each other's counts. Completion runs one session per
+ * thread, so per-thread counters stay attributable. Design §4.10b.
+ *
+ * **Only the union entry point records into it today.** `membersInFile` — and therefore
+ * `globalMembership`, the door TC 9 measures — runs `processValues` without touching it, so design
+ * §4.10b's assertion 4 has no instrument yet. Extending it to both entry points is Phase 1's work
+ * (BL-5); `MemberEnumerationWorkBoundGateTest` holds the assertion that goes green when it lands.
  */
 object LuaReceiverMemberWork {
-    @Volatile var entries: Int = 0
+    private val entryCount: ThreadLocal<Int> = ThreadLocal.withInitial { 0 }
 
-    @Volatile var files: Int = 0
+    private val fileCount: ThreadLocal<Int> = ThreadLocal.withInitial { 0 }
 
-    fun reset() {
-        entries = 0
-        files = 0
+    val entries: Int get() = entryCount.get()
+
+    val files: Int get() = fileCount.get()
+
+    fun reset() = record(0, 0)
+
+    fun record(
+        entriesTraversed: Int,
+        filesVisited: Int,
+    ) {
+        entryCount.set(entriesTraversed)
+        fileCount.set(filesVisited)
     }
 }
 
@@ -294,8 +314,7 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
                 members.forEach { seen.putIfAbsent(it.name, it) }
                 true
             }, scope)
-            LuaReceiverMemberWork.entries = entries
-            LuaReceiverMemberWork.files = files
+            LuaReceiverMemberWork.record(entries, files)
             return seen.values.toList()
         }
 
