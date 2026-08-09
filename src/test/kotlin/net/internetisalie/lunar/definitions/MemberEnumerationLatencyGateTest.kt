@@ -62,12 +62,42 @@ class MemberEnumerationLatencyGateTest : TimedCompletionTestCase() {
      * cannot be the variable. A wide-vs-narrow ratio inside that band is independence; outside it is
      * not. Each narrow sample is a different receiver in a different file, because a second sample of
      * the same receiver is warm and would measure memoization.
+     *
+     * **The liveness guard is outside [assertGate] on purpose, and it is the reason this test is not
+     * the defect it was written to prevent.** [timeToFirstUs] returns -1 when the probe saw no
+     * completion result at all, and a -1 `wideUs` makes `ratio` 0, which is `<= factor`, which is
+     * `met` — so a dead probe reported the requirement MET. Inverted that is red, which is why it
+     * went unnoticed at Phase 0; the moment [BUDGET_ENFORCED] flips it would have gone **silently
+     * green on a harness that measured nothing**. Routing the guard through [assertGate] would
+     * reproduce the same hazard one level up, so it is a plain `assertTrue` that fails in *both*
+     * switch positions.
+     *
+     * **Mutation-proved on gce-builder, 2026-08-09**, by making `timeToFirstUs` return -1 for the
+     * wide receiver and for two of the five narrow ones:
+     *
+     * | code | [BUDGET_ENFORCED] | result |
+     * | :-- | :-- | :-- |
+     * | without this guard | `true` | **BUILD SUCCESSFUL** — the defect |
+     * | with this guard | `false` | red — `narrow=[-1, -1, 15191, 37526, 228760] wide=-1us` |
+     * | with this guard | `true` | red — `narrow=[-1, -1, 19124, 40984, 212584] wide=-1us` |
+     *
+     * The sample lists are the point. A **whole**-probe break is the case the `floor > 0` check below
+     * already caught; the case it did not is a **partly** dead probe — the median of `[-1, -1, …]` is
+     * a live sample, so `floor > 0` passes on a harness that lost two fifths of its narrow samples
+     * and all of its wide one. Partly dead is also the shape a real regression takes: `wx.` offering
+     * nothing is indistinguishable, to a stopwatch, from `wx.` being instant.
      */
     fun testTimeToFirstIsIndependentOfMemberCount() {
         installFirstElementProbe()
         registerLibraryRoot(fixture())
         val narrowUs = (0 until NARROW_RECEIVERS).map { timeToFirstUs("$NARROW_PREFIX$it.<caret>\n") }.sorted()
         val wideUs = timeToFirstUs("$WIDE_RECEIVER.<caret>\n")
+        assertTrue(
+            "the probe saw no completion result at all, so nothing was measured " +
+                "(narrow=$narrowUs wide=${wideUs}us) — the ratio below would be computed from a " +
+                "dead harness",
+            narrowUs.isNotEmpty() && narrowUs.all { it >= 0 } && wideUs >= 0,
+        )
         val floor = narrowUs[narrowUs.size / 2]
         assertTrue("no narrow sample was observed, so there is no noise floor to compare against", floor > 0)
         val factor = ceil(narrowUs.last().toDouble() / floor).toInt()

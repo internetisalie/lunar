@@ -30,7 +30,7 @@ import net.internetisalie.lunar.lang.indexing.LuaReceiverMemberWork
  * | :-- | :-- | :-- | :-- |
  * | 1 | `entriesTraversed >= members.size`, `==` when no name repeats | union | green |
  * | 2 | `entriesTraversed` unchanged between a quiet and a noisy project | union | green |
- * | 3 | `filesVisited ==` the declaring-file count | union | green |
+ * | 3 | `filesVisited ==` the declaring-file count, checked at **1 and at 2** | union | green |
  * | 4 | `filesVisited == 1` when a declaring file was found | `globalMembership` | **red** |
  *
  * 1–3 pass because the DR-09 prototype is already index-backed; they are the assertions that go red
@@ -74,6 +74,12 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
      *
      * Both arms run in one test method against one project, because the comparison is the assertion:
      * two methods printing two numbers is what DR-11 was, and a reader had to do the subtraction.
+     *
+     * It also carries the **single-declaring-file** `filesVisited == 1` case. DR-11 measured
+     * `50 entries / 1 file`; promotion moved the fixture to two declaring files (so `filesVisited`
+     * would be a real count rather than the constant 1) and dropped the 1 along the way. Each noise
+     * receiver is declared in exactly one file, so the case comes back for free, and the file count
+     * is now pinned from both sides.
      */
     fun testTraversalDoesNotMoveWhenUnrelatedContentIsAdded() {
         registerLibraryRoot(quietFixture())
@@ -91,6 +97,13 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
         )
         assertEquals("and it must not have widened its file set either", quiet.files, noisy.files)
         assertEquals("the noise receiver's own bound tracks its own members", NOISE_MEMBERS, noiseReceiver.entries)
+        assertEquals(
+            "a receiver declared in ONE file must visit one file — DR-11's original case, which the " +
+                "two-file quiet fixture stopped covering, so `filesVisited` is pinned at 1 and 2 " +
+                "rather than at 2 alone (a constant 2 would satisfy every other assertion here)",
+            1,
+            noiseReceiver.files,
+        )
     }
 
     /**
@@ -100,16 +113,25 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
      * selection rule leaked. It cannot be asserted yet: `membersInFile` does not record into the
      * counter, so the instrument reports 0 for a door that demonstrably visited a file. That is
      * design §4.10b's BL-5, and Phase 1 closes it in one line at each `processValues` callback.
+     *
+     * **The counter is captured inside the read action, not after it.** `LuaReceiverMemberWork` is a
+     * `ThreadLocal` (design §4.10b), so it is only readable on the thread that recorded into it.
+     * `runReadAction` happens to run its lambda on the caller's thread today, which made an outside
+     * read correct by accident; the moment Phase 1 moves any of this to a pooled read it would report
+     * 0 forever and **silently** — 0 being exactly the value the un-instrumented branch below
+     * asserts, so the gate would go on passing while measuring a different thread.
      */
     fun testCompletionDoorReadsExactlyOneFile() {
         registerLibraryRoot(quietFixture())
         myFixture.configureByText("consumer.lua", "local x = 1\n")
-        val membership =
+        val measured =
             runReadAction {
                 LuaReceiverMemberWork.reset()
-                LuaReceiverMemberIndex.globalMembership(RECEIVER, project, myFixture.file)
+                val found = LuaReceiverMemberIndex.globalMembership(RECEIVER, project, myFixture.file)
+                found to LuaReceiverMemberWork.files
             }
-        val filesVisited = LuaReceiverMemberWork.files
+        val membership = measured.first
+        val filesVisited = measured.second
         println(
             "COMP-09-09 completion door: found=${membership.found} " +
                 "members=${membership.members.size} filesVisited=$filesVisited",

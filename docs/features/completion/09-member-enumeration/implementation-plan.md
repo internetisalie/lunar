@@ -127,11 +127,62 @@ folders:
   **miss** rather than the target: the same measured quantity against the same budget, inverted. The
   plan's "two gates red" cannot mean *leave a red test on main for three phases* — the repo is
   trunk-based and the non-regression gate is a green suite — and a gate that is merely absent until
-  Phase 2 is the `-PwithPerf` mistake again. Inverted, the assertion still cannot pass vacuously: it
-  goes red the moment the requirement is met, so Phase 2 and Phase 1 respectively **cannot land
-  without flipping their switch**, and flipping it is already each phase's exit criterion. The
+  Phase 2 is the `-PwithPerf` mistake again. Inverted, the assertion goes red the moment the
+  requirement is met, so Phase 2 and Phase 1 respectively **cannot land without flipping their
+  switch**, and flipping it is already each phase's exit criterion. ⚠ This paragraph also claimed
+  "inverted, the assertion still cannot pass vacuously" — **that was false for assertion 2 and is
+  retracted**; see Phase 0 remediation below, which supplies the liveness guard that makes it true.
+  The
   must-fail-first obligation is discharged by the armed run recorded above, not by the shipped
   direction.
+
+### Phase 0 remediation — **DONE 2026-08-09**
+
+The Phase 0 review passed and filed five non-blocking defects. Four of them become live hazards the
+moment Phase 1 and Phase 2 start, so they were closed before either did. No Phase 1 work is included.
+
+- [x] **The inverted gate COULD pass vacuously — the paragraph above was wrong, and this is the fix.**
+      `MemberEnumerationLatencyGateTest` assertion 2 had no probe-liveness guard. `timeToFirstUs`
+      returns -1 when the probe saw no completion result, a -1 `wideUs` makes `ratio` 0, `0 <= factor`
+      is `met`, so a **dead harness reported the requirement MET** — inverted-red today, and
+      **silently green the instant Phase 2 flips `BUDGET_ENFORCED`**. That is the DR-15 defect
+      (a harness asserting `today == today`) in the gate that exists to prevent it. Fixed with a
+      plain `assertTrue` on `narrowUs.isNotEmpty() && narrowUs.all { it >= 0 } && wideUs >= 0`,
+      deliberately **outside** `assertGate`, so it fails in both switch positions.
+      → **Mutation-proved**, `timeToFirstUs` returning -1 for the wide receiver and two of five
+      narrow ones: without the guard at `BUDGET_ENFORCED = true`, **BUILD SUCCESSFUL**; with it, red
+      at `false` (`narrow=[-1, -1, 15191, 37526, 228760] wide=-1us`) and red at `true`
+      (`narrow=[-1, -1, 19124, 40984, 212584] wide=-1us`). Note the sample lists: a **whole**-probe
+      break was already caught by the pre-existing `floor > 0` check, so the uncovered case was a
+      **partly** dead probe — which is the shape a real regression takes, since `wx.` offering
+      nothing is indistinguishable from `wx.` being instant.
+- [x] **Figures corrected in every artifact at once, not one.** §1.2a and §3 still quoted
+      `264 ms` / `1 152 ms` / "missed by 11.5x" after §1.2's own re-run contradicted them
+      (463 / 0.9 / 223 ms; the review's independent run got 392 ms cold). The **DR-07 conclusion does
+      not change** — narrowing is a complement, not an alternative — but the honest version is
+      directional: the per-keystroke/per-session dichotomy turns on a margin smaller than this
+      harness's run-to-run spread, so **no ratio between two of its figures is quotable** (DR-08's
+      standing consequence), and what survives is that cold is the first completion of every session
+      and narrowing cannot touch it by construction. Corrected in `design.md` §1.2, §1.2a, §3 and
+      the §3.x "Was/Now" row, and in `risks-and-gaps.md`'s DR-07 and DR-02c rows — every hit of
+      every changed figure was grepped, this being exactly the one-doc-corrected pattern Step 9
+      round six was about.
+- [x] Stale DR status lines refreshed: DR-08 is `done` (not "partly done"), DR-17 is `done by
+      construction` (assertion 2's factor is no longer "the open item"), DR-16 is `partly done`.
+      `design.md` §4.11 + coverage table, `requirements.md`'s "Open, tracked, not blocking".
+- [x] `MemberEnumerationWorkBoundGateTest` read the `ThreadLocal` counter **outside** the
+      `runReadAction` that populated it — correct today only because `runReadAction` runs on the
+      caller's thread. Captured inside and asserted outside. Left alone it would report 0 forever and
+      silently the moment Phase 1 moves any of this to a pooled read, and 0 is exactly what the
+      un-instrumented branch asserts, so the gate would keep passing while measuring another thread.
+- [x] DR-11's single-declaring-file `filesVisited == 1` case, lost when the fixture moved to two
+      declaring files, is restored on the noise receiver. `filesVisited` is now pinned at **1 and 2**
+      — a constant 2 satisfied every other assertion in that test.
+- **Accepted, not fixed (defect 5).** The golden's byte-exactness is coupled to
+  `Comp09GoldenFixture.receivers` ordering. Real, but inert: it can only fire when someone edits the
+  fixture, and Phase 1's whole verification method is diffing against this golden. Changing the
+  golden's determinism immediately before Phase 1 diffs against it trades a live gate for a cosmetic
+  one. Revisit after Phase 1's diff is taken.
 
 ## Phase 1: `LuaReceiverMemberIndex`
 

@@ -40,7 +40,7 @@ enumeration is already fast. It is *"answer a symbol's type without building its
 whole graph"*. The two `getAllKeys` scans are real (§1.3) but they are inside the 10 ms, and fixing
 them would not have moved the headline number at all.
 
-### 1.2 An unrelated edit costs 264 ms — REMEASURED (DR-02c, medians of 5)
+### 1.2 An unrelated edit costs 200 ms+ — REMEASURED TWICE (DR-02c, medians of 5)
 
 The original version of this section reported cold 800 / warm 0 / after-one-keystroke 608 ms and
 called it "76 % repaid". Every figure was single-shot, Step 9 re-ran the harness and got the
@@ -53,10 +53,13 @@ called it "76 % repaid". Every figure was single-shot, Step 9 re-ran the harness
 | warm, no PSI change | **1.0 ms** |
 | after one keystroke **in the consumer file** | **264 ms** (samples 217 / 221 / 264 / 271 / 599) |
 
-**The old headline was wrong twice.** 22 % of the cold cost is repaid, not 76 %; and the
-per-keystroke-vs-per-session framing is a false dichotomy — it is neither. An unrelated edit does not
-repay the full build, but it takes completion from 1.0 ms to 264 ms, which is **2.6x over budget**.
-Both halves of the old wording flattered the code in one direction and the problem in the other.
+**The old headline was wrong twice.** The "76 % repaid" is withdrawn — this run put it at 22 %, and
+the re-run below moved it again to 48 %, so the repaid *fraction* is withdrawn as a quantity too and
+nothing in this plan may cite one. And the per-keystroke-vs-per-session framing is a false dichotomy
+— it is neither. An unrelated edit does not repay the full build, but it takes completion from ~1 ms
+to 264 ms, which is **over budget by more than a factor of two under both runs** (223 ms on the
+re-run). Both halves of the old wording flattered the code in one direction and the problem in the
+other.
 
 The mechanism is as described: `typeCache` (`LuaTypeManagerImpl:34-44`) and the per-file snapshot
 (`LuaTypes:215-222`) both depend on project-wide `PsiModificationTracker`, so an edit anywhere
@@ -86,18 +89,31 @@ touch the cold figure under either run.
 ### 1.2a §3.3 / DR-07 DECIDED — narrowing invalidation is a complement, not an alternative
 
 The open question was whether narrowing cache invalidation would beat indexing, which would make this
-whole feature the more expensive of two options. The three figures above answer it:
+whole feature the more expensive of two options. The figures above answer it — **directionally, which
+is the only form the answer is allowed to take**:
 
-- narrowing invalidation could at best take the post-edit case from **264 ms to 1.0 ms**. That is a
-  real win and worth having.
-- it cannot touch the **cold 1 152 ms**, which is the first completion of every session — the moment
-  a user is most likely to notice, and the one the budget is missed by 11.5x.
-- it also does nothing about the **40x scaling with member count** (§1.9), because that is present
-  cold and warm alike.
+- narrowing invalidation could at best take the post-edit case down to the warm figure: roughly
+  **200 ms to ~1 ms** (264 → 1.0 first run, 223 → 0.9 on the Phase 0 re-run). That is a real win and
+  worth having.
+- it cannot touch **cold**, which is *hundreds* of milliseconds — 1 152 ms first run, 463 ms on the
+  Phase 0 re-run, 392 ms in the Phase 0 review's independent run — and is over the 100 ms budget
+  under every one of them. Cold is the first completion of every session, the moment a user is most
+  likely to notice.
+- it also does nothing about time-to-first tracking member count (§1.9), because that is present cold
+  and warm alike. That factor is now **derived inside the gate on every run** against the harness's
+  own noise floor (DR-17) rather than quoted as a constant.
 
-**Decision: index, and keep narrowing as a separate follow-up.** They fix disjoint halves; only
-indexing fixes the half that is over budget on a clean IDE start. DR-07 closes here rather than
-staying a "TBD under Technical Debt with no task", which is what Step 9 flagged it as.
+**No ratio between two of these figures is quotable**, and an earlier draft of this section quoted
+three: `264 ms`, `1 152 ms`, and "the budget is missed by 11.5x". §1.2's own re-run moved two of them
+by more than a factor of two, and the per-keystroke/per-session dichotomy turns on a margin —
+`afterEdit` against `cold/2` — smaller than this harness's run-to-run spread. That is DR-08's standing
+consequence applied here, not a new caveat.
+
+**Decision: index, and keep narrowing as a separate follow-up** — unchanged, because it never rested
+on the precision. Cold is the first completion of every session and narrowing invalidation cannot
+touch it *by construction*: there is no prior state to keep. They fix disjoint halves; only indexing
+fixes the half that is over budget on a clean IDE start. DR-07 closes here rather than staying a "TBD
+under Technical Debt with no task", which is what Step 9 flagged it as.
 
 ### 1.3 The receiver key is dot-only (DR-06)
 
@@ -345,7 +361,7 @@ Corrections forced by Step 9 review, beyond §1.7/§1.8:
 | "Replace the two `getAllKeys` scans" is the first increment | Those scans are inside a 10 ms region. Real, but not the headline. Demoted to a work-bound fix (COMP-09-09), not a latency one |
 | Fix direction is index-backed member enumeration | Fix direction is **avoiding the declaring file's whole-graph build** to answer one symbol's type. Enumeration is already fast |
 | Swapping the scan is a strict simplification | It is a correctness regression until `indexStub` also sinks `substringBefore(':')` — a **stub index format change**: version bump, full reindex |
-| Per-keystroke concern justified by cancel/restart | Justified by measured cache invalidation. ⚠ The "76 % repaid" figure once here is **withdrawn**; §1.2 remeasured it with medians as **22 %** (264 ms of 1 152 ms) |
+| Per-keystroke concern justified by cancel/restart | Justified by measured cache invalidation. ⚠ The "76 % repaid" figure once here is **withdrawn — and so is the replacement**: §1.2 remeasured it at 22 %, the Phase 0 re-run at 48 %, so the repaid fraction is not a quotable quantity of this harness (DR-08) |
 
 ## 3. Questions this design could not answer when it was written — all now closed
 
@@ -359,8 +375,10 @@ still genuinely undecided lives in `risks-and-gaps.md` as a tracked task, per th
    **Answered, §1.6.** Neither — it never calls `forFile`, and its cold cost is dominated by the
    declaring file's AST parse. Different bottleneck, same remedy.
 3. ~~Does narrowing invalidation help more than indexing?~~ **Decided, §1.2a (DR-07).** No — it is a
-   complement. Narrowing takes the post-edit case from 264 ms to 1.0 ms but cannot touch the cold
-   1 152 ms, which is every session's first completion, nor the 40x member-count scaling. Index now,
+   complement. Narrowing takes the post-edit case from ~200 ms to ~1 ms but cannot touch cold, which
+   is hundreds of milliseconds (392 / 463 / 1 152 ms across three runs), is every session's first
+   completion, and is over budget under all three — nor the member-count scaling. The argument is
+   **directional**: §1.8's spread means no ratio between two of these figures is quotable. Index now,
    narrow separately.
 4. ~~Where does incremental yield apply?~~ **Decided, §1.7 — nowhere**, and confirmed by measurement
    in §1.9: the gap between the first element and the last is 31 ms of 777 ms. COMP-09-04 withdrawn;
@@ -1100,7 +1118,8 @@ gate built on it would be measuring the fixture.
   none was caught until the fourth review: the **949 ms denominator is disavowed by §1.8**, which
   re-measured the same path at 383 ms (−60 %) and put the warm-file median at 120 ms — against which
   22 ms is 18 %, not 2 %; the **22 ms numerator is single-shot**, violating this plan's own
-  medians-of-≥5 rule (DR-08 is still "partly done"); and `LuaTypesVisitor:1349` is on the
+  medians-of-≥5 rule (DR-08 was open when this was written and is **done at Phase 0** — every
+  surviving harness now medians five runs); and `LuaTypesVisitor:1349` is on the
   **`resolveGlobal`/`forFile` door**, not the `@class` door candidate B was measured on, so the
   figure does not even apply to one of the three sites.
 
@@ -1124,5 +1143,5 @@ than a call-shape argument; the rows that are still not designed say so.
 | COMP-09-05 `@class` metamethods | §4.7 — change site named, current behaviour measured | DR-12 — `v.` offers `[__add, len, x]`, `v:` offers `[len]`, so the change is operator-only and the offered sets must not move |
 | COMP-09-06 no new type source | §4.1 | the split — names for completion, `forFile` retained for the checker — keeps the checker's inputs unchanged |
 | COMP-09-07 behaviour-preserving | §4.4 measured; §4.4a **redefines the bar** | 3 of 4 receivers exact; the 4th is BUG-430, where the two doors disagree and the global one is wrong. COMP-09 preserves the `@class` door and deliberately does not reproduce the global door's flattening |
-| COMP-09-08 latency enforced | §4.10a — mechanism, two assertions, both red today | §1.9 — cold time-to-first **746 ms** vs a 100 ms budget, and **40x** scaling with member count. DR-02a done; the open item is assertion 2's factor |
-| COMP-09-09 work bound | §4.10b — three assertions off a `processValues` callback count | §4.10b (DR-11) — `entriesTraversed` is 50 for a 50-member receiver and **unchanged** by 4 000 unrelated keys; §4.0's 0 ms vs 2 ms is the timing corroboration |
+| COMP-09-08 latency enforced | §4.10a — gate shipped (`MemberEnumerationLatencyGateTest`), both assertions shown red armed | §1.9 — cold time-to-first **746 ms** vs a 100 ms budget; the armed gate reported **1 054 ms** and a 64x member-count ratio against a 2x noise floor on the builder. DR-02a and **DR-17 both done**: assertion 2's factor is derived per run, not picked |
+| COMP-09-09 work bound | §4.10b — four assertions off a `processValues` callback count; `filesVisited` pinned at 1 **and** 2 | §4.10b (DR-11) — `entriesTraversed` is 50 for a 50-member receiver and **unchanged** by 4 000 unrelated keys; §4.0's 0 ms vs 2 ms is the timing corroboration |

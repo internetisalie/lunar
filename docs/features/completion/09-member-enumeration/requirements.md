@@ -278,9 +278,19 @@ adding a shape is the cheap move — adding another member style is not.
 
 ### Open, tracked, not blocking
 
-DR-16 (re-measure the descoped walks — the scope decision does not depend on the answer), DR-17
-(assertion 2's factor, with a stated derivation rule), DR-18 (a second whole-project index's build
-cost — committed to, but it should not stay `todo` past Phase 1).
+Refreshed after Phase 0, which closed two of these and moved a third:
+
+- **DR-08 — done.** Every surviving harness medians five runs. Its standing consequence outlives it:
+  the spread is wide enough that **no ratio between two of this harness's figures is quotable**.
+- **DR-17 — done by construction.** Assertion 2's factor is not picked and frozen; the gate evaluates
+  `ceil(p95/p50)` over five cold 3-member receivers on every run. It measured 2x on one run and 3x on
+  the next, which is the argument for deriving it.
+- **DR-16 — partly done.** The medians half is settled (`CompNineSection32Test`: candidate B 29 ms
+  against a 41 ms warm-file `@class` door, candidate C 18 ms) and it makes the old scope-out look
+  worse, not better. Still owed: the per-site right-door analysis. The scope decision does not depend
+  on the answer.
+- **DR-18 — still `todo`.** A second whole-project index's build cost is asserted nowhere and
+  measured nowhere; committed to, but it should not stay `todo` past Phase 1.
 
 ## Dependencies
 
