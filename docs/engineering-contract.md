@@ -79,8 +79,19 @@ These rules govern plugin validation while protecting testing speeds and token a
   `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"` (~20 min vs ~10).
   **`git status` on `src/test/resources/corpus/` proves nothing**: baselines are rewritten only under
   `-PrecordCorpusBaseline`, so that check is clean whether the sweep passed, regressed, or never ran.
-  The gate is `BaselineRatchetTest` comparing in-test; verify the sweep classes actually appear in
-  `build/test-results/test/`, because their absence is silent.
+  The comparator is **`LuaCorpusSweepTest.sweepAndRatchet` → `CorpusGuards.assertRatchet`** (and
+  `LuaTortureCorpusTest`) — **not** `BaselineRatchetTest`, which ratchets synthetic metrics against a
+  `TemporaryFolder` and runs in the routine loop anyway (`excludeTestsMatching("*Corpus*")` is
+  case-sensitive and misses the lowercase `…lunar.corpus.` package segment, as it does for
+  `LexerInvariantsTest`). `-PwithCorpus` adds exactly three classes: `LuaCorpusSweepTest`,
+  `LuaTortureCorpusTest`, `LuaInspectionParityTest`. Verify those appear in
+  `build/test-results/test/`, because their absence is silent — and **check their timestamps**:
+  `--rerun` does **not** clear that directory, so a read after a failed or skipped run serves the
+  previous run's XML.
+- **A corpus sweep cannot catch a staleness defect.** `CorpusSweep.run` is a single pass over an
+  unedited tree; anything that needs an edit *after* a snapshot is built is structurally invisible to
+  it. Measured (TYPE-11-DR-09): all four baselines unchanged under a build demonstrably serving stale
+  types.
 - **LIGHT FIXTURE PREFERENCE:** When writing integration and IDE behavior tests, inherit exclusively from `BasePlatformTestCase` (Light Tests). Avoid heavy, full-frame `HeavyPlatformTestCase` classes unless explicitly testing multi-project serialization lifecycles.
 - **MOCK OPTIMIZATION (TOKEN CONSERVATION):**
     * **DECLARATIVE PROGRAMMING MOCKS:** Do not programmatically build mock PSI structures step-by-step using strings. Instead, leverage `myFixture.configureByText("File.lua", "local x = 10")` to let the SDK fixture populate the Virtual File System natively. This saves significant token generation budget.
