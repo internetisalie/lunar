@@ -84,7 +84,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 - **Exit criteria**:
   - `tooling/gce-builder/gce-builder.sh run "ktlintCheck lintDocs test --rerun --no-build-cache"` —
     BUILD SUCCESSFUL, 0 failures.
-  - `src/test/resources/corpus/*.baseline` unmoved (`git status --short src/test/resources/corpus/`
+  - the **corpus sweep run explicitly** — `run "test -PwithCorpus --rerun --no-build-cache"` — green, and the six sweep classes present in `build/test-results/test/`. Reference on `69ad6b57`: 2 571 tests, 0 failures. (`git status --short src/test/resources/corpus/`
     empty).
   - `TypeElevenDr04LatencyTest` arm B median at least 5× below the `main` figure **measured in the
     same run** as its own arm A. No cross-run ratio is quotable (design §1.5).

@@ -51,7 +51,7 @@ not the one `requirements.md` sketched; it is the alternative that document itse
 "leaving cross-file-resolving snapshots on the global tracker" — made exact.
 
 **Second finding, equally load-bearing: the existing suite is not a gate for this.** 2543 pre-existing
-tests and all four corpus baselines passed *unchanged* under the unsound build; `git status --short
+tests passed unchanged under the unsound build. ⚠ The corpus half of that claim was **not measured** — the sweep classes never ran (see TC-11). `git status --short
 src/test/resources/corpus/` was empty. The only red came from fixtures written for this de-risking.
 Any future change in this area that relies on "the suite is green" is relying on nothing.
 
@@ -155,7 +155,7 @@ BUILD SUCCESSFUL in 9m 45s
 tests 2564 failures 0 skipped 1
 ```
 
-with `git status --short src/test/resources/corpus/` empty — the four baselines unmoved.
+⚠ **corrected 2026-08-09**: the corpus sweep was not run for that measurement. `git status --short src/test/resources/corpus/` is **not** evidence: baselines are only rewritten under `-PrecordCorpusBaseline` (`build.gradle.kts:286-288`), so that check is clean whether the sweep passed, regressed, or never ran. The corpus classes are excluded from the routine loop by design (`build.gradle.kts:272-283`) — they index ~300-file third-party trees and need `tooling/corpus/fetch-corpus.py`. **The gate is the sweep itself**: `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"`, in which `BaselineRatchetTest` compares against the recorded baselines in-test.
 
 Every bundled stdlib file and DR-04's 123 KiB synthetic library is pinnable. `io.lua` records one
 source (its own hosted `File` class) and that source is inside the provisioned set.
@@ -594,7 +594,7 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | TC-8 | TYPE-11-04 (residual 1) | Library `alpha.lua` = `libAlias = sharedByProject`; project `shared.lua` = `sharedByProject = { beforeEdit = 1 }` → rewritten to `{ afterEdit = 1 }`. | `resolveGlobal("libAlias").getMembers().keys` = `[beforeEdit]` before, `[afterEdit]` after. `TypeElevenDr01ResidualTest`. |
 | TC-9 | TYPE-11-04 (residual 2) | Library `host.lua` = `---@class HostClass` / `local HostClass = {}` / `HostGlobal = HostClass`, `host2.lua` = `libHandle = HostGlobal`; project `ext.lua` = `function HostClass:beforeEdit() end` → rewritten to `afterEdit`. | `resolveGlobal("libHandle").getMembers().keys` contains `afterEdit` and **not** `beforeEdit`. `TypeElevenDr01ResidualTest`. |
 | TC-10 | TYPE-11-04 (project→project) | Project `a.lua` = `projectShared = { before = 1 }`, `b.lua` = `projectAlias = projectShared`; rewrite `a.lua` to `{ after = 1 }`. | `resolveGlobal("projectAlias").getMembers().keys` = `[after]`. `…testAProjectToProjectDependencyIsNeverPinned`. |
-| TC-11 | TYPE-11-04 (suite) | The full suite and the four corpus baselines. | 0 failures; `git status --short src/test/resources/corpus/` empty. |
+| TC-11 | TYPE-11-04 (suite) | The full suite, **and the corpus sweep run explicitly**: `run "test -PwithCorpus --rerun --no-build-cache"`. | 0 failures across both. The sweep classes (`BaselineRatchetTest`, `LuaCorpusSweepTest`, `LuaInspectionParityTest`, `LuaTortureCorpusTest`, `LexerInvariantsTest`, `ParseOracleTest`) must appear in `build/test-results/test/` — their **absence** is the failure mode, and it is silent. Reference run on `69ad6b57`: **2 571 tests, 0 failures**, ratchet 35/0, sweep 4/0, parity 1/0, torture 1/0, 19m 43s. |
 | TC-12 | TYPE-11-05 | Library `delta.lua` = `libDumb = sharedByLibrary`, `deltaSource.lua` = `sharedByLibrary = { fromLibrary = 1 }`; build `forFile(delta.lua)` inside `DumbModeTestUtils.runInDumbModeSynchronously`, then leave dumb mode. | `resolveGlobal("libDumb").getMembers().keys` = `[fromLibrary]`. `TypeElevenDr05DumbModeTest` — **records, does not gate** (§1.6). |
 
 ## 9. Alternatives Considered

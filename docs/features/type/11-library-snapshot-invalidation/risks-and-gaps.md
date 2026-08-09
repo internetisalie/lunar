@@ -52,7 +52,7 @@ blanket pin (rejected):   2563 tests completed, 2 failed, 1 skipped   BUILD FAIL
 conditional rule (§3):    2564 tests, 0 failures, 1 skipped           BUILD SUCCESSFUL in 9m 45s
 ```
 
-Both with `git status --short src/test/resources/corpus/` empty.
+⚠ **corrected 2026-08-09** — the corpus sweep was **not run** for those measurements. `git status --short src/test/resources/corpus/` is **not** evidence: baselines are only rewritten under `-PrecordCorpusBaseline` (`build.gradle.kts:286-288`), so that check is clean whether the sweep passed, regressed, or never ran. The corpus classes are excluded from the routine loop by design (`build.gradle.kts:272-283`) — they index ~300-file third-party trees and need `tooling/corpus/fetch-corpus.py`. **The gate is the sweep itself**: `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"`, in which `BaselineRatchetTest` compares against the recorded baselines in-test. Run on `69ad6b57` afterwards: **2 571 tests, 0 failures**, baselines unmoved.
 
 Two harness defects were caught and fixed by this exercise rather than shipped:
 
@@ -72,7 +72,7 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 | Constraint treated as fixed | Verdict |
 | :-- | :-- |
 | "The residual might not be real" | **REFUTED by measurement.** It is real and it fires: `design.md` §1.1. Blanket pinning is unsound and this plan does not build it. |
-| "The existing suite plus four corpus baselines will catch a stale-type regression here" | **REFUTED.** 2543 pre-existing tests and all four baselines passed *unchanged* under a build that demonstrably serves stale types. This premise is the reason `TypeElevenDr01ResidualTest` exists and the reason it is committed rather than thrown away. |
+| "The existing suite plus four corpus baselines will catch a stale-type regression here" | **REFUTED for the suite; UNTESTED for the corpus.** The pre-existing tests passed unchanged under a build that demonstrably serves stale types. The corpus half was never measured — those classes are excluded from the routine loop and the sweep was not run under the unsound build. Re-running it there is [[DR-09]]. This premise is the reason `TypeElevenDr01ResidualTest` exists and the reason it is committed rather than thrown away. |
 | "A project file adding a method to a stub class stales the snapshot" (`requirements.md`) | **PARTLY REFUTED.** True only for the **hosted** `---@class` form, and by a different route than `requirements.md` names (`freeGlobalSeed` → `tableToLuaType` → `fromLuaType`, not `materializeClass` reaching the snapshot). The bundled stdlib is 21/22 unhosted. `design.md` §1.2. |
 | "A dumb-mode build bakes in nulls that are then sticky" (`requirements.md`, TYPE-11-05) | **HALF REFUTED.** The nulls are baked in (`graph type = Undefined`); they are **not** sticky, and not because of any tracker — the file's own `modificationStamp` moves 0→1 when dumb mode ends. The guard is kept as insurance; see Gap 2.1. |
 | "Library files can be matched by `VirtualFile` identity" (TYPE-11-03) | **REFUTED as written.** `===` is false for a project file the index itself supplied. Matching is by URL containment. `design.md` §1.3. |
@@ -186,6 +186,7 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 
 | ID | Action | Resolves | Status |
 | :-- | :-- | :-- | :-- |
+| TYPE-11-DR-09 | Re-run the corpus sweep **under the blanket-pin build** — `run "test -PwithCorpus --rerun --no-build-cache"` — to establish whether the sweep would have caught what the routine loop missed. The original refutation ran the routine loop only, so "all four baselines passed unchanged" was never measured. If the sweep *does* catch it, TYPE-11-04's acceptance is stronger than the plan currently claims; if it does not, the blind spot is wider. | TYPE-11-04, Risk 1.1 |
 | TYPE-11-DR-01 | Pin `forFile`'s dependency for provenance-matched library files; run the full suite and the corpus sweeps; build explicit fixtures for both named residual paths | the residual; TYPE-11-04 | **done** — `design.md` §1.1/§1.2/§1.4. Residual real; blanket pinning rejected; conditional rule adopted and re-run green |
 | TYPE-11-DR-02 | Can every file `resolveGlobal` resolves into be matched against the provenance set? | TYPE-11-03 | **done** — `design.md` §1.3. Yes, by URL containment through `originalFile`; `===` and `psiFile.virtualFile` both refuted |
 | TYPE-11-DR-03 | Does `RockspecSourcePathProvider.forceRefreshTracker` tick on `luarocks install` into an existing root? | follow-up scope only | **not run** — rocks are out of v1 scope |

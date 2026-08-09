@@ -72,6 +72,15 @@ These rules govern structural definitions and framework extension boundaries.
 ## 5. TESTING STRATEGY & LIGHT FIXTURES
 These rules govern plugin validation while protecting testing speeds and token allocations.
 
+- **THE CORPUS SWEEP IS AN EXPLICIT TARGET — INVOKE IT, DO NOT ASSUME IT.** The routine loop
+  (`run test`) **excludes** `*Corpus*` and `*InspectionParityTest` by design (`build.gradle.kts:272-283`):
+  those classes index ~300-file third-party trees and need `tooling/corpus/fetch-corpus.py`. A change
+  that can move inferred types — the type engine, indexing, resolution, inspections — must be gated by
+  `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"` (~20 min vs ~10).
+  **`git status` on `src/test/resources/corpus/` proves nothing**: baselines are rewritten only under
+  `-PrecordCorpusBaseline`, so that check is clean whether the sweep passed, regressed, or never ran.
+  The gate is `BaselineRatchetTest` comparing in-test; verify the sweep classes actually appear in
+  `build/test-results/test/`, because their absence is silent.
 - **LIGHT FIXTURE PREFERENCE:** When writing integration and IDE behavior tests, inherit exclusively from `BasePlatformTestCase` (Light Tests). Avoid heavy, full-frame `HeavyPlatformTestCase` classes unless explicitly testing multi-project serialization lifecycles.
 - **MOCK OPTIMIZATION (TOKEN CONSERVATION):**
     * **DECLARATIVE PROGRAMMING MOCKS:** Do not programmatically build mock PSI structures step-by-step using strings. Instead, leverage `myFixture.configureByText("File.lua", "local x = 10")` to let the SDK fixture populate the Virtual File System natively. This saves significant token generation budget.
