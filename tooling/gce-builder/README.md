@@ -79,6 +79,29 @@ gcloud billing budgets create --billing-account=<ID> --display-name="lunar-build
   --budget-amount=10USD --threshold-rule=percent=0.5 --threshold-rule=percent=0.9
 ```
 
+## The corpus sweep does not run on the `gce` backend (measured 2026-08-10)
+
+`run "test -PwithCorpus …"` fails on the GCE VM with all four `LuaCorpusSweepTest` cases,
+`LuaTortureCorpusTest` and five `ParseOracleTest` cases red — and **none of it is a regression**:
+
+```
+java.lang.IllegalStateException: The LUA51 oracle rejected valid Lua
+(Reject(message=…/test/luac/5.1.5/luac: /lib/x86_64-linux-gnu/libc.so.6:
+ version `GLIBC_2.38' not found (required by …/test/luac/5.1.5/luac)))
+```
+
+The pinned `luac` binaries in the out-of-repo `test/luac/` tree are built by
+`tooling/corpus/fetch-luac.py` on whichever host ran it — in practice the libvirt `debian13` builder
+(glibc 2.38) — and the GCE VM boots `debian-12` (glibc 2.36), so every `luac` invocation dies on the
+dynamic loader. `ParseOracle.assertDiscriminates` then refuses to be used as ground truth and aborts
+the sweep, which is the guard behaving correctly.
+
+**Consequence: the two backends are not interchangeable for the sweep.** Route `-PwithCorpus` to the
+libvirt builder; if it is down, either rebuild the binaries on the GCE VM (`fetch-luac.py`, ~2 min
+per release) or record that the sweep was not run rather than reading the red as a regression. The
+routine loop (`test` without `-PwithCorpus`) is unaffected — `ParseOracleTest` is excluded there by
+`-PexcludeExternalFixtureTests` in CI and simply passes on a host whose binaries match.
+
 ## Files
 - `config.sh` — parameters (project, zone, machine, disks), env-overridable.
 - `startup-script.sh` — idempotent VM bootstrap: mounts/formats the cache disk, installs Corretto 21.
