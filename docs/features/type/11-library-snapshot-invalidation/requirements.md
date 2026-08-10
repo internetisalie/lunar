@@ -91,8 +91,9 @@ included, stays on the global tracker. Three reasons:
 | TYPE-11-01 | **A platform-library snapshot survives an unrelated edit** | M | Editing a project file must not invalidate the cached snapshot of a file in a plugin-provisioned library (bundled stdlib stub, definition library). Rocks trees are out of scope for v1 and keep today's behavior. |
 | TYPE-11-02 | **Every generation signal invalidates it** | M | Roots change and target/version change each discard the affected snapshots. A missed signal is a stale-type defect, which is worse than the cost being fixed. |
 | TYPE-11-03 | **Library-file identification is by provenance** | M | The library set comes from what this plugin provisioned (`RuntimeLibraryProvider` / the definition-library registry), matched by `VirtualFile` identity against the file `resolveGlobal` actually resolved. Not `ProjectFileIndex.isInLibrary` — unverified for `SyntheticLibrary` roots, and unnecessary once provenance answers the question. |
-| TYPE-11-04 | **No new stale-type defect** | M | An edit-then-reread fixture (`TypeElevenDr01ResidualTest`) stays green. **Measured (TYPE-11-DR-09): "all four corpus baselines unmoved and the full suite green" is not a test of this** — both hold under a build that serves stale types. They stay as "nothing else moved" checks. |
+| TYPE-11-04 | **No new stale-type defect** | M | The edit-then-reread fixtures (`TypeElevenDr01ResidualTest`, and for TYPE-11-06's two shapes `TypeElevenDr11LateDeclarationTest` / `TypeElevenDr12WarmInnerSnapshotTest`) stay green. **Measured (TYPE-11-DR-09): "all four corpus baselines unmoved and the full suite green" is not a test of this** — both hold under a build that serves stale types. They stay as "nothing else moved" checks. |
 | TYPE-11-05 | **A dumb-mode build is never cached across the generation** | M | `resolveGlobal` answers `null` while indexing; a snapshot built then has those nulls baked in and must not outlive dumb mode. Either skip caching while `DumbService.isDumb`, or add the dumb-mode tracker as a dependency. Without this, TYPE-11 *creates* a staleness class that today's per-keystroke invalidation accidentally heals. |
+| TYPE-11-06 | **An incomplete recording is never pinned** | M | The generalisation of TYPE-11-05, and the reason it is a requirement of its own: the recorder must distinguish **"no sources"** from **"sources unknown"**, and only the first may be pinned. A build during which a global resolution answered nothing, or during which a nested `forFile` was served from cache without contributing its own recorded sources, has not established that it is a pure function of provisioned content. Measured (design §1.8): both under-recordings ship a stale type under the rule as originally written, and closing them costs **zero** of the 11 files this feature pins. Gated by `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest`. |
 
 ## The residual that may defeat the whole approach
 
@@ -180,6 +181,32 @@ above did not survive being executed, and they are corrected here rather than le
   `LuaTortureCorpusTest` 1/0 and `LuaInspectionParityTest` 1/0. All four baselines unmoved.
   Structural, not incidental: `CorpusSweep.run` is a single pass over an unedited tree, and a stale
   cache needs an edit. TYPE-11-04's acceptance is `TypeElevenDr01ResidualTest` and nothing else.
+
+### Third round (2026-08-10, `main` @ `07a8fa44`) — the recorder under-records in two directions
+
+Step 9 raised two blockers against the conditional rule this document's second round adopted. Both
+were reproduced and both are closed; full output in [design.md](design.md) §1.8.
+
+- **A resolution that answers nothing reports no source (B1).** A library file whose free global
+  nothing declares yet records an **empty** set, which the rule read as "depends on nothing" and
+  pinned. Writing the declaration afterwards never reaches it:
+  `expected:<[afterDeclared]> but was:<[]>`. The design's own sentence "which the global tracker
+  guarantees happens" was false for a pinned file — `MODIFICATION_COUNT` is the dependency the pin
+  removes, so **a pin must be correct when it is taken; there is no re-judgement**.
+- **A nested `forFile` served warm contributes no sources (B4).** `resolveGlobal` got a replay
+  (design §3.6) and `forFile` did not, though both are memoized on the same footing. Ordering alone,
+  inside one modification epoch and with no roots tick, pins a library file that transitively embeds
+  a project file's type: `expected:<[afterEdit]> but was:<[beforeEdit]>`.
+- **The fix costs nothing.** Under the corrected rule all 11 provisioned files stay pinnable
+  (`cond=11 … guarded=11`). The literal form of the rule — "any resolution that answered nothing" —
+  costs `io.lua` its pin for five `resolveType` misses on unparsed type expressions
+  (`boolean|nil`, `fun(): string`), so the absence rule is restricted to **global** resolution, which
+  costs zero files. Warm inner snapshots are handled by replaying their recorded frame rather than by
+  declaring them unknown, because a blanket rule there would strip every library→library chain's pin
+  permanently.
+- **The alternative was priced, not assumed.** `FileBasedIndex.getIndexModificationStamp` exists and
+  behaves as hoped (`before=16 afterUnrelatedEdit=16 afterNewDeclaration=17`) but is not adopted; the
+  rule it would optimise already costs nothing.
 
 ## Relationship to COMP-09
 

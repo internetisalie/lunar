@@ -102,6 +102,27 @@ behave identically before and after the change.
   premise of this feature is off for that tree.
 - **Result**: ⬜ Pass / ⬜ Fail
 
+### Scenario 2.4: The two shapes this checklist cannot arrange (TYPE-11-06)
+
+`design.md` §1.8 measured two further stale-type shapes: a library file whose free global **nothing
+declares yet** (so the recorder records an empty set and the file is pinned), and a library file
+whose inner library snapshot was served **warm** while it was being built (so it records an
+incomplete set). Both are covered by `TypeElevenDr11LateDeclarationTest` and
+`TypeElevenDr12WarmInnerSnapshotTest`.
+
+**Neither has a reliable manual arrangement with the bundled catalog**, and saying so is the point:
+both need a library file that references a global the library does not define, and the measured
+bundled set contains none — all 10 stdlib stubs and the 123 KiB probe library record zero global
+absences. Do **not** invent a scenario that looks like it exercises them; a manual check that cannot
+fail is worse than none.
+
+What a tester *can* do is watch for the symptom class while running everything above: **a completion
+popup whose member set stops changing after a project edit that should have changed it.** If that is
+ever seen, record the exact file that stopped updating and what was edited — that is the report this
+feature needs, and the two fixtures above are the shapes to compare it against.
+
+- **Result**: ⬜ Not applicable (no manual arrangement) / ⬜ Symptom observed — record details
+
 ## 3. Generation signals (TYPE-11-02)
 
 ### Scenario 3.1: Disabling a definition library takes its types away immediately

@@ -87,6 +87,28 @@ failure. So:
 - this stays open until the test either runs clean over a meaningful number of full-suite runs, or
   fails again — in which case the recorded evidence here is the starting point, not folklore.
 
+## Recurrence 2026-08-10 — the generation-counter guard did NOT remove it
+
+Observed again on `main` @ `07a8fa44` during TYPE-11's Step 9 B1/B4 gate, with the identical
+assertion and the identical fail-once/pass-on-re-run signature. This is the "fails again" branch the
+section above committed to, so the guard's effect is now **measured, and it is not a fix**.
+
+| run | tree | result |
+| :-- | :-- | :-- |
+| A | `main` + 2 new TYPE-11 test classes (docs and tests only; `git diff -- src/main/` empty) | 404 classes, **2565 tests, 1 failure** — `testForProjectResolvesRuntimeAndAppliesEnvironment`, `expected the runtime dir prepended to PATH` (`LuaInterpreterCommandLinesTest.kt:56`) |
+| B | `main` alone, changes stashed | 402 classes, **2563 tests, 0 failures**, 1 skipped |
+| C | same tree as A, **no change at all** | 404 classes, **2565 tests, 0 failures**, 1 skipped |
+
+A→C with nothing changed is the same shape as the 2026-08-07 B→C pair, so the two occurrences are
+one defect and it survived the BUG-422 hardening. Two further facts from this round:
+
+- **It is not reproducible under `--tests`.** `test --tests '*TypeElevenDr1*' --tests
+  '*LuaInterpreterCommandLinesTest*'` is green (37s), which is consistent with an ordering
+  dependency and is why the fix direction below insists on the full suite.
+- **Adding unrelated test classes changes the odds.** The two new classes are in
+  `net.internetisalie.lunar.type` and touch nothing in `toolchain/`, but they shift full-suite class
+  ordering — which is the only mechanism by which a docs-and-tests commit can move this needle.
+
 ## Fix direction (if it recurs)
 
 Reproduce first — run the suite with a fixed seed / ordering until it fails, then bisect the

@@ -1,11 +1,7 @@
 package net.internetisalie.lunar.type
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.roots.ProjectRootModificationTracker
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import com.intellij.testFramework.IndexingTestUtil
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 
 /**
@@ -50,22 +46,7 @@ class TypeElevenDr01ResidualTest : TypeElevenDefinitionLibraryTestCase() {
     private fun rewrite(
         file: PsiFile,
         text: String,
-    ) {
-        val rootsTracker = ProjectRootModificationTracker.getInstance(project)
-        val before = rootsTracker.modificationCount
-        WriteCommandAction.runWriteCommandAction(project) {
-            val document = checkNotNull(PsiDocumentManager.getInstance(project).getDocument(file))
-            document.setText(text)
-            PsiDocumentManager.getInstance(project).commitDocument(document)
-        }
-        IndexingTestUtil.waitUntilIndexesAreReady(project)
-        assertEquals(
-            "the roots tracker moved across the edit ($before -> ${rootsTracker.modificationCount}); " +
-                "any verdict from this run would be about that tick, not about the edit",
-            before,
-            rootsTracker.modificationCount,
-        )
-    }
+    ) = rewriteAssertingRootsAreStill(file, text)
 
     /**
      * Residual path 1 — a library file's own global takes its type from a free global that a

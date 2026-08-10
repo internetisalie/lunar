@@ -1,11 +1,15 @@
 package net.internetisalie.lunar.type
 
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.openapi.roots.ex.ProjectRootManagerEx
 import com.intellij.openapi.util.EmptyRunnable
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.definitions.LuaDefinitionCatalogLoader
@@ -83,6 +87,35 @@ abstract class TypeElevenDefinitionLibraryTestCase : BasePlatformTestCase() {
             ProjectRootManagerEx.getInstanceEx(project).makeRootsChange(EmptyRunnable.getInstance(), false, true)
         }
         IndexingTestUtil.waitUntilIndexesAreReady(project)
+    }
+
+    /**
+     * Edits [file] and **refuses to let the edit be healed by anything but itself**.
+     *
+     * Measured 2026-08-09 (DR-01): run alone, residual path 2 reports `[afterEdit, beforeEdit]`; run
+     * after the other TYPE-11 classes in the same JVM it reports `[afterEdit]`, because a
+     * `ProjectRootModificationTracker` tick left over from a previous class's library install
+     * discards the pinned snapshot and hands the test a green it did not earn. A harness that can be
+     * silently healed by an unrelated tick is not a gate, so the tick count is asserted to be still.
+     */
+    protected fun rewriteAssertingRootsAreStill(
+        file: PsiFile,
+        text: String,
+    ) {
+        val rootsTracker = ProjectRootModificationTracker.getInstance(project)
+        val before = rootsTracker.modificationCount
+        WriteCommandAction.runWriteCommandAction(project) {
+            val document = checkNotNull(PsiDocumentManager.getInstance(project).getDocument(file))
+            document.setText(text)
+            PsiDocumentManager.getInstance(project).commitDocument(document)
+        }
+        IndexingTestUtil.waitUntilIndexesAreReady(project)
+        assertEquals(
+            "the roots tracker moved across the edit ($before -> ${rootsTracker.modificationCount}); " +
+                "any verdict from this run would be about that tick, not about the edit",
+            before,
+            rootsTracker.modificationCount,
+        )
     }
 
     /** DR-20's library text, verbatim in shape: one `---@class`, 3 400 fields, 200 methods. */

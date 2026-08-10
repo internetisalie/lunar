@@ -45,6 +45,25 @@ No `plugin.xml`, `build.gradle.kts` or test-source change was needed: both arms 
 editing the two `Boolean` initialisers and re-running, and every assertion consumed is one of the
 committed TYPE-11 harnesses.
 
+### Third measurement round (2026-08-10, `main` @ `07a8fa44`) — DR-11 and DR-12
+
+Same discipline, same builder, same revert (`git diff -- src/main/` empty at commit). This round
+reproduced the two Step 9 blockers and priced the rule that closes them (`design.md` §1.8). Unlike
+the first two rounds the scaffold is the **whole** design of §3.1–§3.6, not a cut-down of it, plus a
+mode switch, because a blocker about under-recording cannot be measured against a scaffold that does
+not record.
+
+| Scaffold file / edit | Purpose | State |
+| :-- | :-- | :-- |
+| `src/main/kotlin/.../lang/psi/types/LuaReviewScaffold.kt` (new, 186 lines) | three `object`s in one file: `LuaReviewRecorder` (frames of `urls` / `misses` / `warm` / `warmUnreplayed`, `recording`, `report`, `reportFile`, `reportMiss`, `reportWarmSnapshot`, `replay`, `depth`, and `snapshotFrames: WeakHashMap<LuaTypes, Frame>`); `LuaReviewProvenance` (§3.2 verbatim — target root + EP-registered `LuaDefinitionLibraryProvider.getRootsToWatch`, `url == root \|\| url.startsWith("$root/")`, read through `originalFile`); `LuaReviewMode` (mode from `System.getProperty("lunar.review.mode", …)` — a parsed string, so no arm folds away — plus a `Decision` record that computes `pinnableCond`, `pinnableB1`, `pinnableB1Globals`, `pinnableB4`, `pinnableConservative` and `pinnableGuarded` **simultaneously**, so one run prices every candidate rule, and a `decisions` map + `TYPE11-REVIEW` trace line) | **deleted** |
+| `LuaTypes.kt` — `forFile` | `var computed` around `getCachedValue`; `recording { buildSnapshot }`; `snapshotFrames[snapshot] = frame`; churn from `LuaReviewMode.churnFor(psiFile, frame)`; warm hits reported via `reportWarmSnapshot(psiFile, result)` when `depth() > 0` | **reverted to HEAD** |
+| `LuaTypeManagerImpl.kt` | `sourceCache: CachedValue<MutableMap<String, Frame>>` built exactly like the three existing caches; `recordUnder(key, body)` / `replaySources(key)`; the three doors (`resolveType`, `resolveModule`, `resolveGlobal`) wrapped so a miss records and a hit replays; a `reportMiss` on every null-returning path of all three; the six §3.5 `reportFile` sites | **reverted to HEAD** |
+
+Modes, selected by editing one default string between runs: `off` (today's behaviour), `cond` (§3 as
+written before this round), `guarded` (§3 plus the absence rule and the snapshot replay).
+`conservative` (the literal "any incomplete recording is unpinnable") is not a separate run — its
+verdict is one of the columns every run records.
+
 **Reading test results on the builder: `--rerun` does not clear `build/test-results/test/`.** The
 previous run's XML sits there for the whole of the next run and is only replaced when `:test`
 finishes. Reading it mid-run reports the *previous* build's verdict. Check `ls -l` timestamps against
@@ -71,6 +90,9 @@ outcome, not an expectation.
 | `…testALibraryGlobalTypedFromAProjectGlobalTracksThatProjectFile` (2026-08-09, second round) | provisioned-context globals restricted to provisioned scope (DR-10) **+** blanket pin | **RED at a different assertion — `:88`, not `:93`.** `the library global must take the project declaration's members expected:<[beforeEdit]> but was:<[]>`. The move from `:93` to `:88` is the DR-10 scaffold's liveness proof: the restriction is what turns `[beforeEdit]` into `[]`. |
 | `…testAProjectDeclaredMethodOnAStubClassTracksThatProjectFile` (second round) | same | **RED at `:139`, message unchanged** — `the removed project method must disappear; got [afterEdit, beforeEdit]`. Identical to blanket pinning: this path never enters `typeOfGlobalIn`. |
 | Blanket pin alone, re-run in the second round for DR-09 | blanket pin (provenance + `!isDumb`), restriction off | **RED at `:93` and `:139`** — reproduces the first round's signature exactly, which is what makes the `:88` above attributable to the restriction and not to the pin. |
+| `TypeElevenDr11LateDeclarationTest.testADeclarationWrittenAfterTheLibrarySnapshotWasBuiltStillReachesIt` (2026-08-10, third round) | the §3 conditional rule **as written** — i.e. without §3.3 step 4 (no absence recording) | **RED at `:83`** — `a project declaration written AFTER the library snapshot was built must still reach it expected:<[afterDeclared]> but was:<[]>`, with `TYPE11-REVIEW file=alpha.lua pinnable=true sources=0` on the line above and `roots 3 -> 3` proving no tick healed or condemned it. |
+| `TypeElevenDr12WarmInnerSnapshotTest.testALibraryWhoseInnerLibrarySnapshotWasServedWarmStillTracksTheProjectFile` (third round) | the §3 conditional rule as written — i.e. without §3.7 (no `forFile` replay) | **RED at `:75`** — `expected:<[afterEdit]> but was:<[beforeEdit]>`, with `file=a.lua pinnable=true sources=1 outside=[] warm=[b.lua]` naming the cause and `file=b.lua pinnable=false outside=[p.lua]` showing the inner file was judged correctly. |
+| The same two, under the corrected rule (`mode=guarded`) | — | **GREEN, and for the right reason**: `file=alpha.lua pinnable=false misses=[global:sharedByProject]` and `file=a.lua pinnable=false sources=2 outside=[p.lua] warm=[b.lua] warmUnreplayed=[]`. In the same run 11 of 11 provisioned files are still pinned, so the green is not "pinning switched off". |
 
 For completeness, the two full-suite runs the ledger is anchored to:
 
@@ -119,6 +141,11 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 | "The `psiFile` dependency in `forFile` can stay as it is" | **Genuinely fixed, and load-bearing in a way not previously noticed.** It is what makes a file's own edit always rebuild its own snapshot regardless of the churn tracker (`CachedValueBase` reads `containingFile.modificationStamp` for a `PsiElement` dependency). Removing it would break the design silently. |
 | **"`doResolveGlobal` must keep searching project scope first (BUG-427), so the recorder has to over-approximate around it"** (`design.md` §3.5) | **REFUTED as the recorder's justification, by measurement — `design.md` §1.7.** The constraint *is* removable: a scaffold that sends a provisioned file's globals to a provisioned-only candidate set compiles and runs. Removing it does **not** make blanket pinning sound (`2571 tests completed, 2 failed`; residual path 2 still reports `[afterEdit, beforeEdit]`), because that path reaches the snapshot through `materializeClass` → `collectMethodMembers`, which queries `StubIndex.getAllKeys(LuaGlobalDeclarationIndex.KEY, project)` with **no scope argument at all** (`LuaTypeManagerImpl:427-432`). Removing it also costs real behaviour: residual path 1's library global stops resolving (`[beforeEdit]` → `[]`). The recorder stays; its stated *reason* was wrong, and §3.5 now says so. |
 | "The corpus half of TYPE-11-04's acceptance is `BaselineRatchetTest` comparing recorded baselines under `-PwithCorpus`" (this document's own 2026-08-09 correction) | **REFUTED by reading the tests it names.** `BaselineRatchetTest` ratchets synthetic metrics against `TemporaryFolder` files and runs in the **routine** loop; the recorded baselines are compared only by `LuaCorpusSweepTest`/`LuaTortureCorpusTest`. A correction that names the wrong gate is the same defect as the claim it corrected. |
+| **"An empty recorded source set means the file depends on nothing"** (§3.3 as written before this round) | **REFUTED by measurement — `design.md` §1.8.** It also means "the answer was unknown", which is where staleness lives. Two shapes, both red: a global nothing declares yet (`expected:<[afterDeclared]> but was:<[]>`) and a nested `forFile` served warm (`expected:<[afterEdit]> but was:<[beforeEdit]>`). The recorder must distinguish *no sources* from *sources unknown*. |
+| **"A pinned file is re-judged on its next build, which the global tracker guarantees happens"** (§3.3 as written) | **REFUTED, and it was self-contradictory.** `PsiModificationTracker.MODIFICATION_COUNT` is exactly the dependency a pin removes, so a pinned file has no next build until a generation tick. A pin must be correct at the moment it is taken. |
+| "Closing the absence case will cost most of the feature's value" (the reason to fear the fix) | **REFUTED by counting.** 11 of 11 provisioned files stay pinnable. The literal rule costs one file, `io.lua`, and only for `resolveType("boolean\|nil")`-shaped misses; restricting the absence rule to global resolution costs zero. Measured before any machinery was designed, which is what made the machinery unnecessary. |
+| "A blanket 'warm nested `forFile` ⇒ unpinnable' is the natural fix for B4" | **Rejected on measured cost, not on taste.** An inner library file that is itself pinned stays warm across ticks, so every library→library chain would lose its pin permanently. Replaying the inner frame gives the identical verdict at zero cost (`guarded=11`). |
+| "There is no platform tracker that ticks when a global declaration appears" | **REFUTED — one exists, and it is still not used.** `FileBasedIndex.getIndexModificationStamp(ID, Project)` (the sole `…ModificationStamp` member of `FileBasedIndex`, confirmed by `javap` on `lib/intellij.platform.indexing.jar`) measured `before=16 afterUnrelatedEdit=16 afterNewDeclaration=17`. Priced and declined in `design.md` §9: a second invalidation axis, a dumb-hostile index query inside a validity check, and no documented monotonicity, to optimise a rule that costs nothing. |
 | "A latency probe with no assertions is acceptable" | **Chosen, and stated.** DR-04 measures a direction; a threshold gate on a figure whose own baseline moved 3.2–10.4 ms between runs on the same machine would be noise dressed as a contract. COMP-09 §1.2's rule, applied. |
 | "Library→library dependencies are safe under a shared generation tracker" (`requirements.md`) | **Accepted, untested.** No fixture edits a library file, because a user cannot. It is safe by construction: any change to a provisioned tree comes through a roots change, which ticks the shared tracker for every pinned file at once. |
 
@@ -180,6 +207,11 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   test failure — the user simply sees a type that stopped updating.
 - **Likelihood**: **medium now, high over time.** `design.md` §3.5 enumerates six sites and they were
   sufficient for every measured case, but nothing structurally prevents a seventh being added later.
+- **Widened by the third round.** A site can also be missed by *not existing*: the two shapes in
+  `design.md` §1.8 have all six sites correctly wired and still pin a stale snapshot, because the
+  thing that needed recording was an **absence** and a **cache hit**. The Phase 3 source-text guard
+  counts call sites and would not have caught either. Treat "the recorder is complete" as a claim
+  about three sets, not one.
 - **Escalated by DR-09.** The corpus sweep was the last remaining candidate for a broad safety net and
   it is measured blind to this class (below). `TypeElevenDr01ResidualTest` plus the Phase 3 source-text
   guard are the whole defence; there is no third line.
@@ -269,6 +301,16 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   definition-library path. They are kept apart on purpose — the anonymous one is the right tool for
   "does resolution cross a `SyntheticLibrary` boundary", the real one for "did this plugin provision
   it". If a third arrives, consolidate.
+- **Incidental finding (third round), not a TYPE-11 blocker: `resolveType` is called with unparsed
+  type expressions.** Building `io.lua`'s snapshot issues five `resolveType` calls whose `name`
+  arguments are `boolean|nil`, `integer|nil`, `string|integer`, `string|number|nil` and
+  `fun(): string` — union and function *type expressions*, not names any index can hold. Each answers
+  null and each writes a permanent `null` entry into `typeCache` under that key. The route is
+  `LuaTypeMember(…, LuaTypeReference(member.typeName, decl))` → `LuaTypeReference.resolveType()` →
+  `LuaTypeManager.resolveType(rawString)`. Harmless today (the null falls back), but it is why the
+  absence rule is scoped to *global* resolution in `design.md` §3.1 step 5: a "resolution answered
+  nothing" signal that fires on `boolean|nil` measures nothing about declarations. Worth a separate
+  look at whether these should be parsed by `TypeParser` before reaching the door.
 - **TBD: COMP-09.** This feature removes the recurring per-edit cost only. The first completion of a
   session still builds the library graph once, which is what COMP-09's index avoids.
 
@@ -286,6 +328,9 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 | TYPE-11-DR-06 | Determine whether the `modificationStamp` move at dumb-mode exit is platform behaviour or a `DumbModeTestUtils` artifact. If the former, TYPE-11-05's guard is dead code and should be deleted; if the latter, build a fixture that reproduces the staleness | Gap 2.1, TYPE-11-05 | todo |
 | TYPE-11-DR-07 | Probe whether a `LuaTypeReference` can be resolved after its recording frame closed, and whether the resulting source can reach a pinned snapshot | Risk 1.3 | todo |
 | TYPE-11-DR-08 | Profile the residual arm-B cost (`resolveGlobal` + `graphTypeToLuaType`, fresh `visited` map per call over a 3 600-member table) and decide whether it is a separate feature | Risk 1.4 | todo |
+| TYPE-11-DR-11 | Step 9 blocker B1: does a build whose global resolution answered **nothing** get pinned, and does the declaration written afterwards fail to reach it? | TYPE-11-06, `design.md` §3.3/§3.4 | **done, positive (the defect is real)** — `design.md` §1.8. `expected:<[afterDeclared]> but was:<[]>`. Closed by §3.3 step 4; measured cost **zero** pinned files. |
+| TYPE-11-DR-12 | Step 9 blocker B4: is the interleaving reachable in which a nested `forFile` is served warm, so the outer library file records an incomplete source set and is pinned? | TYPE-11-06, `design.md` §3.6 | **done, positive (the defect is real, and needs no roots tick)** — `design.md` §1.8. `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.7 (replay), not by blanket-unpinnable; measured cost **zero** pinned files. |
+| TYPE-11-DR-13 | Price the alternative to blanket-unpinnable for B1: is there a tracker that ticks when a global declaration appears? | `design.md` §9 | **done, not adopted** — `FileBasedIndex.getIndexModificationStamp(LuaGlobalAssignmentIndex.KEY, project)` exists and behaves as hoped (`16 / 16 / 17`), but the rule it would optimise costs nothing, so the second invalidation axis buys nothing. |
 
 ## Test Case Gaps
 
@@ -296,6 +341,13 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   not run. Cover it in plan Phase 3.
 - **No test covers a rocks tree**, deliberately — v1 leaves rocks on today's behaviour, so the
   existing rocks suites already assert the unchanged answer.
+- **Closed by the third round**: the absence shape and the warm-inner-snapshot shape now have
+  fixtures (`TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`), each shown
+  red under the rule without its guard.
+- **No fixture asserts the pinnable *count*.** The value of the feature and the correctness of the
+  rule pull in opposite directions, and only counting distinguishes "closed the hole" from "pinned
+  nothing". The third round counted with a scaffold (`guarded=11`); nothing committed does. Phase 3
+  should add it alongside `LuaTypeSourceRecorderCoverageTest`.
 - **No multi-project test.** `LuaLibraryProvenance` is per project and the definition cache is per
   **user**; two projects enabling the same library share one tree. Untested here.
 

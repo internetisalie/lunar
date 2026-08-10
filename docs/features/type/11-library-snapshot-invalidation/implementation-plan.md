@@ -25,9 +25,13 @@ are already committed and green on `main`. They must stay green at the end of ev
   the suite result is bit-identical to `main`.
 - **Tasks**:
   - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaTypeSourceRecorder` — realizes design §2.1
-        and §3.1. `object`, `ThreadLocal<ArrayDeque<MutableSet<String>>>`, three functions:
-        `recording`, `report`, `reportFile`. **`report` writes to every open frame, not just the
-        innermost** (§3.1 step 3) — that is the whole correctness of nesting.
+        and §3.1. `object`, `ThreadLocal<ArrayDeque<SourceFrame>>`, where `SourceFrame` carries three
+        sets (`urls`, `absences`, `unreplayedWarm`) and an `absorb`; plus the weak-keyed
+        `snapshotFrames: MutableMap<LuaTypes, SourceFrame>` used by §3.7. Functions: `recording`,
+        `report`, `reportFile`, `reportAbsence`, `reportWarmSnapshot`, `replay`, `depth`.
+        **Every `report*` writes to every open frame, not just the innermost** (§3.1 step 3) — that
+        is the whole correctness of nesting. `absences` and `unreplayedWarm` are not decoration: the
+        two shapes they exist for were each measured shipping a stale type (design §1.8).
   - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaLibraryProvenance` — realizes design §2.2
         and §3.2. Light `@Service(Service.Level.PROJECT)`; **no `plugin.xml` entry** (design §7).
         Root list memoized via `CachedValuesManager.getManager(project).getCachedValue(project) { … }`
@@ -47,13 +51,20 @@ are already committed and green on `main`. They must stay green at the end of ev
 - **Tasks**:
   - [ ] Add `sourceCache` to `LuaTypeManagerImpl` immediately after `globalCache` — realizes design
         §3.6 step 1. Same `createCachedValue(…, false)` shape, same
-        `PsiModificationTracker.getInstance(project)` dependency, same `synchronizedMap`.
+        `PsiModificationTracker.getInstance(project)` dependency, same `synchronizedMap`. The value
+        type is `MutableMap<String, LuaTypeSourceRecorder.SourceFrame>` — the **whole frame**, not a
+        URL set, or a memoized null replays as "no dependencies" (design §3.6).
   - [ ] Add the private helpers `recordUnder(key, body)` and `replaySources(key)` — design §3.6
         steps 3–4. Both are ≤ 4 lines; the ≤ 3-argument cap (engineering contract §3) is satisfied.
   - [ ] Wrap the three doors — `resolveType`, `resolveModule`, `resolveGlobal` — so a cache **miss**
         goes through `recordUnder("type:$name" | "module:$moduleName" | "global:$name")` and a cache
         **hit** calls `replaySources(...)` before returning. Do not move the early returns that
         precede each cache read.
+  - [ ] In `resolveGlobal` **only**, call `LuaTypeSourceRecorder.reportAbsence("global:$name")` on
+        every path that yields `null` — a computed null (inside the `recordUnder` body, so it is
+        stored and replays), a cache hit on a stored null, and the reentrancy guard. Do **not** do
+        this for `resolveType`/`resolveModule`: measured, that costs `io.lua` its pin for
+        `resolveType("boolean|nil")`-shaped misses and buys nothing (design §1.8).
   - [ ] Insert the six `reportFile` calls listed in design §3.5, at the stated lines. `typeOfGlobalIn`
         gets `.onEach { LuaTypeSourceRecorder.reportFile(it) }` **after** the existing
         `.filter { it != exclude }` — reporting every file visited, not only the one that yields a
@@ -66,11 +77,18 @@ are already committed and green on `main`. They must stay green at the end of ev
 - **Goal**: the feature. `TypeElevenDr04LatencyTest` arm B drops by an order of magnitude and
   `TypeElevenDr01ResidualTest` stays green.
 - **Tasks**:
-  - [ ] Edit `LuaTypesSnapshot.forFile` (`LuaTypes.kt:212-224`) — realizes design §2.3 and §3.3.
-        Wrap `LuaTypesVisitor.buildSnapshot(psiFile)` in `LuaTypeSourceRecorder.recording { … }`,
-        compute `pinnable` by the three short-circuiting tests in §3.3 steps 1–3, and select the churn
-        dependency in step 5. The `inProgressSnapshot` reentrancy guard, the `psiFile` dependency and
-        `targetModificationTracker` are unchanged.
+  - [ ] Edit `LuaTypesSnapshot.forFile` (`LuaTypes.kt:212-224`) — realizes design §2.3, §3.3 and
+        §3.7. Wrap `LuaTypesVisitor.buildSnapshot(psiFile)` in `LuaTypeSourceRecorder.recording { … }`,
+        register `snapshotFrames[snapshot] = frame`, compute `pinnable` by the five short-circuiting
+        tests in §3.3 steps 1–5, and select the churn dependency in step 7. Track whether the provider
+        ran (`var computed`) and, when it did not and `depth() > 0`, call
+        `reportWarmSnapshot(psiFile, served)` (§3.7 steps 2–4). The `inProgressSnapshot` reentrancy
+        guard, the `psiFile` dependency and `targetModificationTracker` are unchanged, and the
+        reentrancy guard must stay **before** the warm-hit reporting.
+  - [ ] Add `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest` to the
+        standing-green set — covers TYPE-11-06. **Already committed and green on `main`**; each was
+        measured red under the rule without its guard (design §1.8), which is what makes them gates
+        rather than decoration.
   - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02. Three cases: (a) enabling a
         definition library re-provisions and invalidates; (b) `setTarget` invalidates a pinned
         snapshot; (c) a project-file edit does **not** invalidate a pinned snapshot.
@@ -95,6 +113,9 @@ are already committed and green on `main`. They must stay green at the end of ev
     or never ran (`build.gradle.kts:286-288`).
   - `TypeElevenDr04LatencyTest` arm B median at least 5× below the `main` figure **measured in the
     same run** as its own arm A. No cross-run ratio is quotable (design §1.5).
+  - **The pin still pays for itself**: all 10 bundled stdlib files and the 123 KiB definition library
+    are judged pinnable in one clean epoch (design §1.8, `guarded=11`). A rule that closes
+    TYPE-11-06 by pinning nothing is not a fix, and the only way to tell them apart is to count.
   - Every new assertion shown red under a stated mutation, appended to the `risks-and-gaps.md` ledger.
 
 ### Phase 4: Close the negative de-risking results [Should]
@@ -124,12 +145,17 @@ are already committed and green on `main`. They must stay green at the end of ev
 | TYPE-11-03 — identification is by provenance | M | Phase 1 |
 | TYPE-11-04 — no new stale-type defect | M | Phase 2 (recording) + Phase 3 (the condition); gated by **`TypeElevenDr01ResidualTest` alone** — measured (TYPE-11-DR-09): the full suite and all four corpus baselines pass unchanged under the rejected blanket-pin build, so neither is a gate for this requirement. They remain exit criteria for "nothing else moved". |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | Phase 3 (the guard, design §3.4) + Phase 4 (DR-06, because the guard currently has no reproducing test) |
+| TYPE-11-06 — an incomplete recording is never pinned | M | Phase 1 (the `SourceFrame` shape) + Phase 2 (the absence report and the whole-frame `sourceCache`) + Phase 3 (§3.3 steps 4–5 and the §3.7 replay); gated by `TypeElevenDr11LateDeclarationTest` + `TypeElevenDr12WarmInnerSnapshotTest`, both measured red under the rule without their guard |
 
 ## Verification Tasks
 
 - [ ] `TypeElevenDr01ResidualTest` — 3 tests, covers TYPE-11-04. **Already committed and green on
       `main`**; it must stay green through every phase.
 - [ ] `TypeElevenDr02ProvenanceTest` — 5 tests, covers TYPE-11-03. Already committed.
+- [ ] `TypeElevenDr11LateDeclarationTest` — 1 test, covers TYPE-11-06 (absence). Already committed
+      and green on `main`; red under the rule without §3.3 step 4 (design §1.8).
+- [ ] `TypeElevenDr12WarmInnerSnapshotTest` — 1 test, covers TYPE-11-06 (warm inner snapshot).
+      Already committed and green on `main`; red under the rule without §3.7 (design §1.8).
 - [ ] `TypeElevenDr05DumbModeTest` — 2 tests, TYPE-11-05. Already committed, and **explicitly not a
       gate** (`risks-and-gaps.md` Gap 2.1).
 - [ ] `TypeElevenDr04LatencyTest` — printing probe, no assertions. Read its numbers; do not treat a
