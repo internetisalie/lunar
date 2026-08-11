@@ -57,6 +57,29 @@ object LuaTypeSourceRecorder {
 
     private val openFrames = ThreadLocal.withInitial { ArrayDeque<SourceFrame>() }
 
+    /**
+     * Stands in for a URL that could not be determined, so an incompleteness mark can still be made.
+     *
+     * The null direction is **inverted** between [reportFile] and the two conservative markers, which
+     * is why they cannot share `?: return`. [reportFile]'s null is safe: one fewer URL in
+     * [SourceFrame.urls] only weakens §3.3 step 3, which is a test over URLs that *are* present.
+     * [reportInProgressHit] and [reportWarmSnapshot]'s not-found branch exist to make the frame
+     * **non-empty** so §3.3 steps 5 and 6 reject the pin — so a `return` there leaves a clean frame,
+     * and a clean frame on a provisioned file clears steps 2–7 and **is pinned**. That is verbatim
+     * the inversion design §3.4 names and that §1.8 B1/B4 and §1.10 V1/V2 each measured shipping a
+     * stale type. Not being able to identify the file just served is *more* unknown, not less, and
+     * §1.12 leaves no room to defer it: a pin must be correct at the moment it is taken.
+     *
+     * A sentinel rather than a frame-level `Boolean` because a frame holds `String` only
+     * (engineering contract §4), and the sets it lands in are read for emptiness, never for
+     * provenance — §3.3 step 3 iterates [SourceFrame.urls] alone, which no sentinel is written to.
+     */
+    private const val UNIDENTIFIED_SOURCE = "unidentified:"
+
+    private const val UNIDENTIFIED_IN_PROGRESS = UNIDENTIFIED_SOURCE + "in-progress-hit"
+
+    private const val UNIDENTIFIED_WARM = UNIDENTIFIED_SOURCE + "warm-snapshot"
+
     /** Snapshot instance → the frame recorded when it was built. Weak keys (design §3.7). */
     val snapshotFrames: MutableMap<LuaTypes, SourceFrame> = Collections.synchronizedMap(WeakHashMap())
 
@@ -87,7 +110,12 @@ object LuaTypeSourceRecorder {
         openFrames.get().forEach { it.urls.addAll(sourceUrls) }
     }
 
-    /** Reads the file's own URL through `originalFile`; a null at any step is a no-op. */
+    /**
+     * Reads the file's own URL through `originalFile`; a null at any step is a no-op.
+     *
+     * The no-op grant of design §3.1 step 4 is **this function's alone** — see [UNIDENTIFIED_SOURCE]
+     * for why the two conservative markers must mark instead of returning.
+     */
     fun reportFile(psiFile: PsiFile?) {
         val sourceUrl = psiFile?.originalFile?.virtualFile?.url ?: return
         report(listOf(sourceUrl))
@@ -103,16 +131,23 @@ object LuaTypeSourceRecorder {
         openFrames.get().forEach { it.rescuedGlobals.add(resolutionKey) }
     }
 
-    /** A nested `forFile` served from a build still in flight on this thread — design §3.1 step 5c. */
+    /**
+     * A nested `forFile` served from a build still in flight on this thread — design §3.1 step 5c.
+     *
+     * Marks with [UNIDENTIFIED_IN_PROGRESS] when the URL is unavailable; §3.7 states the invariant
+     * ("whenever it answers non-null at `depth() > 0` … §3.3 step 6 makes the outer file
+     * unpinnable") without an escape hatch, and a `return` here would grant the pin instead.
+     */
     fun reportInProgressHit(psiFile: PsiFile) {
-        val sourceUrl = psiFile.originalFile.virtualFile?.url ?: return
+        val sourceUrl = psiFile.originalFile.virtualFile?.url ?: UNIDENTIFIED_IN_PROGRESS
         openFrames.get().forEach { it.inProgressHits.add(sourceUrl) }
     }
 
     /**
      * A nested `forFile` served warm (design §3.7 step 4). Its recorded frame is replayed when one
      * survives, so the inner file's sources, absences and incompleteness all propagate outward;
-     * when it does not, the URL lands in `unreplayedWarm` and the outer file is judged unpinnable.
+     * when it does not, the URL lands in `unreplayedWarm` and the outer file is judged unpinnable —
+     * or [UNIDENTIFIED_WARM] does, when the served file cannot be identified at all.
      */
     fun reportWarmSnapshot(
         psiFile: PsiFile,
@@ -123,7 +158,7 @@ object LuaTypeSourceRecorder {
             replay(storedFrame)
             return
         }
-        val sourceUrl = psiFile.originalFile.virtualFile?.url ?: return
+        val sourceUrl = psiFile.originalFile.virtualFile?.url ?: UNIDENTIFIED_WARM
         openFrames.get().forEach { it.unreplayedWarm.add(sourceUrl) }
     }
 

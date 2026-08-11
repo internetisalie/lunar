@@ -826,6 +826,14 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
       // Collections.synchronizedMap(WeakHashMap()) — see Threading above.
       val snapshotFrames: MutableMap<LuaTypes, SourceFrame>
 
+      /** Stands in for a URL that could not be determined, so an incompleteness mark can still be
+       *  made. Written ONLY by reportInProgressHit and reportWarmSnapshot's not-found branch, and
+       *  never into `urls` — §3.3 step 3 runs provenance over `urls` alone, so no sentinel is ever
+       *  handed to the provenance predicate. See §3.1 step 4 for why those two cannot no-op. */
+      private const val UNIDENTIFIED_SOURCE = "unidentified:"          // + a per-door discriminator
+      private const val UNIDENTIFIED_IN_PROGRESS = UNIDENTIFIED_SOURCE + "in-progress-hit"
+      private const val UNIDENTIFIED_WARM = UNIDENTIFIED_SOURCE + "warm-snapshot"
+
       fun <T> recording(body: () -> T): Pair<T, SourceFrame>
       fun report(urls: Collection<String>)
       fun reportFile(file: PsiFile?)
@@ -922,7 +930,19 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   3. `report(urls)` adds every URL to **every** frame currently on the stack, not only the innermost.
      `reportAbsence` and the unreplayed-warm mark do the same, into their own sets.
   4. `reportFile(file)` reads `file?.originalFile?.virtualFile?.url` and delegates to `report`;
-     a null at any step is a no-op.
+     a null at any step is a no-op. ⚠ **That grant is `reportFile`'s alone, and an earlier draft
+     stated it in a place general enough to be read as covering every `report*` — which is how a
+     `?: return` reached both conservative markers (review of `1be7cc0d`).** The direction is
+     *inverted* between them. `reportFile`'s null costs one URL in `urls`, which only weakens step 3
+     of §3.3 — a test over the URLs that *are* present, so fewer of them is the direction the rule
+     was priced against. Step 5c and §3.7's not-found branch exist to make the frame **non-empty** so
+     §3.3 steps 5 and 6 *reject* the pin; returning there leaves a clean frame, and a clean frame on
+     a provisioned file clears steps 2–7 and **is pinned**. That is the same "empty because nothing
+     was recorded, not because nothing was consumed" inversion §3.4 names and §1.8 B1/B4 and §1.10
+     V1/V2 each measured shipping a stale type. So **whenever the loss of a mark yields a pin, the
+     mark is unconditional**: those two record the `UNIDENTIFIED_*` sentinel (§2.1) instead of
+     returning, because a file that cannot even be identified is *more* unknown, not less, and by
+     §1.12 there is no second chance to correct the pin later.
   5. `reportAbsence("global:$name")` is called from `resolveGlobal` on every path that returns
      `null` — cache hit on a stored null, reentrancy guard, and a computed null (§3.6). Absence is
      recorded for **global** and **module** resolution (step 5d) but **not** for `resolveType`: §1.8
@@ -1198,7 +1218,9 @@ that says so.
      cache hit inside somebody else's build — call `reportWarmSnapshot(psiFile, served)`.
   4. `reportWarmSnapshot` looks the served snapshot up in `snapshotFrames`. Found → `replay(frame)`,
      so the inner file's sources, absences and incompleteness all propagate outward. Not found →
-     add the URL to `unreplayedWarm`, which §3.3 step 5 turns into "not pinnable".
+     add the URL to `unreplayedWarm`, which §3.3 step 5 turns into "not pinnable" — and if the URL
+     cannot be determined, the `UNIDENTIFIED_WARM` sentinel goes in instead, never nothing (§3.1
+     step 4).
 - **Rules / edge handling**:
   - **This is §3.6's argument applied to the second memoized door.** §3.6 says that without replay
     "a later build gets the type with no sources"; `forFile` is memoized on exactly the same footing

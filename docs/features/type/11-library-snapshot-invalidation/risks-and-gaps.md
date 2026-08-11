@@ -272,17 +272,60 @@ containment, so no defect in the shipped `LuaLibraryProvenance` could turn any o
 below are the same five facts re-run against the **production service** through
 `LuaLibraryProvenanceTest`, plus a sixth the DR-02 set never covered. Each `Result` is pasted from the
 JUnit XML of the run that produced it; the gate command is
-`run "test --tests '*LuaLibraryProvenanceTest*' --rerun --no-build-cache"`, and the unmutated class is
-**6 tests, 0 failures**.
+`run "test --tests '*LuaLibraryProvenanceTest*' --rerun --no-build-cache"`, and the unmutated class was
+**6 tests, 0 failures** when these six rows were produced (**8 tests, 0 failures** after the two
+memoization rows below were added).
 
 | Assertion | Mutation applied | Result |
 | :-- | :-- | :-- |
 | `LuaLibraryProvenanceTest.testEveryFileResolveGlobalWouldVisitIsClassifiedByTheProductionService` (TC-5) | `definitionRoots` dropped from `LuaLibraryProvenance.computeRootUrls` | **RED** — `provenance must classify …/definitions/luassert-d3528bb6…/wx.lua as provisioned=true expected:<true> but was:<false>`. 3 of 6 failed: the copy and seeded-root cases fell with it, the sibling-prefix and project-file cases correctly stayed green. |
 | `…testEveryBundledRuntimeStubFileIsProvisioned` | `runtimeRoot` dropped from `computeRootUrls` | **RED, alone (1 of 6)** — `the bundled stub jar:///…/lunar-0.18.0.jar!/runtime/standard/lua-5.4/io.lua must be provisioned`. Replaces DR-02's fixture-level "switch the target to PANDOC": this mutates the service, not the fixture, and the `jar://` scheme in the observed message is the §1.3 cross-file-system fact re-measured. |
-| `…testTheSeededLibraryIsProvisionedThroughTheRegisteredProvider` (TC-7) | enabled-library list cleared after install, roots ticked | **RED, alone (1 of 6)** — `the seeded library root itself must be provisioned`. Also the liveness proof for the memoized root list: it is only red if a roots tick actually invalidates the `CachedValue`. |
+| `…testTheSeededLibraryIsProvisionedThroughTheRegisteredProvider` (TC-7) | enabled-library list cleared after install, roots ticked | **RED, alone (1 of 6)** — `the seeded library root itself must be provisioned`. ⚠ **Corrected 2026-08-11 (review of `1be7cc0d`, F3):** an earlier version of this row added "also the liveness proof for the memoized root list: it is only red if a roots tick actually invalidates the `CachedValue`". **That was unearned.** `setUp` ticks the roots before every method, so the value read in the body is always recomputed from current state and this red is fully explained by "the enabled list was empty when `computeRootUrls` ran" — no invalidation required. The mutation is also a *fixture* mutation, not a production one. The dependency set now has its own two rows below, and the claim is measured rather than asserted. |
 | `…testACopyOfALibraryFileIsProvisionedOnlyThroughOriginalFile` (TC-6) | the `originalFile` hop dropped — `psiFile.virtualFile?.url` | **RED, alone (1 of 6)** — `a completion copy of a library file must be provisioned`. TC-6's own stated mutation, and the one DR-02 could not run because its replica took a `VirtualFile`. |
 | `…testALightFixtureProjectFileIsNeverProvisioned` | root list widened with `"temp:///src"` | **RED (2 of 6)** — `a project file must not be provisioned`, and TC-5's negative half with it: `provenance must classify /src/projectGlobal.lua as provisioned=false expected:<false> but was:<true>`. |
 | `…testASiblingRootSharingAPrefixIsNotProvisioned` | `url.startsWith(it)` — the `"$it/"` separator removed | **RED, alone (1 of 6)** — `a URL that merely extends a provisioned root's URL is a different root`. **Not a DR-02 row**: §3.2 names the separator as required rather than cosmetic, and nothing measured it until now. A definition cache directory is `<id>-<version>`, so prefix-sharing siblings are that tree's normal shape. |
+
+### Phase 1 remediation (2026-08-11) — the review's two blocking defects, each with its own red
+
+The Phase-1 review returned FAIL on Gate 7 with two defects, and both are the same shape as the ones
+this ledger exists to catch: **a claim that was never executed**. The rows below are the executed
+form. Gate command for every row: `run "test --rerun --no-build-cache --tests '<class>'"`; results
+pasted from the JUnit XML of the run that produced them.
+
+**F3 — the memoized dependency set (`LuaLibraryProvenance.kt:62-69`).** The review's charge was that
+*no assertion in the class discriminates the real dependency set from `ModificationTracker
+.NEVER_CHANGED`*. Measured, and the charge is **exactly right**: under the `NEVER_CHANGED` mutation the
+six pre-existing methods stayed **green**, and only the new one fell. Neither new row depends on
+`setUp`'s blanket tick — each populates the cache inside its own body with an answer it asserts first.
+
+| Assertion | Mutation applied | Result |
+| :-- | :-- | :-- |
+| `LuaLibraryProvenanceTest.testTheMemoizedRootListIsRecomputedAfterARootsTick` | both dependencies replaced by `ModificationTracker.NEVER_CHANGED` | **RED, alone (1 of 8)** — `a disabled library is no longer a root, so the memoized list must have been recomputed`. The other seven, including all six that shipped in `1be7cc0d`, stayed green — which is the F3 finding, measured. |
+| `…testTheRootListIsNotRecomputedWhileNothingTicks` | the `CachedValuesManager` wrapper dropped (`rootUrls() = computeRootUrls()`) | **RED, alone (1 of 8)** — `with neither dependency ticked the root list must be served from the cache, unrecomputed`. Asserts both trackers still across the settings write, so a stray tick fails loudly instead of quietly deciding the outcome. |
+
+**F1 — the two conservative markers returned instead of marking** (`LuaTypeSourceRecorder.kt:108`,
+`:126` as shipped). §3.1 step 4's null-no-op grant is `reportFile`'s alone; for these two the
+direction is inverted, because their job is to make the frame **non-empty** so §3.3 steps 5/6 reject
+the pin — a `return` leaves a clean frame, and a clean frame on a provisioned file **is pinned**.
+Fixed with a sentinel (§2.1 `UNIDENTIFIED_*`), and the design gap that permitted the reading is closed
+in §3.1 step 4. The defect shipped because the object was untested; `LuaTypeSourceRecorderTest` now
+covers 11 of its 12 members (`snapshotFrames` is exercised as a collaborator, not asserted on its own).
+Unmutated: **12 tests, 0 failures**.
+
+| Assertion | Mutation applied | Result |
+| :-- | :-- | :-- |
+| `LuaTypeSourceRecorderTest.testAWarmSnapshotWithNoUrlStillMarksTheFrame` | `?: UNIDENTIFIED_WARM` → `?: return` — **the code as shipped in `1be7cc0d`** | **RED (2 of 12, with the in-progress twin)** — `a file that cannot be identified is more unknown, not less — the frame must not be clean`. |
+| `…testAnInProgressHitWithNoUrlStillMarksTheFrame` | `?: UNIDENTIFIED_IN_PROGRESS` → `?: return` — as shipped | **RED** — `an unidentifiable in-flight build must still cost the outer file its pin`. |
+| `…testReportFileWithNoUrlRecordsNothing` (the *other* half of the asymmetry) | `reportFile` given the same sentinel treatment | **RED** — `a source that cannot be named is simply not a recorded source`. Pins the asymmetry so it cannot be "tidied" into symmetry: a sentinel in `urls` would be handed to `isProvisionedUrl` and cost every such file its pin. |
+| `…testReportReachesEveryOpenFrameNotOnlyTheInnermost` (§3.1 step 3) | `report`: `openFrames.get().forEach` → `.last()` | **RED** — `the enclosing frame must record it too expected:<[file:///lib/a.lua]> but was:<[]>`. |
+| `…testReportingOutsideAnyBuildIsANoOp` | the same `.last()` | **RED** — `java.util.NoSuchElementException: ArrayDeque is empty.` |
+| `…testDepthCountsEveryOpenFrameAndIsZeroOutsideABuild` | `depth()` → `if (openFrames.get().isEmpty()) 0 else 1` | **RED** — `a nested build must be distinguishable from a top-level one expected:<2> but was:<1>`. |
+| `…testEachConservativeMarkWritesItsOwnSet` | `reportRescuedGlobal` writes `absences` | **RED** — `expected:<[global:wx]> but was:<[global:wx, global:rescued]>`. |
+| `…testAWarmSnapshotWithAStoredFrameIsReplayedRatherThanMarkedUnreplayable` (§3.7 step 4) | the `storedFrame != null` branch deleted | **RED** — `the stored frame's sources must propagate expected:<[file:///lib/a.lua]> but was:<[]>`. |
+| `…testAbsorbUnionsAllFiveSets` | `absorb` drops `absences.addAll` | **RED (3 of 12)** — `expected:<[global:wx]> but was:<[]>`; `testReplayPropagates…` (same message) and `testAWarmSnapshot…Replayed` (`and so must its absences expected:<[global:wx]> but was:<[]>`) fell with it, both correctly, since both read `absorb`. |
+| `…testReplayPropagatesAllFiveSetsIntoEveryOpenFrame` (§3.1 step 6) | `replay`: `forEach` → `.last()` | **RED** — `expected:<[file:///lib/a.lua]> but was:<[]>`, i.e. the outer of two open frames absorbed nothing. |
+| `…testAWarmSnapshotWithNoStoredFrameMarksTheFileUnreplayable` | the not-found marking deleted | **RED** — `an unreplayable warm hit is recorded by URL expected:<[temp:///src/library.lua]> but was:<[]>`. The F1 case fell with it in the same run, correctly: the sentinel it asserts is written by the very line this mutation deletes. |
+| `…testRecordingPopsItsFrameWhenTheBodyThrows` (§3.1 step 2) | the `finally` in `recording` replaced by a success-path pop | **RED (7 of 12)** — `a throwing build must leave no frame open expected:<0> but was:<1>`, plus six collateral `a previous test leaked an open frame onto this thread`. The collateral **is** the finding: one un-popped frame on a pooled thread silently poisons every later build, which is why the class asserts `depth() == 0` in `setUp` and `tearDown`. |
 
 The **three coverage-matcher rows** — "as specified", "inject one `findFile`", and "re-wrap an existing
 `getElements(`" — were produced by running the matcher logic over the real `LuaTypeManagerImpl.kt`

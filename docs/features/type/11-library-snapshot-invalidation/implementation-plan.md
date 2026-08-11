@@ -329,7 +329,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 
 | Phase | Status | Priority |
 | :-- | :-- | :-- |
-| Phase 1: Provenance and the recorder, wired to nothing | todo | Must |
+| Phase 1: Provenance and the recorder, wired to nothing | done | Must |
 | Phase 2: Report from the type manager | todo | Must |
 | Phase 3: Make `forFile` conditional | todo | Must |
 | Phase 4: Close the negative de-risking results | todo | Should |

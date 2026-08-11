@@ -278,7 +278,10 @@ a defect, which is the recurring shape here (see also §1.9 B3/B5).
 - **TYPE-11-03 was gated against a replica.** The predicate under test is defined inside the de-risking
   test file and matches by `isAncestor` where §3.2 specifies URL-prefix; all five of its "mutation-proved"
   rows mutated that copy. Phase 1's `LuaLibraryProvenanceTest` is the gate, and must **re-earn** each
-  mutation against the production service.
+  mutation against the production service. Done 2026-08-11 — and the Phase-1 review then found the
+  same shape one level down: the class re-earned the five *provenance* facts but gated nothing about
+  the **memoized dependency set**, which `ModificationTracker.NEVER_CHANGED` left entirely green
+  (measured). Two assertions were added for it; see the remediation table in `risks-and-gaps.md`.
 - **The cost gate had no owner** (an exit criterion with no task, and assigned to a class that reads
   text rather than builds fixtures), and **the coverage guard was blind to three doors** — including
   `StubIndex.getAllKeys`, the route §1.7 designates load-bearing, and a cross-file read in

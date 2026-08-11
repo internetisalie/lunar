@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.type
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
@@ -154,6 +155,81 @@ class LuaLibraryProvenanceTest : TypeElevenDefinitionLibraryTestCase() {
             assertFalse(
                 "a project file must not be provisioned through originalFile either",
                 provenance().isProvisioned(consumer.originalFile),
+            )
+        }
+    }
+
+    /**
+     * Design §3.2 step 1's **dependency set**, which nothing else in this class gates.
+     *
+     * Every other method reads the root list only after [setUp]'s blanket roots tick, so the value
+     * is always recomputed from current state and no assertion distinguishes
+     * `Result.create(computeRootUrls(), ProjectRootModificationTracker…, targetModificationTracker)`
+     * from `Result.create(computeRootUrls(), ModificationTracker.NEVER_CHANGED)`. This method owes
+     * nothing to that tick: it populates the cache **inside its own body** with an answer it
+     * asserts, then requires an explicit roots tick to move it.
+     *
+     * Mutation: replace both dependencies with `ModificationTracker.NEVER_CHANGED` → red on the
+     * final `assertFalse` (the disabled root is still served from the stale cached list).
+     */
+    fun testTheMemoizedRootListIsRecomputedAfterARootsTick() {
+        val root = installDefinitionLibrary("luassert", mapOf("wx.lua" to libraryText()))
+        runReadAction {
+            assertTrue(
+                "the installed root must be provisioned; this read is what puts it in the cache",
+                provenance().isProvisionedUrl(root.url),
+            )
+        }
+
+        LuaProjectSettings.getInstance(project).state.enabledDefinitionLibraries = mutableListOf()
+        announceRootsChange()
+
+        runReadAction {
+            assertFalse(
+                "a disabled library is no longer a root, so the memoized list must have been recomputed",
+                provenance().isProvisionedUrl(root.url),
+            )
+        }
+    }
+
+    /**
+     * The converse, and the reason the memoization is worth having: without a tick the list is
+     * **not** recomputed, so the classloader resource lookup and the catalog load in
+     * `computeRootUrls` run once per generation rather than once per `forFile` (design §3.2
+     * "Complexity / bounds").
+     *
+     * The two trackers are asserted still across the settings write, so a stray tick fails this
+     * loudly rather than turning it into a green about the wrong thing.
+     *
+     * Mutation: drop the `CachedValuesManager` wrapper (call `computeRootUrls()` directly from
+     * `rootUrls()`) → red, the disabled library is recomputed away with no tick.
+     */
+    fun testTheRootListIsNotRecomputedWhileNothingTicks() {
+        val root = installDefinitionLibrary("luassert", mapOf("wx.lua" to libraryText()))
+        val rootsTracker = ProjectRootModificationTracker.getInstance(project)
+        val targetTracker = LuaProjectSettings.getInstance(project).state.targetModificationTracker
+        runReadAction {
+            assertTrue("the installed root populates the cache", provenance().isProvisionedUrl(root.url))
+        }
+
+        val rootsCount = rootsTracker.modificationCount
+        val targetCount = targetTracker.modificationCount
+        LuaProjectSettings.getInstance(project).state.enabledDefinitionLibraries = mutableListOf()
+
+        runReadAction {
+            assertEquals(
+                "the roots tracker moved; this run says nothing about memoization",
+                rootsCount,
+                rootsTracker.modificationCount,
+            )
+            assertEquals(
+                "the target tracker moved; this run says nothing about memoization",
+                targetCount,
+                targetTracker.modificationCount,
+            )
+            assertTrue(
+                "with neither dependency ticked the root list must be served from the cache, unrecomputed",
+                provenance().isProvisionedUrl(root.url),
             )
         }
     }
