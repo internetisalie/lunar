@@ -118,6 +118,24 @@ machine and even trixie could fall behind. `BOOT_IMAGE_FAMILY` in `config.sh` is
 it to the builder's `ldd --version`, and **warns** (does not fail) with both remedies. Warn, not die,
 because the routine loop excludes the corpus classes — a mismatch only matters for `-PwithCorpus`.
 
+Mutation-proved 2026-08-10 by forcing `needed="9.99"`:
+
+```
+[gce-builder] WARNING: pinned luac oracles need glibc >= 9.99 but this builder has 2.41.
+[gce-builder]          'test -PwithCorpus' will fail as "the oracle rejected valid Lua" — a GLIBC link
+[gce-builder]          error, not a parser regression. Fix: raise BOOT_IMAGE_FAMILY in config.sh, or
+[gce-builder]          rebuild the oracles on this host with tooling/corpus/fetch-luac.py.
+```
+
+Two traps this helper hit while being written, both worth not repeating:
+
+- **Use `ssh_exec`, never the `$ssh_t` string.** That string carries single-quoted paths which only
+  `rsync -e` re-parses; running it directly hands `ssh` a literally-quoted key path, exits 255, and
+  `set -euo pipefail` turns that into a **silent** abort of the whole sync — `sync` returned without
+  ever printing "Sync done."
+- **`|| true` every stage.** Under `pipefail`, an empty `grep` or an unreachable builder would
+  otherwise abort the sync for an advisory check.
+
 Without it the failure reads as *"the oracle rejected valid Lua"*, two steps removed from a dynamic
 loader error, and looks exactly like a parser regression.
 
