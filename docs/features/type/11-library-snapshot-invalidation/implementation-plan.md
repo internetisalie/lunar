@@ -24,7 +24,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 - **Goal**: both new components exist, are tested, and change no behaviour. `forFile` is untouched, so
   the suite result is bit-identical to `main`.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaTypeSourceRecorder` — realizes design §2.1
+  - [x] Create `net.internetisalie.lunar.lang.psi.types.LuaTypeSourceRecorder` — realizes design §2.1
         and §3.1. `object`, `ThreadLocal<ArrayDeque<SourceFrame>>`, where `SourceFrame` carries **five**
         sets (`urls`, `absences`, `unreplayedWarm`, `inProgressHits`, `rescuedGlobals`) and an
         `absorb` over all five; plus `snapshotFrames`, a **`Collections.synchronizedMap(WeakHashMap())`**
@@ -36,13 +36,17 @@ are already committed and green on `main`. They must stay green at the end of ev
         is the whole correctness of nesting. The four non-`urls` sets are not decoration: each exists
         for a shape that was **measured shipping a stale type** — `absences` and `unreplayedWarm` in
         design §1.8, `inProgressHits` and `rescuedGlobals` in §1.10.
-  - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaLibraryProvenance` — realizes design §2.2
+        **Built 2026-08-11**, with `reportUnreplayableHit` (§2.1, §3.6) included — this task list
+        omitted it from its "Functions:" enumeration while §2.1 specifies it, and §3.6's drift guard
+        has no other entry point. Nothing calls the object yet, so it carries no Phase 1 test: its
+        first assertion arrives with its first caller in Phase 2.
+  - [x] Create `net.internetisalie.lunar.lang.psi.types.LuaLibraryProvenance` — realizes design §2.2
         and §3.2. Light `@Service(Service.Level.PROJECT)`; **no `plugin.xml` entry** (design §7).
         Root list memoized via `CachedValuesManager.getManager(project).getCachedValue(project) { … }`
         with `ProjectRootModificationTracker` + `targetModificationTracker` as dependencies.
         Match on `psiFile.originalFile.virtualFile?.url` with the `url == root || url.startsWith("$root/")`
-        prefix test.
-  - [ ] Add `LuaLibraryProvenanceTest` — **this is TYPE-11-03's gate, and the only one.** The five
+        prefix test. **Built 2026-08-11.**
+  - [x] Add `LuaLibraryProvenanceTest` — **this is TYPE-11-03's gate, and the only one.** The five
         DR-02 facts asserted against the production service. `TypeElevenDr02ProvenanceTest` defines
         its predicate *inside the test file* and matches by `VfsUtilCore.isAncestor` where §3.2
         specifies URL-prefix, so its five ledger mutations all mutated a **replica** — no defect in
@@ -50,6 +54,10 @@ are already committed and green on `main`. They must stay green at the end of ev
         real service** and append the observed reds to the ledger; a row that is not re-earned here
         is not evidence for this requirement. Include TC-6 in the `PsiFile`-overload form (§8.1) —
         there is no `VirtualFile` overload and `copy.virtualFile` is null.
+        **Built 2026-08-11**: 6 tests, all six mutations re-earned against the production service and
+        moved into `risks-and-gaps.md`'s ledger. A sixth assertion was added beyond the five DR-02
+        facts — the `"$root/"` separator in the prefix test, which §3.2 calls out as required rather
+        than cosmetic and which no DR-02 row covered.
 - **Exit criteria**: full suite green, with **every test that existed on `main` still passing** —
   the count necessarily rises by this phase's new class, so "same count as `main`" (the earlier
   wording) was unsatisfiable by a phase whose own task list adds one; `LuaLibraryProvenanceTest` green;

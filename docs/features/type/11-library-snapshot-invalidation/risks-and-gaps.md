@@ -264,6 +264,26 @@ outcome, not an expectation.
 | The same, under `mode=dr15rescued` | — | **GREEN.** |
 | The same, under `mode=dr15broad` | — | **GREEN** (measured separately; ties `dr15rescued` on both pass/fail outcome and pinnable count on every fixture tried — see Q15b). |
 
+### Phase 1 (2026-08-11) — the five DR-02 rows, re-earned against the production service
+
+Every row above the `TypeElevenDr02ProvenanceTest` block mutated a **replica**: that class defines its
+predicate inside its own file and matches by `VfsUtilCore.isAncestor`, where §3.2 specifies URL-prefix
+containment, so no defect in the shipped `LuaLibraryProvenance` could turn any of them red. The rows
+below are the same five facts re-run against the **production service** through
+`LuaLibraryProvenanceTest`, plus a sixth the DR-02 set never covered. Each `Result` is pasted from the
+JUnit XML of the run that produced it; the gate command is
+`run "test --tests '*LuaLibraryProvenanceTest*' --rerun --no-build-cache"`, and the unmutated class is
+**6 tests, 0 failures**.
+
+| Assertion | Mutation applied | Result |
+| :-- | :-- | :-- |
+| `LuaLibraryProvenanceTest.testEveryFileResolveGlobalWouldVisitIsClassifiedByTheProductionService` (TC-5) | `definitionRoots` dropped from `LuaLibraryProvenance.computeRootUrls` | **RED** — `provenance must classify …/definitions/luassert-d3528bb6…/wx.lua as provisioned=true expected:<true> but was:<false>`. 3 of 6 failed: the copy and seeded-root cases fell with it, the sibling-prefix and project-file cases correctly stayed green. |
+| `…testEveryBundledRuntimeStubFileIsProvisioned` | `runtimeRoot` dropped from `computeRootUrls` | **RED, alone (1 of 6)** — `the bundled stub jar:///…/lunar-0.18.0.jar!/runtime/standard/lua-5.4/io.lua must be provisioned`. Replaces DR-02's fixture-level "switch the target to PANDOC": this mutates the service, not the fixture, and the `jar://` scheme in the observed message is the §1.3 cross-file-system fact re-measured. |
+| `…testTheSeededLibraryIsProvisionedThroughTheRegisteredProvider` (TC-7) | enabled-library list cleared after install, roots ticked | **RED, alone (1 of 6)** — `the seeded library root itself must be provisioned`. Also the liveness proof for the memoized root list: it is only red if a roots tick actually invalidates the `CachedValue`. |
+| `…testACopyOfALibraryFileIsProvisionedOnlyThroughOriginalFile` (TC-6) | the `originalFile` hop dropped — `psiFile.virtualFile?.url` | **RED, alone (1 of 6)** — `a completion copy of a library file must be provisioned`. TC-6's own stated mutation, and the one DR-02 could not run because its replica took a `VirtualFile`. |
+| `…testALightFixtureProjectFileIsNeverProvisioned` | root list widened with `"temp:///src"` | **RED (2 of 6)** — `a project file must not be provisioned`, and TC-5's negative half with it: `provenance must classify /src/projectGlobal.lua as provisioned=false expected:<false> but was:<true>`. |
+| `…testASiblingRootSharingAPrefixIsNotProvisioned` | `url.startsWith(it)` — the `"$it/"` separator removed | **RED, alone (1 of 6)** — `a URL that merely extends a provisioned root's URL is a different root`. **Not a DR-02 row**: §3.2 names the separator as required rather than cosmetic, and nothing measured it until now. A definition cache directory is `<id>-<version>`, so prefix-sharing siblings are that tree's normal shape. |
+
 The **three coverage-matcher rows** — "as specified", "inject one `findFile`", and "re-wrap an existing
 `getElements(`" — were produced by running the matcher logic over the real `LuaTypeManagerImpl.kt`
 (553 lines, `main` @ `75707e78`), not by reading it — but by a **standalone replica** of the intended

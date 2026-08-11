@@ -2,7 +2,7 @@
 id: "TYPE-11"
 title: "11: A library file's type snapshot must not be invalidated by an unrelated keystroke"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "TYPE"
 folders:
