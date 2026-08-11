@@ -123,9 +123,20 @@ change* as the 2026-08-10 occurrence — two new type-package classes shifting f
 of three occurrences now share that shape, so "adding unrelated test classes changes the odds" is no
 longer a single observation.
 
+| run | tree | result |
+| :-- | :-- | :-- |
+| A | `main` @ `1e9a91c1` + the two new TYPE-11 classes (`git diff -- src/main/` empty) | **2 568 tests, 1 failure**, 1 skipped — `LuaInterpreterCommandLinesTest.kt:56` |
+| B | **the same tree, no change at all**, re-run immediately after | **2 568 tests, 0 failures**, 1 skipped, `BUILD SUCCESSFUL in 10m 2s` |
+
+A→B with nothing changed reproduces the 2026-08-07 and 2026-08-10 pairs a third time. The
+fail-once/pass-on-re-run signature is now observed on three independent occasions, which is strong
+enough that a single red run of this test should be treated as unproven rather than as a regression —
+**but only after an actual re-run**, never by assertion from this report.
+
 It is also the second time this defect has surfaced while gating a change that could not possibly
 cause it, which is its real cost: every occurrence forces a judgement call about whether a red gate is
-a regression, and that judgement is exactly what a flaky test destroys.
+a regression, and that judgement is exactly what a flaky test destroys. Here it cost a 10-minute
+confirming run to turn "green modulo a known flake" into a green gate.
 
 ## Fix direction (if it recurs)
 
