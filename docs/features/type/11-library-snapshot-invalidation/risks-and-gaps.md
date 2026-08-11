@@ -93,6 +93,22 @@ outcome, not an expectation.
 | `TypeElevenDr11LateDeclarationTest.testADeclarationWrittenAfterTheLibrarySnapshotWasBuiltStillReachesIt` (2026-08-10, third round) | the §3 conditional rule **as written** — i.e. without §3.3 step 4 (no absence recording) | **RED at `:83`** — `a project declaration written AFTER the library snapshot was built must still reach it expected:<[afterDeclared]> but was:<[]>`, with `TYPE11-REVIEW file=alpha.lua pinnable=true sources=0` on the line above and `roots 3 -> 3` proving no tick healed or condemned it. |
 | `TypeElevenDr12WarmInnerSnapshotTest.testALibraryWhoseInnerLibrarySnapshotWasServedWarmStillTracksTheProjectFile` (third round) | the §3 conditional rule as written — i.e. without §3.7 (no `forFile` replay) | **RED at `:75`** — `expected:<[afterEdit]> but was:<[beforeEdit]>`, with `file=a.lua pinnable=true sources=1 outside=[] warm=[b.lua]` naming the cause and `file=b.lua pinnable=false outside=[p.lua]` showing the inner file was judged correctly. |
 | The same two, under the corrected rule (`mode=guarded`) | — | **GREEN, and for the right reason**: `file=alpha.lua pinnable=false misses=[global:sharedByProject]` and `file=a.lua pinnable=false sources=2 outside=[p.lua] warm=[b.lua] warmUnreplayed=[]`. In the same run 11 of 11 provisioned files are still pinned, so the green is not "pinning switched off". |
+| `LuaTypeSourceRecorderCoverageTest` **as specified** (2026-08-11, fourth round) — qualified-chain matcher | none needed; run against `LuaTypeManagerImpl.kt` unmodified | **CANNOT FIRE.** `FileBasedIndex.getInstance().getContainingFiles` counts **0** against 2 real sites (ktlint wraps both), `PsiManager.getInstance(project).findFile` counts **1** against 2 (`:358` goes through a `psiManager` local). A recorded expectation of 0 that no new site can move. Step 9 blocker B3; design §1.9. |
+| The replacement matcher — comments stripped, whitespace removed, bare members | inject one `PsiManager.getInstance(project).findFile(…)` | **RED** — `.findFile(` moves `2 → 3`. Baseline counts `.findFile(`=2, `.getElements(`=3, `.getContainingFiles(`=2. |
+| The replacement matcher, formatting-only change | re-wrap an existing `StubIndex.getElements(` across lines | **GREEN, correctly** — stays `3`, where the chain literal falls `3 → 2` and would report a deletion that did not happen. |
+| The replacement matcher, comment stripping | run it with comment stripping disabled | **NO CHANGE** — `2 / 3 / 2` either way. Stripping is prophylaxis against a future KDoc writing `.findFile(…)` in prose, not a measured requirement; §1.9 says so because an earlier draft claimed otherwise. |
+
+The three rows above were produced by running the matcher logic over the real `LuaTypeManagerImpl.kt`
+(553 lines, `main` @ `75707e78`), not by reading it — but by a **standalone replica** of the intended
+Kotlin, because Phase 3 has not been implemented. They establish the counts and that the matcher moves
+in both directions; they are not a substitute for the shipped assertion, which still owes this ledger
+its own row.
+
+**One stated mutation is pending rather than observed**, and is listed separately for that reason:
+
+| Assertion (not yet written) | Mutation to apply | Expected — **to be confirmed in Phase 3** |
+| :-- | :-- | :-- |
+| `TypeElevenDumbModeDecisionTest` — `isPinnable(delta.lua, SourceFrame()) == false` under `DumbModeTestUtils.runInDumbModeSynchronously` | delete §3.3 step 1 (`DumbService.isDumb`) | **RED expected.** An empty frame on a provisioned file clears steps 2–5, so step 1 is the sole rejector. This is the gate Gap 2.1 said did not exist (Step 9 blocker B5, design §1.9). Phase 3 must run it and move this row into the table above; a row that stays here is a guard that has not been shown red. |
 
 For completeness, the two full-suite runs the ledger is anchored to:
 
@@ -133,7 +149,7 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 | "The residual might not be real" | **REFUTED by measurement.** It is real and it fires: `design.md` §1.1. Blanket pinning is unsound and this plan does not build it. |
 | "The existing suite plus four corpus baselines will catch a stale-type regression here" | **REFUTED for both halves, by measurement.** The pre-existing tests passed unchanged under a build that demonstrably serves stale types; DR-09 then re-ran the sweep on that same build and **all four baselines compared unchanged** (`2571 tests completed, 2 failed` — both TYPE-11's own). See "DR-09 measured" below: the sweep is a single pass over an unedited tree, so it cannot observe a stale-cache defect at any corpus size. This premise is the reason `TypeElevenDr01ResidualTest` exists and the reason it is committed rather than thrown away. |
 | "A project file adding a method to a stub class stales the snapshot" (`requirements.md`) | **PARTLY REFUTED.** True only for the **hosted** `---@class` form, and by a different route than `requirements.md` names (`freeGlobalSeed` → `tableToLuaType` → `fromLuaType`, not `materializeClass` reaching the snapshot). The bundled stdlib is 21/22 unhosted. `design.md` §1.2. |
-| "A dumb-mode build bakes in nulls that are then sticky" (`requirements.md`, TYPE-11-05) | **HALF REFUTED.** The nulls are baked in (`graph type = Undefined`); they are **not** sticky, and not because of any tracker — the file's own `modificationStamp` moves 0→1 when dumb mode ends. The guard is kept as insurance; see Gap 2.1. |
+| "A dumb-mode build bakes in nulls that are then sticky" (`requirements.md`, TYPE-11-05) | **HALF REFUTED.** The nulls are baked in (`graph type = Undefined`); they are **not** sticky, and not because of any tracker — the file's own `modificationStamp` moves 0→1 when dumb mode ends. The guard is kept, and — contrary to what this row said for three rounds — it **is** gated: on the decision rather than the outcome (design §1.9 B5, TC-16). See Gap 2.1. |
 | "Library files can be matched by `VirtualFile` identity" (TYPE-11-03) | **REFUTED as written.** `===` is false for a project file the index itself supplied. Matching is by URL containment. `design.md` §1.3. |
 | "Provenance must come from the plugin's own providers, not `ProjectFileIndex.isInLibrary`" | **Genuinely fixed, and re-confirmed.** The bundled root arrives over `jar://` inside the plugin jar; asking the platform's library index about that is a question with an unverified answer, and provenance never has to ask it. |
 | "Rocks trees are out of v1 scope" | **Chosen, not forced.** They are excluded because they are mutable in place and their refresh signal is unverified — a v1 that included them would need TYPE-11-DR-03 answered first. TYPE-11-DR-03 was deliberately **not run**. |
@@ -217,8 +233,13 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   guard are the whole defence; there is no third line.
 - **Mitigation**: (a) `TypeElevenDr01ResidualTest` is committed and covers the two known shapes;
   (b) implementation-plan Phase 3 adds `LuaTypeSourceRecorderCoverageTest`, a source-text guard over
-  `LuaTypeManagerImpl.kt` that fails when a `PsiManager.findFile` / `StubIndex.getElements` /
-  `FileBasedIndex.getContainingFiles` call site count changes without a matching `reportFile` count;
+  `LuaTypeManagerImpl.kt` that fails when the count of `.findFile(` / `.getElements(` /
+  `.getContainingFiles(` call sites moves off the recorded **2 / 3 / 2** without a matching
+  `reportFile` count. ⚠ **The matcher had to be rewritten before it could fire at all** (Step 9
+  blocker B3, design §1.9): specified as qualified chains it counted `1 / 3 / 0` against the real
+  file — ktlint wraps both `FileBasedIndex` chains across lines, and one `findFile` goes through a
+  `psiManager` local. It now matches bare members on comment-stripped, whitespace-collapsed text,
+  which is also immune to a re-wrap silently dropping the count;
   (c) the over-approximation rule in §3.5 (report every file *visited*, not every file *used*) means a
   new site added inside an existing loop is likely already covered.
 
@@ -255,7 +276,7 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 
 ## Design Gaps
 
-### Gap 2.1: The dumb-mode staleness class has no reproducing test
+### Gap 2.1: The dumb-mode *staleness* has no reproducing test (the *guard* is gated — §1.9 B5)
 
 - **Question**: can a snapshot built while `DumbService.isDumb` actually outlive dumb mode, in a real
   IDE rather than in `DumbModeTestUtils.runInDumbModeSynchronously`?
@@ -263,10 +284,15 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   fixture's dumb episode, and `forFile`'s `psiFile` dependency rebuilds the snapshot for that reason
   alone — with the `!isDumb` guard removed **and** with the churn tracker replaced by
   `ModificationTracker.NEVER_CHANGED`, the test still passed.
-- **Options / leaning**: keep the guard (one boolean, cannot be wrong) and stop claiming a test covers
-  it. The open question is whether the stamp move is real platform behaviour or a fixture artifact of
-  `DumbModeTestUtils`; if it is an artifact, the guard is load-bearing in production and TYPE-11-05
-  currently has no automated protection.
+- **Options / leaning**: keep the guard (one boolean, cannot be wrong) and stop claiming *this* test
+  covers it. The open question is whether the stamp move is real platform behaviour or a fixture
+  artifact of `DumbModeTestUtils`; if it is an artifact, the guard is load-bearing in production.
+- **Narrowed by Step 9 blocker B5 (2026-08-11).** "The outcome does not reproduce" was allowed to
+  stand in for "the guard is untestable", and that inference was wrong. The decision is a pure
+  predicate: `isPinnable(libraryFile, SourceFrame())` is `false` under dumb mode and `true` with
+  §3.3 step 1 deleted, because an empty frame on a provisioned file clears steps 2–5. TYPE-11-05 is
+  therefore gated by `TypeElevenDumbModeDecisionTest` (TC-16), and what remains open here is strictly
+  the platform question — **not** "no automated protection", which is no longer true. See design §1.9.
 - **Resolved by**: DR-06.
 
 ### Gap 2.3: The production roots-tick chain is verified by reading, not by running
@@ -324,8 +350,8 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 | TYPE-11-DR-02 | Can every file `resolveGlobal` resolves into be matched against the provenance set? | TYPE-11-03 | **done** — `design.md` §1.3. Yes, by URL containment through `originalFile`; `===` and `psiFile.virtualFile` both refuted |
 | TYPE-11-DR-03 | Does `RockspecSourcePathProvider.forceRefreshTracker` tick on `luarocks install` into an existing root? | follow-up scope only | **not run** — rocks are out of v1 scope |
 | TYPE-11-DR-04 | Re-measure the 9 ms / 334 ms pair, medians of ≥5 | TYPE-11-01 | **done** — `design.md` §1.5. Direction confirmed; the "near 9 ms" criterion is **not** met (3–5× arm A) |
-| TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb`, exit, complete again | TYPE-11-05 | **done, negative** — `design.md` §1.6. Nulls are baked in; they do not survive; two mutations failed to make the harness red. Reopened as DR-06 |
-| TYPE-11-DR-06 | Determine whether the `modificationStamp` move at dumb-mode exit is platform behaviour or a `DumbModeTestUtils` artifact. If the former, TYPE-11-05's guard is dead code and should be deleted; if the latter, build a fixture that reproduces the staleness | Gap 2.1, TYPE-11-05 | todo |
+| TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb`, exit, complete again | TYPE-11-05 | **done, negative** — `design.md` §1.6. Nulls are baked in; they do not survive; two mutations failed to make the harness red. Reopened as DR-06. **Its trace nonetheless grounds the gate that replaced it** (§1.9 B5): `libDumb graph type = Undefined` inside the dumb block *is* `resolveGlobal` having returned null, i.e. the empty frame TC-16 asserts on |
+| TYPE-11-DR-06 | Determine whether the `modificationStamp` move at dumb-mode exit is platform behaviour or a `DumbModeTestUtils` artifact. If the former, TYPE-11-05's guard is dead code and should be deleted; if the latter, build a fixture that reproduces the staleness | Gap 2.1, TYPE-11-05 | todo. **Narrowed, not closed, by B5**: the guard is now gated on the decision (TC-16), so "is it protected" is answered; this row is only the remaining question of whether the *outcome* can occur in a real IDE |
 | TYPE-11-DR-07 | Probe whether a `LuaTypeReference` can be resolved after its recording frame closed, and whether the resulting source can reach a pinned snapshot | Risk 1.3 | todo |
 | TYPE-11-DR-08 | Profile the residual arm-B cost (`resolveGlobal` + `graphTypeToLuaType`, fresh `visited` map per call over a 3 600-member table) and decide whether it is a separate feature | Risk 1.4 | todo |
 | TYPE-11-DR-11 | Step 9 blocker B1: does a build whose global resolution answered **nothing** get pinned, and does the declaration written afterwards fail to reach it? | TYPE-11-06, `design.md` §3.3/§3.4 | **done, positive (the defect is real)** — `design.md` §1.8. `expected:<[afterDeclared]> but was:<[]>`. Closed by §3.3 step 4; measured cost **zero** pinned files. |

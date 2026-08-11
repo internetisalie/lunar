@@ -235,10 +235,18 @@ mutations confirm it (§ `risks-and-gaps.md` mutation table): removing the `!isD
 green, and replacing the generation tracker with `ModificationTracker.NEVER_CHANGED` **also** left it
 green.
 
-**Consequence for this design: TYPE-11-05's guard is retained (§3.4) but it is insurance, not a fix
-for a demonstrated defect, and the DR-05 harness is explicitly NOT a gate.** Saying otherwise would
-be the exact "test that cannot fail" this plan exists to avoid. Closing it properly is a tracked
-de-risking task (`risks-and-gaps.md` → DR-06).
+**Consequence for this design: TYPE-11-05's guard is retained (§3.4), and the DR-05 harness above is
+explicitly NOT a gate** — two mutations left it green, so calling it one would be the exact "test that
+cannot fail" this plan exists to avoid. Whether the stamp move is platform behaviour or a
+`DumbModeTestUtils` artifact remains a tracked de-risking task (`risks-and-gaps.md` → DR-06).
+
+⚠ **What does not follow — and was wrongly allowed to, until Step 9 blocker B5.** "The staleness does
+not reproduce" is a fact about the *outcome*. It says nothing about the *decision*, which is a pure
+predicate over a file and a frame and is directly assertable: under dumb mode the recorded frame is
+empty, an empty frame on a provisioned file clears §3.3 steps 2–5, and so step 1 is the only thing
+that can reject it. `isPinnable(libraryFile, SourceFrame())` is `false` with step 1 and `true`
+without it. TYPE-11-05 therefore **does** get a gate, on the decision rather than the outcome; see
+§1.9 and TC-16.
 
 ### 1.7 The premise behind the recorder, examined by execution (2026-08-09, second round)
 
@@ -459,6 +467,93 @@ in question, an index query inside a `CachedValue` validity check runs while dum
 does not document the stamp as monotonic — a `ModificationTracker` must be. The measured cost of the
 simple rule is **zero pinned files**, so none of that risk is worth taking. Recorded in §9.
 
+### 1.9 Two guards that could not fire (2026-08-11, fourth round)
+
+Step 9's remaining blockers were both about **a test that cannot go red** — the same defect class as
+§1.8, one level out: there the *rule* was vacuously satisfied, here the *guards* are. Neither is a
+production defect; both are defects in what this plan promised would catch one.
+
+#### B3 — the coverage guard matches text that is not in the file
+
+Phase 3's `LuaTypeSourceRecorderCoverageTest` was specified to count three literal chains in
+`LuaTypeManagerImpl.kt`. Counted against the real file (553 lines, `main` @ `75707e78`):
+
+| Matcher as specified | Counts | Actual sites |
+| :-- | --: | --: |
+| `FileBasedIndex.getInstance().getContainingFiles` | **0** | 2 |
+| `PsiManager.getInstance(project).findFile` | **1** | 2 |
+| `StubIndex.getElements` | 3 | 3 |
+
+Two distinct causes, and the review named only the first:
+
+- **ktlint wraps the chain.** Both `getContainingFiles` sites are written `FileBasedIndex` ⏎
+  `.getInstance()` ⏎ `.getContainingFiles(…)` (`:171-173`, `:355-357`), so the one-line literal
+  appears nowhere. That matcher counts 0 and would count 0 forever — a recorded expectation of 0 that
+  a new site cannot move, because a new site would be wrapped too.
+- **The receiver is not always the same text.** `:175` calls `PsiManager.getInstance(project).findFile`
+  and `:358` calls `psiManager.findFile` through a local. Even unwrapped, a receiver-qualified matcher
+  under-counts by one *today*. The review did not find this one.
+
+`StubIndex.getElements` counts correctly and is still not safe: re-wrapping one existing site takes it
+`3 → 2`, so a routine `ktlintFormat` would present as a **removed** call site. A guard whose count
+drops when nothing was deleted is worse than no guard.
+
+The matcher that works — comments stripped, then all whitespace removed, then count the member name
+with its opening paren — measured on the same file:
+
+```
+.findFile(            2
+.getElements(         3
+.getContainingFiles(  2                                     TOTAL 7
+```
+
+and proven to move in the two directions that matter: injecting one synthetic
+`PsiManager.getInstance(project).findFile(…)` takes `.findFile(` `2 → 3`; re-wrapping
+`StubIndex.getElements(` across lines leaves `.getElements(` at `3` while the chain literal falls to
+`2`. Comment stripping is **prophylactic, not load-bearing today** — measured, the counts are `2 / 3 / 2`
+with or without it, because no comment in this file currently writes one of these members followed by
+an opening paren. It is specified anyway because the failure it prevents is a *false red*: a future
+KDoc that writes `.findFile(…)` in prose would inflate the count and fail a build that added no call
+site. Stated as prophylaxis rather than as a measured effect, since an earlier draft of this very
+section claimed the latter and was wrong.
+
+The recorded totals are therefore **2 / 3 / 2**, and they are *call sites of the three doors*, not the
+six `reportFile` insertion points of §3.5. The two sets are not equal and are not meant to be; the
+guard's question is "did a new way of reading another file appear", and the author answers whether it
+needs a report.
+
+#### B5 — the dumb-mode guard is gateable after all, by asserting the decision
+
+§1.6 concluded that TYPE-11-05 has no reproducing test, and §3.4 called the guard "insurance, not a
+fix for a demonstrated defect". The first half stands: the **outcome** does not reproduce, because the
+library `PsiFile`'s own `modificationStamp` moves when dumb mode ends and rebuilds the snapshot
+regardless. But "the staleness is not reproducible" was allowed to imply "the guard is not testable",
+and that does not follow. **The guard is a decision, and the decision is assertable.**
+
+Under dumb mode `resolveGlobal` returns null before the absence is reported (§3.6's early-returns
+rule), so a dumb build records an **empty** frame. On a provisioned file an empty frame passes §3.3
+steps 2, 3, 4 and 5 — every one of them — so step 1 is the *only* thing standing between a dumb build
+and a pin. That is precisely the condition under which an assertion has to move when the step is
+removed:
+
+```
+isPinnable(libraryFile, SourceFrame()) == false     under runInDumbModeSynchronously
+                                          == true       with §3.3 step 1 deleted
+```
+
+DR-05's existing trace already grounds the premise this rests on — `libDumb graph type = Undefined`
+inside the dumb block is `resolveGlobal` having returned null, which is the empty frame. What was
+missing was not evidence; it was an **extraction**. §3.3 now names `isPinnable` as a pure
+`(PsiFile, SourceFrame) → Boolean` so the decision can be asked without staging the outcome.
+
+The test must assert both halves or it gates a state that never occurs: (a) the predicate on an
+explicitly-empty frame, which is the mutation-detecting assertion, and (b) that the frame a **real**
+dumb build registers in `snapshotFrames` is in fact empty. (a) alone would be a well-formed assertion
+about a hypothetical — the shape of harness §1.8 and COMP-09 were both caught writing.
+
+This is the same correction in both blockers: a guard is not a guard until it has been shown red.
+`risks-and-gaps.md`'s mutation ledger is where that evidence goes, and neither of these had an entry.
+
 ### Prior Art in This Repo
 
 | Component | file:line | Relationship |
@@ -579,7 +674,17 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
 - **Responsibility**: unchanged — compute or return the cached snapshot. Gains the pinnable decision.
 - **Threading**: read action (unchanged; callers already hold one).
 - **Collaborators**: `LuaTypeSourceRecorder`, `LuaLibraryProvenance`, `DumbService`.
-- **Key API**: signature unchanged — `fun forFile(file: PsiFile): LuaTypes`.
+- **Key API**: `forFile`'s signature is unchanged — `fun forFile(file: PsiFile): LuaTypes` — and one
+  companion member is added:
+  ```kotlin
+  internal fun isPinnable(psiFile: PsiFile, frame: LuaTypeSourceRecorder.SourceFrame): Boolean
+  ```
+  §3.3 steps 1–6, with step 7 as its only production caller. `internal` rather than `private`
+  deliberately: the Kotlin test source set is a friend module, so a test can call it directly (the
+  same seam `LuaCheckInvoker.classify` and `LuaShellExecOptionsCustomizer.prependInReverse` already
+  use). Without this extraction TYPE-11-05's guard has no assertion that goes red when it is deleted —
+  §1.9 B5. Tests pass a **fresh** `SourceFrame()` for the empty case; `SourceFrame` holds three mutable
+  sets, so there is no shared `EMPTY` constant to be accidentally written through.
 
 ### 2.4 `net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl` (edited)
 
@@ -679,6 +784,13 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   6. Otherwise pinnable.
   7. Pinnable → churn is `provenance.generationTracker()`; not pinnable → churn is
      `PsiModificationTracker.MODIFICATION_COUNT`.
+- **Steps 1–6 are a named function, not an inlined condition.** `internal fun isPinnable(psiFile:
+  PsiFile, frame: SourceFrame): Boolean`, with step 7 as its only caller. This is not organisational
+  taste — it is what makes TYPE-11-05 testable (§1.9 B5). The decision is a pure function of its two
+  arguments plus `DumbService`/provenance state, so a test can ask it directly instead of staging an
+  outcome that §1.6 measured to be unreproducible. Inlining these steps into the
+  `CachedValueProvider` would leave the dumb-mode guard with no assertion that goes red when it is
+  deleted, which is how it survived three rounds of review unproven.
 - **Rules / edge handling**:
   - **Steps 4 and 5 are the "sources unknown" half of the invariant, and they are not optional.**
     Step 3 alone is vacuously true for an empty set, which is exactly the state a failed resolution
@@ -718,10 +830,16 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   is what let B1 through review. The `isDumb` test is kept as its own step because it is cheaper than
   inspecting the frame and because `resolveGlobal`'s dumb-mode return is *earlier* than the absence
   report (see §3.6's "early returns" rule), so it would not otherwise be recorded.
-  **It is not backed by a reproduced defect** (§1.6): with the guard removed the DR-05 harness stayed
-  green, because the file's own `modificationStamp` moves when dumb mode ends. It is kept because it
-  costs one boolean, it cannot be wrong, and the alternative is relying on an accident of
+  **It is not backed by a reproduced *staleness*** (§1.6): with the guard removed the DR-05 harness
+  stayed green, because the file's own `modificationStamp` moves when dumb mode ends. It is kept
+  because it costs one boolean, it cannot be wrong, and the alternative is relying on an accident of
   `modificationStamp` behaviour that no test pins.
+  **It is nevertheless gated** (§1.9 B5, TC-16). The decision is asserted directly —
+  `isPinnable(libraryFile, SourceFrame())` is `false` under
+  `DumbModeTestUtils.runInDumbModeSynchronously` and `true` with this step deleted, because an empty
+  frame on a provisioned file clears steps 2–5 and leaves step 1 as the sole rejector. The companion
+  assertion — that a real dumb build registers an empty frame in `snapshotFrames` — is what stops
+  that from being a claim about a hypothetical.
 - **Complexity / bounds**: O(1).
 
 ### 3.5 Cross-file consumption sites that must report
@@ -890,7 +1008,7 @@ implementation-plan Phase 3 covers it.
 | A nested `forFile` served warm | The inner snapshot's recorded frame is replayed (§3.7), so the outer file is judged on the union. Measured red without it: §1.8 B4. |
 | A nested `forFile` served warm whose frame has been collected | `unreplayedWarm` → not pinnable (§3.3 step 5). |
 | `resolveType` called with an unparsed type expression (`boolean\|nil`, `fun(): string`) | Not an absence. §3.1 step 5 records absences for **global** resolution only; `io.lua` produces five such `resolveType` misses per build and none of them is a declaration anybody can write (§1.8). |
-| A **new** cross-file consumption site added later to `LuaTypeManagerImpl` | Not automatically covered. `LuaTypeSourceRecorderCoverageTest` (implementation plan Phase 3) fails if `LuaTypeManagerImpl` gains a call to `PsiManager.findFile`, `StubIndex.getElements` or `FileBasedIndex.getContainingFiles` that is not followed by a `reportFile`; see `risks-and-gaps.md` Risk 1.1.  |
+| A **new** cross-file consumption site added later to `LuaTypeManagerImpl` | Not automatically covered. `LuaTypeSourceRecorderCoverageTest` (implementation plan Phase 3) fails if the count of `.findFile(` / `.getElements(` / `.getContainingFiles(` call sites moves off the recorded **2 / 3 / 2**, forcing the author to decide whether the new site needs a `reportFile`. Matched on comment-stripped, whitespace-collapsed text — the literal chains this row used to name count 0 and 1 against the real file (§1.9 B3). See `risks-and-gaps.md` Risk 1.1. |
 | A `LuaTypeReference` resolved lazily after the frame closed | Its source escapes recording. Bounded, not eliminated — see `risks-and-gaps.md` Risk 1.3 and DR-07. |
 
 ## 7. Integration Points
@@ -933,7 +1051,7 @@ Platform APIs used, all verified present by compiling the measurement build agai
 | TYPE-11-02 — every generation signal invalidates it | M | §3.2 step 1, §3.3 step 5, §5 example 3 | `TypeElevenGenerationSignalTest` (plan Phase 3) |
 | TYPE-11-03 — identification is by provenance | M | §3.2 | `TypeElevenDr02ProvenanceTest`, 5 assertions, all mutation-proved |
 | TYPE-11-04 — no new stale-type defect | M | §3.1, §3.3, §3.5, §3.6 | `TypeElevenDr01ResidualTest` (3 tests). **It is the only gate.** Measured (TYPE-11-DR-09): under the rejected blanket-pin build the full suite *and* all four corpus baselines pass — `2571 tests completed, 2 failed`, both of them these fixtures. The suite and the sweep show that nothing *else* moved; neither can detect this defect class, because it needs an edit after a snapshot is built and the sweep is a single pass (`risks-and-gaps.md` → "DR-09 measured"). |
-| TYPE-11-05 — a dumb-mode build is never cached across the generation | M | §3.4 | Guard implemented; **no reproducing test exists** (§1.6). Tracked as `risks-and-gaps.md` DR-06. |
+| TYPE-11-05 — a dumb-mode build is never cached across the generation | M | §3.4 | `TypeElevenDumbModeDecisionTest` (plan Phase 3) — asserts the **decision**, `isPinnable(libraryFile, SourceFrame()) == false` under dumb mode, mutation-red when §3.3 step 1 is deleted (§1.9 B5). The **outcome** does not reproduce and `TypeElevenDr05DumbModeTest` remains explicitly not a gate (§1.6); whether the stamp move is platform behaviour is still `risks-and-gaps.md` DR-06. |
 | TYPE-11-06 — an incomplete recording is never pinned | M | §3.1 steps 5–6, §3.3 steps 4–5, §3.6, §3.7 | `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest`, both measured red under §3 as written and green under the rule (§1.8). |
 
 ### 8.1 Acceptance cases, as input → output
@@ -955,10 +1073,12 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | TC-9 | TYPE-11-04 (residual 2) | Library `host.lua` = `---@class HostClass` / `local HostClass = {}` / `HostGlobal = HostClass`, `host2.lua` = `libHandle = HostGlobal`; project `ext.lua` = `function HostClass:beforeEdit() end` → rewritten to `afterEdit`. | `resolveGlobal("libHandle").getMembers().keys` contains `afterEdit` and **not** `beforeEdit`. `TypeElevenDr01ResidualTest`. |
 | TC-10 | TYPE-11-04 (project→project) | Project `a.lua` = `projectShared = { before = 1 }`, `b.lua` = `projectAlias = projectShared`; rewrite `a.lua` to `{ after = 1 }`. | `resolveGlobal("projectAlias").getMembers().keys` = `[after]`. `…testAProjectToProjectDependencyIsNeverPinned`. |
 | TC-11 | TYPE-11-04 (suite) | The full suite, **and the corpus sweep run explicitly**: `run "test -PwithCorpus --rerun --no-build-cache"`. | 0 failures, and **`LuaCorpusSweepTest`, `LuaTortureCorpusTest` and `LuaInspectionParityTest` present in `build/test-results/test/`** — those three are the only classes the `-PwithCorpus` filter gates, so they are the only ones whose presence proves the sweep ran (§1.4 ⚠⚠; `BaselineRatchetTest`, `LexerInvariantsTest` and `ParseOracleTest` appear under a plain `test` run too and prove nothing). Their **absence** is the failure mode, and it is silent. Check the timestamps: `--rerun` does not clear `build/test-results/test/`, so an aborted run leaves the previous run's XML in place — measured, and it is how this exercise nearly mis-read its own first result. Reference on `69ad6b57`: **2 571 tests, 0 failures**, sweep 4/0, parity 1/0, torture 1/0. |
-| TC-12 | TYPE-11-05 | Library `delta.lua` = `libDumb = sharedByLibrary`, `deltaSource.lua` = `sharedByLibrary = { fromLibrary = 1 }`; build `forFile(delta.lua)` inside `DumbModeTestUtils.runInDumbModeSynchronously`, then leave dumb mode. | `resolveGlobal("libDumb").getMembers().keys` = `[fromLibrary]`. `TypeElevenDr05DumbModeTest` — **records, does not gate** (§1.6). |
+| TC-12 | TYPE-11-05 (outcome) | Library `delta.lua` = `libDumb = sharedByLibrary`, `deltaSource.lua` = `sharedByLibrary = { fromLibrary = 1 }`; build `forFile(delta.lua)` inside `DumbModeTestUtils.runInDumbModeSynchronously`, then leave dumb mode. | `resolveGlobal("libDumb").getMembers().keys` = `[fromLibrary]`. `TypeElevenDr05DumbModeTest` — **records, does not gate** (§1.6): two mutations left it green. The gate for TYPE-11-05 is TC-16. |
 | TC-13 | TYPE-11-06 (absence) | Library `alpha.lua` = `libAlias = sharedByProject` installed while **no** file declares `sharedByProject` (asserted: `FileBasedIndex.getContainingFiles(LuaGlobalAssignmentIndex.KEY, "sharedByProject", allScope)` is empty); read `libAlias`; then add project `shared.lua` = `sharedByProject = { afterDeclared = 1 }` with the roots tracker asserted still. | `resolveGlobal("libAlias").getMembers().keys` = `[afterDeclared]`. Under §3 without step 4 it is `[]` — §1.8. `TypeElevenDr11LateDeclarationTest`. |
 | TC-14 | TYPE-11-06 (warm inner) | Library `b.lua` = `bOther = { fromB = 1 }` + `bGlobal = projectSeed`, library `a.lua` = `aAlias = bGlobal`, project `p.lua` = `projectSeed = { beforeEdit = 1 }`. Resolve `bOther` first (warms `forFile(b.lua)`), then resolve `aAlias`, then rewrite `p.lua` to `{ afterEdit = 1 }` with the roots tracker asserted still. | `resolveGlobal("aAlias").getMembers().keys` = `[afterEdit]`. Under §3 without §3.7 it is `[beforeEdit]` — §1.8. `TypeElevenDr12WarmInnerSnapshotTest`. |
 | TC-15 | TYPE-11-06 (cost) | The 10 bundled stdlib files plus the 123 KiB definition library, each built once in a clean epoch. | All 11 still pinnable under the rule (`guarded=11`), i.e. the rule costs nothing on what ships. Recorded by the review scaffold in §1.8; the shipped equivalent is `LuaTypeSourceRecorderCoverageTest`'s sibling assertion in plan Phase 3. |
+| TC-16 | TYPE-11-05 (decision) | The TC-12 fixture. Inside `DumbModeTestUtils.runInDumbModeSynchronously`: (a) call `isPinnable(delta.lua, SourceFrame())` directly; (b) build `forFile(delta.lua)` and read the frame it registered in `snapshotFrames`. | (a) `false` — and `true` with §3.3 step 1 deleted, which is the stated mutation. (b) that frame is **empty**, so (a) is a claim about the state a dumb build actually produces and not about a hypothetical one. `TypeElevenDumbModeDecisionTest`, plan Phase 3 (§1.9 B5). |
+| TC-17 | Risk 1.1 (coverage) | `LuaTypeManagerImpl.kt` read as text, comments stripped, all whitespace removed; count `.findFile(`, `.getElements(`, `.getContainingFiles(`. | `2`, `3`, `2`. Mutation: injecting one `PsiManager.getInstance(project).findFile(…)` takes `.findFile(` to `3` and fails the test. The literal chains this case replaced counted `1`, `3` and **`0`** against the same file (§1.9 B3). `LuaTypeSourceRecorderCoverageTest`, plan Phase 3. |
 
 ## 9. Alternatives Considered
 

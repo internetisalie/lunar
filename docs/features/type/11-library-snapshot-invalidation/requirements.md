@@ -92,7 +92,7 @@ included, stays on the global tracker. Three reasons:
 | TYPE-11-02 | **Every generation signal invalidates it** | M | Roots change and target/version change each discard the affected snapshots. A missed signal is a stale-type defect, which is worse than the cost being fixed. |
 | TYPE-11-03 | **Library-file identification is by provenance** | M | The library set comes from what this plugin provisioned (`RuntimeLibraryProvider` / the definition-library registry), matched by `VirtualFile` identity against the file `resolveGlobal` actually resolved. Not `ProjectFileIndex.isInLibrary` — unverified for `SyntheticLibrary` roots, and unnecessary once provenance answers the question. |
 | TYPE-11-04 | **No new stale-type defect** | M | The edit-then-reread fixtures (`TypeElevenDr01ResidualTest`, and for TYPE-11-06's two shapes `TypeElevenDr11LateDeclarationTest` / `TypeElevenDr12WarmInnerSnapshotTest`) stay green. **Measured (TYPE-11-DR-09): "all four corpus baselines unmoved and the full suite green" is not a test of this** — both hold under a build that serves stale types. They stay as "nothing else moved" checks. |
-| TYPE-11-05 | **A dumb-mode build is never cached across the generation** | M | `resolveGlobal` answers `null` while indexing; a snapshot built then has those nulls baked in and must not outlive dumb mode. Either skip caching while `DumbService.isDumb`, or add the dumb-mode tracker as a dependency. Without this, TYPE-11 *creates* a staleness class that today's per-keystroke invalidation accidentally heals. |
+| TYPE-11-05 | **A dumb-mode build is never cached across the generation** | M | `resolveGlobal` answers `null` while indexing; a snapshot built then has those nulls baked in and must not outlive dumb mode. Either skip caching while `DumbService.isDumb`, or add the dumb-mode tracker as a dependency. Without this, TYPE-11 *creates* a staleness class that today's per-keystroke invalidation accidentally heals. **The staleness itself does not reproduce** (design §1.6) — so this is gated on the *decision*, `isPinnable(libraryFile, SourceFrame()) == false` under dumb mode, which goes red when the guard is deleted (`TypeElevenDumbModeDecisionTest`, design §1.9). |
 | TYPE-11-06 | **An incomplete recording is never pinned** | M | The generalisation of TYPE-11-05, and the reason it is a requirement of its own: the recorder must distinguish **"no sources"** from **"sources unknown"**, and only the first may be pinned. A build during which a global resolution answered nothing, or during which a nested `forFile` was served from cache without contributing its own recorded sources, has not established that it is a pure function of provisioned content. Measured (design §1.8): both under-recordings ship a stale type under the rule as originally written, and closing them costs **zero** of the 11 files this feature pins. Gated by `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest`. |
 
 ## The residual that may defeat the whole approach
@@ -154,8 +154,10 @@ above did not survive being executed, and they are corrected here rather than le
 - **TYPE-11-05's staleness class did not reproduce.** The nulls are baked in while dumb, but they do
   not survive — the file's own `modificationStamp` moves at dumb-mode exit, and `forFile`'s `psiFile`
   dependency rebuilds regardless of the churn tracker. Removing the guard left the harness green, as
-  did an absolutely-never-ticking tracker. The guard is retained as insurance and TYPE-11-05 has **no
-  automated protection**; tracked as `risks-and-gaps.md` DR-06 (design §1.6).
+  did an absolutely-never-ticking tracker; whether that stamp move is platform behaviour or a
+  `DumbModeTestUtils` artifact is `risks-and-gaps.md` DR-06 (design §1.6). ⚠ **The clause that
+  followed — "TYPE-11-05 has no automated protection" — was wrong, and is corrected by the fourth
+  round below.** It confused the outcome with the decision.
 - **DR-04's success criterion is not met.** Arm B lands at 3–5× arm A in the same run, not "near the
   9 ms baseline" — which this document predicted, and named the reason for (design §1.5).
 
@@ -207,6 +209,30 @@ were reproduced and both are closed; full output in [design.md](design.md) §1.8
 - **The alternative was priced, not assumed.** `FileBasedIndex.getIndexModificationStamp` exists and
   behaves as hoped (`before=16 afterUnrelatedEdit=16 afterNewDeclaration=17`) but is not adopted; the
   rule it would optimise already costs nothing.
+
+### Fourth round (2026-08-11, `main` @ `75707e78`) — two guards that could not fire
+
+Step 9's remaining blockers were not about the rule but about the **tests promised to protect it** —
+the same "vacuously satisfied" defect as the third round, one level out. Both are closed; full output
+in [design.md](design.md) §1.9.
+
+- **The coverage guard matched text that is not in the file (B3).** Phase 3's
+  `LuaTypeSourceRecorderCoverageTest` was specified against qualified chains. Counted against the real
+  `LuaTypeManagerImpl.kt`: `FileBasedIndex.getInstance().getContainingFiles` = **0** (2 real sites,
+  both wrapped by ktlint), `PsiManager.getInstance(project).findFile` = **1** of 2 (one goes through a
+  `psiManager` local — a second miss the review did not name), `StubIndex.getElements` = 3 of 3 but
+  fragile: one re-wrap drops it to 2 and reports a deletion that never happened. Now matched on
+  comment-stripped, whitespace-collapsed text with the recorded counts **2 / 3 / 2**, and shown to move
+  `2 → 3` when a site is injected.
+- **The dumb-mode guard is gateable after all (B5).** "The staleness does not reproduce" is a fact
+  about the *outcome*; it was allowed to imply the guard is untestable, and that does not follow. A
+  dumb build records an **empty** frame, and an empty frame on a provisioned file clears §3.3 steps
+  2–5 — so step 1 is the sole rejector and `isPinnable(libraryFile, SourceFrame())` is `false`
+  with it and `true` without. TYPE-11-05 gets a real gate on the decision; §3.3 steps 1–6 are extracted
+  into a named predicate so it can be asked directly.
+- **What was missing was an extraction, not evidence.** DR-05's own trace (`libDumb graph type =
+  Undefined` inside the dumb block) already established the premise. Three rounds of review let
+  "no reproducing test" stand unchallenged as "no possible test".
 
 ## Relationship to COMP-09
 

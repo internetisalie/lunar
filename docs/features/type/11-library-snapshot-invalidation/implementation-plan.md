@@ -80,7 +80,10 @@ are already committed and green on `main`. They must stay green at the end of ev
   - [ ] Edit `LuaTypesSnapshot.forFile` (`LuaTypes.kt:212-224`) — realizes design §2.3, §3.3 and
         §3.7. Wrap `LuaTypesVisitor.buildSnapshot(psiFile)` in `LuaTypeSourceRecorder.recording { … }`,
         register `snapshotFrames[snapshot] = frame`, compute `pinnable` by the five short-circuiting
-        tests in §3.3 steps 1–5, and select the churn dependency in step 7. Track whether the provider
+        tests in §3.3 steps 1–5, and select the churn dependency in step 7. **Steps 1–6 go in
+        `internal fun isPinnable(psiFile: PsiFile, frame: SourceFrame): Boolean`, not inline** — step 7
+        is its only caller. That extraction is what TC-16 asserts against; inlined, the dumb-mode guard
+        has no assertion that goes red when it is deleted (design §1.9 B5). Track whether the provider
         ran (`var computed`) and, when it did not and `depth() > 0`, call
         `reportWarmSnapshot(psiFile, served)` (§3.7 steps 2–4). The `inProgressSnapshot` reentrancy
         guard, the `psiFile` dependency and `targetModificationTracker` are unchanged, and the
@@ -92,11 +95,28 @@ are already committed and green on `main`. They must stay green at the end of ev
   - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02. Three cases: (a) enabling a
         definition library re-provisions and invalidates; (b) `setTarget` invalidates a pinned
         snapshot; (c) a project-file edit does **not** invalidate a pinned snapshot.
-  - [ ] Add `LuaTypeSourceRecorderCoverageTest` — mitigates `risks-and-gaps.md` Risk 1.1. Reads
-        `LuaTypeManagerImpl.kt` as text and asserts the count of `PsiManager.getInstance(project).findFile`,
-        `StubIndex.getElements` and `FileBasedIndex.getInstance().getContainingFiles` call sites
-        against a recorded number, with a message naming design §3.5. A new site fails the build and
-        forces the author to decide whether it needs a `reportFile`.
+  - [ ] Add `TypeElevenDumbModeDecisionTest` — covers TYPE-11-05, TC-16. Two assertions inside
+        `DumbModeTestUtils.runInDumbModeSynchronously` on the TC-12 fixture: `isPinnable(delta.lua,
+        SourceFrame())` is `false`, **and** the frame a real dumb `forFile(delta.lua)` registers in
+        `snapshotFrames` is empty. The second is not padding — without it the first is an assertion
+        about a state that may never occur, which is the §1.8/COMP-09 harness failure exactly.
+        **Stated mutation: delete §3.3 step 1** → the first assertion must go red (an empty frame on a
+        provisioned file clears steps 2–5, so step 1 is the sole rejector). This is the gate §1.6
+        said did not exist; `TypeElevenDr05DumbModeTest` stays a recorder and is not a gate.
+  - [ ] Add `LuaTypeSourceRecorderCoverageTest` — mitigates `risks-and-gaps.md` Risk 1.1, TC-17. Reads
+        `LuaTypeManagerImpl.kt` as text, **strips comments, then removes all whitespace**, then counts
+        the bare members `.findFile(`, `.getElements(` and `.getContainingFiles(` against the recorded
+        **2 / 3 / 2**, with a message naming design §3.5. A new site fails the build and forces the
+        author to decide whether it needs a `reportFile`.
+        **Do not match the qualified chains** — measured against the real file (design §1.9 B3),
+        `FileBasedIndex.getInstance().getContainingFiles` counts **0** because ktlint wraps both sites
+        across lines, and `PsiManager.getInstance(project).findFile` counts **1** of 2 because `:358`
+        calls through a `psiManager` local. Comment stripping changes nothing today (measured, same
+        `2 / 3 / 2` either way) and is specified only to stop a future KDoc writing `.findFile(…)` in
+        prose from failing a build that added no call site.
+        **Stated mutation: inject one `PsiManager.getInstance(project).findFile(…)`** → `.findFile(`
+        must go `2 → 3` and fail. Second check, to prove the guard is not fooled by formatting alone:
+        re-wrapping an existing `StubIndex.getElements(` across lines must leave the count at `3`.
   - [ ] Add a library-`require`s-a-project-module case to `TypeElevenDr01ResidualTest` — closes the
         first item under `risks-and-gaps.md` "Test Case Gaps".
 - **Exit criteria**:
@@ -144,7 +164,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 | TYPE-11-02 — every generation signal invalidates it | M | Phase 1 (the tracker composition) + Phase 3 (`TypeElevenGenerationSignalTest`) |
 | TYPE-11-03 — identification is by provenance | M | Phase 1 |
 | TYPE-11-04 — no new stale-type defect | M | Phase 2 (recording) + Phase 3 (the condition); gated by **`TypeElevenDr01ResidualTest` alone** — measured (TYPE-11-DR-09): the full suite and all four corpus baselines pass unchanged under the rejected blanket-pin build, so neither is a gate for this requirement. They remain exit criteria for "nothing else moved". |
-| TYPE-11-05 — a dumb-mode build is never cached across the generation | M | Phase 3 (the guard, design §3.4) + Phase 4 (DR-06, because the guard currently has no reproducing test) |
+| TYPE-11-05 — a dumb-mode build is never cached across the generation | M | Phase 3 (the guard, design §3.4) — gated by `TypeElevenDumbModeDecisionTest` on the **decision** (TC-16), which is mutation-red when §3.3 step 1 is deleted. The **outcome** still does not reproduce (§1.6), so Phase 4 keeps DR-06: is the `modificationStamp` move platform behaviour or a `DumbModeTestUtils` artifact? |
 | TYPE-11-06 — an incomplete recording is never pinned | M | Phase 1 (the `SourceFrame` shape) + Phase 2 (the absence report and the whole-frame `sourceCache`) + Phase 3 (§3.3 steps 4–5 and the §3.7 replay); gated by `TypeElevenDr11LateDeclarationTest` + `TypeElevenDr12WarmInnerSnapshotTest`, both measured red under the rule without their guard |
 
 ## Verification Tasks
@@ -157,12 +177,15 @@ are already committed and green on `main`. They must stay green at the end of ev
 - [ ] `TypeElevenDr12WarmInnerSnapshotTest` — 1 test, covers TYPE-11-06 (warm inner snapshot).
       Already committed and green on `main`; red under the rule without §3.7 (design §1.8).
 - [ ] `TypeElevenDr05DumbModeTest` — 2 tests, TYPE-11-05. Already committed, and **explicitly not a
-      gate** (`risks-and-gaps.md` Gap 2.1).
+      gate** (`risks-and-gaps.md` Gap 2.1): it records the outcome, which two mutations could not move.
+- [ ] `TypeElevenDumbModeDecisionTest` (Phase 3) — the gate for TYPE-11-05, TC-16. Asserts the
+      decision rather than the outcome, plus that a real dumb build's frame is empty.
 - [ ] `TypeElevenDr04LatencyTest` — printing probe, no assertions. Read its numbers; do not treat a
       green run as a pass.
 - [ ] `LuaLibraryProvenanceTest` (Phase 1) — the DR-02 assertions against the production service.
 - [ ] `TypeElevenGenerationSignalTest` (Phase 3) — covers TYPE-11-02.
-- [ ] `LuaTypeSourceRecorderCoverageTest` (Phase 3) — mitigates Risk 1.1.
+- [ ] `LuaTypeSourceRecorderCoverageTest` (Phase 3) — mitigates Risk 1.1, TC-17. Counts `2 / 3 / 2` on
+      whitespace-collapsed, comment-stripped text; the qualified-chain form counts `1 / 3 / 0` (§1.9 B3).
 - [ ] Run `human-verification-checklists.md` — the whole feature is a *cache lifetime* change, and the
       symptom it fixes (typing latency with a large library loaded) is not observable in a light
       fixture at all.
