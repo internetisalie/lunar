@@ -227,7 +227,7 @@ in [design.md](design.md) §1.9.
 - **The dumb-mode guard is gateable after all (B5).** "The staleness does not reproduce" is a fact
   about the *outcome*; it was allowed to imply the guard is untestable, and that does not follow. A
   dumb build records an **empty** frame, and an empty frame on a provisioned file clears §3.3 steps
-  2–5 — so step 1 is the sole rejector and `isPinnable(libraryFile, SourceFrame())` is `false`
+  2–7 — so step 1 is the sole rejector and `isPinnable(libraryFile, SourceFrame())` is `false`
   with it and `true` without. TYPE-11-05 gets a real gate on the decision; §3.3 steps 1–8 are extracted
   into a named predicate so it can be asked directly.
 - **What was missing was an extraction, not evidence.** DR-05's own trace (`libDumb graph type =

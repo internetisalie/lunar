@@ -27,8 +27,10 @@ are already committed and green on `main`. They must stay green at the end of ev
   - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaTypeSourceRecorder` — realizes design §2.1
         and §3.1. `object`, `ThreadLocal<ArrayDeque<SourceFrame>>`, where `SourceFrame` carries **five**
         sets (`urls`, `absences`, `unreplayedWarm`, `inProgressHits`, `rescuedGlobals`) and an
-        `absorb` over all five; plus the weak-keyed `snapshotFrames: MutableMap<LuaTypes, SourceFrame>`
-        used by §3.7. Functions: `recording`, `report`, `reportFile`, `reportAbsence`,
+        `absorb` over all five; plus `snapshotFrames`, a **`Collections.synchronizedMap(WeakHashMap())`**
+        used by §3.7 — synchronized like its three siblings (`LuaTypeManagerImpl.kt:39`, `:51`, `:63`),
+        **not** a bare `WeakHashMap`: a read action is shared, not exclusive, so pooled threads reach
+        it concurrently (design §2.1). Functions: `recording`, `report`, `reportFile`, `reportAbsence`,
         `reportRescuedGlobal`, `reportInProgressHit`, `reportWarmSnapshot`, `replay`, `depth`.
         **Every `report*` writes to every open frame, not just the innermost** (§3.1 step 3) — that
         is the whole correctness of nesting. The four non-`urls` sets are not decoration: each exists
@@ -63,6 +65,14 @@ are already committed and green on `main`. They must stay green at the end of ev
         URL set, or a memoized null replays as "no dependencies" (design §3.6).
   - [ ] Add the private helpers `recordUnder(key, body)` and `replaySources(key)` — design §3.6
         steps 3–4. Both are ≤ 4 lines; the ≤ 3-argument cap (engineering contract §3) is satisfied.
+        `replaySources` must treat **"type cached but frame absent" as an incompleteness**, reporting
+        it like an unreplayed warm hit rather than as silence — the four caches are separate
+        `CachedValue`s read at different moments, and an absent frame otherwise replays as "no
+        sources", which is §3.6's own unsound case re-created through the cache (design §3.6).
+  - [ ] **Consider co-locating the frame in the three existing caches** — `(LuaType?, SourceFrame)` as
+        their value type — instead of adding `sourceCache` as a fourth. It deletes the fourth
+        `CachedValue`, the key-prefix scheme, the drift check above and Risk 1.2 (design §9). Take it
+        if it lands cleanly; the parallel-map shape is precedent, not a reason.
   - [ ] Wrap the three doors — `resolveType`, `resolveModule`, `resolveGlobal` — so a cache **miss**
         goes through `recordUnder("type:$name" | "module:$moduleName" | "global:$name")` and a cache
         **hit** calls `replaySources(...)` before returning. Do not move the early returns that
@@ -111,15 +121,31 @@ are already committed and green on `main`. They must stay green at the end of ev
         today**, which is the point: it is the only assertion that states what this feature does.
         `TypeElevenDr04LatencyTest` stays a printing probe with no assertions and does not gate
         anything (§1.5, TC-1b).
-  - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02, TC-2/TC-3. Three cases: (a) install
-        L1, build and pin, then install **and enable a second library L2** through the production path
-        (`LuaDefinitionLibraryEnabler.apply`, **pumping the EDT** — `LuaProjectSettings.kt:199-205`
-        publishes inside `invokeLater`), asserting L1's snapshot instance changed. **Do not** write
-        this as "empty the enabled list and assert resolution stops": that removes the file from
-        `allScope`, so it is green on `main`, under any rule, and with the roots tracker deleted
-        (§8.1 TC-2, `risks-and-gaps.md` Gap 2.3). (b) `setTarget` invalidates a pinned snapshot —
-        mutation stated as dropping `targetTracker` from the **pinnable** branch only, since it is
-        unconditional today. (c) a project-file edit does **not** tick roots.
+  - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02, TC-2a/2b/3/4. Four cases, and the
+        split between (a) and (b) is deliberate: one asserts a tick moves the pin, the other asserts
+        the production chain produces a tick. Merged, the test fails for two unrelated reasons.
+        **(a) TC-2a — seed BOTH library trees during setup** with only L1 enabled, assert
+        `isPinnable(L1/wx.lua, …)` is `true`, take instance `A`, then flip **only** the enabled list
+        and announce roots, take `B`, assert `A !== B`. ⚠ Seeding L2 late makes this green on `main`:
+        writing files fires `PsiTreeChangeEvent`s which tick `MODIFICATION_COUNT`, `forFile`'s churn
+        dependency today. ⚠ The `isPinnable` precondition is required — without it an unpinnable file
+        gives `A !== B` for the ordinary reason. ⚠ `TypeElevenDefinitionLibraryTestCase.installDefinitionLibrary`
+        **replaces** the enabled list (`mutableListOf(id)`) and calls `announceRootsChange()`, so it
+        cannot express this case as-is — a two-library seeding helper has to be added first.
+        **(b) TC-2b — the production chain**, closing Gap 2.3: call
+        `LuaSettingsChangeListener.getInstance(project)` **first**, then `LuaDefinitionLibraryEnabler.apply`
+        on an already-seeded tree, pumping the EDT, and assert `ProjectRootModificationTracker`
+        advanced. ⚠ **Without the explicit `getInstance` the publish reaches no subscriber**: the
+        listener subscribes in its `init` and is normally created by the `LuaTargetSyncStartup`
+        post-startup activity, which does not run under `BasePlatformTestCase` — so this case would be
+        red against a *correct* implementation. `LuaSettingsNotificationTest.kt:47` forces it for the
+        same reason. `apply()` on an unseeded tree would attempt a network fetch.
+        **(c) TC-3** — pin a **definition-library** file (target-independent root; a
+        `runtime/standard/lua-5.4/*` file stops being provisioned when the target moves), `setTarget`,
+        assert the instance changed. Mutation: drop `targetTracker` from the **pinnable** branch only.
+        **(d) TC-4** — a project edit does not tick roots. Cheap regression check, **explicitly not a
+        gate**: it is a platform fact no TYPE-11 defect can change and `rewriteAssertingRootsAreStill`
+        already asserts it on every edit.
   - [ ] Add `TypeElevenPinnableCostTest` — TC-15, and it is **its own live-fixture class**, not an
         assertion inside the text-reading coverage test. Enumerate the bundled stdlib via
         `RuntimeLibraryProvider(project).getLibraryFiles(target)` plus the installed definition
@@ -134,18 +160,28 @@ are already committed and green on `main`. They must stay green at the end of ev
         ⚠ **Measure them one class at a time.** A combined run turned DR-14 green for an unrelated
         reason — an earlier class's teardown edit recomputing the chain — and that false green is
         recorded in `risks-and-gaps.md`. The full suite remains the commit gate.
-  - [ ] Add `TypeElevenDumbModeDecisionTest` — covers TYPE-11-05, TC-16. Two assertions inside
-        `DumbModeTestUtils.runInDumbModeSynchronously` on the TC-12 fixture: `isPinnable(delta.lua,
-        SourceFrame())` is `false`, **and** the frame a real dumb `forFile(delta.lua)` registers in
-        `snapshotFrames` is empty. The second is not padding — without it the first is an assertion
-        about a state that may never occur, which is the §1.8/COMP-09 harness failure exactly.
+  - [ ] Add `TypeElevenDumbModeDecisionTest` — covers TYPE-11-05, TC-16. **Three** assertions on the
+        TC-12 fixture: (a) inside dumb mode `isPinnable(delta.lua, SourceFrame())` is `false`; (b)
+        inside dumb mode the frame a real `forFile(delta.lua)` registers is present (`assertNotNull`
+        first) and empty; (c) **outside** dumb mode the same file's frame is **non-empty**, containing
+        `deltaSource.lua`. ⚠ **(c) is what makes (b) mean anything**: "every set empty" passes under a
+        completely inert recorder — a Phase-1 recorder wired to nothing with all six §3.5 `reportFile`
+        calls omitted satisfies it. (b) alone separates "the provider ran" from "it did not"; only
+        (b)+(c) separate "dumb mode records nothing" from "nothing is ever recorded". ⚠ Assert the
+        default target explicitly: (b)'s emptiness depends on `global.lua` being absent, which is true
+        for `lua-5.4` and not for every target.
         **Stated mutation: delete §3.3 step 1** → the first assertion must go red (an empty frame on a
-        provisioned file clears steps 2–5, so step 1 is the sole rejector). This is the gate §1.6
+        provisioned file clears steps 2–7, so step 1 is the sole rejector). This is the gate §1.6
         said did not exist; `TypeElevenDr05DumbModeTest` stays a recorder and is not a gate.
   - [ ] Add `LuaTypeSourceRecorderCoverageTest` — mitigates `risks-and-gaps.md` Risk 1.1, TC-17. Reads
-        `LuaTypeManagerImpl.kt` as text, **strips comments, then removes all whitespace**, then counts
-        the bare members `.findFile(`, `.getElements(` and `.getContainingFiles(` against the recorded
-        **2 / 3 / 2**, with a message naming design §3.5. A new site fails the build and forces the
+        **`LuaTypeManagerImpl.kt` and `LuaTypesVisitor.kt`** as text, **strips comments, then removes
+        all whitespace**, then counts **five** bare members — `.findFile(`, `.getElements(`,
+        `.getContainingFiles(`, `.getAllKeys(`, `.getLibraryFiles(` — against the recorded
+        **`LuaTypeManagerImpl` 2 / 3 / 2 / 2 / 0** and **`LuaTypesVisitor` 1 / 0 / 0 / 0 / 1**, with a
+        message naming design §3.5. **Three members and one file is the pre-widening form and is not
+        sufficient**: it cannot fire for `StubIndex.getAllKeys` (`LuaTypeManagerImpl.kt:432`, the route
+        §1.7 designates load-bearing for residual path 2) nor for `seedAmbientGlobals`, which reads
+        another file entirely. A new site fails the build and forces the
         author to decide whether it needs a `reportFile`.
         **Do not match the qualified chains** — measured against the real file (design §1.9 B3),
         `FileBasedIndex.getInstance().getContainingFiles` counts **0** because ktlint wraps both sites
@@ -234,8 +270,9 @@ are already committed and green on `main`. They must stay green at the end of ev
       red under the post-B1/B4 rule without §3.3 step 6 (design §1.10 V1).
 - [ ] `TypeElevenDr15LateLibraryAnswerTest` — 1 test, TYPE-11-06 (rescued global). Already committed;
       red under the post-B1/B4 rule without §3.3 step 7 (design §1.10 V2).
-- [ ] `LuaTypeSourceRecorderCoverageTest` (Phase 3) — mitigates Risk 1.1, TC-17. Counts `2 / 3 / 2` on
-      whitespace-collapsed, comment-stripped text; the qualified-chain form counts `1 / 3 / 0` (§1.9 B3).
+- [ ] `LuaTypeSourceRecorderCoverageTest` (Phase 3) — mitigates Risk 1.1, TC-17. **Two files, five
+      members**: `LuaTypeManagerImpl` `2 / 3 / 2 / 2 / 0`, `LuaTypesVisitor` `1 / 0 / 0 / 0 / 1`, on
+      whitespace-collapsed, comment-stripped text. The qualified-chain form counted `1 / 3 / 0` (§1.9 B3).
 - [ ] Run `human-verification-checklists.md` — the whole feature is a *cache lifetime* change, and the
       symptom it fixes (typing latency with a large library loaded) is not observable in a light
       fixture at all.

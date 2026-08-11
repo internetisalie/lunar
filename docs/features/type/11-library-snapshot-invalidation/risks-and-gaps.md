@@ -84,6 +84,7 @@ and V2. Baseline established first, on unmodified `main`, before any edit:
 | `src/main/kotlin/.../lang/psi/types/LuaReviewScaffold.kt` (new) | `LuaReviewRecorder` (frames of `urls`/`misses`/`warm`/`warmUnreplayed`, plus two new fields: `inProgressHits` for DR-14 and `projectEmptyBroad`/`projectEmptyRescued` for DR-15; `recording`, `report`, `reportFile`, `reportMiss`, `reportInProgressHit`, `reportProjectEmptyBroad`, `reportProjectEmptyRescued`, `reportWarmSnapshot`, `replay`, `depth`, `snapshotFrames: WeakHashMap<LuaTypes, Frame>`); `LuaReviewProvenance` (§3.2 verbatim); `LuaReviewMode` (mode from `System.getProperty("lunar.review.mode", …)`, a parsed string; a `Decision` class computing `cond`, `guarded`, `b14`, `dr15Broad`, `dr15Rescued` **simultaneously**; `churnFor` returns `Any` — not `ModificationTracker` — because `PsiModificationTracker.MODIFICATION_COUNT` is a `Key` sentinel the platform special-cases, not a `ModificationTracker` instance (`javap` on `intellij.platform.core.jar`: `public static final Key MODIFICATION_COUNT`), which the compiler caught (`Return type mismatch: expected 'ModificationTracker', actual '(Key<Any!>..Key<*>?)'`) when the first draft declared the narrower return type; a `TYPE11-REVIEW` trace line and a `reviewCostTotals()` dump) | **deleted** |
 | `LuaTypes.kt` — `forFile` | the same `var computed` / `recording { buildSnapshot }` / `snapshotFrames[snapshot] = frame` / `churnFor` wiring as the third round, **plus** a one-line `println` at the `inProgressSnapshot` early return (Q14a's instrument) and a `reportInProgressHit` call when `depth() > 0` | **reverted to HEAD** |
 | `LuaTypeManagerImpl.kt` | the third round's `sourceCache`/`recordUnder`/`replaySources` plus the six §3.5 `reportFile` sites and the B1 `reportMiss`, **plus** `doResolveGlobal` computing the DR-15 columns: `reportProjectEmptyBroad("global:$name")` whenever the project-scope pass alone answers null, `reportProjectEmptyRescued("global:$name")` only when that null is then rescued by the all-scope fallback | **reverted to HEAD** |
+| `src/test/kotlin/.../type/TypeElevenDr14Dr15CostProbeTest.kt` (new) | the `REVIEW-COST TOTALS` probe: enumerates the 10 bundled stdlib files plus the definition library, builds each once in a clean epoch and dumps every candidate rule's verdict | **deleted with the scaffold** |
 
 **Mode is a compile-time default string, not a runtime flag.** `-Dlunar.review.mode=…` on the
 `gradlew` command line does **not** reach the forked test JVM — `build.gradle.kts` has no
@@ -164,7 +165,12 @@ DR-14 after edit: InnerSeed = [afterEdit]
 REVIEW-COST TOTALS provisioned=11 cond=11 guarded=11 b14=11 dr15broad=11 dr15rescued=11
 ```
 
-(Isolated `TypeElevenDr14Dr15CostProbeTest` run, `mode=b14`; the 10 bundled `lua-5.4` stdlib files plus
+(Isolated `TypeElevenDr14Dr15CostProbeTest` run, `mode=b14`. ⚠ **That class is scaffold and was
+deleted with it** — it reads `LuaReviewMode`, so it cannot compile against `main`. The figure is
+therefore **not re-runnable from the committed tree**; reproducing it means re-creating the fourth-round
+scaffold above. It is listed in the scaffold table for that reason. The shipped, re-runnable equivalent
+is TC-15 / `TypeElevenPinnableCostTest`, which Phase 3 must build and which is the only thing that will
+keep this number honest after the feature lands; the 10 bundled `lua-5.4` stdlib files plus
 the 123 KiB `wx.lua` definition library, each built once in a clean epoch — the same shape and count
 the third round used.) **`b14` costs zero of the 11 shipped files** — none of the bundled stdlib stubs
 or the synthetic definition library reference *another* library file's global at all (`sources=0` for
@@ -269,7 +275,7 @@ its own row.
 
 | Assertion (not yet written) | Mutation to apply | Expected — **to be confirmed in Phase 3** |
 | :-- | :-- | :-- |
-| `TypeElevenDumbModeDecisionTest` — `isPinnable(delta.lua, SourceFrame()) == false` under `DumbModeTestUtils.runInDumbModeSynchronously` | delete §3.3 step 1 (`DumbService.isDumb`) | **RED expected.** An empty frame on a provisioned file clears steps 2–5, so step 1 is the sole rejector. This is the gate Gap 2.1 said did not exist (Step 9 blocker B5, design §1.9). Phase 3 must run it and move this row into the table above; a row that stays here is a guard that has not been shown red. |
+| `TypeElevenDumbModeDecisionTest` — `isPinnable(delta.lua, SourceFrame()) == false` under `DumbModeTestUtils.runInDumbModeSynchronously` | delete §3.3 step 1 (`DumbService.isDumb`) | **RED expected.** An empty frame on a provisioned file clears steps 2–7, so step 1 is the sole rejector. This is the gate Gap 2.1 said did not exist (Step 9 blocker B5, design §1.9). Phase 3 must run it and move this row into the table above; a row that stays here is a guard that has not been shown red. |
 
 For completeness, the two full-suite runs the ledger is anchored to:
 
@@ -402,9 +408,12 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   guard are the whole defence; there is no third line.
 - **Mitigation**: (a) `TypeElevenDr01ResidualTest` is committed and covers the two known shapes;
   (b) implementation-plan Phase 3 adds `LuaTypeSourceRecorderCoverageTest`, a source-text guard over
-  `LuaTypeManagerImpl.kt` that fails when the count of `.findFile(` / `.getElements(` /
-  `.getContainingFiles(` call sites moves off the recorded **2 / 3 / 2** without a matching
-  `reportFile` count. ⚠ **The matcher had to be rewritten before it could fire at all** (Step 9
+  **`LuaTypeManagerImpl.kt` and `LuaTypesVisitor.kt`** that fails when the counts of
+  `.findFile(` / `.getElements(` / `.getContainingFiles(` / `.getAllKeys(` / `.getLibraryFiles(` move
+  off the recorded **2 / 3 / 2 / 2 / 0** and **1 / 0 / 0 / 0 / 1** without a matching `reportFile`
+  count. **Three members over one file — the form this bullet carried until round six — is not
+  sufficient**: it cannot fire for `StubIndex.getAllKeys` (`:342`, `:432`, the route §1.7 designates
+  load-bearing for residual path 2) nor for `seedAmbientGlobals`, which reads another file entirely. ⚠ **The matcher had to be rewritten before it could fire at all** (Step 9
   blocker B3, design §1.9): specified as qualified chains it counted `1 / 3 / 0` against the real
   file — ktlint wraps both `FileBasedIndex` chains across lines, and one `findFile` goes through a
   `psiManager` local. It now matches bare members on comment-stripped, whitespace-collapsed text,
@@ -459,7 +468,7 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 - **Narrowed by Step 9 blocker B5 (2026-08-11).** "The outcome does not reproduce" was allowed to
   stand in for "the guard is untestable", and that inference was wrong. The decision is a pure
   predicate: `isPinnable(libraryFile, SourceFrame())` is `false` under dumb mode and `true` with
-  §3.3 step 1 deleted, because an empty frame on a provisioned file clears steps 2–5. TYPE-11-05 is
+  §3.3 step 1 deleted, because an empty frame on a provisioned file clears steps 2–7. TYPE-11-05 is
   therefore gated by `TypeElevenDumbModeDecisionTest` (TC-16), and what remains open here is strictly
   the platform question — **not** "no automated protection", which is no longer true. See design §1.9.
 - **Resolved by**: DR-06.
