@@ -131,8 +131,26 @@ feature needs, and the two fixtures above are the shapes to compare it against.
 - **Steps**:
   1. Settings → … → Definition Libraries: **disable** love2d. Apply.
   2. Without restarting or editing anything, return to `consumer.lua` and type `love.`.
-- **Expected**: the popup no longer offers love2d members. If it still does, the roots-change signal
-  did not reach the pinned snapshots and TYPE-11-02 has failed.
+- **Expected**: the popup no longer offers love2d members.
+- ⚠ **A pass here is weak evidence, and the checker should know why.** Disabling the library removes
+  its root from scope entirely, so the members would disappear even if pinned snapshots were never
+  invalidated — the resolver simply finds no candidate file. This scenario catches a *catastrophic*
+  failure (stale members served from a snapshot that outlived its root) and nothing subtler. The
+  automated equivalent could not go red at all and was restated for this reason (`design.md` §8.1
+  TC-2). **Scenario 3.4 below is the one that actually exercises the pin.**
+- **Result**: ⬜ Pass / ⬜ Fail
+
+### Scenario 3.4: A second library's arrival re-judges the first (the real TYPE-11-02 check)
+
+- **Setup**: common setup from 1.1, with `love.` completing, and a **second** definition library ready
+  to enable (any addon; it need not be related to love2d).
+- **Steps**:
+  1. Complete `love.` once so love2d's snapshots are built and pinned.
+  2. Settings → … → Definition Libraries: **enable the second library**, leaving love2d enabled. Apply.
+  3. Without editing anything, complete `love.` again, then complete against the new library.
+- **Expected**: both libraries' members are offered. The first library stayed enabled throughout, so
+  nothing left scope — the only way its snapshot can reflect the new generation is if the roots tick
+  discarded and rebuilt it. This is the scenario that fails if `generationTracker()` is wrong.
 - **Result**: ⬜ Pass / ⬜ Fail
 
 ### Scenario 3.2: Re-enabling brings them back without a restart
@@ -154,6 +172,12 @@ feature needs, and the two fixtures above are the shapes to compare it against.
   3. Without editing anything, retype `string.` and then `redis.`.
 - **Expected**: the offered set follows the new target. A stale stdlib member set after step 2 means
   `targetModificationTracker` is not reaching pinned snapshots (REDIS-04 §3.1a behaviour).
+- ⚠ **This is a regression check on existing behaviour, not a test of this feature.**
+  `targetModificationTracker` is already an unconditional dependency of `forFile` today
+  (`LuaTypes.kt:216`), and §3.3 step 9 keeps it in **both** branches — so it passes on `main` and
+  cannot fail because of anything TYPE-11 does, unless the implementer drops it from the *pinnable*
+  branch specifically. Worth running for exactly that reason; not worth reading as evidence the pin
+  works (`design.md` §8.1 TC-3).
 - **Result**: ⬜ Pass / ⬜ Fail
 
 ## 4. Out-of-scope behaviour must be unchanged

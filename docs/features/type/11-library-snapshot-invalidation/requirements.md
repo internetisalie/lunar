@@ -258,6 +258,35 @@ reproduced before being fixed; output in [design.md](design.md) §1.10.
   library file's global, so none reaches either interleaving. Free today; a cross-referencing
   definition library would pay, correctly.
 
+### Sixth round (2026-08-11) — the guards, not the rule
+
+The same review round that produced V1/V2 found that several of this plan's *acceptance cases* could
+not fail. None is a defect in the design; every one is a defect in what the plan promised would catch
+a defect, which is the recurring shape here (see also §1.9 B3/B5).
+
+- **TYPE-11-01 had no failing acceptance.** Its named test has **zero assertions**, and its threshold
+  ("5× below the `main` figure measured in the same run as its own arm A") is unsatisfiable — a `main`
+  figure cannot come from a post-change run, and §1.5 forbids the cross-build ratio anyway. Replaced
+  by snapshot **instance identity** across an unrelated project edit, which is red on `main` today and
+  is the plainest statement of what this feature does. The latency probe stays a probe.
+- **TYPE-11-02's primary case could not go red.** "Empty the enabled list, assert `resolveGlobal` stops
+  answering" removes the file from `allScope`, so resolution finds no candidate and the pinned snapshot
+  is never consulted — green on `main`, under any rule, and with the roots tracker deleted. Restated to
+  keep the library enabled and tick roots by enabling a second one. Its sibling case gates a dependency
+  that is **unconditional today**, so its mutation is now stated as dropping `targetTracker` from the
+  *pinnable* branch specifically.
+- **TYPE-11-03 was gated against a replica.** The predicate under test is defined inside the de-risking
+  test file and matches by `isAncestor` where §3.2 specifies URL-prefix; all five of its "mutation-proved"
+  rows mutated that copy. Phase 1's `LuaLibraryProvenanceTest` is the gate, and must **re-earn** each
+  mutation against the production service.
+- **The cost gate had no owner** (an exit criterion with no task, and assigned to a class that reads
+  text rather than builds fixtures), and **the coverage guard was blind to three doors** — including
+  `StubIndex.getAllKeys`, the route §1.7 designates load-bearing, and a cross-file read in
+  `LuaTypesVisitor` that the guard's one-file scope could never see.
+- **§3.5's "exhaustive" was exhaustive for one class**, not for the codebase; `seedAmbientGlobals` is
+  the counter-example. Harmless today (it reads only the provisioned runtime root) and corrected
+  because the premise, not the site, is what scoped the guard.
+
 ## Relationship to COMP-09
 
 COMP-09 is **parked at Phase 1** because of this. Its Phase 2 was executed to plan and aborted

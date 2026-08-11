@@ -40,9 +40,14 @@ are already committed and green on `main`. They must stay green at the end of ev
         with `ProjectRootModificationTracker` + `targetModificationTracker` as dependencies.
         Match on `psiFile.originalFile.virtualFile?.url` with the `url == root || url.startsWith("$root/")`
         prefix test.
-  - [ ] Add `LuaLibraryProvenanceTest` asserting the five DR-02 facts against the production class
-        (the DR-02 harness asserts them against a local copy of the predicate; this is the same
-        assertions pointed at the real service).
+  - [ ] Add `LuaLibraryProvenanceTest` — **this is TYPE-11-03's gate, and the only one.** The five
+        DR-02 facts asserted against the production service. `TypeElevenDr02ProvenanceTest` defines
+        its predicate *inside the test file* and matches by `VfsUtilCore.isAncestor` where §3.2
+        specifies URL-prefix, so its five ledger mutations all mutated a **replica** — no defect in
+        `LuaLibraryProvenance` can turn them red. **Re-run each of those five mutations against the
+        real service** and append the observed reds to the ledger; a row that is not re-earned here
+        is not evidence for this requirement. Include TC-6 in the `PsiFile`-overload form (§8.1) —
+        there is no `VirtualFile` overload and `copy.virtualFile` is null.
 - **Exit criteria**: full suite green with the same count as `main`; `LuaLibraryProvenanceTest` green;
   each of its assertions shown red by the mutation named for it in `risks-and-gaps.md`'s ledger.
 
@@ -101,9 +106,27 @@ are already committed and green on `main`. They must stay green at the end of ev
         standing-green set — covers TYPE-11-06. **Already committed and green on `main`**; each was
         measured red under the rule without its guard (design §1.8), which is what makes them gates
         rather than decoration.
-  - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02. Three cases: (a) enabling a
-        definition library re-provisions and invalidates; (b) `setTarget` invalidates a pinned
-        snapshot; (c) a project-file edit does **not** invalidate a pinned snapshot.
+  - [ ] Add `TypeElevenPinSurvivesUnrelatedEditTest` — **TYPE-11-01's gate**, TC-1. Snapshot
+        *instance identity* for a library file across an unrelated project edit. It is **red on `main`
+        today**, which is the point: it is the only assertion that states what this feature does.
+        `TypeElevenDr04LatencyTest` stays a printing probe with no assertions and does not gate
+        anything (§1.5, TC-1b).
+  - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02, TC-2/TC-3. Three cases: (a) install
+        L1, build and pin, then install **and enable a second library L2** through the production path
+        (`LuaDefinitionLibraryEnabler.apply`, **pumping the EDT** — `LuaProjectSettings.kt:199-205`
+        publishes inside `invokeLater`), asserting L1's snapshot instance changed. **Do not** write
+        this as "empty the enabled list and assert resolution stops": that removes the file from
+        `allScope`, so it is green on `main`, under any rule, and with the roots tracker deleted
+        (§8.1 TC-2, `risks-and-gaps.md` Gap 2.3). (b) `setTarget` invalidates a pinned snapshot —
+        mutation stated as dropping `targetTracker` from the **pinnable** branch only, since it is
+        unconditional today. (c) a project-file edit does **not** tick roots.
+  - [ ] Add `TypeElevenPinnableCostTest` — TC-15, and it is **its own live-fixture class**, not an
+        assertion inside the text-reading coverage test. Enumerate the bundled stdlib via
+        `RuntimeLibraryProvider(project).getLibraryFiles(target)` plus the installed definition
+        library root, build `forFile` on each in one clean epoch, read each frame from
+        `snapshotFrames`, and assert **all 11 pinnable**. Assert the enumerated count (`11`) first or
+        a fixture that found zero files passes vacuously. This is the only thing separating "closed
+        TYPE-11-06" from "pinned nothing".
   - [ ] Add `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest` to the
         standing-green set — TYPE-11-06's third and fourth channels, TC-18 and TC-19. **Already
         committed and green on `main`**; each was measured red under the post-B1/B4 rule without its
@@ -147,8 +170,12 @@ are already committed and green on `main`. They must stay green at the end of ev
     run reads as a pass. Reference on `69ad6b57`: 2 571 tests, 0 failures. Do **not** substitute
     `git status --short src/test/resources/corpus/` — it is empty whether the sweep passed, regressed
     or never ran (`build.gradle.kts:286-288`).
-  - `TypeElevenDr04LatencyTest` arm B median at least 5× below the `main` figure **measured in the
-    same run** as its own arm A. No cross-run ratio is quotable (design §1.5).
+  - `TypeElevenPinSurvivesUnrelatedEditTest` green — this is TYPE-11-01's actual exit condition.
+  - `TypeElevenDr04LatencyTest`'s printed medians **read and recorded** in the phase report. ⚠ This
+    was previously written as "arm B median at least 5× below the `main` figure measured in the same
+    run as its own arm A", which is **unsatisfiable**: a `main` figure cannot be produced by a
+    post-change run, and §1.5 forbids the cross-build ratio it asks for. It is a probe; the number is
+    evidence of value, not a pass/fail gate, and no threshold on it belongs in an exit criterion.
   - **The pin still pays for itself**: all 10 bundled stdlib files and the 123 KiB definition library
     are judged pinnable in one clean epoch (design §1.8, `guarded=11`). A rule that closes
     TYPE-11-06 by pinning nothing is not a fix, and the only way to tell them apart is to count.
@@ -176,9 +203,9 @@ are already committed and green on `main`. They must stay green at the end of ev
 
 | Requirement | Priority | Delivered in |
 | :-- | :-- | :-- |
-| TYPE-11-01 — a platform-library snapshot survives an unrelated edit | M | Phase 3 |
+| TYPE-11-01 — a platform-library snapshot survives an unrelated edit | M | Phase 3 — gated by `TypeElevenPinSurvivesUnrelatedEditTest` (TC-1, instance identity across an unrelated edit; red on `main`). `TypeElevenDr04LatencyTest` is a probe with no assertions and gates nothing. |
 | TYPE-11-02 — every generation signal invalidates it | M | Phase 1 (the tracker composition) + Phase 3 (`TypeElevenGenerationSignalTest`) |
-| TYPE-11-03 — identification is by provenance | M | Phase 1 |
+| TYPE-11-03 — identification is by provenance | M | Phase 1 — gated by `LuaLibraryProvenanceTest` against the production service, with all five DR-02 mutations **re-earned** there; `TypeElevenDr02ProvenanceTest` mutates a test-local replica and is de-risking, not acceptance. |
 | TYPE-11-04 — no new stale-type defect | M | Phase 2 (recording) + Phase 3 (the condition); gated by **`TypeElevenDr01ResidualTest` alone** — measured (TYPE-11-DR-09): the full suite and all four corpus baselines pass unchanged under the rejected blanket-pin build, so neither is a gate for this requirement. They remain exit criteria for "nothing else moved". |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | Phase 3 (the guard, design §3.4) — gated by `TypeElevenDumbModeDecisionTest` on the **decision** (TC-16), which is mutation-red when §3.3 step 1 is deleted. The **outcome** still does not reproduce (§1.6), so Phase 4 keeps DR-06: is the `modificationStamp` move platform behaviour or a `DumbModeTestUtils` artifact? |
 | TYPE-11-06 — an incomplete recording is never pinned | M | Phase 1 (the `SourceFrame` shape, five sets) + Phase 2 (the absence and rescued-global reports, the whole-frame `sourceCache`) + Phase 3 (§3.3 steps 4–7, the §3.7 replay, the in-progress report); gated by `TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`, `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest` — all four measured red without their guard, all four fixes at zero lost pins |
@@ -196,8 +223,11 @@ are already committed and green on `main`. They must stay green at the end of ev
       gate** (`risks-and-gaps.md` Gap 2.1): it records the outcome, which two mutations could not move.
 - [ ] `TypeElevenDumbModeDecisionTest` (Phase 3) — the gate for TYPE-11-05, TC-16. Asserts the
       decision rather than the outcome, plus that a real dumb build's frame is empty.
-- [ ] `TypeElevenDr04LatencyTest` — printing probe, no assertions. Read its numbers; do not treat a
-      green run as a pass.
+- [ ] `TypeElevenDr04LatencyTest` — printing probe, **no assertions**. Read its numbers; do not treat
+      a green run as a pass, and do not cite it as TYPE-11-01's acceptance — `TypeElevenPinSurvivesUnrelatedEditTest`
+      is that (TC-1).
+- [ ] `TypeElevenPinSurvivesUnrelatedEditTest` (Phase 3) — TYPE-11-01's gate, TC-1.
+- [ ] `TypeElevenPinnableCostTest` (Phase 3) — TC-15, the 11-of-11 pinnable count.
 - [ ] `LuaLibraryProvenanceTest` (Phase 1) — the DR-02 assertions against the production service.
 - [ ] `TypeElevenGenerationSignalTest` (Phase 3) — covers TYPE-11-02.
 - [ ] `TypeElevenDr14InProgressTest` — 2 tests, TYPE-11-06 (in-progress inner). Already committed;
