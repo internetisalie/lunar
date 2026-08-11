@@ -726,8 +726,7 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
       /** Snapshot instance → the frame recorded when it was built. Weak keys (§3.7).
        *  Collections.synchronizedMap(WeakHashMap()) — shared across threads; a read action is not
        *  exclusive, and WeakHashMap mutates on lookup while expunging stale entries. */
-      // Collections.synchronizedMap(WeakHashMap()) — shared across threads. A read action is
-      // NOT exclusive, and WeakHashMap mutates on lookup while expunging stale entries.
+      // Collections.synchronizedMap(WeakHashMap()) — see Threading above.
       val snapshotFrames: MutableMap<LuaTypes, SourceFrame>
 
       fun <T> recording(body: () -> T): Pair<T, SourceFrame>
@@ -737,6 +736,10 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
       fun reportRescuedGlobal(key: String)
       fun reportInProgressHit(file: PsiFile)
       fun reportWarmSnapshot(file: PsiFile, served: LuaTypes)
+      /** §3.6 drift: a resolveX cache HIT whose stored frame is gone. String-keyed, because at a
+       *  cache hit there is neither a PsiFile nor a served LuaTypes — only "global:wx". Writes
+       *  `unreplayedWarm`, so §3.3 step 5 judges it like any other unreplayable hit. */
+      fun reportUnreplayableHit(key: String)
       fun replay(frame: SourceFrame)
       fun depth(): Int
   }
@@ -1032,12 +1035,17 @@ that says so.
     different moments — `globalCache.value` at `LuaTypeManagerImpl.kt:142`, `sourceCache.value` later
     inside `recordUnder` — so the claim needs a premise the design never stated: that no
     `PsiModificationTracker` increment lands between the two reads. Increments are not confined to
-    write actions (`LuaProjectSettings.kt:204` calls `PsiManager.dropResolveCaches()`), and
+    write actions (`LuaProjectSettings.kt:203` calls `PsiManager.dropResolveCaches()`), and
     `resolveGlobal` is public API with no documented read-action requirement. **A drift yields a
     cached type whose frame is absent, which replays as "no sources" — §3.6's own unsound case,
     re-created through the cache.** The mitigation is not an argument but a check: `replaySources`
-    treats an absent entry for a key whose type *was* cached as an **incompleteness**, reporting it
-    like an unreplayed warm hit (§3.3 step 5) rather than as silence. Cheap, and it converts an
+    treats an absent entry for a key whose type *was* cached as an **incompleteness**, calling
+    **`reportUnreplayableHit(key)`** (§2.1) — string-keyed, because at a cache hit there is neither a
+    `PsiFile` nor a served `LuaTypes` to hand `reportWarmSnapshot`. It writes `unreplayedWarm`, so
+    §3.3 step 5 judges it like any other hit that could not be replayed, rather than as silence.
+    ⚠ **Only when the type was cached.** A first, cold resolution has no cache entry and no frame; it
+    records normally and must not be marked incomplete, or every cold build would be unpinnable and
+    the feature would deliver nothing. Cheap, and it converts an
     unprovable invariant into a conservative verdict.
   - **The stored value is the whole frame.** A `resolveGlobal` that answered `null` recorded an
     absence; if replay carried only URLs, a cache hit on that null would replay as "no sources at
@@ -1112,7 +1120,7 @@ a file no one is editing, which is loud and cheap, where the alternative (PSI pa
 source in a unit test) is not. Stated so an implementer does not silently choose a different
 normalization and get different numbers.
 
-**None.** This feature consumes no CLI output, no network response and no file format. Its only
+**One, specified above.** Beyond TC-17's source-text guard this feature consumes no CLI output, no network response and no file format. Its only
 external inputs are platform APIs (`ProjectRootModificationTracker`, `DumbService`,
 `AdditionalLibraryRootsProvider`) and this plugin's own settings. The one string format it defines is
 the `sourceCache` key (§3.6 step 2), which is produced and consumed in the same class.
@@ -1152,9 +1160,12 @@ the `sourceCache` key (§3.6 step 2), which is produced and consumed in the same
 change itself, so none of them exercises the chain below. It is `risks-and-gaps.md` Gap 2.3 and
 implementation-plan Phase 3 covers it.
 
-1. `LuaDefinitionLibraryEnabler.apply` persists the id and calls
-   `LuaProjectSettings.notifyDefinitionRootsChanged()` (`LuaProjectSettings.kt:199-205`), which
-   publishes `LuaSettingsChangedListener.TOPIC`; `LuaSettingsChangeListener.onSettingsChanged`
+1. `LuaDefinitionLibraryEnabler.apply` calls `LuaProjectSettings.setEnabledDefinitionLibrariesAndNotify`
+   (`LuaDefinitionLibraryEnabler.kt:61-63`), which **returns without publishing if the normalized list
+   equals the stored one** (`LuaProjectSettings.kt:184-188`) and otherwise stores it and calls
+   `notifyDefinitionRootsChanged()` (`:199-205`). A second route calls that directly
+   (`LuaDefinitionLibraryEnabler.kt:74`) but only after a fetch actually landed trees on disk. The
+   notify then `invokeLater`s and publishes `LuaSettingsChangedListener.TOPIC`; `LuaSettingsChangeListener.onSettingsChanged`
    (`project/LuaSettingsChangeListener.kt:36`) runs `PlatformLibraryIndex.reload()`, which calls
    `ProjectRootManagerEx.makeRootsChange` (`project/PlatformLibraryProvider.kt:149`).
 2. `ProjectRootModificationTracker` ticks. Every pinned library snapshot is discarded, and so is
@@ -1180,7 +1191,7 @@ implementation-plan Phase 3 covers it.
 | A nested `forFile` served warm | The inner snapshot's recorded frame is replayed (§3.7), so the outer file is judged on the union. Measured red without it: §1.8 B4. |
 | A nested `forFile` served warm whose frame has been collected | `unreplayedWarm` → not pinnable (§3.3 step 5). |
 | `resolveType` called with an unparsed type expression (`boolean\|nil`, `fun(): string`) | Not an absence. §3.1 step 5 records absences for **global** resolution only; `io.lua` produces five such `resolveType` misses per build and none of them is a declaration anybody can write (§1.8). |
-| A **new** cross-file consumption site added later | Not automatically covered. `LuaTypeSourceRecorderCoverageTest` (plan Phase 3, TC-17) fails if the counts move off **`LuaTypeManagerImpl` 2 / 3 / 2 / 2 / 0** or **`LuaTypesVisitor` 1 / 0 / 0 / 0 / 1** for `.findFile(` / `.getElements(` / `.getContainingFiles(` / `.getAllKeys(` / `.getLibraryFiles(`, forcing the author to decide whether the new site needs a `reportFile`. Matched on comment-stripped, whitespace-collapsed text — the literal chains this row once named counted 0 and 1 against the real file (§1.9 B3), and the three-member one-file form was blind to `.getAllKeys(` and to `seedAmbientGlobals` (§1.10 round six). Still not exhaustive: DR-16. |
+| A **new** cross-file consumption site added later | Not automatically covered. `LuaTypeSourceRecorderCoverageTest` (plan Phase 3, TC-17) fails if the counts move off **`LuaTypeManagerImpl` 2 / 3 / 2 / 2 / 0** or **`LuaTypesVisitor` 1 / 0 / 0 / 0 / 1** for `.findFile(` / `.getElements(` / `.getContainingFiles(` / `.getAllKeys(` / `.getLibraryFiles(`, forcing the author to decide whether the new site needs a `reportFile`. Matched on comment-stripped, whitespace-collapsed text — the literal chains this row once named counted 0 and 1 against the real file (§1.9 B3), and the three-member one-file form was blind to `.getAllKeys(` and to `seedAmbientGlobals` (§1.9's trailing ⚠ and §3.5's ⚠). Still not exhaustive: DR-16. |
 | A `LuaTypeReference` resolved lazily after the frame closed | Its source escapes recording. Bounded, not eliminated — see `risks-and-gaps.md` Risk 1.3 and DR-07. |
 
 ## 7. Integration Points
@@ -1236,8 +1247,8 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | --: | :-- | :-- | :-- |
 | TC-1 | TYPE-11-01 (**the gate**) | Definition library installed and enabled; build `LuaTypesSnapshot.forFile(wx.lua)` → instance A; then edit an **unrelated project file** (a PSI tick, roots tracker asserted still); build `forFile(wx.lua)` again → instance B. | `A === B` — the library snapshot survived a project keystroke. **Red on `main` today** (`MODIFICATION_COUNT` discards it, so `A !== B`), which is the feature's defining assertion and the reason this is the acceptance rather than a latency number. Stated mutation: revert §3.3 step 9 to always pick `MODIFICATION_COUNT` → red. `TypeElevenPinSurvivesUnrelatedEditTest`, plan Phase 3. |
 | TC-1b | TYPE-11-01 (**probe, not a gate**) | Definition library `luassert-…/wx.lua` = 123 KiB `---@meta` (one `---@class wx`, 3 400 fields, 200 methods). Five consumer files with **distinct** text, each `local pad$i = $i` + `wx.wxC_0 = $i`; time `LuaTypesSnapshot.forFile(consumer$i)` for each. | A printed median, **no assertion**. `TypeElevenDr04LatencyTest` has zero assertions by design (§1.5: no cross-run ratio is quotable, and a latency threshold in CI is a flake generator). Read its numbers; do **not** treat a green run as a pass. The order-of-magnitude claim is evidence for the feature's *value*, not a test of its *correctness* — TC-1 is what gates correctness. |
-| TC-2a | TYPE-11-02 (**the pin responds to a roots tick**) | **Seed both** library trees into the VFS during setup, with only L1 enabled — all file creation happens before the measurement. Assert `isPinnable(L1/wx.lua, itsFrame)` is `true` and take instance `A`. Then flip **only** `enabledDefinitionLibraries` to include L2 and announce roots. **No file is created, so no PSI event fires.** Take instance `B`. | `A !== B`. Mutation: `generationTracker()` → `ModificationTracker.NEVER_CHANGED` → red. ⚠ **Seeding L2 late would make this green on `main`**: writing files fires `PsiTreeChangeEvent`s, which tick `PsiModificationTracker.MODIFICATION_COUNT` — `forFile`'s churn dependency today (`LuaTypes.kt:219`) — so `A !== B` for a reason unrelated to the pin. Holding PSI still is the whole design of this case. ⚠ The `isPinnable` precondition is not decoration: without it a file that happened to be judged unpinnable gives `A !== B` for the ordinary reason and the test passes vacuously, which is the same hole TC-15 guards with its count assertion. `TypeElevenGenerationSignalTest` case (a). |
-| TC-2b | TYPE-11-02 (**the production chain reaches the tracker**) | `LuaSettingsChangeListener.getInstance(project)` **first** (see below), then `LuaDefinitionLibraryEnabler.apply` on an already-seeded tree, pumping the EDT. | `ProjectRootModificationTracker.modificationCount` increased. ⚠ **The subscriber is lazy and nothing instantiates it in a light fixture.** `LuaSettingsChangeListener` subscribes in its `init` and is a `@Service`, normally created by the `LuaTargetSyncStartup` post-startup activity (`plugin.xml:544-545`) — which does **not** run under `BasePlatformTestCase`. So `LuaProjectSettings.kt:199-205` publishes to **no subscriber**, `PlatformLibraryIndex.reload()` never runs, roots never ticks, and this case is red against a *correct* implementation. The existing `LuaSettingsNotificationTest.kt:47` forces the service for exactly this reason. Also: the publish is inside `invokeLater`, so the EDT must be pumped. This case exists to close `risks-and-gaps.md` Gap 2.3 and is deliberately **separate** from TC-2a — one asserts the chain produces a tick, the other asserts a tick moves the pin. Merging them yields a test that fails for two unrelated reasons. `TypeElevenGenerationSignalTest` case (b). |
+| TC-2a | TYPE-11-02 (**the pin responds to a roots tick**) | **Seed both** library trees into the VFS during setup, with only L1 enabled — all file creation happens before the measurement. Assert `isPinnable(L1/wx.lua, itsFrame)` is `true` and take instance `A`. Then flip **only** `enabledDefinitionLibraries` to include L2 and announce roots. **No file is created, so no PSI event fires.** Take instance `B`. | `A !== B`. Mutation: `generationTracker()` → `ModificationTracker.NEVER_CHANGED` → red. ⚠ **Seeding L2 late would make this green on `main`**: writing files fires `PsiTreeChangeEvent`s, which tick `PsiModificationTracker.MODIFICATION_COUNT` — `forFile`'s churn dependency today (`LuaTypes.kt:220`) — so `A !== B` for a reason unrelated to the pin. Holding PSI still is the whole design of this case. ⚠ The `isPinnable` precondition is not decoration: without it a file that happened to be judged unpinnable gives `A !== B` for the ordinary reason and the test passes vacuously, which is the same hole TC-15 guards with its count assertion. `TypeElevenGenerationSignalTest` case (a). |
+| TC-2b | TYPE-11-02 (**the production chain reaches the tracker**) | Both trees seeded on disk with **L1 alone enabled**; `LuaSettingsChangeListener.getInstance(project)` **first** (see below); then `LuaDefinitionLibraryEnabler.apply(listOf(L1, L2))` — a list that **differs** from the stored one — then pump the EDT. | `ProjectRootModificationTracker.modificationCount` increased. ⚠ **`apply` publishes nothing unless the enabled list actually changes.** It delegates to `LuaProjectSettings.setEnabledDefinitionLibrariesAndNotify`, which early-returns on `normalized == state.enabledDefinitionLibraries` (`LuaProjectSettings.kt:184-188`); the enabler's *other* notify route (`LuaDefinitionLibraryEnabler.kt:74`) sits behind `if (missing.isEmpty()) return@newProjectBackgroundTask`, so it fires **only when a fetch actually happened** — which a seeded-tree test avoids by design, and the enabler's own comment says as much. Re-applying the same list therefore publishes nothing and this case would be **red against a correct implementation**. ⚠ **The subscriber is lazy and nothing instantiates it in a light fixture.** `LuaSettingsChangeListener` subscribes in its `init` and is a `@Service`, normally created by the `LuaTargetSyncStartup` post-startup activity (`plugin.xml:544-545`) — which does **not** run under `BasePlatformTestCase`. So `LuaProjectSettings.kt:199-205` publishes to **no subscriber**, `PlatformLibraryIndex.reload()` never runs, roots never ticks, and this case is red against a *correct* implementation. The existing `LuaSettingsNotificationTest.kt:47` forces the service for exactly this reason. Also: the publish is inside `invokeLater`, so the EDT must be pumped. This case exists to close `risks-and-gaps.md` Gap 2.3 and is deliberately **separate** from TC-2a — one asserts the chain produces a tick, the other asserts a tick moves the pin. Merging them yields a test that fails for two unrelated reasons. `TypeElevenGenerationSignalTest` case (b). |
 | TC-3 | TYPE-11-02 (target) | Pin a **definition-library** file (its root is target-independent, unlike `runtime/standard/lua-5.4/*` which stops being provisioned when the target moves): build `forFile(wx.lua)` → instance `A`, assert it was pinnable, then `LuaProjectSettings.setTarget(Target(REDIS, …))`, then `forFile(wx.lua)` → `B`. | `A !== B` — a concrete instance-identity assertion, not the prose "rebuilt against the new target's stubs" this row used to carry. ⚠ `targetModificationTracker` is **unconditional** in `forFile` today (`LuaTypes.kt:216`), so the mutation that can fire is **dropping `targetTracker` from the *pinnable* branch of §3.3 step 9 only** — the plausible careless rewrite. Choosing a definition-library file rather than a stdlib file is what makes the assertion about the tracker instead of about provenance vanishing. `TypeElevenGenerationSignalTest` case (c). |
 | TC-4 | TYPE-11-02 (no false tick) | Pinned library snapshot; edit an unrelated project file. | `ProjectRootModificationTracker.modificationCount` unchanged **and** the library snapshot instance is not rebuilt. ⚠ The first half is a platform fact no TYPE-11 defect can change, and it is already asserted on every edit by `TypeElevenDefinitionLibraryTestCase.rewriteAssertingRootsAreStill`; the second half is TC-1. Kept as a **cheap regression check, explicitly not a gate** — recorded so no reader counts it as TYPE-11-02's evidence. `TypeElevenGenerationSignalTest` case (d). |
 | TC-5 | TYPE-11-03 | `FileBasedIndex.getContainingFiles(LuaGlobalAssignmentIndex.KEY, "wx", allScope)` → `…/luassert-…/wx.lua`; same query for `projectOnly` → `/src/projectGlobal.lua`. | `isProvisioned` = `true` and `false` respectively. `TypeElevenDr02ProvenanceTest.testEveryFileResolveGlobalWouldVisitIsClassifiedByProvenance`. |

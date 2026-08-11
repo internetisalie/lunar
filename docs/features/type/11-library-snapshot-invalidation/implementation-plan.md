@@ -65,8 +65,11 @@ are already committed and green on `main`. They must stay green at the end of ev
         URL set, or a memoized null replays as "no dependencies" (design §3.6).
   - [ ] Add the private helpers `recordUnder(key, body)` and `replaySources(key)` — design §3.6
         steps 3–4. Both are ≤ 4 lines; the ≤ 3-argument cap (engineering contract §3) is satisfied.
-        `replaySources` must treat **"type cached but frame absent" as an incompleteness**, reporting
-        it like an unreplayed warm hit rather than as silence — the four caches are separate
+        `replaySources` must treat **"type cached but frame absent" as an incompleteness**, calling
+        the string-keyed `reportUnreplayableHit(key)` (§2.1) — there is no `PsiFile` or served
+        `LuaTypes` at a cache hit — which writes `unreplayedWarm` so §3.3 step 5 judges it, rather
+        than passing over it in silence. **Only when the type was cached**: a cold first resolution
+        has neither entry and must record normally, or every cold build becomes unpinnable — the four caches are separate
         `CachedValue`s read at different moments, and an absent frame otherwise replays as "no
         sources", which is §3.6's own unsound case re-created through the cache (design §3.6).
   - [ ] **Consider co-locating the frame in the three existing caches** — `(LuaType?, SourceFrame)` as
@@ -132,10 +135,15 @@ are already committed and green on `main`. They must stay green at the end of ev
         gives `A !== B` for the ordinary reason. ⚠ `TypeElevenDefinitionLibraryTestCase.installDefinitionLibrary`
         **replaces** the enabled list (`mutableListOf(id)`) and calls `announceRootsChange()`, so it
         cannot express this case as-is — a two-library seeding helper has to be added first.
-        **(b) TC-2b — the production chain**, closing Gap 2.3: call
-        `LuaSettingsChangeListener.getInstance(project)` **first**, then `LuaDefinitionLibraryEnabler.apply`
-        on an already-seeded tree, pumping the EDT, and assert `ProjectRootModificationTracker`
-        advanced. ⚠ **Without the explicit `getInstance` the publish reaches no subscriber**: the
+        **(b) TC-2b — the production chain**, closing Gap 2.3: seed both trees with **L1 alone enabled**,
+        call `LuaSettingsChangeListener.getInstance(project)` **first**, then
+        `LuaDefinitionLibraryEnabler.apply(listOf(L1, L2))` — a list that **differs** from the stored
+        one — pump the EDT, and assert `ProjectRootModificationTracker` advanced.
+        ⚠ **Re-applying the same list publishes nothing**: `apply` delegates to
+        `setEnabledDefinitionLibrariesAndNotify`, which early-returns when the normalized list equals
+        the stored one (`LuaProjectSettings.kt:184-188`), and the enabler's second notify route only
+        runs when a fetch occurred — which a seeded tree avoids. Getting this wrong makes the case red
+        against a **correct** implementation. ⚠ **Without the explicit `getInstance` the publish reaches no subscriber**: the
         listener subscribes in its `init` and is normally created by the `LuaTargetSyncStartup`
         post-startup activity, which does not run under `BasePlatformTestCase` — so this case would be
         red against a *correct* implementation. `LuaSettingsNotificationTest.kt:47` forces it for the
