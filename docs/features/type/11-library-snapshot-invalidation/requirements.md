@@ -93,7 +93,7 @@ included, stays on the global tracker. Three reasons:
 | TYPE-11-03 | **Library-file identification is by provenance** | M | The library set comes from what this plugin provisioned (`RuntimeLibraryProvider` / the definition-library registry), matched by `VirtualFile` identity against the file `resolveGlobal` actually resolved. Not `ProjectFileIndex.isInLibrary` — unverified for `SyntheticLibrary` roots, and unnecessary once provenance answers the question. |
 | TYPE-11-04 | **No new stale-type defect** | M | The edit-then-reread fixtures (`TypeElevenDr01ResidualTest`, and for TYPE-11-06's two shapes `TypeElevenDr11LateDeclarationTest` / `TypeElevenDr12WarmInnerSnapshotTest`) stay green. **Measured (TYPE-11-DR-09): "all four corpus baselines unmoved and the full suite green" is not a test of this** — both hold under a build that serves stale types. They stay as "nothing else moved" checks. |
 | TYPE-11-05 | **A dumb-mode build is never cached across the generation** | M | `resolveGlobal` answers `null` while indexing; a snapshot built then has those nulls baked in and must not outlive dumb mode. Either skip caching while `DumbService.isDumb`, or add the dumb-mode tracker as a dependency. Without this, TYPE-11 *creates* a staleness class that today's per-keystroke invalidation accidentally heals. **The staleness itself does not reproduce** (design §1.6) — so this is gated on the *decision*, `isPinnable(libraryFile, SourceFrame()) == false` under dumb mode, which goes red when the guard is deleted (`TypeElevenDumbModeDecisionTest`, design §1.9). |
-| TYPE-11-06 | **An incomplete recording is never pinned** | M | The generalisation of TYPE-11-05, and the reason it is a requirement of its own: the recorder must distinguish **"no sources"** from **"sources unknown"**, and only the first may be pinned. A build during which a global resolution answered nothing, or during which a nested `forFile` was served from cache without contributing its own recorded sources, has not established that it is a pure function of provisioned content. Measured (design §1.8): both under-recordings ship a stale type under the rule as originally written, and closing them costs **zero** of the 11 files this feature pins. Gated by `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest`. |
+| TYPE-11-06 | **An incomplete recording is never pinned** | M | The generalisation of TYPE-11-05, and the reason it is a requirement of its own: the recorder must distinguish **"no sources"** from **"sources unknown"**, and only the first may be pinned. A build during which a global resolution answered nothing, or during which a nested `forFile` was served from cache without contributing its own recorded sources, has not established that it is a pure function of provisioned content. Measured (design §1.8): both under-recordings ship a stale type under the rule as originally written, and closing them costs **zero** of the 11 files this feature pins. **Four channels, all measured**: an absence (B1), a warm inner snapshot (B4), an **in-progress** inner snapshot (V1) and a **rescued** global — one the project scope did not answer but the all-scope fallback did, which a later project declaration out-ranks (V2). Each was reproduced red and each fix costs **zero** of the 11 pinned files (§1.8, §1.10). Gated by `TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`, `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest`. |
 
 ## The residual that may defeat the whole approach
 
@@ -228,11 +228,35 @@ in [design.md](design.md) §1.9.
   about the *outcome*; it was allowed to imply the guard is untestable, and that does not follow. A
   dumb build records an **empty** frame, and an empty frame on a provisioned file clears §3.3 steps
   2–5 — so step 1 is the sole rejector and `isPinnable(libraryFile, SourceFrame())` is `false`
-  with it and `true` without. TYPE-11-05 gets a real gate on the decision; §3.3 steps 1–6 are extracted
+  with it and `true` without. TYPE-11-05 gets a real gate on the decision; §3.3 steps 1–8 are extracted
   into a named predicate so it can be asked directly.
 - **What was missing was an extraction, not evidence.** DR-05's own trace (`libDumb graph type =
   Undefined` inside the dumb block) already established the premise. Three rounds of review let
   "no reproducing test" stand unchallenged as "no possible test".
+
+### Fifth round (2026-08-11, `main` @ `1e9a91c1`) — two more channels into the same defect
+
+The second full Step 9 round raised two blockers against §3 *as accepted after B1 and B4*. Both were
+reproduced before being fixed; output in [design.md](design.md) §1.10.
+
+- **The in-progress nested snapshot (V1).** §3.7 dismissed `LuaTypesVisitor.inProgressSnapshot` as
+  "the same file's own in-flight build". It is a map keyed on the *requested* file, and every file
+  whose build is on the thread's stack has an entry — so the hit is served for a file two frames out,
+  whose frame is not the one open. Measured (`inProgress hit file=…/outer.lua depth=5`), and it ships
+  a stale type: `expected:<[afterEdit]> but was:<[beforeEdit]>`. It is a **third memoized door** with
+  no possible replay — the served snapshot is still being built — so it gets the conservative
+  treatment, not the replay treatment.
+- **A resolution that succeeded, out-ranked later (V2).** `doResolveGlobal` searches project scope
+  first (BUG-427). A library global only another *library* declares resolves through the all-scope
+  fallback, so the call succeeds, no absence is recorded, and the file is pinned — then a project
+  declaration out-ranks it and the pin never re-judges:
+  `expected:<[afterProject]> but was:<[beforeEdit]>`. B1's shape with a **successful** resolution,
+  which is precisely what step 4's "answered nothing" wording missed.
+- **Both fixes cost nothing** (`b14=11 dr15rescued=11`), and of two priced variants the narrower one
+  is adopted because the broader duplicates the absence rule without ever saving a pin.
+- **The zero is structural and is not banked.** No shipped library file cross-references another
+  library file's global, so none reaches either interleaving. Free today; a cross-referencing
+  definition library would pay, correctly.
 
 ## Relationship to COMP-09
 

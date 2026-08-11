@@ -243,7 +243,7 @@ cannot fail" this plan exists to avoid. Whether the stamp move is platform behav
 ⚠ **What does not follow — and was wrongly allowed to, until Step 9 blocker B5.** "The staleness does
 not reproduce" is a fact about the *outcome*. It says nothing about the *decision*, which is a pure
 predicate over a file and a frame and is directly assertable: under dumb mode the recorded frame is
-empty, an empty frame on a provisioned file clears §3.3 steps 2–5, and so step 1 is the only thing
+empty, an empty frame on a provisioned file clears §3.3 steps 2–7, and so step 1 is the only thing
 that can reject it. `isPinnable(libraryFile, SourceFrame())` is `false` with step 1 and `true`
 without it. TYPE-11-05 therefore **does** get a gate, on the decision rather than the outcome; see
 §1.9 and TC-16.
@@ -554,6 +554,88 @@ about a hypothetical — the shape of harness §1.8 and COMP-09 were both caught
 This is the same correction in both blockers: a guard is not a guard until it has been shown red.
 `risks-and-gaps.md`'s mutation ledger is where that evidence goes, and neither of these had an entry.
 
+### 1.10 Two more channels into the same defect (2026-08-11, fifth round)
+
+Step 9's second full round raised two blockers against §3 **as accepted after B1 and B4**. Both were
+reproduced before being fixed, and both cost nothing. Full scaffold table, pasted red output and
+mutation rows in `risks-and-gaps.md` "Fourth measurement round"; baseline **2 565 tests, 0 failures**
+on unmodified `main` before any edit.
+
+#### V1 — the in-progress nested snapshot
+
+§3.7 dismissed `LuaTypesVisitor.inProgressSnapshot` as "the same file's own in-flight build". It is a
+**map keyed on the requested file** (`LuaTypesVisitor.kt:1483-1487`), and `buildSnapshot` adds an
+entry for every file whose build is on the thread's stack (`:1507-1518`). Reachable, and measured:
+
+```
+TYPE11-DR14 inProgress hit file=file:///…/luassert-…/outer.lua depth=5
+```
+
+Fixture — two library files in a genuine mutual-reference cycle, seeded from a project file:
+
+```lua
+outer.lua:  OuterSeed  = projectSeed      -- statement 1, resolves fully
+            OuterGlobal = InnerSeed       -- statement 2, nests into inner.lua
+inner.lua:  InnerSeed  = OuterSeed        -- re-enters outer.lua, mid-build
+```
+
+Under the post-B1/B4 rule (`mode=guarded`, no V1 guard):
+
+```
+editing the project file must be reflected in InnerSeed's type, even though InnerSeed was built
+while outer.lua's build was still in progress on the same thread expected:<[afterEdit]> but was:<[beforeEdit]>
+```
+
+`inner.lua`'s own build is a **normal cold** `forFile`, correctly judged on `sources=1 outside=[]`.
+What never arrives is `outer.lua`'s own dependency on `p.lua` — reported into outer's frame *before
+inner's frame was pushed*, so §3.1 step 3's "report into every open frame" cannot reach back for it,
+and the re-entrant `forFile(outer.lua)` that would carry it skips recording entirely. Fixed by §3.3
+step 6; green with `inProgressHits=[…/outer.lua]` and `InnerSeed = [afterEdit]`.
+
+#### V2 — a resolution that succeeded, and is out-ranked later
+
+`doResolveGlobal` is `typeOfGlobalIn(projectScope) ?: typeOfGlobalIn(allScope)`
+(`LuaTypeManagerImpl.kt:162-163`). A library global that only *another library* declares resolves
+through the fallback, so the call succeeds and step 5 never fires — the frame records `{lib.lua}`,
+fully provisioned, and the file is pinned. The user then declares that name in a project file, which
+out-ranks the library for every unpinned caller:
+
+```
+a project declaration written AFTER a library snapshot resolved via the all-scope fallback must
+out-rank that library's answer, exactly as it would for a fresh build expected:<[afterProject]> but was:<[beforeEdit]>
+```
+
+This is B1's shape with a **successful** resolution instead of an empty one, which is exactly why
+step 4's wording ("a resolution that answered nothing") did not cover it. Fixed by §3.1 step 5b +
+§3.3 step 7.
+
+#### What the fixes cost
+
+```
+REVIEW-COST TOTALS provisioned=11 cond=11 guarded=11 b14=11 dr15broad=11 dr15rescued=11
+```
+
+**Zero lost pins, every rule.** Two variants of V2's rule were priced together: `dr15broad` (report
+whenever project scope alone answers null) and `dr15rescued` (only when the fallback then rescues it).
+They tie on every fixture tried; **`dr15rescued` is adopted** because `dr15broad`'s extra trigger is
+the both-scopes-null case step 4 already covers, so it duplicates bookkeeping without ever saving a
+pin. `getIndexModificationStamp` was reconsidered and re-rejected for DR-13's reasons — with the
+simple rule at zero cost, there is nothing for it to buy.
+
+⚠ **The zero is structural, and should not be banked.** None of the 10 bundled stubs or the 123 KiB
+definition library reference another library file's global from inside their own build, so none of
+them reaches either interleaving — `doResolveGlobal` is never even entered for the 11 files' own
+construction. These rules are free *on what ships today*. A future multi-file definition library that
+does cross-reference would pay, and that is the correct behaviour, not a regression.
+
+#### The harness defect this round caught
+
+The first combined run reported V1's assertion **green** — the opposite of every isolated run. Cause:
+an earlier test class's teardown had a project edit in flight when `inner.lua`'s chain reached back
+through `outer.lua` and recomputed everything fresh. A false green for a reason unrelated to the rule
+under test. Every V1/V2 verdict here is therefore from a **single-class** run, and the general lesson
+is the one this ledger keeps relearning: a green that arrives for an unexamined reason is not evidence.
+
 ### Prior Art in This Repo
 
 | Component | file:line | Relationship |
@@ -626,7 +708,9 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
           val urls: MutableSet<String>            // files consumed
           val absences: MutableSet<String>        // "global:<name>" — a resolution that answered nothing
           val unreplayedWarm: MutableSet<String>  // a warm nested forFile whose frame was gone
-          fun absorb(other: SourceFrame)          // union of all three sets
+          val inProgressHits: MutableSet<String>  // a nested forFile served mid-build (§1.10 V1)
+          val rescuedGlobals: MutableSet<String>  // project scope empty, all-scope answered (§1.10 V2)
+          fun absorb(other: SourceFrame)          // union of all five sets
       }
 
       /** Snapshot instance → the frame recorded when it was built. Weak keys (§3.7). */
@@ -636,6 +720,8 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
       fun report(urls: Collection<String>)
       fun reportFile(file: PsiFile?)
       fun reportAbsence(key: String)
+      fun reportRescuedGlobal(key: String)
+      fun reportInProgressHit(file: PsiFile)
       fun reportWarmSnapshot(file: PsiFile, served: LuaTypes)
       fun replay(frame: SourceFrame)
       fun depth(): Int
@@ -679,7 +765,7 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   ```kotlin
   internal fun isPinnable(psiFile: PsiFile, frame: LuaTypeSourceRecorder.SourceFrame): Boolean
   ```
-  §3.3 steps 1–6, with step 7 as its only production caller. `internal` rather than `private`
+  §3.3 steps 1–8, with step 9 as its only production caller. `internal` rather than `private`
   deliberately: the Kotlin test source set is a friend module, so a test can call it directly (the
   same seam `LuaCheckInvoker.classify` and `LuaShellExecOptionsCustomizer.prependInReverse` already
   use). Without this extraction TYPE-11-05's guard has no assertion that goes red when it is deleted —
@@ -708,7 +794,7 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
 ### 3.1 Source recording
 
 - **Input → Output**: a `buildSnapshot` invocation → a `SourceFrame` (consumed URLs, absences,
-  unreplayed warm hits).
+  unreplayed warm hits, in-progress hits, rescued globals).
 - **Steps**:
   1. `recording` pushes a fresh `SourceFrame` onto a `ThreadLocal<ArrayDeque<SourceFrame>>`.
   2. It runs `body()`, then pops the frame in a `finally` and returns `body`'s result paired with the
@@ -721,16 +807,25 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
      `null` — cache hit on a stored null, reentrancy guard, and a computed null (§3.6). Absence is
      recorded for **global** resolution only; §1.8 measured that widening it to `resolveType` costs
      `io.lua` its pin for names like `boolean|nil` that can never be declared.
-  6. `replay(frame)` absorbs a stored frame into every open frame — all three sets, so an absence or
-     an incompleteness recorded once keeps propagating (§3.6, §3.7).
+  5b. `reportRescuedGlobal("global:$name")` is called from `doResolveGlobal` when the **project-scope**
+     pass returns null *and* the all-scope fallback then answers (§1.10 V2). The overall call
+     succeeds, so step 5 never fires — yet the answer is one a future project declaration will
+     out-rank (`LuaTypeManagerImpl.kt:162-163`, project scope first, BUG-427). Measured cost: zero
+     of the 11 shipped files.
+  5c. `reportInProgressHit(file)` is called from `forFile` when `LuaTypesVisitor.inProgressSnapshot`
+     answers non-null at `depth() > 0` (§1.10 V1, §3.7).
+  6. `replay(frame)` absorbs a stored frame into every open frame — **all five sets**, so an absence
+     or an incompleteness recorded once keeps propagating (§3.6, §3.7).
 - **Rules / edge handling**:
   - **Stack-wide reporting is the whole point of step 3.** `forFile(libraryA)` can nest inside
     `forFile(libraryB)` through `resolveGlobal`; if only the innermost frame were filled, `libraryB`
     would be judged pinnable while transitively depending on a project file through `libraryA`.
   - An empty stack is a no-op: the type manager is called from many places that are not snapshot
     builds, and those must cost nothing.
-  - Reentrancy into the *same* file is already prevented upstream by
-    `LuaTypesVisitor.inProgressSnapshot` (`LuaTypes.kt:214`), which returns before any frame is opened.
+  - ⚠ **`LuaTypesVisitor.inProgressSnapshot` does not only guard reentrancy into the *same* file.**
+    An earlier draft of this bullet said it did, and §3.7 drew the same false conclusion; both are
+    corrected by §1.10 V1, which measured the hit being served for a file two frames out. It returns
+    before any frame is opened, which is exactly why step 5c has to report it explicitly.
 - **Complexity / bounds**: O(frames × urls). Frame depth is bounded by the type manager's own
   reentrancy guards (`resolvingGlobals`, `resolvingTypes`, `resolvingModules`); in the measured runs
   the recorded set was 0 or 1 entries per stdlib file.
@@ -781,21 +876,26 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   3. `if (frame.urls.any { !provenance.isProvisionedUrl(it) }) → not pinnable`.
   4. `if (frame.absences.isNotEmpty()) → not pinnable` (§1.8 B1).
   5. `if (frame.unreplayedWarm.isNotEmpty()) → not pinnable` (§1.8 B4 / §3.7).
-  6. Otherwise pinnable.
-  7. Pinnable → churn is `provenance.generationTracker()`; not pinnable → churn is
+  6. `if (frame.inProgressHits.isNotEmpty()) → not pinnable` (§1.10 V1 / §3.7).
+  7. `if (frame.rescuedGlobals.isNotEmpty()) → not pinnable` (§1.10 V2 / §3.1 step 5b).
+  8. Otherwise pinnable.
+  9. Pinnable → churn is `provenance.generationTracker()`; not pinnable → churn is
      `PsiModificationTracker.MODIFICATION_COUNT`.
-- **Steps 1–6 are a named function, not an inlined condition.** `internal fun isPinnable(psiFile:
-  PsiFile, frame: SourceFrame): Boolean`, with step 7 as its only caller. This is not organisational
+- **Steps 1–8 are a named function, not an inlined condition.** `internal fun isPinnable(psiFile:
+  PsiFile, frame: SourceFrame): Boolean`, with step 9 as its only caller. This is not organisational
   taste — it is what makes TYPE-11-05 testable (§1.9 B5). The decision is a pure function of its two
   arguments plus `DumbService`/provenance state, so a test can ask it directly instead of staging an
   outcome that §1.6 measured to be unreproducible. Inlining these steps into the
   `CachedValueProvider` would leave the dumb-mode guard with no assertion that goes red when it is
   deleted, which is how it survived three rounds of review unproven.
 - **Rules / edge handling**:
-  - **Steps 4 and 5 are the "sources unknown" half of the invariant, and they are not optional.**
+  - **Steps 4 through 7 are the "sources unknown" half of the invariant, and they are not optional.**
     Step 3 alone is vacuously true for an empty set, which is exactly the state a failed resolution
-    (B1) and a warm inner snapshot (B4) leave behind. Measured red both ways; see §1.8 for the
-    pasted output.
+    (B1), a warm inner snapshot (B4), an in-progress nested snapshot (V1) and a project-scope pass
+    that found nothing before the all-scope fallback answered (V2) all leave behind. **Measured red
+    all four ways** — §1.8 for B1/B4, §1.10 for V1/V2 — and each fix measured at **zero** lost pins
+    among the 11 shipped files. Four channels, one defect: a frame that looks empty because nothing
+    was recorded, not because nothing was consumed.
   - **This is the answer to "what happens to a snapshot that resolved cross-file into a project
     file": nothing changes for it.** It keeps today's dependency exactly, so it keeps today's
     correctness exactly. There is no attempt to track *which* project file, no scoped tracker, and no
@@ -825,7 +925,7 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   then records **zero** sources — which would otherwise make it maximally pinnable, precisely when it
   is least trustworthy. The guard exists to close that inversion.
   **This is one instance of the general rule, not a special case.** A dumb-mode build is a build
-  whose sources are unknown, which is what §3.3 steps 4 and 5 also cover; §1.8 B1 is the same
+  whose sources are unknown, which is what §3.3 steps 4 through 7 also cover; §1.8 B1 is the same
   inversion in smart mode, and the fact that this section named the inversion without generalising it
   is what let B1 through review. The `isDumb` test is kept as its own step because it is cheaper than
   inspecting the frame and because `resolveGlobal`'s dumb-mode return is *earlier* than the absence
@@ -837,7 +937,7 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   **It is nevertheless gated** (§1.9 B5, TC-16). The decision is asserted directly —
   `isPinnable(libraryFile, SourceFrame())` is `false` under
   `DumbModeTestUtils.runInDumbModeSynchronously` and `true` with this step deleted, because an empty
-  frame on a provisioned file clears steps 2–5 and leaves step 1 as the sole rejector. The companion
+  frame on a provisioned file clears steps 2–7 and leaves step 1 as the sole rejector. The companion
   assertion — that a real dumb build registers an empty frame in `snapshotFrames` — is what stops
   that from being a claim about a hypothetical.
 - **Complexity / bounds**: O(1).
@@ -933,9 +1033,25 @@ that says so.
     together: the frame is keyed on the snapshot instance, and an invalidated `CachedValue` drops the
     instance. A frame can only be missing if the snapshot outlived its weak entry, which is the
     `unreplayedWarm` case and is handled conservatively.
-  - The self-reentrancy path (`LuaTypesVisitor.inProgressSnapshot`, `LuaTypes.kt:214`) returns
-    **before** any of this and must keep doing so: it is the same file's own in-flight build, whose
-    frame is the very frame currently open.
+  - ⚠ **The in-progress path is a third memoized door, not a self-loop.** This bullet used to read
+    "it is the same file's own in-flight build, whose frame is the very frame currently open" and
+    conclude that `LuaTypesVisitor.inProgressSnapshot` (`LuaTypes.kt:214`) needs no treatment.
+    **That is refuted by execution — §1.10 V1.** The guard is a map keyed on the *requested* file
+    (`LuaTypesVisitor.kt:1483-1487`) and `buildSnapshot` adds an entry for **every** file whose build
+    is on the current thread's stack (`:1507-1518`), so the hit is served for a file two frames
+    further out, whose frame is emphatically *not* the one currently open. Measured:
+    `TYPE11-DR14 inProgress hit file=…/outer.lua depth=5`.
+  - **So it reports, and it still returns early.** The early return stays — it is the cycle-breaker
+    and removing it would recurse — but whenever it answers non-null at `depth() > 0` it calls
+    `reportInProgressHit(file)` into every open frame, and §3.3 step 6 makes the outer file
+    unpinnable. Unlike §3.7's warm case there is nothing to *replay*: the served snapshot is still
+    being built, so its frame is incomplete by construction and no union could complete it. That is
+    why this door gets the conservative treatment `unreplayedWarm` gets rather than the replay
+    treatment the finished caches get.
+  - Measured cost: **zero of the 11 shipped files** (`b14=11`) — though for a structural reason worth
+    stating rather than banking, namely that none of the bundled stubs or the definition library
+    reference another library file's global at all, so none of them reaches the interleaving. The
+    rule is free on what ships; it is not evidence the rule is free in general.
 - **Complexity / bounds**: one map lookup per nested warm hit; the replay is three set unions.
 
 ## 4. External Data & Parsing
@@ -1052,7 +1168,7 @@ Platform APIs used, all verified present by compiling the measurement build agai
 | TYPE-11-03 — identification is by provenance | M | §3.2 | `TypeElevenDr02ProvenanceTest`, 5 assertions, all mutation-proved |
 | TYPE-11-04 — no new stale-type defect | M | §3.1, §3.3, §3.5, §3.6 | `TypeElevenDr01ResidualTest` (3 tests). **It is the only gate.** Measured (TYPE-11-DR-09): under the rejected blanket-pin build the full suite *and* all four corpus baselines pass — `2571 tests completed, 2 failed`, both of them these fixtures. The suite and the sweep show that nothing *else* moved; neither can detect this defect class, because it needs an edit after a snapshot is built and the sweep is a single pass (`risks-and-gaps.md` → "DR-09 measured"). |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | §3.4 | `TypeElevenDumbModeDecisionTest` (plan Phase 3) — asserts the **decision**, `isPinnable(libraryFile, SourceFrame()) == false` under dumb mode, mutation-red when §3.3 step 1 is deleted (§1.9 B5). The **outcome** does not reproduce and `TypeElevenDr05DumbModeTest` remains explicitly not a gate (§1.6); whether the stamp move is platform behaviour is still `risks-and-gaps.md` DR-06. |
-| TYPE-11-06 — an incomplete recording is never pinned | M | §3.1 steps 5–6, §3.3 steps 4–5, §3.6, §3.7 | `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest`, both measured red under §3 as written and green under the rule (§1.8). |
+| TYPE-11-06 — an incomplete recording is never pinned | M | §3.1 steps 5–5b–6, §3.3 steps 4–7, §3.6, §3.7 | Four channels, each measured red under §3 without its guard and green with it: `TypeElevenDr11LateDeclarationTest` (absence, §1.8 B1), `TypeElevenDr12WarmInnerSnapshotTest` (warm inner, §1.8 B4), `TypeElevenDr14InProgressTest` (in-progress inner, §1.10 V1), `TypeElevenDr15LateLibraryAnswerTest` (rescued global, §1.10 V2). |
 
 ### 8.1 Acceptance cases, as input → output
 
@@ -1078,6 +1194,8 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | TC-14 | TYPE-11-06 (warm inner) | Library `b.lua` = `bOther = { fromB = 1 }` + `bGlobal = projectSeed`, library `a.lua` = `aAlias = bGlobal`, project `p.lua` = `projectSeed = { beforeEdit = 1 }`. Resolve `bOther` first (warms `forFile(b.lua)`), then resolve `aAlias`, then rewrite `p.lua` to `{ afterEdit = 1 }` with the roots tracker asserted still. | `resolveGlobal("aAlias").getMembers().keys` = `[afterEdit]`. Under §3 without §3.7 it is `[beforeEdit]` — §1.8. `TypeElevenDr12WarmInnerSnapshotTest`. |
 | TC-15 | TYPE-11-06 (cost) | The 10 bundled stdlib files plus the 123 KiB definition library, each built once in a clean epoch. | All 11 still pinnable under the rule (`guarded=11`), i.e. the rule costs nothing on what ships. Recorded by the review scaffold in §1.8; the shipped equivalent is `LuaTypeSourceRecorderCoverageTest`'s sibling assertion in plan Phase 3. |
 | TC-16 | TYPE-11-05 (decision) | The TC-12 fixture. Inside `DumbModeTestUtils.runInDumbModeSynchronously`: (a) call `isPinnable(delta.lua, SourceFrame())` directly; (b) build `forFile(delta.lua)` and read the frame it registered in `snapshotFrames`. | (a) `false` — and `true` with §3.3 step 1 deleted, which is the stated mutation. (b) that frame is **empty**, so (a) is a claim about the state a dumb build actually produces and not about a hypothetical one. `TypeElevenDumbModeDecisionTest`, plan Phase 3 (§1.9 B5). |
+| TC-18 | TYPE-11-06 (in-progress inner) | Library `outer.lua` = `OuterSeed = projectSeed` + `OuterGlobal = InnerSeed`, library `inner.lua` = `InnerSeed = OuterSeed`, project `p.lua` = `projectSeed = { beforeEdit = 1 }`. Resolve `OuterGlobal` (drives the cycle), then rewrite `p.lua` to `{ afterEdit = 1 }` with the roots tracker asserted still. | `resolveGlobal("InnerSeed").getMembers().keys` = `[afterEdit]`. Under §3 without step 6 it is `[beforeEdit]` — §1.10 V1. `TypeElevenDr14InProgressTest`. |
+| TC-19 | TYPE-11-06 (rescued global) | Library `alpha.lua` = `libAlias = sharedByLibrary`, library `lib.lua` = `sharedByLibrary = { beforeEdit = 1 }`, project `shared.lua` declaring nothing relevant (asserted: project scope for `sharedByLibrary` is empty at build time); read `libAlias`, then rewrite `shared.lua` to declare it, roots tracker asserted still. | `resolveGlobal("libAlias").getMembers().keys` = `[afterProject]`. Under §3 without step 7 it is `[beforeEdit]` — §1.10 V2. `TypeElevenDr15LateLibraryAnswerTest`. |
 | TC-17 | Risk 1.1 (coverage) | `LuaTypeManagerImpl.kt` read as text, comments stripped, all whitespace removed; count `.findFile(`, `.getElements(`, `.getContainingFiles(`. | `2`, `3`, `2`. Mutation: injecting one `PsiManager.getInstance(project).findFile(…)` takes `.findFile(` to `3` and fails the test. The literal chains this case replaced counted `1`, `3` and **`0`** against the same file (§1.9 B3). `LuaTypeSourceRecorderCoverageTest`, plan Phase 3. |
 
 ## 9. Alternatives Considered

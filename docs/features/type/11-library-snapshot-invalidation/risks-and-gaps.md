@@ -70,6 +70,160 @@ finishes. Reading it mid-run reports the *previous* build's verdict. Check `ls -
 `date` on the builder before believing any XML — this round nearly recorded a false "Q1 is green"
 from 2-hour-old files.
 
+### Fourth measurement round (2026-08-11, `main` @ `1e9a91c1`) — DR-14 and DR-15
+
+Same discipline, same builder, same revert (`git diff -- src/main/` empty at commit). This round
+re-created the third round's scaffold and priced two new candidate rules against Step 9 blockers V1
+and V2. Baseline established first, on unmodified `main`, before any edit:
+`tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"` →
+**2565 tests, 1 skipped, 0 failures, BUILD SUCCESSFUL in 9m 45s** (XML timestamps checked against
+`date` on the builder).
+
+| Scaffold file / edit | Purpose | State |
+| :-- | :-- | :-- |
+| `src/main/kotlin/.../lang/psi/types/LuaReviewScaffold.kt` (new) | `LuaReviewRecorder` (frames of `urls`/`misses`/`warm`/`warmUnreplayed`, plus two new fields: `inProgressHits` for DR-14 and `projectEmptyBroad`/`projectEmptyRescued` for DR-15; `recording`, `report`, `reportFile`, `reportMiss`, `reportInProgressHit`, `reportProjectEmptyBroad`, `reportProjectEmptyRescued`, `reportWarmSnapshot`, `replay`, `depth`, `snapshotFrames: WeakHashMap<LuaTypes, Frame>`); `LuaReviewProvenance` (§3.2 verbatim); `LuaReviewMode` (mode from `System.getProperty("lunar.review.mode", …)`, a parsed string; a `Decision` class computing `cond`, `guarded`, `b14`, `dr15Broad`, `dr15Rescued` **simultaneously**; `churnFor` returns `Any` — not `ModificationTracker` — because `PsiModificationTracker.MODIFICATION_COUNT` is a `Key` sentinel the platform special-cases, not a `ModificationTracker` instance (`javap` on `intellij.platform.core.jar`: `public static final Key MODIFICATION_COUNT`), which the compiler caught (`Return type mismatch: expected 'ModificationTracker', actual '(Key<Any!>..Key<*>?)'`) when the first draft declared the narrower return type; a `TYPE11-REVIEW` trace line and a `reviewCostTotals()` dump) | **deleted** |
+| `LuaTypes.kt` — `forFile` | the same `var computed` / `recording { buildSnapshot }` / `snapshotFrames[snapshot] = frame` / `churnFor` wiring as the third round, **plus** a one-line `println` at the `inProgressSnapshot` early return (Q14a's instrument) and a `reportInProgressHit` call when `depth() > 0` | **reverted to HEAD** |
+| `LuaTypeManagerImpl.kt` | the third round's `sourceCache`/`recordUnder`/`replaySources` plus the six §3.5 `reportFile` sites and the B1 `reportMiss`, **plus** `doResolveGlobal` computing the DR-15 columns: `reportProjectEmptyBroad("global:$name")` whenever the project-scope pass alone answers null, `reportProjectEmptyRescued("global:$name")` only when that null is then rescued by the all-scope fallback | **reverted to HEAD** |
+
+**Mode is a compile-time default string, not a runtime flag.** `-Dlunar.review.mode=…` on the
+`gradlew` command line does **not** reach the forked test JVM — `build.gradle.kts` has no
+`systemProperty` passthrough for it (confirmed by running with the flag: the trace kept printing
+`mode=guarded` regardless). Every mode switch below was a source edit to the literal default,
+matching the third round's own stated method ("Modes, selected by editing one default string between
+runs").
+
+**A same-JVM cross-test contamination trap, caught red-handed.** The very first combined run (all
+three new classes + `TypeElevenDr14Dr15CostProbeTest` in one `:test` task, `mode=guarded`) reported
+DR-14's staleness assertion **green** — the opposite of every isolated run since. Instrumenting
+`forFile` with a `computed`/identity/`modificationStamp` trace showed why: `inner.lua`'s snapshot was
+being *rebuilt* after the edit even though it had been judged pinnable, because an **earlier** test
+class's teardown had already put a project-file edit in flight when `inner.lua`'s reentrant chain
+reached back through `outer.lua` (itself unpinned) and recomputed everything fresh — a false green
+for a reason that has nothing to do with the rule under test. Every DR-14/DR-15 verdict in this
+section is therefore from a run of **that one test class alone**
+(`test --tests net.internetisalie.lunar.type.TypeEleven<Class> --rerun --no-build-cache`), which is
+also why the `REVIEW-COST TOTALS` figures below say `decisions=11 provisioned=11` rather than a
+larger number carrying over other classes' fixtures.
+
+#### Q14a — is the in-progress interleaving reachable?
+
+**Yes, measured.** Fixture: two library files forming a genuine mutual-reference cycle seeded from a
+project file — `outer.lua` (`OuterSeed = projectSeed` / `OuterGlobal = InnerSeed`) and `inner.lua`
+(`InnerSeed = OuterSeed`). Resolving `OuterGlobal` starts `outer.lua`'s build; `outer.lua`'s second
+statement nests into `inner.lua`'s build (a genuine cold `forFile`, not a re-entrant hit); `inner.lua`'s
+own traversal then resolves `OuterSeed` and calls `forFile(outer.lua)` a second time — `outer.lua` is
+still present in `LuaTypesVisitor.inProgressBuilds` (its own top-level build has not returned), so the
+guard fires:
+
+```
+TYPE11-DR14 inProgress hit file=file:///…/luassert-…/outer.lua depth=5
+```
+
+`outer.lua` is the **outer** file — the one two frames further out on the stack, not the file whose
+build directly re-entered itself. `design.md` §3.7's premise ("it is the same file's own in-flight
+build, whose frame is the very frame currently open") is literally true of `outer.lua` from
+`outer.lua`'s own point of view, but says nothing about `inner.lua`'s frame, which is what is actually
+open when the hit fires — and `inner.lua`'s frame receives **no report at all** for this hit unless the
+DR-14 candidate rule is added, because the early return happens before `CachedValuesManager.getCachedValue`
+is even called (§3.7's own "returns before any of this" applies to itself here).
+
+#### Q14b — does it ship a stale type?
+
+**Yes, measured.** `TypeElevenDr14InProgressTest.testALibraryTransitivelyEmbeddingAProjectTypeThroughAReentrantCycleStillTracksIt`,
+isolated run, `mode=guarded` (§3 with B1 and B4 already fixed, no DR-14 guard):
+
+```
+TypeElevenDr14InProgressTest > testALibraryTransitivelyEmbeddingAProjectTypeThroughAReentrantCycleStillTracksIt FAILED
+    junit.framework.AssertionFailedError: editing the project file must be reflected in InnerSeed's
+    type, even though InnerSeed was built while outer.lua's build was still in progress on the same
+    thread expected:<[afterEdit]> but was:<[beforeEdit]>
+
+2 tests completed, 1 failed
+```
+
+`inner.lua`'s own build is a **normal** cold `forFile(inner.lua)` call (nested inside `outer.lua`'s,
+not itself a re-entrant hit), so it is recorded and cached exactly like any other library file:
+`sources=1` (`outer.lua`, a provisioned file, reported by the normal `typeOfGlobalIn` site), `outside=[]`
+→ pinned. What never reaches `inner.lua`'s frame is `outer.lua`'s own dependency on `p.lua`: that
+dependency was reported into `outer.lua`'s frame **before** `inner.lua`'s frame was even pushed onto
+the stack, so the "report into every open frame" rule (§3.1 step 3) cannot retroactively cover it, and
+the re-entrant `forFile(outer.lua)` call `inner.lua` makes to read the now-complete value skips the
+whole recording/replay path (§3.7's rule applied to itself). Same fixture, `mode=b14` (guarded plus
+"an in-progress hit marks the outer frame unpinnable"):
+
+```
+BUILD SUCCESSFUL
+TYPE11-REVIEW file=…/inner.lua provisioned=true pinnable=false sources=1 outside=[] …
+    inProgressHits=[…/outer.lua] mode=b14
+DR-14 after edit: InnerSeed = [afterEdit]
+```
+
+#### Q14c — the cost of the fix
+
+```
+REVIEW-COST TOTALS provisioned=11 cond=11 guarded=11 b14=11 dr15broad=11 dr15rescued=11
+```
+
+(Isolated `TypeElevenDr14Dr15CostProbeTest` run, `mode=b14`; the 10 bundled `lua-5.4` stdlib files plus
+the 123 KiB `wx.lua` definition library, each built once in a clean epoch — the same shape and count
+the third round used.) **`b14` costs zero of the 11 shipped files** — none of the bundled stdlib stubs
+or the synthetic definition library reference *another* library file's global at all (`sources=0` for
+10 of 11; `io.lua`'s one recorded source is itself, via `resolveType`, not a nested `forFile`), so none
+of them can exercise the in-progress interleaving in the first place. **Recommended rule**: add a sixth
+step to `isPinnable` — `if (frame.inProgressHits.isNotEmpty()) → not pinnable` — populated by reporting
+into every open frame whenever `LuaTypesVisitor.inProgressSnapshot` answers non-null while
+`LuaReviewRecorder.depth() > 0`, mirroring §3.7's `unreplayedWarm` treatment exactly (the in-progress
+guard is, in effect, a *third* memoized door with no replay, alongside `resolveX`'s cache and `forFile`'s
+warm-snapshot cache).
+
+#### Q15a — reproducing the late-declaration-outranks-a-library defect
+
+**Yes, real.** `TypeElevenDr15LateLibraryAnswerTest.testAProjectDeclarationWrittenAfterALibraryAnsweredStillOutranksIt`
+— `TypeElevenDr11LateDeclarationTest`'s fixture with library `lib.lua` declaring the shared global
+instead of nothing declaring it. Isolated run, `mode=guarded`:
+
+```
+TypeElevenDr15LateLibraryAnswerTest > testAProjectDeclarationWrittenAfterALibraryAnsweredStillOutranksIt FAILED
+    junit.framework.AssertionFailedError: a project declaration written AFTER a library snapshot
+    resolved via the all-scope fallback must out-rank that library's answer, exactly as it would for
+    a fresh build expected:<[afterProject]> but was:<[beforeEdit]>
+```
+
+The roots-tracker-still assertion inside `rewriteAssertingRootsAreStill` passed in the same run — the
+staleness is not an unearned green from a roots tick, exactly the base case's own guarantee. Same
+fixture, `mode=dr15rescued` and separately `mode=dr15broad`: `BUILD SUCCESSFUL` under both.
+
+#### Q15b — pricing the candidate rules
+
+Three variants were computed simultaneously by the scaffold on every `doResolveGlobal` call:
+
+- **`dr15broad`** — report `"global:$name"` whenever the project-scope pass alone returns null,
+  regardless of whether the all-scope fallback then answers. This is the literal Q15b(i) rule and is
+  the broadest: it also fires on the case §3.1 step 5 (B1) already covers (both scopes null).
+- **`dr15rescued`** — the same trigger, but only counted when the all-scope fallback *does* then
+  answer — i.e., excludes the case B1 already makes unpinnable, so it never double-reports.
+- A third, cheaper alternative was **not** built as new machinery: `FileBasedIndex
+  .getIndexModificationStamp(LuaGlobalAssignmentIndex.KEY, project)` is the same tracker DR-13 priced
+  and rejected for B1 (`design.md` §9) — a global declaration is exactly a new entry in that index, so
+  the same stamp would also close DR-15. It is not recommended here for the identical reasons DR-13
+  gave (second invalidation axis, dumb-mode-hostile index query inside a validity check, undocumented
+  monotonicity) **and** because the measured cost of the simple rule is already zero — there is nothing
+  the stamp would buy.
+
+```
+REVIEW-COST TOTALS provisioned=11 cond=11 guarded=11 b14=11 dr15broad=11 dr15rescued=11
+```
+
+**Both `dr15broad` and `dr15rescued` cost zero of the 11 shipped files**, for the same structural
+reason `b14` does: none of the bundled stdlib files or the synthetic definition library reference an
+unbound global via `resolveGlobal` from inside their own build at all, so `doResolveGlobal` is never
+even entered for any of the 11 files' own snapshot construction. On the adversarial fixture that *does*
+exercise the rule (`alpha.lua` referencing `lib.lua`'s global with no project declaration yet), both
+variants mark `alpha.lua` unpinnable identically — `dr15broad`'s extra trigger condition (both scopes
+null) is redundant with the existing B1 absence rule wherever it fires, so it never removes a pin
+`dr15rescued` would have kept. **Recommended rule: `dr15rescued`** — same measured cost as `dr15broad`
+on every case tried, and it does not duplicate bookkeeping the absence rule already does.
+
 ## Mutation ledger — every assertion, and the mutation that turned it red
 
 "A test that cannot fail is not a gate." Each row was run; the `result` column is the observed
@@ -97,8 +251,15 @@ outcome, not an expectation.
 | The replacement matcher — comments stripped, whitespace removed, bare members | inject one `PsiManager.getInstance(project).findFile(…)` | **RED** — `.findFile(` moves `2 → 3`. Baseline counts `.findFile(`=2, `.getElements(`=3, `.getContainingFiles(`=2. |
 | The replacement matcher, formatting-only change | re-wrap an existing `StubIndex.getElements(` across lines | **GREEN, correctly** — stays `3`, where the chain literal falls `3 → 2` and would report a deletion that did not happen. |
 | The replacement matcher, comment stripping | run it with comment stripping disabled | **NO CHANGE** — `2 / 3 / 2` either way. Stripping is prophylaxis against a future KDoc writing `.findFile(…)` in prose, not a measured requirement; §1.9 says so because an earlier draft claimed otherwise. |
+| `TypeElevenDr14InProgressTest.testALibraryTransitivelyEmbeddingAProjectTypeThroughAReentrantCycleStillTracksIt` (2026-08-11, fourth round) | the §3 conditional rule **as accepted after B1+B4** — i.e. `mode=guarded`, no DR-14 guard | **RED** (isolated run) — `editing the project file must be reflected in InnerSeed's type, even though InnerSeed was built while outer.lua's build was still in progress on the same thread expected:<[afterEdit]> but was:<[beforeEdit]>`. `inner.lua`'s own build is a normal cold `forFile`, correctly pinned on `sources=1 outside=[]` — the missing dependency is `outer.lua`'s own `p.lua` source, reported into `outer.lua`'s frame before `inner.lua`'s frame existed. |
+| The same, under `mode=b14` (guarded + "an in-progress hit marks the outer frame unpinnable") | — | **GREEN, and for the right reason** — `file=inner.lua pinnable=false … inProgressHits=[…outer.lua]`, `DR-14 after edit: InnerSeed = [afterEdit]`. |
+| `TypeElevenDr14InProgressTest.testMutualReferenceCycleBetweenTwoLibraryFilesResolvesWithoutRecursing` (fourth round) | none needed — this is the Q14a reachability probe, not a guarded assertion | **Green on `main` and under every mode tried; not a gate.** Its purpose is the `TYPE11-DR14 inProgress hit file=…/outer.lua depth=5` trace it prints, which is the Q14a evidence. Listed here so a reader does not mistake it for an unproven guard. |
+| `TypeElevenDr15LateLibraryAnswerTest.testAProjectDeclarationWrittenAfterALibraryAnsweredStillOutranksIt` (fourth round) | the §3 conditional rule **as accepted after B1+B4** — i.e. `mode=guarded`, no DR-15 guard | **RED** (isolated run) — `a project declaration written AFTER a library snapshot resolved via the all-scope fallback must out-rank that library's answer, exactly as it would for a fresh build expected:<[afterProject]> but was:<[beforeEdit]>`. |
+| The same, under `mode=dr15rescued` | — | **GREEN.** |
+| The same, under `mode=dr15broad` | — | **GREEN** (measured separately; ties `dr15rescued` on both pass/fail outcome and pinnable count on every fixture tried — see Q15b). |
 
-The three rows above were produced by running the matcher logic over the real `LuaTypeManagerImpl.kt`
+The **three coverage-matcher rows** — "as specified", "inject one `findFile`", and "re-wrap an existing
+`getElements(`" — were produced by running the matcher logic over the real `LuaTypeManagerImpl.kt`
 (553 lines, `main` @ `75707e78`), not by reading it — but by a **standalone replica** of the intended
 Kotlin, because Phase 3 has not been implemented. They establish the counts and that the matcher moves
 in both directions; they are not a substitute for the shipped assertion, which still owes this ledger
@@ -223,11 +384,13 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   test failure — the user simply sees a type that stopped updating.
 - **Likelihood**: **medium now, high over time.** `design.md` §3.5 enumerates six sites and they were
   sufficient for every measured case, but nothing structurally prevents a seventh being added later.
-- **Widened by the third round.** A site can also be missed by *not existing*: the two shapes in
-  `design.md` §1.8 have all six sites correctly wired and still pin a stale snapshot, because the
-  thing that needed recording was an **absence** and a **cache hit**. The Phase 3 source-text guard
-  counts call sites and would not have caught either. Treat "the recorder is complete" as a claim
-  about three sets, not one.
+- **Widened by the third round, and again by the fifth.** A site can also be missed by *not existing*:
+  **four** shapes now have all six sites correctly wired and still pin a stale snapshot, because the
+  thing that needed recording was an **absence** (§1.8 B1), a **cache hit** (§1.8 B4), an
+  **in-progress inner build** (§1.10 V1) or a **rescued global** (§1.10 V2). The Phase 3 source-text
+  guard counts call sites and would have caught none of them. Treat "the recorder is complete" as a
+  claim about **five** sets, not one — and note the trend: every review round so far has found one
+  more channel, so the right prior is that a sixth exists rather than that the list is closed.
 - **Escalated by DR-09.** The corpus sweep was the last remaining candidate for a broad safety net and
   it is measured blind to this class (below). `TypeElevenDr01ResidualTest` plus the Phase 3 source-text
   guard are the whole defence; there is no third line.
@@ -357,6 +520,9 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 | TYPE-11-DR-11 | Step 9 blocker B1: does a build whose global resolution answered **nothing** get pinned, and does the declaration written afterwards fail to reach it? | TYPE-11-06, `design.md` §3.3/§3.4 | **done, positive (the defect is real)** — `design.md` §1.8. `expected:<[afterDeclared]> but was:<[]>`. Closed by §3.3 step 4; measured cost **zero** pinned files. |
 | TYPE-11-DR-12 | Step 9 blocker B4: is the interleaving reachable in which a nested `forFile` is served warm, so the outer library file records an incomplete source set and is pinned? | TYPE-11-06, `design.md` §3.6 | **done, positive (the defect is real, and needs no roots tick)** — `design.md` §1.8. `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.7 (replay), not by blanket-unpinnable; measured cost **zero** pinned files. |
 | TYPE-11-DR-13 | Price the alternative to blanket-unpinnable for B1: is there a tracker that ticks when a global declaration appears? | `design.md` §9 | **done, not adopted** — `FileBasedIndex.getIndexModificationStamp(LuaGlobalAssignmentIndex.KEY, project)` exists and behaves as hoped (`16 / 16 / 17`), but the rule it would optimise costs nothing, so the second invalidation axis buys nothing. |
+| TYPE-11-DR-14 | Step 9 blocker V1: is the `LuaTypesVisitor.inProgressSnapshot` early return ever served for a file **other** than the one that directly re-entered itself, and does that ship a stale type? | `design.md` §3.7, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. Reachable and measured: `TYPE11-DR14 inProgress hit file=…/outer.lua depth=5`; `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.1 step 5c + §3.3 step 6 (report, do not replay — the served snapshot is mid-build). Measured cost **zero** pinned files (`b14=11`). |
+| TYPE-11-DR-15 | Step 9 blocker V2: does a global resolution that **succeeded** via the all-scope fallback get pinned, and is it then out-ranked by a project declaration it never re-judges? | `design.md` §3.1/§3.3, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. `expected:<[afterProject]> but was:<[beforeEdit]>`. Closed by §3.1 step 5b + §3.3 step 7. Two variants priced together; `dr15rescued` adopted over `dr15broad` — identical cost (`11`) on every fixture, and the broader one only duplicates the B1 absence rule. |
+| TYPE-11-DR-16 | Is there a **sixth** under-recording channel? Every review round so far has found one more (absence, warm inner, in-progress inner, rescued global), which makes "the list is closed" the weaker prior. Enumerate the memoized doors and early returns in `LuaTypeManagerImpl` and `LuaTypes.forFile` systematically rather than waiting for the next review to find one | Risk 1.1, TYPE-11-06 | todo |
 
 ## Test Case Gaps
 

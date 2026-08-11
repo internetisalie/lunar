@@ -25,13 +25,15 @@ are already committed and green on `main`. They must stay green at the end of ev
   the suite result is bit-identical to `main`.
 - **Tasks**:
   - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaTypeSourceRecorder` — realizes design §2.1
-        and §3.1. `object`, `ThreadLocal<ArrayDeque<SourceFrame>>`, where `SourceFrame` carries three
-        sets (`urls`, `absences`, `unreplayedWarm`) and an `absorb`; plus the weak-keyed
-        `snapshotFrames: MutableMap<LuaTypes, SourceFrame>` used by §3.7. Functions: `recording`,
-        `report`, `reportFile`, `reportAbsence`, `reportWarmSnapshot`, `replay`, `depth`.
+        and §3.1. `object`, `ThreadLocal<ArrayDeque<SourceFrame>>`, where `SourceFrame` carries **five**
+        sets (`urls`, `absences`, `unreplayedWarm`, `inProgressHits`, `rescuedGlobals`) and an
+        `absorb` over all five; plus the weak-keyed `snapshotFrames: MutableMap<LuaTypes, SourceFrame>`
+        used by §3.7. Functions: `recording`, `report`, `reportFile`, `reportAbsence`,
+        `reportRescuedGlobal`, `reportInProgressHit`, `reportWarmSnapshot`, `replay`, `depth`.
         **Every `report*` writes to every open frame, not just the innermost** (§3.1 step 3) — that
-        is the whole correctness of nesting. `absences` and `unreplayedWarm` are not decoration: the
-        two shapes they exist for were each measured shipping a stale type (design §1.8).
+        is the whole correctness of nesting. The four non-`urls` sets are not decoration: each exists
+        for a shape that was **measured shipping a stale type** — `absences` and `unreplayedWarm` in
+        design §1.8, `inProgressHits` and `rescuedGlobals` in §1.10.
   - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaLibraryProvenance` — realizes design §2.2
         and §3.2. Light `@Service(Service.Level.PROJECT)`; **no `plugin.xml` entry** (design §7).
         Root list memoized via `CachedValuesManager.getManager(project).getCachedValue(project) { … }`
@@ -65,6 +67,10 @@ are already committed and green on `main`. They must stay green at the end of ev
         stored and replays), a cache hit on a stored null, and the reentrancy guard. Do **not** do
         this for `resolveType`/`resolveModule`: measured, that costs `io.lua` its pin for
         `resolveType("boolean|nil")`-shaped misses and buys nothing (design §1.8).
+  - [ ] In `doResolveGlobal`, call `LuaTypeSourceRecorder.reportRescuedGlobal("global:$name")` when
+        the **project-scope** pass returns null and the all-scope fallback then answers (§3.1 step 5b,
+        §1.10 V2). Not when both answer null — step 5 already covers that, and the broader variant was
+        measured to add nothing (`dr15broad` ties `dr15rescued` on every fixture tried).
   - [ ] Insert the six `reportFile` calls listed in design §3.5, at the stated lines. `typeOfGlobalIn`
         gets `.onEach { LuaTypeSourceRecorder.reportFile(it) }` **after** the existing
         `.filter { it != exclude }` — reporting every file visited, not only the one that yields a
@@ -79,15 +85,18 @@ are already committed and green on `main`. They must stay green at the end of ev
 - **Tasks**:
   - [ ] Edit `LuaTypesSnapshot.forFile` (`LuaTypes.kt:212-224`) — realizes design §2.3, §3.3 and
         §3.7. Wrap `LuaTypesVisitor.buildSnapshot(psiFile)` in `LuaTypeSourceRecorder.recording { … }`,
-        register `snapshotFrames[snapshot] = frame`, compute `pinnable` by the five short-circuiting
-        tests in §3.3 steps 1–5, and select the churn dependency in step 7. **Steps 1–6 go in
-        `internal fun isPinnable(psiFile: PsiFile, frame: SourceFrame): Boolean`, not inline** — step 7
+        register `snapshotFrames[snapshot] = frame`, compute `pinnable` by the seven short-circuiting
+        tests in §3.3 steps 1–7, and select the churn dependency in step 9. **Steps 1–8 go in
+        `internal fun isPinnable(psiFile: PsiFile, frame: SourceFrame): Boolean`, not inline** — step 9
         is its only caller. That extraction is what TC-16 asserts against; inlined, the dumb-mode guard
         has no assertion that goes red when it is deleted (design §1.9 B5). Track whether the provider
         ran (`var computed`) and, when it did not and `depth() > 0`, call
-        `reportWarmSnapshot(psiFile, served)` (§3.7 steps 2–4). The `inProgressSnapshot` reentrancy
-        guard, the `psiFile` dependency and `targetModificationTracker` are unchanged, and the
-        reentrancy guard must stay **before** the warm-hit reporting.
+        `reportWarmSnapshot(psiFile, served)` (§3.7 steps 2–4).
+  - [ ] **The `inProgressSnapshot` early return reports before it returns** — `reportInProgressHit(psiFile)`
+        into every open frame when it answers non-null at `depth() > 0` (§3.1 step 5c, §3.7, §1.10 V1).
+        Keep the early return: it is the cycle-breaker. Nothing can be replayed here — the served
+        snapshot is mid-build — so §3.3 step 6 makes the outer file unpinnable instead. It must stay
+        **before** the warm-hit reporting; `psiFile` and `targetModificationTracker` are unchanged.
   - [ ] Add `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest` to the
         standing-green set — covers TYPE-11-06. **Already committed and green on `main`**; each was
         measured red under the rule without its guard (design §1.8), which is what makes them gates
@@ -95,6 +104,13 @@ are already committed and green on `main`. They must stay green at the end of ev
   - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02. Three cases: (a) enabling a
         definition library re-provisions and invalidates; (b) `setTarget` invalidates a pinned
         snapshot; (c) a project-file edit does **not** invalidate a pinned snapshot.
+  - [ ] Add `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest` to the
+        standing-green set — TYPE-11-06's third and fourth channels, TC-18 and TC-19. **Already
+        committed and green on `main`**; each was measured red under the post-B1/B4 rule without its
+        guard (design §1.10), which is what makes them gates rather than decoration.
+        ⚠ **Measure them one class at a time.** A combined run turned DR-14 green for an unrelated
+        reason — an earlier class's teardown edit recomputing the chain — and that false green is
+        recorded in `risks-and-gaps.md`. The full suite remains the commit gate.
   - [ ] Add `TypeElevenDumbModeDecisionTest` — covers TYPE-11-05, TC-16. Two assertions inside
         `DumbModeTestUtils.runInDumbModeSynchronously` on the TC-12 fixture: `isPinnable(delta.lua,
         SourceFrame())` is `false`, **and** the frame a real dumb `forFile(delta.lua)` registers in
@@ -165,7 +181,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 | TYPE-11-03 — identification is by provenance | M | Phase 1 |
 | TYPE-11-04 — no new stale-type defect | M | Phase 2 (recording) + Phase 3 (the condition); gated by **`TypeElevenDr01ResidualTest` alone** — measured (TYPE-11-DR-09): the full suite and all four corpus baselines pass unchanged under the rejected blanket-pin build, so neither is a gate for this requirement. They remain exit criteria for "nothing else moved". |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | Phase 3 (the guard, design §3.4) — gated by `TypeElevenDumbModeDecisionTest` on the **decision** (TC-16), which is mutation-red when §3.3 step 1 is deleted. The **outcome** still does not reproduce (§1.6), so Phase 4 keeps DR-06: is the `modificationStamp` move platform behaviour or a `DumbModeTestUtils` artifact? |
-| TYPE-11-06 — an incomplete recording is never pinned | M | Phase 1 (the `SourceFrame` shape) + Phase 2 (the absence report and the whole-frame `sourceCache`) + Phase 3 (§3.3 steps 4–5 and the §3.7 replay); gated by `TypeElevenDr11LateDeclarationTest` + `TypeElevenDr12WarmInnerSnapshotTest`, both measured red under the rule without their guard |
+| TYPE-11-06 — an incomplete recording is never pinned | M | Phase 1 (the `SourceFrame` shape, five sets) + Phase 2 (the absence and rescued-global reports, the whole-frame `sourceCache`) + Phase 3 (§3.3 steps 4–7, the §3.7 replay, the in-progress report); gated by `TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`, `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest` — all four measured red without their guard, all four fixes at zero lost pins |
 
 ## Verification Tasks
 
@@ -184,6 +200,10 @@ are already committed and green on `main`. They must stay green at the end of ev
       green run as a pass.
 - [ ] `LuaLibraryProvenanceTest` (Phase 1) — the DR-02 assertions against the production service.
 - [ ] `TypeElevenGenerationSignalTest` (Phase 3) — covers TYPE-11-02.
+- [ ] `TypeElevenDr14InProgressTest` — 2 tests, TYPE-11-06 (in-progress inner). Already committed;
+      red under the post-B1/B4 rule without §3.3 step 6 (design §1.10 V1).
+- [ ] `TypeElevenDr15LateLibraryAnswerTest` — 1 test, TYPE-11-06 (rescued global). Already committed;
+      red under the post-B1/B4 rule without §3.3 step 7 (design §1.10 V2).
 - [ ] `LuaTypeSourceRecorderCoverageTest` (Phase 3) — mitigates Risk 1.1, TC-17. Counts `2 / 3 / 2` on
       whitespace-collapsed, comment-stripped text; the qualified-chain form counts `1 / 3 / 0` (§1.9 B3).
 - [ ] Run `human-verification-checklists.md` — the whole feature is a *cache lifetime* change, and the

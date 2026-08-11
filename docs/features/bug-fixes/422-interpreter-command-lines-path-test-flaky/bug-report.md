@@ -109,6 +109,24 @@ one defect and it survived the BUG-422 hardening. Two further facts from this ro
   `net.internetisalie.lunar.type` and touch nothing in `toolchain/`, but they shift full-suite class
   ordering — which is the only mechanism by which a docs-and-tests commit can move this needle.
 
+## Recurrence 2026-08-11 — third occurrence, and the ordering hypothesis strengthens
+
+Observed on `main` @ `1e9a91c1` during TYPE-11's Step 9 V1/V2 gate:
+`run "ktlintCheck test --rerun --no-build-cache"` → **2 568 tests, 1 failure, 1 skipped**,
+`junit.framework.AssertionFailedError at LuaInterpreterCommandLinesTest.kt:56`. Same assertion, same
+line, third time.
+
+What makes this one worth recording rather than just counting: the tree was again **docs plus two new
+`net.internetisalie.lunar.type` test classes** (`TypeElevenDr14InProgressTest`,
+`TypeElevenDr15LateLibraryAnswerTest`; `git diff -- src/main/` empty), which is the *same shape of
+change* as the 2026-08-10 occurrence — two new type-package classes shifting full-suite ordering. Two
+of three occurrences now share that shape, so "adding unrelated test classes changes the odds" is no
+longer a single observation.
+
+It is also the second time this defect has surfaced while gating a change that could not possibly
+cause it, which is its real cost: every occurrence forces a judgement call about whether a red gate is
+a regression, and that judgement is exactly what a flaky test destroys.
+
 ## Fix direction (if it recurs)
 
 Reproduce first — run the suite with a fixed seed / ordering until it fails, then bisect the
