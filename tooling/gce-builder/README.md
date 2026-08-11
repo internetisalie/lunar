@@ -150,16 +150,41 @@ retained cache disk.
 Re-creating the VM is required — `--image-family` is read only at `create` — but the **cache disk
 persists** across `delete`, so the warm Gradle cache survives.
 
-### Verification status
+### Verification status — demonstrated
 
-The image bump, the environment and the guard are verified (above). The confirming
-`test -PwithCorpus` run **on the GCE backend** was in flight when this was written — the
-`BaselineRatchetTest`-vs-`LuaCorpusSweepTest` distinction matters here: the comparator that reads the
-recorded baselines is `LuaCorpusSweepTest.sweepAndRatchet` → `CorpusGuards.assertRatchet`, and
-`-PwithCorpus` adds exactly three classes (`LuaCorpusSweepTest`, `LuaTortureCorpusTest`,
-`LuaInspectionParityTest`). Reference green on the **libvirt** builder at `69ad6b57`: 2 571 tests,
-0 failures. Until the GCE figure is recorded here, treat GCE sweep capability as *expected to work,
-not yet demonstrated*.
+**The GCE backend runs the corpus sweep.** On `3e6e44f9` (2026-08-11), on a freshly created
+debian-13 instance:
+
+```bash
+GCE_BUILDER_BACKEND=gce tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"
+```
+
+`BUILD SUCCESSFUL in 32m 39s` — **2 573 tests, 0 failures, 0 errors**, 1 skipped, across 407 result
+XMLs. The three `-PwithCorpus`-only classes all ran: `LuaCorpusSweepTest` 4/0, `LuaTortureCorpusTest`
+1/0, `LuaInspectionParityTest` 1/0 (plus `BaselineRatchetTest` 35/0, `LexerInvariantsTest` 8/0 and
+`ParseOracleTest` 14/0, which run in the routine loop too). Environment on that instance:
+trixie, glibc 2.41, 8 vCPU, 31 GiB.
+
+Two things had to be checked rather than assumed, and both are the reason a bare "BUILD SUCCESSFUL"
+is not the evidence:
+
+- **`--rerun` does not clear `build/test-results/test/`**, so an XML being present proves nothing.
+  The three classes were confirmed by **mtime** (all `11:05`, against a run that ended `11:05` UTC).
+- **`BaselineRatchetTest` is not the comparator.** It ratchets synthetic `CorpusMetrics` against a
+  JUnit `TemporaryFolder` and runs regardless of `-PwithCorpus`. The comparator that reads the
+  recorded baselines is `LuaCorpusSweepTest.sweepAndRatchet` → `CorpusGuards.assertRatchet`.
+
+Reference green on the **libvirt** builder at `69ad6b57`: 2 571 tests, 0 failures. The +2 delta is
+tests added between the two commits, not a coverage difference between backends — the per-class
+corpus figures are identical.
+
+> **Editing this script while a `run` is in flight corrupts the running shell.** The confirming sweep
+> ended with `gce-builder.sh: line 206: syntax error near unexpected token ')'` *after* the build had
+> already succeeded. Both commits above landed (06:40, 06:43) while that run, started 06:32, still
+> held the file open: bash reads a script lazily by byte offset, the file grew 31 lines underneath
+> it, and the next top-level read landed mid-`case`. `bash -n` passes on the result. Harmless here,
+> but it means a trailing syntax error from a long `run` should be read as "the script was edited",
+> not as a defect in it.
 
 ## Files
 - `config.sh` — parameters (project, zone, machine, disks), env-overridable.
