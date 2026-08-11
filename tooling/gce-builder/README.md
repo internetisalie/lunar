@@ -79,10 +79,11 @@ gcloud billing budgets create --billing-account=<ID> --display-name="lunar-build
   --budget-amount=10USD --threshold-rule=percent=0.5 --threshold-rule=percent=0.9
 ```
 
-## The corpus sweep does not run on the `gce` backend (measured 2026-08-10)
+## The corpus sweep and the pinned `luac` oracles (glibc)
 
-`run "test -PwithCorpus …"` fails on the GCE VM with all four `LuaCorpusSweepTest` cases,
-`LuaTortureCorpusTest` and five `ParseOracleTest` cases red — and **none of it is a regression**:
+**Fixed 2026-08-10 by booting `debian-13`.** Previously the GCE VM booted `debian-12` and every
+`-PwithCorpus` run died with all four `LuaCorpusSweepTest` cases, `LuaTortureCorpusTest` and five
+`ParseOracleTest` cases red — none of it a regression:
 
 ```
 java.lang.IllegalStateException: The LUA51 oracle rejected valid Lua
@@ -90,17 +91,57 @@ java.lang.IllegalStateException: The LUA51 oracle rejected valid Lua
  version `GLIBC_2.38' not found (required by …/test/luac/5.1.5/luac)))
 ```
 
-The pinned `luac` binaries in the out-of-repo `test/luac/` tree are built by
-`tooling/corpus/fetch-luac.py` on whichever host ran it — in practice the libvirt `debian13` builder
-(glibc 2.38) — and the GCE VM boots `debian-12` (glibc 2.36), so every `luac` invocation dies on the
-dynamic loader. `ParseOracle.assertDiscriminates` then refuses to be used as ground truth and aborts
-the sweep, which is the guard behaving correctly.
+### The rule, which is not "use debian-13"
 
-**Consequence: the two backends are not interchangeable for the sweep.** Route `-PwithCorpus` to the
-libvirt builder; if it is down, either rebuild the binaries on the GCE VM (`fetch-luac.py`, ~2 min
-per release) or record that the sweep was not run rather than reading the red as a regression. The
-routine loop (`test` without `-PwithCorpus`) is unaffected — `ParseOracleTest` is excluded there by
-`-PexcludeExternalFixtureTests` in CI and simply passes on a host whose binaries match.
+`tooling/corpus/fetch-luac.py` **builds** the pinned oracles on whichever host runs it and caches
+them in the out-of-repo `test/luac/<version>/` tree; `gce-builder.sh sync` then ships those binaries
+verbatim (`rsync -aL`, dereferencing the `test` symlink). So they carry the **building** host's glibc
+symbol versions, and the invariant is:
+
+> the builder's runtime glibc must be **&ge;** the highest `GLIBC_x.y` symbol the oracles require.
+
+Measured 2026-08-10 — `objdump -T test/luac/*/luac | grep GLIBC_ | sort -V | tail -1`:
+
+| | glibc | oracles (need 2.38) |
+| :-- | :-- | :-- |
+| dev workstation (Ubuntu) | 2.43 | ok |
+| libvirt `debian13` | 2.41 | ok |
+| GCE `debian-13` (trixie) | 2.41 | **ok — this change** |
+| GCE `debian-12` (bookworm) | 2.36 | **fails** |
+
+Pinning the image is therefore the *symptom's* fix, not the rule's: rebuild the oracles on a newer
+machine and even trixie could fall behind. `BOOT_IMAGE_FAMILY` in `config.sh` is what to raise.
+
+### Automated guard
+
+`sync` runs `check_luac_glibc`, which `objdump`s the oracles for their highest requirement, compares
+it to the builder's `ldd --version`, and **warns** (does not fail) with both remedies. Warn, not die,
+because the routine loop excludes the corpus classes — a mismatch only matters for `-PwithCorpus`.
+
+Without it the failure reads as *"the oracle rejected valid Lua"*, two steps removed from a dynamic
+loader error, and looks exactly like a parser regression.
+
+### Bootstrap changes needed for debian-13
+
+**None.** `startup-script.sh` was already distro-agnostic: `lua5.4`, `lua-socket`, `fontconfig`,
+`fonts-dejavu-core` and `build-essential` all resolve on trixie, Corretto 21 is a tarball, and the
+`systemctl reload ssh || reload sshd` fallback already covered the unit rename. Verified on the fresh
+VM: trixie, glibc 2.41, JDK 21.0.12, `require("socket")` ok, 8 fonts, `/opt/cache` remounted from the
+retained cache disk.
+
+Re-creating the VM is required — `--image-family` is read only at `create` — but the **cache disk
+persists** across `delete`, so the warm Gradle cache survives.
+
+### Verification status
+
+The image bump, the environment and the guard are verified (above). The confirming
+`test -PwithCorpus` run **on the GCE backend** was in flight when this was written — the
+`BaselineRatchetTest`-vs-`LuaCorpusSweepTest` distinction matters here: the comparator that reads the
+recorded baselines is `LuaCorpusSweepTest.sweepAndRatchet` → `CorpusGuards.assertRatchet`, and
+`-PwithCorpus` adds exactly three classes (`LuaCorpusSweepTest`, `LuaTortureCorpusTest`,
+`LuaInspectionParityTest`). Reference green on the **libvirt** builder at `69ad6b57`: 2 571 tests,
+0 failures. Until the GCE figure is recorded here, treat GCE sweep capability as *expected to work,
+not yet demonstrated*.
 
 ## Files
 - `config.sh` — parameters (project, zone, machine, disks), env-overridable.

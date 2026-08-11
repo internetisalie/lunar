@@ -101,6 +101,29 @@ cmd_create() {
   die "Bootstrap did not finish in time; check: ./gce-builder.sh shell  then  sudo cat /var/log/lunar-bootstrap.log"
 }
 
+# Compares the highest GLIBC_x.y symbol the pinned luac oracles require against the builder's
+# runtime glibc. Warns rather than dies: `run test` (the routine loop) excludes the corpus classes,
+# so a mismatch only matters for `test -PwithCorpus`.
+check_luac_glibc() {
+  local ip="$1" ssh_t="$2"
+  local luac_dir="$REPO_ROOT/test/luac"
+  [ -d "$luac_dir" ] || return 0
+  command -v objdump >/dev/null 2>&1 || return 0
+  local needed
+  needed="$(objdump -T "$luac_dir"/*/luac 2>/dev/null \
+    | grep -o 'GLIBC_[0-9]\+\.[0-9]\+' | sed 's/GLIBC_//' | sort -V | tail -1)"
+  [ -n "$needed" ] || return 0
+  local have
+  have="$($ssh_t "$REMOTE_USER@$ip" "ldd --version | head -1 | grep -o '[0-9]\+\.[0-9]\+$'" 2>/dev/null)"
+  [ -n "$have" ] || return 0
+  if [ "$(printf '%s\n%s\n' "$needed" "$have" | sort -V | tail -1)" != "$have" ]; then
+    log "WARNING: pinned luac oracles need glibc >= $needed but this builder has $have."
+    log "         `test -PwithCorpus` will fail with \"the oracle rejected valid Lua\" (a GLIBC link"
+    log "         error, not a parser regression). Fix: boot a newer image (see BOOT_IMAGE_FAMILY in"
+    log "         config.sh) or rebuild the oracles on this host with tooling/corpus/fetch-luac.py."
+  fi
+}
+
 cmd_sync() {
   instance_exists || die "No instance; run: ./gce-builder.sh create"
   local ip; ip="$(external_ip)"
@@ -124,6 +147,12 @@ cmd_sync() {
     rsync -aLz --delete -e "$ssh_t" \
       "$REPO_ROOT/test/" "$REMOTE_USER@$ip:$REMOTE_DIR/test/"
   fi
+  # PREFLIGHT: the pinned `luac` oracles in test/luac/ are BUILT by tooling/corpus/fetch-luac.py on
+  # whichever host ran it and then shipped here verbatim, so they carry that host's glibc symbol
+  # versions. If the builder's glibc is older, every corpus sweep case dies with a `GLIBC_x.yz not
+  # found` link error that surfaces as "the oracle rejected valid Lua" — a diagnosis two steps
+  # removed from the cause. Fail loudly here instead. Non-fatal: only the sweep needs the oracles.
+  check_luac_glibc "$ip" "$ssh_t"
   # The debug-harness test execs ~/bin/lua; ensure it points at the bootstrap-installed lua5.4.
   ssh_exec --command "command -v lua5.4 >/dev/null && { mkdir -p ~/bin; ln -sf \$(command -v lua5.4) ~/bin/lua; }" >/dev/null 2>&1 || true
   log "Sync done."
