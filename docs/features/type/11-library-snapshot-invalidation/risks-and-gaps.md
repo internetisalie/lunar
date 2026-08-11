@@ -283,6 +283,8 @@ same over-claim this ledger exists to prevent:
 | `TypeElevenGenerationSignalTest` (a) — TC-2a | `generationTracker()` → `ModificationTracker.NEVER_CHANGED` | **RED expected.** |
 | `TypeElevenGenerationSignalTest` (c) — TC-3 | drop `targetTracker` from the **pinnable** branch of §3.3 step 9 only | **RED expected.** |
 | `TypeElevenPinnableCostTest` — TC-15, all 11 pinnable | any rule that pins nothing | **Expected `11`.** The `guarded=11` figure it replaces came from deleted scaffold and is not re-runnable from the tree. |
+| `TypeElevenGenerationSignalTest` (e) — TC-2c, the wiring | `generationTracker()` → `NEVER_CHANGED`, **or** the churn object omitted from `Result.create` | **RED expected on `A !== B`.** The second mutation is the one no other case catches. |
+| `TypeElevenDr18ModuleAbsenceTest` — TC-20 | §3 without §3.1 step 5d | **RED expected** — the frame is empty, the file is pinned, and `require("mymod")` stays `ANY` after the module appears (§1.12). |
 | `LuaTypeSourceRecorderCoverageTest` — TC-17, two files, five members | inject one `findFile(` call site | **RED expected.** The counts are measured; the shipped assertion is not yet written. |
 
 For completeness, the two full-suite runs the ledger is anchored to:
@@ -444,13 +446,17 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   provisioned tree comes through a roots change" as safe by construction without testing it. Definition
   libraries are the *demonstrated* win (the 123 KiB `wx` tree), so excluding them is not an option and
   the premise has to be tested instead.
-- **Likelihood**: **low in practice, and the reason is worth stating rather than assuming.** The
-  fetcher writes to a version-stamped directory, so an upgrade normally *adds* a root and ticks. The
-  exposure is same-version re-fetch, manual edits, and any future in-place refresh.
-- **Mitigation**: none yet — **DR-17**. Decide between (a) accepting it with the same "out of scope,
-  documented" treatment rocks get, (b) adding the definition-library cache root to a content-level
-  signal, or (c) stamping the fetch so a re-fetch always changes the root. Do not pick without
-  measuring whether the case is reachable through the shipped fetcher.
+- **Likelihood**: **very low, and now traced rather than guessed.** `LuaDefinitionLibraryFetcher.kt:79`
+  short-circuits — `if (isCached(entry)) return cacheDir(entry)` — **before** `source.fetch`, so a
+  same-version re-fetch writes nothing; `cacheDir` is `<id>-<version>` with the upstream SHA as the
+  version (`:47`), so a re-pin *adds* a root and ticks; and `LuaDefinitionLibraryEnabler.kt:97` is the
+  only caller of `ensureCached`, with no delete-and-refetch path anywhere in `src/main/`. **In-place
+  replacement is unreachable through shipped code.** The residue is a user hand-editing the shared
+  `<system>/lunar/definitions/` tree.
+- **Mitigation**: **accepted and documented**, the same treatment rocks get — the trace above answers
+  the reachability question a de-risking task was going to ask. DR-17 is reduced to a note: if a
+  delete-and-refetch or in-place "update library" path is ever added, this risk becomes live and needs
+  a content-level signal or a fetch stamp at that point.
 - **Not covered by `TypeElevenGenerationSignalTest`**, contrary to an earlier claim here: none of
   TC-2a/2b/3/4 edits library *content*.
 
@@ -585,7 +591,8 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 | TYPE-11-DR-14 | Step 9 blocker V1: is the `LuaTypesVisitor.inProgressSnapshot` early return ever served for a file **other** than the one that directly re-entered itself, and does that ship a stale type? | `design.md` §3.7, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. Reachable and measured: `TYPE11-DR14 inProgress hit file=…/outer.lua depth=5`; `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.1 step 5c + §3.3 step 6 (report, do not replay — the served snapshot is mid-build). Measured cost **zero** pinned files (`b14=11`). |
 | TYPE-11-DR-15 | Step 9 blocker V2: does a global resolution that **succeeded** via the all-scope fallback get pinned, and is it then out-ranked by a project declaration it never re-judges? | `design.md` §3.1/§3.3, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. `expected:<[afterProject]> but was:<[beforeEdit]>`. Closed by §3.1 step 5b + §3.3 step 7. Two variants priced together; `dr15rescued` adopted over `dr15broad` — identical cost (`11`) on every fixture, and the broader one only duplicates the B1 absence rule. |
 | TYPE-11-DR-16 | Is there a **sixth** under-recording channel? Every review round so far has found one more (absence, warm inner, in-progress inner, rescued global), which makes "the list is closed" the weaker prior. Enumerate the memoized doors and early returns systematically rather than waiting for the next review. **Two grounded candidates already**: (a) **`resolveModule` has V2's shape and V2's fix does not cover it** — `resolveModuleCandidates` (`lang/path/LuaModuleFileResolver.kt:26-49`) yields **project source-path** candidates before index-found ones and `doResolveModule` takes the first that types, so a module answered by a library today can be out-ranked by a project file created later, and `reportRescuedGlobal` is scoped to `resolveGlobal` only; (b) `resolveModule` has **no dumb-mode guard** at all (only `:84` and `:141` do), so §3.4's "a dumb build records zero sources" is false for any library file containing `require` — see §1.9 B5, where the general claim is already flagged as narrower than it reads | Risk 1.1, TYPE-11-06 | todo |
-| TYPE-11-DR-17 | Is Risk 1.1b reachable through the shipped fetcher? Replace a definition library's content in place under its existing `<id>-<version>` root, with a pinned snapshot already built, and see whether anything ticks. If it is reachable, pick between accepting it as documented scope, a content-level signal, or a fetch stamp that always changes the root | Risk 1.1b, TYPE-11-02 | todo |
+| TYPE-11-DR-18 | Price the module-absence rule (§3.1 step 5d, §1.12) in the same `REVIEW-COST` form every other absence rule was priced in: how many of the 11 provisioned files lose their pin when `resolveModule`'s `ANY` fall-through records an absence? Expected **zero** — nothing shipped `require`s — but expected is not measured, and this is the one rule adopted on correctness alone | §1.12, TYPE-11-06 | todo, Phase 2 |
+| TYPE-11-DR-17 | ~~Is Risk 1.1b reachable through the shipped fetcher?~~ **Answered by tracing, not by a spike: it is not** — `isCached` short-circuits before `fetch`, `cacheDir` is `<id>-<version>`, and no delete-and-refetch path exists. Reduced to a standing note on Risk 1.1b: re-open if such a path is ever added. Kept as a row so the reasoning is not rediscovered. Was: is Risk 1.1b reachable through the shipped fetcher? Replace a definition library's content in place under its existing `<id>-<version>` root, with a pinned snapshot already built, and see whether anything ticks. If it is reachable, pick between accepting it as documented scope, a content-level signal, or a fetch stamp that always changes the root | Risk 1.1b, TYPE-11-02 | todo |
 
 ## Test Case Gaps
 

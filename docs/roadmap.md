@@ -74,7 +74,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-428 | A `nil` arm from `and`/`or` is reported as a certain nil instead of optionality | todo | S | — | — | ✓ |
 | BUG-430 | `a.b.c = v` makes `c` a member of `a` and leaves `a.b` empty; the two enumeration doors disagree | todo | **L** | — | found by COMP-09 DR-09. **Root cause grounded 2026-08-08 and it is engine-scale** — an exact table literal does not accrete later member writes; needs a plan-feature pass with corpus measurement, not a bug fix | ✓ |
-| TYPE-11 | A library's type snapshot is discarded by any keystroke — `forFile` depends on project-wide `MODIFICATION_COUNT` | todo | M | — | **blocks COMP-09**; measured 9 ms vs 334 ms for the same 2-line file without/with a 123 KiB library (DR-20) | ✓ |
+| TYPE-11 | A library's type snapshot is discarded by any keystroke — `forFile` depends on project-wide `MODIFICATION_COUNT` | **planned** | M | — | **blocks COMP-09**; measured 9 ms vs 334 ms for the same 2-line file without/with a 123 KiB library (DR-20) | ✓ — **planning complete 2026-08-11** after five Step 9 rounds; five under-recording channels found and closed, `status: planned`, Phase 1 ready |
 | COMP-09 | Member enumeration — "members of X" from an index, not a key scan or file walk; a latency gate and a work bound | **blocked** | M | **TYPE-11** | **PARKED at Phase 1** — Phase 2 aborted: the change site is nearly dead *and* downstream of the cost. Index built, tested, consumed by nothing. Surfaced BUG-430/431/432 + TYPE-11 | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*

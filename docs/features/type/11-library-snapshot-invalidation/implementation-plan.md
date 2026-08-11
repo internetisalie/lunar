@@ -87,6 +87,13 @@ are already committed and green on `main`. They must stay green at the end of ev
         stored and replays), a cache hit on a stored null, and the reentrancy guard. Do **not** do
         this for `resolveType`/`resolveModule`: measured, that costs `io.lua` its pin for
         `resolveType("boolean|nil")`-shaped misses and buys nothing (design §1.8).
+  - [ ] In `resolveModule`, call `LuaTypeSourceRecorder.reportAbsence("module:$moduleName")` on the
+        two paths that yield `LuaPrimitiveType.ANY` — `doResolveModule` falling through when no
+        candidate types (`LuaTypeManagerImpl.kt:213-219`) and the reentrancy guard (`:116-118`) —
+        §3.1 step 5d, §1.12. `ANY` is **non-null**, so without this a library file whose `require`
+        resolves to nothing records an empty frame and is pinned. **Price it in the same run
+        (DR-18)**: report the `REVIEW-COST` line with and without, as every other absence rule here
+        was priced. Zero lost pins is expected, not established.
   - [ ] In `doResolveGlobal`, call `LuaTypeSourceRecorder.reportRescuedGlobal("global:$name")` when
         the **project-scope** pass returns null and the all-scope fallback then answers (§3.1 step 5b,
         §1.10 V2). Not when both answer null — step 5 already covers that, and the broader variant was
@@ -138,6 +145,13 @@ are already committed and green on `main`. They must stay green at the end of ev
         `propertyChanged(PROP_ROOTS)` and `canAffectPsi` admits it, so every roots tick is also a
         `MODIFICATION_COUNT` tick (design §1.11). Two earlier forms of this case died that way; holding
         PSI still does not help, because the roots tick *is* the PSI event.
+        **(e) TC-2c — the wiring, and the case that must not be dropped again.** In the TC-2a fixture:
+        take instance `A`, announce a roots change, take `B`, then edit an unrelated project file and
+        take `C`. Assert `A !== B` **and** `B === C`. ⚠ `A !== B` alone is green on `main`; the pair is
+        what gates. ⚠ **This is the only assertion that `forFile` passes the churn object into
+        `Result.create` at all** — a pinnable branch that omits it, with `churnDependencyFor` correct,
+        passes every other case in this plan and ships every library snapshot stale on any roots change
+        (design §1.11).
         **(b) TC-2b — the production chain**, closing Gap 2.3: seed both trees with **L1 alone enabled**,
         call `LuaSettingsChangeListener.getInstance(project)` **first**, then
         `LuaDefinitionLibraryEnabler.apply(listOf(L1, L2))` — a list that **differs** from the stored
@@ -214,6 +228,10 @@ are already committed and green on `main`. They must stay green at the end of ev
         **Stated mutation: inject one `PsiManager.getInstance(project).findFile(…)`** → `.findFile(`
         must go `2 → 3` and fail. Second check, to prove the guard is not fooled by formatting alone:
         re-wrapping an existing `StubIndex.getElements(` across lines must leave the count at `3`.
+  - [ ] Add `TypeElevenDr18ModuleAbsenceTest` — TC-20, TYPE-11-06's fifth channel. Library
+        `mu.lua` = `muAlias = require("mymod")` with **nothing providing `mymod`** (assert
+        `resolveModuleCandidates` is empty first), read it, then create the module and assert the type
+        follows, roots tracker still. Red under §3 without step 5d (design §1.12).
   - [ ] Add a library-`require`s-a-project-module case to `TypeElevenDr01ResidualTest` — closes the
         first item under `risks-and-gaps.md` "Test Case Gaps".
 - **Exit criteria**:

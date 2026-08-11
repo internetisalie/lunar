@@ -2,7 +2,7 @@
 id: "TYPE-11"
 title: "11: A library file's type snapshot must not be invalidated by an unrelated keystroke"
 type: "feature"
-status: "todo"
+status: "planned"
 priority: "high"
 parent_id: "TYPE"
 folders:
@@ -93,7 +93,7 @@ included, stays on the global tracker. Three reasons:
 | TYPE-11-03 | **Library-file identification is by provenance** | M | The library set comes from what this plugin provisioned (`RuntimeLibraryProvider` / the definition-library registry), matched by `VirtualFile` identity against the file `resolveGlobal` actually resolved. Not `ProjectFileIndex.isInLibrary` — unverified for `SyntheticLibrary` roots, and unnecessary once provenance answers the question. |
 | TYPE-11-04 | **No new stale-type defect** | M | The edit-then-reread fixtures (`TypeElevenDr01ResidualTest`, and for TYPE-11-06's two shapes `TypeElevenDr11LateDeclarationTest` / `TypeElevenDr12WarmInnerSnapshotTest`) stay green. **Measured (TYPE-11-DR-09): "all four corpus baselines unmoved and the full suite green" is not a test of this** — both hold under a build that serves stale types. They stay as "nothing else moved" checks. |
 | TYPE-11-05 | **A dumb-mode build is never cached across the generation** | M | `resolveGlobal` answers `null` while indexing; a snapshot built then has those nulls baked in and must not outlive dumb mode. Either skip caching while `DumbService.isDumb`, or add the dumb-mode tracker as a dependency. Without this, TYPE-11 *creates* a staleness class that today's per-keystroke invalidation accidentally heals. **The staleness itself does not reproduce** (design §1.6) — so this is gated on the *decision*, `isPinnable(libraryFile, SourceFrame()) == false` under dumb mode, which goes red when the guard is deleted (`TypeElevenDumbModeDecisionTest`, design §1.9). |
-| TYPE-11-06 | **An incomplete recording is never pinned** | M | The generalisation of TYPE-11-05, and the reason it is a requirement of its own: the recorder must distinguish **"no sources"** from **"sources unknown"**, and only the first may be pinned. A build during which a global resolution answered nothing, or during which a nested `forFile` was served from cache without contributing its own recorded sources, has not established that it is a pure function of provisioned content. Measured (design §1.8): both under-recordings ship a stale type under the rule as originally written, and closing them costs **zero** of the 11 files this feature pins. **Four channels, all measured**: an absence (B1), a warm inner snapshot (B4), an **in-progress** inner snapshot (V1) and a **rescued** global — one the project scope did not answer but the all-scope fallback did, which a later project declaration out-ranks (V2). Each was reproduced red and each fix costs **zero** of the 11 pinned files (§1.8, §1.10). Gated by `TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`, `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest`. |
+| TYPE-11-06 | **An incomplete recording is never pinned** | M | The generalisation of TYPE-11-05, and the reason it is a requirement of its own: the recorder must distinguish **"no sources"** from **"sources unknown"**, and only the first may be pinned. A build during which a global resolution answered nothing, or during which a nested `forFile` was served from cache without contributing its own recorded sources, has not established that it is a pure function of provisioned content. Measured (design §1.8): both under-recordings ship a stale type under the rule as originally written, and closing them costs **zero** of the 11 files this feature pins. **Four channels, all measured**: an absence (B1), a warm inner snapshot (B4), an **in-progress** inner snapshot (V1) and a **rescued** global — one the project scope did not answer but the all-scope fallback did, which a later project declaration out-ranks (V2). Each was reproduced red and each fix costs **zero** of the 11 pinned files (§1.8, §1.10). A **fifth** channel — `resolveModule`'s `ANY` fall-through, which records nothing when a `require` resolves to nothing (design §1.12) — is closed on correctness with its cost owed as DR-18. Gated by `TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`, `TypeElevenDr14InProgressTest`, `TypeElevenDr15LateLibraryAnswerTest` and `TypeElevenDr18ModuleAbsenceTest`. |
 
 ## The residual that may defeat the whole approach
 
@@ -286,6 +286,36 @@ a defect, which is the recurring shape here (see also §1.9 B3/B5).
 - **§3.5's "exhaustive" was exhaustive for one class**, not for the codebase; `seedAmbientGlobals` is
   the counter-example. Harmless today (it reads only the provisioned runtime root) and corrected
   because the premise, not the site, is what scoped the guard.
+
+### Rounds five and six (2026-08-11) — the loop's own yield, and where it stopped
+
+Five Step 9 rounds ran. The **rule** has not changed since V1/V2; every round after that found defects
+in the machinery meant to prove the rule, and two of them found defects introduced while fixing the
+previous round's. That is worth recording as a result about this process, not just about this feature.
+
+The last round's three findings, all closed:
+
+- **A fifth under-recording channel (§1.12).** `resolveModule` falls through to `LuaPrimitiveType.ANY`
+  when nothing provides a module, consuming no file — so a library file whose `require` resolves to
+  nothing records an empty frame and is pinned. B1 one door over. The step-5 absence restriction had
+  been priced against `resolveType` only; `resolveModule` was never asked. Closed by step 5d, with its
+  cost **owed** (DR-18) rather than assumed — it is the one rule here adopted on correctness alone.
+- **§1.11's conclusion was wrong, and it had deleted a gate.** "A roots tick is also a PSI tick" is
+  true and traced; "therefore the outcome cannot gate" does not follow, because a **pinned** value has
+  no `MODIFICATION_COUNT` dependency — that is what the pin removes. Under the mutation the pinned
+  snapshot genuinely does not rebuild, so the assertion is red. Removing it left TYPE-11-02 testing the
+  ingredient and never the wiring: a build with a correct `churnDependencyFor` whose pinnable branch
+  simply omits the churn object from `Result.create` passed **every** gate and would ship every library
+  snapshot stale on any roots change. Restored as TC-2c.
+- **Risk 1.1b shrank on tracing.** `isCached` short-circuits before `fetch`, `cacheDir` is
+  `<id>-<version>`, and no delete-and-refetch path exists — in-place replacement is unreachable through
+  shipped code. Accepted and documented rather than de-risked.
+
+**Status moves to `planned` here.** The remaining open items are tracked de-risking tasks with owners
+and phases (DR-06, DR-07, DR-08, DR-16, DR-17, DR-18) and a pending-mutation table that names every
+assertion still owing an observed red. None of them blocks starting Phase 1, and the honest reason to
+stop reviewing is that the last two rounds found no defect in the design — an implementer running code
+will now find things faster than a sixth reading will.
 
 ## Relationship to COMP-09
 
