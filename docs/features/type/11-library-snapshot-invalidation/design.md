@@ -825,10 +825,16 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
 - **Threading**: read action (unchanged; callers already hold one).
 - **Collaborators**: `LuaTypeSourceRecorder`, `LuaLibraryProvenance`, `DumbService`.
 - **Key API**: `forFile`'s signature is unchanged — `fun forFile(file: PsiFile): LuaTypes` — and one
-  companion member is added:
+  companion members are added:
   ```kotlin
   internal fun isPinnable(psiFile: PsiFile, frame: LuaTypeSourceRecorder.SourceFrame): Boolean
+  internal fun churnDependencyFor(psiFile: PsiFile, frame: LuaTypeSourceRecorder.SourceFrame): Any
   ```
+  Both live in `LuaTypesSnapshot`'s companion, beside `forFile`, which is `churnDependencyFor`'s only
+  caller; `isPinnable` is called only by `churnDependencyFor` (§3.3 steps 1–8 and step 9). The `Any`
+  return is not laziness: `PsiModificationTracker.MODIFICATION_COUNT` is a `Key` sentinel the platform
+  special-cases, not a `ModificationTracker`, so the two branches have no common supertype narrower
+  than `Any`.
   §3.3 steps 1–8, with step 9 as its only production caller. `internal` rather than `private`
   deliberately: the Kotlin test source set is a friend module, so a test can call it directly (the
   same seam `LuaCheckInvoker.classify` and `LuaShellExecOptionsCustomizer.prependInReverse` already
@@ -1161,7 +1167,7 @@ that says so.
     stating rather than banking, namely that none of the bundled stubs or the definition library
     reference another library file's global at all, so none of them reaches the interleaving. The
     rule is free on what ships; it is not evidence the rule is free in general.
-- **Complexity / bounds**: one map lookup per nested warm hit; the replay is three set unions.
+- **Complexity / bounds**: one map lookup per nested warm hit; the replay is five set unions.
 
 ## 4. External Data & Parsing
 
@@ -1291,11 +1297,11 @@ Platform APIs used, all verified present by compiling the measurement build agai
 | Requirement | Priority | Implemented by (section) | Acceptance |
 | :-- | :-- | :-- | :-- |
 | TYPE-11-01 — a platform-library snapshot survives an unrelated edit | M | §2.2, §2.3, §3.2, §3.3 | `TypeElevenPinSurvivesUnrelatedEditTest` (plan Phase 3, TC-1) — snapshot **instance identity** across an unrelated project edit, which is red on `main` today and red again if the pin is reverted. `TypeElevenDr04LatencyTest` (TC-1b) is a **printing probe with no assertions** and is not this requirement's gate; §1.5. |
-| TYPE-11-02 — every generation signal invalidates it | M | §3.2 step 1, §3.3 step 9, §5 example 3 | `TypeElevenGenerationSignalTest` (plan Phase 3): (a) TC-2 drives the **production** enable path with the library left enabled — the earlier "empty the list" form could not go red (§8.1 TC-2); (b) TC-3 with its mutation stated as dropping `targetTracker` from the *pinnable* branch, since it is unconditional today; (c) an unrelated project edit does not tick roots. |
+| TYPE-11-02 — every generation signal invalidates it | M | §3.2 step 1, §3.3 step 9, §5 example 3 | `TypeElevenGenerationSignalTest` (plan Phase 3), four cases: **(a) TC-2a** — `churnDependencyFor(libraryFile, frame)` **is** `ProjectRootModificationTracker.getInstance(project)` by identity, for a file the same run asserts pinnable. **This is the only non-confounded gate for this requirement**: every outcome form is green on `main` because a roots tick is also a `MODIFICATION_COUNT` tick (§1.11). **(b) TC-2b** — the production enable path advances that tracker (closes Gap 2.3). **(c) TC-3** — target tick via `state.setTarget`. **(d) TC-4** — a project edit does not tick roots; regression check, not a gate. |
 | TYPE-11-03 — identification is by provenance | M | §3.2 | `LuaLibraryProvenanceTest` (plan **Phase 1**) is the gate — the same five assertions pointed at the production service. ⚠ `TypeElevenDr02ProvenanceTest` is **de-risking, not acceptance**: its predicate is defined inside the test file and matches by `VfsUtilCore.isAncestor`, where §3.2 specifies URL-prefix — so every ledger mutation for those five rows mutated a **replica**, and no defect in `LuaLibraryProvenance` can turn them red. Phase 1 must also re-run each mutation against the real service. |
 | TYPE-11-04 — no new stale-type defect | M | §3.1, §3.3, §3.5, §3.6 | `TypeElevenDr01ResidualTest` (3 tests). **It is the only gate.** Measured (TYPE-11-DR-09): under the rejected blanket-pin build the full suite *and* all four corpus baselines pass — `2571 tests completed, 2 failed`, both of them these fixtures. The suite and the sweep show that nothing *else* moved; neither can detect this defect class, because it needs an edit after a snapshot is built and the sweep is a single pass (`risks-and-gaps.md` → "DR-09 measured"). |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | §3.4 | `TypeElevenDumbModeDecisionTest` (plan Phase 3) — asserts the **decision**, `isPinnable(libraryFile, SourceFrame()) == false` under dumb mode, mutation-red when §3.3 step 1 is deleted (§1.9 B5). The **outcome** does not reproduce and `TypeElevenDr05DumbModeTest` remains explicitly not a gate (§1.6); whether the stamp move is platform behaviour is still `risks-and-gaps.md` DR-06. |
-| TYPE-11-06 — an incomplete recording is never pinned | M | §3.1 steps 5–5b–6, §3.3 steps 4–7, §3.6, §3.7 | Four channels, each measured red under §3 without its guard and green with it: `TypeElevenDr11LateDeclarationTest` (absence, §1.8 B1), `TypeElevenDr12WarmInnerSnapshotTest` (warm inner, §1.8 B4), `TypeElevenDr14InProgressTest` (in-progress inner, §1.10 V1), `TypeElevenDr15LateLibraryAnswerTest` (rescued global, §1.10 V2). |
+| TYPE-11-06 — an incomplete recording is never pinned | M | §3.1 steps 5, 5b, 5c and 6, §3.3 steps 4–7, §3.6, §3.7 | Four channels, each measured red under §3 without its guard and green with it: `TypeElevenDr11LateDeclarationTest` (absence, §1.8 B1), `TypeElevenDr12WarmInnerSnapshotTest` (warm inner, §1.8 B4), `TypeElevenDr14InProgressTest` (in-progress inner, §1.10 V1), `TypeElevenDr15LateLibraryAnswerTest` (rescued global, §1.10 V2). |
 
 ### 8.1 Acceptance cases, as input → output
 
@@ -1348,4 +1354,4 @@ cases, every one of which is already an executable fixture. Paths are relative t
 
 ## 10. Open Questions
 
-_None — every unresolved item is a tracked de-risking task in `risks-and-gaps.md` (DR-06, DR-07, DR-08)._
+_None — every unresolved item is a tracked de-risking task in `risks-and-gaps.md` (DR-06, DR-07, DR-08, DR-16, DR-17)._

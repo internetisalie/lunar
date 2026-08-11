@@ -50,7 +50,9 @@ are already committed and green on `main`. They must stay green at the end of ev
         real service** and append the observed reds to the ledger; a row that is not re-earned here
         is not evidence for this requirement. Include TC-6 in the `PsiFile`-overload form (§8.1) —
         there is no `VirtualFile` overload and `copy.virtualFile` is null.
-- **Exit criteria**: full suite green with the same count as `main`; `LuaLibraryProvenanceTest` green;
+- **Exit criteria**: full suite green, with **every test that existed on `main` still passing** —
+  the count necessarily rises by this phase's new class, so "same count as `main`" (the earlier
+  wording) was unsatisfiable by a phase whose own task list adds one; `LuaLibraryProvenanceTest` green;
   each of its assertions shown red by the mutation named for it in `risks-and-gaps.md`'s ledger.
 
 ### Phase 2: Report from the type manager [Must]
@@ -176,13 +178,20 @@ are already committed and green on `main`. They must stay green at the end of ev
   - [ ] Add `TypeElevenDumbModeDecisionTest` — covers TYPE-11-05, TC-16. **Three** assertions on the
         TC-12 fixture: (a) inside dumb mode `isPinnable(delta.lua, SourceFrame())` is `false`; (b)
         inside dumb mode the frame a real `forFile(delta.lua)` registers is present (`assertNotNull`
-        first) and empty; (c) **outside** dumb mode the same file's frame is **non-empty**, containing
-        `deltaSource.lua`. ⚠ **(c) is what makes (b) mean anything**: "every set empty" passes under a
-        completely inert recorder — a Phase-1 recorder wired to nothing with all six §3.5 `reportFile`
-        calls omitted satisfies it. (b) alone separates "the provider ran" from "it did not"; only
-        (b)+(c) separate "dumb mode records nothing" from "nothing is ever recorded". ⚠ Assert the
-        default target explicitly: (b)'s emptiness depends on `global.lua` being absent, which is true
-        for `lua-5.4` and not for every target.
+        first) and empty; (c) a **different** library file `epsilon.lua` (`libSmart = sharedByLibrary`),
+        built **only** in smart mode, whose frame is **non-empty**.
+        ⚠ **(c) must not reuse `delta.lua`.** `snapshotFrames` is keyed on the snapshot instance and
+        nothing between (b) and (c) invalidates it, so a same-file (c) reads (b)'s dumb, empty frame
+        and is **red against a correct implementation** — its outcome decided by the unresolved
+        dumb-exit `modificationStamp` question (design §1.6, Gap 2.1) rather than by the recorder.
+        ⚠ **(c) is what makes (b) mean anything**: "every set empty" passes under a completely inert
+        recorder — a Phase-1 recorder wired to nothing with all six §3.5 `reportFile` calls omitted
+        satisfies it. (b) alone separates "the provider ran" from "it did not"; only (b)+(c) separate
+        "dumb mode records nothing" from "nothing is ever recorded".
+        ⚠ (b)'s emptiness does **not** depend on the target: `seedAmbientGlobals` has no `reportFile`
+        site in §3.5 under any target, so `global.lua` contributes nothing anywhere. An earlier draft
+        of this bullet demanded a default-target assertion, which guarded a mechanism that does not
+        exist.
         **Stated mutation: delete §3.3 step 1** → the first assertion must go red (an empty frame on a
         provisioned file clears steps 2–7, so step 1 is the sole rejector). This is the gate §1.6
         said did not exist; `TypeElevenDr05DumbModeTest` stays a recorder and is not a gate.
