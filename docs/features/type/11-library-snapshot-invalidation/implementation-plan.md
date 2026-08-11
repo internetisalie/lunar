@@ -127,14 +127,15 @@ are already committed and green on `main`. They must stay green at the end of ev
   - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02, TC-2a/2b/3/4. Four cases, and the
         split between (a) and (b) is deliberate: one asserts a tick moves the pin, the other asserts
         the production chain produces a tick. Merged, the test fails for two unrelated reasons.
-        **(a) TC-2a — seed BOTH library trees during setup** with only L1 enabled, assert
-        `isPinnable(L1/wx.lua, …)` is `true`, take instance `A`, then flip **only** the enabled list
-        and announce roots, take `B`, assert `A !== B`. ⚠ Seeding L2 late makes this green on `main`:
-        writing files fires `PsiTreeChangeEvent`s which tick `MODIFICATION_COUNT`, `forFile`'s churn
-        dependency today. ⚠ The `isPinnable` precondition is required — without it an unpinnable file
-        gives `A !== B` for the ordinary reason. ⚠ `TypeElevenDefinitionLibraryTestCase.installDefinitionLibrary`
-        **replaces** the enabled list (`mutableListOf(id)`) and calls `announceRootsChange()`, so it
-        cannot express this case as-is — a two-library seeding helper has to be added first.
+        **(a) TC-2a — assert the decision, not the outcome.** Build `forFile(wx.lua)` for an installed,
+        enabled library, read its frame from `snapshotFrames`, assert `isPinnable` is `true`, and assert
+        `churnDependencyFor(wx.lua, frame)` **is** `ProjectRootModificationTracker.getInstance(project)`
+        by identity. Mutations, both red: `generationTracker()` → `NEVER_CHANGED`, and step 9 → always
+        `MODIFICATION_COUNT`. ⚠ **Do not write the outcome form.** "Tick roots, assert the snapshot
+        rebuilt" is green on `main`, under any rule, and with the pin deleted: `makeRootsChange` fires
+        `propertyChanged(PROP_ROOTS)` and `canAffectPsi` admits it, so every roots tick is also a
+        `MODIFICATION_COUNT` tick (design §1.11). Two earlier forms of this case died that way; holding
+        PSI still does not help, because the roots tick *is* the PSI event.
         **(b) TC-2b — the production chain**, closing Gap 2.3: seed both trees with **L1 alone enabled**,
         call `LuaSettingsChangeListener.getInstance(project)` **first**, then
         `LuaDefinitionLibraryEnabler.apply(listOf(L1, L2))` — a list that **differs** from the stored
@@ -149,8 +150,12 @@ are already committed and green on `main`. They must stay green at the end of ev
         red against a *correct* implementation. `LuaSettingsNotificationTest.kt:47` forces it for the
         same reason. `apply()` on an unseeded tree would attempt a network fetch.
         **(c) TC-3** — pin a **definition-library** file (target-independent root; a
-        `runtime/standard/lua-5.4/*` file stops being provisioned when the target moves), `setTarget`,
-        assert the instance changed. Mutation: drop `targetTracker` from the **pinnable** branch only.
+        `runtime/standard/lua-5.4/*` file stops being provisioned when the target moves), tick the
+        target via **`LuaProjectSettings.getInstance(project).state.setTarget(...)`**, assert the
+        instance changed. Mutation: drop `targetTracker` from the **pinnable** branch only.
+        ⚠ **Not `setTargetAndNotify`**, despite its KDoc telling production callers to prefer it: it
+        also publishes → `PlatformLibraryIndex.reload()` → `makeRootsChange`, invalidating through the
+        **roots** tracker regardless of `targetTracker`, so the mutation could not fire.
         **(d) TC-4** — a project edit does not tick roots. Cheap regression check, **explicitly not a
         gate**: it is a platform fact no TYPE-11 defect can change and `rewriteAssertingRootsAreStill`
         already asserts it on every edit.

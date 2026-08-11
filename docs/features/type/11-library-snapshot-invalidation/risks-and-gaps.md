@@ -429,12 +429,41 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   (c) the over-approximation rule in §3.5 (report every file *visited*, not every file *used*) means a
   new site added inside an existing loop is likely already covered.
 
+### Risk 1.1b: A definition library's content replaced **in place** ticks nothing
+
+- **Impact**: a pinned library file keeps its old types indefinitely. Same silent-stale-type shape as
+  Risk 1.1, reached without any missing `reportFile` — every site correctly wired and the file still
+  goes stale.
+- **How.** The roots tracker ticks on a change to the root **set**. A definition library re-fetched or
+  edited into its existing `<id>-<version>` cache directory (`LuaDefinitionLibraryFetcher.cachedRoot`,
+  consumed at `LuaDefinitionLibraryProvider.kt:55`) leaves that set unchanged. VFS/PSI events fire and
+  tick `MODIFICATION_COUNT` — which is exactly the dependency a pinned file no longer has.
+- **This is the rocks hazard, applied to a tree that v1 does *not* exclude.** `requirements.md` excludes
+  LuaRocks partly because "the root set does not change, so the roots tracker does not tick". The same
+  sentence is true of an in-place definition-library change, and the plan treated "any change to a
+  provisioned tree comes through a roots change" as safe by construction without testing it. Definition
+  libraries are the *demonstrated* win (the 123 KiB `wx` tree), so excluding them is not an option and
+  the premise has to be tested instead.
+- **Likelihood**: **low in practice, and the reason is worth stating rather than assuming.** The
+  fetcher writes to a version-stamped directory, so an upgrade normally *adds* a root and ticks. The
+  exposure is same-version re-fetch, manual edits, and any future in-place refresh.
+- **Mitigation**: none yet — **DR-17**. Decide between (a) accepting it with the same "out of scope,
+  documented" treatment rocks get, (b) adding the definition-library cache root to a content-level
+  signal, or (c) stamping the fetch so a re-fetch always changes the root. Do not pick without
+  measuring whether the case is reachable through the shipped fetcher.
+- **Not covered by `TypeElevenGenerationSignalTest`**, contrary to an earlier claim here: none of
+  TC-2a/2b/3/4 edits library *content*.
+
 ### Risk 1.2: `sourceCache` and the type caches drift apart
 
 - **Impact**: a replayed source set that describes a different answer than the cached type — either a
   lost pin (harmless) or a missing source (stale type).
-- **Likelihood**: **low.** They share one `PsiModificationTracker` dependency and are written in the
-  same statement.
+- **Likelihood**: **low, but not for the reason this row used to give.** "Written in the same
+  statement" is false under the specified design: the frame is written by `recordUnder` and the type by
+  `.also { cache[name] = it }` (`LuaTypeManagerImpl.kt:145`), and `design.md` §3.6's own drift paragraph
+  describes them coming apart. What keeps it low is the shared `PsiModificationTracker` dependency plus
+  the §3.6 drift check, which converts a drift into a lost pin rather than a stale type. Co-locating the
+  frame in the three caches (§9) would make this risk structurally impossible and delete this row.
 - **Mitigation**: §3.6 requires `sourceCache` to be built with the identical `createCachedValue`
   shape as the three existing caches. Any future change to one cache's invalidation must change all
   four; implementation-plan Phase 1 puts them adjacent in the file so the coupling is visible.
@@ -500,7 +529,7 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
   `LuaDefinitionLibraryEnabler.apply` must pump the EDT or it observes nothing and passes for the
   wrong reason — the precise failure this gap exists to prevent.
 - **Options / leaning**: cover it in implementation-plan Phase 3 with
-  `TypeElevenGenerationSignalTest` case (a), driving `LuaDefinitionLibraryEnabler.apply` rather than
+  `TypeElevenGenerationSignalTest` case **(b)** — case (a) drives the decision and does not touch the enabler — driving `LuaDefinitionLibraryEnabler.apply` rather than
   the fixture helper, and in human-verification Scenarios 3.1/3.2.
 - **Resolved by**: implementation-plan Phase 3; until then this is the single largest
   read-not-run claim in the plan.
@@ -556,6 +585,7 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 | TYPE-11-DR-14 | Step 9 blocker V1: is the `LuaTypesVisitor.inProgressSnapshot` early return ever served for a file **other** than the one that directly re-entered itself, and does that ship a stale type? | `design.md` §3.7, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. Reachable and measured: `TYPE11-DR14 inProgress hit file=…/outer.lua depth=5`; `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.1 step 5c + §3.3 step 6 (report, do not replay — the served snapshot is mid-build). Measured cost **zero** pinned files (`b14=11`). |
 | TYPE-11-DR-15 | Step 9 blocker V2: does a global resolution that **succeeded** via the all-scope fallback get pinned, and is it then out-ranked by a project declaration it never re-judges? | `design.md` §3.1/§3.3, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. `expected:<[afterProject]> but was:<[beforeEdit]>`. Closed by §3.1 step 5b + §3.3 step 7. Two variants priced together; `dr15rescued` adopted over `dr15broad` — identical cost (`11`) on every fixture, and the broader one only duplicates the B1 absence rule. |
 | TYPE-11-DR-16 | Is there a **sixth** under-recording channel? Every review round so far has found one more (absence, warm inner, in-progress inner, rescued global), which makes "the list is closed" the weaker prior. Enumerate the memoized doors and early returns systematically rather than waiting for the next review. **Two grounded candidates already**: (a) **`resolveModule` has V2's shape and V2's fix does not cover it** — `resolveModuleCandidates` (`lang/path/LuaModuleFileResolver.kt:26-49`) yields **project source-path** candidates before index-found ones and `doResolveModule` takes the first that types, so a module answered by a library today can be out-ranked by a project file created later, and `reportRescuedGlobal` is scoped to `resolveGlobal` only; (b) `resolveModule` has **no dumb-mode guard** at all (only `:84` and `:141` do), so §3.4's "a dumb build records zero sources" is false for any library file containing `require` — see §1.9 B5, where the general claim is already flagged as narrower than it reads | Risk 1.1, TYPE-11-06 | todo |
+| TYPE-11-DR-17 | Is Risk 1.1b reachable through the shipped fetcher? Replace a definition library's content in place under its existing `<id>-<version>` root, with a pinned snapshot already built, and see whether anything ticks. If it is reachable, pick between accepting it as documented scope, a content-level signal, or a fetch stamp that always changes the root | Risk 1.1b, TYPE-11-02 | todo |
 
 ## Test Case Gaps
 
@@ -572,7 +602,7 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 - **No fixture asserts the pinnable *count*.** The value of the feature and the correctness of the
   rule pull in opposite directions, and only counting distinguishes "closed the hole" from "pinned
   nothing". The third round counted with a scaffold (`guarded=11`); nothing committed does. Phase 3
-  should add it alongside `LuaTypeSourceRecorderCoverageTest`.
+  should add it as its own live-fixture class `TypeElevenPinnableCostTest` (**not** alongside `LuaTypeSourceRecorderCoverageTest`, which reads text and cannot build fixtures — `design.md` TC-15).
 - **No multi-project test.** `LuaLibraryProvenance` is per project and the definition cache is per
   **user**; two projects enabling the same library share one tree. Untested here.
 
