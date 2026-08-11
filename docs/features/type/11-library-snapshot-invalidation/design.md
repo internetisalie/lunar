@@ -826,13 +826,21 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
       // Collections.synchronizedMap(WeakHashMap()) — see Threading above.
       val snapshotFrames: MutableMap<LuaTypes, SourceFrame>
 
-      /** Stands in for a URL that could not be determined, so an incompleteness mark can still be
-       *  made. Written ONLY by reportInProgressHit and reportWarmSnapshot's not-found branch, and
-       *  never into `urls` — §3.3 step 3 runs provenance over `urls` alone, so no sentinel is ever
-       *  handed to the provenance predicate. See §3.1 step 4 for why those two cannot no-op. */
+      /** Stands in for a URL that could not be determined, so a mark can still be made rather than
+       *  lost. See §3.1 step 4 for why none of the three may no-op.
+       *
+       *  ⚠ UNIDENTIFIED_CONSUMED **does** reach the provenance predicate, and that is deliberate.
+       *  §3.3 step 3 runs provenance over `urls` alone; `reportFile` writes `urls`, so a consumed
+       *  file whose URL is unknown lands there and `isProvisionedUrl` classifies it **unprovisioned**
+       *  (it matches no `jar://`/`file://` root prefix) — costing the file its pin. That is the safe
+       *  direction: an unconditional mark costs a lost pin, an exemption costs a WRONG pin, i.e. a
+       *  stale type with no second chance. An earlier draft of this block asserted the opposite
+       *  ("never into `urls` … no sentinel is ever handed to the provenance predicate"), which was
+       *  true only while `reportFile` still carried the `?: return` that DR-19 measured and dropped. */
       private const val UNIDENTIFIED_SOURCE = "unidentified:"          // + a per-door discriminator
       private const val UNIDENTIFIED_IN_PROGRESS = UNIDENTIFIED_SOURCE + "in-progress-hit"
       private const val UNIDENTIFIED_WARM = UNIDENTIFIED_SOURCE + "warm-snapshot"
+      private const val UNIDENTIFIED_CONSUMED = UNIDENTIFIED_SOURCE + "consumed-file"
 
       fun <T> recording(body: () -> T): Pair<T, SourceFrame>
       fun report(urls: Collection<String>)
@@ -1266,6 +1274,14 @@ that says so.
     than a stale type. It remains **reasoned, not run**: it has no fixture and no ledger row, and Phase
     2 owes it one or must delete it rather than ship an unexercised branch. Cheap, and it converts an
     unprovable invariant into a conservative verdict.
+  - ⚠ **Invariant, currently implicit and unasserted: every path that stores a `null` answer must
+    report the absence into the frame it stores.** Phase 2 dropped §3.6's cache-hit re-report because
+    under co-location the replay already carries it — verified: `recordInto` is the only path that
+    stores a `null` into `globalCache`, and its body reports the absence unconditionally; the
+    reentrancy guard reports without storing, and dumb mode does neither. So no "entry present,
+    answer null, absences empty" state exists **today**. Nothing enforces it: a future null-storing
+    path that forgets to report re-creates §1.8 B1 through the cache, silently. Phase 3 should assert
+    it directly rather than inherit it.
   - **The stored value is the whole frame.** A `resolveGlobal` that answered `null` recorded an
     absence; if replay carried only URLs, a cache hit on that null would replay as "no sources at
     all" and re-create B1 through the cache. ⚠ This bullet used to end "the cache-hit path therefore
