@@ -841,10 +841,13 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
       fun reportRescuedGlobal(key: String)
       fun reportInProgressHit(file: PsiFile)
       fun reportWarmSnapshot(file: PsiFile, served: LuaTypes)
-      /** §3.6 drift: a resolveX cache HIT whose stored frame is gone. String-keyed, because at a
-       *  cache hit there is neither a PsiFile nor a served LuaTypes — only "global:wx". Writes
-       *  `unreplayedWarm`, so §3.3 step 5 judges it like any other unreplayable hit. */
-      fun reportUnreplayableHit(key: String)
+      // ⚠ `fun reportUnreplayableHit(key: String)` was specified here and built in Phase 1, for the
+      // §3.6 drift state "type cached, frame gone". **Deleted in Phase 2**: that state exists only
+      // in the rejected parallel-`sourceCache` shape. With the frame co-located inside the cache
+      // entry (§9, §2.4) an answer cannot be read without its frame, so the branch that called this
+      // has no reachable input — and §3.6's own instruction was to give it a fixture or delete it
+      // rather than ship an unexercised branch. `unreplayedWarm` is still written, by
+      // `reportWarmSnapshot`'s not-found branch (§3.7 step 4).
       fun replay(frame: SourceFrame)
       fun depth(): Int
   }
@@ -904,18 +907,27 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
 
 - **Responsibility**: unchanged, plus reporting every cross-file consumption to §2.1.
 - **Threading**: unchanged.
-- **Key API**: no public signature changes. Two private helpers are added:
+- **Key API**: no public signature changes. **Built in Phase 2 as the co-located shape** — §9's
+  deferred option, taken because it lands cleanly:
   ```kotlin
-  private fun <T> recordUnder(key: String, body: () -> T): T
-  private fun replaySources(key: String)
-  ```
-  and one new field mirroring the existing caches exactly:
-  ```kotlin
-  private val sourceCache: CachedValue<MutableMap<String, LuaTypeSourceRecorder.SourceFrame>>
+  private data class CachedAnswer(val resolvedType: LuaType?, val sourceFrame: SourceFrame)
+  private val typeCache:   CachedValue<MutableMap<String, CachedAnswer>>   // was Map<String, LuaType?>
+  private val moduleCache: CachedValue<MutableMap<String, CachedAnswer>>
+  private val globalCache: CachedValue<MutableMap<String, CachedAnswer>>
+  private fun recordInto(cache: MutableMap<String, CachedAnswer>, key: String, body: () -> LuaType?): LuaType?
   ```
   The cached value is the **whole frame**, not just its URLs: an absence must replay too, or a
   memoized `resolveGlobal` that answered null replays as "no sources" and re-creates B1 through the
   cache (§3.6).
+
+  What this deletes against the parallel-map draft: the fourth `CachedValue` (`sourceCache`), the
+  `"type:" / "module:" / "global:"` **map-key** prefix scheme (§3.6 step 2 — those prefixes survive
+  on `SourceFrame`'s *members*, where §3.3 step 4's discrimination needs them), `replaySources`, the
+  drift check, `reportUnreplayableHit` (§2.1) and Risk 1.2. What it costs: the three caches' declared
+  types change, and `doResolveType`'s four `typeCache.value[name] = …` writes hoist into
+  `recordInto` so that an answer and its frame are written as one entry — each of the four stored the
+  value it was about to return under the same key, so the hoist is behaviour-preserving, and it
+  aligns that door with `resolveModule`/`resolveGlobal`, which already wrote through the local map.
 
 ## 3. Algorithms
 
@@ -929,8 +941,27 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
      frame.
   3. `report(urls)` adds every URL to **every** frame currently on the stack, not only the innermost.
      `reportAbsence` and the unreplayed-warm mark do the same, into their own sets.
-  4. `reportFile(file)` reads `file?.originalFile?.virtualFile?.url` and delegates to `report`;
-     a null at any step is a no-op. ⚠ **That grant is `reportFile`'s alone, and an earlier draft
+  4. `reportFile(file)` reads `file?.originalFile?.virtualFile?.url` and delegates to `report`,
+     recording the `UNIDENTIFIED_CONSUMED` sentinel when there is no URL.
+     ⚠⚠ **DR-19, SETTLED IN PHASE 2 — this step used to say "a null at any step is a no-op", and the
+     exemption is now dropped.** Everything below is the record of why it existed and what the
+     measurement said; the sub-bullets are retained unedited because the premise they name is the
+     thing that was tested. **The measurement**: with the six §3.5 sites wired, the full suite plus
+     all three corpus sweeps made **47 331** `reportFile` calls and produced **exactly one** null URL
+     — `LuaTypeSourceRecorderTest.fileWithNoUrl`'s own non-physical `createFileFromText` fixture
+     (`LuaFile|unidentified.lua|physical=false`). **Zero from a real call site.** So the premise is
+     true as far as this project can observe, *and* the price of no longer relying on it is zero: the
+     sentinel would never have been written. The exemption is dropped anyway, because the measurement
+     prices the *cost* but the *failure modes* are not symmetric — unconditional, an unnameable
+     source costs that file its pin, which is exactly today's behaviour; exempt, it costs a wrong
+     pin, which is a stale type the user sees, and §1.12 says a pin must be correct when it is taken.
+     A zero-cost move from "safe under a premise" to "safe without one" is worth taking.
+     `LuaTypeSourceRecorderTest.testReportFileWithNoUrlRecordsNothing` — which this step's own
+     sub-bullet named as cementing the exemption — is now
+     `testReportFileWithNoUrlMarksTheSourceUnidentified` and asserts the sentinel.
+     ⚠ One consequence, stated because §2.1 previously asserted its opposite: a sentinel **is** now
+     written into `urls` and handed to `isProvisionedUrl` by §3.3 step 3, which answers `false`. That
+     is the mechanism, not an accident of it. ⚠ **That grant is `reportFile`'s alone, and an earlier draft
      stated it in a place general enough to be read as covering every `report*` — which is how a
      `?: return` reached both conservative markers (review of `1be7cc0d`).** Step 5c and §3.7's
      not-found branch exist to make the frame **non-empty** so §3.3 steps 5 and 6 *reject* the pin;
@@ -1175,22 +1206,39 @@ that says so.
 
 - **Input → Output**: a door name + argument → the `SourceFrame` recorded when that answer was
   computed.
+- ⚠ **Built as the co-located shape (§9, §2.4), not the fourth cache this section first specified.**
+  Steps 1–2 below are the rejected draft and are kept because the rules under them were written
+  against it; steps 1′–2′ are what shipped in Phase 2. Everything from step 3 onward is unchanged in
+  substance.
 - **Steps**:
-  1. Add `sourceCache`, a `CachedValue<MutableMap<String, SourceFrame>>` built exactly like the three
-     existing caches (`CachedValuesManager.getManager(project).createCachedValue({ … }, false)` with
-     `PsiModificationTracker.getInstance(project)` as the sole dependency and a
-     `Collections.synchronizedMap`).
-  2. Key format: `"type:$name"`, `"module:$moduleName"`, `"global:$name"`. Three flat namespaces in
-     one map; the prefixes exist because the same string can be a class name and a global name.
+  1. ~~Add `sourceCache`, a `CachedValue<MutableMap<String, SourceFrame>>` built exactly like the
+     three existing caches~~ — **superseded.**
+  1′. Change the three existing caches' value type from `LuaType?` to
+     `CachedAnswer(resolvedType, sourceFrame)`. No new `CachedValue`, no new dependency, no new
+     `synchronizedMap`.
+  2. ~~Key format: `"type:$name"`, `"module:$moduleName"`, `"global:$name"` — three flat namespaces
+     in one map~~ — **superseded**: each door keeps its own map, so its own key, exactly as today.
+     The prefixes remain on the `SourceFrame` *members* (`absences`, `rescuedGlobals`), where §3.3
+     step 4 and §1.8's `misses=[type:boolean|nil] vs globalMisses=[]` discrimination need them.
   3. On a **miss**, wrap the `doResolveX` call in
-     `recordUnder(key) { … }`, which runs it inside `LuaTypeSourceRecorder.recording` and stores the
-     resulting set under `key`.
-  4. On a **hit**, call `replaySources(key)` **before** returning the cached type, which re-reports
-     the stored URLs into whatever frames are currently open.
+     `recordInto(cache, key) { … }`, which runs it inside `LuaTypeSourceRecorder.recording` and
+     stores the answer and the resulting frame as one entry under `key`. No replay into the caller is
+     needed on this path: `report*` writes to **every** open frame (§3.1 step 3), so anything the
+     body consumed already reached the outer frames on the way in.
+  4. On a **hit**, call `LuaTypeSourceRecorder.replay(entry.sourceFrame)` **before** returning the
+     cached type, which re-reports the stored frame into whatever frames are currently open.
 - **Rules / edge handling**:
   - Without step 4 the feature is unsound. `resolveGlobal("wx")` is memoized project-wide; the first
     snapshot build to ask pays and records, and every later build gets the type with no sources — so
     a library file that depends on a project global through a cache hit would be judged pinnable.
+  - ⚠ **The whole drift discussion below is about the rejected shape, and is retained as the record
+    of why the shape was rejected.** Under co-location the frame lives *inside* the cache entry, so
+    "type cached, frame gone" has no representation: whichever map instance a door's local points at,
+    the answer and its provenance were written and are read as one object. The check the paragraph
+    argues for — `reportUnreplayableHit` — was therefore **deleted in Phase 2** rather than given the
+    fixture this section demanded, which is the other branch of its own instruction ("Phase 2 owes it
+    one or must delete it rather than ship an unexercised branch"). The state, not the guard, is what
+    went away.
   - `sourceCache` shares the three existing caches' `PsiModificationTracker` dependency, so entries
     are discarded on the same tick as the types they describe. ⚠ **"They cannot drift apart" was too
     strong, and it is reasoned rather than run.** They are four *separate* `CachedValue`s read at
@@ -1220,8 +1268,14 @@ that says so.
     unprovable invariant into a conservative verdict.
   - **The stored value is the whole frame.** A `resolveGlobal` that answered `null` recorded an
     absence; if replay carried only URLs, a cache hit on that null would replay as "no sources at
-    all" and re-create B1 through the cache. The cache-hit path therefore reports the absence again
-    (§3.1 step 5) as well as replaying.
+    all" and re-create B1 through the cache. ⚠ This bullet used to end "the cache-hit path therefore
+    reports the absence again (§3.1 step 5) as well as replaying". **Phase 2 dropped the second
+    report.** Under co-location the entry cannot exist without its frame, so the direct report is
+    strictly redundant with the replay — and two sufficient mechanisms for one behaviour is the shape
+    the Phase 1 review rejected (`de60eb83`, "a conjunction attributes redness to neither member"):
+    with both present, neither can be shown by a mutation to carry the absence, so the belt-and-braces
+    would have bought an unassertable guard rather than safety. Kept as one mechanism, gated by
+    `LuaTypeManagerRecordingTest.testAMemoizedAbsenceReplaysAsAnAbsence`.
   - The early returns that precede each cache (a primitive in `resolveType`, the dumb-mode guard, the
     reentrancy guards) return before both the cache read and the record. The primitive and dumb-mode
     returns consume no file and stay as they are — dumb mode is covered by §3.4 instead. The
@@ -1453,7 +1507,7 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | Option | Why not |
 | :-- | :-- |
 | **Blanket pin every provisioned library file** (what `requirements.md` sketched) | Measured unsound: §1.1, two residual paths fire, `BUILD FAILED`. |
-| **Change the three existing caches' value type to `(LuaType?, SourceFrame)` instead of adding a fourth cache** | **Not rejected — deferred to Phase 2 as the preferred shape if it lands cleanly, and this row exists because Step 9 found the constraint had never been examined at all.** §2.4/§3.6 exist entirely to work around the three caches being memoized project-wide (`LuaTypeManagerImpl.kt:35-69`), and the only sentence about that constraint was "their `PsiModificationTracker` dependency is deliberately unchanged" — deliberately, with no *because*. Co-locating the frame with the type it describes **deletes**: the fourth `CachedValue`, the `sourceCache` **map key** prefix scheme (§3.6 step 2 — that key exists only because three namespaces were merged into one new map). ⚠ It does **not** delete the prefixes on `SourceFrame` members: §3.1 steps 5 and 5b record `"global:$name"` specifically, and §1.8's measured `misses=[type:boolean|nil, …]` vs `globalMisses=[]` is exactly the discrimination §3.3 step 4 depends on. That survives co-location untouched, and an earlier draft of this row claimed otherwise, the drift argument above, and Risk 1.2 in its entirety. It makes "the type and its sources are discarded together" structurally true rather than argued. The parallel-map shape was reused because the three caches already had it, which is precedent, not a reason. Cost: touching the three caches' declared types, which is a wider blast radius inside a hot file than adding one field beside them — that is the trade, and it is the implementer's call at Phase 2 with both shapes now written down. |
+| **Change the three existing caches' value type to `(LuaType?, SourceFrame)` instead of adding a fourth cache** | **TAKEN, Phase 2.** It landed cleanly: three declared types, one `private data class CachedAnswer`, one `recordInto` helper, and four `typeCache.value[name] = …` writes hoisted out of `doResolveType` into it (each stored the value it was about to return under the same key, so the hoist is behaviour-preserving — and it aligns that door with the other two, which already wrote through the local map). It deleted the fourth `CachedValue`, the map-key prefix scheme, `replaySources`, the drift check, `reportUnreplayableHit`, Risk 1.2, and — a consequence not foreseen in this row — the *second* absence report on `resolveGlobal`'s cache-hit path (§3.6), which co-location makes redundant with the replay and which, kept, would have been an unassertable conjunction. Corroboration that the wiring is faithful rather than merely green: the DR-18 probe reproduced the fourth round's scaffold figures exactly on the shipped code — `provisioned=11`, `io.lua urls=1`, everything else `urls=0`. The original deferral text follows. **Not rejected — deferred to Phase 2 as the preferred shape if it lands cleanly, and this row exists because Step 9 found the constraint had never been examined at all.** §2.4/§3.6 exist entirely to work around the three caches being memoized project-wide (`LuaTypeManagerImpl.kt:35-69`), and the only sentence about that constraint was "their `PsiModificationTracker` dependency is deliberately unchanged" — deliberately, with no *because*. Co-locating the frame with the type it describes **deletes**: the fourth `CachedValue`, the `sourceCache` **map key** prefix scheme (§3.6 step 2 — that key exists only because three namespaces were merged into one new map). ⚠ It does **not** delete the prefixes on `SourceFrame` members: §3.1 steps 5 and 5b record `"global:$name"` specifically, and §1.8's measured `misses=[type:boolean|nil, …]` vs `globalMisses=[]` is exactly the discrimination §3.3 step 4 depends on. That survives co-location untouched, and an earlier draft of this row claimed otherwise, the drift argument above, and Risk 1.2 in its entirety. It makes "the type and its sources are discarded together" structurally true rather than argued. The parallel-map shape was reused because the three caches already had it, which is precedent, not a reason. Cost: touching the three caches' declared types, which is a wider blast radius inside a hot file than adding one field beside them — that is the trade, and it is the implementer's call at Phase 2 with both shapes now written down. |
 | **Pin or scope the three type caches themselves** | **Rejected, and now for a stated reason.** `globalCache` is keyed on the global *name* alone, with no scope or context (`LuaTypeManagerImpl.kt:139-149`), so it holds project-file-derived answers indiscriminately; moving it to a generation tracker would serve stale types to *project* consumers — the defect `TypeElevenDr01ResidualTest.testAProjectToProjectDependencyIsNeverPinned` already gates. Scoping it per context file does not help either: a scoped cache still cannot say *which* files an answer depended on, which is the entire question the recorder exists to answer. |
 | **Remove the constraint instead of surviving it: make a provisioned file's globals resolve in provisioned scope only, then blanket-pin** (no recorder, no source set, no conditional) | **Measured and rejected — §1.7.** `2571 tests completed, 2 failed`. It does not make blanket pinning sound: residual path 2 does not travel through `typeOfGlobalIn` at all but through `materializeClass` → `collectMethodMembers`, which queries `StubIndex.getAllKeys(…, project)` with no scope argument (`LuaTypeManagerImpl:427-432`), so `[afterEdit, beforeEdit]` is unchanged. And it is not free: residual path 1's library global stops resolving altogether (`[beforeEdit]` → `[]`), a user-visible resolution change outside this feature's remit. |
 | **Composite the generation tracker out of more signals** (roots + target + dumb + a rocks signal) | Does not touch the residual at all. The stale content comes from a *project* file whose change ticks none of those signals, however many are added. `requirements.md` says this itself. |

@@ -361,6 +361,80 @@ same over-claim this ledger exists to prevent:
 | `TypeElevenDr18ModuleAbsenceTest` — TC-20 | §3 without §3.1 step 5d | **RED expected** — the frame is empty, the file is pinned, and `require("mymod")` stays `ANY` after the module appears (§1.12). |
 | `LuaTypeSourceRecorderCoverageTest` — TC-17, two files, five members | inject one `findFile(` call site | **RED expected.** The counts are measured; the shipped assertion is not yet written. |
 
+### Phase 2 (2026-08-11) — the doors record what they consume
+
+Phase 2's task list carried **no** test, on the goal statement's reasoning that the phase is inert.
+Inert means *no behaviour moves*, not *nothing is claimable*: a frame can be opened here exactly as
+`forFile` will open one in Phase 3, so every §3.1/§3.5/§3.6 claim about what the type manager reports
+is assertable now. Every guard in this feature that shipped unasserted was later found unable to
+fail — four in Phase 1 alone — so the exit criterion was changed rather than the reasoning accepted.
+
+Gate command for every row: `run "test --tests '*LuaTypeManagerRecordingTest*' --rerun --no-build-cache"`
+(and `'*LuaTypeSourceRecorderTest*'` for the last row); the unmutated classes were **6 tests, 0
+failures** and **12 tests, 0 failures**. Results pasted from the JUnit XML of the run that produced
+them.
+
+| Assertion | Mutation applied | Result |
+| :-- | :-- | :-- |
+| `LuaTypeManagerRecordingTest.testResolvingAGlobalRecordsTheFileItWasReadFrom` (§3.5, `typeOfGlobalIn` row) | `.onEach { LuaTypeSourceRecorder.reportFile(it) }` deleted from `typeOfGlobalIn` | **RED, alone (1 of 6)** — `the declaring file must be a recorded source, but the frame holds []` |
+| `…testAGlobalNothingDeclaresIsRecordedAsAnAbsence` (§3.1 step 5 / §1.8 B1) | the `.also { if (it == null) reportAbsence("global:$name") }` deleted from `resolveGlobal`'s `recordInto` body | **RED (2 of 6)** — `expected:<[global:nothingDeclaresThisName]> but was:<[]>`, and `testAMemoizedAbsenceReplaysAsAnAbsence` with it, correctly: an absence never recorded cannot be replayed. |
+| `…testAGlobalOnlyALibraryAnswersIsRecordedAsRescued` (§3.1 step 5b / §1.10 V2) | the `?.also { reportRescuedGlobal("global:$name") }` deleted from `doResolveGlobal`'s all-scope fallback | **RED, alone (1 of 6)** — `expected:<[global:sharedByLibrary]> but was:<[]>`. The companion assertion (`absences` stays empty) is what makes this the V2 shape and not B1. |
+| `…testAModuleThatResolvesToNothingIsRecordedAsAnAbsence` (§3.1 step 5d / §1.12) | the `.also { reportAbsence("module:$moduleName") }` deleted from `doResolveModule`'s `ANY` fall-through | **RED, alone (1 of 6)** — `expected:<[module:nosuchmodulename]> but was:<[]>`. The test also asserts the answer **is** `LuaPrimitiveType.ANY`, which is why the absence is needed at all. |
+| `…testAMemoizedTypeReplaysItsSourcesIntoALaterBuild` (§3.6 step 4) | `LuaTypeSourceRecorder.replay(it.sourceFrame)` deleted from `resolveType`'s cache-hit branch | **RED, alone (1 of 6)** — `a cache hit must replay the sources of the answer it serves, but the frame holds []`. It failed *after* its `assertSame`, so the second call demonstrably was the memoized answer. |
+| `…testAMemoizedAbsenceReplaysAsAnAbsence` (§3.6, "the stored value is the whole frame") | `LuaTypeSourceRecorder.replay(it.sourceFrame)` deleted from `resolveGlobal`'s cache-hit branch | **RED, alone (1 of 6)** — `expected:<[global:nothingDeclaresThisEither]> but was:<[]>`. This red is also the proof that the second call was a **hit**: a recompute would have re-recorded the absence and stayed green. |
+| `LuaTypeSourceRecorderTest.testReportFileWithNoUrlMarksTheSourceUnidentified` (DR-19) | `reportFile`'s `?: return` restored — i.e. the shipped Phase 1 behaviour | **RED, alone (1 of 12)** — `a source that cannot be named is still a source, and one no provisioned root claims expected:<[unidentified:consumed-file]> but was:<[]>` |
+
+#### DR-18 — pricing the module-absence rule
+
+```
+DR-18 file=io.lua        urls=1 outside=[] moduleAbsences=[] otherAbsences=[] warm=0 inProgress=0 rescued=0
+DR-18 file=os.lua        urls=0 outside=[] moduleAbsences=[] otherAbsences=[] warm=0 inProgress=0 rescued=0
+   (…math, utf8, debug, table, string, builtin, package, coroutine, wx — all urls=0, every set empty)
+DR-18 REVIEW-COST TOTALS provisioned=11 withModuleRule=11 withoutModuleRule=11
+```
+
+**Zero of the 11 shipped files lose their pin.** Method, and it differs from the third and fourth
+rounds' in a way worth keeping: both columns come from **one** run rather than a source edit between
+runs, because absence keys carry the `"global:" / "module:"` prefix — the "without the rule" verdict
+is the same frame judged with `module:`-prefixed absences filtered out, so no mode string and no
+second build. The probe (`TypeElevenDr18ModuleAbsenceCostProbeTest`) enumerated the runtime root's 10
+bundled `lua-5.4` stubs plus the seeded definition library, opened a frame around
+`LuaTypesSnapshot.forFile` for each, and replicated §3.3 steps 2–7 locally because `isPinnable` does
+not exist until Phase 3. Run **isolated** (`--tests '*TypeElevenDr18*'`), per the fourth round's
+same-JVM contamination finding. **Scaffold: deleted after the measurement**, exactly as the third and
+fourth rounds' scaffolds were.
+
+⚠ Corroboration worth more than the number itself: `provisioned=11`, `io.lua urls=1`, all ten others
+`urls=0` reproduces the fourth round's `REVIEW-COST TOTALS provisioned=11 cond=11 …` and its stated
+detail ("`sources=0` for 10 of 11; `io.lua`'s one recorded source is itself, via `resolveType`")
+**exactly** — on the shipped recorder rather than on `LuaReviewScaffold`. The fourth round's figures
+were explicitly not re-runnable from the committed tree; they now are, in substance.
+
+#### DR-19 — running the premise, and dropping the exemption anyway
+
+Instrumentation: a counter on every `reportFile` call and on every null URL, plus the file's class,
+name and `isPhysical`, dumped by a shutdown hook per test-worker JVM. Run under
+`test -PwithCorpus --rerun --no-build-cache`, so the denominator is the full suite **plus** all three
+corpus sweeps over the pinned third-party trees. Reverted before commit.
+
+```
+TYPE11-DR19 calls=47331 nulls=1 kinds=[LuaFile|unidentified.lua|physical=false]
+```
+
+**47 331 calls, one null — and that one is `LuaTypeSourceRecorderTest.fileWithNoUrl`'s own
+non-physical `createFileFromText` fixture.** Zero from a real §3.5 call site, which is what the
+premise claims.
+
+The exemption was dropped anyway, and the reasoning is the part worth recording. The measurement
+prices the drop at **zero**: if no real site ever produces a null, no sentinel is ever written, so
+nothing loses a pin. What changes is the *failure mode* if a future site does produce one —
+unconditional, that file loses its pin, which is exactly today's behaviour; exempt, it takes a
+**wrong** pin, and a wrong pin is a stale type the user sees, with no second chance to revisit it
+(§1.12). Trading a premise for nothing is a trade worth making. `reportFile` now records
+`UNIDENTIFIED_CONSUMED` into `urls`, which §3.3 step 3 hands to `isProvisionedUrl` and which answers
+`false` — reversing §2.1's earlier claim that no sentinel would ever reach the provenance predicate,
+deliberately and with that claim corrected in place.
+
 For completeness, the two full-suite runs the ledger is anchored to:
 
 ```
@@ -411,6 +485,7 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
 | "Provenance must come from the plugin's own providers, not `ProjectFileIndex.isInLibrary`" | **Genuinely fixed, and re-confirmed.** The bundled root arrives over `jar://` inside the plugin jar; asking the platform's library index about that is a question with an unverified answer, and provenance never has to ask it. |
 | "Rocks trees are out of v1 scope" | **Chosen, not forced.** They are excluded because they are mutable in place and their refresh signal is unverified — a v1 that included them would need TYPE-11-DR-03 answered first. TYPE-11-DR-03 was deliberately **not run**. |
 | "`ProjectRootModificationTracker` is the right generation signal" | **Chosen, and half-executed.** Measured **not** to tick across a dumb-mode episode (`P2D before/inside/after dumb: roots=10` throughout) or across a document edit (`P2S before/after: rootsTracker=7`) — both are exactly what §3.3 relies on. That it **does** tick when a definition library is enabled is verified by **reading** the chain, not by running the production path: `LuaDefinitionLibraryEnabler.apply` → `setEnabledDefinitionLibrariesAndNotify` (**which early-returns if the enabled list is unchanged**, `LuaProjectSettings.kt:184-188`) → `notifyDefinitionRootsChanged` (`:199-205`) → `LuaSettingsChangedListener.TOPIC` → `LuaSettingsChangeListener.onSettingsChanged` (`project/LuaSettingsChangeListener.kt:36`) → `PlatformLibraryIndex.reload()` → `ProjectRootManagerEx.makeRootsChange` (`project/PlatformLibraryProvider.kt:149`). The TYPE-11 fixtures announce the roots change themselves, so they do **not** exercise that chain. See Gap 2.3. |
+| **"A `PsiFile` reached as a consumed source always has a non-null `originalFile.virtualFile`"** (`design.md` §3.1 step 4's named premise, DR-19) | **RUN, and true — then discarded as a dependency anyway, Phase 2.** With the six §3.5 sites wired, the full suite plus all three corpus sweeps made **47 331** `reportFile` calls and produced **one** null URL: `LuaTypeSourceRecorderTest.fileWithNoUrl`'s own non-physical `createFileFromText` fixture (`LuaFile\|unidentified.lua\|physical=false`). **Zero from a real call site.** So the premise holds as far as this project can observe. `reportFile`'s `?: return` was dropped regardless, because the same measurement prices the drop at **zero** — the sentinel is never written in practice — and the failure modes are not symmetric: unconditional, an unnameable source costs that file its pin (today's behaviour, no worse); exempt, it costs a *wrong* pin, which is a stale type the user sees, with no second chance (§1.12). A premise that costs nothing to stop relying on is one worth not relying on. |
 | **"`reportFile`'s `?: return` is safe because a missing URL only weakens §3.3 step 3"** (`design.md` §3.1 step 4, as written before this round) | **REFUTED as an argument, though probably true as a conclusion — DR-19.** It restates the mechanism instead of proving safety, and it is the shape F1 overturned: losing the **last** URL leaves `urls` empty, an empty `urls` clears step 3 **vacuously**, and on a provisioned file with the other four sets empty the file **is pinned**. So the governing rule ("whenever the loss of a mark yields a pin, the mark is unconditional") does **not** exempt `reportFile`; only the named premise does — *a `PsiFile` reached as a consumed source always has a non-null `originalFile.virtualFile`* — and that premise is **undischarged**, reasoned rather than run. `testReportFileWithNoUrlRecordsNothing` now locks the no-op in with a green test, so it is cemented until Phase 2 gates it or drops the exemption. The behaviour was **not** changed on reasoning alone: a sentinel in `urls` reaches `isProvisionedUrl` and costs every affected file its pin. |
 | "The `psiFile` dependency in `forFile` can stay as it is" | **Genuinely fixed, and load-bearing in a way not previously noticed.** It is what makes a file's own edit always rebuild its own snapshot regardless of the churn tracker (`CachedValueBase` reads `containingFile.modificationStamp` for a `PsiElement` dependency). Removing it would break the design silently. |
 | **"`doResolveGlobal` must keep searching project scope first (BUG-427), so the recorder has to over-approximate around it"** (`design.md` §3.5) | **REFUTED as the recorder's justification, by measurement — `design.md` §1.7.** The constraint *is* removable: a scaffold that sends a provisioned file's globals to a provisioned-only candidate set compiles and runs. Removing it does **not** make blanket pinning sound (`2571 tests completed, 2 failed`; residual path 2 still reports `[afterEdit, beforeEdit]`), because that path reaches the snapshot through `materializeClass` → `collectMethodMembers`, which queries `StubIndex.getAllKeys(LuaGlobalDeclarationIndex.KEY, project)` with **no scope argument at all** (`LuaTypeManagerImpl:427-432`). Removing it also costs real behaviour: residual path 1's library global stops resolving (`[beforeEdit]` → `[]`). The recorder stays; its stated *reason* was wrong, and §3.5 now says so. |
@@ -535,7 +610,16 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 - **Not covered by `TypeElevenGenerationSignalTest`**, contrary to an earlier claim here: none of
   TC-2a/2b/3/4 edits library *content*.
 
-### Risk 1.2: `sourceCache` and the type caches drift apart
+### Risk 1.2: `sourceCache` and the type caches drift apart — **CLOSED, Phase 2, by deletion**
+
+**There is no `sourceCache`.** Phase 2 took design §9's deferred co-location option: the three
+existing caches hold `CachedAnswer(resolvedType, sourceFrame)`, so the answer and its provenance are
+one object, written together and read together. The drift state this row describes has no
+representation, whichever map instance a door's local happens to point at. Deleted with it: the
+fourth `CachedValue`, the map-key prefix scheme, `replaySources`, the §3.6 drift check, and
+`reportUnreplayableHit` — whose only reachable input was the drift state, and which §3.6 itself said
+Phase 2 must give a fixture or delete rather than ship unexercised. The row below is the record of
+what was closed.
 
 - **Impact**: a replayed source set that describes a different answer than the cached type — either a
   lost pin (harmless) or a missing source (stale type).
@@ -666,8 +750,8 @@ sweep's role in TYPE-11-04 is only to show that nothing *else* moved.
 | TYPE-11-DR-14 | Step 9 blocker V1: is the `LuaTypesVisitor.inProgressSnapshot` early return ever served for a file **other** than the one that directly re-entered itself, and does that ship a stale type? | `design.md` §3.7, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. Reachable and measured: `TYPE11-DR14 inProgress hit file=…/outer.lua depth=5`; `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.1 step 5c + §3.3 step 6 (report, do not replay — the served snapshot is mid-build). Measured cost **zero** pinned files (`b14=11`). |
 | TYPE-11-DR-15 | Step 9 blocker V2: does a global resolution that **succeeded** via the all-scope fallback get pinned, and is it then out-ranked by a project declaration it never re-judges? | `design.md` §3.1/§3.3, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. `expected:<[afterProject]> but was:<[beforeEdit]>`. Closed by §3.1 step 5b + §3.3 step 7. Two variants priced together; `dr15rescued` adopted over `dr15broad` — identical cost (`11`) on every fixture, and the broader one only duplicates the B1 absence rule. |
 | TYPE-11-DR-16 | Is there a **sixth** under-recording channel? Every review round so far has found one more (absence, warm inner, in-progress inner, rescued global), which makes "the list is closed" the weaker prior. Enumerate the memoized doors and early returns systematically rather than waiting for the next review. **Two grounded candidates already**: (a) **`resolveModule` has V2's shape and V2's fix does not cover it** — `resolveModuleCandidates` (`lang/path/LuaModuleFileResolver.kt:26-49`) yields **project source-path** candidates before index-found ones and `doResolveModule` takes the first that types, so a module answered by a library today can be out-ranked by a project file created later, and `reportRescuedGlobal` is scoped to `resolveGlobal` only; (b) `resolveModule` has **no dumb-mode guard** at all (only `:84` and `:141` do), so §3.4's "a dumb build records zero sources" is false for any library file containing `require` — see §1.9 B5, where the general claim is already flagged as narrower than it reads | Risk 1.1, TYPE-11-06 | todo |
-| TYPE-11-DR-18 | Price the module-absence rule (§3.1 step 5d, §1.12) in the same `REVIEW-COST` form every other absence rule was priced in: how many of the 11 provisioned files lose their pin when `resolveModule`'s `ANY` fall-through records an absence? Expected **zero** — nothing shipped `require`s — but expected is not measured, and this is the one rule adopted on correctness alone | §1.12, TYPE-11-06 | todo, Phase 2 |
-| TYPE-11-DR-19 | **Discharge `reportFile`'s `?: return` premise, or drop the exemption.** §3.1 step 4 exempts `reportFile` from the governing rule ("whenever the loss of a mark yields a pin, the mark is unconditional") — but its loss *can* yield a pin: losing the **last** URL leaves `urls` empty, an empty `urls` clears §3.3 step 3 **vacuously**, and on a provisioned file with the other four sets empty every step clears and the file **is pinned** — the exact "empty because nothing was recorded, not because nothing was consumed" inversion §3.4 names. The mechanism argument the exemption previously rested on ("fewer URLs only weakens a test over the URLs that are present") is a **restatement, not a safety proof**, and is the same shape as the reasoning F1 overturned. What it actually needs is the named premise now written into §3.1 step 4: *a `PsiFile` reached as a consumed source always has a non-null `originalFile.virtualFile`* — every §3.5 site takes its file from `StubIndex` / `FileBasedIndex` / `PsiManager.findFile`, the `originalFile` hop already converts completion copies back, and a VFS-less PSI file (`DummyHolder`, non-physical `createFileFromText`) is neither index-reachable nor user-editable, so it cannot be a project dependency whose future content changes the answer. **Undischarged: reasoned, not run**, and `LuaTypeSourceRecorderTest.testReportFileWithNoUrlRecordsNothing` now *locks the no-op in with a green test*, so it is cemented until someone deliberately revisits it. **Phase 2 is the place**: it wires the six §3.5 `reportFile` sites, so it is the first point at which the premise can be gated (assert non-null at each site, or count nulls over the corpus) or the exemption dropped for a sixth `unidentifiedSources` set. ⚠ `reportFile`'s behaviour was deliberately **not** changed on this reasoning alone — flipping it unpriced repeats F1's error in the other direction, since a sentinel in `urls` reaches `isProvisionedUrl`, is classified unprovisioned, and costs every affected file its pin | `design.md` §3.1 step 4, §3.3 step 3, TYPE-11-06 | todo, Phase 2 |
+| TYPE-11-DR-18 | Price the module-absence rule (§3.1 step 5d, §1.12) in the same `REVIEW-COST` form every other absence rule was priced in: how many of the 11 provisioned files lose their pin when `resolveModule`'s `ANY` fall-through records an absence? Expected **zero** — nothing shipped `require`s — but expected is not measured, and this is the one rule adopted on correctness alone | §1.12, TYPE-11-06 | **DONE, Phase 2 (2026-08-11)** — `DR-18 REVIEW-COST TOTALS provisioned=11 withModuleRule=11 withoutModuleRule=11`. **Zero lost pins, measured.** Method below |
+| TYPE-11-DR-19 | **Discharge `reportFile`'s `?: return` premise, or drop the exemption.** §3.1 step 4 exempts `reportFile` from the governing rule ("whenever the loss of a mark yields a pin, the mark is unconditional") — but its loss *can* yield a pin: losing the **last** URL leaves `urls` empty, an empty `urls` clears §3.3 step 3 **vacuously**, and on a provisioned file with the other four sets empty every step clears and the file **is pinned** — the exact "empty because nothing was recorded, not because nothing was consumed" inversion §3.4 names. The mechanism argument the exemption previously rested on ("fewer URLs only weakens a test over the URLs that are present") is a **restatement, not a safety proof**, and is the same shape as the reasoning F1 overturned. What it actually needs is the named premise now written into §3.1 step 4: *a `PsiFile` reached as a consumed source always has a non-null `originalFile.virtualFile`* — every §3.5 site takes its file from `StubIndex` / `FileBasedIndex` / `PsiManager.findFile`, the `originalFile` hop already converts completion copies back, and a VFS-less PSI file (`DummyHolder`, non-physical `createFileFromText`) is neither index-reachable nor user-editable, so it cannot be a project dependency whose future content changes the answer. **Undischarged: reasoned, not run**, and `LuaTypeSourceRecorderTest.testReportFileWithNoUrlRecordsNothing` now *locks the no-op in with a green test*, so it is cemented until someone deliberately revisits it. **Phase 2 is the place**: it wires the six §3.5 `reportFile` sites, so it is the first point at which the premise can be gated (assert non-null at each site, or count nulls over the corpus) or the exemption dropped for a sixth `unidentifiedSources` set. ⚠ `reportFile`'s behaviour was deliberately **not** changed on this reasoning alone — flipping it unpriced repeats F1's error in the other direction, since a sentinel in `urls` reaches `isProvisionedUrl`, is classified unprovisioned, and costs every affected file its pin | `design.md` §3.1 step 4, §3.3 step 3, TYPE-11-06 | **DONE, Phase 2 (2026-08-11)** — premise **run** (47 331 calls, 1 null, and that one this suite's own non-physical fixture) and the exemption **dropped anyway**, at a measured cost of zero. Decision below |
 | TYPE-11-DR-17 | ~~Is Risk 1.1b reachable through the shipped fetcher?~~ **Answered by tracing, not by a spike: it is not** — `isCached` short-circuits before `fetch`, `cacheDir` is `<id>-<version>`, and no delete-and-refetch path exists. Reduced to a standing note on Risk 1.1b: re-open if such a path is ever added. Kept as a row so the reasoning is not rediscovered. Was: is Risk 1.1b reachable through the shipped fetcher? Replace a definition library's content in place under its existing `<id>-<version>` root, with a pinned snapshot already built, and see whether anything ticks. If it is reachable, pick between accepting it as documented scope, a content-level signal, or a fetch stamp that always changes the root | Risk 1.1b, TYPE-11-02 | todo |
 
 ## Test Case Gaps

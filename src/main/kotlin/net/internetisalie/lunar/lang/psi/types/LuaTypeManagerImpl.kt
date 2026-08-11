@@ -32,11 +32,31 @@ import org.jetbrains.annotations.VisibleForTesting
 class LuaTypeManagerImpl(
     private val project: Project,
 ) : LuaTypeManager {
-    private val typeCache: CachedValue<MutableMap<String, LuaType?>> =
+    /**
+     * TYPE-11 §2.4 / §3.6 — a memoized answer stored **together with** the provenance of the files
+     * that produced it.
+     *
+     * Design §9 offered two shapes for this: a fourth `CachedValue<Map<String, SourceFrame>>`
+     * alongside the three type caches, or co-location. Co-location is taken. The parallel map needed
+     * a `"type:" / "module:" / "global:"` key prefix scheme to merge three namespaces into one new
+     * map, and — because four `CachedValue`s are read at four different moments — a drift guard for
+     * the state "type cached, frame gone", which §3.6 shows is reachable single-threaded: the door
+     * reads `globalCache.value` into a local, a `PsiModificationTracker` tick lands, and the next
+     * `sourceCache.value` read recomputes to a fresh empty map. That state replays as "no sources",
+     * which is §3.6's own unsound case re-created through the cache. Here the frame travels *inside*
+     * the entry, so the state does not exist to guard: whichever map instance the local points at,
+     * an answer and its provenance were written and are read as one object.
+     */
+    private data class CachedAnswer(
+        val resolvedType: LuaType?,
+        val sourceFrame: LuaTypeSourceRecorder.SourceFrame,
+    )
+
+    private val typeCache: CachedValue<MutableMap<String, CachedAnswer>> =
         CachedValuesManager.getManager(project).createCachedValue(
             {
                 CachedValueProvider.Result.create(
-                    java.util.Collections.synchronizedMap(mutableMapOf<String, LuaType?>()),
+                    java.util.Collections.synchronizedMap(mutableMapOf<String, CachedAnswer>()),
                     PsiModificationTracker.getInstance(project),
                 )
             },
@@ -44,11 +64,11 @@ class LuaTypeManagerImpl(
             false,
         )
 
-    private val moduleCache: CachedValue<MutableMap<String, LuaType?>> =
+    private val moduleCache: CachedValue<MutableMap<String, CachedAnswer>> =
         CachedValuesManager.getManager(project).createCachedValue(
             {
                 CachedValueProvider.Result.create(
-                    java.util.Collections.synchronizedMap(mutableMapOf<String, LuaType?>()),
+                    java.util.Collections.synchronizedMap(mutableMapOf<String, CachedAnswer>()),
                     PsiModificationTracker.getInstance(project),
                 )
             },
@@ -56,17 +76,36 @@ class LuaTypeManagerImpl(
             false,
         )
 
-    private val globalCache: CachedValue<MutableMap<String, LuaType?>> =
+    private val globalCache: CachedValue<MutableMap<String, CachedAnswer>> =
         CachedValuesManager.getManager(project).createCachedValue(
             {
                 CachedValueProvider.Result.create(
-                    java.util.Collections.synchronizedMap(mutableMapOf<String, LuaType?>()),
+                    java.util.Collections.synchronizedMap(mutableMapOf<String, CachedAnswer>()),
                     PsiModificationTracker.getInstance(project),
                 )
             },
             // trackValue =
             false,
         )
+
+    /**
+     * Runs [body] with a fresh recording frame open and stores its answer beside the frame that
+     * produced it (design §3.6 step 3).
+     *
+     * No replay into the caller is needed here: [LuaTypeSourceRecorder.report] and its siblings
+     * write to **every** open frame, so anything [body] consumed already reached the outer frames
+     * on the way in (§3.1 step 3). The stored frame exists for the *next* caller, which will get
+     * the answer from the cache and never run [body] at all.
+     */
+    private fun recordInto(
+        answerCache: MutableMap<String, CachedAnswer>,
+        cacheKey: String,
+        body: () -> LuaType?,
+    ): LuaType? {
+        val (resolvedType, sourceFrame) = LuaTypeSourceRecorder.recording(body)
+        answerCache[cacheKey] = CachedAnswer(resolvedType, sourceFrame)
+        return resolvedType
+    }
 
     private val resolvingModules = ThreadLocal.withInitial { mutableSetOf<String>() }
     private val resolvingTypes = ThreadLocal.withInitial { mutableSetOf<String>() }
@@ -83,12 +122,15 @@ class LuaTypeManagerImpl(
         // resolved above this line because it needs no index at all.
         if (DumbService.isDumb(project)) return null
         val cache = typeCache.value
-        if (cache.containsKey(name)) return cache[name]
+        cache[name]?.let {
+            LuaTypeSourceRecorder.replay(it.sourceFrame)
+            return it.resolvedType
+        }
         if (name in resolvingTypes.get()) return null // Break reentrant cycles
 
         return try {
             resolvingTypes.get().add(name)
-            doResolveType(name, project)
+            recordInto(cache, name) { doResolveType(name, project) }
         } catch (e: ProcessCanceledException) {
             throw e
         } catch (e: IndexNotReadyException) {
@@ -110,16 +152,21 @@ class LuaTypeManagerImpl(
         context: PsiElement,
     ): LuaType? {
         val cache = moduleCache.value
-        if (cache.containsKey(moduleName)) return cache[moduleName]
+        cache[moduleName]?.let {
+            LuaTypeSourceRecorder.replay(it.sourceFrame)
+            return it.resolvedType
+        }
 
         val active = resolvingModules.get()
         if (!active.add(moduleName)) {
+            // §3.1 step 5d: ANY is non-null, so the caller embeds it and records nothing at all
+            // unless the absence is stated. A file that reaches this guard depends on a module the
+            // user can create later, and §3.3 has no second chance to revisit the pin (§1.12).
+            LuaTypeSourceRecorder.reportAbsence("module:$moduleName")
             return LuaPrimitiveType.ANY // Cycle detected
         }
         try {
-            val result = doResolveModule(moduleName, context)
-            cache[moduleName] = result
-            return result
+            return recordInto(cache, moduleName) { doResolveModule(moduleName, context) }
         } finally {
             active.remove(moduleName)
         }
@@ -140,10 +187,25 @@ class LuaTypeManagerImpl(
     ): LuaType? {
         if (DumbService.isDumb(project)) return null
         val cache = globalCache.value
-        if (cache.containsKey(name)) return cache[name]
-        if (!resolvingGlobals.get().add(name)) return null // Break reentrant cycles
+        // §3.6: the replay carries the absence, because the stored value is the whole frame. Design
+        // §3.6 also had this branch re-report the absence directly; co-location makes that
+        // redundant — an entry cannot exist without its frame — and two sufficient mechanisms are
+        // exactly the shape review rejected in Phase 1, since neither can then be shown to carry
+        // the behaviour (`LuaTypeManagerRecordingTest.testAMemoizedAbsenceReplaysAsAnAbsence`).
+        cache[name]?.let {
+            LuaTypeSourceRecorder.replay(it.sourceFrame)
+            return it.resolvedType
+        }
+        if (!resolvingGlobals.get().add(name)) {
+            LuaTypeSourceRecorder.reportAbsence("global:$name")
+            return null // Break reentrant cycles
+        }
         return try {
-            doResolveGlobal(name, context).also { cache[name] = it }
+            recordInto(cache, name) {
+                doResolveGlobal(name, context).also {
+                    if (it == null) LuaTypeSourceRecorder.reportAbsence("global:$name")
+                }
+            }
         } finally {
             resolvingGlobals.get().remove(name)
         }
@@ -159,8 +221,12 @@ class LuaTypeManagerImpl(
         // once bare `function assert(...)` declarations became indexable both files declare the
         // name, with nothing but index order deciding. Searching project scope first makes the
         // answer the one the user wrote; the fallback keeps stub-only globals resolvable.
-        return typeOfGlobalIn(GlobalSearchScope.projectScope(project), name, here)
-            ?: typeOfGlobalIn(GlobalSearchScope.allScope(project), name, here)
+        typeOfGlobalIn(GlobalSearchScope.projectScope(project), name, here)?.let { return it }
+        // §3.1 step 5b / §1.10 V2: the whole call succeeds, so §3.1 step 5's absence never fires —
+        // yet the answer is exactly the one a project declaration written later out-ranks, by the
+        // ordering above. Marked only when the fallback answers; when neither does, step 5 covers it.
+        return typeOfGlobalIn(GlobalSearchScope.allScope(project), name, here)
+            ?.also { LuaTypeSourceRecorder.reportRescuedGlobal("global:$name") }
     }
 
     private fun typeOfGlobalIn(
@@ -174,6 +240,10 @@ class LuaTypeManagerImpl(
             .asSequence()
             .mapNotNull { PsiManager.getInstance(project).findFile(it) as? LuaFile }
             .filter { it != exclude }
+            // §3.5: every file *visited*, not only the one that yields a type. A project file that
+            // declares the name without a useful type still decides the answer through the
+            // project-scope-first ordering (BUG-427), so its future content is a dependency.
+            .onEach { LuaTypeSourceRecorder.reportFile(it) }
             .firstNotNullOfOrNull { globalTypeIn(it, name) }
 
     /** The type [file] gives the global [name], or null if it declares it without a useful type. */
@@ -200,6 +270,8 @@ class LuaTypeManagerImpl(
         psiFile: LuaFile,
         context: PsiElement,
     ): LuaType? {
+        // §3.5, before the stub fast path: the stub is this file's content just as much as its AST.
+        LuaTypeSourceRecorder.reportFile(psiFile)
         psiFile.stub?.exportedTypeString?.let { return TypeParser.parse(it, context) }
 
         val snapshot = LuaTypesSnapshot.forFile(psiFile)
@@ -208,15 +280,21 @@ class LuaTypeManagerImpl(
         return snapshot.graphTypeToLuaType(graphType)
     }
 
-    // MAINT-30-03 (§2.5): resolution over the single canonical candidate sequence; the terminal keeps
-    // the "skip a found-but-untyped file, try the next pattern" semantic via firstNotNullOfOrNull.
+    /**
+     * MAINT-30-03 (§2.5): resolution over the single canonical candidate sequence; the terminal keeps
+     * the "skip a found-but-untyped file, try the next pattern" semantic via `firstNotNullOfOrNull`.
+     *
+     * TYPE-11: the `?:` arm is §3.1 step 5d / §1.12 — B1 in the module door. `ANY` is non-null, so a
+     * library whose `require("mymod")` resolves to nothing would otherwise record an empty frame and
+     * be pinned; creating `mymod.lua` afterwards never reaches it.
+     */
     private fun doResolveModule(
         moduleName: String,
         context: PsiElement,
     ): LuaType =
         resolveModuleCandidates(project, moduleName)
             .firstNotNullOfOrNull { getModuleType(it, context) }
-            ?: LuaPrimitiveType.ANY
+            ?: LuaPrimitiveType.ANY.also { LuaTypeSourceRecorder.reportAbsence("module:$moduleName") }
 
     /**
      * BUG-399: searched under [GlobalSearchScope.allScope], not `projectScope`.
@@ -227,6 +305,12 @@ class LuaTypeManagerImpl(
      * only observable with a real registered library root: inside a light fixture's own project
      * everything is in project scope, which is why the unit tests for BUG-395 and BUG-398 passed
      * while the live IDE showed nothing.
+     *
+     * TYPE-11 §3.6: the four `typeCache.value[name] = …` writes this used to make are hoisted into
+     * [resolveType]'s [recordInto], so the answer and the frame that produced it are written as one
+     * entry. Each of the four stored the value it was about to return under the same key, so the
+     * hoist is behaviour-preserving — and it aligns this door with [resolveModule] and
+     * [resolveGlobal], which already wrote through the local map instead of re-reading `.value`.
      */
     private fun doResolveType(
         name: String,
@@ -235,7 +319,7 @@ class LuaTypeManagerImpl(
         val scope = GlobalSearchScope.allScope(project)
         val classDecls = StubIndex.getElements(LuaClassNameIndex.KEY, name, project, scope, LuaLocalVarDecl::class.java)
         if (classDecls.isNotEmpty()) {
-            return materializeClass(name, classDecls).also { typeCache.value[name] = it }
+            return materializeClass(name, classDecls)
         }
         // BUG-400: a `---@class` with no stubbed host. LuaCATS tags are not stubbed — they ride a host
         // declaration's stub — and the bundled stdlib stubs declare their classes above a bare global
@@ -243,13 +327,14 @@ class LuaTypeManagerImpl(
         // LuaClassNameIndex never sees them and `package`, `io`, `os`, `debug`, `coroutine` and `utf8`
         // all resolved to nothing. The file-based LuaCatsTypeNameIndex reads the tag directly and was
         // built for exactly this; it was already wired to Go-to-Class and quick-doc, but not here.
-        materializeUnhostedClass(name, project)?.let { return it.also { type -> typeCache.value[name] = type } }
+        materializeUnhostedClass(name, project)?.let { return it }
 
         val aliasDecls = StubIndex.getElements(LuaAliasIndex.KEY, name, project, scope, LuaLocalVarDecl::class.java)
         if (aliasDecls.isNotEmpty()) {
-            return materializeAlias(name, aliasDecls.first()).also { typeCache.value[name] = it }
+            val aliasDecl = aliasDecls.first()
+            LuaTypeSourceRecorder.reportFile(aliasDecl.containingFile) // §3.5
+            return materializeAlias(name, aliasDecl)
         }
-        typeCache.value[name] = null
         return null
     }
 
@@ -257,6 +342,7 @@ class LuaTypeManagerImpl(
         name: String,
         decls: Collection<LuaLocalVarDecl>,
     ): LuaType {
+        decls.forEach { LuaTypeSourceRecorder.reportFile(it.containingFile) } // §3.5
         val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
         for (decl in decls) {
@@ -306,6 +392,7 @@ class LuaTypeManagerImpl(
     ): LuaType? {
         val tags = catsClassTags(name, project)
         if (tags.isEmpty()) return null
+        tags.forEach { LuaTypeSourceRecorder.reportFile(it.containingFile) } // §3.5
 
         val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
@@ -465,6 +552,7 @@ class LuaTypeManagerImpl(
                     LuaFuncDecl::class.java,
                 )
             val decl = decls.firstOrNull { scan.onlyIn == null || it.containingFile == scan.onlyIn } ?: continue
+            LuaTypeSourceRecorder.reportFile(decl.containingFile) // §3.5
             val fnType = funcTypeFromStub(scan.className, decl)
             membersMap[memberName] = LuaTypeMember(memberName, fnType, sourceElement = decl)
         }

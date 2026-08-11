@@ -152,9 +152,9 @@ class LuaTypeSourceRecorderTest : BasePlatformTestCase() {
     }
 
     /**
-     * Design §3.1 steps 5, 5b and §3.6: three doors, three sets. Crossing them would make a
-     * `resolveType` absence — deliberately *not* recorded (§3.1 step 5) — indistinguishable from a
-     * global one, and §3.3 reads each set for a different reason.
+     * Design §3.1 steps 5 and 5b: two doors, two sets. Crossing them would make a `resolveType`
+     * absence — deliberately *not* recorded (§3.1 step 5) — indistinguishable from a global one, and
+     * §3.3 reads each set for a different reason.
      *
      * Mutation: point `reportRescuedGlobal` at `absences` → red on `rescuedGlobals`.
      */
@@ -163,15 +163,10 @@ class LuaTypeSourceRecorderTest : BasePlatformTestCase() {
             LuaTypeSourceRecorder.recording {
                 LuaTypeSourceRecorder.reportAbsence("global:wx")
                 LuaTypeSourceRecorder.reportRescuedGlobal("global:rescued")
-                LuaTypeSourceRecorder.reportUnreplayableHit("global:evicted")
             }
         assertEquals(setOf("global:wx"), frame.absences)
         assertEquals(setOf("global:rescued"), frame.rescuedGlobals)
-        assertEquals(
-            "an evicted cache entry is judged like any other unreplayable hit",
-            setOf("global:evicted"),
-            frame.unreplayedWarm,
-        )
+        assertTrue("a mark is not a source", frame.unreplayedWarm.isEmpty())
         assertTrue("no source was consumed, so no URL may be claimed", frame.urls.isEmpty())
     }
 
@@ -185,7 +180,7 @@ class LuaTypeSourceRecorderTest : BasePlatformTestCase() {
     fun testReportingOutsideAnyBuildIsANoOp() {
         LuaTypeSourceRecorder.report(listOf("file:///lib/a.lua"))
         LuaTypeSourceRecorder.reportAbsence("global:wx")
-        LuaTypeSourceRecorder.reportUnreplayableHit("global:evicted")
+        LuaTypeSourceRecorder.reportRescuedGlobal("global:rescued")
         assertEquals("reporting outside a build must not open one", 0, LuaTypeSourceRecorder.depth())
     }
 
@@ -236,9 +231,10 @@ class LuaTypeSourceRecorderTest : BasePlatformTestCase() {
     }
 
     /**
-     * **The F1 regression.** Design §3.1 step 4: the null-URL no-op is `reportFile`'s alone. Here the
-     * mark is the whole point — §3.3 step 5 reads `unreplayedWarm` for emptiness — so failing to
-     * make it leaves a clean frame, and a clean frame on a provisioned file **is pinned**.
+     * **The F1 regression.** Design §3.1 step 4. Here the mark is the whole point — §3.3 step 5
+     * reads `unreplayedWarm` for emptiness — so failing to make it leaves a clean frame, and a clean
+     * frame on a provisioned file **is pinned**. (There is no longer any asymmetry to contrast this
+     * against: DR-19 dropped `reportFile`'s no-op in Phase 2, so all three null paths now mark.)
      *
      * Mutation: `?: UNIDENTIFIED_WARM` → `?: return` (the shipped `1be7cc0d` code) → red.
      */
@@ -290,24 +286,27 @@ class LuaTypeSourceRecorderTest : BasePlatformTestCase() {
     }
 
     /**
-     * The other half of the asymmetry, asserted so it cannot be "fixed" by symmetry later:
-     * `reportFile`'s null **is** a no-op. A sentinel in `urls` would be handed to `isProvisionedUrl`,
-     * which would classify it as unprovisioned and cost every such file its pin.
+     * ⚠ **This case was `testReportFileWithNoUrlRecordsNothing`, and it asserted the opposite —
+     * DR-19, settled in Phase 2.** Its `?: return` was the one asymmetry in the recorder, and it
+     * never followed from the governing rule ("whenever the loss of a mark yields a pin, the mark is
+     * unconditional"): losing the *last* URL leaves `urls` empty, an empty `urls` clears §3.3 step 3
+     * **vacuously**, and on a provisioned file with the other four sets empty the file **is pinned**.
+     * It rested instead on design §3.1 step 4's named premise — *a `PsiFile` reached as a consumed
+     * source always has a non-null `originalFile.virtualFile`* — which was reasoned, not run, and
+     * which the old green test cemented.
      *
-     * ⚠ **This case locks in a no-op that rests on an undischarged premise (DR-19).** An earlier
-     * version of this KDoc justified the exemption by mechanism — "a missing URL only weakens §3.3
-     * step 3, a test over the URLs that are present" — which is a restatement, not a safety proof,
-     * and is the same shape as the argument F1 overturned. Losing the *last* URL leaves `urls`
-     * empty, an empty `urls` clears step 3 **vacuously**, and on a provisioned file with the other
-     * four sets empty the file **is pinned**. The exemption is safe only under design §3.1 step 4's
-     * named premise: *a `PsiFile` reached as a consumed source always has a non-null
-     * `originalFile.virtualFile`*. That premise is reasoned, not run — and this green test cements
-     * it until Phase 2, which wires the six §3.5 `reportFile` sites and is where it must be gated or
-     * the exemption dropped.
+     * Phase 2 ran it. With the six §3.5 sites wired, the full suite plus all three corpus sweeps made
+     * **47 331** `reportFile` calls and produced **one** null — `fileWithNoUrl`'s own non-physical
+     * file, from this class. Zero from a real call site. So the premise holds *and* dropping the
+     * exemption is free: the sentinel is never written in practice. It is dropped anyway, because
+     * that trades a wrong pin (a stale type the user sees) for a lost pin (today's behaviour).
      *
-     * Mutation: give `reportFile` the same sentinel treatment → red.
+     * The sentinel it writes **is** handed to `isProvisionedUrl` by §3.3 step 3, which answers
+     * `false` — that is the whole mechanism, not a side effect to be tidied away.
+     *
+     * Mutation: restore `reportFile`'s `?: return` → red, `urls` empty.
      */
-    fun testReportFileWithNoUrlRecordsNothing() {
+    fun testReportFileWithNoUrlMarksTheSourceUnidentified() {
         runReadAction {
             val unidentified = fileWithNoUrl()
             val (_, frame) =
@@ -315,7 +314,11 @@ class LuaTypeSourceRecorderTest : BasePlatformTestCase() {
                     LuaTypeSourceRecorder.reportFile(unidentified)
                     LuaTypeSourceRecorder.reportFile(null)
                 }
-            assertTrue("a source that cannot be named is simply not a recorded source", frame.urls.isEmpty())
+            assertEquals(
+                "a source that cannot be named is still a source, and one no provisioned root claims",
+                setOf("unidentified:consumed-file"),
+                frame.urls,
+            )
         }
     }
 

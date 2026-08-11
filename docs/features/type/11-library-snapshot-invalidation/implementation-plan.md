@@ -82,50 +82,71 @@ are already committed and green on `main`. They must stay green at the end of ev
 - **Goal**: every cross-file consumption is recorded and replayed from cache. Still no behaviour
   change — nothing reads the recorded set yet.
 - **Tasks**:
-  - [ ] Add `sourceCache` to `LuaTypeManagerImpl` immediately after `globalCache` — realizes design
-        §3.6 step 1. Same `createCachedValue(…, false)` shape, same
-        `PsiModificationTracker.getInstance(project)` dependency, same `synchronizedMap`. The value
-        type is `MutableMap<String, LuaTypeSourceRecorder.SourceFrame>` — the **whole frame**, not a
-        URL set, or a memoized null replays as "no dependencies" (design §3.6).
-  - [ ] Add the private helpers `recordUnder(key, body)` and `replaySources(key)` — design §3.6
-        steps 3–4. Both are ≤ 4 lines; the ≤ 3-argument cap (engineering contract §3) is satisfied.
-        `replaySources` must treat **"type cached but frame absent" as an incompleteness**, calling
-        the string-keyed `reportUnreplayableHit(key)` (§2.1) — there is no `PsiFile` or served
-        `LuaTypes` at a cache hit — which writes `unreplayedWarm` so §3.3 step 5 judges it, rather
-        than passing over it in silence. **Only when the type was cached**: a cold first resolution
-        has neither entry and must record normally, or every cold build becomes unpinnable — the four caches are separate
-        `CachedValue`s read at different moments, and an absent frame otherwise replays as "no
-        sources", which is §3.6's own unsound case re-created through the cache (design §3.6).
-  - [ ] **Consider co-locating the frame in the three existing caches** — `(LuaType?, SourceFrame)` as
-        their value type — instead of adding `sourceCache` as a fourth. It deletes the fourth
-        `CachedValue`, the key-prefix scheme, the drift check above and Risk 1.2 (design §9). Take it
-        if it lands cleanly; the parallel-map shape is precedent, not a reason.
-  - [ ] Wrap the three doors — `resolveType`, `resolveModule`, `resolveGlobal` — so a cache **miss**
-        goes through `recordUnder("type:$name" | "module:$moduleName" | "global:$name")` and a cache
-        **hit** calls `replaySources(...)` before returning. Do not move the early returns that
-        precede each cache read.
-  - [ ] In `resolveGlobal` **only**, call `LuaTypeSourceRecorder.reportAbsence("global:$name")` on
-        every path that yields `null` — a computed null (inside the `recordUnder` body, so it is
-        stored and replays), a cache hit on a stored null, and the reentrancy guard. Do **not** do
-        this for `resolveType`/`resolveModule`: measured, that costs `io.lua` its pin for
-        `resolveType("boolean|nil")`-shaped misses and buys nothing (design §1.8).
-  - [ ] In `resolveModule`, call `LuaTypeSourceRecorder.reportAbsence("module:$moduleName")` on the
+  - [x] ~~Add `sourceCache` to `LuaTypeManagerImpl`~~ / ~~add `recordUnder(key, body)` and
+        `replaySources(key)`~~ — **superseded by the co-location task below**, which is the shape
+        that shipped. The two bullets are struck rather than deleted because the drift rule they
+        carried is what the co-located shape *removes the state for*, and that is the reason to
+        prefer it. What shipped instead: a `private data class CachedAnswer(resolvedType,
+        sourceFrame)`, the three existing caches re-typed to `MutableMap<String, CachedAnswer>`, and
+        one helper `recordInto(cache, key, body)` (3 args, at the cap).
+  - [x] **Co-locate the frame in the three existing caches** — `(LuaType?, SourceFrame)` as their
+        value type — instead of adding `sourceCache` as a fourth (design §9). **Taken; it landed
+        cleanly.** It deleted the fourth `CachedValue`, the map-key prefix scheme, `replaySources`,
+        the drift check, `reportUnreplayableHit` (§2.1 — its only reachable input was the drift
+        state, and §3.6's own instruction was "give it a fixture or delete it") and Risk 1.2. Cost:
+        the three declared types, plus hoisting `doResolveType`'s four `typeCache.value[name] = …`
+        writes into `recordInto` — each stored the value it was about to return under the same key,
+        so the hoist is behaviour-preserving, and it aligns that door with the other two, which
+        already wrote through the local map rather than re-reading `.value`.
+  - [x] Wrap the three doors — `resolveType`, `resolveModule`, `resolveGlobal` — so a cache **miss**
+        goes through `recordInto(cache, key)` and a cache **hit** calls
+        `LuaTypeSourceRecorder.replay(entry.sourceFrame)` before returning. Do not move the early
+        returns that precede each cache read. **Done, and none were moved**: the primitive check and
+        dumb-mode guard in `resolveType`, the dumb-mode guard in `resolveGlobal` and both reentrancy
+        guards return exactly where they did.
+  - [x] In `resolveGlobal` **only**, call `LuaTypeSourceRecorder.reportAbsence("global:$name")` on
+        every path that yields `null` — a computed null (inside the `recordInto` body, so it is
+        stored and replays), ~~a cache hit on a stored null~~ and the reentrancy guard. **The
+        cache-hit report was dropped**: co-location makes it strictly redundant with the replay (an
+        entry cannot exist without its frame), and two sufficient mechanisms for one behaviour is
+        precisely what the Phase 1 review rejected in `de60eb83` — with both present no mutation can
+        attribute the absence to either. Do **not** do this for `resolveType`/`resolveModule`:
+        measured, that costs `io.lua` its pin for `resolveType("boolean|nil")`-shaped misses and buys
+        nothing (design §1.8).
+  - [x] In `resolveModule`, call `LuaTypeSourceRecorder.reportAbsence("module:$moduleName")` on the
         two paths that yield `LuaPrimitiveType.ANY` — `doResolveModule` falling through when no
-        candidate types (`LuaTypeManagerImpl.kt:213-219`) and the reentrancy guard (`:116-118`) —
-        §3.1 step 5d, §1.12. `ANY` is **non-null**, so without this a library file whose `require`
-        resolves to nothing records an empty frame and is pinned. **Price it in the same run
-        (DR-18)**: report the `REVIEW-COST` line with and without, as every other absence rule here
-        was priced. Zero lost pins is expected, not established.
-  - [ ] In `doResolveGlobal`, call `LuaTypeSourceRecorder.reportRescuedGlobal("global:$name")` when
+        candidate types and the reentrancy guard — §3.1 step 5d, §1.12. **Priced (DR-18)**:
+        `REVIEW-COST TOTALS provisioned=11 withModuleRule=11 withoutModuleRule=11` — **zero** lost
+        pins, now measured rather than expected. Both columns came from one run, because the
+        `"module:"` key prefix lets the "without" verdict be computed by filtering the same frame.
+  - [x] In `doResolveGlobal`, call `LuaTypeSourceRecorder.reportRescuedGlobal("global:$name")` when
         the **project-scope** pass returns null and the all-scope fallback then answers (§3.1 step 5b,
         §1.10 V2). Not when both answer null — step 5 already covers that, and the broader variant was
         measured to add nothing (`dr15broad` ties `dr15rescued` on every fixture tried).
-  - [ ] Insert the six `reportFile` calls listed in design §3.5, at the stated lines. `typeOfGlobalIn`
+  - [x] Insert the six `reportFile` calls listed in design §3.5, at the stated lines. `typeOfGlobalIn`
         gets `.onEach { LuaTypeSourceRecorder.reportFile(it) }` **after** the existing
         `.filter { it != exclude }` — reporting every file visited, not only the one that yields a
         type (§3.5's over-approximation rule).
-- **Exit criteria**: full suite green with the same count as Phase 1. Recording is inert while no
-  frame is open, so an unchanged suite is the expected result and any movement is a defect.
+  - [x] **Settle DR-19** — §3.1 step 4's undischarged premise, which `reportFile`'s `?: return` rests
+        on and which `testReportFileWithNoUrlRecordsNothing` was cementing with a green test. Phase 2
+        is the first point at which it can be run rather than reasoned, because it wires the six
+        §3.5 sites. Outcome and the measured null rate: DR-19 in `risks-and-gaps.md`.
+  - [x] **Add the Phase 2 assertions.** ⚠ This task list originally had none, on the goal statement's
+        reasoning that the phase is inert. Inert means *no behaviour moves*, not *nothing is
+        claimable*: a frame can be opened here exactly as `forFile` will open one, so "the doors
+        record what they consume" is directly assertable, and every guard in this feature that
+        shipped unasserted was later found unable to fail — four in Phase 1 alone.
+        `LuaTypeManagerRecordingTest` — **6 tests**, one stated mutation each, observed reds in
+        `risks-and-gaps.md`'s ledger: a `reportFile` site firing, the `resolveGlobal` absence path,
+        the §1.10 V2 rescued-global path, the §1.12 module-absence path, and both halves of §3.6's
+        replay (a memoized answer's sources, and a memoized *absence*).
+- **Exit criteria**: full suite green, with **every test that existed at `7773984a` still passing**.
+  ⚠ The earlier wording, "the same count as Phase 1", is the same unsatisfiable gate the review
+  removed from Phase 1's criterion — this phase adds a test class, so the count necessarily rises.
+  Recording is inert while no frame is open, so an unchanged *result* is the expected outcome and any
+  movement is a defect. **The corpus sweep is a gate for this phase** (it was not for Phase 1):
+  `LuaTypeManagerImpl`'s resolution paths are edited, so inferred types can move, and
+  `test -PwithCorpus` is what would say so.
 
 ### Phase 3: Make `forFile` conditional [Must]
 
@@ -330,6 +351,13 @@ are already committed and green on `main`. They must stay green at the end of ev
       service, the `"$root/"` separator, and one assertion per memoized dependency.
 - [x] `LuaTypeSourceRecorderTest` (Phase 1) — **12 tests**, the recorder's own algebra asserted
       directly, covering 11 of its 12 members (`snapshotFrames` is exercised as a collaborator).
+      Phase 2 deleted `reportUnreplayableHit` with the drift state it guarded, so the class now
+      covers 10 of 11 members; no test method was removed, because the two that named it also
+      asserted three other markers.
+- [x] `LuaTypeManagerRecordingTest` (Phase 2) — **6 tests**, "the doors record what they consume":
+      a §3.5 `reportFile` site firing, the `resolveGlobal` absence (§1.8 B1), the rescued global
+      (§1.10 V2), the module absence (§1.12), and §3.6's replay for both a memoized answer's sources
+      and a memoized absence.
 - [ ] `TypeElevenGenerationSignalTest` (Phase 3) — covers TYPE-11-02.
 - [ ] `TypeElevenDr14InProgressTest` — 2 tests, TYPE-11-06 (in-progress inner). Already committed;
       red under the post-B1/B4 rule without §3.3 step 6 (design §1.10 V1).
@@ -347,7 +375,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 | Phase | Status | Priority |
 | :-- | :-- | :-- |
 | Phase 1: Provenance and the recorder, wired to nothing | done | Must |
-| Phase 2: Report from the type manager | todo | Must |
+| Phase 2: Report from the type manager | done | Must |
 | Phase 3: Make `forFile` conditional | todo | Must |
 | Phase 4: Close the negative de-risking results | todo | Should |
 | Phase 5: The remaining arm-B cost | todo | Could |
