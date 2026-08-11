@@ -9,7 +9,10 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex
 import net.internetisalie.lunar.lang.psi.types.LuaLibraryProvenance
+import net.internetisalie.lunar.platform.LuaPlatform
+import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.RuntimeLibraryProvider
+import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
 /**
@@ -160,17 +163,25 @@ class LuaLibraryProvenanceTest : TypeElevenDefinitionLibraryTestCase() {
     }
 
     /**
-     * Design §3.2 step 1's **dependency set**, which nothing else in this class gates.
+     * The **roots** half of design §3.2 step 1's dependency set — that half alone, and nothing else
+     * in this class gates even that.
+     *
+     * ⚠ An earlier version of this KDoc claimed the whole "dependency set", which over-claims by one
+     * dependency: `targetModificationTracker` is invisible to this method, because nothing here
+     * moves the target and the roots tick alone explains every recomputation it observes. The
+     * mutation below is a **conjunction** ("both dependencies replaced"), which cannot attribute the
+     * red to either member. [testTheMemoizedRootListIsRecomputedAfterATargetTick] is the target
+     * half, and its mutation drops that one dependency alone.
      *
      * Every other method reads the root list only after [setUp]'s blanket roots tick, so the value
      * is always recomputed from current state and no assertion distinguishes
-     * `Result.create(computeRootUrls(), ProjectRootModificationTracker…, targetModificationTracker)`
-     * from `Result.create(computeRootUrls(), ModificationTracker.NEVER_CHANGED)`. This method owes
+     * `Result.create(computeRootUrls(), ProjectRootModificationTracker…)` from
+     * `Result.create(computeRootUrls(), ModificationTracker.NEVER_CHANGED)`. This method owes
      * nothing to that tick: it populates the cache **inside its own body** with an answer it
      * asserts, then requires an explicit roots tick to move it.
      *
-     * Mutation: replace both dependencies with `ModificationTracker.NEVER_CHANGED` → red on the
-     * final `assertFalse` (the disabled root is still served from the stale cached list).
+     * Mutation: drop the `ProjectRootModificationTracker` dependency alone → red on the final
+     * `assertFalse` (the disabled root is still served from the stale cached list).
      */
     fun testTheMemoizedRootListIsRecomputedAfterARootsTick() {
         val root = installDefinitionLibrary("luassert", mapOf("wx.lua" to libraryText()))
@@ -191,6 +202,83 @@ class LuaLibraryProvenanceTest : TypeElevenDefinitionLibraryTestCase() {
             )
         }
     }
+
+    /**
+     * The **target** half of design §3.2 step 1's dependency set, and the only assertion that gates
+     * it. `computeRootUrls` reads `state.getTarget()` to resolve the bundled runtime root, so the
+     * dependency is real; before this method, deleting `LuaLibraryProvenance.kt:67` left all eight
+     * of this class's cases green, because no test in the tree ticked the target at all.
+     *
+     * ⚠ **`state.setTarget`, not `setTargetAndNotify`.** The latter publishes a settings change,
+     * which reaches `makeRootsChange` and would invalidate the memoized list through the *roots*
+     * tracker no matter what the target dependency does — the mutation could then not fire. The
+     * roots tracker is asserted **still** across the switch for the same reason: it is what makes
+     * the red attributable to the dropped dependency rather than to an incidental tick.
+     *
+     * Mutation: drop `LuaLibraryProvenance.kt:67` — the `targetModificationTracker` dependency —
+     * alone → red on the final `assertFalse` (the previous target's runtime root is still served
+     * from the stale cached list).
+     */
+    fun testTheMemoizedRootListIsRecomputedAfterATargetTick() {
+        val settings = LuaProjectSettings.getInstance(project)
+        val originalTarget = settings.state.getTarget()
+        try {
+            assertTheMemoizedRootListFollows(originalTarget)
+        } finally {
+            // The light project's settings service is shared with every other class in this JVM, so
+            // a target left switched would silently retarget unrelated suites.
+            settings.state.setTarget(originalTarget)
+        }
+    }
+
+    private fun assertTheMemoizedRootListFollows(originalTarget: Target) {
+        val originalRootUrl =
+            checkNotNull(runtimeRootUrl(originalTarget)) {
+                "no bundled runtime root for $originalTarget — this case could not distinguish anything"
+            }
+        val rootsTracker = ProjectRootModificationTracker.getInstance(project)
+        runReadAction {
+            assertTrue(
+                "the current target's runtime root must be provisioned; this read is what puts it in the cache",
+                provenance().isProvisionedUrl(originalRootUrl),
+            )
+        }
+
+        val rootsCount = rootsTracker.modificationCount
+        LuaProjectSettings.getInstance(project).state.setTarget(targetWithAnotherRuntimeRoot(originalRootUrl))
+
+        runReadAction {
+            assertEquals(
+                "the roots tracker moved across the target switch; any recomputation would be " +
+                    "attributable to that tick rather than to the target dependency",
+                rootsCount,
+                rootsTracker.modificationCount,
+            )
+            assertFalse(
+                "the previous target's runtime root is no longer a root, so the memoized list must " +
+                    "have been recomputed on the target tick alone",
+                provenance().isProvisionedUrl(originalRootUrl),
+            )
+        }
+    }
+
+    private fun runtimeRootUrl(target: Target): String? = RuntimeLibraryProvider(project).getLibraryRoot(target)?.url
+
+    /**
+     * A second target whose bundled tree is a **different** root, so the switch is observable at
+     * all. Derived from the registry rather than hard-coded, so a retired version label fails the
+     * `checkNotNull` loudly instead of turning this case vacuous.
+     */
+    private fun targetWithAnotherRuntimeRoot(currentRootUrl: String): Target =
+        checkNotNull(
+            PlatformVersionRegistry
+                .getVersions(LuaPlatform.STANDARD)
+                .map { Target(LuaPlatform.STANDARD, it) }
+                .firstOrNull { candidate ->
+                    val candidateRootUrl = runtimeRootUrl(candidate)
+                    candidateRootUrl != null && candidateRootUrl != currentRootUrl
+                },
+        ) { "no second standard target ships a runtime root distinct from $currentRootUrl" }
 
     /**
      * The converse, and the reason the memoization is worth having: without a tick the list is

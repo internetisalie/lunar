@@ -61,9 +61,8 @@ object LuaTypeSourceRecorder {
      * Stands in for a URL that could not be determined, so an incompleteness mark can still be made.
      *
      * The null direction is **inverted** between [reportFile] and the two conservative markers, which
-     * is why they cannot share `?: return`. [reportFile]'s null is safe: one fewer URL in
-     * [SourceFrame.urls] only weakens §3.3 step 3, which is a test over URLs that *are* present.
-     * [reportInProgressHit] and [reportWarmSnapshot]'s not-found branch exist to make the frame
+     * is why they cannot share `?: return`. [reportInProgressHit] and [reportWarmSnapshot]'s
+     * not-found branch exist to make the frame
      * **non-empty** so §3.3 steps 5 and 6 reject the pin — so a `return` there leaves a clean frame,
      * and a clean frame on a provisioned file clears steps 2–7 and **is pinned**. That is verbatim
      * the inversion design §3.4 names and that §1.8 B1/B4 and §1.10 V1/V2 each measured shipping a
@@ -115,6 +114,16 @@ object LuaTypeSourceRecorder {
      *
      * The no-op grant of design §3.1 step 4 is **this function's alone** — see [UNIDENTIFIED_SOURCE]
      * for why the two conservative markers must mark instead of returning.
+     *
+     * ⚠ **That grant rests on an undischarged premise, not on the governing rule.** The rule is
+     * "whenever the loss of a mark yields a pin, the mark is unconditional", and this loss *can*
+     * yield a pin: losing the last URL leaves [SourceFrame.urls] empty, which clears §3.3 step 3
+     * **vacuously**, and on a provisioned file with the other four sets empty the file is pinned.
+     * The exemption holds only under design §3.1 step 4's named premise — *a `PsiFile` reached as a
+     * consumed source always has a non-null `originalFile.virtualFile`*, because every §3.5 call
+     * site takes its file from `StubIndex` / `FileBasedIndex` / `PsiManager.findFile` and a VFS-less
+     * PSI file is neither index-reachable nor user-editable. Reasoned, not run: **DR-19**, to be
+     * gated or dropped in Phase 2 when the six §3.5 sites are wired.
      */
     fun reportFile(psiFile: PsiFile?) {
         val sourceUrl = psiFile?.originalFile?.virtualFile?.url ?: return

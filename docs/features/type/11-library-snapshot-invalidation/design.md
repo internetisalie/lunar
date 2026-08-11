@@ -932,17 +932,45 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   4. `reportFile(file)` reads `file?.originalFile?.virtualFile?.url` and delegates to `report`;
      a null at any step is a no-op. ⚠ **That grant is `reportFile`'s alone, and an earlier draft
      stated it in a place general enough to be read as covering every `report*` — which is how a
-     `?: return` reached both conservative markers (review of `1be7cc0d`).** The direction is
-     *inverted* between them. `reportFile`'s null costs one URL in `urls`, which only weakens step 3
-     of §3.3 — a test over the URLs that *are* present, so fewer of them is the direction the rule
-     was priced against. Step 5c and §3.7's not-found branch exist to make the frame **non-empty** so
-     §3.3 steps 5 and 6 *reject* the pin; returning there leaves a clean frame, and a clean frame on
-     a provisioned file clears steps 2–7 and **is pinned**. That is the same "empty because nothing
-     was recorded, not because nothing was consumed" inversion §3.4 names and §1.8 B1/B4 and §1.10
-     V1/V2 each measured shipping a stale type. So **whenever the loss of a mark yields a pin, the
-     mark is unconditional**: those two record the `UNIDENTIFIED_*` sentinel (§2.1) instead of
-     returning, because a file that cannot even be identified is *more* unknown, not less, and by
-     §1.12 there is no second chance to correct the pin later.
+     `?: return` reached both conservative markers (review of `1be7cc0d`).** Step 5c and §3.7's
+     not-found branch exist to make the frame **non-empty** so §3.3 steps 5 and 6 *reject* the pin;
+     returning there leaves a clean frame, and a clean frame on a provisioned file clears steps 2–7
+     and **is pinned**. That is the same "empty because nothing was recorded, not because nothing was
+     consumed" inversion §3.4 names and §1.8 B1/B4 and §1.10 V1/V2 each measured shipping a stale
+     type. So the governing rule is: **whenever the loss of a mark yields a pin, the mark is
+     unconditional**; those two record the `UNIDENTIFIED_*` sentinel (§2.1) instead of returning,
+     because a file that cannot even be identified is *more* unknown, not less, and by §1.12 there is
+     no second chance to correct the pin later.
+     - ⚠⚠ **`reportFile`'s exemption does not follow from that rule — it needs a premise, named here
+       because it was previously missing.** An earlier draft argued the exemption from *mechanism*:
+       "a null costs one URL in `urls`, which only weakens step 3 — a test over the URLs that are
+       present, so fewer of them is the direction the rule was priced against." **That is a
+       restatement, not a safety proof, and it is the same shape as the argument F1 overturned.**
+       Losing the *last* URL leaves `urls` **empty**, an empty `urls` clears step 3 *vacuously* (§3.3
+       "Rules" says so in as many words), and on a provisioned file with the other four sets empty
+       every step clears and the file **is pinned**. So `reportFile`'s loss *can* yield a pin, and the
+       governing rule does not exempt it. What the exemption actually rests on is:
+       > **PREMISE (undischarged): a `PsiFile` reached as a consumed source always has a non-null
+       > `originalFile.virtualFile`.** Every §3.5 call site obtains its file from `StubIndex` /
+       > `FileBasedIndex` / `PsiManager.findFile` — i.e. a physical, indexed file; the `originalFile`
+       > hop already converts completion copies back to their physical original (§1.3); and a
+       > VFS-less PSI file (`DummyHolder`, a non-physical `createFileFromText`) is neither
+       > index-reachable nor user-editable, so it cannot be a project dependency whose future content
+       > changes the answer. Under this premise the no-op is not merely cheap, it is **vacuous** — the
+       > branch never fires for a real source — and the asymmetry against step 5c / §3.7 holds because
+       > *those* two are reached with files the premise says nothing about (a build in flight, a
+       > snapshot served warm).
+     - **Undischarged means reasoned, not run.** No fixture demonstrates the premise, and
+       `LuaTypeSourceRecorderTest.testReportFileWithNoUrlRecordsNothing` now **locks the no-op in with
+       a green test** — so the premise is cemented until someone deliberately revisits it, which is
+       precisely why it is written down instead of left implicit. **Phase 2 is where it is settled**:
+       it wires the six `reportFile` sites of §3.5, and is the first point at which the premise can be
+       gated (assert non-null at each site, or log-and-count the nulls over the corpus) or the
+       exemption dropped in favour of a sixth `unidentifiedSources` set. Tracked as **DR-19**.
+       `reportFile`'s behaviour is deliberately **not** changed on this reasoning alone: the premise is
+       probably true, and flipping the marker unpriced would repeat F1's error in the other direction —
+       a sentinel in `urls` is handed to `isProvisionedUrl`, which classifies it unprovisioned and
+       costs every affected file its pin.
   5. `reportAbsence("global:$name")` is called from `resolveGlobal` on every path that returns
      `null` — cache hit on a stored null, reentrancy guard, and a computed null (§3.6). Absence is
      recorded for **global** and **module** resolution (step 5d) but **not** for `resolveType`: §1.8

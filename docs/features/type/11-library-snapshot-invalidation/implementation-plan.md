@@ -38,8 +38,15 @@ are already committed and green on `main`. They must stay green at the end of ev
         design §1.8, `inProgressHits` and `rescuedGlobals` in §1.10.
         **Built 2026-08-11**, with `reportUnreplayableHit` (§2.1, §3.6) included — this task list
         omitted it from its "Functions:" enumeration while §2.1 specifies it, and §3.6's drift guard
-        has no other entry point. Nothing calls the object yet, so it carries no Phase 1 test: its
-        first assertion arrives with its first caller in Phase 2.
+        has no other entry point.
+        **Gated by `LuaTypeSourceRecorderTest` — 12 tests**, one stated mutation each, all recorded in
+        `risks-and-gaps.md`'s ledger. ⚠ **An earlier version of this bullet said the opposite** —
+        "nothing calls the object yet, so it carries no Phase 1 test: its first assertion arrives with
+        its first caller in Phase 2" — and that rationale is **overturned, by a defect it let through**:
+        both conservative markers shipped a `?: return` that granted the pin they exist to deny
+        (review of `1be7cc0d`, F1), caught afterwards by five-line assertions needing no caller at
+        all. Nine of the object's members are a plain Kotlin `object` with no `Project` and no PSI;
+        "untestable until Phase 2" was never true of them.
   - [x] Create `net.internetisalie.lunar.lang.psi.types.LuaLibraryProvenance` — realizes design §2.2
         and §3.2. Light `@Service(Service.Level.PROJECT)`; **no `plugin.xml` entry** (design §7).
         Root list memoized via `CachedValuesManager.getManager(project).getCachedValue(project) { … }`
@@ -54,10 +61,17 @@ are already committed and green on `main`. They must stay green at the end of ev
         real service** and append the observed reds to the ledger; a row that is not re-earned here
         is not evidence for this requirement. Include TC-6 in the `PsiFile`-overload form (§8.1) —
         there is no `VirtualFile` overload and `copy.virtualFile` is null.
-        **Built 2026-08-11**: 6 tests, all six mutations re-earned against the production service and
-        moved into `risks-and-gaps.md`'s ledger. A sixth assertion was added beyond the five DR-02
-        facts — the `"$root/"` separator in the prefix test, which §3.2 calls out as required rather
-        than cosmetic and which no DR-02 row covered.
+        **Built 2026-08-11**: **9 tests** — six at first commit, all six mutations re-earned against
+        the production service and moved into `risks-and-gaps.md`'s ledger, plus three added over two
+        remediation rounds. A sixth assertion was added beyond the five DR-02 facts — the `"$root/"`
+        separator in the prefix test, which §3.2 calls out as required rather than cosmetic and which
+        no DR-02 row covered. The seventh, eighth and ninth cover §3.2 step 1's **memoization** and
+        its **dependency set**, which the first six could not see at all: they read the root list only
+        after `setUp`'s blanket roots tick, so `ModificationTracker.NEVER_CHANGED` left every one of
+        them green (review of `1be7cc0d`, F3). Each dependency is gated by its own assertion under its
+        own **single-member** mutation — `…AfterARootsTick` drops `:66`, `…AfterATargetTick` drops
+        `:67` — because the conjunction "both dependencies replaced" that the first remediation used
+        cannot attribute the red to either member, and measured, `:67` alone was ungated.
 - **Exit criteria**: full suite green, with **every test that existed on `main` still passing** —
   the count necessarily rises by this phase's new class, so "same count as `main`" (the earlier
   wording) was unsatisfiable by a phase whose own task list adds one; `LuaLibraryProvenanceTest` green;
@@ -312,7 +326,10 @@ are already committed and green on `main`. They must stay green at the end of ev
       is that (TC-1).
 - [ ] `TypeElevenPinSurvivesUnrelatedEditTest` (Phase 3) — TYPE-11-01's gate, TC-1.
 - [ ] `TypeElevenPinnableCostTest` (Phase 3) — TC-15, the 11-of-11 pinnable count.
-- [ ] `LuaLibraryProvenanceTest` (Phase 1) — the DR-02 assertions against the production service.
+- [x] `LuaLibraryProvenanceTest` (Phase 1) — **9 tests**: the DR-02 assertions against the production
+      service, the `"$root/"` separator, and one assertion per memoized dependency.
+- [x] `LuaTypeSourceRecorderTest` (Phase 1) — **12 tests**, the recorder's own algebra asserted
+      directly, covering 11 of its 12 members (`snapshotFrames` is exercised as a collaborator).
 - [ ] `TypeElevenGenerationSignalTest` (Phase 3) — covers TYPE-11-02.
 - [ ] `TypeElevenDr14InProgressTest` — 2 tests, TYPE-11-06 (in-progress inner). Already committed;
       red under the post-B1/B4 rule without §3.3 step 6 (design §1.10 V1).

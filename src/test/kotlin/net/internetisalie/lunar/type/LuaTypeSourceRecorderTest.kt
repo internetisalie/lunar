@@ -291,9 +291,19 @@ class LuaTypeSourceRecorderTest : BasePlatformTestCase() {
 
     /**
      * The other half of the asymmetry, asserted so it cannot be "fixed" by symmetry later:
-     * `reportFile`'s null **is** a no-op, because a missing URL only weakens §3.3 step 3, a test
-     * over the URLs that are present. A sentinel in `urls` would instead be handed to
-     * `isProvisionedUrl`, which would classify it as unprovisioned and cost every such file its pin.
+     * `reportFile`'s null **is** a no-op. A sentinel in `urls` would be handed to `isProvisionedUrl`,
+     * which would classify it as unprovisioned and cost every such file its pin.
+     *
+     * ⚠ **This case locks in a no-op that rests on an undischarged premise (DR-19).** An earlier
+     * version of this KDoc justified the exemption by mechanism — "a missing URL only weakens §3.3
+     * step 3, a test over the URLs that are present" — which is a restatement, not a safety proof,
+     * and is the same shape as the argument F1 overturned. Losing the *last* URL leaves `urls`
+     * empty, an empty `urls` clears step 3 **vacuously**, and on a provisioned file with the other
+     * four sets empty the file **is pinned**. The exemption is safe only under design §3.1 step 4's
+     * named premise: *a `PsiFile` reached as a consumed source always has a non-null
+     * `originalFile.virtualFile`*. That premise is reasoned, not run — and this green test cements
+     * it until Phase 2, which wires the six §3.5 `reportFile` sites and is where it must be gated or
+     * the exemption dropped.
      *
      * Mutation: give `reportFile` the same sentinel treatment → red.
      */

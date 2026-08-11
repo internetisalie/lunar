@@ -282,6 +282,12 @@ a defect, which is the recurring shape here (see also §1.9 B3/B5).
   same shape one level down: the class re-earned the five *provenance* facts but gated nothing about
   the **memoized dependency set**, which `ModificationTracker.NEVER_CHANGED` left entirely green
   (measured). Two assertions were added for it; see the remediation table in `risks-and-gaps.md`.
+  A second remediation round then found the same shape **one level down again**: that fix's mutation
+  was a *conjunction* ("both dependencies replaced"), which attributes the red to neither member —
+  and measured, dropping `targetModificationTracker` **alone** left all eight methods green, because
+  no test in the tree ticked the target at all. A ninth assertion now gates the target dependency on
+  its own single-member mutation. **`LuaLibraryProvenanceTest` is 9 tests; `LuaTypeSourceRecorderTest`
+  is 12.** Phase 1 is complete.
 - **The cost gate had no owner** (an exit criterion with no task, and assigned to a class that reads
   text rather than builds fixtures), and **the coverage guard was blind to three doors** — including
   `StubIndex.getAllKeys`, the route §1.7 designates load-bearing, and a cross-file read in
