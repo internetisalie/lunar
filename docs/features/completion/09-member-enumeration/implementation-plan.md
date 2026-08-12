@@ -398,9 +398,9 @@ document's.)*
   COMP-09-08 assertion 1 goes green. Measured on the prototype: cold time-to-first **491 ms → 7.4 ms**,
   both medians of five cold samples (design §1.10.2).
 - **Tasks**:
-  - [ ] **TASK 0 — extend the golden to a colon door FIRST, in its own commit, with no production
-        change.** DR-27, decided rather than deferred; see risks-and-gaps' DR-27 row for the full
-        reasoning. `MemberEnumerationGoldenTest.completionRows` (`MemberEnumerationGoldenTest.kt:99-102`)
+  - [x] **TASK 0 — DONE 2026-08-12 — extend the golden to a colon door FIRST, in its own commit, with
+        no production change.** DR-27, decided rather than deferred; see risks-and-gaps' DR-27 row for
+        the full reasoning. `MemberEnumerationGoldenTest.completionRows` (`MemberEnumerationGoldenTest.kt:99-102`)
         emits only `completionsFor("$receiverName.<caret>\n")`. Add the `:` caret beside it, under a
         distinct label so the two carets never collide:
 
@@ -425,6 +425,14 @@ document's.)*
         `shape | global | class | completion` to that plus `completion:`. Record the new hash beside
         `a8c580ccc7a9528c0fde41527d870c48`. If any existing line moves, **stop**: the extension was
         supposed to be behaviour-free and something else changed.
+        **Done**: `git diff --numstat` on the golden reports `14  0` (14 insertions, 0 deletions);
+        `LC_ALL=C cut -d'|' -f2 | sort -u` (excluding `#` header lines, which contain unrelated `|`
+        prose) goes from `{class, completion, global, shape, Derived:*}` to that plus `completion:`,
+        losing nothing. Old hash (md5) `a8c580ccc7a9528c0fde41527d870c48` → new hash
+        `5479f471e3524a924f425581acf737f6`. No existing row moved — every colon-door value was
+        obtained from the unarmed suite run (`test --tests *MemberEnumerationGoldenTest*`, captured
+        from the test's own printed banner between `===== COMP-09 GOLDEN =====` markers) and
+        transcribed verbatim, never hand-computed.
 
         While in this file, fix its stale KDoc anchor: `MemberEnumerationGoldenTest.kt:30` still
         cites `LuaTypeManagerImpl:256-262`, which is now unrelated code. The correct anchor is

@@ -27,7 +27,8 @@ import java.io.File
  *    de-risking rounds varied while missing three real defects; binding shape is what found them.
  * 3. **The `sourceElement` case is recorded.** `LuaTypeMember.sourceElement` is load-bearing —
  *    `LuaOverrideLineMarkerProvider` navigates to it — and a golden of names and types cannot see a
- *    change to it (`LuaTypeManagerImpl:256-262` says so in as many words).
+ *    change to it (`LuaTypeManagerImpl.materializeClass`, `LuaTypeManagerImpl.kt:341`, warning
+ *    comment at `:357-361`, says so in as many words).
  *
  * The completion rows are the third door, and they are what Phase 2's exit diffs against: today's
  * cross-file path takes the *first* declaring file only, so a union is a superset that Phase 3's
@@ -95,10 +96,20 @@ class MemberEnumerationGoldenTest : LibraryRootTestCase() {
             rows.sorted().ifEmpty { listOf("$receiverName|$label|<none>") }
         }
 
-    /** The user-visible door: what `R.<caret>` offers. Phase 2's exit diffs against these rows. */
-    private fun completionRows(receiverName: String): List<String> {
-        val offered = completionsFor("$receiverName.<caret>\n").sorted()
-        return offered.ifEmpty { listOf("<none>") }.map { "$receiverName|completion|$it" }
+    /**
+     * The user-visible doors: what `R.<caret>` and `R:<caret>` offer. Phase 2's exit diffs against
+     * these rows.
+     */
+    private fun completionRows(receiverName: String): List<String> =
+        caretRows(receiverName, ".", "completion") + caretRows(receiverName, ":", "completion:")
+
+    private fun caretRows(
+        receiverName: String,
+        separator: String,
+        label: String,
+    ): List<String> {
+        val offered = completionsFor("$receiverName$separator<caret>\n").sorted()
+        return offered.ifEmpty { listOf("<none>") }.map { "$receiverName|$label|$it" }
     }
 
     /**
@@ -149,6 +160,7 @@ class MemberEnumerationGoldenTest : LibraryRootTestCase() {
                 "# <receiver>|global|<member>:<type>      resolveGlobal -> materialize -> getMembers",
                 "# <receiver>|class|<member>:<type>       resolveType   -> materialize -> getMembers",
                 "# <receiver>|completion|<lookupString>   what `R.<caret>` offers",
+                "# <receiver>|completion:|<lookupString>  what `R:<caret>` offers",
                 "# override|<class>:<method>|<member>|<sourceElement class>|<file>",
                 "#",
                 "# The two doors are recorded SEPARATELY and never collapsed with `?:` (design §1.4,",
