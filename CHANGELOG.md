@@ -1,16 +1,17 @@
 # Change Log
 
-## Unreleased
-
-### No more "IDE internal error" while the project is indexing (BUG-432)
-
-Any type resolution that happened during indexing — a background inspection, a hover, a gutter pass —
-reported a crash to the user. `IndexNotReadyException` is the platform's way of saying "the indexes
-are not built yet", which is ordinary control flow, but it was being logged as an error and so
-surfaced as the red internal-error notification. Type resolution now degrades quietly while indexing
-and resumes when it finishes, matching what global resolution has always done.
-
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
+
+- **A library file's type snapshot must not be invalidated by an unrelated keystroke** (TYPE-11):
+  library types are cached against the dependency generation — library roots and language target —
+  instead of every keystroke; measured 334 ms → ~11 ms per keystroke with a 123 KiB definition
+  library installed ([8d536e87](https://github.com/internetisalie/lunar/commit/8d536e87)).
+- **`LuaTypeReference`'s memoized answer carries no recording frame** (BUG-434): a type name read
+  before the library's graph was built hid the file it resolved into, so the library kept its old
+  types after that file changed ([e7f0ba4d](https://github.com/internetisalie/lunar/commit/e7f0ba4d)).
+- **`resolveType` has no dumb-mode guard** (BUG-432): type resolution during indexing reported an
+  IDE internal error instead of degrading quietly until the indexes are ready
+  ([b6cc37d3](https://github.com/internetisalie/lunar/commit/b6cc37d3)).
 
 ### A global API declared in another file now carries its types (BUG-427)
 
