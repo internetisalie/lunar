@@ -328,13 +328,42 @@ are already committed and green on `main`. They must stay green at the end of ev
 
 ### Phase 4: Close the negative de-risking results [Should]
 
-- **Goal**: the two things Phase 3 ships without proof stop being unproven.
+- **Goal**: the two things Phase 3 ships without proof stop being unproven. **DONE (2026-08-12)** —
+  one negative result and one positive one; no production change, so no corpus sweep.
 - **Tasks**:
-  - [ ] TYPE-11-DR-06 — decide whether the dumb-mode guard is dead code or unprotected production
+  - [x] TYPE-11-DR-06 — decide whether the dumb-mode guard is dead code or unprotected production
         behaviour, and either delete it or build a fixture that reproduces the staleness.
-  - [ ] TYPE-11-DR-07 — probe the lazy `LuaTypeReference` escape (Risk 1.3).
+        **Neither: it is insurance, and the third option was the true one.** The staleness is
+        unreproducible because the **platform** heals it — `FileManagerImpl`'s constructor subscribes
+        `processFileTypesChanged` to *both* edges of dumb mode (`FileManagerImpl.java:93-103`), which
+        runs `possiblyInvalidatePhysicalPsi` → `clearPsiCaches` → `PsiFileImpl.clearCaches()` and
+        moves every cached file's `modificationStamp`. Measured: `0 → 1` on entry, `1 → 2` on exit,
+        `2 → 4` on a second episode, project and library files alike, with `roots` and the VFS stamp
+        **still** and a bare event pump moving nothing. `forFile` depends on `psiFile` in both
+        branches, so a dumb build cannot survive however it is pinned. **The guard stays** (one
+        boolean, cannot be wrong) and TC-16 keeps gating the decision per §1.9 B5.
+        `TypeElevenDr06StampProbeTest` (3 tests) is added to pin the *platform premise* the verdict
+        rests on — the one thing that could quietly promote this guard back to load-bearing.
+        Gap 2.1 **closed**; design §1.6's and §1.11's separate attributions of the same phenomenon
+        are corrected to one mechanism.
+  - [x] TYPE-11-DR-07 — probe the lazy `LuaTypeReference` escape (Risk 1.3). **Reachable, and it is
+        a sixth under-recording channel that ships a stale type. Filed as BUG-434; not fixed here.**
+        The escape is the *opposite* shape to the one Risk 1.3 described: the reference is consumed
+        **inside** the frame by `LuaGraphType.fromLuaType`, and `LuaTypeReference.resolved`'s
+        `by lazy` short-circuits before `LuaTypeManager.resolveType`, so neither `recordInto` nor the
+        warm-hit `replay` runs — a second memoization layer with no frame. Measured: `arm2
+        pre-forced urls=[lib.lua] pinnable=true` against `arm1 cold urls=[lib.lua, gadget.lua]
+        pinnable=false`, and end to end `arm3 after=[spin] sameSnapshot=true` against `arm4
+        after=[spun] sameSnapshot=false` across an edit to the **project** file with roots asserted
+        still. Attribution proven by mutation (`by lazy` → `get()`: every arm reports the cold
+        result), and that mutation is also the candidate fix — which is why it is not applied here.
+        It is a hot-path production change in a *performance* feature and needs DR-04, the
+        `provisioned=11 pinnable=11` count and the sweep re-measured.
+        `TypeElevenDr07LazyReferenceProbeTest` is committed **printing only**; asserting today's
+        behaviour would lock the defect in.
 - **Exit criteria**: `risks-and-gaps.md` Gap 2.1 and Risk 1.3 both closed with pasted output, or
-  re-filed as bugs with roadmap rows.
+  re-filed as bugs with roadmap rows. **Met**: Gap 2.1 closed with output; Risk 1.3 closed as
+  confirmed-real and re-filed as BUG-434 with a roadmap row.
 
 ### Phase 5: The remaining arm-B cost [Could]
 

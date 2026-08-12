@@ -245,7 +245,7 @@ outcome, not an expectation.
 | `…testTheSeededLibraryReachesTheProjectThroughTheRegisteredProvider` | enabled-library list cleared after install | **RED** — `the EP-registered LuaDefinitionLibraryProvider must contribute the seeded root; got []` |
 | `…testTheBundledRuntimeRootIsVisibleAndItsSchemeIsRecorded` | target switched to `LuaPlatform.PANDOC` (no bundled tree) | **RED** — `the bundled runtime library root must resolve, or provenance has one source` |
 | `…testALightFixtureProjectFileIsNeverProvisioned` | provenance widened to accept `/src` | **RED** — `MUTATION C` |
-| `TypeElevenDr05DumbModeTest.testASnapshotBuiltWhileDumbDoesNotSurviveIntoSmartMode` | (a) `!isDumb` term removed; (b) generation tracker replaced with `ModificationTracker.NEVER_CHANGED` | **GREEN under both.** Not a gate — see Gap 2.1. |
+| `TypeElevenDr05DumbModeTest.testASnapshotBuiltWhileDumbDoesNotSurviveIntoSmartMode` | (a) `!isDumb` term removed; (b) generation tracker replaced with `ModificationTracker.NEVER_CHANGED` | **GREEN under both.** Not a gate — see Gap 2.1. **Phase 4 explains why**: both dumb-mode edges fire `PROP_FILE_TYPES`, which invalidates all physical PSI, so the `psiFile` dependency alone rebuilds the snapshot and no mutation to the churn axis can show. |
 | `TypeElevenDr04LatencyTest` (both arms) | — | **No assertions at all.** It is a printing probe, exactly like `CompNineDr20Test`, and is not claimed as a gate. |
 | `…testALibraryGlobalTypedFromAProjectGlobalTracksThatProjectFile` (2026-08-09, second round) | provisioned-context globals restricted to provisioned scope (DR-10) **+** blanket pin | **RED at a different assertion — `:88`, not `:93`.** `the library global must take the project declaration's members expected:<[beforeEdit]> but was:<[]>`. The move from `:93` to `:88` is the DR-10 scaffold's liveness proof: the restriction is what turns `[beforeEdit]` into `[]`. |
 | `…testAProjectDeclaredMethodOnAStubClassTracksThatProjectFile` (second round) | same | **RED at `:139`, message unchanged** — `the removed project method must disappear; got [afterEdit, beforeEdit]`. Identical to blanket pinning: this path never enters `typeOfGlobalIn`. |
@@ -680,6 +680,144 @@ equalities are not over empty sets.
 | `TypeElevenGenerationSignalTest.testTheProviderHandsEveryDependencyToTheResultItCreates` (TC-2e, **new**) | `Result.create(builtTypes, psiFile, targetTracker)` inlined into the provider, `dependenciesFor` intact | **RED, alone (1 of 9)** — TC-2a, TC-2c, TC-2d, TC-3, TC-4 all green, which is Finding 1's correction |
 | `TypeElevenWarmSignalMechanismTest.testAColdNestedBuildLeavesTheOuterFrameExactlyTheUnion` (**new**) | `snapshotFrames[builtTypes] = sourceFrame` deleted from `forFile` (§3.7 step 1) | **RED, alone (1 of 2)** — the unconditional report then finds no frame and marks `unreplayedWarm` |
 
+### Phase 4 (2026-08-12, `main` @ `bf715eb2`) — DR-06 and DR-07, the two negative results closed
+
+Same discipline as every earlier round: the measurement needed one production edit, and **that edit
+was reverted — `git diff -- src/main/` is empty at this commit.**
+
+| Scaffold file / edit | Purpose | State |
+| :-- | :-- | :-- |
+| `LuaTypeReference.kt` — `val resolved: LuaType by lazy { … }` → `val resolved: LuaType get() = …` | DR-07's attribution mutation: route every access through `resolveType` so the `typeCache` hit replays the frame | **reverted to HEAD** |
+| `src/test/kotlin/.../type/TypeElevenDr06StampProbeTest.kt` (new) | DR-06's three cases | **kept** — they lock the platform premise the answer rests on |
+| `src/test/kotlin/.../type/TypeElevenDr07LazyReferenceProbeTest.kt` (new) | DR-07's four arms | **kept, printing only** — it reproduces BUG-434 and must not assert today's behaviour |
+
+**No production behaviour changed in Phase 4, so the corpus sweep was not re-run.** `-PwithCorpus`
+gates `LuaCorpusSweepTest` / `LuaTortureCorpusTest` / `LuaInspectionParityTest`, none of which can
+observe a docs-plus-tests change; the routine loop with `--rerun --no-build-cache` is the whole gate.
+
+#### DR-06 — the guard is insurance, and here is the probe that shows why
+
+Gap 2.1 asked whether the `modificationStamp` move at dumb-mode exit is real platform behaviour or a
+`DumbModeTestUtils` artifact. **It is real platform behaviour**, it happens at **both** edges of the
+episode, and it is not a roots change in disguise:
+
+```
+TYPE11-DR06 A0 library after install                        stamp=0 vfs=4 roots=3 psiTick=12 id=2074535251
+TYPE11-DR06 A0 project after install                        stamp=0 vfs=15 roots=3 psiTick=12 id=1721201864
+TYPE11-DR06 A1 library after a bare event pump, no dumb mode stamp=0 vfs=4 roots=3 psiTick=12 id=2074535251
+TYPE11-DR06 A2 library inside dumb mode                     stamp=1 vfs=4 roots=3 psiTick=14 id=2074535251
+TYPE11-DR06 A3 library after leaving dumb mode              stamp=2 vfs=4 roots=3 psiTick=16 id=2074535251
+TYPE11-DR06 A3 project after leaving dumb mode              stamp=2 vfs=15 roots=3 psiTick=16 id=1721201864
+TYPE11-DR06 A4 library refound                              stamp=2 ... sameInstance=true
+TYPE11-DR06 A5 library after a SECOND dumb episode          stamp=4 vfs=4 roots=3 psiTick=20 id=2074535251
+TYPE11-DR06 A5 project after a SECOND dumb episode          stamp=4 vfs=15 roots=3 psiTick=20 id=1721201864
+```
+
+Four things that together settle it. The stamp moves on **entry** as well as exit (`A1 → A2`), so
+"leaving dumb mode" was never the whole mechanism. It moves **again** on a second episode
+(`A3 → A5`, `2 → 4`), so it is not a one-off pending event from the fixture's install. A **bare event
+pump moves nothing** (`A0 → A1`), which is the control that rules out "the harness pumped a queued
+event at the exit". And the **project** file's stamp moves in lockstep with the library file's, so
+this is not specific to a just-installed library tree. `roots` is still at `3` throughout, and
+`vfs` never moves, so neither a roots change nor a VFS content event is responsible.
+
+The event was then named rather than guessed:
+
+```
+TYPE11-DR06 C0 before                 stamp=0 vfs=19 roots=5 psiTick=29 id=485882996
+TYPE11-DR06 C event=propFileTypes     stamp=1
+TYPE11-DR06 C1 inside                 stamp=1 vfs=19 roots=5 psiTick=31 id=485882996
+TYPE11-DR06 C event=propFileTypes     stamp=2
+TYPE11-DR06 C2 after                  stamp=2 vfs=19 roots=5 psiTick=33 id=485882996
+```
+
+`propFileTypes` is `PsiTreeChangeEvent.PROP_FILE_TYPES`, and the source says why it fires here.
+`PsiFileImpl.getModificationStamp()` is `myModificationStamp + contextStamp`, `myModificationStamp`
+has one writer (`PsiFileImpl.clearCaches()`), its project-wide route is
+`FileManagerImpl.clearPsiCaches` ← `possiblyInvalidatePhysicalPsi()` ← `processFileTypesChanged`, and
+`FileManagerImpl`'s **constructor** subscribes that method to both dumb-mode edges
+(`FileManagerImpl.java:93-103`):
+
+```java
+myConnection.subscribe(DumbModeListenerBackgroundable.TOPIC, new DumbModeListenerBackgroundable() {
+  @Override public void enteredDumbMode() { processFileTypesChanged(false); }
+  @Override public void exitDumbMode()    { processFileTypesChanged(false); }
+});
+```
+
+Core platform, unconditional, with no test framework in the path. **Verdict: §3.3 step 1 is
+insurance, not protection of a reachable defect.** Every dumb-mode transition invalidates all
+physical PSI project-wide, `forFile` depends on `psiFile` in *both* branches of step 9, so a snapshot
+built while dumb cannot survive the transition however it is pinned — which is exactly why design
+§1.6's two mutations both stayed green and why neither could explain itself. The guard **stays**: it
+costs one boolean, it cannot be wrong, and the alternative is depending on a platform subscription
+that no test of ours pins. `TypeElevenDumbModeDecisionTest` continues to gate the *decision* (§1.9
+B5), and `TypeElevenDr06StampProbeTest` now pins the platform premise the "insurance" verdict rests
+on, so a platform that stops healing turns this red instead of being silently inherited.
+
+⚠ This also **corrects design §1.6 and §1.11's shared attribution**. Both sighted the stamp move and
+attributed it to their own event — §1.6 to "leaving dumb mode", §1.11 to `makeRootsChange`. Neither
+is the mechanism; both are *routes to the same one*, `FileManagerImpl.clearPsiCaches`. §1.11's is
+`PsiWsmListener.rootsChanged → possiblyInvalidatePhysicalPsi`, §1.6's is the dumb-mode subscription
+above. The two independent sightings really were the same phenomenon, and it has a name.
+
+#### DR-07 — Risk 1.3 is reachable, and it is a sixth under-recording channel (BUG-434)
+
+Fixture: a provisioned library `lib.lua` declaring `---@class Widget` with `---@field part Gadget`
+and `---@type Widget libWidget`, over a **project** file `gadget.lua` declaring
+`---@class Gadget` / `---@field spin number`. The arms differ only in whether anything forced
+`Widget.part`'s reference at `depth() == 0` before the snapshot was built.
+
+```
+TYPE11-DR07 pre-force depth=0 part=LuaTypeReference members=[spin]
+TYPE11-DR07 arm1 cold       urls=[lib.lua, gadget.lua] absences=[] rescued=[] warm=[] inProgress=[] pinnable=false
+TYPE11-DR07 arm2 pre-forced urls=[lib.lua]             absences=[] rescued=[] warm=[] inProgress=[] pinnable=true
+TYPE11-DR07 arm3 pre-forced urls=[lib.lua]             … pinnable=true
+TYPE11-DR07 arm3 before=[spin]
+TYPE11-DR07 arm3 after=[spin] sameSnapshot=true
+TYPE11-DR07 arm4 cold       urls=[lib.lua, gadget.lua] … pinnable=false
+TYPE11-DR07 arm4 before=[spin]
+TYPE11-DR07 arm4 after=[spun] sameSnapshot=false
+```
+
+Arms 3 and 4 rename the project field `spin → spun` through `rewriteAssertingRootsAreStill`, so the
+roots tracker is asserted still and the only thing that changed is a **project** file. The pre-forced
+arm keeps the same snapshot instance and keeps reporting `[spin]`. **That is a stale type shipped by
+a pin this feature grants**, and it is the sixth under-recording channel after the absence, the warm
+inner snapshot, the in-progress inner snapshot, the rescued global and the module absence.
+
+The mechanism, **proven by mutation rather than by reading**: with `LuaTypeReference.resolved`'s
+`by lazy` replaced by a plain `get()`, every arm reports the cold result —
+
+```
+mutation: val resolved: LuaType get() = LuaTypeManager…resolveType(name, context) ?: LuaPrimitiveType.UNKNOWN
+TYPE11-DR07 arm2 pre-forced urls=[lib.lua, gadget.lua] … pinnable=false
+TYPE11-DR07 arm3 pre-forced urls=[lib.lua, gadget.lua] … pinnable=false
+TYPE11-DR07 arm3 before=[spin]
+TYPE11-DR07 arm3 after=[spun] sameSnapshot=false
+```
+
+So the escape is **not** the one Risk 1.3 described. Risk 1.3 worried about a reference resolved
+*after* the frame closed. What actually happens is the reverse: the reference is consumed **inside**
+the frame, by `fromLuaType`, and the consumption is invisible because the `by lazy` short-circuits
+before the manager is reached. `LuaTypeReference` is a **second memoization layer with no frame** —
+`resolveType`'s own cache hit replays (`LuaTypeManagerImpl.kt:123-126`), and this one cannot, because
+it never gets there. Risk 1.3's stated mitigation ("a `LuaClassType` is never stored in a snapshot")
+is true and irrelevant: the reference does not need to reach the snapshot, only to be read while the
+snapshot is being built.
+
+**Reachability is not marginal.** The pre-force is any depth-0 read of a class member type —
+completion (`getMembers`), a hover, `LuaOverrideLineMarkerProvider`, the hierarchy walk, an
+assignability inspection. It must land in the same `PsiModificationTracker` epoch as the library
+build, because `typeCache` is discarded on any PSI tick; but a wrong pin taken once survives until
+the next roots or target tick, so the window only has to be hit once per session.
+
+**Not fixed here, deliberately.** The obvious repair is the mutation above, and it is a production
+behaviour change in the hot path of a *performance* feature: it replaces a field read with a
+synchronized-map lookup plus a frame replay on every member access, and TYPE-11's own DR-04 arms,
+`TypeElevenPinnableCostTest`'s `provisioned=11 pinnable=11` count and the corpus sweep would all have
+to be re-measured. Filed as **BUG-434** with a roadmap row.
+
 ## Premises examined
 
 | Constraint treated as fixed | Verdict |
@@ -687,7 +825,7 @@ equalities are not over empty sets.
 | "The residual might not be real" | **REFUTED by measurement.** It is real and it fires: `design.md` §1.1. Blanket pinning is unsound and this plan does not build it. |
 | "The existing suite plus four corpus baselines will catch a stale-type regression here" | **REFUTED for both halves, by measurement.** The pre-existing tests passed unchanged under a build that demonstrably serves stale types; DR-09 then re-ran the sweep on that same build and **all four baselines compared unchanged** (`2571 tests completed, 2 failed` — both TYPE-11's own). See "DR-09 measured" below: the sweep is a single pass over an unedited tree, so it cannot observe a stale-cache defect at any corpus size. This premise is the reason `TypeElevenDr01ResidualTest` exists and the reason it is committed rather than thrown away. |
 | "A project file adding a method to a stub class stales the snapshot" (`requirements.md`) | **PARTLY REFUTED.** True only for the **hosted** `---@class` form, and by a different route than `requirements.md` names (`freeGlobalSeed` → `tableToLuaType` → `fromLuaType`, not `materializeClass` reaching the snapshot). The bundled stdlib is 21/22 unhosted. `design.md` §1.2. |
-| "A dumb-mode build bakes in nulls that are then sticky" (`requirements.md`, TYPE-11-05) | **HALF REFUTED.** The nulls are baked in (`graph type = Undefined`); they are **not** sticky, and not because of any tracker — the file's own `modificationStamp` moves 0→1 when dumb mode ends. The guard is kept, and — contrary to what this row said for three rounds — it **is** gated: on the decision rather than the outcome (design §1.9 B5, TC-16). See Gap 2.1. |
+| "A dumb-mode build bakes in nulls that are then sticky" (`requirements.md`, TYPE-11-05) | **REFUTED, and Phase 4 names the mechanism.** The nulls are baked in (`graph type = Undefined`); they are **not** sticky, and not because of any tracker — every dumb-mode transition fires `PROP_FILE_TYPES` from `FileManagerImpl`'s own subscription, invalidating all physical PSI and moving the file's `modificationStamp` on **entry and exit** alike (DR-06). The guard is kept, and — contrary to what this row said for three rounds — it **is** gated: on the decision rather than the outcome (design §1.9 B5, TC-16). See Gap 2.1. |
 | "Library files can be matched by `VirtualFile` identity" (TYPE-11-03) | **REFUTED as written.** `===` is false for a project file the index itself supplied. Matching is by URL containment. `design.md` §1.3. |
 | "Provenance must come from the plugin's own providers, not `ProjectFileIndex.isInLibrary`" | **Genuinely fixed, and re-confirmed.** The bundled root arrives over `jar://` inside the plugin jar; asking the platform's library index about that is a question with an unverified answer, and provenance never has to ask it. |
 | "Rocks trees are out of v1 scope" | **Chosen, not forced.** They are excluded because they are mutable in place and their refresh signal is unverified — a v1 that included them would need TYPE-11-DR-03 answered first. TYPE-11-DR-03 was deliberately **not run**. |
@@ -840,17 +978,30 @@ what was closed.
   shape as the three existing caches. Any future change to one cache's invalidation must change all
   four; implementation-plan Phase 1 puts them adjacent in the file so the coupling is visible.
 
-### Risk 1.3: A lazily-resolved `LuaTypeReference` escapes the recording frame
+### Risk 1.3: A lazily-resolved `LuaTypeReference` escapes the recording frame — **REAL, and it is not the shape written below (BUG-434)**
 
-- **Impact**: a source consumed after `recording` returned is not in the set, so it cannot be judged.
-- **Likelihood**: **low but not zero.** `LuaTypeReference.resolveType()` (`LuaTypeReference.kt:10`)
-  calls into the manager, and `LuaGraphType.fromLuaType` flattens references eagerly during the build
-  (`LuaGraphType.kt:251`), which is what the measured runs exercised. A reference reachable only
-  through `LuaClassType.getMembers()` at read time is not flattened.
-- **Mitigation**: bounded, not eliminated. A `LuaClassType` is never stored in a snapshot — snapshots
-  hold `LuaGraphType` — so the escape can only occur through a graph type that still carries a
-  `className`, and `tableToLuaType` re-resolves those nominally at read time under the project-wide
-  `typeCache`. Tracked as DR-07 rather than claimed closed.
+- **Status (Phase 4, 2026-08-12)**: **reproduced, attributed by mutation, filed as BUG-434.** Output
+  and method in "Phase 4 … DR-07" above. It is a **sixth** under-recording channel and it ships a
+  stale type: a provisioned library file is judged `pinnable=true` while its snapshot's content came
+  from a project file, and a later edit to that project file leaves the pinned snapshot in place
+  (`arm3 after=[spin] sameSnapshot=true`, against control `arm4 after=[spun] sameSnapshot=false`).
+- **Impact**: a source consumed *during* the build is not in the frame, so it cannot be judged, and
+  the file is pinned while depending on it. A pin must be correct when it is taken (§1.12).
+- **Likelihood**: this entry rated it "low but not zero" on the reasoning below, and **the reasoning
+  was wrong in its direction**. It worried about a reference resolved *after* `recording` returned.
+  What happens is the opposite: the reference is consumed **inside** the frame by
+  `LuaGraphType.fromLuaType` (`LuaGraphType.kt:251`), and the consumption is invisible because
+  `LuaTypeReference.resolved`'s `by lazy` (`LuaTypeReference.kt:9-11`) short-circuits before
+  `LuaTypeManager.resolveType` is reached — so neither the cold path's `recordInto` nor the warm
+  path's `replay` runs. `LuaTypeReference` is a second memoization layer with **no frame**, unlike
+  the three caches Phase 2 co-located frames into.
+- **The stated mitigation was true and irrelevant.** "A `LuaClassType` is never stored in a snapshot"
+  is correct; the reference does not need to reach the snapshot, only to be read while the snapshot
+  is being built. Every `@field` member type, every `@class` supertype, every function parameter and
+  return, and every alias target is such a reference (`LuaTypeManagerImpl.kt:356`, `:365`, `:412`,
+  `:424`, `:592`, `:597-598`, `:617`).
+- **Not fixed inside TYPE-11.** The one-line repair is a production behaviour change in the hot path
+  of a performance feature and needs its own pricing — see BUG-434 and the Phase 4 section.
 
 ### Risk 1.4: The win is smaller than the headline suggests
 
@@ -863,7 +1014,28 @@ what was closed.
 
 ## Design Gaps
 
-### Gap 2.1: The dumb-mode *staleness* has no reproducing test (the *guard* is gated — §1.9 B5)
+### Gap 2.1: The dumb-mode *staleness* has no reproducing test — **CLOSED, Phase 4: answered, the platform heals it**
+
+- **Answer (2026-08-12, DR-06)**: the stamp move is **real platform behaviour**, not a
+  `DumbModeTestUtils` artifact, so the outcome is unreproducible for a reason that holds in a running
+  IDE. `FileManagerImpl`'s constructor subscribes `processFileTypesChanged` to **both** edges of dumb
+  mode (`FileManagerImpl.java:93-103`), which runs `possiblyInvalidatePhysicalPsi` →
+  `clearPsiCaches` → `PsiFileImpl.clearCaches()` → `myModificationStamp++` for every cached file, and
+  fires `PROP_FILE_TYPES`. Measured: entry `0 → 1`, exit `1 → 2`, again `2 → 4` on a second episode,
+  project and library files alike, `roots` and the VFS stamp still, and a bare event pump moving
+  nothing. Full output in "Phase 4 … DR-06" above.
+- **Consequence**: §3.3 step 1 is **insurance**, not protection of a reachable defect. It stays — one
+  boolean, cannot be wrong — and the thing it insures against is now named: a platform that stops
+  invalidating physical PSI across dumb transitions. `TypeElevenDr06StampProbeTest` asserts that
+  premise, so such a platform turns the suite red rather than silently promoting the guard to
+  load-bearing behind everyone's back. `TypeElevenDumbModeDecisionTest` continues to gate the
+  *decision* (§1.9 B5, TC-16).
+- **What follows for the record below**: the original framing of this gap ("if it is an artifact, the
+  guard is load-bearing in production") is answered in the negative, and design §1.6's and §1.11's
+  attributions of the same phenomenon to two different causes are both corrected — they are two
+  routes to one mechanism.
+
+The original entry, kept because the question it asked is the one that was answered:
 
 - **Question**: can a snapshot built while `DumbService.isDumb` actually outlive dumb mode, in a real
   IDE rather than in `DumbModeTestUtils.runInDumbModeSynchronously`?
@@ -952,8 +1124,8 @@ what was closed.
 | TYPE-11-DR-03 | Does `RockspecSourcePathProvider.forceRefreshTracker` tick on `luarocks install` into an existing root? | follow-up scope only | **not run** — rocks are out of v1 scope |
 | TYPE-11-DR-04 | Re-measure the 9 ms / 334 ms pair, medians of ≥5 | TYPE-11-01 | **done** — `design.md` §1.5. Direction confirmed; the "near 9 ms" criterion is **not** met (3–5× arm A) |
 | TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb`, exit, complete again | TYPE-11-05 | **done, negative** — `design.md` §1.6. Nulls are baked in; they do not survive; two mutations failed to make the harness red. Reopened as DR-06. **Its trace nonetheless grounds the gate that replaced it** (§1.9 B5): `libDumb graph type = Undefined` inside the dumb block *is* `resolveGlobal` having returned null, i.e. the empty frame TC-16 asserts on |
-| TYPE-11-DR-06 | Determine whether the `modificationStamp` move at dumb-mode exit is platform behaviour or a `DumbModeTestUtils` artifact. If the former, TYPE-11-05's guard is dead code and should be deleted; if the latter, build a fixture that reproduces the staleness | Gap 2.1, TYPE-11-05 | todo. **Narrowed, not closed, by B5**: the guard is now gated on the decision (TC-16), so "is it protected" is answered; this row is only the remaining question of whether the *outcome* can occur in a real IDE |
-| TYPE-11-DR-07 | Probe whether a `LuaTypeReference` can be resolved after its recording frame closed, and whether the resulting source can reach a pinned snapshot | Risk 1.3 | todo |
+| TYPE-11-DR-06 | Determine whether the `modificationStamp` move at dumb-mode exit is platform behaviour or a `DumbModeTestUtils` artifact. If the former, TYPE-11-05's guard is dead code and should be deleted; if the latter, build a fixture that reproduces the staleness | Gap 2.1, TYPE-11-05 | **DONE, Phase 4 (2026-08-12) — negative, and now explained.** Platform behaviour, not a `DumbModeTestUtils` artifact: `FileManagerImpl`'s constructor subscribes `processFileTypesChanged` to **both** dumb-mode edges, which invalidates all physical PSI and moves every cached file's `modificationStamp` (`0 → 1` on entry, `1 → 2` on exit, `2 → 4` on a second episode; `roots` and the VFS stamp still; a bare event pump moves nothing). The *outcome* therefore cannot occur in a real IDE either, so the guard is **insurance and stays**; Gap 2.1 closes. Method and full output above |
+| TYPE-11-DR-07 | Probe whether a `LuaTypeReference` can be resolved after its recording frame closed, and whether the resulting source can reach a pinned snapshot | Risk 1.3 | **DONE, Phase 4 (2026-08-12) — positive: the defect is real, filed as BUG-434.** Reachable, and by the *opposite* mechanism to the one Risk 1.3 named: the reference is consumed **inside** the frame by `fromLuaType`, and `resolved`'s `by lazy` short-circuits before `resolveType`, so neither `recordInto` nor `replay` runs. `arm2 pre-forced urls=[lib.lua] pinnable=true` against `arm1 cold urls=[lib.lua, gadget.lua] pinnable=false`; end to end `arm3 after=[spin] sameSnapshot=true` against `arm4 after=[spun] sameSnapshot=false`. Attribution proven by replacing the `by lazy` with a `get()` — every arm then reports the cold result. **Sixth under-recording channel. Not fixed here**: the repair is a hot-path production change needing its own pricing |
 | TYPE-11-DR-08 | Profile the residual arm-B cost (`resolveGlobal` + `graphTypeToLuaType`, fresh `visited` map per call over a 3 600-member table) and decide whether it is a separate feature | Risk 1.4 | todo |
 | TYPE-11-DR-11 | Step 9 blocker B1: does a build whose global resolution answered **nothing** get pinned, and does the declaration written afterwards fail to reach it? | TYPE-11-06, `design.md` §3.3/§3.4 | **done, positive (the defect is real)** — `design.md` §1.8. `expected:<[afterDeclared]> but was:<[]>`. Closed by §3.3 step 4; measured cost **zero** pinned files. |
 | TYPE-11-DR-12 | Step 9 blocker B4: is the interleaving reachable in which a nested `forFile` is served warm, so the outer library file records an incomplete source set and is pinned? | TYPE-11-06, `design.md` §3.6 | **done, positive (the defect is real, and needs no roots tick)** — `design.md` §1.8. `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.7 (replay), not by blanket-unpinnable; measured cost **zero** pinned files. |

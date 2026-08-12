@@ -237,8 +237,21 @@ green.
 
 **Consequence for this design: TYPE-11-05's guard is retained (§3.4), and the DR-05 harness above is
 explicitly NOT a gate** — two mutations left it green, so calling it one would be the exact "test that
-cannot fail" this plan exists to avoid. Whether the stamp move is platform behaviour or a
-`DumbModeTestUtils` artifact remains a tracked de-risking task (`risks-and-gaps.md` → DR-06).
+cannot fail" this plan exists to avoid.
+
+⚠ **ANSWERED IN PHASE 4 (DR-06), and this section's attribution was wrong in a way that mattered.**
+The stamp move is **platform behaviour**, not a `DumbModeTestUtils` artifact — and it is not caused by
+*leaving* dumb mode. It happens on **both** edges: `FileManagerImpl`'s constructor subscribes
+`processFileTypesChanged` to `enteredDumbMode` **and** `exitDumbMode`
+(`FileManagerImpl.java:93-103`), which runs `possiblyInvalidatePhysicalPsi()` → `clearPsiCaches` →
+`PsiFileImpl.clearCaches()` → `myModificationStamp++` for every cached file and fires
+`PROP_FILE_TYPES`. Measured on the same fixture with the `PsiFile` materialized *before* the episode:
+`0 → 1` on entry, `1 → 2` on exit, `2 → 4` on a second episode, project and library files moving in
+lockstep, `roots` and the VFS stamp still, and a bare event pump moving nothing. So the guard is
+**insurance against a state the platform already heals**, it stays because it costs one boolean, and
+`risks-and-gaps.md` Gap 2.1 is closed rather than open. See also §1.11's ⚠⚠, which sighted the same
+`clearPsiCaches` through the *other* route (`PsiWsmListener.rootsChanged`) and attributed it to
+`makeRootsChange`: one mechanism, two routes.
 
 ⚠ **What does not follow — and was wrongly allowed to, until Step 9 blocker B5.** "The staleness does
 not reproduce" is a fact about the *outcome*. It says nothing about the *decision*, which is a pure
@@ -1171,6 +1184,15 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
     applied to all four steps. The same holds for both module rules (§3.1 step 5d, §3.5's
     `getModuleType` row): `require` is itself a rescued global, so any file that calls it is
     unpinnable before those rules are read.
+  - ⚠ **A sixth channel exists and is NOT closed by these steps — BUG-434 (Phase 4, DR-07).**
+    `LuaTypeReference.resolved` is a `by lazy`, so a reference already forced at `depth() == 0` is
+    consumed by `LuaGraphType.fromLuaType` **inside** a build frame without ever reaching
+    `LuaTypeManager.resolveType` — neither `recordInto` nor the warm-hit `replay` runs, and the
+    consumed file never enters `urls`. Measured: the same library file is `pinnable=false` cold and
+    `pinnable=true` after a depth-0 pre-force, and the pinned instance then survives an edit to the
+    project file it depends on. It is filed rather than fixed here because the repair is a hot-path
+    production change that has to be priced (`risks-and-gaps.md` Risk 1.3, DR-07). Until it lands,
+    the "four channels, one defect" and "five channels" counts below are a floor, not a closed list.
   - **Steps 4 through 7 are the "sources unknown" half of the invariant, and they are not optional.**
     Step 3 alone is vacuously true for an empty set, which is exactly the state a failed resolution
     (B1), a warm inner snapshot (B4), an in-progress nested snapshot (V1) and a project-scope pass
@@ -1222,6 +1244,13 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   stayed green, because the file's own `modificationStamp` moves when dumb mode ends. It is kept
   because it costs one boolean, it cannot be wrong, and the alternative is relying on an accident of
   `modificationStamp` behaviour that no test pins.
+  **Phase 4 (DR-06) settled which of those it is: insurance.** The move is core platform behaviour on
+  *both* dumb-mode edges, from `FileManagerImpl`'s own `DumbModeListenerBackgroundable` subscription,
+  so the staleness cannot occur in a running IDE either. The "accident no test pins" clause above is
+  the one part that survives, and it is now pinned: `TypeElevenDr06StampProbeTest` asserts that a
+  dumb episode moves the stamp without ticking roots and that both edges fire `PROP_FILE_TYPES`, so a
+  platform that stops healing turns the suite red instead of silently making this guard
+  load-bearing.
   **It is nevertheless gated** (§1.9 B5, TC-16). The decision is asserted directly —
   `isPinnable(libraryFile, SourceFrame())` is `false` under
   `DumbModeTestUtils.runInDumbModeSynchronously` and `true` with this step deleted, because an empty
