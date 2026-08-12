@@ -421,8 +421,10 @@ document's.)*
         the existing one**, so the header change is also an addition.
         **Exit for this task alone**: the golden's diff is a **pure addition** — `git diff` on
         `src/test/resources/comp09/member-enumeration.golden` shows only `+` lines and **zero** `-`
-        lines, and `cut -d'|' -f2 member-enumeration.golden | sort -u` goes from
-        `shape | global | class | completion` to that plus `completion:`. Record the new hash beside
+        lines, and `LC_ALL=C cut -d'|' -f2 member-enumeration.golden | sort -u` goes from
+        `shape | global | class | completion` to that plus `completion:`. **`LC_ALL=C` is
+        required, not decoration**: under the default `en_US.UTF-8` collation `sort -u` folds
+        `completion` and `completion:` into one entry, so the check silently reports no change. Record the new hash beside
         `a8c580ccc7a9528c0fde41527d870c48`. If any existing line moves, **stop**: the extension was
         supposed to be behaviour-free and something else changed.
         **Done**: `git diff --numstat` on the golden reports `14  0` (14 insertions, 0 deletions);
