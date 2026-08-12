@@ -7,466 +7,108 @@
   a 123 KiB definition library ([8d536e87](https://github.com/internetisalie/lunar/commit/8d536e87)).
 - **Lazy type reference escapes the recording frame** (BUG-434): a type name read before the library's
   graph was built hid the file it resolved into, leaving stale types ([e7f0ba4d](https://github.com/internetisalie/lunar/commit/e7f0ba4d)).
-- **`resolveType` logs an IDE error during indexing** (BUG-432): type resolution now degrades quietly
+- **`resolveType` logs an IDE error during indexing** (BUG-432): type resolution degrades quietly
   while the indexes build ([b6cc37d3](https://github.com/internetisalie/lunar/commit/b6cc37d3)).
-
-### A global API declared in another file now carries its types (BUG-427)
-
-`function count(n) end` at file scope declares a global, and nothing indexed it — so a project whose
-API is bare global functions was invisible across file boundaries to hover, inlay hints, parameter
-info, completion and type checking alike. The assignment form `count = function(n) end` resolved but
-dropped its `---@param` annotations, which is its own half of the same hole. Both are fixed, and
-where a project reassigns a stdlib global (`assert = require("luassert")`) the project's own
-declaration now wins over the bundled stub.
-
-Two long-standing defects surfaced with it and are fixed:
-
-- **`x and y or z` no longer infers a stray `boolean`.** The two operators were modelled as the union
-  of both operands, so Lua's ternary idiom picked up a boolean arm that then failed any string or
-  number use downstream.
-- **A self-referential function type no longer crashes highlighting.** It recursed until the stack
-  gave out, taking the whole file's inspection results with it.
-
-Across the sweep corpora these remove **109 assignability errors and 52 return-type mismatches**,
-and two operands that really are un-concatenable became visible.
-
-### A `---@param` in another file is now checked (BUG-425)
-
-Annotations only ever constrained calls in the file that declared them. A library declaring
-`---@param n number` on `function Lib.count(n)` had that contract ignored everywhere it was actually
-called, so `Lib.count("oops")` passed in silence.
-
-Deliberately narrow: the check applies when the call supplies exactly one argument per declared
-parameter, and to scalar parameter types. Calls that omit an optional parameter are left alone,
-because only a function's primary signature is known and an `@overload` would make the alignment
-guesswork — an earlier, looser rule was measured putting 244 false positives on real projects.
-
-### `setmetatable` now types the pattern everyone actually writes (BUG-426, BUG-424)
-
-The type engine understood `setmetatable(t, mt)` only when the metatable was written inline as a
-table literal. With a named metatable — the ordinary constructor pattern —
-
-```lua
-local Account = {}
-Account.__index = Account
-function Account.new() return setmetatable({}, Account) end
-```
-
-instances came back untyped: no member completion, no member checking, nothing. And because an
-untyped value silently satisfies every check, it looked supported rather than absent.
-
-Instances now carry the metatable's members, so completion and type checking work through
-`__index`, and a table whose metatable implements an operator (`__add`, `__concat`, `__len`) is
-accepted at that operator instead of reported as a mismatch.
-
-Across the sweep corpora this removes a further **27 assignability errors and 7 return-type
-mismatches**, all false.
-
-### `"10" + 5` is no longer a type error (BUG-423)
-
-Lua coerces between strings and numbers at arithmetic and at `..` — `"10" + 5` is 15, `-"5"` is −5,
-`1 .. "x"` is `"1x"` — and the type engine did not, so it reported legal code as a mismatch. Every
-arithmetic operator, unary minus and concatenation now accept the operand Lua accepts.
-
-Across the four sweep corpora this removes **57 assignability errors and 17 return-type
-mismatches**, all of them false. One suppressed warning in penlight *appeared* as a result: it had
-been hidden underneath one of the false errors.
-
-What is still reported is unchanged: `true + 1`, `nil .. "x"` and a table with no arithmetic
-metamethod are real Lua errors and still surface. Inferred types are unaffected too — a parameter
-used as `n * 2` still reads `number`, not `number | string`, because the operand rule constrains the
-position without widening what the value is inferred to be.
-
-### A keyed `---@field` no longer documents itself as "Unknown" (MAINT-34)
-
-Quick documentation rendered `---@field [string] number` with the literal word **Unknown** where the
-field's name belongs, because a keyed field stores its descriptor in a different slot from a named
-one and only the named slot was read. It now renders as `[string]`.
-
-Optional fields are unchanged and deliberately asymmetric: `---@field beta? number` completes and
-resolves as `beta`, while quick documentation still shows `beta?` — the marker is part of what you
-wrote, and worth seeing when you are reading the docs rather than calling the member.
-
-### LuaCATS annotations are read once, not three times (MAINT-34, BUG-402)
-
-Every LuaCATS tag that feeds the type engine was read by two or three separate copies of the same
-logic — one at indexing time, one from live syntax, and a third added later — and which copy ran
-depended on nothing more than whether the declaring file happened to be open. The copies had
-already drifted three times, each time producing a defect where a class resolved differently from
-one caret position to the next.
-
-All of them now share one reader, so the remaining split is *where the data comes from*, not *what a
-tag means*. This is internal, and on its own you should see no change; it exists so that the class of
-bug it caused stops recurring. Its one user-visible symptom, a parameterized parent
-(`---@class Kid : Base<string, number>`) being split into two nonsense supertypes when the declaring
-file was closed, is fixed.
-
-Being straight about the limit of that last fix: the parent's name is now correct, but a
-parameterized parent still does not *resolve*, so members inherited through one remain missing —
-before and after. Nothing regressed; the remaining half is tracked separately and the fix is a known
-shape.
-
-**On upgrade, Lunar re-indexes once.** The stored form of a class's parent list changed, so cached
-index data from an earlier build is discarded and rebuilt on first open.
-
-### Free globals are now typed for the whole engine, not just completion (BUG-397, closes BUG-359)
-
-The type engine deliberately refused to look up a free global — `table`, `redis`, `package`, or a
-project-wide `Lib` declared in another file — for anything except member completion. Hover, inlay
-hints and inspections all saw `Undefined`, and the un-typed `package.path` read in
-`package.path = package.path .. "..."` degraded to a `nil` operand, producing the long-standing
-false positive "nil value is not assignable to string" (BUG-359).
-
-The restraint existed because two earlier attempts to wire the lookup in regressed the engine:
-binding the receiver displaced a better-informed member path, and the union algebra collapsed
-`any | { err: string }` to `any` on the way through. Both root causes are now fixed instead of
-avoided: a union keeping an `any` arm preserves its structural arms (so `redis.pcall`'s error-table
-arm survives to the call site) and is never itself an assignability error, and declared types are
-authoritative — a declaration-typed callee contributes its return type but is not arity-checked,
-so `redis.register_function`'s `@overload` table form stays clean.
-
-Free globals and their members now type everywhere a declaring assignment is indexable:
-`package.path` reads `string` off the stdlib stub, `local reply = redis.pcall(...)` carries
-`any | { err: string }` with both arms intact, and a bare `redis` reference exposes its declared
-members to every consumer. Chained access resolves hop by hop through declared types
-(`Config.db.name`); an undeclared link leaves the rest of the chain untyped rather than guessing.
-
-One scoping note: this covers globals declared by assignment (`redis = {}`, `package.path = ""` —
-which is how every stdlib library table is declared). A global declared only as a bare function
-(`function print(...) end` — most of the base library's free functions) is not yet indexed by the
-global-assignment index, so `print`, `pairs`, `type` and friends still infer nothing. That is the
-natural follow-up, not a regression — they were equally untyped before.
-
-### Un-pinning a platform target left the project on the old one (BUG-404)
-
-Setting **Platform target** back to *Auto (from runtime)* dropped the pin from `.idea/lunar.xml` but
-left everything else on the old target: language level, standard library, the External Libraries node
-and the disabled Version combo. Re-running Auto-Discover did not help — the state was stuck rather
-than stale, and the only escape was editing `.idea/lunar.xml` by hand.
-
-The synchronizer memoised "the runtime has not changed since we last applied it" and used that to
-conclude "the applied target reflects the runtime". Pinning is exactly the case that separates those
-two claims, so un-pinning suppressed the one recalculation that was needed.
-
-### LDoc `@param` descriptions are no longer read as types (BUG-406)
-
-[LDoc](https://lunarmodules.github.io/ldoc/) writes `@param <name> <description>` with no type slot,
-where LuaCATS writes `@param <name> <type> <description>`. The first word of an LDoc description was
-therefore shown as the parameter's type — `@param array Lua table of values` rendered as
-`array: Lua` in quick documentation and parameter info.
-
-A declared type is now shown only when it resolves, or when no prose follows it; otherwise the word
-returns to the front of the description, where it belongs. Real types are untouched, including class
-names declared elsewhere and structural forms such as `string[]` and `string|nil`. This closes the
-known limitation recorded against 0.21.1 — which overstated the problem: type-aware inspections were
-never affected, because the inference engine already ignored a `@param` type it could not resolve.
-
-
-### Documented declarations could vanish from Search Everywhere (BUG-408)
-
-A declaration's doc comment was indexed as three tab-separated fields joined by `|`, split back
-apart by hand at the reader. Neither delimiter was escaped, and the file URL was not sanitised — so
-any project path containing a tab or a `|` changed the record's arity, and the reader dropped the
-entry rather than mis-reading it. The documentation was simply absent from Search Everywhere's Lua
-doc results, with nothing to indicate it had been discarded.
-
-The record format now lives in one place and escapes both delimiters, so a path can no longer alter
-the shape of a record. The index version was bumped, so affected entries reappear after the next
-re-index; no action is required.
-
-Internal: the corpus manifest moved from tab-separated text to JSON (BUG-407) — the same class of
-defect, in the tooling that was supposed to catch defects like it. Two hand-rolled parsers disagreed
-about a row with an empty field, and one of them fed the difference to `rm -rf`.
-
-Internal: the regression corpus gained a differential parse oracle and two lexer invariants
-(MAINT-35). Every swept file is now judged by the matching PUC Lua `luac -p`, built from a pinned,
-checksummed tarball rather than a distro package, so "Lunar reports a syntax error here" is checked
-against an independent implementation instead of against last week's number. A pinned corpus of
-1 696 minimized fuzzer inputs runs alongside it. This found BUG-411 on its first pass — vertical tab
-and form feed are not treated as whitespace, so a file containing either reports a syntax error that
-PUC Lua does not — and put a number on how much more permissive Lunar's parser is than PUC's, which
-had never been measured.
-
-
-### LDoc doc comments no longer report false syntax errors (BUG-393)
-
-`---` comments written in [LDoc](https://lunarmodules.github.io/ldoc/) style marked otherwise-clean
-Lua as broken. Two constructs were at fault:
-
-- A backtick code span in a description — `--- @param array Lua table (must match `array`)` —
-  produced a token the description rule refused, although the lexer emits it.
-- `--- @param[opt=false] explicit boolean`, LDoc's bracketed optional-parameter modifier, hit the
-  `@param` rule's demand for a name or `...`.
-
-Both now degrade to documentation rather than a syntax error: a well-formed LuaCATS tag still parses
-into real structure, and shapes Lunar does not model become prose. `@func` and `@tparam` were already
-inert and unaffected.
-
-**Known limitation (BUG-406).** This is *tolerance*, not LDoc support. LDoc's `@param <name>
-<description>` has no type slot where LuaCATS's `@param <name> <type>` does, and the two are not yet
-distinguished — so the first word of an LDoc description is read as the parameter's type
-(`@param array Lua table …` infers the type `Lua`). Type-aware inspections on LDoc-annotated code
-should be treated with suspicion until that is fixed.
-
-Internal: Penlight 1.15.0 joins the regression corpus, replacing the parked KOReader as the
-LDoc-bearing member at an eighth of the sweep cost.
-
-
-### On-demand LuaLS / LuaCATS definition libraries (TARGET-08)
-Type definitions for community Lua libraries can now be enabled per project under
-**Settings ▸ Languages & Frameworks ▸ Lua ▸ Definition Libraries**. Nothing ships with the plugin:
-each library is downloaded from its upstream project on demand, cached per user, and registered as
-a library root so its `@meta` annotations resolve and complete. The catalog is pinned by commit and
-checksum, licences and attribution links are shown for every entry before you opt in, and a library
-enabled while offline stays enabled and retries on the next apply.
-
-With `busted` enabled, `assert.` completes `is_true`, `are_equal`, `are_same` and the rest of the
-luassert API — including members inherited through its `---@class` parents.
-
-### The Lua standard library now completes (BUG-394)
-**Typing `pri` did not offer `print`.** Global completion searched project files only, and every
-stdlib symbol lives in a bundled stub outside that scope — so the entire standard library was
-missing from the caret you are most likely to use it at, along with anything from a definition
-library or a LuaRocks tree. Library symbols now appear, ranked below your own code, and are never
-offered a spurious `require` on acceptance.
-
-### Members of anything outside the current file (BUG-395, BUG-398, BUG-399)
-Member completion after `.` or `:` was built one file at a time, so a receiver defined anywhere
-else offered nothing at all. Three defects, all fixed:
-- **`table.` completed nothing.** A file did not publish its globals — `table = {}` and
-  `function table.concat()` landed on unrelated types — and only the first member of a table was
-  ever recorded, so a stub declaring ten functions described one. `table.` now completes
-  `concat`, `insert`, `move`, `pack`, `remove`, `sort`, `unpack` with signatures.
-- **A `---@class` named apart from its local had no members.** LuaCATS libraries routinely write
-  `---@class luassert.internal` on `local internal = {}`, and members declared against the variable
-  were not found — so the class materialized empty and anything inheriting from it inherited
-  nothing. A module whose exported type the stub builder could not summarize also lost its type
-  outright, which made the same `require` resolve differently from one caret to the next.
-- **A `---@class` in a library file could not resolve at all**, for the same project-scope reason
-  as BUG-394.
-
-Completion is also now quiet where it should be: a member caret after `.` no longer lists
-project-wide globals, and `goto` offers labels rather than the standard library.
-
-### Definition-libraries settings page no longer stalls the UI thread (BUG-396)
-Opening the page performed filesystem work on the EDT. The catalog renders immediately and the
-fetched/not-fetched column fills in from a background thread.
+- **Global functions declared in another file** (BUG-427): `function count(n) end` at file scope now
+  resolves across files with its annotations, and a project's own global wins over a bundled stub
+  ([a40a3e19](https://github.com/internetisalie/lunar/commit/a40a3e19)).
+- **Cross-file `---@param` checking** (BUG-425): a parameter type declared in one file now constrains
+  calls in every other ([426ac162](https://github.com/internetisalie/lunar/commit/426ac162)).
+- **`setmetatable` and operator metamethods** (BUG-426, BUG-424): a named metatable no longer infers
+  `Undefined`, and `__add`/`__mul`/`__pow`/`__concat`/`__len` are modelled ([ef48c172](https://github.com/internetisalie/lunar/commit/ef48c172)).
+- **String↔number coercion in operators** (BUG-423): `"10" + 5` is no longer a type error ([aa51396d](https://github.com/internetisalie/lunar/commit/aa51396d)).
+- **LuaCATS extraction unification** (MAINT-34, BUG-402): annotations are read once through one
+  extractor instead of three, and a keyed `---@field` renders its key rather than "Unknown"
+  ([149a5144](https://github.com/internetisalie/lunar/commit/149a5144)).
+- **Free globals typed for the whole engine** (BUG-397, closes BUG-359): free-global typing reaches
+  inference, not just completion ([f08d7ca3](https://github.com/internetisalie/lunar/commit/f08d7ca3)).
+- **Un-pinning a platform target** (BUG-404): returning a pinned target to Auto reflows to the runtime
+  ([8f8fd0e5](https://github.com/internetisalie/lunar/commit/8f8fd0e5)).
+- **LDoc `@param` descriptions** (BUG-406): an untyped LDoc `@param` is no longer read as a LuaCATS
+  type ([7b3585c8](https://github.com/internetisalie/lunar/commit/7b3585c8)).
+- **Documented declarations in Search Everywhere** (BUG-408): a path separator in the description
+  record no longer drops the declaration from the index ([b3c9b99a](https://github.com/internetisalie/lunar/commit/b3c9b99a)).
+- **LDoc prose in doc comments** (BUG-393): valid LDoc annotations no longer report syntax errors
+  ([d23e0743](https://github.com/internetisalie/lunar/commit/d23e0743)).
+- **On-demand LuaLS / LuaCATS definition libraries** (TARGET-08): a catalog, per-project enable list,
+  fetch-on-demand and a settings page ([48aa0aaf](https://github.com/internetisalie/lunar/commit/48aa0aaf)).
+- **Standard-library completion** (BUG-394): library globals are offered at a bare-identifier caret
+  ([711672db](https://github.com/internetisalie/lunar/commit/711672db)).
+- **Members of globals from other files** (BUG-395, BUG-398, BUG-399): members complete for globals,
+  `@class` names declared apart from their local, and `@class` declarations in library files
+  ([307d6e54](https://github.com/internetisalie/lunar/commit/307d6e54)).
+- **Definition-libraries settings page off the EDT** (BUG-396): cache-state reads no longer stall the
+  UI thread ([bd60e129](https://github.com/internetisalie/lunar/commit/bd60e129)).
 
 ## [0.20] — Terminology & settings-label polish
 
-### Correctness fixes found by sweeping real-world Lua projects (MAINT-33)
-A new opt-in regression ratchet (`-PwithCorpus`) sweeps pinned checkouts of luacheck, luarocks and
-ZeroBrane Studio — 363 files — and gates parse errors, `require` resolution and inspection counts
-against committed baselines. It surfaced four defects on its first runs:
-- **Long strings opening on a blank line broke parsing** (BUG-392). `[[` followed by two or more
-  newlines lexed as three tokens instead of one, so any file containing such a string reported a
-  spurious syntax error — typically pointing at an unrelated line far away. Also resolves a
-  highlighting failure in the same files. The corpus now parses clean apart from luacheck's
-  intentionally-malformed test samples.
-- **Globals assigned in one file were reported undeclared in another** (BUG-391). A plain top-level
-  `X = ...` is now resolved project-wide, as Lua semantics require. On ZeroBrane this removed 1387
-  false `LuaUndeclaredVariable` errors (3202 → 1815).
-- **`require "mod"` had no Go to Definition** (BUG-389). The paren-less string-call form now
-  contributes a reference like `require("mod")`; navigation and completion no longer disagree.
-  On luacheck, recognised requires rose 3 → 152 with no increase in unresolved ones.
-- **`StackOverflowError` while inferring types through self-referential tables** (BUG-390). The
-  cycle guard was dropped at each lazy node. This aborted highlighting on 131 of 363 corpus files,
-  which had been silently suppressing diagnostics in those files rather than preventing them.
-
-### Terminology unification (BUG-378)
-- **interpreter → runtime** across all user-visible strings: the Lua run/test configuration editors
-  label the field **Runtime** and **Runtime arguments** (was "Interpreter"), and the no-runtime
-  validation reads **"Runtime is not defined"**. The rockspec wizard group, the runtime combo's
-  unknown-entry renderer, and the Recreate/Remove environment dialog titles are aligned to the
-  ratified vocabulary (runtime / tool / toolchain / environment / package). The run-config
-  **Environment** field is renamed **Environment variables** so it no longer collides with the
-  toolchain *environment* concept.
-
-### Clearer toolchain binding labels (BUG-387)
-- The tool-binding combos drop the ambiguous **"Inherit (none)"**: the app-level *Global Default
-  Bindings* now read **"No default"** (there is no higher tier to inherit from), and a project
-  binding that resolves to nothing reads **"Inherit (nothing resolved)"**. Resolution precedence is
-  unchanged (active env → project → global → inventory).
+- **Corpus sweep regression ratchet** (MAINT-33): an opt-in `-PwithCorpus` sweep over pinned
+  checkouts of luacheck, luarocks and ZeroBrane Studio — 363 files — gating parse errors, `require`
+  resolution and inspection counts against committed baselines ([1bb8177c](https://github.com/internetisalie/lunar/commit/1bb8177c)).
+- **Long strings opening on a blank line** (BUG-392): `[[` followed by two or more newlines lexed as
+  three tokens instead of one, breaking parsing for any file containing one ([34d553b0](https://github.com/internetisalie/lunar/commit/34d553b0)).
+- **Terminology unification** (BUG-378): interpreter → runtime across the UI ([7673fe25](https://github.com/internetisalie/lunar/commit/7673fe25)).
+- **Clearer toolchain binding labels** (BUG-387): "No default" / "nothing bound" replace ambiguous
+  empty states ([b36bbc3c](https://github.com/internetisalie/lunar/commit/b36bbc3c)).
 
 ## [0.19] — LuaRocks browser, settings restructure, bug sweep & MVP-quality wave
 
-### Quality & correctness — codebase-review remediation (0.19.1)
-A wave of correctness, stability, and performance fixes draining the 2026-07 full codebase
-review (MAINT-24…32); the unit suite grew from 2123 to 2224 tests, all green:
-- **Debugger & test runner** (MAINT-24): byte-accurate DBGp framing (multibyte variable values no
-  longer desync the protocol), crash-proof payload parsing, a thread-safe breakpoint model, correct
-  table indexing and 1-based line display, run-config source-path persistence, a Lua-pattern busted
-  rerun filter with live console output, a configurable debug port, and Run to Cursor.
-- **Type engine** (MAINT-25): eliminates a cross-file type leak (narrowing a value to `table` in one
-  file could pollute another), converts self-referential tables without a `StackOverflowError`, and no
-  longer raises fatal-error popups on designed inference cutoffs.
-- **Luacheck** (MAINT-26): diagnostics now index the live editor buffer (via stdin) so ranges land
-  correctly on unsaved edits; launch failures surface honestly instead of a silent pass; suppression
-  comments are correctly scoped; and Lua 5.1's `arg` global is recognized.
-- **LuaCATS docs & lexer** (MAINT-27): lexer containment fixes (`\r\n`, Unicode identifiers), escaped
-  and correct documentation HTML, `@class` inheritance rendering, and union-alias value listing.
-- **Completion** (MAINT-28): restores silently-disabled cross-file completion, corrects symbol
-  ranking, removes a duplicate symbol pass, and caches per-session work.
-- **Control-flow & inspections** (MAINT-29): safe integer-division and make-local quick fixes,
-  control-flow-graph edge/label accuracy, unused-local precision, and `__concat`-aware concatenation
-  checks.
-- **Indexing & resolution** (MAINT-30): faster reference resolution and type snapshots (platform
-  `ResolveCache` + `CachedValuesManager`), corrected local-scope resolution (`local x = x` binds the
-  outer `x`), and cache invalidation on platform-target switches.
-- **Process execution** (MAINT-32): fixes an IDE freeze caused by launching a subprocess while holding
-  a read lock, makes workspace builds and rock installs cancellable, and moves tool I/O off the UI thread.
-- **Internal**: dead-code sweep (MAINT-31, ~940 lines).
-
-### LuaRocks package browser redesign (ROCKS-16)
-- **Plugins-style two-tab browser**: the LuaRocks Packages tool window is rebuilt in the IDE
-  Plugins-page idiom — a **Marketplace** tab (debounced search) and an **Installed** tab
-  (zero-query list of the project's rocks), both `JB*`-component surfaces, sharing a rich detail
-  pane with a `JBHtmlPane` description, a clickable dependency list, a version picker, and inline
-  Install / Uninstall / Update / Add-to-rockspec actions.
-- **Canonical install target**: browser installs/uninstalls now pass `--tree <project rock tree>`,
-  so an installed rock is visible to module resolution, the dependency tree, and the library
-  provider — no longer landing in the binary's default global tree.
-- **Honest error & empty states**: an unresolved `luarocks` binary or a failed CLI call now shows
-  an error card with a **Configure** link to the Toolchain settings, never the misleading "No
-  packages found"; the no-selection state is a proper empty-text panel. The zero-query Marketplace
-  view optionally shows a "Popular / Trending" list scraped from luarocks.org, degrading silently
-  to a neutral prompt on any fetch failure.
-- **Fixes**: absorbs BUG-363 (monospaced detail font → standard UI font), BUG-365 (detail-pane
-  alignment), BUG-366 (the two LuaRocks tool windows now have unambiguous stripe titles —
-  "LuaRocks Packages" vs "LuaRocks Dependencies"), BUG-367 (`(no package selected)` label →
-  empty-text panel), and BUG-368 (newline-joined dependencies → a clickable list).
-
-### Bug fixes
-- **Long-bracket annotator crash mid-typing** (BUG-386): `LuaLongStringAnnotator` and
-  `LuaLongCommentAnnotator` raw-indexed token text without bounds checks, throwing
-  `StringIndexOutOfBoundsException` when a truncated delimiter (e.g. `[==` or `--[=`) was
-  lexed at EOF while typing. Fixed by delegating to the existing bounds-checked helpers
-  `getLuaStringDelimiterLength` / `getLuaCommentDelimiterLength`.
-- **Reformat forces spaces inside brackets** (BUG-382): reformat always produced `t[ 1 ]`
-  because a rule labelled "No spacing inside brackets" mistakenly returned `SINGLE_SPACING`,
-  making the *Spaces → Within → Brackets* code-style setting unreachable. Fixed by removing
-  the erroneous override and deferring to the `spacingBuilder.withinPair` rule that already
-  respects `SPACE_WITHIN_BRACKETS`.
-- **Version-conflict engine misses equal-version exclusive bounds** (BUG-383): `>= 2.0` +
-  `< 2.0` was not flagged as unsatisfiable because the engine only checked
-  `lower.version > upper.version`. Fixed to also flag pairs where the versions are equal but
-  at least one bound is exclusive (`>= 2.0 + <= 2.0` remains satisfiable by exactly 2.0).
-- **LUA_CPATH hardcodes `?.so` on Windows** (BUG-384): `RockspecRunPathProvider.luaCPath`
-  hardcoded `?.so` and read the deprecated `state.languageLevel`. Fixed to use the native
-  extension per `SystemInfo` (`.dll` on Windows, `.so` elsewhere) and derive the language
-  level from the active target — the same source `LuaRocksLibraryProvider` uses.
-- **Scaffolder instantiates a fresh run-configuration type** (BUG-385): `LuaRocksScaffolder`
-  constructed a fresh `LuaRunConfigurationType()` instead of the platform-registered
-  singleton, so template patching operated on a divergent instance. Fixed to look up the
-  singleton via `ConfigurationTypeUtil.findConfigurationType`.
-- **Orphaned Lua Workspace file type** (BUG-374): `LuaWorkFileType` and its `plugin.xml`
-  registration survived the removal of the workspace concept; deleted the dead class and
-  registration so `*.luawork` is no longer claimed by the plugin.
-- **lua-language-server missing from kind registry** (BUG-373): the kind was provisionable
-  (present in the feed and provision dialog) but absent from `LuaToolKindRegistry.BUILT_IN`,
-  so its inventory Kind column showed a raw id and no binding row appeared on the Lua Project
-  page. Added as kind #11 with displayName "Lua Language Server".
-- **Provision dialog checkboxes show raw kind ids** (BUG-370): tool checkboxes in the
-  provision dialog used the raw kind id (e.g. `stylua`) as the checkbox label. Fixed by
-  resolving through `LuaToolKindRegistry` so the dialog now shows "StyLua", "Busted",
-  "LuaCov", "Lua Language Server", etc.
-- **Change Versions dialog leaves root directory editable** (BUG-371): the *Change Versions*
-  flow documents that the root directory is fixed, but `prefill()` set the text without
-  disabling the field or its browse button. Fixed by calling `rootDirField.isEnabled = false`
-  when prefilling.
-- **Env status-bar widget shown in non-Lua projects** (BUG-375): the factory's `isAvailable`
-  was hardcoded `true`, showing the widget in every project. Now gates on
-  `LuaToolchainProjectSettings.environments().isNotEmpty()` — an EDT-safe in-memory check.
-- **App-level Provision silently targets wrong project** (BUG-372): with multiple projects
-  open, the toolchain inventory's Provision button guessed via `openProjects.firstOrNull()`.
-  Now shows a project-chooser popup when multiple are open; disabled with "No open project"
-  tooltip when none are open.
-- **Publish Rock API key not manageable after rotation** (BUG-376): on a bad/rotated key the
-  action reused the stored credential with no recovery. Now detects auth failures (Invalid
-  API key / Unauthorized / Forbidden) in `luarocks upload` output, clears the stored key,
-  and notifies the user to re-run Publish to enter a new key.
-- **Run Test Matrix covers only the first rockspec** (BUG-377): `firstRockspec()` silently
-  dropped all but the first discovered rockspec. Now iterates all discovered rockspecs,
-  launching one matrix per rockspec (env × rockspec product). The results table gains a
-  Rockspec column to distinguish rows across multiple rocks.
-- **`global` lexed as a hard keyword pre-5.5** (BUG-361): SYNTAX-09 added `global` as an
-  unconditional keyword, so ordinary Lua 5.1–5.4 code using `global` as an identifier/field
-  (`local global = 1`, `t.global`, `global.x = 1`, `global()`) produced parse errors. Fixed by
-  making `global` a soft/contextual keyword: it now lexes as `IDENTIFIER` and a new
-  `<<globalKeyword>>` parser rule only reinterprets it as the declaration lead-in when a
-  declaration actually follows (one-token lookahead). The Lua 5.5 `global` declaration parses
-  exactly as before, keyword highlighting now applies only to the declaration keyword (via
-  `LuaGlobalKeywordAnnotator`), and the language-level inspection still flags real 5.5
-  declarations under earlier levels.
-
-### Lua settings restructure (TOOLING-08)
-- **Discoverable platform-target control** (BUG-362): the *Lua Project* settings page now has an
-  always-visible *Platform target* + *Version* pair of combos. *Auto (from runtime)* follows the
-  discovered interpreter; picking a concrete platform (e.g. Redis) pins the target explicitly, and a
-  later interpreter re-probe no longer overwrites it. Previously the target could only ever be
-  derived from the runtime, so a Redis project whose interpreter probed as Standard was un-pinnable.
-- **Common / Advanced bindings split with server-kind eviction**: the *Toolchain Bindings* group now
-  shows only the common tools (runtime + LuaRocks + luacheck + StyLua + Busted); the rest move to a
-  collapsed *Advanced tools* group. The capability-less `redis-server` / `valkey-server` platform
-  kinds are removed from the bindings UI entirely while staying fully resolvable for the Redis
-  subsystem.
-- **Global default bindings UI**: the app-level *Toolchain* page gains a *Global Default Bindings*
-  group — one combo per common kind — that writes through the previously orphaned
-  `setGlobalBinding`, so a globally-bound tool applies to any project with no project-level binding.
-- **DSL-standardized settings panels** (BUG-369): the app *Lua* page and the LuaRocks project-generator
-  dialog are rebuilt on the Kotlin UI DSL, replacing the FormBuilder layouts so the settings tree's
-  vertical spacing is uniform.
-- **Honest Cancel/Reset on the app settings page**: the app *Lua* configurable now implements the
-  full lifecycle (`reset()` / `disposeUIResources()`) and only commits its toggles on *Apply*, so
-  *Cancel* truly reverts.
-- **Explicit inherit labelling**: the project Luacheck-arguments and LuaRocks server-URL fields render
-  the effective app default in their placeholder (`Inherit (app default: …)` / `Inherit (luarocks.org)`).
+- **Debugger & test runner** (MAINT-24): byte-accurate DBGp framing, crash-proof payload parsing, a
+  thread-safe breakpoint model, 1-based line display, a busted rerun filter and Run to Cursor ([5820e870](https://github.com/internetisalie/lunar/commit/5820e870)).
+- **Type engine** (MAINT-25): removes a cross-file type leak and speeds up LuaCATS comment scanning ([e08b662e](https://github.com/internetisalie/lunar/commit/e08b662e)).
+- **Luacheck** (MAINT-26): diagnostics index the live editor buffer via stdin, so ranges stay correct
+  while typing ([b8beef8a](https://github.com/internetisalie/lunar/commit/b8beef8a)).
+- **LuaCATS docs & lexer** (MAINT-27): lexer containment fixes for `\r\n` and Unicode identifiers, plus
+  annotator dead-branch cleanup ([7fdef286](https://github.com/internetisalie/lunar/commit/7fdef286)).
+- **Completion** (MAINT-28): restores silently-disabled cross-file completion and guards the
+  enter-between-blocks case ([7cd472be](https://github.com/internetisalie/lunar/commit/7cd472be)).
+- **Control-flow & inspections** (MAINT-29): safe integer-division and make-local quick fixes, and
+  `__concat` is respected ([f532493a](https://github.com/internetisalie/lunar/commit/f532493a)).
+- **Indexing & resolution** (MAINT-30): faster reference resolution and type snapshots ([0519630b](https://github.com/internetisalie/lunar/commit/0519630b)).
+- **Process execution** (MAINT-32): fixes an IDE freeze caused by launching a subprocess under a lock ([8279d23d](https://github.com/internetisalie/lunar/commit/8279d23d)).
+- **Dead-code sweep** (MAINT-31): ~940 lines of dead declarations removed ([f16a9c01](https://github.com/internetisalie/lunar/commit/f16a9c01)).
+- **LuaRocks package browser redesign** (ROCKS-16): a Plugins-style two-tab browser, a canonical
+  `--tree <project rock tree>` install target, and honest error and empty states ([5cc0c365](https://github.com/internetisalie/lunar/commit/5cc0c365)).
+- **Lua settings restructure** (TOOLING-08, BUG-362, BUG-369): a discoverable platform-target control,
+  a Common/Advanced bindings split with server-kind eviction, global default bindings, DSL-standardized
+  panels and honest Cancel/Reset ([31d7037d](https://github.com/internetisalie/lunar/commit/31d7037d)).
+- **Long-bracket annotator crash mid-typing** (BUG-386, BUG-382, BUG-383, BUG-384, BUG-385): bounds
+  checks on truncated delimiters, reformat no longer forces `t[ 1 ]`, equal-version exclusive bounds
+  are honoured, `LUA_CPATH` stops hardcoding `?.so` on Windows, and the scaffolder reuses the
+  registered run-configuration type ([113b9ef4](https://github.com/internetisalie/lunar/commit/113b9ef4)).
+- **Orphaned Lua Workspace file type** (BUG-374): dead `LuaWorkFileType` and its registration removed ([716ec91d](https://github.com/internetisalie/lunar/commit/716ec91d)).
+- **lua-language-server missing from the kind registry** (BUG-373): the kind is provisionable again ([34d2daab](https://github.com/internetisalie/lunar/commit/34d2daab)).
+- **Provision dialog shows raw kind ids** (BUG-370): checkboxes resolve display names ([7e8b6734](https://github.com/internetisalie/lunar/commit/7e8b6734)).
+- **Change Versions dialog leaves root directory editable** (BUG-371): the field is disabled ([117eaffe](https://github.com/internetisalie/lunar/commit/117eaffe)).
+- **Env status-bar widget in non-Lua projects** (BUG-375): gated on the project having a Lua env ([6206ddf3](https://github.com/internetisalie/lunar/commit/6206ddf3)).
+- **App-level Provision targets the wrong project** (BUG-372): the active project is resolved correctly ([88084136](https://github.com/internetisalie/lunar/commit/88084136)).
+- **Publish Rock API key unmanageable after rotation** (BUG-376): a bad key is cleared and re-prompted ([f05e51de](https://github.com/internetisalie/lunar/commit/f05e51de)).
+- **Run Test Matrix covers only the first rockspec** (BUG-377): all discovered rockspecs run ([91b754fb](https://github.com/internetisalie/lunar/commit/91b754fb)).
+- **`global` lexed as a hard keyword pre-5.5** (BUG-361): it lexes contextually — identifier before
+  5.5, declaration from 5.5 ([0566cfbc](https://github.com/internetisalie/lunar/commit/0566cfbc)).
 
 ## [0.18] — MVP milestone & first tagged release
 
-### Runtime & Platform Support (TARGET)
-- **Target Selection**: project environment selection with platform + version granularity.
-- **Platforms**: explicit targets for **Standard Lua (5.1–5.5)**, **LuaJIT**, **Redis (5/6/7)**,
-  **Valkey (7.2/8)**, plus scaffolding for Tarantool, OpenResty, and Pandoc.
-- **Dynamic Standard Libraries**: automatic resolution of platform-specific library stubs
-  (Standard/Redis/Valkey are stub-backed) from the selected target.
-- **Environment-Aware Luacheck**: `--std` follows the active target.
-
-### Legal & Distribution
-- **Apache-2.0 license** adopted. `LICENSE`, `NOTICE`, and `THIRD-PARTY.md` (attributing the
-  Sylvanaar "Lua for IDEA" plugin, the IntelliJ Platform, EmmyLua, MobDebug/RemDebug, the `lua.l`
-  lexer, and the Lua.org standard-library stubs) are bundled at the plugin root in every zip.
-
-### Documentation
-- README refreshed (accurate versions, live doc links, full epic list, Lua 5.1–5.5).
-
-### Fixes (0.18.2)
-- **LuaRocks Packages crash** (BUG-379): the package-browser debounce `Alarm` was created
-  without a parent `Disposable`, throwing on every open of the LuaRocks Packages view. The
-  `Alarm` is now parented to a disposable panel.
-- **RockspecBridge log noise** (BUG-380): the "no Lua runtime configured" message was logged at
-  `warn`, flooding the IDE log for projects without a configured runtime; demoted to `debug`.
-- **Release build** (build): `patchPluginXml` now accepts milestone-style CHANGELOG headers, so
-  overriding the plugin version to one without a matching CHANGELOG section no longer fails.
-
-### Fixes (0.18.3)
-- **Redis sandbox false positive** (REDIS-06): the "not available in the Redis sandbox" inspection
-  no longer flags a global name that is shadowed by a local binding in scope — it now performs a
-  side-effect-free local-resolution check before warning.
-- **Redis command quick-doc over-triggering** (REDIS-06): command documentation now surfaces only
-  when the caret is on the command-name string literal, instead of anywhere in the call.
-
-### Language & Editor (0.18.4)
-- **Parser error recovery for block constructs** (SYNTAX-18): `do`/`while`/`repeat`/function block
-  rules now `pin` after their opening keyword, so an unterminated or half-written block yields a
-  partial PSI node scoped to that block instead of letting the error cascade to the end of file.
-  Completion, highlighting, and structural editing stay accurate while a block is still being typed.
-- **Typed lambda parameters from expected callback types** (TYPE-10): when a lambda is passed to a
-  function whose parameter is a callback type (`fun(...)`), its own un-annotated parameters now infer
-  the expected types with no manual `---@param`. `redis.register_function('f', function(keys, args)
-  … end)` types `keys`/`args` as `string[]` (and `keys[1]` as `string`), and `table.sort(t,
-  function(a, b) … end)` types the comparator from the stub signature. A direct `---@param` on the
-  lambda still wins. Retires REDIS-05's descoped callback typing (Gap 2.4).
+- **Runtime & platform support** (TARGET): project target selection with platform + version
+  granularity; Standard Lua 5.1–5.5, LuaJIT, Redis 5/6/7 and Valkey 7.2/8, with scaffolding for
+  Tarantool, OpenResty and Pandoc; platform-specific stdlib stubs resolved from the target; and
+  `--std` follows the active target.
+- **Apache-2.0 licensing**: `LICENSE`, `NOTICE` and `THIRD-PARTY.md` bundled at the plugin root in
+  every zip.
+- **README refresh**: accurate versions, live doc links, the full epic list and Lua 5.1–5.5.
+- **LuaRocks Packages crash** (BUG-379): the package-browser debounce `Alarm` had no parent
+  `Disposable` and threw on every open ([1b6a8ee2](https://github.com/internetisalie/lunar/commit/1b6a8ee2)).
+- **RockspecBridge log noise** (BUG-380): the "no Lua runtime configured" message is `debug`, not
+  `warn` ([bab34472](https://github.com/internetisalie/lunar/commit/bab34472)).
+- **Release build**: `patchPluginXml` accepts milestone-style CHANGELOG headers, so overriding the
+  plugin version no longer fails.
+- **Redis sandbox false positive and quick-doc over-triggering** (REDIS-06): the sandbox inspection
+  respects a shadowing local, and command docs surface only on the command-name literal ([5b7c9d0c](https://github.com/internetisalie/lunar/commit/5b7c9d0c)).
+- **Parser error recovery for block constructs** (SYNTAX-18): `do`/`while`/`repeat`/function rules pin
+  after their opening keyword, so a half-written block yields a partial PSI node instead of cascading
+  to end of file ([5ad20590](https://github.com/internetisalie/lunar/commit/5ad20590)).
+- **Typed lambda parameters from expected callback types** (TYPE-10): a lambda passed to a `fun(...)`
+  parameter infers its own parameter types with no manual `---@param` ([b7c71001](https://github.com/internetisalie/lunar/commit/b7c71001)).
 
 ## [0.17] — Redis & Valkey integration (REDIS epic)
 
