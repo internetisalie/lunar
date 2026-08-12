@@ -300,10 +300,21 @@ sealed class LuaGraphType {
         /**
          * Every metamethod name any [Trait] recognises. [Trait] is a sealed class whose subobjects
          * each hold their own set and there is no aggregate, so the union is formed here, once.
+         *
+         * **`by lazy` is load-bearing, not style.** Eagerly it is a class-initialization cycle:
+         * reading `Trait.Numberable` triggers that object's init, which initializes its superclass
+         * `LuaGraphType` first, whose `<clinit>` ran this very expression and read
+         * `Trait.Numberable.INSTANCE` back while it was still null — an `ExceptionInInitializerError`
+         * for any caller whose *first* touch of this hierarchy is a `Trait` subobject rather than
+         * `LuaGraphType` itself. Latent rather than theoretical: production always reaches
+         * `LuaGraphType` first, but COMP-09 Phase 4's remediation test reached `Trait.Numberable`
+         * first and reproduced it. Deferring the union past `<clinit>` removes the cycle and changes
+         * nothing about the set.
          */
-        private val ALL_METAMETHODS: Set<kotlin.String> =
+        private val ALL_METAMETHODS: Set<kotlin.String> by lazy {
             setOf(Trait.Numberable, Trait.Stringable, Trait.Lengthable)
                 .flatMapTo(mutableSetOf()) { it.metamethods }
+        }
 
         /**
          * A `@class` as a graph table (COMP-09-05).
@@ -320,10 +331,16 @@ sealed class LuaGraphType {
          * 3. Membership is tested against [ALL_METAMETHODS] rather than `startsWith("__")` — the
          *    looser test `LuaTypesVisitor.metamethodsOf` uses for a real `setmetatable` metatable —
          *    so that this set means what its name says, since it is also part of [Table]'s
-         *    data-class equality and therefore a memoization key. **It is not a behavioural guard,
-         *    and no test pins it**: mutation testing (COMP-09 Phase 4) found that loosening it
-         *    survives, because `LuaTypeGraph.implementsOperator` re-tests the recorded name against
-         *    the *trait's* own set, so a junk name here satisfies no operator anyway.
+         *    data-class equality and therefore a memoization key. **The filter is invisible through
+         *    `LuaTypeGraph.implementsOperator`** — that reader re-tests the recorded name against the
+         *    *trait's* own set, so a junk name here satisfies no operator either way, and mutation
+         *    testing accordingly found both a looser filter and no filter at all surviving every
+         *    operator-level test. It is nonetheless observable, and pinned: reading
+         *    [Table.metamethods] straight off [materialize] is a second door, and
+         *    `MemberEnumerationMetamethodTest.testOnlyKnownMetamethodNamesReachTheMetamethodSet`
+         *    reddens under both of those mutations. Phase 4's first reading — "not independently
+         *    observable, no test pins it" — was wrong, and self-contradicting: data-class equality
+         *    over this set is itself an argument that it is observable state.
          */
         private fun classTable(
             type: LuaClassType,

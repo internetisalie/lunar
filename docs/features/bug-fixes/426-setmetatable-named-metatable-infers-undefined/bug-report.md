@@ -147,7 +147,12 @@ Two properties of the fix worth knowing before extending it:
   says a metamethod should not complete on the instance; on the `@class` path it always has, and
   COMP-09-05 preserved that **behaviour** rather than the intent. Changing it is a separate,
   user-visible decision.
-- **The name filter is not the guard it looks like.** Membership is tested against the union of the
-  `Trait` metamethod sets rather than `startsWith("__")`, but mutation testing showed loosening it
-  changes no observable behaviour: `LuaTypeGraph.implementsOperator` re-tests the name against the
-  trait's own set, so a junk name in `metamethods` satisfies no operator either way.
+- **The name filter guards the recorded set, not the operator verdict.** Membership is tested against
+  the union of the `Trait` metamethod sets rather than `startsWith("__")`. Loosening or dropping it
+  changes **no operator behaviour** — `LuaTypeGraph.implementsOperator` re-tests the name against the
+  trait's own set, so a junk name in `metamethods` satisfies no operator either way — but it does
+  change `LuaGraphType.Table.metamethods`, which is observable through `LuaGraphType.materialize` and
+  is part of `Table`'s data-class equality. `MemberEnumerationMetamethodTest`
+  `.testOnlyKnownMetamethodNamesReachTheMetamethodSet` pins it there and reddens under both
+  mutations. (An earlier revision of this bullet said the filter was not observable at all; that was
+  corrected by COMP-09 Phase 4's remediation — see COMP-09 risks-and-gaps, "Phase 4 findings".)

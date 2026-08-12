@@ -1,6 +1,11 @@
 package net.internetisalie.lunar.definitions
 
+import com.intellij.openapi.application.runReadAction
 import net.internetisalie.lunar.analysis.LuaTypeAssignabilityInspection
+import net.internetisalie.lunar.lang.psi.types.LuaClassType
+import net.internetisalie.lunar.lang.psi.types.LuaGraphType
+import net.internetisalie.lunar.lang.psi.types.LuaPrimitiveType
+import net.internetisalie.lunar.lang.psi.types.LuaTypeMember
 
 /**
  * COMP-09-05 — **`@class`-declared metamethods**, closing BUG-426's Known limitation and
@@ -32,21 +37,24 @@ import net.internetisalie.lunar.analysis.LuaTypeAssignabilityInspection
  *    into before BUG-426 landed. The asserted form binds the operands with `---@type V` instead, and
  *    [testAClassWithNoMetamethodIsStillRejectedAtArithmetic] is the control that keeps it honest.
  *
- * **Mutation-proved, three ways, and one of them came back negative:**
+ * **Mutation-proved, and the third row needed a second door before it could be pinned:**
  *
  * | mutation | result |
  * | :-- | :-- |
  * | drop the `metamethods` contribution (`metamethods = emptySet()`) | **CAUGHT** — the five capability tests go red |
  * | weaken `LuaTypeGraph.implementsOperator` to `value.metamethods.isNotEmpty()` | **CAUGHT** by [testAClassDeclaredAddDoesNotSatisfyConcatenation] |
- * | loosen the name filter from `it in ALL_METAMETHODS` to `it.startsWith("__")` | **SURVIVED** |
+ * | loosen the name filter from `it in ALL_METAMETHODS` to `it.startsWith("__")` | **SURVIVED** every assignability test above; **CAUGHT** by [testOnlyKnownMetamethodNamesReachTheMetamethodSet] |
+ * | drop the name filter entirely (`metamethods = declaredMembers.keys`) | **SURVIVED** every assignability test above, [testAClassWithNoMetamethodIsStillRejectedAtArithmetic] included; **CAUGHT** by [testOnlyKnownMetamethodNamesReachTheMetamethodSet] |
  *
- * The third is a real finding and is recorded rather than papered over: the narrow filter is **not
- * independently observable**, because `implementsOperator` tests the recorded name against the
- * *trait's* set anyway, so a junk name in `metamethods` satisfies nothing. A test written to pin the
- * filter (an `---@class` whose only `__`-prefixed member is `__index`) is therefore indistinguishable
- * from the plain control above, and was removed rather than kept as coverage it does not provide.
- * The filter stays because design §4.7 specifies it and because `metamethods` participates in
- * `Table`'s data-class equality, which is a memoization key — but no test claims to prove it.
+ * Phase 4 first read rows 3 and 4 as "the filter is not independently observable" and deleted the
+ * test. That conclusion was wrong, and the paragraph recording it contradicted itself — it justified
+ * keeping the filter *because* `metamethods` participates in [LuaGraphType.Table]'s data-class
+ * equality, which is an argument that the set **is** observable state. What those two mutations
+ * actually establish is narrower: the filter is invisible **through `LuaTypeGraph.implementsOperator`**
+ * (the sole production reader), which re-tests the recorded name against the *trait's* own set, so a
+ * junk name there satisfies no operator. Reading [LuaGraphType.Table.metamethods] straight off
+ * [LuaGraphType.materialize] is a different door, and it observes the filter exactly —
+ * [testOnlyKnownMetamethodNamesReachTheMetamethodSet] is that assertion and reddens under both.
  */
 class MemberEnumerationMetamethodTest : LibraryRootTestCase() {
     private val vectorClass =
@@ -133,8 +141,16 @@ class MemberEnumerationMetamethodTest : LibraryRootTestCase() {
     // --- …and what must still be rejected ----------------------------------------------------
 
     /**
-     * The control for the whole change. Without it, contributing *every* member name to
-     * `metamethods` would pass every test above while modelling nothing.
+     * The control for the whole change: it is what keeps the capability **conditional**. Measured —
+     * making `LuaTypeGraph.implementsOperator` return `true` for any `Table` reddens it (alongside
+     * [testAClassDeclaredAddDoesNotSatisfyConcatenation]; the two are not claimed to be independent).
+     *
+     * It does **not** catch contributing every member name (`metamethods = declaredMembers.keys`).
+     * Measured: under that mutation all nine assignability tests here pass, this one included,
+     * because `P`'s only member `x` intersects no trait's metamethod set — the same mechanism that
+     * makes `__index` harmless. The rationale this replaces claimed the opposite ("would pass every
+     * test above while modelling nothing") and had not been run. That mutation is caught by
+     * [testOnlyKnownMetamethodNamesReachTheMetamethodSet], and only there.
      */
     fun testAClassWithNoMetamethodIsStillRejectedAtArithmetic() =
         assertProblem(
@@ -182,7 +198,72 @@ class MemberEnumerationMetamethodTest : LibraryRootTestCase() {
         assertEquals(listOf("len"), completionsFor(INSTANCE_COLON).sorted())
     }
 
+    // --- the name filter, at the door that can see it ----------------------------------------
+
+    /**
+     * `ALL_METAMETHODS` pinned directly, since `implementsOperator` cannot see it.
+     *
+     * `__index` is the discriminator: it is `__`-prefixed and it is a member, so it survives both the
+     * loose `startsWith("__")` reading and the no-filter reading, and reaches [LuaGraphType.Table]
+     * under either — where it belongs to no [LuaGraphType.Trait] and so changes no operator verdict.
+     * Only a direct read of the recorded set separates the three implementations.
+     */
+    fun testOnlyKnownMetamethodNamesReachTheMetamethodSet() {
+        val declaredClass =
+            LuaClassType(
+                "V",
+                localMembers =
+                    mapOf(
+                        "x" to LuaTypeMember("x", LuaPrimitiveType.NUMBER),
+                        "__add" to LuaTypeMember("__add", LuaPrimitiveType.FUNCTION),
+                        "__index" to LuaTypeMember("__index", LuaPrimitiveType.FUNCTION),
+                    ),
+            )
+        assertEquals(setOf("__add"), metamethodsRecordedFor(declaredClass))
+    }
+
+    /**
+     * The coverage guard `ALL_METAMETHODS` cannot give itself: it hand-lists the three
+     * [LuaGraphType.Trait] subobjects, so a fourth would be silently uncovered — harmless only
+     * because nothing else reads the set. A class declaring *every* trait's metamethods must record
+     * *every* one of them, and [metamethodsOf]'s `when` stops this file compiling if a `Trait` is
+     * added, which is what forces [EVERY_TRAIT_METAMETHOD] to grow and this assertion to notice.
+     */
+    fun testEveryTraitsMetamethodNamesReachTheMetamethodSet() {
+        val declaredClass =
+            LuaClassType(
+                "T",
+                localMembers = EVERY_TRAIT_METAMETHOD.associateWith { LuaTypeMember(it, LuaPrimitiveType.FUNCTION) },
+            )
+        assertEquals(EVERY_TRAIT_METAMETHOD, metamethodsRecordedFor(declaredClass))
+    }
+
+    private fun metamethodsRecordedFor(declaredClass: LuaClassType): Set<String> {
+        val anchor = myFixture.configureByText("anchor.lua", "local anchor = 1\n")
+        val materialized = runReadAction { LuaGraphType.materialize(declaredClass, anchor) }
+        return assertInstanceOf(materialized, LuaGraphType.Table::class.java).metamethods
+    }
+
     private companion object {
+        /**
+         * Deliberately a `when` over the sealed hierarchy rather than `trait.metamethods` inline:
+         * the exhaustiveness is the guard, and removing it removes the only thing that reacts to a
+         * fourth [LuaGraphType.Trait].
+         */
+        private fun metamethodsOf(trait: LuaGraphType.Trait): Set<String> =
+            when (trait) {
+                LuaGraphType.Trait.Numberable -> trait.metamethods
+                LuaGraphType.Trait.Stringable -> trait.metamethods
+                LuaGraphType.Trait.Lengthable -> trait.metamethods
+            }
+
+        val EVERY_TRAIT_METAMETHOD: Set<String> =
+            listOf(
+                LuaGraphType.Trait.Numberable,
+                LuaGraphType.Trait.Stringable,
+                LuaGraphType.Trait.Lengthable,
+            ).flatMapTo(mutableSetOf(), ::metamethodsOf)
+
         const val LIBRARY_CLASS =
             "---@meta\n\n" +
                 "---@class Vec\n" +

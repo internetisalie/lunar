@@ -823,14 +823,20 @@ document's.)*
   nothing on the *pre-change* code, because `V()` infers `Undefined`. Corrected in requirements and
   asserted with `---@type V` operands, which report `V is not assignable to number` before and
   nothing after.
-- **Mutation-proved three ways; one came back negative and is recorded, not hidden.** Dropping the
-  contribution is CAUGHT by five tests; weakening `implementsOperator` to `metamethods.isNotEmpty()`
-  is CAUGHT by the per-trait test; **loosening the name filter to `startsWith("__")` SURVIVED**,
-  because `implementsOperator` re-tests the name against the trait's own set. A test written to pin
-  that filter is indistinguishable from the plain no-metamethod control, so it was removed rather
-  than kept as coverage it does not provide. The filter stays (design §4.7 specifies it, and
-  `metamethods` is part of `Table`'s data-class equality, a memoization key) with no test claiming
-  to prove it.
+- **Mutation-proved four ways.** Dropping the contribution is CAUGHT by five tests; weakening
+  `implementsOperator` to `metamethods.isNotEmpty()` is CAUGHT by the per-trait test; **loosening the
+  name filter to `startsWith("__")`, and dropping the filter entirely, both SURVIVE every
+  operator-level test** — `implementsOperator` re-tests the name against the trait's own set — and
+  both are **CAUGHT** by a direct read of `Table.metamethods` off `LuaGraphType.materialize`
+  (`testOnlyKnownMetamethodNamesReachTheMetamethodSet`).
+- **CORRECTED 2026-08-12 (Phase 4 remediation).** The bullet above previously recorded the third
+  mutation as proof the filter "is not independently observable", and the test pinning it was
+  deleted. The survival is real; the conclusion was not — it holds only *through*
+  `implementsOperator`, and a second door observes the filter exactly. Two further corrections landed
+  with it: the control's rationale (it does **not** catch `metamethods = declaredMembers.keys`;
+  measured, all nine assignability tests pass under that mutation) and `ALL_METAMETHODS` becoming
+  `by lazy` to break a class-initialization cycle the new test exposed. See risks-and-gaps,
+  "Phase 4 findings".
 
 ## Phase 5: Re-measure and decide the deferrals
 

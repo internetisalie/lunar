@@ -209,8 +209,14 @@ per line; the consumers are Phases 2 and 3.
       sources reach that door only as *candidates*, since a member is admitted there only when a
       `LuaFuncDecl` stub backs it.
 - [ ] ~~COMP-09-04b~~ — withdrawn; nothing to verify.
-- [x] COMP-09-05 — **met (Phase 4, 2026-08-12).** TC 6 / 6a / 6b are
-      `MemberEnumerationMetamethodTest` (9 tests). `LuaGraphType.classTable` contributes a
+- [x] COMP-09-05 — **met (Phase 4, 2026-08-12; coverage remediated the same day).** TC 6 / 6a / 6b
+      are `MemberEnumerationMetamethodTest` (**11 tests** — two added by the remediation, which
+      overturned Phase 4's finding that the `ALL_METAMETHODS` name filter could not be pinned: it is
+      unobservable only *through* `implementsOperator`, and a direct read of `Table.metamethods` off
+      `LuaGraphType.materialize` pins it under both the loosened and the removed filter. The
+      remediation also corrected the control's rationale to what it measurably catches, and made
+      `ALL_METAMETHODS` `by lazy` to break a class-initialization cycle it exposed. See
+      risks-and-gaps, "Phase 4 findings"). `LuaGraphType.classTable` contributes a
       `@class`-declared operator metamethod to `Table.metamethods` **as well as** leaving it in
       `localMembers`, so the operator position gains the capability and completion is untouched —
       TC 6a asserts the four offered sets exactly and none moved. BUG-426's Known limitation is

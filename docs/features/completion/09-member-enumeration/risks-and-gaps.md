@@ -421,18 +421,46 @@ verbatim if COMP-09-04 is reinstated.
 
 Neither is a behaviour change; both are cases of a written expectation that could not have failed.
 
-- **The `ALL_METAMETHODS` name filter is not independently observable.** Design §4.7 specifies that
-  membership be tested against the union of the three `Trait` metamethod sets rather than the looser
-  `startsWith("__")` that `LuaTypesVisitor.metamethodsOf` applies to a real `setmetatable` metatable.
-  Mutation testing shows **loosening it changes nothing observable**: `LuaTypeGraph.implementsOperator`
-  re-tests the recorded name against the *trait's* own set, so a junk name in `metamethods` satisfies
-  no operator either way. A test written to pin the filter (a `@class` whose only `__`-prefixed member
-  is `__index`) is therefore indistinguishable from the plain no-metamethod control and was removed
-  rather than kept as coverage it does not provide — the repo's standing convention for a
-  mutation-survived test. The filter stays, because §4.7 specifies it and because `metamethods`
-  participates in `Table`'s data-class equality, which is a memoization key; **no test claims to
-  prove it**, which is the honest position and is recorded here so a future reader does not "restore"
-  the deleted test believing it guards something.
+- **CORRECTED (Phase 4 remediation, 2026-08-12): the `ALL_METAMETHODS` name filter IS observable, and
+  is now pinned.** Phase 4 originally recorded it as "not independently observable" and deleted the
+  test. The mutation survival that conclusion rested on is real and reproduces; the conclusion drawn
+  from it was not. What the survival establishes is narrower: the filter is invisible **through
+  `LuaTypeGraph.implementsOperator`** — the sole production reader, which re-tests the recorded name
+  against the *trait's* own set, so a junk name in `metamethods` satisfies no operator either way.
+  Reading `LuaGraphType.Table.metamethods` straight off `LuaGraphType.materialize` is a **different
+  door**, and it observes the filter exactly.
+  `MemberEnumerationMetamethodTest.testOnlyKnownMetamethodNamesReachTheMetamethodSet` is that
+  assertion — a `LuaClassType` declaring `__add`, `__index` and `x` — and it is mutation-proved both
+  ways: `it.startsWith("__")` fails it with `expected:<[__add]> but was:<[__add, __index]>`, and
+  dropping the filter (`metamethods = declaredMembers.keys`) with `expected:<[__add]> but was:<[x,
+  __add, __index]>`. Both leave the other ten tests in the file green, which is the survival, in its
+  correct scope. **The tell that should have caught this at the time**: the same paragraph justified
+  keeping the filter *because* `metamethods` participates in `Table`'s data-class equality — an
+  argument that the set **is** observable state, sitting beside the claim that it is not.
+- **A second Phase 4 coverage claim was also false, and is corrected in the same commit.** The
+  control's KDoc said that without it "contributing every member name to `metamethods` would pass
+  every test above while modelling nothing". Measured: under `metamethods = declaredMembers.keys` all
+  nine assignability tests pass, **the control included** — `P`'s only member `x` intersects no
+  trait's set, for exactly the reason `__index` does not. The rationale now states what the control
+  does do (measured: `implementsOperator` returning `true` for any `Table` reddens it, alongside the
+  per-trait test) and names the direct-read test as what catches the no-filter mutation.
+- **`ALL_METAMETHODS` had to become `by lazy` — a real class-initialization cycle, found by the
+  remediation test.** Eagerly, reading `Trait.Numberable` initializes its superclass `LuaGraphType`
+  first, whose `<clinit>` evaluates the union and reads `Trait.Numberable.INSTANCE` back while that
+  object's own init is still in progress: `ExceptionInInitializerError`, caused by
+  `NullPointerException: Cannot invoke "LuaGraphType$Trait.getMetamethods()" because "it" is null` at
+  `LuaGraphType.kt:306`. Latent in production only because every production path reaches
+  `LuaGraphType` before any `Trait` subobject; the new test reaches a `Trait` first and reproduced it
+  on the first run. Deferring the union past `<clinit>` removes the cycle and changes nothing about
+  the set (corpus golden re-run and unmoved).
+- **The hand-enumeration advisory is closed by a compile-time guard, not by reflection.**
+  `ALL_METAMETHODS` lists `Trait`'s three subobjects by hand and a fourth would be silently
+  uncovered. Deriving the set from `Trait::class.sealedSubclasses` was rejected: it needs
+  `kotlin-reflect` at runtime, which this plugin does not otherwise depend on, to remove a risk that
+  is entirely compile-time in nature. Instead `MemberEnumerationMetamethodTest` enumerates the traits
+  through an **exhaustive `when`**, so a fourth `Trait` subobject stops the test file compiling until
+  it is listed, and `testEveryTraitsMetamethodNamesReachTheMetamethodSet` then reddens unless
+  `ALL_METAMETHODS` covers its metamethods too.
 - **Requirements TC 6's fixture could not fail.** `local a, b = V(), V()` reports nothing on the
   *pre-change* code — `V()` calls a class declaring no `__call`, infers `Undefined`, and `Undefined`
   absorbs every check — so the shape TC 6 and the human checklist both specified would have passed

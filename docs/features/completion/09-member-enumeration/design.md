@@ -1641,11 +1641,22 @@ right one here, but the gap is real and is recorded rather than quietly inherite
   inline lines: the `when` it lived in was already well past the contract's function-length limit.
   The helper also calls `type.getMembers()` **once** and reuses it for both the metamethod filter and
   the member map, where the literal reading of fact 2 above would have walked the hierarchy twice.
-- Fact 1's `ALL_METAMETHODS` is right as specified but **buys nothing observable**, which mutation
-  testing established rather than argument: loosening it to `startsWith("__")` survives, because
-  `LuaTypeGraph.implementsOperator` re-tests the name against the trait's own set. It is kept
-  (`metamethods` is part of `Table`'s data-class equality, a memoization key) with no test claiming
-  to prove it. See risks-and-gaps, "Phase 4 findings".
+- Fact 1's `ALL_METAMETHODS` is right as specified, and it **is** observable — but only through a
+  door `implementsOperator` is not. Loosening it to `startsWith("__")`, or dropping it entirely,
+  survives every operator-level test, because `LuaTypeGraph.implementsOperator` re-tests the name
+  against the trait's own set, so a junk name satisfies nothing. Reading `Table.metamethods` straight
+  off `LuaGraphType.materialize` observes it exactly, and both mutations redden
+  `MemberEnumerationMetamethodTest.testOnlyKnownMetamethodNamesReachTheMetamethodSet`
+  (`expected:<[__add]> but was:<[__add, __index]>` and `…but was:<[x, __add, __index]>`). Phase 4's
+  first reading — "buys nothing observable", no test — was wrong; see risks-and-gaps, "Phase 4
+  findings", including why the same paragraph contradicted itself.
+- `ALL_METAMETHODS` must be `by lazy`. Eagerly it is a **class-initialization cycle**: touching
+  `Trait.Numberable` first initializes its superclass `LuaGraphType`, whose `<clinit>` evaluates this
+  union and reads `Trait.Numberable.INSTANCE` back while it is still null. Production never hits it
+  (it always reaches `LuaGraphType` first); the Phase 4 remediation test did, and got
+  `ExceptionInInitializerError` / `NullPointerException: Cannot invoke
+  "LuaGraphType$Trait.getMetamethods()" because "it" is null` at `LuaGraphType.kt:306`. Deferring the
+  union past `<clinit>` changes nothing about the set.
 
 DR-12's measurement was **re-taken at the Phase 4 head**, not carried forward, because Phase 2 moved
 global receivers onto the index arm in between: `v.` = `[__add, len, x]` and `v:` = `[len]` for the
