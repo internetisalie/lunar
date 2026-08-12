@@ -162,9 +162,14 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
      * `DefaultFileTypeSpecificInputFilter` is instantiated directly rather than subclassed on
      * purpose: `RequiredIndexesEvaluator.toHint` turns it into a real file-type predicate only when
      * `filter.javaClass == DefaultFileTypeSpecificInputFilter::class.java` — "yes, we want to check
-     * exact class" — because a subclass could override `acceptInput`. A subclass here would silently
-     * degrade the filter to "accept everything" and lean on [Indexer]'s `psiFile !is LuaFile` guard
-     * for correctness while offering every file in the project to this indexer.
+     * exact class" — because a subclass could override `acceptInput`. A subclass would therefore
+     * lose the **hint** and be evaluated the slow way, per file.
+     *
+     * It would *not* offer every file in the project to this indexer, which an earlier revision of
+     * this note claimed: `IndexConfiguration.registerIndex` derives an index's file types through
+     * `getAssociatedFileTypes`, which tests `instanceof FileBasedIndex.FileTypeSpecificInputFilter`,
+     * so a subclass still registers under `LuaFileType` and non-Lua files still never reach here.
+     * The instruction stands; only its consequence is narrower than it was written.
      */
     override fun getInputFilter(): FileBasedIndex.InputFilter = DefaultFileTypeSpecificInputFilter(LuaFileType)
 

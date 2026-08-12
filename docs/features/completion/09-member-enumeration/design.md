@@ -1654,7 +1654,7 @@ plain Kotlin `object`, and the change site is inside a contributor `plugin.xml` 
 
 | index | today | after |
 | :-- | :-- | :-- |
-| `LuaReceiverMemberIndex` | 1 (DR-09) | 1 |
+| `LuaReceiverMemberIndex` | 1 (DR-09) | **2 (shipped)** — see below |
 | `LuaMemberFieldIndex` | 1 | unchanged — not modified |
 | `LuaGlobalAssignmentIndex` | 2 | unchanged |
 | stub format (`LuaFileElementType.getStubVersion`) | 4 | **unchanged** |
@@ -1662,6 +1662,18 @@ plain Kotlin `object`, and the change site is inside a contributor `plugin.xml` 
 The stub row is the payoff, and Step 9 confirmed the argument: the sink stores the whole `FUNC_NAME`,
 so `C:m` is itself a key. Deriving receivers in a *new* `FileBasedIndex` leaves the dot-only stub sink
 alone — DR-06's asymmetry is sidestepped rather than fixed in place, at no stub-format cost.
+
+**The `LuaReceiverMemberIndex` row says `1 → 1` in every revision of this design before 2026-08-12,
+and that is not what shipped.** Phase 3's remediation bumped it to **2**, deliberately: the input
+filter widened from `file.extension == "lua"` to every registration `LuaFileType` carries
+(`extensions="lua;rockspec"` *and* `fileNames=".luacheckrc;.busted"`), so the index's **content**
+changed, not merely its consumers. Without the bump a machine that had already indexed keeps its
+`.lua`-only entries and the fix is invisible there — a persisted-state bug that no test on a fresh
+fixture can see. So the boundary was crossed on purpose, and the version is 2.
+
+**Impact on Phase 5's benchmarks is nil.** The rule below is about comparing a *warm* measurement
+across a format change; every COMP-09 benchmark fixture builds its library tree per run and indexes
+cold, so there is no warm figure on either side of the boundary to be invalidated.
 
 Every version bump forces a full reindex on first run, and **no benchmark may cross one**.
 

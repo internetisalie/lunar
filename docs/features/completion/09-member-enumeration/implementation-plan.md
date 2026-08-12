@@ -255,8 +255,15 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   `src/test/resources/comp09/member-enumeration.golden` is
   **byte-unchanged** (`a8c580ccc7a9528c0fde41527d870c48`), which is the point: nothing consumes the
   index yet, so a moved golden would have meant enumeration semantics changed in the wrong phase.
-  `getVersion()` stays **1** — the indexer's output shape did not change, so no reindex boundary was
-  crossed and Phase 5's benchmarks stay comparable to §4.0's.
+  `getVersion()` was **1** as Phase 1 shipped it — the indexer's output shape did not change there.
+  *(Corrected 2026-08-12: this line, and design §4.8's table, both said the version stays 1
+  permanently. It does not. **Phase 3's remediation bumped it to 2** when the input filter widened
+  from `file.extension == "lua"` to every registration `LuaFileType` carries — `.rockspec`,
+  `.luacheckrc` and `.busted` — which changes the index's **content**, not just its consumers. The
+  boundary was crossed deliberately: without the bump a machine that had already indexed keeps its
+  `.lua`-only entries and the filter fix is invisible there. Phase 5's benchmarks stay comparable
+  regardless, because every COMP-09 benchmark fixture builds its library tree per run and indexes
+  cold, so no warm figure spans the boundary.)*
 
 ### What Phase 1 found that the plan did not say
 
