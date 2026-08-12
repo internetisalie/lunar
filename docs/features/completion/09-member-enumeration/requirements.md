@@ -2,7 +2,7 @@
 id: "COMP-09"
 title: "09: Member Enumeration"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "COMP"
 folders:
@@ -176,11 +176,38 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 
 ## Acceptance Criteria
 
-**Phase 1 is done (2026-08-09)** — `LuaReceiverMemberIndex` is complete, correct and tested, and
-**nothing consumes it yet**, so no criterion below is met by it alone. What Phase 1 moved is marked
+**DONE 2026-08-12 — all six phases complete. Every box below is ticked.** Three things are
+deliberately **not** claimed by that status, each with a tracked owner rather than a silent gap:
+
+1. **The `@class` door misses NFR-1** — 269 ms direct / 323 ms through completion at 3 600 members,
+   3× the budget, first measured at Phase 5. It is the residual design §1.6 predicted, it is not a
+   regression, and COMP-09-08's gate is and always was on the completion door, which measures
+   **12.2 ms**. Owner: **BUG-438** (DR-29).
+2. **`LuaReceiverMemberIndex.Indexer.map` walks the file five times** where one walk would do —
+   ~40 ms of its 67 ms per-file build cost. One-off, persisted, on no latency path.
+   Owner: **BUG-437** (DR-25).
+3. **The live IDE checklist has not been run.** 14 of its 17 scenarios are discharged by automated
+   real-flow tests; 3 (perceived first-completion latency, the deliberate loss of type text, and the
+   override gutter marker) need a human, and whether that pass is warranted is the supervisor's
+   decision — see the implementation plan, "The live checklist".
+
+**Phase 1 was done 2026-08-09** — `LuaReceiverMemberIndex` was complete, correct and tested and
+**nothing consumed it yet**, so no criterion below was met by it alone. What Phase 1 moved is marked
 per line; the consumers are Phases 2 and 3.
 
-- [ ] COMP-09-01/02 — every site in the two tables above is converted or explicitly justified.
+- [x] COMP-09-01/02 — every site in the two tables above is converted or explicitly justified.
+      **MET 2026-08-12 (Phase 5 closed the COMP-09-02 half, design §1.11.5).** The three remaining
+      COMP-09-02 sites are now justified against a **per-site figure on the door each one serves**,
+      which is what DR-16 was owed and the only thing that kept this box open:
+      `catsClassTags` **11.0 ms** and `LuaImplicitFields.collect` **17.8 ms**, both on the `@class`
+      door, together 29 ms of that door's 269 ms — so converting them is neither required by the work
+      bound (COMP-09-09 is green at that door) nor sufficient for its latency (BUG-438).
+      `LuaTypesVisitor:1349` (`seedAmbientGlobals`) is under budget by construction: it reads only
+      files *named* `global.lua`, none exists on the default target, and each of the five that do is
+      **7 lines**. Two corrections to the table below, from grep before quoting: `catsClassTags` is
+      `LuaTypeManagerImpl:435` called at `:396`, and it is **the same site** as the row named
+      "`LuaTypeManagerImpl:436`" — three distinct sites, not four. `LuaMemberFieldNavigation:32` is a
+      **navigation** site and is excluded by this document's own Out of Scope section.
       **One is justified rather than converted, and the justification is here rather than only in the
       plan**: `LuaCompletionContributor:133-139` (`crossFileGlobalMembers`) is **not converted and
       must not be**. Its guard `if (type == LuaGraphType.Undefined)` never opens for a receiver with
@@ -208,7 +235,9 @@ per line; the consumers are Phases 2 and 3.
       (`MemberEnumerationMaterializationTest`) pin design §4.6's table row by row; the four index
       sources reach that door only as *candidates*, since a member is admitted there only when a
       `LuaFuncDecl` stub backs it.
-- [ ] ~~COMP-09-04b~~ — withdrawn; nothing to verify.
+- [x] ~~COMP-09-04b~~ — **withdrawn (design §1.7); nothing to verify.** Ticked as an explicit
+      deferral-by-withdrawal rather than left open: the box can never be met and an unticked box that
+      cannot be ticked is indistinguishable from outstanding work.
 - [x] COMP-09-05 — **met (Phase 4, 2026-08-12; coverage remediated the same day).** TC 6 / 6a / 6b
       are `MemberEnumerationMetamethodTest` (**11 tests** — two added by the remediation, which
       overturned Phase 4's finding that the `ALL_METAMETHODS` name filter could not be pinned: it is
@@ -224,8 +253,13 @@ per line; the consumers are Phases 2 and 3.
       never installed as a metatable still confers nothing, which is correct). `COMP-04-DR-01` is
       closed in two parts — BUG-426 answered aliased `mt`, this answers the declared form — with
       `COMP-04-G-01` (a genuinely dynamic `mt`) left open, because neither change addresses it.
-- [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
-- [ ] COMP-09-07 — TC 3. **TC 7a is met** (`LuaReceiverMemberDoorParityTest`): each entry point is
+- [x] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
+      **MET.** No baseline moved at any phase that changed production code: Phase 2 and Phase 3 each
+      gated on the corpus sweep with the golden `38c7586ecfddd17bdb79785b3b3a9f31`, and Phase 4's exit
+      criterion was "corpus baselines unmoved" and held. Phase 5 changes **no production code** — its
+      probes were run under the `temporary-edits` snapshot loop and reverted, `git diff -- src/main`
+      empty — so it cannot move a baseline and did not re-run the sweep, by design.
+- [x] COMP-09-07 — TC 3. **TC 7a is met** (`LuaReceiverMemberDoorParityTest`): each entry point is
       asserted against the door it serves, never `resolveGlobal(r) ?: resolveType(r)`. The union
       reproduces the `@class` door on all four receivers; the completion door reproduces the global
       door with exactly the two declared divergences — `Shapes` loses `deep` (BUG-430) and `Derived`
@@ -248,9 +282,14 @@ per line; the consumers are Phases 2 and 3.
       — which asserts *determinism across identical receivers* as well as the value, and states both
       polarities, so a return to order-dependence or a flip to last-wins reddens it (both mutation-proven).
       **COMP-09-07 therefore holds as "behaviour-preserving except where declared", with this and the
-      two `@class`/global door divergences above as the whole declared set.** The box stays unticked
-      only because Phase 4 adds metamethod members at this same door and TC 3 has to be re-run against
-      it; nothing about the tie-break is outstanding.
+      two `@class`/global door divergences above as the whole declared set.**
+      **TICKED 2026-08-12.** The one thing outstanding was TC 3 re-run against Phase 4's metamethod
+      addition at this door, and Phase 4 did exactly that and measured no movement: `v.` =
+      `[__add, len, x]` and `v:` = `[len]` for the class declared on a local *and* on a global,
+      identical to DR-12's pre-Phase-2 figures, now permanently gated as exact sets by
+      `MemberEnumerationMetamethodTest` (11 tests) rather than printed. The `@class` half of the
+      change contributes to `Table.metamethods` **as well as** leaving `localMembers` untouched, which
+      is why the offered sets could not move. Nothing about the tie-break was ever outstanding.
 - [x] COMP-09-08 — **MET 2026-08-12 (Phase 2).** The latency assertion exists, failed before the fix,
       passes after, and runs without `-PwithPerf`. **Assertion 1 (wall clock, tier 1) is enforced**:
       `MemberEnumerationLatencyGateTest.BUDGET_ENFORCED` is `true`, and the run that flipped it
@@ -299,8 +338,29 @@ per line; the consumers are Phases 2 and 3.
       one candidate, which is what pins the 1. Phase 3 used assertion 4 as its D2-leak detector,
       read as "one candidate in, one file read" — a count above the candidate count is the leak, a
       count equal to it is not — and measured a count equal to it.
-- [ ] Each cache in the "Why this is a capability" table is re-measured and either removed as
-      redundant or kept with a stated reason.
+- [x] Each cache in the "Why this is a capability" table is re-measured and either removed as
+      redundant or kept with a stated reason. **MET 2026-08-12 (Phase 5, design §1.11.6).** All four
+      are measured and **all four stay**, each with a figure and a reason:
+      `GlobalSymbolRankingService:54,66` — the two `getAllKeys` scans cost **1 176 µs** (2 872 function
+      keys) + **123 µs** (3 class keys) uncached, ~1.3 ms per completion invocation, and they answer a
+      **ranking** question over key *names* that `LuaReceiverMemberIndex` cannot answer at all, so
+      COMP-09 did not make them redundant. `typeCache` (`LuaTypeManagerImpl:58`) — cold-file miss
+      **477 ms**, warm-file miss **103 ms** (the marginal per-class cost), hit **9 µs**.
+      `globalCache` (`:82`) — cold miss **631 ms**, hit **9 µs**; **`moduleCache` (`:70`) is not
+      separately measured** — same structure, same door — and that is stated rather than implied.
+      `LuaTypesSnapshot.forFile`'s per-file `CachedValuesManager` (`LuaTypes.kt:237`, deps `:281-289`)
+      — hit **13 µs** against a miss of **44 ms** on a 4 002-line consumer and **844–955 ms** on the
+      123 KiB library (TYPE-11 DR-08); it is the most valuable cache in the feature and TYPE-11 has
+      just made it survive unrelated edits. Anchors were re-grepped: the table's `:55` / `:67,79` are
+      `:58` / `:70,82` today.
+- [x] **NFR-1, both doors, re-measured — MET at the completion door, MISSED at the `@class` door,
+      and the miss is deferred with an owner.** *(Phase 5 task 1, design §1.11.1.)* Five distinct wide
+      receivers in five files each, cold, medians of five: the **completion door is 12 225 µs**
+      against the 100 ms budget (15 253 µs on a second run — an independent re-confirmation of
+      COMP-09-08's gate on a second fixture), and the **`@class` door is 269 459 µs** direct /
+      **322 692 µs** driven end to end through `completeBasic()`, **3× the budget**. The `@class`
+      miss is **not a regression and no improvement is claimed** — no comparable prior figure exists
+      — and it is the residual design §1.6 named in advance. Filed as **BUG-438** / DR-29.
 
 ## Non-Functional Requirements
 

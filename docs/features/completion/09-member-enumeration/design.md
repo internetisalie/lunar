@@ -706,6 +706,236 @@ representative and TC 7f-bis gates Valkey 8 — the two targets whose function s
 The probe was a throwaway; it was reverted, and the numbers above are its pasted output. What ships
 from it is TC 10h and TC 7f.
 
+## 1.11 Phase 5 — the deferrals re-measured (2026-08-12)
+
+Throwaway `CompNinePhase5Probe`, run on gce-builder under the `temporary-edits` snapshot loop and
+**reverted** — `git diff -- src/main` is empty and no commit adds it. The pasted output below is the
+evidence; nothing may instruct re-running it. Every figure is a median of five unless labelled
+otherwise, and per DR-08 no ratio between any two of them is quotable.
+
+### 1.11.1 Both doors, cold, five distinct wide receivers in five files each
+
+Ten library files, not five: a completion at `Wide$i.` warms `wide$i.lua`, so the `@class` door gets
+its own untouched receivers (`Klass$i`). The two are interleaved so neither systematically pays the
+library warm-up the other avoids.
+
+```
+PHASE5 door1 completion cold us   = [9211, 10896, 12225, 14694, 16230]        median=12225
+PHASE5 door2 class      cold us   = [212233, 258183, 269459, 270466, 285922]  median=269459
+PHASE5 door2 member counts        = [3600, 3600, 3600, 3600, 3600]
+PHASE5 door2-completion cold us   = [286301, 304478, 322692, 364852, 702997]  median=322692
+PHASE5 budget = 100ms = 100000us
+```
+
+A second, independent run gave door 1 **15 253 µs** and door 2 **257 149 µs**, so the direction is
+stable across runs.
+
+**Door 1 — the completion door — meets NFR-1 with an order of magnitude to spare: 12.2 ms against
+100 ms.** That is COMP-09-08's gate measured a second time, on a second fixture, and it agrees.
+
+**Door 2 — the `@class` door — does not.** `resolveType` + `materialize` + `getMembers` is
+**269 ms** for a 3 600-member class, and the same door driven end to end through `completeBasic()`
+(`---@type Klass$i` on a local, then `v.`) is **323 ms**, three times the budget. This is *not* a
+regression and no improvement is claimed either: no comparable cold medians-of-five figure existed
+for this door before Phase 5, so this is the first one. It is exactly the residual §1.6 predicted and
+named — "the `@class` door needs member *types* (`funcTypeFromStub`), not only names; an index of
+names serves completion, the checker still needs types and therefore still pays". Phase 3 removed the
+`getAllKeys` scans from it (COMP-09-09, the work bound) without claiming its latency.
+
+Filed as **BUG-438** with a roadmap row, and recorded as [[DR-29]].
+
+### 1.11.2 DR-23 — Rule S's residual on a 4 002-line consumer
+
+```
+PHASE5 DR-23 ruleS bound-at-top    binds=true  us=[411, 417, 560, 1157, 4993]         median=560
+PHASE5 DR-23 ruleS bound-at-bottom binds=true  us=[12847, 13440, 14692, 16613, 18732] median=14692
+PHASE5 DR-23 ruleS unbound (full)  binds=false us=[9709, 10354, 10880, 10953, 11818]  median=10880
+PHASE5 DR-23 forFile on the same 4002-line file = 44115us  (single - unrepeatable by construction)
+```
+
+A second run gave 602 / 16 684 / 10 304 µs and a 46 313 µs `forFile`. **The prototype's 8–16 ms is
+confirmed** — the walk costs 10.9–14.7 ms on a 4 002-line file, and 0.6 ms when the binding is early
+enough for the walk to exit on it.
+
+**Decision: it stays as written, with the figure recorded.** Three reasons, in order of weight.
+
+1. **A cached bound-name set cannot serve the case DR-23 names.** Rule S reads
+   `receiverExpr.containingFile`, which during completion is the per-session **copy** — the call site
+   says so, and BL-8 is the defect that established it. A `CachedValuesManager` cache on the copy can
+   never hit, because the copy is new every session. Caching against `originalFile` with a
+   PSI-modification dependency invalidates on every keystroke in that file, which is precisely the
+   file DR-23 is about. A cache whose invalidation fires as often as its reads is not a cache.
+2. **It is bounded above by the path it stands in front of**, now measured on the same file rather
+   than argued: 10.9–14.7 ms against `forFile`'s 44 ms.
+3. **The end-to-end figure already contains it.** Door 1's 12.2 ms cold median is a completion that
+   ran Rule S.
+
+### 1.11.3 DR-24 — a consumer whose only receiver is opaque
+
+Five distinct opaque receivers in five library files, and — unlike DR-21's fixture — **no tier-1
+completion anywhere before them**, which is the whole point: §4.12's withdrawal rests on tier 2
+improving because of the tier-1 receivers around it, so the measurement has to remove them.
+
+```
+PHASE5 DR-24 opaque-only cold us IN ORDER = [99546, 43736, 44658, 25349, 25792]
+PHASE5 DR-24 opaque-only cold us = [25349, 25792, 43736, 44658, 99546] median=43736  budget=100000us
+```
+
+A second run gave median **36 695 µs** with a maximum of **260 319 µs**.
+
+**Measured, and inside the budget on the quotable quantity: 36.7 / 43.7 ms across two runs.** The
+in-order print settles what the sorted one could not — **the worst sample is the first**, because the
+five receivers share one `luassert.lua` whose snapshot the first completion builds. That sample is
+*(single — unrepeatable by construction)* and it straddles the budget: 99.5 ms in one run, 260.3 ms
+in the other. Recorded as §4.12's watch item rather than filed as a defect, because the quantity the
+NFR is asserted on is the median and it is comfortably inside, and because the outlier is the library
+graph build — the cost this feature routes *around* for tier 1 and never claimed to remove.
+
+### 1.11.4 DR-25 — and a measurement-order trap that reverses the naive reading
+
+The first run timed `LuaReceiverMemberIndex` first and reported it at **256 ms** against
+`LuaMemberFieldIndex`'s 20 ms. That is not what it costs. Two reorderings prove it.
+
+**(a) Inside `map`, the big number follows the POSITION, not the function.** Instrumented per source
+(medians of five):
+
+```
+receiver-first order:  funcDecls=188062 assignments=20265 tableLiterals=17918 opaque=16760 catsFields=13930
+catsFields-first order: catsFields=282098 funcDecls=12339 assignments=17842 tableLiterals=15467 opaque=14667
+```
+
+**(b) Across indexers, likewise.** Swapping which extension is timed first moves the cost with it:
+
+```
+receiver timed FIRST:
+  LuaReceiverMemberIndex.map = [226924, 248637, 256365, 271835, 288244] median=256365
+  LuaMemberFieldIndex.map    = [17984, 18491, 20384, 20607, 21453]      median=20384
+  LuaGlobalAssignmentIndex   = [3208, 3789, 3971, 4269, 6307]           median=3971
+memberField timed FIRST:
+  LuaReceiverMemberIndex.map = [65181, 66514, 67188, 72182, 77647]      median=67188
+  LuaMemberFieldIndex.map    = [215100, 245023, 279301, 330772, 400152] median=279301
+  LuaGlobalAssignmentIndex   = [4264, 6161, 6518, 7184, 14002]          median=6518
+```
+
+**The ~200–280 ms is the file's one-time AST expansion**, paid by whichever `findChildrenOfType`
+caller touches the tree first. `FileContentImpl` builds its PSI lazily, so forcing `content.psiFile`
+out of the timed region is *not* enough — the chameleon nodes expand on first tree access, not on
+`getPsiFile`. The platform pays it exactly once per file no matter how many extensions index it,
+because they share one `FileContent`.
+
+**DR-18 is confirmed, not superseded.** Its row explicitly measured "warm — PSI already parsed", and
+its 61 / 20 / 6 ms is reproduced here as **67 / 20 / 6 ms** once the expansion is out of the
+comparison. The ranking stands and so does the conclusion: the second index is the most expensive of
+the three, and it is a one-off persisted cost against a per-session graph build.
+
+**What the widened input filter actually changed** is the file *set*, not the per-file cost — Phase 3
+derived the filter from `LuaFileType` instead of `extension == "lua"`. Counted on disk rather than
+assumed: this repo has **252 `.lua` and zero** `.rockspec` / `.luacheckrc` / `.busted`, so the delta
+here is nil; the out-of-repo `test/` corpus has **1 071 `.lua` plus 165 `.rockspec`, 8 `.luacheckrc`
+and 4 `.busted`** — **+177 files, +16.5 %**, at a mean 2.1 KiB per rockspec. So "indexes strictly
+more files" is real and small, and it does not move the per-file figure at all.
+
+**Is one shared traversal worth it?** The passes, timed over an already-expanded tree:
+
+```
+PHASE5 DR-25 pass funcDecl   us = [9441, 9526, 12946, 40266, 352615] median=12946
+PHASE5 DR-25 pass assignment us = [9454, 10454, 10767, 14410, 46700] median=10767
+PHASE5 DR-25 pass catsClass  us = [9761, 9790, 10509, 12716, 29774]  median=10509
+PHASE5 DR-25 one shared walk us = [9556, 9625, 10016, 10604, 43153]  median=10016
+```
+
+One `processElements` walk dispatching on all three types costs **the same as one
+`findChildrenOfType`**. And DR-25's own row undercounts the redundancy: `map` has **five** traversal
+call sites over **three** element types, and **three of the five are the identical
+`LuaAssignmentStatement` walk** (`indexMemberAssignments`, plus `indexTableLiteralFields` and
+`indexOpaqueBindings` through `forEachBareBinding` → `forEachAssignedTarget`). So four of the five
+walks are redundant, at ~10 ms each on this 126 KiB / 3 600-member fixture — roughly **40 ms of the
+index's 67 ms per-file cost**.
+
+**Decision: worth doing, deferred with an owner.** It is ~60 % of the per-file build cost of the most
+expensive Lua indexer, which is a real win — but it is one-off, persisted, and on no latency path,
+and it edits a shipped index where any divergence changes index content and needs a version bump plus
+the corpus gate. Filed as **BUG-437** with a roadmap row.
+
+### 1.11.5 DR-16's outstanding half — the remaining COMP-09-02 sites, against the right door
+
+The anchors were re-grepped before being quoted, because this file moved under TYPE-11 and stale
+anchors have bitten this feature twice. Three corrections:
+
+| As written in COMP-09-02 | On disk today |
+| :-- | :-- |
+| `LuaTypeManagerImpl:436` (`catsClassTags`, called at `:393`) | `catsClassTags` is declared at **`:435`** and called at **`:396`**. Also: "`catsClassTags`" and "`LuaTypeManagerImpl:436`" in the Phase 5 task list are **the same site named twice** — there are three distinct remaining sites, not four |
+| `LuaImplicitFields:76` | **exact** |
+| `LuaTypesVisitor:1349` | **exact** — and it is `seedAmbientGlobals` |
+| `LuaMemberFieldNavigation:32` | **exact**, and out of scope: it is a *navigation* site, which requirements.md's Out of Scope section excludes by name |
+
+Measured, on the same fixture, warm (medians of five):
+
+```
+PHASE5 DR-16 catsClassTags us     = [10777, 10816, 10970, 11878, 522018] median=10970 tags=1
+PHASE5 DR-16 LuaImplicitFields us = [16347, 17209, 17844, 19704, 53236]  median=17844 fields=3400 files=1
+```
+
+The 522 018 µs maximum is the cold first sample — it is the declaring file's AST parse, the same
+quantity §1.6 attributed the `@class` door's cold cost to, and it is not averaged in.
+
+- **`catsClassTags` — 11.0 ms** and **`LuaImplicitFields.collect` — 17.8 ms** over 3 400 fields. Both
+  are on the `@class` door. Together **29 ms**, against that door's **269 ms** cold and **103 ms**
+  warm-file marginal (§1.11.6). So they are **not** why the door misses budget, and converting them
+  would not bring it inside: the miss is the file-level parse plus per-member type construction.
+  **The scope decision does not change** — §4.3/§4.6 do not touch these sites — and it is now backed
+  by a per-site figure against the door each site actually serves, which is what DR-16 was owed.
+  Note the earlier Phase 0 figure (a `catsClassTags`-shaped walk at 29 ms against a 41 ms warm-file
+  door) was a *shaped candidate*, not the site; the real site is 11 ms.
+- **`LuaTypesVisitor:1349` (`seedAmbientGlobals`) — under budget by construction, and DR-26 already
+  measured why.** It walks only files *named* `global.lua`; none exists on the default target, and on
+  the five targets where one does (`redis-5/6/7`, `valkey-7.2/8`) each is **7 lines**. A
+  whole-file `findChildrenOfType` over 7 lines needs no timing to clear a 100 ms budget, and TC 10h
+  already gates its behaviour.
+
+**DR-16 is closed.** Both halves are now done: the medians half at Phase 0, the per-site right-door
+half here.
+
+### 1.11.6 The four caches, re-measured
+
+```
+PHASE5 cache typeCache coldFileMiss=476944us (single) warmFileMiss=103382us (single) hit=[7,7,9,18,106] median=9
+PHASE5 cache globalCache coldMiss=631245us (single) hit=[6,7,9,22,220] median=9
+PHASE5 cache forFile hit=[7,8,13,21,88] median=13
+PHASE5 cache rankingFuncKeys us = [1048, 1158, 1176, 1368, 8642] median=1176 keys=2872
+PHASE5 cache rankingClassKeys us = [118, 122, 123, 181, 254]     median=123  keys=3
+```
+
+`warmFileMiss` is `resolveType("Duo1")` where `Duo1` shares a file with an already-resolved `Duo0`:
+a cache **miss** whose file-level work is already paid, i.e. the marginal per-class cost, which is
+what the cache saves on everything after the first class in a file.
+
+| Cache | Anchor (re-grepped) | What it saves | Verdict |
+| :-- | :-- | :-- | :-- |
+| `funcKeyCache` / `classKeyCache` | `GlobalSymbolRankingService:54,66` (comment at `:51`) | `StubIndex.getAllKeys` — **1 176 µs** over 2 872 function keys and **123 µs** over 3 class keys, ~1.3 ms per completion invocation | **KEEP.** COMP-09 did not make it redundant: it scans key *names* for ranking, a different question from member enumeration, and `LuaReceiverMemberIndex` cannot answer it. 1.3 ms of a 100 ms budget on every invocation, against a cache that costs nothing |
+| `typeCache` | `LuaTypeManagerImpl:58` *(doc said `:55`)* | cold-file miss **477 ms**, warm-file miss **103 ms**, hit **9 µs** | **KEEP.** The thing it caches is still 0.1–0.5 s and the hit is 9 µs |
+| `moduleCache` / `globalCache` | `LuaTypeManagerImpl:70,82` *(doc said `:67,79`)* | `resolveGlobal` cold miss **631 ms**, hit **9 µs** | **KEEP.** `globalCache` measured; `moduleCache` is the same structure on the same door and is **not** separately measured — stated rather than implied |
+| per-file `CachedValuesManager` | `LuaTypesSnapshot.forFile` (`LuaTypes.kt:237`), deps `:281-289` | hit **13 µs**; the miss is **44 ms** on the 4 002-line consumer (§1.11.2) and **844–955 ms** for the 123 KiB library (TYPE-11 DR-08) | **KEEP.** The single most valuable cache in the feature, and TYPE-11 has just made it survive unrelated edits |
+
+**All four stay, each with a figure.** None was removed, and none should be: the acceptance criterion
+asked for a measurement and a decision, not for a deletion. The 1-line-consumer `forFile` miss the
+probe also printed (716 µs) is **not** quotable — it measures a one-line file — and is excluded here.
+
+### 1.11.7 DR-07, closed on the numbers
+
+Nothing remains. The decision (§1.2a) was "complement, not alternative"; TYPE-11 shipped the
+narrowing half; Phases 2–4 shipped the indexing half. What Phase 5 adds is that the residual is not
+an invalidation problem:
+
+- The **post-edit** case DR-07 was about is handled — TYPE-11's `churnDependencyFor` keeps a pinnable
+  library snapshot off project-wide churn (§2).
+- The **cold completion door** is 12.2 ms (§1.11.1). There is no invalidation strategy that improves
+  on a path that never builds the snapshot.
+- The one door still over budget is the `@class` door, and its cost is a **first build** — the
+  declaring file's parse plus per-member type construction. Narrowing invalidation is about *keeping*
+  a snapshot across unrelated edits; it cannot make a first build cheaper. So it is not the remedy
+  for what is left either.
+
 ## 2. Consequences for the plan
 
 Corrections forced by Step 9 review, beyond §1.7/§1.8:

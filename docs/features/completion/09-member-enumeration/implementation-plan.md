@@ -842,29 +842,107 @@ document's.)*
 
 - **Goal**: establish what is left, rather than assuming it is done.
 - **Tasks**:
-  - [ ] Re-measure both doors, medians of ≥5, against the 100 ms NFR — **five distinct wide receivers
-        in five files**, never one receiver re-measured.
-  - [ ] *(design §4.10 says Phase 4 measures these; it is Phase 5 — this plan is authoritative.)*
-  - [ ] **Settle DR-23** — Rule S's residual cost on the "consumer file binds a name that is also a
-        project-wide global" shape, at 4 000+ lines. Measured at 8–16 ms on the prototype; decide
-        whether it needs the cached bound-name set or stays as-is with the figure recorded.
-  - [ ] **Settle DR-24** — a file whose *only* receivers are opaque still pays one snapshot build.
-        Measure it; it is the one case §4.12's withdrawal does not cover.
-  - [ ] **Settle DR-25** — `LuaReceiverMemberIndex.Indexer.map` makes four separate
-        `findChildrenOfType` passes and is the most expensive of the three whole-project Lua indexers
-        (61 ms vs 20 ms vs 6 ms on the 123 KiB library, DR-18). Decide whether one shared traversal is
-        worth it.
-  - [ ] Measure whether COMP-09-02's remaining sites (`catsClassTags`, `LuaTypeManagerImpl:436`,
-        `LuaImplicitFields:76`, `LuaTypesVisitor:1349`) are now under budget or still need work —
-        this is DR-16's outstanding half.
-  - [ ] Re-measure each of the four caches (design §2) and either remove as redundant or record why
-        it stays.
-  - [ ] Decide DR-07 (narrowing invalidation) on the numbers. **Note it is largely answered**: TYPE-11
-        shipped the invalidation fix, so the post-edit case DR-07 was about is already handled. What is
-        left is whether anything remains after Phases 2–4.
-  - [ ] Run [human-verification-checklists.md](human-verification-checklists.md).
+  - [x] Re-measure both doors, medians of ≥5, against the 100 ms NFR — **five distinct wide receivers
+        in five files**, never one receiver re-measured. **Door 1 (completion) 12 225 µs — MET. Door 2
+        (`@class`) 269 459 µs direct / 322 692 µs through `completeBasic()` — MISSED, 3× the budget,
+        deferred as BUG-438 / DR-29.** Design §1.11.1.
+  - [x] *(design §4.10 says Phase 4 measures these; it is Phase 5 — this plan is authoritative.)*
+  - [x] **Settle DR-23** — Rule S's residual cost on the "consumer file binds a name that is also a
+        project-wide global" shape, at 4 000+ lines. **Confirmed at 10.9–14.7 ms (560 µs when the
+        binding is early enough to exit on); it STAYS as written.** The cached bound-name set is
+        rejected on a mechanism, not a cost: Rule S reads the per-session completion **copy**, so a
+        cache on it can never hit, and one on `originalFile` invalidates on every keystroke in exactly
+        the file DR-23 is about. Design §1.11.2.
+  - [x] **Settle DR-24** — a file whose *only* receivers are opaque still pays one snapshot build.
+        **Measured with no tier-1 receiver anywhere before it: median 43.7 / 36.7 ms across two runs,
+        inside budget.** The worst sample is the first — the shared library's snapshot build,
+        *(single — unrepeatable by construction)*, 99.5 ms one run and 260.3 ms the other — recorded
+        as §4.12's stated watch item. Design §1.11.3.
+  - [x] **Settle DR-25** — `LuaReceiverMemberIndex.Indexer.map`'s repeated `findChildrenOfType`
+        passes. **Re-measured rather than reusing DR-18, and the naive re-measure was wrong**: the
+        cost follows the measurement *position*, because the first tree toucher pays the file's AST
+        expansion. Expansion-free the three indexers are **67 / 20 / 6 ms**, reproducing DR-18's
+        61 / 20 / 6 — DR-18 confirmed. `map` has **five** call sites over three types, three of them
+        the same `LuaAssignmentStatement` walk; one shared walk costs the same as one pass, so ~40 ms
+        of the 67 ms is redundant. **Worth doing; deferred to BUG-437.** Design §1.11.4.
+  - [x] Measure whether COMP-09-02's remaining sites are now under budget or still need work — DR-16's
+        outstanding half. **`catsClassTags` 11.0 ms + `LuaImplicitFields` 17.8 ms = 29 ms of the
+        `@class` door's 269 ms, so they are not its bottleneck; `seedAmbientGlobals` walks a 7-line
+        file on five targets and none on the default.** Anchors re-grepped first, and the task list's
+        "`catsClassTags`" and "`LuaTypeManagerImpl:436`" are **the same site** — three sites, not
+        four; `LuaMemberFieldNavigation:32` is navigation and out of scope. Design §1.11.5.
+  - [x] Re-measure each of the four caches (design §2) and either remove as redundant or record why
+        it stays. **All four measured, all four KEEP, none recommended for removal.** Design §1.11.6.
+  - [x] Decide DR-07 (narrowing invalidation) on the numbers. **Closed: nothing remains.** The
+        post-edit case is TYPE-11's; the cold completion door is 12.2 ms and no invalidation beats a
+        path that never builds the snapshot; and the one door still over budget misses on a **first
+        build**, which narrowing cannot make cheaper. Design §1.11.7.
+  - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) — **NOT run in
+        Phase 5, deliberately.** See "The live checklist" below: 14 of its 17 scenarios are discharged
+        by automated real-flow tests, and whether the remaining 3 warrant a live GoLand pass is the
+        supervisor's call, not the implementor's.
 - **Exit**: every acceptance criterion ticked or explicitly deferred with a reason; every DR row in
   risks-and-gaps is `done` or `deferred with a named owner`.
+
+### Phase 5 outcome (2026-08-12) — measurement only, no production change
+
+Every figure lives in design §1.11 with its raw output pasted. `git diff -- src/main` is empty: the
+probe (`CompNinePhase5Probe`) and a temporary five-way split inside
+`LuaReceiverMemberIndex.Indexer.map` were made under the `temporary-edits` snapshot loop, verified to
+have applied with `scratch_changed`, and restored with `scratch_end` — never `git checkout`. **The
+corpus sweep was deliberately not re-run**: it gates production changes and there are none.
+
+**Three findings that reversed a premise rather than confirming one.**
+
+1. **Both doors is not one answer.** The completion door meets NFR-1 with an order of magnitude to
+   spare; the `@class` door misses it by 3×. Nothing in the feature had ever measured door 2 cold as
+   a median of five, so "COMP-09 meets its latency target" was true only of the door the gate
+   asserts. Now stated per door, and the miss has an owner.
+2. **A timing harness can be defeated by its own ordering.** Timing `map` first reported 256 ms;
+   timing it third reported 67 ms, for identical code. `FileContentImpl` expands the AST on first
+   *tree access*, not on `getPsiFile()`, so whichever indexer runs first pays the whole parse.
+   Reordering — twice, once inside `map` and once across the three extensions — is what established
+   it. DR-18 had already avoided this trap by measuring warm, so its numbers survive; the naive
+   re-measure would have libelled its own index by 4×.
+3. **DR-23's remedy was unavailable, not merely unnecessary.** The proposed cached bound-name set
+   cannot be built at all against a per-session completion copy. That is a stronger close than "the
+   cost is acceptable", and it came from reading what the call site already documents rather than
+   from the timing.
+
+### The live checklist — what it would cover, and what is already discharged
+
+Not run, per the Phase 5 brief. Recorded so the decision can be made on evidence.
+
+**Already discharged by automated real-flow tests** (all through `completeBasic()` against a real
+`SyntheticLibrary` root, which is the blind spot `LibraryRootTestCase` exists to remove):
+
+| Scenario | Discharged by |
+| :-- | :-- |
+| 1.2 the costly keystroke, 1.3 large project / unrelated content, 1.4 small and huge both cold | `MemberEnumerationLatencyGateTest` — cold time-to-first over five distinct wide receivers, plus the `entries` count across 4 000 added unrelated members |
+| 1.5 the `require`-bound receiver | the gate's recorded tier 2, plus Phase 5 DR-24 (five opaque receivers, five files) |
+| 1.6 Rule S's residual on a big shadowing file | Phase 5 DR-23's medians, plus `MemberEnumerationShadowingTest` |
+| 1.7 shadowing by every binding form | `MemberEnumerationShadowingTest` TC 10a–10j, both clause deletions mutation-proved |
+| 1.8 Redis ambient globals + `@class` stub, 1.9 Valkey `server.` must not move | `MemberEnumerationRedisTargetTest` on real `Target(REDIS, 7+)` / `Target(VALKEY, 8)` |
+| 2.1 colon-declared methods | `MemberEnumerationGoldenTest`'s colon rows (DR-27) + `MemberEnumerationExpectationTest` |
+| 2.2 nested qualifiers stop being members | the golden + `CompNineDr12Test` (BUG-430, declared) |
+| 2.5 a `@field` that did not complete before | E2/E6/E7, TC 7c, TC 7f/7f-bis |
+| 3.1 a `@class`-declared `__add` | `MemberEnumerationMetamethodTest`, 11 tests, exact offered sets |
+| 3b.1/3b.2 during and after indexing | `CompNineDr10Test` + the `found = false` decline path (DR-10) |
+| 4.1 the checker's view is unchanged | the golden + the corpus sweep's `LuaInspectionParityTest` |
+
+**Not discharged — a human is the only instrument**, and the checklist says so itself for two of the
+three:
+
+- **1.1 "First `wx.` in a session"** — *perceived* latency against a real 230 KiB TARGET-10 library
+  in a running IDE. The automated figure is a synthetic fixture; perception is not a fixture result.
+- **2.3 type text absent on the cross-file path** — a deliberate trade (design §4.5); the checklist
+  calls it "the one judgement no automated test can make", and its outcome decides whether the index
+  value should carry a type string.
+- **2.4 go-to-declaration and the override gutter marker** — `materializeClass`'s parity harness
+  compares names and types only, so the checklist marks this "checkable *only* by hand".
+
+**Recommendation, for the supervisor to accept or reject:** run a live pass covering exactly 1.1, 2.3
+and 2.4. The other fourteen would re-check by hand what a gate already asserts on every run.
 
 ## Requirement → phase coverage
 
@@ -890,4 +968,4 @@ document's.)*
 | 2: The change site — hoist above the snapshot build | **done** (2026-08-12; re-cut that day from a measured prototype, superseding the aborted "Completion consumer") | Must |
 | 3: Materialization consumer | **done** (2026-08-12, remediated 2026-08-12) | Must |
 | 4: `@class` metamethods | **done** (2026-08-12) | Should |
-| 5: Re-measure and decide deferrals | planned | Must |
+| 5: Re-measure and decide deferrals | **done** (2026-08-12) — measurement only, no production change; the live checklist is deliberately not run and is the supervisor's call | Must |
